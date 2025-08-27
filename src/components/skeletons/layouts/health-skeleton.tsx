@@ -1,6 +1,6 @@
-import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
+import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
 interface HealthSkeletonProps {
   className?: string;
@@ -10,15 +10,15 @@ interface HealthSkeletonProps {
 /**
  * HealthSkeleton component for displaying placeholder health analysis content
  * Matches the structure of RepositoryHealthCard component
- * 
+ *
  * @param className - Additional CSS classes to apply
  * @param isMobile - Whether to render mobile-optimized layout
  * @returns A skeleton layout for health analysis with accessibility features
  */
 export function HealthSkeleton({ className, isMobile = false }: HealthSkeletonProps) {
   return (
-    <Card 
-      className={cn("animate-pulse skeleton-container skeleton-optimized", className)}
+    <Card
+      className={cn('animate-pulse skeleton-container skeleton-optimized', className)}
       aria-label="Loading repository health analysis..."
       aria-busy="true"
     >
@@ -66,7 +66,7 @@ function OverallHealthSkeleton({ isMobile }: { isMobile: boolean }) {
             <Skeleton className="h-6 w-40 mx-auto" />
             <Skeleton className="h-4 w-64 mx-auto" />
           </div>
-          
+
           {/* Health score display */}
           <div className="flex justify-center items-center space-x-4">
             <div className="text-center">
@@ -74,12 +74,9 @@ function OverallHealthSkeleton({ isMobile }: { isMobile: boolean }) {
               <Skeleton className="h-4 w-16 mx-auto" />
             </div>
           </div>
-          
+
           {/* Health metrics row */}
-          <div className={cn(
-            "grid gap-4 pt-4",
-            isMobile ? "grid-cols-2" : "grid-cols-4"
-          )}>
+          <div className={cn('grid gap-4 pt-4', isMobile ? 'grid-cols-2' : 'grid-cols-4')}>
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="text-center space-y-2">
                 <Skeleton className="h-8 w-8 mx-auto" />
@@ -115,10 +112,12 @@ function LotteryFactorSkeleton({ isMobile }: { isMobile: boolean }) {
           </div>
 
           {/* Chart placeholder */}
-          <div className={cn(
-            "w-full border-2 border-dashed border-muted rounded-lg flex items-center justify-center",
-            isMobile ? "h-48" : "h-64"
-          )}>
+          <div
+            className={cn(
+              'w-full border-2 border-dashed border-muted rounded-lg flex items-center justify-center',
+              isMobile ? 'h-48' : 'h-64'
+            )}
+          >
             <div className="text-center space-y-2">
               <Skeleton className="h-8 w-8 mx-auto" />
               <Skeleton className="h-4 w-24 mx-auto" />

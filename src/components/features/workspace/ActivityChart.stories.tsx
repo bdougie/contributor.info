@@ -2,36 +2,39 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { ActivityChart, ActivityChartSkeleton, type ActivityDataPoint } from './ActivityChart';
 
 // Generate sample activity data
-const generateActivityData = (days: number, pattern: 'normal' | 'refactoring' | 'feature' | 'mixed' = 'mixed'): ActivityDataPoint[] => {
+const generateActivityData = (
+  days: number,
+  pattern: 'normal' | 'refactoring' | 'feature' | 'mixed' = 'mixed'
+): ActivityDataPoint[] => {
   const data: ActivityDataPoint[] = [];
   const today = new Date();
-  
+
   for (let i = days - 1; i >= 0; i--) {
     const date = new Date(today);
     date.setDate(date.getDate() - i);
-    
+
     let additions = 0;
     let deletions = 0;
-    
+
     switch (pattern) {
       case 'normal':
         // Balanced additions and deletions
         additions = Math.floor(Math.random() * 300) + 100;
         deletions = Math.floor(Math.random() * 200) + 50;
         break;
-        
+
       case 'refactoring':
         // More deletions than additions
         additions = Math.floor(Math.random() * 100) + 50;
         deletions = Math.floor(Math.random() * 400) + 200;
         break;
-        
+
       case 'feature':
         // More additions than deletions
         additions = Math.floor(Math.random() * 500) + 300;
         deletions = Math.floor(Math.random() * 100) + 20;
         break;
-        
+
       case 'mixed':
         // Varying patterns
         const dayPattern = i % 3;
@@ -50,7 +53,7 @@ const generateActivityData = (days: number, pattern: 'normal' | 'refactoring' | 
         }
         break;
     }
-    
+
     data.push({
       date: date.toISOString(),
       additions,
@@ -59,7 +62,7 @@ const generateActivityData = (days: number, pattern: 'normal' | 'refactoring' | 
       files_changed: Math.floor(Math.random() * 30) + 10,
     });
   }
-  
+
   return data;
 };
 
@@ -70,7 +73,8 @@ const meta = {
     layout: 'padded',
     docs: {
       description: {
-        component: 'A candlestick chart showing code activity with additions vs deletions. Green bars indicate days with more additions, red bars show days with more deletions, and gray bars show balanced changes.',
+        component:
+          'A candlestick chart showing code activity with additions vs deletions. Green bars indicate days with more additions, red bars show days with more deletions, and gray bars show balanced changes.',
       },
     },
   },
@@ -140,7 +144,8 @@ export const RefactoringPeriod: Story = {
   parameters: {
     docs: {
       description: {
-        story: 'Shows a period focused on code refactoring with more deletions than additions (red bars)',
+        story:
+          'Shows a period focused on code refactoring with more deletions than additions (red bars)',
       },
     },
   },
@@ -198,7 +203,7 @@ export const HighVolume: Story = {
   args: {
     title: 'High Activity Period',
     description: 'Intense development phase',
-    data: generateActivityData(30, 'mixed').map(d => ({
+    data: generateActivityData(30, 'mixed').map((d) => ({
       ...d,
       additions: d.additions * 3,
       deletions: d.deletions * 2,
@@ -220,7 +225,7 @@ export const LowActivity: Story = {
   args: {
     title: 'Maintenance Mode',
     description: 'Minimal changes and bug fixes',
-    data: generateActivityData(30, 'normal').map(d => ({
+    data: generateActivityData(30, 'normal').map((d) => ({
       ...d,
       additions: Math.floor(d.additions * 0.1),
       deletions: Math.floor(d.deletions * 0.1),

@@ -21,31 +21,45 @@ function escapeXml(text: any): string {
 
 function sanitizeColor(color: string): string {
   const hexPattern = /^#(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{4}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/;
-  const rgbPattern = /^rgba?\(\s*(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\s*,\s*(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\s*,\s*(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\s*(?:,\s*(?:0?\.[0-9]+|1(?:\.0+)?|0))?\)$/;
-  const namedColors = ['red', 'green', 'blue', 'yellow', 'orange', 'purple', 'gray', 'black', 'white'];
-  
-  if (hexPattern.test(color) || rgbPattern.test(color) || namedColors.includes(color.toLowerCase())) {
+  const rgbPattern =
+    /^rgba?\(\s*(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\s*,\s*(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\s*,\s*(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\s*(?:,\s*(?:0?\.[0-9]+|1(?:\.0+)?|0))?\)$/;
+  const namedColors = [
+    'red',
+    'green',
+    'blue',
+    'yellow',
+    'orange',
+    'purple',
+    'gray',
+    'black',
+    'white',
+  ];
+
+  if (
+    hexPattern.test(color) ||
+    rgbPattern.test(color) ||
+    namedColors.includes(color.toLowerCase())
+  ) {
     return color;
   }
-  
+
   return '#007ec6';
 }
 
 describe('Widget Security - XSS Prevention', () => {
   describe('escapeXml', () => {
     it('should escape HTML entities', () => {
-      expect(escapeXml('<script>alert("XSS")</script>'))
-        .toBe('&lt;script&gt;alert(&quot;XSS&quot;)&lt;/script&gt;');
+      expect(escapeXml('<script>alert("XSS")</script>')).toBe(
+        '&lt;script&gt;alert(&quot;XSS&quot;)&lt;/script&gt;'
+      );
     });
 
     it('should escape XML entities', () => {
-      expect(escapeXml('&<>"\''))
-        .toBe('&amp;&lt;&gt;&quot;&apos;');
+      expect(escapeXml('&<>"\'')).toBe('&amp;&lt;&gt;&quot;&apos;');
     });
 
     it('should remove control characters', () => {
-      expect(escapeXml('Hello\x00World\x08Test'))
-        .toBe('HelloWorldTest');
+      expect(escapeXml('Hello\x00World\x08Test')).toBe('HelloWorldTest');
     });
 
     it('should handle non-string inputs', () => {
@@ -56,14 +70,16 @@ describe('Widget Security - XSS Prevention', () => {
 
     it('should prevent SVG injection', () => {
       const malicious = '"><script>alert(1)</script><text x="';
-      expect(escapeXml(malicious))
-        .toBe('&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;&lt;text x=&quot;');
+      expect(escapeXml(malicious)).toBe(
+        '&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;&lt;text x=&quot;'
+      );
     });
 
     it('should prevent style injection', () => {
       const malicious = '"><style>*{display:none}</style><text x="';
-      expect(escapeXml(malicious))
-        .toBe('&quot;&gt;&lt;style&gt;*{display:none}&lt;/style&gt;&lt;text x=&quot;');
+      expect(escapeXml(malicious)).toBe(
+        '&quot;&gt;&lt;style&gt;*{display:none}&lt;/style&gt;&lt;text x=&quot;'
+      );
     });
   });
 
@@ -78,7 +94,7 @@ describe('Widget Security - XSS Prevention', () => {
     it('should reject invalid hex color lengths', () => {
       expect(sanitizeColor('#ff')).toBe('#007ec6'); // too short
       expect(sanitizeColor('#fffff')).toBe('#007ec6'); // 5 digits
-      expect(sanitizeColor('#fffffff')).toBe('#007ec6'); // 7 digits  
+      expect(sanitizeColor('#fffffff')).toBe('#007ec6'); // 7 digits
       expect(sanitizeColor('#fffffffff')).toBe('#007ec6'); // too long
     });
 

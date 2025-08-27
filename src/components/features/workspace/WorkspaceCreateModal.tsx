@@ -23,13 +23,13 @@ export interface WorkspaceCreateModalProps {
   workspaceId?: string;
 }
 
-export function WorkspaceCreateModal({ 
-  open, 
+export function WorkspaceCreateModal({
+  open,
   onOpenChange,
   onSuccess,
   mode = 'create',
   initialValues,
-  workspaceId
+  workspaceId,
 }: WorkspaceCreateModalProps) {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
@@ -39,63 +39,74 @@ export function WorkspaceCreateModal({
   useEffect(() => {
     // Get the current user when the modal opens
     const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       setUser(user);
     };
-    
+
     if (open) {
       getUser();
     }
   }, [open]);
 
-  const handleWorkspaceSubmit = useCallback(async (data: CreateWorkspaceRequest) => {
-    if (!user?.id) {
-      setError(`You must be logged in to ${mode === 'create' ? 'create' : 'edit'} a workspace`);
-      return;
-    }
-
-    // Check for workspaceId when in edit mode
-    if (mode === 'edit' && !workspaceId) {
-      setError('Workspace ID is required for editing');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      let response;
-      
-      if (mode === 'create') {
-        response = await WorkspaceService.createWorkspace(user.id, data);
-      } else {
-        // workspaceId is guaranteed to be defined here due to the check above
-        response = await WorkspaceService.updateWorkspace(workspaceId!, user.id, data);
+  const handleWorkspaceSubmit = useCallback(
+    async (data: CreateWorkspaceRequest) => {
+      if (!user?.id) {
+        setError(`You must be logged in to ${mode === 'create' ? 'create' : 'edit'} a workspace`);
+        return;
       }
-      
-      if (response.success && response.data) {
-        toast.success(mode === 'create' ? 'Workspace created successfully!' : 'Workspace updated successfully!');
-        onOpenChange(false);
-        
-        // Call optional success callback
-        if (onSuccess) {
-          onSuccess(response.data.id);
-        }
-        
-        // Navigate to the workspace if creating new one
+
+      // Check for workspaceId when in edit mode
+      if (mode === 'edit' && !workspaceId) {
+        setError('Workspace ID is required for editing');
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        let response;
+
         if (mode === 'create') {
-          navigate(`/i/${response.data.id}`);
+          response = await WorkspaceService.createWorkspace(user.id, data);
+        } else {
+          // workspaceId is guaranteed to be defined here due to the check above
+          response = await WorkspaceService.updateWorkspace(workspaceId!, user.id, data);
         }
-      } else {
-        setError(response.error || `Failed to ${mode === 'create' ? 'create' : 'update'} workspace`);
+
+        if (response.success && response.data) {
+          toast.success(
+            mode === 'create'
+              ? 'Workspace created successfully!'
+              : 'Workspace updated successfully!'
+          );
+          onOpenChange(false);
+
+          // Call optional success callback
+          if (onSuccess) {
+            onSuccess(response.data.id);
+          }
+
+          // Navigate to the workspace if creating new one
+          if (mode === 'create') {
+            navigate(`/i/${response.data.id}`);
+          }
+        } else {
+          setError(
+            response.error || `Failed to ${mode === 'create' ? 'create' : 'update'} workspace`
+          );
+        }
+      } catch (err) {
+        console.error(`Error ${mode === 'create' ? 'creating' : 'updating'} workspace:`, err);
+        setError('An unexpected error occurred. Please try again.');
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error(`Error ${mode === 'create' ? 'creating' : 'updating'} workspace:`, err);
-      setError('An unexpected error occurred. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  }, [user, navigate, onOpenChange, onSuccess, mode, workspaceId]);
+    },
+    [user, navigate, onOpenChange, onSuccess, mode, workspaceId]
+  );
 
   const handleCancel = useCallback(() => {
     if (!loading) {
@@ -108,11 +119,9 @@ export function WorkspaceCreateModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>
-            {mode === 'create' ? 'Create New Workspace' : 'Edit Workspace'}
-          </DialogTitle>
+          <DialogTitle>{mode === 'create' ? 'Create New Workspace' : 'Edit Workspace'}</DialogTitle>
           <DialogDescription>
-            {mode === 'create' 
+            {mode === 'create'
               ? 'Organize your favorite repositories and collaborate with your team. You can add repositories and invite members after creating your workspace.'
               : 'Update your workspace settings. Changes will be applied immediately.'}
           </DialogDescription>

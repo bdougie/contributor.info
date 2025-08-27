@@ -1,20 +1,32 @@
-import { useState, useEffect } from 'react'
-import { Shield, Search, User, Crown, Lock, Unlock, RefreshCw, UserCheck, TrendingUp, AlertCircle, Bot } from '@/components/ui/icon';
+import { useState, useEffect } from 'react';
+import {
+  Shield,
+  Search,
+  User,
+  Crown,
+  Lock,
+  Unlock,
+  RefreshCw,
+  UserCheck,
+  TrendingUp,
+  AlertCircle,
+  Bot,
+} from '@/components/ui/icon';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@/components/ui/table';
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -24,7 +36,14 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Link } from 'react-router-dom';
 import { logAdminAction, useAdminGitHubId } from '@/hooks/use-admin-auth';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
@@ -57,7 +76,13 @@ interface RoleChangeDialogProps {
   newRole: string;
 }
 
-function RoleChangeDialog({ isOpen, onClose, onConfirm, contributor, newRole }: RoleChangeDialogProps) {
+function RoleChangeDialog({
+  isOpen,
+  onClose,
+  onConfirm,
+  contributor,
+  newRole,
+}: RoleChangeDialogProps) {
   const [reason, setReason] = useState('');
   const [lock, setLock] = useState(false);
 
@@ -68,9 +93,13 @@ function RoleChangeDialog({ isOpen, onClose, onConfirm, contributor, newRole }: 
           <DialogTitle>Change Contributor Role</DialogTitle>
           <DialogDescription>
             You are about to change {contributor.user_id}'s role from{' '}
-            <Badge variant="outline" className="mx-1">{contributor.role}</Badge>
+            <Badge variant="outline" className="mx-1">
+              {contributor.role}
+            </Badge>
             to
-            <Badge variant="outline" className="mx-1">{newRole}</Badge>
+            <Badge variant="outline" className="mx-1">
+              {newRole}
+            </Badge>
             in {contributor.repository_owner}/{contributor.repository_name}
           </DialogDescription>
         </DialogHeader>
@@ -103,10 +132,7 @@ function RoleChangeDialog({ isOpen, onClose, onConfirm, contributor, newRole }: 
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button 
-            onClick={() => onConfirm(reason, lock)}
-            disabled={!reason.trim()}
-          >
+          <Button onClick={() => onConfirm(reason, lock)} disabled={!reason.trim()}>
             Confirm Change
           </Button>
         </DialogFooter>
@@ -120,13 +146,17 @@ export function MaintainerManagement() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterRole, setFilterRole] = useState<'all' | 'owner' | 'maintainer' | 'contributor' | 'bot'>('all');
-  const [filterConfidence, setFilterConfidence] = useState<'all' | 'high' | 'medium' | 'low'>('all');
+  const [filterRole, setFilterRole] = useState<
+    'all' | 'owner' | 'maintainer' | 'contributor' | 'bot'
+  >('all');
+  const [filterConfidence, setFilterConfidence] = useState<'all' | 'high' | 'medium' | 'low'>(
+    'all'
+  );
   const [filterOverride, setFilterOverride] = useState<'all' | 'manual' | 'algorithm'>('all');
   const [selectedRepo, setSelectedRepo] = useState<string>('all');
   const [repos, setRepos] = useState<string[]>([]);
   const adminGitHubId = useAdminGitHubId();
-  
+
   const [roleChangeDialog, setRoleChangeDialog] = useState<{
     isOpen: boolean;
     contributor?: ContributorRoleData;
@@ -141,7 +171,7 @@ export function MaintainerManagement() {
     try {
       setLoading(true);
       setError(null);
-      
+
       const { data, error: fetchError } = await supabase
         .from('contributor_roles')
         .select('*')
@@ -152,11 +182,11 @@ export function MaintainerManagement() {
       }
 
       setContributors(data || []);
-      
+
       // Extract unique repos
-      const uniqueRepos = [...new Set(
-        (data || []).map(c => `${c.repository_owner}/${c.repository_name}`)
-      )];
+      const uniqueRepos = [
+        ...new Set((data || []).map((c) => `${c.repository_owner}/${c.repository_name}`)),
+      ];
       setRepos(uniqueRepos);
     } catch (err) {
       console.error('Error fetching contributor roles:', err);
@@ -167,7 +197,7 @@ export function MaintainerManagement() {
   };
 
   const updateContributorRole = async (
-    contributor: ContributorRoleData, 
+    contributor: ContributorRoleData,
     newRole: 'owner' | 'maintainer' | 'contributor' | 'bot',
     reason: string,
     lock: boolean
@@ -183,7 +213,7 @@ export function MaintainerManagement() {
         p_new_role: newRole,
         p_admin_github_id: adminGitHubId,
         p_reason: reason,
-        p_lock: lock
+        p_lock: lock,
       });
 
       if (updateError) {
@@ -191,21 +221,15 @@ export function MaintainerManagement() {
       }
 
       // Log admin action
-      await logAdminAction(
-        adminGitHubId,
-        'role_override',
-        'contributor_role',
-        contributor.id,
-        {
-          user_id: contributor.user_id,
-          repository: `${contributor.repository_owner}/${contributor.repository_name}`,
-          old_role: contributor.role,
-          new_role: newRole,
-          confidence_score: contributor.confidence_score,
-          reason,
-          locked: lock
-        }
-      );
+      await logAdminAction(adminGitHubId, 'role_override', 'contributor_role', contributor.id, {
+        user_id: contributor.user_id,
+        repository: `${contributor.repository_owner}/${contributor.repository_name}`,
+        old_role: contributor.role,
+        new_role: newRole,
+        confidence_score: contributor.confidence_score,
+        reason,
+        locked: lock,
+      });
 
       // Refresh data
       await fetchContributorRoles();
@@ -221,9 +245,9 @@ export function MaintainerManagement() {
     try {
       const { error: updateError } = await supabase
         .from('contributor_roles')
-        .update({ 
+        .update({
           locked: !contributor.locked,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', contributor.id);
 
@@ -240,16 +264,14 @@ export function MaintainerManagement() {
         {
           user_id: contributor.user_id,
           repository: `${contributor.repository_owner}/${contributor.repository_name}`,
-          role: contributor.role
+          role: contributor.role,
         }
       );
 
       // Update local state
-      setContributors(contributors.map(c => 
-        c.id === contributor.id 
-          ? { ...c, locked: !c.locked }
-          : c
-      ));
+      setContributors(
+        contributors.map((c) => (c.id === contributor.id ? { ...c, locked: !c.locked } : c))
+      );
     } catch (err) {
       console.error('Error toggling lock:', err);
       setError(err instanceof Error ? err.message : 'Failed to toggle lock');
@@ -257,53 +279,53 @@ export function MaintainerManagement() {
   };
 
   // Filter contributors based on search and filter criteria
-  const filteredContributors = contributors.filter(contributor => {
+  const filteredContributors = contributors.filter((contributor) => {
     const fullRepo = `${contributor.repository_owner}/${contributor.repository_name}`;
-    
-    const matchesSearch = 
+
+    const matchesSearch =
       contributor.user_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       fullRepo.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesRole = 
-      filterRole === 'all' || contributor.role === filterRole;
+    const matchesRole = filterRole === 'all' || contributor.role === filterRole;
 
-    const matchesConfidence = 
+    const matchesConfidence =
       filterConfidence === 'all' ||
       (filterConfidence === 'high' && contributor.confidence_score >= 0.8) ||
-      (filterConfidence === 'medium' && contributor.confidence_score >= 0.5 && contributor.confidence_score < 0.8) ||
+      (filterConfidence === 'medium' &&
+        contributor.confidence_score >= 0.5 &&
+        contributor.confidence_score < 0.8) ||
       (filterConfidence === 'low' && contributor.confidence_score < 0.5);
 
-    const matchesOverride = 
+    const matchesOverride =
       filterOverride === 'all' ||
       (filterOverride === 'manual' && contributor.admin_override) ||
       (filterOverride === 'algorithm' && !contributor.admin_override);
 
-    const matchesRepo = 
-      selectedRepo === 'all' || fullRepo === selectedRepo;
+    const matchesRepo = selectedRepo === 'all' || fullRepo === selectedRepo;
 
     return matchesSearch && matchesRole && matchesConfidence && matchesOverride && matchesRepo;
   });
 
   const stats = {
     total: contributors.length,
-    owners: contributors.filter(c => c.role === 'owner').length,
-    maintainers: contributors.filter(c => c.role === 'maintainer').length,
-    bots: contributors.filter(c => c.role === 'bot').length,
-    manualOverrides: contributors.filter(c => c.admin_override).length,
-    lockedRoles: contributors.filter(c => c.locked).length,
-    highConfidence: contributors.filter(c => c.confidence_score >= 0.8).length
+    owners: contributors.filter((c) => c.role === 'owner').length,
+    maintainers: contributors.filter((c) => c.role === 'maintainer').length,
+    bots: contributors.filter((c) => c.role === 'bot').length,
+    manualOverrides: contributors.filter((c) => c.admin_override).length,
+    lockedRoles: contributors.filter((c) => c.locked).length,
+    highConfidence: contributors.filter((c) => c.confidence_score >= 0.8).length,
   };
 
   const getConfidenceBadgeVariant = (score: number) => {
-    if (score >= 0.8) return "default";
-    if (score >= 0.5) return "secondary";
-    return "outline";
+    if (score >= 0.8) return 'default';
+    if (score >= 0.5) return 'secondary';
+    return 'outline';
   };
 
   const getConfidenceColor = (score: number) => {
-    if (score >= 0.8) return "text-green-600";
-    if (score >= 0.5) return "text-yellow-600";
-    return "text-orange-600";
+    if (score >= 0.8) return 'text-green-600';
+    if (score >= 0.5) return 'text-yellow-600';
+    return 'text-orange-600';
   };
 
   if (loading) {
@@ -429,8 +451,10 @@ export function MaintainerManagement() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All repositories</SelectItem>
-                {repos.map(repo => (
-                  <SelectItem key={repo} value={repo}>{repo}</SelectItem>
+                {repos.map((repo) => (
+                  <SelectItem key={repo} value={repo}>
+                    {repo}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -446,7 +470,10 @@ export function MaintainerManagement() {
                 <SelectItem value="bot">Bots</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={filterConfidence} onValueChange={(value: any) => setFilterConfidence(value)}>
+            <Select
+              value={filterConfidence}
+              onValueChange={(value: any) => setFilterConfidence(value)}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="All confidence" />
               </SelectTrigger>
@@ -500,15 +527,15 @@ export function MaintainerManagement() {
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <Avatar className="h-8 w-8">
-                        <AvatarImage 
-                          src={`https://github.com/${contributor.user_id}.png`} 
-                          alt={contributor.user_id} 
+                        <AvatarImage
+                          src={`https://github.com/${contributor.user_id}.png`}
+                          alt={contributor.user_id}
                         />
                         <AvatarFallback>
                           {contributor.user_id.slice(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
-                      <Link 
+                      <Link
                         to={`https://github.com/${contributor.user_id}`}
                         target="_blank"
                         className="font-medium hover:underline"
@@ -518,7 +545,7 @@ export function MaintainerManagement() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Link 
+                    <Link
                       to={`/${contributor.repository_owner}/${contributor.repository_name}`}
                       className="text-sm hover:underline"
                     >
@@ -530,9 +557,9 @@ export function MaintainerManagement() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <Badge 
+                      <Badge
                         variant={getConfidenceBadgeVariant(contributor.confidence_score)}
-                        className={cn("text-xs", getConfidenceColor(contributor.confidence_score))}
+                        className={cn('text-xs', getConfidenceColor(contributor.confidence_score))}
                       >
                         {Math.round(contributor.confidence_score * 100)}%
                       </Badge>
@@ -567,13 +594,9 @@ export function MaintainerManagement() {
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <AlertCircle 
-                                className="h-4 w-4 text-muted-foreground cursor-help"
-                              />
+                              <AlertCircle className="h-4 w-4 text-muted-foreground cursor-help" />
                             </TooltipTrigger>
-                            <TooltipContent>
-                              {contributor.override_reason}
-                            </TooltipContent>
+                            <TooltipContent>{contributor.override_reason}</TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
                       )}
@@ -587,7 +610,7 @@ export function MaintainerManagement() {
                           setRoleChangeDialog({
                             isOpen: true,
                             contributor,
-                            newRole
+                            newRole,
                           });
                         }}
                       >
@@ -605,7 +628,7 @@ export function MaintainerManagement() {
                         size="sm"
                         variant="ghost"
                         onClick={() => toggleLock(contributor)}
-                        title={contributor.locked ? "Unlock role" : "Lock role"}
+                        title={contributor.locked ? 'Unlock role' : 'Lock role'}
                       >
                         {contributor.locked ? (
                           <Unlock className="h-4 w-4" />

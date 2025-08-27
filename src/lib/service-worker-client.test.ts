@@ -4,7 +4,13 @@ import { renderHook, act } from '@testing-library/react';
 // Set VITEST env var before importing to prevent auto-init
 process.env.VITEST = 'true';
 
-import { swClient, usePrefetchRoute, useServiceWorkerStatus, useOnlineStatus, usePrefetchOnInteraction } from './service-worker-client';
+import {
+  swClient,
+  usePrefetchRoute,
+  useServiceWorkerStatus,
+  useOnlineStatus,
+  usePrefetchOnInteraction,
+} from './service-worker-client';
 
 // Mock the global objects
 const mockServiceWorker = {
@@ -14,7 +20,7 @@ const mockServiceWorker = {
   addEventListener: vi.fn(),
   removeEventListener: vi.fn(),
   dispatchEvent: vi.fn(),
-  onstatechange: null
+  onstatechange: null,
 };
 
 const mockRegistration = {
@@ -33,7 +39,7 @@ const mockRegistration = {
   pushManager: {} as PushManager,
   showNotification: vi.fn(),
   getNotifications: vi.fn(),
-  sync: {} as SyncManager
+  sync: {} as SyncManager,
 };
 
 describe('Service Worker Client', () => {
@@ -46,7 +52,7 @@ describe('Service Worker Client', () => {
     // Store original values
     originalNavigator = global.navigator;
     originalWindow = global.window;
-    
+
     // Reset the service worker client state
     (swClient as any).initialized = false;
     (swClient as any).sw = null;
@@ -62,22 +68,24 @@ describe('Service Worker Client', () => {
         controller: mockServiceWorker,
         addEventListener: vi.fn(),
         removeEventListener: vi.fn(),
-        getRegistrations: vi.fn().mockResolvedValue([])
+        getRegistrations: vi.fn().mockResolvedValue([]),
       },
       writable: true,
-      configurable: true
+      configurable: true,
     });
 
     // Mock navigator.onLine
     Object.defineProperty(global.navigator, 'onLine', {
       value: true,
       writable: true,
-      configurable: true
+      configurable: true,
     });
 
     // Use vi.spyOn for window events to ensure proper cleanup
     addEventListenerSpy = vi.spyOn(global.window, 'addEventListener').mockImplementation(vi.fn());
-    removeEventListenerSpy = vi.spyOn(global.window, 'removeEventListener').mockImplementation(vi.fn());
+    removeEventListenerSpy = vi
+      .spyOn(global.window, 'removeEventListener')
+      .mockImplementation(vi.fn());
 
     // Mock MessageChannel
     global.MessageChannel = vi.fn().mockImplementation(() => ({
@@ -88,7 +96,7 @@ describe('Service Worker Client', () => {
         start: vi.fn(),
         addEventListener: vi.fn(),
         removeEventListener: vi.fn(),
-        dispatchEvent: vi.fn()
+        dispatchEvent: vi.fn(),
       },
       port2: {
         onmessage: null,
@@ -97,8 +105,8 @@ describe('Service Worker Client', () => {
         start: vi.fn(),
         addEventListener: vi.fn(),
         removeEventListener: vi.fn(),
-        dispatchEvent: vi.fn()
-      }
+        dispatchEvent: vi.fn(),
+      },
     }));
 
     // Mock Notification
@@ -106,12 +114,12 @@ describe('Service Worker Client', () => {
     Object.defineProperty(global.Notification, 'permission', {
       value: 'default',
       writable: true,
-      configurable: true
+      configurable: true,
     });
     Object.defineProperty(global.Notification, 'requestPermission', {
       value: vi.fn().mockResolvedValue('granted'),
       writable: true,
-      configurable: true
+      configurable: true,
     });
 
     // Clear all mocks
@@ -122,11 +130,11 @@ describe('Service Worker Client', () => {
     // Restore original values
     global.navigator = originalNavigator;
     global.window = originalWindow;
-    
+
     // Restore spies - vi.spyOn automatically restores the original implementation
     addEventListenerSpy.mockRestore();
     removeEventListenerSpy.mockRestore();
-    
+
     vi.clearAllMocks();
   });
 
@@ -139,7 +147,7 @@ describe('Service Worker Client', () => {
         '/sw-enhanced.js',
         expect.objectContaining({
           scope: '/',
-          updateViaCache: 'none'
+          updateViaCache: 'none',
         })
       );
     });
@@ -149,7 +157,7 @@ describe('Service Worker Client', () => {
       Object.defineProperty(global.navigator, 'serviceWorker', {
         value: undefined,
         writable: true,
-        configurable: true
+        configurable: true,
       });
 
       // Reinitialize - should not throw
@@ -181,9 +189,9 @@ describe('Service Worker Client', () => {
             resources: expect.arrayContaining([
               '/js/changelog-page.js',
               '/js/docs-list.js',
-              '/js/feed-page.js'
-            ])
-          }
+              '/js/feed-page.js',
+            ]),
+          },
         })
       );
 
@@ -203,8 +211,8 @@ describe('Service Worker Client', () => {
         expect.objectContaining({
           type: 'PREFETCH_RESOURCES',
           data: {
-            resources: expect.arrayContaining(['/js/repo-view.js'])
-          }
+            resources: expect.arrayContaining(['/js/repo-view.js']),
+          },
         })
       );
 
@@ -220,7 +228,7 @@ describe('Service Worker Client', () => {
       expect(mockServiceWorker.postMessage).toHaveBeenCalledWith(
         expect.objectContaining({
           type: 'CLEAR_CACHE',
-          data: { cacheName: 'test-cache' }
+          data: { cacheName: 'test-cache' },
         })
       );
     });
@@ -232,7 +240,7 @@ describe('Service Worker Client', () => {
       expect(mockServiceWorker.postMessage).toHaveBeenCalledWith(
         expect.objectContaining({
           type: 'CLEAR_CACHE',
-          data: { cacheName: undefined }
+          data: { cacheName: undefined },
         })
       );
     });
@@ -246,7 +254,7 @@ describe('Service Worker Client', () => {
       Object.defineProperty(global.navigator, 'onLine', {
         value: false,
         writable: true,
-        configurable: true
+        configurable: true,
       });
 
       expect(swClient.isOnline()).toBe(false);
@@ -281,7 +289,7 @@ describe('Service Worker Client', () => {
       Object.defineProperty(global.Notification, 'permission', {
         value: 'denied',
         writable: true,
-        configurable: true
+        configurable: true,
       });
 
       const result = await swClient.requestNotificationPermission();
@@ -323,12 +331,12 @@ describe('Service Worker Client', () => {
 
         // Simulate connection change handler being called
         const onlineHandler = (window.addEventListener as ReturnType<typeof vi.fn>).mock.calls.find(
-          call => call[0] === 'online'
+          (call) => call[0] === 'online'
         )?.[1];
 
-        const offlineHandler = (window.addEventListener as ReturnType<typeof vi.fn>).mock.calls.find(
-          call => call[0] === 'offline'
-        )?.[1];
+        const offlineHandler = (
+          window.addEventListener as ReturnType<typeof vi.fn>
+        ).mock.calls.find((call) => call[0] === 'offline')?.[1];
 
         expect(onlineHandler).toBeDefined();
         expect(offlineHandler).toBeDefined();
@@ -373,21 +381,21 @@ describe('Service Worker Client', () => {
       swClient.on('CACHE_UPDATED', handler);
 
       // Simulate message from service worker
-      const messageHandler = (navigator.serviceWorker.addEventListener as ReturnType<typeof vi.fn>).mock.calls.find(
-        call => call[0] === 'message'
-      )?.[1];
+      const messageHandler = (
+        navigator.serviceWorker.addEventListener as ReturnType<typeof vi.fn>
+      ).mock.calls.find((call) => call[0] === 'message')?.[1];
 
       messageHandler?.({
         data: {
           type: 'CACHE_UPDATED',
-          url: '/test.js'
-        }
+          url: '/test.js',
+        },
       });
 
       expect(handler).toHaveBeenCalledWith(
         expect.objectContaining({
           type: 'CACHE_UPDATED',
-          url: '/test.js'
+          url: '/test.js',
         })
       );
     });
@@ -398,21 +406,21 @@ describe('Service Worker Client', () => {
       swClient.on('BACKGROUND_SYNC', handler);
 
       // Simulate message from service worker
-      const messageHandler = (navigator.serviceWorker.addEventListener as ReturnType<typeof vi.fn>).mock.calls.find(
-        call => call[0] === 'message'
-      )?.[1];
+      const messageHandler = (
+        navigator.serviceWorker.addEventListener as ReturnType<typeof vi.fn>
+      ).mock.calls.find((call) => call[0] === 'message')?.[1];
 
       messageHandler?.({
         data: {
           type: 'BACKGROUND_SYNC',
-          status: 'completed'
-        }
+          status: 'completed',
+        },
       });
 
       expect(handler).toHaveBeenCalledWith(
         expect.objectContaining({
           type: 'BACKGROUND_SYNC',
-          status: 'completed'
+          status: 'completed',
         })
       );
     });
@@ -422,13 +430,13 @@ describe('Service Worker Client', () => {
     it('should send prefetch message for multiple resources', async () => {
       await swClient.init();
       const resources = ['/js/vendor.js', '/js/app.js', '/css/styles.css'];
-      
+
       swClient.prefetchResources(resources);
 
       expect(mockServiceWorker.postMessage).toHaveBeenCalledWith(
         expect.objectContaining({
           type: 'PREFETCH_RESOURCES',
-          data: { resources }
+          data: { resources },
         })
       );
     });

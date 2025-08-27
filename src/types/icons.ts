@@ -197,5 +197,5 @@ export const AVAILABLE_ICONS = [
   'wifi-off',
   'x',
   'x-circle',
-  'zap'
+  'zap',
 ] as const;

@@ -40,7 +40,7 @@ const supabaseRetryConfig: Partial<RetryConfig> = {
     '504',
     '429', // Rate limit
     'FetchError',
-    'AbortError'
+    'AbortError',
   ]),
   onRetry: (error, attempt) => {
     retryMetrics.totalRetries++;
@@ -48,7 +48,7 @@ const supabaseRetryConfig: Partial<RetryConfig> = {
     if (process.env.NODE_ENV === 'development') {
       console.log(`%s`, `Supabase retry attempt ${attempt}:`, error.message);
     }
-  }
+  },
 };
 
 // GitHub API retry configuration (more aggressive for rate limits)
@@ -74,7 +74,7 @@ const githubRetryConfig: Partial<RetryConfig> = {
     if (process.env.NODE_ENV === 'development' && isRateLimit) {
       console.log(`%s`, `GitHub rate limit hit, waiting longer (attempt ${attempt})...`);
     }
-  }
+  },
 };
 
 /**
@@ -85,11 +85,7 @@ export async function supabaseWithRetry<T>(
   circuitBreakerKey?: string
 ): Promise<{ data: T | null; error: Error | null }> {
   try {
-    const result = await withRetry(
-      queryBuilder,
-      supabaseRetryConfig,
-      circuitBreakerKey
-    );
+    const result = await withRetry(queryBuilder, supabaseRetryConfig, circuitBreakerKey);
     if (retryMetrics.totalRetries > 0) {
       retryMetrics.successfulRetries++;
     }
@@ -102,11 +98,10 @@ export async function supabaseWithRetry<T>(
     // Return in Supabase format
     return {
       data: null,
-      error: error as Error
+      error: error as Error,
     };
   }
 }
-
 
 /**
  * Fetch with retry for GitHub API calls
@@ -130,14 +125,14 @@ export async function fetchWithRetry(
   return withRetry(
     async () => {
       const response = await fetch(url, options);
-      
+
       // Check for rate limit or server errors
       if (response.status === 429 || response.status >= 500) {
         const error = new Error(`HTTP ${response.status}: ${response.statusText}`);
         (error as any).status = response.status;
         throw error;
       }
-      
+
       // For 403, check if it's a rate limit
       if (response.status === 403) {
         const rateLimitRemaining = response.headers.get('x-ratelimit-remaining');
@@ -147,7 +142,7 @@ export async function fetchWithRetry(
           throw error;
         }
       }
-      
+
       return response;
     },
     { ...githubRetryConfig, ...customConfig },
@@ -185,19 +180,21 @@ export const retryableSupabase = {
       async () => {
         let query = supabase
           .from('pull_requests')
-          .select(`
+          .select(
+            `
             *,
             contributors:author_id(*),
             reviews(*),
             comments(*)
-          `)
+          `
+          )
           .eq('repository_id', repositoryId)
           .order('created_at', { ascending: false });
-        
+
         if (since) {
           query = query.gte('created_at', since.toISOString());
         }
-        
+
         return await query;
       },
       supabaseRetryConfig,

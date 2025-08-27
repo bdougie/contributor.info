@@ -93,9 +93,7 @@ export const WithDescription: Story = {
             <Label htmlFor="card" className="font-medium">
               Card Payment
             </Label>
-            <p className="text-sm text-muted-foreground">
-              Pay with credit or debit card.
-            </p>
+            <p className="text-sm text-muted-foreground">Pay with credit or debit card.</p>
           </div>
         </div>
         <div className="flex items-start space-x-3">
@@ -104,9 +102,7 @@ export const WithDescription: Story = {
             <Label htmlFor="paypal" className="font-medium">
               PayPal
             </Label>
-            <p className="text-sm text-muted-foreground">
-              Pay with your PayPal account.
-            </p>
+            <p className="text-sm text-muted-foreground">Pay with your PayPal account.</p>
           </div>
         </div>
         <div className="flex items-start space-x-3">
@@ -115,9 +111,7 @@ export const WithDescription: Story = {
             <Label htmlFor="apple" className="font-medium">
               Apple Pay
             </Label>
-            <p className="text-sm text-muted-foreground">
-              Pay with Apple Pay.
-            </p>
+            <p className="text-sm text-muted-foreground">Pay with Apple Pay.</p>
           </div>
         </div>
       </div>

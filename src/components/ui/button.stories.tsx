@@ -1,38 +1,32 @@
-import type { Meta, StoryObj } from "@storybook/react";
-import { expect, within } from "@storybook/test";
-import { designTokens } from "../../../.storybook/design-tokens";
-import { Button } from "./button";
+import type { Meta, StoryObj } from '@storybook/react';
+import { expect, within } from '@storybook/test';
+import { designTokens } from '../../../.storybook/design-tokens';
+import { Button } from './button';
 
 const meta = {
-  title: "UI/Button",
+  title: 'UI/Button',
   component: Button,
   parameters: {
-    layout: "centered",
+    layout: 'centered',
     docs: {
       description: {
-        component: "A versatile button component that supports multiple variants, sizes, and states. Used throughout the application for user interactions.",
+        component:
+          'A versatile button component that supports multiple variants, sizes, and states. Used throughout the application for user interactions.',
       },
     },
   },
-  tags: ["autodocs", "interaction", "accessibility"],
+  tags: ['autodocs', 'interaction', 'accessibility'],
   argTypes: {
     variant: {
-      control: "select",
-      options: [
-        "default",
-        "destructive",
-        "outline",
-        "secondary",
-        "ghost",
-        "link",
-      ],
+      control: 'select',
+      options: ['default', 'destructive', 'outline', 'secondary', 'ghost', 'link'],
     },
     size: {
-      control: "select",
-      options: ["default", "sm", "lg", "icon"],
+      control: 'select',
+      options: ['default', 'sm', 'lg', 'icon'],
     },
     asChild: {
-      control: "boolean",
+      control: 'boolean',
     },
   },
 } satisfies Meta<typeof Button>;
@@ -42,79 +36,79 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
   args: {
-    children: "Button",
+    children: 'Button',
   },
 };
 
 export const Secondary: Story = {
   args: {
-    variant: "secondary",
-    children: "Secondary",
+    variant: 'secondary',
+    children: 'Secondary',
   },
 };
 
 export const Destructive: Story = {
   args: {
-    variant: "destructive",
-    children: "Destructive",
+    variant: 'destructive',
+    children: 'Destructive',
   },
 };
 
 export const Outline: Story = {
   args: {
-    variant: "outline",
-    children: "Outline",
+    variant: 'outline',
+    children: 'Outline',
   },
 };
 
 export const Ghost: Story = {
   args: {
-    variant: "ghost",
-    children: "Ghost",
+    variant: 'ghost',
+    children: 'Ghost',
   },
 };
 
 export const Link: Story = {
   args: {
-    variant: "link",
-    children: "Link",
+    variant: 'link',
+    children: 'Link',
   },
 };
 
 export const Small: Story = {
   args: {
-    size: "sm",
-    children: "Small",
+    size: 'sm',
+    children: 'Small',
   },
 };
 
 export const Large: Story = {
   args: {
-    size: "lg",
-    children: "Large",
+    size: 'lg',
+    children: 'Large',
   },
 };
 
 export const Icon: Story = {
   args: {
-    size: "icon",
-    children: "⚡",
+    size: 'icon',
+    children: '⚡',
   },
 };
 
 export const WithInteraction: Story = {
   args: {
-    children: "Click me!",
+    children: 'Click me!',
   },
   play: ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const button = canvas.getByRole("button");
+    const button = canvas.getByRole('button');
 
     // Check that the button is present - synchronous checks only
     expect(button).toBeInTheDocument();
 
     // Check that the button has the correct text
-    expect(button).toHaveTextContent("Click me!");
+    expect(button).toHaveTextContent('Click me!');
 
     // Simple synchronous test only
 
@@ -122,39 +116,39 @@ export const WithInteraction: Story = {
     button.focus();
     expect(document.activeElement).toBe(button);
   },
-  tags: ["interaction"],
+  tags: ['interaction'],
 };
 
 export const DisabledInteraction: Story = {
   args: {
-    children: "Disabled Button",
+    children: 'Disabled Button',
     disabled: true,
   },
   play: ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const button = canvas.getByRole("button");
+    const button = canvas.getByRole('button');
 
     // Check that the button is disabled - synchronous
     expect(button).toBeDisabled();
 
     // Check that disabled button has pointer-events: none (preventing clicks)
     const computedStyle = getComputedStyle(button);
-    expect(computedStyle.pointerEvents).toBe("none");
+    expect(computedStyle.pointerEvents).toBe('none');
 
     // Verify button is not focusable when disabled - synchronous
     button.focus();
     expect(document.activeElement).not.toBe(button);
   },
-  tags: ["interaction"],
+  tags: ['interaction'],
 };
 
 export const KeyboardNavigation: Story = {
   args: {
-    children: "Keyboard Test",
+    children: 'Keyboard Test',
   },
   play: ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const button = canvas.getByRole("button");
+    const button = canvas.getByRole('button');
 
     // Test direct focus - synchronous
     button.focus();
@@ -170,17 +164,19 @@ export const KeyboardNavigation: Story = {
     // Verify focus remains - synchronous
     expect(document.activeElement).toBe(button);
   },
-  tags: ["interaction", "accessibility"],
+  tags: ['interaction', 'accessibility'],
 };
 
 export const AllVariants: Story = {
   render: () => (
-    <div style={{ 
-      display: 'flex', 
-      flexDirection: 'column', 
-      gap: designTokens.spacing[4],
-      padding: designTokens.spacing[4],
-    }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: designTokens.spacing[4],
+        padding: designTokens.spacing[4],
+      }}
+    >
       <div style={{ display: 'flex', gap: designTokens.spacing[2], alignItems: 'center' }}>
         <Button variant="default">Default</Button>
         <Button variant="secondary">Secondary</Button>
@@ -194,7 +190,7 @@ export const AllVariants: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Showcases all button variants in one view for easy comparison.",
+        story: 'Showcases all button variants in one view for easy comparison.',
       },
     },
   },
@@ -202,12 +198,14 @@ export const AllVariants: Story = {
 
 export const AllSizes: Story = {
   render: () => (
-    <div style={{ 
-      display: 'flex', 
-      gap: designTokens.spacing[4],
-      alignItems: 'center',
-      padding: designTokens.spacing[4],
-    }}>
+    <div
+      style={{
+        display: 'flex',
+        gap: designTokens.spacing[4],
+        alignItems: 'center',
+        padding: designTokens.spacing[4],
+      }}
+    >
       <Button size="sm">Small</Button>
       <Button size="default">Default</Button>
       <Button size="lg">Large</Button>
@@ -217,7 +215,7 @@ export const AllSizes: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Demonstrates all available button sizes.",
+        story: 'Demonstrates all available button sizes.',
       },
     },
   },
@@ -225,25 +223,48 @@ export const AllSizes: Story = {
 
 export const States: Story = {
   render: () => (
-    <div style={{ 
-      display: 'grid', 
-      gridTemplateColumns: 'repeat(3, 1fr)', 
-      gap: designTokens.spacing[4],
-      padding: designTokens.spacing[4],
-    }}>
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(3, 1fr)',
+        gap: designTokens.spacing[4],
+        padding: designTokens.spacing[4],
+      }}
+    >
       <div>
-        <p style={{ marginBottom: designTokens.spacing[2], fontSize: designTokens.typography.fontSize.sm.size }}>Normal</p>
+        <p
+          style={{
+            marginBottom: designTokens.spacing[2],
+            fontSize: designTokens.typography.fontSize.sm.size,
+          }}
+        >
+          Normal
+        </p>
         <Button>Click me</Button>
       </div>
       <div>
-        <p style={{ marginBottom: designTokens.spacing[2], fontSize: designTokens.typography.fontSize.sm.size }}>Loading</p>
+        <p
+          style={{
+            marginBottom: designTokens.spacing[2],
+            fontSize: designTokens.typography.fontSize.sm.size,
+          }}
+        >
+          Loading
+        </p>
         <Button disabled>
           <span style={{ marginRight: designTokens.spacing[2] }}>⏳</span>
           Loading...
         </Button>
       </div>
       <div>
-        <p style={{ marginBottom: designTokens.spacing[2], fontSize: designTokens.typography.fontSize.sm.size }}>Disabled</p>
+        <p
+          style={{
+            marginBottom: designTokens.spacing[2],
+            fontSize: designTokens.typography.fontSize.sm.size,
+          }}
+        >
+          Disabled
+        </p>
         <Button disabled>Disabled</Button>
       </div>
     </div>
@@ -251,7 +272,7 @@ export const States: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Shows different button states including loading and disabled.",
+        story: 'Shows different button states including loading and disabled.',
       },
     },
   },

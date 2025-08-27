@@ -27,12 +27,12 @@ export function useRepositoryMetadata(owner?: string, repo?: string): UseReposit
 
   const calculateDataFreshness = (lastUpdate?: string): 'fresh' | 'stale' | 'old' => {
     if (!lastUpdate) return 'old';
-    
+
     const now = new Date();
     const updateTime = new Date(lastUpdate);
     const hoursDiff = (now.getTime() - updateTime.getTime()) / (1000 * 60 * 60);
-    
-    if (hoursDiff < 24) return 'fresh';  // < 1 day
+
+    if (hoursDiff < 24) return 'fresh'; // < 1 day
     if (hoursDiff < 168) return 'stale'; // < 7 days
     return 'old'; // > 7 days
   };
@@ -58,7 +58,7 @@ export function useRepositoryMetadata(owner?: string, repo?: string): UseReposit
       if (repoError || !repoData) {
         // Repository not in database yet
         setMetadata({
-          dataFreshness: 'old'
+          dataFreshness: 'old',
         });
         return;
       }
@@ -84,7 +84,7 @@ export function useRepositoryMetadata(owner?: string, repo?: string): UseReposit
           .eq('repository_id', repoData.id)
           .order('created_at', { ascending: false })
           .limit(1);
-        
+
         // Check if we have data (array with at least one item)
         if (!error && data && data.length > 0) {
           prData = data[0];
@@ -105,14 +105,13 @@ export function useRepositoryMetadata(owner?: string, repo?: string): UseReposit
         lastDataUpdate,
         dataFreshness,
         priority: trackedData?.priority || undefined,
-        tracking_enabled: trackedData?.tracking_enabled || false
+        tracking_enabled: trackedData?.tracking_enabled || false,
       });
-
     } catch (err) {
       console.error('Error fetching repository metadata:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch metadata');
       setMetadata({
-        dataFreshness: 'old'
+        dataFreshness: 'old',
       });
     } finally {
       setLoading(false);
@@ -127,6 +126,6 @@ export function useRepositoryMetadata(owner?: string, repo?: string): UseReposit
     metadata,
     loading,
     error,
-    refetch: fetchMetadata
+    refetch: fetchMetadata,
   };
 }

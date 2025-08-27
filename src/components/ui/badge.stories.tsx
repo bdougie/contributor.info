@@ -10,7 +10,8 @@ const meta = {
     layout: 'centered',
     docs: {
       description: {
-        component: 'A compact label component for displaying status, counts, categories, or metadata. Supports multiple variants, sizes, and can include icons or indicators.',
+        component:
+          'A compact label component for displaying status, counts, categories, or metadata. Supports multiple variants, sizes, and can include icons or indicators.',
       },
     },
   },
@@ -32,10 +33,12 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <div style={{
-        padding: designTokens.spacing[8],
-        minWidth: '300px',
-      }}>
+      <div
+        style={{
+          padding: designTokens.spacing[8],
+          minWidth: '300px',
+        }}
+      >
         <Story />
       </div>
     ),
@@ -74,11 +77,13 @@ export const Outline: Story = {
 
 export const AllVariants: Story = {
   render: () => (
-    <div style={{
-      display: 'flex',
-      flexWrap: 'wrap',
-      gap: designTokens.spacing[2],
-    }}>
+    <div
+      style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: designTokens.spacing[2],
+      }}
+    >
       <Badge>Default</Badge>
       <Badge variant="secondary">Secondary</Badge>
       <Badge variant="destructive">Destructive</Badge>
@@ -96,11 +101,13 @@ export const AllVariants: Story = {
 
 export const Sizes: Story = {
   render: () => (
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: designTokens.spacing[3],
-    }}>
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: designTokens.spacing[3],
+      }}
+    >
       <Badge className="text-xs px-1.5 py-0">Tiny</Badge>
       <Badge className="text-xs px-2 py-0.5">Small</Badge>
       <Badge>Default</Badge>
@@ -119,11 +126,13 @@ export const Sizes: Story = {
 
 export const StatusBadges: Story = {
   render: () => (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      gap: designTokens.spacing[3],
-    }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: designTokens.spacing[3],
+      }}
+    >
       <div className="flex items-center gap-2">
         <Badge className="bg-green-500 hover:bg-green-600 text-white">
           <span className="mr-1">●</span>
@@ -165,11 +174,13 @@ export const StatusBadges: Story = {
 
 export const WithNumbers: Story = {
   render: () => (
-    <div style={{
-      display: 'grid',
-      gridTemplateColumns: 'repeat(2, 1fr)',
-      gap: designTokens.spacing[4],
-    }}>
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(2, 1fr)',
+        gap: designTokens.spacing[4],
+      }}
+    >
       <div className="flex items-center justify-between">
         <span>Notifications</span>
         <Badge>3</Badge>
@@ -199,11 +210,13 @@ export const WithNumbers: Story = {
 
 export const WithIcons: Story = {
   render: () => (
-    <div style={{
-      display: 'flex',
-      flexWrap: 'wrap',
-      gap: designTokens.spacing[2],
-    }}>
+    <div
+      style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: designTokens.spacing[2],
+      }}
+    >
       <Badge className="gap-1">
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -287,28 +300,30 @@ export const WithIcons: Story = {
 
 export const Interactive: Story = {
   render: () => (
-    <div style={{
-      display: 'flex',
-      flexWrap: 'wrap',
-      gap: designTokens.spacing[2],
-    }}>
-      <Badge 
+    <div
+      style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: designTokens.spacing[2],
+      }}
+    >
+      <Badge
         className="cursor-pointer hover:bg-primary/80 transition-colors"
         tabIndex={0}
         role="button"
       >
         Clickable
       </Badge>
-      <Badge 
-        variant="outline" 
+      <Badge
+        variant="outline"
         className="cursor-pointer hover:bg-accent transition-colors"
         tabIndex={0}
         role="button"
       >
         Hover me
       </Badge>
-      <Badge 
-        variant="destructive" 
+      <Badge
+        variant="destructive"
         className="cursor-pointer hover:bg-destructive/80 transition-colors gap-1"
         tabIndex={0}
         role="button"
@@ -333,22 +348,23 @@ export const Interactive: Story = {
   ),
   play: ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    
+
     // Simple synchronous tests only
     const clickableBadge = canvas.getByRole('button', { name: /Clickable/i });
     expect(clickableBadge).toBeInTheDocument();
     expect(clickableBadge).toHaveClass('cursor-pointer');
-    
+
     const hoverBadge = canvas.getByRole('button', { name: /Hover me/i });
     expect(hoverBadge).toBeInTheDocument();
-    
+
     const removeBadge = canvas.getByRole('button', { name: /Remove/i });
     expect(removeBadge).toBeInTheDocument();
   },
   parameters: {
     docs: {
       description: {
-        story: 'Interactive badges that can be clicked or focused. Useful for filters, tags, or dismissible items.',
+        story:
+          'Interactive badges that can be clicked or focused. Useful for filters, tags, or dismissible items.',
       },
     },
   },
@@ -356,11 +372,13 @@ export const Interactive: Story = {
 
 export const Categories: Story = {
   render: () => (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      gap: designTokens.spacing[4],
-    }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: designTokens.spacing[4],
+      }}
+    >
       <div>
         <h4 className="text-sm font-medium mb-2">Technologies</h4>
         <div className="flex flex-wrap gap-1">
@@ -402,11 +420,13 @@ export const Categories: Story = {
 
 export const ColorfulBadges: Story = {
   render: () => (
-    <div style={{
-      display: 'grid',
-      gridTemplateColumns: 'repeat(3, 1fr)',
-      gap: designTokens.spacing[2],
-    }}>
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(3, 1fr)',
+        gap: designTokens.spacing[2],
+      }}
+    >
       <Badge style={{ backgroundColor: designTokens.colors.primary[500], color: 'white' }}>
         Primary
       </Badge>
@@ -422,9 +442,7 @@ export const ColorfulBadges: Story = {
       <Badge style={{ backgroundColor: designTokens.colors.error[500], color: 'white' }}>
         Error
       </Badge>
-      <Badge style={{ backgroundColor: designTokens.colors.info[500], color: 'white' }}>
-        Info
-      </Badge>
+      <Badge style={{ backgroundColor: designTokens.colors.info[500], color: 'white' }}>Info</Badge>
     </div>
   ),
   parameters: {
@@ -438,12 +456,14 @@ export const ColorfulBadges: Story = {
 
 export const RoundedVariants: Story = {
   render: () => (
-    <div style={{
-      display: 'flex',
-      flexWrap: 'wrap',
-      gap: designTokens.spacing[2],
-      alignItems: 'center',
-    }}>
+    <div
+      style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: designTokens.spacing[2],
+        alignItems: 'center',
+      }}
+    >
       <Badge className="rounded-none">Square</Badge>
       <Badge style={{ borderRadius: designTokens.borderRadius.sm }}>Small</Badge>
       <Badge style={{ borderRadius: designTokens.borderRadius.DEFAULT }}>Default</Badge>
@@ -463,13 +483,13 @@ export const RoundedVariants: Story = {
 
 export const Loading: Story = {
   render: () => (
-    <div style={{
-      display: 'flex',
-      gap: designTokens.spacing[2],
-    }}>
-      <Badge className="animate-pulse bg-gray-200 text-transparent">
-        Loading
-      </Badge>
+    <div
+      style={{
+        display: 'flex',
+        gap: designTokens.spacing[2],
+      }}
+    >
+      <Badge className="animate-pulse bg-gray-200 text-transparent">Loading</Badge>
       <Badge variant="secondary" className="animate-pulse">
         <span className="inline-block w-12 h-3 bg-gray-300 rounded"></span>
       </Badge>
@@ -486,22 +506,20 @@ export const Loading: Story = {
 
 export const Composition: Story = {
   render: () => (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      gap: designTokens.spacing[4],
-    }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: designTokens.spacing[4],
+      }}
+    >
       <div className="flex items-center gap-2">
-        <img 
-          src="https://github.com/shadcn.png" 
-          alt="User" 
-          className="w-8 h-8 rounded-full"
-        />
+        <img src="https://github.com/shadcn.png" alt="User" className="w-8 h-8 rounded-full" />
         <span className="font-medium">John Doe</span>
         <Badge variant="secondary">Pro</Badge>
         <Badge className="bg-green-500 text-white">Active</Badge>
       </div>
-      
+
       <div className="border rounded-lg p-4">
         <div className="flex items-start justify-between">
           <div>
@@ -517,7 +535,7 @@ export const Composition: Story = {
           <Badge variant="secondary">In Progress</Badge>
         </div>
       </div>
-      
+
       <div className="flex items-center justify-between p-3 border rounded">
         <div className="flex items-center gap-2">
           <span className="text-sm">Repository:</span>
@@ -542,33 +560,28 @@ export const Composition: Story = {
 
 export const Accessibility: Story = {
   render: () => (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      gap: designTokens.spacing[3],
-    }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: designTokens.spacing[3],
+      }}
+    >
       <div className="flex items-center gap-2">
         <span id="notification-label">Notifications:</span>
         <Badge aria-labelledby="notification-label">5 unread</Badge>
       </div>
-      
+
       <div className="flex items-center gap-2">
         <span>Status:</span>
-        <Badge 
-          role="status" 
-          aria-live="polite"
-          className="bg-green-500 text-white"
-        >
+        <Badge role="status" aria-live="polite" className="bg-green-500 text-white">
           Connected
         </Badge>
       </div>
-      
+
       <div className="flex items-center gap-2">
         <span>Priority:</span>
-        <Badge 
-          variant="destructive"
-          aria-label="High priority issue"
-        >
+        <Badge variant="destructive" aria-label="High priority issue">
           High
         </Badge>
       </div>
@@ -576,12 +589,12 @@ export const Accessibility: Story = {
   ),
   play: ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    
+
     // Check ARIA attributes
     const statusBadge = canvas.getByRole('status');
     expect(statusBadge).toBeInTheDocument();
     expect(statusBadge).toHaveAttribute('aria-live', 'polite');
-    
+
     // Check labeling
     const notificationBadge = canvas.getByText('5 unread');
     expect(notificationBadge).toBeInTheDocument();

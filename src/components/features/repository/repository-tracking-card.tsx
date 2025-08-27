@@ -16,7 +16,7 @@ export function RepositoryTrackingCard({
   owner,
   repo,
   onTrackingComplete,
-  className = ''
+  className = '',
 }: RepositoryTrackingCardProps) {
   const { isLoggedIn, login } = useGitHubAuth();
   const [isTracking, setIsTracking] = useState(false);
@@ -35,24 +35,24 @@ export function RepositoryTrackingCard({
     if (isTracking) {
       return;
     }
-    
+
     // Validate props before sending
     if (!owner || !repo) {
       console.error('Missing owner or repo:', { owner, repo });
       setError('Invalid repository information');
       toast.error('Invalid repository', {
         description: 'Repository information is missing',
-        duration: 6000
+        duration: 6000,
       });
       return;
     }
-    
+
     setIsTracking(true);
     setError(null);
 
     try {
       console.log('Sending track request for: %s/%s', owner, repo);
-      
+
       // Call the new tracking API endpoint
       const response = await fetch('/api/track-repository', {
         method: 'POST',
@@ -60,7 +60,7 @@ export function RepositoryTrackingCard({
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify({ owner, repo })
+        body: JSON.stringify({ owner, repo }),
       });
 
       const responseText = await response.text();
@@ -81,11 +81,12 @@ export function RepositoryTrackingCard({
       // Check if tracking was successful
       if (result.success) {
         console.log('Tracking initiated successfully, eventId: %s', result.eventId);
-        
+
         // Show success message
         toast.success('Repository tracking initiated!', {
-          description: 'Data will be available in 1-2 minutes. The page will refresh automatically.',
-          duration: 8000
+          description:
+            'Data will be available in 1-2 minutes. The page will refresh automatically.',
+          duration: 8000,
         });
       } else {
         throw new Error(result.message || 'Tracking failed');
@@ -93,13 +94,12 @@ export function RepositoryTrackingCard({
 
       // Start polling for completion
       startPollingForData();
-
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to track repository';
       setError(errorMessage);
       toast.error('Tracking failed', {
         description: errorMessage,
-        duration: 6000
+        duration: 6000,
       });
     } finally {
       setIsTracking(false);
@@ -140,9 +140,9 @@ export function RepositoryTrackingCard({
           }
           toast.success('Repository data is ready!', {
             description: 'Refreshing page...',
-            duration: 2000
+            duration: 2000,
           });
-          
+
           // Trigger callback or refresh
           if (onTrackingComplete) {
             onTrackingComplete();
@@ -161,7 +161,7 @@ export function RepositoryTrackingCard({
           }
           toast.info('Data sync is taking longer than expected', {
             description: 'Please refresh the page in a few minutes.',
-            duration: 10000
+            duration: 10000,
           });
         }
       } catch (err) {
@@ -175,10 +175,10 @@ export function RepositoryTrackingCard({
     <Card className={className}>
       <CardHeader>
         <div className="space-y-1">
-          <h2 className="text-xl font-semibold">{owner}/{repo}</h2>
-          <p className="text-sm text-muted-foreground">
-            This repository hasn't been tracked yet
-          </p>
+          <h2 className="text-xl font-semibold">
+            {owner}/{repo}
+          </h2>
+          <p className="text-sm text-muted-foreground">This repository hasn't been tracked yet</p>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -187,14 +187,14 @@ export function RepositoryTrackingCard({
           <BarChart3 className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
           <h3 className="text-lg font-medium mb-2">Start tracking this repository</h3>
           <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
-            Unlock contributor analytics, PR visualizations, and community health metrics. 
-            We'll analyze the repository and provide insights into contribution patterns.
+            Unlock contributor analytics, PR visualizations, and community health metrics. We'll
+            analyze the repository and provide insights into contribution patterns.
           </p>
-          
+
           {/* Primary tracking button - more prominent placement */}
           <div className="flex justify-center mb-3">
             {!isLoggedIn ? (
-              <Button 
+              <Button
                 onClick={handleLogin}
                 size="lg"
                 variant="default"
@@ -204,7 +204,7 @@ export function RepositoryTrackingCard({
                 Login to Track Repository
               </Button>
             ) : (
-              <Button 
+              <Button
                 onClick={handleTrackRepository}
                 disabled={isTracking}
                 size="lg"
@@ -225,7 +225,7 @@ export function RepositoryTrackingCard({
               </Button>
             )}
           </div>
-          
+
           <p className="text-xs text-muted-foreground">
             Setup takes 1-2 minutes • Data refreshes automatically
           </p>
@@ -240,11 +240,7 @@ export function RepositoryTrackingCard({
             </div>
             {error.includes('longer than expected') && (
               <div className="flex gap-2 justify-center">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => window.location.reload()}
-                >
+                <Button size="sm" variant="outline" onClick={() => window.location.reload()}>
                   Refresh Page
                 </Button>
                 <Button
@@ -261,7 +257,6 @@ export function RepositoryTrackingCard({
             )}
           </div>
         )}
-
       </CardContent>
     </Card>
   );

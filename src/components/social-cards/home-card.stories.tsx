@@ -7,9 +7,9 @@ const meta = {
   parameters: {
     layout: 'fullscreen',
     viewport: { defaultViewport: 'socialCard' },
-    chromatic: { 
+    chromatic: {
       viewports: [1200],
-      delay: 500
+      delay: 500,
     },
     docs: {
       description: {
@@ -33,9 +33,9 @@ The main social card for contributor.info that appears when the homepage is shar
 ## CDN Distribution
 Cards are generated at build time and distributed via Supabase global CDN:
 \`https://egcxzonpmmcirmgqdrla.supabase.co/storage/v1/object/public/social-cards/home-card.png\`
-        `
-      }
-    }
+        `,
+      },
+    },
   },
   tags: ['autodocs'],
 } satisfies Meta<typeof HomeSocialCard>;
@@ -51,10 +51,11 @@ export const Default: Story = {
   parameters: {
     docs: {
       description: {
-        story: 'The standard home social card with site branding and tagline. Used when the homepage is shared on social platforms.'
-      }
-    }
-  }
+        story:
+          'The standard home social card with site branding and tagline. Used when the homepage is shared on social platforms.',
+      },
+    },
+  },
 };
 
 /**
@@ -65,10 +66,11 @@ export const WithStats: Story = {
   parameters: {
     docs: {
       description: {
-        story: 'Home card featuring key platform statistics like repository count and contributor numbers.'
-      }
-    }
-  }
+        story:
+          'Home card featuring key platform statistics like repository count and contributor numbers.',
+      },
+    },
+  },
 };
 
 /**
@@ -79,14 +81,14 @@ export const TwitterOptimized: Story = {
   parameters: {
     chromatic: {
       viewports: [1200],
-      delay: 500
+      delay: 500,
     },
     docs: {
       description: {
-        story: 'Optimized for Twitter Card requirements (minimum 300x157, recommended 1200x630).'
-      }
-    }
-  }
+        story: 'Optimized for Twitter Card requirements (minimum 300x157, recommended 1200x630).',
+      },
+    },
+  },
 };
 
 /**
@@ -96,15 +98,15 @@ export const TwitterOptimized: Story = {
 export const FacebookOptimized: Story = {
   parameters: {
     chromatic: {
-      viewports: [1200], 
-      delay: 500
+      viewports: [1200],
+      delay: 500,
     },
     docs: {
       description: {
-        story: 'Optimized for Facebook Open Graph sharing (minimum 200x200, recommended 1200x630).'
-      }
-    }
-  }
+        story: 'Optimized for Facebook Open Graph sharing (minimum 200x200, recommended 1200x630).',
+      },
+    },
+  },
 };
 
 /**
@@ -115,10 +117,11 @@ export const HighContrast: Story = {
   parameters: {
     docs: {
       description: {
-        story: 'High contrast version ensuring optimal readability on various social platforms and devices.'
-      }
-    }
-  }
+        story:
+          'High contrast version ensuring optimal readability on various social platforms and devices.',
+      },
+    },
+  },
 };
 
 /**
@@ -129,8 +132,8 @@ export const LongContent: Story = {
   parameters: {
     docs: {
       description: {
-        story: 'Tests layout stability with longer text content and multiple statistics.'
-      }
-    }
-  }
+        story: 'Tests layout stability with longer text content and multiple statistics.',
+      },
+    },
+  },
 };

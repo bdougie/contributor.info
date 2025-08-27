@@ -3,7 +3,7 @@
  * Shows how to integrate validation schemas with existing GitHub API functions
  */
 
-import { 
+import {
   githubUserSchema,
   githubRepositorySchema,
   githubPullRequestSchema,
@@ -99,7 +99,9 @@ export function transformGitHubUserToContributor(githubUser: GitHubUser): Contri
 /**
  * Transforms GitHub repository data into database repository format
  */
-export function transformGitHubRepositoryToRepository(githubRepo: GitHubRepository): RepositoryCreate {
+export function transformGitHubRepositoryToRepository(
+  githubRepo: GitHubRepository
+): RepositoryCreate {
   const result = {
     github_id: githubRepo.id,
     full_name: githubRepo.full_name,
@@ -231,7 +233,7 @@ export function validateAndTransformGitHubUser(userData: unknown): ContributorCr
   if (!inputValidation.success || !inputValidation.data) {
     return null;
   }
-  
+
   // Transform the validated data
   return transformGitHubUserToContributor(inputValidation.data);
 }
@@ -245,7 +247,7 @@ export function validateAndTransformGitHubRepository(repoData: unknown): Reposit
   if (!inputValidation.success || !inputValidation.data) {
     return null;
   }
-  
+
   // Transform the validated data
   return transformGitHubRepositoryToRepository(inputValidation.data);
 }
@@ -265,13 +267,13 @@ export function validateAndTransformGitHubPullRequest(
   if (!inputValidation.success || !inputValidation.data) {
     return null;
   }
-  
+
   // Transform the validated data
   return transformGitHubPullRequestToPullRequest(
-    inputValidation.data, 
-    repositoryId, 
-    authorId, 
-    assigneeId, 
+    inputValidation.data,
+    repositoryId,
+    authorId,
+    assigneeId,
     mergedById
   );
 }
@@ -312,13 +314,19 @@ export function validateAndTransformGitHubPullRequests(
     .map((prData) => {
       const githubPR = validateGitHubPullRequest(prData);
       if (!githubPR) return null;
-      
+
       const repositoryId = getRepositoryId(githubPR);
       const authorId = getAuthorId(githubPR);
       const assigneeId = getAssigneeId?.(githubPR);
       const mergedById = getMergedById?.(githubPR);
-      
-      return validateAndTransformGitHubPullRequest(prData, repositoryId, authorId, assigneeId, mergedById);
+
+      return validateAndTransformGitHubPullRequest(
+        prData,
+        repositoryId,
+        authorId,
+        assigneeId,
+        mergedById
+      );
     })
     .filter((pr): pr is PullRequestCreate => pr !== null);
 }
@@ -337,10 +345,10 @@ export function safeValidateGitHubResponse<T>(
   logger?: (message: string, data?: any) => void
 ): T | null {
   const result = validateData(schema, data, context);
-  
+
   if (!result.success) {
     const errorMessage = `Failed to validate ${context}: ${result.error}`;
-    
+
     if (logger) {
       logger(errorMessage, {
         errors: result.errors,
@@ -349,10 +357,10 @@ export function safeValidateGitHubResponse<T>(
     } else {
       console.warn(errorMessage, result.errors);
     }
-    
+
     return null;
   }
-  
+
   return result.data as T;
 }
 

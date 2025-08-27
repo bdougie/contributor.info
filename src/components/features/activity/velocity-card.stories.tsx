@@ -1,19 +1,19 @@
-import type { Meta, StoryObj } from "@storybook/react";
-import { VelocityCard } from "./velocity-card";
+import type { Meta, StoryObj } from '@storybook/react';
+import { VelocityCard } from './velocity-card';
 
 const meta = {
-  title: "Features/Activity/VelocityCard",
+  title: 'Features/Activity/VelocityCard',
   component: VelocityCard,
   parameters: {
-    layout: "centered",
+    layout: 'centered',
     docs: {
       description: {
         component:
-          "A card component that displays weekly pull request velocity metrics with comparison to the previous week.",
+          'A card component that displays weekly pull request velocity metrics with comparison to the previous week.',
       },
     },
   },
-  tags: ["autodocs"],
+  tags: ['autodocs'],
   decorators: [
     (Story) => (
       <div className="w-[300px] p-4">
@@ -23,11 +23,11 @@ const meta = {
   ],
   argTypes: {
     loading: {
-      control: "boolean",
-      description: "Whether the card is in a loading state",
+      control: 'boolean',
+      description: 'Whether the card is in a loading state',
     },
     velocity: {
-      description: "Velocity data object containing current, previous, and change values",
+      description: 'Velocity data object containing current, previous, and change values',
     },
   },
 } satisfies Meta<typeof VelocityCard>;

@@ -78,9 +78,9 @@ export const defaultColors = [
 export function getSeriesColors(count: number, isDark: boolean): string[] {
   const theme = getChartTheme(isDark);
   const colors = Object.values(theme.colors);
-  
+
   // Extend with default colors if needed
   const allColors = [...colors, ...defaultColors];
-  
+
   return Array.from({ length: count }, (_, i) => allColors[i % allColors.length]);
 }

@@ -23,7 +23,7 @@ export function useMonthlyContributorRankings(owner: string, repo: string) {
     async function fetchRankings() {
       try {
         setLoading(true);
-        
+
         // Get current month and year
         const now = new Date();
         const currentMonth = now.getMonth() + 1;
@@ -32,7 +32,8 @@ export function useMonthlyContributorRankings(owner: string, repo: string) {
         // Query monthly rankings with contributor details
         const { data, error: queryError } = await supabase
           .from('monthly_rankings')
-          .select(`
+          .select(
+            `
             *,
             contributors!inner (
               id,
@@ -45,7 +46,8 @@ export function useMonthlyContributorRankings(owner: string, repo: string) {
               owner,
               name
             )
-          `)
+          `
+          )
           .eq('month', currentMonth)
           .eq('year', currentYear)
           .eq('repositories.owner', owner)
@@ -61,7 +63,9 @@ export function useMonthlyContributorRankings(owner: string, repo: string) {
             id: item.contributors.id,
             username: item.contributors.username,
             displayName: item.contributors.display_name || item.contributors.username,
-            avatarUrl: item.contributors.avatar_url || `https://avatars.githubusercontent.com/${item.contributors.username}`,
+            avatarUrl:
+              item.contributors.avatar_url ||
+              `https://avatars.githubusercontent.com/${item.contributors.username}`,
             profileUrl: `https://github.com/${item.contributors.username}`,
             pullRequestsCount: item.pull_requests_count || 0,
             reviewsCount: item.reviews_count || 0,

@@ -22,9 +22,21 @@ type Story = StoryObj<typeof meta>;
 // Generate mock contributor data
 const generateMockContributors = (count: number): Contributor[] => {
   const names = [
-    'Alice Johnson', 'Bob Smith', 'Charlie Brown', 'Diana Prince', 'Eve Anderson',
-    'Frank Miller', 'Grace Hopper', 'Henry Ford', 'Iris West', 'Jack Ryan',
-    'Kate Bishop', 'Leo Valdez', 'Maya Lopez', 'Nathan Drake', 'Olivia Pope',
+    'Alice Johnson',
+    'Bob Smith',
+    'Charlie Brown',
+    'Diana Prince',
+    'Eve Anderson',
+    'Frank Miller',
+    'Grace Hopper',
+    'Henry Ford',
+    'Iris West',
+    'Jack Ryan',
+    'Kate Bishop',
+    'Leo Valdez',
+    'Maya Lopez',
+    'Nathan Drake',
+    'Olivia Pope',
   ];
 
   const bios = [
@@ -41,19 +53,35 @@ const generateMockContributors = (count: number): Contributor[] => {
   ];
 
   const companies = [
-    'Microsoft', 'Google', 'Meta', 'Amazon', 'Apple',
-    'Netflix', 'Spotify', 'Vercel', 'GitHub', 'GitLab',
+    'Microsoft',
+    'Google',
+    'Meta',
+    'Amazon',
+    'Apple',
+    'Netflix',
+    'Spotify',
+    'Vercel',
+    'GitHub',
+    'GitLab',
   ];
 
   const locations = [
-    'San Francisco, CA', 'New York, NY', 'Seattle, WA', 'Austin, TX', 'Boston, MA',
-    'London, UK', 'Berlin, Germany', 'Tokyo, Japan', 'Toronto, Canada', 'Sydney, Australia',
+    'San Francisco, CA',
+    'New York, NY',
+    'Seattle, WA',
+    'Austin, TX',
+    'Boston, MA',
+    'London, UK',
+    'Berlin, Germany',
+    'Tokyo, Japan',
+    'Toronto, Canada',
+    'Sydney, Australia',
   ];
 
   return Array.from({ length: count }, (_, i) => {
     const trend = Math.floor(Math.random() * 201) - 100; // -100 to +100
     const username = names[i % names.length].toLowerCase().replace(' ', '');
-    
+
     return {
       id: `contributor-${i + 1}`,
       username,
@@ -80,16 +108,18 @@ const generateMockContributors = (count: number): Contributor[] => {
 };
 
 // Wrapper component for state management
-function ContributorsListWrapper(props: Omit<Parameters<typeof ContributorsList>[0], 'trackedContributors'>) {
+function ContributorsListWrapper(
+  props: Omit<Parameters<typeof ContributorsList>[0], 'trackedContributors'>
+) {
   const [trackedContributors, setTrackedContributors] = useState<string[]>([]);
 
   const handleTrack = (id: string) => {
-    setTrackedContributors(prev => [...prev, id]);
+    setTrackedContributors((prev) => [...prev, id]);
     props.onTrackContributor?.(id);
   };
 
   const handleUntrack = (id: string) => {
-    setTrackedContributors(prev => prev.filter(c => c !== id));
+    setTrackedContributors((prev) => prev.filter((c) => c !== id));
     props.onUntrackContributor?.(id);
   };
 
@@ -105,20 +135,13 @@ function ContributorsListWrapper(props: Omit<Parameters<typeof ContributorsList>
 
 export const Default: Story = {
   render: (args) => (
-    <ContributorsListWrapper
-      {...args}
-      contributors={generateMockContributors(12)}
-    />
+    <ContributorsListWrapper {...args} contributors={generateMockContributors(12)} />
   ),
 };
 
 export const ListView: Story = {
   render: (args) => (
-    <ContributorsListWrapper
-      {...args}
-      contributors={generateMockContributors(10)}
-      view="list"
-    />
+    <ContributorsListWrapper {...args} contributors={generateMockContributors(10)} view="list" />
   ),
 };
 
@@ -127,15 +150,18 @@ export const WithTrackedContributors: Story = {
     const contributors = generateMockContributors(12);
     const Component = () => {
       const [trackedContributors, setTrackedContributors] = useState<string[]>([
-        'contributor-1', 'contributor-3', 'contributor-5', 'contributor-7'
+        'contributor-1',
+        'contributor-3',
+        'contributor-5',
+        'contributor-7',
       ]);
 
       const handleTrack = (id: string) => {
-        setTrackedContributors(prev => [...prev, id]);
+        setTrackedContributors((prev) => [...prev, id]);
       };
 
       const handleUntrack = (id: string) => {
-        setTrackedContributors(prev => prev.filter(c => c !== id));
+        setTrackedContributors((prev) => prev.filter((c) => c !== id));
       };
 
       return (
@@ -167,25 +193,19 @@ export const Loading: Story = {
 
 export const FewContributors: Story = {
   render: (args) => (
-    <ContributorsListWrapper
-      {...args}
-      contributors={generateMockContributors(3)}
-    />
+    <ContributorsListWrapper {...args} contributors={generateMockContributors(3)} />
   ),
 };
 
 export const ManyContributors: Story = {
   render: (args) => (
-    <ContributorsListWrapper
-      {...args}
-      contributors={generateMockContributors(30)}
-    />
+    <ContributorsListWrapper {...args} contributors={generateMockContributors(30)} />
   ),
 };
 
 export const TopPerformers: Story = {
   render: (args) => {
-    const contributors = generateMockContributors(12).map(c => ({
+    const contributors = generateMockContributors(12).map((c) => ({
       ...c,
       contributions: {
         commits: Math.floor(Math.random() * 2000) + 1000,
@@ -201,18 +221,13 @@ export const TopPerformers: Story = {
       },
     }));
 
-    return (
-      <ContributorsListWrapper
-        {...args}
-        contributors={contributors}
-      />
-    );
+    return <ContributorsListWrapper {...args} contributors={contributors} />;
   },
 };
 
 export const DecliningContributors: Story = {
   render: (args) => {
-    const contributors = generateMockContributors(12).map(c => ({
+    const contributors = generateMockContributors(12).map((c) => ({
       ...c,
       stats: {
         ...c.stats,
@@ -220,11 +235,6 @@ export const DecliningContributors: Story = {
       },
     }));
 
-    return (
-      <ContributorsListWrapper
-        {...args}
-        contributors={contributors}
-      />
-    );
+    return <ContributorsListWrapper {...args} contributors={contributors} />;
   },
 };

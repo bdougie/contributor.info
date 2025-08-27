@@ -1,13 +1,20 @@
-import { useState, useEffect } from "react"
-import { RefreshCw, Database, CheckCircle, XCircle, AlertCircle, Loader2 } from '@/components/ui/icon';
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/supabase";
-import { sendInngestEvent } from "@/lib/inngest/client-safe";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useState, useEffect } from 'react';
+import {
+  RefreshCw,
+  Database,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  Loader2,
+} from '@/components/ui/icon';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/lib/supabase';
+import { sendInngestEvent } from '@/lib/inngest/client-safe';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface Repository {
   id: string;
@@ -48,7 +55,8 @@ export function SyncTrackedRepos() {
     try {
       const { data, error } = await supabase
         .from('tracked_repositories')
-        .select(`
+        .select(
+          `
           repository_id,
           tracking_enabled,
           last_sync_at,
@@ -59,7 +67,8 @@ export function SyncTrackedRepos() {
             is_active,
             last_updated_at
           )
-        `)
+        `
+        )
         .eq('tracking_enabled', true)
         .eq('repositories.is_active', true)
         .order('last_sync_at', { ascending: true, nullsFirst: true })
@@ -70,19 +79,18 @@ export function SyncTrackedRepos() {
       // Type assertion to handle Supabase's loose typing
       const typedData = (data || []) as unknown as TrackedRepo[];
       setTrackedRepos(typedData);
-      
+
       // Auto-select repos that have never been synced
       const neverSynced = (data || [])
-        .filter(repo => !repo.last_sync_at)
-        .map(repo => repo.repository_id);
+        .filter((repo) => !repo.last_sync_at)
+        .map((repo) => repo.repository_id);
       setSelectedRepos(new Set(neverSynced));
-      
     } catch (error) {
       console.error('Error loading tracked repos:', error);
       toast({
-        title: "Error",
-        description: "Failed to load tracked repositories",
-        variant: "destructive"
+        title: 'Error',
+        description: 'Failed to load tracked repositories',
+        variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
@@ -90,29 +98,29 @@ export function SyncTrackedRepos() {
   };
 
   const formatLastSync = (date: string | null) => {
-    if (!date) return "Never";
-    
+    if (!date) return 'Never';
+
     const syncDate = new Date(date);
     const now = new Date();
     const diffHours = Math.floor((now.getTime() - syncDate.getTime()) / (1000 * 60 * 60));
-    
-    if (diffHours < 1) return "< 1 hour ago";
+
+    if (diffHours < 1) return '< 1 hour ago';
     if (diffHours < 24) return `${diffHours} hours ago`;
-    if (diffHours < 48) return "1 day ago";
+    if (diffHours < 48) return '1 day ago';
     return `${Math.floor(diffHours / 24)} days ago`;
   };
 
   const getSyncStatus = (lastSync: string | null) => {
-    if (!lastSync) return { color: "destructive", label: "Never synced" };
-    
+    if (!lastSync) return { color: 'destructive', label: 'Never synced' };
+
     const syncDate = new Date(lastSync);
     const now = new Date();
     const diffHours = Math.floor((now.getTime() - syncDate.getTime()) / (1000 * 60 * 60));
-    
-    if (diffHours < 24) return { color: "default", label: "Fresh" };
-    if (diffHours < 72) return { color: "secondary", label: "Recent" };
-    if (diffHours < 168) return { color: "outline", label: "Stale" };
-    return { color: "destructive", label: "Very stale" };
+
+    if (diffHours < 24) return { color: 'default', label: 'Fresh' };
+    if (diffHours < 72) return { color: 'secondary', label: 'Recent' };
+    if (diffHours < 168) return { color: 'outline', label: 'Stale' };
+    return { color: 'destructive', label: 'Very stale' };
   };
 
   const toggleRepoSelection = (repoId: string) => {
@@ -126,7 +134,7 @@ export function SyncTrackedRepos() {
   };
 
   const selectAll = () => {
-    setSelectedRepos(new Set(trackedRepos.map(r => r.repository_id)));
+    setSelectedRepos(new Set(trackedRepos.map((r) => r.repository_id)));
   };
 
   const selectNone = () => {
@@ -134,22 +142,22 @@ export function SyncTrackedRepos() {
   };
 
   const selectStale = () => {
-    const staleRepos = trackedRepos.filter(repo => {
+    const staleRepos = trackedRepos.filter((repo) => {
       if (!repo.last_sync_at) return true;
       const syncDate = new Date(repo.last_sync_at);
       const now = new Date();
       const diffHours = Math.floor((now.getTime() - syncDate.getTime()) / (1000 * 60 * 60));
       return diffHours > 72; // More than 3 days old
     });
-    setSelectedRepos(new Set(staleRepos.map(r => r.repository_id)));
+    setSelectedRepos(new Set(staleRepos.map((r) => r.repository_id)));
   };
 
   const syncSelectedRepos = async () => {
     if (selectedRepos.size === 0) {
       toast({
-        title: "No repositories selected",
-        description: "Please select at least one repository to sync",
-        variant: "destructive"
+        title: 'No repositories selected',
+        description: 'Please select at least one repository to sync',
+        variant: 'destructive',
       });
       return;
     }
@@ -161,10 +169,10 @@ export function SyncTrackedRepos() {
     const result: SyncResult = {
       synced: [],
       failed: [],
-      total: selectedRepos.size
+      total: selectedRepos.size,
     };
 
-    const reposToSync = trackedRepos.filter(r => selectedRepos.has(r.repository_id));
+    const reposToSync = trackedRepos.filter((r) => selectedRepos.has(r.repository_id));
     const batchSize = 5;
     let processed = 0;
 
@@ -172,10 +180,10 @@ export function SyncTrackedRepos() {
       // Process in batches to avoid overwhelming the system
       for (let i = 0; i < reposToSync.length; i += batchSize) {
         const batch = reposToSync.slice(i, i + batchSize);
-        
+
         const batchPromises = batch.map(async (repo) => {
           const fullName = `${repo.repositories.owner}/${repo.repositories.name}`;
-          
+
           try {
             // Send multiple event types to ensure sync coverage
             const events = [
@@ -185,8 +193,8 @@ export function SyncTrackedRepos() {
                   repositoryId: repo.repository_id,
                   repositoryFullName: fullName,
                   source: 'manual-ui',
-                  syncMode: 'enhanced'
-                }
+                  syncMode: 'enhanced',
+                },
               },
               {
                 name: 'progressive-capture/sync.repository',
@@ -194,15 +202,15 @@ export function SyncTrackedRepos() {
                   repositoryId: repo.repository_id,
                   repositoryName: fullName,
                   mode: 'recent',
-                  source: 'manual-ui'
-                }
-              }
+                  source: 'manual-ui',
+                },
+              },
             ];
 
             for (const event of events) {
               await sendInngestEvent({
                 name: event.name,
-                data: event.data
+                data: event.data,
               });
             }
 
@@ -219,7 +227,7 @@ export function SyncTrackedRepos() {
 
         // Small delay between batches
         if (i + batchSize < reposToSync.length) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise((resolve) => setTimeout(resolve, 1000));
         }
       }
 
@@ -227,16 +235,16 @@ export function SyncTrackedRepos() {
 
       if (result.synced.length > 0) {
         toast({
-          title: "Sync triggered successfully",
+          title: 'Sync triggered successfully',
           description: `Triggered sync for ${result.synced.length} repositories`,
         });
       }
 
       if (result.failed.length > 0) {
         toast({
-          title: "Some syncs failed",
+          title: 'Some syncs failed',
           description: `Failed to sync ${result.failed.length} repositories`,
-          variant: "destructive"
+          variant: 'destructive',
         });
       }
 
@@ -244,13 +252,12 @@ export function SyncTrackedRepos() {
       setTimeout(() => {
         loadTrackedRepos();
       }, 2000);
-
     } catch (error) {
       console.error('Sync error:', error);
       toast({
-        title: "Sync failed",
-        description: "An error occurred while syncing repositories",
-        variant: "destructive"
+        title: 'Sync failed',
+        description: 'An error occurred while syncing repositories',
+        variant: 'destructive',
       });
     } finally {
       setIsSyncing(false);
@@ -277,17 +284,20 @@ export function SyncTrackedRepos() {
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-destructive">
-              {trackedRepos.filter(r => !r.last_sync_at).length}
+              {trackedRepos.filter((r) => !r.last_sync_at).length}
             </div>
             <div className="text-sm text-muted-foreground">Never Synced</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-orange-500">
-              {trackedRepos.filter(r => {
-                if (!r.last_sync_at) return false;
-                const diffHours = (new Date().getTime() - new Date(r.last_sync_at).getTime()) / (1000 * 60 * 60);
-                return diffHours > 72;
-              }).length}
+              {
+                trackedRepos.filter((r) => {
+                  if (!r.last_sync_at) return false;
+                  const diffHours =
+                    (new Date().getTime() - new Date(r.last_sync_at).getTime()) / (1000 * 60 * 60);
+                  return diffHours > 72;
+                }).length
+              }
             </div>
             <div className="text-sm text-muted-foreground">Stale (3+ days)</div>
           </div>
@@ -325,7 +335,7 @@ export function SyncTrackedRepos() {
               const fullName = `${repo.repositories.owner}/${repo.repositories.name}`;
               const status = getSyncStatus(repo.last_sync_at);
               const isSelected = selectedRepos.has(repo.repository_id);
-              
+
               return (
                 <div
                   key={repo.repository_id}
@@ -348,9 +358,7 @@ export function SyncTrackedRepos() {
                       </div>
                     </div>
                   </div>
-                  <Badge variant={status.color as any}>
-                    {status.label}
-                  </Badge>
+                  <Badge variant={status.color as any}>{status.label}</Badge>
                 </div>
               );
             })
@@ -409,11 +417,7 @@ export function SyncTrackedRepos() {
               </>
             )}
           </Button>
-          <Button
-            variant="outline"
-            onClick={loadTrackedRepos}
-            disabled={isLoading || isSyncing}
-          >
+          <Button variant="outline" onClick={loadTrackedRepos} disabled={isLoading || isSyncing}>
             <RefreshCw className="h-4 w-4" />
           </Button>
         </div>
@@ -422,8 +426,8 @@ export function SyncTrackedRepos() {
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Sync jobs are processed by Inngest workers. Large repositories may take several minutes to complete.
-            Check the Inngest dashboard for detailed progress.
+            Sync jobs are processed by Inngest workers. Large repositories may take several minutes
+            to complete. Check the Inngest dashboard for detailed progress.
           </AlertDescription>
         </Alert>
       </CardContent>

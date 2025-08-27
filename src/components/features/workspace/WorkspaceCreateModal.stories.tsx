@@ -12,7 +12,8 @@ const meta = {
     layout: 'centered',
     docs: {
       description: {
-        component: 'A modal dialog for creating new workspaces. Includes form validation, error handling, and loading states.',
+        component:
+          'A modal dialog for creating new workspaces. Includes form validation, error handling, and loading states.',
       },
     },
   },
@@ -30,13 +31,13 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 // Interactive wrapper component to handle modal state
-function ModalWrapper({ 
+function ModalWrapper({
   defaultOpen = false,
   onSuccess,
   mode = 'create',
   initialValues,
   workspaceId,
-}: { 
+}: {
   defaultOpen?: boolean;
   onSuccess?: (workspaceId: string) => void;
   mode?: 'create' | 'edit';
@@ -51,7 +52,7 @@ function ModalWrapper({
         <Plus className="mr-2 h-4 w-4" />
         {mode === 'create' ? 'Create Workspace' : 'Edit Workspace'}
       </Button>
-      
+
       <WorkspaceCreateModal
         open={open}
         onOpenChange={setOpen}
@@ -74,7 +75,7 @@ export const InitiallyOpen: Story = {
 
 export const WithSuccessCallback: Story = {
   render: () => (
-    <ModalWrapper 
+    <ModalWrapper
       defaultOpen={false}
       onSuccess={(workspaceId) => {
         console.log('Workspace created with ID:', workspaceId);
@@ -93,7 +94,7 @@ export const FormDefault: Story = {
       <WorkspaceCreateForm
         onSubmit={async (data) => {
           console.log('Form submitted:', data);
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise((resolve) => setTimeout(resolve, 1000));
         }}
       />
     </div>
@@ -106,7 +107,7 @@ export const FormWithCancel: Story = {
       <WorkspaceCreateForm
         onSubmit={async (data) => {
           console.log('Form submitted:', data);
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise((resolve) => setTimeout(resolve, 1000));
         }}
         onCancel={() => console.log('Cancelled')}
       />
@@ -117,10 +118,7 @@ export const FormWithCancel: Story = {
 export const FormLoading: Story = {
   render: () => (
     <div className="max-w-[500px] p-6 border rounded-lg">
-      <WorkspaceCreateForm
-        onSubmit={async () => {}}
-        loading={true}
-      />
+      <WorkspaceCreateForm onSubmit={async () => {}} loading={true} />
     </div>
   ),
 };
@@ -167,12 +165,12 @@ export const FormInteractive: Story = {
     const handleSubmit = async (data: any) => {
       setLoading(true);
       setError(null);
-      
+
       console.log('Submitting:', data);
-      
+
       // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
       // Simulate random success/error
       if (Math.random() > 0.5) {
         setError('Simulated error: Workspace name already exists');
@@ -180,7 +178,7 @@ export const FormInteractive: Story = {
         alert('Success! Workspace created.');
         setError(null);
       }
-      
+
       setLoading(false);
     };
 
@@ -201,12 +199,12 @@ export const FormInteractive: Story = {
 // Edit mode stories
 export const EditMode: Story = {
   render: () => (
-    <ModalWrapper 
+    <ModalWrapper
       mode="edit"
       initialValues={{
-        name: "My Awesome Projects",
-        description: "A collection of open source projects I contribute to",
-        visibility: "public"
+        name: 'My Awesome Projects',
+        description: 'A collection of open source projects I contribute to',
+        visibility: 'public',
       }}
       workspaceId="workspace-123"
     />
@@ -215,13 +213,13 @@ export const EditMode: Story = {
 
 export const EditModeOpen: Story = {
   render: () => (
-    <ModalWrapper 
+    <ModalWrapper
       defaultOpen={true}
       mode="edit"
       initialValues={{
-        name: "Team Collaboration Hub",
-        description: "Central workspace for team projects and contributions",
-        visibility: "public"
+        name: 'Team Collaboration Hub',
+        description: 'Central workspace for team projects and contributions',
+        visibility: 'public',
       }}
       workspaceId="workspace-456"
     />
@@ -234,14 +232,14 @@ export const FormEditMode: Story = {
       <WorkspaceCreateForm
         onSubmit={async (data) => {
           console.log('Updating workspace:', data);
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise((resolve) => setTimeout(resolve, 1000));
         }}
         onCancel={() => console.log('Cancelled')}
         mode="edit"
         initialValues={{
-          name: "Engineering Team Workspace",
-          description: "Track all engineering team contributions across our repositories",
-          visibility: "public"
+          name: 'Engineering Team Workspace',
+          description: 'Track all engineering team contributions across our repositories',
+          visibility: 'public',
         }}
       />
     </div>
@@ -256,9 +254,9 @@ export const FormEditModeLoading: Story = {
         mode="edit"
         loading={true}
         initialValues={{
-          name: "Product Team Hub",
+          name: 'Product Team Hub',
           description: "Product team's workspace for tracking feature development",
-          visibility: "public"
+          visibility: 'public',
         }}
       />
     </div>
@@ -273,9 +271,9 @@ export const FormEditModeWithError: Story = {
         mode="edit"
         error="Workspace name is already taken by another workspace"
         initialValues={{
-          name: "Design System",
-          description: "Workspace for design system component development",
-          visibility: "public"
+          name: 'Design System',
+          description: 'Workspace for design system component development',
+          visibility: 'public',
         }}
       />
     </div>

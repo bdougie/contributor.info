@@ -20,5 +20,6 @@ export const DATA_LIMITS = {
 export const ERROR_MESSAGES = {
   SYSTEM_METRICS_FAILED: 'Unable to load system metrics. Please try again.',
   SHARE_METRICS_FAILED: 'Unable to load sharing metrics. Please try again.',
-  GENERAL_FETCH_FAILED: 'Unable to load analytics data. Please check your connection and try again.',
+  GENERAL_FETCH_FAILED:
+    'Unable to load analytics data. Please check your connection and try again.',
 } as const;

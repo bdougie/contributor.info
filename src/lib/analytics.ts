@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { supabase } from './supabase';
 
 export interface ShareEvent {
   user_id?: string;
@@ -28,15 +28,15 @@ export async function trackShareEvent(event: ShareEvent): Promise<void> {
     const userAgent = navigator.userAgent;
     const referrer = document.referrer;
 
-    const { error } = await supabase
-      .from('share_events')
-      .insert([{
+    const { error } = await supabase.from('share_events').insert([
+      {
         ...event,
         session_id: event.session_id || sessionId,
         user_agent: event.user_agent || userAgent,
         referrer: event.referrer || referrer,
-        page_path: event.page_path || window.location.pathname
-      }]);
+        page_path: event.page_path || window.location.pathname,
+      },
+    ]);
 
     if (error) {
       console.error('Failed to track share event:', error);
@@ -52,15 +52,17 @@ export async function trackShareEvent(event: ShareEvent): Promise<void> {
 function getSessionId(): string {
   const storageKey = 'contributor-info-session-id';
   let sessionId = sessionStorage.getItem(storageKey);
-  
+
   if (!sessionId) {
     const randomBytes = new Uint8Array(16);
     window.crypto.getRandomValues(randomBytes);
-    const randomString = Array.from(randomBytes, byte => byte.toString(36)).join('').substr(0, 9);
+    const randomString = Array.from(randomBytes, (byte) => byte.toString(36))
+      .join('')
+      .substr(0, 9);
     sessionId = `session_${Date.now()}_${randomString}`;
     sessionStorage.setItem(storageKey, sessionId);
   }
-  
+
   return sessionId;
 }
 
@@ -96,9 +98,7 @@ export async function getShareMetrics(filters: {
   dateRange?: { start: Date; end: Date };
 }) {
   try {
-    let query = supabase
-      .from('share_events')
-      .select('action, share_type, chart_type, created_at');
+    let query = supabase.from('share_events').select('action, share_type, chart_type, created_at');
 
     if (filters.repository) {
       query = query.eq('repository', filters.repository);
@@ -127,19 +127,19 @@ export async function getShareMetrics(filters: {
       sharesByAction: {} as Record<string, number>,
       sharesByType: {} as Record<string, number>,
       sharesByChart: {} as Record<string, number>,
-      dailyShares: {} as Record<string, number>
+      dailyShares: {} as Record<string, number>,
     };
 
-    data?.forEach(event => {
+    data?.forEach((event) => {
       // Count by action
       metrics.sharesByAction[event.action] = (metrics.sharesByAction[event.action] || 0) + 1;
-      
+
       // Count by share type
       metrics.sharesByType[event.share_type] = (metrics.sharesByType[event.share_type] || 0) + 1;
-      
+
       // Count by chart type
       metrics.sharesByChart[event.chart_type] = (metrics.sharesByChart[event.chart_type] || 0) + 1;
-      
+
       // Count by day
       const day = new Date(event.created_at).toISOString().split('T')[0];
       metrics.dailyShares[day] = (metrics.dailyShares[day] || 0) + 1;
@@ -160,10 +160,9 @@ export async function updateClickAnalytics(dubLinkId: string): Promise<void> {
     // Since getUrlAnalytics now returns null, we'll skip the complex analytics processing
     // Click analytics are tracked automatically by Dub when users click links
     console.log('Click analytics are tracked automatically by Dub for link:', dubLinkId);
-    
+
     // Future enhancement: Could call a Supabase function to fetch analytics from Dub API
     // For now, we rely on Dub's built-in analytics dashboard
-    
   } catch (err) {
     console.error('Error updating click analytics:', err);
   }
@@ -186,7 +185,7 @@ export async function getTopSharedRepositories(limit: number = 10) {
 
     // Count shares by repository
     const counts: Record<string, number> = {};
-    data?.forEach(event => {
+    data?.forEach((event) => {
       if (event.repository) {
         counts[event.repository] = (counts[event.repository] || 0) + 1;
       }
@@ -194,7 +193,7 @@ export async function getTopSharedRepositories(limit: number = 10) {
 
     // Sort by count and return top N
     return Object.entries(counts)
-      .sort(([,a], [,b]) => b - a)
+      .sort(([, a], [, b]) => b - a)
       .slice(0, limit)
       .map(([repository, count]) => ({ repository, count }));
   } catch (err) {
@@ -220,7 +219,7 @@ export async function getShareRate(repository: string, viewsCount?: number): Pro
     }
 
     const shareCount = data?.length || 0;
-    
+
     // If we don't have views count, we can't calculate rate
     if (!viewsCount) {
       return shareCount;

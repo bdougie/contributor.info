@@ -2,12 +2,12 @@
  * Debug component for cache statistics (development only)
  */
 
-import { useState, useEffect } from "react"
+import { useState, useEffect } from 'react';
 import { Database, Trash2, BarChart3 } from '@/components/ui/icon';
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { cacheService, type CacheStats } from "@/lib/llm";
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { cacheService, type CacheStats } from '@/lib/llm';
 
 export function CacheDebug() {
   const [stats, setStats] = useState<CacheStats | null>(null);
@@ -38,9 +38,9 @@ export function CacheDebug() {
   };
 
   const getHitRateColor = (hitRate: number) => {
-    if (hitRate >= 0.8) return "text-green-600";
-    if (hitRate >= 0.6) return "text-yellow-600";
-    return "text-red-600";
+    if (hitRate >= 0.8) return 'text-green-600';
+    if (hitRate >= 0.6) return 'text-yellow-600';
+    return 'text-red-600';
   };
 
   if (!stats) return null;
@@ -55,11 +55,7 @@ export function CacheDebug() {
           <Database className="h-4 w-4 text-blue-600 dark:text-blue-400" />
           LLM Cache Stats
         </h4>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowDetails(!showDetails)}
-        >
+        <Button variant="ghost" size="sm" onClick={() => setShowDetails(!showDetails)}>
           <BarChart3 className="h-4 w-4" />
         </Button>
       </div>
@@ -96,13 +92,13 @@ export function CacheDebug() {
                 Misses: {stats.totalMisses}
               </Badge>
             </div>
-            
+
             {stats.oldestEntry && (
               <div className="text-xs text-muted-foreground">
                 Oldest entry: {stats.oldestEntry.toLocaleString()}
               </div>
             )}
-            
+
             {stats.newestEntry && (
               <div className="text-xs text-muted-foreground">
                 Newest entry: {stats.newestEntry.toLocaleString()}
@@ -112,12 +108,7 @@ export function CacheDebug() {
         )}
 
         <div className="flex gap-2 pt-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleCleanup}
-            className="text-xs"
-          >
+          <Button variant="outline" size="sm" onClick={handleCleanup} className="text-xs">
             Cleanup Expired
           </Button>
           <Button

@@ -4,10 +4,19 @@ import { supabase } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import { useWorkspaceContributors } from '@/hooks/useWorkspaceContributors';
 import { WorkspaceDashboard, WorkspaceDashboardSkeleton } from '@/components/features/workspace';
-import { WorkspacePullRequestsTable, type PullRequest } from '@/components/features/workspace/WorkspacePullRequestsTable';
-import { WorkspaceIssuesTable, type Issue } from '@/components/features/workspace/WorkspaceIssuesTable';
+import {
+  WorkspacePullRequestsTable,
+  type PullRequest,
+} from '@/components/features/workspace/WorkspacePullRequestsTable';
+import {
+  WorkspaceIssuesTable,
+  type Issue,
+} from '@/components/features/workspace/WorkspaceIssuesTable';
 import { RepositoryFilter } from '@/components/features/workspace/RepositoryFilter';
-import { ContributorsList, type Contributor } from '@/components/features/workspace/ContributorsList';
+import {
+  ContributorsList,
+  type Contributor,
+} from '@/components/features/workspace/ContributorsList';
 import { AddRepositoryModal } from '@/components/features/workspace/AddRepositoryModal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -15,7 +24,20 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { GitPullRequest, AlertCircle, Users, Layout, Plus, Settings, TrendingUp, TrendingDown, Activity, Search, Menu, Package } from '@/components/ui/icon';
+import {
+  GitPullRequest,
+  AlertCircle,
+  Users,
+  Layout,
+  Plus,
+  Settings,
+  TrendingUp,
+  TrendingDown,
+  Activity,
+  Search,
+  Menu,
+  Package,
+} from '@/components/ui/icon';
 import {
   useReactTable,
   getCoreRowModel,
@@ -25,9 +47,17 @@ import {
   flexRender,
   type ColumnDef,
   type SortingState,
-} from "@tanstack/react-table";
-import { TimeRangeSelector, type TimeRange } from '@/components/features/workspace/TimeRangeSelector';
-import type { WorkspaceMetrics, WorkspaceTrendData, Repository, ActivityDataPoint } from '@/components/features/workspace';
+} from '@tanstack/react-table';
+import {
+  TimeRangeSelector,
+  type TimeRange,
+} from '@/components/features/workspace/TimeRangeSelector';
+import type {
+  WorkspaceMetrics,
+  WorkspaceTrendData,
+  Repository,
+  ActivityDataPoint,
+} from '@/components/features/workspace';
 import type { Workspace } from '@/types/workspace';
 import { WorkspaceService } from '@/services/workspace.service';
 
@@ -47,7 +77,6 @@ interface WorkspaceRepository {
   };
 }
 
-
 interface MergedPR {
   merged_at: string;
   additions: number;
@@ -62,29 +91,35 @@ const TIME_RANGE_DAYS = {
   '30d': 30,
   '90d': 90,
   '1y': 365,
-  'all': 730 // 2 years for "all" to limit data size
+  all: 730, // 2 years for "all" to limit data size
 } as const;
 
 // Generate mock metrics for now
 const generateMockMetrics = (repos: Repository[], timeRange: TimeRange): WorkspaceMetrics => {
   const totalStars = repos.reduce((sum, repo) => sum + (repo.stars || 0), 0);
   const totalContributors = repos.reduce((sum, repo) => sum + (repo.contributors || 0), 0);
-  
+
   // Generate time-range aware trend percentages
   // Shorter time ranges typically show more volatile changes
   const getTimeRangeMultiplier = (range: TimeRange): number => {
     switch (range) {
-      case '7d': return 1.0;    // More volatile for 7 days
-      case '30d': return 0.7;   // Moderate for 30 days  
-      case '90d': return 0.5;   // Less volatile for 90 days
-      case '1y': return 0.3;    // Even less for 1 year
-      case 'all': return 0.2;   // Least volatile for all time
-      default: return 0.7;
+      case '7d':
+        return 1.0; // More volatile for 7 days
+      case '30d':
+        return 0.7; // Moderate for 30 days
+      case '90d':
+        return 0.5; // Less volatile for 90 days
+      case '1y':
+        return 0.3; // Even less for 1 year
+      case 'all':
+        return 0.2; // Least volatile for all time
+      default:
+        return 0.7;
     }
   };
-  
+
   const multiplier = getTimeRangeMultiplier(timeRange);
-  
+
   return {
     totalStars,
     totalPRs: Math.floor(Math.random() * 500) + 100,
@@ -103,19 +138,19 @@ const generateMockTrendData = (days: number): WorkspaceTrendData => {
   const prs = [];
   const issues = [];
   const commits = [];
-  
+
   const today = new Date();
-  
+
   for (let i = days - 1; i >= 0; i--) {
     const date = new Date(today);
     date.setDate(date.getDate() - i);
     labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
-    
+
     prs.push(Math.floor(Math.random() * 30) + 10);
     issues.push(Math.floor(Math.random() * 20) + 5);
     commits.push(Math.floor(Math.random() * 60) + 20);
   }
-  
+
   return {
     labels,
     datasets: [
@@ -139,32 +174,35 @@ const generateMockTrendData = (days: number): WorkspaceTrendData => {
 };
 
 // Generate activity data from merged PRs with better aggregation
-const generateActivityDataFromPRs = (mergedPRs: MergedPR[], timeRange: TimeRange): ActivityDataPoint[] => {
+const generateActivityDataFromPRs = (
+  mergedPRs: MergedPR[],
+  timeRange: TimeRange
+): ActivityDataPoint[] => {
   // If no data at all, return empty array (let the chart handle empty state)
   if (!mergedPRs || mergedPRs.length === 0) {
     return [];
   }
-  
+
   // Group PRs by date
   const prsByDate = new Map<string, MergedPR[]>();
-  
-  mergedPRs.forEach(pr => {
+
+  mergedPRs.forEach((pr) => {
     const date = new Date(pr.merged_at).toISOString().split('T')[0];
     if (!prsByDate.has(date)) {
       prsByDate.set(date, []);
     }
     prsByDate.get(date)!.push(pr);
   });
-  
+
   // Calculate daily statistics for candlestick chart
   const activityData: ActivityDataPoint[] = [];
-  
+
   prsByDate.forEach((prs, date) => {
     const totalAdditions = prs.reduce((sum, pr) => sum + (pr.additions || 0), 0);
     const totalDeletions = prs.reduce((sum, pr) => sum + (pr.deletions || 0), 0);
     const totalCommits = prs.reduce((sum, pr) => sum + (pr.commits || 0), 0);
     const totalFilesChanged = prs.reduce((sum, pr) => sum + (pr.changed_files || 0), 0);
-    
+
     // Only add data points that have actual activity
     if (totalAdditions > 0 || totalDeletions > 0 || totalCommits > 0) {
       activityData.push({
@@ -176,36 +214,44 @@ const generateActivityDataFromPRs = (mergedPRs: MergedPR[], timeRange: TimeRange
       });
     }
   });
-  
+
   // Sort by date
   activityData.sort((a, b) => a.date.localeCompare(b.date));
-  
+
   // Fill in gaps for continuous chart display (optional, only for recent dates)
   if (activityData.length > 0 && timeRange !== 'all') {
     const filledData: ActivityDataPoint[] = [];
     const startDate = new Date(activityData[0].date);
     const endDate = new Date(activityData[activityData.length - 1].date);
-    const dataMap = new Map(activityData.map(d => [d.date, d]));
-    
+    const dataMap = new Map(activityData.map((d) => [d.date, d]));
+
     for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
       const dateStr = d.toISOString().split('T')[0];
-      filledData.push(dataMap.get(dateStr) || {
-        date: dateStr,
-        additions: 0,
-        deletions: 0,
-        commits: 0,
-        files_changed: 0,
-      });
+      filledData.push(
+        dataMap.get(dateStr) || {
+          date: dateStr,
+          additions: 0,
+          deletions: 0,
+          commits: 0,
+          files_changed: 0,
+        }
+      );
     }
-    
+
     return filledData;
   }
-  
+
   return activityData;
 };
 
 // Pull Requests tab component
-function WorkspacePRs({ repositories, selectedRepositories }: { repositories: Repository[], selectedRepositories: string[] }) {
+function WorkspacePRs({
+  repositories,
+  selectedRepositories,
+}: {
+  repositories: Repository[];
+  selectedRepositories: string[];
+}) {
   const [pullRequests, setPullRequests] = useState<PullRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -220,14 +266,16 @@ function WorkspacePRs({ repositories, selectedRepositories }: { repositories: Re
 
       try {
         // Filter repositories if specific ones are selected
-        const filteredRepos = selectedRepositories.length > 0 
-          ? repositories.filter(r => selectedRepositories.includes(r.id))
-          : repositories;
-        
-        const repoIds = filteredRepos.map(r => r.id);
+        const filteredRepos =
+          selectedRepositories.length > 0
+            ? repositories.filter((r) => selectedRepositories.includes(r.id))
+            : repositories;
+
+        const repoIds = filteredRepos.map((r) => r.id);
         const { data, error } = await supabase
           .from('pull_requests')
-          .select(`
+          .select(
+            `
             id,
             github_id,
             number,
@@ -253,7 +301,8 @@ function WorkspacePRs({ repositories, selectedRepositories }: { repositories: Re
               username,
               avatar_url
             )
-          `)
+          `
+          )
           .in('repository_id', repoIds)
           .order('updated_at', { ascending: false })
           .limit(100);
@@ -291,7 +340,7 @@ function WorkspacePRs({ repositories, selectedRepositories }: { repositories: Re
               avatar_url: string;
             };
           };
-          
+
           const transformedPRs: PullRequest[] = ((data || []) as unknown as PRData[]).map((pr) => ({
             id: pr.id,
             number: pr.number,
@@ -358,7 +407,13 @@ interface IssueLabel {
 }
 
 // Issues tab component
-function WorkspaceIssues({ repositories, selectedRepositories }: { repositories: Repository[], selectedRepositories: string[] }) {
+function WorkspaceIssues({
+  repositories,
+  selectedRepositories,
+}: {
+  repositories: Repository[];
+  selectedRepositories: string[];
+}) {
   const [issues, setIssues] = useState<Issue[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -374,16 +429,18 @@ function WorkspaceIssues({ repositories, selectedRepositories }: { repositories:
 
       try {
         // Filter repositories if specific ones are selected
-        const filteredRepos = selectedRepositories.length > 0 
-          ? repositories.filter(r => selectedRepositories.includes(r.id))
-          : repositories;
-        
-        const repoIds = filteredRepos.map(r => r.id);
-        
+        const filteredRepos =
+          selectedRepositories.length > 0
+            ? repositories.filter((r) => selectedRepositories.includes(r.id))
+            : repositories;
+
+        const repoIds = filteredRepos.map((r) => r.id);
+
         // Fetch issues with count for potential future pagination
         const { data, error } = await supabase
           .from('issues')
-          .select(`
+          .select(
+            `
             id,
             github_id,
             number,
@@ -406,7 +463,9 @@ function WorkspaceIssues({ repositories, selectedRepositories }: { repositories:
               username,
               avatar_url
             )
-          `, { count: 'exact' })
+          `,
+            { count: 'exact' }
+          )
           .in('repository_id', repoIds)
           .order('updated_at', { ascending: false })
           .range(0, 99); // Fetch first 100 issues (0-indexed)
@@ -446,36 +505,41 @@ function WorkspaceIssues({ repositories, selectedRepositories }: { repositories:
               avatar_url: string;
             };
           }
-          
-          const transformedIssues: Issue[] = ((data || []) as unknown as IssueQueryResult[]).map((issue) => ({
-            id: issue.id,
-            number: issue.number,
-            title: issue.title,
-            state: issue.state as 'open' | 'closed',
-            repository: {
-              name: issue.repositories?.name || 'unknown',
-              owner: issue.repositories?.owner || 'unknown',
-              avatar_url: `https://avatars.githubusercontent.com/${issue.repositories?.owner || 'unknown'}`,
-            },
-            author: {
-              username: issue.contributors?.username || 'unknown',
-              avatar_url: issue.contributors?.avatar_url || '',
-            },
-            created_at: issue.created_at,
-            updated_at: issue.updated_at,
-            closed_at: issue.closed_at || undefined,
-            comments_count: issue.comments_count || 0,
-            labels: Array.isArray(issue.labels) 
-              ? (issue.labels as IssueLabel[]).map(label => ({
-                  name: label.name,
-                  color: label.color || '000000'
-                })).filter(l => l.name) // Filter out labels without names
-              : [],
-            // Improved URL construction with validation
-            url: issue.repositories?.full_name && issue.number
-              ? `https://github.com/${issue.repositories.full_name}/issues/${issue.number}`
-              : '', // Empty string when repository data is missing to prevent broken links
-          }));
+
+          const transformedIssues: Issue[] = ((data || []) as unknown as IssueQueryResult[]).map(
+            (issue) => ({
+              id: issue.id,
+              number: issue.number,
+              title: issue.title,
+              state: issue.state as 'open' | 'closed',
+              repository: {
+                name: issue.repositories?.name || 'unknown',
+                owner: issue.repositories?.owner || 'unknown',
+                avatar_url: `https://avatars.githubusercontent.com/${issue.repositories?.owner || 'unknown'}`,
+              },
+              author: {
+                username: issue.contributors?.username || 'unknown',
+                avatar_url: issue.contributors?.avatar_url || '',
+              },
+              created_at: issue.created_at,
+              updated_at: issue.updated_at,
+              closed_at: issue.closed_at || undefined,
+              comments_count: issue.comments_count || 0,
+              labels: Array.isArray(issue.labels)
+                ? (issue.labels as IssueLabel[])
+                    .map((label) => ({
+                      name: label.name,
+                      color: label.color || '000000',
+                    }))
+                    .filter((l) => l.name) // Filter out labels without names
+                : [],
+              // Improved URL construction with validation
+              url:
+                issue.repositories?.full_name && issue.number
+                  ? `https://github.com/${issue.repositories.full_name}/issues/${issue.number}`
+                  : '', // Empty string when repository data is missing to prevent broken links
+            })
+          );
           setIssues(transformedIssues);
         }
       } catch (err) {
@@ -526,12 +590,20 @@ function WorkspaceIssues({ repositories, selectedRepositories }: { repositories:
   );
 }
 
-function WorkspaceContributors({ repositories, selectedRepositories, workspaceId }: { repositories: Repository[]; selectedRepositories: string[]; workspaceId: string }) {
+function WorkspaceContributors({
+  repositories,
+  selectedRepositories,
+  workspaceId,
+}: {
+  repositories: Repository[];
+  selectedRepositories: string[];
+  workspaceId: string;
+}) {
   const navigate = useNavigate();
   const [showAddContributors, setShowAddContributors] = useState(false);
   const [selectedContributorsToAdd, setSelectedContributorsToAdd] = useState<string[]>([]);
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [globalFilter, setGlobalFilter] = useState("");
+  const [globalFilter, setGlobalFilter] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   const {
@@ -555,9 +627,9 @@ function WorkspaceContributors({ repositories, selectedRepositories, workspaceId
   const handleTrackContributor = (contributorId: string) => {
     if (showAddContributors) {
       // In add mode, toggle selection
-      setSelectedContributorsToAdd(prev => 
-        prev.includes(contributorId) 
-          ? prev.filter(id => id !== contributorId)
+      setSelectedContributorsToAdd((prev) =>
+        prev.includes(contributorId)
+          ? prev.filter((id) => id !== contributorId)
           : [...prev, contributorId]
       );
     }
@@ -590,7 +662,7 @@ function WorkspaceContributors({ repositories, selectedRepositories, workspaceId
   // Define columns for the add contributors table
   const addColumns: ColumnDef<Contributor>[] = [
     {
-      id: "select",
+      id: 'select',
       size: 40,
       header: ({ table }) => (
         <div className="ml-2">
@@ -607,9 +679,9 @@ function WorkspaceContributors({ repositories, selectedRepositories, workspaceId
             checked={selectedContributorsToAdd.includes(row.original.id)}
             onCheckedChange={(value) => {
               if (value) {
-                setSelectedContributorsToAdd(prev => [...prev, row.original.id]);
+                setSelectedContributorsToAdd((prev) => [...prev, row.original.id]);
               } else {
-                setSelectedContributorsToAdd(prev => prev.filter(id => id !== row.original.id));
+                setSelectedContributorsToAdd((prev) => prev.filter((id) => id !== row.original.id));
               }
             }}
             aria-label="Select row"
@@ -620,8 +692,8 @@ function WorkspaceContributors({ repositories, selectedRepositories, workspaceId
       enableHiding: false,
     },
     {
-      accessorKey: "username",
-      header: "Contributor",
+      accessorKey: 'username',
+      header: 'Contributor',
       size: 350,
       cell: ({ row }) => {
         const contributor = row.original;
@@ -641,26 +713,27 @@ function WorkspaceContributors({ repositories, selectedRepositories, workspaceId
       },
     },
     {
-      id: "stats",
+      id: 'stats',
       header: () => <div className="text-right">Data</div>,
       size: 450,
       cell: ({ row }) => {
         const stats = row.original.contributions;
         const trend = row.original.stats.contribution_trend;
-        const trendColor = trend > 0 ? "text-green-600" : trend < 0 ? "text-red-600" : "text-muted-foreground";
+        const trendColor =
+          trend > 0 ? 'text-green-600' : trend < 0 ? 'text-red-600' : 'text-muted-foreground';
         const TrendIcon = trend > 0 ? TrendingUp : TrendingDown;
-        
+
         // Get repository data from the contributor
         const repoCount = row.original.stats.repositories_contributed;
-        
+
         // For now, we'll use empty array since repositories aren't directly attached to contributors
         const repoOwners: string[] = [];
-        
+
         // Show up to 4 repos, or however many are available
         const maxDisplay = 4;
         const displayOwners = repoOwners.slice(0, maxDisplay);
         const remainingCount = Math.max(0, repoCount - maxDisplay);
-        
+
         return (
           <div className="flex items-center justify-end gap-6 text-sm">
             <div className="flex items-center gap-4">
@@ -692,7 +765,9 @@ function WorkspaceContributors({ repositories, selectedRepositories, workspaceId
                   ))}
                 </div>
                 {remainingCount > 0 && (
-                  <span className="text-xs text-muted-foreground font-medium">+{remainingCount}</span>
+                  <span className="text-xs text-muted-foreground font-medium">
+                    +{remainingCount}
+                  </span>
                 )}
               </div>
             ) : (
@@ -703,7 +778,8 @@ function WorkspaceContributors({ repositories, selectedRepositories, workspaceId
             <div className="flex items-center gap-1.5 min-w-[70px] justify-end">
               <TrendIcon className={`h-4 w-4 ${trendColor}`} />
               <span className={`font-medium ${trendColor}`}>
-                {trend > 0 ? "+" : ""}{trend}%
+                {trend > 0 ? '+' : ''}
+                {trend}%
               </span>
             </div>
           </div>
@@ -715,8 +791,8 @@ function WorkspaceContributors({ repositories, selectedRepositories, workspaceId
   // Define columns for the view list (without checkbox)
   const viewColumns: ColumnDef<Contributor>[] = [
     {
-      accessorKey: "username",
-      header: "Contributor",
+      accessorKey: 'username',
+      header: 'Contributor',
       size: 400,
       cell: ({ row }) => {
         const contributor = row.original;
@@ -736,26 +812,27 @@ function WorkspaceContributors({ repositories, selectedRepositories, workspaceId
       },
     },
     {
-      id: "stats",
+      id: 'stats',
       header: () => <div className="text-right">Data</div>,
       size: 500,
       cell: ({ row }) => {
         const stats = row.original.contributions;
         const trend = row.original.stats.contribution_trend;
-        const trendColor = trend > 0 ? "text-green-600" : trend < 0 ? "text-red-600" : "text-muted-foreground";
+        const trendColor =
+          trend > 0 ? 'text-green-600' : trend < 0 ? 'text-red-600' : 'text-muted-foreground';
         const TrendIcon = trend > 0 ? TrendingUp : TrendingDown;
-        
+
         // Get repository data from the contributor
         const repoCount = row.original.stats.repositories_contributed;
-        
+
         // For now, we'll use empty array since repositories aren't directly attached to contributors
         const repoOwners: string[] = [];
-        
+
         // Show up to 4 repos, or however many are available
         const maxDisplay = 4;
         const displayOwners = repoOwners.slice(0, maxDisplay);
         const remainingCount = Math.max(0, repoCount - maxDisplay);
-        
+
         return (
           <div className="flex items-center justify-end gap-6 text-sm">
             <div className="flex items-center gap-4">
@@ -787,7 +864,9 @@ function WorkspaceContributors({ repositories, selectedRepositories, workspaceId
                   ))}
                 </div>
                 {remainingCount > 0 && (
-                  <span className="text-xs text-muted-foreground font-medium">+{remainingCount}</span>
+                  <span className="text-xs text-muted-foreground font-medium">
+                    +{remainingCount}
+                  </span>
                 )}
               </div>
             ) : (
@@ -798,7 +877,8 @@ function WorkspaceContributors({ repositories, selectedRepositories, workspaceId
             <div className="flex items-center gap-1.5 min-w-[70px] justify-end">
               <TrendIcon className={`h-4 w-4 ${trendColor}`} />
               <span className={`font-medium ${trendColor}`}>
-                {trend > 0 ? "+" : ""}{trend}%
+                {trend > 0 ? '+' : ''}
+                {trend}%
               </span>
             </div>
           </div>
@@ -874,11 +954,7 @@ function WorkspaceContributors({ repositories, selectedRepositories, workspaceId
                 <span className="text-sm text-muted-foreground">
                   {selectedContributorsToAdd.length} selected
                 </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCancelAdd}
-                >
+                <Button variant="outline" size="sm" onClick={handleCancelAdd}>
                   Cancel
                 </Button>
                 <Button
@@ -898,7 +974,7 @@ function WorkspaceContributors({ repositories, selectedRepositories, workspaceId
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search contributors..."
-                  value={globalFilter ?? ""}
+                  value={globalFilter ?? ''}
                   onChange={(e) => setGlobalFilter(e.target.value)}
                   className="pl-10"
                 />
@@ -920,10 +996,7 @@ function WorkspaceContributors({ repositories, selectedRepositories, workspaceId
                             minWidth: header.column.columnDef.size,
                           }}
                         >
-                          {flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
+                          {flexRender(header.column.columnDef.header, header.getContext())}
                         </th>
                       ))}
                     </tr>
@@ -932,30 +1005,27 @@ function WorkspaceContributors({ repositories, selectedRepositories, workspaceId
                 <tbody>
                   {addTable.getRowModel().rows.length > 0 ? (
                     addTable.getRowModel().rows.map((row) => (
-                      <tr
-                        key={row.id}
-                        className="border-b hover:bg-muted/50 transition-colors"
-                      >
+                      <tr key={row.id} className="border-b hover:bg-muted/50 transition-colors">
                         {row.getVisibleCells().map((cell) => (
-                          <td 
-                            key={cell.id} 
+                          <td
+                            key={cell.id}
                             className="px-4 py-3"
                             style={{
                               width: cell.column.columnDef.size,
                               minWidth: cell.column.columnDef.size,
                             }}
                           >
-                            {flexRender(
-                              cell.column.columnDef.cell,
-                              cell.getContext()
-                            )}
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
                           </td>
                         ))}
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={addColumns.length} className="px-4 py-8 text-center text-muted-foreground">
+                      <td
+                        colSpan={addColumns.length}
+                        className="px-4 py-8 text-center text-muted-foreground"
+                      >
                         No contributors found
                       </td>
                     </tr>
@@ -967,11 +1037,11 @@ function WorkspaceContributors({ repositories, selectedRepositories, workspaceId
             {/* Pagination */}
             <div className="flex items-center justify-between mt-4">
               <div className="text-sm text-muted-foreground">
-                Showing {addTable.getState().pagination.pageIndex * 10 + 1} to{" "}
+                Showing {addTable.getState().pagination.pageIndex * 10 + 1} to{' '}
                 {Math.min(
                   (addTable.getState().pagination.pageIndex + 1) * 10,
                   allAvailableContributors.length
-                )}{" "}
+                )}{' '}
                 of {allAvailableContributors.length} contributors
               </div>
               <div className="flex items-center gap-2">
@@ -1021,16 +1091,13 @@ function WorkspaceContributors({ repositories, selectedRepositories, workspaceId
                   <Menu className="h-4 w-4" />
                 </Button>
               </div>
-              <Button
-                onClick={handleAddContributor}
-                size="sm"
-              >
+              <Button onClick={handleAddContributor} size="sm">
                 <Plus className="h-4 w-4 mr-1" />
                 Add Contributors
               </Button>
             </div>
           </div>
-          
+
           {viewMode === 'grid' ? (
             <ContributorsList
               contributors={contributors}
@@ -1050,7 +1117,7 @@ function WorkspaceContributors({ repositories, selectedRepositories, workspaceId
                     <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                       placeholder="Search contributors..."
-                      value={globalFilter ?? ""}
+                      value={globalFilter ?? ''}
                       onChange={(e) => setGlobalFilter(e.target.value)}
                       className="pl-10"
                     />
@@ -1072,10 +1139,7 @@ function WorkspaceContributors({ repositories, selectedRepositories, workspaceId
                                 minWidth: header.column.columnDef.size,
                               }}
                             >
-                              {flexRender(
-                                header.column.columnDef.header,
-                                header.getContext()
-                              )}
+                              {flexRender(header.column.columnDef.header, header.getContext())}
                             </th>
                           ))}
                         </tr>
@@ -1090,25 +1154,25 @@ function WorkspaceContributors({ repositories, selectedRepositories, workspaceId
                             onClick={() => handleContributorClick(row.original)}
                           >
                             {row.getVisibleCells().map((cell) => (
-                              <td 
-                                key={cell.id} 
+                              <td
+                                key={cell.id}
                                 className="px-4 py-3"
                                 style={{
                                   width: cell.column.columnDef.size,
                                   minWidth: cell.column.columnDef.size,
                                 }}
                               >
-                                {flexRender(
-                                  cell.column.columnDef.cell,
-                                  cell.getContext()
-                                )}
+                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
                               </td>
                             ))}
                           </tr>
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={viewColumns.length} className="px-4 py-8 text-center text-muted-foreground">
+                          <td
+                            colSpan={viewColumns.length}
+                            className="px-4 py-8 text-center text-muted-foreground"
+                          >
                             No contributors found
                           </td>
                         </tr>
@@ -1120,11 +1184,11 @@ function WorkspaceContributors({ repositories, selectedRepositories, workspaceId
                 {/* Pagination */}
                 <div className="flex items-center justify-between mt-4">
                   <div className="text-sm text-muted-foreground">
-                    Showing {viewTable.getState().pagination.pageIndex * 10 + 1} to{" "}
+                    Showing {viewTable.getState().pagination.pageIndex * 10 + 1} to{' '}
                     {Math.min(
                       (viewTable.getState().pagination.pageIndex + 1) * 10,
                       contributors.length
-                    )}{" "}
+                    )}{' '}
                     of {contributors.length} contributors
                   </div>
                   <div className="flex items-center gap-2">
@@ -1165,8 +1229,8 @@ function WorkspaceActivity({ repositories }: { repositories: Repository[] }) {
         <CardContent>
           <p className="text-muted-foreground">Activity timeline coming soon...</p>
           <p className="text-sm text-muted-foreground mt-2">
-            This will show a detailed timeline of all activity across {repositories.length} repositories in this workspace,
-            including commits, pull requests, issues, and releases.
+            This will show a detailed timeline of all activity across {repositories.length}{' '}
+            repositories in this workspace, including commits, pull requests, issues, and releases.
           </p>
         </CardContent>
       </Card>
@@ -1184,7 +1248,8 @@ function WorkspaceSettings({ workspace }: { workspace: Workspace }) {
         <CardContent>
           <p className="text-muted-foreground">Workspace settings coming soon...</p>
           <p className="text-sm text-muted-foreground mt-2">
-            Manage workspace "{workspace.name}" settings, members, repositories, and permissions here.
+            Manage workspace "{workspace.name}" settings, members, repositories, and permissions
+            here.
           </p>
         </CardContent>
       </Card>
@@ -1223,14 +1288,18 @@ export default function WorkspacePage() {
 
       try {
         // Get current user
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         setCurrentUser(user);
 
         // Check if workspaceId is a UUID or a slug
-        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(workspaceId);
-        
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+          workspaceId
+        );
+
         // Fetch workspace details using either id or slug
-        const { data: workspaceData, error: wsError } = isUUID 
+        const { data: workspaceData, error: wsError } = isUUID
           ? await supabase
               .from('workspaces')
               .select('*')
@@ -1260,7 +1329,8 @@ export default function WorkspacePage() {
         // Fetch repositories with their details (use the actual workspace ID)
         const { data: repoData, error: repoError } = await supabase
           .from('workspace_repositories')
-          .select(`
+          .select(
+            `
             *,
             repositories (
               id,
@@ -1273,7 +1343,8 @@ export default function WorkspacePage() {
               forks_count,
               open_issues_count
             )
-          `)
+          `
+          )
           .eq('workspace_id', workspaceData.id);
 
         if (repoError) {
@@ -1282,7 +1353,7 @@ export default function WorkspacePage() {
 
         // Transform repository data to match the Repository interface
         const transformedRepos: Repository[] = (repoData || [])
-          .filter(r => r.repositories)
+          .filter((r) => r.repositories)
           .map((r: WorkspaceRepository) => ({
             id: r.repositories.id,
             full_name: r.repositories.full_name,
@@ -1295,7 +1366,9 @@ export default function WorkspacePage() {
             open_prs: Math.floor(Math.random() * 50) + 5, // Mock for now
             open_issues: r.repositories.open_issues_count,
             contributors: Math.floor(Math.random() * 100) + 10, // Mock for now
-            last_activity: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
+            last_activity: new Date(
+              Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000
+            ).toISOString(),
             is_pinned: r.is_pinned,
             avatar_url: `https://avatars.githubusercontent.com/${r.repositories.owner}`,
             html_url: `https://github.com/${r.repositories.full_name}`,
@@ -1304,51 +1377,57 @@ export default function WorkspacePage() {
         // Fetch merged PRs for activity data - respect time range
         let mergedPRs: MergedPR[] = [];
         if (transformedRepos.length > 0) {
-          const repoIds = transformedRepos.map(r => r.id);
-          
+          const repoIds = transformedRepos.map((r) => r.id);
+
           // Calculate date range based on selected time range
           const daysToFetch = TIME_RANGE_DAYS[timeRange];
           const startDate = new Date(Date.now() - daysToFetch * 24 * 60 * 60 * 1000);
-          
+
           // Fetch both merged PRs and all PR activity for better coverage
           const { data: prData, error: prError } = await supabase
             .from('pull_requests')
-            .select('merged_at, created_at, updated_at, additions, deletions, changed_files, commits, state')
+            .select(
+              'merged_at, created_at, updated_at, additions, deletions, changed_files, commits, state'
+            )
             .in('repository_id', repoIds)
-            .or(`created_at.gte.${startDate.toISOString()},merged_at.gte.${startDate.toISOString()}`)
+            .or(
+              `created_at.gte.${startDate.toISOString()},merged_at.gte.${startDate.toISOString()}`
+            )
             .order('created_at', { ascending: true });
-          
+
           if (prError) {
             console.error('Error fetching PR data for activity chart:', prError);
           }
-          
+
           if (prData) {
             // Filter for merged PRs but handle null fields gracefully
             mergedPRs = prData
-              .filter(pr => pr.merged_at !== null)
-              .map(pr => ({
+              .filter((pr) => pr.merged_at !== null)
+              .map((pr) => ({
                 merged_at: pr.merged_at,
                 additions: pr.additions || 0,
                 deletions: pr.deletions || 0,
                 changed_files: pr.changed_files || 0,
-                commits: pr.commits || 0
+                commits: pr.commits || 0,
               }));
           }
-          
+
           // If no merged PRs found, try to get any open PRs for activity indication
           if (mergedPRs.length === 0 && prData) {
-            console.log(`No merged PRs found for workspace in last ${daysToFetch} days, checking for any PR activity...`);
+            console.log(
+              `No merged PRs found for workspace in last ${daysToFetch} days, checking for any PR activity...`
+            );
             // Use created_at for open PRs to show some activity
             const openPRActivity = prData
-              .filter(pr => pr.state === 'open' && pr.created_at)
-              .map(pr => ({
+              .filter((pr) => pr.state === 'open' && pr.created_at)
+              .map((pr) => ({
                 merged_at: pr.created_at, // Use created_at as proxy for activity date
                 additions: pr.additions || 0,
                 deletions: pr.deletions || 0,
                 changed_files: pr.changed_files || 0,
-                commits: pr.commits || 0
+                commits: pr.commits || 0,
               }));
-            
+
             if (openPRActivity.length > 0) {
               console.log(`Found ${openPRActivity.length} open PRs to show activity`);
               mergedPRs = openPRActivity;
@@ -1358,12 +1437,12 @@ export default function WorkspacePage() {
 
         setWorkspace(workspaceData);
         setRepositories(transformedRepos);
-        
+
         // Generate metrics, trend data, and activity data
         const mockMetrics = generateMockMetrics(transformedRepos, timeRange);
         const mockTrendData = generateMockTrendData(TIME_RANGE_DAYS[timeRange]);
         const activityDataPoints = generateActivityDataFromPRs(mergedPRs, timeRange);
-        
+
         setMetrics(mockMetrics);
         setTrendData(mockTrendData);
         setActivityData(activityDataPoints);
@@ -1415,13 +1494,13 @@ export default function WorkspacePage() {
       // Trigger GitHub OAuth flow
       const redirectTo = window.location.origin + window.location.pathname;
       const { error: signInError } = await supabase.auth.signInWithOAuth({
-        provider: "github",
+        provider: 'github',
         options: {
           redirectTo: redirectTo,
-          scopes: "read:user user:email public_repo"
-        }
+          scopes: 'read:user user:email public_repo',
+        },
       });
-      
+
       if (signInError) {
         toast.error('Failed to initiate sign in');
         console.error('Auth error:', signInError);
@@ -1439,7 +1518,8 @@ export default function WorkspacePage() {
       // Fetch repositories with their details
       const { data: repoData, error: repoError } = await supabase
         .from('workspace_repositories')
-        .select(`
+        .select(
+          `
           *,
           repositories (
             id,
@@ -1452,7 +1532,8 @@ export default function WorkspacePage() {
             forks_count,
             open_issues_count
           )
-        `)
+        `
+        )
         .eq('workspace_id', workspace.id);
 
       if (!repoError && repoData) {
@@ -1471,14 +1552,16 @@ export default function WorkspacePage() {
             open_issues: item.repositories.open_issues_count || 0,
             contributors: Math.floor(Math.random() * 50) + 10, // Mock for now
             avatar_url: `https://avatars.githubusercontent.com/${item.repositories.owner}`,
-            last_activity: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            last_activity: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000)
+              .toISOString()
+              .split('T')[0],
             is_pinned: item.is_pinned || false,
             html_url: `https://github.com/${item.repositories.full_name}`,
           }));
 
         setRepositories(formattedRepos);
-        setSelectedRepositories(formattedRepos.map(r => r.id));
-        
+        setSelectedRepositories(formattedRepos.map((r) => r.id));
+
         // Update metrics with new repository data
         const newMetrics = generateMockMetrics(formattedRepos, timeRange);
         setMetrics(newMetrics);
@@ -1501,16 +1584,16 @@ export default function WorkspacePage() {
 
       if (result.success) {
         // Remove the repository from the local state immediately
-        setRepositories(prev => prev.filter(r => r.id !== repo.id));
-        
+        setRepositories((prev) => prev.filter((r) => r.id !== repo.id));
+
         // Also remove from selected repositories if it was selected
-        setSelectedRepositories(prev => prev.filter(id => id !== repo.id));
-        
+        setSelectedRepositories((prev) => prev.filter((id) => id !== repo.id));
+
         // Update metrics after removing repository
-        const updatedRepos = repositories.filter(r => r.id !== repo.id);
+        const updatedRepos = repositories.filter((r) => r.id !== repo.id);
         const newMetrics = generateMockMetrics(updatedRepos, timeRange);
         setMetrics(newMetrics);
-        
+
         toast.success('Repository removed from workspace');
       } else {
         toast.error(result.error || 'Failed to remove repository');
@@ -1540,13 +1623,9 @@ export default function WorkspacePage() {
         <div className="space-y-4">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">
-                {workspace.name}
-              </h1>
+              <h1 className="text-2xl font-bold tracking-tight">{workspace.name}</h1>
               {workspace.description && (
-                <p className="text-muted-foreground mt-1">
-                  {workspace.description}
-                </p>
+                <p className="text-muted-foreground mt-1">{workspace.description}</p>
               )}
             </div>
             <div className="flex items-center gap-2">
@@ -1558,7 +1637,7 @@ export default function WorkspacePage() {
                 variant="select"
               />
               <RepositoryFilter
-                repositories={repositories.map(repo => ({
+                repositories={repositories.map((repo) => ({
                   id: repo.id,
                   name: repo.name,
                   owner: repo.owner,
@@ -1571,11 +1650,7 @@ export default function WorkspacePage() {
                 onSelectionChange={setSelectedRepositories}
                 className="w-[200px]"
               />
-              <Button
-                onClick={handleSettingsClick}
-                size="sm"
-                variant="outline"
-              >
+              <Button onClick={handleSettingsClick} size="sm" variant="outline">
                 <Settings className="h-4 w-4" />
               </Button>
             </div>
@@ -1588,106 +1663,109 @@ export default function WorkspacePage() {
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <div className="container max-w-7xl mx-auto">
             <TabsList className="grid w-full grid-cols-6 mb-6">
-          <TabsTrigger value="overview" className="flex items-center gap-2">
-            <Layout className="h-4 w-4" />
-            <span className="hidden sm:inline">Overview</span>
-          </TabsTrigger>
-          <TabsTrigger value="prs" className="flex items-center gap-2">
-            <GitPullRequest className="h-4 w-4" />
-            <span className="hidden sm:inline">PRs</span>
-          </TabsTrigger>
-          <TabsTrigger value="issues" className="flex items-center gap-2">
-            <AlertCircle className="h-4 w-4" />
-            <span className="hidden sm:inline">Issues</span>
-          </TabsTrigger>
-          <TabsTrigger value="contributors" className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            <span className="hidden sm:inline">Contributors</span>
-          </TabsTrigger>
-          <TabsTrigger value="activity" className="flex items-center gap-2" disabled>
-            <Activity className="h-4 w-4" />
-            <span className="hidden sm:inline">Activity</span>
-          </TabsTrigger>
-          <TabsTrigger value="settings" className="flex items-center gap-2" disabled>
-            <Settings className="h-4 w-4" />
-            <span className="hidden sm:inline">Settings</span>
-          </TabsTrigger>
-        </TabsList>
+              <TabsTrigger value="overview" className="flex items-center gap-2">
+                <Layout className="h-4 w-4" />
+                <span className="hidden sm:inline">Overview</span>
+              </TabsTrigger>
+              <TabsTrigger value="prs" className="flex items-center gap-2">
+                <GitPullRequest className="h-4 w-4" />
+                <span className="hidden sm:inline">PRs</span>
+              </TabsTrigger>
+              <TabsTrigger value="issues" className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4" />
+                <span className="hidden sm:inline">Issues</span>
+              </TabsTrigger>
+              <TabsTrigger value="contributors" className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                <span className="hidden sm:inline">Contributors</span>
+              </TabsTrigger>
+              <TabsTrigger value="activity" className="flex items-center gap-2" disabled>
+                <Activity className="h-4 w-4" />
+                <span className="hidden sm:inline">Activity</span>
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="flex items-center gap-2" disabled>
+                <Settings className="h-4 w-4" />
+                <span className="hidden sm:inline">Settings</span>
+              </TabsTrigger>
+            </TabsList>
           </div>
 
-        <TabsContent value="overview" className="mt-6 space-y-4">
-          <div className="container max-w-7xl mx-auto">
-          <WorkspaceDashboard
-            workspaceId={workspace.id}
-            workspaceName=""
-            metrics={metrics}
-            trendData={trendData}
-            activityData={activityData}
-            repositories={repositories}
-            tier={workspace.tier as 'free' | 'pro' | 'enterprise'}
-            timeRange={timeRange}
-            onAddRepository={isWorkspaceOwner ? handleAddRepository : undefined}
-            onRemoveRepository={isWorkspaceOwner ? handleRemoveRepository : undefined}
-            onRepositoryClick={handleRepositoryClick}
-            onSettingsClick={handleSettingsClick}
-            onUpgradeClick={handleUpgradeClick}
-          />
-          </div>
-        </TabsContent>
+          <TabsContent value="overview" className="mt-6 space-y-4">
+            <div className="container max-w-7xl mx-auto">
+              <WorkspaceDashboard
+                workspaceId={workspace.id}
+                workspaceName=""
+                metrics={metrics}
+                trendData={trendData}
+                activityData={activityData}
+                repositories={repositories}
+                tier={workspace.tier as 'free' | 'pro' | 'enterprise'}
+                timeRange={timeRange}
+                onAddRepository={isWorkspaceOwner ? handleAddRepository : undefined}
+                onRemoveRepository={isWorkspaceOwner ? handleRemoveRepository : undefined}
+                onRepositoryClick={handleRepositoryClick}
+                onSettingsClick={handleSettingsClick}
+                onUpgradeClick={handleUpgradeClick}
+              />
+            </div>
+          </TabsContent>
 
-        <TabsContent value="prs" className="mt-6">
-          <WorkspacePRs repositories={repositories} selectedRepositories={selectedRepositories} />
-        </TabsContent>
+          <TabsContent value="prs" className="mt-6">
+            <WorkspacePRs repositories={repositories} selectedRepositories={selectedRepositories} />
+          </TabsContent>
 
-        <TabsContent value="issues" className="mt-6">
-          <WorkspaceIssues repositories={repositories} selectedRepositories={selectedRepositories} />
-        </TabsContent>
+          <TabsContent value="issues" className="mt-6">
+            <WorkspaceIssues
+              repositories={repositories}
+              selectedRepositories={selectedRepositories}
+            />
+          </TabsContent>
 
-        <TabsContent value="contributors" className="mt-6">
-          <WorkspaceContributors repositories={repositories} selectedRepositories={selectedRepositories} workspaceId={workspace.id} />
-        </TabsContent>
+          <TabsContent value="contributors" className="mt-6">
+            <WorkspaceContributors
+              repositories={repositories}
+              selectedRepositories={selectedRepositories}
+              workspaceId={workspace.id}
+            />
+          </TabsContent>
 
-        <TabsContent value="activity" className="mt-6">
-          <div className="container max-w-7xl mx-auto">
-            <WorkspaceActivity repositories={repositories} />
-          </div>
-        </TabsContent>
+          <TabsContent value="activity" className="mt-6">
+            <div className="container max-w-7xl mx-auto">
+              <WorkspaceActivity repositories={repositories} />
+            </div>
+          </TabsContent>
 
-        <TabsContent value="settings" className="mt-6">
-          <div className="container max-w-7xl mx-auto">
-            <WorkspaceSettings workspace={workspace} />
-          </div>
-        </TabsContent>
-      </Tabs>
+          <TabsContent value="settings" className="mt-6">
+            <div className="container max-w-7xl mx-auto">
+              <WorkspaceSettings workspace={workspace} />
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Upgrade Prompt for Free Tier */}
       {workspace.tier === 'free' && (
         <div className="container max-w-7xl mx-auto px-6 pb-6 mt-6">
           <div className="rounded-lg border bg-muted/50 p-4">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <h3 className="font-semibold">Unlock Advanced Analytics</h3>
-              <div className="rounded-full bg-primary/10 p-1">
-                <TrendingUp className="h-3.5 w-3.5 text-primary" />
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold">Unlock Advanced Analytics</h3>
+                <div className="rounded-full bg-primary/10 p-1">
+                  <TrendingUp className="h-3.5 w-3.5 text-primary" />
+                </div>
               </div>
+              <p className="text-sm text-muted-foreground">
+                Upgrade to Pro to access historical data beyond 30 days, advanced metrics, and
+                priority support. Pro users can track up to 10 repositories per workspace.
+              </p>
+              <Button onClick={handleUpgradeClick} variant="default" size="sm" className="mt-3">
+                Upgrade to Pro
+              </Button>
             </div>
-            <p className="text-sm text-muted-foreground">
-              Upgrade to Pro to access historical data beyond 30 days, advanced metrics, and priority support. Pro users can track up to 10 repositories per workspace.
-            </p>
-            <Button 
-              onClick={handleUpgradeClick} 
-              variant="default" 
-              size="sm"
-              className="mt-3"
-            >
-              Upgrade to Pro
-            </Button>
           </div>
         </div>
-        </div>
       )}
-      
+
       {/* Add Repository Modal */}
       {workspace && (
         <AddRepositoryModal

@@ -10,7 +10,7 @@ export const mockGitHubApiResponses = {
     owner: { login: 'owner' },
     stargazers_count: 100,
     fork: false,
-    language: 'TypeScript'
+    language: 'TypeScript',
   },
 
   // Mock pull requests
@@ -22,8 +22,8 @@ export const mockGitHubApiResponses = {
       user: { login: 'contributor1' },
       created_at: '2024-01-01T00:00:00Z',
       merged_at: '2024-01-02T00:00:00Z',
-      state: 'closed'
-    }
+      state: 'closed',
+    },
   ],
 
   // Mock issues
@@ -34,8 +34,8 @@ export const mockGitHubApiResponses = {
       title: 'Test Issue',
       user: { login: 'contributor1' },
       created_at: '2024-01-01T00:00:00Z',
-      state: 'open'
-    }
+      state: 'open',
+    },
   ],
 
   // Mock contributors
@@ -44,9 +44,9 @@ export const mockGitHubApiResponses = {
       login: 'contributor1',
       id: 1,
       contributions: 50,
-      avatar_url: 'https://github.com/contributor1.png'
-    }
-  ]
+      avatar_url: 'https://github.com/contributor1.png',
+    },
+  ],
 };
 
 // Setup global fetch mock with GitHub API responses
@@ -57,32 +57,32 @@ export function setupGitHubApiMock() {
       if (url.includes('/pulls')) {
         return Promise.resolve({
           ok: true,
-          json: () => Promise.resolve(mockGitHubApiResponses.pullRequests)
+          json: () => Promise.resolve(mockGitHubApiResponses.pullRequests),
         });
       }
       if (url.includes('/issues')) {
         return Promise.resolve({
           ok: true,
-          json: () => Promise.resolve(mockGitHubApiResponses.issues)
+          json: () => Promise.resolve(mockGitHubApiResponses.issues),
         });
       }
       if (url.includes('/contributors')) {
         return Promise.resolve({
           ok: true,
-          json: () => Promise.resolve(mockGitHubApiResponses.contributors)
+          json: () => Promise.resolve(mockGitHubApiResponses.contributors),
         });
       }
       // Default repository info
       return Promise.resolve({
         ok: true,
-        json: () => Promise.resolve(mockGitHubApiResponses.repository)
+        json: () => Promise.resolve(mockGitHubApiResponses.repository),
       });
     }
 
     // Default successful response for other endpoints
     return Promise.resolve({
       ok: true,
-      json: () => Promise.resolve({})
+      json: () => Promise.resolve({}),
     });
   });
 }

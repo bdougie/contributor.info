@@ -46,7 +46,7 @@ export function Markdown({ children, className }: MarkdownProps) {
         img: ({ src, alt }) => {
           // Determine if image should be priority loaded (above the fold)
           const isPriority = src?.includes('hero') || src?.includes('banner');
-          
+
           return (
             <OptimizedImage
               src={src || ''}
@@ -56,7 +56,7 @@ export function Markdown({ children, className }: MarkdownProps) {
               className="rounded-lg shadow-sm"
             />
           );
-        }
+        },
       }}
     >
       {children}

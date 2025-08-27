@@ -1,5 +1,5 @@
-import React, { createContext } from "react";
-import type { RepoStats, LotteryFactor, DirectCommitsData } from "@/lib/types";
+import React, { createContext } from 'react';
+import type { RepoStats, LotteryFactor, DirectCommitsData } from '@/lib/types';
 
 // Context to share data between tabs
 interface RepoStatsContextType {
@@ -26,9 +26,5 @@ export function RepoStatsProvider({
   children: React.ReactNode;
   value: RepoStatsContextType;
 }) {
-  return (
-    <RepoStatsContext.Provider value={value}>
-      {children}
-    </RepoStatsContext.Provider>
-  );
+  return <RepoStatsContext.Provider value={value}>{children}</RepoStatsContext.Provider>;
 }

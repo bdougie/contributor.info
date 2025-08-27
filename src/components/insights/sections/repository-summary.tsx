@@ -1,10 +1,10 @@
 import { RefreshCw, AlertCircle } from '@/components/ui/icon';
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { useRepositorySummary } from "@/hooks/use-repository-summary";
-import { useCachedRepoData } from "@/hooks/use-cached-repo-data";
-import { Markdown } from "@/components/common/layout";
-import { ErrorBoundary } from "@/components/error-boundary";
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { useRepositorySummary } from '@/hooks/use-repository-summary';
+import { useCachedRepoData } from '@/hooks/use-cached-repo-data';
+import { Markdown } from '@/components/common/layout';
+import { ErrorBoundary } from '@/components/error-boundary';
 // Removed Sentry import - using simple logging instead
 
 interface RepositorySummaryProps {
@@ -16,14 +16,18 @@ interface RepositorySummaryProps {
 // Internal component without error boundary
 function RepositorySummaryInternal({ owner, repo, timeRange }: RepositorySummaryProps) {
   const { stats } = useCachedRepoData(owner, repo, timeRange, false);
-  const { summary, loading, error, refetch } = useRepositorySummary(owner, repo, stats.pullRequests);
+  const { summary, loading, error, refetch } = useRepositorySummary(
+    owner,
+    repo,
+    stats.pullRequests
+  );
 
   // Simple context tracking without analytics
   console.log('AI summary context:', {
     repository: `${owner}/${repo}`,
     timeRange,
     hasStats: !!stats,
-    pullRequestCount: stats.pullRequests?.length || 0
+    pullRequestCount: stats.pullRequests?.length || 0,
   });
 
   if (loading) {
@@ -45,12 +49,7 @@ function RepositorySummaryInternal({ owner, repo, timeRange }: RepositorySummary
           <AlertCircle className="h-4 w-4 flex-shrink-0" />
           <span>Unable to generate summary</span>
         </div>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={refetch}
-          className="gap-2 w-full"
-        >
+        <Button variant="outline" size="sm" onClick={refetch} className="gap-2 w-full">
           <RefreshCw className="h-4 w-4" />
           Retry
         </Button>
@@ -59,11 +58,7 @@ function RepositorySummaryInternal({ owner, repo, timeRange }: RepositorySummary
   }
 
   if (!summary) {
-    return (
-      <div className="text-sm text-muted-foreground">
-        No summary available yet.
-      </div>
-    );
+    return <div className="text-sm text-muted-foreground">No summary available yet.</div>;
   }
 
   return (
@@ -75,12 +70,7 @@ function RepositorySummaryInternal({ owner, repo, timeRange }: RepositorySummary
         <Badge variant="secondary" className="text-xs">
           AI Generated
         </Badge>
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={refetch}
-          className="gap-1 h-7 text-xs"
-        >
+        <Button variant="ghost" size="sm" onClick={refetch} className="gap-1 h-7 text-xs">
           <RefreshCw className="h-3 w-3" />
           Refresh
         </Button>
@@ -97,12 +87,7 @@ function AISummaryErrorFallback({ retry }: { error?: Error; retry: () => void })
         <AlertCircle className="h-4 w-4 flex-shrink-0" />
         <span>AI summary failed to load</span>
       </div>
-      <Button 
-        variant="outline" 
-        size="sm" 
-        onClick={retry}
-        className="gap-2 w-full"
-      >
+      <Button variant="outline" size="sm" onClick={retry} className="gap-2 w-full">
         <RefreshCw className="h-4 w-4" />
         Try Again
       </Button>
@@ -115,7 +100,12 @@ export function RepositorySummary({ owner, repo, timeRange }: RepositorySummaryP
   return (
     <ErrorBoundary
       context={`AI Summary for ${owner}/${repo}`}
-      fallback={<AISummaryErrorFallback error={new Error('AI Summary Error')} retry={() => window.location.reload()} />}
+      fallback={
+        <AISummaryErrorFallback
+          error={new Error('AI Summary Error')}
+          retry={() => window.location.reload()}
+        />
+      }
       onError={(error, errorInfo) => {
         // Simple error logging without analytics
         console.error('AI summary error:', {
@@ -123,7 +113,7 @@ export function RepositorySummary({ owner, repo, timeRange }: RepositorySummaryP
           repo,
           timeRange,
           error: error.message,
-          componentStack: errorInfo.componentStack
+          componentStack: errorInfo.componentStack,
         });
       }}
     >

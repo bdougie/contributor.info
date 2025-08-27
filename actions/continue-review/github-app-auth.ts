@@ -13,11 +13,13 @@ export async function getAuthenticatedOctokit(
 ): Promise<ReturnType<typeof github.getOctokit>> {
   // Validate that we have a token
   if (!githubToken) {
-    throw new Error('GitHub token is required. Please provide a token from actions/create-github-app-token or GITHUB_TOKEN');
+    throw new Error(
+      'GitHub token is required. Please provide a token from actions/create-github-app-token or GITHUB_TOKEN'
+    );
   }
 
   core.info('Using provided GitHub token for API calls');
-  
+
   // The token should already be an App installation token if the workflow
   // is configured correctly with actions/create-github-app-token
   return github.getOctokit(githubToken);

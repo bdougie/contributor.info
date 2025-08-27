@@ -22,7 +22,8 @@ const meta = {
     layout: 'centered',
     docs: {
       description: {
-        component: 'A collection of links for navigating websites built on Radix UI Navigation Menu.',
+        component:
+          'A collection of links for navigating websites built on Radix UI Navigation Menu.',
       },
     },
   },
@@ -138,9 +139,7 @@ const ListItem = ({
           {...props}
         >
           <div className="text-sm font-medium leading-none">{title}</div>
-          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-            {children}
-          </p>
+          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">{children}</p>
         </a>
       </NavigationMenuLink>
     </li>
@@ -161,12 +160,9 @@ export const Default: Story = {
                     className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-muted/50 to-muted p-6 no-underline outline-none focus:shadow-md"
                     href="/"
                   >
-                    <div className="mb-2 mt-4 text-lg font-medium">
-                      shadcn/ui
-                    </div>
+                    <div className="mb-2 mt-4 text-lg font-medium">shadcn/ui</div>
                     <p className="text-sm leading-tight text-muted-foreground">
-                      Beautifully designed components built with Radix UI and
-                      Tailwind CSS.
+                      Beautifully designed components built with Radix UI and Tailwind CSS.
                     </p>
                   </a>
                 </NavigationMenuLink>
@@ -184,11 +180,7 @@ export const Default: Story = {
           <NavigationMenuContent>
             <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
               {componentsItems.map((component) => (
-                <ListItem
-                  key={component.title}
-                  title={component.title}
-                  href={component.href}
-                >
+                <ListItem key={component.title} title={component.title} href={component.href}>
                   {component.description}
                 </ListItem>
               ))}
@@ -256,9 +248,7 @@ export const WithCards: Story = {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-sm">Marketing</CardTitle>
-                  <CardDescription>
-                    Grow your audience with our marketing tools.
-                  </CardDescription>
+                  <CardDescription>Grow your audience with our marketing tools.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <Badge variant="outline">New</Badge>
@@ -267,17 +257,13 @@ export const WithCards: Story = {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-sm">E-commerce</CardTitle>
-                  <CardDescription>
-                    Build and manage your online store.
-                  </CardDescription>
+                  <CardDescription>Build and manage your online store.</CardDescription>
                 </CardHeader>
               </Card>
               <Card>
                 <CardHeader>
                   <CardTitle className="text-sm">Support</CardTitle>
-                  <CardDescription>
-                    Get help from our support team.
-                  </CardDescription>
+                  <CardDescription>Get help from our support team.</CardDescription>
                 </CardHeader>
               </Card>
             </div>
@@ -346,17 +332,11 @@ export const Vertical: Story = {
           </NavigationMenuContent>
         </NavigationMenuItem>
         <NavigationMenuItem className="w-full">
-          <NavigationMenuTrigger className="w-full justify-start">
-            Components
-          </NavigationMenuTrigger>
+          <NavigationMenuTrigger className="w-full justify-start">Components</NavigationMenuTrigger>
           <NavigationMenuContent>
             <ul className="grid w-[400px] gap-3 p-4 md:grid-cols-2">
               {componentsItems.slice(0, 4).map((component) => (
-                <ListItem
-                  key={component.title}
-                  title={component.title}
-                  href={component.href}
-                >
+                <ListItem key={component.title} title={component.title} href={component.href}>
                   {component.description}
                 </ListItem>
               ))}
@@ -364,7 +344,10 @@ export const Vertical: Story = {
           </NavigationMenuContent>
         </NavigationMenuItem>
         <NavigationMenuItem className="w-full">
-          <NavigationMenuLink className={cn(navigationMenuTriggerStyle(), 'w-full justify-start')} href="/docs">
+          <NavigationMenuLink
+            className={cn(navigationMenuTriggerStyle(), 'w-full justify-start')}
+            href="/docs"
+          >
             Documentation
           </NavigationMenuLink>
         </NavigationMenuItem>
@@ -383,9 +366,7 @@ export const WithIndicator: Story = {
             <div className="grid gap-3 p-4 md:w-[400px] lg:w-[500px]">
               <div className="space-y-2">
                 <h4 className="text-sm font-medium leading-none">Core Features</h4>
-                <p className="text-sm text-muted-foreground">
-                  Essential tools to get you started.
-                </p>
+                <p className="text-sm text-muted-foreground">Essential tools to get you started.</p>
               </div>
               <div className="grid gap-2">
                 {['Authentication', 'Database', 'File Storage', 'Real-time'].map((feature) => (
@@ -533,9 +514,7 @@ export const WithActions: Story = {
                   href="/settings"
                 >
                   <div className="text-sm font-medium">Settings</div>
-                  <p className="text-sm text-muted-foreground">
-                    Configure your preferences.
-                  </p>
+                  <p className="text-sm text-muted-foreground">Configure your preferences.</p>
                 </NavigationMenuLink>
               </div>
               <div className="border-t pt-2">
@@ -581,8 +560,8 @@ export const Disabled: Story = {
           </NavigationMenuContent>
         </NavigationMenuItem>
         <NavigationMenuItem>
-          <NavigationMenuLink 
-            className={cn(navigationMenuTriggerStyle(), "opacity-50 cursor-not-allowed")} 
+          <NavigationMenuLink
+            className={cn(navigationMenuTriggerStyle(), 'opacity-50 cursor-not-allowed')}
             href="/disabled"
             onClick={(e) => e.preventDefault()}
           >
@@ -628,8 +607,11 @@ export const CustomStyling: Story = {
           </NavigationMenuContent>
         </NavigationMenuItem>
         <NavigationMenuItem>
-          <NavigationMenuLink 
-            className={cn(navigationMenuTriggerStyle(), "bg-secondary text-secondary-foreground hover:bg-secondary/90")} 
+          <NavigationMenuLink
+            className={cn(
+              navigationMenuTriggerStyle(),
+              'bg-secondary text-secondary-foreground hover:bg-secondary/90'
+            )}
             href="/styled"
           >
             Styled Link
@@ -668,11 +650,7 @@ export const ControlledNavigation: Story = {
               <NavigationMenuContent>
                 <ul className="grid w-[400px] gap-3 p-4 md:grid-cols-2">
                   {componentsItems.slice(0, 4).map((component) => (
-                    <ListItem
-                      key={component.title}
-                      title={component.title}
-                      href={component.href}
-                    >
+                    <ListItem key={component.title} title={component.title} href={component.href}>
                       {component.description}
                     </ListItem>
                   ))}
@@ -687,25 +665,13 @@ export const ControlledNavigation: Story = {
           </NavigationMenuList>
         </NavigationMenu>
         <div className="flex gap-2">
-          <Button 
-            size="sm" 
-            variant="outline" 
-            onClick={() => setValue('getting-started')}
-          >
+          <Button size="sm" variant="outline" onClick={() => setValue('getting-started')}>
             Open Getting Started
           </Button>
-          <Button 
-            size="sm" 
-            variant="outline" 
-            onClick={() => setValue('components')}
-          >
+          <Button size="sm" variant="outline" onClick={() => setValue('components')}>
             Open Components
           </Button>
-          <Button 
-            size="sm" 
-            variant="outline" 
-            onClick={() => setValue('')}
-          >
+          <Button size="sm" variant="outline" onClick={() => setValue('')}>
             Close All
           </Button>
         </div>
@@ -719,9 +685,7 @@ export const MobileResponsive: Story = {
     <NavigationMenu className="w-full max-w-none">
       <NavigationMenuList className="flex-wrap justify-start">
         <NavigationMenuItem>
-          <NavigationMenuTrigger className="text-xs sm:text-sm">
-            Products
-          </NavigationMenuTrigger>
+          <NavigationMenuTrigger className="text-xs sm:text-sm">Products</NavigationMenuTrigger>
           <NavigationMenuContent>
             <div className="grid gap-3 p-4 w-[280px] sm:w-[400px] lg:w-[500px]">
               <div className="space-y-2">
@@ -748,24 +712,24 @@ export const MobileResponsive: Story = {
           </NavigationMenuContent>
         </NavigationMenuItem>
         <NavigationMenuItem>
-          <NavigationMenuLink 
-            className={cn(navigationMenuTriggerStyle(), "text-xs sm:text-sm")} 
+          <NavigationMenuLink
+            className={cn(navigationMenuTriggerStyle(), 'text-xs sm:text-sm')}
             href="/pricing"
           >
             Pricing
           </NavigationMenuLink>
         </NavigationMenuItem>
         <NavigationMenuItem>
-          <NavigationMenuLink 
-            className={cn(navigationMenuTriggerStyle(), "text-xs sm:text-sm")} 
+          <NavigationMenuLink
+            className={cn(navigationMenuTriggerStyle(), 'text-xs sm:text-sm')}
             href="/about"
           >
             About
           </NavigationMenuLink>
         </NavigationMenuItem>
         <NavigationMenuItem>
-          <NavigationMenuLink 
-            className={cn(navigationMenuTriggerStyle(), "text-xs sm:text-sm")} 
+          <NavigationMenuLink
+            className={cn(navigationMenuTriggerStyle(), 'text-xs sm:text-sm')}
             href="/contact"
           >
             Contact

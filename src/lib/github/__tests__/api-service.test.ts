@@ -16,7 +16,7 @@ describe('GitHub API Service', () => {
         'x-ratelimit-limit': '5000',
         'x-ratelimit-remaining': '4999',
         'x-ratelimit-reset': '1234567890',
-        'x-ratelimit-used': '1'
+        'x-ratelimit-used': '1',
       });
 
       const result = GitHubApiService.parseRateLimit(headers);
@@ -25,7 +25,7 @@ describe('GitHub API Service', () => {
         limit: 5000,
         remaining: 4999,
         reset: new Date(1234567890 * 1000),
-        used: 1
+        used: 1,
       });
     });
 
@@ -40,15 +40,15 @@ describe('GitHub API Service', () => {
     it('should create headers without token', () => {
       const headers = GitHubApiService.createHeaders(null);
       expect(headers).toEqual({
-        'Accept': 'application/vnd.github.v3+json'
+        Accept: 'application/vnd.github.v3+json',
       });
     });
 
     it('should create headers with token', () => {
       const headers = GitHubApiService.createHeaders('test-token');
       expect(headers).toEqual({
-        'Accept': 'application/vnd.github.v3+json',
-        'Authorization': 'Bearer test-token'
+        Accept: 'application/vnd.github.v3+json',
+        Authorization: 'Bearer test-token',
       });
     });
   });
@@ -63,7 +63,7 @@ describe('GitHub API Service', () => {
         limit: 5000,
         remaining: 100,
         reset: new Date(),
-        used: 4900
+        used: 4900,
       };
       expect(GitHubApiService.isRateLimited(rateLimit)).toBe(false);
     });
@@ -73,7 +73,7 @@ describe('GitHub API Service', () => {
         limit: 5000,
         remaining: 0,
         reset: new Date(),
-        used: 5000
+        used: 5000,
       };
       expect(GitHubApiService.isRateLimited(rateLimit)).toBe(true);
     });
@@ -90,32 +90,31 @@ describe('GitHub API Service', () => {
           'x-ratelimit-limit': '5000',
           'x-ratelimit-remaining': '4999',
           'x-ratelimit-reset': '1234567890',
-          'x-ratelimit-used': '1'
+          'x-ratelimit-used': '1',
         }),
-        json: vi.fn().mockResolvedValue(mockData)
+        json: vi.fn().mockResolvedValue(mockData),
       };
 
       (global.fetch as any).mockResolvedValue(mockResponse);
 
-      const result = await GitHubApiService.fetchFromGitHub('/repos/test/repo', { token: 'test-token' });
+      const result = await GitHubApiService.fetchFromGitHub('/repos/test/repo', {
+        token: 'test-token',
+      });
 
       expect(result.data).toEqual(mockData);
       expect(result.rateLimit).toEqual({
         limit: 5000,
         remaining: 4999,
         reset: new Date(1234567890 * 1000),
-        used: 1
+        used: 1,
       });
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        'https://api.github.com/repos/test/repo',
-        {
-          headers: {
-            'Accept': 'application/vnd.github.v3+json',
-            'Authorization': 'Bearer test-token'
-          }
-        }
-      );
+      expect(global.fetch).toHaveBeenCalledWith('https://api.github.com/repos/test/repo', {
+        headers: {
+          Accept: 'application/vnd.github.v3+json',
+          Authorization: 'Bearer test-token',
+        },
+      });
     });
 
     it('should throw error on non-ok response', async () => {
@@ -124,7 +123,7 @@ describe('GitHub API Service', () => {
         status: 404,
         statusText: 'Not Found',
         headers: new Headers(),
-        text: vi.fn().mockResolvedValue('Not Found')
+        text: vi.fn().mockResolvedValue('Not Found'),
       };
 
       (global.fetch as any).mockResolvedValue(mockResponse);
@@ -141,12 +140,14 @@ describe('GitHub API Service', () => {
       const mockResponse = {
         ok: true,
         headers: new Headers(),
-        json: vi.fn().mockResolvedValue(mockData)
+        json: vi.fn().mockResolvedValue(mockData),
       };
 
       (global.fetch as any).mockResolvedValue(mockResponse);
 
-      const result = await GitHubApiService.fetchRepository('owner', 'repo', { token: 'test-token' });
+      const result = await GitHubApiService.fetchRepository('owner', 'repo', {
+        token: 'test-token',
+      });
 
       expect(result.data).toEqual(mockData);
       expect(global.fetch).toHaveBeenCalledWith(
@@ -162,7 +163,7 @@ describe('GitHub API Service', () => {
       const mockResponse = {
         ok: true,
         headers: new Headers(),
-        json: vi.fn().mockResolvedValue(mockData)
+        json: vi.fn().mockResolvedValue(mockData),
       };
 
       (global.fetch as any).mockResolvedValue(mockResponse);
@@ -183,12 +184,14 @@ describe('GitHub API Service', () => {
       const mockResponse = {
         ok: true,
         headers: new Headers(),
-        json: vi.fn().mockResolvedValue(mockData)
+        json: vi.fn().mockResolvedValue(mockData),
       };
 
       (global.fetch as any).mockResolvedValue(mockResponse);
 
-      const result = await GitHubApiService.fetchUserOrganizations('testuser', { token: 'test-token' });
+      const result = await GitHubApiService.fetchUserOrganizations('testuser', {
+        token: 'test-token',
+      });
 
       expect(result.data).toEqual(mockData);
       expect(global.fetch).toHaveBeenCalledWith(
@@ -200,16 +203,21 @@ describe('GitHub API Service', () => {
 
   describe('fetchPullRequests', () => {
     it('should fetch pull requests', async () => {
-      const mockData = [{ id: 1, number: 123 }, { id: 2, number: 124 }];
+      const mockData = [
+        { id: 1, number: 123 },
+        { id: 2, number: 124 },
+      ];
       const mockResponse = {
         ok: true,
         headers: new Headers(),
-        json: vi.fn().mockResolvedValue(mockData)
+        json: vi.fn().mockResolvedValue(mockData),
       };
 
       (global.fetch as any).mockResolvedValue(mockResponse);
 
-      const result = await GitHubApiService.fetchPullRequests('owner', 'repo', 'all', { token: 'test-token' });
+      const result = await GitHubApiService.fetchPullRequests('owner', 'repo', 'all', {
+        token: 'test-token',
+      });
 
       expect(result.data).toEqual(mockData);
       expect(global.fetch).toHaveBeenCalledWith(

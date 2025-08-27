@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react';
 import { WifiOff, Wifi, AlertTriangle } from '@/components/ui/icon';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 
@@ -18,12 +18,12 @@ export function OfflineNotification() {
       setShowNotification(false);
       setShowBackOnline(true);
       setWasOffline(false);
-      
+
       // Hide the "back online" message after 3 seconds
       const timer = setTimeout(() => {
         setShowBackOnline(false);
       }, 3000);
-      
+
       return () => clearTimeout(timer);
     }
   }, [isOnline, wasOffline]);
@@ -86,10 +86,9 @@ export function OfflineNotification() {
                   Slow connection detected
                 </h3>
                 <p className="text-yellow-700 dark:text-yellow-300 text-sm mt-1">
-                  {saveData 
+                  {saveData
                     ? 'Data saver mode is on. Some features may be limited.'
-                    : `You're on a ${effectiveType || 'slow'} connection. Loading may take longer.`
-                  }
+                    : `You're on a ${effectiveType || 'slow'} connection. Loading may take longer.`}
                 </p>
               </div>
             </div>

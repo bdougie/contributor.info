@@ -10,18 +10,12 @@ import {
 
 describe('optimizeAvatarUrl', () => {
   it('optimizes GitHub avatar URLs with size parameter', () => {
-    const result = optimizeAvatarUrl(
-      'https://avatars.githubusercontent.com/u/123456',
-      64
-    );
+    const result = optimizeAvatarUrl('https://avatars.githubusercontent.com/u/123456', 64);
     expect(result).toBe('https://avatars.githubusercontent.com/u/123456?s=64&v=4');
   });
 
   it('preserves existing query parameters in GitHub URLs', () => {
-    const result = optimizeAvatarUrl(
-      'https://avatars.githubusercontent.com/u/123456?v=3',
-      48
-    );
+    const result = optimizeAvatarUrl('https://avatars.githubusercontent.com/u/123456?v=3', 48);
     expect(result).toBe('https://avatars.githubusercontent.com/u/123456?s=48&v=4');
   });
 
@@ -52,10 +46,7 @@ describe('optimizeAvatarUrl', () => {
   });
 
   it('handles different GitHub subdomains correctly', () => {
-    const result = optimizeAvatarUrl(
-      'https://avatars0.githubusercontent.com/u/123456',
-      32
-    );
+    const result = optimizeAvatarUrl('https://avatars0.githubusercontent.com/u/123456', 32);
     // Should not optimize non-standard GitHub avatar domains
     expect(result).toBe('https://avatars0.githubusercontent.com/u/123456');
   });
@@ -108,7 +99,7 @@ describe('generateFallbackText', () => {
   });
 
   it('handles special characters', () => {
-    const result = generateFallbackText('John-Paul O\'Connor');
+    const result = generateFallbackText("John-Paul O'Connor");
     expect(result).toBe('JO');
   });
 

@@ -1,11 +1,11 @@
-import { defineConfig } from "inngest";
+import { defineConfig } from 'inngest';
 
 export default defineConfig({
   client: {
-    id: "contributor-info",
+    id: 'contributor-info',
   },
   serve: {
-    host: "localhost",
+    host: 'localhost',
     port: 3001,
   },
 });

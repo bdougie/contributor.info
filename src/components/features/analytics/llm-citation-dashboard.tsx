@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react';
 import { AlertCircle, TrendingUp, Brain, Search, ExternalLink } from '@/components/ui/icon';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -86,7 +86,7 @@ export function LLMCitationDashboard() {
         ...(AI_PLATFORMS[platform] || AI_PLATFORMS.other_ai),
         count,
       }))
-      .filter(platform => platform.count > 0)
+      .filter((platform) => platform.count > 0)
       .sort((a, b) => b.count - a.count);
   };
 
@@ -126,9 +126,7 @@ export function LLMCitationDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">LLM Citation Tracking</h1>
-          <p className="text-muted-foreground">
-            Monitor how AI platforms cite contributor.info
-          </p>
+          <p className="text-muted-foreground">Monitor how AI platforms cite contributor.info</p>
         </div>
         <Badge variant="outline" className="flex items-center gap-2">
           <Brain className="h-4 w-4" />
@@ -216,14 +214,16 @@ export function LLMCitationDashboard() {
                     </div>
                     <div className="flex items-center gap-3">
                       <Progress
-                        value={metrics.totalCitations > 0 ? (platform.count / metrics.totalCitations) * 100 : 0}
+                        value={
+                          metrics.totalCitations > 0
+                            ? (platform.count / metrics.totalCitations) * 100
+                            : 0
+                        }
                         className="w-24"
                       />
-                      <span className="text-sm font-medium w-8">
-                        {platform.count}
-                      </span>
+                      <span className="text-sm font-medium w-8">{platform.count}</span>
                       <span className="text-xs text-muted-foreground w-12">
-                        {metrics.totalCitations > 0 
+                        {metrics.totalCitations > 0
                           ? ((platform.count / metrics.totalCitations) * 100).toFixed(1) + '%'
                           : '0.0%'}
                       </span>
@@ -243,16 +243,22 @@ export function LLMCitationDashboard() {
             <CardContent>
               <div className="space-y-3">
                 {getTopRepositories().map(([repo, count], index) => (
-                  <div key={repo} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div
+                    key={repo}
+                    className="flex items-center justify-between p-3 border rounded-lg"
+                  >
                     <div className="flex items-center gap-3">
-                      <Badge variant="secondary" className="w-6 h-6 rounded-full flex items-center justify-center p-0 text-xs">
+                      <Badge
+                        variant="secondary"
+                        className="w-6 h-6 rounded-full flex items-center justify-center p-0 text-xs"
+                      >
                         {index + 1}
                       </Badge>
                       <span className="font-medium">{repo}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium">{count} citations</span>
-                      <a 
+                      <a
                         href={`/${repo}`}
                         target="_blank"
                         rel="noopener noreferrer"
@@ -308,8 +314,8 @@ export function LLMCitationDashboard() {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground mb-3">
-              The confidence score indicates how likely it is that traffic came from AI platform citations.
-              Higher scores suggest more direct citations from AI responses.
+              The confidence score indicates how likely it is that traffic came from AI platform
+              citations. Higher scores suggest more direct citations from AI responses.
             </p>
             <div className="flex items-center gap-3">
               <Progress value={metrics.averageConfidence * 100} className="flex-1" />

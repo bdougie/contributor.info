@@ -8,30 +8,31 @@ const meta: Meta<typeof LastUpdated> = {
     layout: 'padded',
     docs: {
       description: {
-        component: 'Component for displaying when content was last updated with both human-readable relative time and machine-readable timestamps for SEO.'
-      }
-    }
+        component:
+          'Component for displaying when content was last updated with both human-readable relative time and machine-readable timestamps for SEO.',
+      },
+    },
   },
   argTypes: {
     timestamp: {
       control: 'date',
-      description: 'ISO 8601 timestamp or Date object'
+      description: 'ISO 8601 timestamp or Date object',
     },
     label: {
       control: 'text',
-      description: 'Label to display before the timestamp'
+      description: 'Label to display before the timestamp',
     },
     size: {
       control: 'select',
-      options: ['sm', 'md', 'lg']
+      options: ['sm', 'md', 'lg'],
     },
     showIcon: {
-      control: 'boolean'
+      control: 'boolean',
     },
     includeStructuredData: {
-      control: 'boolean'
-    }
-  }
+      control: 'boolean',
+    },
+  },
 };
 
 export default meta;
@@ -46,81 +47,81 @@ const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
 export const Default: Story = {
   args: {
-    timestamp: oneHourAgo.toISOString()
-  }
+    timestamp: oneHourAgo.toISOString(),
+  },
 };
 
 export const JustUpdated: Story = {
   args: {
     timestamp: new Date(now.getTime() - 30 * 1000).toISOString(), // 30 seconds ago
-    label: "Data refreshed"
-  }
+    label: 'Data refreshed',
+  },
 };
 
 export const OneHourAgo: Story = {
   args: {
-    timestamp: oneHourAgo.toISOString()
-  }
+    timestamp: oneHourAgo.toISOString(),
+  },
 };
 
 export const OneDayAgo: Story = {
   args: {
-    timestamp: oneDayAgo.toISOString()
-  }
+    timestamp: oneDayAgo.toISOString(),
+  },
 };
 
 export const OneWeekAgo: Story = {
   args: {
-    timestamp: oneWeekAgo.toISOString()
-  }
+    timestamp: oneWeekAgo.toISOString(),
+  },
 };
 
 export const OneMonthAgo: Story = {
   args: {
-    timestamp: oneMonthAgo.toISOString()
-  }
+    timestamp: oneMonthAgo.toISOString(),
+  },
 };
 
 export const CustomLabel: Story = {
   args: {
     timestamp: oneHourAgo.toISOString(),
-    label: "Repository data updated"
-  }
+    label: 'Repository data updated',
+  },
 };
 
 export const WithoutIcon: Story = {
   args: {
     timestamp: oneHourAgo.toISOString(),
-    showIcon: false
-  }
+    showIcon: false,
+  },
 };
 
 export const SmallSize: Story = {
   args: {
     timestamp: oneHourAgo.toISOString(),
-    size: 'sm'
-  }
+    size: 'sm',
+  },
 };
 
 export const MediumSize: Story = {
   args: {
     timestamp: oneHourAgo.toISOString(),
-    size: 'md'
-  }
+    size: 'md',
+  },
 };
 
 export const LargeSize: Story = {
   args: {
     timestamp: oneHourAgo.toISOString(),
-    size: 'lg'
-  }
+    size: 'lg',
+  },
 };
 
 export const WithoutStructuredData: Story = {
   args: {
     timestamp: oneHourAgo.toISOString(),
-    includeStructuredData: false
-  }
+    includeStructuredData: false,
+  },
 };
 
 // LastUpdatedTime stories
@@ -131,23 +132,23 @@ const timeOnlyMeta: Meta<typeof LastUpdatedTime> = {
     layout: 'padded',
     docs: {
       description: {
-        component: 'Lightweight version that only shows the relative time without label or icon.'
-      }
-    }
-  }
+        component: 'Lightweight version that only shows the relative time without label or icon.',
+      },
+    },
+  },
 };
 
 export const TimeOnly: StoryObj<typeof LastUpdatedTime> = {
   args: {
-    timestamp: oneHourAgo.toISOString()
-  }
+    timestamp: oneHourAgo.toISOString(),
+  },
 };
 
 export const TimeOnlySmall: StoryObj<typeof LastUpdatedTime> = {
   args: {
     timestamp: oneHourAgo.toISOString(),
-    size: 'sm'
-  }
+    size: 'sm',
+  },
 };
 
 // Multiple timestamps for comparison
@@ -164,7 +165,7 @@ export const MultipleTimestamps: Story = {
           <LastUpdated timestamp={oneMonthAgo} label="1 month ago" />
         </div>
       </div>
-      
+
       <div className="space-y-2">
         <h3 className="text-lg font-semibold">Different Sizes</h3>
         <div className="space-y-1">
@@ -173,7 +174,7 @@ export const MultipleTimestamps: Story = {
           <LastUpdated timestamp={oneHourAgo} size="lg" label="Large" />
         </div>
       </div>
-      
+
       <div className="space-y-2">
         <h3 className="text-lg font-semibold">Different Styles</h3>
         <div className="space-y-1">
@@ -183,7 +184,7 @@ export const MultipleTimestamps: Story = {
         </div>
       </div>
     </div>
-  )
+  ),
 };
 
 // Export the time-only meta for proper Storybook organization

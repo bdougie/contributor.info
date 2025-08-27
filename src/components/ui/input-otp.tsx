@@ -1,4 +1,4 @@
-import * as React from 'react'
+import * as React from 'react';
 import { Minus } from '@/components/ui/icon';
 import { OTPInput, OTPInputContext } from 'input-otp';
 

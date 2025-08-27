@@ -1,19 +1,19 @@
-import type { Meta, StoryObj } from "@storybook/react";
-import { ActivityItemSkeleton } from "./activity-item-skeleton";
+import type { Meta, StoryObj } from '@storybook/react';
+import { ActivityItemSkeleton } from './activity-item-skeleton';
 
 const meta = {
-  title: "Skeletons/ActivityItemSkeleton",
+  title: 'Skeletons/ActivityItemSkeleton',
   component: ActivityItemSkeleton,
   parameters: {
-    layout: "centered",
+    layout: 'centered',
     docs: {
       description: {
         component:
-          "Loading skeleton component that mimics the structure of an ActivityItem while content is being loaded.",
+          'Loading skeleton component that mimics the structure of an ActivityItem while content is being loaded.',
       },
     },
   },
-  tags: ["autodocs"],
+  tags: ['autodocs'],
   decorators: [
     (Story) => (
       <div className="w-[600px] p-4">
@@ -23,8 +23,8 @@ const meta = {
   ],
   argTypes: {
     className: {
-      control: "text",
-      description: "Additional CSS classes",
+      control: 'text',
+      description: 'Additional CSS classes',
     },
   },
 } satisfies Meta<typeof ActivityItemSkeleton>;
@@ -48,7 +48,7 @@ export const Multiple: Story = {
 
 export const WithCustomClass: Story = {
   args: {
-    className: "bg-gray-50 dark:bg-gray-800",
+    className: 'bg-gray-50 dark:bg-gray-800',
   },
 };
 

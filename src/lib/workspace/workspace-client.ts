@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '@/lib/supabase';
+import { workspaceMetricsCache } from '@/lib/cache/workspace-metrics-cache';
 import type {
   WorkspaceWithStats,
   WorkspaceMetrics,
@@ -14,7 +15,7 @@ import type {
   WorkspaceFilters,
   WorkspaceRepositoryFilters,
   MetricsTimeRange,
-  WorkspaceRole
+  WorkspaceRole,
 } from '@/types/workspace';
 
 // =====================================================
@@ -31,9 +32,10 @@ export async function createWorkspace(data: CreateWorkspaceRequest) {
   }
 
   // Generate slug from name
-  const { data: slugData, error: slugError } = await supabase
-    .rpc('generate_workspace_slug', { workspace_name: data.name });
-  
+  const { data: slugData, error: slugError } = await supabase.rpc('generate_workspace_slug', {
+    workspace_name: data.name,
+  });
+
   if (slugError) {
     throw new Error('Failed to generate workspace slug');
   }
@@ -46,7 +48,7 @@ export async function createWorkspace(data: CreateWorkspaceRequest) {
       description: data.description || null,
       owner_id: user.user.id,
       visibility: data.visibility || 'public',
-      settings: data.settings || {}
+      settings: data.settings || {},
     })
     .select()
     .single();
@@ -56,22 +58,17 @@ export async function createWorkspace(data: CreateWorkspaceRequest) {
   }
 
   // Automatically add owner as a member
-  const { error: memberError } = await supabase
-    .from('workspace_members')
-    .insert({
-      workspace_id: workspace.id,
-      user_id: user.user.id,
-      role: 'owner',
-      accepted_at: new Date().toISOString()
-    });
+  const { error: memberError } = await supabase.from('workspace_members').insert({
+    workspace_id: workspace.id,
+    user_id: user.user.id,
+    role: 'owner',
+    accepted_at: new Date().toISOString(),
+  });
 
   if (memberError) {
     // Clean up the workspace if membership creation fails
-    await supabase
-      .from('workspaces')
-      .delete()
-      .eq('id', workspace.id);
-    
+    await supabase.from('workspaces').delete().eq('id', workspace.id);
+
     throw new Error(`Failed to create workspace membership: ${memberError.message}`);
   }
 
@@ -84,15 +81,17 @@ export async function createWorkspace(data: CreateWorkspaceRequest) {
 export async function getWorkspace(idOrSlug: string): Promise<WorkspaceWithStats | null> {
   // First try to get the workspace
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrSlug);
-  
+
   const query = supabase
     .from('workspaces')
-    .select(`
+    .select(
+      `
       *,
       owner:owner_id(id, email, raw_user_meta_data),
       workspace_repositories(count),
       workspace_members(count)
-    `)
+    `
+    )
     .eq('is_active', true);
 
   if (isUuid) {
@@ -110,19 +109,22 @@ export async function getWorkspace(idOrSlug: string): Promise<WorkspaceWithStats
   // Get aggregated stats
   const { data: stats } = await supabase
     .from('workspace_repositories')
-    .select(`
+    .select(
+      `
       repository:repositories(
         stargazers_count,
         contributors(count)
       )
-    `)
+    `
+    )
     .eq('workspace_id', data.id);
 
-  const total_stars = stats?.reduce((sum, item: any) => 
-    sum + (item.repository?.stargazers_count || 0), 0) || 0;
-  
-  const total_contributors = stats?.reduce((sum, item: any) => 
-    sum + (item.repository?.contributors?.[0]?.count || 0), 0) || 0;
+  const total_stars =
+    stats?.reduce((sum, item: any) => sum + (item.repository?.stargazers_count || 0), 0) || 0;
+
+  const total_contributors =
+    stats?.reduce((sum, item: any) => sum + (item.repository?.contributors?.[0]?.count || 0), 0) ||
+    0;
 
   return {
     ...data,
@@ -134,8 +136,8 @@ export async function getWorkspace(idOrSlug: string): Promise<WorkspaceWithStats
       id: (data as any).owner.id,
       email: (data as any).owner.email,
       avatar_url: (data as any).owner.raw_user_meta_data?.avatar_url,
-      display_name: (data as any).owner.raw_user_meta_data?.full_name
-    }
+      display_name: (data as any).owner.raw_user_meta_data?.full_name,
+    },
   } as WorkspaceWithStats;
 }
 
@@ -150,7 +152,7 @@ export async function updateWorkspace(id: string, data: UpdateWorkspaceRequest) 
       description: data.description,
       visibility: data.visibility,
       settings: data.settings,
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     })
     .eq('id', id)
     .select()
@@ -167,10 +169,7 @@ export async function updateWorkspace(id: string, data: UpdateWorkspaceRequest) 
  * Delete workspace (soft delete)
  */
 export async function deleteWorkspace(id: string) {
-  const { error } = await supabase
-    .from('workspaces')
-    .update({ is_active: false })
-    .eq('id', id);
+  const { error } = await supabase.from('workspaces').update({ is_active: false }).eq('id', id);
 
   if (error) {
     throw new Error(`Failed to delete workspace: ${error.message}`);
@@ -182,14 +181,16 @@ export async function deleteWorkspace(id: string) {
  */
 export async function listWorkspaces(filters: WorkspaceFilters = {}) {
   const { data: user } = await supabase.auth.getUser();
-  
+
   let query = supabase
     .from('workspaces')
-    .select(`
+    .select(
+      `
       *,
       workspace_repositories(count),
       workspace_members(count)
-    `)
+    `
+    )
     .eq('is_active', true);
 
   // Apply filters
@@ -230,10 +231,7 @@ export async function listWorkspaces(filters: WorkspaceFilters = {}) {
 /**
  * Add repository to workspace
  */
-export async function addRepositoryToWorkspace(
-  workspaceId: string,
-  data: AddRepositoryRequest
-) {
+export async function addRepositoryToWorkspace(workspaceId: string, data: AddRepositoryRequest) {
   const { data: user, error: userError } = await supabase.auth.getUser();
   if (userError || !user?.user) {
     throw new Error('User not authenticated');
@@ -247,13 +245,14 @@ export async function addRepositoryToWorkspace(
       added_by: user.user.id,
       notes: data.notes || null,
       tags: data.tags || [],
-      is_pinned: data.is_pinned || false
+      is_pinned: data.is_pinned || false,
     })
     .select()
     .single();
 
   if (error) {
-    if (error.code === '23505') { // Unique violation
+    if (error.code === '23505') {
+      // Unique violation
       throw new Error('Repository already exists in this workspace');
     }
     throw new Error(`Failed to add repository: ${error.message}`);
@@ -265,10 +264,7 @@ export async function addRepositoryToWorkspace(
 /**
  * Remove repository from workspace
  */
-export async function removeRepositoryFromWorkspace(
-  workspaceId: string,
-  repositoryId: string
-) {
+export async function removeRepositoryFromWorkspace(workspaceId: string, repositoryId: string) {
   const { error } = await supabase
     .from('workspace_repositories')
     .delete()
@@ -289,10 +285,12 @@ export async function listWorkspaceRepositories(
 ) {
   let query = supabase
     .from('workspace_repositories')
-    .select(`
+    .select(
+      `
       *,
       repository:repositories(*)
-    `)
+    `
+    )
     .eq('workspace_id', workspaceId);
 
   // Apply filters
@@ -319,7 +317,7 @@ export async function listWorkspaceRepositories(
   // Apply sorting
   const sortBy = filters.sort_by || 'added_at';
   const sortOrder = filters.sort_order || 'desc';
-  
+
   if (sortBy === 'name') {
     query = query.order('repository.name', { ascending: sortOrder === 'asc' });
   } else if (sortBy === 'stars') {
@@ -344,10 +342,7 @@ export async function listWorkspaceRepositories(
 /**
  * Invite member to workspace
  */
-export async function inviteMemberToWorkspace(
-  workspaceId: string,
-  data: InviteMemberRequest
-) {
+export async function inviteMemberToWorkspace(workspaceId: string, data: InviteMemberRequest) {
   const { data: user, error: userError } = await supabase.auth.getUser();
   if (userError || !user?.user) {
     throw new Error('User not authenticated');
@@ -359,13 +354,14 @@ export async function inviteMemberToWorkspace(
       workspace_id: workspaceId,
       email: data.email,
       role: data.role,
-      invited_by: user.user.id
+      invited_by: user.user.id,
     })
     .select()
     .single();
 
   if (error) {
-    if (error.code === '23505') { // Unique violation
+    if (error.code === '23505') {
+      // Unique violation
       throw new Error('An invitation for this email already exists');
     }
     throw new Error(`Failed to create invitation: ${error.message}`);
@@ -400,7 +396,7 @@ export async function acceptInvitation(invitationToken: string) {
     .from('workspace_invitations')
     .update({
       status: 'accepted',
-      accepted_at: new Date().toISOString()
+      accepted_at: new Date().toISOString(),
     })
     .eq('id', invitation.id);
 
@@ -417,7 +413,7 @@ export async function acceptInvitation(invitationToken: string) {
       role: invitation.role,
       invited_by: invitation.invited_by,
       invited_at: invitation.invited_at,
-      accepted_at: new Date().toISOString()
+      accepted_at: new Date().toISOString(),
     })
     .select()
     .single();
@@ -435,11 +431,13 @@ export async function acceptInvitation(invitationToken: string) {
 export async function listWorkspaceMembers(workspaceId: string) {
   const { data, error } = await supabase
     .from('workspace_members')
-    .select(`
+    .select(
+      `
       *,
       user:user_id(id, email, raw_user_meta_data),
       invited_by_user:invited_by(id, email, raw_user_meta_data)
-    `)
+    `
+    )
     .eq('workspace_id', workspaceId)
     .order('created_at', { ascending: false });
 
@@ -453,11 +451,7 @@ export async function listWorkspaceMembers(workspaceId: string) {
 /**
  * Update member role
  */
-export async function updateMemberRole(
-  workspaceId: string,
-  userId: string,
-  role: WorkspaceRole
-) {
+export async function updateMemberRole(workspaceId: string, userId: string, role: WorkspaceRole) {
   if (role === 'owner') {
     throw new Error('Cannot assign owner role through this method');
   }
@@ -476,10 +470,7 @@ export async function updateMemberRole(
 /**
  * Remove member from workspace
  */
-export async function removeMemberFromWorkspace(
-  workspaceId: string,
-  userId: string
-) {
+export async function removeMemberFromWorkspace(workspaceId: string, userId: string) {
   const { error } = await supabase
     .from('workspace_members')
     .delete()
@@ -496,40 +487,9 @@ export async function removeMemberFromWorkspace(
 // =====================================================
 
 /**
- * Get workspace metrics
- */
-export async function getWorkspaceMetrics(
-  workspaceId: string,
-  timeRange: MetricsTimeRange = '30d'
-): Promise<WorkspaceMetrics | null> {
-  // First check cache
-  const { data: cached, error: cacheError } = await supabase
-    .from('workspace_metrics_cache')
-    .select('*')
-    .eq('workspace_id', workspaceId)
-    .eq('time_range', timeRange)
-    .eq('is_stale', false)
-    .gte('expires_at', new Date().toISOString())
-    .order('calculated_at', { ascending: false })
-    .limit(1)
-    .single();
-
-  if (!cacheError && cached) {
-    return cached as WorkspaceMetrics;
-  }
-
-  // If no cache or expired, trigger recalculation
-  // This would typically be done by a background job
-  // For now, return null and let the UI handle it
-  return null;
-}
-
-/**
  * Get user's role in workspace
  */
-export async function getUserWorkspaceRole(
-  workspaceId: string
-): Promise<WorkspaceRole | null> {
+export async function getUserWorkspaceRole(workspaceId: string): Promise<WorkspaceRole | null> {
   const { data: user, error: userError } = await supabase.auth.getUser();
   if (userError || !user?.user) {
     return null;
@@ -573,4 +533,220 @@ export async function canAccessWorkspace(workspaceId: string): Promise<boolean> 
 
   const role = await getUserWorkspaceRole(workspaceId);
   return role !== null;
+}
+
+// =====================================================
+// WORKSPACE METRICS OPERATIONS
+// =====================================================
+
+/**
+ * Get workspace metrics with cache-first strategy
+ */
+export async function getWorkspaceMetrics(
+  workspaceId: string,
+  timeRange: MetricsTimeRange = '30d',
+  forceRefresh = false
+): Promise<WorkspaceMetrics | null> {
+  try {
+    // Check in-memory cache first (unless force refresh)
+    if (!forceRefresh) {
+      const cachedMetrics = workspaceMetricsCache.get(workspaceId, timeRange);
+      if (cachedMetrics && !cachedMetrics.is_stale) {
+        return cachedMetrics;
+      }
+    }
+
+    // Query database cache
+    const { data, error } = await supabase
+      .from('workspace_metrics_cache')
+      .select('*')
+      .eq('workspace_id', workspaceId)
+      .eq('time_range', timeRange)
+      .single();
+
+    if (error) {
+      console.error('Error fetching workspace metrics:', error);
+
+      // If cache miss, trigger aggregation in background
+      await triggerMetricsAggregation(workspaceId, timeRange);
+      return null;
+    }
+
+    // Transform database format to TypeScript format
+    const metrics: WorkspaceMetrics = {
+      id: data.id,
+      workspace_id: data.workspace_id,
+      period_start: data.period_start,
+      period_end: data.period_end,
+      time_range: data.time_range,
+      metrics: {
+        total_prs: data.total_prs,
+        merged_prs: data.merged_prs,
+        open_prs: data.open_prs,
+        draft_prs: data.draft_prs,
+        total_issues: data.total_issues,
+        closed_issues: data.closed_issues,
+        open_issues: data.open_issues,
+        total_contributors: data.total_contributors,
+        active_contributors: data.active_contributors,
+        new_contributors: data.new_contributors,
+        total_commits: data.total_commits,
+        total_stars: data.total_stars,
+        total_forks: data.total_forks,
+        total_watchers: data.total_watchers,
+        avg_pr_merge_time_hours: data.avg_pr_merge_time_hours,
+        pr_velocity: data.pr_velocity,
+        issue_closure_rate: data.issue_closure_rate,
+        languages: data.language_distribution || {},
+        top_contributors: data.top_contributors || [],
+        activity_timeline: data.activity_timeline || [],
+        repository_stats: data.repository_stats,
+      },
+      calculated_at: data.calculated_at,
+      expires_at: data.expires_at,
+      is_stale: data.is_stale,
+    };
+
+    // Update in-memory cache
+    if (!data.is_stale) {
+      workspaceMetricsCache.set(workspaceId, timeRange, metrics);
+    }
+
+    // If stale, trigger background refresh
+    if (data.is_stale && !forceRefresh) {
+      await triggerMetricsAggregation(workspaceId, timeRange);
+    }
+
+    return metrics;
+  } catch (error) {
+    console.error('Failed to get workspace metrics:', error);
+    return null;
+  }
+}
+
+/**
+ * Get workspace trend data for charts
+ */
+export async function getWorkspaceTrendData(
+  workspaceId: string,
+  timeRange: MetricsTimeRange = '30d'
+) {
+  const metrics = await getWorkspaceMetrics(workspaceId, timeRange);
+
+  if (!metrics?.metrics.activity_timeline) {
+    return null;
+  }
+
+  // Transform activity timeline into chart-friendly format
+  const timeline = metrics.metrics.activity_timeline;
+  const labels = timeline.map((point) => {
+    const date = new Date(point.date);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  });
+
+  return {
+    labels,
+    datasets: [
+      {
+        label: 'Pull Requests',
+        data: timeline.map((p) => p.prs),
+        color: '#10b981',
+      },
+      {
+        label: 'Issues',
+        data: timeline.map((p) => p.issues),
+        color: '#f97316',
+      },
+      {
+        label: 'Commits',
+        data: timeline.map((p) => p.commits),
+        color: '#8b5cf6',
+      },
+    ],
+  };
+}
+
+/**
+ * Trigger metrics aggregation via API
+ */
+async function triggerMetricsAggregation(
+  workspaceId: string,
+  timeRange: MetricsTimeRange
+): Promise<void> {
+  try {
+    // Call the API endpoint to trigger aggregation
+    const response = await fetch('/api/workspaces/metrics/aggregate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        workspaceId,
+        timeRange,
+        priority: 50,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('Failed to trigger metrics aggregation:', response.statusText);
+    }
+  } catch (error) {
+    console.error('Error triggering metrics aggregation:', error);
+  }
+}
+
+/**
+ * Invalidate metrics cache when data changes
+ */
+export async function invalidateWorkspaceMetrics(workspaceId: string): Promise<void> {
+  // Invalidate in-memory cache
+  workspaceMetricsCache.invalidate(workspaceId);
+
+  // Mark database cache as stale
+  const { error } = await supabase.rpc('mark_workspace_cache_stale', {
+    p_workspace_id: workspaceId,
+  });
+
+  if (error) {
+    console.error('Failed to invalidate workspace metrics:', error);
+  }
+
+  // Trigger re-aggregation for default time range
+  await triggerMetricsAggregation(workspaceId, '30d');
+}
+
+/**
+ * Get multiple time ranges at once for a workspace
+ */
+export async function getWorkspaceMetricsMultiple(
+  workspaceId: string,
+  timeRanges: MetricsTimeRange[]
+): Promise<Map<MetricsTimeRange, WorkspaceMetrics | null>> {
+  const results = new Map<MetricsTimeRange, WorkspaceMetrics | null>();
+
+  // Fetch all time ranges in parallel
+  const promises = timeRanges.map(async (timeRange) => {
+    const metrics = await getWorkspaceMetrics(workspaceId, timeRange);
+    return { timeRange, metrics };
+  });
+
+  const allResults = await Promise.all(promises);
+
+  allResults.forEach(({ timeRange, metrics }) => {
+    results.set(timeRange, metrics);
+  });
+
+  return results;
+}
+
+/**
+ * Warm cache for a workspace
+ */
+export async function warmWorkspaceCache(workspaceId: string): Promise<void> {
+  const timeRanges: MetricsTimeRange[] = ['7d', '30d', '90d'];
+
+  // Trigger aggregation for all time ranges
+  await Promise.all(
+    timeRanges.map((timeRange) => triggerMetricsAggregation(workspaceId, timeRange))
+  );
 }

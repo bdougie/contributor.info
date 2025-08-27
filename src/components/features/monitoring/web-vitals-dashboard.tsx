@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react';
 import { Activity, AlertCircle, Clock, Zap, Layout, Wifi } from '@/components/ui/icon';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -9,7 +9,11 @@ import { getWebVitalsAnalytics } from '@/lib/web-vitals-analytics';
 import { THRESHOLDS } from '@/lib/web-vitals-monitoring';
 import { LineChart, DonutChart, type DonutChartData } from '@/components/ui/charts';
 import { NetlifyRUMIntegration } from './netlify-rum-integration';
-import { getTimeRangeHours, getRatingClass, getRatingBadgeVariant } from '@/lib/utils/performance-helpers';
+import {
+  getTimeRangeHours,
+  getRatingClass,
+  getRatingBadgeVariant,
+} from '@/lib/utils/performance-helpers';
 
 interface MetricSummary {
   p50: number;
@@ -47,7 +51,9 @@ export function WebVitalsDashboard({ repository }: { repository?: string }) {
   const [summary, setSummary] = useState<PerformanceSummary>({});
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<'1h' | '24h' | '7d' | '30d'>('24h');
-  const [selectedMetric, setSelectedMetric] = useState<'LCP' | 'INP' | 'CLS' | 'FCP' | 'TTFB'>('LCP');
+  const [selectedMetric, setSelectedMetric] = useState<'LCP' | 'INP' | 'CLS' | 'FCP' | 'TTFB'>(
+    'LCP'
+  );
   const [historicalData, setHistoricalData] = useState<any[]>([]);
 
   useEffect(() => {
@@ -60,7 +66,7 @@ export function WebVitalsDashboard({ repository }: { repository?: string }) {
       const analytics = getWebVitalsAnalytics();
       const data = await analytics.getPerformanceSummary(repository);
       setSummary(data);
-      
+
       // Load historical data for charts
       const historical = await loadHistoricalData();
       setHistoricalData(historical);
@@ -76,10 +82,10 @@ export function WebVitalsDashboard({ repository }: { repository?: string }) {
     const hours = getTimeRangeHours(timeRange);
     const data = [];
     const now = Date.now();
-    
+
     for (let i = 0; i < Math.min(hours, 24); i++) {
       data.push({
-        time: new Date(now - (i * 60 * 60 * 1000)).toISOString(),
+        time: new Date(now - i * 60 * 60 * 1000).toISOString(),
         LCP: 2000 + Math.random() * 1000,
         INP: 150 + Math.random() * 100,
         CLS: 0.05 + Math.random() * 0.1,
@@ -87,7 +93,7 @@ export function WebVitalsDashboard({ repository }: { repository?: string }) {
         TTFB: 600 + Math.random() * 400,
       });
     }
-    
+
     return data.reverse();
   };
 
@@ -96,16 +102,19 @@ export function WebVitalsDashboard({ repository }: { repository?: string }) {
     return <Icon className="h-4 w-4" />;
   };
 
-  const getMetricRating = (metric: string, value: number): 'good' | 'needs-improvement' | 'poor' => {
+  const getMetricRating = (
+    metric: string,
+    value: number
+  ): 'good' | 'needs-improvement' | 'poor' => {
     const threshold = THRESHOLDS[metric as keyof typeof THRESHOLDS];
     if (!threshold) return 'needs-improvement';
-    
+
     if (metric === 'CLS') {
       if (value <= threshold) return 'good';
       if (value <= threshold * 2.5) return 'needs-improvement';
       return 'poor';
     }
-    
+
     if (value <= threshold) return 'good';
     if (value <= threshold * 1.5) return 'needs-improvement';
     return 'poor';
@@ -142,7 +151,7 @@ export function WebVitalsDashboard({ repository }: { repository?: string }) {
     <div className="space-y-6">
       {/* Netlify RUM Integration */}
       <NetlifyRUMIntegration />
-      
+
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
@@ -151,7 +160,7 @@ export function WebVitalsDashboard({ repository }: { repository?: string }) {
             Real-time Core Web Vitals monitoring {repository && `for ${repository}`}
           </p>
         </div>
-        
+
         {/* Time Range Selector */}
         <Tabs value={timeRange} onValueChange={(v) => setTimeRange(v as any)}>
           <TabsList>
@@ -174,10 +183,10 @@ export function WebVitalsDashboard({ repository }: { repository?: string }) {
             {(['LCP', 'INP', 'CLS', 'FCP', 'TTFB'] as const).map((metric) => {
               const data = summary[metric];
               if (!data) return null;
-              
+
               const score = calculateScore(data);
               const rating = getRatingClass(score);
-              
+
               return (
                 <div key={metric} className="space-y-2">
                   <div className="flex items-center justify-between">
@@ -185,9 +194,7 @@ export function WebVitalsDashboard({ repository }: { repository?: string }) {
                       {getMetricIcon(metric)}
                       <span className="font-medium">{metric}</span>
                     </div>
-                    <Badge variant={getRatingBadgeVariant(rating)}>
-                      {score}%
-                    </Badge>
+                    <Badge variant={getRatingBadgeVariant(rating)}>{score}%</Badge>
                   </div>
                   <Progress value={score} className="h-2" />
                   <p className="text-xs text-muted-foreground">
@@ -233,19 +240,37 @@ export function WebVitalsDashboard({ repository }: { repository?: string }) {
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
                         <span className="text-sm">P50 (Median)</span>
-                        <Badge variant={getMetricRating(metric, summary[metric]!.p50) === 'good' ? 'default' : 'secondary'}>
+                        <Badge
+                          variant={
+                            getMetricRating(metric, summary[metric]!.p50) === 'good'
+                              ? 'default'
+                              : 'secondary'
+                          }
+                        >
                           {formatMetricValue(metric, summary[metric]!.p50)}
                         </Badge>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm">P75</span>
-                        <Badge variant={getMetricRating(metric, summary[metric]!.p75) === 'good' ? 'default' : 'secondary'}>
+                        <Badge
+                          variant={
+                            getMetricRating(metric, summary[metric]!.p75) === 'good'
+                              ? 'default'
+                              : 'secondary'
+                          }
+                        >
                           {formatMetricValue(metric, summary[metric]!.p75)}
                         </Badge>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm">P95</span>
-                        <Badge variant={getMetricRating(metric, summary[metric]!.p95) === 'good' ? 'default' : 'secondary'}>
+                        <Badge
+                          variant={
+                            getMetricRating(metric, summary[metric]!.p95) === 'good'
+                              ? 'default'
+                              : 'secondary'
+                          }
+                        >
                           {formatMetricValue(metric, summary[metric]!.p95)}
                         </Badge>
                       </div>
@@ -261,47 +286,51 @@ export function WebVitalsDashboard({ repository }: { repository?: string }) {
                   <CardDescription>User experience breakdown</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {summary[metric] && (() => {
-                    const total = summary[metric]!.good + summary[metric]!.needsImprovement + summary[metric]!.poor;
-                    const donutData: DonutChartData[] = [
-                      { 
-                        id: 'good', 
-                        label: 'Good', 
-                        value: summary[metric]!.good,
-                        percentage: (summary[metric]!.good / total) * 100,
-                        color: RATING_COLORS.good
-                      },
-                      { 
-                        id: 'needs-improvement', 
-                        label: 'Needs Improvement', 
-                        value: summary[metric]!.needsImprovement,
-                        percentage: (summary[metric]!.needsImprovement / total) * 100,
-                        color: RATING_COLORS['needs-improvement']
-                      },
-                      { 
-                        id: 'poor', 
-                        label: 'Poor', 
-                        value: summary[metric]!.poor,
-                        percentage: (summary[metric]!.poor / total) * 100,
-                        color: RATING_COLORS.poor
-                      },
-                    ];
-                    
-                    return (
-                      <div className="flex justify-center">
-                        <DonutChart
-                          data={donutData}
-                          width={200}
-                          height={200}
-                          innerRadius={60}
-                          outerRadius={80}
-                          showLabel={false}
-                          centerLabel={`${Math.round((summary[metric]!.good / total) * 100)}%`}
-                          centerSubLabel="Good"
-                        />
-                      </div>
-                    );
-                  })()}
+                  {summary[metric] &&
+                    (() => {
+                      const total =
+                        summary[metric]!.good +
+                        summary[metric]!.needsImprovement +
+                        summary[metric]!.poor;
+                      const donutData: DonutChartData[] = [
+                        {
+                          id: 'good',
+                          label: 'Good',
+                          value: summary[metric]!.good,
+                          percentage: (summary[metric]!.good / total) * 100,
+                          color: RATING_COLORS.good,
+                        },
+                        {
+                          id: 'needs-improvement',
+                          label: 'Needs Improvement',
+                          value: summary[metric]!.needsImprovement,
+                          percentage: (summary[metric]!.needsImprovement / total) * 100,
+                          color: RATING_COLORS['needs-improvement'],
+                        },
+                        {
+                          id: 'poor',
+                          label: 'Poor',
+                          value: summary[metric]!.poor,
+                          percentage: (summary[metric]!.poor / total) * 100,
+                          color: RATING_COLORS.poor,
+                        },
+                      ];
+
+                      return (
+                        <div className="flex justify-center">
+                          <DonutChart
+                            data={donutData}
+                            width={200}
+                            height={200}
+                            innerRadius={60}
+                            outerRadius={80}
+                            showLabel={false}
+                            centerLabel={`${Math.round((summary[metric]!.good / total) * 100)}%`}
+                            centerSubLabel="Good"
+                          />
+                        </div>
+                      );
+                    })()}
                 </CardContent>
               </Card>
             </div>
@@ -315,11 +344,11 @@ export function WebVitalsDashboard({ repository }: { repository?: string }) {
               <CardContent>
                 {(() => {
                   // Transform data for uPlot LineChart
-                  const timestamps = historicalData.map(d => new Date(d.time).getTime() / 1000);
-                  const values = historicalData.map(d => d[metric]);
+                  const timestamps = historicalData.map((d) => new Date(d.time).getTime() / 1000);
+                  const values = historicalData.map((d) => d[metric]);
                   const threshold = THRESHOLDS[metric];
                   const thresholdValues = historicalData.map(() => threshold);
-                  
+
                   const chartData = {
                     labels: timestamps,
                     datasets: [
@@ -338,14 +367,15 @@ export function WebVitalsDashboard({ repository }: { repository?: string }) {
                         strokeWidth: 1,
                         fill: false,
                         points: false,
-                      }
-                    ]
+                      },
+                    ],
                   };
-                  
+
                   // Detect theme
-                  const isDark = typeof window !== 'undefined' && 
+                  const isDark =
+                    typeof window !== 'undefined' &&
                     window.matchMedia?.('(prefers-color-scheme: dark)').matches;
-                  
+
                   return (
                     <LineChart
                       data={chartData}
@@ -365,8 +395,8 @@ export function WebVitalsDashboard({ repository }: { repository?: string }) {
       </Tabs>
 
       {/* Alerts */}
-      {Object.entries(summary).some(([metric, data]) => 
-        data && data.p75 > THRESHOLDS[metric as keyof typeof THRESHOLDS] * 1.5
+      {Object.entries(summary).some(
+        ([metric, data]) => data && data.p75 > THRESHOLDS[metric as keyof typeof THRESHOLDS] * 1.5
       ) && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />

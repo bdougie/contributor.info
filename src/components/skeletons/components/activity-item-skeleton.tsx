@@ -1,5 +1,5 @@
-import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
+import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 
 interface ActivityItemSkeletonProps {
   className?: string;
@@ -7,7 +7,7 @@ interface ActivityItemSkeletonProps {
 
 export function ActivityItemSkeleton({ className }: ActivityItemSkeletonProps) {
   return (
-    <div className={cn("flex items-start space-x-3 p-3 rounded-md animate-pulse", className)}>
+    <div className={cn('flex items-start space-x-3 p-3 rounded-md animate-pulse', className)}>
       {/* Avatar Section */}
       <div className="relative flex-shrink-0">
         <Skeleton className="h-8 w-8 rounded-full" />
@@ -24,7 +24,7 @@ export function ActivityItemSkeleton({ className }: ActivityItemSkeletonProps) {
             <Skeleton className="h-4 w-20" /> {/* Username */}
             <Skeleton className="h-4 w-16" /> {/* Action */}
             <Skeleton className="h-4 w-24" /> {/* PR link */}
-            <Skeleton className="h-3 w-2" />   {/* in */}
+            <Skeleton className="h-3 w-2" /> {/* in */}
             <Skeleton className="h-4 w-20" /> {/* Repo link */}
           </div>
           {/* Right side - Timestamp */}

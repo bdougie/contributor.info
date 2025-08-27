@@ -30,14 +30,17 @@ export const UPlotChart: React.FC<UPlotChartProps> = ({
   const chartRef = useRef<HTMLDivElement>(null);
   const plotRef = useRef<uPlot | null>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
-  const [actualDimensions, setActualDimensions] = useState<{width: number; height: number} | null>(null);
+  const [actualDimensions, setActualDimensions] = useState<{
+    width: number;
+    height: number;
+  } | null>(null);
 
   // Calculate chart dimensions
   const getDimensions = useCallback(() => {
     if (!responsive || !chartRef.current) {
       return { width: propWidth || 600, height: propHeight };
     }
-    
+
     const rect = chartRef.current.getBoundingClientRect();
     return {
       width: propWidth || rect.width || 600,
@@ -48,7 +51,7 @@ export const UPlotChart: React.FC<UPlotChartProps> = ({
   // Handle chart resize
   const handleResize = useCallback(() => {
     if (!plotRef.current) return;
-    
+
     // Only resize if in responsive mode
     if (!responsive) return;
 
@@ -117,7 +120,7 @@ export const UPlotChart: React.FC<UPlotChartProps> = ({
   useEffect(() => {
     // Skip if chart hasn't been created yet or no data
     if (!plotRef.current || !data) return;
-    
+
     // Only update data if the chart instance exists and is not being recreated
     const chart = plotRef.current;
     if (chart && typeof chart.setData === 'function') {
@@ -140,15 +143,9 @@ export const UPlotChart: React.FC<UPlotChartProps> = ({
   }, [handleResize, responsive]);
 
   // Calculate wrapper div styles
-  const wrapperStyle: React.CSSProperties = responsive 
+  const wrapperStyle: React.CSSProperties = responsive
     ? { width: '100%' }
     : { width: propWidth ?? actualDimensions?.width ?? 600 };
 
-  return (
-    <div 
-      ref={chartRef} 
-      className={`uplot-chart ${className}`}
-      style={wrapperStyle}
-    />
-  );
+  return <div ref={chartRef} className={`uplot-chart ${className}`} style={wrapperStyle} />;
 };

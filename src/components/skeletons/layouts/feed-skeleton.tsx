@@ -1,5 +1,5 @@
-import { Skeleton } from "@/components/ui/skeleton";
-import { PRActivitySkeleton } from "../features/pr-activity-skeleton";
+import { Skeleton } from '@/components/ui/skeleton';
+import { PRActivitySkeleton } from '../features/pr-activity-skeleton';
 
 export function FeedSkeleton() {
   return (
@@ -11,11 +11,7 @@ export function FeedSkeleton() {
       </div>
 
       {/* PR Activity Feed Skeleton */}
-      <PRActivitySkeleton 
-        itemCount={10}
-        showFilters={true}
-        showLoadMore={true}
-      />
+      <PRActivitySkeleton itemCount={10} showFilters={true} showLoadMore={true} />
     </div>
   );
 }

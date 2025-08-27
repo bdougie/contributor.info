@@ -1,4 +1,3 @@
-
 import { Button } from '../components/ui/button';
 import './header.css';
 
@@ -27,23 +26,14 @@ export const Header = ({ user, onLogin, onLogout, onCreateAccount }: HeaderProps
               d="m16 0 6.9282032 9.0717968L32 16l-9.0717968 6.9282032L16 32l-6.9282032-9.0717968L0 16l9.0717968-6.9282032L16 0Z"
               fill="url(#a)"
             />
-            <path
-              d="M16 0v32C7.163444 32 0 24.836556 0 16S7.163444 0 16 0Z"
-              fill="url(#b)"
-            />
+            <path d="M16 0v32C7.163444 32 0 24.836556 0 16S7.163444 0 16 0Z" fill="url(#b)" />
           </g>
           <defs>
             <linearGradient id="a" x1="16" y1="0" x2="16" y2="32" gradientUnits="userSpaceOnUse">
               <stop stopColor="#FFAE00" />
               <stop offset="1" stopColor="#FF4785" stopOpacity=".01" />
             </linearGradient>
-            <radialGradient
-              id="b"
-              cx="16"
-              cy="16"
-              r="16"
-              gradientUnits="userSpaceOnUse"
-            >
+            <radialGradient id="b" cx="16" cy="16" r="16" gradientUnits="userSpaceOnUse">
               <stop stopColor="#FF4785" />
               <stop offset="1" stopColor="#FF4785" stopOpacity=".01" />
             </radialGradient>

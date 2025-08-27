@@ -9,11 +9,10 @@ interface UseWorkspaceContributorsProps {
   selectedRepositories: string[];
 }
 
-
-export function useWorkspaceContributors({ 
-  workspaceId, 
-  repositories, 
-  selectedRepositories 
+export function useWorkspaceContributors({
+  workspaceId,
+  repositories,
+  selectedRepositories,
 }: UseWorkspaceContributorsProps) {
   const [contributors, setContributors] = useState<Contributor[]>([]);
   const [allAvailableContributors, setAllAvailableContributors] = useState<Contributor[]>([]);
@@ -25,17 +24,18 @@ export function useWorkspaceContributors({
   const fetchAvailableContributors = async () => {
     try {
       // Filter repositories based on selection
-      const filteredRepos = selectedRepositories.length > 0
-        ? repositories.filter(r => selectedRepositories.includes(r.id))
-        : repositories;
-      
+      const filteredRepos =
+        selectedRepositories.length > 0
+          ? repositories.filter((r) => selectedRepositories.includes(r.id))
+          : repositories;
+
       if (filteredRepos.length === 0) {
         setAllAvailableContributors([]);
         return;
       }
-      
-      const repoIds = filteredRepos.map(r => r.id);
-      
+
+      const repoIds = filteredRepos.map((r) => r.id);
+
       // Get unique contributor IDs from pull requests with optimized query
       const { data: pullRequests, error: prError } = await supabase
         .from('pull_requests')
@@ -54,12 +54,13 @@ export function useWorkspaceContributors({
       }
 
       // Get unique contributor IDs
-      const contributorIds = [...new Set(pullRequests.map(pr => pr.author_id).filter(Boolean))];
-      
+      const contributorIds = [...new Set(pullRequests.map((pr) => pr.author_id).filter(Boolean))];
+
       // Fetch contributor details
       const { data: contributorStats, error: statsError } = await supabase
         .from('contributors')
-        .select(`
+        .select(
+          `
           id,
           github_id,
           username,
@@ -68,7 +69,8 @@ export function useWorkspaceContributors({
           bio,
           company,
           location
-        `)
+        `
+        )
         .in('id', contributorIds);
 
       if (statsError) {
@@ -82,27 +84,30 @@ export function useWorkspaceContributors({
       }
 
       // Group by contributor to calculate stats efficiently
-      const contributorMap = new Map<string, {
-        contributor: any;
-        prCount: number;
-        repositories: Set<string>;
-      }>();
+      const contributorMap = new Map<
+        string,
+        {
+          contributor: any;
+          prCount: number;
+          repositories: Set<string>;
+        }
+      >();
 
       // Build contributor map with PR counts
       contributorStats.forEach((contributor) => {
-        const prsByContributor = pullRequests.filter(pr => pr.author_id === contributor.id);
-        const repoSet = new Set(prsByContributor.map(pr => pr.repository_id));
-        
+        const prsByContributor = pullRequests.filter((pr) => pr.author_id === contributor.id);
+        const repoSet = new Set(prsByContributor.map((pr) => pr.repository_id));
+
         contributorMap.set(contributor.id, {
           contributor: contributor,
           prCount: prsByContributor.length,
-          repositories: repoSet
+          repositories: repoSet,
         });
       });
 
       // Batch fetch additional stats for all contributors
       const contributorIdsForStats = Array.from(contributorMap.keys());
-      
+
       const [issuesResult, reviewsResult] = await Promise.all([
         // Get issue counts
         supabase
@@ -110,24 +115,24 @@ export function useWorkspaceContributors({
           .select('author_id')
           .in('author_id', contributorIdsForStats)
           .in('repository_id', repoIds),
-        
-        // Get review counts 
+
+        // Get review counts
         supabase
           .from('reviews')
           .select('author_id, pull_request_id')
-          .in('author_id', contributorIdsForStats)
+          .in('author_id', contributorIdsForStats),
       ]);
 
       // Count issues per contributor
       const issueCounts = new Map<string, number>();
-      issuesResult.data?.forEach(issue => {
+      issuesResult.data?.forEach((issue) => {
         const count = issueCounts.get(issue.author_id) || 0;
         issueCounts.set(issue.author_id, count + 1);
       });
 
       // Count reviews per contributor
       const reviewCounts = new Map<string, number>();
-      reviewsResult.data?.forEach(review => {
+      reviewsResult.data?.forEach((review) => {
         // Only count if it's a review on a PR in our repositories
         // Since we don't have the PR data here, we'll count all for now
         const count = reviewCounts.get(review.author_id) || 0;
@@ -135,41 +140,45 @@ export function useWorkspaceContributors({
       });
 
       // Build final contributor list
-      const contributorsWithStats: Contributor[] = Array.from(contributorMap.entries()).map(([contributorId, data]) => {
-        const contributor = data.contributor;
-        const prCount = data.prCount;
-        const issueCount = issueCounts.get(contributorId) || 0;
-        const reviewCount = reviewCounts.get(contributorId) || 0;
-        const repoCount = data.repositories.size;
+      const contributorsWithStats: Contributor[] = Array.from(contributorMap.entries()).map(
+        ([contributorId, data]) => {
+          const contributor = data.contributor;
+          const prCount = data.prCount;
+          const issueCount = issueCounts.get(contributorId) || 0;
+          const reviewCount = reviewCounts.get(contributorId) || 0;
+          const repoCount = data.repositories.size;
 
-        return {
-          id: contributor.id,
-          username: contributor.username,
-          avatar_url: contributor.avatar_url || '',
-          name: contributor.display_name,
-          bio: contributor.bio,
-          company: contributor.company,
-          location: contributor.location,
-          contributions: {
-            commits: Math.floor(Math.random() * 500), // We don't track commits yet
-            pull_requests: prCount,
-            issues: issueCount,
-            reviews: reviewCount,
-            comments: Math.floor(Math.random() * 100), // We don't have efficient comment counting yet
-          },
-          stats: {
-            total_contributions: prCount + issueCount + reviewCount,
-            contribution_trend: Math.floor(Math.random() * 40) - 20, // Mock trend
-            last_active: new Date().toISOString(), // TODO: Get actual last activity
-            repositories_contributed: repoCount,
-          },
-          is_tracked: false,
-        };
-      });
+          return {
+            id: contributor.id,
+            username: contributor.username,
+            avatar_url: contributor.avatar_url || '',
+            name: contributor.display_name,
+            bio: contributor.bio,
+            company: contributor.company,
+            location: contributor.location,
+            contributions: {
+              commits: Math.floor(Math.random() * 500), // We don't track commits yet
+              pull_requests: prCount,
+              issues: issueCount,
+              reviews: reviewCount,
+              comments: Math.floor(Math.random() * 100), // We don't have efficient comment counting yet
+            },
+            stats: {
+              total_contributions: prCount + issueCount + reviewCount,
+              contribution_trend: Math.floor(Math.random() * 40) - 20, // Mock trend
+              last_active: new Date().toISOString(), // TODO: Get actual last activity
+              repositories_contributed: repoCount,
+            },
+            is_tracked: false,
+          };
+        }
+      );
 
       // Sort by total contributions
-      contributorsWithStats.sort((a, b) => b.stats.total_contributions - a.stats.total_contributions);
-      
+      contributorsWithStats.sort(
+        (a, b) => b.stats.total_contributions - a.stats.total_contributions
+      );
+
       setAllAvailableContributors(contributorsWithStats);
     } catch (err) {
       console.error('Error fetching available contributors:', err);
@@ -190,11 +199,11 @@ export function useWorkspaceContributors({
         throw error;
       }
 
-      const contributorIds = workspaceContributors?.map(wc => wc.contributor_id) || [];
+      const contributorIds = workspaceContributors?.map((wc) => wc.contributor_id) || [];
       setWorkspaceContributorIds(contributorIds);
-      
+
       // Filter available contributors to show only workspace ones
-      setContributors(allAvailableContributors.filter(c => contributorIds.includes(c.id)));
+      setContributors(allAvailableContributors.filter((c) => contributorIds.includes(c.id)));
     } catch (err) {
       console.error('Error fetching workspace contributors:', err);
       setError('Failed to fetch workspace contributors');
@@ -205,23 +214,23 @@ export function useWorkspaceContributors({
   const addContributorsToWorkspace = async (contributorIds: string[]) => {
     try {
       // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       const userId = user?.id;
-      
+
       if (!userId) {
         toast.error('You must be logged in to add contributors');
         return;
       }
 
-      const contributorsToAdd = contributorIds.map(contributorId => ({
+      const contributorsToAdd = contributorIds.map((contributorId) => ({
         workspace_id: workspaceId,
         contributor_id: contributorId,
         added_by: userId,
       }));
 
-      const { error } = await supabase
-        .from('workspace_contributors')
-        .insert(contributorsToAdd);
+      const { error } = await supabase.from('workspace_contributors').insert(contributorsToAdd);
 
       if (error) {
         console.error('Error adding contributors to workspace:', error);
@@ -231,8 +240,8 @@ export function useWorkspaceContributors({
       // Update local state
       const newIds = [...new Set([...workspaceContributorIds, ...contributorIds])];
       setWorkspaceContributorIds(newIds);
-      setContributors(allAvailableContributors.filter(c => newIds.includes(c.id)));
-      
+      setContributors(allAvailableContributors.filter((c) => newIds.includes(c.id)));
+
       toast.success(`Added ${contributorIds.length} contributor(s) to workspace`);
     } catch (err) {
       console.error('Error adding contributors:', err);
@@ -255,10 +264,10 @@ export function useWorkspaceContributors({
       }
 
       // Update local state
-      const newIds = workspaceContributorIds.filter(id => id !== contributorId);
+      const newIds = workspaceContributorIds.filter((id) => id !== contributorId);
       setWorkspaceContributorIds(newIds);
-      setContributors(allAvailableContributors.filter(c => newIds.includes(c.id)));
-      
+      setContributors(allAvailableContributors.filter((c) => newIds.includes(c.id)));
+
       toast.success('Contributor removed from workspace');
     } catch (err) {
       console.error('Error removing contributor:', err);
@@ -271,7 +280,7 @@ export function useWorkspaceContributors({
     const fetchData = async () => {
       setLoading(true);
       setError(null);
-      
+
       try {
         await fetchAvailableContributors();
       } catch (err) {

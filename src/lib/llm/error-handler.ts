@@ -32,7 +32,7 @@ class LLMErrorHandler {
       retryDelay: 1000, // 1 second
       enableFallbacks: true,
       logErrors: true,
-      ...config
+      ...config,
     };
   }
 
@@ -41,7 +41,7 @@ class LLMErrorHandler {
    */
   handleError(error: any, context: string): LLMError {
     const llmError = this.categorizeError(error, context);
-    
+
     if (this.config.logErrors) {
       this.logError(llmError);
     }
@@ -63,8 +63,9 @@ class LLMErrorHandler {
         code: 429,
         retryable: true,
         fallbackAvailable: true,
-        userMessage: 'AI insights temporarily unavailable due to high demand. Using cached or rule-based insights.',
-        timestamp
+        userMessage:
+          'AI insights temporarily unavailable due to high demand. Using cached or rule-based insights.',
+        timestamp,
       };
     }
 
@@ -75,8 +76,9 @@ class LLMErrorHandler {
         code: 401,
         retryable: false,
         fallbackAvailable: true,
-        userMessage: 'AI insights unavailable - configuration issue. Using rule-based insights instead.',
-        timestamp
+        userMessage:
+          'AI insights unavailable - configuration issue. Using rule-based insights instead.',
+        timestamp,
       };
     }
 
@@ -87,8 +89,9 @@ class LLMErrorHandler {
         code: 'TIMEOUT',
         retryable: true,
         fallbackAvailable: true,
-        userMessage: 'AI service is slow - using cached or rule-based insights for faster response.',
-        timestamp
+        userMessage:
+          'AI service is slow - using cached or rule-based insights for faster response.',
+        timestamp,
       };
     }
 
@@ -100,7 +103,7 @@ class LLMErrorHandler {
         retryable: true,
         fallbackAvailable: true,
         userMessage: 'Connection issue detected. Using offline insights.',
-        timestamp
+        timestamp,
       };
     }
 
@@ -113,7 +116,7 @@ class LLMErrorHandler {
         retryable: error.code >= 500, // Server errors are retryable
         fallbackAvailable: true,
         userMessage: 'AI service temporarily unavailable. Using alternative insights.',
-        timestamp
+        timestamp,
       };
     }
 
@@ -124,7 +127,7 @@ class LLMErrorHandler {
       retryable: false,
       fallbackAvailable: true,
       userMessage: 'Unexpected issue with AI insights. Using standard analysis instead.',
-      timestamp
+      timestamp,
     };
   }
 
@@ -137,7 +140,7 @@ class LLMErrorHandler {
       message: error.message,
       code: error.code,
       timestamp: error.timestamp,
-      retryable: error.retryable
+      retryable: error.retryable,
     });
 
     // Keep last 50 errors for debugging
@@ -176,19 +179,22 @@ class LLMErrorHandler {
   } {
     const now = new Date();
     const last24Hours = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    
-    const recentErrors = this.errorLog.filter(error => error.timestamp > last24Hours);
-    
-    const errorsByType = this.errorLog.reduce((acc, error) => {
-      acc[error.type] = (acc[error.type] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+
+    const recentErrors = this.errorLog.filter((error) => error.timestamp > last24Hours);
+
+    const errorsByType = this.errorLog.reduce(
+      (acc, error) => {
+        acc[error.type] = (acc[error.type] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
 
     return {
       totalErrors: this.errorLog.length,
       errorsByType,
       recentErrors,
-      errorRate: recentErrors.length / 24 // errors per hour
+      errorRate: recentErrors.length / 24, // errors per hour
     };
   }
 
@@ -221,7 +227,7 @@ export const llmErrorHandler = new LLMErrorHandler();
 export const createErrorBoundaryProps = () => ({
   onError: (error: Error) => {
     llmErrorHandler.handleError(error, 'React Error Boundary');
-  }
+  },
 });
 
 export const withErrorHandling = <T extends any[], R>(
@@ -231,17 +237,17 @@ export const withErrorHandling = <T extends any[], R>(
 ) => {
   return async (...args: T): Promise<R | null> => {
     let attemptCount = 0;
-    
+
     while (attemptCount <= llmErrorHandler['config'].maxRetries) {
       try {
         return await fn(...args);
       } catch (error) {
         const llmError = llmErrorHandler.handleError(error, context);
-        
+
         if (llmErrorHandler.shouldRetry(llmError, attemptCount)) {
           attemptCount++;
           const delay = llmErrorHandler.getRetryDelay(attemptCount);
-          await new Promise(resolve => setTimeout(resolve, delay));
+          await new Promise((resolve) => setTimeout(resolve, delay));
           continue;
         }
 
@@ -259,7 +265,7 @@ export const withErrorHandling = <T extends any[], R>(
         return null;
       }
     }
-    
+
     return null;
   };
 };

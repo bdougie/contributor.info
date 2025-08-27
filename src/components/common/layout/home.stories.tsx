@@ -10,7 +10,8 @@ const meta = {
     layout: 'fullscreen',
     docs: {
       description: {
-        component: 'The main homepage component with different states based on user authentication and workspace presence.',
+        component:
+          'The main homepage component with different states based on user authentication and workspace presence.',
       },
     },
   },
@@ -93,7 +94,8 @@ export const LoggedInWithWorkspaceMobile: Story = {
   parameters: {
     docs: {
       description: {
-        story: 'Mobile view of homepage showing workspace preview card for authenticated user with workspace.',
+        story:
+          'Mobile view of homepage showing workspace preview card for authenticated user with workspace.',
       },
     },
     viewport: {
@@ -106,7 +108,8 @@ export const LoggedOutMobile: Story = {
   parameters: {
     docs: {
       description: {
-        story: 'Mobile view of homepage showing only search box for logged out users (no workspace card).',
+        story:
+          'Mobile view of homepage showing only search box for logged out users (no workspace card).',
       },
     },
     viewport: {
@@ -119,7 +122,8 @@ export const LoggedInNoWorkspaceMobile: Story = {
   parameters: {
     docs: {
       description: {
-        story: 'Mobile view of homepage showing only search box for authenticated user without workspace.',
+        story:
+          'Mobile view of homepage showing only search box for authenticated user without workspace.',
       },
     },
     viewport: {

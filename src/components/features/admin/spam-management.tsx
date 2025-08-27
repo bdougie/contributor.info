@@ -1,20 +1,30 @@
-import { useState, useEffect } from 'react'
-import { Shield, Search, AlertTriangle, CheckCircle, XCircle, ExternalLink, RefreshCw, Eye, Ban } from '@/components/ui/icon';
+import { useState, useEffect } from 'react';
+import {
+  Shield,
+  Search,
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
+  ExternalLink,
+  RefreshCw,
+  Eye,
+  Ban,
+} from '@/components/ui/icon';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@/components/ui/table';
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -53,7 +63,9 @@ export function SpamManagement() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'confirmed' | 'false_positive'>('all');
+  const [filterStatus, setFilterStatus] = useState<
+    'all' | 'pending' | 'confirmed' | 'false_positive'
+  >('all');
   const [filterScore, setFilterScore] = useState<'all' | 'high' | 'medium' | 'low'>('all');
   const adminGitHubId = useAdminGitHubId();
 
@@ -65,10 +77,11 @@ export function SpamManagement() {
     try {
       setLoading(true);
       setError(null);
-      
+
       const { data, error: fetchError } = await supabase
         .from('spam_detections')
-        .select(`
+        .select(
+          `
           *,
           pull_requests (
             title,
@@ -81,7 +94,8 @@ export function SpamManagement() {
             username,
             avatar_url
           )
-        `)
+        `
+        )
         .order('detected_at', { ascending: false });
 
       if (fetchError) {
@@ -97,16 +111,19 @@ export function SpamManagement() {
     }
   };
 
-  const updateSpamStatus = async (detection: SpamDetection, newStatus: 'confirmed' | 'false_positive') => {
+  const updateSpamStatus = async (
+    detection: SpamDetection,
+    newStatus: 'confirmed' | 'false_positive'
+  ) => {
     if (!adminGitHubId) return;
 
     try {
       const { error: updateError } = await supabase
         .from('spam_detections')
-        .update({ 
+        .update({
           status: newStatus,
           admin_reviewed_by: adminGitHubId,
-          admin_reviewed_at: new Date().toISOString()
+          admin_reviewed_at: new Date().toISOString(),
         })
         .eq('id', detection.id);
 
@@ -115,31 +132,27 @@ export function SpamManagement() {
       }
 
       // Log admin action
-      await logAdminAction(
-        adminGitHubId,
-        'spam_status_updated',
-        'spam_detection',
-        detection.id,
-        {
-          pr_id: detection.pr_id,
-          contributor_username: detection.contributors?.username,
-          old_status: detection.status,
-          new_status: newStatus,
-          spam_score: detection.spam_score
-        }
-      );
+      await logAdminAction(adminGitHubId, 'spam_status_updated', 'spam_detection', detection.id, {
+        pr_id: detection.pr_id,
+        contributor_username: detection.contributors?.username,
+        old_status: detection.status,
+        new_status: newStatus,
+        spam_score: detection.spam_score,
+      });
 
       // Update local state
-      setDetections(detections.map(d => 
-        d.id === detection.id 
-          ? { 
-              ...d, 
-              status: newStatus, 
-              admin_reviewed_by: adminGitHubId,
-              admin_reviewed_at: new Date().toISOString()
-            }
-          : d
-      ));
+      setDetections(
+        detections.map((d) =>
+          d.id === detection.id
+            ? {
+                ...d,
+                status: newStatus,
+                admin_reviewed_by: adminGitHubId,
+                admin_reviewed_at: new Date().toISOString(),
+              }
+            : d
+        )
+      );
     } catch (err) {
       console.error('Error updating spam status:', err);
       setError(err instanceof Error ? err.message : 'Failed to update spam status');
@@ -147,16 +160,17 @@ export function SpamManagement() {
   };
 
   // Filter detections based on search and filter criteria
-  const filteredDetections = detections.filter(detection => {
-    const matchesSearch = 
+  const filteredDetections = detections.filter((detection) => {
+    const matchesSearch =
       detection.contributors?.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
       detection.pull_requests?.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      detection.pull_requests?.repository?.full_name.toLowerCase().includes(searchTerm.toLowerCase());
+      detection.pull_requests?.repository?.full_name
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
 
-    const matchesStatus = 
-      filterStatus === 'all' || detection.status === filterStatus;
+    const matchesStatus = filterStatus === 'all' || detection.status === filterStatus;
 
-    const matchesScore = 
+    const matchesScore =
       filterScore === 'all' ||
       (filterScore === 'high' && detection.spam_score >= 0.8) ||
       (filterScore === 'medium' && detection.spam_score >= 0.5 && detection.spam_score < 0.8) ||
@@ -167,23 +181,26 @@ export function SpamManagement() {
 
   const stats = {
     total: detections.length,
-    pending: detections.filter(d => d.status === 'pending').length,
-    confirmed: detections.filter(d => d.status === 'confirmed').length,
-    falsePositives: detections.filter(d => d.status === 'false_positive').length,
-    highRisk: detections.filter(d => d.spam_score >= 0.8).length
+    pending: detections.filter((d) => d.status === 'pending').length,
+    confirmed: detections.filter((d) => d.status === 'confirmed').length,
+    falsePositives: detections.filter((d) => d.status === 'false_positive').length,
+    highRisk: detections.filter((d) => d.spam_score >= 0.8).length,
   };
 
   const getScoreBadgeVariant = (score: number) => {
-    if (score >= 0.8) return "destructive";
-    if (score >= 0.5) return "secondary";
-    return "outline";
+    if (score >= 0.8) return 'destructive';
+    if (score >= 0.5) return 'secondary';
+    return 'outline';
   };
 
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
-      case 'confirmed': return "destructive";
-      case 'false_positive': return "default";
-      default: return "secondary";
+      case 'confirmed':
+        return 'destructive';
+      case 'false_positive':
+        return 'default';
+      default:
+        return 'secondary';
     }
   };
 
@@ -209,9 +226,7 @@ export function SpamManagement() {
         </div>
         <div>
           <h1 className="text-3xl font-bold">Spam Management</h1>
-          <p className="text-muted-foreground">
-            Review and manage spam detection results
-          </p>
+          <p className="text-muted-foreground">Review and manage spam detection results</p>
         </div>
       </div>
 
@@ -342,9 +357,9 @@ export function SpamManagement() {
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar className="h-8 w-8">
-                          <AvatarImage 
-                            src={detection.contributors?.avatar_url} 
-                            alt={detection.contributors?.username} 
+                          <AvatarImage
+                            src={detection.contributors?.avatar_url}
+                            alt={detection.contributors?.username}
                           />
                           <AvatarFallback>
                             {detection.contributors?.username.slice(0, 2).toUpperCase()}
@@ -352,10 +367,8 @@ export function SpamManagement() {
                         </Avatar>
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="font-medium">
-                              {detection.contributors?.username}
-                            </span>
-                            <Link 
+                            <span className="font-medium">{detection.contributors?.username}</span>
+                            <Link
                               to={`https://github.com/${detection.contributors?.username}`}
                               target="_blank"
                               rel="noopener noreferrer"
@@ -373,7 +386,7 @@ export function SpamManagement() {
                             {detection.pull_requests?.title}
                           </span>
                           {detection.pull_requests?.html_url && (
-                            <Link 
+                            <Link
                               to={detection.pull_requests.html_url}
                               target="_blank"
                               rel="noopener noreferrer"
@@ -401,8 +414,9 @@ export function SpamManagement() {
                     </TableCell>
                     <TableCell>
                       <Badge variant={getStatusBadgeVariant(detection.status)}>
-                        {detection.status === 'false_positive' ? 'False Positive' : 
-                         detection.status.charAt(0).toUpperCase() + detection.status.slice(1)}
+                        {detection.status === 'false_positive'
+                          ? 'False Positive'
+                          : detection.status.charAt(0).toUpperCase() + detection.status.slice(1)}
                       </Badge>
                     </TableCell>
                     <TableCell>

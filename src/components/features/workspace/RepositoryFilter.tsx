@@ -1,16 +1,9 @@
-import { useState, useRef, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { 
-  ChevronDown, 
-  Check, 
-  X, 
-  Search,
-  GitBranch,
-  Activity
-} from "@/components/ui/icon";
-import { cn } from "@/lib/utils";
+import { useState, useRef, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { ChevronDown, Check, X, Search, GitBranch, Activity } from '@/components/ui/icon';
+import { cn } from '@/lib/utils';
 
 export interface RepositoryOption {
   id: string;
@@ -34,13 +27,13 @@ export interface RepositoryFilterProps {
 
 function getActivityLabel(lastActivity?: string): string {
   if (!lastActivity) return 'No recent activity';
-  
+
   const now = new Date();
   const activityDate = new Date(lastActivity);
   const diffInMs = now.getTime() - activityDate.getTime();
   const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
   const diffInDays = Math.floor(diffInHours / 24);
-  
+
   if (diffInHours < 1) return 'Active now';
   if (diffInHours < 24) return `${diffInHours}h ago`;
   if (diffInDays < 7) return `${diffInDays}d ago`;
@@ -52,19 +45,20 @@ export function RepositoryFilter({
   repositories,
   selectedRepositories,
   onSelectionChange,
-  placeholder = "All Repositories",
+  placeholder = 'All Repositories',
   className,
   disabled = false,
 }: RepositoryFilterProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Filter repositories based on search term
-  const filteredRepositories = repositories.filter(repo =>
-    repo.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (repo.language && repo.language.toLowerCase().includes(searchTerm.toLowerCase()))
+  const filteredRepositories = repositories.filter(
+    (repo) =>
+      repo.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (repo.language && repo.language.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   // Handle clicking outside to close dropdown
@@ -75,9 +69,9 @@ export function RepositoryFilter({
       }
     }
 
-    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
 
@@ -90,18 +84,18 @@ export function RepositoryFilter({
 
   const toggleRepository = (repoId: string) => {
     const newSelection = selectedRepositories.includes(repoId)
-      ? selectedRepositories.filter(id => id !== repoId)
+      ? selectedRepositories.filter((id) => id !== repoId)
       : [...selectedRepositories, repoId];
     onSelectionChange(newSelection);
   };
 
   const clearSelection = () => {
     onSelectionChange([]);
-    setSearchTerm("");
+    setSearchTerm('');
   };
 
   const selectAll = () => {
-    onSelectionChange(repositories.map(r => r.id));
+    onSelectionChange(repositories.map((r) => r.id));
   };
 
   const getButtonContent = () => {
@@ -112,7 +106,7 @@ export function RepositoryFilter({
       return <span className="truncate">All Repositories</span>;
     }
     if (selectedRepositories.length === 1) {
-      const repo = repositories.find(r => r.id === selectedRepositories[0]);
+      const repo = repositories.find((r) => r.id === selectedRepositories[0]);
       if (repo) {
         const avatarUrl = repo.avatar_url || `https://avatars.githubusercontent.com/${repo.owner}`;
         return (
@@ -135,13 +129,10 @@ export function RepositoryFilter({
   };
 
   return (
-    <div className={cn("relative", className)} ref={dropdownRef}>
+    <div className={cn('relative', className)} ref={dropdownRef}>
       <Button
         variant="outline"
-        className={cn(
-          "w-full justify-between",
-          selectedRepositories.length > 0 && "bg-primary/5"
-        )}
+        className={cn('w-full justify-between', selectedRepositories.length > 0 && 'bg-primary/5')}
         onClick={() => setIsOpen(!isOpen)}
         disabled={disabled}
       >
@@ -155,11 +146,8 @@ export function RepositoryFilter({
               {selectedRepositories.length}
             </Badge>
           )}
-          <ChevronDown 
-            className={cn(
-              "h-4 w-4 transition-transform",
-              isOpen && "transform rotate-180"
-            )} 
+          <ChevronDown
+            className={cn('h-4 w-4 transition-transform', isOpen && 'transform rotate-180')}
           />
         </div>
       </Button>
@@ -181,12 +169,7 @@ export function RepositoryFilter({
 
           {/* Action Buttons */}
           <div className="flex gap-2 mb-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={selectAll}
-              className="flex-1 h-8 text-xs"
-            >
+            <Button variant="ghost" size="sm" onClick={selectAll} className="flex-1 h-8 text-xs">
               Select All
             </Button>
             <Button
@@ -210,26 +193,25 @@ export function RepositoryFilter({
               <div className="space-y-1">
                 {filteredRepositories.map((repo) => {
                   const isSelected = selectedRepositories.includes(repo.id);
-                  const avatarUrl = repo.avatar_url || `https://avatars.githubusercontent.com/${repo.owner}`;
+                  const avatarUrl =
+                    repo.avatar_url || `https://avatars.githubusercontent.com/${repo.owner}`;
                   return (
                     <button
                       key={repo.id}
                       onClick={() => toggleRepository(repo.id)}
                       className={cn(
-                        "w-full flex items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-accent transition-colors",
-                        isSelected && "bg-accent"
+                        'w-full flex items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-accent transition-colors',
+                        isSelected && 'bg-accent'
                       )}
                     >
                       <div className="flex items-center gap-2 flex-1 text-left">
-                        <div className={cn(
-                          "h-4 w-4 rounded border flex items-center justify-center flex-shrink-0",
-                          isSelected 
-                            ? "bg-primary border-primary" 
-                            : "border-input"
-                        )}>
-                          {isSelected && (
-                            <Check className="h-3 w-3 text-primary-foreground" />
+                        <div
+                          className={cn(
+                            'h-4 w-4 rounded border flex items-center justify-center flex-shrink-0',
+                            isSelected ? 'bg-primary border-primary' : 'border-input'
                           )}
+                        >
+                          {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
                         </div>
                         <img
                           src={avatarUrl}
@@ -240,13 +222,9 @@ export function RepositoryFilter({
                           }}
                         />
                         <div className="flex-1 min-w-0">
-                          <div className="truncate font-medium">
-                            {repo.name}
-                          </div>
+                          <div className="truncate font-medium">{repo.name}</div>
                           {repo.language && (
-                            <div className="text-xs text-muted-foreground">
-                              {repo.language}
-                            </div>
+                            <div className="text-xs text-muted-foreground">{repo.language}</div>
                           )}
                         </div>
                       </div>
@@ -297,7 +275,7 @@ export function SingleRepositoryFilter({
   repositories,
   selectedRepository,
   onSelectionChange,
-  placeholder = "Select a repository",
+  placeholder = 'Select a repository',
   className,
   disabled = false,
 }: {
@@ -309,10 +287,10 @@ export function SingleRepositoryFilter({
   disabled?: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const filteredRepositories = repositories.filter(repo =>
+  const filteredRepositories = repositories.filter((repo) =>
     repo.full_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -323,16 +301,16 @@ export function SingleRepositoryFilter({
       }
     }
 
-    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
 
-  const selectedRepo = repositories.find(r => r.id === selectedRepository);
+  const selectedRepo = repositories.find((r) => r.id === selectedRepository);
 
   return (
-    <div className={cn("relative", className)} ref={dropdownRef}>
+    <div className={cn('relative', className)} ref={dropdownRef}>
       <Button
         variant="outline"
         className="w-full justify-between"
@@ -344,7 +322,10 @@ export function SingleRepositoryFilter({
           {selectedRepo ? (
             <>
               <img
-                src={selectedRepo.avatar_url || `https://avatars.githubusercontent.com/${selectedRepo.owner}`}
+                src={
+                  selectedRepo.avatar_url ||
+                  `https://avatars.githubusercontent.com/${selectedRepo.owner}`
+                }
                 alt={selectedRepo.owner}
                 className="h-4 w-4 rounded flex-shrink-0"
                 onError={(e) => {
@@ -369,11 +350,8 @@ export function SingleRepositoryFilter({
               <X className="h-3 w-3" />
             </button>
           )}
-          <ChevronDown 
-            className={cn(
-              "h-4 w-4 transition-transform",
-              isOpen && "transform rotate-180"
-            )} 
+          <ChevronDown
+            className={cn('h-4 w-4 transition-transform', isOpen && 'transform rotate-180')}
           />
         </div>
       </Button>
@@ -401,7 +379,8 @@ export function SingleRepositoryFilter({
               <div className="space-y-1">
                 {filteredRepositories.map((repo) => {
                   const isSelected = repo.id === selectedRepository;
-                  const avatarUrl = repo.avatar_url || `https://avatars.githubusercontent.com/${repo.owner}`;
+                  const avatarUrl =
+                    repo.avatar_url || `https://avatars.githubusercontent.com/${repo.owner}`;
                   return (
                     <button
                       key={repo.id}
@@ -410,8 +389,8 @@ export function SingleRepositoryFilter({
                         setIsOpen(false);
                       }}
                       className={cn(
-                        "w-full flex items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-accent transition-colors",
-                        isSelected && "bg-accent"
+                        'w-full flex items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-accent transition-colors',
+                        isSelected && 'bg-accent'
                       )}
                     >
                       <div className="flex items-center gap-2 flex-1 text-left">
@@ -424,13 +403,9 @@ export function SingleRepositoryFilter({
                           }}
                         />
                         <div className="flex-1">
-                          <div className="truncate font-medium">
-                            {repo.name}
-                          </div>
+                          <div className="truncate font-medium">{repo.name}</div>
                           {repo.language && (
-                            <div className="text-xs text-muted-foreground">
-                              {repo.language}
-                            </div>
+                            <div className="text-xs text-muted-foreground">{repo.language}</div>
                           )}
                         </div>
                       </div>

@@ -2,11 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Pure functions for throttling logic (extracted for testing)
 export const THROTTLE_CONFIG = {
-  'manual': 0.083, // 5 minutes
+  manual: 0.083, // 5 minutes
   'auto-fix': 0.25, // 15 minutes
-  'scheduled': 2, // 2 hours
+  scheduled: 2, // 2 hours
   'pr-activity': 1, // 1 hour
-  'default': 0.5 // 30 minutes
+  default: 0.5, // 30 minutes
 };
 
 export function getThrottleHours(reason: string): number {
@@ -31,7 +31,7 @@ export function shouldAllowSync(
   if (!hasCompleteData && hoursSinceSync < 0.083) {
     return true;
   }
-  
+
   // Otherwise check against effective throttle
   return hoursSinceSync >= effectiveThrottleHours;
 }
@@ -90,13 +90,13 @@ describe('Throttling Logic', () => {
       // 0.1 hours = 6 minutes, which is more than 0.083 hours (5 minutes)
       expect(shouldAllowSync(0.1, 0.083, false)).toBe(true);
     });
-    
+
     it('should allow incomplete data sync within first 5 minutes', () => {
       // Special case: incomplete data gets immediate sync in first 5 minutes
       expect(shouldAllowSync(0.08, 0.083, false)).toBe(true);
       expect(shouldAllowSync(0.01, 0.083, false)).toBe(true);
     });
-    
+
     it('should block complete data sync within throttle window', () => {
       // Complete data follows normal throttle rules
       expect(shouldAllowSync(0.08, 0.083, true)).toBe(false);

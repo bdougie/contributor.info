@@ -1,10 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from './tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './tooltip';
 import { Button } from './button';
 
 const meta = {
@@ -14,7 +9,8 @@ const meta = {
     layout: 'centered',
     docs: {
       description: {
-        component: 'A popup that displays information related to an element when the element receives keyboard focus or the mouse hovers over it.',
+        component:
+          'A popup that displays information related to an element when the element receives keyboard focus or the mouse hovers over it.',
       },
     },
   },
@@ -87,7 +83,7 @@ export const DifferentSides: Story = {
           <p>Tooltip on top</p>
         </TooltipContent>
       </Tooltip>
-      
+
       <Tooltip>
         <TooltipTrigger asChild>
           <Button variant="outline">Right</Button>
@@ -96,7 +92,7 @@ export const DifferentSides: Story = {
           <p>Tooltip on right</p>
         </TooltipContent>
       </Tooltip>
-      
+
       <Tooltip>
         <TooltipTrigger asChild>
           <Button variant="outline">Bottom</Button>
@@ -105,7 +101,7 @@ export const DifferentSides: Story = {
           <p>Tooltip on bottom</p>
         </TooltipContent>
       </Tooltip>
-      
+
       <Tooltip>
         <TooltipTrigger asChild>
           <Button variant="outline">Left</Button>
@@ -127,8 +123,8 @@ export const LongContent: Story = {
       </TooltipTrigger>
       <TooltipContent className="max-w-xs">
         <p>
-          This is a longer tooltip with more detailed information that wraps 
-          to multiple lines when the content exceeds the maximum width.
+          This is a longer tooltip with more detailed information that wraps to multiple lines when
+          the content exceeds the maximum width.
         </p>
       </TooltipContent>
     </Tooltip>

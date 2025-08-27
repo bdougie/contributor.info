@@ -1,34 +1,28 @@
-import { Link } from "react-router-dom";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { 
-  GitCommit, 
-  ExternalLink,
-  Users,
-  Calendar,
-  Activity
-} from "@/components/ui/icon";
-import { cn } from "@/lib/utils";
+import { Link } from 'react-router-dom';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { GitCommit, ExternalLink, Users, Calendar, Activity } from '@/components/ui/icon';
+import { cn } from '@/lib/utils';
 
 // Utility function to format last activity date
 function formatLastActivity(dateString: string): string {
   const date = new Date(dateString);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
-  
+
   // Guard against future timestamps
   if (diffMs < 0) {
-    return "just now";
+    return 'just now';
   }
-  
+
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
   const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
   const diffMinutes = Math.floor(diffMs / (1000 * 60));
 
   if (diffMinutes < 1) {
-    return "just now";
+    return 'just now';
   } else if (diffMinutes < 60) {
     return `${diffMinutes}m ago`;
   } else if (diffHours < 24) {
@@ -82,10 +76,10 @@ export interface WorkspacePreviewCardProps {
   className?: string;
 }
 
-export function WorkspacePreviewCard({ 
-  workspace, 
+export function WorkspacePreviewCard({
+  workspace,
   loading = false,
-  className 
+  className,
 }: WorkspacePreviewCardProps) {
   if (loading) {
     return <WorkspacePreviewCardSkeleton className={className} />;
@@ -95,34 +89,32 @@ export function WorkspacePreviewCard({
   const hasMoreRepos = workspace.repository_count > 3;
 
   return (
-    <Card className={cn("w-full", className)}>
+    <Card className={cn('w-full', className)}>
       <CardHeader className="pb-4">
         <div className="flex items-start gap-3">
           <Avatar className="h-10 w-10 border">
-            <AvatarImage 
-              src={workspace.owner.avatar_url} 
+            <AvatarImage
+              src={workspace.owner.avatar_url}
               alt={workspace.owner.display_name || workspace.owner.id}
             />
             <AvatarFallback className="text-sm">
-              {workspace.owner.display_name?.charAt(0)?.toUpperCase() || 
-               workspace.owner.id.charAt(0).toUpperCase()}
+              {workspace.owner.display_name?.charAt(0)?.toUpperCase() ||
+                workspace.owner.id.charAt(0).toUpperCase()}
             </AvatarFallback>
           </Avatar>
-          
+
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <h3 className="font-semibold text-lg truncate">
-                {workspace.name}
-              </h3>
+              <h3 className="font-semibold text-lg truncate">{workspace.name}</h3>
               <Badge variant="secondary" className="text-xs">
                 Workspace
               </Badge>
             </div>
-            
+
             <p className="text-sm text-muted-foreground">
-              {workspace.description || "No description given."}
+              {workspace.description || 'No description given.'}
             </p>
-            
+
             <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
               <div className="flex items-center gap-1">
                 <Users className="h-3 w-3" />
@@ -143,26 +135,27 @@ export function WorkspacePreviewCard({
             <h4 className="text-sm font-medium">Top Repositories</h4>
             <div className="space-y-2">
               {displayRepos.map((repo) => (
-                <div key={repo.id} className="flex items-center gap-3 p-2 rounded-md border bg-muted/30">
+                <div
+                  key={repo.id}
+                  className="flex items-center gap-3 p-2 rounded-md border bg-muted/30"
+                >
                   <Avatar className="h-6 w-6">
                     <AvatarImage src={repo.avatar_url} alt={repo.owner} />
                     <AvatarFallback className="text-xs">
                       {repo.owner.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
-                  
+
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-sm truncate">
-                        {repo.name}
-                      </span>
+                      <span className="font-medium text-sm truncate">{repo.name}</span>
                       {repo.language && (
                         <Badge variant="outline" className="text-xs">
                           {repo.language}
                         </Badge>
                       )}
                     </div>
-                    
+
                     <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <Activity className="h-3 w-3" />
@@ -174,16 +167,11 @@ export function WorkspacePreviewCard({
                       </div>
                     </div>
                   </div>
-                  
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 w-6 p-0"
-                    asChild
-                  >
-                    <a 
-                      href={repo.html_url} 
-                      target="_blank" 
+
+                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0" asChild>
+                    <a
+                      href={repo.html_url}
+                      target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center justify-center"
                     >
@@ -193,7 +181,7 @@ export function WorkspacePreviewCard({
                 </div>
               ))}
             </div>
-            
+
             {hasMoreRepos && (
               <p className="text-xs text-muted-foreground text-center">
                 and {workspace.repository_count - 3} more repositories...
@@ -215,19 +203,19 @@ export function WorkspacePreviewCard({
 
 export function WorkspacePreviewCardSkeleton({ className }: { className?: string }) {
   return (
-    <Card className={cn("w-full", className)}>
+    <Card className={cn('w-full', className)}>
       <CardHeader className="pb-4">
         <div className="flex items-start gap-3">
           <div className="h-10 w-10 rounded-full bg-muted animate-pulse" />
-          
+
           <div className="flex-1 space-y-2">
             <div className="flex items-center gap-2">
               <div className="h-5 w-32 bg-muted animate-pulse rounded" />
               <div className="h-5 w-16 bg-muted animate-pulse rounded" />
             </div>
-            
+
             <div className="h-4 w-48 bg-muted animate-pulse rounded" />
-            
+
             <div className="flex items-center gap-4">
               <div className="h-3 w-16 bg-muted animate-pulse rounded" />
               <div className="h-3 w-20 bg-muted animate-pulse rounded" />

@@ -3,65 +3,65 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 // Export individual lazy components with proper typing
-// Note: Each component imports from the same module, so webpack will 
+// Note: Each component imports from the same module, so webpack will
 // automatically deduplicate and create a single chunk
-export const LazySheet = lazy(() => 
-  import('@/components/ui/sheet').then(module => ({
-    default: module.Sheet
+export const LazySheet = lazy(() =>
+  import('@/components/ui/sheet').then((module) => ({
+    default: module.Sheet,
   }))
 );
 
-export const LazySheetContent = lazy(() => 
-  import('@/components/ui/sheet').then(module => ({
-    default: module.SheetContent
+export const LazySheetContent = lazy(() =>
+  import('@/components/ui/sheet').then((module) => ({
+    default: module.SheetContent,
   }))
 );
 
-export const LazySheetHeader = lazy(() => 
-  import('@/components/ui/sheet').then(module => ({
-    default: module.SheetHeader
+export const LazySheetHeader = lazy(() =>
+  import('@/components/ui/sheet').then((module) => ({
+    default: module.SheetHeader,
   }))
 );
 
-export const LazySheetTitle = lazy(() => 
-  import('@/components/ui/sheet').then(module => ({
-    default: module.SheetTitle
+export const LazySheetTitle = lazy(() =>
+  import('@/components/ui/sheet').then((module) => ({
+    default: module.SheetTitle,
   }))
 );
 
-export const LazySheetDescription = lazy(() => 
-  import('@/components/ui/sheet').then(module => ({
-    default: module.SheetDescription
+export const LazySheetDescription = lazy(() =>
+  import('@/components/ui/sheet').then((module) => ({
+    default: module.SheetDescription,
   }))
 );
 
-export const LazySheetTrigger = lazy(() => 
-  import('@/components/ui/sheet').then(module => ({
-    default: module.SheetTrigger
+export const LazySheetTrigger = lazy(() =>
+  import('@/components/ui/sheet').then((module) => ({
+    default: module.SheetTrigger,
   }))
 );
 
-export const LazySheetFooter = lazy(() => 
-  import('@/components/ui/sheet').then(module => ({
-    default: module.SheetFooter
+export const LazySheetFooter = lazy(() =>
+  import('@/components/ui/sheet').then((module) => ({
+    default: module.SheetFooter,
   }))
 );
 
-export const LazySheetClose = lazy(() => 
-  import('@/components/ui/sheet').then(module => ({
-    default: module.SheetClose
+export const LazySheetClose = lazy(() =>
+  import('@/components/ui/sheet').then((module) => ({
+    default: module.SheetClose,
   }))
 );
 
-export const LazySheetPortal = lazy(() => 
-  import('@/components/ui/sheet').then(module => ({
-    default: module.SheetPortal
+export const LazySheetPortal = lazy(() =>
+  import('@/components/ui/sheet').then((module) => ({
+    default: module.SheetPortal,
   }))
 );
 
-export const LazySheetOverlay = lazy(() => 
-  import('@/components/ui/sheet').then(module => ({
-    default: module.SheetOverlay
+export const LazySheetOverlay = lazy(() =>
+  import('@/components/ui/sheet').then((module) => ({
+    default: module.SheetOverlay,
   }))
 );
 
@@ -73,11 +73,11 @@ interface SheetSkeletonProps {
   height?: string;
 }
 
-export const SheetSkeleton = ({ 
-  side = 'left', 
+export const SheetSkeleton = ({
+  side = 'left',
   className,
   width = '300px',
-  height = '300px'
+  height = '300px',
 }: SheetSkeletonProps) => {
   const getPositionClasses = () => {
     switch (side) {
@@ -97,11 +97,13 @@ export const SheetSkeleton = ({
   return (
     <>
       <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm" />
-      <div className={cn(
-        'fixed z-50 bg-background p-6 shadow-lg transition-transform',
-        getPositionClasses(),
-        className
-      )}>
+      <div
+        className={cn(
+          'fixed z-50 bg-background p-6 shadow-lg transition-transform',
+          getPositionClasses(),
+          className
+        )}
+      >
         <div className="space-y-4">
           <Skeleton className="h-6 w-32" />
           <div className="space-y-2">
@@ -142,7 +144,10 @@ class SheetErrorBoundary extends Component<
     if (this.state.hasError) {
       return (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="bg-background/80 backdrop-blur-sm fixed inset-0" onClick={() => this.props.onOpenChange(false)} />
+          <div
+            className="bg-background/80 backdrop-blur-sm fixed inset-0"
+            onClick={() => this.props.onOpenChange(false)}
+          />
           <div className="fixed z-50 w-full max-w-lg p-6 bg-background border rounded-lg shadow-lg">
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-destructive">Failed to load menu</h3>
@@ -175,7 +180,12 @@ interface LazySheetWrapperProps {
   side?: 'left' | 'right' | 'top' | 'bottom';
 }
 
-export function LazySheetWrapper({ open, onOpenChange, children, side = 'left' }: LazySheetWrapperProps) {
+export function LazySheetWrapper({
+  open,
+  onOpenChange,
+  children,
+  side = 'left',
+}: LazySheetWrapperProps) {
   if (!open) {
     // Don't load the sheet components until it's opened
     return null;

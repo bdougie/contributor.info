@@ -38,7 +38,9 @@ export interface PRCommentsEventData {
 /**
  * Helper function to validate repository sync event data
  */
-export function validateRepositorySyncEventData(data: Partial<RepositorySyncEventData>): RepositorySyncEventData {
+export function validateRepositorySyncEventData(
+  data: Partial<RepositorySyncEventData>
+): RepositorySyncEventData {
   if (!data.repositoryId) {
     throw new Error('repositoryId is required for repository sync events');
   }
@@ -53,7 +55,7 @@ export function validateRepositorySyncEventData(data: Partial<RepositorySyncEven
     priority: data.priority ?? 'medium',
     reason: data.reason ?? 'automatic',
     jobId: data.jobId,
-    maxItems: data.maxItems
+    maxItems: data.maxItems,
   };
 }
 
@@ -76,7 +78,7 @@ export function mapQueueDataToEventData(
   const baseData = {
     repositoryId: queueData.repositoryId,
     priority: 'medium' as const,
-    jobId: queueData.jobId
+    jobId: queueData.jobId,
   };
 
   switch (jobType) {
@@ -87,7 +89,7 @@ export function mapQueueDataToEventData(
         repositoryName: queueData.repositoryName,
         days: queueData.timeRange ?? 7,
         reason: queueData.triggerSource ?? 'automatic',
-        maxItems: queueData.maxItems ? Math.min(queueData.maxItems, 50) : 50
+        maxItems: queueData.maxItems ? Math.min(queueData.maxItems, 50) : 50,
       });
 
     case 'pr-details':
@@ -97,7 +99,7 @@ export function mapQueueDataToEventData(
       return {
         ...baseData,
         prNumbers: queueData.prNumbers,
-        reason: queueData.triggerSource ?? 'automatic'
+        reason: queueData.triggerSource ?? 'automatic',
       } as PRDetailsEventData;
 
     case 'reviews':
@@ -106,7 +108,7 @@ export function mapQueueDataToEventData(
       }
       return {
         ...baseData,
-        prNumber: queueData.prNumber
+        prNumber: queueData.prNumber,
       } as PRReviewsEventData;
 
     case 'comments':
@@ -115,7 +117,7 @@ export function mapQueueDataToEventData(
       }
       return {
         ...baseData,
-        prNumber: queueData.prNumber
+        prNumber: queueData.prNumber,
       } as PRCommentsEventData;
 
     default:

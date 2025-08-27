@@ -22,22 +22,24 @@ export class GitHubActionsQueueManager {
   /**
    * Dispatch a workflow to GitHub Actions
    */
-  async dispatchWorkflow(job: GitHubActionsJobInput): Promise<{ success: boolean; runId?: number; error?: string }> {
+  async dispatchWorkflow(
+    job: GitHubActionsJobInput
+  ): Promise<{ success: boolean; runId?: number; error?: string }> {
     try {
       const response = await fetch(
         `https://api.github.com/repos/${this.REPO_OWNER}/${this.REPO_NAME}/actions/workflows/${job.workflow}/dispatches`,
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${this.GITHUB_TOKEN}`,
-            'Accept': 'application/vnd.github.v3+json',
+            Authorization: `Bearer ${this.GITHUB_TOKEN}`,
+            Accept: 'application/vnd.github.v3+json',
             'X-GitHub-Api-Version': '2022-11-28',
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify({
             ref: 'main',
-            inputs: job.inputs
-          })
+            inputs: job.inputs,
+          }),
         }
       );
 
@@ -50,11 +52,11 @@ export class GitHubActionsQueueManager {
       // GitHub Actions API doesn't return the run ID directly, but we can track it
       // through the job_id in our database
       console.log('[GitHubActions] Workflow %s dispatched successfully', job.workflow);
-      
+
       // Record the job in our tracking table
       if (job.inputs.job_id) {
         await this.recordJobDispatch(job.inputs.job_id, job.workflow);
-        
+
         // Report status via the reporter service
         await jobStatusReporter.reportStatus({
           jobId: job.inputs.job_id,
@@ -62,8 +64,8 @@ export class GitHubActionsQueueManager {
           metadata: {
             workflow: job.workflow,
             dispatched_at: new Date().toISOString(),
-            github_api_response: 'success'
-          }
+            github_api_response: 'success',
+          },
         });
       }
 
@@ -87,8 +89,8 @@ export class GitHubActionsQueueManager {
           started_at: new Date().toISOString(),
           metadata: supabase.rpc('jsonb_merge', {
             target: 'metadata',
-            source: JSON.stringify({ workflow, dispatched_at: new Date().toISOString() })
-          })
+            source: JSON.stringify({ workflow, dispatched_at: new Date().toISOString() }),
+          }),
         })
         .eq('id', jobId);
     } catch (error) {
@@ -132,10 +134,10 @@ export class GitHubActionsQueueManager {
         `https://api.github.com/repos/${this.REPO_OWNER}/${this.REPO_NAME}/actions/runs?created=>=${job.started_at}`,
         {
           headers: {
-            'Authorization': `Bearer ${this.GITHUB_TOKEN}`,
-            'Accept': 'application/vnd.github.v3+json',
-            'X-GitHub-Api-Version': '2022-11-28'
-          }
+            Authorization: `Bearer ${this.GITHUB_TOKEN}`,
+            Accept: 'application/vnd.github.v3+json',
+            'X-GitHub-Api-Version': '2022-11-28',
+          },
         }
       );
 
@@ -144,7 +146,7 @@ export class GitHubActionsQueueManager {
       }
 
       const data = await response.json();
-      
+
       // Try to find a run that matches our job
       // This is a heuristic - in production, you might want to pass a unique identifier
       const matchingRun = data.workflow_runs.find((run: any) => {
@@ -155,7 +157,7 @@ export class GitHubActionsQueueManager {
 
       if (matchingRun) {
         const status = this.mapGitHubStatusToJobStatus(matchingRun.status, matchingRun.conclusion);
-        
+
         // Use the job status reporter for consistent updates
         await jobStatusReporter.reportStatus({
           jobId: job.id,
@@ -167,10 +169,10 @@ export class GitHubActionsQueueManager {
             github_conclusion: matchingRun.conclusion,
             run_url: matchingRun.html_url,
             run_number: matchingRun.run_number,
-            attempt: matchingRun.run_attempt
-          }
+            attempt: matchingRun.run_attempt,
+          },
         });
-        
+
         // Calculate metrics if completed
         if (status === 'completed' || status === 'failed') {
           await jobStatusReporter.calculateMetrics(job.id);
@@ -184,7 +186,10 @@ export class GitHubActionsQueueManager {
   /**
    * Map GitHub Actions status to our job status
    */
-  private mapGitHubStatusToJobStatus(status: string, conclusion: string | null): 'pending' | 'processing' | 'completed' | 'failed' {
+  private mapGitHubStatusToJobStatus(
+    status: string,
+    conclusion: string | null
+  ): 'pending' | 'processing' | 'completed' | 'failed' {
     if (status === 'completed') {
       switch (conclusion) {
         case 'success':
@@ -220,13 +225,16 @@ export class GitHubActionsQueueManager {
         return { pending: 0, processing: 0, completed: 0, failed: 0 };
       }
 
-      return data.reduce((acc, job) => {
-        const status = job.status as keyof typeof acc;
-        if (status in acc) {
-          acc[status]++;
-        }
-        return acc;
-      }, { pending: 0, processing: 0, completed: 0, failed: 0 });
+      return data.reduce(
+        (acc, job) => {
+          const status = job.status as keyof typeof acc;
+          if (status in acc) {
+            acc[status]++;
+          }
+          return acc;
+        },
+        { pending: 0, processing: 0, completed: 0, failed: 0 }
+      );
     } catch (error) {
       console.error('[GitHubActions] Error getting stats:', error);
       return { pending: 0, processing: 0, completed: 0, failed: 0 };

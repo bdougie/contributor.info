@@ -10,9 +10,9 @@ const meta = {
   parameters: {
     layout: 'fullscreen',
     viewport: { defaultViewport: 'socialCard' },
-    chromatic: { 
+    chromatic: {
       viewports: [1200],
-      delay: 500
+      delay: 500,
     },
     docs: {
       description: {
@@ -50,9 +50,9 @@ Automatically injects appropriate meta tags based on card content:
 - \`og:title\`, \`og:description\`, \`og:image\`
 - \`twitter:card\`, \`twitter:title\`, \`twitter:description\`, \`twitter:image\`
 - Proper Open Graph type and site metadata
-        `
-      }
-    }
+        `,
+      },
+    },
   },
   tags: ['autodocs'],
 } satisfies Meta<typeof CardLayout>;
@@ -66,15 +66,16 @@ type Story = StoryObj<typeof meta>;
  */
 export const WithHomeCard: Story = {
   args: {
-    children: <HomeSocialCard />
+    children: <HomeSocialCard />,
   },
   parameters: {
     docs: {
       description: {
-        story: 'Card layout wrapping the home social card component, showing the complete structure used for homepage social previews.'
-      }
-    }
-  }
+        story:
+          'Card layout wrapping the home social card component, showing the complete structure used for homepage social previews.',
+      },
+    },
+  },
 };
 
 /**
@@ -84,20 +85,21 @@ export const WithHomeCard: Story = {
 export const WithRepoCard: Story = {
   args: {
     children: (
-      <RepoSocialCard 
+      <RepoSocialCard
         owner={mockRepositories.react.owner}
         repo={mockRepositories.react.repo}
         stats={mockRepositories.react.stats}
       />
-    )
+    ),
   },
   parameters: {
     docs: {
       description: {
-        story: 'Card layout wrapping a repository social card, showing how repository data is presented within the layout structure.'
-      }
-    }
-  }
+        story:
+          'Card layout wrapping a repository social card, showing how repository data is presented within the layout structure.',
+      },
+    },
+  },
 };
 
 /**
@@ -113,15 +115,16 @@ export const EmptyLayout: Story = {
           <p className="text-muted-foreground">Base layout structure for social cards</p>
         </div>
       </div>
-    )
+    ),
   },
   parameters: {
     docs: {
       description: {
-        story: 'Empty card layout showing the base structure and styling used as a foundation for all social cards.'
-      }
-    }
-  }
+        story:
+          'Empty card layout showing the base structure and styling used as a foundation for all social cards.',
+      },
+    },
+  },
 };
 
 /**
@@ -137,15 +140,16 @@ export const CustomBackground: Story = {
           <p className="text-xl opacity-90">Testing layout with custom styling</p>
         </div>
       </div>
-    )
+    ),
   },
   parameters: {
     docs: {
       description: {
-        story: 'Card layout with custom background styling to test layout flexibility and color scheme compatibility.'
-      }
-    }
-  }
+        story:
+          'Card layout with custom background styling to test layout flexibility and color scheme compatibility.',
+      },
+    },
+  },
 };
 
 /**
@@ -159,15 +163,21 @@ export const StressTest: Story = {
         <div className="flex-1 grid grid-cols-3 gap-4">
           <div className="bg-card rounded-lg p-4">
             <h3 className="font-bold mb-2">Section 1</h3>
-            <p className="text-sm text-muted-foreground">Dense content with multiple elements to test layout stability.</p>
+            <p className="text-sm text-muted-foreground">
+              Dense content with multiple elements to test layout stability.
+            </p>
           </div>
           <div className="bg-card rounded-lg p-4">
             <h3 className="font-bold mb-2">Section 2</h3>
-            <p className="text-sm text-muted-foreground">More content to fill space and test responsive behavior.</p>
+            <p className="text-sm text-muted-foreground">
+              More content to fill space and test responsive behavior.
+            </p>
           </div>
           <div className="bg-card rounded-lg p-4">
             <h3 className="font-bold mb-2">Section 3</h3>
-            <p className="text-sm text-muted-foreground">Additional content for layout stress testing.</p>
+            <p className="text-sm text-muted-foreground">
+              Additional content for layout stress testing.
+            </p>
           </div>
         </div>
         <div className="mt-4 text-center">
@@ -175,13 +185,14 @@ export const StressTest: Story = {
           <p className="text-muted-foreground">Testing maximum content density</p>
         </div>
       </div>
-    )
+    ),
   },
   parameters: {
     docs: {
       description: {
-        story: 'Stress test with maximum content density to ensure layout stability under various content scenarios.'
-      }
-    }
-  }
+        story:
+          'Stress test with maximum content density to ensure layout stability under various content scenarios.',
+      },
+    },
+  },
 };

@@ -12,24 +12,20 @@ const supabase = createClient(
 // Verify webhook signature using HMAC
 function verifyWebhookSignature(body: string, signature: string | undefined): boolean {
   if (!signature) return false;
-  
+
   // Use the same GH_DATPIPE_KEY for both API auth and webhook verification
   const webhookSecret = process.env.GH_DATPIPE_KEY;
   if (!webhookSecret) {
-    console.error('[webhook-backfill-complete] No GH_DATPIPE_KEY configured for webhook verification');
+    console.error(
+      '[webhook-backfill-complete] No GH_DATPIPE_KEY configured for webhook verification'
+    );
     return false;
   }
-  
-  const expectedSignature = crypto
-    .createHmac('sha256', webhookSecret)
-    .update(body)
-    .digest('hex');
-  
+
+  const expectedSignature = crypto.createHmac('sha256', webhookSecret).update(body).digest('hex');
+
   // Timing-safe comparison to prevent timing attacks
-  return crypto.timingSafeEqual(
-    Buffer.from(signature),
-    Buffer.from(expectedSignature)
-  );
+  return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature));
 }
 
 export const handler: Handler = async (event) => {
@@ -44,7 +40,7 @@ export const handler: Handler = async (event) => {
       statusCode: 405,
       headers: {
         ...headers,
-        'Allow': 'POST',
+        Allow: 'POST',
       },
       body: JSON.stringify({ error: 'Method not allowed' }),
     };
@@ -64,7 +60,7 @@ export const handler: Handler = async (event) => {
   try {
     // Parse webhook payload
     const payload = JSON.parse(event.body || '{}');
-    
+
     console.log('[webhook-backfill-complete] Received webhook:', {
       job_id: payload.job_id,
       status: payload.status,
@@ -76,9 +72,9 @@ export const handler: Handler = async (event) => {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ 
-          error: 'Bad request', 
-          message: 'Invalid webhook payload' 
+        body: JSON.stringify({
+          error: 'Bad request',
+          message: 'Invalid webhook payload',
         }),
       };
     }
@@ -86,11 +82,11 @@ export const handler: Handler = async (event) => {
     // Handle different completion statuses
     if (payload.status === 'completed') {
       const repository = payload.result?.repository;
-      
+
       if (repository) {
         // Update repository metadata to mark last backfill time
         const [owner, name] = repository.split('/');
-        
+
         const { data: repoData, error: updateError } = await supabase
           .from('repositories')
           .update({
@@ -105,7 +101,9 @@ export const handler: Handler = async (event) => {
         if (updateError) {
           console.error('[webhook-backfill-complete] Failed to update repository:', updateError);
         } else {
-          console.log(`[webhook-backfill-complete] Updated repository ${repository} with backfill completion`);
+          console.log(
+            `[webhook-backfill-complete] Updated repository ${repository} with backfill completion`
+          );
         }
 
         // Trigger a refresh of the repository data in the UI
@@ -123,7 +121,7 @@ export const handler: Handler = async (event) => {
               duration: payload.result?.duration_seconds,
               timestamp: payload.timestamp,
             },
-          }
+          },
         ];
 
         // If we have the repository ID, trigger internal sync
@@ -149,7 +147,6 @@ export const handler: Handler = async (event) => {
         rows_processed: payload.result?.rows_processed,
         duration_seconds: payload.result?.duration_seconds,
       });
-      
     } else if (payload.status === 'failed') {
       // Log failure for monitoring
       console.error('[webhook-backfill-complete] Backfill failed:', {
@@ -174,7 +171,7 @@ export const handler: Handler = async (event) => {
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         success: true,
         message: 'Webhook processed successfully',
         job_id: payload.job_id,
@@ -182,13 +179,13 @@ export const handler: Handler = async (event) => {
     };
   } catch (error) {
     console.error('[webhook-backfill-complete] Error processing webhook:', error);
-    
+
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ 
-        error: 'Internal server error', 
-        message: 'Failed to process webhook' 
+      body: JSON.stringify({
+        error: 'Internal server error',
+        message: 'Failed to process webhook',
       }),
     };
   }

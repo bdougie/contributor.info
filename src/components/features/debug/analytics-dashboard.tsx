@@ -1,11 +1,20 @@
-import { useEffect, useState } from "react"
-import { BarChart3, Share2, TrendingUp, Users, ExternalLink, RefreshCw, Calendar, Globe } from '@/components/ui/icon';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
-import { supabase } from "@/lib/supabase";
-import { formatDistanceToNow } from "date-fns";
+import { useEffect, useState } from 'react';
+import {
+  BarChart3,
+  Share2,
+  TrendingUp,
+  Users,
+  ExternalLink,
+  RefreshCw,
+  Calendar,
+  Globe,
+} from '@/components/ui/icon';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { supabase } from '@/lib/supabase';
+import { formatDistanceToNow } from 'date-fns';
 
 interface ShareEvent {
   id: string;
@@ -50,7 +59,7 @@ export function AnalyticsDashboard() {
   const fetchAnalytics = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       // Fetch recent share events
       const { data: shareEvents, error: eventsError } = await supabase
@@ -68,7 +77,7 @@ export function AnalyticsDashboard() {
           topRepositories: [],
           topChartTypes: [],
           sharesByAction: [],
-          recentShares: []
+          recentShares: [],
         });
         setLoading(false);
         return;
@@ -76,41 +85,54 @@ export function AnalyticsDashboard() {
 
       // Calculate metrics
       const totalShares = shareEvents.length;
-      const uniqueUsers = new Set(shareEvents.filter(e => e.user_id).map(e => e.user_id));
+      const uniqueUsers = new Set(shareEvents.filter((e) => e.user_id).map((e) => e.user_id));
       const totalUsers = uniqueUsers.size;
 
       // Top repositories
-      const repoShares = shareEvents.reduce((acc, event) => {
-        if (event.repository) {
-          acc[event.repository] = (acc[event.repository] || 0) + 1;
-        }
-        return acc;
-      }, {} as Record<string, number>);
+      const repoShares = shareEvents.reduce(
+        (acc, event) => {
+          if (event.repository) {
+            acc[event.repository] = (acc[event.repository] || 0) + 1;
+          }
+          return acc;
+        },
+        {} as Record<string, number>
+      );
 
       const topRepositories = Object.entries(repoShares)
         .map(([repository, shares]) => ({
           repository,
           shares: shares as number,
-          users: new Set(shareEvents.filter(e => e.repository === repository && e.user_id).map(e => e.user_id)).size
+          users: new Set(
+            shareEvents
+              .filter((e) => e.repository === repository && e.user_id)
+              .map((e) => e.user_id)
+          ).size,
         }))
         .sort((a, b) => (b.shares as number) - (a.shares as number))
         .slice(0, 10);
 
       // Top chart types
-      const chartTypeShares = shareEvents.reduce((acc, event) => {
-        acc[event.chart_type] = (acc[event.chart_type] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
+      const chartTypeShares = shareEvents.reduce(
+        (acc, event) => {
+          acc[event.chart_type] = (acc[event.chart_type] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>
+      );
 
       const topChartTypes = Object.entries(chartTypeShares)
         .map(([chart_type, shares]) => ({ chart_type, shares: shares as number }))
         .sort((a, b) => (b.shares as number) - (a.shares as number));
 
       // Shares by action
-      const actionShares = shareEvents.reduce((acc, event) => {
-        acc[event.action] = (acc[event.action] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
+      const actionShares = shareEvents.reduce(
+        (acc, event) => {
+          acc[event.action] = (acc[event.action] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>
+      );
 
       const sharesByAction = Object.entries(actionShares)
         .map(([action, shares]) => ({ action, shares: shares as number }))
@@ -122,9 +144,8 @@ export function AnalyticsDashboard() {
         topRepositories,
         topChartTypes,
         sharesByAction,
-        recentShares: shareEvents.slice(0, 20)
+        recentShares: shareEvents.slice(0, 20),
       });
-
     } catch (err) {
       console.error('Failed to fetch analytics:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch analytics data');
@@ -146,7 +167,7 @@ export function AnalyticsDashboard() {
             <Skeleton className="h-4 w-96" />
           </div>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
-            {[1, 2, 3, 4].map(i => (
+            {[1, 2, 3, 4].map((i) => (
               <Skeleton key={i} className="h-32" />
             ))}
           </div>
@@ -203,9 +224,7 @@ export function AnalyticsDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{metrics?.totalShares || 0}</div>
-              <p className="text-xs text-muted-foreground">
-                All time sharing events
-              </p>
+              <p className="text-xs text-muted-foreground">All time sharing events</p>
             </CardContent>
           </Card>
 
@@ -216,9 +235,7 @@ export function AnalyticsDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{metrics?.totalUsers || 0}</div>
-              <p className="text-xs text-muted-foreground">
-                Unique users sharing content
-              </p>
+              <p className="text-xs text-muted-foreground">Unique users sharing content</p>
             </CardContent>
           </Card>
 
@@ -345,7 +362,10 @@ export function AnalyticsDashboard() {
           <CardContent>
             <div className="space-y-3">
               {metrics?.recentShares.slice(0, 10).map((share) => (
-                <div key={share.id} className="flex items-center justify-between p-3 border rounded">
+                <div
+                  key={share.id}
+                  className="flex items-center justify-between p-3 border rounded"
+                >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <Badge variant="outline" className="text-xs">
@@ -355,13 +375,11 @@ export function AnalyticsDashboard() {
                         {share.action}
                       </Badge>
                       {share.repository && (
-                        <span className="text-sm font-medium truncate">
-                          {share.repository}
-                        </span>
+                        <span className="text-sm font-medium truncate">{share.repository}</span>
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(share.created_at), { addSuffix: true })} 
+                      {formatDistanceToNow(new Date(share.created_at), { addSuffix: true })}
                       {share.share_type && ` • ${share.share_type}`}
                       {share.domain && ` • ${share.domain}`}
                     </p>

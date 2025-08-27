@@ -16,7 +16,10 @@ export function clearContributorCache() {
   contributorCache.clear();
 }
 
-export function useContributorData({ username, avatarUrl }: UseContributorDataProps): ContributorStats {
+export function useContributorData({
+  username,
+  avatarUrl,
+}: UseContributorDataProps): ContributorStats {
   const [contributorData, setContributorData] = useState<ContributorStats>({
     login: username,
     avatar_url: avatarUrl,
@@ -26,14 +29,14 @@ export function useContributorData({ username, avatarUrl }: UseContributorDataPr
 
   const { stats } = useContext(RepoStatsContext);
   const prevStatsRef = useRef(stats.pullRequests);
-  
+
   useEffect(() => {
     // Clear cache when pullRequests data changes (new repo, time range, etc)
     if (prevStatsRef.current !== stats.pullRequests) {
       clearContributorCache();
       prevStatsRef.current = stats.pullRequests;
     }
-    
+
     // Check if we already have this user in the cache
     const cacheKey = username.toLowerCase();
     if (contributorCache.has(cacheKey)) {
@@ -47,30 +50,32 @@ export function useContributorData({ username, avatarUrl }: UseContributorDataPr
       // Performance optimized user lookup
 
       // Find PRs by this user - check both login and name fields
-      const userPRs = stats.pullRequests.filter(pr => {
+      const userPRs = stats.pullRequests.filter((pr) => {
         // Check various possible matches to handle different data formats
         const prUserLogin = pr.user?.login?.toLowerCase();
         const authorLogin = pr.author?.login?.toLowerCase();
         const usernameToCheck = username.toLowerCase();
-        
-        return prUserLogin === usernameToCheck || 
-               authorLogin === usernameToCheck ||
-               // Sometimes PR data might store display name rather than username
-               prUserLogin?.includes(usernameToCheck) || 
-               usernameToCheck.includes(prUserLogin || '');
+
+        return (
+          prUserLogin === usernameToCheck ||
+          authorLogin === usernameToCheck ||
+          // Sometimes PR data might store display name rather than username
+          prUserLogin?.includes(usernameToCheck) ||
+          usernameToCheck.includes(prUserLogin || '')
+        );
       });
 
       // Found PRs for user calculation
 
       // Calculate percentage
-      const percentage = userPRs.length / stats.pullRequests.length * 100;
+      const percentage = (userPRs.length / stats.pullRequests.length) * 100;
 
       // Fetch organizations data
       let organizations: Array<{ login: string; avatar_url: string }> = [];
       try {
         // This assumes you have a function to fetch user organizations
         const headers = {
-          'Accept': 'application/vnd.github.v3+json',
+          Accept: 'application/vnd.github.v3+json',
         };
         organizations = await fetchUserOrganizations(username, headers);
       } catch (error) {
@@ -88,7 +93,7 @@ export function useContributorData({ username, avatarUrl }: UseContributorDataPr
 
       // Store in cache
       contributorCache.set(cacheKey, userData);
-      
+
       setContributorData(userData);
     };
 

@@ -1,9 +1,9 @@
-import type { Meta, StoryObj } from "@storybook/react";
-import { fn } from "@storybook/test";
-import { vi } from "vitest";
-import { RepositoryHealthCard } from "./repository-health-card";
-import { MemoryRouter } from "react-router-dom";
-import { RepoStatsContext } from "@/lib/repo-stats-context";
+import type { Meta, StoryObj } from '@storybook/react';
+import { fn } from '@storybook/test';
+import { vi } from 'vitest';
+import { RepositoryHealthCard } from './repository-health-card';
+import { MemoryRouter } from 'react-router-dom';
+import { RepoStatsContext } from '@/lib/repo-stats-context';
 
 // Mock functions
 const mockGetDaysAgo = fn().mockReturnValue(30);
@@ -53,44 +53,44 @@ const MockSelfSelectionRate = () => <div>Self Selection Rate</div>;
 const MockContributorConfidenceCard = () => <div>Contributor Confidence Card</div>;
 
 // Apply mocks
-vi.mock("@/lib/time-range-store", () => ({
-  useTimeRangeStore: mockUseTimeRangeStore
+vi.mock('@/lib/time-range-store', () => ({
+  useTimeRangeStore: mockUseTimeRangeStore,
 }));
 
-vi.mock("@/hooks/use-auto-track-repository", () => ({
-  useAutoTrackRepository: mockUseAutoTrackRepository
+vi.mock('@/hooks/use-auto-track-repository', () => ({
+  useAutoTrackRepository: mockUseAutoTrackRepository,
 }));
 
-vi.mock("@/hooks/use-on-demand-sync", () => ({
-  useOnDemandSync: mockUseOnDemandSync
+vi.mock('@/hooks/use-on-demand-sync', () => ({
+  useOnDemandSync: mockUseOnDemandSync,
 }));
 
-vi.mock("@/lib/supabase", () => ({
-  supabase: mockSupabase
+vi.mock('@/lib/supabase', () => ({
+  supabase: mockSupabase,
 }));
 
-vi.mock("@/lib/insights/health-metrics", () => ({
-  calculateHealthMetrics: mockCalculateHealthMetrics
+vi.mock('@/lib/insights/health-metrics', () => ({
+  calculateHealthMetrics: mockCalculateHealthMetrics,
 }));
 
-vi.mock("@/components/insights/sections/repository-health-overall", () => ({
-  RepositoryHealthOverall: MockRepositoryHealthOverall
+vi.mock('@/components/insights/sections/repository-health-overall', () => ({
+  RepositoryHealthOverall: MockRepositoryHealthOverall,
 }));
 
-vi.mock("@/components/insights/sections/repository-health-factors", () => ({
-  RepositoryHealthFactors: MockRepositoryHealthFactors
+vi.mock('@/components/insights/sections/repository-health-factors', () => ({
+  RepositoryHealthFactors: MockRepositoryHealthFactors,
 }));
 
-vi.mock("./lottery-factor", () => ({
-  default: MockLotteryFactor
+vi.mock('./lottery-factor', () => ({
+  default: MockLotteryFactor,
 }));
 
-vi.mock("@/components/features/contributor/self-selection-rate", () => ({
-  SelfSelectionRate: MockSelfSelectionRate
+vi.mock('@/components/features/contributor/self-selection-rate', () => ({
+  SelfSelectionRate: MockSelfSelectionRate,
 }));
 
-vi.mock("./contributor-confidence-card", () => ({
-  ContributorConfidenceCard: MockContributorConfidenceCard
+vi.mock('./contributor-confidence-card', () => ({
+  ContributorConfidenceCard: MockContributorConfidenceCard,
 }));
 
 // Mock data
@@ -98,44 +98,44 @@ const mockPullRequests = [
   {
     id: 1,
     number: 123,
-    title: "Add authentication system",
-    state: "closed" as const,
-    created_at: "2024-01-10T10:30:00Z",
-    updated_at: "2024-01-10T14:00:00Z",
-    merged_at: "2024-01-10T14:00:00Z",
+    title: 'Add authentication system',
+    state: 'closed' as const,
+    created_at: '2024-01-10T10:30:00Z',
+    updated_at: '2024-01-10T14:00:00Z',
+    merged_at: '2024-01-10T14:00:00Z',
     additions: 250,
     deletions: 50,
-    repository_owner: "facebook",
-    repository_name: "react",
+    repository_owner: 'facebook',
+    repository_name: 'react',
     user: {
       id: 1,
-      login: "alice-dev",
-      avatar_url: "https://avatars.githubusercontent.com/u/1?v=4",
-      type: "User" as const,
+      login: 'alice-dev',
+      avatar_url: 'https://avatars.githubusercontent.com/u/1?v=4',
+      type: 'User' as const,
     },
-    html_url: "https://github.com/facebook/react/pull/123",
+    html_url: 'https://github.com/facebook/react/pull/123',
     reviews: [],
     comments: [],
   },
   {
     id: 2,
     number: 124,
-    title: "Bot: Update dependencies",
-    state: "closed" as const,
-    created_at: "2024-01-11T09:15:00Z",
-    updated_at: "2024-01-11T09:30:00Z",
-    merged_at: "2024-01-11T09:30:00Z",
+    title: 'Bot: Update dependencies',
+    state: 'closed' as const,
+    created_at: '2024-01-11T09:15:00Z',
+    updated_at: '2024-01-11T09:30:00Z',
+    merged_at: '2024-01-11T09:30:00Z',
     additions: 45,
     deletions: 12,
-    repository_owner: "facebook",
-    repository_name: "react",
+    repository_owner: 'facebook',
+    repository_name: 'react',
     user: {
       id: 2,
-      login: "dependabot[bot]",
-      avatar_url: "https://avatars.githubusercontent.com/u/2?v=4",
-      type: "Bot" as const,
+      login: 'dependabot[bot]',
+      avatar_url: 'https://avatars.githubusercontent.com/u/2?v=4',
+      type: 'Bot' as const,
     },
-    html_url: "https://github.com/facebook/react/pull/124",
+    html_url: 'https://github.com/facebook/react/pull/124',
     reviews: [],
     comments: [],
   },
@@ -148,43 +148,43 @@ const defaultLotteryFactor = {
   topContributorsPercentage: 75,
   contributors: [
     {
-      login: "alice-dev",
-      avatar_url: "https://avatars.githubusercontent.com/u/1?v=4",
+      login: 'alice-dev',
+      avatar_url: 'https://avatars.githubusercontent.com/u/1?v=4',
       pullRequests: 8,
-      percentage: 40
+      percentage: 40,
     },
     {
-      login: "bob-dev",
-      avatar_url: "https://avatars.githubusercontent.com/u/2?v=4",
+      login: 'bob-dev',
+      avatar_url: 'https://avatars.githubusercontent.com/u/2?v=4',
       pullRequests: 5,
-      percentage: 25
+      percentage: 25,
     },
     {
-      login: "charlie-dev",
-      avatar_url: "https://avatars.githubusercontent.com/u/3?v=4",
+      login: 'charlie-dev',
+      avatar_url: 'https://avatars.githubusercontent.com/u/3?v=4',
       pullRequests: 2,
-      percentage: 10
-    }
+      percentage: 10,
+    },
   ],
-  riskLevel: 'Medium' as const
+  riskLevel: 'Medium' as const,
 };
 
 const meta = {
-  title: "Features/Health/RepositoryHealthCard",
+  title: 'Features/Health/RepositoryHealthCard',
   component: RepositoryHealthCard,
   parameters: {
-    layout: "centered",
+    layout: 'centered',
     docs: {
       description: {
         component:
-          "A comprehensive repository health analysis card that displays overall health score, lottery factor, contributor confidence, health factors, and self-selection rates."
-      }
-    }
+          'A comprehensive repository health analysis card that displays overall health score, lottery factor, contributor confidence, health factors, and self-selection rates.',
+      },
+    },
   },
-  tags: ["autodocs"],
+  tags: ['autodocs'],
   decorators: [
     (Story) => (
-      <MemoryRouter initialEntries={["/facebook/react/health"]}>
+      <MemoryRouter initialEntries={['/facebook/react/health']}>
         <RepoStatsContext.Provider
           value={{
             stats: {
@@ -215,17 +215,17 @@ export const Default: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Default repository health card showing comprehensive health metrics."
-      }
-    }
-  }
+        story: 'Default repository health card showing comprehensive health metrics.',
+      },
+    },
+  },
 };
 
 export const WithBots: Story = {
   render: () => <RepositoryHealthCard />,
   decorators: [
     (Story) => (
-      <MemoryRouter initialEntries={["/facebook/react/health"]}>
+      <MemoryRouter initialEntries={['/facebook/react/health']}>
         <RepoStatsContext.Provider
           value={{
             stats: {
@@ -241,25 +241,25 @@ export const WithBots: Story = {
               topContributorsPercentage: 80,
               contributors: [
                 {
-                  login: "alice-dev",
-                  avatar_url: "https://avatars.githubusercontent.com/u/1?v=4",
+                  login: 'alice-dev',
+                  avatar_url: 'https://avatars.githubusercontent.com/u/1?v=4',
                   pullRequests: 12,
-                  percentage: 50
+                  percentage: 50,
                 },
                 {
-                  login: "bob-dev",
-                  avatar_url: "https://avatars.githubusercontent.com/u/2?v=4",
+                  login: 'bob-dev',
+                  avatar_url: 'https://avatars.githubusercontent.com/u/2?v=4',
                   pullRequests: 5,
-                  percentage: 20
+                  percentage: 20,
                 },
                 {
-                  login: "dependabot[bot]",
-                  avatar_url: "https://avatars.githubusercontent.com/u/49699333?v=4",
+                  login: 'dependabot[bot]',
+                  avatar_url: 'https://avatars.githubusercontent.com/u/49699333?v=4',
                   pullRequests: 3,
-                  percentage: 10
-                }
+                  percentage: 10,
+                },
               ],
-              riskLevel: 'High' as const
+              riskLevel: 'High' as const,
             },
             directCommitsData: null,
           }}
@@ -274,17 +274,17 @@ export const WithBots: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Repository health card with bot contributions included and bot toggle visible."
-      }
-    }
-  }
+        story: 'Repository health card with bot contributions included and bot toggle visible.',
+      },
+    },
+  },
 };
 
 export const WithDirectCommits: Story = {
   render: () => <RepositoryHealthCard />,
   decorators: [
     (Story) => (
-      <MemoryRouter initialEntries={["/facebook/react/health"]}>
+      <MemoryRouter initialEntries={['/facebook/react/health']}>
         <RepoStatsContext.Provider
           value={{
             stats: {
@@ -300,40 +300,40 @@ export const WithDirectCommits: Story = {
               topContributorsPercentage: 60,
               contributors: [
                 {
-                  login: "admin-user",
-                  avatar_url: "https://avatars.githubusercontent.com/u/4?v=4",
+                  login: 'admin-user',
+                  avatar_url: 'https://avatars.githubusercontent.com/u/4?v=4',
                   pullRequests: 15,
-                  percentage: 45
+                  percentage: 45,
                 },
                 {
-                  login: "senior-dev",
-                  avatar_url: "https://avatars.githubusercontent.com/u/5?v=4",
+                  login: 'senior-dev',
+                  avatar_url: 'https://avatars.githubusercontent.com/u/5?v=4',
                   pullRequests: 8,
-                  percentage: 15
-                }
+                  percentage: 15,
+                },
               ],
-              riskLevel: 'Low' as const
+              riskLevel: 'Low' as const,
             },
             directCommitsData: {
               hasYoloCoders: true,
               yoloCoderStats: [
-                { 
-                  login: "admin-user", 
-                  avatar_url: "https://avatars.githubusercontent.com/u/4?v=4",
+                {
+                  login: 'admin-user',
+                  avatar_url: 'https://avatars.githubusercontent.com/u/4?v=4',
                   directCommits: 15,
                   totalCommits: 25,
                   directCommitPercentage: 60,
-                  type: "User" as const
+                  type: 'User' as const,
                 },
-                { 
-                  login: "senior-dev", 
-                  avatar_url: "https://avatars.githubusercontent.com/u/5?v=4",
+                {
+                  login: 'senior-dev',
+                  avatar_url: 'https://avatars.githubusercontent.com/u/5?v=4',
                   directCommits: 8,
                   totalCommits: 20,
                   directCommitPercentage: 50,
-                  type: "User" as const
-                }
-              ]
+                  type: 'User' as const,
+                },
+              ],
             },
           }}
         >
@@ -347,17 +347,18 @@ export const WithDirectCommits: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Repository health card showing warning indicators for direct commits (YOLO coders)."
-      }
-    }
-  }
+        story:
+          'Repository health card showing warning indicators for direct commits (YOLO coders).',
+      },
+    },
+  },
 };
 
 export const LoadingState: Story = {
   render: () => <RepositoryHealthCard />,
   decorators: [
     (Story) => (
-      <MemoryRouter initialEntries={["/facebook/react/health"]}>
+      <MemoryRouter initialEntries={['/facebook/react/health']}>
         <RepoStatsContext.Provider
           value={{
             stats: {
@@ -381,10 +382,10 @@ export const LoadingState: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Repository health card in loading state while data is being fetched."
-      }
-    }
-  }
+        story: 'Repository health card in loading state while data is being fetched.',
+      },
+    },
+  },
 };
 
 export const ConfidenceError: Story = {
@@ -396,7 +397,7 @@ export const ConfidenceError: Story = {
           gte: fn().mockReturnValue({
             order: fn().mockResolvedValue({
               data: null,
-              error: new Error("Failed to calculate confidence"),
+              error: new Error('Failed to calculate confidence'),
             }),
           }),
         }),
@@ -407,7 +408,7 @@ export const ConfidenceError: Story = {
   },
   decorators: [
     (Story) => (
-      <MemoryRouter initialEntries={["/facebook/react/health"]}>
+      <MemoryRouter initialEntries={['/facebook/react/health']}>
         <RepoStatsContext.Provider
           value={{
             stats: {
@@ -431,10 +432,10 @@ export const ConfidenceError: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Repository health card showing error state for contributor confidence calculation."
-      }
-    }
-  }
+        story: 'Repository health card showing error state for contributor confidence calculation.',
+      },
+    },
+  },
 };
 
 export const SyncInProgress: Story = {
@@ -451,7 +452,7 @@ export const SyncInProgress: Story = {
   },
   decorators: [
     (Story) => (
-      <MemoryRouter initialEntries={["/facebook/react/health"]}>
+      <MemoryRouter initialEntries={['/facebook/react/health']}>
         <RepoStatsContext.Provider
           value={{
             stats: {
@@ -475,10 +476,10 @@ export const SyncInProgress: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Repository health card showing state during data synchronization."
-      }
-    }
-  }
+        story: 'Repository health card showing state during data synchronization.',
+      },
+    },
+  },
 };
 
 export const HighActivity: Story = {
@@ -492,12 +493,12 @@ export const HighActivity: Story = {
         user: {
           ...mockPullRequests[0].user,
           login: `contributor-${i % 8}`,
-          id: i % 8
-        }
+          id: i % 8,
+        },
       }));
 
       return (
-        <MemoryRouter initialEntries={["/kubernetes/kubernetes/health"]}>
+        <MemoryRouter initialEntries={['/kubernetes/kubernetes/health']}>
           <RepoStatsContext.Provider
             value={{
               stats: {
@@ -513,25 +514,25 @@ export const HighActivity: Story = {
                 topContributorsPercentage: 85,
                 contributors: [
                   {
-                    login: "contributor-0",
-                    avatar_url: "https://avatars.githubusercontent.com/u/10?v=4",
+                    login: 'contributor-0',
+                    avatar_url: 'https://avatars.githubusercontent.com/u/10?v=4',
                     pullRequests: 20,
-                    percentage: 40
+                    percentage: 40,
                   },
                   {
-                    login: "contributor-1",
-                    avatar_url: "https://avatars.githubusercontent.com/u/11?v=4",
+                    login: 'contributor-1',
+                    avatar_url: 'https://avatars.githubusercontent.com/u/11?v=4',
                     pullRequests: 15,
-                    percentage: 30
+                    percentage: 30,
                   },
                   {
-                    login: "contributor-2",
-                    avatar_url: "https://avatars.githubusercontent.com/u/12?v=4",
+                    login: 'contributor-2',
+                    avatar_url: 'https://avatars.githubusercontent.com/u/12?v=4',
                     pullRequests: 8,
-                    percentage: 15
-                  }
+                    percentage: 15,
+                  },
                 ],
-                riskLevel: 'High' as const
+                riskLevel: 'High' as const,
               },
               directCommitsData: null,
             }}
@@ -547,17 +548,17 @@ export const HighActivity: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Repository health card for a high-activity repository with many contributors."
-      }
-    }
-  }
+        story: 'Repository health card for a high-activity repository with many contributors.',
+      },
+    },
+  },
 };
 
 export const MobileView: Story = {
   render: () => <RepositoryHealthCard />,
   decorators: [
     (Story) => (
-      <MemoryRouter initialEntries={["/facebook/react/health"]}>
+      <MemoryRouter initialEntries={['/facebook/react/health']}>
         <RepoStatsContext.Provider
           value={{
             stats: {
@@ -580,12 +581,12 @@ export const MobileView: Story = {
   ],
   parameters: {
     viewport: {
-      defaultViewport: "mobile1"
+      defaultViewport: 'mobile1',
     },
     docs: {
       description: {
-        story: "Repository health card on mobile devices with responsive layout."
-      }
-    }
-  }
+        story: 'Repository health card on mobile devices with responsive layout.',
+      },
+    },
+  },
 };

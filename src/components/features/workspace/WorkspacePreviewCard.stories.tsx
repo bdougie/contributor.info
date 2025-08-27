@@ -9,7 +9,8 @@ const meta = {
     layout: 'centered',
     docs: {
       description: {
-        component: 'A preview card component for displaying workspace information on the homepage. Shows workspace details and top repositories.',
+        component:
+          'A preview card component for displaying workspace information on the homepage. Shows workspace details and top repositories.',
       },
     },
   },
@@ -57,7 +58,7 @@ const mockWorkspaceData: WorkspacePreviewData = {
       full_name: 'vitejs/vite',
       name: 'vite',
       owner: 'vitejs',
-      description: 'Next generation frontend tooling. It\'s fast!',
+      description: "Next generation frontend tooling. It's fast!",
       language: 'JavaScript',
       activity_score: 28,
       last_activity: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(), // 6 hours ago
@@ -131,7 +132,8 @@ export const LongWorkspaceName: Story = {
     workspace: {
       ...mockWorkspaceData,
       name: 'My Really Really Long Workspace Name That Should Truncate',
-      description: 'This workspace has a very long name to test how the component handles text overflow and truncation behavior.',
+      description:
+        'This workspace has a very long name to test how the component handles text overflow and truncation behavior.',
     },
     loading: false,
   },
@@ -149,7 +151,8 @@ export const ManyRepositories: Story = {
           full_name: 'facebook/react',
           name: 'react',
           owner: 'facebook',
-          description: 'A declarative, efficient, and flexible JavaScript library for building user interfaces.',
+          description:
+            'A declarative, efficient, and flexible JavaScript library for building user interfaces.',
           language: 'JavaScript',
           activity_score: 87,
           last_activity: new Date(Date.now() - 30 * 60 * 1000).toISOString(), // 30 minutes ago
@@ -161,7 +164,8 @@ export const ManyRepositories: Story = {
           full_name: 'microsoft/typescript',
           name: 'typescript',
           owner: 'microsoft',
-          description: 'TypeScript is a superset of JavaScript that compiles to clean JavaScript output.',
+          description:
+            'TypeScript is a superset of JavaScript that compiles to clean JavaScript output.',
           language: 'TypeScript',
           activity_score: 56,
           last_activity: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days ago

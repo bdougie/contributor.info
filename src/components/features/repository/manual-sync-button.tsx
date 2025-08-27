@@ -5,12 +5,7 @@ import { useGitHubAuth } from '@/hooks/use-github-auth';
 import { toast } from 'sonner';
 import { inngest } from '@/lib/inngest/client';
 import { supabase } from '@/lib/supabase';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { POLLING_CONFIG, isSyncAllowed } from '@/lib/progressive-capture/throttle-config';
 
 interface ManualSyncButtonProps {
@@ -32,7 +27,7 @@ export function ManualSyncButton({
   className = '',
   variant = 'outline',
   size = 'sm',
-  showLabel = true
+  showLabel = true,
 }: ManualSyncButtonProps) {
   const { isLoggedIn, login } = useGitHubAuth();
   const [isSyncing, setIsSyncing] = useState(false);
@@ -57,16 +52,17 @@ export function ManualSyncButton({
   // Format time since last update
   const getTimeSinceUpdate = () => {
     if (!lastUpdated) return null;
-    
+
     const lastUpdateTime = new Date(lastUpdated);
     const minutesSinceUpdate = Math.floor((Date.now() - lastUpdateTime.getTime()) / (1000 * 60));
-    
+
     if (minutesSinceUpdate < 1) return 'just now';
     if (minutesSinceUpdate < 60) return `${minutesSinceUpdate} min ago`;
-    
+
     const hoursSinceUpdate = Math.floor(minutesSinceUpdate / 60);
-    if (hoursSinceUpdate < 24) return `${hoursSinceUpdate} hour${hoursSinceUpdate > 1 ? 's' : ''} ago`;
-    
+    if (hoursSinceUpdate < 24)
+      return `${hoursSinceUpdate} hour${hoursSinceUpdate > 1 ? 's' : ''} ago`;
+
     const daysSinceUpdate = Math.floor(hoursSinceUpdate / 24);
     return `${daysSinceUpdate} day${daysSinceUpdate > 1 ? 's' : ''} ago`;
   };
@@ -87,7 +83,7 @@ export function ManualSyncButton({
     if (!canSync()) {
       toast.info('Recently synced', {
         description: `This repository was synced ${getTimeSinceUpdate()}. Please wait a few minutes before syncing again.`,
-        duration: 5000
+        duration: 5000,
       });
       return;
     }
@@ -124,14 +120,14 @@ export function ManualSyncButton({
           days: 7, // Sync last 7 days for manual refresh
           priority: 'critical', // High priority for manual syncs
           reason: 'manual', // Bypass throttling
-          triggeredBy: 'user_manual_sync'
-        }
+          triggeredBy: 'user_manual_sync',
+        },
       });
 
       if (result.ids && result.ids.length > 0) {
         toast.success('Sync initiated!', {
           description: 'Data will be refreshed in 1-2 minutes. The page will update automatically.',
-          duration: 8000
+          duration: 8000,
         });
 
         // Start polling for completion
@@ -139,14 +135,13 @@ export function ManualSyncButton({
       } else {
         throw new Error('Failed to queue sync job');
       }
-
     } catch (error) {
       console.error('Manual sync error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to initiate sync';
-      
+
       toast.error('Sync failed', {
         description: errorMessage,
-        duration: 6000
+        duration: 6000,
       });
     } finally {
       setIsSyncing(false);
@@ -156,13 +151,13 @@ export function ManualSyncButton({
 
   const startPollingForCompletion = (repoId: string | undefined) => {
     if (!repoId) return;
-    
+
     // Clear any existing polling interval
     if (pollIntervalRef.current) {
       clearInterval(pollIntervalRef.current);
       pollIntervalRef.current = null;
     }
-    
+
     let pollCount = 0;
     const maxPolls = POLLING_CONFIG.maxPolls;
 
@@ -180,7 +175,7 @@ export function ManualSyncButton({
         if (repoData) {
           const updateTime = new Date(repoData.last_updated_at);
           const secondsSinceUpdate = (Date.now() - updateTime.getTime()) / 1000;
-          
+
           // If updated within completion threshold, consider it complete
           if (secondsSinceUpdate < POLLING_CONFIG.completionThreshold) {
             if (pollIntervalRef.current) {
@@ -189,9 +184,9 @@ export function ManualSyncButton({
             }
             toast.success('Sync complete!', {
               description: 'Data has been refreshed successfully.',
-              duration: 5000
+              duration: 5000,
             });
-            
+
             // Refresh the page after a short delay
             setTimeout(() => {
               window.location.reload();
@@ -205,8 +200,9 @@ export function ManualSyncButton({
             pollIntervalRef.current = null;
           }
           toast.info('Sync in progress', {
-            description: 'The sync is taking longer than expected. Please refresh the page in a minute.',
-            duration: 10000
+            description:
+              'The sync is taking longer than expected. Please refresh the page in a minute.',
+            duration: 10000,
           });
         }
       } catch (err) {
@@ -219,16 +215,14 @@ export function ManualSyncButton({
   const buttonContent = (
     <>
       {isSyncing ? (
-        <Loader2 className={showLabel ? "mr-2 h-4 w-4 animate-spin" : "h-4 w-4 animate-spin"} />
+        <Loader2 className={showLabel ? 'mr-2 h-4 w-4 animate-spin' : 'h-4 w-4 animate-spin'} />
       ) : isLoggedIn ? (
-        <RefreshCw className={showLabel ? "mr-2 h-4 w-4" : "h-4 w-4"} />
+        <RefreshCw className={showLabel ? 'mr-2 h-4 w-4' : 'h-4 w-4'} />
       ) : (
-        <Lock className={showLabel ? "mr-2 h-4 w-4" : "h-4 w-4"} />
+        <Lock className={showLabel ? 'mr-2 h-4 w-4' : 'h-4 w-4'} />
       )}
       {showLabel && (
-        <span>
-          {isSyncing ? 'Syncing...' : isLoggedIn ? 'Sync Now' : 'Login to Sync'}
-        </span>
+        <span>{isSyncing ? 'Syncing...' : isLoggedIn ? 'Sync Now' : 'Login to Sync'}</span>
       )}
     </>
   );
@@ -250,9 +244,7 @@ export function ManualSyncButton({
     return (
       <TooltipProvider>
         <Tooltip open>
-          <TooltipTrigger asChild>
-            {button}
-          </TooltipTrigger>
+          <TooltipTrigger asChild>{button}</TooltipTrigger>
           <TooltipContent>
             <p className="text-xs">{syncProgress}</p>
           </TooltipContent>
@@ -264,16 +256,14 @@ export function ManualSyncButton({
   // Show tooltip with last update time if available
   if (!showLabel && lastUpdated) {
     const timeSince = getTimeSinceUpdate();
-    const tooltipText = isLoggedIn 
+    const tooltipText = isLoggedIn
       ? `Last synced ${timeSince}. Click to refresh data.`
       : 'Login to manually sync this repository';
 
     return (
       <TooltipProvider>
         <Tooltip>
-          <TooltipTrigger asChild>
-            {button}
-          </TooltipTrigger>
+          <TooltipTrigger asChild>{button}</TooltipTrigger>
           <TooltipContent>
             <p className="text-xs">{tooltipText}</p>
           </TooltipContent>

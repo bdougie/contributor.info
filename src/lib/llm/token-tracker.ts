@@ -5,8 +5,8 @@
 
 export interface DailyUsage {
   date: string; // YYYY-MM-DD format
-  primaryTokens: number;  // gpt-4o, gpt-4.1, etc (1M daily limit)
-  miniTokens: number;     // gpt-4o-mini, etc (10M daily limit)
+  primaryTokens: number; // gpt-4o, gpt-4.1, etc (1M daily limit)
+  miniTokens: number; // gpt-4o-mini, etc (10M daily limit)
 }
 
 interface ModelClassification {
@@ -17,8 +17,8 @@ interface ModelClassification {
 class TokenTracker {
   private storageKey = 'llm_token_usage';
   private dailyLimits = {
-    primary: 1000000,   // 1M tokens/day
-    mini: 10000000      // 10M tokens/day
+    primary: 1000000, // 1M tokens/day
+    mini: 10000000, // 10M tokens/day
   };
 
   /**
@@ -27,7 +27,7 @@ class TokenTracker {
   trackUsage(model: string, insightType: 'health' | 'recommendation' | 'pattern'): void {
     const classification = this.classifyModel(model);
     const estimatedTokens = this.getEstimatedTokens(insightType);
-    
+
     if (classification.tier !== 'paid') {
       this.recordUsage(classification.tier, estimatedTokens);
     }
@@ -45,13 +45,12 @@ class TokenTracker {
       return true; // No free tier limits
     }
 
-    const currentTierUsage = classification.tier === 'primary' 
-      ? currentUsage.primaryTokens 
-      : currentUsage.miniTokens;
-      
+    const currentTierUsage =
+      classification.tier === 'primary' ? currentUsage.primaryTokens : currentUsage.miniTokens;
+
     const dailyLimit = this.dailyLimits[classification.tier];
-    
-    return (currentTierUsage + estimatedTokens) <= dailyLimit;
+
+    return currentTierUsage + estimatedTokens <= dailyLimit;
   }
 
   /**
@@ -63,22 +62,22 @@ class TokenTracker {
 
     // For simple health insights, prefer mini models if available
     if (insightType === 'health') {
-      if ((currentUsage.miniTokens + estimatedTokens) <= this.dailyLimits.mini) {
+      if (currentUsage.miniTokens + estimatedTokens <= this.dailyLimits.mini) {
         return 'gpt-4o-mini';
       }
       // Fallback to primary if mini is exhausted
-      if ((currentUsage.primaryTokens + estimatedTokens) <= this.dailyLimits.primary) {
+      if (currentUsage.primaryTokens + estimatedTokens <= this.dailyLimits.primary) {
         return 'gpt-4o';
       }
     }
 
     // For complex insights, prefer primary models
     if (insightType === 'recommendation' || insightType === 'pattern') {
-      if ((currentUsage.primaryTokens + estimatedTokens) <= this.dailyLimits.primary) {
+      if (currentUsage.primaryTokens + estimatedTokens <= this.dailyLimits.primary) {
         return 'gpt-4o';
       }
       // Fallback to mini if primary is exhausted
-      if ((currentUsage.miniTokens + estimatedTokens) <= this.dailyLimits.mini) {
+      if (currentUsage.miniTokens + estimatedTokens <= this.dailyLimits.mini) {
         return 'gpt-4o-mini';
       }
     }
@@ -100,7 +99,7 @@ class TokenTracker {
     canUseMini: boolean;
   } {
     const today = this.getTodayUsage();
-    
+
     return {
       today,
       primaryRemaining: Math.max(0, this.dailyLimits.primary - today.primaryTokens),
@@ -108,7 +107,7 @@ class TokenTracker {
       primaryPercentUsed: (today.primaryTokens / this.dailyLimits.primary) * 100,
       miniPercentUsed: (today.miniTokens / this.dailyLimits.mini) * 100,
       canUsePrimary: today.primaryTokens < this.dailyLimits.primary,
-      canUseMini: today.miniTokens < this.dailyLimits.mini
+      canUseMini: today.miniTokens < this.dailyLimits.mini,
     };
   }
 
@@ -124,7 +123,15 @@ class TokenTracker {
    */
   private classifyModel(model: string): ModelClassification {
     const primaryModels = ['gpt-4o', 'gpt-4.5-preview', 'gpt-4.1', 'o1', 'o3'];
-    const miniModels = ['gpt-4o-mini', 'gpt-4.1-mini', 'gpt-4.1-nano', 'o1-mini', 'o3-mini', 'o4-mini', 'codex-mini-latest'];
+    const miniModels = [
+      'gpt-4o-mini',
+      'gpt-4.1-mini',
+      'gpt-4.1-nano',
+      'o1-mini',
+      'o3-mini',
+      'o4-mini',
+      'codex-mini-latest',
+    ];
 
     if (primaryModels.includes(model)) {
       return { tier: 'primary', estimatedTokens: 0 };
@@ -140,10 +147,14 @@ class TokenTracker {
    */
   private getEstimatedTokens(insightType: 'health' | 'recommendation' | 'pattern'): number {
     switch (insightType) {
-      case 'health': return 150;        // Simple health summary
-      case 'recommendation': return 250; // Complex strategic advice
-      case 'pattern': return 200;       // Pattern analysis
-      default: return 200;
+      case 'health':
+        return 150; // Simple health summary
+      case 'recommendation':
+        return 250; // Complex strategic advice
+      case 'pattern':
+        return 200; // Pattern analysis
+      default:
+        return 200;
     }
   }
 
@@ -152,7 +163,7 @@ class TokenTracker {
    */
   private getTodayUsage(): DailyUsage {
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    
+
     try {
       const stored = localStorage.getItem(this.storageKey);
       if (stored) {
@@ -169,7 +180,7 @@ class TokenTracker {
     return {
       date: today,
       primaryTokens: 0,
-      miniTokens: 0
+      miniTokens: 0,
     };
   }
 
@@ -178,7 +189,7 @@ class TokenTracker {
    */
   private recordUsage(tier: 'primary' | 'mini', tokens: number): void {
     const currentUsage = this.getTodayUsage();
-    
+
     if (tier === 'primary') {
       currentUsage.primaryTokens += tokens;
     } else {

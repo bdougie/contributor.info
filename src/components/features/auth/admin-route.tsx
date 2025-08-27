@@ -53,57 +53,66 @@ export function AdminRoute({ children, fallback }: AdminRouteProps) {
 
   // Show authentication required
   if (!isAuthenticated) {
-    return fallback || (
-      <Card className="max-w-md mx-auto mt-8">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Github className="h-5 w-5" />
-            Authentication Required
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground mb-4">
-            Please sign in with GitHub to access this area.
-          </p>
-          <div className="flex gap-2">
-            <Button asChild variant="outline" className="flex-1">
-              <Link to="/">Go Home</Link>
-            </Button>
-            <Button asChild className="flex-1">
-              <Link to="/login">Sign In</Link>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+    return (
+      fallback || (
+        <Card className="max-w-md mx-auto mt-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Github className="h-5 w-5" />
+              Authentication Required
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground mb-4">
+              Please sign in with GitHub to access this area.
+            </p>
+            <div className="flex gap-2">
+              <Button asChild variant="outline" className="flex-1">
+                <Link to="/">Go Home</Link>
+              </Button>
+              <Button asChild className="flex-1">
+                <Link to="/login">Sign In</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )
     );
   }
 
   // Show admin access required
   if (!isAdmin) {
-    return fallback || (
-      <Card className="max-w-md mx-auto mt-8">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5 text-amber-500" />
-            Admin Access Required
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Alert>
-            <Shield className="h-4 w-4" />
-            <AlertDescription>
-              This area is restricted to administrators only. Your access level has been verified and you do not have sufficient privileges.
-            </AlertDescription>
-          </Alert>
-          <div className="mt-4 text-sm text-muted-foreground">
-            <p><strong>Current user:</strong> {user?.github_username || 'Unknown'}</p>
-            <p><strong>Admin status:</strong> {isAdmin ? 'Admin' : 'Regular user'}</p>
-          </div>
-          <Button asChild className="w-full mt-4">
-            <Link to="/">Return to Home</Link>
-          </Button>
-        </CardContent>
-      </Card>
+    return (
+      fallback || (
+        <Card className="max-w-md mx-auto mt-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-amber-500" />
+              Admin Access Required
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Alert>
+              <Shield className="h-4 w-4" />
+              <AlertDescription>
+                This area is restricted to administrators only. Your access level has been verified
+                and you do not have sufficient privileges.
+              </AlertDescription>
+            </Alert>
+            <div className="mt-4 text-sm text-muted-foreground">
+              <p>
+                <strong>Current user:</strong> {user?.github_username || 'Unknown'}
+              </p>
+              <p>
+                <strong>Admin status:</strong> {isAdmin ? 'Admin' : 'Regular user'}
+              </p>
+            </div>
+            <Button asChild className="w-full mt-4">
+              <Link to="/">Return to Home</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )
     );
   }
 

@@ -71,7 +71,7 @@ export function useTrendingRepositories(
       if (currentQuery.sort) params.set('sort', currentQuery.sort);
 
       const response = await fetch(`/.netlify/functions/api-trending-repositories?${params}`);
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
@@ -94,10 +94,13 @@ export function useTrendingRepositories(
     fetchTrendingRepositories(query);
   }, [fetchTrendingRepositories, query]);
 
-  const updateQuery = useCallback((newQuery: TrendingQuery) => {
-    const updatedQuery = { ...query, ...newQuery };
-    setQuery(updatedQuery);
-  }, [query]);
+  const updateQuery = useCallback(
+    (newQuery: TrendingQuery) => {
+      const updatedQuery = { ...query, ...newQuery };
+      setQuery(updatedQuery);
+    },
+    [query]
+  );
 
   // Fetch data when query changes
   useEffect(() => {
@@ -129,7 +132,7 @@ export function useTrendingStatistics(period: '24h' | '7d' | '30d' = '7d') {
       try {
         const params = new URLSearchParams({ period, limit: '1' });
         const response = await fetch(`/.netlify/functions/api-trending-repositories?${params}`);
-        
+
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }

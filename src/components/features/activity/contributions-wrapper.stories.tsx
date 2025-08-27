@@ -1,19 +1,19 @@
-import type { Meta, StoryObj } from "@storybook/react";
-import ContributionsWrapper from "./contributions-wrapper";
+import type { Meta, StoryObj } from '@storybook/react';
+import ContributionsWrapper from './contributions-wrapper';
 
 const meta = {
-  title: "Features/Activity/ContributionsWrapper",
+  title: 'Features/Activity/ContributionsWrapper',
   component: ContributionsWrapper,
   parameters: {
-    layout: "centered",
+    layout: 'centered',
     docs: {
       description: {
         component:
-          "A wrapper component that lazy loads the contributions chart to visualize pull request contributions size and frequency. Includes proper fallback loading states and test environment handling."
-      }
-    }
+          'A wrapper component that lazy loads the contributions chart to visualize pull request contributions size and frequency. Includes proper fallback loading states and test environment handling.',
+      },
+    },
   },
-  tags: ["autodocs"]
+  tags: ['autodocs'],
 } satisfies Meta<typeof ContributionsWrapper>;
 
 export default meta;
@@ -24,7 +24,7 @@ export const Default: Story = {
     <div className="w-[800px] p-4">
       <ContributionsWrapper />
     </div>
-  )
+  ),
 };
 
 export const Loading: Story = {
@@ -51,7 +51,7 @@ export const Loading: Story = {
     };
 
     return <LoadingWrapper />;
-  }
+  },
 };
 
 export const TestEnvironment: Story = {
@@ -68,7 +68,10 @@ export const TestEnvironment: Story = {
               </p>
             </div>
             <div className="p-6">
-              <div data-testid="mock-contributions-chart" className="h-[400px] w-full flex items-center justify-center">
+              <div
+                data-testid="mock-contributions-chart"
+                className="h-[400px] w-full flex items-center justify-center"
+              >
                 <span>Mock Contributions Chart</span>
               </div>
             </div>
@@ -82,26 +85,26 @@ export const TestEnvironment: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Shows how the component appears in test environments with the mock chart."
-      }
-    }
-  }
+        story: 'Shows how the component appears in test environments with the mock chart.',
+      },
+    },
+  },
 };
 
 export const Responsive: Story = {
   render: () => (
     <div className="w-full max-w-4xl p-4">
       <ContributionsWrapper />
-    </div>  
+    </div>
   ),
   parameters: {
     viewport: {
-      defaultViewport: "mobile1"
+      defaultViewport: 'mobile1',
     },
     docs: {
       description: {
-        story: "Component displayed in a responsive container to test mobile layouts."
-      }
-    }
-  }
+        story: 'Component displayed in a responsive container to test mobile layouts.',
+      },
+    },
+  },
 };

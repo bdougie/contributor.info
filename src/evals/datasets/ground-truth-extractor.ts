@@ -11,7 +11,10 @@ import type { EvaluationSample, GitHubEvent, ContributorMetrics, DatasetStats } 
 dotenv.config();
 
 // Load environment variables with fallbacks
-const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || 'https://egcxzonpmmcirmgqdrla.supabase.co';
+const supabaseUrl =
+  process.env.VITE_SUPABASE_URL ||
+  process.env.SUPABASE_URL ||
+  'https://egcxzonpmmcirmgqdrla.supabase.co';
 const supabaseKey = process.env.SUPABASE_TOKEN || process.env.SUPABASE_SERVICE_ROLE;
 
 if (!supabaseUrl || !supabaseKey) {
@@ -30,7 +33,8 @@ export class GroundTruthExtractor {
     // Get high-confidence contributor classifications
     const { data: contributorRoles, error } = await supabase
       .from('contributor_roles')
-      .select(`
+      .select(
+        `
         *,
         contributors (
           user_id,
@@ -46,7 +50,8 @@ export class GroundTruthExtractor {
           contributors_count,
           created_at
         )
-      `)
+      `
+      )
       .gte('confidence_score', this.minConfidenceScore)
       .order('confidence_score', { ascending: false })
       .limit(1500);
@@ -59,30 +64,30 @@ export class GroundTruthExtractor {
 
     // Balance the dataset across role types
     const balancedSamples = this.balanceDataset(contributorRoles);
-    
+
     // Convert to evaluation samples with enhanced features
     const evaluationSamples = await Promise.all(
       balancedSamples.map(async (role) => {
         const events = await this.extractGitHubEvents(role.contributor_id, role.repo_id);
         const metrics = this.calculateMetrics(role, events);
-        
+
         return this.createEvaluationSample(role, events, metrics);
       })
     );
 
     console.log('Generated %s evaluation samples', evaluationSamples.length);
-    return evaluationSamples.filter(sample => sample !== null) as EvaluationSample[];
+    return evaluationSamples.filter((sample) => sample !== null) as EvaluationSample[];
   }
 
   private balanceDataset(contributorRoles: any[]): any[] {
     const roleGroups = {
-      owner: contributorRoles.filter(r => r.role === 'owner'),
-      maintainer: contributorRoles.filter(r => r.role === 'maintainer'),
-      contributor: contributorRoles.filter(r => r.role === 'contributor')
+      owner: contributorRoles.filter((r) => r.role === 'owner'),
+      maintainer: contributorRoles.filter((r) => r.role === 'maintainer'),
+      contributor: contributorRoles.filter((r) => r.role === 'contributor'),
     };
 
     const balanced: any[] = [];
-    
+
     // Take equal samples from each role type
     Object.entries(roleGroups).forEach(([role, samples]) => {
       const shuffled = samples.sort(() => Math.random() - 0.5);
@@ -109,26 +114,28 @@ export class GroundTruthExtractor {
       return [];
     }
 
-    return events?.map(event => ({
-      type: event.event_type as GitHubEvent['type'],
-      action: event.action || '',
-      merged: event.merged,
-      ref: event.ref,
-      forced: event.forced,
-      created_at: event.created_at
-    })) || [];
+    return (
+      events?.map((event) => ({
+        type: event.event_type as GitHubEvent['type'],
+        action: event.action || '',
+        merged: event.merged,
+        ref: event.ref,
+        forced: event.forced,
+        created_at: event.created_at,
+      })) || []
+    );
   }
 
   private calculateMetrics(role: any, events: GitHubEvent[]): ContributorMetrics {
-    const mergeEvents = events.filter(e => 
-      e.type === 'PullRequestEvent' && e.merged === true
+    const mergeEvents = events.filter(
+      (e) => e.type === 'PullRequestEvent' && e.merged === true
     ).length;
 
-    const pushEvents = events.filter(e => 
-      e.type === 'PushEvent' && e.ref?.includes('main')
+    const pushEvents = events.filter(
+      (e) => e.type === 'PushEvent' && e.ref?.includes('main')
     ).length;
 
-    const adminActions = events.filter(e =>
+    const adminActions = events.filter((e) =>
       ['ReleaseEvent', 'IssuesEvent'].includes(e.type)
     ).length;
 
@@ -143,21 +150,25 @@ export class GroundTruthExtractor {
       merge_events: mergeEvents,
       push_to_protected: pushEvents,
       admin_actions: adminActions,
-      release_events: events.filter(e => e.type === 'ReleaseEvent').length
+      release_events: events.filter((e) => e.type === 'ReleaseEvent').length,
     };
   }
 
   private calculateDaysActive(events: GitHubEvent[]): number {
     if (events.length === 0) return 0;
-    
-    const dates = events.map(e => new Date(e.created_at));
-    const earliest = new Date(Math.min(...dates.map(d => d.getTime())));
-    const latest = new Date(Math.max(...dates.map(d => d.getTime())));
-    
+
+    const dates = events.map((e) => new Date(e.created_at));
+    const earliest = new Date(Math.min(...dates.map((d) => d.getTime())));
+    const latest = new Date(Math.max(...dates.map((d) => d.getTime())));
+
     return Math.ceil((latest.getTime() - earliest.getTime()) / (1000 * 60 * 60 * 24));
   }
 
-  private createEvaluationSample(role: any, events: GitHubEvent[], metrics: ContributorMetrics): EvaluationSample {
+  private createEvaluationSample(
+    role: any,
+    events: GitHubEvent[],
+    metrics: ContributorMetrics
+  ): EvaluationSample {
     return {
       input: {
         user_id: role.contributors?.username || role.contributor_id,
@@ -168,16 +179,16 @@ export class GroundTruthExtractor {
           size: this.categorizeRepoSize(role.repositories?.stars || 0),
           stars: role.repositories?.stars || 0,
           contributors_count: role.repositories?.contributors_count || 0,
-          created_at: role.repositories?.created_at || ''
-        }
+          created_at: role.repositories?.created_at || '',
+        },
       },
-      ideal: role.role === 'owner' ? 'maintainer' : role.role as 'maintainer' | 'contributor',
+      ideal: role.role === 'owner' ? 'maintainer' : (role.role as 'maintainer' | 'contributor'),
       metadata: {
         verified_by: 'automated_high_confidence',
         verification_date: new Date().toISOString(),
         confidence_level: role.confidence_score >= 0.95 ? 'high' : 'medium',
-        edge_case: metrics.privileged_events === 0 && role.role !== 'contributor'
-      }
+        edge_case: metrics.privileged_events === 0 && role.role !== 'contributor',
+      },
     };
   }
 
@@ -191,26 +202,27 @@ export class GroundTruthExtractor {
     const stats: DatasetStats = {
       total_samples: samples.length,
       class_distribution: {
-        maintainer: samples.filter(s => s.ideal === 'maintainer').length,
-        contributor: samples.filter(s => s.ideal === 'contributor').length
+        maintainer: samples.filter((s) => s.ideal === 'maintainer').length,
+        contributor: samples.filter((s) => s.ideal === 'contributor').length,
       },
       repository_distribution: {},
       temporal_distribution: {},
       quality_metrics: {
-        verified_samples: samples.filter(s => s.metadata?.verified_by).length,
-        high_confidence_samples: samples.filter(s => s.metadata?.confidence_level === 'high').length,
-        edge_cases: samples.filter(s => s.metadata?.edge_case).length
-      }
+        verified_samples: samples.filter((s) => s.metadata?.verified_by).length,
+        high_confidence_samples: samples.filter((s) => s.metadata?.confidence_level === 'high')
+          .length,
+        edge_cases: samples.filter((s) => s.metadata?.edge_case).length,
+      },
     };
 
     // Calculate repository distribution
-    samples.forEach(sample => {
+    samples.forEach((sample) => {
       const repo = sample.input.repository;
       stats.repository_distribution[repo] = (stats.repository_distribution[repo] || 0) + 1;
     });
 
     // Calculate temporal distribution (by month)
-    samples.forEach(sample => {
+    samples.forEach((sample) => {
       if (sample.metadata?.verification_date) {
         const month = sample.metadata.verification_date.substring(0, 7); // YYYY-MM
         stats.temporal_distribution[month] = (stats.temporal_distribution[month] || 0) + 1;
@@ -222,8 +234,8 @@ export class GroundTruthExtractor {
 
   async exportToJSONL(samples: EvaluationSample[], outputPath: string): Promise<void> {
     const fs = await import('fs');
-    const jsonlContent = samples.map(sample => JSON.stringify(sample)).join('\n');
-    
+    const jsonlContent = samples.map((sample) => JSON.stringify(sample)).join('\n');
+
     fs.writeFileSync(outputPath, jsonlContent, 'utf-8');
     console.log('Exported %s samples to %s', samples.length, outputPath);
   }

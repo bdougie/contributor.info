@@ -2,47 +2,47 @@ import { lazy, Suspense, Component, ErrorInfo, ReactNode } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 // Export individual lazy components with proper typing
-// Note: Each component imports from the same module, so webpack will 
+// Note: Each component imports from the same module, so webpack will
 // automatically deduplicate and create a single chunk
-export const LazyDialog = lazy(() => 
-  import('@/components/ui/dialog').then(module => ({
-    default: module.Dialog
+export const LazyDialog = lazy(() =>
+  import('@/components/ui/dialog').then((module) => ({
+    default: module.Dialog,
   }))
 );
 
-export const LazyDialogContent = lazy(() => 
-  import('@/components/ui/dialog').then(module => ({
-    default: module.DialogContent
+export const LazyDialogContent = lazy(() =>
+  import('@/components/ui/dialog').then((module) => ({
+    default: module.DialogContent,
   }))
 );
 
-export const LazyDialogHeader = lazy(() => 
-  import('@/components/ui/dialog').then(module => ({
-    default: module.DialogHeader
+export const LazyDialogHeader = lazy(() =>
+  import('@/components/ui/dialog').then((module) => ({
+    default: module.DialogHeader,
   }))
 );
 
-export const LazyDialogTitle = lazy(() => 
-  import('@/components/ui/dialog').then(module => ({
-    default: module.DialogTitle
+export const LazyDialogTitle = lazy(() =>
+  import('@/components/ui/dialog').then((module) => ({
+    default: module.DialogTitle,
   }))
 );
 
-export const LazyDialogDescription = lazy(() => 
-  import('@/components/ui/dialog').then(module => ({
-    default: module.DialogDescription
+export const LazyDialogDescription = lazy(() =>
+  import('@/components/ui/dialog').then((module) => ({
+    default: module.DialogDescription,
   }))
 );
 
-export const LazyDialogFooter = lazy(() => 
-  import('@/components/ui/dialog').then(module => ({
-    default: module.DialogFooter
+export const LazyDialogFooter = lazy(() =>
+  import('@/components/ui/dialog').then((module) => ({
+    default: module.DialogFooter,
   }))
 );
 
-export const LazyDialogTrigger = lazy(() => 
-  import('@/components/ui/dialog').then(module => ({
-    default: module.DialogTrigger
+export const LazyDialogTrigger = lazy(() =>
+  import('@/components/ui/dialog').then((module) => ({
+    default: module.DialogTrigger,
   }))
 );
 
@@ -91,7 +91,10 @@ class DialogErrorBoundary extends Component<
     if (this.state.hasError) {
       return (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="bg-background/80 backdrop-blur-sm fixed inset-0" onClick={() => this.props.onOpenChange(false)} />
+          <div
+            className="bg-background/80 backdrop-blur-sm fixed inset-0"
+            onClick={() => this.props.onOpenChange(false)}
+          />
           <div className="fixed z-50 w-full max-w-lg p-6 bg-background border rounded-lg shadow-lg">
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-destructive">Failed to load dialog</h3>

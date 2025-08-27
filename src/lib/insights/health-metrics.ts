@@ -2,13 +2,13 @@ import { fetchPRDataWithFallback } from '../supabase-pr-data';
 
 export interface HealthMetrics {
   score: number; // 0-100
-  trend: "improving" | "declining" | "stable";
+  trend: 'improving' | 'declining' | 'stable';
   lastChecked: Date;
   factors: {
     name: string;
     score: number;
     weight: number;
-    status: "good" | "warning" | "critical";
+    status: 'good' | 'warning' | 'critical';
     description: string;
   }[];
   recommendations: string[];
@@ -27,15 +27,15 @@ export async function calculateHealthMetrics(
     // Fetch data
     const prDataResult = await fetchPRDataWithFallback(owner, repo, timeRange);
     const pullRequests = prDataResult.data;
-    
+
     // Calculate various health factors
     const factors: HealthMetrics['factors'] = [];
     const recommendations: string[] = [];
-    
+
     // 1. PR Merge Time Factor
     const mergedPRs = pullRequests.filter((pr: any) => pr.merged_at);
     let avgMergeTime = 0;
-    
+
     if (mergedPRs.length > 0) {
       const mergeTimes = mergedPRs.map((pr: any) => {
         const created = new Date(pr.created_at);
@@ -44,40 +44,44 @@ export async function calculateHealthMetrics(
       });
       avgMergeTime = mergeTimes.reduce((a, b) => a + b, 0) / mergeTimes.length;
     }
-    
+
     let mergeTimeScore = 100;
-    let mergeTimeStatus: "good" | "warning" | "critical" = "good";
-    
+    let mergeTimeStatus: 'good' | 'warning' | 'critical' = 'good';
+
     if (avgMergeTime <= 24) {
       mergeTimeScore = 100;
-      mergeTimeStatus = "good";
+      mergeTimeStatus = 'good';
     } else if (avgMergeTime <= 72) {
       mergeTimeScore = 85;
-      mergeTimeStatus = "good";
-    } else if (avgMergeTime <= 168) { // 1 week
+      mergeTimeStatus = 'good';
+    } else if (avgMergeTime <= 168) {
+      // 1 week
       mergeTimeScore = 70;
-      mergeTimeStatus = "warning";
-      recommendations.push("Consider streamlining PR review process to reduce merge times");
+      mergeTimeStatus = 'warning';
+      recommendations.push('Consider streamlining PR review process to reduce merge times');
     } else {
       mergeTimeScore = 50;
-      mergeTimeStatus = "critical";
-      recommendations.push("PR merge times are very high - implement review SLAs");
+      mergeTimeStatus = 'critical';
+      recommendations.push('PR merge times are very high - implement review SLAs');
     }
-    
+
     factors.push({
-      name: "PR Merge Time",
+      name: 'PR Merge Time',
       score: mergeTimeScore,
       weight: 25,
       status: mergeTimeStatus,
-      description: avgMergeTime > 0 
-        ? `Average merge time is ${Math.round(avgMergeTime)} hours`
-        : "No merged PRs to analyze"
+      description:
+        avgMergeTime > 0
+          ? `Average merge time is ${Math.round(avgMergeTime)} hours`
+          : 'No merged PRs to analyze',
     });
-    
+
     // 2. Contributor Diversity Factor
-    const uniqueContributors = new Set(pullRequests.map((pr: any) => pr.user?.login).filter(Boolean));
+    const uniqueContributors = new Set(
+      pullRequests.map((pr: any) => pr.user?.login).filter(Boolean)
+    );
     const contributorCount = uniqueContributors.size;
-    
+
     // Calculate bus factor (contributors who handle majority of work)
     const contributorPRCounts = new Map<string, number>();
     pullRequests.forEach((pr: any) => {
@@ -86,101 +90,101 @@ export async function calculateHealthMetrics(
         contributorPRCounts.set(author, (contributorPRCounts.get(author) || 0) + 1);
       }
     });
-    
-    const sortedContributors = Array.from(contributorPRCounts.entries())
-      .sort((a, b) => b[1] - a[1]);
-    
+
+    const sortedContributors = Array.from(contributorPRCounts.entries()).sort(
+      (a, b) => b[1] - a[1]
+    );
+
     let busFactorScore = 100;
-    let busFactorStatus: "good" | "warning" | "critical" = "good";
+    let busFactorStatus: 'good' | 'warning' | 'critical' = 'good';
     let busFactorCount = 0;
-    
+
     if (sortedContributors.length > 0) {
       const totalPRs = pullRequests.length;
       let cumulativePRs = 0;
-      
+
       for (const [, prCount] of sortedContributors) {
         cumulativePRs += prCount;
         busFactorCount++;
         if (cumulativePRs >= totalPRs * 0.5) break;
       }
-      
+
       if (busFactorCount === 1) {
         busFactorScore = 40;
-        busFactorStatus = "critical";
-        recommendations.push("High bus factor risk - one person handles most work");
+        busFactorStatus = 'critical';
+        recommendations.push('High bus factor risk - one person handles most work');
       } else if (busFactorCount === 2) {
         busFactorScore = 60;
-        busFactorStatus = "warning";
-        recommendations.push("Consider distributing work among more contributors");
+        busFactorStatus = 'warning';
+        recommendations.push('Consider distributing work among more contributors');
       } else if (busFactorCount <= 3) {
         busFactorScore = 80;
-        busFactorStatus = "warning";
+        busFactorStatus = 'warning';
       }
     }
-    
+
     factors.push({
-      name: "Contributor Diversity",
+      name: 'Contributor Diversity',
       score: busFactorScore,
       weight: 20,
       status: busFactorStatus,
-      description: `${contributorCount} active contributors, ${busFactorCount} handle 50% of work`
+      description: `${contributorCount} active contributors, ${busFactorCount} handle 50% of work`,
     });
-    
+
     // 3. Review Coverage Factor
-    const prsWithReviews = pullRequests.filter((pr: any) => 
-      pr.reviews && pr.reviews.length > 0
+    const prsWithReviews = pullRequests.filter(
+      (pr: any) => pr.reviews && pr.reviews.length > 0
     ).length;
-    
-    const reviewCoverage = pullRequests.length > 0 
-      ? (prsWithReviews / pullRequests.length) * 100 
-      : 0;
-    
-    let reviewScore = Math.round(reviewCoverage);
-    let reviewStatus: "good" | "warning" | "critical" = "good";
-    
+
+    const reviewCoverage =
+      pullRequests.length > 0 ? (prsWithReviews / pullRequests.length) * 100 : 0;
+
+    const reviewScore = Math.round(reviewCoverage);
+    let reviewStatus: 'good' | 'warning' | 'critical' = 'good';
+
     if (reviewCoverage < 50) {
-      reviewStatus = "critical";
-      recommendations.push("Implement mandatory code reviews for all PRs");
+      reviewStatus = 'critical';
+      recommendations.push('Implement mandatory code reviews for all PRs');
     } else if (reviewCoverage < 80) {
-      reviewStatus = "warning";
-      recommendations.push("Increase code review coverage to improve quality");
+      reviewStatus = 'warning';
+      recommendations.push('Increase code review coverage to improve quality');
     }
-    
+
     factors.push({
-      name: "Review Coverage",
+      name: 'Review Coverage',
       score: reviewScore,
       weight: 20,
       status: reviewStatus,
-      description: `${Math.round(reviewCoverage)}% of PRs receive reviews`
+      description: `${Math.round(reviewCoverage)}% of PRs receive reviews`,
     });
-    
+
     // 4. Activity Level Factor
     const recentPRs = pullRequests.filter((pr: any) => {
       const created = new Date(pr.created_at);
       const daysAgo = (now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24);
       return daysAgo <= 7;
     });
-    
+
     let activityScore = 100;
-    let activityStatus: "good" | "warning" | "critical" = "good";
-    
+    let activityStatus: 'good' | 'warning' | 'critical' = 'good';
+
     if (recentPRs.length === 0) {
       activityScore = 30;
-      activityStatus = "critical";
-      recommendations.push("No activity in the past week - project may be stalled");
+      activityStatus = 'critical';
+      recommendations.push('No activity in the past week - project may be stalled');
     } else if (recentPRs.length < 3) {
       activityScore = 70;
-      activityStatus = "warning";
+      activityStatus = 'warning';
     }
-    
+
     factors.push({
-      name: "Activity Level",
+      name: 'Activity Level',
       score: activityScore,
       weight: 20,
       status: activityStatus,
-      description: `${recentPRs.length} PRs in the last 7 days`
+      description: `${recentPRs.length} PRs in the last 7 days`,
     });
-    
+
     // 5. Response Time Factor
     const openPRs = pullRequests.filter((pr: any) => pr.state === 'open');
     const oldOpenPRs = openPRs.filter((pr: any) => {
@@ -188,68 +192,65 @@ export async function calculateHealthMetrics(
       const daysOpen = (now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24);
       return daysOpen > 7;
     });
-    
+
     let responseScore = 100;
-    let responseStatus: "good" | "warning" | "critical" = "good";
-    
+    let responseStatus: 'good' | 'warning' | 'critical' = 'good';
+
     if (openPRs.length > 0) {
       const stalePRPercentage = (oldOpenPRs.length / openPRs.length) * 100;
-      
+
       if (stalePRPercentage > 50) {
         responseScore = 50;
-        responseStatus = "critical";
-        recommendations.push("Many PRs are stale - establish response time SLAs");
+        responseStatus = 'critical';
+        recommendations.push('Many PRs are stale - establish response time SLAs');
       } else if (stalePRPercentage > 25) {
         responseScore = 75;
-        responseStatus = "warning";
+        responseStatus = 'warning';
       }
     }
-    
+
     factors.push({
-      name: "Response Time",
+      name: 'Response Time',
       score: responseScore,
       weight: 15,
       status: responseStatus,
-      description: `${oldOpenPRs.length} PRs open for more than 7 days`
+      description: `${oldOpenPRs.length} PRs open for more than 7 days`,
     });
-    
+
     // Calculate overall score
     const totalWeight = factors.reduce((sum, factor) => sum + factor.weight, 0);
-    const weightedScore = factors.reduce((sum, factor) => 
-      sum + (factor.score * factor.weight), 0
-    );
+    const weightedScore = factors.reduce((sum, factor) => sum + factor.score * factor.weight, 0);
     const overallScore = Math.round(weightedScore / totalWeight);
-    
+
     // Determine trend (simplified - would need historical data for real trend)
-    let trend: "improving" | "declining" | "stable" = "stable";
-    if (overallScore >= 80) trend = "improving";
-    else if (overallScore < 60) trend = "declining";
-    
+    let trend: 'improving' | 'declining' | 'stable' = 'stable';
+    if (overallScore >= 80) trend = 'improving';
+    else if (overallScore < 60) trend = 'declining';
+
     // Add general recommendations based on score
     if (overallScore < 60) {
-      recommendations.push("Overall health needs attention - focus on highest impact areas");
+      recommendations.push('Overall health needs attention - focus on highest impact areas');
     } else if (overallScore >= 80 && recommendations.length === 0) {
-      recommendations.push("Repository health is excellent - maintain current practices");
+      recommendations.push('Repository health is excellent - maintain current practices');
     }
-    
+
     return {
       score: overallScore,
       trend,
       lastChecked: now,
       factors,
-      recommendations: recommendations.slice(0, 3) // Limit to top 3 recommendations
+      recommendations: recommendations.slice(0, 3), // Limit to top 3 recommendations
     };
-    
   } catch (error) {
     console.error('Error calculating health metrics:', error);
-    
+
     // Return default metrics on error
     return {
       score: 0,
-      trend: "stable",
+      trend: 'stable',
       lastChecked: new Date(),
       factors: [],
-      recommendations: ["Unable to calculate health metrics - check repository access"]
+      recommendations: ['Unable to calculate health metrics - check repository access'],
     };
   }
 }
@@ -263,13 +264,18 @@ export function clearConfidenceCache() {
   confidenceCache.clear();
 }
 
-function getCacheKey(owner: string, repo: string, timeRange: string, returnBreakdown: boolean): string {
+function getCacheKey(
+  owner: string,
+  repo: string,
+  timeRange: string,
+  returnBreakdown: boolean
+): string {
   return `${owner}/${repo}:${timeRange}:${returnBreakdown}`;
 }
 
 function getFromCache(cacheKey: string): any | null {
   const cached = confidenceCache.get(cacheKey);
-  if (cached && (Date.now() - cached.timestamp) < CACHE_TTL) {
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
     return cached.result;
   }
   if (cached) {
@@ -281,14 +287,14 @@ function getFromCache(cacheKey: string): any | null {
 function setCache(cacheKey: string, result: any): void {
   confidenceCache.set(cacheKey, {
     result,
-    timestamp: Date.now()
+    timestamp: Date.now(),
   });
-  
+
   // Clean up old entries periodically
   if (confidenceCache.size > 100) {
     const now = Date.now();
     for (const [key, value] of confidenceCache.entries()) {
-      if ((now - value.timestamp) > CACHE_TTL) {
+      if (now - value.timestamp > CACHE_TTL) {
         confidenceCache.delete(key);
       }
     }
@@ -353,11 +359,11 @@ export async function calculateRepositoryConfidence(
   returnBreakdown: boolean = false
 ): Promise<number | ConfidenceResult | ConfidenceBreakdown> {
   const startTime = Date.now();
-  
+
   try {
     const daysBack = parseInt(timeRange);
     const cacheKey = getCacheKey(owner, repo, timeRange, returnBreakdown);
-    
+
     // Import supabase here to avoid circular dependencies
     const { supabase } = await import('../supabase');
 
@@ -365,32 +371,45 @@ export async function calculateRepositoryConfidence(
     if (!forceRecalculate) {
       const memoryResult = getFromCache(cacheKey);
       if (memoryResult !== null) {
-        const scoreForLogging = typeof memoryResult === 'number' ? memoryResult : memoryResult.score;
-        console.log('[Confidence] Using in-memory cached result for %s/%s: %s%', owner, repo, scoreForLogging);
+        const scoreForLogging =
+          typeof memoryResult === 'number' ? memoryResult : memoryResult.score;
+        console.log(
+          '[Confidence] Using in-memory cached result for %s/%s: %s%',
+          owner,
+          repo,
+          scoreForLogging
+        );
         return memoryResult;
       }
 
       // Check database cache if in-memory miss
       const cachedResult = await getCachedConfidenceScore(supabase, owner, repo, daysBack);
       if (cachedResult !== null) {
-        console.log('[Confidence] Using database cached score for %s/%s: %s%', owner, repo, cachedResult.score);
-        
+        console.log(
+          '[Confidence] Using database cached score for %s/%s: %s%',
+          owner,
+          repo,
+          cachedResult.score
+        );
+
         // Store in memory cache for faster future access
-        const cacheValue = returnMetadata ? {
-          score: cachedResult.score,
-          cached: true,
-          calculatedAt: cachedResult.calculatedAt,
-          calculationTimeMs: cachedResult.calculationTimeMs
-        } : cachedResult.score;
-        
+        const cacheValue = returnMetadata
+          ? {
+              score: cachedResult.score,
+              cached: true,
+              calculatedAt: cachedResult.calculatedAt,
+              calculationTimeMs: cachedResult.calculationTimeMs,
+            }
+          : cachedResult.score;
+
         setCache(cacheKey, cacheValue);
-        
+
         if (returnMetadata) {
           return {
             score: cachedResult.score,
             cached: true,
             calculatedAt: cachedResult.calculatedAt,
-            calculationTimeMs: cachedResult.calculationTimeMs
+            calculationTimeMs: cachedResult.calculationTimeMs,
           };
         }
         return cachedResult.score;
@@ -411,45 +430,49 @@ export async function calculateRepositoryConfidence(
       return 0;
     }
 
-    console.log("[Confidence] Calculating for %s/%s:", owner, repo, {
+    console.log('[Confidence] Calculating for %s/%s:', owner, repo, {
       repoId: repoData.id,
       stars: repoData.stargazers_count,
       forks: repoData.forks_count,
       timeRange: daysBack,
-      cached: false
+      cached: false,
     });
 
     // Calculate multiple confidence factors and collect breakdown data if needed
-    const [
-      starForkResult,
-      engagementConfidence,
-      retentionConfidence,
-      qualityConfidence
-    ] = await Promise.all([
-      returnBreakdown 
-        ? calculateStarForkConfidenceWithBreakdown(supabase, owner, repo, repoData.id, daysBack)
-        : { confidence: await calculateStarForkConfidence(supabase, owner, repo, repoData.id, daysBack) },
-      calculateEngagementConfidence(supabase, owner, repo, repoData.id, daysBack),
-      calculateRetentionConfidence(supabase, owner, repo, repoData.id, daysBack),
-      calculateQualityConfidence(supabase, owner, repo, repoData.id, daysBack)
-    ]);
+    const [starForkResult, engagementConfidence, retentionConfidence, qualityConfidence] =
+      await Promise.all([
+        returnBreakdown
+          ? calculateStarForkConfidenceWithBreakdown(supabase, owner, repo, repoData.id, daysBack)
+          : {
+              confidence: await calculateStarForkConfidence(
+                supabase,
+                owner,
+                repo,
+                repoData.id,
+                daysBack
+              ),
+            },
+        calculateEngagementConfidence(supabase, owner, repo, repoData.id, daysBack),
+        calculateRetentionConfidence(supabase, owner, repo, repoData.id, daysBack),
+        calculateQualityConfidence(supabase, owner, repo, repoData.id, daysBack),
+      ]);
 
-    const starForkConfidence = typeof starForkResult === 'number' ? starForkResult : starForkResult.confidence;
+    const starForkConfidence =
+      typeof starForkResult === 'number' ? starForkResult : starForkResult.confidence;
 
     // Weighted combination of confidence factors
     const weights = {
-      starFork: 0.35,    // Primary OpenSauced metric
-      engagement: 0.25,  // Issue/comment to contribution rate
-      retention: 0.25,   // Contributor return rate
-      quality: 0.15      // PR success rate
+      starFork: 0.35, // Primary OpenSauced metric
+      engagement: 0.25, // Issue/comment to contribution rate
+      retention: 0.25, // Contributor return rate
+      quality: 0.15, // PR success rate
     };
 
-    const overallConfidence = (
-      (starForkConfidence * weights.starFork) +
-      (engagementConfidence * weights.engagement) +
-      (retentionConfidence * weights.retention) +
-      (qualityConfidence * weights.quality)
-    );
+    const overallConfidence =
+      starForkConfidence * weights.starFork +
+      engagementConfidence * weights.engagement +
+      retentionConfidence * weights.retention +
+      qualityConfidence * weights.quality;
 
     // Apply repository size and maturity adjustments
     const adjustedConfidence = applyRepositoryAdjustments(
@@ -465,16 +488,25 @@ export async function calculateRepositoryConfidence(
     // Cache the result for future use (both database and memory)
     await cacheConfidenceScore(supabase, owner, repo, daysBack, finalScore, calculationTime);
 
-    console.log('[Confidence] Calculated confidence for %s/%s: %s% (%sms)', owner, repo, finalScore, calculationTime);
-    
+    console.log(
+      '[Confidence] Calculated confidence for %s/%s: %s% (%sms)',
+      owner,
+      repo,
+      finalScore,
+      calculationTime
+    );
+
     if (returnBreakdown) {
-      const breakdownData = typeof starForkResult === 'object' ? starForkResult : {
-        confidence: starForkConfidence,
-        totalStargazers: repoData.stargazers_count,
-        totalForkers: repoData.forks_count,
-        contributorCount: 0,
-        conversionRate: 0
-      };
+      const breakdownData =
+        typeof starForkResult === 'object'
+          ? starForkResult
+          : {
+              confidence: starForkConfidence,
+              totalStargazers: repoData.stargazers_count,
+              totalForkers: repoData.forks_count,
+              contributorCount: 0,
+              conversionRate: 0,
+            };
 
       const result = {
         score: finalScore,
@@ -486,24 +518,29 @@ export async function calculateRepositoryConfidence(
           engagementConfidence,
           retentionConfidence,
           qualityConfidence,
-          totalStargazers: 'totalStargazers' in breakdownData ? breakdownData.totalStargazers : repoData.stargazers_count,
-          totalForkers: 'totalForkers' in breakdownData ? breakdownData.totalForkers : repoData.forks_count,
-          contributorCount: 'contributorCount' in breakdownData ? breakdownData.contributorCount : 0,
-          conversionRate: 'conversionRate' in breakdownData ? breakdownData.conversionRate : 0
-        }
+          totalStargazers:
+            'totalStargazers' in breakdownData
+              ? breakdownData.totalStargazers
+              : repoData.stargazers_count,
+          totalForkers:
+            'totalForkers' in breakdownData ? breakdownData.totalForkers : repoData.forks_count,
+          contributorCount:
+            'contributorCount' in breakdownData ? breakdownData.contributorCount : 0,
+          conversionRate: 'conversionRate' in breakdownData ? breakdownData.conversionRate : 0,
+        },
       };
 
       // Store in memory cache
       setCache(cacheKey, result);
       return result;
     }
-    
+
     if (returnMetadata) {
       const result = {
         score: finalScore,
         cached: false,
         calculatedAt: new Date(),
-        calculationTimeMs: calculationTime
+        calculationTimeMs: calculationTime,
       };
 
       // Store in memory cache
@@ -514,7 +551,6 @@ export async function calculateRepositoryConfidence(
     // Store simple score in memory cache
     setCache(cacheKey, finalScore);
     return finalScore;
-
   } catch (error) {
     console.error('Error calculating repository confidence:', error);
     // Return fallback based on available data
@@ -534,7 +570,7 @@ async function calculateStarForkConfidence(
 ): Promise<number> {
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - daysBack);
-  
+
   // Get star/fork events
   const { data: starForkEvents } = await supabase
     .from('github_events_cache')
@@ -558,11 +594,15 @@ async function calculateStarForkConfidence(
   console.log(`[Confidence] Star/Fork data for %s/%s:`, owner, repo, {
     starForkEvents: starForkEvents?.length || 0,
     contributors: contributors.size,
-    cutoffDate: cutoffDate.toISOString()
+    cutoffDate: cutoffDate.toISOString(),
   });
 
   if (!starForkEvents?.length) {
-    console.log(`[Confidence] No star/fork events found for %s/%s - may need GitHub sync`, owner, repo);
+    console.log(
+      `[Confidence] No star/fork events found for %s/%s - may need GitHub sync`,
+      owner,
+      repo
+    );
     return 0; // No star/fork event data available
   }
 
@@ -574,12 +614,12 @@ async function calculateStarForkConfidence(
     starForkEvents.filter((e: any) => e.event_type === 'ForkEvent').map((e: any) => e.actor_login)
   );
 
-  const stargazersWhoContributed = Array.from(stargazers).filter(u => contributors.has(u)).length;
-  const forkersWhoContributed = Array.from(forkers).filter(u => contributors.has(u)).length;
+  const stargazersWhoContributed = Array.from(stargazers).filter((u) => contributors.has(u)).length;
+  const forkersWhoContributed = Array.from(forkers).filter((u) => contributors.has(u)).length;
 
   // Weighted calculation (forks = stronger intent)
-  const totalWeighted = (stargazers.size * 0.3) + (forkers.size * 0.7);
-  const contributedWeighted = (stargazersWhoContributed * 0.3) + (forkersWhoContributed * 0.7);
+  const totalWeighted = stargazers.size * 0.3 + forkers.size * 0.7;
+  const contributedWeighted = stargazersWhoContributed * 0.3 + forkersWhoContributed * 0.7;
 
   return totalWeighted > 0 ? (contributedWeighted / totalWeighted) * 100 : 0;
 }
@@ -602,7 +642,7 @@ async function calculateStarForkConfidenceWithBreakdown(
 }> {
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - daysBack);
-  
+
   // Get star/fork events
   const { data: starForkEvents } = await supabase
     .from('github_events_cache')
@@ -629,7 +669,7 @@ async function calculateStarForkConfidenceWithBreakdown(
       totalStargazers: 0,
       totalForkers: 0,
       contributorCount: contributors.size,
-      conversionRate: 0
+      conversionRate: 0,
     };
   }
 
@@ -641,13 +681,13 @@ async function calculateStarForkConfidenceWithBreakdown(
     starForkEvents.filter((e: any) => e.event_type === 'ForkEvent').map((e: any) => e.actor_login)
   );
 
-  const stargazersWhoContributed = Array.from(stargazers).filter(u => contributors.has(u)).length;
-  const forkersWhoContributed = Array.from(forkers).filter(u => contributors.has(u)).length;
+  const stargazersWhoContributed = Array.from(stargazers).filter((u) => contributors.has(u)).length;
+  const forkersWhoContributed = Array.from(forkers).filter((u) => contributors.has(u)).length;
 
   // Weighted calculation (forks = stronger intent)
-  const totalWeighted = (stargazers.size * 0.3) + (forkers.size * 0.7);
-  const contributedWeighted = (stargazersWhoContributed * 0.3) + (forkersWhoContributed * 0.7);
-  
+  const totalWeighted = stargazers.size * 0.3 + forkers.size * 0.7;
+  const contributedWeighted = stargazersWhoContributed * 0.3 + forkersWhoContributed * 0.7;
+
   const confidence = totalWeighted > 0 ? (contributedWeighted / totalWeighted) * 100 : 0;
   const totalEngagement = stargazers.size + forkers.size;
   const totalContributors = stargazersWhoContributed + forkersWhoContributed;
@@ -658,7 +698,7 @@ async function calculateStarForkConfidenceWithBreakdown(
     totalStargazers: stargazers.size,
     totalForkers: forkers.size,
     contributorCount: contributors.size,
-    conversionRate
+    conversionRate,
   };
 }
 
@@ -682,11 +722,11 @@ async function calculateEngagementConfidence(
     .eq('repository_owner', owner)
     .eq('repository_name', repo)
     .in('event_type', [
-      'IssuesEvent', 
-      'IssueCommentEvent', 
-      'PullRequestReviewEvent', 
+      'IssuesEvent',
+      'IssueCommentEvent',
+      'PullRequestReviewEvent',
       'PullRequestReviewCommentEvent',
-      'CommitCommentEvent'
+      'CommitCommentEvent',
     ])
     .gte('created_at', cutoffDate.toISOString());
 
@@ -702,7 +742,7 @@ async function calculateEngagementConfidence(
   );
 
   const engagers = new Set(engagementEvents?.map((e: any) => e.actor_login).filter(Boolean) || []);
-  const engagersWhoContributed = Array.from(engagers).filter(u => contributors.has(u)).length;
+  const engagersWhoContributed = Array.from(engagers).filter((u) => contributors.has(u)).length;
 
   return engagers.size > 0 ? (engagersWhoContributed / engagers.size) * 100 : 0;
 }
@@ -720,9 +760,9 @@ async function calculateRetentionConfidence(
   // Look at contributors from previous period vs current period
   const currentPeriodStart = new Date();
   currentPeriodStart.setDate(currentPeriodStart.getDate() - daysBack);
-  
+
   const previousPeriodStart = new Date();
-  previousPeriodStart.setDate(previousPeriodStart.getDate() - (daysBack * 2));
+  previousPeriodStart.setDate(previousPeriodStart.getDate() - daysBack * 2);
 
   // Get contributors from both periods
   const [currentContributors, previousContributors] = await Promise.all([
@@ -731,13 +771,13 @@ async function calculateRetentionConfidence(
       .select('contributors!inner(username)')
       .eq('repository_id', repositoryId)
       .gte('created_at', currentPeriodStart.toISOString()),
-    
+
     supabase
       .from('pull_requests')
       .select('contributors!inner(username)')
       .eq('repository_id', repositoryId)
       .gte('created_at', previousPeriodStart.toISOString())
-      .lt('created_at', currentPeriodStart.toISOString())
+      .lt('created_at', currentPeriodStart.toISOString()),
   ]);
 
   const currentSet = new Set(
@@ -748,8 +788,8 @@ async function calculateRetentionConfidence(
   );
 
   // Calculate retention rate
-  const returningContributors = Array.from(previousSet).filter(u => currentSet.has(u)).length;
-  
+  const returningContributors = Array.from(previousSet).filter((u) => currentSet.has(u)).length;
+
   return previousSet.size > 0 ? (returningContributors / previousSet.size) * 100 : 50; // Default neutral
 }
 
@@ -796,7 +836,7 @@ function applyRepositoryAdjustments(
   let adjusted = confidence;
 
   // Large repository adjustment (lower expectations)
-  const totalEngagement = starCount + (forkCount * 2);
+  const totalEngagement = starCount + forkCount * 2;
   if (totalEngagement > 10000) {
     adjusted *= 0.7; // Very large repos have naturally lower conversion
   } else if (totalEngagement > 1000) {
@@ -844,8 +884,8 @@ async function calculateBasicFallback(
       .eq('repository_id', repoData.id)
       .gte('created_at', cutoffDate.toISOString());
 
-    const uniqueContributors = new Set(recentContributors?.map(c => c.author_id) || []).size;
-    
+    const uniqueContributors = new Set(recentContributors?.map((c) => c.author_id) || []).size;
+
     return calculateFallbackConfidence(
       repoData.stargazers_count,
       repoData.forks_count,
@@ -868,18 +908,18 @@ function calculateFallbackConfidence(
   daysBack: number
 ): number {
   // Estimate engagement based on repository metrics
-  const totalEngagement = starCount + (forkCount * 2); // Weight forks higher
-  
+  const totalEngagement = starCount + forkCount * 2; // Weight forks higher
+
   if (totalEngagement === 0) {
     return 0;
   }
 
   // Apply time-based scaling (newer repos have less confidence data)
   const timeMultiplier = Math.min(1, daysBack / 30);
-  
+
   // Estimate confidence based on contributor ratio
   const baseConfidence = (contributorCount / totalEngagement) * 100 * timeMultiplier;
-  
+
   // Apply realistic caps based on repository size
   let cappedConfidence = baseConfidence;
   if (totalEngagement > 1000) {
@@ -887,7 +927,7 @@ function calculateFallbackConfidence(
   } else if (totalEngagement > 100) {
     cappedConfidence = Math.min(baseConfidence, 60); // Medium repos
   }
-  
+
   return Math.min(50, Math.round(cappedConfidence));
 }
 
@@ -915,12 +955,16 @@ async function getCachedConfidenceScore(
     }
 
     const age = Date.now() - new Date(data.calculated_at).getTime();
-    console.log('[Confidence Cache] Found cached score: %s% (%ss old)', data.confidence_score, Math.round(age / 1000));
-    
+    console.log(
+      '[Confidence Cache] Found cached score: %s% (%ss old)',
+      data.confidence_score,
+      Math.round(age / 1000)
+    );
+
     return {
       score: data.confidence_score,
       calculatedAt: new Date(data.calculated_at),
-      calculationTimeMs: data.calculation_time_ms
+      calculationTimeMs: data.calculation_time_ms,
     };
   } catch (error) {
     console.warn('[Confidence Cache] Error reading cache:', error);
@@ -960,19 +1004,22 @@ async function cacheConfidenceScore(
       expires_at: expiresAt.toISOString(),
       last_sync_at: syncData?.last_sync_at || null,
       calculation_time_ms: calculationTimeMs,
-      data_version: 1 // Current algorithm version
+      data_version: 1, // Current algorithm version
     };
 
-    const { error } = await supabase
-      .from('repository_confidence_cache')
-      .upsert(cacheEntry, {
-        onConflict: 'repository_owner,repository_name,time_range_days'
-      });
+    const { error } = await supabase.from('repository_confidence_cache').upsert(cacheEntry, {
+      onConflict: 'repository_owner,repository_name,time_range_days',
+    });
 
     if (error) {
       console.warn('[Confidence Cache] Error storing cache:', error);
     } else {
-      console.log('[Confidence Cache] Stored score for %s/%s (expires in %sh)', owner, repo, Math.round(baseTTL / 3600));
+      console.log(
+        '[Confidence Cache] Stored score for %s/%s (expires in %sh)',
+        owner,
+        repo,
+        Math.round(baseTTL / 3600)
+      );
     }
   } catch (error) {
     console.warn('[Confidence Cache] Error caching score:', error);
@@ -984,13 +1031,17 @@ async function cacheConfidenceScore(
  */
 function getConfidenceCacheTTL(owner: string, repo: string): number {
   // More active/popular repositories get shorter cache times
-  const isPopularRepo = ['microsoft', 'google', 'facebook', 'vercel', 'supabase'].includes(owner.toLowerCase());
-  const isLargeRepo = ['linux', 'kubernetes', 'tensorflow', 'react', 'angular', 'vue'].includes(repo.toLowerCase());
-  
+  const isPopularRepo = ['microsoft', 'google', 'facebook', 'vercel', 'supabase'].includes(
+    owner.toLowerCase()
+  );
+  const isLargeRepo = ['linux', 'kubernetes', 'tensorflow', 'react', 'angular', 'vue'].includes(
+    repo.toLowerCase()
+  );
+
   if (isPopularRepo || isLargeRepo) {
     return 1800; // 30 minutes for very active repos
   }
-  
+
   return 3600; // 1 hour default cache time
 }
 
@@ -1004,19 +1055,19 @@ export async function invalidateConfidenceCache(
 ): Promise<void> {
   try {
     const { supabase } = await import('../supabase');
-    
+
     let query = supabase
       .from('repository_confidence_cache')
       .delete()
       .eq('repository_owner', owner)
       .eq('repository_name', repo);
-    
+
     if (timeRangeDays) {
       query = query.eq('time_range_days', timeRangeDays);
     }
-    
+
     const { error } = await query;
-    
+
     if (error) {
       console.warn(`[Confidence Cache] Error invalidating cache for ${owner}/${repo}:`, error);
     } else {

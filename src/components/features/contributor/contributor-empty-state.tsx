@@ -1,63 +1,42 @@
 import { Trophy, Users, Calendar, TrendingUp } from '@/components/ui/icon';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 interface EmptyStateProps {
-  type: "no_data" | "no_activity" | "minimal_activity" | "loading_error";
+  type: 'no_data' | 'no_activity' | 'minimal_activity' | 'loading_error';
   message?: string;
   suggestion?: string;
   className?: string;
 }
 
-export function ContributorEmptyState({
-  type,
-  message,
-  suggestion,
-  className,
-}: EmptyStateProps) {
+export function ContributorEmptyState({ type, message, suggestion, className }: EmptyStateProps) {
   const getEmptyStateContent = () => {
     switch (type) {
-      case "no_data":
+      case 'no_data':
         return {
-          icon: (
-            <Users
-              className="h-16 w-16 text-gray-400 dark:text-gray-500"
-              aria-hidden="true"
-            />
-          ),
-          title: "No Contributor Data Available",
-          description:
-            message ||
-            "We couldn't find any contributor data for this repository.",
-          suggestionText:
-            suggestion ||
-            "Make sure the repository has some activity and try again.",
-          severity: "info" as const,
-          bgColor:
-            "from-gray-50 to-slate-50 dark:from-gray-900 dark:to-slate-900",
+          icon: <Users className="h-16 w-16 text-gray-400 dark:text-gray-500" aria-hidden="true" />,
+          title: 'No Contributor Data Available',
+          description: message || "We couldn't find any contributor data for this repository.",
+          suggestionText: suggestion || 'Make sure the repository has some activity and try again.',
+          severity: 'info' as const,
+          bgColor: 'from-gray-50 to-slate-50 dark:from-gray-900 dark:to-slate-900',
         };
 
-      case "no_activity":
+      case 'no_activity':
         return {
           icon: (
-            <Calendar
-              className="h-16 w-16 text-blue-400 dark:text-blue-500"
-              aria-hidden="true"
-            />
+            <Calendar className="h-16 w-16 text-blue-400 dark:text-blue-500" aria-hidden="true" />
           ),
-          title: "No Activity This Month",
-          description:
-            message || "No contributor activity found for the current period.",
+          title: 'No Activity This Month',
+          description: message || 'No contributor activity found for the current period.',
           suggestionText:
-            suggestion ||
-            "Check back later as contributors start making contributions this month.",
-          severity: "info" as const,
-          bgColor:
-            "from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30",
+            suggestion || 'Check back later as contributors start making contributions this month.',
+          severity: 'info' as const,
+          bgColor: 'from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30',
         };
 
-      case "minimal_activity":
+      case 'minimal_activity':
         return {
           icon: (
             <TrendingUp
@@ -65,52 +44,33 @@ export function ContributorEmptyState({
               aria-hidden="true"
             />
           ),
-          title: "Limited Activity",
-          description:
-            message || "There's been minimal contributor activity this month.",
+          title: 'Limited Activity',
+          description: message || "There's been minimal contributor activity this month.",
           suggestionText:
-            suggestion ||
-            "The leaderboard will be more meaningful as more contributors join.",
-          severity: "warning" as const,
-          bgColor:
-            "from-yellow-50 to-orange-50 dark:from-yellow-950/30 dark:to-orange-950/30",
+            suggestion || 'The leaderboard will be more meaningful as more contributors join.',
+          severity: 'warning' as const,
+          bgColor: 'from-yellow-50 to-orange-50 dark:from-yellow-950/30 dark:to-orange-950/30',
         };
 
-      case "loading_error":
+      case 'loading_error':
         return {
-          icon: (
-            <Trophy
-              className="h-16 w-16 text-red-400 dark:text-red-500"
-              aria-hidden="true"
-            />
-          ),
-          title: "Unable to Load Contributor Data",
-          description:
-            message ||
-            "We encountered an error while loading contributor information.",
+          icon: <Trophy className="h-16 w-16 text-red-400 dark:text-red-500" aria-hidden="true" />,
+          title: 'Unable to Load Contributor Data',
+          description: message || 'We encountered an error while loading contributor information.',
           suggestionText:
-            suggestion ||
-            "Please try refreshing the page or check your network connection.",
-          severity: "error" as const,
-          bgColor:
-            "from-red-50 to-pink-50 dark:from-red-950/30 dark:to-pink-950/30",
+            suggestion || 'Please try refreshing the page or check your network connection.',
+          severity: 'error' as const,
+          bgColor: 'from-red-50 to-pink-50 dark:from-red-950/30 dark:to-pink-950/30',
         };
 
       default:
         return {
-          icon: (
-            <Users
-              className="h-16 w-16 text-gray-400 dark:text-gray-500"
-              aria-hidden="true"
-            />
-          ),
-          title: "No Data Available",
-          description:
-            "Unable to display contributor information at this time.",
-          suggestionText: "Please try again later.",
-          severity: "info" as const,
-          bgColor:
-            "from-gray-50 to-slate-50 dark:from-gray-900 dark:to-slate-900",
+          icon: <Users className="h-16 w-16 text-gray-400 dark:text-gray-500" aria-hidden="true" />,
+          title: 'No Data Available',
+          description: 'Unable to display contributor information at this time.',
+          suggestionText: 'Please try again later.',
+          severity: 'info' as const,
+          bgColor: 'from-gray-50 to-slate-50 dark:from-gray-900 dark:to-slate-900',
         };
     }
   };
@@ -120,68 +80,57 @@ export function ContributorEmptyState({
   return (
     <Card
       className={cn(
-        "w-full transition-all duration-300",
-        "border border-gray-200 dark:border-gray-800",
-        "shadow-sm hover:shadow-md",
+        'w-full transition-all duration-300',
+        'border border-gray-200 dark:border-gray-800',
+        'shadow-sm hover:shadow-md',
         className
       )}
-      role={content.severity === "error" ? "alert" : "status"}
-      aria-live={content.severity === "error" ? "assertive" : "polite"}
+      role={content.severity === 'error' ? 'alert' : 'status'}
+      aria-live={content.severity === 'error' ? 'assertive' : 'polite'}
     >
       <CardHeader>
         <CardTitle className="flex items-center gap-3 text-xl font-bold">
           <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-gray-400 to-gray-500">
             <Trophy className="h-5 w-5 text-white" aria-hidden="true" />
           </div>
-          <span className="text-gray-900 dark:text-gray-100">
-            Contributor of the Month
-          </span>
+          <span className="text-gray-900 dark:text-gray-100">Contributor of the Month</span>
         </CardTitle>
       </CardHeader>
 
       <CardContent>
         <div
-          className={cn(
-            "text-center py-12 px-6 rounded-xl",
-            "bg-gradient-to-br",
-            content.bgColor
-          )}
+          className={cn('text-center py-12 px-6 rounded-xl', 'bg-gradient-to-br', content.bgColor)}
         >
           {/* Icon with animated background */}
           <div
             className={cn(
-              "flex justify-center mb-6 relative",
-              "before:absolute before:inset-0 before:rounded-full",
-              "before:bg-gradient-to-br before:from-white/20 before:to-transparent",
-              "before:blur-xl before:scale-150",
-              content.severity === "warning" && "animate-pulse"
+              'flex justify-center mb-6 relative',
+              'before:absolute before:inset-0 before:rounded-full',
+              'before:bg-gradient-to-br before:from-white/20 before:to-transparent',
+              'before:blur-xl before:scale-150',
+              content.severity === 'warning' && 'animate-pulse'
             )}
           >
             <div
               className={cn(
-                "relative z-10 p-4 rounded-full",
-                "bg-primary-white-glass dark:bg-primary-white-glass-dark",
-                "backdrop-blur-sm border border-white/20 dark:border-gray-700/20",
-                "shadow-lg"
+                'relative z-10 p-4 rounded-full',
+                'bg-primary-white-glass dark:bg-primary-white-glass-dark',
+                'backdrop-blur-sm border border-white/20 dark:border-gray-700/20',
+                'shadow-lg'
               )}
             >
               {content.icon}
             </div>
           </div>
 
-          <h3
-            className={cn(
-              "text-xl font-bold mb-3",
-              "text-gray-900 dark:text-gray-100"
-            )}
-          >
+          <h3 className={cn('text-xl font-bold mb-3', 'text-gray-900 dark:text-gray-100')}>
             {content.title}
           </h3>
 
           <p
             className={cn(
-              "text-gray-600 dark:text-gray-400 mb-6 max-w-md mx-auto",
-              "leading-relaxed"
+              'text-gray-600 dark:text-gray-400 mb-6 max-w-md mx-auto',
+              'leading-relaxed'
             )}
           >
             {content.description}
@@ -190,28 +139,25 @@ export function ContributorEmptyState({
           {content.suggestionText && (
             <div
               className={cn(
-                "max-w-md mx-auto p-4 rounded-lg",
-                "bg-primary-white-glass dark:bg-primary-white-glass-dark",
-                "backdrop-blur-sm border border-white/30 dark:border-gray-700/30",
-                "shadow-sm"
+                'max-w-md mx-auto p-4 rounded-lg',
+                'bg-primary-white-glass dark:bg-primary-white-glass-dark',
+                'backdrop-blur-sm border border-white/30 dark:border-gray-700/30',
+                'shadow-sm'
               )}
             >
               <Badge
                 className={cn(
-                  "mb-3 px-3 py-1 font-semibold",
-                  content.severity === "error" &&
-                    "bg-red-500 hover:bg-red-600 text-white",
-                  content.severity === "warning" &&
-                    "bg-yellow-500 hover:bg-yellow-600 text-white",
-                  content.severity === "info" &&
-                    "bg-blue-500 hover:bg-blue-600 text-white"
+                  'mb-3 px-3 py-1 font-semibold',
+                  content.severity === 'error' && 'bg-red-500 hover:bg-red-600 text-white',
+                  content.severity === 'warning' && 'bg-yellow-500 hover:bg-yellow-600 text-white',
+                  content.severity === 'info' && 'bg-blue-500 hover:bg-blue-600 text-white'
                 )}
               >
-                {content.severity === "error"
-                  ? "⚠️ Error"
-                  : content.severity === "warning"
-                  ? "💡 Note"
-                  : "✨ Tip"}
+                {content.severity === 'error'
+                  ? '⚠️ Error'
+                  : content.severity === 'warning'
+                    ? '💡 Note'
+                    : '✨ Tip'}
               </Badge>
               <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
                 {content.suggestionText}
@@ -249,13 +195,10 @@ export function MinimalActivityDisplay({
   className,
 }: MinimalActivityDisplayProps) {
   const totalContributors = contributors.length;
-  const totalActivity = contributors.reduce(
-    (sum, c) => sum + c.activity.totalScore,
-    0
-  );
+  const totalActivity = contributors.reduce((sum, c) => sum + c.activity.totalScore, 0);
 
   return (
-    <Card className={cn("w-full", className)}>
+    <Card className={cn('w-full', className)}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <TrendingUp className="h-5 w-5 text-yellow-500" />
@@ -266,8 +209,8 @@ export function MinimalActivityDisplay({
             Getting Started
           </Badge>
           <span className="text-xs text-gray-600 dark:text-gray-400">
-            {totalContributors} contributor{totalContributors !== 1 ? "s" : ""}{" "}
-            • {totalActivity} total points
+            {totalContributors} contributor{totalContributors !== 1 ? 's' : ''} • {totalActivity}{' '}
+            total points
           </span>
         </div>
       </CardHeader>
@@ -282,9 +225,8 @@ export function MinimalActivityDisplay({
                   Early Month Activity Detected
                 </h4>
                 <p className="text-sm text-yellow-700 dark:text-yellow-300">
-                  We're tracking some initial contributor activity. The
-                  leaderboard will become more competitive as the month
-                  progresses.
+                  We're tracking some initial contributor activity. The leaderboard will become more
+                  competitive as the month progresses.
                 </p>
               </div>
             </div>

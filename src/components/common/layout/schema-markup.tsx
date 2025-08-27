@@ -1,11 +1,11 @@
-import { Helmet } from "react-helmet-async";
-import { 
-  generateSchemaMarkup, 
+import { Helmet } from 'react-helmet-async';
+import {
+  generateSchemaMarkup,
   getPlatformSchemas,
   type Organization,
   type SoftwareApplication,
-  type WebSite
-} from "@/lib/schema-org";
+  type WebSite,
+} from '@/lib/schema-org';
 
 interface SchemaMarkupProps {
   /**
@@ -24,14 +24,11 @@ interface SchemaMarkupProps {
  * Automatically includes platform-level schemas (SoftwareApplication, WebSite, Organization)
  * and allows for additional page-specific schemas
  */
-export function SchemaMarkup({ 
-  additionalSchemas = [], 
-  includePlatformSchemas = true 
+export function SchemaMarkup({
+  additionalSchemas = [],
+  includePlatformSchemas = true,
 }: SchemaMarkupProps) {
-  const schemas = [
-    ...(includePlatformSchemas ? getPlatformSchemas() : []),
-    ...additionalSchemas
-  ];
+  const schemas = [...(includePlatformSchemas ? getPlatformSchemas() : []), ...additionalSchemas];
 
   if (schemas.length === 0) {
     return null;
@@ -41,9 +38,7 @@ export function SchemaMarkup({
 
   return (
     <Helmet>
-      <script type="application/ld+json">
-        {jsonLd}
-      </script>
+      <script type="application/ld+json">{jsonLd}</script>
     </Helmet>
   );
 }

@@ -1,19 +1,14 @@
-import { PullRequestActivity } from "@/lib/types";
-import { OptimizedAvatar } from "@/components/ui/optimized-avatar";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { ContributorHoverCard } from "../contributor";
-import { useContext, useMemo, useState, useEffect } from "react"
+import { PullRequestActivity } from '@/lib/types';
+import { OptimizedAvatar } from '@/components/ui/optimized-avatar';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ContributorHoverCard } from '../contributor';
+import { useContext, useMemo, useState, useEffect } from 'react';
 import { BotIcon } from '@/components/ui/icon';
-import { RepoStatsContext } from "@/lib/repo-stats-context";
-import { createContributorStats, createContributorStatsWithOrgs } from "@/lib/contributor-utils";
-import { useContributorRole } from "@/hooks/useContributorRoles";
-import { SpamProbabilityBadge } from "@/components/features/spam/spam-indicator";
-import type { ContributorStats } from "@/lib/types";
+import { RepoStatsContext } from '@/lib/repo-stats-context';
+import { createContributorStats, createContributorStatsWithOrgs } from '@/lib/contributor-utils';
+import { useContributorRole } from '@/hooks/useContributorRoles';
+import { SpamProbabilityBadge } from '@/components/features/spam/spam-indicator';
+import type { ContributorStats } from '@/lib/types';
 
 interface SpamAwareActivityItemProps {
   activity: PullRequestActivity;
@@ -23,18 +18,13 @@ export function SpamAwareActivityItem({ activity }: SpamAwareActivityItemProps) 
   const { type, user, pullRequest, repository, timestamp } = activity;
   const { stats } = useContext(RepoStatsContext);
   const [contributorData, setContributorData] = useState<ContributorStats | null>(null);
-  
+
   // Get the contributor's role
   const { role } = useContributorRole(repository.owner, repository.name, user.id);
 
   // Create initial contributor data
   const initialContributorData = useMemo(() => {
-    return createContributorStats(
-      stats.pullRequests,
-      user.name,
-      user.avatar,
-      user.id
-    );
+    return createContributorStats(stats.pullRequests, user.name, user.avatar, user.id);
   }, [user, stats.pullRequests]);
 
   // Fetch organizations data
@@ -59,50 +49,50 @@ export function SpamAwareActivityItem({ activity }: SpamAwareActivityItemProps) 
   const activityCounts = useMemo(() => {
     let reviews = 0;
     let comments = 0;
-    
-    stats.pullRequests.forEach(pr => {
+
+    stats.pullRequests.forEach((pr) => {
       if (pr.reviews) {
-        reviews += pr.reviews.filter(review => review.user.login === user.name).length;
+        reviews += pr.reviews.filter((review) => review.user.login === user.name).length;
       }
       if (pr.comments) {
-        comments += pr.comments.filter(comment => comment.user.login === user.name).length;
+        comments += pr.comments.filter((comment) => comment.user.login === user.name).length;
       }
     });
-    
+
     return { reviews, comments };
   }, [stats.pullRequests, user.name]);
 
   const getActivityColor = () => {
     switch (type) {
-      case "opened":
-        return "bg-emerald-500";
-      case "closed":
-        return "bg-red-500";
-      case "merged":
-        return "bg-purple-500";
-      case "reviewed":
-        return "bg-blue-500";
-      case "commented":
-        return "bg-gray-500";
+      case 'opened':
+        return 'bg-emerald-500';
+      case 'closed':
+        return 'bg-red-500';
+      case 'merged':
+        return 'bg-purple-500';
+      case 'reviewed':
+        return 'bg-blue-500';
+      case 'commented':
+        return 'bg-gray-500';
       default:
-        return "bg-gray-400";
+        return 'bg-gray-400';
     }
   };
 
   const getActivityText = () => {
     switch (type) {
-      case "opened":
-        return "opened";
-      case "closed":
-        return "closed";
-      case "merged":
-        return "merged";
-      case "reviewed":
-        return "reviewed";
-      case "commented":
-        return "commented on";
+      case 'opened':
+        return 'opened';
+      case 'closed':
+        return 'closed';
+      case 'merged':
+        return 'merged';
+      case 'reviewed':
+        return 'reviewed';
+      case 'commented':
+        return 'commented on';
       default:
-        return "updated";
+        return 'updated';
     }
   };
 
@@ -110,16 +100,16 @@ export function SpamAwareActivityItem({ activity }: SpamAwareActivityItemProps) 
     const date = new Date(dateString);
     const now = new Date();
     const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-    
-    if (diffInMinutes < 1) return "just now";
+
+    if (diffInMinutes < 1) return 'just now';
     if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-    
+
     const diffInHours = Math.floor(diffInMinutes / 60);
     if (diffInHours < 24) return `${diffInHours}h ago`;
-    
+
     const diffInDays = Math.floor(diffInHours / 24);
     if (diffInDays < 7) return `${diffInDays}d ago`;
-    
+
     return date.toLocaleDateString();
   };
 
@@ -142,7 +132,7 @@ export function SpamAwareActivityItem({ activity }: SpamAwareActivityItemProps) 
           commentsCount={activityCounts.comments}
         >
           <div className="relative">
-            <OptimizedAvatar 
+            <OptimizedAvatar
               className="h-8 w-8 cursor-pointer"
               src={user.avatar}
               alt={user.name}
@@ -180,11 +170,11 @@ export function SpamAwareActivityItem({ activity }: SpamAwareActivityItemProps) 
           >
             #{pullRequest.number} {pullRequest.title}
           </a>
-          
+
           {/* Spam probability badge - always show, even for unanalyzed PRs */}
           <SpamProbabilityBadge spamScore={pullRequest.spamScore ?? null} />
         </div>
-        
+
         <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
           <span>{formatRelativeTime(timestamp)}</span>
           {pullRequest.additions !== undefined && pullRequest.deletions !== undefined && (

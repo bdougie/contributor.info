@@ -18,11 +18,12 @@ export const usePRActivityStore = create<PRActivityState>()(
       includeBots: true,
       setSelectedTypes: (types) => set({ selectedTypes: types }),
       setIncludeBots: (include) => set({ includeBots: include }),
-      toggleActivityType: (type) => set((state) => ({
-        selectedTypes: state.selectedTypes.includes(type)
-          ? state.selectedTypes.filter((t) => t !== type)
-          : [...state.selectedTypes, type]
-      })),
+      toggleActivityType: (type) =>
+        set((state) => ({
+          selectedTypes: state.selectedTypes.includes(type)
+            ? state.selectedTypes.filter((t) => t !== type)
+            : [...state.selectedTypes, type],
+        })),
     }),
     {
       name: 'pr-activity-settings',

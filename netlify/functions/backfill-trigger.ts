@@ -13,7 +13,7 @@ export const handler: Handler = async (event) => {
       statusCode: 405,
       headers: {
         ...headers,
-        'Allow': 'POST',
+        Allow: 'POST',
       },
       body: JSON.stringify({ error: 'Method not allowed' }),
     };
@@ -24,9 +24,9 @@ export const handler: Handler = async (event) => {
     return {
       statusCode: 503,
       headers,
-      body: JSON.stringify({ 
-        error: 'Service unavailable', 
-        message: 'Manual backfill service is not configured' 
+      body: JSON.stringify({
+        error: 'Service unavailable',
+        message: 'Manual backfill service is not configured',
       }),
     };
   }
@@ -34,14 +34,14 @@ export const handler: Handler = async (event) => {
   try {
     // Parse request body
     const body = JSON.parse(event.body || '{}');
-    
+
     if (!body.repository) {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ 
-          error: 'Bad request', 
-          message: 'Repository is required' 
+        body: JSON.stringify({
+          error: 'Bad request',
+          message: 'Repository is required',
         }),
       };
     }
@@ -51,9 +51,9 @@ export const handler: Handler = async (event) => {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ 
-          error: 'Bad request', 
-          message: 'Invalid repository format. Expected: owner/name' 
+        body: JSON.stringify({
+          error: 'Bad request',
+          message: 'Invalid repository format. Expected: owner/name',
         }),
       };
     }
@@ -73,16 +73,16 @@ export const handler: Handler = async (event) => {
     };
   } catch (error) {
     console.error('[backfill-trigger] Error:', error);
-    
+
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     const statusCode = errorMessage.includes('Rate limit') ? 429 : 500;
-    
+
     return {
       statusCode,
       headers,
-      body: JSON.stringify({ 
-        error: 'Internal server error', 
-        message: errorMessage 
+      body: JSON.stringify({
+        error: 'Internal server error',
+        message: errorMessage,
       }),
     };
   }

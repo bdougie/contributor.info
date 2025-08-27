@@ -14,45 +14,49 @@ const rateLimiter = {
   events: new Map<string, number[]>(),
   maxEventsPerMinute: 60,
   maxEventsPerHour: 1000,
-  
+
   canSendEvent(eventName: string): boolean {
     const now = Date.now();
     const oneMinuteAgo = now - 60000;
     const oneHourAgo = now - 3600000;
-    
+
     // Get or create event history
     if (!this.events.has(eventName)) {
       this.events.set(eventName, []);
     }
-    
+
     const eventHistory = this.events.get(eventName)!;
-    
+
     // Clean old events
-    const recentEvents = eventHistory.filter(time => time > oneHourAgo);
+    const recentEvents = eventHistory.filter((time) => time > oneHourAgo);
     this.events.set(eventName, recentEvents);
-    
+
     // Check rate limits
-    const eventsInLastMinute = recentEvents.filter(time => time > oneMinuteAgo).length;
+    const eventsInLastMinute = recentEvents.filter((time) => time > oneMinuteAgo).length;
     const eventsInLastHour = recentEvents.length;
-    
+
     if (eventsInLastMinute >= this.maxEventsPerMinute) {
-      console.warn(`[PostHog] Rate limit exceeded for ${eventName}: ${eventsInLastMinute} events in last minute`);
+      console.warn(
+        `[PostHog] Rate limit exceeded for ${eventName}: ${eventsInLastMinute} events in last minute`
+      );
       return false;
     }
-    
+
     if (eventsInLastHour >= this.maxEventsPerHour) {
-      console.warn(`[PostHog] Rate limit exceeded for ${eventName}: ${eventsInLastHour} events in last hour`);
+      console.warn(
+        `[PostHog] Rate limit exceeded for ${eventName}: ${eventsInLastHour} events in last hour`
+      );
       return false;
     }
-    
+
     // Record this event
     recentEvents.push(now);
     return true;
   },
-  
+
   reset() {
     this.events.clear();
-  }
+  },
 };
 
 // Security validation
@@ -60,12 +64,12 @@ function validateApiKey(key: string): boolean {
   // PostHog API keys should match expected format
   // Format: phc_[alphanumeric string]
   const posthogKeyPattern = /^phc_[A-Za-z0-9]{32,}$/;
-  
+
   if (!posthogKeyPattern.test(key)) {
     console.error('[PostHog] Invalid API key format. PostHog keys should start with "phc_"');
     return false;
   }
-  
+
   return true;
 }
 
@@ -88,7 +92,7 @@ const POSTHOG_CONFIG = {
   loaded: () => {
     // Callback when PostHog is loaded
     console.log('PostHog loaded successfully');
-  }
+  },
 };
 
 /**
@@ -99,7 +103,7 @@ function shouldEnablePostHog(): boolean {
   if (!env.POSTHOG_KEY) {
     return false;
   }
-  
+
   // Validate API key format for security
   if (!validateApiKey(env.POSTHOG_KEY)) {
     return false;
@@ -137,21 +141,23 @@ async function loadPostHog(): Promise<any> {
   }
 
   // Start loading PostHog
-  posthogLoadPromise = import('posthog-js').then(({ default: posthog }) => {
-    // Initialize PostHog with minimal configuration
-    posthog.init(env.POSTHOG_KEY!, POSTHOG_CONFIG);
-    
-    // Set a unique ID for the user (using a hash of user agent + timestamp)
-    const distinctId = generateDistinctId();
-    posthog.identify(distinctId);
-    
-    posthogInstance = posthog;
-    return posthog;
-  }).catch(error => {
-    console.error('Failed to load PostHog:', error);
-    posthogLoadPromise = null; // Reset so we can retry
-    return null;
-  });
+  posthogLoadPromise = import('posthog-js')
+    .then(({ default: posthog }) => {
+      // Initialize PostHog with minimal configuration
+      posthog.init(env.POSTHOG_KEY!, POSTHOG_CONFIG);
+
+      // Set a unique ID for the user (using a hash of user agent + timestamp)
+      const distinctId = generateDistinctId();
+      posthog.identify(distinctId);
+
+      posthogInstance = posthog;
+      return posthog;
+    })
+    .catch((error) => {
+      console.error('Failed to load PostHog:', error);
+      posthogLoadPromise = null; // Reset so we can retry
+      return null;
+    });
 
   return posthogLoadPromise;
 }
@@ -184,7 +190,7 @@ export async function trackWebVitals(metrics: {
   if (!shouldEnablePostHog()) {
     return;
   }
-  
+
   // Apply rate limiting
   if (!rateLimiter.canSendEvent('web_vitals')) {
     return;
@@ -229,14 +235,14 @@ export async function trackWebVitals(metrics: {
  * Track custom performance metrics
  */
 export async function trackPerformanceMetric(
-  name: string, 
-  value: number, 
+  name: string,
+  value: number,
   metadata?: Record<string, any>
 ): Promise<void> {
   if (!shouldEnablePostHog()) {
     return;
   }
-  
+
   // Apply rate limiting
   if (!rateLimiter.canSendEvent('performance_metric')) {
     return;
@@ -273,7 +279,7 @@ export async function batchTrackWebVitals(
   if (!shouldEnablePostHog()) {
     return;
   }
-  
+
   // Apply rate limiting for batch events
   if (!rateLimiter.canSendEvent('web_vitals_batch')) {
     return;
@@ -291,7 +297,7 @@ export async function batchTrackWebVitals(
     };
 
     // Add each metric to the summary
-    metrics.forEach(metric => {
+    metrics.forEach((metric) => {
       summary[`${metric.name.toLowerCase()}_value`] = metric.value;
       summary[`${metric.name.toLowerCase()}_rating`] = metric.rating;
       if (metric.delta !== undefined) {
@@ -329,7 +335,7 @@ export function disablePostHogInDev(): void {
  */
 export async function optOutOfPostHog(): Promise<void> {
   localStorage.setItem('posthog_opt_out', 'true');
-  
+
   // If PostHog is loaded, call its opt out method
   if (posthogInstance) {
     posthogInstance.opt_out_capturing();
@@ -341,7 +347,7 @@ export async function optOutOfPostHog(): Promise<void> {
  */
 export async function optInToPostHog(): Promise<void> {
   localStorage.removeItem('posthog_opt_out');
-  
+
   // If PostHog is loaded, call its opt in method
   if (posthogInstance) {
     posthogInstance.opt_in_capturing();
@@ -379,17 +385,17 @@ export function getRateLimiterStats(): {
   const eventCounts = new Map<string, number>();
   const now = Date.now();
   const oneMinuteAgo = now - 60000;
-  
+
   rateLimiter.events.forEach((times, eventName) => {
-    const recentCount = times.filter(time => time > oneMinuteAgo).length;
+    const recentCount = times.filter((time) => time > oneMinuteAgo).length;
     eventCounts.set(eventName, recentCount);
   });
-  
+
   return {
     eventCounts,
     limits: {
       perMinute: rateLimiter.maxEventsPerMinute,
-      perHour: rateLimiter.maxEventsPerHour
-    }
+      perHour: rateLimiter.maxEventsPerHour,
+    },
   };
 }

@@ -1,16 +1,26 @@
-import { useEffect, useState } from "react"
-import { 
-  BarChart3, Share2, TrendingUp, Users, RefreshCw, 
-  Globe, GitPullRequest, MessageSquare, Eye, Database,
-  Activity, Clock, Star
+import { useEffect, useState } from 'react';
+import {
+  BarChart3,
+  Share2,
+  TrendingUp,
+  Users,
+  RefreshCw,
+  Globe,
+  GitPullRequest,
+  MessageSquare,
+  Eye,
+  Database,
+  Activity,
+  Clock,
+  Star,
 } from '@/components/ui/icon';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { supabase } from "@/lib/supabase";
-import { TIME_PERIODS, DATA_LIMITS, ERROR_MESSAGES } from "@/lib/constants/analytics";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { supabase } from '@/lib/supabase';
+import { TIME_PERIODS, DATA_LIMITS, ERROR_MESSAGES } from '@/lib/constants/analytics';
 
 interface ShareEvent {
   id: string;
@@ -71,7 +81,7 @@ export function AdminAnalyticsDashboard() {
   const fetchSystemMetrics = async () => {
     try {
       const thirtyDaysAgo = new Date(Date.now() - TIME_PERIODS.THIRTY_DAYS_MS).toISOString();
-      
+
       // Optimize with parallel queries
       const [
         repoResult,
@@ -81,49 +91,76 @@ export function AdminAnalyticsDashboard() {
         recentCommentsResult,
         totalPRsResult,
         totalReviewsResult,
-        totalCommentsResult
+        totalCommentsResult,
       ] = await Promise.allSettled([
         supabase.from('repositories').select('id, full_name').eq('is_active', true),
         supabase.from('contributors').select('id').eq('is_active', true).eq('is_bot', false),
-        supabase.from('pull_requests').select('id, repository_id, author_id').gte('created_at', thirtyDaysAgo),
+        supabase
+          .from('pull_requests')
+          .select('id, repository_id, author_id')
+          .gte('created_at', thirtyDaysAgo),
         supabase.from('reviews').select('id, reviewer_id').gte('submitted_at', thirtyDaysAgo),
         supabase.from('comments').select('id, commenter_id').gte('created_at', thirtyDaysAgo),
         supabase.from('pull_requests').select('*', { count: 'exact', head: true }),
         supabase.from('reviews').select('*', { count: 'exact', head: true }),
-        supabase.from('comments').select('*', { count: 'exact', head: true })
+        supabase.from('comments').select('*', { count: 'exact', head: true }),
       ]);
 
       // Handle errors and extract data
-      const repoStats = repoResult.status === 'fulfilled' && !repoResult.value.error ? repoResult.value.data : [];
-      const contributorStats = contributorResult.status === 'fulfilled' && !contributorResult.value.error ? contributorResult.value.data : [];
-      const prStats = recentPRsResult.status === 'fulfilled' && !recentPRsResult.value.error ? recentPRsResult.value.data : [];
-      const reviewStats = recentReviewsResult.status === 'fulfilled' && !recentReviewsResult.value.error ? recentReviewsResult.value.data : [];
-      const commentStats = recentCommentsResult.status === 'fulfilled' && !recentCommentsResult.value.error ? recentCommentsResult.value.data : [];
-      
-      const totalPRs = totalPRsResult.status === 'fulfilled' && !totalPRsResult.value.error ? totalPRsResult.value.count : 0;
-      const totalReviews = totalReviewsResult.status === 'fulfilled' && !totalReviewsResult.value.error ? totalReviewsResult.value.count : 0;
-      const totalComments = totalCommentsResult.status === 'fulfilled' && !totalCommentsResult.value.error ? totalCommentsResult.value.count : 0;
+      const repoStats =
+        repoResult.status === 'fulfilled' && !repoResult.value.error ? repoResult.value.data : [];
+      const contributorStats =
+        contributorResult.status === 'fulfilled' && !contributorResult.value.error
+          ? contributorResult.value.data
+          : [];
+      const prStats =
+        recentPRsResult.status === 'fulfilled' && !recentPRsResult.value.error
+          ? recentPRsResult.value.data
+          : [];
+      const reviewStats =
+        recentReviewsResult.status === 'fulfilled' && !recentReviewsResult.value.error
+          ? recentReviewsResult.value.data
+          : [];
+      const commentStats =
+        recentCommentsResult.status === 'fulfilled' && !recentCommentsResult.value.error
+          ? recentCommentsResult.value.data
+          : [];
+
+      const totalPRs =
+        totalPRsResult.status === 'fulfilled' && !totalPRsResult.value.error
+          ? totalPRsResult.value.count
+          : 0;
+      const totalReviews =
+        totalReviewsResult.status === 'fulfilled' && !totalReviewsResult.value.error
+          ? totalReviewsResult.value.count
+          : 0;
+      const totalComments =
+        totalCommentsResult.status === 'fulfilled' && !totalCommentsResult.value.error
+          ? totalCommentsResult.value.count
+          : 0;
 
       // Calculate active users safely
       const activeUsers = new Set([
-        ...(prStats || []).map(pr => pr.author_id).filter(Boolean),
-        ...(reviewStats || []).map(r => r.reviewer_id).filter(Boolean),
-        ...(commentStats || []).map(c => c.commenter_id).filter(Boolean)
+        ...(prStats || []).map((pr) => pr.author_id).filter(Boolean),
+        ...(reviewStats || []).map((r) => r.reviewer_id).filter(Boolean),
+        ...(commentStats || []).map((c) => c.commenter_id).filter(Boolean),
       ]);
 
       // Find most active repository safely
-      const repoActivity = (prStats || []).reduce((acc, pr) => {
-        if (pr.repository_id) {
-          acc[pr.repository_id] = (acc[pr.repository_id] || 0) + 1;
-        }
-        return acc;
-      }, {} as Record<string, number>);
+      const repoActivity = (prStats || []).reduce(
+        (acc, pr) => {
+          if (pr.repository_id) {
+            acc[pr.repository_id] = (acc[pr.repository_id] || 0) + 1;
+          }
+          return acc;
+        },
+        {} as Record<string, number>
+      );
 
-      const mostActiveRepoId = Object.entries(repoActivity)
-        .sort(([,a], [,b]) => b - a)[0]?.[0];
+      const mostActiveRepoId = Object.entries(repoActivity).sort(([, a], [, b]) => b - a)[0]?.[0];
 
-      const mostActiveRepo = mostActiveRepoId 
-        ? repoStats?.find(repo => repo.id === mostActiveRepoId)?.full_name || 'Unknown Repository'
+      const mostActiveRepo = mostActiveRepoId
+        ? repoStats?.find((repo) => repo.id === mostActiveRepoId)?.full_name || 'Unknown Repository'
         : null;
 
       setSystemMetrics({
@@ -137,10 +174,9 @@ export function AdminAnalyticsDashboard() {
         recentActivity: [
           { type: 'Pull Requests', count: prStats?.length || 0 },
           { type: 'Reviews', count: reviewStats?.length || 0 },
-          { type: 'Comments', count: commentStats?.length || 0 }
-        ]
+          { type: 'Comments', count: commentStats?.length || 0 },
+        ],
       });
-
     } catch (err) {
       // Log to error reporting service in production instead of console
       if (process.env.NODE_ENV === 'development') {
@@ -168,35 +204,39 @@ export function AdminAnalyticsDashboard() {
           topRepositories: [],
           topChartTypes: [],
           sharesByAction: [],
-          recentShares: []
+          recentShares: [],
         });
         return;
       }
 
       // Validate and sanitize data
-      const validatedEvents = shareEvents.filter(event => 
-        event && 
-        typeof event.created_at === 'string' &&
-        typeof event.chart_type === 'string' &&
-        typeof event.action === 'string'
+      const validatedEvents = shareEvents.filter(
+        (event) =>
+          event &&
+          typeof event.created_at === 'string' &&
+          typeof event.chart_type === 'string' &&
+          typeof event.action === 'string'
       );
 
       // Calculate metrics
       const totalShares = validatedEvents.length;
       const uniqueUsers = new Set(
         validatedEvents
-          .filter(e => e.user_id && typeof e.user_id === 'string')
-          .map(e => e.user_id)
+          .filter((e) => e.user_id && typeof e.user_id === 'string')
+          .map((e) => e.user_id)
       );
       const totalUsers = uniqueUsers.size;
 
       // Top repositories with null safety
-      const repoShares = validatedEvents.reduce((acc, event) => {
-        if (event.repository && typeof event.repository === 'string') {
-          acc[event.repository] = (acc[event.repository] || 0) + 1;
-        }
-        return acc;
-      }, {} as Record<string, number>);
+      const repoShares = validatedEvents.reduce(
+        (acc, event) => {
+          if (event.repository && typeof event.repository === 'string') {
+            acc[event.repository] = (acc[event.repository] || 0) + 1;
+          }
+          return acc;
+        },
+        {} as Record<string, number>
+      );
 
       const topRepositories = Object.entries(repoShares)
         .map(([repository, shares]) => ({
@@ -204,32 +244,38 @@ export function AdminAnalyticsDashboard() {
           shares: shares as number,
           users: new Set(
             validatedEvents
-              .filter(e => e.repository === repository && e.user_id)
-              .map(e => e.user_id)
-          ).size
+              .filter((e) => e.repository === repository && e.user_id)
+              .map((e) => e.user_id)
+          ).size,
         }))
         .sort((a, b) => b.shares - a.shares)
         .slice(0, DATA_LIMITS.TOP_REPOSITORIES_DISPLAY);
 
       // Top chart types
-      const chartTypeShares = validatedEvents.reduce((acc, event) => {
-        if (event.chart_type) {
-          acc[event.chart_type] = (acc[event.chart_type] || 0) + 1;
-        }
-        return acc;
-      }, {} as Record<string, number>);
+      const chartTypeShares = validatedEvents.reduce(
+        (acc, event) => {
+          if (event.chart_type) {
+            acc[event.chart_type] = (acc[event.chart_type] || 0) + 1;
+          }
+          return acc;
+        },
+        {} as Record<string, number>
+      );
 
       const topChartTypes = Object.entries(chartTypeShares)
         .map(([chart_type, shares]) => ({ chart_type, shares: shares as number }))
         .sort((a, b) => b.shares - a.shares);
 
       // Shares by action
-      const actionShares = validatedEvents.reduce((acc, event) => {
-        if (event.action) {
-          acc[event.action] = (acc[event.action] || 0) + 1;
-        }
-        return acc;
-      }, {} as Record<string, number>);
+      const actionShares = validatedEvents.reduce(
+        (acc, event) => {
+          if (event.action) {
+            acc[event.action] = (acc[event.action] || 0) + 1;
+          }
+          return acc;
+        },
+        {} as Record<string, number>
+      );
 
       const sharesByAction = Object.entries(actionShares)
         .map(([action, shares]) => ({ action, shares: shares as number }))
@@ -241,9 +287,8 @@ export function AdminAnalyticsDashboard() {
         topRepositories,
         topChartTypes,
         sharesByAction,
-        recentShares: validatedEvents.slice(0, DATA_LIMITS.RECENT_SHARES_DISPLAY)
+        recentShares: validatedEvents.slice(0, DATA_LIMITS.RECENT_SHARES_DISPLAY),
       });
-
     } catch (err) {
       // Log to error reporting service in production instead of console
       if (process.env.NODE_ENV === 'development') {
@@ -256,12 +301,9 @@ export function AdminAnalyticsDashboard() {
   const fetchAnalytics = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
-      await Promise.all([
-        fetchSystemMetrics(),
-        fetchShareMetrics()
-      ]);
+      await Promise.all([fetchSystemMetrics(), fetchShareMetrics()]);
     } catch (err) {
       // Log to error reporting service in production instead of console
       if (process.env.NODE_ENV === 'development') {
@@ -286,7 +328,7 @@ export function AdminAnalyticsDashboard() {
             <Skeleton className="h-4 w-96" />
           </div>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
-            {[1, 2, 3, 4].map(i => (
+            {[1, 2, 3, 4].map((i) => (
               <Skeleton key={i} className="h-32" />
             ))}
           </div>
@@ -324,9 +366,7 @@ export function AdminAnalyticsDashboard() {
               <BarChart3 className="h-8 w-8" />
               Admin Analytics Dashboard
             </h1>
-            <p className="text-muted-foreground">
-              Comprehensive analytics and system metrics
-            </p>
+            <p className="text-muted-foreground">Comprehensive analytics and system metrics</p>
           </div>
           <Button onClick={fetchAnalytics} variant="outline" className="gap-2">
             <RefreshCw className="h-4 w-4" />
@@ -352,9 +392,7 @@ export function AdminAnalyticsDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{systemMetrics?.totalRepositories || 0}</div>
-                  <p className="text-xs text-muted-foreground">
-                    Active repositories tracked
-                  </p>
+                  <p className="text-xs text-muted-foreground">Active repositories tracked</p>
                 </CardContent>
               </Card>
 
@@ -365,9 +403,7 @@ export function AdminAnalyticsDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{systemMetrics?.totalContributors || 0}</div>
-                  <p className="text-xs text-muted-foreground">
-                    Active non-bot contributors
-                  </p>
+                  <p className="text-xs text-muted-foreground">Active non-bot contributors</p>
                 </CardContent>
               </Card>
 
@@ -378,9 +414,7 @@ export function AdminAnalyticsDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{systemMetrics?.totalPullRequests || 0}</div>
-                  <p className="text-xs text-muted-foreground">
-                    Total pull requests tracked
-                  </p>
+                  <p className="text-xs text-muted-foreground">Total pull requests tracked</p>
                 </CardContent>
               </Card>
 
@@ -390,10 +424,10 @@ export function AdminAnalyticsDashboard() {
                   <Activity className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{systemMetrics?.activeUsersLast30Days || 0}</div>
-                  <p className="text-xs text-muted-foreground">
-                    Users active in last 30 days
-                  </p>
+                  <div className="text-2xl font-bold">
+                    {systemMetrics?.activeUsersLast30Days || 0}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Users active in last 30 days</p>
                 </CardContent>
               </Card>
             </div>
@@ -462,9 +496,7 @@ export function AdminAnalyticsDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{shareMetrics?.totalShares || 0}</div>
-                  <p className="text-xs text-muted-foreground">
-                    All time sharing events
-                  </p>
+                  <p className="text-xs text-muted-foreground">All time sharing events</p>
                 </CardContent>
               </Card>
 
@@ -475,9 +507,7 @@ export function AdminAnalyticsDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{shareMetrics?.totalUsers || 0}</div>
-                  <p className="text-xs text-muted-foreground">
-                    Unique users sharing content
-                  </p>
+                  <p className="text-xs text-muted-foreground">Unique users sharing content</p>
                 </CardContent>
               </Card>
 
@@ -523,21 +553,23 @@ export function AdminAnalyticsDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {shareMetrics?.topRepositories?.slice(0, DATA_LIMITS.REPOSITORY_LIST_DISPLAY).map((repo, index) => (
-                      <div key={repo.repository} className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="text-xs">
-                            #{index + 1}
-                          </Badge>
-                          <span className="text-sm truncate max-w-32">{repo.repository}</span>
+                    {shareMetrics?.topRepositories
+                      ?.slice(0, DATA_LIMITS.REPOSITORY_LIST_DISPLAY)
+                      .map((repo, index) => (
+                        <div key={repo.repository} className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-xs">
+                              #{index + 1}
+                            </Badge>
+                            <span className="text-sm truncate max-w-32">{repo.repository}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <span>{repo.shares} shares</span>
+                            <span>•</span>
+                            <span>{repo.users} users</span>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <span>{repo.shares} shares</span>
-                          <span>•</span>
-                          <span>{repo.users} users</span>
-                        </div>
-                      </div>
-                    )) || <p className="text-sm text-muted-foreground">No data available</p>}
+                      )) || <p className="text-sm text-muted-foreground">No data available</p>}
                   </div>
                 </CardContent>
               </Card>
@@ -599,7 +631,8 @@ export function AdminAnalyticsDashboard() {
               <Eye className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
               <h3 className="text-lg font-semibold mb-2">Referral Traffic Analytics</h3>
               <p className="text-muted-foreground mb-4">
-                Track referrer domains, landing page performance, traffic trends, and session metrics.
+                Track referrer domains, landing page performance, traffic trends, and session
+                metrics.
               </p>
               <Badge variant="outline">Coming Soon</Badge>
               <p className="text-sm text-muted-foreground mt-2">
@@ -613,7 +646,8 @@ export function AdminAnalyticsDashboard() {
               <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
               <h3 className="text-lg font-semibold mb-2">LLM Citation Analytics</h3>
               <p className="text-muted-foreground mb-4">
-                Track LLM/AI citations, confidence scores, platform breakdown, and repository citation rates.
+                Track LLM/AI citations, confidence scores, platform breakdown, and repository
+                citation rates.
               </p>
               <Badge variant="outline">Coming Soon</Badge>
               <p className="text-sm text-muted-foreground mt-2">

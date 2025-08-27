@@ -1,8 +1,8 @@
-import type { Meta, StoryObj } from "@storybook/react";
-import { ContributorIcon } from "./ContributorIcon";
-import { LotteryIcon } from "./LotteryIcon";
-import { OdometerIcon } from "./OdometerIcon";
-import { YoloIcon } from "./YoloIcon";
+import type { Meta, StoryObj } from '@storybook/react';
+import { ContributorIcon } from './ContributorIcon';
+import { LotteryIcon } from './LotteryIcon';
+import { OdometerIcon } from './OdometerIcon';
+import { YoloIcon } from './YoloIcon';
 
 const AllIcons = () => (
   <div className="grid grid-cols-2 gap-8 p-8">
@@ -26,18 +26,17 @@ const AllIcons = () => (
 );
 
 const meta = {
-  title: "Icons/All Icons",
+  title: 'Icons/All Icons',
   component: AllIcons,
   parameters: {
-    layout: "centered",
+    layout: 'centered',
     docs: {
       description: {
-        component:
-          "Collection of custom SVG icons used throughout the application.",
+        component: 'Collection of custom SVG icons used throughout the application.',
       },
     },
   },
-  tags: ["autodocs"],
+  tags: ['autodocs'],
 } satisfies Meta<typeof AllIcons>;
 
 export default meta;

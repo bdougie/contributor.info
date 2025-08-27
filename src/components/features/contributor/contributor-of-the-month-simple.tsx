@@ -9,8 +9,8 @@ import {
   getLeaderboardDisplayContent,
   getCardAccessibility,
   getTrophyIconProps,
-} from "@/lib/contributor-of-month-config";
-import type { ContributorRanking } from "@/lib/types";
+} from '@/lib/contributor-of-month-config';
+import type { ContributorRanking } from '@/lib/types';
 
 interface ContributorOfTheMonthSimpleProps {
   ranking: ContributorRanking | null;
@@ -30,7 +30,7 @@ interface ContributorOfTheMonthSimpleProps {
   renderCardDescription?: (props: { children: React.ReactNode }) => React.ReactNode;
   renderBadge?: (props: {
     children: React.ReactNode;
-    variant: "default" | "secondary";
+    variant: 'default' | 'secondary';
   }) => React.ReactNode;
   renderIcon?: (props: {
     name: string;
@@ -82,115 +82,128 @@ export function ContributorOfTheMonthSimple({
   const state = getComponentState(ranking, loading || false, error || null);
 
   // Default renderers for testing
-  const cardRenderer = renderCard || (({ children, className, role, ariaLabelledBy }) => (
-    <div 
-      data-testid="card" 
-      className={className} 
-      role={role} 
-      aria-labelledby={ariaLabelledBy}
-    >
-      {children}
-    </div>
-  ));
+  const cardRenderer =
+    renderCard ||
+    (({ children, className, role, ariaLabelledBy }) => (
+      <div data-testid="card" className={className} role={role} aria-labelledby={ariaLabelledBy}>
+        {children}
+      </div>
+    ));
 
-  const cardHeaderRenderer = renderCardHeader || (({ children }) => (
-    <div data-testid="card-header">{children}</div>
-  ));
+  const cardHeaderRenderer =
+    renderCardHeader || (({ children }) => <div data-testid="card-header">{children}</div>);
 
-  const cardContentRenderer = renderCardContent || (({ children, className }) => (
-    <div data-testid="card-content" className={className}>{children}</div>
-  ));
+  const cardContentRenderer =
+    renderCardContent ||
+    (({ children, className }) => (
+      <div data-testid="card-content" className={className}>
+        {children}
+      </div>
+    ));
 
-  const cardTitleRenderer = renderCardTitle || (({ children, id }) => (
-    <h2 data-testid="card-title" id={id}>{children}</h2>
-  ));
+  const cardTitleRenderer =
+    renderCardTitle ||
+    (({ children, id }) => (
+      <h2 data-testid="card-title" id={id}>
+        {children}
+      </h2>
+    ));
 
-  const cardDescriptionRenderer = renderCardDescription || (({ children }) => (
-    <p data-testid="card-description">{children}</p>
-  ));
+  const cardDescriptionRenderer =
+    renderCardDescription || (({ children }) => <p data-testid="card-description">{children}</p>);
 
-  const badgeRenderer = renderBadge || (({ children, variant }) => (
-    <span data-testid="badge" data-variant={variant}>{children}</span>
-  ));
+  const badgeRenderer =
+    renderBadge ||
+    (({ children, variant }) => (
+      <span data-testid="badge" data-variant={variant}>
+        {children}
+      </span>
+    ));
 
-  const iconRenderer = renderIcon || (({ name, className, ariaLabel, role }) => (
-    <span 
-      data-testid={`icon-${name}`} 
-      data-classname={className}
-      aria-label={ariaLabel}
-      role={role}
-    >
-      {name}
-    </span>
-  ));
+  const iconRenderer =
+    renderIcon ||
+    (({ name, className, ariaLabel, role }) => (
+      <span
+        data-testid={`icon-${name}`}
+        data-classname={className}
+        aria-label={ariaLabel}
+        role={role}
+      >
+        {name}
+      </span>
+    ));
 
-  const contributorCardRenderer = renderContributorCard || (({ contributor, isWinner, showRank }) => (
-    <div 
-      data-testid="contributor-card"
-      data-login={contributor.login}
-      data-winner={isWinner}
-      data-show-rank={showRank}
-    >
-      {contributor.login}
-    </div>
-  ));
+  const contributorCardRenderer =
+    renderContributorCard ||
+    (({ contributor, isWinner, showRank }) => (
+      <div
+        data-testid="contributor-card"
+        data-login={contributor.login}
+        data-winner={isWinner}
+        data-show-rank={showRank}
+      >
+        {contributor.login}
+      </div>
+    ));
 
-  const skeletonRenderer = renderSkeleton || (({ className, phase, contributorCount }) => (
-    <div 
-      data-testid="skeleton" 
-      className={className}
-      data-phase={phase}
-      data-count={contributorCount}
-    >
-      Loading...
-    </div>
-  ));
+  const skeletonRenderer =
+    renderSkeleton ||
+    (({ className, phase, contributorCount }) => (
+      <div
+        data-testid="skeleton"
+        className={className}
+        data-phase={phase}
+        data-count={contributorCount}
+      >
+        Loading...
+      </div>
+    ));
 
-  const emptyStateRenderer = renderEmptyState || (({ type, message, className }) => (
-    <div 
-      data-testid="empty-state" 
-      data-type={type}
-      className={className}
-    >
-      {message || `Empty state: ${type}`}
-    </div>
-  ));
+  const emptyStateRenderer =
+    renderEmptyState ||
+    (({ type, message, className }) => (
+      <div data-testid="empty-state" data-type={type} className={className}>
+        {message || `Empty state: ${type}`}
+      </div>
+    ));
 
-  const minimalActivityRenderer = renderMinimalActivity || (({ contributors, month, year, className }) => (
-    <div 
-      data-testid="minimal-activity" 
-      className={className}
-      data-month={month}
-      data-year={year}
-      data-count={contributors.length}
-    >
-      Minimal activity for {month} {year}
-    </div>
-  ));
+  const minimalActivityRenderer =
+    renderMinimalActivity ||
+    (({ contributors, month, year, className }) => (
+      <div
+        data-testid="minimal-activity"
+        className={className}
+        data-month={month}
+        data-year={year}
+        data-count={contributors.length}
+      >
+        Minimal activity for {month} {year}
+      </div>
+    ));
 
   // Handle different states
   switch (state.type) {
-    case "loading":
+    case 'loading':
       return skeletonRenderer({
         className,
-        phase: "leaderboard",
+        phase: 'leaderboard',
         contributorCount: 5,
       });
 
-    case "error":
+    case 'error':
       return emptyStateRenderer({
-        type: "loading_error",
+        type: 'loading_error',
         message: state.message,
         className,
       });
 
-    case "no_activity":
+    case 'no_activity':
       return emptyStateRenderer({
-        type: "no_activity",
+        type: 'no_activity',
         className,
       });
 
-    case "minimal_activity":
+    case 'minimal_activity':
       return minimalActivityRenderer({
         contributors: state.contributors,
         month: state.month,
@@ -198,14 +211,14 @@ export function ContributorOfTheMonthSimple({
         className,
       });
 
-    case "winner_phase": {
+    case 'winner_phase': {
       const displayContent = getDisplayContent(state.ranking, true);
       const winnerContent = getWinnerDisplayContent(state.ranking, state.topContributors);
       const cardAccessibility = getCardAccessibility();
       const trophyProps = getTrophyIconProps();
 
       return cardRenderer({
-        className: `w-full ${className || ""}`,
+        className: `w-full ${className || ''}`,
         ...cardAccessibility,
         children: (
           <>
@@ -214,7 +227,7 @@ export function ContributorOfTheMonthSimple({
                 <div className="flex items-center justify-between">
                   <div>
                     {cardTitleRenderer({
-                      id: "contributor-heading",
+                      id: 'contributor-heading',
                       children: displayContent.title,
                     })}
                     {cardDescriptionRenderer({
@@ -229,7 +242,7 @@ export function ContributorOfTheMonthSimple({
               ),
             })}
             {cardContentRenderer({
-              className: "space-y-6",
+              className: 'space-y-6',
               children: (
                 <div className="space-y-6">
                   {/* Winner Display */}
@@ -241,9 +254,7 @@ export function ContributorOfTheMonthSimple({
                         ariaLabel: trophyProps.ariaLabel,
                         role: trophyProps.role,
                       })}
-                      <h3 className="text-lg font-semibold">
-                        {winnerContent.winnerTitle}
-                      </h3>
+                      <h3 className="text-lg font-semibold">{winnerContent.winnerTitle}</h3>
                     </div>
                     {state.ranking.winner && (
                       <div className="max-w-sm mx-auto">
@@ -287,13 +298,13 @@ export function ContributorOfTheMonthSimple({
       });
     }
 
-    case "leaderboard_phase": {
+    case 'leaderboard_phase': {
       const displayContent = getDisplayContent(state.ranking, false);
       const leaderboardContent = getLeaderboardDisplayContent(state.ranking, state.topContributors);
       const cardAccessibility = getCardAccessibility();
 
       return cardRenderer({
-        className: `w-full ${className || ""}`,
+        className: `w-full ${className || ''}`,
         ...cardAccessibility,
         children: (
           <>
@@ -302,7 +313,7 @@ export function ContributorOfTheMonthSimple({
                 <div className="flex items-center justify-between">
                   <div>
                     {cardTitleRenderer({
-                      id: "contributor-heading",
+                      id: 'contributor-heading',
                       children: displayContent.title,
                     })}
                     {cardDescriptionRenderer({
@@ -317,14 +328,14 @@ export function ContributorOfTheMonthSimple({
               ),
             })}
             {cardContentRenderer({
-              className: "space-y-4",
+              className: 'space-y-4',
               children: (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       {iconRenderer({
                         name: leaderboardContent.iconName,
-                        className: "h-4 w-4 text-muted-foreground",
+                        className: 'h-4 w-4 text-muted-foreground',
                       })}
                       <span className="text-sm text-muted-foreground">
                         {leaderboardContent.activeCount}
@@ -360,7 +371,7 @@ export function ContributorOfTheMonthSimple({
 
     default:
       return emptyStateRenderer({
-        type: "unknown",
+        type: 'unknown',
         className,
       });
   }

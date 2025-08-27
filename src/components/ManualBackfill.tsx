@@ -30,7 +30,11 @@ export function ManualBackfill({ repository, onComplete }: ManualBackfillProps) 
   // Poll for job status if we have an active job
   useEffect(() => {
     if (!currentJob || !currentJob.job_id) return;
-    if (jobStatus?.status === 'completed' || jobStatus?.status === 'failed' || jobStatus?.status === 'cancelled') {
+    if (
+      jobStatus?.status === 'completed' ||
+      jobStatus?.status === 'failed' ||
+      jobStatus?.status === 'cancelled'
+    ) {
       return;
     }
 
@@ -40,7 +44,7 @@ export function ManualBackfill({ repository, onComplete }: ManualBackfillProps) 
         if (response.ok) {
           const status = await response.json();
           setJobStatus(status);
-          
+
           if (status.status === 'completed') {
             setError(null);
             if (onComplete) {
@@ -61,7 +65,7 @@ export function ManualBackfill({ repository, onComplete }: ManualBackfillProps) 
   const handleTriggerBackfill = async () => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const response = await fetch('/api/backfill/trigger', {
         method: 'POST',
@@ -95,12 +99,12 @@ export function ManualBackfill({ repository, onComplete }: ManualBackfillProps) 
 
       // Set up SSE for real-time updates
       const sse = new EventSource(`/api/backfill/events?job_id=${job.job_id}`);
-      
+
       sse.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
           if (data.job_id === job.job_id) {
-            setJobStatus(prev => ({
+            setJobStatus((prev) => ({
               ...prev!,
               ...data,
             }));
@@ -126,14 +130,14 @@ export function ManualBackfill({ repository, onComplete }: ManualBackfillProps) 
 
   const handleCancelJob = async () => {
     if (!currentJob) return;
-    
+
     try {
       const response = await fetch(`/api/backfill/cancel/${currentJob.job_id}`, {
         method: 'POST',
       });
 
       if (response.ok) {
-        setJobStatus(prev => prev ? { ...prev, status: 'cancelled' } : null);
+        setJobStatus((prev) => (prev ? { ...prev, status: 'cancelled' } : null));
         if (eventSource) {
           eventSource.close();
           setEventSource(null);
@@ -146,7 +150,7 @@ export function ManualBackfill({ repository, onComplete }: ManualBackfillProps) 
 
   const getStatusIcon = () => {
     if (!jobStatus) return null;
-    
+
     switch (jobStatus.status) {
       case 'queued':
         return <AlertCircle className="h-4 w-4 text-yellow-500" />;
@@ -165,7 +169,7 @@ export function ManualBackfill({ repository, onComplete }: ManualBackfillProps) 
 
   const getStatusColor = () => {
     if (!jobStatus) return 'text-gray-500';
-    
+
     switch (jobStatus.status) {
       case 'queued':
         return 'text-yellow-600';
@@ -182,8 +186,8 @@ export function ManualBackfill({ repository, onComplete }: ManualBackfillProps) 
     }
   };
 
-  const isJobActive = jobStatus && 
-    (jobStatus.status === 'queued' || jobStatus.status === 'running');
+  const isJobActive =
+    jobStatus && (jobStatus.status === 'queued' || jobStatus.status === 'running');
 
   return (
     <Card>
@@ -208,7 +212,7 @@ export function ManualBackfill({ repository, onComplete }: ManualBackfillProps) 
                 Status: {jobStatus.status.charAt(0).toUpperCase() + jobStatus.status.slice(1)}
               </span>
             </div>
-            
+
             {jobStatus.message && (
               <p className="text-sm text-muted-foreground">{jobStatus.message}</p>
             )}
@@ -233,11 +237,7 @@ export function ManualBackfill({ repository, onComplete }: ManualBackfillProps) 
 
         <div className="flex gap-2">
           {!isJobActive ? (
-            <Button
-              onClick={handleTriggerBackfill}
-              disabled={isLoading}
-              className="w-full"
-            >
+            <Button onClick={handleTriggerBackfill} disabled={isLoading} className="w-full">
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -251,19 +251,15 @@ export function ManualBackfill({ repository, onComplete }: ManualBackfillProps) 
               )}
             </Button>
           ) : (
-            <Button
-              onClick={handleCancelJob}
-              variant="outline"
-              className="w-full"
-            >
+            <Button onClick={handleCancelJob} variant="outline" className="w-full">
               Cancel Job
             </Button>
           )}
         </div>
 
         <p className="text-xs text-muted-foreground">
-          This will fetch and process the last 30 days of pull requests, issues, and contributor data
-          for {repository}.
+          This will fetch and process the last 30 days of pull requests, issues, and contributor
+          data for {repository}.
         </p>
       </CardContent>
     </Card>

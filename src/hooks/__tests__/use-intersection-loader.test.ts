@@ -11,16 +11,18 @@ let observerInstance: {
   takeRecords: ReturnType<typeof vi.fn>;
 };
 
-const mockIntersectionObserver = vi.fn().mockImplementation((callback: IntersectionObserverCallback) => {
-  intersectionCallback = callback;
-  observerInstance = {
-    observe: vi.fn(),
-    unobserve: vi.fn(),
-    disconnect: vi.fn(),
-    takeRecords: vi.fn(() => []),
-  };
-  return observerInstance;
-});
+const mockIntersectionObserver = vi
+  .fn()
+  .mockImplementation((callback: IntersectionObserverCallback) => {
+    intersectionCallback = callback;
+    observerInstance = {
+      observe: vi.fn(),
+      unobserve: vi.fn(),
+      disconnect: vi.fn(),
+      takeRecords: vi.fn(() => []),
+    };
+    return observerInstance;
+  });
 
 // Helper to simulate intersection events
 const simulateIntersection = (isIntersecting: boolean, intersectionRatio = 0) => {
@@ -29,12 +31,14 @@ const simulateIntersection = (isIntersecting: boolean, intersectionRatio = 0) =>
       isIntersecting,
       intersectionRatio,
       boundingClientRect: { top: 0, left: 0, bottom: 100, right: 100, width: 100, height: 100 },
-      intersectionRect: isIntersecting ? { top: 0, left: 0, bottom: 100, right: 100, width: 100, height: 100 } : { top: 0, left: 0, bottom: 0, right: 0, width: 0, height: 0 },
+      intersectionRect: isIntersecting
+        ? { top: 0, left: 0, bottom: 100, right: 100, width: 100, height: 100 }
+        : { top: 0, left: 0, bottom: 0, right: 0, width: 0, height: 0 },
       rootBounds: { top: 0, left: 0, bottom: 1000, right: 1000, width: 1000, height: 1000 },
       target: document.createElement('div'),
       time: Date.now(),
     } as IntersectionObserverEntry;
-    
+
     intersectionCallback([mockEntry], observerInstance as any);
   }
 };
@@ -54,7 +58,7 @@ Object.defineProperty(window, 'requestIdleCallback', {
 global.IntersectionObserver = mockIntersectionObserver;
 
 // Helper for consistent waitFor configuration
-const waitForWithTimeout = (callback: () => void, options = {}) => 
+const waitForWithTimeout = (callback: () => void, options = {}) =>
   waitFor(callback, { timeout: 10000, ...options });
 
 describe('useIntersectionLoader', () => {
@@ -114,9 +118,7 @@ describe('useIntersectionLoader', () => {
   describe('Loading behavior', () => {
     it('should load immediately when loadImmediately is true', async () => {
       const loadFn = vi.fn().mockResolvedValue('test data');
-      const { result } = renderHook(() => 
-        useIntersectionLoader(loadFn, { loadImmediately: true })
-      );
+      const { result } = renderHook(() => useIntersectionLoader(loadFn, { loadImmediately: true }));
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(true);
@@ -195,9 +197,7 @@ describe('useIntersectionLoader', () => {
     it('should handle delay option', async () => {
       vi.useFakeTimers();
       const loadFn = vi.fn().mockResolvedValue('test data');
-      const { result } = renderHook(() => 
-        useIntersectionLoader(loadFn, { delay: 1000 })
-      );
+      const { result } = renderHook(() => useIntersectionLoader(loadFn, { delay: 1000 }));
 
       simulateIntersection(true);
 
@@ -231,13 +231,11 @@ describe('useIntersectionLoader', () => {
 
     it('should support continuous loading', async () => {
       const loadFn = vi.fn().mockResolvedValue('test data');
-      const { result } = renderHook(() => 
-        useIntersectionLoader(loadFn, { continuous: true })
-      );
+      const { result } = renderHook(() => useIntersectionLoader(loadFn, { continuous: true }));
 
       // First intersection
       simulateIntersection(true);
-      
+
       await waitFor(() => {
         expect(loadFn).toHaveBeenCalledTimes(1);
       });
@@ -257,7 +255,7 @@ describe('useIntersectionLoader', () => {
 
       // First intersection
       simulateIntersection(true);
-      
+
       await waitFor(() => {
         expect(loadFn).toHaveBeenCalledTimes(1);
       });
@@ -314,30 +312,34 @@ describe('useIntersectionLoader', () => {
     });
 
     it('should prevent state updates after unmount', async () => {
-      const loadFn = vi.fn().mockImplementation(() => 
-        new Promise(resolve => setTimeout(() => resolve('test data'), 100))
-      );
-      
+      const loadFn = vi
+        .fn()
+        .mockImplementation(
+          () => new Promise((resolve) => setTimeout(() => resolve('test data'), 100))
+        );
+
       const { result, unmount } = renderHook(() => useIntersectionLoader(loadFn));
 
       // Start loading
       simulateIntersection(true);
-      
+
       // Unmount before loading completes
       unmount();
 
       // Wait for the async operation to complete
-      await new Promise(resolve => setTimeout(resolve, 150));
+      await new Promise((resolve) => setTimeout(resolve, 150));
 
       // State should not have been updated after unmount
       expect(result.current.data).toBe(null);
     });
 
     it('should prevent multiple simultaneous loads', async () => {
-      const loadFn = vi.fn().mockImplementation(() => 
-        new Promise(resolve => setTimeout(() => resolve('test data'), 100))
-      );
-      
+      const loadFn = vi
+        .fn()
+        .mockImplementation(
+          () => new Promise((resolve) => setTimeout(() => resolve('test data'), 100))
+        );
+
       const { result } = renderHook(() => useIntersectionLoader(loadFn));
 
       // Trigger multiple loads

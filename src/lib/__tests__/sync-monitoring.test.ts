@@ -9,15 +9,15 @@ vi.mock('../supabase', () => ({
       select: vi.fn(() => ({
         gte: vi.fn(() => ({
           data: [],
-          error: null
+          error: null,
         })),
         eq: vi.fn(() => ({
           data: [],
-          error: null
-        }))
-      }))
-    }))
-  }
+          error: null,
+        })),
+      })),
+    })),
+  },
 }));
 
 describe('SyncMonitoring', () => {
@@ -34,11 +34,11 @@ describe('SyncMonitoring', () => {
       { executionTime: 20 },
       { executionTime: 30 },
       { executionTime: 40 },
-      { executionTime: 50 }
+      { executionTime: 50 },
     ];
-    
+
     SyncMonitoring['metrics'] = testMetrics as any;
-    
+
     const percentiles = SyncMonitoring.getPercentiles();
     expect(percentiles.p50).toBe(30);
   });
@@ -58,7 +58,7 @@ describe('SyncMonitoring', () => {
       if (i === 0) {
         SyncMonitoring['metrics'] = [];
       }
-      
+
       SyncMonitoring['metrics'].push({
         functionName: 'test',
         repository: 'test/repo',
@@ -66,21 +66,21 @@ describe('SyncMonitoring', () => {
         success: true,
         timedOut: false,
         router: 'supabase',
-        timestamp: new Date()
+        timestamp: new Date(),
       });
-      
+
       // Manually apply the limiting logic that recordSync would do
       if (SyncMonitoring['metrics'].length > 100) {
         SyncMonitoring['metrics'].shift();
       }
     }
-    
+
     expect(SyncMonitoring['metrics'].length).toBeLessThanOrEqual(100);
   });
 
   it('should format log message correctly', () => {
     const consoleSpy = vi.spyOn(console, 'log');
-    
+
     SyncMonitoring['logMetrics']({
       functionName: 'test-func',
       repository: 'test/repo',
@@ -90,23 +90,17 @@ describe('SyncMonitoring', () => {
       errors: 2,
       timedOut: false,
       router: 'supabase',
-      timestamp: new Date()
+      timestamp: new Date(),
     });
-    
-    expect(consoleSpy).toHaveBeenCalledWith(
-      expect.stringContaining('✅')
-    );
-    expect(consoleSpy).toHaveBeenCalledWith(
-      expect.stringContaining('SUPABASE')
-    );
-    expect(consoleSpy).toHaveBeenCalledWith(
-      expect.stringContaining('15.50s')
-    );
+
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('✅'));
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('SUPABASE'));
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('15.50s'));
   });
 
   it('should alert on timeout', () => {
     const warnSpy = vi.spyOn(console, 'warn');
-    
+
     SyncMonitoring['alertTimeout']({
       functionName: 'slow-func',
       repository: 'big/repo',
@@ -114,11 +108,9 @@ describe('SyncMonitoring', () => {
       success: false,
       timedOut: true,
       router: 'netlify',
-      timestamp: new Date()
+      timestamp: new Date(),
     });
-    
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining('TIMEOUT ALERT')
-    );
+
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('TIMEOUT ALERT'));
   });
 });

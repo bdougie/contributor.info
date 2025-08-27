@@ -12,7 +12,7 @@ export interface QuadrantData {
   percentage: number;
   description: string;
   color: string;
-  debugFiles?: Array<{title: string, number: number, extensions: string[]}>; // Debug info
+  debugFiles?: Array<{ title: string; number: number; extensions: string[] }>; // Debug info
 }
 
 /**
@@ -25,71 +25,76 @@ export function useDistribution(pullRequests: PullRequest[]) {
     refinement: 0,
     new: 0,
     refactoring: 0,
-    maintenance: 0
+    maintenance: 0,
   });
-  
+
   const [chartData, setChartData] = useState<QuadrantData[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
   // Debug information storage
-  const [debugInfo, setDebugInfo] = useState<Record<string, Array<{title: string, number: number, extensions: string[]}>>>({
+  const [debugInfo, setDebugInfo] = useState<
+    Record<string, Array<{ title: string; number: number; extensions: string[] }>>
+  >({
     refinement: [],
     new: [],
     refactoring: [],
-    maintenance: []
+    maintenance: [],
   });
-  
+
   // Quadrant descriptions and colors
   const quadrantInfo = {
     refinement: {
       label: 'Refinement',
       description: 'Improving existing features with careful changes',
-      color: '#4ade80' // green
+      color: '#4ade80', // green
     },
     new: {
       label: 'New Features',
       description: 'Adding new functionality and capabilities',
-      color: '#60a5fa' // blue
+      color: '#60a5fa', // blue
     },
     refactoring: {
       label: 'Refactoring',
       description: 'Restructuring code without changing behavior',
-      color: '#f97316' // orange
+      color: '#f97316', // orange
     },
     maintenance: {
       label: 'Maintenance',
       description: 'Bug fixes and routine upkeep',
-      color: '#a78bfa' // purple
-    }
+      color: '#a78bfa', // purple
+    },
   };
-  
+
   useEffect(() => {
     setLoading(true);
-    
+
     try {
       if (pullRequests.length === 0) {
         setChartData([]);
         setLoading(false);
         return;
       }
-      
+
       // Reset analyzer counts to ensure we're starting fresh
       ContributionAnalyzer.resetCounts();
-      
+
       // Debug tracking for PRs in each quadrant
-      const debugQuadrantPRs: Record<string, Array<{title: string, number: number, extensions: string[]}>> = {
+      const debugQuadrantPRs: Record<
+        string,
+        Array<{ title: string; number: number; extensions: string[] }>
+      > = {
         refinement: [],
         new: [],
         refactoring: [],
-        maintenance: []
+        maintenance: [],
       };
-      
+
       // Analyze each PR
-      pullRequests.forEach(pr => {
+      pullRequests.forEach((pr) => {
         // Extract file extensions from commits
         const extensions: string[] = [];
         if (pr.commits && pr.commits.length > 0) {
-          pr.commits.forEach(commit => {
+          pr.commits.forEach((commit) => {
             if (commit.language) {
               extensions.push(commit.language);
             }
@@ -98,37 +103,37 @@ export function useDistribution(pullRequests: PullRequest[]) {
           // Try to infer extensions from PR title
           const titleExtMatch = pr.title.match(/\.([\w]+)/g);
           if (titleExtMatch) {
-            titleExtMatch.forEach(ext => extensions.push(ext.substring(1)));
+            titleExtMatch.forEach((ext) => extensions.push(ext.substring(1)));
           }
         }
-        
+
         // Analyze PR - this will also increment the internal counts in ContributionAnalyzer
         const result = ContributionAnalyzer.analyze(pr);
-        
+
         // Store info for debugging
         debugQuadrantPRs[result.quadrant].push({
           title: pr.title,
           number: pr.number,
-          extensions: extensions.filter((v, i, a) => a.indexOf(v) === i) // Unique extensions
+          extensions: extensions.filter((v, i, a) => a.indexOf(v) === i), // Unique extensions
         });
       });
-      
+
       // Store debug info
       setDebugInfo(debugQuadrantPRs);
-      
+
       // Get the distribution and counts from the analyzer
       const newDistribution = ContributionAnalyzer.getDistribution();
       const newCounts = ContributionAnalyzer.getCounts();
-      
+
       // Analysis complete
-      
+
       // Update state with counts and distribution
       setDistribution(newDistribution);
       setQuadrantCounts(newCounts);
-      
+
       // Transform data for chart visualization
       const totalContributions = Object.values(newCounts).reduce((sum, count) => sum + count, 0);
-      
+
       const data = Object.entries(newCounts).map(([key, value]) => {
         const info = quadrantInfo[key as keyof typeof quadrantInfo];
         return {
@@ -138,10 +143,10 @@ export function useDistribution(pullRequests: PullRequest[]) {
           percentage: totalContributions > 0 ? (value / totalContributions) * 100 : 0,
           description: info.description,
           color: info.color,
-          debugFiles: debugQuadrantPRs[key] // Add debug info to chart data
+          debugFiles: debugQuadrantPRs[key], // Add debug info to chart data
         };
       });
-      
+
       setChartData(data);
       setError(null);
     } catch (err) {
@@ -150,31 +155,33 @@ export function useDistribution(pullRequests: PullRequest[]) {
       setLoading(false);
     }
   }, [pullRequests]);
-  
+
   /**
    * Returns the dominant quadrant (highest percentage)
    */
   const getDominantQuadrant = (): QuadrantData | null => {
     if (chartData.length === 0) return null;
-    return chartData.reduce((max, quadrant) => 
-      quadrant.value > max.value ? quadrant : max, chartData[0]);
+    return chartData.reduce(
+      (max, quadrant) => (quadrant.value > max.value ? quadrant : max),
+      chartData[0]
+    );
   };
-  
+
   /**
    * Calculate the total number of contributions analyzed
    */
   const getTotalContributions = (): number => {
     return Object.values(quadrantCounts).reduce((sum, count) => sum + count, 0);
   };
-  
-  return { 
-    distribution, 
+
+  return {
+    distribution,
     quadrantCounts,
     chartData,
     loading,
     error,
     debugInfo, // Expose debug info
     getDominantQuadrant,
-    getTotalContributions
+    getTotalContributions,
   };
 }

@@ -1,11 +1,6 @@
 import { Shield, AlertTriangle, XCircle, CheckCircle } from '@/components/ui/icon';
 import { Badge } from '@/components/ui/badge';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
 interface SpamIndicatorProps {
@@ -117,20 +112,14 @@ export function SpamIndicator({
       )}
     >
       <Icon className={cn(sizeClasses[size])} />
-      {showScore ? (
-        <span>Score: {spamScore}</span>
-      ) : (
-        <span>{styles.label}</span>
-      )}
+      {showScore ? <span>Score: {spamScore}</span> : <span>{styles.label}</span>}
     </Badge>
   );
 
   return (
     <TooltipProvider>
       <Tooltip>
-        <TooltipTrigger asChild>
-          {content}
-        </TooltipTrigger>
+        <TooltipTrigger asChild>{content}</TooltipTrigger>
         <TooltipContent>
           <div className="space-y-1">
             <p className="font-medium">Spam Detection Score: {spamScore}/100</p>
@@ -148,12 +137,12 @@ export function SpamIndicator({
 }
 
 // Compact version for use in lists
-export function SpamBadge({ 
-  spamScore, 
+export function SpamBadge({
+  spamScore,
   showScore = false,
-  className 
-}: { 
-  spamScore: number | null; 
+  className,
+}: {
+  spamScore: number | null;
   showScore?: boolean;
   className?: string;
 }) {
@@ -169,7 +158,7 @@ export function SpamBadge({
     if (showScore) {
       return `${spamScore}%`;
     }
-    
+
     if (spamScore <= 50) return '⚠️';
     if (spamScore <= 75) return '⚠️ Spam';
     return '🚫 Spam';
@@ -183,11 +172,11 @@ export function SpamBadge({
 }
 
 // Version that always shows the probability score
-export function SpamProbabilityBadge({ 
-  spamScore, 
-  className 
-}: { 
-  spamScore: number | null; 
+export function SpamProbabilityBadge({
+  spamScore,
+  className,
+}: {
+  spamScore: number | null;
   className?: string;
 }) {
   // Show "-" for unanalyzed PRs instead of hiding the badge

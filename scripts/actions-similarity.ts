@@ -2,12 +2,12 @@
 
 import { Octokit } from '@octokit/rest';
 import { generateIssueEmbedding } from '../app/services/issue-similarity';
-import { 
+import {
   calculateContentHash,
   findSimilarItemsByEmbedding,
   findAllSimilarPairs,
   withRateLimitHandling,
-  processBatch
+  processBatch,
 } from '../src/lib/similarity';
 import fs from 'fs';
 import path from 'path';
@@ -95,7 +95,7 @@ async function fetchRepositoryItems(
   try {
     // Fetch issues (excluding PRs) with rate limit handling
     console.log(`Fetching ${itemsPerType} issues...`);
-    const issuesResponse = await withRateLimitHandling(() => 
+    const issuesResponse = await withRateLimitHandling(() =>
       octokit.rest.issues.listForRepo({
         owner,
         repo,
@@ -107,8 +107,8 @@ async function fetchRepositoryItems(
     );
 
     // Filter out pull requests from issues
-    const issues = issuesResponse.data.filter(item => !item.pull_request);
-    
+    const issues = issuesResponse.data.filter((item) => !item.pull_request);
+
     for (const issue of issues) {
       items.push({
         number: issue.number,
@@ -148,24 +148,22 @@ async function fetchRepositoryItems(
 
     console.log(`Fetched ${items.length} items total`);
     return items;
-
   } catch (error) {
     console.error('Error fetching repository items:', error);
     throw error;
   }
 }
 
-
 /**
  * Generate embeddings for all items with parallel processing
  */
 async function generateEmbeddings(items: SimilarityItem[], concurrency: number = 5): Promise<void> {
   console.log(`Generating embeddings for ${items.length} items (concurrency: ${concurrency})...`);
-  
+
   const processor = async (item: SimilarityItem) => {
     try {
       console.log(`Processing ${item.type} #${item.number}: ${item.title.substring(0, 50)}...`);
-      
+
       item.embedding = await generateIssueEmbedding(item.title, item.body);
       item.contentHash = calculateContentHash(item.title, item.body);
     } catch (error) {
@@ -173,14 +171,14 @@ async function generateEmbeddings(items: SimilarityItem[], concurrency: number =
       // Continue with other items - don't throw
     }
   };
-  
+
   await processBatch(items, processor, {
     batchSize: concurrency,
     onProgress: (processed, total) => {
       if (processed % 10 === 0 || processed === total) {
         console.log(`Processed ${processed}/${total} items`);
       }
-    }
+    },
   });
   console.log('Embedding generation complete');
 }
@@ -201,13 +199,13 @@ function findSimilarItems(
   const results = findSimilarItemsByEmbedding(targetItem.embedding, allItems, {
     threshold,
     limit,
-    excludeItem: (item) => item.number === targetItem.number && item.type === targetItem.type
+    excludeItem: (item) => item.number === targetItem.number && item.type === targetItem.type,
   });
 
   // Convert to the expected format
-  return results.map(r => ({
+  return results.map((r) => ({
     item: r.item,
-    similarity: r.similarity
+    similarity: r.similarity,
   }));
 }
 
@@ -215,14 +213,7 @@ function findSimilarItems(
  * Process similarity check
  */
 async function processSimilarityCheck(options: ProcessingOptions): Promise<void> {
-  const {
-    owner,
-    repo,
-    maxItems = 100,
-    itemType,
-    itemNumber,
-    similarityThreshold = 0.85,
-  } = options;
+  const { owner, repo, maxItems = 100, itemType, itemNumber, similarityThreshold = 0.85 } = options;
 
   // Initialize GitHub API client
   const octokit = new Octokit({
@@ -243,12 +234,10 @@ async function processSimilarityCheck(options: ProcessingOptions): Promise<void>
 
     // Find the target item if specified
     let targetItem: SimilarityItem | undefined;
-    
+
     if (itemType && itemNumber) {
       const type = itemType === 'issues' ? 'issue' : 'pull_request';
-      targetItem = items.find(
-        item => item.number === itemNumber && item.type === type
-      );
+      targetItem = items.find((item) => item.number === itemNumber && item.type === type);
 
       if (!targetItem) {
         console.log(`Target ${type} #${itemNumber} not found in processed items`);
@@ -303,21 +292,16 @@ async function processSimilarityCheck(options: ProcessingOptions): Promise<void>
     if (targetItem) {
       // Find similar items for the specific target
       console.log(`Finding similar items for ${targetItem.type} #${targetItem.number}...`);
-      
-      const similarItems = findSimilarItems(
-        targetItem,
-        items,
-        similarityThreshold,
-        5
-      );
+
+      const similarItems = findSimilarItems(targetItem, items, similarityThreshold, 5);
 
       results.targetItem = {
         number: targetItem.number,
         title: targetItem.title,
         type: targetItem.type,
       };
-      
-      results.similarItems = similarItems.map(result => ({
+
+      results.similarItems = similarItems.map((result) => ({
         number: result.item.number,
         title: result.item.title,
         state: result.item.state,
@@ -330,17 +314,17 @@ async function processSimilarityCheck(options: ProcessingOptions): Promise<void>
     } else {
       // General analysis - find all high-similarity pairs
       console.log('Performing general similarity analysis...');
-      
+
       // Use the shared optimized function
       const topPairs = findAllSimilarPairs(items, {
         threshold: similarityThreshold,
-        maxPairs: 100
+        maxPairs: 100,
       });
-      
+
       results.similarityPairs = topPairs
         .sort((a, b) => b.similarity - a.similarity)
         .slice(0, 20) // Top 20 most similar pairs
-        .map(pair => ({
+        .map((pair) => ({
           item1: {
             number: pair.item1.number,
             title: pair.item1.title,
@@ -356,7 +340,9 @@ async function processSimilarityCheck(options: ProcessingOptions): Promise<void>
           similarity: pair.similarity,
         }));
 
-      console.log(`Found ${topPairs.length} similarity pairs above threshold (showing top ${Math.min(20, topPairs.length)})`);
+      console.log(
+        `Found ${topPairs.length} similarity pairs above threshold (showing top ${Math.min(20, topPairs.length)})`
+      );
     }
 
     // Save results for GitHub Actions to use
@@ -369,21 +355,22 @@ async function processSimilarityCheck(options: ProcessingOptions): Promise<void>
     console.log(`Repository: ${owner}/${repo}`);
     console.log(`Items processed: ${items.length}`);
     console.log(`Similarity threshold: ${similarityThreshold}`);
-    
+
     if (results.similarItems) {
       console.log(`Similar items found: ${results.similarItems.length}`);
       if (results.similarItems.length > 0) {
         console.log('Top matches:');
         results.similarItems.slice(0, 3).forEach((item: SimilarItemSummary) => {
-          console.log(`  - #${item.number}: ${item.title} (${Math.round(item.similarity * 100)}% similar)`);
+          console.log(
+            `  - #${item.number}: ${item.title} (${Math.round(item.similarity * 100)}% similar)`
+          );
         });
       }
     }
-    
+
     if (results.similarityPairs) {
       console.log(`Similarity pairs found: ${results.similarityPairs.length}`);
     }
-
   } catch (error) {
     console.error('Error during similarity check:', error);
     process.exit(1);
@@ -402,15 +389,15 @@ function parseArgs(): ProcessingOptions {
 
   for (let i = 0; i < args.length; i++) {
     const key = args[i];
-    
+
     // Check if this is a flag (starts with --)
     if (!key.startsWith('--')) {
       continue;
     }
-    
+
     // Check if there's a value after the flag
     const value = args[i + 1];
-    
+
     // Validate that value exists and isn't another flag
     if (!value || value.startsWith('--')) {
       console.error(`Error: Missing value for flag ${key}`);
@@ -438,7 +425,9 @@ function parseArgs(): ProcessingOptions {
       }
       case '--item-type':
         if (value !== 'issues' && value !== 'pull_request') {
-          console.error(`Error: Invalid value for --item-type: ${value}. Must be 'issues' or 'pull_request'`);
+          console.error(
+            `Error: Invalid value for --item-type: ${value}. Must be 'issues' or 'pull_request'`
+          );
           process.exit(1);
         }
         options.itemType = value as 'issues' | 'pull_request';
@@ -457,7 +446,9 @@ function parseArgs(): ProcessingOptions {
       case '--similarity-threshold': {
         const threshold = parseFloat(value);
         if (isNaN(threshold) || threshold < 0 || threshold > 1) {
-          console.error(`Error: Invalid value for --similarity-threshold: ${value}. Must be between 0 and 1`);
+          console.error(
+            `Error: Invalid value for --similarity-threshold: ${value}. Must be between 0 and 1`
+          );
           process.exit(1);
         }
         options.similarityThreshold = threshold;
@@ -469,7 +460,7 @@ function parseArgs(): ProcessingOptions {
         process.exit(1);
     }
   }
-  
+
   // Validate required fields
   if (!options.owner) {
     console.error('Error: --owner is required');
@@ -490,7 +481,9 @@ async function main() {
   const options = parseArgs();
 
   if (!options.owner || !options.repo) {
-    console.error('Usage: npm run similarity:check -- --owner <owner> --repo <repo> [--max-items <number>] [--item-type <issues|pull_request>] [--item-number <number>]');
+    console.error(
+      'Usage: npm run similarity:check -- --owner <owner> --repo <repo> [--max-items <number>] [--item-type <issues|pull_request>] [--item-number <number>]'
+    );
     process.exit(1);
   }
 
@@ -501,17 +494,17 @@ async function main() {
 
   console.log('🔍 Starting similarity check...');
   console.log(`Repository: ${options.owner}/${options.repo}`);
-  
+
   if (options.itemType && options.itemNumber) {
     console.log(`Target: ${options.itemType} #${options.itemNumber}`);
   }
-  
+
   console.log(`Max items: ${options.maxItems || 100}`);
   console.log(`Similarity threshold: ${options.similarityThreshold || 0.85}`);
   console.log('');
 
   await processSimilarityCheck(options);
-  
+
   console.log('\n✅ Similarity check complete!');
 }
 

@@ -10,9 +10,9 @@ describe('Activity Chart', () => {
       // Test pure data transformation functions only
       const input = [
         { date: '2024-01-01', count: 5 },
-        { date: '2024-01-02', count: 10 }
+        { date: '2024-01-02', count: 10 },
       ];
-      
+
       // Simple validation of data structure
       expect(input).toHaveLength(2);
       expect(input[0].count).toBe(5);
@@ -26,7 +26,7 @@ describe('Activity Chart', () => {
     it('validates data boundaries', () => {
       const maxValue = 100;
       const minValue = 0;
-      
+
       expect(maxValue).toBeGreaterThan(minValue);
       expect(minValue).toBeGreaterThanOrEqual(0);
     });
@@ -37,9 +37,9 @@ describe('Activity Chart', () => {
       const config = {
         width: 800,
         height: 400,
-        margin: { top: 20, right: 20, bottom: 20, left: 20 }
+        margin: { top: 20, right: 20, bottom: 20, left: 20 },
       };
-      
+
       expect(config.width).toBeGreaterThan(0);
       expect(config.height).toBeGreaterThan(0);
     });

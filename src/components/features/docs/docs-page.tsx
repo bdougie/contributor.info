@@ -1,26 +1,20 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect } from 'react';
 import { Book, FileText } from '@/components/ui/icon';
-import { Markdown } from "@/components/common/layout/markdown";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { DocsNavigation } from "./docs-navigation";
-import { DocsToc } from "./docs-toc";
-import { DocsSEO } from "./docs-seo";
-import { LastUpdated } from "@/components/ui/last-updated";
-import { usePageTimestamp } from "@/hooks/use-data-timestamp";
+import { Markdown } from '@/components/common/layout/markdown';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { DocsNavigation } from './docs-navigation';
+import { DocsToc } from './docs-toc';
+import { DocsSEO } from './docs-seo';
+import { LastUpdated } from '@/components/ui/last-updated';
+import { usePageTimestamp } from '@/hooks/use-data-timestamp';
 
 interface DocsSection {
   title: string;
   description: string;
   content: string;
-  category: "feature" | "insight";
+  category: 'feature' | 'insight';
 }
 
 export function DocsPage() {
@@ -28,7 +22,7 @@ export function DocsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<string | undefined>();
-  
+
   // Track when the page was loaded for freshness indicator
   const { pageLoadedAt } = usePageTimestamp();
 
@@ -42,108 +36,106 @@ export function DocsPage() {
       const docFiles = [
         // Features
         {
-          file: "feature-lottery-factor.md",
-          title: "Lottery Factor",
-          description: "Understanding repository health and contribution risk",
-          category: "feature" as const,
+          file: 'feature-lottery-factor.md',
+          title: 'Lottery Factor',
+          description: 'Understanding repository health and contribution risk',
+          category: 'feature' as const,
         },
         {
-          file: "feature-activity-feed.md",
-          title: "Activity Feed",
-          description: "Real-time tracking of repository and contributor activity",
-          category: "feature" as const,
+          file: 'feature-activity-feed.md',
+          title: 'Activity Feed',
+          description: 'Real-time tracking of repository and contributor activity',
+          category: 'feature' as const,
         },
         {
-          file: "feature-authentication.md",
-          title: "Authentication",
-          description: "User authentication and GitHub integration",
-          category: "feature" as const,
+          file: 'feature-authentication.md',
+          title: 'Authentication',
+          description: 'User authentication and GitHub integration',
+          category: 'feature' as const,
         },
         {
-          file: "contributor-confidence-guide.md",
-          title: "Contributor Confidence",
-          description: "Understanding how welcoming your repository is to new contributors",
-          category: "feature" as const,
+          file: 'contributor-confidence-guide.md',
+          title: 'Contributor Confidence',
+          description: 'Understanding how welcoming your repository is to new contributors',
+          category: 'feature' as const,
         },
         {
-          file: "feature-contribution-analytics.md",
-          title: "Contribution Analytics",
-          description: "Advanced analytics for measuring contributor impact",
-          category: "feature" as const,
+          file: 'feature-contribution-analytics.md',
+          title: 'Contribution Analytics',
+          description: 'Advanced analytics for measuring contributor impact',
+          category: 'feature' as const,
         },
         {
-          file: "feature-contributor-of-month.md",
-          title: "Contributor of the Month",
-          description: "Recognition system for outstanding contributors",
-          category: "feature" as const,
+          file: 'feature-contributor-of-month.md',
+          title: 'Contributor of the Month',
+          description: 'Recognition system for outstanding contributors',
+          category: 'feature' as const,
         },
         {
-          file: "feature-contributor-profiles.md",
-          title: "Contributor Profiles",
-          description: "Detailed profiles showcasing contributor achievements",
-          category: "feature" as const,
+          file: 'feature-contributor-profiles.md',
+          title: 'Contributor Profiles',
+          description: 'Detailed profiles showcasing contributor achievements',
+          category: 'feature' as const,
         },
         {
-          file: "feature-distribution-charts.md",
-          title: "Distribution Charts",
-          description: "Visual analysis of contribution patterns and trends",
-          category: "feature" as const,
+          file: 'feature-distribution-charts.md',
+          title: 'Distribution Charts',
+          description: 'Visual analysis of contribution patterns and trends',
+          category: 'feature' as const,
         },
         {
-          file: "feature-repository-health.md",
-          title: "Repository Health",
-          description: "Comprehensive health metrics for repositories",
-          category: "feature" as const,
+          file: 'feature-repository-health.md',
+          title: 'Repository Health',
+          description: 'Comprehensive health metrics for repositories',
+          category: 'feature' as const,
         },
         {
-          file: "feature-repository-search.md",
-          title: "Repository Search",
-          description: "Advanced search and filtering capabilities",
-          category: "feature" as const,
+          file: 'feature-repository-search.md',
+          title: 'Repository Search',
+          description: 'Advanced search and filtering capabilities',
+          category: 'feature' as const,
         },
         {
-          file: "feature-social-cards.md",
-          title: "Social Cards",
-          description: "Dynamic social media card generation",
-          category: "feature" as const,
+          file: 'feature-social-cards.md',
+          title: 'Social Cards',
+          description: 'Dynamic social media card generation',
+          category: 'feature' as const,
         },
         {
-          file: "feature-time-range-analysis.md",
-          title: "Time Range Analysis",
-          description: "Historical analysis and trend identification",
-          category: "feature" as const,
+          file: 'feature-time-range-analysis.md',
+          title: 'Time Range Analysis',
+          description: 'Historical analysis and trend identification',
+          category: 'feature' as const,
         },
         // Insights
         {
-          file: "insight-pr-activity.md",
-          title: "PR Activity",
-          description: "Monitoring pull request patterns and team velocity",
-          category: "insight" as const,
+          file: 'insight-pr-activity.md',
+          title: 'PR Activity',
+          description: 'Monitoring pull request patterns and team velocity',
+          category: 'insight' as const,
         },
         {
-          file: "insight-needs-attention.md",
-          title: "Needs Attention",
-          description: "Identifying pull requests requiring immediate action",
-          category: "insight" as const,
+          file: 'insight-needs-attention.md',
+          title: 'Needs Attention',
+          description: 'Identifying pull requests requiring immediate action',
+          category: 'insight' as const,
         },
         {
-          file: "insight-recommendations.md",
-          title: "Recommendations",
-          description: "Actionable suggestions for repository improvement",
-          category: "insight" as const,
+          file: 'insight-recommendations.md',
+          title: 'Recommendations',
+          description: 'Actionable suggestions for repository improvement',
+          category: 'insight' as const,
         },
         {
-          file: "insight-repository-health.md",
-          title: "Repository Health",
-          description: "Comprehensive analysis of repository wellness",
-          category: "insight" as const,
+          file: 'insight-repository-health.md',
+          title: 'Repository Health',
+          description: 'Comprehensive analysis of repository wellness',
+          category: 'insight' as const,
         },
       ];
 
       // Load all documentation files
-      const responses = await Promise.all(
-        docFiles.map(doc => fetch(`/docs/${doc.file}`))
-      );
+      const responses = await Promise.all(docFiles.map((doc) => fetch(`/docs/${doc.file}`)));
 
       // Check if any requests failed
       const failedFiles = responses
@@ -152,7 +144,7 @@ export function DocsPage() {
         .map(({ file }) => file);
 
       if (failedFiles.length > 0) {
-        console.warn(`Failed to load documentation files: ${failedFiles.join(", ")}`);
+        console.warn(`Failed to load documentation files: ${failedFiles.join(', ')}`);
       }
 
       // Get content for successfully loaded files
@@ -176,7 +168,7 @@ export function DocsPage() {
       setDocsContent(sections);
       setLoading(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
+      setError(err instanceof Error ? err.message : 'Unknown error');
       setLoading(false);
     }
   };
@@ -185,18 +177,18 @@ export function DocsPage() {
     return sections.map((section) => ({
       title: section.title,
       category: section.category,
-      anchor: `section-${section.title.toLowerCase().replace(/\s+/g, "-")}`,
+      anchor: `section-${section.title.toLowerCase().replace(/\s+/g, '-')}`,
     }));
   };
 
-  const getCategoryColor = (category: "feature" | "insight") => {
-    return category === "feature"
-      ? "bg-blue-500/10 text-blue-700 dark:text-blue-400"
-      : "bg-purple-500/10 text-purple-700 dark:text-purple-400";
+  const getCategoryColor = (category: 'feature' | 'insight') => {
+    return category === 'feature'
+      ? 'bg-blue-500/10 text-blue-700 dark:text-blue-400'
+      : 'bg-purple-500/10 text-purple-700 dark:text-purple-400';
   };
 
-  const getCategoryIcon = (category: "feature" | "insight") => {
-    return category === "feature" ? FileText : Book;
+  const getCategoryIcon = (category: 'feature' | 'insight') => {
+    return category === 'feature' ? FileText : Book;
   };
 
   if (loading) {
@@ -264,18 +256,12 @@ export function DocsPage() {
                 {/* Add page freshness indicator */}
                 <div className="mb-6 flex justify-between items-center">
                   <h1 className="text-3xl font-bold">Documentation</h1>
-                  <LastUpdated 
-                    timestamp={pageLoadedAt}
-                    label="Documentation loaded"
-                    size="sm"
-                  />
+                  <LastUpdated timestamp={pageLoadedAt} label="Documentation loaded" size="sm" />
                 </div>
-                
+
                 <div className="space-y-6">
                   {docsContent.map((section, index) => {
-                    const anchor = `section-${section.title
-                      .toLowerCase()
-                      .replace(/\s+/g, "-")}`;
+                    const anchor = `section-${section.title.toLowerCase().replace(/\s+/g, '-')}`;
                     const IconComponent = getCategoryIcon(section.category);
 
                     return (
@@ -290,19 +276,13 @@ export function DocsPage() {
                               variant="secondary"
                               className={getCategoryColor(section.category)}
                             >
-                              {section.category === "feature"
-                                ? "Feature"
-                                : "Insight"}
+                              {section.category === 'feature' ? 'Feature' : 'Insight'}
                             </Badge>
                           </div>
-                          <CardDescription>
-                            {section.description}
-                          </CardDescription>
+                          <CardDescription>{section.description}</CardDescription>
                         </CardHeader>
                         <CardContent>
-                          <Markdown className="prose-sm max-w-none">
-                            {section.content}
-                          </Markdown>
+                          <Markdown className="prose-sm max-w-none">{section.content}</Markdown>
                         </CardContent>
                       </Card>
                     );
@@ -314,8 +294,7 @@ export function DocsPage() {
                     <CardHeader>
                       <CardTitle>No Documentation Available</CardTitle>
                       <CardDescription>
-                        Documentation sections are being prepared. Check back
-                        soon!
+                        Documentation sections are being prepared. Check back soon!
                       </CardDescription>
                     </CardHeader>
                   </Card>
@@ -324,11 +303,7 @@ export function DocsPage() {
 
               <aside className="hidden xl:block sticky top-8 h-fit">
                 {docsContent.length > 0 && (
-                  <DocsToc
-                    content={docsContent
-                      .map((section) => section.content)
-                      .join("\n\n")}
-                  />
+                  <DocsToc content={docsContent.map((section) => section.content).join('\n\n')} />
                 )}
               </aside>
             </div>

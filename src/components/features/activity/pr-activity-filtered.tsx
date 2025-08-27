@@ -1,37 +1,28 @@
-import { useState, useMemo } from "react"
+import { useState, useMemo } from 'react';
 import { Database } from '@/components/ui/icon';
-import { useParams } from "react-router-dom";
+import { useParams } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { SpamFilterControls } from '@/components/features/spam/spam-filter-controls';
+import { SpamAwareActivityItem } from './spam-aware-activity-item';
+import { ActivityItemSkeleton } from '@/components/skeletons';
+import { useSpamFilteredFeed } from '@/hooks/use-spam-filtered-feed';
+import { usePRActivityStore } from '@/lib/pr-activity-store';
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { SpamFilterControls } from "@/components/features/spam/spam-filter-controls";
-import { SpamAwareActivityItem } from "./spam-aware-activity-item";
-import { ActivityItemSkeleton } from "@/components/skeletons";
-import { useSpamFilteredFeed } from "@/hooks/use-spam-filtered-feed";
-import { usePRActivityStore } from "@/lib/pr-activity-store";
-import { convertDatabasePRsToActivities, sortActivitiesByTimestamp } from "@/lib/api/pr-activity-adapter";
+  convertDatabasePRsToActivities,
+  sortActivitiesByTimestamp,
+} from '@/lib/api/pr-activity-adapter';
 
 export default function FilteredPRActivity() {
   const { owner, repo: repoName } = useParams<{ owner: string; repo: string }>();
   const { includeBots, setIncludeBots } = usePRActivityStore();
   const [visibleCount, setVisibleCount] = useState(15);
 
-  const {
-    pullRequests,
-    loading,
-    error,
-    spamStats,
-    filterOptions,
-    updateFilterOptions,
-  } = useSpamFilteredFeed(owner || "", repoName || "", 100);
+  const { pullRequests, loading, error, spamStats, filterOptions, updateFilterOptions } =
+    useSpamFilteredFeed(owner || '', repoName || '', 100);
 
   // Convert database PRs to activity format
   const activities = useMemo(() => {
@@ -40,9 +31,7 @@ export default function FilteredPRActivity() {
   }, [pullRequests]);
 
   // Filter by bot status only (spam filtering is handled by SpamFilterControls)
-  const filteredActivities = activities.filter(
-    (activity) => (includeBots || !activity.user.isBot)
-  );
+  const filteredActivities = activities.filter((activity) => includeBots || !activity.user.isBot);
 
   const visibleActivities = filteredActivities.slice(0, visibleCount);
   const hasMore = visibleActivities.length < filteredActivities.length;
@@ -92,9 +81,7 @@ export default function FilteredPRActivity() {
         <div className="flex items-center justify-between">
           <div>
             <CardTitle>Pull Request Feed</CardTitle>
-            <CardDescription>
-              Recent pull requests with spam filtering
-            </CardDescription>
+            <CardDescription>Recent pull requests with spam filtering</CardDescription>
           </div>
           <SpamFilterControls
             filterOptions={filterOptions}
@@ -108,10 +95,12 @@ export default function FilteredPRActivity() {
         <Alert className="mb-4">
           <Database className="h-4 w-4" />
           <AlertDescription>
-            <span className="font-medium">Using cached data</span> - This feed shows PRs from our database with spam detection.
+            <span className="font-medium">Using cached data</span> - This feed shows PRs from our
+            database with spam detection.
             {spamStats && spamStats.totalAnalyzed > 0 && (
               <span className="block mt-1 text-xs">
-                {spamStats.totalAnalyzed} PRs analyzed • {spamStats.spamCount} marked as spam ({spamStats.spamPercentage.toFixed(1)}%)
+                {spamStats.totalAnalyzed} PRs analyzed • {spamStats.spamCount} marked as spam (
+                {spamStats.spamPercentage.toFixed(1)}%)
               </span>
             )}
           </AlertDescription>
@@ -121,11 +110,7 @@ export default function FilteredPRActivity() {
         {hasBots && (
           <div className="flex flex-wrap gap-4 mb-4">
             <div className="flex items-center space-x-2">
-              <Switch
-                id="filter-bots"
-                checked={includeBots}
-                onCheckedChange={setIncludeBots}
-              />
+              <Switch id="filter-bots" checked={includeBots} onCheckedChange={setIncludeBots} />
               <Label htmlFor="filter-bots" className="text-sm">
                 Show Bots
               </Label>
@@ -134,7 +119,9 @@ export default function FilteredPRActivity() {
         )}
 
         <div className="mb-2 text-sm text-muted-foreground flex items-center gap-2">
-          <span>Showing {visibleActivities.length} of {filteredActivities.length} activities</span>
+          <span>
+            Showing {visibleActivities.length} of {filteredActivities.length} activities
+          </span>
           <span>•</span>
           <span className="text-xs bg-muted px-2 py-1 rounded">
             📊 Sorted by spam score (highest first)
@@ -163,11 +150,7 @@ export default function FilteredPRActivity() {
 
         {hasMore && (
           <div className="mt-4 flex justify-center">
-            <Button
-              variant="secondary"
-              onClick={handleLoadMore}
-              disabled={loading}
-            >
+            <Button variant="secondary" onClick={handleLoadMore} disabled={loading}>
               Load More
             </Button>
           </div>

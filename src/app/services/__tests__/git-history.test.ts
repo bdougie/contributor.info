@@ -10,19 +10,19 @@ const mockLoggerInstance = {
   error: vi.fn(),
   warn: vi.fn(),
   debug: vi.fn(),
-  child: vi.fn().mockReturnThis()
+  child: vi.fn().mockReturnThis(),
 };
 
 // Mock the logger module
 vi.mock('../../../../app/services/logger', () => ({
-  Logger: vi.fn().mockImplementation(() => mockLoggerInstance)
+  Logger: vi.fn().mockImplementation(() => mockLoggerInstance),
 }));
 
 // Mock supabase
 vi.mock('../../../lib/supabase', () => ({
   supabase: {
-    from: vi.fn()
-  }
+    from: vi.fn(),
+  },
 }));
 
 describe('Git History Service', () => {
@@ -32,7 +32,7 @@ describe('Git History Service', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     // Reset logger mock functions
     mockLoggerInstance.info.mockClear();
     mockLoggerInstance.error.mockClear();
@@ -49,21 +49,21 @@ describe('Git History Service', () => {
         id: 789,
         avatar_url: 'https://github.com/test.png',
         html_url: 'https://github.com/test',
-        type: 'Organization'
+        type: 'Organization',
       },
       private: false,
       description: 'Test repository',
       html_url: 'https://github.com/test/repo',
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     } as Repository;
 
     // Setup Octokit mock
     mockOctokit = {
       repos: {
         listCommits: vi.fn(),
-        getCommit: vi.fn()
-      }
+        getCommit: vi.fn(),
+      },
     } as Partial<Octokit>;
 
     // Logger instance is already mocked
@@ -73,17 +73,17 @@ describe('Git History Service', () => {
   describe('Structured Logging', () => {
     it('should use structured logging instead of console.error', async () => {
       const { supabase } = await import('../../../lib/supabase');
-      
+
       // Mock database error
       (supabase.from as Mock).mockReturnValue({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
             maybeSingle: vi.fn().mockResolvedValue({
               data: null,
-              error: { message: 'Database connection failed' }
-            })
-          })
-        })
+              error: { message: 'Database connection failed' },
+            }),
+          }),
+        }),
       });
 
       await indexGitHistory(mockRepository, mockOctokit as Octokit);
@@ -93,54 +93,54 @@ describe('Git History Service', () => {
         'Error fetching repository from database: %s',
         'Database connection failed'
       );
-      
+
       // Verify console.error was NOT called directly
       const consoleErrorSpy = vi.spyOn(console, 'error');
-      expect(consoleErrorSpy).not.toHaveBeenCalledWith(
-        expect.stringContaining('[Git History]')
-      );
+      expect(consoleErrorSpy).not.toHaveBeenCalledWith(expect.stringContaining('[Git History]'));
     });
 
     it('should use parameterized logging to prevent format string vulnerabilities', async () => {
       const { supabase } = await import('../../../lib/supabase');
-      
+
       // Mock successful repository lookup
       (supabase.from as Mock).mockReturnValue({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
             maybeSingle: vi.fn().mockResolvedValue({
               data: { id: 'repo-uuid' },
-              error: null
-            })
-          })
-        })
+              error: null,
+            }),
+          }),
+        }),
       });
 
       // Mock commits with potentially dangerous user input
       const maliciousUsername = '%s%s%s%n%n%n';
       (mockOctokit.repos!.listCommits as Mock).mockResolvedValue({
-        data: [{
-          sha: 'abc123',
-          commit: {
+        data: [
+          {
+            sha: 'abc123',
+            commit: {
+              author: {
+                name: 'Test User',
+                date: new Date().toISOString(),
+              },
+            },
             author: {
-              name: 'Test User',
-              date: new Date().toISOString()
-            }
+              id: 999,
+              login: maliciousUsername,
+              avatar_url: 'https://github.com/test.png',
+            },
           },
-          author: {
-            id: 999,
-            login: maliciousUsername,
-            avatar_url: 'https://github.com/test.png'
-          }
-        }]
+        ],
       });
 
       // Mock commit details
       (mockOctokit.repos!.getCommit as Mock).mockResolvedValue({
         data: {
           sha: 'abc123',
-          files: [{ filename: 'test.js' }]
-        }
+          files: [{ filename: 'test.js' }],
+        },
       });
 
       // Mock contributor lookup failure
@@ -151,10 +151,10 @@ describe('Git History Service', () => {
               eq: vi.fn().mockReturnValue({
                 maybeSingle: vi.fn().mockResolvedValue({
                   data: null,
-                  error: { message: 'Contributor not found' }
-                })
-              })
-            })
+                  error: { message: 'Contributor not found' },
+                }),
+              }),
+            }),
           };
         }
         return {
@@ -162,10 +162,10 @@ describe('Git History Service', () => {
             eq: vi.fn().mockReturnValue({
               maybeSingle: vi.fn().mockResolvedValue({
                 data: { id: 'repo-uuid' },
-                error: null
-              })
-            })
-          })
+                error: null,
+              }),
+            }),
+          }),
         };
       });
 
@@ -181,22 +181,22 @@ describe('Git History Service', () => {
 
     it('should log progress updates using structured logging', async () => {
       const { supabase } = await import('../../../lib/supabase');
-      
+
       // Mock successful repository lookup
       (supabase.from as Mock).mockReturnValue({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
             maybeSingle: vi.fn().mockResolvedValue({
               data: { id: 'repo-uuid' },
-              error: null
-            })
-          })
-        })
+              error: null,
+            }),
+          }),
+        }),
       });
 
       // Mock empty commits (to complete quickly)
       (mockOctokit.repos!.listCommits as Mock).mockResolvedValue({
-        data: []
+        data: [],
       });
 
       // Mock file_contributors upsert
@@ -204,8 +204,8 @@ describe('Git History Service', () => {
         if (table === 'file_contributors') {
           return {
             upsert: vi.fn().mockResolvedValue({
-              error: null
-            })
+              error: null,
+            }),
           };
         }
         return {
@@ -213,10 +213,10 @@ describe('Git History Service', () => {
             eq: vi.fn().mockReturnValue({
               maybeSingle: vi.fn().mockResolvedValue({
                 data: { id: 'repo-uuid' },
-                error: null
-              })
-            })
-          })
+                error: null,
+              }),
+            }),
+          }),
         };
       });
 
@@ -227,7 +227,7 @@ describe('Git History Service', () => {
         'Starting git history indexing for %s',
         'test/repo'
       );
-      
+
       expect(mockLoggerInstance.info).toHaveBeenCalledWith(
         'Git history indexing completed for %s',
         'test/repo'
@@ -238,7 +238,7 @@ describe('Git History Service', () => {
   describe('Schema Field Corrections', () => {
     it('should use correct schema field names (username not github_login)', async () => {
       const { supabase } = await import('../../../lib/supabase');
-      
+
       let contributorQuery: any = null;
       let contributorInsert: any = null;
 
@@ -250,13 +250,13 @@ describe('Git History Service', () => {
               eq: vi.fn().mockReturnValue({
                 maybeSingle: vi.fn().mockResolvedValue({
                   data: { id: 'repo-uuid' },
-                  error: null
-                })
-              })
-            })
+                  error: null,
+                }),
+              }),
+            }),
           };
         }
-        
+
         if (table === 'contributors') {
           return {
             select: vi.fn().mockReturnValue({
@@ -265,10 +265,10 @@ describe('Git History Service', () => {
                 return {
                   maybeSingle: vi.fn().mockResolvedValue({
                     data: null,
-                    error: null
-                  })
+                    error: null,
+                  }),
                 };
-              })
+              }),
             }),
             insert: vi.fn((data: any) => {
               contributorInsert = data;
@@ -276,74 +276,76 @@ describe('Git History Service', () => {
                 select: vi.fn().mockReturnValue({
                   maybeSingle: vi.fn().mockResolvedValue({
                     data: { id: 'contributor-uuid' },
-                    error: null
-                  })
-                })
+                    error: null,
+                  }),
+                }),
               };
-            })
+            }),
           };
         }
-        
+
         if (table === 'file_contributors') {
           return {
             upsert: vi.fn().mockResolvedValue({
-              error: null
-            })
+              error: null,
+            }),
           };
         }
-        
+
         return {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
               maybeSingle: vi.fn().mockResolvedValue({
                 data: null,
-                error: null
-              })
-            })
-          })
+                error: null,
+              }),
+            }),
+          }),
         };
       });
 
       // Mock commits
       (mockOctokit.repos!.listCommits as Mock).mockResolvedValue({
-        data: [{
-          sha: 'abc123',
-          commit: {
+        data: [
+          {
+            sha: 'abc123',
+            commit: {
+              author: {
+                name: 'Test User',
+                date: new Date().toISOString(),
+              },
+            },
             author: {
-              name: 'Test User',
-              date: new Date().toISOString()
-            }
+              id: 999,
+              login: 'testuser',
+              avatar_url: 'https://github.com/testuser.png',
+            },
           },
-          author: {
-            id: 999,
-            login: 'testuser',
-            avatar_url: 'https://github.com/testuser.png'
-          }
-        }]
+        ],
       });
 
       // Mock commit details
       (mockOctokit.repos!.getCommit as Mock).mockResolvedValue({
         data: {
           sha: 'abc123',
-          files: [{ filename: 'test.js' }]
-        }
+          files: [{ filename: 'test.js' }],
+        },
       });
 
       await indexGitHistory(mockRepository, mockOctokit as Octokit);
 
       // Verify correct field names were used
       expect(contributorQuery).toEqual({
-        field: 'username',  // Should be 'username', not 'github_login'
-        value: 'testuser'
+        field: 'username', // Should be 'username', not 'github_login'
+        value: 'testuser',
       });
 
       expect(contributorInsert).toMatchObject({
         github_id: 999,
-        username: 'testuser',  // Should be 'username', not 'github_login'
-        display_name: 'Test User',  // Should be 'display_name', not 'name'
+        username: 'testuser', // Should be 'username', not 'github_login'
+        display_name: 'Test User', // Should be 'display_name', not 'name'
         avatar_url: 'https://github.com/testuser.png',
-        profile_url: 'https://github.com/testuser'
+        profile_url: 'https://github.com/testuser',
       });
     });
   });
@@ -351,35 +353,37 @@ describe('Git History Service', () => {
   describe('Error Handling', () => {
     it('should handle commit processing errors gracefully', async () => {
       const { supabase } = await import('../../../lib/supabase');
-      
+
       // Mock successful repository lookup
       (supabase.from as Mock).mockReturnValue({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
             maybeSingle: vi.fn().mockResolvedValue({
               data: { id: 'repo-uuid' },
-              error: null
-            })
-          })
-        })
+              error: null,
+            }),
+          }),
+        }),
       });
 
       // Mock commits
       (mockOctokit.repos!.listCommits as Mock).mockResolvedValue({
-        data: [{
-          sha: 'abc123',
-          commit: {
+        data: [
+          {
+            sha: 'abc123',
+            commit: {
+              author: {
+                name: 'Test User',
+                date: new Date().toISOString(),
+              },
+            },
             author: {
-              name: 'Test User',
-              date: new Date().toISOString()
-            }
+              id: 999,
+              login: 'testuser',
+              avatar_url: 'https://github.com/testuser.png',
+            },
           },
-          author: {
-            id: 999,
-            login: 'testuser',
-            avatar_url: 'https://github.com/testuser.png'
-          }
-        }]
+        ],
       });
 
       // Mock commit details to throw error
@@ -392,8 +396,8 @@ describe('Git History Service', () => {
         if (table === 'file_contributors') {
           return {
             upsert: vi.fn().mockResolvedValue({
-              error: null
-            })
+              error: null,
+            }),
           };
         }
         return {
@@ -401,10 +405,10 @@ describe('Git History Service', () => {
             eq: vi.fn().mockReturnValue({
               maybeSingle: vi.fn().mockResolvedValue({
                 data: { id: 'repo-uuid' },
-                error: null
-              })
-            })
-          })
+                error: null,
+              }),
+            }),
+          }),
         };
       });
 
@@ -420,31 +424,29 @@ describe('Git History Service', () => {
 
     it('should handle pagination errors gracefully', async () => {
       const { supabase } = await import('../../../lib/supabase');
-      
+
       // Mock successful repository lookup
       (supabase.from as Mock).mockReturnValue({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
             maybeSingle: vi.fn().mockResolvedValue({
               data: { id: 'repo-uuid' },
-              error: null
-            })
-          })
-        })
+              error: null,
+            }),
+          }),
+        }),
       });
 
       // Mock commit listing to fail
-      (mockOctokit.repos!.listCommits as Mock).mockRejectedValue(
-        new Error('Network error')
-      );
+      (mockOctokit.repos!.listCommits as Mock).mockRejectedValue(new Error('Network error'));
 
       // Mock file_contributors upsert
       (supabase.from as Mock).mockImplementation((table: string) => {
         if (table === 'file_contributors') {
           return {
             upsert: vi.fn().mockResolvedValue({
-              error: null
-            })
+              error: null,
+            }),
           };
         }
         return {
@@ -452,10 +454,10 @@ describe('Git History Service', () => {
             eq: vi.fn().mockReturnValue({
               maybeSingle: vi.fn().mockResolvedValue({
                 data: { id: 'repo-uuid' },
-                error: null
-              })
-            })
-          })
+                error: null,
+              }),
+            }),
+          }),
         };
       });
 

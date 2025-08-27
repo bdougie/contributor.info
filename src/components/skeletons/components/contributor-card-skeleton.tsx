@@ -1,6 +1,6 @@
-import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
-import { getSkeletonClasses } from "@/lib/skeleton-dimensions";
+import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
+import { getSkeletonClasses } from '@/lib/skeleton-dimensions';
 
 interface ContributorCardSkeletonProps {
   className?: string;
@@ -8,18 +8,18 @@ interface ContributorCardSkeletonProps {
   showRank?: boolean;
 }
 
-export function ContributorCardSkeleton({ 
-  className, 
+export function ContributorCardSkeleton({
+  className,
   isWinner = false,
-  showRank = true 
+  showRank = true,
 }: ContributorCardSkeletonProps) {
   return (
     <div
       className={cn(
-        "relative p-4 rounded-lg border bg-card transition-all animate-pulse",
-        "hover:bg-muted/50",
-        getSkeletonClasses("contributorCard"),
-        isWinner && "ring-2 ring-yellow-500 bg-yellow-50/10 dark:bg-yellow-900/10",
+        'relative p-4 rounded-lg border bg-card transition-all animate-pulse',
+        'hover:bg-muted/50',
+        getSkeletonClasses('contributorCard'),
+        isWinner && 'ring-2 ring-yellow-500 bg-yellow-50/10 dark:bg-yellow-900/10',
         className
       )}
     >
@@ -38,11 +38,9 @@ export function ContributorCardSkeleton({
           {/* Username and trophy */}
           <div className="flex items-center gap-2">
             <Skeleton className="h-4 w-20" />
-            {isWinner && (
-              <Skeleton className="h-4 w-4" />
-            )}
+            {isWinner && <Skeleton className="h-4 w-4" />}
           </div>
-          
+
           {/* Activity stats */}
           <div className="flex items-center gap-4 mt-1">
             <div className="flex items-center gap-1">
@@ -58,7 +56,7 @@ export function ContributorCardSkeleton({
               <Skeleton className="h-3 w-4" />
             </div>
           </div>
-          
+
           {/* Score */}
           <div className="mt-2">
             <Skeleton className="h-3 w-16" />
