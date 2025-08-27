@@ -1,9 +1,9 @@
 import { Sparkles, RefreshCw, AlertCircle } from '@/components/ui/icon';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { useRepositorySummary } from "@/hooks/use-repository-summary";
-import { Markdown } from "@/components/common/layout";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { useRepositorySummary } from '@/hooks/use-repository-summary';
+import { Markdown } from '@/components/common/layout';
 
 interface RepositorySummaryCardProps {
   owner: string;
@@ -12,11 +12,11 @@ interface RepositorySummaryCardProps {
   className?: string;
 }
 
-export function RepositorySummaryCard({ 
-  owner, 
-  repo, 
+export function RepositorySummaryCard({
+  owner,
+  repo,
   pullRequests = [],
-  className = ""
+  className = '',
 }: RepositorySummaryCardProps) {
   const { summary, loading, error, refetch } = useRepositorySummary(owner, repo, pullRequests);
 
@@ -53,12 +53,7 @@ export function RepositorySummaryCard({
           <div className="text-sm text-muted-foreground mb-3">
             Unable to generate AI summary: {error}
           </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={refetch}
-            className="gap-2"
-          >
+          <Button variant="outline" size="sm" onClick={refetch} className="gap-2">
             <RefreshCw className="h-4 w-4" />
             Retry
           </Button>
@@ -83,19 +78,12 @@ export function RepositorySummaryCard({
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <Markdown className="prose-sm">
-          {summary}
-        </Markdown>
+        <Markdown className="prose-sm">{summary}</Markdown>
         <div className="mt-4 flex items-center justify-between">
           <div className="text-xs text-muted-foreground">
             Generated using recent repository activity
           </div>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={refetch}
-            className="gap-2 h-8"
-          >
+          <Button variant="ghost" size="sm" onClick={refetch} className="gap-2 h-8">
             <RefreshCw className="h-3 w-3" />
             Refresh
           </Button>

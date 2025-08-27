@@ -1,20 +1,28 @@
-import { useState, useEffect } from 'react'
-import { Users, Search, Shield, UserCheck, Calendar, ExternalLink, RefreshCw } from '@/components/ui/icon';
+import { useState, useEffect } from 'react';
+import {
+  Users,
+  Search,
+  Shield,
+  UserCheck,
+  Calendar,
+  ExternalLink,
+  RefreshCw,
+} from '@/components/ui/icon';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@/components/ui/table';
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -57,7 +65,7 @@ export function UserManagement() {
     try {
       setLoading(true);
       setError(null);
-      
+
       const { data, error: fetchError } = await supabase
         .from('app_users')
         .select('*')
@@ -82,12 +90,12 @@ export function UserManagement() {
 
     try {
       const newAdminStatus = !user.is_admin;
-      
+
       const { error: updateError } = await supabase
         .from('app_users')
-        .update({ 
+        .update({
           is_admin: newAdminStatus,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', user.id);
 
@@ -96,24 +104,20 @@ export function UserManagement() {
       }
 
       // Log admin action
-      await logAdminAction(
-        adminGitHubId,
-        'user_admin_status_changed',
-        'user',
-        user.id,
-        {
-          target_username: user.github_username,
-          old_admin_status: user.is_admin,
-          new_admin_status: newAdminStatus
-        }
-      );
+      await logAdminAction(adminGitHubId, 'user_admin_status_changed', 'user', user.id, {
+        target_username: user.github_username,
+        old_admin_status: user.is_admin,
+        new_admin_status: newAdminStatus,
+      });
 
       // Update local state
-      setUsers(users.map(u => 
-        u.id === user.id 
-          ? { ...u, is_admin: newAdminStatus, updated_at: new Date().toISOString() }
-          : u
-      ));
+      setUsers(
+        users.map((u) =>
+          u.id === user.id
+            ? { ...u, is_admin: newAdminStatus, updated_at: new Date().toISOString() }
+            : u
+        )
+      );
     } catch (err) {
       console.error('Error updating admin status:', err);
       setError(err instanceof Error ? err.message : 'Failed to update admin status');
@@ -121,18 +125,18 @@ export function UserManagement() {
   };
 
   // Filter users based on search and filter criteria
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = 
+  const filteredUsers = users.filter((user) => {
+    const matchesSearch =
       user.github_username.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.display_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesRole = 
+    const matchesRole =
       filterRole === 'all' ||
       (filterRole === 'admin' && user.is_admin) ||
       (filterRole === 'user' && !user.is_admin);
 
-    const matchesStatus = 
+    const matchesStatus =
       filterStatus === 'all' ||
       (filterStatus === 'active' && user.is_active) ||
       (filterStatus === 'inactive' && !user.is_active);
@@ -142,13 +146,13 @@ export function UserManagement() {
 
   const stats = {
     total: users.length,
-    admins: users.filter(u => u.is_admin).length,
-    active: users.filter(u => u.is_active).length,
-    recentLogins: users.filter(u => {
+    admins: users.filter((u) => u.is_admin).length,
+    active: users.filter((u) => u.is_active).length,
+    recentLogins: users.filter((u) => {
       const lastLogin = new Date(u.last_login_at);
       const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
       return lastLogin > oneWeekAgo;
-    }).length
+    }).length,
   };
 
   if (loading) {
@@ -173,9 +177,7 @@ export function UserManagement() {
         </div>
         <div>
           <h1 className="text-3xl font-bold">User Management</h1>
-          <p className="text-muted-foreground">
-            Manage user accounts, roles, and permissions
-          </p>
+          <p className="text-muted-foreground">Manage user accounts, roles, and permissions</p>
         </div>
       </div>
 
@@ -302,7 +304,7 @@ export function UserManagement() {
                         <div>
                           <div className="flex items-center gap-2">
                             <span className="font-medium">{user.github_username}</span>
-                            <Link 
+                            <Link
                               to={`https://github.com/${user.github_username}`}
                               target="_blank"
                               rel="noopener noreferrer"
@@ -320,7 +322,7 @@ export function UserManagement() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={user.is_admin ? "default" : "secondary"}>
+                      <Badge variant={user.is_admin ? 'default' : 'secondary'}>
                         {user.is_admin ? (
                           <>
                             <Shield className="h-3 w-3 mr-1" />
@@ -332,7 +334,7 @@ export function UserManagement() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={user.is_active ? "default" : "secondary"}>
+                      <Badge variant={user.is_active ? 'default' : 'secondary'}>
                         {user.is_active ? 'Active' : 'Inactive'}
                       </Badge>
                     </TableCell>
@@ -347,7 +349,7 @@ export function UserManagement() {
                     <TableCell>
                       <Button
                         onClick={() => toggleAdminStatus(user)}
-                        variant={user.is_admin ? "destructive" : "default"}
+                        variant={user.is_admin ? 'destructive' : 'default'}
                         size="sm"
                         disabled={user.github_user_id === adminGitHubId} // Can't change own status
                       >

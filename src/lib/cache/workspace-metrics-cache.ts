@@ -41,7 +41,7 @@ export class WorkspaceMetricsCache {
     evictions: 0,
     size: 0,
     hitRate: 0,
-    memoryUsage: 0
+    memoryUsage: 0,
   };
 
   private readonly options: Required<CacheOptions>;
@@ -53,7 +53,7 @@ export class WorkspaceMetricsCache {
       maxSize: 100, // Max 100 workspace metrics in memory
       staleWhileRevalidate: true,
       namespace: 'workspace-metrics',
-      ...options
+      ...options,
     };
 
     // Start cleanup interval
@@ -105,13 +105,13 @@ export class WorkspaceMetricsCache {
    * Set metrics in cache
    */
   set(
-    workspaceId: string, 
-    timeRange: MetricsTimeRange, 
+    workspaceId: string,
+    timeRange: MetricsTimeRange,
     metrics: WorkspaceMetrics,
     ttl?: number
   ): void {
     const key = this.generateKey(workspaceId, timeRange);
-    
+
     // Enforce cache size limit
     if (this.memoryCache.size >= this.options.maxSize && !this.memoryCache.has(key)) {
       this.evictOldest();
@@ -121,7 +121,7 @@ export class WorkspaceMetricsCache {
       data: metrics,
       timestamp: Date.now(),
       ttl: ttl || this.getTtlForTimeRange(timeRange),
-      isStale: false
+      isStale: false,
     };
 
     this.memoryCache.set(key, entry);
@@ -175,9 +175,9 @@ export class WorkspaceMetricsCache {
   has(workspaceId: string, timeRange: MetricsTimeRange): boolean {
     const key = this.generateKey(workspaceId, timeRange);
     const entry = this.memoryCache.get(key);
-    
+
     if (!entry) return false;
-    
+
     const age = Date.now() - entry.timestamp;
     return age <= entry.ttl && !entry.isStale;
   }
@@ -188,18 +188,18 @@ export class WorkspaceMetricsCache {
   getAll(workspaceId: string): Map<MetricsTimeRange, WorkspaceMetrics> {
     const result = new Map<MetricsTimeRange, WorkspaceMetrics>();
     const prefix = `${this.options.namespace}:${workspaceId}:`;
-    
+
     for (const [key, entry] of this.memoryCache.entries()) {
       if (key.startsWith(prefix)) {
         const timeRange = key.replace(prefix, '') as MetricsTimeRange;
         const age = Date.now() - entry.timestamp;
-        
+
         if (age <= entry.ttl || this.options.staleWhileRevalidate) {
           result.set(timeRange, entry.data);
         }
       }
     }
-    
+
     return result;
   }
 
@@ -217,7 +217,7 @@ export class WorkspaceMetricsCache {
   getStats(): CacheStats {
     return {
       ...this.stats,
-      hitRate: this.calculateHitRate()
+      hitRate: this.calculateHitRate(),
     };
   }
 
@@ -235,13 +235,13 @@ export class WorkspaceMetricsCache {
    */
   private getTtlForTimeRange(timeRange: MetricsTimeRange): number {
     const ttlMap: Record<MetricsTimeRange, number> = {
-      '7d': 5 * 60 * 1000,      // 5 minutes
-      '30d': 10 * 60 * 1000,     // 10 minutes
-      '90d': 30 * 60 * 1000,     // 30 minutes
-      '1y': 60 * 60 * 1000,      // 1 hour
-      'all': 2 * 60 * 60 * 1000  // 2 hours
+      '7d': 5 * 60 * 1000, // 5 minutes
+      '30d': 10 * 60 * 1000, // 10 minutes
+      '90d': 30 * 60 * 1000, // 30 minutes
+      '1y': 60 * 60 * 1000, // 1 hour
+      all: 2 * 60 * 60 * 1000, // 2 hours
     };
-    
+
     return ttlMap[timeRange] || this.options.defaultTtl;
   }
 
@@ -251,14 +251,14 @@ export class WorkspaceMetricsCache {
   private evictOldest(): void {
     let oldestKey: string | null = null;
     let oldestTime = Date.now();
-    
+
     for (const [key, entry] of this.memoryCache.entries()) {
       if (entry.timestamp < oldestTime) {
         oldestTime = entry.timestamp;
         oldestKey = key;
       }
     }
-    
+
     if (oldestKey) {
       this.memoryCache.delete(oldestKey);
       this.stats.evictions++;
@@ -296,21 +296,21 @@ export class WorkspaceMetricsCache {
   private cleanupExpired(): void {
     const now = Date.now();
     const keysToDelete: string[] = [];
-    
+
     for (const [key, entry] of this.memoryCache.entries()) {
       const age = now - entry.timestamp;
-      
+
       // Remove if expired and stale-while-revalidate is disabled
       // or if it's been stale for too long
       if (age > entry.ttl * 2 || (!this.options.staleWhileRevalidate && age > entry.ttl)) {
         keysToDelete.push(key);
       }
     }
-    
+
     for (const key of keysToDelete) {
       this.memoryCache.delete(key);
     }
-    
+
     if (keysToDelete.length > 0) {
       this.updateStats();
     }
@@ -364,7 +364,7 @@ export class WorkspaceMetricsCache {
       evictions: 0,
       size: 0,
       hitRate: 0,
-      memoryUsage: 0
+      memoryUsage: 0,
     };
   }
 
@@ -399,7 +399,7 @@ export class CacheWarmer {
     fetchFn: (timeRange: MetricsTimeRange) => Promise<WorkspaceMetrics>
   ): Promise<void> {
     const timeRanges: MetricsTimeRange[] = ['7d', '30d', '90d'];
-    
+
     // Fetch all time ranges in parallel
     const promises = timeRanges.map(async (timeRange) => {
       try {
@@ -422,16 +422,13 @@ export class CacheWarmer {
   ): Promise<void> {
     // Process workspaces in batches to avoid overwhelming the system
     const batchSize = 3;
-    
+
     for (let i = 0; i < workspaceIds.length; i += batchSize) {
       const batch = workspaceIds.slice(i, i + batchSize);
-      
+
       await Promise.all(
-        batch.map(workspaceId => 
-          this.warmWorkspace(
-            workspaceId,
-            (timeRange) => fetchFn(workspaceId, timeRange)
-          )
+        batch.map((workspaceId) =>
+          this.warmWorkspace(workspaceId, (timeRange) => fetchFn(workspaceId, timeRange))
         )
       );
     }
@@ -468,7 +465,7 @@ export class CacheInvalidator {
    */
   onDataUpdate(workspaceId: string, affectedTimeRanges?: MetricsTimeRange[]): void {
     if (affectedTimeRanges) {
-      affectedTimeRanges.forEach(timeRange => {
+      affectedTimeRanges.forEach((timeRange) => {
         this.cache.markStale(workspaceId, timeRange);
       });
     } else {

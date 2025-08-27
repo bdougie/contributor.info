@@ -1,32 +1,24 @@
-import { useParams } from "react-router-dom";
-import { useContext, useState, useEffect, useRef } from "react"
+import { useParams } from 'react-router-dom';
+import { useContext, useState, useEffect, useRef } from 'react';
 import { Bot } from '@/components/ui/icon';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { useTimeRangeStore } from "@/lib/time-range-store";
-import { RepositoryHealthOverall } from "@/components/insights/sections/repository-health-overall";
-import { RepositoryHealthFactors } from "@/components/insights/sections/repository-health-factors";
-import { LotteryFactorContent } from "./lottery-factor";
-import { RepoStatsContext } from "@/lib/repo-stats-context";
-import { SelfSelectionRate } from "@/components/features/contributor/self-selection-rate";
-import { ContributorConfidenceCard } from "./contributor-confidence-card";
-import { calculateRepositoryConfidence, ConfidenceBreakdown } from "@/lib/insights/health-metrics";
-import { useOnDemandSync } from "@/hooks/use-on-demand-sync";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { useTimeRangeStore } from '@/lib/time-range-store';
+import { RepositoryHealthOverall } from '@/components/insights/sections/repository-health-overall';
+import { RepositoryHealthFactors } from '@/components/insights/sections/repository-health-factors';
+import { LotteryFactorContent } from './lottery-factor';
+import { RepoStatsContext } from '@/lib/repo-stats-context';
+import { SelfSelectionRate } from '@/components/features/contributor/self-selection-rate';
+import { ContributorConfidenceCard } from './contributor-confidence-card';
+import { calculateRepositoryConfidence, ConfidenceBreakdown } from '@/lib/insights/health-metrics';
+import { useOnDemandSync } from '@/hooks/use-on-demand-sync';
 
 export function RepositoryHealthCard() {
   const { owner, repo } = useParams<{ owner: string; repo: string }>();
   const timeRange = useTimeRangeStore((state) => state.timeRange);
-  const { stats, lotteryFactor, directCommitsData, includeBots } =
-    useContext(RepoStatsContext);
-
+  const { stats, lotteryFactor, directCommitsData, includeBots } = useContext(RepoStatsContext);
 
   // Local state for bot toggle to avoid page refresh
   const [localIncludeBots, setLocalIncludeBots] = useState(includeBots);
@@ -36,14 +28,16 @@ export function RepositoryHealthCard() {
   const [confidenceScore, setConfidenceScore] = useState<number | null>(null);
   const [confidenceLoading, setConfidenceLoading] = useState(false);
   const [confidenceError, setConfidenceError] = useState<string | null>(null);
-  const [confidenceBreakdown, setConfidenceBreakdown] = useState<ConfidenceBreakdown['breakdown'] | undefined>(undefined);
+  const [confidenceBreakdown, setConfidenceBreakdown] = useState<
+    ConfidenceBreakdown['breakdown'] | undefined
+  >(undefined);
 
   // Sync status for confidence calculation
   const { syncStatus: confidenceSyncStatus } = useOnDemandSync({
     owner: owner || '',
     repo: repo || '',
     enabled: !!(owner && repo),
-    autoTriggerOnEmpty: false
+    autoTriggerOnEmpty: false,
   });
 
   // Sync local state with context when it changes
@@ -54,14 +48,14 @@ export function RepositoryHealthCard() {
   // Calculate contributor confidence using the same algorithm as admin dashboard
   const calculateConfidence = async (forceRecalculate: boolean = false) => {
     if (!owner || !repo) return;
-    
+
     setConfidenceLoading(true);
     setConfidenceError(null);
-    
+
     try {
       // Import supabase here to avoid circular dependencies
       const { supabase } = await import('@/lib/supabase');
-      
+
       // Use the same function as the admin dashboard
       const { data, error } = await supabase
         .rpc('get_repository_confidence_summary_simple')
@@ -70,7 +64,7 @@ export function RepositoryHealthCard() {
         .single();
 
       if (error) throw error;
-      
+
       if (data && (data as any).avg_confidence_score !== null) {
         setConfidenceScore(Number((data as any).avg_confidence_score));
         // Create a basic breakdown for tooltip compatibility
@@ -82,25 +76,27 @@ export function RepositoryHealthCard() {
           totalStargazers: 0,
           totalForkers: 0,
           contributorCount: (data as any).contributor_count || 0,
-          conversionRate: Number((data as any).avg_confidence_score)
+          conversionRate: Number((data as any).avg_confidence_score),
         });
       } else {
         // Fallback to the original algorithm if no data in the new system
-        const result = await calculateRepositoryConfidence(
-          owner, 
-          repo, 
-          timeRange, 
-          forceRecalculate, 
+        const result = (await calculateRepositoryConfidence(
+          owner,
+          repo,
+          timeRange,
+          forceRecalculate,
           false, // returnMetadata
-          true   // returnBreakdown
-        ) as ConfidenceBreakdown;
-        
+          true // returnBreakdown
+        )) as ConfidenceBreakdown;
+
         setConfidenceScore(result.score);
         setConfidenceBreakdown(result.breakdown);
       }
     } catch (error) {
       console.error('Failed to calculate contributor confidence:', error);
-      setConfidenceError('Repository data not available. This repository may need to be synced first.');
+      setConfidenceError(
+        'Repository data not available. This repository may need to be synced first.'
+      );
       setConfidenceScore(null);
       setConfidenceBreakdown(undefined);
     } finally {
@@ -123,11 +119,13 @@ export function RepositoryHealthCard() {
       // Recalculate confidence after sync completes
       calculateConfidence();
     }
-  }, [confidenceSyncStatus.isTriggering, confidenceSyncStatus.isInProgress, confidenceSyncStatus.isComplete]);
+  }, [
+    confidenceSyncStatus.isTriggering,
+    confidenceSyncStatus.isInProgress,
+    confidenceSyncStatus.isComplete,
+  ]);
 
-  const botCount = stats.pullRequests.filter(
-    (pr) => pr.user.type === "Bot"
-  ).length;
+  const botCount = stats.pullRequests.filter((pr) => pr.user.type === 'Bot').length;
   const hasBots = botCount > 0;
   // YOLO Coders button should only be visible if there are YOLO pushes
   const showYoloButton = directCommitsData?.hasYoloCoders === true;
@@ -178,10 +176,7 @@ export function RepositoryHealthCard() {
                       checked={localIncludeBots}
                       onCheckedChange={handleToggleIncludeBots}
                     />
-                    <Label
-                      htmlFor="show-bots"
-                      className="flex items-center gap-1 cursor-pointer"
-                    >
+                    <Label htmlFor="show-bots" className="flex items-center gap-1 cursor-pointer">
                       <Bot className="h-4 w-4" />
                       Show bots
                       {botCount > 0 && (
@@ -200,7 +195,11 @@ export function RepositoryHealthCard() {
               {/* Contributor Confidence - Top */}
               <ContributorConfidenceCard
                 confidenceScore={confidenceScore}
-                loading={confidenceLoading || confidenceSyncStatus.isTriggering || confidenceSyncStatus.isInProgress}
+                loading={
+                  confidenceLoading ||
+                  confidenceSyncStatus.isTriggering ||
+                  confidenceSyncStatus.isInProgress
+                }
                 error={confidenceError}
                 className="w-full"
                 owner={owner}
@@ -208,20 +207,16 @@ export function RepositoryHealthCard() {
                 breakdown={confidenceBreakdown}
                 onRefresh={() => calculateConfidence(true)}
               />
-              
+
               {/* Health Factors - Middle */}
-              <RepositoryHealthFactors 
-                stats={stats} 
-                timeRange={timeRange} 
+              <RepositoryHealthFactors
+                stats={stats}
+                timeRange={timeRange}
                 repositoryName={`${owner}/${repo}`}
               />
-              
+
               {/* Self-Selection Rate - Bottom */}
-              <SelfSelectionRate 
-                owner={owner} 
-                repo={repo}
-                daysBack={Number(timeRange)}
-              />
+              <SelfSelectionRate owner={owner} repo={repo} daysBack={Number(timeRange)} />
             </div>
           </div>
         </div>

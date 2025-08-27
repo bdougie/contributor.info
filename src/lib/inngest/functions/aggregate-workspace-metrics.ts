@@ -5,7 +5,7 @@
 
 import { inngest } from '../client';
 import { WorkspaceAggregationService } from '@/services/workspace-aggregation.service';
-import { supabaseAdmin } from '@/lib/supabase-admin';
+import { createSupabaseAdmin } from '@/lib/supabase-admin';
 import { cacheInvalidator } from '@/lib/cache/workspace-metrics-cache';
 import type { MetricsTimeRange } from '@/types/workspace';
 
@@ -59,6 +59,7 @@ export const aggregateWorkspaceMetrics = inngest.createFunction(
 
     // Step 1: Check if workspace exists and is active
     const workspace = await step.run('check-workspace', async () => {
+      const supabaseAdmin = createSupabaseAdmin();
       const { data, error } = await supabaseAdmin
         .from('workspaces')
         .select('id, name, tier, is_active')
@@ -78,8 +79,11 @@ export const aggregateWorkspaceMetrics = inngest.createFunction(
 
     // Step 2: Add to aggregation queue
     const queueEntry = await step.run('queue-aggregation', async () => {
-      const priority = event.data.priority || (workspace.tier === 'enterprise' ? 10 : workspace.tier === 'pro' ? 50 : 100);
-      
+      const priority =
+        event.data.priority ||
+        (workspace.tier === 'enterprise' ? 10 : workspace.tier === 'pro' ? 50 : 100);
+
+      const supabaseAdmin = createSupabaseAdmin();
       const { data, error } = await supabaseAdmin
         .from('workspace_aggregation_queue')
         .insert({
@@ -89,7 +93,7 @@ export const aggregateWorkspaceMetrics = inngest.createFunction(
           status: 'processing',
           started_at: new Date().toISOString(),
           triggered_by: triggeredBy || 'manual',
-          trigger_metadata: event.data.triggerMetadata || {}
+          trigger_metadata: event.data.triggerMetadata || {},
         })
         .select()
         .single();
@@ -104,12 +108,12 @@ export const aggregateWorkspaceMetrics = inngest.createFunction(
     // Step 3: Perform aggregation
     const result = await step.run('perform-aggregation', async () => {
       const service = new WorkspaceAggregationService();
-      
+
       try {
         const aggregationResult = await service.aggregateWorkspaceMetrics(workspaceId, {
           timeRange,
           forceRefresh: forceRefresh || false,
-          includeRepositoryStats: true
+          includeRepositoryStats: true,
         });
 
         return {
@@ -117,7 +121,7 @@ export const aggregateWorkspaceMetrics = inngest.createFunction(
           cacheHit: aggregationResult.cacheHit,
           calculationTimeMs: aggregationResult.calculationTimeMs,
           githubApiCalls: aggregationResult.githubApiCalls,
-          metrics: aggregationResult.metrics
+          metrics: aggregationResult.metrics,
         };
       } catch (error) {
         console.error('Aggregation failed:', error);
@@ -131,14 +135,15 @@ export const aggregateWorkspaceMetrics = inngest.createFunction(
         const updateData = result.success
           ? {
               status: 'completed',
-              completed_at: new Date().toISOString()
+              completed_at: new Date().toISOString(),
             }
           : {
               status: 'failed',
               failed_at: new Date().toISOString(),
-              error_message: 'Aggregation failed'
+              error_message: 'Aggregation failed',
             };
 
+        const supabaseAdmin = createSupabaseAdmin();
         await supabaseAdmin
           .from('workspace_aggregation_queue')
           .update(updateData)
@@ -150,10 +155,10 @@ export const aggregateWorkspaceMetrics = inngest.createFunction(
     if (result.success && timeRange === '30d' && !forceRefresh) {
       await step.run('trigger-dependent-aggregations', async () => {
         const otherTimeRanges: MetricsTimeRange[] = ['7d', '90d'];
-        
+
         // Trigger aggregation for other time ranges
         await Promise.all(
-          otherTimeRanges.map(range =>
+          otherTimeRanges.map((range) =>
             inngest.send({
               name: 'workspace.metrics.aggregate',
               data: {
@@ -163,9 +168,9 @@ export const aggregateWorkspaceMetrics = inngest.createFunction(
                 triggeredBy: 'dependency',
                 triggerMetadata: {
                   parentTimeRange: timeRange,
-                  parentTriggeredBy: triggeredBy
-                }
-              }
+                  parentTriggeredBy: triggeredBy,
+                },
+              },
             })
           )
         );
@@ -179,7 +184,7 @@ export const aggregateWorkspaceMetrics = inngest.createFunction(
       success: result.success,
       cacheHit: result.cacheHit,
       calculationTimeMs: result.calculationTimeMs,
-      githubApiCalls: result.githubApiCalls
+      githubApiCalls: result.githubApiCalls,
     };
   }
 );
@@ -193,11 +198,12 @@ export const scheduledWorkspaceAggregation = inngest.createFunction(
     name: 'Scheduled Workspace Aggregation',
   },
   {
-    cron: '*/5 * * * *' // Every 5 minutes
+    cron: '*/5 * * * *', // Every 5 minutes
   },
   async ({ step }) => {
     // Step 1: Get all active workspaces
     const workspaces = await step.run('get-active-workspaces', async () => {
+      const supabaseAdmin = createSupabaseAdmin();
       const { data, error } = await supabaseAdmin
         .from('workspaces')
         .select('id, name, tier')
@@ -214,6 +220,7 @@ export const scheduledWorkspaceAggregation = inngest.createFunction(
     const workspacesToAggregate = await step.run('check-aggregation-needed', async () => {
       const needsAggregation = [];
 
+      const supabaseAdmin = createSupabaseAdmin();
       for (const workspace of workspaces) {
         // Check if there's already a pending/processing job
         const { data: existingJob } = await supabaseAdmin
@@ -233,9 +240,7 @@ export const scheduledWorkspaceAggregation = inngest.createFunction(
             .eq('time_range', '30d')
             .single();
 
-          const needsUpdate = !cache || 
-            cache.is_stale || 
-            new Date(cache.expires_at) < new Date();
+          const needsUpdate = !cache || cache.is_stale || new Date(cache.expires_at) < new Date();
 
           if (needsUpdate) {
             needsAggregation.push(workspace);
@@ -248,14 +253,14 @@ export const scheduledWorkspaceAggregation = inngest.createFunction(
 
     // Step 3: Trigger aggregation for workspaces that need it
     const triggered = await step.run('trigger-aggregations', async () => {
-      const events = workspacesToAggregate.map(workspace => ({
+      const events = workspacesToAggregate.map((workspace) => ({
         name: 'workspace.metrics.aggregate' as const,
         data: {
           workspaceId: workspace.id,
           timeRange: '30d' as MetricsTimeRange,
           priority: workspace.tier === 'enterprise' ? 10 : workspace.tier === 'pro' ? 50 : 100,
-          triggeredBy: 'schedule' as const
-        }
+          triggeredBy: 'schedule' as const,
+        },
       }));
 
       if (events.length > 0) {
@@ -268,7 +273,7 @@ export const scheduledWorkspaceAggregation = inngest.createFunction(
     return {
       totalWorkspaces: workspaces.length,
       workspacesNeedingUpdate: workspacesToAggregate.length,
-      aggregationsTriggered: triggered
+      aggregationsTriggered: triggered,
     };
   }
 );
@@ -282,8 +287,8 @@ export const handleWorkspaceRepositoryChange = inngest.createFunction(
     name: 'Handle Workspace Repository Change',
     debounce: {
       key: 'event.data.workspaceId',
-      period: '30s' // Debounce rapid changes
-    }
+      period: '30s', // Debounce rapid changes
+    },
   },
   { event: 'workspace.repository.changed' },
   async ({ event, step }) => {
@@ -292,8 +297,9 @@ export const handleWorkspaceRepositoryChange = inngest.createFunction(
     // Step 1: Invalidate cache
     await step.run('invalidate-cache', async () => {
       // Mark all time ranges as stale in database
+      const supabaseAdmin = createSupabaseAdmin();
       await supabaseAdmin.rpc('mark_workspace_cache_stale', {
-        p_workspace_id: workspaceId
+        p_workspace_id: workspaceId,
       });
 
       // Invalidate in-memory cache
@@ -304,8 +310,10 @@ export const handleWorkspaceRepositoryChange = inngest.createFunction(
 
     // Step 2: Log the change
     await step.run('log-change', async () => {
-      console.log(`Workspace ${workspaceId}: Repository ${action} - ${repositoryName} (${repositoryId})`);
-      
+      console.log(
+        `Workspace ${workspaceId}: Repository ${action} - ${repositoryName} (${repositoryId})`
+      );
+
       // Could also log to a separate audit table if needed
       return { logged: true };
     });
@@ -323,9 +331,9 @@ export const handleWorkspaceRepositoryChange = inngest.createFunction(
           triggerMetadata: {
             action,
             repositoryId,
-            repositoryName
-          }
-        }
+            repositoryName,
+          },
+        },
       });
 
       return { triggered: true };
@@ -336,7 +344,7 @@ export const handleWorkspaceRepositoryChange = inngest.createFunction(
       action,
       repositoryName,
       cacheInvalidated: true,
-      aggregationTriggered: true
+      aggregationTriggered: true,
     };
   }
 );
@@ -350,13 +358,14 @@ export const cleanupWorkspaceMetricsData = inngest.createFunction(
     name: 'Cleanup Workspace Metrics Data',
   },
   {
-    cron: '0 3 * * *' // Daily at 3 AM
+    cron: '0 3 * * *', // Daily at 3 AM
   },
   async ({ step }) => {
     // Step 1: Clean up expired cache entries
     const cacheCleanup = await step.run('cleanup-cache', async () => {
+      const supabaseAdmin = createSupabaseAdmin();
       const { data, error } = await supabaseAdmin.rpc('cleanup_expired_workspace_cache');
-      
+
       if (error) {
         console.error('Cache cleanup failed:', error);
         return { deleted: 0 };
@@ -370,6 +379,7 @@ export const cleanupWorkspaceMetricsData = inngest.createFunction(
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - 7); // Keep 7 days of history
 
+      const supabaseAdmin = createSupabaseAdmin();
       const { error, count } = await supabaseAdmin
         .from('workspace_aggregation_queue')
         .delete()
@@ -387,6 +397,7 @@ export const cleanupWorkspaceMetricsData = inngest.createFunction(
     // Step 3: Clean up old metrics history (based on tier retention)
     const historyCleanup = await step.run('cleanup-history', async () => {
       // Get workspaces with their retention settings
+      const supabaseAdmin = createSupabaseAdmin();
       const { data: workspaces } = await supabaseAdmin
         .from('workspaces')
         .select('id, data_retention_days');
@@ -414,7 +425,7 @@ export const cleanupWorkspaceMetricsData = inngest.createFunction(
     return {
       cacheEntriesDeleted: cacheCleanup.deleted,
       queueEntriesDeleted: queueCleanup.deleted,
-      historyEntriesDeleted: historyCleanup.deleted
+      historyEntriesDeleted: historyCleanup.deleted,
     };
   }
 );
@@ -424,5 +435,5 @@ export const workspaceMetricsFunctions = [
   aggregateWorkspaceMetrics,
   scheduledWorkspaceAggregation,
   handleWorkspaceRepositoryChange,
-  cleanupWorkspaceMetricsData
+  cleanupWorkspaceMetricsData,
 ];

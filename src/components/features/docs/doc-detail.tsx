@@ -1,13 +1,13 @@
-import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
-import { Markdown } from "@/components/common/layout/markdown";
-import { Skeleton } from "@/components/ui/skeleton";
-import { DocsToc } from "./docs-toc";
-import { DocsSEO } from "./docs-seo";
-import { DocsSidebar } from "./docs-sidebar";
-import { LastUpdated } from "@/components/ui/last-updated";
-import { usePageTimestamp } from "@/hooks/use-data-timestamp";
-import { DOCS_METADATA, fetchDocsContent } from "./docs-loader";
+import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import { Markdown } from '@/components/common/layout/markdown';
+import { Skeleton } from '@/components/ui/skeleton';
+import { DocsToc } from './docs-toc';
+import { DocsSEO } from './docs-seo';
+import { DocsSidebar } from './docs-sidebar';
+import { LastUpdated } from '@/components/ui/last-updated';
+import { usePageTimestamp } from '@/hooks/use-data-timestamp';
+import { DOCS_METADATA, fetchDocsContent } from './docs-loader';
 
 /**
  * Individual documentation page component
@@ -15,20 +15,20 @@ import { DOCS_METADATA, fetchDocsContent } from "./docs-loader";
  */
 export function DocDetail() {
   const { slug } = useParams<{ slug: string }>();
-  const [content, setContent] = useState<string>("");
+  const [content, setContent] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { pageLoadedAt } = usePageTimestamp();
 
   // Find the doc metadata based on slug
-  const docMeta = DOCS_METADATA.find(doc => {
+  const docMeta = DOCS_METADATA.find((doc) => {
     const docSlug = doc.file.replace('.md', '').replace(/^(feature-|insight-)/, '');
     return docSlug === slug;
   });
 
   useEffect(() => {
     if (!docMeta) {
-      setError("Documentation page not found");
+      setError('Documentation page not found');
       setLoading(false);
       return;
     }
@@ -38,20 +38,19 @@ export function DocDetail() {
 
   const loadDocContent = async () => {
     if (!docMeta) return;
-    
+
     try {
       setLoading(true);
       setError(null);
-      
+
       const docContent = await fetchDocsContent(docMeta.file);
       setContent(docContent);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load documentation");
+      setError(err instanceof Error ? err.message : 'Failed to load documentation');
     } finally {
       setLoading(false);
     }
   };
-
 
   if (loading) {
     return (
@@ -84,7 +83,9 @@ export function DocDetail() {
           <div className="flex-1 min-w-0">
             <div className="text-center py-12">
               <h2 className="text-2xl font-bold mb-4">Documentation Not Found</h2>
-              <p className="text-muted-foreground mb-6">{error || "The requested documentation page does not exist."}</p>
+              <p className="text-muted-foreground mb-6">
+                {error || 'The requested documentation page does not exist.'}
+              </p>
             </div>
           </div>
         </div>
@@ -99,7 +100,7 @@ export function DocDetail() {
         <div className="flex gap-8">
           {/* Sidebar Navigation */}
           <DocsSidebar />
-          
+
           {/* Main Content Area */}
           <div className="flex-1 min-w-0">
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_250px] gap-8">
@@ -107,9 +108,9 @@ export function DocDetail() {
               <div className="prose prose-slate dark:prose-invert max-w-none">
                 <h1>{docMeta.title}</h1>
                 <p className="text-lg text-muted-foreground">{docMeta.description}</p>
-                
+
                 <Markdown>{content}</Markdown>
-                
+
                 <div className="mt-8 pt-8 border-t">
                   <LastUpdated timestamp={pageLoadedAt} />
                 </div>

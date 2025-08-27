@@ -2,7 +2,7 @@
 
 /**
  * Script to refresh self-selection rate data
- * 
+ *
  * This script:
  * 1. Refreshes the repository_contribution_stats materialized view
  * 2. Shows repositories that have confidence data but no self-selection data
@@ -22,8 +22,8 @@ if (!supabaseServiceKey) {
 const supabase = createClient(supabaseUrl, supabaseServiceKey, {
   auth: {
     autoRefreshToken: false,
-    persistSession: false
-  }
+    persistSession: false,
+  },
 });
 
 async function refreshSelfSelectionData() {
@@ -36,18 +36,18 @@ async function refreshSelfSelectionData() {
       .from('repository_contribution_stats')
       .select('repository_owner, repository_name')
       .limit(1000);
-    
+
     console.log(`   • Repositories with self-selection data: ${beforeStats?.length || 0}`);
 
     // 2. Refresh the materialized view
     console.log('\n🔄 Refreshing materialized view...');
     const { error: refreshError } = await supabase.rpc('refresh_contribution_stats');
-    
+
     if (refreshError) {
       console.error('❌ Error refreshing materialized view:', refreshError.message);
       return;
     }
-    
+
     console.log('✅ Materialized view refreshed successfully');
 
     // 3. Get updated stats
@@ -55,12 +55,12 @@ async function refreshSelfSelectionData() {
       .from('repository_contribution_stats')
       .select('repository_owner, repository_name')
       .limit(1000);
-    
+
     console.log(`   • Repositories with self-selection data: ${afterStats?.length || 0}`);
 
     // 4. Check for repositories with confidence but no self-selection data
     console.log('\n🔍 Checking for repositories missing self-selection data...');
-    
+
     const { data: missingData } = await supabase.rpc('execute_sql', {
       query: `
         WITH confidence_repos AS (
@@ -81,15 +81,19 @@ async function refreshSelfSelectionData() {
           ON cr.repository_owner = sr.repository_owner 
           AND cr.repository_name = sr.repository_name
         WHERE sr.repository_owner IS NULL
-      `
+      `,
     });
 
     if (missingData && missingData.length > 0) {
-      console.log(`⚠️  Found ${missingData.length} repositories with confidence data but no self-selection data:`);
+      console.log(
+        `⚠️  Found ${missingData.length} repositories with confidence data but no self-selection data:`
+      );
       missingData.forEach((repo: any) => {
         console.log(`   • ${repo.repository_owner}/${repo.repository_name}`);
       });
-      console.log('\nℹ️  This is normal for repositories that have GitHub events but no pull request data.');
+      console.log(
+        '\nℹ️  This is normal for repositories that have GitHub events but no pull request data.'
+      );
     } else {
       console.log('✅ All repositories with confidence data also have self-selection data');
     }
@@ -102,7 +106,9 @@ async function refreshSelfSelectionData() {
 
     if (sampleData) {
       sampleData.forEach((repo: any) => {
-        console.log(`   • ${repo.repository_owner}/${repo.repository_name}: ${repo.self_selection_rate}%`);
+        console.log(
+          `   • ${repo.repository_owner}/${repo.repository_name}: ${repo.self_selection_rate}%`
+        );
       });
     }
 
@@ -114,15 +120,18 @@ async function refreshSelfSelectionData() {
       .eq('role', 'contributor');
 
     const totalWithSelfSelection = afterStats?.length || 0;
-    const coverage = totalRepos?.length ? ((totalWithSelfSelection / totalRepos.length) * 100).toFixed(1) : '0';
-    
+    const coverage = totalRepos?.length
+      ? ((totalWithSelfSelection / totalRepos.length) * 100).toFixed(1)
+      : '0';
+
     console.log(`   • Total repositories with confidence data: ${totalRepos?.length || 0}`);
     console.log(`   • Repositories with self-selection data: ${totalWithSelfSelection}`);
     console.log(`   • Coverage: ${coverage}%`);
 
     console.log('\n✅ Self-selection data refresh completed!');
-    console.log('\nℹ️  The confidence analytics dashboard will now show updated self-selection rates.');
-
+    console.log(
+      '\nℹ️  The confidence analytics dashboard will now show updated self-selection rates.'
+    );
   } catch (error) {
     console.error('❌ Error during refresh:', error);
     process.exit(1);

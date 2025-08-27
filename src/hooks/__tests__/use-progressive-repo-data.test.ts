@@ -47,7 +47,7 @@ const mockPRData = [
   },
   {
     id: 2,
-    title: 'Test PR 2', 
+    title: 'Test PR 2',
     user: { login: 'user2', avatar_url: 'avatar2.jpg' },
     state: 'open',
     created_at: '2023-01-02T00:00:00Z',
@@ -62,9 +62,7 @@ const mockPRData = [
 ];
 
 const mockDirectCommitsData = {
-  commits: [
-    { sha: 'abc123', message: 'Test commit', author: 'user1' },
-  ],
+  commits: [{ sha: 'abc123', message: 'Test commit', author: 'user1' }],
   totalCommits: 1,
 };
 
@@ -75,7 +73,7 @@ const mockLotteryFactor = {
 };
 
 // Helper for consistent waitFor configuration
-const waitForWithTimeout = (callback: () => void, options = {}) => 
+const waitForWithTimeout = (callback: () => void, options = {}) =>
   waitFor(callback, { timeout: 10000, ...options });
 
 describe('useProgressiveRepoData', () => {
@@ -85,14 +83,14 @@ describe('useProgressiveRepoData', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     // Set up default mock implementations
     fetchPRDataMock.mockResolvedValue({
       data: mockPRData,
       status: 'success',
       message: 'Data loaded successfully',
     });
-    
+
     fetchDirectCommitsMock.mockResolvedValue(mockDirectCommitsData);
     calculateLotteryFactorMock.mockReturnValue(mockLotteryFactor);
   });
@@ -104,9 +102,7 @@ describe('useProgressiveRepoData', () => {
 
   describe('Initial state', () => {
     it('should initialize with correct default state', () => {
-      const { result } = renderHook(() => 
-        useProgressiveRepoData('owner', 'repo', '90d', false)
-      );
+      const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
 
       expect(result.current.basicInfo).toBe(null);
       expect(result.current.stats.loading).toBe(true);
@@ -117,25 +113,23 @@ describe('useProgressiveRepoData', () => {
       expect(result.current.historicalTrends).toBe(null);
       expect(result.current.currentStage).toBe('initial');
       expect(result.current.dataStatus.status).toBe('pending');
-      
+
       // All stage progress should be false initially
-      Object.values(result.current.stageProgress).forEach(progress => {
+      Object.values(result.current.stageProgress).forEach((progress) => {
         expect(progress).toBe(false);
       });
     });
 
     it('should not start loading without owner or repo', () => {
       renderHook(() => useProgressiveRepoData(undefined, 'repo', '90d', false));
-      
+
       expect(fetchPRDataMock).not.toHaveBeenCalled();
     });
   });
 
   describe('Stage 1: Critical data loading', () => {
     it('should load critical data first', async () => {
-      const { result } = renderHook(() => 
-        useProgressiveRepoData('owner', 'repo', '90d', false)
-      );
+      const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
 
       await waitFor(() => {
         expect(result.current.currentStage).toBe('critical');
@@ -155,7 +149,7 @@ describe('useProgressiveRepoData', () => {
       });
 
       expect(fetchPRDataMock).toHaveBeenCalledWith('owner', 'repo', {
-        timeRange: '90d'
+        timeRange: '90d',
       });
     });
 
@@ -166,9 +160,7 @@ describe('useProgressiveRepoData', () => {
         message: 'Repository not found',
       });
 
-      const { result } = renderHook(() => 
-        useProgressiveRepoData('owner', 'repo', '90d', false)
-      );
+      const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
 
       await waitFor(() => {
         expect(result.current.basicInfo).toBe(null);
@@ -178,9 +170,7 @@ describe('useProgressiveRepoData', () => {
 
   describe('Stage 2: Full data loading', () => {
     it('should progress to full data loading after critical', async () => {
-      const { result } = renderHook(() => 
-        useProgressiveRepoData('owner', 'repo', '90d', false)
-      );
+      const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
 
       // Wait for critical stage
       await waitFor(() => {
@@ -205,19 +195,19 @@ describe('useProgressiveRepoData', () => {
 
     it('should handle full data loading errors', async () => {
       fetchPRDataMock
-        .mockResolvedValueOnce({ // First call for critical stage
+        .mockResolvedValueOnce({
+          // First call for critical stage
           data: mockPRData,
           status: 'success',
         })
-        .mockResolvedValueOnce({ // Second call for full stage
+        .mockResolvedValueOnce({
+          // Second call for full stage
           data: null,
           status: 'error',
           message: 'Database connection failed',
         });
 
-      const { result } = renderHook(() => 
-        useProgressiveRepoData('owner', 'repo', '90d', false)
-      );
+      const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
 
       await waitFor(() => {
         expect(result.current.stageProgress.full).toBe(true);
@@ -234,9 +224,7 @@ describe('useProgressiveRepoData', () => {
         status: 'success',
       });
 
-      const { result } = renderHook(() => 
-        useProgressiveRepoData('owner', 'repo', '90d', false)
-      );
+      const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
 
       await waitFor(() => {
         expect(result.current.stageProgress.full).toBe(true);
@@ -249,9 +237,7 @@ describe('useProgressiveRepoData', () => {
 
   describe('Stage 3: Enhancement data loading', () => {
     it('should load enhancement data in background using requestIdleCallback', async () => {
-      const { result } = renderHook(() => 
-        useProgressiveRepoData('owner', 'repo', '90d', false)
-      );
+      const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
 
       // Wait for full stage to complete
       await waitFor(() => {
@@ -282,9 +268,7 @@ describe('useProgressiveRepoData', () => {
 
       vi.useFakeTimers();
 
-      const { result } = renderHook(() => 
-        useProgressiveRepoData('owner', 'repo', '90d', false)
-      );
+      const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
 
       // Wait for full stage
       await waitFor(() => {
@@ -305,9 +289,7 @@ describe('useProgressiveRepoData', () => {
     it('should handle enhancement data loading errors gracefully', async () => {
       fetchDirectCommitsMock.mockRejectedValue(new Error('API rate limit exceeded'));
 
-      const { result } = renderHook(() => 
-        useProgressiveRepoData('owner', 'repo', '90d', false)
-      );
+      const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
 
       // Wait for full stage
       await waitFor(() => {
@@ -340,13 +322,13 @@ describe('useProgressiveRepoData', () => {
       // Should abort previous and start new request
       await waitFor(() => {
         expect(fetchPRDataMock).toHaveBeenCalledWith('owner2', 'repo2', {
-          timeRange: '90d'
+          timeRange: '90d',
         });
       });
     });
 
     it('should prevent loading when component unmounts', async () => {
-      const { result, unmount } = renderHook(() => 
+      const { result, unmount } = renderHook(() =>
         useProgressiveRepoData('owner', 'repo', '90d', false)
       );
 
@@ -366,7 +348,7 @@ describe('useProgressiveRepoData', () => {
   describe('Caching behavior', () => {
     it('should use cached data when available and fresh', async () => {
       // First render to populate cache
-      const { unmount: unmount1 } = renderHook(() => 
+      const { unmount: unmount1 } = renderHook(() =>
         useProgressiveRepoData('owner', 'repo', '90d', false)
       );
 
@@ -377,9 +359,7 @@ describe('useProgressiveRepoData', () => {
       unmount1();
 
       // Second render should use cache
-      const { result } = renderHook(() => 
-        useProgressiveRepoData('owner', 'repo', '90d', false)
-      );
+      const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
 
       await waitFor(() => {
         expect(result.current.stageProgress.critical).toBe(true);
@@ -393,7 +373,7 @@ describe('useProgressiveRepoData', () => {
       vi.useFakeTimers();
 
       // First render
-      const { unmount: unmount1 } = renderHook(() => 
+      const { unmount: unmount1 } = renderHook(() =>
         useProgressiveRepoData('owner', 'repo', '90d', false)
       );
 
@@ -422,9 +402,7 @@ describe('useProgressiveRepoData', () => {
       const networkError = new Error('Network connection failed');
       fetchPRDataMock.mockRejectedValue(networkError);
 
-      const { result } = renderHook(() => 
-        useProgressiveRepoData('owner', 'repo', '90d', false)
-      );
+      const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
 
       // Should not crash and should maintain initial state
       await waitFor(() => {
@@ -440,9 +418,7 @@ describe('useProgressiveRepoData', () => {
         message: 'Some data may be missing',
       });
 
-      const { result } = renderHook(() => 
-        useProgressiveRepoData('owner', 'repo', '90d', false)
-      );
+      const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
 
       await waitFor(() => {
         expect(result.current.dataStatus.status).toBe('no_data');
@@ -460,7 +436,7 @@ describe('useProgressiveRepoData', () => {
 
       await waitFor(() => {
         expect(fetchPRDataMock).toHaveBeenCalledWith('owner', 'repo', {
-          timeRange: '30d'
+          timeRange: '30d',
         });
       });
 
@@ -468,7 +444,7 @@ describe('useProgressiveRepoData', () => {
 
       await waitFor(() => {
         expect(fetchPRDataMock).toHaveBeenCalledWith('owner', 'repo', {
-          timeRange: '1y'
+          timeRange: '1y',
         });
       });
     });
@@ -499,9 +475,7 @@ describe('useProgressiveRepoData', () => {
         message: 'No pull requests found',
       });
 
-      const { result } = renderHook(() => 
-        useProgressiveRepoData('owner', 'repo', '90d', false)
-      );
+      const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
 
       await waitFor(() => {
         expect(result.current.basicInfo?.prCount).toBe(0);
@@ -513,7 +487,12 @@ describe('useProgressiveRepoData', () => {
     it('should handle PRs with missing user data', async () => {
       const prDataWithMissingUser = [
         { id: 1, title: 'Test PR', user: null, state: 'open' },
-        { id: 2, title: 'Test PR 2', user: { login: 'user1', avatar_url: 'avatar.jpg' }, state: 'merged' },
+        {
+          id: 2,
+          title: 'Test PR 2',
+          user: { login: 'user1', avatar_url: 'avatar.jpg' },
+          state: 'merged',
+        },
       ];
 
       fetchPRDataMock.mockResolvedValue({
@@ -521,9 +500,7 @@ describe('useProgressiveRepoData', () => {
         status: 'success',
       });
 
-      const { result } = renderHook(() => 
-        useProgressiveRepoData('owner', 'repo', '90d', false)
-      );
+      const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
 
       await waitFor(() => {
         expect(result.current.basicInfo?.contributorCount).toBe(1);

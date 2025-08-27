@@ -4,10 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import {
-  GitHubApiClient,
-  ContributorApiError,
-} from './api';
+import { GitHubApiClient, ContributorApiError } from './api';
 
 describe('GitHub API Client', () => {
   let client: GitHubApiClient;

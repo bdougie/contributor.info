@@ -57,7 +57,7 @@ describe('Throttle Configuration', () => {
     it('should handle manual sync with 5-minute cooldown', () => {
       const threeMinutesAgo = new Date(Date.now() - 3 * 60 * 1000);
       const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
-      
+
       expect(isSyncAllowed(threeMinutesAgo, 'manual')).toBe(false); // 3 min < 5 min
       expect(isSyncAllowed(tenMinutesAgo, 'manual')).toBe(true); // 10 min > 5 min
     });
@@ -65,7 +65,7 @@ describe('Throttle Configuration', () => {
     it('should handle scheduled sync with 24-hour cooldown', () => {
       const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000);
       const twentyFiveHoursAgo = new Date(Date.now() - 25 * 60 * 60 * 1000);
-      
+
       expect(isSyncAllowed(twelveHoursAgo, 'scheduled')).toBe(false); // 12h < 24h
       expect(isSyncAllowed(twentyFiveHoursAgo, 'scheduled')).toBe(true); // 25h > 24h
     });
@@ -87,14 +87,14 @@ describe('Throttle Configuration', () => {
     it('should allow auto-fix sync after 1 hour', () => {
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
       const fiftyMinutesAgo = new Date(Date.now() - 50 * 60 * 1000);
-      
+
       expect(isSyncAllowed(oneHourAgo, 'auto-fix')).toBe(true);
       expect(isSyncAllowed(fiftyMinutesAgo, 'auto-fix')).toBe(false);
     });
 
     it('should handle all known sync reasons', () => {
       const reasons = ['manual', 'auto-fix', 'scheduled', 'automatic', 'pr-activity'];
-      reasons.forEach(reason => {
+      reasons.forEach((reason) => {
         const hours = getThrottleHours(reason);
         expect(hours).toBeGreaterThan(0);
         expect(hours).toBeLessThanOrEqual(24);

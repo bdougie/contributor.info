@@ -10,12 +10,12 @@
  * Rate limit configuration
  */
 export interface RateLimitConfig {
-  windowMs: number;      // Time window in milliseconds
-  maxRequests: number;   // Maximum requests per window
+  windowMs: number; // Time window in milliseconds
+  maxRequests: number; // Maximum requests per window
   keyGenerator?: (req: Request) => string; // Custom key generator
   skipSuccessfulRequests?: boolean; // Don't count successful requests
-  skipFailedRequests?: boolean;     // Don't count failed requests
-  message?: string;      // Custom error message
+  skipFailedRequests?: boolean; // Don't count failed requests
+  message?: string; // Custom error message
 }
 
 /**
@@ -87,15 +87,16 @@ const store = new RateLimitStore();
 function defaultKeyGenerator(req: Request): string {
   // Try to get IP from various headers
   const headers = req.headers;
-  const ip = headers.get('x-forwarded-for')?.split(',')[0] ||
-             headers.get('x-real-ip') ||
-             headers.get('cf-connecting-ip') ||
-             'unknown';
-  
+  const ip =
+    headers.get('x-forwarded-for')?.split(',')[0] ||
+    headers.get('x-real-ip') ||
+    headers.get('cf-connecting-ip') ||
+    'unknown';
+
   // Include path in key to have per-endpoint limits
   const url = new URL(req.url);
   const path = url.pathname;
-  
+
   return `${ip}:${path}`;
 }
 
@@ -109,7 +110,7 @@ export function createRateLimiter(config: RateLimitConfig) {
     keyGenerator = defaultKeyGenerator,
     skipSuccessfulRequests = false,
     skipFailedRequests = false,
-    message = 'Too many requests, please try again later'
+    message = 'Too many requests, please try again later',
   } = config;
 
   return async function rateLimiter(
@@ -117,51 +118,54 @@ export function createRateLimiter(config: RateLimitConfig) {
     next: () => Promise<Response>
   ): Promise<Response> {
     const key = keyGenerator(req);
-    
+
     // Check current rate limit
     const current = store.get(key) || { count: 0, resetTime: Date.now() + windowMs };
-    
+
     if (current.count >= maxRequests) {
       // Rate limit exceeded
       const retryAfter = Math.ceil((current.resetTime - Date.now()) / 1000);
-      
-      return new Response(JSON.stringify({ 
-        error: message,
-        retryAfter 
-      }), {
-        status: 429,
-        headers: {
-          'Content-Type': 'application/json',
-          'X-RateLimit-Limit': maxRequests.toString(),
-          'X-RateLimit-Remaining': '0',
-          'X-RateLimit-Reset': new Date(current.resetTime).toISOString(),
-          'Retry-After': retryAfter.toString()
+
+      return new Response(
+        JSON.stringify({
+          error: message,
+          retryAfter,
+        }),
+        {
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-RateLimit-Limit': maxRequests.toString(),
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': new Date(current.resetTime).toISOString(),
+            'Retry-After': retryAfter.toString(),
+          },
         }
-      });
+      );
     }
 
     // Increment counter before processing request
     const updated = store.increment(key, windowMs);
-    
+
     try {
       // Process request
       const response = await next();
-      
+
       // Optionally don't count successful requests
       if (skipSuccessfulRequests && response.status < 400) {
         store.reset(key);
       }
-      
+
       // Add rate limit headers to response
       const newHeaders = new Headers(response.headers);
       newHeaders.set('X-RateLimit-Limit', maxRequests.toString());
       newHeaders.set('X-RateLimit-Remaining', Math.max(0, maxRequests - updated.count).toString());
       newHeaders.set('X-RateLimit-Reset', new Date(updated.resetTime).toISOString());
-      
+
       return new Response(response.body, {
         status: response.status,
         statusText: response.statusText,
-        headers: newHeaders
+        headers: newHeaders,
       });
     } catch (error) {
       // Optionally don't count failed requests
@@ -180,29 +184,29 @@ export const rateLimiters = {
   // Standard API rate limit: 100 requests per minute
   standard: createRateLimiter({
     windowMs: 60 * 1000,
-    maxRequests: 100
+    maxRequests: 100,
   }),
-  
+
   // Strict rate limit for expensive operations: 10 requests per minute
   strict: createRateLimiter({
     windowMs: 60 * 1000,
     maxRequests: 10,
-    message: 'Rate limit exceeded for this operation'
+    message: 'Rate limit exceeded for this operation',
   }),
-  
+
   // Auth rate limit: 5 attempts per 15 minutes
   auth: createRateLimiter({
     windowMs: 15 * 60 * 1000,
     maxRequests: 5,
-    message: 'Too many authentication attempts'
+    message: 'Too many authentication attempts',
   }),
-  
+
   // Creation rate limit: 20 creates per hour
   create: createRateLimiter({
     windowMs: 60 * 60 * 1000,
     maxRequests: 20,
-    message: 'Creation rate limit exceeded'
-  })
+    message: 'Creation rate limit exceeded',
+  }),
 };
 
 /**
@@ -213,7 +217,7 @@ export function withRateLimit(
   config: RateLimitConfig
 ) {
   const limiter = createRateLimiter(config);
-  
+
   return async (req: Request, context: any): Promise<Response> => {
     return limiter(req, () => handler(req, context));
   };
@@ -235,7 +239,7 @@ export function createUserRateLimiter(config: RateLimitConfig) {
       }
       // Fall back to IP for unauthenticated requests
       return defaultKeyGenerator(req);
-    }
+    },
   });
 }
 

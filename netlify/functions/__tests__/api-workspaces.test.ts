@@ -4,11 +4,11 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 vi.mock('@supabase/supabase-js', () => ({
   createClient: vi.fn(() => ({
     auth: {
-      getUser: vi.fn()
+      getUser: vi.fn(),
     },
     from: vi.fn(),
-    rpc: vi.fn()
-  }))
+    rpc: vi.fn(),
+  })),
 }));
 
 import { createClient } from '@supabase/supabase-js';
@@ -22,15 +22,15 @@ describe('Workspace API Integration Tests', () => {
   beforeEach(() => {
     // Reset mocks
     mockAuth = {
-      getUser: vi.fn()
+      getUser: vi.fn(),
     };
 
     mockFrom = vi.fn();
-    
+
     mockSupabase = {
       auth: mockAuth,
       from: mockFrom,
-      rpc: vi.fn()
+      rpc: vi.fn(),
     };
 
     (createClient as any).mockReturnValue(mockSupabase);
@@ -49,31 +49,31 @@ describe('Workspace API Integration Tests', () => {
       mockAuth.getUser.mockResolvedValue({ data: { user: null }, error: null });
 
       const request = new Request('https://example.com/api/workspaces', {
-        method: 'GET'
+        method: 'GET',
       });
 
       const response = await handler(request, {} as any);
-      
+
       expect(response.status).toBe(401);
       const data = await response.json();
       expect(data.error).toBe('Unauthorized');
     });
 
     it('should return 401 for invalid token', async () => {
-      mockAuth.getUser.mockResolvedValue({ 
-        data: { user: null }, 
-        error: { message: 'Invalid token' } 
+      mockAuth.getUser.mockResolvedValue({
+        data: { user: null },
+        error: { message: 'Invalid token' },
       });
 
       const request = new Request('https://example.com/api/workspaces', {
         method: 'GET',
         headers: {
-          'Authorization': 'Bearer invalid-token'
-        }
+          Authorization: 'Bearer invalid-token',
+        },
       });
 
       const response = await handler(request, {} as any);
-      
+
       expect(response.status).toBe(401);
       const data = await response.json();
       expect(data.error).toBe('Unauthorized');
@@ -82,20 +82,18 @@ describe('Workspace API Integration Tests', () => {
     it('should accept valid authentication', async () => {
       const mockUser = { id: 'user-123', email: 'test@example.com' };
       mockAuth.getUser.mockResolvedValue({ data: { user: mockUser }, error: null });
-      
-      const mockWorkspaces = [
-        { id: 'ws-1', name: 'Workspace 1' }
-      ];
+
+      const mockWorkspaces = [{ id: 'ws-1', name: 'Workspace 1' }];
 
       const mockQuery = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
         order: vi.fn().mockReturnThis(),
-        range: vi.fn().mockResolvedValue({ 
-          data: mockWorkspaces, 
-          error: null, 
-          count: 1 
-        })
+        range: vi.fn().mockResolvedValue({
+          data: mockWorkspaces,
+          error: null,
+          count: 1,
+        }),
       };
 
       mockFrom.mockReturnValue(mockQuery);
@@ -103,12 +101,12 @@ describe('Workspace API Integration Tests', () => {
       const request = new Request('https://example.com/api/workspaces', {
         method: 'GET',
         headers: {
-          'Authorization': 'Bearer valid-token'
-        }
+          Authorization: 'Bearer valid-token',
+        },
       });
 
       const response = await handler(request, {} as any);
-      
+
       expect(response.status).toBe(200);
       const data = await response.json();
       expect(data.workspaces).toEqual(mockWorkspaces);
@@ -124,18 +122,18 @@ describe('Workspace API Integration Tests', () => {
     it('should list user workspaces with pagination', async () => {
       const mockWorkspaces = [
         { id: 'ws-1', name: 'Workspace 1' },
-        { id: 'ws-2', name: 'Workspace 2' }
+        { id: 'ws-2', name: 'Workspace 2' },
       ];
 
       const mockQuery = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
         order: vi.fn().mockReturnThis(),
-        range: vi.fn().mockResolvedValue({ 
-          data: mockWorkspaces, 
-          error: null, 
-          count: 10 
-        })
+        range: vi.fn().mockResolvedValue({
+          data: mockWorkspaces,
+          error: null,
+          count: 10,
+        }),
       };
 
       mockFrom.mockReturnValue(mockQuery);
@@ -143,12 +141,12 @@ describe('Workspace API Integration Tests', () => {
       const request = new Request('https://example.com/api/workspaces?page=2&limit=5', {
         method: 'GET',
         headers: {
-          'Authorization': 'Bearer valid-token'
-        }
+          Authorization: 'Bearer valid-token',
+        },
       });
 
       const response = await handler(request, {} as any);
-      
+
       expect(response.status).toBe(200);
       const data = await response.json();
       expect(data.workspaces).toEqual(mockWorkspaces);
@@ -156,7 +154,7 @@ describe('Workspace API Integration Tests', () => {
         page: 2,
         limit: 5,
         total: 10,
-        totalPages: 2
+        totalPages: 2,
       });
       expect(mockQuery.range).toHaveBeenCalledWith(5, 9);
     });
@@ -166,11 +164,11 @@ describe('Workspace API Integration Tests', () => {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
         order: vi.fn().mockReturnThis(),
-        range: vi.fn().mockResolvedValue({ 
-          data: [], 
-          error: null, 
-          count: 0 
-        })
+        range: vi.fn().mockResolvedValue({
+          data: [],
+          error: null,
+          count: 0,
+        }),
       };
 
       mockFrom.mockReturnValue(mockQuery);
@@ -178,12 +176,12 @@ describe('Workspace API Integration Tests', () => {
       const request = new Request('https://example.com/api/workspaces?visibility=private', {
         method: 'GET',
         headers: {
-          'Authorization': 'Bearer valid-token'
-        }
+          Authorization: 'Bearer valid-token',
+        },
       });
 
       await handler(request, {} as any);
-      
+
       expect(mockQuery.eq).toHaveBeenCalledWith('visibility', 'private');
     });
 
@@ -193,11 +191,11 @@ describe('Workspace API Integration Tests', () => {
         eq: vi.fn().mockReturnThis(),
         or: vi.fn().mockReturnThis(),
         order: vi.fn().mockReturnThis(),
-        range: vi.fn().mockResolvedValue({ 
-          data: [], 
-          error: null, 
-          count: 0 
-        })
+        range: vi.fn().mockResolvedValue({
+          data: [],
+          error: null,
+          count: 0,
+        }),
       };
 
       mockFrom.mockReturnValue(mockQuery);
@@ -205,12 +203,12 @@ describe('Workspace API Integration Tests', () => {
       const request = new Request('https://example.com/api/workspaces?search=test', {
         method: 'GET',
         headers: {
-          'Authorization': 'Bearer valid-token'
-        }
+          Authorization: 'Bearer valid-token',
+        },
       });
 
       await handler(request, {} as any);
-      
+
       expect(mockQuery.or).toHaveBeenCalledWith('name.ilike.%test%,description.ilike.%test%');
     });
   });
@@ -222,19 +220,19 @@ describe('Workspace API Integration Tests', () => {
     });
 
     it('should get specific workspace', async () => {
-      const mockWorkspace = { 
-        id: 'ws-123', 
+      const mockWorkspace = {
+        id: 'ws-123',
         name: 'Test Workspace',
-        workspace_members: [{ user_id: 'user-123', role: 'owner' }]
+        workspace_members: [{ user_id: 'user-123', role: 'owner' }],
       };
 
       const mockQuery = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ 
-          data: mockWorkspace, 
-          error: null 
-        })
+        single: vi.fn().mockResolvedValue({
+          data: mockWorkspace,
+          error: null,
+        }),
       };
 
       mockFrom.mockReturnValue(mockQuery);
@@ -242,12 +240,12 @@ describe('Workspace API Integration Tests', () => {
       const request = new Request('https://example.com/api/workspaces/ws-123', {
         method: 'GET',
         headers: {
-          'Authorization': 'Bearer valid-token'
-        }
+          Authorization: 'Bearer valid-token',
+        },
       });
 
       const response = await handler(request, {} as any);
-      
+
       expect(response.status).toBe(200);
       const data = await response.json();
       expect(data.workspace).toEqual(mockWorkspace);
@@ -257,10 +255,10 @@ describe('Workspace API Integration Tests', () => {
       const mockQuery = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ 
-          data: null, 
-          error: { code: 'PGRST116' } 
-        })
+        single: vi.fn().mockResolvedValue({
+          data: null,
+          error: { code: 'PGRST116' },
+        }),
       };
 
       mockFrom.mockReturnValue(mockQuery);
@@ -268,12 +266,12 @@ describe('Workspace API Integration Tests', () => {
       const request = new Request('https://example.com/api/workspaces/non-existent', {
         method: 'GET',
         headers: {
-          'Authorization': 'Bearer valid-token'
-        }
+          Authorization: 'Bearer valid-token',
+        },
       });
 
       const response = await handler(request, {} as any);
-      
+
       expect(response.status).toBe(404);
       const data = await response.json();
       expect(data.error).toBe('Workspace not found or access denied');
@@ -287,28 +285,28 @@ describe('Workspace API Integration Tests', () => {
     });
 
     it('should create new workspace', async () => {
-      mockSupabase.rpc.mockResolvedValue({ 
-        data: 'test-workspace-slug', 
-        error: null 
+      mockSupabase.rpc.mockResolvedValue({
+        data: 'test-workspace-slug',
+        error: null,
       });
 
-      const mockWorkspace = { 
-        id: 'ws-new', 
+      const mockWorkspace = {
+        id: 'ws-new',
         name: 'New Workspace',
-        slug: 'test-workspace-slug'
+        slug: 'test-workspace-slug',
       };
 
       const insertQuery = {
         insert: vi.fn().mockReturnThis(),
         select: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ 
-          data: mockWorkspace, 
-          error: null 
-        })
+        single: vi.fn().mockResolvedValue({
+          data: mockWorkspace,
+          error: null,
+        }),
       };
 
       const memberQuery = {
-        insert: vi.fn().mockResolvedValue({ error: null })
+        insert: vi.fn().mockResolvedValue({ error: null }),
       };
 
       mockFrom.mockImplementation((table: string) => {
@@ -320,25 +318,25 @@ describe('Workspace API Integration Tests', () => {
       const request = new Request('https://example.com/api/workspaces', {
         method: 'POST',
         headers: {
-          'Authorization': 'Bearer valid-token',
-          'Content-Type': 'application/json'
+          Authorization: 'Bearer valid-token',
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           name: 'New Workspace',
           description: 'Test description',
-          visibility: 'public'
-        })
+          visibility: 'public',
+        }),
       });
 
       const response = await handler(request, {} as any);
-      
+
       expect(response.status).toBe(201);
       const data = await response.json();
       expect(data.workspace).toEqual(mockWorkspace);
       expect(memberQuery.insert).toHaveBeenCalledWith({
         workspace_id: 'ws-new',
         user_id: 'user-123',
-        role: 'owner'
+        role: 'owner',
       });
     });
 
@@ -346,17 +344,17 @@ describe('Workspace API Integration Tests', () => {
       const request = new Request('https://example.com/api/workspaces', {
         method: 'POST',
         headers: {
-          'Authorization': 'Bearer valid-token',
-          'Content-Type': 'application/json'
+          Authorization: 'Bearer valid-token',
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           name: '',
-          visibility: 'invalid'
-        })
+          visibility: 'invalid',
+        }),
       });
 
       const response = await handler(request, {} as any);
-      
+
       expect(response.status).toBe(400);
       const data = await response.json();
       expect(data.error).toBe('Validation failed');
@@ -364,18 +362,18 @@ describe('Workspace API Integration Tests', () => {
     });
 
     it('should handle duplicate workspace names', async () => {
-      mockSupabase.rpc.mockResolvedValue({ 
-        data: 'test-workspace-slug', 
-        error: null 
+      mockSupabase.rpc.mockResolvedValue({
+        data: 'test-workspace-slug',
+        error: null,
       });
 
       const insertQuery = {
         insert: vi.fn().mockReturnThis(),
         select: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ 
-          data: null, 
-          error: { code: '23505' } 
-        })
+        single: vi.fn().mockResolvedValue({
+          data: null,
+          error: { code: '23505' },
+        }),
       };
 
       mockFrom.mockReturnValue(insertQuery);
@@ -383,16 +381,16 @@ describe('Workspace API Integration Tests', () => {
       const request = new Request('https://example.com/api/workspaces', {
         method: 'POST',
         headers: {
-          'Authorization': 'Bearer valid-token',
-          'Content-Type': 'application/json'
+          Authorization: 'Bearer valid-token',
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          name: 'Duplicate Workspace'
-        })
+          name: 'Duplicate Workspace',
+        }),
       });
 
       const response = await handler(request, {} as any);
-      
+
       expect(response.status).toBe(409);
       const data = await response.json();
       expect(data.error).toBe('A workspace with this name already exists');
@@ -409,20 +407,20 @@ describe('Workspace API Integration Tests', () => {
       const memberQuery = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ 
-          data: { role: 'owner' }, 
-          error: null 
-        })
+        single: vi.fn().mockResolvedValue({
+          data: { role: 'owner' },
+          error: null,
+        }),
       };
 
       const updateQuery = {
         update: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
         select: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ 
-          data: { id: 'ws-123', name: 'Updated Workspace' }, 
-          error: null 
-        })
+        single: vi.fn().mockResolvedValue({
+          data: { id: 'ws-123', name: 'Updated Workspace' },
+          error: null,
+        }),
       };
 
       mockFrom.mockImplementation((table: string) => {
@@ -434,16 +432,16 @@ describe('Workspace API Integration Tests', () => {
       const request = new Request('https://example.com/api/workspaces/ws-123', {
         method: 'PUT',
         headers: {
-          'Authorization': 'Bearer valid-token',
-          'Content-Type': 'application/json'
+          Authorization: 'Bearer valid-token',
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          name: 'Updated Workspace'
-        })
+          name: 'Updated Workspace',
+        }),
       });
 
       const response = await handler(request, {} as any);
-      
+
       expect(response.status).toBe(200);
       const data = await response.json();
       expect(data.workspace.name).toBe('Updated Workspace');
@@ -453,10 +451,10 @@ describe('Workspace API Integration Tests', () => {
       const memberQuery = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ 
-          data: { role: 'viewer' }, 
-          error: null 
-        })
+        single: vi.fn().mockResolvedValue({
+          data: { role: 'viewer' },
+          error: null,
+        }),
       };
 
       mockFrom.mockReturnValue(memberQuery);
@@ -464,16 +462,16 @@ describe('Workspace API Integration Tests', () => {
       const request = new Request('https://example.com/api/workspaces/ws-123', {
         method: 'PUT',
         headers: {
-          'Authorization': 'Bearer valid-token',
-          'Content-Type': 'application/json'
+          Authorization: 'Bearer valid-token',
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          name: 'Updated Workspace'
-        })
+          name: 'Updated Workspace',
+        }),
       });
 
       const response = await handler(request, {} as any);
-      
+
       expect(response.status).toBe(403);
       const data = await response.json();
       expect(data.error).toBe('Insufficient permissions');
@@ -490,15 +488,15 @@ describe('Workspace API Integration Tests', () => {
       const selectQuery = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ 
-          data: { owner_id: 'user-123' }, 
-          error: null 
-        })
+        single: vi.fn().mockResolvedValue({
+          data: { owner_id: 'user-123' },
+          error: null,
+        }),
       };
 
       const deleteQuery = {
         delete: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockResolvedValue({ error: null })
+        eq: vi.fn().mockResolvedValue({ error: null }),
       };
 
       mockFrom.mockImplementation((table: string) => {
@@ -511,12 +509,12 @@ describe('Workspace API Integration Tests', () => {
       const request = new Request('https://example.com/api/workspaces/ws-123', {
         method: 'DELETE',
         headers: {
-          'Authorization': 'Bearer valid-token'
-        }
+          Authorization: 'Bearer valid-token',
+        },
       });
 
       const response = await handler(request, {} as any);
-      
+
       expect(response.status).toBe(200);
       const data = await response.json();
       expect(data.success).toBe(true);
@@ -526,10 +524,10 @@ describe('Workspace API Integration Tests', () => {
       const selectQuery = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ 
-          data: { owner_id: 'other-user' }, 
-          error: null 
-        })
+        single: vi.fn().mockResolvedValue({
+          data: { owner_id: 'other-user' },
+          error: null,
+        }),
       };
 
       mockFrom.mockReturnValue(selectQuery);
@@ -537,12 +535,12 @@ describe('Workspace API Integration Tests', () => {
       const request = new Request('https://example.com/api/workspaces/ws-123', {
         method: 'DELETE',
         headers: {
-          'Authorization': 'Bearer valid-token'
-        }
+          Authorization: 'Bearer valid-token',
+        },
       });
 
       const response = await handler(request, {} as any);
-      
+
       expect(response.status).toBe(403);
       const data = await response.json();
       expect(data.error).toBe('Only workspace owner can delete workspace');
@@ -563,12 +561,12 @@ describe('Workspace API Integration Tests', () => {
       const request = new Request('https://example.com/api/workspaces', {
         method: 'GET',
         headers: {
-          'Authorization': 'Bearer valid-token'
-        }
+          Authorization: 'Bearer valid-token',
+        },
       });
 
       const response = await handler(request, {} as any);
-      
+
       expect(response.status).toBe(500);
       const data = await response.json();
       expect(data.error).toBe('Internal server error');
@@ -579,12 +577,12 @@ describe('Workspace API Integration Tests', () => {
       const request = new Request('https://example.com/api/workspaces', {
         method: 'PATCH',
         headers: {
-          'Authorization': 'Bearer valid-token'
-        }
+          Authorization: 'Bearer valid-token',
+        },
       });
 
       const response = await handler(request, {} as any);
-      
+
       expect(response.status).toBe(405);
       const data = await response.json();
       expect(data.error).toBe('Method not allowed');
@@ -594,11 +592,11 @@ describe('Workspace API Integration Tests', () => {
   describe('CORS', () => {
     it('should handle preflight requests', async () => {
       const request = new Request('https://example.com/api/workspaces', {
-        method: 'OPTIONS'
+        method: 'OPTIONS',
       });
 
       const response = await handler(request, {} as any);
-      
+
       expect(response.status).toBe(200);
       expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*');
       expect(response.headers.get('Access-Control-Allow-Methods')).toContain('GET');
@@ -609,11 +607,11 @@ describe('Workspace API Integration Tests', () => {
       mockAuth.getUser.mockResolvedValue({ data: { user: null }, error: null });
 
       const request = new Request('https://example.com/api/workspaces', {
-        method: 'GET'
+        method: 'GET',
       });
 
       const response = await handler(request, {} as any);
-      
+
       expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*');
       expect(response.headers.get('Access-Control-Allow-Headers')).toContain('Content-Type');
     });

@@ -9,7 +9,8 @@ const meta = {
     layout: 'centered',
     docs: {
       description: {
-        component: 'A metric card component for displaying workspace statistics with optional trends and icons.',
+        component:
+          'A metric card component for displaying workspace statistics with optional trends and icons.',
       },
     },
   },

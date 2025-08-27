@@ -16,7 +16,7 @@ describe('ManualBackfillClient', () => {
         'Content-Type': 'application/json',
         'X-API-Key': 'test-key-123',
       };
-      
+
       expect(headers['Content-Type']).toBe('application/json');
       expect(headers['X-API-Key']).toBe('test-key-123');
     });
@@ -27,7 +27,7 @@ describe('ManualBackfillClient', () => {
       const apiUrl = 'https://test-api.example.com';
       const endpoint = '/api/backfill/trigger';
       const fullUrl = `${apiUrl}${endpoint}`;
-      
+
       expect(fullUrl).toBe('https://test-api.example.com/api/backfill/trigger');
     });
 
@@ -35,7 +35,7 @@ describe('ManualBackfillClient', () => {
       const apiUrl = 'https://test-api.example.com';
       const jobId = '123-456-789';
       const fullUrl = `${apiUrl}/api/backfill/status/${jobId}`;
-      
+
       expect(fullUrl).toBe('https://test-api.example.com/api/backfill/status/123-456-789');
     });
   });
@@ -48,7 +48,7 @@ describe('ManualBackfillClient', () => {
         force: false,
         callback_url: 'https://example.com/webhook',
       };
-      
+
       expect(request.repository).toMatch(/^[^/]+\/[^/]+$/);
       expect(request.days).toBeGreaterThan(0);
       expect(request.days).toBeLessThanOrEqual(365);
@@ -58,12 +58,12 @@ describe('ManualBackfillClient', () => {
     it('should validate repository format', () => {
       const validRepos = ['owner/repo', 'org-name/repo-name', 'user123/project_456'];
       const invalidRepos = ['justowner', '/repo', 'owner/', 'owner/repo/extra'];
-      
-      validRepos.forEach(repo => {
+
+      validRepos.forEach((repo) => {
         expect(repo).toMatch(/^[^/]+\/[^/]+$/);
       });
-      
-      invalidRepos.forEach(repo => {
+
+      invalidRepos.forEach((repo) => {
         expect(repo).not.toMatch(/^[^/]+\/[^/]+$/);
       });
     });
@@ -79,9 +79,11 @@ describe('ManualBackfillClient', () => {
         estimated_completion: '2025-01-01T00:00:00Z',
         status_url: '/api/backfill/status/550e8400',
       };
-      
+
       expect(mockResponse.job_id).toBeDefined();
-      expect(['queued', 'running', 'completed', 'failed', 'cancelled']).toContain(mockResponse.status);
+      expect(['queued', 'running', 'completed', 'failed', 'cancelled']).toContain(
+        mockResponse.status
+      );
       expect(mockResponse.repository).toMatch(/^[^/]+\/[^/]+$/);
       expect(mockResponse.days).toBeGreaterThan(0);
     });
@@ -98,7 +100,7 @@ describe('ManualBackfillClient', () => {
         },
         created_at: '2025-01-01T00:00:00Z',
       };
-      
+
       expect(mockStatus.id).toBeDefined();
       expect(mockStatus.progress).toBeGreaterThanOrEqual(0);
       expect(mockStatus.progress).toBeLessThanOrEqual(100);

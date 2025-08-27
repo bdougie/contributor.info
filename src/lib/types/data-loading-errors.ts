@@ -5,12 +5,7 @@
 
 export type LoadingStage = 'critical' | 'full' | 'enhancement';
 
-export type ErrorType = 
-  | 'network'
-  | 'permission' 
-  | 'validation'
-  | 'timeout'
-  | 'rate_limit';
+export type ErrorType = 'network' | 'permission' | 'validation' | 'timeout' | 'rate_limit';
 
 /**
  * Core loading error interface
@@ -41,10 +36,10 @@ export interface RecoveryOption {
   priority: 'high' | 'medium' | 'low';
 }
 
-export type RecoveryAction = 
+export type RecoveryAction =
   | 'retry'
   | 'refresh_auth'
-  | 'clear_cache'  
+  | 'clear_cache'
   | 'contact_support'
   | 'use_partial_data'
   | 'switch_timerange';
@@ -79,18 +74,18 @@ export const ERROR_CONFIGS: Record<string, Omit<LoadingError, 'message' | 'name'
         label: 'Try Again',
         description: 'Retry the request',
         action: 'retry',
-        priority: 'high'
+        priority: 'high',
       },
       {
         id: 'check_connection',
         label: 'Check Connection',
         description: 'Verify your internet connection and try again',
         action: 'retry',
-        priority: 'medium'
-      }
-    ]
+        priority: 'medium',
+      },
+    ],
   },
-  
+
   PERMISSION_DENIED: {
     stage: 'critical',
     type: 'permission',
@@ -103,16 +98,16 @@ export const ERROR_CONFIGS: Record<string, Omit<LoadingError, 'message' | 'name'
         label: 'Sign In Again',
         description: 'Refresh your authentication',
         action: 'refresh_auth',
-        priority: 'high'
+        priority: 'high',
       },
       {
         id: 'contact_support',
         label: 'Get Help',
         description: 'Contact support if you believe this is an error',
         action: 'contact_support',
-        priority: 'low'
-      }
-    ]
+        priority: 'low',
+      },
+    ],
   },
 
   RATE_LIMIT_EXCEEDED: {
@@ -127,16 +122,16 @@ export const ERROR_CONFIGS: Record<string, Omit<LoadingError, 'message' | 'name'
         label: 'Wait & Retry',
         description: 'Wait for rate limit to reset',
         action: 'retry',
-        priority: 'high'
+        priority: 'high',
       },
       {
         id: 'use_partial',
         label: 'Use Available Data',
         description: 'Continue with the data we already have',
         action: 'use_partial_data',
-        priority: 'medium'
-      }
-    ]
+        priority: 'medium',
+      },
+    ],
   },
 
   VALIDATION_ERROR: {
@@ -151,9 +146,9 @@ export const ERROR_CONFIGS: Record<string, Omit<LoadingError, 'message' | 'name'
         label: 'Check Repository',
         description: 'Verify the repository owner and name are correct',
         action: 'contact_support',
-        priority: 'high'
-      }
-    ]
+        priority: 'high',
+      },
+    ],
   },
 
   ENHANCEMENT_FAILED: {
@@ -168,17 +163,17 @@ export const ERROR_CONFIGS: Record<string, Omit<LoadingError, 'message' | 'name'
         label: 'Continue',
         description: 'Use the available data without enhancements',
         action: 'use_partial_data',
-        priority: 'high'
+        priority: 'high',
       },
       {
         id: 'retry_enhancement',
         label: 'Retry Enhancement',
         description: 'Try loading the additional data again',
         action: 'retry',
-        priority: 'medium'
-      }
-    ]
-  }
+        priority: 'medium',
+      },
+    ],
+  },
 };
 
 /**
@@ -190,9 +185,9 @@ export function createLoadingError(
   context?: LoadingError['context']
 ): LoadingError {
   const config = ERROR_CONFIGS[configKey];
-  
+
   const error = new Error(message) as LoadingError;
-  
+
   // Copy properties from config
   error.stage = config.stage;
   error.type = config.type;
@@ -201,7 +196,7 @@ export function createLoadingError(
   error.technicalDetails = config.technicalDetails;
   error.recoveryOptions = config.recoveryOptions;
   error.context = context;
-  
+
   return error;
 }
 
@@ -213,12 +208,12 @@ export function canRecoverInNextStage(error: LoadingError): boolean {
   if (error.stage === 'critical') {
     return error.type === 'timeout' || error.type === 'network';
   }
-  
+
   // Full stage failures can often be recovered in enhancement stage
   if (error.stage === 'full') {
     return error.type !== 'validation' && error.type !== 'permission';
   }
-  
+
   // Enhancement stage failures don't block core functionality
   return false;
 }
@@ -228,22 +223,22 @@ export function canRecoverInNextStage(error: LoadingError): boolean {
  */
 export function getRetryDelay(error: LoadingError, attemptCount: number): number {
   const baseDelays = {
-    network: 1000,     // 1s base delay for network errors
-    timeout: 2000,     // 2s base delay for timeouts  
-    rate_limit: 5000,  // 5s base delay for rate limits
-    permission: 0,     // No retry for permission errors
-    validation: 0      // No retry for validation errors
+    network: 1000, // 1s base delay for network errors
+    timeout: 2000, // 2s base delay for timeouts
+    rate_limit: 5000, // 5s base delay for rate limits
+    permission: 0, // No retry for permission errors
+    validation: 0, // No retry for validation errors
   };
-  
+
   const baseDelay = baseDelays[error.type];
-  
+
   if (baseDelay === 0 || !error.retryable) {
     return 0;
   }
-  
+
   // Exponential backoff with jitter
   const exponentialDelay = baseDelay * Math.pow(2, attemptCount - 1);
   const jitter = Math.random() * 0.3; // 30% jitter
-  
+
   return Math.min(exponentialDelay * (1 + jitter), 30000); // Max 30s delay
 }

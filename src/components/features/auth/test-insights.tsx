@@ -1,12 +1,12 @@
-import { useState } from "react"
+import { useState } from 'react';
 import { Loader2 } from '@/components/ui/icon';
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { analyzePullRequests } from "@/lib/insights/pullRequests";
-import { RepoInsightsContainer } from "@/components/insights/RepoInsightsContainer";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { analyzePullRequests } from '@/lib/insights/pullRequests';
+import { RepoInsightsContainer } from '@/components/insights/RepoInsightsContainer';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function TestInsights() {
   // State for the legacy function testing
@@ -16,8 +16,8 @@ export default function TestInsights() {
   const [requestDetails, setRequestDetails] = useState<any>(null);
 
   // State for the new implementation testing
-  const [owner, setOwner] = useState("facebook");
-  const [repo, setRepo] = useState("react");
+  const [owner, setOwner] = useState('facebook');
+  const [repo, setRepo] = useState('react');
   const [localLoading, setLocalLoading] = useState(false);
   const [localResponse, setLocalResponse] = useState<any>(null);
   const [localError, setLocalError] = useState<string | null>(null);
@@ -27,23 +27,23 @@ export default function TestInsights() {
     pullRequests: [
       {
         id: 1,
-        title: "Test PR 1",
-        state: "closed",
+        title: 'Test PR 1',
+        state: 'closed',
         created_at: new Date().toISOString(),
         merged_at: new Date().toISOString(),
         number: 1,
-        html_url: "https://github.com/test/repo/pull/1",
-        user: { login: "testuser1" },
+        html_url: 'https://github.com/test/repo/pull/1',
+        user: { login: 'testuser1' },
       },
       {
         id: 2,
-        title: "Test PR 2",
-        state: "open",
+        title: 'Test PR 2',
+        state: 'open',
         created_at: new Date().toISOString(),
         merged_at: null,
         number: 2,
-        html_url: "https://github.com/test/repo/pull/2",
-        user: { login: "testuser2" },
+        html_url: 'https://github.com/test/repo/pull/2',
+        user: { login: 'testuser2' },
       },
     ],
   };
@@ -60,20 +60,18 @@ export default function TestInsights() {
     setRequestDetails(null);
 
     try {
-      const apiUrl = `${
-        import.meta.env.VITE_SUPABASE_URL
-      }/functions/v1/insights`;
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/insights`;
 
       // Log request details
       const requestInfo = {
         url: apiUrl,
         headers: {
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         data: data,
       };
-      console.log("Request details:", requestInfo);
+      console.log('Request details:', requestInfo);
       setRequestDetails(requestInfo);
 
       // Add timeout to the fetch request
@@ -81,10 +79,10 @@ export default function TestInsights() {
       const timeout = setTimeout(() => controller.abort(), 30000);
 
       const response = await fetch(apiUrl, {
-        method: "POST",
+        method: 'POST',
         headers: {
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify(data),
         signal: controller.signal,
@@ -93,27 +91,23 @@ export default function TestInsights() {
       clearTimeout(timeout);
 
       // Log response details
-      console.log("Response status:", response.status);
-      console.log(
-        "Response headers:",
-        Object.fromEntries(response.headers.entries())
-      );
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
 
       const result = await response.json();
-      console.log("Response data:", result);
+      console.log('Response data:', result);
 
       if (!response.ok) {
         // Handle specific error cases
-        let errorMessage =
-          result.error || `HTTP error! status: ${response.status}`;
+        let errorMessage = result.error || `HTTP error! status: ${response.status}`;
         if (response.status === 401) {
           errorMessage =
-            "Authentication error: Please check your API keys in the environment settings.";
+            'Authentication error: Please check your API keys in the environment settings.';
         } else if (response.status === 429) {
-          errorMessage = "Rate limit exceeded: Please try again later.";
+          errorMessage = 'Rate limit exceeded: Please try again later.';
         } else if (response.status >= 500) {
           errorMessage =
-            "Server error: The service is currently unavailable. Please try again later.";
+            'Server error: The service is currently unavailable. Please try again later.';
         }
         throw new Error(errorMessage);
       }
@@ -122,21 +116,17 @@ export default function TestInsights() {
     } catch (err) {
       let errorMessage: string;
 
-      if (err instanceof Error && err.name === "AbortError") {
-        errorMessage = "Request timed out after 30 seconds. Please try again.";
-      } else if (
-        err instanceof TypeError &&
-        err.message === "Failed to fetch"
-      ) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        errorMessage = 'Request timed out after 30 seconds. Please try again.';
+      } else if (err instanceof TypeError && err.message === 'Failed to fetch') {
         errorMessage =
-          "Network error: Unable to connect to the server. Please check your internet connection and try again.";
+          'Network error: Unable to connect to the server. Please check your internet connection and try again.';
       } else {
-        errorMessage =
-          err instanceof Error ? err.message : "An unknown error occurred";
+        errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
       }
 
       setError(`${errorMessage}\n\nPlease check the console for more details.`);
-      console.error("Test function error:", err);
+      console.error('Test function error:', err);
     } finally {
       setLoading(false);
     }
@@ -145,7 +135,7 @@ export default function TestInsights() {
   // New local implementation test
   const testLocalImplementation = async () => {
     if (!owner || !repo) {
-      setLocalError("Please enter both owner and repository name");
+      setLocalError('Please enter both owner and repository name');
       return;
     }
 
@@ -156,13 +146,12 @@ export default function TestInsights() {
     try {
       console.log('Testing local implementation with: %s/%s', owner, repo);
       const result = await analyzePullRequests(owner, repo);
-      console.log("Local analysis result:", result);
+      console.log('Local analysis result:', result);
       setLocalResponse(result);
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "An unknown error occurred";
+      const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
       setLocalError(errorMessage);
-      console.error("Local analysis error:", err);
+      console.error('Local analysis error:', err);
     } finally {
       setLocalLoading(false);
     }
@@ -189,8 +178,7 @@ export default function TestInsights() {
 
       setLocalResponse(result);
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "An unknown error occurred";
+      const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
       setLocalError(errorMessage);
     } finally {
       setLocalLoading(false);
@@ -237,11 +225,7 @@ export default function TestInsights() {
               <Button onClick={testLocalImplementation} disabled={localLoading}>
                 Analyze Repository
               </Button>
-              <Button
-                onClick={testWithLocalData}
-                disabled={localLoading}
-                variant="outline"
-              >
+              <Button onClick={testWithLocalData} disabled={localLoading} variant="outline">
                 Test with Sample Data
               </Button>
             </div>
@@ -272,10 +256,7 @@ export default function TestInsights() {
           {/* Legacy Supabase Function Tab */}
           <TabsContent value="legacy" className="space-y-4">
             <div className="flex gap-4">
-              <Button
-                onClick={() => testSupabaseFunction(testData)}
-                disabled={loading}
-              >
+              <Button onClick={() => testSupabaseFunction(testData)} disabled={loading}>
                 Test with Sample Data
               </Button>
               <Button

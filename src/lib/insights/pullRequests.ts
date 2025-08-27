@@ -24,7 +24,7 @@ export async function analyzePullRequests(
   // Filter PRs by date range if provided
   let filteredPRs = pullRequests;
   if (dateRange) {
-    filteredPRs = pullRequests.filter(pr => {
+    filteredPRs = pullRequests.filter((pr) => {
       const createdAt = new Date(pr.created_at);
       if (dateRange.startDate && createdAt < dateRange.startDate) return false;
       if (dateRange.endDate && createdAt > dateRange.endDate) return false;
@@ -36,26 +36,26 @@ export async function analyzePullRequests(
   const totalPRs = filteredPRs.length;
   const prMergeTimesByAuthor: Record<string, number[]> = {};
   const prsByAuthor: Record<string, number> = {};
-  
+
   let totalMergeTime = 0;
   let mergedPRCount = 0;
 
-  filteredPRs.forEach(pr => {
+  filteredPRs.forEach((pr) => {
     const author = pr.user?.login || 'unknown';
-    
+
     // Count PRs by author
     prsByAuthor[author] = (prsByAuthor[author] || 0) + 1;
-    
+
     // Calculate merge time for merged PRs
     if (pr.merged_at) {
       const createTime = new Date(pr.created_at).getTime();
       const mergeTime = new Date(pr.merged_at).getTime();
       const hoursToMerge = (mergeTime - createTime) / (1000 * 60 * 60);
-      
+
       // Add to author's merge times
       if (!prMergeTimesByAuthor[author]) prMergeTimesByAuthor[author] = [];
       prMergeTimesByAuthor[author].push(hoursToMerge);
-      
+
       // Update totals
       totalMergeTime += hoursToMerge;
       mergedPRCount++;

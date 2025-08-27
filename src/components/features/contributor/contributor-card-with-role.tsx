@@ -1,14 +1,22 @@
-import { cn } from "@/lib/utils";
-import { MonthlyContributor } from "@/lib/types";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
-import { ContributorHoverCard } from "./contributor-hover-card";
-import { useMemo, useContext } from "react"
-import { GitPullRequest, MessageSquare, GitPullRequestDraft, Trophy, Shield, User, Bot } from '@/components/ui/icon';
-import { RepoStatsContext } from "@/lib/repo-stats-context";
-import { createContributorStats } from "@/lib/contributor-utils";
-import { useContributorRole } from "@/hooks/useContributorRoles";
+import { cn } from '@/lib/utils';
+import { MonthlyContributor } from '@/lib/types';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
+import { ContributorHoverCard } from './contributor-hover-card';
+import { useMemo, useContext } from 'react';
+import {
+  GitPullRequest,
+  MessageSquare,
+  GitPullRequestDraft,
+  Trophy,
+  Shield,
+  User,
+  Bot,
+} from '@/components/ui/icon';
+import { RepoStatsContext } from '@/lib/repo-stats-context';
+import { createContributorStats } from '@/lib/contributor-utils';
+import { useContributorRole } from '@/hooks/useContributorRoles';
 
 interface ContributorCardWithRoleProps {
   contributor: MonthlyContributor;
@@ -35,12 +43,7 @@ export function ContributorCardWithRole({
 
   // Create contributor data for hover card
   const contributorData = useMemo(() => {
-    return createContributorStats(
-      stats.pullRequests,
-      login,
-      avatar_url,
-      login
-    );
+    return createContributorStats(stats.pullRequests, login, avatar_url, login);
   }, [login, avatar_url, stats.pullRequests]);
 
   // Determine role badge variant and label
@@ -79,13 +82,15 @@ export function ContributorCardWithRole({
     // Confidence score (if enabled and user is maintainer/owner)
     if (showConfidence && role.role !== 'contributor') {
       const confidencePercent = Math.round(role.confidence_score * 100);
-      const confidenceColor = 
-        confidencePercent >= 90 ? 'text-green-600' :
-        confidencePercent >= 70 ? 'text-yellow-600' :
-        'text-orange-600';
-      
+      const confidenceColor =
+        confidencePercent >= 90
+          ? 'text-green-600'
+          : confidencePercent >= 70
+            ? 'text-yellow-600'
+            : 'text-orange-600';
+
       badges.push(
-        <span key="confidence" className={cn("text-xs font-medium", confidenceColor)}>
+        <span key="confidence" className={cn('text-xs font-medium', confidenceColor)}>
           {confidencePercent}% confidence
         </span>
       );
@@ -98,7 +103,7 @@ export function ContributorCardWithRole({
   const tooltipContent = (
     <div className="space-y-2">
       <div className="font-medium">{login}'s Activity</div>
-      
+
       {role && (
         <div className="text-xs space-y-1 border-b pb-2">
           <div className="font-medium">Role Detection</div>
@@ -112,7 +117,7 @@ export function ContributorCardWithRole({
           )}
         </div>
       )}
-      
+
       <div className="text-xs space-y-1">
         <div className="flex items-center gap-2">
           <GitPullRequest className="h-3 w-3" />
@@ -136,22 +141,22 @@ export function ContributorCardWithRole({
         <TooltipTrigger asChild>
           <div
             className={cn(
-              "relative p-4 rounded-lg border bg-card transition-all cursor-pointer",
-              "hover:bg-muted/50",
-              isWinner && "ring-2 ring-yellow-500 bg-yellow-50/10 dark:bg-yellow-900/10",
-              role?.role === 'owner' && "border-purple-500/30",
-              role?.role === 'maintainer' && "border-blue-500/30",
+              'relative p-4 rounded-lg border bg-card transition-all cursor-pointer',
+              'hover:bg-muted/50',
+              isWinner && 'ring-2 ring-yellow-500 bg-yellow-50/10 dark:bg-yellow-900/10',
+              role?.role === 'owner' && 'border-purple-500/30',
+              role?.role === 'maintainer' && 'border-blue-500/30',
               className
             )}
-            role={isWinner ? "article" : "listitem"}
-            aria-label={`${login}${isWinner ? " - Winner" : ""}, ${activity.totalScore} points${role ? `, ${role.role}` : ''}`}
+            role={isWinner ? 'article' : 'listitem'}
+            aria-label={`${login}${isWinner ? ' - Winner' : ''}, ${activity.totalScore} points${role ? `, ${role.role}` : ''}`}
             tabIndex={0}
           >
             {/* Rank Badge */}
             {showRank && (
               <div className="absolute -top-2 -right-2 z-10">
-                <Badge 
-                  variant={rank === 1 ? "default" : "secondary"}
+                <Badge
+                  variant={rank === 1 ? 'default' : 'secondary'}
                   className="h-6 w-6 rounded-full p-0 flex items-center justify-center"
                 >
                   {rank}
@@ -163,16 +168,14 @@ export function ContributorCardWithRole({
               <div className="flex items-start gap-3">
                 <ContributorHoverCard contributor={contributorData}>
                   <Avatar className="h-10 w-10 cursor-pointer">
-                    <AvatarImage 
+                    <AvatarImage
                       src={`${avatar_url}?s=80`}
                       alt={login}
                       loading="lazy"
                       width={40}
                       height={40}
                     />
-                    <AvatarFallback>
-                      {login.charAt(0).toUpperCase()}
-                    </AvatarFallback>
+                    <AvatarFallback>{login.charAt(0).toUpperCase()}</AvatarFallback>
                   </Avatar>
                 </ContributorHoverCard>
 
@@ -180,20 +183,18 @@ export function ContributorCardWithRole({
                   <div className="flex items-center gap-2">
                     <h3 className="font-medium text-sm truncate">{login}</h3>
                     {isWinner && (
-                      <Trophy 
-                        className="h-4 w-4 text-yellow-600" 
+                      <Trophy
+                        className="h-4 w-4 text-yellow-600"
                         data-testid="trophy-icon"
                         aria-label="Winner"
                         role="img"
                       />
                     )}
                   </div>
-                  
+
                   {/* Role badges */}
-                  <div className="flex items-center gap-2 mt-1 flex-wrap">
-                    {getRoleBadge()}
-                  </div>
-                  
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">{getRoleBadge()}</div>
+
                   <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                     <div className="flex items-center gap-1">
                       <GitPullRequest className="h-3 w-3" />
@@ -208,11 +209,9 @@ export function ContributorCardWithRole({
                       <span>{activity.comments}</span>
                     </div>
                   </div>
-                  
+
                   <div className="mt-2 flex items-center justify-between">
-                    <span className="text-xs font-medium">
-                      Score: {activity.totalScore}
-                    </span>
+                    <span className="text-xs font-medium">Score: {activity.totalScore}</span>
                     {role && role.role !== 'contributor' && (
                       <span className="text-xs text-muted-foreground">
                         {role.role === 'owner' ? 'Internal' : 'Internal'} Contributor

@@ -17,7 +17,7 @@ vi.mock('uplot', () => {
     };
     return instance;
   });
-  
+
   return { default: mockUPlot };
 });
 
@@ -27,7 +27,7 @@ class MockResizeObserver {
   observe = vi.fn();
   unobserve = vi.fn();
   disconnect = vi.fn();
-  
+
   constructor(...args: any[]) {
     mockResizeObserverConstructor(...args);
   }
@@ -43,10 +43,7 @@ describe('UPlotChart', () => {
 
   const mockOptions = {
     title: 'Test Chart',
-    series: [
-      { label: 'X' },
-      { label: 'Y', stroke: 'blue' },
-    ],
+    series: [{ label: 'X' }, { label: 'Y', stroke: 'blue' }],
   };
 
   beforeEach(() => {
@@ -58,51 +55,39 @@ describe('UPlotChart', () => {
   });
 
   it('renders without crashing', () => {
-    const { container } = render(
-      <UPlotChart data={mockData} options={mockOptions} />
-    );
-    
+    const { container } = render(<UPlotChart data={mockData} options={mockOptions} />);
+
     expect(container.querySelector('.uplot-chart')).toBeInTheDocument();
   });
 
   it('applies custom className', () => {
     const { container } = render(
-      <UPlotChart 
-        data={mockData} 
-        options={mockOptions} 
-        className="custom-chart"
-      />
+      <UPlotChart data={mockData} options={mockOptions} className="custom-chart" />
     );
-    
+
     expect(container.querySelector('.custom-chart')).toBeInTheDocument();
   });
 
   it('uses provided width and height', () => {
     const { container } = render(
-      <UPlotChart 
-        data={mockData} 
-        options={mockOptions} 
+      <UPlotChart
+        data={mockData}
+        options={mockOptions}
         width={800}
         height={400}
         responsive={false}
       />
     );
-    
+
     const chartDiv = container.querySelector('.uplot-chart');
     expect(chartDiv).toHaveStyle({ width: '800px' });
   });
 
   it('calls onReady callback when chart is created', async () => {
     const onReady = vi.fn();
-    
-    render(
-      <UPlotChart 
-        data={mockData} 
-        options={mockOptions} 
-        onReady={onReady}
-      />
-    );
-    
+
+    render(<UPlotChart data={mockData} options={mockOptions} onReady={onReady} />);
+
     await waitFor(() => {
       expect(onReady).toHaveBeenCalled();
     });
@@ -110,71 +95,46 @@ describe('UPlotChart', () => {
 
   it('calls onDestroy callback when component unmounts', () => {
     const onDestroy = vi.fn();
-    
+
     const { unmount } = render(
-      <UPlotChart 
-        data={mockData} 
-        options={mockOptions} 
-        onDestroy={onDestroy}
-      />
+      <UPlotChart data={mockData} options={mockOptions} onDestroy={onDestroy} />
     );
-    
+
     unmount();
-    
+
     expect(onDestroy).toHaveBeenCalled();
   });
 
   it('sets up ResizeObserver when responsive is true', () => {
     mockResizeObserverConstructor.mockClear();
-    
-    render(
-      <UPlotChart 
-        data={mockData} 
-        options={mockOptions} 
-        responsive={true}
-      />
-    );
-    
+
+    render(<UPlotChart data={mockData} options={mockOptions} responsive={true} />);
+
     expect(mockResizeObserverConstructor).toHaveBeenCalled();
   });
 
   it('does not set up ResizeObserver when responsive is false', () => {
     mockResizeObserverConstructor.mockClear();
-    
-    render(
-      <UPlotChart 
-        data={mockData} 
-        options={mockOptions} 
-        responsive={false}
-      />
-    );
-    
+
+    render(<UPlotChart data={mockData} options={mockOptions} responsive={false} />);
+
     expect(mockResizeObserverConstructor).not.toHaveBeenCalled();
   });
 
   it('uses 100% width when responsive is enabled', () => {
     const { container } = render(
-      <UPlotChart 
-        data={mockData} 
-        options={mockOptions} 
-        responsive={true}
-      />
+      <UPlotChart data={mockData} options={mockOptions} responsive={true} />
     );
-    
+
     const chartDiv = container.querySelector('.uplot-chart');
     expect(chartDiv).toHaveStyle({ width: '100%' });
   });
 
   it('syncs wrapper div width with uPlot dimensions when responsive is false', async () => {
     const { container } = render(
-      <UPlotChart 
-        data={mockData} 
-        options={mockOptions} 
-        width={500}
-        responsive={false}
-      />
+      <UPlotChart data={mockData} options={mockOptions} width={500} responsive={false} />
     );
-    
+
     // Wait for the chart to be initialized and dimensions to be set
     await waitFor(() => {
       const chartDiv = container.querySelector('.uplot-chart');
@@ -185,13 +145,9 @@ describe('UPlotChart', () => {
 
   it('uses default width when no width provided and responsive is false', async () => {
     const { container } = render(
-      <UPlotChart 
-        data={mockData} 
-        options={mockOptions} 
-        responsive={false}
-      />
+      <UPlotChart data={mockData} options={mockOptions} responsive={false} />
     );
-    
+
     // Wait for the chart to be initialized
     await waitFor(() => {
       const chartDiv = container.querySelector('.uplot-chart');

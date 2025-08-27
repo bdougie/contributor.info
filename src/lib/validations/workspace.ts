@@ -10,7 +10,7 @@ import type {
   InviteMemberRequest,
   WorkspaceRole,
   WorkspaceVisibility,
-  WorkspaceSettings
+  WorkspaceSettings,
 } from '@/types/workspace';
 
 // Regular expressions for validation
@@ -47,7 +47,7 @@ export function validateWorkspaceName(name: string): ValidationResult {
 
   return {
     valid: errors.length === 0,
-    errors
+    errors,
   };
 }
 
@@ -67,7 +67,7 @@ export function validateWorkspaceDescription(description?: string | null): Valid
 
   return {
     valid: errors.length === 0,
-    errors
+    errors,
   };
 }
 
@@ -79,13 +79,16 @@ export function validateWorkspaceVisibility(visibility?: WorkspaceVisibility): V
 
   if (visibility !== undefined) {
     if (!['public', 'private'].includes(visibility)) {
-      errors.push({ field: 'visibility', message: 'Visibility must be either "public" or "private"' });
+      errors.push({
+        field: 'visibility',
+        message: 'Visibility must be either "public" or "private"',
+      });
     }
   }
 
   return {
     valid: errors.length === 0,
-    errors
+    errors,
   };
 }
 
@@ -107,24 +110,39 @@ export function validateWorkspaceSettings(settings?: WorkspaceSettings): Validat
     }
 
     // Validate dashboard layout
-    if (settings.dashboard_layout !== undefined && !['grid', 'list', 'compact'].includes(settings.dashboard_layout)) {
+    if (
+      settings.dashboard_layout !== undefined &&
+      !['grid', 'list', 'compact'].includes(settings.dashboard_layout)
+    ) {
       errors.push({ field: 'settings.dashboard_layout', message: 'Invalid dashboard layout' });
     }
 
     // Validate default time range
-    if (settings.default_time_range !== undefined && !['7d', '30d', '90d', '1y'].includes(settings.default_time_range)) {
+    if (
+      settings.default_time_range !== undefined &&
+      !['7d', '30d', '90d', '1y'].includes(settings.default_time_range)
+    ) {
       errors.push({ field: 'settings.default_time_range', message: 'Invalid default time range' });
     }
 
     // Validate custom branding
     if (settings.custom_branding) {
-      if (settings.custom_branding.logo_url !== undefined && typeof settings.custom_branding.logo_url !== 'string') {
-        errors.push({ field: 'settings.custom_branding.logo_url', message: 'Logo URL must be a string' });
+      if (
+        settings.custom_branding.logo_url !== undefined &&
+        typeof settings.custom_branding.logo_url !== 'string'
+      ) {
+        errors.push({
+          field: 'settings.custom_branding.logo_url',
+          message: 'Logo URL must be a string',
+        });
       }
       if (settings.custom_branding.primary_color !== undefined) {
         const colorRegex = /^#[0-9A-Fa-f]{6}$/;
         if (!colorRegex.test(settings.custom_branding.primary_color)) {
-          errors.push({ field: 'settings.custom_branding.primary_color', message: 'Primary color must be a valid hex color' });
+          errors.push({
+            field: 'settings.custom_branding.primary_color',
+            message: 'Primary color must be a valid hex color',
+          });
         }
       }
     }
@@ -132,7 +150,7 @@ export function validateWorkspaceSettings(settings?: WorkspaceSettings): Validat
 
   return {
     valid: errors.length === 0,
-    errors
+    errors,
   };
 }
 
@@ -160,7 +178,7 @@ export function validateCreateWorkspace(data: CreateWorkspaceRequest): Validatio
 
   return {
     valid: errors.length === 0,
-    errors
+    errors,
   };
 }
 
@@ -193,7 +211,7 @@ export function validateUpdateWorkspace(data: UpdateWorkspaceRequest): Validatio
 
   return {
     valid: errors.length === 0,
-    errors
+    errors,
   };
 }
 
@@ -211,7 +229,7 @@ export function validateEmail(email: string): ValidationResult {
 
   return {
     valid: errors.length === 0,
-    errors
+    errors,
   };
 }
 
@@ -220,20 +238,20 @@ export function validateEmail(email: string): ValidationResult {
  */
 export function validateWorkspaceRole(role: string, allowOwner = false): ValidationResult {
   const errors: ValidationError[] = [];
-  const validRoles: WorkspaceRole[] = allowOwner 
+  const validRoles: WorkspaceRole[] = allowOwner
     ? ['owner', 'admin', 'editor', 'viewer']
     : ['admin', 'editor', 'viewer'];
 
   if (!role || !validRoles.includes(role as WorkspaceRole)) {
-    errors.push({ 
-      field: 'role', 
-      message: `Role must be one of: ${validRoles.join(', ')}` 
+    errors.push({
+      field: 'role',
+      message: `Role must be one of: ${validRoles.join(', ')}`,
     });
   }
 
   return {
     valid: errors.length === 0,
-    errors
+    errors,
   };
 }
 
@@ -263,7 +281,10 @@ export function validateAddRepository(data: AddRepositoryRequest): ValidationRes
         if (typeof tag !== 'string') {
           errors.push({ field: `tags[${index}]`, message: 'Each tag must be a string' });
         } else if (tag.length > 50) {
-          errors.push({ field: `tags[${index}]`, message: 'Each tag must not exceed 50 characters' });
+          errors.push({
+            field: `tags[${index}]`,
+            message: 'Each tag must not exceed 50 characters',
+          });
         }
       });
     }
@@ -275,7 +296,7 @@ export function validateAddRepository(data: AddRepositoryRequest): ValidationRes
 
   return {
     valid: errors.length === 0,
-    errors
+    errors,
   };
 }
 
@@ -304,7 +325,7 @@ export function validateInviteMember(data: InviteMemberRequest): ValidationResul
 
   return {
     valid: errors.length === 0,
-    errors
+    errors,
   };
 }
 
@@ -314,6 +335,6 @@ export function validateInviteMember(data: InviteMemberRequest): ValidationResul
 export function formatValidationErrors(errors: ValidationError[]): string {
   if (errors.length === 0) return '';
   if (errors.length === 1) return errors[0].message;
-  
-  return `Validation failed: ${errors.map(e => `${e.field}: ${e.message}`).join(', ')}`;
+
+  return `Validation failed: ${errors.map((e) => `${e.field}: ${e.message}`).join(', ')}`;
 }

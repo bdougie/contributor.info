@@ -1,4 +1,13 @@
-import { Shield, Users, BarChart3, Activity, GitBranch, AlertTriangle, TrendingUp, Bug } from '@/components/ui/icon';
+import {
+  Shield,
+  Users,
+  BarChart3,
+  Activity,
+  GitBranch,
+  AlertTriangle,
+  TrendingUp,
+  Bug,
+} from '@/components/ui/icon';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,41 +23,41 @@ interface AdminMenuItemProps {
   variant?: 'default' | 'warning' | 'success';
 }
 
-function AdminMenuItem({ 
-  title, 
-  description, 
-  icon: Icon, 
-  href, 
-  badge, 
-  variant = 'default' 
+function AdminMenuItem({
+  title,
+  description,
+  icon: Icon,
+  href,
+  badge,
+  variant = 'default',
 }: AdminMenuItemProps) {
   return (
     <Card className="hover:shadow-md transition-shadow cursor-pointer">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-lg ${
-              variant === 'warning' ? 'bg-amber-100 text-amber-600' :
-              variant === 'success' ? 'bg-green-100 text-green-600' :
-              'bg-blue-100 text-blue-600'
-            }`}>
+            <div
+              className={`p-2 rounded-lg ${
+                variant === 'warning'
+                  ? 'bg-amber-100 text-amber-600'
+                  : variant === 'success'
+                    ? 'bg-green-100 text-green-600'
+                    : 'bg-blue-100 text-blue-600'
+              }`}
+            >
               <Icon className="h-5 w-5" />
             </div>
             <CardTitle className="text-lg">{title}</CardTitle>
           </div>
           {badge && (
-            <Badge variant={variant === 'warning' ? 'destructive' : 'secondary'}>
-              {badge}
-            </Badge>
+            <Badge variant={variant === 'warning' ? 'destructive' : 'secondary'}>{badge}</Badge>
           )}
         </div>
       </CardHeader>
       <CardContent className="pt-0">
         <p className="text-muted-foreground text-sm mb-4">{description}</p>
         <Button asChild className="w-full">
-          <Link to={href}>
-            Open {title}
-          </Link>
+          <Link to={href}>Open {title}</Link>
         </Button>
       </CardContent>
     </Card>
@@ -61,69 +70,76 @@ export function AdminMenu() {
   const adminTools = [
     {
       title: 'User Management',
-      description: 'Manage user accounts, roles, and permissions. View user activity and moderate accounts.',
+      description:
+        'Manage user accounts, roles, and permissions. View user activity and moderate accounts.',
       icon: Users,
       href: '/admin/users',
-      badge: 'Core'
+      badge: 'Core',
     },
     {
       title: 'Maintainer Management',
-      description: 'Review and override contributor roles. View confidence scores and manually identify maintainers and bots.',
+      description:
+        'Review and override contributor roles. View confidence scores and manually identify maintainers and bots.',
       icon: Shield,
       href: '/admin/maintainers',
       badge: 'New',
-      variant: 'success' as const
+      variant: 'success' as const,
     },
     {
       title: 'Spam Management',
-      description: 'Review flagged PRs, adjust spam detection settings, and manage false positives.',
+      description:
+        'Review flagged PRs, adjust spam detection settings, and manage false positives.',
       icon: AlertTriangle,
       href: '/admin/spam',
       badge: 'Phase 4',
-      variant: 'warning' as const
+      variant: 'warning' as const,
     },
     {
       title: 'Spam Test Tool',
-      description: 'Test spam detection on individual PRs and provide manual feedback for training.',
+      description:
+        'Test spam detection on individual PRs and provide manual feedback for training.',
       icon: Bug,
       href: '/admin/spam-test',
       badge: 'Debug',
-      variant: 'default' as const
+      variant: 'default' as const,
     },
     {
       title: 'Bulk Spam Analysis',
-      description: 'Analyze previous PRs across all repositories for spam detection. Process unanalyzed PRs in bulk.',
+      description:
+        'Analyze previous PRs across all repositories for spam detection. Process unanalyzed PRs in bulk.',
       icon: BarChart3,
       href: '/admin/bulk-spam-analysis',
       badge: 'New',
-      variant: 'success' as const
+      variant: 'success' as const,
     },
     {
       title: 'Confidence Analytics',
-      description: 'Debug contributor confidence scores, analyze algorithm performance, and identify low-confidence repositories.',
+      description:
+        'Debug contributor confidence scores, analyze algorithm performance, and identify low-confidence repositories.',
       icon: TrendingUp,
       href: '/admin/confidence-analytics',
       badge: 'New',
-      variant: 'success' as const
+      variant: 'success' as const,
     },
     {
       title: 'Analytics Dashboard',
-      description: 'Comprehensive analytics including system metrics, sharing analytics, referral traffic, and LLM citations.',
+      description:
+        'Comprehensive analytics including system metrics, sharing analytics, referral traffic, and LLM citations.',
       icon: BarChart3,
-      href: '/admin/analytics'
+      href: '/admin/analytics',
     },
     {
       title: 'Performance Monitoring',
       description: 'Monitor system performance, database queries, and application health metrics.',
       icon: Activity,
-      href: '/admin/performance-monitoring'
+      href: '/admin/performance-monitoring',
     },
     {
       title: 'Repository Management',
       description: 'Bulk repository operations, sync management, and data integrity tools.',
       icon: GitBranch,
-      href: '/admin/bulk-add-repos'
-    }
+      href: '/admin/bulk-add-repos',
+    },
   ];
 
   return (
@@ -136,12 +152,10 @@ export function AdminMenu() {
           </div>
           <div>
             <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-            <p className="text-muted-foreground">
-              Administrative tools and system management
-            </p>
+            <p className="text-muted-foreground">Administrative tools and system management</p>
           </div>
         </div>
-        
+
         {/* Admin Info */}
         {user && (
           <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg border">

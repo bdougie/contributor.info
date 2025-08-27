@@ -3,16 +3,15 @@
  * Handles the aggregation of metrics across all repositories in a workspace
  */
 
-import { createClient } from '@supabase/supabase-js';
-import type { 
-  WorkspaceMetrics, 
+import type {
+  WorkspaceMetrics,
   MetricsTimeRange,
   MetricsContributor,
   ActivityDataPoint,
-  LanguageDistribution
+  LanguageDistribution,
 } from '@/types/workspace';
-import { GitHubAPIWrapper } from '@/lib/cache/github-api-wrapper';
-import { supabaseAdmin } from '@/lib/supabase-admin';
+import { createSupabaseAdmin } from '@/lib/supabase-admin';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 export interface AggregationOptions {
   timeRange: MetricsTimeRange;
@@ -37,15 +36,21 @@ export interface AggregationResult {
 }
 
 export class WorkspaceAggregationService {
-  private supabase = supabaseAdmin;
-  private github = new GitHubAPIWrapper();
+  private supabase: SupabaseClient | null = null;
   private githubApiCalls = 0;
+
+  constructor() {
+    // Initialize supabase client in constructor
+    if (typeof window === 'undefined') {
+      this.supabase = createSupabaseAdmin();
+    }
+  }
 
   /**
    * Main entry point for workspace metric aggregation
    */
   async aggregateWorkspaceMetrics(
-    workspaceId: string, 
+    workspaceId: string,
     options: AggregationOptions
   ): Promise<AggregationResult> {
     const startTime = performance.now();
@@ -60,7 +65,7 @@ export class WorkspaceAggregationService {
             metrics: this.transformCacheToMetrics(cachedMetrics),
             cacheHit: true,
             calculationTimeMs: performance.now() - startTime,
-            githubApiCalls: 0
+            githubApiCalls: 0,
           };
         }
       }
@@ -115,7 +120,7 @@ export class WorkspaceAggregationService {
         metrics,
         cacheHit: false,
         calculationTimeMs: performance.now() - startTime,
-        githubApiCalls: this.githubApiCalls
+        githubApiCalls: this.githubApiCalls,
       };
     } catch (error) {
       console.error('Failed to aggregate workspace metrics:', error);
@@ -127,7 +132,7 @@ export class WorkspaceAggregationService {
    * Get cached metrics from database
    */
   private async getCachedMetrics(workspaceId: string, timeRange: MetricsTimeRange) {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.supabase!
       .from('workspace_metrics_cache')
       .select('*')
       .eq('workspace_id', workspaceId)
@@ -153,9 +158,10 @@ export class WorkspaceAggregationService {
    * Get all repositories in a workspace
    */
   private async getWorkspaceRepositories(workspaceId: string) {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.supabase!
       .from('workspace_repositories')
-      .select(`
+      .select(
+        `
         repository_id,
         repositories (
           id,
@@ -168,14 +174,15 @@ export class WorkspaceAggregationService {
           forks_count,
           open_issues_count
         )
-      `)
+      `
+      )
       .eq('workspace_id', workspaceId);
 
     if (error) {
       throw new Error(`Failed to fetch workspace repositories: ${error.message}`);
     }
 
-    return data?.map(wr => wr.repositories).filter(Boolean) || [];
+    return data?.map((wr) => wr.repositories).filter(Boolean) || [];
   }
 
   /**
@@ -232,7 +239,7 @@ export class WorkspaceAggregationService {
       languages: {} as LanguageDistribution,
       contributors: new Map<string, MetricsContributor>(),
       activityByDate: new Map<string, ActivityDataPoint>(),
-      repositoryStats: [] as RepositoryStat[]
+      repositoryStats: [] as RepositoryStat[],
     };
 
     // Process each repository in parallel (with concurrency limit)
@@ -240,13 +247,9 @@ export class WorkspaceAggregationService {
     for (let i = 0; i < repositories.length; i += batchSize) {
       const batch = repositories.slice(i, i + batchSize);
       await Promise.all(
-        batch.map(repo => this.processRepository(
-          repo, 
-          periodStart, 
-          periodEnd, 
-          aggregated,
-          options
-        ))
+        batch.map((repo) =>
+          this.processRepository(repo, periodStart, periodEnd, aggregated, options)
+        )
       );
     }
 
@@ -266,25 +269,13 @@ export class WorkspaceAggregationService {
     const repoFullName = repository.full_name;
 
     // Get PR data from database
-    const prData = await this.getPullRequestData(
-      repository.id,
-      periodStart,
-      periodEnd
-    );
+    const prData = await this.getPullRequestData(repository.id, periodStart, periodEnd);
 
     // Get issue data from database
-    const issueData = await this.getIssueData(
-      repository.id,
-      periodStart,
-      periodEnd
-    );
+    const issueData = await this.getIssueData(repository.id, periodStart, periodEnd);
 
     // Get contributor data
-    const contributorData = await this.getContributorData(
-      repository.id,
-      periodStart,
-      periodEnd
-    );
+    const contributorData = await this.getContributorData(repository.id, periodStart, periodEnd);
 
     // Update aggregated totals
     aggregated.totalPRs += prData.total;
@@ -303,26 +294,26 @@ export class WorkspaceAggregationService {
 
     // Update language distribution
     if (repository.language) {
-      aggregated.languages[repository.language] = 
+      aggregated.languages[repository.language] =
         (aggregated.languages[repository.language] || 0) + 1;
     }
 
     // Merge contributor data
-    contributorData.forEach(contributor => {
+    contributorData.forEach((contributor) => {
       const existing = aggregated.contributors.get(contributor.username) || {
         username: contributor.username,
         avatar_url: contributor.avatar_url,
         prs: 0,
         issues: 0,
         commits: 0,
-        reviews: 0
+        reviews: 0,
       };
-      
+
       existing.prs += contributor.prs;
       existing.issues += contributor.issues;
       existing.commits += contributor.commits;
       existing.reviews += contributor.reviews;
-      
+
       aggregated.contributors.set(contributor.username, existing);
     });
 
@@ -334,7 +325,7 @@ export class WorkspaceAggregationService {
         prs: prData.total,
         issues: issueData.total,
         stars: repository.stargazers_count || 0,
-        contributors: contributorData.length
+        contributors: contributorData.length,
       });
     }
   }
@@ -342,12 +333,8 @@ export class WorkspaceAggregationService {
   /**
    * Get pull request data from database
    */
-  private async getPullRequestData(
-    repositoryId: string,
-    periodStart: Date,
-    periodEnd: Date
-  ) {
-    const { data, error } = await this.supabase
+  private async getPullRequestData(repositoryId: string, periodStart: Date, periodEnd: Date) {
+    const { data, error } = await this.supabase!
       .from('pull_requests')
       .select('state, draft, created_at, merged_at')
       .eq('repository_id', repositoryId)
@@ -364,7 +351,7 @@ export class WorkspaceAggregationService {
     let open = 0;
     let draft = 0;
 
-    data?.forEach(pr => {
+    data?.forEach((pr) => {
       if (pr.state === 'merged' && pr.merged_at && pr.created_at) {
         merged++;
         const mergeTime = new Date(pr.merged_at).getTime() - new Date(pr.created_at).getTime();
@@ -380,19 +367,15 @@ export class WorkspaceAggregationService {
       merged,
       open,
       draft,
-      mergeTimes
+      mergeTimes,
     };
   }
 
   /**
    * Get issue data from database
    */
-  private async getIssueData(
-    repositoryId: string,
-    periodStart: Date,
-    periodEnd: Date
-  ) {
-    const { data, error } = await this.supabase
+  private async getIssueData(repositoryId: string, periodStart: Date, periodEnd: Date) {
+    const { data, error } = await this.supabase!
       .from('issues')
       .select('state, created_at, closed_at')
       .eq('repository_id', repositoryId)
@@ -408,10 +391,11 @@ export class WorkspaceAggregationService {
     let closed = 0;
     let open = 0;
 
-    data?.forEach(issue => {
+    data?.forEach((issue) => {
       if (issue.state === 'closed' && issue.closed_at && issue.created_at) {
         closed++;
-        const closeTime = new Date(issue.closed_at).getTime() - new Date(issue.created_at).getTime();
+        const closeTime =
+          new Date(issue.closed_at).getTime() - new Date(issue.created_at).getTime();
         closeTimes.push(closeTime / (1000 * 60 * 60)); // Convert to hours
       } else if (issue.state === 'open') {
         open++;
@@ -422,7 +406,7 @@ export class WorkspaceAggregationService {
       total: data?.length || 0,
       closed,
       open,
-      closeTimes
+      closeTimes,
     };
   }
 
@@ -435,29 +419,33 @@ export class WorkspaceAggregationService {
     periodEnd: Date
   ): Promise<MetricsContributor[]> {
     // Get PR contributors
-    const { data: prContributors } = await this.supabase
+    const { data: prContributors } = await this.supabase!
       .from('pull_requests')
-      .select(`
+      .select(
+        `
         author_id,
         contributors!author_id (
           username,
           avatar_url
         )
-      `)
+      `
+      )
       .eq('repository_id', repositoryId)
       .gte('created_at', periodStart.toISOString())
       .lte('created_at', periodEnd.toISOString());
 
     // Get issue contributors
-    const { data: issueContributors } = await this.supabase
+    const { data: issueContributors } = await this.supabase!
       .from('issues')
-      .select(`
+      .select(
+        `
         author_id,
         contributors!author_id (
           username,
           avatar_url
         )
-      `)
+      `
+      )
       .eq('repository_id', repositoryId)
       .gte('created_at', periodStart.toISOString())
       .lte('created_at', periodEnd.toISOString());
@@ -465,33 +453,35 @@ export class WorkspaceAggregationService {
     // Aggregate contributor stats
     const contributorMap = new Map<string, MetricsContributor>();
 
-    prContributors?.forEach(pr => {
-      if (pr.contributors?.username) {
-        const existing = contributorMap.get(pr.contributors.username) || {
-          username: pr.contributors.username,
-          avatar_url: pr.contributors.avatar_url || '',
+    prContributors?.forEach((pr: any) => {
+      const contributor = pr.contributors;
+      if (contributor && typeof contributor === 'object' && 'username' in contributor) {
+        const existing = contributorMap.get(contributor.username) || {
+          username: contributor.username,
+          avatar_url: contributor.avatar_url || '',
           prs: 0,
           issues: 0,
           commits: 0,
-          reviews: 0
+          reviews: 0,
         };
         existing.prs++;
-        contributorMap.set(pr.contributors.username, existing);
+        contributorMap.set(contributor.username, existing);
       }
     });
 
-    issueContributors?.forEach(issue => {
-      if (issue.contributors?.username) {
-        const existing = contributorMap.get(issue.contributors.username) || {
-          username: issue.contributors.username,
-          avatar_url: issue.contributors.avatar_url || '',
+    issueContributors?.forEach((issue: any) => {
+      const contributor = issue.contributors;
+      if (contributor && typeof contributor === 'object' && 'username' in contributor) {
+        const existing = contributorMap.get(contributor.username) || {
+          username: contributor.username,
+          avatar_url: contributor.avatar_url || '',
           prs: 0,
           issues: 0,
           commits: 0,
-          reviews: 0
+          reviews: 0,
         };
         existing.issues++;
-        contributorMap.set(issue.contributors.username, existing);
+        contributorMap.set(contributor.username, existing);
       }
     });
 
@@ -508,21 +498,14 @@ export class WorkspaceAggregationService {
     periodStart: Date
   ) {
     // Get previous period data for comparison
-    const previousPeriod = await this.getPreviousPeriodMetrics(
-      workspaceId,
-      timeRange,
-      periodStart
-    );
+    const previousPeriod = await this.getPreviousPeriodMetrics(workspaceId, timeRange, periodStart);
 
     return {
       starsTrend: this.calculateTrendPercentage(
         currentData.totalStars,
         previousPeriod?.totalStars || 0
       ),
-      prsTrend: this.calculateTrendPercentage(
-        currentData.totalPRs,
-        previousPeriod?.totalPRs || 0
-      ),
+      prsTrend: this.calculateTrendPercentage(currentData.totalPRs, previousPeriod?.totalPRs || 0),
       contributorsTrend: this.calculateTrendPercentage(
         currentData.contributors.size,
         previousPeriod?.totalContributors || 0
@@ -530,7 +513,7 @@ export class WorkspaceAggregationService {
       commitsTrend: this.calculateTrendPercentage(
         currentData.totalCommits,
         previousPeriod?.totalCommits || 0
-      )
+      ),
     };
   }
 
@@ -556,7 +539,7 @@ export class WorkspaceAggregationService {
     const previousEnd = new Date(currentPeriodStart.getTime());
 
     // Query historical metrics
-    const { data } = await this.supabase
+    const { data } = await this.supabase!
       .from('workspace_metrics_history')
       .select('*')
       .eq('workspace_id', workspaceId)
@@ -566,17 +549,20 @@ export class WorkspaceAggregationService {
     if (!data || data.length === 0) return null;
 
     // Aggregate historical data
-    return data.reduce((acc, day) => ({
-      totalPRs: acc.totalPRs + (day.daily_prs || 0),
-      totalStars: Math.max(acc.totalStars, day.total_stars || 0),
-      totalContributors: Math.max(acc.totalContributors, day.total_contributors || 0),
-      totalCommits: acc.totalCommits + (day.daily_commits || 0)
-    }), {
-      totalPRs: 0,
-      totalStars: 0,
-      totalContributors: 0,
-      totalCommits: 0
-    });
+    return data.reduce(
+      (acc, day) => ({
+        totalPRs: acc.totalPRs + (day.daily_prs || 0),
+        totalStars: Math.max(acc.totalStars, day.total_stars || 0),
+        totalContributors: Math.max(acc.totalContributors, day.total_contributors || 0),
+        totalCommits: acc.totalCommits + (day.daily_commits || 0),
+      }),
+      {
+        totalPRs: 0,
+        totalStars: 0,
+        totalContributors: 0,
+        totalCommits: 0,
+      }
+    );
   }
 
   /**
@@ -584,11 +570,16 @@ export class WorkspaceAggregationService {
    */
   private getTimeRangeDuration(timeRange: MetricsTimeRange): number {
     switch (timeRange) {
-      case '7d': return 7 * 24 * 60 * 60 * 1000;
-      case '30d': return 30 * 24 * 60 * 60 * 1000;
-      case '90d': return 90 * 24 * 60 * 60 * 1000;
-      case '1y': return 365 * 24 * 60 * 60 * 1000;
-      case 'all': return 10 * 365 * 24 * 60 * 60 * 1000; // 10 years
+      case '7d':
+        return 7 * 24 * 60 * 60 * 1000;
+      case '30d':
+        return 30 * 24 * 60 * 60 * 1000;
+      case '90d':
+        return 90 * 24 * 60 * 60 * 1000;
+      case '1y':
+        return 365 * 24 * 60 * 60 * 1000;
+      case 'all':
+        return 10 * 365 * 24 * 60 * 60 * 1000; // 10 years
     }
   }
 
@@ -601,27 +592,39 @@ export class WorkspaceAggregationService {
     periodStart: Date,
     periodEnd: Date,
     aggregatedData: any,
-    trends: any
+    _trends: any
   ): WorkspaceMetrics {
     // Calculate averages
-    const avgPRMergeTime = aggregatedData.prMergeTimes.length > 0
-      ? aggregatedData.prMergeTimes.reduce((a: number, b: number) => a + b, 0) / aggregatedData.prMergeTimes.length
-      : 0;
+    const avgPRMergeTime =
+      aggregatedData.prMergeTimes.length > 0
+        ? aggregatedData.prMergeTimes.reduce((a: number, b: number) => a + b, 0) /
+          aggregatedData.prMergeTimes.length
+        : 0;
 
-    const avgIssueCloseTime = aggregatedData.issueCloseTimes.length > 0
-      ? aggregatedData.issueCloseTimes.reduce((a: number, b: number) => a + b, 0) / aggregatedData.issueCloseTimes.length
-      : 0;
+    // avg_issue_close_time_hours is calculated but not used in current metrics
+    // Keeping for future use when added to WorkspaceMetrics type
+    // const avgIssueCloseTime =
+    //   aggregatedData.issueCloseTimes.length > 0
+    //     ? aggregatedData.issueCloseTimes.reduce((a: number, b: number) => a + b, 0) /
+    //       aggregatedData.issueCloseTimes.length
+    //     : 0;
 
     // Calculate velocities
-    const daysDiff = Math.max(1, (periodEnd.getTime() - periodStart.getTime()) / (1000 * 60 * 60 * 24));
+    const daysDiff = Math.max(
+      1,
+      (periodEnd.getTime() - periodStart.getTime()) / (1000 * 60 * 60 * 24)
+    );
     const prVelocity = aggregatedData.totalPRs / daysDiff;
-    const issueClosureRate = aggregatedData.totalIssues > 0
-      ? (aggregatedData.closedIssues / aggregatedData.totalIssues) * 100
-      : 0;
+    const issueClosureRate =
+      aggregatedData.totalIssues > 0
+        ? (aggregatedData.closedIssues / aggregatedData.totalIssues) * 100
+        : 0;
 
     // Get top contributors (sorted by total contributions)
-    const topContributors = Array.from(aggregatedData.contributors.values())
-      .sort((a, b) => (b.prs + b.issues + b.commits) - (a.prs + a.issues + a.commits))
+    const contributorValues = Array.from(aggregatedData.contributors.values()) as MetricsContributor[];
+    const topContributors = contributorValues
+      .sort((a: MetricsContributor, b: MetricsContributor) => 
+        (b.prs + b.issues + b.commits) - (a.prs + a.issues + a.commits))
       .slice(0, 10);
 
     // Build activity timeline
@@ -656,13 +659,13 @@ export class WorkspaceAggregationService {
         pr_velocity: prVelocity,
         issue_closure_rate: issueClosureRate,
         languages: aggregatedData.languages,
-        top_contributors: topContributors,
+        top_contributors: topContributors as MetricsContributor[],
         activity_timeline: activityTimeline,
-        repository_stats: aggregatedData.repositoryStats
+        repository_stats: aggregatedData.repositoryStats,
       },
       calculated_at: new Date().toISOString(),
       expires_at: this.calculateExpiryTime(timeRange).toISOString(),
-      is_stale: false
+      is_stale: false,
     };
   }
 
@@ -676,7 +679,7 @@ export class WorkspaceAggregationService {
   ): ActivityDataPoint[] {
     const timeline: ActivityDataPoint[] = [];
     const currentDate = new Date(periodStart);
-    
+
     while (currentDate <= periodEnd) {
       const dateStr = currentDate.toISOString().split('T')[0];
       const activity = activityMap.get(dateStr) || {
@@ -684,7 +687,7 @@ export class WorkspaceAggregationService {
         prs: 0,
         issues: 0,
         commits: 0,
-        contributors: 0
+        contributors: 0,
       };
       timeline.push(activity);
       currentDate.setDate(currentDate.getDate() + 1);
@@ -732,14 +735,12 @@ export class WorkspaceAggregationService {
       is_stale: false,
       calculation_time_ms: Math.round(calculationTimeMs),
       github_api_calls: this.githubApiCalls,
-      cache_version: 1
+      cache_version: 1,
     };
 
-    const { error } = await this.supabase
-      .from('workspace_metrics_cache')
-      .upsert(cacheData, {
-        onConflict: 'workspace_id,time_range'
-      });
+    const { error } = await this.supabase!.from('workspace_metrics_cache').upsert(cacheData, {
+      onConflict: 'workspace_id,time_range',
+    });
 
     if (error) {
       console.error('Failed to save metrics to cache:', error);
@@ -772,7 +773,7 @@ export class WorkspaceAggregationService {
       language_distribution: metrics.languages,
       top_contributors: metrics.top_contributors,
       activity_timeline: metrics.activity_timeline,
-      repository_stats: metrics.repository_stats
+      repository_stats: metrics.repository_stats,
     };
   }
 
@@ -807,11 +808,11 @@ export class WorkspaceAggregationService {
         languages: cached.language_distribution || {},
         top_contributors: cached.top_contributors || [],
         activity_timeline: cached.activity_timeline || [],
-        repository_stats: cached.repository_stats
+        repository_stats: cached.repository_stats,
       },
       calculated_at: cached.calculated_at,
       expires_at: cached.expires_at,
-      is_stale: cached.is_stale
+      is_stale: cached.is_stale,
     };
   }
 
@@ -819,8 +820,8 @@ export class WorkspaceAggregationService {
    * Mark cache as stale
    */
   private async markCacheAsStale(workspaceId: string) {
-    await this.supabase.rpc('mark_workspace_cache_stale', {
-      p_workspace_id: workspaceId
+    await this.supabase!.rpc('mark_workspace_cache_stale', {
+      p_workspace_id: workspaceId,
     });
   }
 
@@ -829,7 +830,7 @@ export class WorkspaceAggregationService {
    */
   private async queueHistoryUpdate(workspaceId: string, aggregatedData: any) {
     const today = new Date().toISOString().split('T')[0];
-    
+
     const historyData = {
       workspace_id: workspaceId,
       metric_date: today,
@@ -841,14 +842,12 @@ export class WorkspaceAggregationService {
       daily_active_contributors: aggregatedData.contributors.size,
       total_stars: aggregatedData.totalStars,
       total_forks: aggregatedData.totalForks,
-      total_contributors: aggregatedData.contributors.size
+      total_contributors: aggregatedData.contributors.size,
     };
 
-    const { error } = await this.supabase
-      .from('workspace_metrics_history')
-      .upsert(historyData, {
-        onConflict: 'workspace_id,metric_date'
-      });
+    const { error } = await this.supabase!.from('workspace_metrics_history').upsert(historyData, {
+      onConflict: 'workspace_id,metric_date',
+    });
 
     if (error) {
       console.error('Failed to update metrics history:', error);
@@ -864,7 +863,7 @@ export class WorkspaceAggregationService {
     startTime: number
   ): AggregationResult {
     const { periodStart, periodEnd } = this.calculatePeriod(timeRange);
-    
+
     const emptyMetrics: WorkspaceMetrics = {
       id: `${workspaceId}-${timeRange}-empty`,
       workspace_id: workspaceId,
@@ -892,18 +891,18 @@ export class WorkspaceAggregationService {
         languages: {},
         top_contributors: [],
         activity_timeline: [],
-        repository_stats: []
+        repository_stats: [],
       },
       calculated_at: new Date().toISOString(),
       expires_at: this.calculateExpiryTime(timeRange).toISOString(),
-      is_stale: false
+      is_stale: false,
     };
 
     return {
       metrics: emptyMetrics,
       cacheHit: false,
       calculationTimeMs: performance.now() - startTime,
-      githubApiCalls: 0
+      githubApiCalls: 0,
     };
   }
 
@@ -921,7 +920,7 @@ export class WorkspaceAggregationService {
     return this.aggregateWorkspaceMetrics(workspaceId, {
       timeRange,
       forceRefresh: true,
-      includeRepositoryStats: true
+      includeRepositoryStats: true,
     });
   }
 }

@@ -5,7 +5,7 @@ import * as useOnlineStatusModule from '@/hooks/useOnlineStatus';
 
 // Mock the useOnlineStatus hook
 vi.mock('@/hooks/useOnlineStatus', () => ({
-  useOnlineStatus: vi.fn()
+  useOnlineStatus: vi.fn(),
 }));
 
 describe('OfflineNotification', () => {
@@ -23,7 +23,7 @@ describe('OfflineNotification', () => {
       effectiveType: '4g',
       downlink: 10,
       rtt: 50,
-      saveData: false
+      saveData: false,
     });
 
     const { container } = render(<OfflineNotification />);
@@ -38,11 +38,11 @@ describe('OfflineNotification', () => {
       effectiveType: undefined,
       downlink: undefined,
       rtt: undefined,
-      saveData: false
+      saveData: false,
     });
 
     render(<OfflineNotification />);
-    
+
     expect(screen.getByText("You're offline")).toBeInTheDocument();
     expect(screen.getByText(/Some features may be limited/)).toBeInTheDocument();
   });
@@ -55,11 +55,11 @@ describe('OfflineNotification', () => {
       effectiveType: '2g',
       downlink: 0.5,
       rtt: 300,
-      saveData: false
+      saveData: false,
     });
 
     render(<OfflineNotification />);
-    
+
     expect(screen.getByText('Slow connection detected')).toBeInTheDocument();
     expect(screen.getByText(/You're on a 2g connection/)).toBeInTheDocument();
   });
@@ -72,11 +72,11 @@ describe('OfflineNotification', () => {
       effectiveType: '4g',
       downlink: 10,
       rtt: 50,
-      saveData: true
+      saveData: true,
     });
 
     render(<OfflineNotification />);
-    
+
     expect(screen.getByText('Slow connection detected')).toBeInTheDocument();
     expect(screen.getByText(/Data saver mode is on/)).toBeInTheDocument();
   });
@@ -89,11 +89,11 @@ describe('OfflineNotification', () => {
       effectiveType: undefined,
       downlink: undefined,
       rtt: undefined,
-      saveData: false
+      saveData: false,
     });
 
     render(<OfflineNotification />);
-    
+
     const notification = screen.getByText("You're offline").closest('.rounded-lg');
     expect(notification).toHaveClass('bg-red-50');
   });
@@ -106,11 +106,11 @@ describe('OfflineNotification', () => {
       effectiveType: undefined,
       downlink: undefined,
       rtt: undefined,
-      saveData: false
+      saveData: false,
     });
 
     render(<OfflineNotification />);
-    
+
     const animatedDiv = document.querySelector('.animate-slide-up');
     expect(animatedDiv).toBeInTheDocument();
   });

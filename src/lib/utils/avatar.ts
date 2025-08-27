@@ -56,7 +56,7 @@ export function getOrgAvatarUrl(orgName?: string): string {
   if (!orgName) {
     return getFallbackAvatar();
   }
-  
+
   // GitHub organizations don't have .png endpoints
   // Use avatars.githubusercontent.com instead
   // This will redirect to the correct avatar
@@ -72,7 +72,7 @@ export function getRepoOwnerAvatarUrl(owner?: string): string {
   if (!owner) {
     return getFallbackAvatar();
   }
-  
+
   // Use avatars.githubusercontent.com for repo owners too
   // GitHub's .png endpoints are deprecated/unreliable
   return `https://avatars.githubusercontent.com/${owner}`;

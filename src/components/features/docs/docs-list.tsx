@@ -1,7 +1,7 @@
-import { Link } from "react-router-dom";
-import { DocsSEO } from "./docs-seo";
-import { DocsSidebar } from "./docs-sidebar";
-import { DOCS_METADATA } from "./docs-loader";
+import { Link } from 'react-router-dom';
+import { DocsSEO } from './docs-seo';
+import { DocsSidebar } from './docs-sidebar';
+import { DOCS_METADATA } from './docs-loader';
 import {
   Table,
   TableBody,
@@ -9,7 +9,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from '@/components/ui/table';
 
 /**
  * Documentation list page with sidebar navigation and table layout
@@ -20,8 +20,8 @@ export function DocsList() {
   };
 
   // Group docs by category
-  const featureDocs = DOCS_METADATA.filter(doc => doc.category === "feature");
-  const insightDocs = DOCS_METADATA.filter(doc => doc.category === "insight");
+  const featureDocs = DOCS_METADATA.filter((doc) => doc.category === 'feature');
+  const insightDocs = DOCS_METADATA.filter((doc) => doc.category === 'insight');
 
   return (
     <>
@@ -30,7 +30,7 @@ export function DocsList() {
         <div className="flex gap-8">
           {/* Sidebar Navigation */}
           <DocsSidebar />
-          
+
           {/* Main Content */}
           <div className="flex-1 min-w-0">
             {/* Header */}
@@ -58,16 +58,11 @@ export function DocsList() {
                       return (
                         <TableRow key={doc.file} className="hover:bg-muted/50">
                           <TableCell className="font-medium">
-                            <Link 
-                              to={`/docs/${slug}`}
-                              className="hover:underline"
-                            >
+                            <Link to={`/docs/${slug}`} className="hover:underline">
                               {doc.title}
                             </Link>
                           </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {doc.description}
-                          </TableCell>
+                          <TableCell className="text-muted-foreground">{doc.description}</TableCell>
                         </TableRow>
                       );
                     })}
@@ -93,16 +88,11 @@ export function DocsList() {
                       return (
                         <TableRow key={doc.file} className="hover:bg-muted/50">
                           <TableCell className="font-medium">
-                            <Link 
-                              to={`/docs/${slug}`}
-                              className="hover:underline"
-                            >
+                            <Link to={`/docs/${slug}`} className="hover:underline">
                               {doc.title}
                             </Link>
                           </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {doc.description}
-                          </TableCell>
+                          <TableCell className="text-muted-foreground">{doc.description}</TableCell>
                         </TableRow>
                       );
                     })}

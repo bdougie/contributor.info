@@ -76,13 +76,13 @@ class TestErrorBoundary extends Component<
 }
 
 // Component that uses progressive repo data with potential for errors
-function ProgressiveDataComponent({ 
-  owner, 
-  repo, 
-  shouldThrowInRender = false 
-}: { 
-  owner: string; 
-  repo: string; 
+function ProgressiveDataComponent({
+  owner,
+  repo,
+  shouldThrowInRender = false,
+}: {
+  owner: string;
+  repo: string;
   shouldThrowInRender?: boolean;
 }) {
   const data = useProgressiveRepoData(owner, repo, '90d', false);
@@ -95,19 +95,13 @@ function ProgressiveDataComponent({
     <div data-testid="progressive-component">
       <div data-testid="current-stage">{data.currentStage}</div>
       <div data-testid="data-status">{data.dataStatus.status}</div>
-      {data.dataStatus.message && (
-        <div data-testid="status-message">{data.dataStatus.message}</div>
-      )}
+      {data.dataStatus.message && <div data-testid="status-message">{data.dataStatus.message}</div>}
     </div>
   );
 }
 
 // Component that uses intersection loader with potential for errors
-function IntersectionLoaderComponent({ 
-  shouldFailLoad = false 
-}: { 
-  shouldFailLoad?: boolean 
-}) {
+function IntersectionLoaderComponent({ shouldFailLoad = false }: { shouldFailLoad?: boolean }) {
   const { ref, data, error, isLoading } = useIntersectionLoader(
     async () => {
       if (shouldFailLoad) {
@@ -128,7 +122,7 @@ function IntersectionLoaderComponent({
 }
 
 // Helper for consistent waitFor configuration
-const waitForWithTimeout = (callback: () => void, options = {}) => 
+const waitForWithTimeout = (callback: () => void, options = {}) =>
   waitFor(callback, { timeout: 10000, ...options });
 
 describe('Progressive Loading Error Boundary Tests', () => {
@@ -138,20 +132,18 @@ describe('Progressive Loading Error Boundary Tests', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     // Set up default successful mock implementations
     fetchPRDataMock.mockResolvedValue({
-      data: [
-        { id: 1, title: 'Test PR', user: { login: 'user1', avatar_url: 'avatar1.jpg' } }
-      ],
+      data: [{ id: 1, title: 'Test PR', user: { login: 'user1', avatar_url: 'avatar1.jpg' } }],
       status: 'success',
     });
-    
+
     fetchDirectCommitsMock.mockResolvedValue({
       commits: [{ sha: 'abc123', message: 'Test commit', author: 'user1' }],
       totalCommits: 1,
     });
-    
+
     calculateLotteryFactorMock.mockReturnValue({
       factor: 0.5,
       description: 'Balanced',
@@ -167,14 +159,10 @@ describe('Progressive Loading Error Boundary Tests', () => {
   describe('Error boundary integration with progressive loading', () => {
     it('should catch render errors during progressive loading stages', async () => {
       const onError = vi.fn();
-      
+
       const { getByTestId } = render(
         <TestErrorBoundary onError={onError}>
-          <ProgressiveDataComponent 
-            owner="testowner" 
-            repo="testrepo" 
-            shouldThrowInRender={true}
-          />
+          <ProgressiveDataComponent owner="testowner" repo="testrepo" shouldThrowInRender={true} />
         </TestErrorBoundary>
       );
 
@@ -192,7 +180,7 @@ describe('Progressive Loading Error Boundary Tests', () => {
 
     it('should handle API errors gracefully without crashing the component', async () => {
       fetchPRDataMock.mockRejectedValue(new Error('API server error'));
-      
+
       const { getByTestId, queryByTestId } = render(
         <TestErrorBoundary>
           <ProgressiveDataComponent owner="testowner" repo="testrepo" />
@@ -208,7 +196,8 @@ describe('Progressive Loading Error Boundary Tests', () => {
 
     it('should isolate errors to specific loading stages', async () => {
       fetchPRDataMock
-        .mockResolvedValueOnce({ // Critical stage succeeds
+        .mockResolvedValueOnce({
+          // Critical stage succeeds
           data: [{ id: 1, title: 'Test PR', user: { login: 'user1', avatar_url: 'avatar1.jpg' } }],
           status: 'success',
         })
@@ -231,7 +220,7 @@ describe('Progressive Loading Error Boundary Tests', () => {
   describe('Error boundary integration with intersection loader', () => {
     it('should catch errors from intersection loader without affecting other components', async () => {
       const onError = vi.fn();
-      
+
       const { getByTestId } = render(
         <TestErrorBoundary onError={onError}>
           <IntersectionLoaderComponent shouldFailLoad={true} />
@@ -264,7 +253,7 @@ describe('Progressive Loading Error Boundary Tests', () => {
   describe('Combined error scenarios', () => {
     it('should handle multiple components with mixed error states', async () => {
       fetchPRDataMock.mockRejectedValue(new Error('Progressive data API error'));
-      
+
       const { getByTestId, queryByTestId } = render(
         <TestErrorBoundary>
           <div>
@@ -279,7 +268,7 @@ describe('Progressive Loading Error Boundary Tests', () => {
         expect(getByTestId('progressive-component')).toBeInTheDocument();
         expect(getByTestId('intersection-component')).toBeInTheDocument();
         expect(getByTestId('error')).toHaveTextContent('Intersection load failed');
-        
+
         // Error boundary should not be triggered
         expect(queryByTestId('error-boundary')).not.toBeInTheDocument();
       });
@@ -287,12 +276,10 @@ describe('Progressive Loading Error Boundary Tests', () => {
 
     it('should recover from temporary network errors', async () => {
       // First call fails, second succeeds
-      fetchPRDataMock
-        .mockRejectedValueOnce(new Error('Network error'))
-        .mockResolvedValue({
-          data: [{ id: 1, title: 'Test PR', user: { login: 'user1', avatar_url: 'avatar1.jpg' } }],
-          status: 'success',
-        });
+      fetchPRDataMock.mockRejectedValueOnce(new Error('Network error')).mockResolvedValue({
+        data: [{ id: 1, title: 'Test PR', user: { login: 'user1', avatar_url: 'avatar1.jpg' } }],
+        status: 'success',
+      });
 
       const { getByTestId, rerender } = render(
         <TestErrorBoundary>
@@ -322,9 +309,9 @@ describe('Progressive Loading Error Boundary Tests', () => {
   describe('Error propagation and handling', () => {
     it('should properly handle async errors in progressive loading', async () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      
+
       fetchPRDataMock.mockRejectedValue(new Error('Async API error'));
-      
+
       const { getByTestId } = render(
         <TestErrorBoundary>
           <ProgressiveDataComponent owner="testowner" repo="testrepo" />
@@ -337,7 +324,7 @@ describe('Progressive Loading Error Boundary Tests', () => {
 
       // Async errors should be logged but not crash the component
       expect(consoleErrorSpy).toHaveBeenCalled();
-      
+
       consoleErrorSpy.mockRestore();
     });
 
@@ -363,14 +350,19 @@ describe('Progressive Loading Error Boundary Tests', () => {
 
     it('should handle timeout scenarios in progressive loading', async () => {
       vi.useFakeTimers();
-      
-      fetchPRDataMock.mockImplementation(() => 
-        new Promise((resolve) => {
-          setTimeout(() => resolve({
-            data: [],
-            status: 'success',
-          }), 10000); // Very long timeout
-        })
+
+      fetchPRDataMock.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            setTimeout(
+              () =>
+                resolve({
+                  data: [],
+                  status: 'success',
+                }),
+              10000
+            ); // Very long timeout
+          })
       );
 
       const { getByTestId } = render(
@@ -381,7 +373,7 @@ describe('Progressive Loading Error Boundary Tests', () => {
 
       // Should not crash even with long-running operations
       expect(getByTestId('progressive-component')).toBeInTheDocument();
-      
+
       vi.useRealTimers();
     });
   });
@@ -405,7 +397,7 @@ describe('Progressive Loading Error Boundary Tests', () => {
 
     it('should maintain component state after non-critical errors', async () => {
       fetchDirectCommitsMock.mockRejectedValue(new Error('Enhancement stage error'));
-      
+
       const { getByTestId } = render(
         <TestErrorBoundary>
           <ProgressiveDataComponent owner="testowner" repo="testrepo" />

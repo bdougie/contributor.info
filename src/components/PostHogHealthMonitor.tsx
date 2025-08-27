@@ -30,7 +30,7 @@ export function PostHogHealthMonitor() {
         setHealth({
           enabled: isPostHogEnabled(),
           configured: !!env.POSTHOG_KEY,
-          rateLimits: stats
+          rateLimits: stats,
         });
       } catch (error) {
         setHealth({
@@ -38,9 +38,9 @@ export function PostHogHealthMonitor() {
           configured: !!env.POSTHOG_KEY,
           rateLimits: {
             eventCounts: new Map(),
-            limits: { perMinute: 0, perHour: 0 }
+            limits: { perMinute: 0, perHour: 0 },
           },
-          lastError: error instanceof Error ? error.message : 'Unknown error'
+          lastError: error instanceof Error ? error.message : 'Unknown error',
         });
       }
     };
@@ -69,10 +69,10 @@ export function PostHogHealthMonitor() {
           health.lastError
             ? 'bg-red-500 hover:bg-red-600'
             : isNearLimit
-            ? 'bg-yellow-500 hover:bg-yellow-600'
-            : health.enabled
-            ? 'bg-green-500 hover:bg-green-600'
-            : 'bg-gray-500 hover:bg-gray-600'
+              ? 'bg-yellow-500 hover:bg-yellow-600'
+              : health.enabled
+                ? 'bg-green-500 hover:bg-green-600'
+                : 'bg-gray-500 hover:bg-gray-600'
         }`}
         title="PostHog Health Monitor"
         aria-label="Toggle PostHog Health Monitor"
@@ -104,8 +104,8 @@ export function PostHogHealthMonitor() {
                   health.lastError
                     ? 'text-red-600'
                     : health.enabled
-                    ? 'text-green-600'
-                    : 'text-gray-600'
+                      ? 'text-green-600'
+                      : 'text-gray-600'
                 }`}
               >
                 {health.lastError ? 'Error' : health.enabled ? 'Active' : 'Inactive'}
@@ -115,9 +115,7 @@ export function PostHogHealthMonitor() {
             <div className="flex justify-between">
               <span className="text-gray-600 dark:text-gray-400">Configured:</span>
               <span
-                className={`font-medium ${
-                  health.configured ? 'text-green-600' : 'text-red-600'
-                }`}
+                className={`font-medium ${health.configured ? 'text-green-600' : 'text-red-600'}`}
               >
                 {health.configured ? 'Yes' : 'No'}
               </span>
@@ -130,10 +128,8 @@ export function PostHogHealthMonitor() {
             )}
 
             <div className="mt-3 border-t pt-3 dark:border-gray-700">
-              <div className="mb-2 font-medium text-gray-900 dark:text-gray-100">
-                Rate Limits
-              </div>
-              
+              <div className="mb-2 font-medium text-gray-900 dark:text-gray-100">Rate Limits</div>
+
               <div className="flex justify-between text-xs">
                 <span className="text-gray-600 dark:text-gray-400">Per Minute:</span>
                 <span className="text-gray-900 dark:text-gray-100">
@@ -151,7 +147,7 @@ export function PostHogHealthMonitor() {
                       width: `${Math.min(
                         (totalEvents / health.rateLimits.limits.perMinute) * 100,
                         100
-                      )}%`
+                      )}%`,
                     }}
                   />
                 </div>
@@ -163,16 +159,9 @@ export function PostHogHealthMonitor() {
                     Events by Type:
                   </div>
                   {eventCountsArray.map(([name, count]) => (
-                    <div
-                      key={name}
-                      className="flex justify-between text-xs"
-                    >
-                      <span className="text-gray-600 dark:text-gray-400">
-                        {name}:
-                      </span>
-                      <span className="text-gray-900 dark:text-gray-100">
-                        {count}
-                      </span>
+                    <div key={name} className="flex justify-between text-xs">
+                      <span className="text-gray-600 dark:text-gray-400">{name}:</span>
+                      <span className="text-gray-900 dark:text-gray-100">{count}</span>
                     </div>
                   ))}
                 </div>

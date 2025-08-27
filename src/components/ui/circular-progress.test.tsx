@@ -5,11 +5,11 @@ import { CircularProgress } from './circular-progress';
 describe('CircularProgress', () => {
   it('renders with default props', () => {
     const { container } = render(<CircularProgress value={50} />);
-    
+
     // Check the main container exists
     const mainDiv = container.querySelector('.relative.w-\\[98px\\].h-\\[52px\\]');
     expect(mainDiv).toBeInTheDocument();
-    
+
     // Check SVG elements exist
     const svgs = container.querySelectorAll('svg');
     expect(svgs).toHaveLength(2); // Background + progress SVG
@@ -22,7 +22,7 @@ describe('CircularProgress', () => {
         <span className="font-bold text-xs tracking-[-0.01px]">%</span>
       </CircularProgress>
     );
-    
+
     const percentageContainer = container.querySelector('.absolute.w-14.top-7.left-\\[21px\\]');
     expect(percentageContainer).toBeInTheDocument();
     expect(percentageContainer?.textContent).toBe('75%');
@@ -30,7 +30,7 @@ describe('CircularProgress', () => {
 
   it('does not display percentage text when no children provided', () => {
     const { container } = render(<CircularProgress value={75} />);
-    
+
     const percentageContainer = container.querySelector('.absolute.w-14.top-7.left-\\[21px\\]');
     expect(percentageContainer).not.toBeInTheDocument();
   });
@@ -55,7 +55,7 @@ describe('CircularProgress', () => {
 
   it('uses automatic color based on value (no custom color prop)', () => {
     const { container } = render(<CircularProgress value={50} />);
-    
+
     const progressPath = container.querySelectorAll('svg')[1]?.querySelector('path');
     expect(progressPath).toHaveAttribute('fill', '#FFA500'); // Orange for 50%
   });
@@ -88,7 +88,7 @@ describe('CircularProgress', () => {
 
   it('renders progress as a path element', () => {
     const { container } = render(<CircularProgress value={25} />);
-    
+
     const progressPath = container.querySelectorAll('svg')[1]?.querySelector('path');
     expect(progressPath).toBeInTheDocument();
     // Path should be present for 25% value
@@ -99,11 +99,11 @@ describe('CircularProgress', () => {
     const { container: container1 } = render(<CircularProgress value={0} />);
     const svgs1 = container1.querySelectorAll('svg');
     expect(svgs1).toHaveLength(1); // Only background SVG for 0%
-    
+
     const { container: container2 } = render(<CircularProgress value={50} />);
     const progressPath2 = container2.querySelectorAll('svg')[1]?.querySelector('path');
     expect(progressPath2).toBeInTheDocument();
-    
+
     const { container: container3 } = render(<CircularProgress value={100} />);
     const progressPath3 = container3.querySelectorAll('svg')[1]?.querySelector('path');
     expect(progressPath3?.getAttribute('d')).toContain('M0 49'); // Full semicircle
@@ -111,14 +111,14 @@ describe('CircularProgress', () => {
 
   it('applies custom className', () => {
     const { container } = render(<CircularProgress value={50} className="custom-class" />);
-    
+
     const mainDiv = container.querySelector('.relative.w-\\[98px\\].h-\\[52px\\]');
     expect(mainDiv).toHaveClass('custom-class');
   });
 
   it('renders with correct semicircle viewBox', () => {
     const { container } = render(<CircularProgress value={50} />);
-    
+
     const svgElements = container.querySelectorAll('svg');
     expect(svgElements[0]).toHaveAttribute('viewBox', '0 0 98 49');
     expect(svgElements[1]).toHaveAttribute('viewBox', '0 0 98 49');
@@ -130,7 +130,7 @@ describe('CircularProgress', () => {
         <span>50%</span>
       </CircularProgress>
     );
-    
+
     const percentageContainer = container.querySelector('.absolute.w-14.top-7.left-\\[21px\\]');
     expect(percentageContainer).toBeInTheDocument();
     expect(percentageContainer).toHaveClass('absolute', 'w-14', 'top-7', 'left-[21px]');
@@ -138,7 +138,7 @@ describe('CircularProgress', () => {
 
   it('renders background semicircle with correct path', () => {
     const { container } = render(<CircularProgress value={50} />);
-    
+
     const backgroundPath = container.querySelector('svg path');
     expect(backgroundPath).toBeInTheDocument();
     expect(backgroundPath).toHaveAttribute('fill', '#E1E4EA');
@@ -148,7 +148,7 @@ describe('CircularProgress', () => {
 
   it('renders background semicircle with gray color', () => {
     const { container } = render(<CircularProgress value={50} />);
-    
+
     const backgroundPath = container.querySelectorAll('svg')[0]?.querySelector('path');
     expect(backgroundPath).toBeInTheDocument();
     expect(backgroundPath).toHaveAttribute('fill', '#E1E4EA');
@@ -159,19 +159,19 @@ describe('CircularProgress', () => {
       { value: 0, svgCount: 1 }, // Only background SVG
       { value: 0.5, svgCount: 2 }, // Background + progress
       { value: 99.9, svgCount: 2 },
-      { value: 100, svgCount: 2 }
+      { value: 100, svgCount: 2 },
     ];
 
     testCases.forEach(({ value, svgCount }) => {
       const { container, unmount } = render(<CircularProgress value={value} />);
       const svgs = container.querySelectorAll('svg');
       expect(svgs).toHaveLength(svgCount);
-      
+
       if (svgCount === 2) {
         const progressPath = svgs[1].querySelector('path');
         expect(progressPath).toBeInTheDocument();
       }
-      
+
       unmount();
     });
   });

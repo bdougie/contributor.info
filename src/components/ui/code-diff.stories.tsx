@@ -78,85 +78,61 @@ export const InlineDiff: Story = {
       <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg mb-6">
         <h4 className="font-semibold mb-2">Designer's Note:</h4>
         <p className="text-sm text-muted-foreground">
-          "The boxes are a visual representation of the ratio of lines of code added and deleted 
-          out of all the files changed in a pull request. Gray boxes show if there is a high 
-          enough ratio of unchanged lines of code within the files changed. Using 5 boxes helps 
-          to show a weighting of more or less added/deleted/unchanged for the PR, which would be 
-          hard to represent with an even number."
+          "The boxes are a visual representation of the ratio of lines of code added and deleted out
+          of all the files changed in a pull request. Gray boxes show if there is a high enough
+          ratio of unchanged lines of code within the files changed. Using 5 boxes helps to show a
+          weighting of more or less added/deleted/unchanged for the PR, which would be hard to
+          represent with an even number."
         </p>
       </div>
-      
+
       <h3 className="text-lg font-semibold mb-4">5-Box Ratio Visualization Examples</h3>
-      
+
       <div className="flex items-center gap-4">
         <span className="w-32">All additions:</span>
-        <InlineCodeDiff
-          additions={100}
-          deletions={0}
-        />
+        <InlineCodeDiff additions={100} deletions={0} />
         <span className="text-sm text-muted-foreground">(5 green boxes)</span>
       </div>
-      
+
       <div className="flex items-center gap-4">
         <span className="w-32">All deletions:</span>
-        <InlineCodeDiff
-          additions={0}
-          deletions={100}
-        />
+        <InlineCodeDiff additions={0} deletions={100} />
         <span className="text-sm text-muted-foreground">(5 red boxes)</span>
       </div>
-      
+
       <div className="flex items-center gap-4">
         <span className="w-32">Mostly additions:</span>
-        <InlineCodeDiff
-          additions={36}
-          deletions={10}
-        />
+        <InlineCodeDiff additions={36} deletions={10} />
         <span className="text-sm text-muted-foreground">(~4 green, 1 red)</span>
       </div>
-      
+
       <div className="flex items-center gap-4">
         <span className="w-32">Equal changes:</span>
-        <InlineCodeDiff
-          additions={50}
-          deletions={50}
-        />
+        <InlineCodeDiff additions={50} deletions={50} />
         <span className="text-sm text-muted-foreground">(2 green, 2 red, 1 gray)</span>
       </div>
-      
+
       <div className="flex items-center gap-4">
         <span className="w-32">Small changes:</span>
-        <InlineCodeDiff
-          additions={5}
-          deletions={3}
-        />
+        <InlineCodeDiff additions={5} deletions={3} />
         <span className="text-sm text-muted-foreground">(3 green, 1 red, 1 gray)</span>
       </div>
-      
+
       <div className="flex items-center gap-4">
         <span className="w-32">Mostly deletions:</span>
-        <InlineCodeDiff
-          additions={10}
-          deletions={40}
-        />
+        <InlineCodeDiff additions={10} deletions={40} />
         <span className="text-sm text-muted-foreground">(1 green, 4 red)</span>
       </div>
-      
+
       <div className="flex items-center gap-4">
         <span className="w-32">No changes:</span>
-        <InlineCodeDiff
-          additions={0}
-          deletions={0}
-        />
+        <InlineCodeDiff additions={0} deletions={0} />
         <span className="text-sm text-muted-foreground">(5 gray boxes)</span>
       </div>
-      
+
       <div className="flex items-center gap-4">
         <span className="w-32">Large PR:</span>
-        <InlineCodeDiff
-          additions={1250}
-          deletions={750}
-        />
+        <InlineCodeDiff additions={1250} deletions={750} />
         <span className="text-sm text-muted-foreground">(3 green, 1 red, 1 gray)</span>
       </div>
     </div>
@@ -172,12 +148,23 @@ export const MultiLine: Story = {
           { type: 'unchanged', content: 'function calculateMetrics(data) {' },
           { type: 'deletion', content: '  const added = data.linesAdded;' },
           { type: 'deletion', content: '  const changed = data.linesChanged;' },
-          { type: 'addition', content: '  const { linesAdded, linesDeleted, linesChanged } = data;' },
+          {
+            type: 'addition',
+            content: '  const { linesAdded, linesDeleted, linesChanged } = data;',
+          },
           { type: 'unchanged', content: '  const totalSquares = 10;' },
           { type: 'unchanged', content: '' },
           { type: 'deletion', content: '  return Math.floor((added / changed) * totalSquares);' },
-          { type: 'addition', content: '  const addedSquares = Math.floor((linesAdded / linesChanged) * totalSquares);' },
-          { type: 'addition', content: '  const deletedSquares = Math.floor((linesDeleted / linesChanged) * totalSquares);' },
+          {
+            type: 'addition',
+            content:
+              '  const addedSquares = Math.floor((linesAdded / linesChanged) * totalSquares);',
+          },
+          {
+            type: 'addition',
+            content:
+              '  const deletedSquares = Math.floor((linesDeleted / linesChanged) * totalSquares);',
+          },
           { type: 'addition', content: '  return { addedSquares, deletedSquares };' },
           { type: 'unchanged', content: '}' },
         ]}
@@ -195,11 +182,19 @@ export const MultiLineWithLineNumbers: Story = {
         lines={[
           { type: 'unchanged', content: 'import React from "react";', lineNumber: 1 },
           { type: 'deletion', content: 'import { oldHook } from "./hooks";', lineNumber: 2 },
-          { type: 'addition', content: 'import { useOptimizedHook } from "./hooks";', lineNumber: 2 },
+          {
+            type: 'addition',
+            content: 'import { useOptimizedHook } from "./hooks";',
+            lineNumber: 2,
+          },
           { type: 'unchanged', content: '', lineNumber: 3 },
           { type: 'unchanged', content: 'export function MyComponent() {', lineNumber: 4 },
           { type: 'deletion', content: '  const data = oldHook();', lineNumber: 5 },
-          { type: 'addition', content: '  const data = useOptimizedHook({ cache: true });', lineNumber: 5 },
+          {
+            type: 'addition',
+            content: '  const data = useOptimizedHook({ cache: true });',
+            lineNumber: 5,
+          },
           { type: 'unchanged', content: '  return <div>{data}</div>;', lineNumber: 6 },
           { type: 'unchanged', content: '}', lineNumber: 7 },
         ]}
@@ -239,7 +234,7 @@ export const MultipleExamples: Story = {
           deletions={1}
         />
       </div>
-      
+
       <div>
         <h3 className="text-lg font-semibold mb-3">Method Signature Change</h3>
         <CodeDiff
@@ -249,7 +244,7 @@ export const MultipleExamples: Story = {
           deletions={12}
         />
       </div>
-      
+
       <div>
         <h3 className="text-lg font-semibold mb-3">Import Statement Update</h3>
         <CodeDiff

@@ -30,20 +30,20 @@ describe('RepositoryTrackingCard', () => {
       const owner = 'facebook';
       const repo = 'react';
       const displayName = `${owner}/${repo}`;
-      
+
       expect(displayName).toBe('facebook/react');
     });
 
     it('should validate required props', () => {
       const props = { owner: 'facebook', repo: 'react' };
-      
+
       expect(props.owner).toBeTruthy();
       expect(props.repo).toBeTruthy();
     });
 
     it('should handle optional callback', () => {
       const onTrackingComplete = vi.fn();
-      
+
       expect(typeof onTrackingComplete).toBe('function');
     });
   });
@@ -56,7 +56,7 @@ describe('RepositoryTrackingCard', () => {
         onTrackingComplete: vi.fn(),
         className: 'custom-class',
       };
-      
+
       expect(props.owner).toBeTruthy();
       expect(props.repo).toBeTruthy();
       expect(typeof props.onTrackingComplete).toBe('function');
@@ -68,7 +68,7 @@ describe('RepositoryTrackingCard', () => {
         owner: '',
         repo: '',
       };
-      
+
       expect(!props.owner || !props.repo).toBe(true);
     });
   });
@@ -77,7 +77,7 @@ describe('RepositoryTrackingCard', () => {
     it('should determine button text based on auth state', () => {
       const isLoggedIn = false;
       const buttonText = isLoggedIn ? 'Track This Repo' : 'Login to Track';
-      
+
       expect(buttonText).toBe('Login to Track');
     });
 
@@ -85,7 +85,7 @@ describe('RepositoryTrackingCard', () => {
       const isLoggedIn = true;
       const shouldTrack = isLoggedIn;
       const shouldLogin = !isLoggedIn;
-      
+
       expect(shouldTrack).toBe(true);
       expect(shouldLogin).toBe(false);
     });
@@ -103,9 +103,9 @@ describe('RepositoryTrackingCard', () => {
           opacity: 0.3 + Math.random() * 0.4,
         });
       }
-      
+
       expect(mockData.length).toBe(30);
-      mockData.forEach(point => {
+      mockData.forEach((point) => {
         expect(point.x).toBeGreaterThanOrEqual(0);
         expect(point.x).toBeLessThanOrEqual(30);
         expect(point.y).toBeGreaterThanOrEqual(10);
@@ -122,7 +122,7 @@ describe('RepositoryTrackingCard', () => {
       const repo = 'react';
       const pendingKey = `${owner}/${repo}`;
       const redirectKey = `/${owner}/${repo}`;
-      
+
       // Validate the format of what would be stored
       expect(pendingKey).toBe('facebook/react');
       expect(redirectKey).toBe('/facebook/react');
@@ -139,7 +139,7 @@ describe('RepositoryTrackingCard', () => {
       const owner = 'facebook';
       const repo = 'react';
       const endpoint = `/api/repository-status?owner=${owner}&repo=${repo}`;
-      
+
       expect(endpoint).toBe('/api/repository-status?owner=facebook&repo=react');
     });
   });
@@ -152,7 +152,7 @@ describe('RepositoryTrackingCard', () => {
         { owner: null, repo: 'react' },
         { owner: 'facebook', repo: null },
       ];
-      
+
       invalidRepos.forEach(({ owner, repo }) => {
         const isValid = !!(owner && repo);
         expect(isValid).toBe(false);
@@ -166,11 +166,11 @@ describe('RepositoryTrackingCard', () => {
         domain: [0, 30],
         ticks: [0, 7, 14, 21, 30],
       };
-      
+
       const yAxisConfig = {
         domain: [0, 250],
       };
-      
+
       expect(xAxisConfig.domain).toEqual([0, 30]);
       expect(xAxisConfig.ticks).toHaveLength(5);
       expect(yAxisConfig.domain).toEqual([0, 250]);

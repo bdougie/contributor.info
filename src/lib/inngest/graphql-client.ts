@@ -250,7 +250,7 @@ export class GraphQLClient {
   private metrics = {
     queriesExecuted: 0,
     totalPointsUsed: 0,
-    fallbackCount: 0
+    fallbackCount: 0,
   };
 
   constructor() {
@@ -258,7 +258,9 @@ export class GraphQLClient {
       const env = process.env.NODE_ENV || 'unknown';
       const hasGithubToken = !!process.env.GITHUB_TOKEN;
       const hasViteGithubToken = !!process.env.VITE_GITHUB_TOKEN;
-      throw new Error(`GitHub token not found in environment variables. Environment: ${env}, GITHUB_TOKEN exists: ${hasGithubToken}, VITE_GITHUB_TOKEN exists: ${hasViteGithubToken}`);
+      throw new Error(
+        `GitHub token not found in environment variables. Environment: ${env}, GITHUB_TOKEN exists: ${hasGithubToken}, VITE_GITHUB_TOKEN exists: ${hasViteGithubToken}`
+      );
     }
 
     this.client = graphql.defaults({
@@ -274,23 +276,28 @@ export class GraphQLClient {
   async getPRDetails(owner: string, repo: string, prNumber: number): Promise<PRDetailsResponse> {
     try {
       const startTime = Date.now();
-      
-      const result = await this.client(GET_PR_DETAILS_QUERY, {
+
+      const result = (await this.client(GET_PR_DETAILS_QUERY, {
         owner,
         repo,
-        number: prNumber
-      }) as GraphQLResponse;
+        number: prNumber,
+      })) as GraphQLResponse;
 
       const duration = Date.now() - startTime;
-      
+
       // Track metrics
       this.metrics.queriesExecuted++;
       this.metrics.totalPointsUsed += result.rateLimit?.cost || 0;
       this.lastRateLimit = result.rateLimit || null;
-      
+
       // Log performance
-      console.log('[GraphQL] PR #%s query completed in %sms (cost: %s points)', prNumber, duration, result.rateLimit?.cost);
-      
+      console.log(
+        '[GraphQL] PR #%s query completed in %sms (cost: %s points)',
+        prNumber,
+        duration,
+        result.rateLimit?.cost
+      );
+
       // Warn if approaching rate limits
       if (result.rateLimit && result.rateLimit.remaining < 1000) {
         console.warn(`[GraphQL] Rate limit low: ${result.rateLimit.remaining} points remaining`);
@@ -298,20 +305,20 @@ export class GraphQLClient {
 
       return {
         ...result,
-        pullRequest: result.repository?.pullRequest
+        pullRequest: result.repository?.pullRequest,
       };
     } catch (error: any) {
       this.metrics.fallbackCount++;
-      
+
       // Enhanced error handling for GraphQL
       if (error.message?.includes('rate limit')) {
         throw new Error(`GraphQL rate limit exceeded`);
       }
-      
+
       if (error.message?.includes('NOT_FOUND')) {
         throw new Error(`PR #${prNumber} not found in ${owner}/${repo}`);
       }
-      
+
       // Log the error but don't modify it - let caller handle fallback
       console.error(`[GraphQL] Query failed for ${owner}/${repo}#${prNumber}:`, error.message);
       throw error;
@@ -321,22 +328,32 @@ export class GraphQLClient {
   /**
    * Get recent PRs using GraphQL
    */
-  async getRecentPRs(owner: string, repo: string, since: string, limit: number = 100): Promise<any[]> {
+  async getRecentPRs(
+    owner: string,
+    repo: string,
+    since: string,
+    limit: number = 100
+  ): Promise<any[]> {
     try {
-      const result = await this.client(GET_RECENT_PRS_QUERY, {
+      const result = (await this.client(GET_RECENT_PRS_QUERY, {
         owner,
         repo,
         first: Math.min(limit, 100), // GraphQL API limit
-      }) as GraphQLResponse;
+      })) as GraphQLResponse;
 
       this.metrics.queriesExecuted++;
       this.metrics.totalPointsUsed += result.rateLimit?.cost || 0;
       this.lastRateLimit = result.rateLimit || null;
 
-      console.log('[GraphQL] Recent PRs query for %s/%s (cost: %s points)', owner, repo, result.rateLimit?.cost);
+      console.log(
+        '[GraphQL] Recent PRs query for %s/%s (cost: %s points)',
+        owner,
+        repo,
+        result.rateLimit?.cost
+      );
 
       const allPRs = result.repository?.pullRequests?.nodes || [];
-      
+
       // Filter PRs updated since the given date (client-side filtering)
       const sinceDate = new Date(since);
       const filteredPRs = allPRs.filter((pr: any) => {
@@ -357,9 +374,9 @@ export class GraphQLClient {
    * Used for progressive backfill to get historical PRs efficiently
    */
   async getRepositoryPRsPage(
-    owner: string, 
-    repo: string, 
-    pageSize: number = 25, 
+    owner: string,
+    repo: string,
+    pageSize: number = 25,
     cursor: string | null = null,
     direction: 'ASC' | 'DESC' = 'DESC'
   ): Promise<any[]> {
@@ -410,7 +427,7 @@ export class GraphQLClient {
 
     try {
       const startTime = Date.now();
-      
+
       const response = await this.client<PaginatedPRsResponse>({
         query: PAGINATED_PRS_QUERY,
         owner,
@@ -419,12 +436,16 @@ export class GraphQLClient {
         after: cursor,
         orderBy: {
           field: 'CREATED_AT',
-          direction
-        }
+          direction,
+        },
       });
 
       const duration = Date.now() - startTime;
-      console.log('[GraphQL] Fetched page of %s PRs in %sms', response.repository.pullRequests.nodes.length, duration);
+      console.log(
+        '[GraphQL] Fetched page of %s PRs in %sms',
+        response.repository.pullRequests.nodes.length,
+        duration
+      );
 
       // Update metrics
       this.metrics.queriesExecuted++;
@@ -435,7 +456,7 @@ export class GraphQLClient {
       // Return PRs with cursor info
       const prs = response.repository.pullRequests.nodes;
       const pageInfo = response.repository.pullRequests.pageInfo;
-      
+
       // Add cursor to last PR for tracking
       if (prs.length > 0 && pageInfo.endCursor) {
         prs[prs.length - 1].cursor = pageInfo.endCursor;
@@ -461,12 +482,14 @@ export class GraphQLClient {
   getMetrics() {
     return {
       ...this.metrics,
-      fallbackRate: this.metrics.queriesExecuted > 0 
-        ? (this.metrics.fallbackCount / this.metrics.queriesExecuted) * 100 
-        : 0,
-      averagePointsPerQuery: this.metrics.queriesExecuted > 0 
-        ? this.metrics.totalPointsUsed / this.metrics.queriesExecuted 
-        : 0
+      fallbackRate:
+        this.metrics.queriesExecuted > 0
+          ? (this.metrics.fallbackCount / this.metrics.queriesExecuted) * 100
+          : 0,
+      averagePointsPerQuery:
+        this.metrics.queriesExecuted > 0
+          ? this.metrics.totalPointsUsed / this.metrics.queriesExecuted
+          : 0,
     };
   }
 
@@ -477,7 +500,7 @@ export class GraphQLClient {
     this.metrics = {
       queriesExecuted: 0,
       totalPointsUsed: 0,
-      fallbackCount: 0
+      fallbackCount: 0,
     };
   }
 }

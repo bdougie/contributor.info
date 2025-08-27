@@ -14,7 +14,7 @@ describe('PostHog API Key Validation', () => {
       'phc_' + 'x'.repeat(50), // longer than minimum
     ];
 
-    validKeys.forEach(key => {
+    validKeys.forEach((key) => {
       expect(posthogKeyPattern.test(key)).toBe(true);
     });
   });
@@ -34,7 +34,7 @@ describe('PostHog API Key Validation', () => {
       'phc_' + 'a-b'.repeat(16), // hyphens
     ];
 
-    invalidKeys.forEach(key => {
+    invalidKeys.forEach((key) => {
       expect(posthogKeyPattern.test(key)).toBe(false);
     });
   });
@@ -43,10 +43,10 @@ describe('PostHog API Key Validation', () => {
     // Null/undefined would fail in real usage
     expect(posthogKeyPattern.test(null as any)).toBe(false);
     expect(posthogKeyPattern.test(undefined as any)).toBe(false);
-    
+
     // Numbers would be converted to string
     expect(posthogKeyPattern.test(123 as any)).toBe(false);
-    
+
     // Objects would fail
     expect(posthogKeyPattern.test({} as any)).toBe(false);
   });

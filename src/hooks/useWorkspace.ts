@@ -1,5 +1,9 @@
 import { useState, useEffect } from 'react';
-import { getWorkspaceMetrics, getWorkspaceTrendData, getWorkspace } from '@/lib/workspace/workspace-client';
+import {
+  getWorkspaceMetrics,
+  getWorkspaceTrendData,
+  getWorkspace,
+} from '@/lib/workspace/workspace-client';
 import type { WorkspaceMetrics, WorkspaceTrendData } from '@/components/features/workspace';
 import type { Repository } from '@/components/features/workspace';
 import type { TimeRange } from '@/components/features/workspace';
@@ -46,19 +50,19 @@ const generateMockTrendData = (days: number): WorkspaceTrendData => {
   const prs = [];
   const issues = [];
   const commits = [];
-  
+
   const today = new Date();
-  
+
   for (let i = days - 1; i >= 0; i--) {
     const date = new Date(today);
     date.setDate(date.getDate() - i);
     labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
-    
+
     prs.push(Math.floor(Math.random() * 30) + 10);
     issues.push(Math.floor(Math.random() * 20) + 5);
     commits.push(Math.floor(Math.random() * 60) + 20);
   }
-  
+
   return {
     labels,
     datasets: [
@@ -109,7 +113,10 @@ const generateMockRepositories = (): Repository[] => {
   }));
 };
 
-export function useWorkspace({ workspaceId, timeRange = '30d' }: UseWorkspaceOptions): UseWorkspaceReturn {
+export function useWorkspace({
+  workspaceId,
+  timeRange = '30d',
+}: UseWorkspaceOptions): UseWorkspaceReturn {
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [metrics, setMetrics] = useState<WorkspaceMetrics | null>(null);
   const [trendData, setTrendData] = useState<WorkspaceTrendData | null>(null);
@@ -132,7 +139,7 @@ export function useWorkspace({ workspaceId, timeRange = '30d' }: UseWorkspaceOpt
       const transformedWorkspace: Workspace = {
         id: workspaceData.id,
         name: workspaceData.name,
-        description: workspaceData.description,
+        description: workspaceData.description || undefined,
         created_at: workspaceData.created_at,
         updated_at: workspaceData.updated_at,
         owner_id: workspaceData.owner_id,
@@ -169,11 +176,10 @@ export function useWorkspace({ workspaceId, timeRange = '30d' }: UseWorkspaceOpt
       // Fetch repositories (using mock for now until repository endpoint is ready)
       // TODO: Replace with real repository API call
       setRepositories(generateMockRepositories());
-
     } catch (err) {
       console.error('Error fetching workspace data:', err);
       setError(err instanceof Error ? err : new Error('Failed to fetch workspace data'));
-      
+
       // Fallback to mock data in development
       if (process.env.NODE_ENV === 'development') {
         console.warn('Using mock data as fallback');
@@ -222,7 +228,7 @@ export function useWorkspaceMetrics(workspaceId: string, timeRange: TimeRange = 
       try {
         setLoading(true);
         setError(null);
-        
+
         const metricsData = await getWorkspaceMetrics(workspaceId, timeRange as any);
         if (metricsData) {
           const transformedMetrics: WorkspaceMetrics = {
@@ -272,10 +278,10 @@ export function useWorkspaceRepositories(workspaceId: string) {
       try {
         setLoading(true);
         setError(null);
-        
+
         // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 700));
-        
+        await new Promise((resolve) => setTimeout(resolve, 700));
+
         setRepositories(generateMockRepositories());
       } catch (err) {
         setError(err instanceof Error ? err : new Error('Failed to fetch repositories'));

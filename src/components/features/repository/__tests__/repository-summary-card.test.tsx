@@ -8,8 +8,8 @@ vi.mock('@/hooks/use-repository-summary', () => ({
     summary: null,
     loading: false,
     error: null,
-    refetch: vi.fn()
-  }))
+    refetch: vi.fn(),
+  })),
 }));
 
 describe('RepositorySummaryCard', () => {

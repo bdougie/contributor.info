@@ -20,15 +20,15 @@ export function createResponseHeaders(
   includeCors: boolean
 ): Record<string, string> {
   const headers: Record<string, string> = {};
-  
+
   if (contentType) {
     headers['Content-Type'] = contentType;
   }
-  
+
   if (includeCors) {
     Object.assign(headers, getCorsHeaders());
   }
-  
+
   return headers;
 }
 

@@ -5,16 +5,16 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 
 /**
  * Netlify RUM Integration Component
- * 
+ *
  * This component provides a link to Netlify's Real User Monitoring dashboard
  * and displays key insights about Core Web Vitals from real user data.
- * 
+ *
  * Since Netlify RUM data is accessed through their dashboard, this component
  * serves as a bridge to guide users to the external monitoring tools.
  */
 export function NetlifyRUMIntegration() {
   const netlifyRumUrl = 'https://app.netlify.com/projects/contributor-info/metrics/rum';
-  
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -42,11 +42,12 @@ export function NetlifyRUMIntegration() {
       <CardContent className="space-y-4">
         <Alert>
           <AlertDescription>
-            Netlify RUM automatically tracks Core Web Vitals (LCP, INP, CLS) from real user sessions.
-            Click "View in Netlify" to access detailed metrics, geographic insights, and device breakdowns.
+            Netlify RUM automatically tracks Core Web Vitals (LCP, INP, CLS) from real user
+            sessions. Click "View in Netlify" to access detailed metrics, geographic insights, and
+            device breakdowns.
           </AlertDescription>
         </Alert>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="flex items-start gap-3">
             <TrendingUp className="h-5 w-5 text-muted-foreground mt-1" />
@@ -57,7 +58,7 @@ export function NetlifyRUMIntegration() {
               </p>
             </div>
           </div>
-          
+
           <div className="flex items-start gap-3">
             <Users className="h-5 w-5 text-muted-foreground mt-1" />
             <div>
@@ -67,22 +68,21 @@ export function NetlifyRUMIntegration() {
               </p>
             </div>
           </div>
-          
+
           <div className="flex items-start gap-3">
             <Globe className="h-5 w-5 text-muted-foreground mt-1" />
             <div>
               <p className="font-medium text-sm">Geographic Insights</p>
-              <p className="text-xs text-muted-foreground">
-                Performance metrics by user location
-              </p>
+              <p className="text-xs text-muted-foreground">Performance metrics by user location</p>
             </div>
           </div>
         </div>
-        
+
         <div className="pt-2 border-t">
           <p className="text-xs text-muted-foreground">
-            <strong>Note:</strong> Netlify RUM provides real user monitoring as part of your deployment.
-            No additional setup required - data is collected automatically for all production builds.
+            <strong>Note:</strong> Netlify RUM provides real user monitoring as part of your
+            deployment. No additional setup required - data is collected automatically for all
+            production builds.
           </p>
         </div>
       </CardContent>

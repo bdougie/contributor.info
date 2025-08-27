@@ -41,27 +41,28 @@ export const AreaChart: React.FC<AreaChartProps> = ({
   const { chartData, chartOptions } = useMemo(() => {
     const theme = getChartTheme(isDark);
     const seriesColors = getSeriesColors(data.datasets.length, isDark);
-    
-    let processedData = [...data.datasets.map(dataset => [...dataset.data])];
-    
+
+    const processedData = [...data.datasets.map((dataset) => [...dataset.data])];
+
     // Stack data if requested
     if (stacked) {
       for (let i = 1; i < processedData.length; i++) {
         for (let j = 0; j < processedData[i].length; j++) {
           if (processedData[i][j] != null && processedData[i - 1][j] != null) {
-            processedData[i][j] = (processedData[i][j] as number) + (processedData[i - 1][j] as number);
+            processedData[i][j] =
+              (processedData[i][j] as number) + (processedData[i - 1][j] as number);
           }
         }
       }
     }
-    
+
     // Process labels for uPlot (requires numeric x-axis)
     const { numericLabels, labelMap } = processLabelsForUPlot(data.labels);
-    
+
     // Convert data to uPlot format [x-axis, series1, series2, ...]
     const chartData: AlignedData = [
       numericLabels,
-      ...processedData.map(series => series as (number | null)[]),
+      ...processedData.map((series) => series as (number | null)[]),
     ];
 
     // Configure series (first entry is always x-axis)
@@ -73,7 +74,7 @@ export const AreaChart: React.FC<AreaChartProps> = ({
       ...data.datasets.map((dataset, index) => {
         const color = dataset.color || seriesColors[index];
         const fillOpacity = dataset.fillOpacity ?? 0.3;
-        
+
         return {
           label: dataset.label,
           stroke: color,
@@ -85,17 +86,17 @@ export const AreaChart: React.FC<AreaChartProps> = ({
           paths: (u: any, seriesIdx: number, idx0: number, idx1: number) => {
             const stroke = new Path2D();
             const fill = new Path2D();
-            
+
             u.ctx.save();
             const data = u.data[seriesIdx] as number[];
-            const prevData = stacked && seriesIdx > 1 ? u.data[seriesIdx - 1] as number[] : null;
-            
+            const prevData = stacked && seriesIdx > 1 ? (u.data[seriesIdx - 1] as number[]) : null;
+
             // Draw the top line
             for (let i = idx0; i <= idx1; i++) {
               if (data[i] != null) {
                 const x = u.valToPos(u.data[0][i] as number, 'x', true);
                 const y = u.valToPos(data[i], 'y', true);
-                
+
                 if (i === idx0) {
                   stroke.moveTo(x, y);
                   fill.moveTo(x, y);
@@ -105,7 +106,7 @@ export const AreaChart: React.FC<AreaChartProps> = ({
                 }
               }
             }
-            
+
             // Close fill path
             if (data.length > 0) {
               // If stacked, fill to previous series; otherwise fill to zero
@@ -123,13 +124,13 @@ export const AreaChart: React.FC<AreaChartProps> = ({
                 const lastX = u.valToPos(u.data[0][idx1] as number, 'x', true);
                 const firstX = u.valToPos(u.data[0][idx0] as number, 'x', true);
                 const zeroY = u.valToPos(0, 'y', true);
-                
+
                 fill.lineTo(lastX, zeroY);
                 fill.lineTo(firstX, zeroY);
               }
               fill.closePath();
             }
-            
+
             u.ctx.restore();
             return { stroke, fill };
           },
@@ -159,7 +160,7 @@ export const AreaChart: React.FC<AreaChartProps> = ({
           values: createAxisValuesFormatter(labelMap),
         },
         {
-          // y-axis  
+          // y-axis
           label: yAxisLabel,
           stroke: theme.axis,
           grid: showGrid ? { show: true, stroke: theme.grid, width: 1 } : { show: false },
@@ -183,11 +184,5 @@ export const AreaChart: React.FC<AreaChartProps> = ({
     return { chartData, chartOptions };
   }, [data, isDark, showGrid, showLegend, xAxisLabel, yAxisLabel, stacked]);
 
-  return (
-    <UPlotChart
-      data={chartData}
-      options={chartOptions}
-      {...uplotProps}
-    />
-  );
+  return <UPlotChart data={chartData} options={chartOptions} {...uplotProps} />;
 };

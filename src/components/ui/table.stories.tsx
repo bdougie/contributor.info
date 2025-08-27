@@ -38,34 +38,34 @@ type Story = StoryObj<typeof meta>;
 
 const invoices = [
   {
-    id: "INV001",
-    paymentStatus: "Paid",
-    totalAmount: "$250.00",
-    paymentMethod: "Credit Card",
+    id: 'INV001',
+    paymentStatus: 'Paid',
+    totalAmount: '$250.00',
+    paymentMethod: 'Credit Card',
   },
   {
-    id: "INV002",
-    paymentStatus: "Pending",
-    totalAmount: "$150.00",
-    paymentMethod: "PayPal",
+    id: 'INV002',
+    paymentStatus: 'Pending',
+    totalAmount: '$150.00',
+    paymentMethod: 'PayPal',
   },
   {
-    id: "INV003",
-    paymentStatus: "Unpaid",
-    totalAmount: "$350.00",
-    paymentMethod: "Bank Transfer",
+    id: 'INV003',
+    paymentStatus: 'Unpaid',
+    totalAmount: '$350.00',
+    paymentMethod: 'Bank Transfer',
   },
   {
-    id: "INV004",
-    paymentStatus: "Paid",
-    totalAmount: "$450.00",
-    paymentMethod: "Credit Card",
+    id: 'INV004',
+    paymentStatus: 'Paid',
+    totalAmount: '$450.00',
+    paymentMethod: 'Credit Card',
   },
   {
-    id: "INV005",
-    paymentStatus: "Paid",
-    totalAmount: "$550.00",
-    paymentMethod: "PayPal",
+    id: 'INV005',
+    paymentStatus: 'Paid',
+    totalAmount: '$550.00',
+    paymentMethod: 'PayPal',
   },
 ];
 
@@ -177,8 +177,12 @@ export const WithActions: Story = {
           </TableCell>
           <TableCell className="text-right">
             <div className="flex gap-2 justify-end">
-              <Button variant="outline" size="sm">Edit</Button>
-              <Button variant="destructive" size="sm">Delete</Button>
+              <Button variant="outline" size="sm">
+                Edit
+              </Button>
+              <Button variant="destructive" size="sm">
+                Delete
+              </Button>
             </div>
           </TableCell>
         </TableRow>
@@ -191,8 +195,12 @@ export const WithActions: Story = {
           </TableCell>
           <TableCell className="text-right">
             <div className="flex gap-2 justify-end">
-              <Button variant="outline" size="sm">Edit</Button>
-              <Button variant="destructive" size="sm">Delete</Button>
+              <Button variant="outline" size="sm">
+                Edit
+              </Button>
+              <Button variant="destructive" size="sm">
+                Delete
+              </Button>
             </div>
           </TableCell>
         </TableRow>
@@ -205,8 +213,12 @@ export const WithActions: Story = {
           </TableCell>
           <TableCell className="text-right">
             <div className="flex gap-2 justify-end">
-              <Button variant="outline" size="sm">Edit</Button>
-              <Button variant="destructive" size="sm">Delete</Button>
+              <Button variant="outline" size="sm">
+                Edit
+              </Button>
+              <Button variant="destructive" size="sm">
+                Delete
+              </Button>
             </div>
           </TableCell>
         </TableRow>
@@ -318,7 +330,9 @@ export const LargeDataset: Story = {
       email: `user${i + 1}@example.com`,
       role: ['Admin', 'Editor', 'Viewer'][i % 3],
       status: ['Active', 'Inactive'][i % 2],
-      lastLogin: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toLocaleDateString(),
+      lastLogin: new Date(
+        Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000
+      ).toLocaleDateString(),
     }));
 
     return (

@@ -1,18 +1,11 @@
-import { useState } from 'react'
+import { useState } from 'react';
 import { Shield, AlertTriangle, Info } from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import {
-  Alert,
-  AlertDescription,
-} from '@/components/ui/alert';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { SpamFilterOptions } from '@/lib/api/spam-filtered-feed';
@@ -53,7 +46,11 @@ export function SpamFilterControls({
     );
   })?.[1];
 
-  const handlePresetSelect = (preset: { name: string; description: string; options: SpamFilterOptions }) => {
+  const handlePresetSelect = (preset: {
+    name: string;
+    description: string;
+    options: SpamFilterOptions;
+  }) => {
     onFilterChange(preset.options);
   };
 
@@ -66,47 +63,43 @@ export function SpamFilterControls({
 
   const getFilteredCount = () => {
     if (!spamStats) return null;
-    
+
     const { distribution } = spamStats;
     let included = 0;
-    
+
     const minScore = filterOptions.minSpamScore || 0;
     const maxScore = filterOptions.maxSpamScore || 100;
-    
+
     // Count legitimate (0-25)
     if (minScore <= 25 && maxScore >= 0) {
       included += distribution.legitimate;
     }
-    
+
     // Count warning (26-50)
     if (minScore <= 50 && maxScore >= 26) {
       included += distribution.warning;
     }
-    
+
     // Count likely spam (51-75)
     if (minScore <= 75 && maxScore >= 51) {
       included += distribution.likelySpam;
     }
-    
+
     // Count definite spam (76-100)
     if (minScore <= 100 && maxScore >= 76) {
       included += distribution.definiteSpam;
     }
-    
+
     return included;
   };
 
   const filteredCount = getFilteredCount();
 
   return (
-    <div className={cn("flex items-center gap-2", className)}>
+    <div className={cn('flex items-center gap-2', className)}>
       <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2"
-          >
+          <Button variant="outline" size="sm" className="gap-2">
             <Shield className="h-4 w-4" />
             <span>Spam Filter</span>
             {currentPreset && (
@@ -136,12 +129,13 @@ export function SpamFilterControls({
                   <div className="space-y-1">
                     <p className="font-medium">Repository Statistics</p>
                     <p className="text-xs">
-                      {spamStats.spamCount} of {spamStats.totalAnalyzed} PRs flagged as spam
-                      ({spamStats.spamPercentage.toFixed(1)}%)
+                      {spamStats.spamCount} of {spamStats.totalAnalyzed} PRs flagged as spam (
+                      {spamStats.spamPercentage.toFixed(1)}%)
                     </p>
                     {filteredCount !== null && (
                       <p className="text-xs">
-                        Current filter shows {filteredCount} of {spamStats.totalAnalyzed} analyzed PRs
+                        Current filter shows {filteredCount} of {spamStats.totalAnalyzed} analyzed
+                        PRs
                       </p>
                     )}
                   </div>
@@ -156,7 +150,7 @@ export function SpamFilterControls({
                 {Object.entries(presets).map(([key, preset]) => (
                   <Button
                     key={key}
-                    variant={currentPreset === preset ? "default" : "outline"}
+                    variant={currentPreset === preset ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => handlePresetSelect(preset)}
                     className="justify-start"

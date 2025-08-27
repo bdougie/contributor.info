@@ -1,7 +1,7 @@
-import { inngest } from "../client";
-import { supabase } from "../../supabase";
-import { NonRetriableError } from "inngest";
-import { getGraphQLClient } from "../graphql-client";
+import { inngest } from '../client';
+import { supabase } from '../../supabase';
+import { NonRetriableError } from 'inngest';
+import { getGraphQLClient } from '../graphql-client';
 import { RATE_LIMIT_CONFIG } from '../queue-manager';
 
 // Constants
@@ -18,15 +18,18 @@ async function ensureContributorExists(author: any): Promise<string> {
 
   const { data, error } = await supabase
     .from('contributors')
-    .upsert({
-      github_id: author.databaseId?.toString() || author.id?.toString() || '0',
-      username: author.login,
-      avatar_url: author.avatarUrl || null,
-      is_bot: author.__typename === 'Bot' || false,
-    }, {
-      onConflict: 'username',
-      ignoreDuplicates: false,
-    })
+    .upsert(
+      {
+        github_id: author.databaseId?.toString() || author.id?.toString() || '0',
+        username: author.login,
+        avatar_url: author.avatarUrl || null,
+        is_bot: author.__typename === 'Bot' || false,
+      },
+      {
+        onConflict: 'username',
+        ignoreDuplicates: false,
+      }
+    )
     .select('id')
     .maybeSingle();
 
@@ -42,41 +45,42 @@ async function ensureContributorExists(author: any): Promise<string> {
 
 export const captureRepositorySyncEnhanced = inngest.createFunction(
   {
-    id: "capture-repository-sync-enhanced",
-    name: "Enhanced Repository Sync with Backfill Support",
+    id: 'capture-repository-sync-enhanced',
+    name: 'Enhanced Repository Sync with Backfill Support',
     concurrency: {
       limit: 5,
-      key: "event.data.repositoryId",
+      key: 'event.data.repositoryId',
     },
-    throttle: { limit: 75, period: "1m" },
+    throttle: { limit: 75, period: '1m' },
     retries: 2,
   },
-  { event: "capture/repository.sync.enhanced" },
+  { event: 'capture/repository.sync.enhanced' },
   async ({ event, step }) => {
     const { repositoryId, days, priority, reason } = event.data;
-    
+
     // Step 1: Check if repository is being backfilled
-    const backfillState = await step.run("check-backfill-state", async () => {
+    const backfillState = await step.run('check-backfill-state', async () => {
       const { data } = await supabase
         .from('progressive_backfill_state')
         .select('*')
         .eq('repository_id', repositoryId)
         .eq('status', 'active')
         .maybeSingle();
-      
+
       return data;
     });
-    
+
     // If backfill is active, only sync very recent data
-    const effectiveDays = backfillState?.status === 'active' 
-      ? BACKFILL_SYNC_DAYS 
-      : Math.min(days || DEFAULT_DAYS_LIMIT, DEFAULT_DAYS_LIMIT);
-    
+    const effectiveDays =
+      backfillState?.status === 'active'
+        ? BACKFILL_SYNC_DAYS
+        : Math.min(days || DEFAULT_DAYS_LIMIT, DEFAULT_DAYS_LIMIT);
+
     // Remove the 12-hour sync restriction for repositories being backfilled
     const shouldCheckSyncTime = !backfillState && reason !== 'manual';
 
     // Step 2: Get repository details
-    const repository = await step.run("get-repository", async () => {
+    const repository = await step.run('get-repository', async () => {
       const { data, error } = await supabase
         .from('repositories')
         .select('owner, name, last_updated_at, pull_request_count')
@@ -91,12 +95,15 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
       if (shouldCheckSyncTime && data.last_updated_at) {
         const lastSyncTime = new Date(data.last_updated_at).getTime();
         const hoursSinceSync = (Date.now() - lastSyncTime) / (1000 * 60 * 60);
-        
+
         if (hoursSinceSync < RATE_LIMIT_CONFIG.COOLDOWN_HOURS) {
-          const timeAgo = hoursSinceSync < 1 
-            ? `${Math.round(hoursSinceSync * 60)} minutes`
-            : `${Math.round(hoursSinceSync)} hours`;
-          throw new Error(`Repository ${data.owner}/${data.name} was synced ${timeAgo} ago. Skipping to prevent excessive API usage.`) as NonRetriableError;
+          const timeAgo =
+            hoursSinceSync < 1
+              ? `${Math.round(hoursSinceSync * 60)} minutes`
+              : `${Math.round(hoursSinceSync)} hours`;
+          throw new Error(
+            `Repository ${data.owner}/${data.name} was synced ${timeAgo} ago. Skipping to prevent excessive API usage.`
+          ) as NonRetriableError;
         }
       }
 
@@ -104,10 +111,14 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
     });
 
     // Step 3: Check if we should initiate backfill for large repos
-    const shouldInitiateBackfill = await step.run("check-initiate-backfill", async () => {
+    const shouldInitiateBackfill = await step.run('check-initiate-backfill', async () => {
       // Skip if already being backfilled
       if (backfillState) {
-        console.log('Repository %s/%s is already being backfilled', repository.owner, repository.name);
+        console.log(
+          'Repository %s/%s is already being backfilled',
+          repository.owner,
+          repository.name
+        );
         return false;
       }
 
@@ -121,103 +132,122 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
         .from('pull_requests')
         .select('*', { count: 'exact', head: true })
         .eq('repository_id', repositoryId);
-      
+
       const completeness = (capturedPRs || 0) / repository.pull_request_count;
-      
+
       // Initiate backfill if less than 80% complete
       if (completeness < 0.8) {
-        console.log('Repository %s/%s is only %s% complete, initiating backfill', repository.owner, repository.name, Math.round(completeness * 100));
-        
+        console.log(
+          'Repository %s/%s is only %s% complete, initiating backfill',
+          repository.owner,
+          repository.name,
+          Math.round(completeness * 100)
+        );
+
         // Create backfill state
-        const { error } = await supabase
-          .from('progressive_backfill_state')
-          .insert({
-            repository_id: repositoryId,
-            total_prs: repository.pull_request_count,
-            processed_prs: capturedPRs || 0,
-            status: 'active',
-            chunk_size: 25,
-            metadata: {
-              initial_completeness: completeness,
-              initiated_by: 'sync_function',
-              reason: 'incomplete_data'
-            }
-          });
+        const { error } = await supabase.from('progressive_backfill_state').insert({
+          repository_id: repositoryId,
+          total_prs: repository.pull_request_count,
+          processed_prs: capturedPRs || 0,
+          status: 'active',
+          chunk_size: 25,
+          metadata: {
+            initial_completeness: completeness,
+            initiated_by: 'sync_function',
+            reason: 'incomplete_data',
+          },
+        });
 
         if (!error) {
           // Queue backfill job to GitHub Actions
-          await supabase
-            .from('progressive_capture_jobs')
-            .insert({
-              job_type: 'progressive_backfill',
-              repository_id: repositoryId,
-              status: 'pending',
-              processor_type: 'github_actions',
-              metadata: {
-                reason: 'auto_initiated',
-                total_prs: repository.pull_request_count,
-                current_completeness: completeness
-              }
-            });
-          
+          await supabase.from('progressive_capture_jobs').insert({
+            job_type: 'progressive_backfill',
+            repository_id: repositoryId,
+            status: 'pending',
+            processor_type: 'github_actions',
+            metadata: {
+              reason: 'auto_initiated',
+              total_prs: repository.pull_request_count,
+              current_completeness: completeness,
+            },
+          });
+
           return true;
         }
       }
-      
+
       return false;
     });
 
     // Step 4: Log repository size info
-    await step.run("check-repository-size", async () => {
+    await step.run('check-repository-size', async () => {
       const { count: prCount } = await supabase
         .from('pull_requests')
         .select('*', { count: 'exact', head: true })
         .eq('repository_id', repositoryId);
 
       if (prCount && prCount > LARGE_REPO_THRESHOLD) {
-        console.warn(`Large repository detected: ${repository.owner}/${repository.name} has ${prCount} PRs`);
+        console.warn(
+          `Large repository detected: ${repository.owner}/${repository.name} has ${prCount} PRs`
+        );
       }
 
       return { prCount: prCount || 0 };
     });
 
     // Step 5: Fetch recent PRs (limited window if backfill is active)
-    const recentPRs = await step.run("fetch-recent-prs-graphql", async () => {
+    const recentPRs = await step.run('fetch-recent-prs-graphql', async () => {
       const since = new Date(Date.now() - effectiveDays * 24 * 60 * 60 * 1000).toISOString();
-      
+
       try {
         const client = getGraphQLClient();
         const prs = await client.getRecentPRs(
-          repository.owner, 
-          repository.name, 
-          since, 
+          repository.owner,
+          repository.name,
+          since,
           MAX_PRS_PER_SYNC
         );
 
-        console.log('✅ GraphQL recent PRs query successful for %s/%s (%s PRs found)', repository.owner, repository.name, prs.length);
-        
+        console.log(
+          '✅ GraphQL recent PRs query successful for %s/%s (%s PRs found)',
+          repository.owner,
+          repository.name,
+          prs.length
+        );
+
         // Log rate limit info
         const rateLimit = client.getRateLimit();
         if (rateLimit) {
-          console.log('📊 GraphQL rate limit: %s/%s remaining (cost: %s points)', rateLimit.remaining, rateLimit.limit, rateLimit.cost);
+          console.log(
+            '📊 GraphQL rate limit: %s/%s remaining (cost: %s points)',
+            rateLimit.remaining,
+            rateLimit.limit,
+            rateLimit.cost
+          );
         }
 
         return prs.slice(0, MAX_PRS_PER_SYNC);
       } catch (error: any) {
         if (error.message?.includes('NOT_FOUND')) {
-          throw new Error(`Repository ${repository.owner}/${repository.name} not found`) as NonRetriableError;
+          throw new Error(
+            `Repository ${repository.owner}/${repository.name} not found`
+          ) as NonRetriableError;
         }
         if (error.message?.includes('rate limit')) {
-          throw new Error(`GraphQL rate limit hit for ${repository.owner}/${repository.name}. Please try again later.`);
+          throw new Error(
+            `GraphQL rate limit hit for ${repository.owner}/${repository.name}. Please try again later.`
+          );
         }
-        
-        console.warn(`GraphQL failed for ${repository.owner}/${repository.name}, this will trigger fallback to REST`);
+
+        console.warn(
+          `GraphQL failed for ${repository.owner}/${repository.name}, this will trigger fallback to REST`
+        );
         throw error;
       }
     });
 
     // Step 6: Store PRs in database
-    const storedPRs = await step.run("store-prs", async () => {
+    const storedPRs = await step.run('store-prs', async () => {
       if (recentPRs.length === 0) {
         return [];
       }
@@ -233,8 +263,7 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
         number: pr.number,
         title: pr.title,
         body: null, // Basic PR list doesn't include body
-        state: pr.state?.toLowerCase() === 'open' ? 'open' : 
-               pr.merged ? 'merged' : 'closed',
+        state: pr.state?.toLowerCase() === 'open' ? 'open' : pr.merged ? 'merged' : 'closed',
         author_id: contributorIds[index],
         created_at: pr.createdAt,
         updated_at: pr.updatedAt,
@@ -266,26 +295,27 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
     });
 
     // Step 7: Queue detail jobs (less aggressive if backfill is active)
-    const jobsToQueue = await step.run("prepare-graphql-job-queue", async () => {
+    const jobsToQueue = await step.run('prepare-graphql-job-queue', async () => {
       const jobs = [] as any[];
-      
+
       // Limit detail jobs if backfill is active
       const MAX_DETAIL_JOBS = backfillState ? 10 : 50;
-      
+
       let detailJobsQueued = 0;
 
       for (const pr of storedPRs) {
         const prData = recentPRs.find((p: any) => p.number === pr.number);
-        
+
         if (!prData) continue;
 
         // Only queue detail jobs for very recent or open PRs when backfill is active
         const isOpen = prData.state === 'OPEN';
-        const isVeryRecent = new Date(prData.updatedAt).getTime() > Date.now() - 24 * 60 * 60 * 1000; // 24 hours
-        
+        const isVeryRecent =
+          new Date(prData.updatedAt).getTime() > Date.now() - 24 * 60 * 60 * 1000; // 24 hours
+
         if (detailJobsQueued < MAX_DETAIL_JOBS && (isOpen || (!backfillState && isVeryRecent))) {
           jobs.push({
-            name: "capture/pr.details.graphql",
+            name: 'capture/pr.details.graphql',
             data: {
               repositoryId,
               prNumber: pr.number.toString(),
@@ -297,7 +327,12 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
         }
 
         if (detailJobsQueued >= MAX_DETAIL_JOBS) {
-          console.log('Reached GraphQL job queue limit (%s) for %s/%s', MAX_DETAIL_JOBS, repository.owner, repository.name);
+          console.log(
+            'Reached GraphQL job queue limit (%s) for %s/%s',
+            MAX_DETAIL_JOBS,
+            repository.owner,
+            repository.name
+          );
           break;
         }
       }
@@ -313,7 +348,7 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
     }
 
     // Step 9: Update repository sync timestamp
-    await step.run("update-sync-timestamp", async () => {
+    await step.run('update-sync-timestamp', async () => {
       const { error } = await supabase
         .from('repositories')
         .update({
@@ -339,7 +374,7 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
     };
 
     console.log(`✅ Enhanced repository sync completed:`, summary);
-    
+
     return summary;
   }
 );

@@ -3,17 +3,16 @@ import { Trophy, Users, Calendar, TrendingUp } from '@/components/ui/icon';
  * Production wrapper for ContributorEmptyState
  * This connects the simple component with actual UI libraries
  */
-;
-import { cn } from "@/lib/utils";
-import { ContributorEmptyStateSimple } from "./contributor-empty-state-simple";
-import type { EmptyStateType } from "@/lib/contributor-empty-state-config";
+import { cn } from '@/lib/utils';
+import { ContributorEmptyStateSimple } from './contributor-empty-state-simple';
+import type { EmptyStateType } from '@/lib/contributor-empty-state-config';
 
 // Icon map for production
 const iconMap = {
   trophy: Trophy,
   users: Users,
   calendar: Calendar,
-  "trending-up": TrendingUp,
+  'trending-up': TrendingUp,
 };
 
 interface EmptyStateProps {
@@ -26,16 +25,11 @@ interface EmptyStateProps {
 /**
  * Production component that wraps the simple version with actual UI components
  */
-export function ContributorEmptyState({
-  type,
-  message,
-  suggestion,
-  className,
-}: EmptyStateProps) {
+export function ContributorEmptyState({ type, message, suggestion, className }: EmptyStateProps) {
   // Icon renderer that uses actual lucide-react icons
   const renderIcon = (iconName: string, iconColor: string) => {
     const IconComponent = iconMap[iconName as keyof typeof iconMap] || Users;
-    return <IconComponent className={cn("h-16 w-16", iconColor)} aria-hidden="true" />;
+    return <IconComponent className={cn('h-16 w-16', iconColor)} aria-hidden="true" />;
   };
 
   // For now, we can still use the simple version with custom rendering

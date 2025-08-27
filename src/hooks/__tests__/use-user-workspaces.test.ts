@@ -23,7 +23,7 @@ describe('useUserWorkspaces', () => {
     // Reset mocks
     vi.clearAllMocks();
     vi.useFakeTimers();
-    
+
     // Mock auth state change subscription
     unsubscribe = vi.fn();
     (supabase.auth.onAuthStateChange as any).mockImplementation((callback: any) => {
@@ -63,7 +63,7 @@ describe('useUserWorkspaces', () => {
         then: (resolve: any) => Promise.resolve({ data, error }).then(resolve),
         catch: (reject: any) => Promise.resolve({ data, error }).catch(reject),
       });
-      
+
       return createChain();
     });
     (supabase.from as any).mockImplementation(mockFrom);
@@ -80,7 +80,7 @@ describe('useUserWorkspaces', () => {
     await act(async () => {
       await vi.runAllTimersAsync();
     });
-    
+
     expect(supabase.auth.getUser).toHaveBeenCalled();
 
     const authCalls = (supabase.auth.getUser as any).mock.calls.length;
@@ -93,12 +93,12 @@ describe('useUserWorkspaces', () => {
         });
       }
     });
-    
+
     // Advance timers to ensure debounce doesn't trigger
     act(() => {
       vi.advanceTimersByTime(600);
     });
-    
+
     // Auth.getUser should not have been called again (TOKEN_REFRESHED is ignored)
     expect((supabase.auth.getUser as any).mock.calls.length).toBe(authCalls);
   });
@@ -110,7 +110,7 @@ describe('useUserWorkspaces', () => {
     await act(async () => {
       await vi.runAllTimersAsync();
     });
-    
+
     expect(supabase.auth.getUser).toHaveBeenCalled();
 
     const initialAuthCalls = (supabase.auth.getUser as any).mock.calls.length;
@@ -140,7 +140,7 @@ describe('useUserWorkspaces', () => {
     await act(async () => {
       await vi.runAllTimersAsync();
     });
-    
+
     expect(supabase.auth.getUser).toHaveBeenCalled();
 
     const initialAuthCalls = (supabase.auth.getUser as any).mock.calls.length;
@@ -179,7 +179,7 @@ describe('useUserWorkspaces', () => {
     await act(async () => {
       await vi.runAllTimersAsync();
     });
-    
+
     expect(supabase.auth.getUser).toHaveBeenCalled();
 
     const initialAuthCalls = (supabase.auth.getUser as any).mock.calls.length;
@@ -197,7 +197,7 @@ describe('useUserWorkspaces', () => {
     act(() => {
       vi.advanceTimersByTime(600);
     });
-    
+
     // Auth.getUser should not have been called again (USER_UPDATED is ignored)
     expect((supabase.auth.getUser as any).mock.calls.length).toBe(initialAuthCalls);
   });
@@ -209,7 +209,7 @@ describe('useUserWorkspaces', () => {
     await act(async () => {
       await vi.runAllTimersAsync();
     });
-    
+
     expect(supabase.auth.getUser).toHaveBeenCalled();
 
     const initialAuthCalls = (supabase.auth.getUser as any).mock.calls.length;
@@ -233,7 +233,7 @@ describe('useUserWorkspaces', () => {
   it('should cleanup debounce timer on unmount', () => {
     vi.useFakeTimers();
     const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout');
-    
+
     const { unmount } = renderHook(() => useUserWorkspaces());
 
     // Trigger a debounced fetch
@@ -248,7 +248,7 @@ describe('useUserWorkspaces', () => {
 
     // Verify that clearTimeout was called (for debounce timer cleanup)
     expect(clearTimeoutSpy).toHaveBeenCalled();
-    
+
     clearTimeoutSpy.mockRestore();
   });
 });

@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { 
-  fetchFilteredPullRequests, 
+import {
+  fetchFilteredPullRequests,
   getRepositorySpamStats,
   getUserSpamPreferences,
   saveUserSpamPreferences,
   type SpamFilterOptions,
-  DEFAULT_SPAM_FILTER
+  DEFAULT_SPAM_FILTER,
 } from '@/lib/api/spam-filtered-feed';
 import type { Database } from '@/types/database';
 
@@ -54,15 +54,20 @@ export function useSpamFilteredFeed(
   // Fetch data (only when owner/repo changes, not when filters change)
   const fetchData = useCallback(async () => {
     if (!owner || !repo) return;
-    
+
     setLoading(true);
     setError(null);
 
     try {
       // Fetch all PRs and stats in parallel (don't filter server-side)
       const [prs, stats] = await Promise.all([
-        fetchFilteredPullRequests(owner, repo, { includeUnreviewed: true, maxSpamScore: 100 }, limit * 3),
-        getRepositorySpamStats(owner, repo)
+        fetchFilteredPullRequests(
+          owner,
+          repo,
+          { includeUnreviewed: true, maxSpamScore: 100 },
+          limit * 3
+        ),
+        getRepositorySpamStats(owner, repo),
       ]);
 
       setAllPullRequests(prs);
@@ -83,10 +88,10 @@ export function useSpamFilteredFeed(
 
   // Apply client-side filtering and sorting to the loaded data
   const pullRequests = useMemo(() => {
-    let filtered = allPullRequests.filter(pr => {
+    const filtered = allPullRequests.filter((pr) => {
       // Treat both null and 0 spam scores as unanalyzed
       const isUnanalyzed = pr.spam_score === null || pr.spam_score === 0;
-      
+
       if (isUnanalyzed) {
         return filterOptions.includeUnreviewed !== false;
       }
@@ -96,7 +101,11 @@ export function useSpamFilteredFeed(
       if (filterOptions.minSpamScore !== undefined && spamScore < filterOptions.minSpamScore) {
         return false;
       }
-      if (filterOptions.maxSpamScore !== undefined && filterOptions.maxSpamScore < 100 && spamScore > filterOptions.maxSpamScore) {
+      if (
+        filterOptions.maxSpamScore !== undefined &&
+        filterOptions.maxSpamScore < 100 &&
+        spamScore > filterOptions.maxSpamScore
+      ) {
         return false;
       }
 
@@ -108,18 +117,18 @@ export function useSpamFilteredFeed(
       // Treat both null and 0 as unanalyzed
       const aUnanalyzed = a.spam_score === null || a.spam_score === 0;
       const bUnanalyzed = b.spam_score === null || b.spam_score === 0;
-      
+
       // First, prioritize PRs with analyzed spam scores over unanalyzed ones
       if (aUnanalyzed && !bUnanalyzed) return 1;
       if (!aUnanalyzed && bUnanalyzed) return -1;
-      
+
       // If both have analyzed spam scores, sort by score descending (highest first)
       if (!aUnanalyzed && !bUnanalyzed) {
         if (a.spam_score !== b.spam_score) {
           return b.spam_score! - a.spam_score!; // We know they're not null/0 at this point
         }
       }
-      
+
       // If spam scores are equal (or both unanalyzed), sort by date descending (newest first)
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });

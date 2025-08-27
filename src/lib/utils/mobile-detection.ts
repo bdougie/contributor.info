@@ -35,7 +35,7 @@ export function getIsMobile(breakpoint: number = MOBILE_BREAKPOINT): boolean {
   if (typeof window === 'undefined') {
     return false; // Default to desktop for SSR
   }
-  
+
   return window.innerWidth < breakpoint;
 }
 
@@ -48,7 +48,7 @@ export function getIsMobileUserAgent(): boolean {
   }
 
   const userAgent = navigator.userAgent.toLowerCase();
-  
+
   const mobileRegex = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i;
   return mobileRegex.test(userAgent);
 }
@@ -61,7 +61,7 @@ export function useIsMobileDetailed() {
     isMobile: false,
     isSmallScreen: false,
     isTouch: false,
-    userAgent: ''
+    userAgent: '',
   });
 
   useEffect(() => {
@@ -74,7 +74,7 @@ export function useIsMobileDetailed() {
         isMobile: isSmallScreen || isMobileUA,
         isSmallScreen,
         isTouch,
-        userAgent: navigator.userAgent
+        userAgent: navigator.userAgent,
       });
     };
 
@@ -98,7 +98,7 @@ export function useViewportSize() {
     height: 0,
     isMobile: false,
     isTablet: false,
-    isDesktop: false
+    isDesktop: false,
   });
 
   useEffect(() => {
@@ -116,7 +116,7 @@ export function useViewportSize() {
           height,
           isMobile: width < 768,
           isTablet: width >= 768 && width < 1024,
-          isDesktop: width >= 1024
+          isDesktop: width >= 1024,
         });
       }, 100);
     };
@@ -140,26 +140,28 @@ export function useNetworkAwareDetection() {
   const [networkInfo, setNetworkInfo] = useState({
     isSlowConnection: false,
     effectiveType: '4g',
-    downlink: 10
+    downlink: 10,
   });
 
   const isMobile = useIsMobile();
 
   useEffect(() => {
     const updateNetworkInfo = () => {
-      const connection = (navigator as any).connection || 
-                        (navigator as any).mozConnection || 
-                        (navigator as any).webkitConnection;
+      const connection =
+        (navigator as any).connection ||
+        (navigator as any).mozConnection ||
+        (navigator as any).webkitConnection;
 
       if (connection) {
-        const isSlowConnection = connection.effectiveType === 'slow-2g' || 
-                                connection.effectiveType === '2g' ||
-                                connection.downlink < 1.5;
+        const isSlowConnection =
+          connection.effectiveType === 'slow-2g' ||
+          connection.effectiveType === '2g' ||
+          connection.downlink < 1.5;
 
         setNetworkInfo({
           isSlowConnection,
           effectiveType: connection.effectiveType || '4g',
-          downlink: connection.downlink || 10
+          downlink: connection.downlink || 10,
         });
       }
     };
@@ -179,6 +181,6 @@ export function useNetworkAwareDetection() {
   return {
     isMobile,
     ...networkInfo,
-    shouldUseSimplifiedUI: isMobile || networkInfo.isSlowConnection
+    shouldUseSimplifiedUI: isMobile || networkInfo.isSlowConnection,
   };
 }

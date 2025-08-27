@@ -1,18 +1,18 @@
-import { useState } from "react"
+import { useState } from 'react';
 import { Copy, Code, Eye } from '@/components/ui/icon';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "sonner";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { toast } from 'sonner';
 
-import { StatCard } from "./stat-card";
-import { BadgeGenerator, generateBadgeMarkdown } from "./badge-generator";
-import { CitationGenerator } from "./citation-generator";
-import type { StatCardConfig, BadgeConfig, WidgetData } from "./widget-types";
+import { StatCard } from './stat-card';
+import { BadgeGenerator, generateBadgeMarkdown } from './badge-generator';
+import { CitationGenerator } from './citation-generator';
+import type { StatCardConfig, BadgeConfig, WidgetData } from './widget-types';
 
 interface WidgetGalleryProps {
   owner?: string;
@@ -23,11 +23,11 @@ interface WidgetGalleryProps {
 // Mock data for preview when no data is provided
 const MOCK_DATA: WidgetData = {
   repository: {
-    owner: "facebook",
-    repo: "react", 
-    description: "The library for web and native user interfaces",
+    owner: 'facebook',
+    repo: 'react',
+    description: 'The library for web and native user interfaces',
     stars: 233000,
-    language: "JavaScript",
+    language: 'JavaScript',
   },
   stats: {
     totalContributors: 1247,
@@ -35,7 +35,7 @@ const MOCK_DATA: WidgetData = {
     mergedPRs: 7456,
     mergeRate: 83.5,
     lotteryFactor: 3.2,
-    lotteryRating: "Good",
+    lotteryRating: 'Good',
   },
   activity: {
     weeklyPRVolume: 67,
@@ -43,17 +43,35 @@ const MOCK_DATA: WidgetData = {
     recentActivity: true,
   },
   topContributors: [
-    { login: "gaearon", avatar_url: "https://avatars.githubusercontent.com/u/810438?v=4", contributions: 1234 },
-    { login: "sebmarkbage", avatar_url: "https://avatars.githubusercontent.com/u/63648?v=4", contributions: 567 },
-    { login: "acdlite", avatar_url: "https://avatars.githubusercontent.com/u/3624098?v=4", contributions: 456 },
+    {
+      login: 'gaearon',
+      avatar_url: 'https://avatars.githubusercontent.com/u/810438?v=4',
+      contributions: 1234,
+    },
+    {
+      login: 'sebmarkbage',
+      avatar_url: 'https://avatars.githubusercontent.com/u/63648?v=4',
+      contributions: 567,
+    },
+    {
+      login: 'acdlite',
+      avatar_url: 'https://avatars.githubusercontent.com/u/3624098?v=4',
+      contributions: 456,
+    },
   ],
 };
 
-export function WidgetGallery({ owner = "facebook", repo = "react", data = MOCK_DATA }: WidgetGalleryProps) {
-  const [selectedWidget, setSelectedWidget] = useState<'stat-card' | 'badge' | 'citation'>('stat-card');
+export function WidgetGallery({
+  owner = 'facebook',
+  repo = 'react',
+  data = MOCK_DATA,
+}: WidgetGalleryProps) {
+  const [selectedWidget, setSelectedWidget] = useState<'stat-card' | 'badge' | 'citation'>(
+    'stat-card'
+  );
   const [customOwner, setCustomOwner] = useState(owner);
   const [customRepo, setCustomRepo] = useState(repo);
-  
+
   // Widget configurations
   const [statCardConfig, setStatCardConfig] = useState<StatCardConfig>({
     type: 'stat-card',
@@ -68,7 +86,7 @@ export function WidgetGallery({ owner = "facebook", repo = "react", data = MOCK_
 
   const [badgeConfig, setBadgeConfig] = useState<BadgeConfig>({
     type: 'badge',
-    owner: customOwner, 
+    owner: customOwner,
     repo: customRepo,
     style: 'flat',
     format: 'svg',
@@ -79,14 +97,15 @@ export function WidgetGallery({ owner = "facebook", repo = "react", data = MOCK_
       await navigator.clipboard.writeText(text);
       toast.success(`${type} copied to clipboard`);
     } catch (error) {
-      toast.error("Failed to copy to clipboard");
+      toast.error('Failed to copy to clipboard');
     }
   };
 
   // Generate embedding code
   const generateEmbedCode = () => {
-    const baseURL = typeof window !== 'undefined' ? window.location.origin : 'https://contributor.info';
-    
+    const baseURL =
+      typeof window !== 'undefined' ? window.location.origin : 'https://contributor.info';
+
     switch (selectedWidget) {
       case 'stat-card':
         const params = new URLSearchParams({
@@ -96,13 +115,13 @@ export function WidgetGallery({ owner = "facebook", repo = "react", data = MOCK_
           size: statCardConfig.size || 'medium',
           metrics: statCardConfig.metrics?.join(',') || 'contributors,pull-requests',
         });
-        
+
         return {
           html: `<iframe src="${baseURL}/api/widgets/stat-card?${params}" width="400" height="200" frameborder="0"></iframe>`,
           markdown: `[![${customOwner}/${customRepo} Stats](${baseURL}/api/widgets/stat-card?${params})](https://contributor.info/${customOwner}/${customRepo})`,
           url: `${baseURL}/api/widgets/stat-card?${params}`,
         };
-        
+
       case 'badge':
         const badgeMarkdown = generateBadgeMarkdown(badgeConfig, data);
         const badgeParams = new URLSearchParams({
@@ -111,13 +130,13 @@ export function WidgetGallery({ owner = "facebook", repo = "react", data = MOCK_
           type: 'contributors',
           style: badgeConfig.style || 'flat',
         });
-        
+
         return {
           html: `<img src="${baseURL}/api/widgets/badge?${badgeParams}" alt="${customOwner}/${customRepo} contributors" />`,
           markdown: badgeMarkdown,
           url: `${baseURL}/api/widgets/badge?${badgeParams}`,
         };
-        
+
       default:
         return {
           html: `<iframe src="${baseURL}/${customOwner}/${customRepo}" width="100%" height="600" frameborder="0"></iframe>`,
@@ -148,8 +167,8 @@ export function WidgetGallery({ owner = "facebook", repo = "react", data = MOCK_
                 value={customOwner}
                 onChange={(e) => {
                   setCustomOwner(e.target.value);
-                  setStatCardConfig(prev => ({ ...prev, owner: e.target.value }));
-                  setBadgeConfig(prev => ({ ...prev, owner: e.target.value }));
+                  setStatCardConfig((prev) => ({ ...prev, owner: e.target.value }));
+                  setBadgeConfig((prev) => ({ ...prev, owner: e.target.value }));
                 }}
                 placeholder="facebook"
               />
@@ -161,8 +180,8 @@ export function WidgetGallery({ owner = "facebook", repo = "react", data = MOCK_
                 value={customRepo}
                 onChange={(e) => {
                   setCustomRepo(e.target.value);
-                  setStatCardConfig(prev => ({ ...prev, repo: e.target.value }));
-                  setBadgeConfig(prev => ({ ...prev, repo: e.target.value }));
+                  setStatCardConfig((prev) => ({ ...prev, repo: e.target.value }));
+                  setBadgeConfig((prev) => ({ ...prev, repo: e.target.value }));
                 }}
                 placeholder="react"
               />
@@ -176,7 +195,7 @@ export function WidgetGallery({ owner = "facebook", repo = "react", data = MOCK_
         {(['stat-card', 'badge', 'citation'] as const).map((type) => (
           <Badge
             key={type}
-            variant={selectedWidget === type ? "default" : "outline"}
+            variant={selectedWidget === type ? 'default' : 'outline'}
             className="cursor-pointer capitalize"
             onClick={() => setSelectedWidget(type)}
           >
@@ -195,22 +214,27 @@ export function WidgetGallery({ owner = "facebook", repo = "react", data = MOCK_
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {selectedWidget === 'stat-card' && (
-              <StatCard config={statCardConfig} data={data} />
-            )}
+            {selectedWidget === 'stat-card' && <StatCard config={statCardConfig} data={data} />}
             {selectedWidget === 'badge' && (
               <div className="space-y-4">
                 <BadgeGenerator config={badgeConfig} data={data} />
                 <div className="flex flex-wrap gap-2">
-                  <BadgeGenerator config={{ ...badgeConfig, metrics: ['contributors'] }} data={data} />
-                  <BadgeGenerator config={{ ...badgeConfig, metrics: ['pull-requests'] }} data={data} />
-                  <BadgeGenerator config={{ ...badgeConfig, metrics: ['merge-rate'] }} data={data} />
+                  <BadgeGenerator
+                    config={{ ...badgeConfig, metrics: ['contributors'] }}
+                    data={data}
+                  />
+                  <BadgeGenerator
+                    config={{ ...badgeConfig, metrics: ['pull-requests'] }}
+                    data={data}
+                  />
+                  <BadgeGenerator
+                    config={{ ...badgeConfig, metrics: ['merge-rate'] }}
+                    data={data}
+                  />
                 </div>
               </div>
             )}
-            {selectedWidget === 'citation' && (
-              <CitationGenerator data={data} />
-            )}
+            {selectedWidget === 'citation' && <CitationGenerator data={data} />}
           </CardContent>
         </Card>
 
@@ -229,7 +253,7 @@ export function WidgetGallery({ owner = "facebook", repo = "react", data = MOCK_
                 <TabsTrigger value="markdown">Markdown</TabsTrigger>
                 <TabsTrigger value="url">URL</TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="html" className="space-y-2">
                 <Textarea
                   value={embedCode.html}
@@ -247,7 +271,7 @@ export function WidgetGallery({ owner = "facebook", repo = "react", data = MOCK_
                   Copy HTML
                 </Button>
               </TabsContent>
-              
+
               <TabsContent value="markdown" className="space-y-2">
                 <Textarea
                   value={embedCode.markdown}
@@ -265,7 +289,7 @@ export function WidgetGallery({ owner = "facebook", repo = "react", data = MOCK_
                   Copy Markdown
                 </Button>
               </TabsContent>
-              
+
               <TabsContent value="url" className="space-y-2">
                 <Textarea
                   value={embedCode.url}
@@ -296,9 +320,9 @@ export function WidgetGallery({ owner = "facebook", repo = "react", data = MOCK_
                       {(['light', 'dark'] as const).map((theme) => (
                         <Badge
                           key={theme}
-                          variant={statCardConfig.theme === theme ? "default" : "outline"}
+                          variant={statCardConfig.theme === theme ? 'default' : 'outline'}
                           className="cursor-pointer text-xs px-2 py-0"
-                          onClick={() => setStatCardConfig(prev => ({ ...prev, theme }))}
+                          onClick={() => setStatCardConfig((prev) => ({ ...prev, theme }))}
                         >
                           {theme}
                         </Badge>
@@ -311,9 +335,9 @@ export function WidgetGallery({ owner = "facebook", repo = "react", data = MOCK_
                       {(['small', 'medium', 'large'] as const).map((size) => (
                         <Badge
                           key={size}
-                          variant={statCardConfig.size === size ? "default" : "outline"}
+                          variant={statCardConfig.size === size ? 'default' : 'outline'}
                           className="cursor-pointer text-xs px-2 py-0"
-                          onClick={() => setStatCardConfig(prev => ({ ...prev, size }))}
+                          onClick={() => setStatCardConfig((prev) => ({ ...prev, size }))}
                         >
                           {size}
                         </Badge>
@@ -331,9 +355,9 @@ export function WidgetGallery({ owner = "facebook", repo = "react", data = MOCK_
                   {(['flat', 'flat-square', 'plastic', 'social'] as const).map((style) => (
                     <Badge
                       key={style}
-                      variant={badgeConfig.style === style ? "default" : "outline"}
+                      variant={badgeConfig.style === style ? 'default' : 'outline'}
                       className="cursor-pointer text-xs px-2 py-0"
-                      onClick={() => setBadgeConfig(prev => ({ ...prev, style }))}
+                      onClick={() => setBadgeConfig((prev) => ({ ...prev, style }))}
                     >
                       {style}
                     </Badge>
@@ -355,7 +379,8 @@ export function WidgetGallery({ owner = "facebook", repo = "react", data = MOCK_
             <div>
               <h4 className="font-medium mb-2">GitHub README</h4>
               <p className="text-muted-foreground">
-                Add widgets to your repository's README.md file to showcase contributor activity and project health.
+                Add widgets to your repository's README.md file to showcase contributor activity and
+                project health.
               </p>
             </div>
             <div>
@@ -367,13 +392,15 @@ export function WidgetGallery({ owner = "facebook", repo = "react", data = MOCK_
             <div>
               <h4 className="font-medium mb-2">Academic Citations</h4>
               <p className="text-muted-foreground">
-                Generate proper citations for academic papers and research that references your project's contributor data.
+                Generate proper citations for academic papers and research that references your
+                project's contributor data.
               </p>
             </div>
             <div>
               <h4 className="font-medium mb-2">Social Media</h4>
               <p className="text-muted-foreground">
-                Share visual representations of your project's health and activity on social platforms.
+                Share visual representations of your project's health and activity on social
+                platforms.
               </p>
             </div>
           </div>

@@ -40,16 +40,16 @@ export const BarChart: React.FC<BarChartProps> = ({
   const { chartData, chartOptions } = useMemo(() => {
     const theme = getChartTheme(isDark);
     const seriesColors = getSeriesColors(data.datasets.length, isDark);
-    
+
     // Convert data to uPlot format [x-axis, series1, series2, ...]
     const chartData: AlignedData = [
       data.labels.map((_, i) => i), // x-axis as numeric indices for bars
-      ...data.datasets.map(dataset => dataset.data), // y-axis series
+      ...data.datasets.map((dataset) => dataset.data), // y-axis series
     ];
 
     // Calculate bar positioning for grouped bars
     const numSeries = data.datasets.length;
-    
+
     // Handle empty datasets gracefully - avoid division by zero
     const seriesBarWidth = numSeries > 0 && grouped ? barWidth / numSeries : barWidth;
     const groupOffset = numSeries > 0 && grouped ? (barWidth - seriesBarWidth) / 2 : 0;
@@ -62,12 +62,12 @@ export const BarChart: React.FC<BarChartProps> = ({
       },
       ...data.datasets.map((dataset, index) => {
         const color = dataset.color || seriesColors[index];
-        
+
         // Calculate bar offset for grouped bars
-        const seriesOffset = grouped 
-          ? -groupOffset + (index * seriesBarWidth) + (seriesBarWidth / 2) - (barWidth / 2)
+        const seriesOffset = grouped
+          ? -groupOffset + index * seriesBarWidth + seriesBarWidth / 2 - barWidth / 2
           : 0;
-        
+
         return {
           label: dataset.label,
           stroke: color,
@@ -80,18 +80,18 @@ export const BarChart: React.FC<BarChartProps> = ({
             const fill = new Path2D();
             const data = u.data[seriesIdx] as number[];
             const zeroY = u.valToPos(0, 'y', true);
-            
+
             for (let i = idx0; i <= idx1; i++) {
               if (data[i] != null && data[i] !== 0) {
                 const xVal = u.data[0][i] as number;
                 const yVal = data[i];
-                
+
                 // Calculate bar bounds
                 const barLeft = u.valToPos(xVal - seriesBarWidth / 2 + seriesOffset, 'x', true);
                 const barRight = u.valToPos(xVal + seriesBarWidth / 2 + seriesOffset, 'x', true);
                 const barTop = u.valToPos(yVal, 'y', true);
                 const barBottom = zeroY;
-                
+
                 // Create rectangle
                 fill.rect(
                   barLeft,
@@ -101,7 +101,7 @@ export const BarChart: React.FC<BarChartProps> = ({
                 );
               }
             }
-            
+
             return { fill };
           },
         };
@@ -112,10 +112,7 @@ export const BarChart: React.FC<BarChartProps> = ({
       scales: {
         x: {
           time: false,
-          range: [
-            -0.5, 
-            data.labels.length - 0.5
-          ],
+          range: [-0.5, data.labels.length - 0.5],
         },
         y: {
           auto: true,
@@ -133,16 +130,14 @@ export const BarChart: React.FC<BarChartProps> = ({
           },
           values: (_u: any, vals: number[]) => {
             // Map numeric indices back to original labels
-            return vals.map(v => {
+            return vals.map((v) => {
               const index = Math.round(v);
-              return index >= 0 && index < data.labels.length 
-                ? String(data.labels[index]) 
-                : '';
+              return index >= 0 && index < data.labels.length ? String(data.labels[index]) : '';
             });
           },
         },
         {
-          // y-axis  
+          // y-axis
           label: yAxisLabel,
           stroke: theme.axis,
           grid: showGrid ? { show: true, stroke: theme.grid, width: 1 } : { show: false },
@@ -170,11 +165,5 @@ export const BarChart: React.FC<BarChartProps> = ({
     return { chartData, chartOptions };
   }, [data, isDark, showGrid, showLegend, xAxisLabel, yAxisLabel, grouped, barWidth]);
 
-  return (
-    <UPlotChart
-      data={chartData}
-      options={chartOptions}
-      {...uplotProps}
-    />
-  );
+  return <UPlotChart data={chartData} options={chartOptions} {...uplotProps} />;
 };

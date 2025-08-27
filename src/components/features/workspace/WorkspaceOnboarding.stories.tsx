@@ -11,7 +11,8 @@ const meta = {
     layout: 'centered',
     docs: {
       description: {
-        component: 'Onboarding component that encourages users to create their first workspace. Shows the value proposition and benefits of using workspaces.',
+        component:
+          'Onboarding component that encourages users to create their first workspace. Shows the value proposition and benefits of using workspaces.',
       },
     },
   },
@@ -73,14 +74,13 @@ export const Interactive: Story = {
 // Compact version story
 export const Compact: Story = {
   render: () => (
-    <WorkspaceOnboardingCompact 
-      onCreateClick={() => console.log('Create workspace clicked')} 
-    />
+    <WorkspaceOnboardingCompact onCreateClick={() => console.log('Create workspace clicked')} />
   ),
   parameters: {
     docs: {
       description: {
-        story: 'Compact version for users who already have workspaces but might want to create another',
+        story:
+          'Compact version for users who already have workspaces but might want to create another',
       },
     },
   },

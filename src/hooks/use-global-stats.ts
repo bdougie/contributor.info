@@ -26,7 +26,7 @@ export function useGlobalStats(): GlobalStats {
     totalContributors: 0,
     totalPullRequests: 0,
     isLoading: true,
-    error: null
+    error: null,
   });
 
   useEffect(() => {
@@ -37,7 +37,7 @@ export function useGlobalStats(): GlobalStats {
         if (cachedData) {
           const parsed: CachedGlobalStats = JSON.parse(cachedData);
           const now = Date.now();
-          
+
           // If cache is still valid (less than 24 hours old), use it
           if (now - parsed.timestamp < CACHE_DURATION) {
             setStats({
@@ -45,7 +45,7 @@ export function useGlobalStats(): GlobalStats {
               totalContributors: parsed.totalContributors,
               totalPullRequests: parsed.totalPullRequests,
               isLoading: false,
-              error: null
+              error: null,
             });
             return;
           }
@@ -79,7 +79,7 @@ export function useGlobalStats(): GlobalStats {
           totalContributors: contributorCount || 0,
           totalPullRequests: prCount || 0,
           isLoading: false,
-          error: null
+          error: null,
         };
 
         // Update state
@@ -88,15 +88,15 @@ export function useGlobalStats(): GlobalStats {
         // Cache the data with timestamp
         const cacheData: CachedGlobalStats = {
           ...newStats,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         };
         localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
       } catch (error) {
         console.error('Error fetching global stats:', error);
-        setStats(prev => ({
+        setStats((prev) => ({
           ...prev,
           isLoading: false,
-          error: error as Error
+          error: error as Error,
         }));
       }
     }

@@ -1,77 +1,84 @@
-import { useEffect, useState } from 'react'
-import { Users, UserCheck, TrendingUp, TrendingDown, RefreshCw, Database, LogIn } from '@/components/ui/icon';
-import { supabase } from '@/lib/supabase'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Button } from '@/components/ui/button'
+import { useEffect, useState } from 'react';
+import {
+  Users,
+  UserCheck,
+  TrendingUp,
+  TrendingDown,
+  RefreshCw,
+  Database,
+  LogIn,
+} from '@/components/ui/icon';
+import { supabase } from '@/lib/supabase';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
 
-import { useOnDemandSync } from '@/hooks/use-on-demand-sync'
-import { useGitHubAuth } from '@/hooks/use-github-auth'
-import { ShareableCard } from '@/components/features/sharing/shareable-card'
+import { useOnDemandSync } from '@/hooks/use-on-demand-sync';
+import { useGitHubAuth } from '@/hooks/use-github-auth';
+import { ShareableCard } from '@/components/features/sharing/shareable-card';
 
 interface SelfSelectionStats {
-  external_contribution_rate: number
-  internal_contribution_rate: number
-  external_contributors: number
-  internal_contributors: number
-  total_contributors: number
-  external_prs: number
-  internal_prs: number
-  total_prs: number
-  analysis_period_days: number
+  external_contribution_rate: number;
+  internal_contribution_rate: number;
+  external_contributors: number;
+  internal_contributors: number;
+  total_contributors: number;
+  external_prs: number;
+  internal_prs: number;
+  total_prs: number;
+  analysis_period_days: number;
 }
 
 interface SelfSelectionRateProps {
-  owner: string
-  repo: string
-  daysBack?: number
-  className?: string
+  owner: string;
+  repo: string;
+  daysBack?: number;
+  className?: string;
 }
 
-export function SelfSelectionRate({ 
-  owner, 
-  repo, 
+export function SelfSelectionRate({
+  owner,
+  repo,
   daysBack = 30,
-  className 
+  className,
 }: SelfSelectionRateProps) {
-  const [stats, setStats] = useState<SelfSelectionStats | null>(null)
-  const [previousStats, setPreviousStats] = useState<SelfSelectionStats | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [stats, setStats] = useState<SelfSelectionStats | null>(null);
+  const [previousStats, setPreviousStats] = useState<SelfSelectionStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Authentication hook
-  const { isLoggedIn, login } = useGitHubAuth()
+  const { isLoggedIn, login } = useGitHubAuth();
 
   // On-demand sync hook
   const { hasData, syncStatus, triggerSync } = useOnDemandSync({
     owner,
     repo,
     enabled: true,
-    autoTriggerOnEmpty: true
-  })
+    autoTriggerOnEmpty: true,
+  });
 
   const fetchStats = async () => {
     try {
-      setLoading(true)
-      setError(null)
+      setLoading(true);
+      setError(null);
 
       // Fetch current period stats
       const { data: currentData, error: currentError } = await supabase
         .rpc('calculate_self_selection_rate', {
           p_repository_owner: owner,
           p_repository_name: repo,
-          p_days_back: daysBack
+          p_days_back: daysBack,
         })
-        .single()
+        .single();
 
-      if (currentError) throw currentError
+      if (currentError) throw currentError;
 
       // Check if we got meaningful data
-      const hasRealData = currentData && (
-        (currentData as any).total_contributors > 0 || 
-        (currentData as any).total_prs > 0
-      )
+      const hasRealData =
+        currentData &&
+        ((currentData as any).total_contributors > 0 || (currentData as any).total_prs > 0);
 
       if (hasRealData) {
         // Fetch previous period stats for comparison
@@ -79,34 +86,34 @@ export function SelfSelectionRate({
           .rpc('calculate_self_selection_rate', {
             p_repository_owner: owner,
             p_repository_name: repo,
-            p_days_back: daysBack * 2
+            p_days_back: daysBack * 2,
           })
-          .single()
+          .single();
 
-        setStats(currentData as SelfSelectionStats)
-        setPreviousStats(previousData as SelfSelectionStats)
+        setStats(currentData as SelfSelectionStats);
+        setPreviousStats(previousData as SelfSelectionStats);
       } else {
-        setStats(null)
-        setPreviousStats(null)
+        setStats(null);
+        setPreviousStats(null);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch statistics')
-      console.error('Error fetching self-selection stats:', err)
+      setError(err instanceof Error ? err.message : 'Failed to fetch statistics');
+      console.error('Error fetching self-selection stats:', err);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    fetchStats()
-  }, [owner, repo, daysBack])
+    fetchStats();
+  }, [owner, repo, daysBack]);
 
   // Refetch when sync completes
   useEffect(() => {
     if (syncStatus.isComplete && !syncStatus.error) {
-      fetchStats()
+      fetchStats();
     }
-  }, [syncStatus.isComplete, syncStatus.error])
+  }, [syncStatus.isComplete, syncStatus.error]);
 
   // Show sync progress if data is being collected
   if (syncStatus.isTriggering || syncStatus.isInProgress) {
@@ -120,10 +127,9 @@ export function SelfSelectionRate({
             <RefreshCw className="h-4 w-4 animate-spin" />
           </CardTitle>
           <CardDescription>
-            {syncStatus.isTriggering 
+            {syncStatus.isTriggering
               ? 'Starting data collection from GitHub...'
-              : 'Analyzing repository events and contributor roles...'
-            }
+              : 'Analyzing repository events and contributor roles...'}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -147,7 +153,7 @@ export function SelfSelectionRate({
           </div>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   // Show loading skeleton during normal loading
@@ -163,7 +169,7 @@ export function SelfSelectionRate({
           <Skeleton className="h-20 w-full" />
         </CardContent>
       </Card>
-    )
+    );
   }
 
   // Show no data state with option to manually trigger sync
@@ -176,10 +182,9 @@ export function SelfSelectionRate({
             <span className="sm:hidden">Self-Selection</span>
           </CardTitle>
           <CardDescription>
-            {error || hasData === false 
+            {error || hasData === false
               ? 'No contributor data available for this repository'
-              : 'Unable to calculate statistics'
-            }
+              : 'Unable to calculate statistics'}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -188,9 +193,7 @@ export function SelfSelectionRate({
             <p className="text-sm text-muted-foreground mt-1">
               Not enough pull request data available
             </p>
-            {error && (
-              <p className="text-xs text-red-500 mt-2">{error}</p>
-            )}
+            {error && <p className="text-xs text-red-500 mt-2">{error}</p>}
           </div>
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
@@ -203,7 +206,7 @@ export function SelfSelectionRate({
               <span>0 PRs</span>
             </div>
           </div>
-          
+
           {/* Authentication and sync trigger */}
           {hasData === false && !syncStatus.error && (
             <div className="flex flex-col items-center gap-2 pt-4 border-t">
@@ -212,9 +215,9 @@ export function SelfSelectionRate({
                   <p className="text-sm text-muted-foreground text-center">
                     Log in with GitHub to analyze this repository's contributor data.
                   </p>
-                  <Button 
+                  <Button
                     onClick={login}
-                    variant="outline" 
+                    variant="outline"
                     size="sm"
                     className="flex items-center gap-2"
                   >
@@ -227,9 +230,9 @@ export function SelfSelectionRate({
                   <p className="text-sm text-muted-foreground text-center">
                     This repository hasn't been analyzed yet.
                   </p>
-                  <Button 
+                  <Button
                     onClick={triggerSync}
-                    variant="outline" 
+                    variant="outline"
                     size="sm"
                     disabled={syncStatus.isTriggering || syncStatus.isInProgress}
                     className="flex items-center gap-2"
@@ -241,16 +244,14 @@ export function SelfSelectionRate({
               )}
             </div>
           )}
-          
+
           {/* Sync error state */}
           {syncStatus.error && (
             <div className="flex flex-col items-center gap-2 pt-4 border-t">
-              <p className="text-sm text-red-500 text-center">
-                {syncStatus.error}
-              </p>
-              <Button 
+              <p className="text-sm text-red-500 text-center">{syncStatus.error}</p>
+              <Button
                 onClick={triggerSync}
-                variant="outline" 
+                variant="outline"
                 size="sm"
                 className="flex items-center gap-2"
               >
@@ -261,21 +262,24 @@ export function SelfSelectionRate({
           )}
         </CardContent>
       </Card>
-    )
+    );
   }
 
   // Calculate trend
-  const trend = previousStats && stats.external_contribution_rate !== null && previousStats.external_contribution_rate !== null
-    ? stats.external_contribution_rate - 
-      (previousStats.external_contribution_rate - stats.external_contribution_rate)
-    : null
+  const trend =
+    previousStats &&
+    stats.external_contribution_rate !== null &&
+    previousStats.external_contribution_rate !== null
+      ? stats.external_contribution_rate -
+        (previousStats.external_contribution_rate - stats.external_contribution_rate)
+      : null;
 
   return (
     <ShareableCard
       title="Self-Selection Rate"
       contextInfo={{
         repository: `${owner}/${repo}`,
-        metric: "self-selection rate"
+        metric: 'self-selection rate',
       }}
       chartType="self-selection"
     >
@@ -313,7 +317,9 @@ export function SelfSelectionRate({
                 className="h-8 w-8 p-0"
                 title="Refresh data"
               >
-                <RefreshCw className={`h-4 w-4 ${(syncStatus.isTriggering || syncStatus.isInProgress) ? 'animate-spin' : ''}`} />
+                <RefreshCw
+                  className={`h-4 w-4 ${syncStatus.isTriggering || syncStatus.isInProgress ? 'animate-spin' : ''}`}
+                />
               </Button>
             </div>
           </CardTitle>
@@ -325,13 +331,14 @@ export function SelfSelectionRate({
           {/* Main metric */}
           <div className="text-center">
             <div className="text-4xl font-bold">
-              {stats.external_contribution_rate !== null ? `${stats.external_contribution_rate.toFixed(1)}%` : 'N/A'}
+              {stats.external_contribution_rate !== null
+                ? `${stats.external_contribution_rate.toFixed(1)}%`
+                : 'N/A'}
             </div>
             <p className="text-sm text-muted-foreground mt-1">
-              {stats.external_contribution_rate !== null 
+              {stats.external_contribution_rate !== null
                 ? 'of contributions from external contributors'
-                : 'Not enough pull request data available'
-              }
+                : 'Not enough pull request data available'}
             </p>
           </div>
 
@@ -341,10 +348,7 @@ export function SelfSelectionRate({
               <span>External</span>
               <span>Internal</span>
             </div>
-            <Progress 
-              value={stats.external_contribution_rate || 0} 
-              className="h-3"
-            />
+            <Progress value={stats.external_contribution_rate || 0} className="h-3" />
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>{stats.external_prs || 0} PRs</span>
               <span>{stats.internal_prs || 0} PRs</span>
@@ -358,25 +362,17 @@ export function SelfSelectionRate({
                 <Users className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm font-medium">External</span>
               </div>
-              <div className="text-2xl font-semibold">
-                {stats.external_contributors || 0}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                contributors
-              </p>
+              <div className="text-2xl font-semibold">{stats.external_contributors || 0}</div>
+              <p className="text-xs text-muted-foreground">contributors</p>
             </div>
-            
+
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <UserCheck className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm font-medium">Internal</span>
               </div>
-              <div className="text-2xl font-semibold">
-                {stats.internal_contributors || 0}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                maintainers/owners
-              </p>
+              <div className="text-2xl font-semibold">{stats.internal_contributors || 0}</div>
+              <p className="text-xs text-muted-foreground">maintainers/owners</p>
             </div>
           </div>
 
@@ -394,38 +390,38 @@ export function SelfSelectionRate({
         </CardContent>
       </Card>
     </ShareableCard>
-  )
+  );
 }
 
 // Hook for accessing self-selection stats
 export function useSelfSelectionRate(owner: string, repo: string, daysBack: number = 30) {
-  const [stats, setStats] = useState<SelfSelectionStats | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [stats, setStats] = useState<SelfSelectionStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        setLoading(true)
+        setLoading(true);
         const { data, error: err } = await supabase
           .rpc('calculate_self_selection_rate', {
             p_repository_owner: owner,
             p_repository_name: repo,
-            p_days_back: daysBack
+            p_days_back: daysBack,
           })
-          .single()
+          .single();
 
-        if (err) throw err
-        setStats(data as SelfSelectionStats)
+        if (err) throw err;
+        setStats(data as SelfSelectionStats);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch statistics')
+        setError(err instanceof Error ? err.message : 'Failed to fetch statistics');
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    fetchStats()
-  }, [owner, repo, daysBack])
+    fetchStats();
+  }, [owner, repo, daysBack]);
 
-  return { stats, loading, error }
+  return { stats, loading, error };
 }

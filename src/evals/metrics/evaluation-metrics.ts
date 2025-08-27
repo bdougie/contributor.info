@@ -9,46 +9,54 @@ export class EvaluationMetricsCalculator {
   private readonly roleLabels: ('maintainer' | 'contributor')[] = ['maintainer', 'contributor'];
 
   calculateMetrics(results: EvaluationResult[]): EvaluationMetrics {
-    const validResults = results.filter(r => !r.error);
-    
+    const validResults = results.filter((r) => !r.error);
+
     return {
       overall_accuracy: this.calculateOverallAccuracy(validResults),
       per_class_metrics: this.calculatePerClassMetrics(validResults),
       confusion_matrix: this.calculateConfusionMatrix(validResults),
       confidence_calibration: this.calculateConfidenceCalibration(validResults),
-      execution_stats: this.calculateExecutionStats(results)
+      execution_stats: this.calculateExecutionStats(results),
     };
   }
 
   private calculateOverallAccuracy(results: EvaluationResult[]): number {
     if (results.length === 0) return 0;
-    
-    const correct = results.filter(r => r.correct).length;
+
+    const correct = results.filter((r) => r.correct).length;
     return correct / results.length;
   }
 
   private calculatePerClassMetrics(results: EvaluationResult[]) {
     const metrics: EvaluationMetrics['per_class_metrics'] = {
       maintainer: { precision: 0, recall: 0, f1_score: 0, support: 0 },
-      contributor: { precision: 0, recall: 0, f1_score: 0, support: 0 }
+      contributor: { precision: 0, recall: 0, f1_score: 0, support: 0 },
     };
 
-    this.roleLabels.forEach(role => {
-      const truePositives = results.filter(r => r.prediction === role && r.expected === role).length;
-      const falsePositives = results.filter(r => r.prediction === role && r.expected !== role).length;
-      const falseNegatives = results.filter(r => r.prediction !== role && r.expected === role).length;
-      const support = results.filter(r => r.expected === role).length;
+    this.roleLabels.forEach((role) => {
+      const truePositives = results.filter(
+        (r) => r.prediction === role && r.expected === role
+      ).length;
+      const falsePositives = results.filter(
+        (r) => r.prediction === role && r.expected !== role
+      ).length;
+      const falseNegatives = results.filter(
+        (r) => r.prediction !== role && r.expected === role
+      ).length;
+      const support = results.filter((r) => r.expected === role).length;
 
-
-      const precision = truePositives + falsePositives > 0 ? truePositives / (truePositives + falsePositives) : 0;
-      const recall = truePositives + falseNegatives > 0 ? truePositives / (truePositives + falseNegatives) : 0;
-      const f1Score = precision + recall > 0 ? 2 * (precision * recall) / (precision + recall) : 0;
+      const precision =
+        truePositives + falsePositives > 0 ? truePositives / (truePositives + falsePositives) : 0;
+      const recall =
+        truePositives + falseNegatives > 0 ? truePositives / (truePositives + falseNegatives) : 0;
+      const f1Score =
+        precision + recall > 0 ? (2 * (precision * recall)) / (precision + recall) : 0;
 
       metrics[role] = {
         precision,
         recall,
         f1_score: f1Score,
-        support
+        support,
       };
     });
 
@@ -56,10 +64,12 @@ export class EvaluationMetricsCalculator {
   }
 
   private calculateConfusionMatrix(results: EvaluationResult[]): number[][] {
-    const matrix: number[][] = Array(2).fill(null).map(() => Array(2).fill(0));
+    const matrix: number[][] = Array(2)
+      .fill(null)
+      .map(() => Array(2).fill(0));
     const labelToIndex = { maintainer: 0, contributor: 1 };
 
-    results.forEach(result => {
+    results.forEach((result) => {
       const actualIndex = labelToIndex[result.expected];
       const predictedIndex = labelToIndex[result.prediction];
       matrix[actualIndex][predictedIndex]++;
@@ -75,11 +85,11 @@ export class EvaluationMetricsCalculator {
     let totalActualAccuracy = 0;
     let totalWeight = 0;
 
-    bins.forEach(bin => {
+    bins.forEach((bin) => {
       if (bin.results.length > 0) {
-        const binAccuracy = bin.results.filter(r => r.correct).length / bin.results.length;
+        const binAccuracy = bin.results.filter((r) => r.correct).length / bin.results.length;
         const weight = bin.results.length;
-        
+
         totalExpectedAccuracy += bin.avgConfidence * weight;
         totalActualAccuracy += binAccuracy * weight;
         totalWeight += weight;
@@ -92,7 +102,7 @@ export class EvaluationMetricsCalculator {
     return {
       expected_accuracy: expectedAccuracy,
       actual_accuracy: actualAccuracy,
-      calibration_error: Math.abs(expectedAccuracy - actualAccuracy)
+      calibration_error: Math.abs(expectedAccuracy - actualAccuracy),
     };
   }
 
@@ -102,18 +112,19 @@ export class EvaluationMetricsCalculator {
       min: i / numBins,
       max: (i + 1) / numBins,
       results: [] as EvaluationResult[],
-      avgConfidence: 0
+      avgConfidence: 0,
     }));
 
-    results.forEach(result => {
+    results.forEach((result) => {
       const binIndex = Math.min(Math.floor(result.confidence * numBins), numBins - 1);
       bins[binIndex].results.push(result);
     });
 
     // Calculate average confidence for each bin
-    bins.forEach(bin => {
+    bins.forEach((bin) => {
       if (bin.results.length > 0) {
-        bin.avgConfidence = bin.results.reduce((sum, r) => sum + r.confidence, 0) / bin.results.length;
+        bin.avgConfidence =
+          bin.results.reduce((sum, r) => sum + r.confidence, 0) / bin.results.length;
       }
     });
 
@@ -121,18 +132,19 @@ export class EvaluationMetricsCalculator {
   }
 
   private calculateExecutionStats(results: EvaluationResult[]) {
-    const successful = results.filter(r => !r.error);
-    const failed = results.filter(r => r.error);
-    
-    const avgExecutionTime = successful.length > 0 
-      ? successful.reduce((sum, r) => sum + r.execution_time_ms, 0) / successful.length 
-      : 0;
+    const successful = results.filter((r) => !r.error);
+    const failed = results.filter((r) => r.error);
+
+    const avgExecutionTime =
+      successful.length > 0
+        ? successful.reduce((sum, r) => sum + r.execution_time_ms, 0) / successful.length
+        : 0;
 
     return {
       total_samples: results.length,
       successful_predictions: successful.length,
       failed_predictions: failed.length,
-      average_execution_time_ms: avgExecutionTime
+      average_execution_time_ms: avgExecutionTime,
     };
   }
 
@@ -189,29 +201,41 @@ ${this.generateRecommendations(metrics)}
 
     // Overall accuracy recommendations
     if (metrics.overall_accuracy < 0.85) {
-      recommendations.push('- Overall accuracy is below 85% target. Consider adjusting confidence thresholds or improving feature engineering.');
+      recommendations.push(
+        '- Overall accuracy is below 85% target. Consider adjusting confidence thresholds or improving feature engineering.'
+      );
     }
 
     // Per-class recommendations
     Object.entries(metrics.per_class_metrics).forEach(([role, roleMetrics]) => {
       if (roleMetrics.precision < 0.8) {
-        recommendations.push(`- ${role} precision is low (${(roleMetrics.precision * 100).toFixed(1)}%). Review false positive cases.`);
+        recommendations.push(
+          `- ${role} precision is low (${(roleMetrics.precision * 100).toFixed(1)}%). Review false positive cases.`
+        );
       }
       if (roleMetrics.recall < 0.8) {
-        recommendations.push(`- ${role} recall is low (${(roleMetrics.recall * 100).toFixed(1)}%). Review false negative cases.`);
+        recommendations.push(
+          `- ${role} recall is low (${(roleMetrics.recall * 100).toFixed(1)}%). Review false negative cases.`
+        );
       }
     });
 
     // Calibration recommendations
     if (metrics.confidence_calibration.calibration_error > 0.1) {
-      recommendations.push('- High calibration error detected. Consider recalibrating confidence scores.');
+      recommendations.push(
+        '- High calibration error detected. Consider recalibrating confidence scores.'
+      );
     }
 
     // Performance recommendations
     if (metrics.execution_stats.average_execution_time_ms > 1000) {
-      recommendations.push('- High execution time detected. Consider optimizing the classification algorithm.');
+      recommendations.push(
+        '- High execution time detected. Consider optimizing the classification algorithm.'
+      );
     }
 
-    return recommendations.length > 0 ? recommendations.join('\n') : '- No specific recommendations. Performance meets targets.';
+    return recommendations.length > 0
+      ? recommendations.join('\n')
+      : '- No specific recommendations. Performance meets targets.';
   }
 }

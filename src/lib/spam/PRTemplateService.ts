@@ -38,11 +38,11 @@ export class PRTemplateService {
 
         if (response.ok) {
           const data = await response.json();
-          
+
           if (data.content && data.encoding === 'base64') {
             const content = atob(data.content).replace(/\n/g, '');
             const hash = this.generateHash(content);
-            
+
             return {
               content,
               url: data.html_url,
@@ -69,7 +69,7 @@ export class PRTemplateService {
     if (normalizedContent.length === 0) return '0';
     for (let i = 0; i < normalizedContent.length; i++) {
       const char = normalizedContent.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32bit integer
     }
     return Math.abs(hash).toString(16);
@@ -123,14 +123,18 @@ export class PRTemplateService {
   /**
    * Fetch and cache PR template if not already cached or outdated
    */
-  async ensurePRTemplate(repositoryId: string, owner: string, repo: string): Promise<PRTemplate | null> {
+  async ensurePRTemplate(
+    repositoryId: string,
+    owner: string,
+    repo: string
+  ): Promise<PRTemplate | null> {
     // Check if we have a cached template that's less than 7 days old
     const cached = await this.getCachedPRTemplate(owner, repo);
-    
+
     if (cached && cached.fetched_at) {
       const fetchedDate = new Date(cached.fetched_at);
       const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-      
+
       if (fetchedDate > weekAgo) {
         return cached;
       }
@@ -138,7 +142,7 @@ export class PRTemplateService {
 
     // Fetch fresh template
     const template = await this.fetchPRTemplate(owner, repo);
-    
+
     if (template) {
       await this.cachePRTemplate(repositoryId, template);
       return template;
@@ -201,14 +205,15 @@ export class PRTemplateService {
 
     // Store patterns in database
     for (const pattern of patterns) {
-      await supabase
-        .from('repository_spam_patterns')
-        .upsert({
+      await supabase.from('repository_spam_patterns').upsert(
+        {
           repository_id: repositoryId,
           ...pattern,
-        }, {
-          onConflict: 'repository_id,pattern_type,pattern_content'
-        });
+        },
+        {
+          onConflict: 'repository_id,pattern_type,pattern_content',
+        }
+      );
     }
   }
 
@@ -218,9 +223,9 @@ export class PRTemplateService {
   private extractTemplateSections(template: string): string[] {
     const sections = template
       .split('\n')
-      .map(line => line.trim())
-      .filter(line => line.length > 0 && !line.startsWith('#'))
-      .filter(line => line.length < 100) // Avoid very long lines
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0 && !line.startsWith('#'))
+      .filter((line) => line.length < 100) // Avoid very long lines
       .slice(0, 5); // Take first 5 meaningful lines
 
     return sections;
@@ -262,7 +267,7 @@ export class PRTemplateService {
 
     for (const line of lines) {
       const trimmed = line.trim();
-      
+
       // Match markdown headers
       const headerMatch = trimmed.match(/^#+\s*(.+)$/);
       if (headerMatch) {
@@ -280,7 +285,7 @@ export class PRTemplateService {
    * Check if PR description matches repository-specific spam patterns
    */
   async checkRepositorySpamPatterns(
-    repositoryId: string, 
+    repositoryId: string,
     description: string
   ): Promise<{
     is_match: boolean;
@@ -335,9 +340,11 @@ export class PRTemplateService {
       }
     }
 
-    const overall_confidence = matched_patterns.length > 0
-      ? matched_patterns.reduce((sum, p) => sum + (p.confidence * p.weight), 0) / matched_patterns.length
-      : 0;
+    const overall_confidence =
+      matched_patterns.length > 0
+        ? matched_patterns.reduce((sum, p) => sum + p.confidence * p.weight, 0) /
+          matched_patterns.length
+        : 0;
 
     return {
       is_match: matched_patterns.length > 0,
@@ -352,15 +359,17 @@ export class PRTemplateService {
   private calculateSimilarity(str1: string, str2: string): number {
     const len1 = str1.length;
     const len2 = str2.length;
-    
+
     if (len1 === 0) return len2 === 0 ? 1 : 0;
     if (len2 === 0) return 0;
-    
-    const matrix = Array(len2 + 1).fill(null).map(() => Array(len1 + 1).fill(null));
-    
+
+    const matrix = Array(len2 + 1)
+      .fill(null)
+      .map(() => Array(len1 + 1).fill(null));
+
     for (let i = 0; i <= len1; i++) matrix[0][i] = i;
     for (let j = 0; j <= len2; j++) matrix[j][0] = j;
-    
+
     for (let j = 1; j <= len2; j++) {
       for (let i = 1; i <= len1; i++) {
         const indicator = str1[i - 1] === str2[j - 1] ? 0 : 1;
@@ -371,9 +380,9 @@ export class PRTemplateService {
         );
       }
     }
-    
+
     const maxLen = Math.max(len1, len2);
-    return 1 - (matrix[len2][len1] / maxLen);
+    return 1 - matrix[len2][len1] / maxLen;
   }
 
   /**
@@ -387,8 +396,11 @@ export class PRTemplateService {
       if (description.toLowerCase().includes(section.toLowerCase())) {
         // Check if section appears but has no content after it
         const sectionIndex = description.toLowerCase().indexOf(section.toLowerCase());
-        const afterSection = description.substring(sectionIndex + section.length, sectionIndex + section.length + 100);
-        
+        const afterSection = description.substring(
+          sectionIndex + section.length,
+          sectionIndex + section.length + 100
+        );
+
         if (afterSection.trim().length < 10) {
           emptyCount++;
         }
@@ -403,7 +415,7 @@ export class PRTemplateService {
    */
   private checkMinimalEffort(description: string, pattern: string): number {
     const minimalPatterns = pattern.split('|');
-    
+
     for (const minPattern of minimalPatterns) {
       if (description.toLowerCase().includes(minPattern.toLowerCase())) {
         return 1.0;
@@ -439,15 +451,14 @@ export class PRTemplateService {
     for (const repo of repositories || []) {
       try {
         results.processed++;
-        
+
         const template = await this.ensurePRTemplate(repo.id, repo.owner, repo.name);
         if (template) {
           results.updated++;
         }
-        
+
         // Add small delay to avoid hitting GitHub API rate limits
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       } catch (error) {
         const errorMsg = `${repo.owner}/${repo.name}: ${error instanceof Error ? error.message : 'Unknown error'}`;
         results.errors.push(errorMsg);

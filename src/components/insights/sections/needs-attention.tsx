@@ -1,11 +1,23 @@
-import { useState, useEffect } from "react"
-import { AlertCircle, AlertTriangle, XCircle, FileText, GitCommit, MessageCircle, MessageSquare } from '@/components/ui/icon';
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
-import { detectPrAttention, type PrAlert, type PrAttentionMetrics } from "@/lib/insights/pr-attention";
+import { useState, useEffect } from 'react';
+import {
+  AlertCircle,
+  AlertTriangle,
+  XCircle,
+  FileText,
+  GitCommit,
+  MessageCircle,
+  MessageSquare,
+} from '@/components/ui/icon';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
+import {
+  detectPrAttention,
+  type PrAlert,
+  type PrAttentionMetrics,
+} from '@/lib/insights/pr-attention';
 
 interface NeedsAttentionProps {
   owner: string;
@@ -31,48 +43,48 @@ export function NeedsAttention({ owner, repo, timeRange }: NeedsAttentionProps) 
       setAlerts(result.alerts);
       setMetrics(result.metrics);
     } catch (err) {
-      console.error("Failed to load PR alerts:", err);
-      setError(err instanceof Error ? err.message : "Failed to load alerts");
+      console.error('Failed to load PR alerts:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load alerts');
     } finally {
       setLoading(false);
     }
   };
 
-  const getUrgencyIcon = (urgency: PrAlert["urgency"]) => {
+  const getUrgencyIcon = (urgency: PrAlert['urgency']) => {
     switch (urgency) {
-      case "critical":
+      case 'critical':
         return <XCircle className="h-4 w-4 text-red-500" />;
-      case "high":
+      case 'high':
         return <AlertTriangle className="h-4 w-4 text-orange-500" />;
-      case "medium":
+      case 'medium':
         return <AlertCircle className="h-4 w-4 text-yellow-500" />;
-      case "low":
+      case 'low':
         return <AlertCircle className="h-4 w-4 text-blue-500" />;
     }
   };
 
-  const getUrgencyColor = (urgency: PrAlert["urgency"]) => {
+  const getUrgencyColor = (urgency: PrAlert['urgency']) => {
     switch (urgency) {
-      case "critical":
-        return "border-red-500/50 bg-red-500/5";
-      case "high":
-        return "border-orange-500/50 bg-orange-500/5";
-      case "medium":
-        return "border-yellow-500/50 bg-yellow-500/5";
-      case "low":
-        return "border-blue-500/50 bg-blue-500/5";
+      case 'critical':
+        return 'border-red-500/50 bg-red-500/5';
+      case 'high':
+        return 'border-orange-500/50 bg-orange-500/5';
+      case 'medium':
+        return 'border-yellow-500/50 bg-yellow-500/5';
+      case 'low':
+        return 'border-blue-500/50 bg-blue-500/5';
     }
   };
 
-  const getSizeIcon = (size: PrAlert["size"]) => {
+  const getSizeIcon = (size: PrAlert['size']) => {
     switch (size) {
-      case "xl":
+      case 'xl':
         return <FileText className="h-3 w-3 text-red-500" />;
-      case "large":
+      case 'large':
         return <FileText className="h-3 w-3 text-orange-500" />;
-      case "medium":
+      case 'medium':
         return <FileText className="h-3 w-3 text-yellow-500" />;
-      case "small":
+      case 'small':
         return <FileText className="h-3 w-3 text-green-500" />;
     }
   };
@@ -91,15 +103,8 @@ export function NeedsAttention({ owner, repo, timeRange }: NeedsAttentionProps) 
     return (
       <div className="text-center py-2">
         <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-3" />
-        <p className="text-sm text-muted-foreground">
-          Failed to load PR alerts
-        </p>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={loadAlerts}
-          className="mt-2"
-        >
+        <p className="text-sm text-muted-foreground">Failed to load PR alerts</p>
+        <Button variant="ghost" size="sm" onClick={loadAlerts} className="mt-2">
           Try again
         </Button>
       </div>
@@ -113,11 +118,7 @@ export function NeedsAttention({ owner, repo, timeRange }: NeedsAttentionProps) 
         <p className="text-sm text-muted-foreground">
           All pull requests are being handled efficiently!
         </p>
-        {metrics && (
-          <p className="text-xs text-muted-foreground mt-1">
-            Checked all open PRs
-          </p>
-        )}
+        {metrics && <p className="text-xs text-muted-foreground mt-1">Checked all open PRs</p>}
       </div>
     );
   }
@@ -128,19 +129,17 @@ export function NeedsAttention({ owner, repo, timeRange }: NeedsAttentionProps) 
         <Card
           key={alert.id}
           className={cn(
-            "p-3 cursor-pointer hover:shadow-md transition-all",
+            'p-3 cursor-pointer hover:shadow-md transition-all',
             getUrgencyColor(alert.urgency)
           )}
-          onClick={() => window.open(alert.url, "_blank")}
+          onClick={() => window.open(alert.url, '_blank')}
         >
           <div className="space-y-2">
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   {getUrgencyIcon(alert.urgency)}
-                  <span className="text-sm font-medium truncate">
-                    #{alert.number}
-                  </span>
+                  <span className="text-sm font-medium truncate">#{alert.number}</span>
                   <div className="flex items-center gap-1">
                     {getSizeIcon(alert.size)}
                     {alert.isFirstTimeContributor && (
@@ -158,17 +157,18 @@ export function NeedsAttention({ owner, repo, timeRange }: NeedsAttentionProps) 
                         <MessageCircle className="h-3 w-3" />
                         Needs Response
                       </Badge>
-                    ) : alert.daysSinceLastMaintainerComment !== null && alert.daysSinceLastMaintainerComment >= 5 && (
-                      <Badge variant="secondary" className="text-xs flex items-center gap-1">
-                        <MessageSquare className="h-3 w-3" />
-                        {alert.daysSinceLastMaintainerComment}d ago
-                      </Badge>
+                    ) : (
+                      alert.daysSinceLastMaintainerComment !== null &&
+                      alert.daysSinceLastMaintainerComment >= 5 && (
+                        <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                          <MessageSquare className="h-3 w-3" />
+                          {alert.daysSinceLastMaintainerComment}d ago
+                        </Badge>
+                      )
                     )}
                   </div>
                 </div>
-                <h4 className="text-sm font-medium line-clamp-1">
-                  {alert.title}
-                </h4>
+                <h4 className="text-sm font-medium line-clamp-1">{alert.title}</h4>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <span>by {alert.author}</span>
                   <span>•</span>
@@ -187,20 +187,19 @@ export function NeedsAttention({ owner, repo, timeRange }: NeedsAttentionProps) 
                   {alert.maintainerCommenters.length > 0 && (
                     <>
                       <span>•</span>
-                      <span>Responded: {alert.maintainerCommenters.slice(0, 2).join(', ')}{alert.maintainerCommenters.length > 2 ? '...' : ''}</span>
+                      <span>
+                        Responded: {alert.maintainerCommenters.slice(0, 2).join(', ')}
+                        {alert.maintainerCommenters.length > 2 ? '...' : ''}
+                      </span>
                     </>
                   )}
                 </div>
               </div>
             </div>
-            
+
             <div className="flex flex-wrap gap-1">
               {alert.reasons.map((reason, index) => (
-                <Badge
-                  key={index}
-                  variant="outline"
-                  className="text-xs"
-                >
+                <Badge key={index} variant="outline" className="text-xs">
                   {reason}
                 </Badge>
               ))}
@@ -208,7 +207,7 @@ export function NeedsAttention({ owner, repo, timeRange }: NeedsAttentionProps) 
           </div>
         </Card>
       ))}
-      
+
       {metrics && alerts.length > 0 && (
         <div className="mt-4 p-3 bg-secondary/30 rounded-lg">
           <div className="text-xs text-muted-foreground text-center">
@@ -238,12 +237,17 @@ export function NeedsAttention({ owner, repo, timeRange }: NeedsAttentionProps) 
           </div>
         </div>
       )}
-      
+
       {alerts.length >= 10 && (
-        <Button 
-          variant="ghost" 
+        <Button
+          variant="ghost"
           className="w-full text-sm"
-          onClick={() => window.open(`https://github.com/${owner}/${repo}/pulls?q=is%3Apr+is%3Aopen+sort%3Acreated-asc`, "_blank")}
+          onClick={() =>
+            window.open(
+              `https://github.com/${owner}/${repo}/pulls?q=is%3Apr+is%3Aopen+sort%3Acreated-asc`,
+              '_blank'
+            )
+          }
         >
           View all alerts on GitHub
         </Button>

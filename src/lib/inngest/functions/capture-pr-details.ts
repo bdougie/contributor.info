@@ -7,39 +7,39 @@ import { NonRetriableError } from 'inngest';
 
 export const capturePrDetails = inngest.createFunction(
   {
-    id: "capture-pr-details",
-    name: "Capture PR Details",
+    id: 'capture-pr-details',
+    name: 'Capture PR Details',
     concurrency: {
       // Reduced limit for better rate management
       limit: 5,
       // Group by repository to avoid hammering the same repo
-      key: "event.data.repositoryId",
+      key: 'event.data.repositoryId',
     },
     retries: 3,
     // More conservative throttling
     throttle: {
       limit: 20,
-      period: "1m",
-      key: "event.data.priority",
+      period: '1m',
+      key: 'event.data.priority',
     },
   },
-  { event: "capture/pr.details" },
+  { event: 'capture/pr.details' },
   async ({ event, step }) => {
     const { repositoryId, prNumber, prId } = event.data;
     const syncLogger = new SyncLogger();
     let apiCallsUsed = 0;
 
     // Step 0: Initialize sync log
-    await step.run("init-sync-log", async () => {
+    await step.run('init-sync-log', async () => {
       return await syncLogger.start('pr_details', repositoryId, {
         prNumber,
         prId,
-        source: 'inngest'
+        source: 'inngest',
       });
     });
 
     // Step 1: Get repository details
-    const repository = await step.run("get-repository", async () => {
+    const repository = await step.run('get-repository', async () => {
       const { data, error } = await supabase
         .from('repositories')
         .select('owner, name')
@@ -55,27 +55,29 @@ export const capturePrDetails = inngest.createFunction(
     // Skip rate limit check - Inngest throttling handles this
 
     // Step 2: Fetch PR details from GitHub (with timeout)
-    const githubPrData = await step.run("fetch-pr-details", async () => {
+    const githubPrData = await step.run('fetch-pr-details', async () => {
       try {
         // Add a race condition with timeout to prevent hanging
         const timeoutPromise = new Promise((_, reject) => {
           setTimeout(() => reject(new Error('GitHub API timeout')), 15000); // 15 second timeout
         });
-        
+
         apiCallsUsed++;
-        const apiPromise = makeGitHubRequest(`/repos/${repository.owner}/${repository.name}/pulls/${prNumber}`);
-        
+        const apiPromise = makeGitHubRequest(
+          `/repos/${repository.owner}/${repository.name}/pulls/${prNumber}`
+        );
+
         const pr = await Promise.race([apiPromise, timeoutPromise]);
-        
+
         await syncLogger.update({
           github_api_calls_used: apiCallsUsed,
           metadata: {
             prDetailsFound: true,
             prNumber,
-            repository: `${repository.owner}/${repository.name}`
-          }
+            repository: `${repository.owner}/${repository.name}`,
+          },
         });
-        
+
         return pr as GitHubPullRequest;
       } catch (error: unknown) {
         const apiError = error as { status?: number };
@@ -84,20 +86,24 @@ export const capturePrDetails = inngest.createFunction(
             metadata: {
               prNotFound: true,
               prNumber,
-              repository: `${repository.owner}/${repository.name}`
-            }
+              repository: `${repository.owner}/${repository.name}`,
+            },
           });
-          throw new NonRetriableError(`PR #${prNumber} not found in ${repository.owner}/${repository.name}`);
+          throw new NonRetriableError(
+            `PR #${prNumber} not found in ${repository.owner}/${repository.name}`
+          );
         }
         if (error instanceof Error && error.message === 'GitHub API timeout') {
-          throw new Error(`Timeout fetching PR #${prNumber} from ${repository.owner}/${repository.name}`);
+          throw new Error(
+            `Timeout fetching PR #${prNumber} from ${repository.owner}/${repository.name}`
+          );
         }
         throw error;
       }
     });
 
     // Step 3: Find or create merged_by contributor (simplified)
-    const mergedByContributorId = await step.run("resolve-merged-by-contributor", async () => {
+    const mergedByContributorId = await step.run('resolve-merged-by-contributor', async () => {
       if (!githubPrData.merged || !githubPrData.merged_by) {
         return null;
       }
@@ -107,26 +113,37 @@ export const capturePrDetails = inngest.createFunction(
         const timeoutPromise = new Promise((_, reject) => {
           setTimeout(() => reject(new Error('Database timeout')), 10000); // 10 second timeout
         });
-        
+
         const dbPromise = supabase
           .from('contributors')
-          .upsert({
-            github_id: githubPrData.merged_by.id,
-            username: githubPrData.merged_by.login,
-            avatar_url: githubPrData.merged_by.avatar_url,
-            is_bot: githubPrData.merged_by.type === 'Bot' || githubPrData.merged_by.login.includes('[bot]')
-          }, {
-            onConflict: 'github_id',
-            ignoreDuplicates: false
-          })
+          .upsert(
+            {
+              github_id: githubPrData.merged_by.id,
+              username: githubPrData.merged_by.login,
+              avatar_url: githubPrData.merged_by.avatar_url,
+              is_bot:
+                githubPrData.merged_by.type === 'Bot' ||
+                githubPrData.merged_by.login.includes('[bot]'),
+            },
+            {
+              onConflict: 'github_id',
+              ignoreDuplicates: false,
+            }
+          )
           .select('id')
           .maybeSingle();
-          
+
         const result = await Promise.race([dbPromise, timeoutPromise]);
-        const { data: contributor, error } = result as { data: { id: string } | null; error: Error | null };
+        const { data: contributor, error } = result as {
+          data: { id: string } | null;
+          error: Error | null;
+        };
 
         if (error) {
-          console.warn(`Failed to upsert merged_by contributor ${githubPrData.merged_by.login}:`, error);
+          console.warn(
+            `Failed to upsert merged_by contributor ${githubPrData.merged_by.login}:`,
+            error
+          );
           return null;
         }
 
@@ -138,11 +155,11 @@ export const capturePrDetails = inngest.createFunction(
     });
 
     // Step 4: Update database (with timeout)
-    await step.run("update-database", async () => {
+    await step.run('update-database', async () => {
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => reject(new Error('Database update timeout')), 10000); // 10 second timeout
       });
-      
+
       const updatePromise = supabase
         .from('pull_requests')
         .update({
@@ -157,7 +174,7 @@ export const capturePrDetails = inngest.createFunction(
           updated_at: new Date().toISOString(),
         })
         .eq('id', prId);
-        
+
       const result = await Promise.race([updatePromise, timeoutPromise]);
       const { error } = result as { error: Error | null };
 
@@ -169,7 +186,7 @@ export const capturePrDetails = inngest.createFunction(
     });
 
     // Step 5: Complete sync log
-    await step.run("complete-sync-log", async () => {
+    await step.run('complete-sync-log', async () => {
       await syncLogger.complete({
         records_processed: 1,
         records_updated: 1,
@@ -179,8 +196,8 @@ export const capturePrDetails = inngest.createFunction(
           deletions: githubPrData.deletions,
           changedFiles: githubPrData.changed_files,
           merged: githubPrData.merged,
-          mergedByResolved: !!mergedByContributorId
-        }
+          mergedByResolved: !!mergedByContributorId,
+        },
       });
     });
 

@@ -13,7 +13,7 @@ export type WorkspaceTier = 'free' | 'pro' | 'enterprise';
 export type InvitationStatus = 'pending' | 'accepted' | 'rejected' | 'expired';
 export type SubscriptionStatus = 'active' | 'canceled' | 'past_due' | 'trialing' | 'incomplete';
 export type BillingCycle = 'monthly' | 'yearly';
-export type EmailType = 
+export type EmailType =
   | 'workspace_invitation'
   | 'member_added'
   | 'member_removed'
@@ -215,33 +215,33 @@ export interface WorkspaceMetrics {
     merged_prs: number;
     open_prs: number;
     draft_prs: number;
-    
+
     // Issue metrics
     total_issues: number;
     closed_issues: number;
     open_issues: number;
-    
+
     // Contributor metrics
     total_contributors: number;
     active_contributors: number;
     new_contributors: number;
-    
+
     // Repository metrics
     total_commits: number;
     total_stars: number;
     total_forks: number;
     total_watchers: number;
-    
+
     // Velocity metrics
     avg_pr_merge_time_hours: number;
     pr_velocity: number; // PRs per day
     issue_closure_rate: number; // percentage
-    
+
     // Distributions
     languages: LanguageDistribution;
     top_contributors: MetricsContributor[];
     activity_timeline: ActivityDataPoint[];
-    
+
     // Repository breakdown
     repository_stats?: Array<{
       repository_id: string;
@@ -251,6 +251,12 @@ export interface WorkspaceMetrics {
       stars: number;
       contributors: number;
     }>;
+
+    // Trend comparisons (vs previous period)
+    stars_trend?: number;
+    prs_trend?: number;
+    contributors_trend?: number;
+    commits_trend?: number;
   };
   calculated_at: string;
   expires_at: string;
@@ -381,7 +387,14 @@ export interface WorkspaceActivity {
   id: string;
   workspace_id: string;
   user_id: string;
-  action: 'created' | 'updated' | 'added_repo' | 'removed_repo' | 'added_member' | 'removed_member' | 'role_changed';
+  action:
+    | 'created'
+    | 'updated'
+    | 'added_repo'
+    | 'removed_repo'
+    | 'added_member'
+    | 'removed_member'
+    | 'role_changed';
   target_type?: 'workspace' | 'repository' | 'member';
   target_id?: string;
   metadata?: Record<string, unknown>;
@@ -419,7 +432,7 @@ export const getRoleDisplayName = (role: WorkspaceRole): string => {
     owner: 'Owner',
     admin: 'Admin',
     editor: 'Editor',
-    viewer: 'Viewer'
+    viewer: 'Viewer',
   };
   return roleNames[role];
 };
@@ -432,7 +445,7 @@ export const getRoleDescription = (role: WorkspaceRole): string => {
     owner: 'Full control over the workspace',
     admin: 'Can manage members and repositories',
     editor: 'Can add and remove repositories',
-    viewer: 'Can view workspace content'
+    viewer: 'Can view workspace content',
   };
   return descriptions[role];
 };
@@ -482,7 +495,13 @@ export interface UsageTracking {
   id: string;
   user_id: string;
   workspace_id: string | null;
-  metric_type: 'workspace_count' | 'repository_count' | 'member_count' | 'api_calls' | 'data_queries' | 'export_count';
+  metric_type:
+    | 'workspace_count'
+    | 'repository_count'
+    | 'member_count'
+    | 'api_calls'
+    | 'data_queries'
+    | 'export_count';
   value: number;
   period_start: string;
   period_end: string;
@@ -604,7 +623,9 @@ export const canAddMoreRepositories = (workspace: Workspace): boolean => {
 /**
  * Get tier display information
  */
-export const getTierInfo = (tier: WorkspaceTier): {
+export const getTierInfo = (
+  tier: WorkspaceTier
+): {
   name: string;
   badge: string;
   color: string;
@@ -613,18 +634,18 @@ export const getTierInfo = (tier: WorkspaceTier): {
     free: {
       name: 'Free',
       badge: '🆓',
-      color: 'gray'
+      color: 'gray',
     },
     pro: {
       name: 'Pro',
       badge: '💎',
-      color: 'blue'
+      color: 'blue',
     },
     enterprise: {
       name: 'Enterprise',
       badge: '🔒',
-      color: 'purple'
-    }
+      color: 'purple',
+    },
   };
   return tierInfo[tier];
 };

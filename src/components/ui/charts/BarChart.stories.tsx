@@ -8,7 +8,8 @@ const meta = {
     layout: 'centered',
     docs: {
       description: {
-        component: 'A bar chart component built on uPlot with grouped bars support and theme support.',
+        component:
+          'A bar chart component built on uPlot with grouped bars support and theme support.',
       },
     },
   },
@@ -197,11 +198,11 @@ export const LongLabels: Story = {
     data: {
       labels: [
         'Frontend Development',
-        'Backend Services', 
+        'Backend Services',
         'Database Management',
         'Infrastructure',
         'Quality Assurance',
-        'Documentation'
+        'Documentation',
       ],
       datasets: [
         {

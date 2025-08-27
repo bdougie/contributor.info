@@ -31,10 +31,10 @@ export function useDataTimestamp(
   options: UseDataTimestampOptions = {}
 ) {
   const { initialTimestamp = new Date(), autoUpdate = true } = options;
-  
+
   const [state, setState] = useState<DataTimestampState>({
     lastUpdated: initialTimestamp,
-    isRefreshing: false
+    isRefreshing: false,
   });
 
   // Update timestamp when dependencies change (if autoUpdate is enabled)
@@ -42,9 +42,9 @@ export function useDataTimestamp(
     if (autoUpdate && dependencies.length > 0) {
       // Check if any dependency has actually changed by comparing with previous
       // This is a simple implementation - could be enhanced for deep comparison
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
-        lastUpdated: new Date()
+        lastUpdated: new Date(),
       }));
     }
   }, dependencies);
@@ -53,9 +53,9 @@ export function useDataTimestamp(
    * Manually update the timestamp (useful for marking data refresh)
    */
   const updateTimestamp = useCallback(() => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
-      lastUpdated: new Date()
+      lastUpdated: new Date(),
     }));
   }, []);
 
@@ -63,9 +63,9 @@ export function useDataTimestamp(
    * Mark data as being refreshed
    */
   const startRefresh = useCallback(() => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
-      isRefreshing: true
+      isRefreshing: true,
     }));
   }, []);
 
@@ -75,7 +75,7 @@ export function useDataTimestamp(
   const endRefresh = useCallback(() => {
     setState({
       lastUpdated: new Date(),
-      isRefreshing: false
+      isRefreshing: false,
     });
   }, []);
 
@@ -83,9 +83,9 @@ export function useDataTimestamp(
    * Set a specific timestamp (useful when you know the actual data timestamp)
    */
   const setTimestamp = useCallback((timestamp: Date) => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
-      lastUpdated: timestamp
+      lastUpdated: timestamp,
     }));
   }, []);
 
@@ -95,7 +95,7 @@ export function useDataTimestamp(
     updateTimestamp,
     startRefresh,
     endRefresh,
-    setTimestamp
+    setTimestamp,
   };
 }
 
@@ -104,8 +104,8 @@ export function useDataTimestamp(
  */
 export function usePageTimestamp() {
   const [mountTimestamp] = useState(() => new Date());
-  
+
   return {
-    pageLoadedAt: mountTimestamp
+    pageLoadedAt: mountTimestamp,
   };
 }

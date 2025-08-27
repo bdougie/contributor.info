@@ -30,11 +30,7 @@ describe('Query Pattern Validation', () => {
 
     it('should validate required fields in repository sync queries', () => {
       // Fields required by the scheduled sync workflow
-      const requiredFields = [
-        'repository_id',
-        'repositories!inner',
-        'tracking_enabled'
-      ];
+      const requiredFields = ['repository_id', 'repositories!inner', 'tracking_enabled'];
 
       const queryPattern = `
         .from('tracked_repositories')
@@ -50,7 +46,7 @@ describe('Query Pattern Validation', () => {
         .eq('tracking_enabled', true)
       `;
 
-      requiredFields.forEach(field => {
+      requiredFields.forEach((field) => {
         expect(queryPattern).toContain(field);
       });
     });
@@ -60,10 +56,10 @@ describe('Query Pattern Validation', () => {
     it('should include all required fields for Inngest functions', () => {
       // Fields required by capture-repository-sync-graphql function
       const requiredFields = ['id', 'owner', 'name', 'last_updated_at'];
-      
-      const queryPattern = '.select(\'id, owner, name, last_updated_at\')';
-      
-      requiredFields.forEach(field => {
+
+      const queryPattern = ".select('id, owner, name, last_updated_at')";
+
+      requiredFields.forEach((field) => {
         expect(queryPattern).toContain(field);
       });
     });
@@ -79,8 +75,8 @@ describe('Query Pattern Validation', () => {
           repositoryName: 'owner/repo',
           days: 7,
           priority: 'medium',
-          reason: 'automatic'
-        }
+          reason: 'automatic',
+        },
       };
 
       // Validate all required fields are present
@@ -94,7 +90,7 @@ describe('Query Pattern Validation', () => {
     it('should handle missing optional fields with defaults', () => {
       const partialData = {
         repositoryId: 'test-id',
-        repositoryName: 'owner/repo'
+        repositoryName: 'owner/repo',
       };
 
       // Apply defaults like the mapQueueDataToEventData function does
@@ -102,7 +98,7 @@ describe('Query Pattern Validation', () => {
         ...partialData,
         days: partialData.days || 7,
         priority: partialData.priority || 'medium',
-        reason: partialData.reason || 'automatic'
+        reason: partialData.reason || 'automatic',
       };
 
       expect(withDefaults.days).toBe(7);

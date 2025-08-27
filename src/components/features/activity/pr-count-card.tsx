@@ -1,6 +1,6 @@
 import { GitPullRequest, Users } from '@/components/ui/icon';
-import { Card } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Card } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface PrCountCardProps {
   openPRs: number;
@@ -29,9 +29,7 @@ export function PrCountCard({ openPRs, totalPRs, loading }: PrCountCardProps) {
         <div className="flex items-center gap-1 mt-1">
           <Users className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
           <dt className="sr-only">Total Pull Requests</dt>
-          <dd className="text-xs text-muted-foreground truncate">
-            of {totalPRs} total
-          </dd>
+          <dd className="text-xs text-muted-foreground truncate">of {totalPRs} total</dd>
         </div>
       </dl>
     </Card>

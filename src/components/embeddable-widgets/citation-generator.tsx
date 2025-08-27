@@ -1,31 +1,34 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
-import { useState } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
+import { useState } from 'react';
 import { Copy, Download, Link2 } from '@/components/ui/icon';
-import { toast } from "sonner";
-import type { CitationFormat, WidgetData, PermalinkConfig } from "./widget-types";
+import { toast } from 'sonner';
+import type { CitationFormat, WidgetData, PermalinkConfig } from './widget-types';
 
 interface CitationGeneratorProps {
   data: WidgetData;
   permalinkConfig?: PermalinkConfig;
 }
 
-const CITATION_FORMATS: Record<CitationFormat['style'], (data: WidgetData, date: Date, url: string) => string> = {
-  apa: (data, date, url) => 
+const CITATION_FORMATS: Record<
+  CitationFormat['style'],
+  (data: WidgetData, date: Date, url: string) => string
+> = {
+  apa: (data, date, url) =>
     `Contributor.info. (${date.getFullYear()}). ${data.repository.owner}/${data.repository.repo} repository analytics. Retrieved ${date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}, from ${url}`,
-  
-  mla: (data, date, url) => 
+
+  mla: (data, date, url) =>
     `Contributor.info. "${data.repository.owner}/${data.repository.repo} Repository Analytics." Contributor.info, ${date.getDate()} ${date.toLocaleDateString('en-US', { month: 'short' })} ${date.getFullYear()}, ${url}.`,
-  
-  chicago: (data, date, url) => 
+
+  chicago: (data, date, url) =>
     `Contributor.info. "${data.repository.owner}/${data.repository.repo} Repository Analytics." Accessed ${date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}. ${url}.`,
-  
-  ieee: (data, date, url) => 
+
+  ieee: (data, date, url) =>
     `Contributor.info, "${data.repository.owner}/${data.repository.repo} repository analytics," accessed ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}. [Online]. Available: ${url}`,
-  
-  bibtex: (data, date, url) => 
+
+  bibtex: (data, date, url) =>
     `@misc{contributor_info_${data.repository.owner}_${data.repository.repo}_${date.getFullYear()},
   title={${data.repository.owner}/${data.repository.repo} Repository Analytics},
   author={Contributor.info},
@@ -33,19 +36,20 @@ const CITATION_FORMATS: Record<CitationFormat['style'], (data: WidgetData, date:
   url={${url}},
   note={Accessed: ${date.toISOString().split('T')[0]}}
 }`,
-  
-  plain: (data, date, url) => 
+
+  plain: (data, date, url) =>
     `${data.repository.owner}/${data.repository.repo} repository analytics by Contributor.info. Data retrieved on ${date.toLocaleDateString()} from ${url}`,
 };
 
 export function CitationGenerator({ data, permalinkConfig }: CitationGeneratorProps) {
   const [selectedFormat, setSelectedFormat] = useState<CitationFormat['style']>('apa');
   const [copiedFormat, setCopiedFormat] = useState<string | null>(null);
-  
+
   const currentDate = new Date();
-  const baseURL = typeof window !== 'undefined' ? window.location.origin : 'https://contributor.info';
+  const baseURL =
+    typeof window !== 'undefined' ? window.location.origin : 'https://contributor.info';
   const citationURL = `${baseURL}/${data.repository.owner}/${data.repository.repo}`;
-  
+
   const generateCitation = (format: CitationFormat['style']): string => {
     return CITATION_FORMATS[format](data, currentDate, citationURL);
   };
@@ -57,31 +61,33 @@ export function CitationGenerator({ data, permalinkConfig }: CitationGeneratorPr
       toast.success(`${format.toUpperCase()} citation copied to clipboard`);
       setTimeout(() => setCopiedFormat(null), 2000);
     } catch (error) {
-      toast.error("Failed to copy to clipboard");
+      toast.error('Failed to copy to clipboard');
     }
   };
 
   const generatePermalink = (): string => {
     if (!permalinkConfig) return citationURL;
-    
+
     const params = new URLSearchParams();
     params.set('cite', 'true');
     params.set('format', 'json');
     params.set('date', currentDate.toISOString().split('T')[0]);
-    
+
     // Add specific parameters based on type
     Object.entries(permalinkConfig.parameters).forEach(([key, value]) => {
       params.set(key, String(value));
     });
-    
+
     return `${citationURL}?${params.toString()}`;
   };
 
   const exportBibliography = () => {
-    const citations = Object.entries(CITATION_FORMATS).map(([format, generator]) => {
-      return `${format.toUpperCase()}:\n${generator(data, currentDate, citationURL)}\n`;
-    }).join('\n');
-    
+    const citations = Object.entries(CITATION_FORMATS)
+      .map(([format, generator]) => {
+        return `${format.toUpperCase()}:\n${generator(data, currentDate, citationURL)}\n`;
+      })
+      .join('\n');
+
     const content = `# Citations for ${data.repository.owner}/${data.repository.repo}
 Generated on ${currentDate.toLocaleDateString()}
 
@@ -101,7 +107,7 @@ ${generatePermalink()}
 ---
 Generated by contributor.info - https://contributor.info
 `;
-    
+
     const blob = new Blob([content], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -111,8 +117,8 @@ Generated by contributor.info - https://contributor.info
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    
-    toast.success("Bibliography exported successfully");
+
+    toast.success('Bibliography exported successfully');
   };
 
   return (
@@ -132,7 +138,7 @@ Generated by contributor.info - https://contributor.info
           {Object.keys(CITATION_FORMATS).map((format) => (
             <Badge
               key={format}
-              variant={selectedFormat === format ? "default" : "outline"}
+              variant={selectedFormat === format ? 'default' : 'outline'}
               className="cursor-pointer"
               onClick={() => setSelectedFormat(format as CitationFormat['style'])}
             >
@@ -174,7 +180,9 @@ Generated by contributor.info - https://contributor.info
         <div className="rounded-md border p-3 text-sm space-y-2">
           <div className="font-medium">Repository Information</div>
           <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-            <span>Repository: {data.repository.owner}/{data.repository.repo}</span>
+            <span>
+              Repository: {data.repository.owner}/{data.repository.repo}
+            </span>
             <span>Contributors: {data.stats.totalContributors}</span>
             <span>Pull Requests: {data.stats.totalPRs}</span>
             <span>Merge Rate: {data.stats.mergeRate.toFixed(1)}%</span>
@@ -205,9 +213,9 @@ Generated by contributor.info - https://contributor.info
 
         {/* Attribution Notice */}
         <div className="rounded-md bg-muted p-3 text-xs">
-          <strong>Attribution Requirements:</strong> When using this data in academic work, 
-          please cite contributor.info and include the date of data retrieval. 
-          Data is sourced from GitHub's public API and processed for analytical insights.
+          <strong>Attribution Requirements:</strong> When using this data in academic work, please
+          cite contributor.info and include the date of data retrieval. Data is sourced from
+          GitHub's public API and processed for analytical insights.
         </div>
       </CardContent>
     </Card>

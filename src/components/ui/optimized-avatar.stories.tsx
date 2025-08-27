@@ -78,40 +78,32 @@ export const Priority: Story = {
 
 export const Sizes: Story = {
   args: {
-    src: "https://avatars.githubusercontent.com/u/5713670?v=4",
-    alt: "Sample Avatar",
+    src: 'https://avatars.githubusercontent.com/u/5713670?v=4',
+    alt: 'Sample Avatar',
   },
   render: (args) => (
     <div className="flex items-center gap-4">
-      <OptimizedAvatar 
-        {...args}
-        alt="32px" 
-        size={32} 
+      <OptimizedAvatar {...args} alt="32px" size={32} />
+      <OptimizedAvatar {...args} alt="40px" size={40} />
+      <OptimizedAvatar
+        src="https://avatars.githubusercontent.com/u/5713670?v=4"
+        alt="48px"
+        size={48}
       />
-      <OptimizedAvatar 
-        {...args}
-        alt="40px" 
-        size={40} 
+      <OptimizedAvatar
+        src="https://avatars.githubusercontent.com/u/5713670?v=4"
+        alt="64px"
+        size={64}
       />
-      <OptimizedAvatar 
-        src="https://avatars.githubusercontent.com/u/5713670?v=4" 
-        alt="48px" 
-        size={48} 
+      <OptimizedAvatar
+        src="https://avatars.githubusercontent.com/u/5713670?v=4"
+        alt="80px"
+        size={80}
       />
-      <OptimizedAvatar 
-        src="https://avatars.githubusercontent.com/u/5713670?v=4" 
-        alt="64px" 
-        size={64} 
-      />
-      <OptimizedAvatar 
-        src="https://avatars.githubusercontent.com/u/5713670?v=4" 
-        alt="80px" 
-        size={80} 
-      />
-      <OptimizedAvatar 
-        src="https://avatars.githubusercontent.com/u/5713670?v=4" 
-        alt="96px" 
-        size={96} 
+      <OptimizedAvatar
+        src="https://avatars.githubusercontent.com/u/5713670?v=4"
+        alt="96px"
+        size={96}
       />
     </div>
   ),
@@ -119,39 +111,33 @@ export const Sizes: Story = {
 
 export const GitHubAvatarOptimization: Story = {
   args: {
-    src: "https://avatars.githubusercontent.com/u/5713670?v=4",
-    alt: "GitHub Avatar Optimization",
+    src: 'https://avatars.githubusercontent.com/u/5713670?v=4',
+    alt: 'GitHub Avatar Optimization',
   },
   render: (args) => (
     <div className="space-y-4">
       <div>
         <h3 className="text-sm font-medium mb-2">Original GitHub URL:</h3>
-        <OptimizedAvatar 
-          {...args}
-          alt="Original" 
-          size={64} 
-        />
-        <p className="text-xs text-muted-foreground mt-1">
-          URL will be optimized to: ...?s=64&v=4
-        </p>
+        <OptimizedAvatar {...args} alt="Original" size={64} />
+        <p className="text-xs text-muted-foreground mt-1">URL will be optimized to: ...?s=64&v=4</p>
       </div>
       <div>
         <h3 className="text-sm font-medium mb-2">Different sizes (auto-optimized):</h3>
         <div className="flex items-center gap-2">
-          <OptimizedAvatar 
-            src="https://avatars.githubusercontent.com/u/5713670?v=4" 
-            alt="32px" 
-            size={32} 
+          <OptimizedAvatar
+            src="https://avatars.githubusercontent.com/u/5713670?v=4"
+            alt="32px"
+            size={32}
           />
-          <OptimizedAvatar 
-            src="https://avatars.githubusercontent.com/u/5713670?v=4" 
-            alt="64px" 
-            size={64} 
+          <OptimizedAvatar
+            src="https://avatars.githubusercontent.com/u/5713670?v=4"
+            alt="64px"
+            size={64}
           />
-          <OptimizedAvatar 
-            src="https://avatars.githubusercontent.com/u/5713670?v=4" 
-            alt="96px" 
-            size={96} 
+          <OptimizedAvatar
+            src="https://avatars.githubusercontent.com/u/5713670?v=4"
+            alt="96px"
+            size={96}
           />
         </div>
       </div>

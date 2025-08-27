@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { AlertCircle, Loader2, Globe, Lock } from '@/components/ui/icon';
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -24,19 +24,19 @@ export interface WorkspaceCreateFormProps {
   initialValues?: Partial<CreateWorkspaceRequest>;
 }
 
-export function WorkspaceCreateForm({ 
-  onSubmit, 
+export function WorkspaceCreateForm({
+  onSubmit,
   onCancel,
   loading = false,
   error = null,
   mode = 'create',
-  initialValues
+  initialValues,
 }: WorkspaceCreateFormProps) {
   const [formData, setFormData] = useState<CreateWorkspaceRequest>({
     name: initialValues?.name || '',
     description: initialValues?.description || '',
     visibility: initialValues?.visibility || 'public',
-    settings: initialValues?.settings || {}
+    settings: initialValues?.settings || {},
   });
 
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
@@ -62,7 +62,7 @@ export function WorkspaceCreateForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -71,10 +71,10 @@ export function WorkspaceCreateForm({
   };
 
   const handleInputChange = (field: keyof CreateWorkspaceRequest, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
     // Clear validation error for this field when user starts typing
     if (validationErrors[field]) {
-      setValidationErrors(prev => {
+      setValidationErrors((prev) => {
         const next = { ...prev };
         delete next[field];
         return next;
@@ -140,9 +140,7 @@ export function WorkspaceCreateForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="workspace-visibility">
-          Visibility
-        </Label>
+        <Label htmlFor="workspace-visibility">Visibility</Label>
         <Select
           value={formData.visibility}
           onValueChange={(value) => handleInputChange('visibility', value)}
@@ -184,18 +182,16 @@ export function WorkspaceCreateForm({
       </div>
 
       <div className="flex gap-3 pt-4">
-        <Button
-          type="submit"
-          disabled={loading || !formData.name.trim()}
-          className="flex-1"
-        >
+        <Button type="submit" disabled={loading || !formData.name.trim()} className="flex-1">
           {loading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               {mode === 'create' ? 'Creating...' : 'Saving...'}
             </>
+          ) : mode === 'create' ? (
+            'Create Workspace'
           ) : (
-            mode === 'create' ? 'Create Workspace' : 'Save Changes'
+            'Save Changes'
           )}
         </Button>
         {onCancel && (

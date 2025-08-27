@@ -1,7 +1,7 @@
-import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ActivityItemSkeleton } from "../components/activity-item-skeleton";
-import { cn } from "@/lib/utils";
+import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { ActivityItemSkeleton } from '../components/activity-item-skeleton';
+import { cn } from '@/lib/utils';
 
 interface PRActivitySkeletonProps {
   className?: string;
@@ -10,14 +10,14 @@ interface PRActivitySkeletonProps {
   showLoadMore?: boolean;
 }
 
-export function PRActivitySkeleton({ 
+export function PRActivitySkeleton({
   className,
   itemCount = 8,
   showFilters = true,
-  showLoadMore = false
+  showLoadMore = false,
 }: PRActivitySkeletonProps) {
   return (
-    <Card className={cn("animate-pulse", className)}>
+    <Card className={cn('animate-pulse', className)}>
       <CardHeader>
         <CardTitle>
           <Skeleton className="h-7 w-48" />
@@ -28,7 +28,7 @@ export function PRActivitySkeleton({
       </CardHeader>
       <CardContent className="space-y-4">
         {showFilters && <FiltersSkeleton />}
-        
+
         {/* Stats display */}
         <div className="text-sm text-muted-foreground">
           <Skeleton className="h-4 w-40" />
@@ -58,7 +58,7 @@ function FiltersSkeleton() {
           <Skeleton className="h-4 w-16" />
         </div>
       ))}
-      
+
       {/* Optional "Show Bots" filter */}
       <div className="flex items-center space-x-2">
         <Skeleton className="h-5 w-9 rounded-full" />

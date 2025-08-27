@@ -1,19 +1,19 @@
-import type { Meta, StoryObj } from "@storybook/react";
-import { ContributorCardSkeleton } from "./contributor-card-skeleton";
+import type { Meta, StoryObj } from '@storybook/react';
+import { ContributorCardSkeleton } from './contributor-card-skeleton';
 
 const meta = {
-  title: "Skeletons/ContributorCardSkeleton",
+  title: 'Skeletons/ContributorCardSkeleton',
   component: ContributorCardSkeleton,
   parameters: {
-    layout: "centered",
+    layout: 'centered',
     docs: {
       description: {
         component:
-          "Loading skeleton component that mimics the structure of the ContributorCard while content is being loaded.",
+          'Loading skeleton component that mimics the structure of the ContributorCard while content is being loaded.',
       },
     },
   },
-  tags: ["autodocs"],
+  tags: ['autodocs'],
   decorators: [
     (Story) => (
       <div className="w-[350px] p-4">
@@ -23,16 +23,16 @@ const meta = {
   ],
   argTypes: {
     isWinner: {
-      control: "boolean",
-      description: "Whether this skeleton represents a winner card",
+      control: 'boolean',
+      description: 'Whether this skeleton represents a winner card',
     },
     showRank: {
-      control: "boolean",
-      description: "Whether to show the rank badge skeleton",
+      control: 'boolean',
+      description: 'Whether to show the rank badge skeleton',
     },
     className: {
-      control: "text",
-      description: "Additional CSS classes",
+      control: 'text',
+      description: 'Additional CSS classes',
     },
   },
 } satisfies Meta<typeof ContributorCardSkeleton>;

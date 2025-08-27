@@ -1,9 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from './popover';
+import { Popover, PopoverContent, PopoverTrigger } from './popover';
 import { Button } from './button';
 import { Input } from './input';
 import { Label } from './label';
@@ -46,42 +42,24 @@ export const Default: Story = {
         <div className="grid gap-4">
           <div className="space-y-2">
             <h4 className="font-medium leading-none">Dimensions</h4>
-            <p className="text-sm text-muted-foreground">
-              Set the dimensions for the layer.
-            </p>
+            <p className="text-sm text-muted-foreground">Set the dimensions for the layer.</p>
           </div>
           <div className="grid gap-2">
             <div className="grid grid-cols-3 items-center gap-4">
               <Label htmlFor="width">Width</Label>
-              <Input
-                id="width"
-                defaultValue="100%"
-                className="col-span-2 h-8"
-              />
+              <Input id="width" defaultValue="100%" className="col-span-2 h-8" />
             </div>
             <div className="grid grid-cols-3 items-center gap-4">
               <Label htmlFor="maxWidth">Max. width</Label>
-              <Input
-                id="maxWidth"
-                defaultValue="300px"
-                className="col-span-2 h-8"
-              />
+              <Input id="maxWidth" defaultValue="300px" className="col-span-2 h-8" />
             </div>
             <div className="grid grid-cols-3 items-center gap-4">
               <Label htmlFor="height">Height</Label>
-              <Input
-                id="height"
-                defaultValue="25px"
-                className="col-span-2 h-8"
-              />
+              <Input id="height" defaultValue="25px" className="col-span-2 h-8" />
             </div>
             <div className="grid grid-cols-3 items-center gap-4">
               <Label htmlFor="maxHeight">Max. height</Label>
-              <Input
-                id="maxHeight"
-                defaultValue="none"
-                className="col-span-2 h-8"
-              />
+              <Input id="maxHeight" defaultValue="none" className="col-span-2 h-8" />
             </div>
           </div>
         </div>
@@ -118,9 +96,7 @@ export const Settings: Story = {
         <div className="grid gap-4">
           <div className="space-y-2">
             <h4 className="font-medium leading-none">Settings</h4>
-            <p className="text-sm text-muted-foreground">
-              Configure your preferences.
-            </p>
+            <p className="text-sm text-muted-foreground">Configure your preferences.</p>
           </div>
           <div className="grid gap-4">
             <div className="flex items-center justify-between">
@@ -179,11 +155,7 @@ export const ContactForm: Story = {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="message">Message</Label>
-              <Textarea 
-                id="message" 
-                placeholder="Your message here..." 
-                rows={3}
-              />
+              <Textarea id="message" placeholder="Your message here..." rows={3} />
             </div>
             <Button size="sm" className="w-full">
               Send Message
@@ -315,9 +287,7 @@ export const UserInfo: Story = {
           <div className="grid gap-3">
             <div className="space-y-2">
               <h4 className="font-medium leading-none">Account Info</h4>
-              <p className="text-sm text-muted-foreground">
-                Manage your account settings
-              </p>
+              <p className="text-sm text-muted-foreground">Manage your account settings</p>
             </div>
             <div className="grid gap-2 text-sm">
               <div className="flex justify-between">
@@ -362,18 +332,34 @@ export const ColorPicker: Story = {
         <div className="grid gap-3">
           <div className="space-y-2">
             <h4 className="font-medium leading-none">Color Picker</h4>
-            <p className="text-sm text-muted-foreground">
-              Choose a color for your theme
-            </p>
+            <p className="text-sm text-muted-foreground">Choose a color for your theme</p>
           </div>
           <div className="grid grid-cols-8 gap-1">
             {[
-              'bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-green-500',
-              'bg-blue-500', 'bg-purple-500', 'bg-pink-500', 'bg-gray-500',
-              'bg-red-600', 'bg-orange-600', 'bg-yellow-600', 'bg-green-600',
-              'bg-blue-600', 'bg-purple-600', 'bg-pink-600', 'bg-gray-600',
-              'bg-red-300', 'bg-orange-300', 'bg-yellow-300', 'bg-green-300',
-              'bg-blue-300', 'bg-purple-300', 'bg-pink-300', 'bg-gray-300',
+              'bg-red-500',
+              'bg-orange-500',
+              'bg-yellow-500',
+              'bg-green-500',
+              'bg-blue-500',
+              'bg-purple-500',
+              'bg-pink-500',
+              'bg-gray-500',
+              'bg-red-600',
+              'bg-orange-600',
+              'bg-yellow-600',
+              'bg-green-600',
+              'bg-blue-600',
+              'bg-purple-600',
+              'bg-pink-600',
+              'bg-gray-600',
+              'bg-red-300',
+              'bg-orange-300',
+              'bg-yellow-300',
+              'bg-green-300',
+              'bg-blue-300',
+              'bg-purple-300',
+              'bg-pink-300',
+              'bg-gray-300',
             ].map((color, i) => (
               <button
                 key={i}

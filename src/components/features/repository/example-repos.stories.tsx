@@ -1,26 +1,26 @@
-import type { Meta, StoryObj } from "@storybook/react";
-import { ExampleRepos } from "./example-repos";
-import { action } from "@storybook/addon-actions";
+import type { Meta, StoryObj } from '@storybook/react';
+import { ExampleRepos } from './example-repos';
+import { action } from '@storybook/addon-actions';
 
 const meta = {
-  title: "Features/Repository/ExampleRepos",
+  title: 'Features/Repository/ExampleRepos',
   component: ExampleRepos,
   parameters: {
-    layout: "centered",
+    layout: 'centered',
     docs: {
       description: {
         component:
-          "A component that displays a list of popular example repositories as clickable buttons. Useful for providing quick access to commonly analyzed repositories."
-      }
-    }
+          'A component that displays a list of popular example repositories as clickable buttons. Useful for providing quick access to commonly analyzed repositories.',
+      },
+    },
   },
-  tags: ["autodocs"],
+  tags: ['autodocs'],
   argTypes: {
     onSelect: {
-      action: "repository-selected",
-      description: "Callback function called when a repository is selected"
-    }
-  }
+      action: 'repository-selected',
+      description: 'Callback function called when a repository is selected',
+    },
+  },
 } satisfies Meta<typeof ExampleRepos>;
 
 export default meta;
@@ -28,7 +28,7 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
   args: {
-    onSelect: action("repository-selected")
+    onSelect: action('repository-selected'),
   },
   render: (args) => (
     <div className="w-[600px] p-4">
@@ -38,18 +38,18 @@ export const Default: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Default display of popular example repositories."
-      }
-    }
-  }
+        story: 'Default display of popular example repositories.',
+      },
+    },
+  },
 };
 
 export const Interactive: Story = {
   args: {
     onSelect: (repo: string) => {
       console.log('Selected repository: %s', repo);
-      action("repository-selected")(repo);
-    }
+      action('repository-selected')(repo);
+    },
   },
   render: (args) => {
     const InteractiveExample = () => {
@@ -75,23 +75,21 @@ export const Interactive: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Interactive version that shows alerts when repositories are selected."
-      }
-    }
-  }
+        story: 'Interactive version that shows alerts when repositories are selected.',
+      },
+    },
+  },
 };
 
 export const InSearchContext: Story = {
   args: {
-    onSelect: action("repository-selected")
+    onSelect: action('repository-selected'),
   },
   render: (args) => (
     <div className="w-[600px] p-4">
       {/* Simulate search input context */}
       <div className="mb-4">
-        <label className="block text-sm font-medium mb-2">
-          Search for a repository
-        </label>
+        <label className="block text-sm font-medium mb-2">Search for a repository</label>
         <input
           type="text"
           placeholder="Search repositories (e.g., facebook/react)"
@@ -104,32 +102,30 @@ export const InSearchContext: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Example repos component shown in context with a search input field."
-      }
-    }
-  }
+        story: 'Example repos component shown in context with a search input field.',
+      },
+    },
+  },
 };
 
 export const CustomRepositories: Story = {
   args: {
-    onSelect: action("custom-repository-selected")
+    onSelect: action('custom-repository-selected'),
   },
   render: () => {
     // Create a variant with different example repositories
     const CustomExampleRepos = ({ onSelect }: { onSelect: (repo: string) => void }) => {
       const customExamples = [
-        "microsoft/vscode",
-        "nodejs/node",
-        "vercel/next.js",
-        "sveltejs/svelte",
-        "tailwindlabs/tailwindcss",
+        'microsoft/vscode',
+        'nodejs/node',
+        'vercel/next.js',
+        'sveltejs/svelte',
+        'tailwindlabs/tailwindcss',
       ];
 
       return (
         <div className="flex flex-wrap gap-2 mt-4 w-full">
-          <div className="w-full text-sm text-muted-foreground mb-1">
-            Frontend frameworks:
-          </div>
+          <div className="w-full text-sm text-muted-foreground mb-1">Frontend frameworks:</div>
           {customExamples.map((example) => (
             <button
               key={example}
@@ -145,22 +141,23 @@ export const CustomRepositories: Story = {
 
     return (
       <div className="w-[600px] p-4">
-        <CustomExampleRepos onSelect={action("custom-repository-selected")} />
+        <CustomExampleRepos onSelect={action('custom-repository-selected')} />
       </div>
     );
   },
   parameters: {
     docs: {
       description: {
-        story: "Example of how the component could be customized with different repository categories."
-      }
-    }
-  }
+        story:
+          'Example of how the component could be customized with different repository categories.',
+      },
+    },
+  },
 };
 
 export const ResponsiveLayout: Story = {
   args: {
-    onSelect: action("repository-selected")
+    onSelect: action('repository-selected'),
   },
   render: (args) => (
     <div className="w-full max-w-4xl p-4">
@@ -170,15 +167,16 @@ export const ResponsiveLayout: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Component in a responsive layout showing how buttons wrap on different screen sizes."
-      }
-    }
-  }
+        story:
+          'Component in a responsive layout showing how buttons wrap on different screen sizes.',
+      },
+    },
+  },
 };
 
 export const MobileView: Story = {
   args: {
-    onSelect: action("repository-selected")
+    onSelect: action('repository-selected'),
   },
   render: (args) => (
     <div className="w-full p-4">
@@ -187,34 +185,28 @@ export const MobileView: Story = {
   ),
   parameters: {
     viewport: {
-      defaultViewport: "mobile1"
+      defaultViewport: 'mobile1',
     },
     docs: {
       description: {
-        story: "Example repositories component on mobile devices."
-      }
-    }
-  }
+        story: 'Example repositories component on mobile devices.',
+      },
+    },
+  },
 };
 
 export const CompactView: Story = {
   args: {
-    onSelect: action("repository-selected")
+    onSelect: action('repository-selected'),
   },
   render: (args) => {
     // Simulate compact version with fewer examples
     const CompactExampleRepos = ({ onSelect }: { onSelect: (repo: string) => void }) => {
-      const compactExamples = [
-        "facebook/react",
-        "microsoft/vscode",
-        "nodejs/node"
-      ];
+      const compactExamples = ['facebook/react', 'microsoft/vscode', 'nodejs/node'];
 
       return (
         <div className="flex flex-wrap gap-2 mt-4 w-full">
-          <div className="w-full text-sm text-muted-foreground mb-1">
-            Quick examples:
-          </div>
+          <div className="w-full text-sm text-muted-foreground mb-1">Quick examples:</div>
           {compactExamples.map((example) => (
             <button
               key={example}
@@ -237,15 +229,15 @@ export const CompactView: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Compact version with fewer example repositories for smaller spaces."
-      }
-    }
-  }
+        story: 'Compact version with fewer example repositories for smaller spaces.',
+      },
+    },
+  },
 };
 
 export const WithLoadingState: Story = {
   args: {
-    onSelect: action("repository-selected")
+    onSelect: action('repository-selected'),
   },
   render: (args) => {
     const LoadingStateExample = () => {
@@ -272,8 +264,8 @@ export const WithLoadingState: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Example showing how the component works in a realistic application context."
-      }
-    }
-  }
+        story: 'Example showing how the component works in a realistic application context.',
+      },
+    },
+  },
 };

@@ -12,7 +12,7 @@ export const handler: Handler = async (event) => {
       statusCode: 405,
       headers: {
         ...headers,
-        'Allow': 'GET',
+        Allow: 'GET',
       },
       body: JSON.stringify({ error: 'Method not allowed' }),
     };
@@ -28,7 +28,7 @@ export const handler: Handler = async (event) => {
   }
 
   const apiKey = process.env.GH_DATPIPE_KEY;
-  
+
   if (!apiKey) {
     console.error('[backfill-events-proxy] No GH_DATPIPE_KEY configured');
     return {
@@ -39,18 +39,17 @@ export const handler: Handler = async (event) => {
   }
 
   try {
-    
     // Since Netlify Functions don't support streaming responses directly,
     // we'll return a redirect to a polling endpoint instead
     // This is a limitation of Netlify Functions
-    
+
     // For now, return an error indicating SSE is not supported
     return {
       statusCode: 501,
       headers,
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         error: 'Server-Sent Events not supported in Netlify Functions',
-        message: 'Please use polling endpoint /api/backfill/status/:jobId instead'
+        message: 'Please use polling endpoint /api/backfill/status/:jobId instead',
       }),
     };
   } catch (error) {

@@ -17,10 +17,10 @@ export { classifyRepositorySize, classifySingleRepository } from './classify-rep
 export { generateEmbeddings, batchGenerateEmbeddings } from './generate-embeddings';
 
 // Workspace metrics aggregation
-export { 
+export {
   aggregateWorkspaceMetrics,
   scheduledWorkspaceAggregation,
   handleWorkspaceRepositoryChange,
   cleanupWorkspaceMetricsData,
-  workspaceMetricsFunctions
+  workspaceMetricsFunctions,
 } from './aggregate-workspace-metrics';

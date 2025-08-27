@@ -1,5 +1,13 @@
-import { useState, useEffect } from 'react'
-import { Shield, Search, RefreshCw, Play, CheckCircle, AlertTriangle, BarChart3 } from '@/components/ui/icon';
+import { useState, useEffect } from 'react';
+import {
+  Shield,
+  Search,
+  RefreshCw,
+  Play,
+  CheckCircle,
+  AlertTriangle,
+  BarChart3,
+} from '@/components/ui/icon';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -7,15 +15,15 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@/components/ui/table';
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -57,7 +65,9 @@ export function BulkSpamAnalysis() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'analyzed' | 'partial'>('all');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'analyzed' | 'partial'>(
+    'all'
+  );
   const [bulkJobs, setBulkJobs] = useState<BulkAnalysisJob[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [systemProgress, setSystemProgress] = useState(0);
@@ -80,7 +90,8 @@ export function BulkSpamAnalysis() {
       // Get repository stats with PR analysis data
       const { data: repoData, error: repoError } = await supabase
         .from('repositories')
-        .select(`
+        .select(
+          `
           id,
           owner,
           name,
@@ -91,7 +102,8 @@ export function BulkSpamAnalysis() {
             is_spam,
             spam_detected_at
           )
-        `)
+        `
+        )
         .order('full_name');
 
       if (repoError) {
@@ -104,24 +116,29 @@ export function BulkSpamAnalysis() {
       }
 
       // Calculate stats for each repository
-      const stats: RepositoryStats[] = repoData.map(repo => {
+      const stats: RepositoryStats[] = repoData.map((repo) => {
         const totalPrs = repo.pull_requests?.length || 0;
-        const analyzedPrs = repo.pull_requests?.filter(pr => pr.spam_score !== null).length || 0;
+        const analyzedPrs = repo.pull_requests?.filter((pr) => pr.spam_score !== null).length || 0;
         const pendingPrs = totalPrs - analyzedPrs;
-        const spamPrs = repo.pull_requests?.filter(pr => pr.is_spam).length || 0;
+        const spamPrs = repo.pull_requests?.filter((pr) => pr.is_spam).length || 0;
         const analysisProgress = totalPrs > 0 ? (analyzedPrs / totalPrs) * 100 : 0;
-        
+
         // Calculate average spam score for analyzed PRs
-        const analyzedPRsWithScores = repo.pull_requests?.filter(pr => pr.spam_score !== null) || [];
-        const avgSpamScore = analyzedPRsWithScores.length > 0 
-          ? analyzedPRsWithScores.reduce((sum, pr) => sum + (pr.spam_score || 0), 0) / analyzedPRsWithScores.length
-          : undefined;
+        const analyzedPRsWithScores =
+          repo.pull_requests?.filter((pr) => pr.spam_score !== null) || [];
+        const avgSpamScore =
+          analyzedPRsWithScores.length > 0
+            ? analyzedPRsWithScores.reduce((sum, pr) => sum + (pr.spam_score || 0), 0) /
+              analyzedPRsWithScores.length
+            : undefined;
 
         // Find most recent analysis date
         const lastAnalyzedAt = repo.pull_requests
-          ?.filter(pr => pr.spam_detected_at)
-          ?.sort((a, b) => new Date(b.spam_detected_at!).getTime() - new Date(a.spam_detected_at!).getTime())[0]
-          ?.spam_detected_at;
+          ?.filter((pr) => pr.spam_detected_at)
+          ?.sort(
+            (a, b) =>
+              new Date(b.spam_detected_at!).getTime() - new Date(a.spam_detected_at!).getTime()
+          )[0]?.spam_detected_at;
 
         return {
           id: repo.id,
@@ -134,7 +151,7 @@ export function BulkSpamAnalysis() {
           spam_prs: spamPrs,
           analysis_progress: Math.round(analysisProgress),
           last_analyzed_at: lastAnalyzedAt,
-          avg_spam_score: avgSpamScore ? Math.round(avgSpamScore) : undefined
+          avg_spam_score: avgSpamScore ? Math.round(avgSpamScore) : undefined,
         };
       });
 
@@ -148,13 +165,13 @@ export function BulkSpamAnalysis() {
   };
 
   const filterRepositories = () => {
-    let filtered = repositories.filter(repo => {
-      const matchesSearch = 
+    const filtered = repositories.filter((repo) => {
+      const matchesSearch =
         repo.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         repo.owner.toLowerCase().includes(searchTerm.toLowerCase()) ||
         repo.name.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchesStatus = 
+      const matchesStatus =
         filterStatus === 'all' ||
         (filterStatus === 'pending' && repo.pending_prs > 0) ||
         (filterStatus === 'analyzed' && repo.analysis_progress === 100) ||
@@ -168,12 +185,16 @@ export function BulkSpamAnalysis() {
     setFilteredRepos(filtered);
   };
 
-  const analyzeRepository = async (repositoryId: string, repositoryName: string, forceRecheck = false) => {
+  const analyzeRepository = async (
+    repositoryId: string,
+    repositoryName: string,
+    forceRecheck = false
+  ) => {
     if (!adminGitHubId) {
       toast({
-        title: "Authentication required",
-        description: "Admin authentication required to run analysis",
-        variant: "destructive"
+        title: 'Authentication required',
+        description: 'Admin authentication required to run analysis',
+        variant: 'destructive',
       });
       return;
     }
@@ -187,23 +208,26 @@ export function BulkSpamAnalysis() {
         processed: 0,
         total: 0,
         errors: 0,
-        started_at: new Date().toISOString()
+        started_at: new Date().toISOString(),
       };
-      setBulkJobs(prev => [...prev, newJob]);
+      setBulkJobs((prev) => [...prev, newJob]);
 
       // Call spam detection function
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/spam-detection`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          repository_id: repositoryId,
-          limit: 1000, // Process up to 1000 PRs per repository
-          force_recheck: forceRecheck
-        })
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/spam-detection`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            repository_id: repositoryId,
+            limit: 1000, // Process up to 1000 PRs per repository
+            force_recheck: forceRecheck,
+          }),
+        }
+      );
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -213,62 +237,59 @@ export function BulkSpamAnalysis() {
       const result = await response.json();
 
       // Update job status
-      setBulkJobs(prev => prev.map(job => 
-        job.repository_id === repositoryId 
-          ? {
-              ...job,
-              status: 'completed',
-              processed: result.processed || 0,
-              errors: result.errors || 0,
-              completed_at: new Date().toISOString()
-            }
-          : job
-      ));
-
-      // Log admin action
-      await logAdminAction(
-        adminGitHubId,
-        'bulk_spam_analysis',
-        'repository',
-        repositoryId,
-        {
-          repository_name: repositoryName,
-          processed: result.processed,
-          errors: result.errors,
-          stats: result.stats,
-          force_recheck: forceRecheck
-        }
+      setBulkJobs((prev) =>
+        prev.map((job) =>
+          job.repository_id === repositoryId
+            ? {
+                ...job,
+                status: 'completed',
+                processed: result.processed || 0,
+                errors: result.errors || 0,
+                completed_at: new Date().toISOString(),
+              }
+            : job
+        )
       );
 
+      // Log admin action
+      await logAdminAction(adminGitHubId, 'bulk_spam_analysis', 'repository', repositoryId, {
+        repository_name: repositoryName,
+        processed: result.processed,
+        errors: result.errors,
+        stats: result.stats,
+        force_recheck: forceRecheck,
+      });
+
       toast({
-        title: "Analysis completed",
+        title: 'Analysis completed',
         description: `${repositoryName}: Analyzed ${result.processed} PRs, ${result.errors} errors`,
-        variant: "default"
+        variant: 'default',
       });
 
       // Refresh repository stats
       await fetchRepositoryStats();
-
     } catch (err) {
       console.error('Error analyzing repository:', err);
       const errorMessage = err instanceof Error ? err.message : 'Analysis failed';
 
       // Update job status to failed
-      setBulkJobs(prev => prev.map(job => 
-        job.repository_id === repositoryId 
-          ? {
-              ...job,
-              status: 'failed',
-              error_message: errorMessage,
-              completed_at: new Date().toISOString()
-            }
-          : job
-      ));
+      setBulkJobs((prev) =>
+        prev.map((job) =>
+          job.repository_id === repositoryId
+            ? {
+                ...job,
+                status: 'failed',
+                error_message: errorMessage,
+                completed_at: new Date().toISOString(),
+              }
+            : job
+        )
+      );
 
       toast({
-        title: "Analysis failed",
+        title: 'Analysis failed',
         description: `${repositoryName}: ${errorMessage}`,
-        variant: "destructive"
+        variant: 'destructive',
       });
     }
   };
@@ -276,18 +297,18 @@ export function BulkSpamAnalysis() {
   const analyzeAllRepositories = async () => {
     if (!adminGitHubId) {
       toast({
-        title: "Authentication required",
-        description: "Admin authentication required to run bulk analysis",
-        variant: "destructive"
+        title: 'Authentication required',
+        description: 'Admin authentication required to run bulk analysis',
+        variant: 'destructive',
       });
       return;
     }
 
     if (systemStats.pendingPrs === 0) {
       toast({
-        title: "No PRs to analyze",
-        description: "All PRs are already analyzed",
-        variant: "default"
+        title: 'No PRs to analyze',
+        description: 'All PRs are already analyzed',
+        variant: 'default',
       });
       return;
     }
@@ -297,18 +318,21 @@ export function BulkSpamAnalysis() {
 
     try {
       // Use the new analyze_all endpoint
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/spam-detection`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          analyze_all: true,
-          limit: 1000, // Process up to 1000 PRs per repository
-          force_recheck: false
-        })
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/spam-detection`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            analyze_all: true,
+            limit: 1000, // Process up to 1000 PRs per repository
+            force_recheck: false,
+          }),
+        }
+      );
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -318,18 +342,12 @@ export function BulkSpamAnalysis() {
       const result = await response.json();
 
       // Log admin action
-      await logAdminAction(
-        adminGitHubId,
-        'bulk_spam_analysis_all',
-        'system',
-        'all_repositories',
-        {
-          total_repositories: result.total_repositories,
-          total_processed: result.total_processed,
-          total_errors: result.total_errors,
-          overall_stats: result.overall_stats
-        }
-      );
+      await logAdminAction(adminGitHubId, 'bulk_spam_analysis_all', 'system', 'all_repositories', {
+        total_repositories: result.total_repositories,
+        total_processed: result.total_processed,
+        total_errors: result.total_errors,
+        overall_stats: result.overall_stats,
+      });
 
       // Update bulk jobs with detailed results
       if (result.results) {
@@ -342,15 +360,15 @@ export function BulkSpamAnalysis() {
           errors: repoResult.errors || 0,
           started_at: new Date().toISOString(),
           completed_at: new Date().toISOString(),
-          error_message: repoResult.error
+          error_message: repoResult.error,
         }));
-        setBulkJobs(prev => [...prev, ...newJobs]);
+        setBulkJobs((prev) => [...prev, ...newJobs]);
       }
 
       toast({
-        title: "Bulk analysis completed",
+        title: 'Bulk analysis completed',
         description: `Analyzed ${result.total_repositories} repositories, processed ${result.total_processed} PRs, ${result.total_errors} errors`,
-        variant: "default"
+        variant: 'default',
       });
 
       // Set progress to 100%
@@ -360,13 +378,12 @@ export function BulkSpamAnalysis() {
       setTimeout(() => {
         fetchRepositoryStats();
       }, 1000);
-
     } catch (err) {
       console.error('Error in bulk analysis:', err);
       toast({
-        title: "Bulk analysis failed",
+        title: 'Bulk analysis failed',
         description: err instanceof Error ? err.message : 'Bulk analysis failed',
-        variant: "destructive"
+        variant: 'destructive',
       });
     } finally {
       setTimeout(() => {
@@ -377,17 +394,17 @@ export function BulkSpamAnalysis() {
   };
 
   const getProgressBadgeVariant = (progress: number) => {
-    if (progress === 100) return "default";
-    if (progress >= 50) return "secondary";
-    if (progress > 0) return "outline";
-    return "destructive";
+    if (progress === 100) return 'default';
+    if (progress >= 50) return 'secondary';
+    if (progress > 0) return 'outline';
+    return 'destructive';
   };
 
   const getSpamScoreBadgeVariant = (score?: number) => {
-    if (!score) return "outline";
-    if (score >= 75) return "destructive";
-    if (score >= 50) return "secondary";
-    return "default";
+    if (!score) return 'outline';
+    if (score >= 75) return 'destructive';
+    if (score >= 50) return 'secondary';
+    return 'default';
   };
 
   // Calculate system-wide stats
@@ -397,9 +414,13 @@ export function BulkSpamAnalysis() {
     analyzedPrs: repositories.reduce((sum, repo) => sum + repo.analyzed_prs, 0),
     pendingPrs: repositories.reduce((sum, repo) => sum + repo.pending_prs, 0),
     spamPrs: repositories.reduce((sum, repo) => sum + repo.spam_prs, 0),
-    avgProgress: repositories.length > 0 
-      ? Math.round(repositories.reduce((sum, repo) => sum + repo.analysis_progress, 0) / repositories.length)
-      : 0
+    avgProgress:
+      repositories.length > 0
+        ? Math.round(
+            repositories.reduce((sum, repo) => sum + repo.analysis_progress, 0) /
+              repositories.length
+          )
+        : 0,
   };
 
   if (loading) {
@@ -501,7 +522,7 @@ export function BulkSpamAnalysis() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-4">
-            <Button 
+            <Button
               onClick={analyzeAllRepositories}
               disabled={isAnalyzing || systemStats.pendingPrs === 0}
               size="lg"
@@ -512,14 +533,16 @@ export function BulkSpamAnalysis() {
               ) : (
                 <Play className="h-4 w-4 mr-2" />
               )}
-              {isAnalyzing ? 'Analyzing...' : `Analyze All (${systemStats.pendingPrs.toLocaleString()} pending PRs)`}
+              {isAnalyzing
+                ? 'Analyzing...'
+                : `Analyze All (${systemStats.pendingPrs.toLocaleString()} pending PRs)`}
             </Button>
             <Button onClick={fetchRepositoryStats} variant="outline">
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh Stats
             </Button>
           </div>
-          
+
           {isAnalyzing && (
             <div className="mt-4">
               <div className="flex items-center gap-2 mb-2">
@@ -672,30 +695,40 @@ export function BulkSpamAnalysis() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {bulkJobs.slice(-5).reverse().map((job, index) => (
-                <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
-                    <span className="font-medium">{job.repository_name}</span>
-                    {job.status === 'completed' && (
-                      <span className="text-sm text-muted-foreground ml-2">
-                        Processed: {job.processed}, Errors: {job.errors}
-                      </span>
-                    )}
-                    {job.error_message && (
-                      <div className="text-sm text-red-600">{job.error_message}</div>
-                    )}
-                  </div>
-                  <Badge 
-                    variant={
-                      job.status === 'completed' ? 'default' :
-                      job.status === 'running' ? 'secondary' :
-                      job.status === 'failed' ? 'destructive' : 'outline'
-                    }
+              {bulkJobs
+                .slice(-5)
+                .reverse()
+                .map((job, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-3 border rounded-lg"
                   >
-                    {job.status}
-                  </Badge>
-                </div>
-              ))}
+                    <div>
+                      <span className="font-medium">{job.repository_name}</span>
+                      {job.status === 'completed' && (
+                        <span className="text-sm text-muted-foreground ml-2">
+                          Processed: {job.processed}, Errors: {job.errors}
+                        </span>
+                      )}
+                      {job.error_message && (
+                        <div className="text-sm text-red-600">{job.error_message}</div>
+                      )}
+                    </div>
+                    <Badge
+                      variant={
+                        job.status === 'completed'
+                          ? 'default'
+                          : job.status === 'running'
+                            ? 'secondary'
+                            : job.status === 'failed'
+                              ? 'destructive'
+                              : 'outline'
+                      }
+                    >
+                      {job.status}
+                    </Badge>
+                  </div>
+                ))}
             </div>
           </CardContent>
         </Card>

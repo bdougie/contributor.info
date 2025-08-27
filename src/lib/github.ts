@@ -80,17 +80,22 @@ interface GitHubCommit {
   };
 }
 
-export async function searchGitHubRepositories(query: string, limit: number = 10): Promise<GitHubRepository[]> {
+export async function searchGitHubRepositories(
+  query: string,
+  limit: number = 10
+): Promise<GitHubRepository[]> {
   if (!query.trim()) {
     return [];
   }
 
   const headers: HeadersInit = {
-    'Accept': 'application/vnd.github.v3+json',
+    Accept: 'application/vnd.github.v3+json',
   };
 
   // Try to get user's GitHub token from Supabase session
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
   const userToken = session?.provider_token;
 
   // Use user's token if available, otherwise fall back to env token
@@ -107,51 +112,55 @@ export async function searchGitHubRepositories(query: string, limit: number = 10
         'github.search_query': query,
         'github.search_limit': limit,
         'github.has_token': !!token,
-        'github.token_type': userToken ? 'user' : 'app'
-      }
+        'github.token_type': userToken ? 'user' : 'app',
+      },
     },
     async (span) => {
       try {
-    // Use GitHub search API to find repositories
-    const searchQuery = encodeURIComponent(`${query} in:name,description fork:true`);
-    const response = await fetch(
-      `${GITHUB_API_BASE}/search/repositories?q=${searchQuery}&sort=stars&order=desc&per_page=${Math.min(limit, 100)}`,
-      { headers }
-    );
+        // Use GitHub search API to find repositories
+        const searchQuery = encodeURIComponent(`${query} in:name,description fork:true`);
+        const response = await fetch(
+          `${GITHUB_API_BASE}/search/repositories?q=${searchQuery}&sort=stars&order=desc&per_page=${Math.min(limit, 100)}`,
+          { headers }
+        );
 
         if (!response.ok) {
           const error = await response.json();
           if (response.status === 403 && error.message?.includes('rate limit')) {
             // Track rate limiting
             const rateLimitReset = response.headers.get('X-RateLimit-Reset');
-            const resetTime = rateLimitReset ? new Date(parseInt(rateLimitReset) * 1000) : undefined;
-            
+            const resetTime = rateLimitReset
+              ? new Date(parseInt(rateLimitReset) * 1000)
+              : undefined;
+
             trackRateLimit('github', 'search/repositories', undefined, resetTime);
-            
+
             span.setAttributes({
               'http.status_code': 403,
-              'error.type': 'rate_limit'
+              'error.type': 'rate_limit',
             });
-            
+
             if (!token) {
-              throw new Error('GitHub API rate limit exceeded. Please log in to continue searching.');
+              throw new Error(
+                'GitHub API rate limit exceeded. Please log in to continue searching.'
+              );
             }
             throw new Error('GitHub API rate limit exceeded. Please try again later.');
           }
-          
+
           span.setAttributes({
             'http.status_code': response.status,
-            'error.type': 'api_error'
+            'error.type': 'api_error',
           });
           throw new Error(`GitHub API error: ${error.message || response.statusText}`);
         }
 
         const data = await response.json();
         const results = data.items || [];
-        
+
         span.setAttributes({
           'github.results_count': results.length,
-          'github.success': true
+          'github.success': true,
         });
 
         // Simple logging without analytics
@@ -161,7 +170,7 @@ export async function searchGitHubRepositories(query: string, limit: number = 10
       } catch (error) {
         span.setAttributes({
           'github.success': false,
-          'error.type': error instanceof Error ? error.constructor.name : 'Unknown'
+          'error.type': error instanceof Error ? error.constructor.name : 'Unknown',
         });
 
         // Simple error logging without analytics
@@ -175,12 +184,12 @@ export async function searchGitHubRepositories(query: string, limit: number = 10
 }
 
 // Export the fetchUserOrganizations function to fix the missing export error
-export async function fetchUserOrganizations(username: string, headers: HeadersInit): Promise<{ login: string; avatar_url: string; }[]> {
+export async function fetchUserOrganizations(
+  username: string,
+  headers: HeadersInit
+): Promise<{ login: string; avatar_url: string }[]> {
   try {
-    const response = await fetch(
-      `${GITHUB_API_BASE}/users/${username}/orgs`,
-      { headers }
-    );
+    const response = await fetch(`${GITHUB_API_BASE}/users/${username}/orgs`, { headers });
 
     if (!response.ok) {
       return [];
@@ -213,16 +222,21 @@ async function fetchPRReviews(owner: string, repo: string, prNumber: number, hea
       state: review.state,
       user: {
         login: review.user.login,
-        avatar_url: review.user.avatar_url
+        avatar_url: review.user.avatar_url,
       },
-      submitted_at: review.submitted_at
+      submitted_at: review.submitted_at,
     }));
   } catch (error) {
     return [];
   }
 }
 
-async function fetchPRComments(owner: string, repo: string, prNumber: number, headers: HeadersInit) {
+async function fetchPRComments(
+  owner: string,
+  repo: string,
+  prNumber: number,
+  headers: HeadersInit
+) {
   try {
     const response = await fetch(
       `${GITHUB_API_BASE}/repos/${owner}/${repo}/issues/${prNumber}/comments`,
@@ -238,22 +252,29 @@ async function fetchPRComments(owner: string, repo: string, prNumber: number, he
       id: comment.id,
       user: {
         login: comment.user.login,
-        avatar_url: comment.user.avatar_url
+        avatar_url: comment.user.avatar_url,
       },
-      created_at: comment.created_at
+      created_at: comment.created_at,
     }));
   } catch (error) {
     return [];
   }
 }
 
-export async function fetchPullRequests(owner: string, repo: string, timeRange: string = '30', limit?: number): Promise<PullRequest[]> {
+export async function fetchPullRequests(
+  owner: string,
+  repo: string,
+  timeRange: string = '30',
+  limit?: number
+): Promise<PullRequest[]> {
   const headers: HeadersInit = {
-    'Accept': 'application/vnd.github.v3+json',
+    Accept: 'application/vnd.github.v3+json',
   };
 
   // Try to get user's GitHub token from Supabase session
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
   const userToken = session?.provider_token;
 
   // Use user's token if available, otherwise fall back to env token
@@ -271,201 +292,203 @@ export async function fetchPullRequests(owner: string, repo: string, timeRange: 
         'github.repo': repo,
         'github.time_range': timeRange,
         'github.has_token': !!token,
-        'github.token_type': userToken ? 'user' : 'app'
-      }
+        'github.token_type': userToken ? 'user' : 'app',
+      },
     },
     async (span) => {
       try {
-    // Calculate date range based on timeRange parameter
-    const since = new Date();
-    since.setDate(since.getDate() - parseInt(timeRange));
-    
-    // Fetch multiple pages of PRs to ensure we get all recent ones
-    let allPRs: PullRequest[] = [];
-    let page = 1;
-    const perPage = 100;
-    
-    while (page <= 10) { // Limit to 10 pages (1000 PRs) for very active repositories
-      // Check if we've reached the limit
-      if (limit !== undefined && allPRs.length >= limit) {
-        break;
-      }
-      // In test environment, use direct fetch to maintain test compatibility
-      if (NODE_ENV === 'test' || process.env.VITEST) {
-        const response = await fetch(
-          `${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls?state=all&sort=updated&direction=desc&per_page=${perPage}&page=${page}`,
-          { headers }
-        );
-        
-        if (!response.ok) {
-          if (page === 1) {
-            if (response.status === 404) {
-              span.setAttributes({
-                'http.status_code': 404,
-                'error.type': 'repository_not_found'
-              });
-              throw new Error(`Repository "${owner}/${repo}" not found. Please check if the repository exists and is public.`);
-            }
-            throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
-          }
-          break; // Stop fetching if later pages fail
-        }
-        
-        const prs = await response.json();
-        
-        // If we have a limit, only take what we need
-        if (limit && allPRs.length + prs.length > limit) {
-          const remaining = limit - allPRs.length;
-          allPRs.push(...prs.slice(0, remaining));
-          break;
-        } else {
-          allPRs.push(...prs);
-        }
-        
-        // If we got less than a full page, we're done
-        if (prs.length < perPage) {
-          break;
-        }
-        
-        // Check if all PRs are too old to be relevant
-        const oldestPRDate = new Date(prs[prs.length - 1].updated_at);
-        if (oldestPRDate < since) {
-          break; // No point in fetching older PRs
-        }
-      } else {
-        // Production: Use enhanced API request with retry logic and 503 handling
-        try {
-          const { data: prs, rateLimitInfo } = await githubApiRequest<any[]>(
-            `${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls?state=all&sort=updated&direction=desc&per_page=${perPage}&page=${page}`,
-            { headers }
-          );
-          
-          // Handle case where API request failed or returned invalid data
-          if (!prs || !Array.isArray(prs)) {
-            if (page === 1) {
-              span.setAttributes({
-                'http.status_code': 404,
-                'error.type': 'repository_not_found'
-              });
-              throw new Error(`Repository "${owner}/${repo}" not found. Please check if the repository exists and is public.`);
-            }
-            break; // Stop fetching if later pages fail
-          }
-          
-          // Track rate limit info if available
-          if (rateLimitInfo) {
-            span.setAttributes({
-              'github.rate_limit.remaining': rateLimitInfo.remaining,
-              'github.rate_limit.limit': rateLimitInfo.limit
-            });
-          }
-          
-          // If we have a limit, only take what we need
-          if (limit && allPRs.length + prs.length > limit) {
-            const remaining = limit - allPRs.length;
-            allPRs.push(...prs.slice(0, remaining));
-            break;
-          } else {
-            allPRs.push(...prs);
-          }
-          
-          // If we got less than a full page, we're done
-          if (prs.length < perPage) {
+        // Calculate date range based on timeRange parameter
+        const since = new Date();
+        since.setDate(since.getDate() - parseInt(timeRange));
+
+        // Fetch multiple pages of PRs to ensure we get all recent ones
+        const allPRs: PullRequest[] = [];
+        let page = 1;
+        const perPage = 100;
+
+        while (page <= 10) {
+          // Limit to 10 pages (1000 PRs) for very active repositories
+          // Check if we've reached the limit
+          if (limit !== undefined && allPRs.length >= limit) {
             break;
           }
-          
-          // Check if all PRs are too old to be relevant
-          if (prs.length > 0) {
+          // In test environment, use direct fetch to maintain test compatibility
+          if (NODE_ENV === 'test' || process.env.VITEST) {
+            const response = await fetch(
+              `${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls?state=all&sort=updated&direction=desc&per_page=${perPage}&page=${page}`,
+              { headers }
+            );
+
+            if (!response.ok) {
+              if (page === 1) {
+                if (response.status === 404) {
+                  span.setAttributes({
+                    'http.status_code': 404,
+                    'error.type': 'repository_not_found',
+                  });
+                  throw new Error(
+                    `Repository "${owner}/${repo}" not found. Please check if the repository exists and is public.`
+                  );
+                }
+                throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
+              }
+              break; // Stop fetching if later pages fail
+            }
+
+            const prs = await response.json();
+
+            // If we have a limit, only take what we need
+            if (limit && allPRs.length + prs.length > limit) {
+              const remaining = limit - allPRs.length;
+              allPRs.push(...prs.slice(0, remaining));
+              break;
+            } else {
+              allPRs.push(...prs);
+            }
+
+            // If we got less than a full page, we're done
+            if (prs.length < perPage) {
+              break;
+            }
+
+            // Check if all PRs are too old to be relevant
             const oldestPRDate = new Date(prs[prs.length - 1].updated_at);
             if (oldestPRDate < since) {
               break; // No point in fetching older PRs
             }
-          }
-        } catch (error) {
-          // If this is the first page and we get an error, it's likely a 404 or auth issue
-          if (page === 1) {
-            throw error; // Re-throw the error for proper handling
-          }
-          // For subsequent pages, just stop fetching
-          break;
-        }
-      }
-      
-      page++;
-    }
-    
-    // Filter PRs by the time range
-    const filteredPRs = allPRs.filter((pr: any) => {
-      const prDate = new Date(pr.updated_at);
-      return prDate >= since;
-    });
+          } else {
+            // Production: Use enhanced API request with retry logic and 503 handling
+            try {
+              const { data: prs, rateLimitInfo } = await githubApiRequest<any[]>(
+                `${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls?state=all&sort=updated&direction=desc&per_page=${perPage}&page=${page}`,
+                { headers }
+              );
 
-    
-    // Fetch additional details for each PR to get additions/deletions
-    const detailedPRs = await Promise.all(
-      filteredPRs.map(async (pr: any) => {
-        const detailsResponse = await fetch(
-          `${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls/${pr.number}`,
-          { headers }
+              // Handle case where API request failed or returned invalid data
+              if (!prs || !Array.isArray(prs)) {
+                if (page === 1) {
+                  span.setAttributes({
+                    'http.status_code': 404,
+                    'error.type': 'repository_not_found',
+                  });
+                  throw new Error(
+                    `Repository "${owner}/${repo}" not found. Please check if the repository exists and is public.`
+                  );
+                }
+                break; // Stop fetching if later pages fail
+              }
+
+              // Track rate limit info if available
+              if (rateLimitInfo) {
+                span.setAttributes({
+                  'github.rate_limit.remaining': rateLimitInfo.remaining,
+                  'github.rate_limit.limit': rateLimitInfo.limit,
+                });
+              }
+
+              // If we have a limit, only take what we need
+              if (limit && allPRs.length + prs.length > limit) {
+                const remaining = limit - allPRs.length;
+                allPRs.push(...prs.slice(0, remaining));
+                break;
+              } else {
+                allPRs.push(...prs);
+              }
+
+              // If we got less than a full page, we're done
+              if (prs.length < perPage) {
+                break;
+              }
+
+              // Check if all PRs are too old to be relevant
+              if (prs.length > 0) {
+                const oldestPRDate = new Date(prs[prs.length - 1].updated_at);
+                if (oldestPRDate < since) {
+                  break; // No point in fetching older PRs
+                }
+              }
+            } catch (error) {
+              // If this is the first page and we get an error, it's likely a 404 or auth issue
+              if (page === 1) {
+                throw error; // Re-throw the error for proper handling
+              }
+              // For subsequent pages, just stop fetching
+              break;
+            }
+          }
+
+          page++;
+        }
+
+        // Filter PRs by the time range
+        const filteredPRs = allPRs.filter((pr: any) => {
+          const prDate = new Date(pr.updated_at);
+          return prDate >= since;
+        });
+
+        // Fetch additional details for each PR to get additions/deletions
+        const detailedPRs = await Promise.all(
+          filteredPRs.map(async (pr: any) => {
+            const detailsResponse = await fetch(
+              `${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls/${pr.number}`,
+              { headers }
+            );
+
+            if (!detailsResponse.ok) {
+              return {
+                ...pr,
+                additions: 0,
+                deletions: 0,
+              };
+            }
+
+            const details = await detailsResponse.json();
+
+            // Fetch user's organizations
+            const organizations = await fetchUserOrganizations(pr.user.login, headers);
+
+            // Fetch PR reviews and comments (in parallel)
+            const [reviews, comments] = await Promise.all([
+              fetchPRReviews(owner, repo, pr.number, headers),
+              fetchPRComments(owner, repo, pr.number, headers),
+            ]);
+
+            // Check if user is a bot by their type or by checking if name contains [bot]
+            const isBot = pr.user.type === 'Bot' || pr.user.login.includes('[bot]');
+
+            return {
+              id: pr.id,
+              number: pr.number,
+              title: pr.title,
+              state: pr.state,
+              created_at: pr.created_at,
+              updated_at: pr.updated_at,
+              merged_at: pr.merged_at,
+              closed_at: pr.closed_at,
+              additions: details.additions,
+              deletions: details.deletions,
+              changed_files: details.changed_files,
+              repository_owner: owner,
+              repository_name: repo,
+              html_url: pr.html_url,
+              user: {
+                id: pr.user.id,
+                login: pr.user.login,
+                avatar_url: pr.user.avatar_url,
+                type: isBot ? 'Bot' : 'User',
+              },
+              organizations,
+              reviews,
+              comments,
+            };
+          })
         );
-
-        if (!detailsResponse.ok) {
-          return {
-            ...pr,
-            additions: 0,
-            deletions: 0,
-          };
-        }
-
-        const details = await detailsResponse.json();
-        
-        // Fetch user's organizations
-        const organizations = await fetchUserOrganizations(pr.user.login, headers);
-        
-        // Fetch PR reviews and comments (in parallel)
-        const [reviews, comments] = await Promise.all([
-          fetchPRReviews(owner, repo, pr.number, headers),
-          fetchPRComments(owner, repo, pr.number, headers)
-        ]);
-        
-        // Check if user is a bot by their type or by checking if name contains [bot]
-        const isBot = 
-          pr.user.type === 'Bot' || 
-          pr.user.login.includes('[bot]');
-        
-        return {
-          id: pr.id,
-          number: pr.number,
-          title: pr.title,
-          state: pr.state,
-          created_at: pr.created_at,
-          updated_at: pr.updated_at,
-          merged_at: pr.merged_at,
-          closed_at: pr.closed_at,
-          additions: details.additions,
-          deletions: details.deletions,
-          changed_files: details.changed_files,
-          repository_owner: owner,
-          repository_name: repo,
-          html_url: pr.html_url,
-          user: {
-            id: pr.user.id,
-            login: pr.user.login,
-            avatar_url: pr.user.avatar_url,
-            type: isBot ? 'Bot' : 'User',
-          },
-          organizations,
-          reviews,
-          comments
-        };
-      })
-    );
 
         // Track successful completion
         span.setAttributes({
           'github.prs_fetched': detailedPRs.length,
           'github.pages_fetched': page - 1,
-          'github.success': true
+          'github.success': true,
         });
 
         // Simple logging without analytics
@@ -475,7 +498,7 @@ export async function fetchPullRequests(owner: string, repo: string, timeRange: 
       } catch (error) {
         span.setAttributes({
           'github.success': false,
-          'error.type': error instanceof Error ? error.constructor.name : 'Unknown'
+          'error.type': error instanceof Error ? error.constructor.name : 'Unknown',
         });
 
         // Simple error logging without analytics
@@ -490,7 +513,10 @@ export async function fetchPullRequests(owner: string, repo: string, timeRange: 
   );
 }
 
-export async function fetchRepositoryInfo(owner: string, repo: string): Promise<{
+export async function fetchRepositoryInfo(
+  owner: string,
+  repo: string
+): Promise<{
   id: number;
   name: string;
   full_name: string;
@@ -509,11 +535,13 @@ export async function fetchRepositoryInfo(owner: string, repo: string): Promise<
   private: boolean;
 } | null> {
   const headers: HeadersInit = {
-    'Accept': 'application/vnd.github.v3+json',
+    Accept: 'application/vnd.github.v3+json',
   };
 
   // Try to get user's GitHub token from Supabase session
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
   const userToken = session?.provider_token;
 
   // Use user's token if available, otherwise fall back to env token
@@ -523,10 +551,7 @@ export async function fetchRepositoryInfo(owner: string, repo: string): Promise<
   }
 
   try {
-    const response = await fetch(
-      `${GITHUB_API_BASE}/repos/${owner}/${repo}`,
-      { headers }
-    );
+    const response = await fetch(`${GITHUB_API_BASE}/repos/${owner}/${repo}`, { headers });
 
     if (!response.ok) {
       if (response.status === 404) {
@@ -560,16 +585,24 @@ export async function fetchRepositoryInfo(owner: string, repo: string): Promise<
   }
 }
 
-export async function fetchRepositoryStargazers(owner: string, repo: string, limit: number = 100): Promise<{
-  login: string;
-  avatar_url: string;
-  starred_at: string;
-}[]> {
+export async function fetchRepositoryStargazers(
+  owner: string,
+  repo: string,
+  limit: number = 100
+): Promise<
+  {
+    login: string;
+    avatar_url: string;
+    starred_at: string;
+  }[]
+> {
   const headers: HeadersInit = {
-    'Accept': 'application/vnd.github.v3.star+json', // This gives us starred_at timestamps
+    Accept: 'application/vnd.github.v3.star+json', // This gives us starred_at timestamps
   };
 
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
   const userToken = session?.provider_token;
   const token = userToken || VITE_GITHUB_TOKEN;
   if (token) {
@@ -598,7 +631,11 @@ export async function fetchRepositoryStargazers(owner: string, repo: string, lim
   }
 }
 
-export async function fetchRepositoryCommitActivity(owner: string, repo: string, timeRange: string = '30'): Promise<{
+export async function fetchRepositoryCommitActivity(
+  owner: string,
+  repo: string,
+  timeRange: string = '30'
+): Promise<{
   totalCommits: number;
   commitFrequency: number; // commits per day
   uniqueCommitters: number;
@@ -617,10 +654,12 @@ export async function fetchRepositoryCommitActivity(owner: string, repo: string,
   }>;
 }> {
   const headers: HeadersInit = {
-    'Accept': 'application/vnd.github.v3+json',
+    Accept: 'application/vnd.github.v3+json',
   };
 
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
   const userToken = session?.provider_token;
   const token = userToken || VITE_GITHUB_TOKEN;
   if (token) {
@@ -631,7 +670,7 @@ export async function fetchRepositoryCommitActivity(owner: string, repo: string,
     // Calculate date range
     const since = new Date();
     since.setDate(since.getDate() - parseInt(timeRange));
-    
+
     const response = await fetch(
       `${GITHUB_API_BASE}/repos/${owner}/${repo}/commits?since=${since.toISOString()}&per_page=100`,
       { headers }
@@ -677,7 +716,11 @@ export async function fetchRepositoryCommitActivity(owner: string, repo: string,
   }
 }
 
-export async function fetchDirectCommits(owner: string, repo: string, timeRange: string = '30'): Promise<{
+export async function fetchDirectCommits(
+  owner: string,
+  repo: string,
+  timeRange: string = '30'
+): Promise<{
   directCommits: Array<{
     sha: string;
     actor: {
@@ -699,11 +742,13 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
   }>;
 }> {
   const headers: HeadersInit = {
-    'Accept': 'application/vnd.github.v3+json',
+    Accept: 'application/vnd.github.v3+json',
   };
 
   // Try to get user's GitHub token from Supabase session
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
   const userToken = session?.provider_token;
 
   // Use user's token if available, otherwise fall back to env token
@@ -714,10 +759,7 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
 
   try {
     // First, get the default branch for the repository
-    const repoResponse = await fetch(
-      `${GITHUB_API_BASE}/repos/${owner}/${repo}`,
-      { headers }
-    );
+    const repoResponse = await fetch(`${GITHUB_API_BASE}/repos/${owner}/${repo}`, { headers });
 
     if (!repoResponse.ok) {
       throw new Error(`Failed to fetch repository information: ${repoResponse.statusText}`);
@@ -732,26 +774,33 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
 
     // Get merged PRs for the repository in the time range to identify PR-related commits
     const pullRequests = await fetchPullRequests(owner, repo, timeRange);
-    const mergedPRs = pullRequests.filter(pr => {
+    const mergedPRs = pullRequests.filter((pr) => {
       if (!pr.merged_at) return false;
       // Only include PRs merged within our time range
       const mergedDate = new Date(pr.merged_at);
       return mergedDate >= since;
     });
-    
+
     // Debug logging (can be removed in production)
     if (NODE_ENV === 'development') {
       console.log('YOLO Debug - Total PRs found: %s', pullRequests.length);
       console.log('YOLO Debug - Merged PRs found: %s', mergedPRs.length);
-      console.log('YOLO Debug - Time range: %s to %s', since.toISOString(), new Date().toISOString());
+      console.log(
+        'YOLO Debug - Time range: %s to %s',
+        since.toISOString(),
+        new Date().toISOString()
+      );
       if (mergedPRs.length > 0) {
-        console.log(`YOLO Debug - Sample merged PR dates:`, mergedPRs.slice(0, 3).map(pr => pr.merged_at));
+        console.log(
+          `YOLO Debug - Sample merged PR dates:`,
+          mergedPRs.slice(0, 3).map((pr) => pr.merged_at)
+        );
       }
     }
-    
+
     // Collect all commit SHAs that are associated with merged PRs
     const prCommitShaSet = new Set<string>();
-    
+
     await Promise.all(
       mergedPRs.map(async (pr) => {
         try {
@@ -760,7 +809,7 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
             `${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls/${pr.number}/commits`,
             { headers }
           );
-          
+
           if (prCommitsResponse.ok) {
             const prCommits = await prCommitsResponse.json();
             if (NODE_ENV === 'development') {
@@ -770,7 +819,11 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
               prCommitShaSet.add(commit.sha);
             });
           } else if (NODE_ENV === 'development') {
-            console.log('YOLO Debug - Failed to fetch commits for PR #%s: %s', pr.number, prCommitsResponse.statusText);
+            console.log(
+              'YOLO Debug - Failed to fetch commits for PR #%s: %s',
+              pr.number,
+              prCommitsResponse.statusText
+            );
           }
         } catch (error) {
           if (NODE_ENV === 'development') {
@@ -783,11 +836,12 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
 
     // Fetch commits directly from the default branch using commits API
     // This is more reliable than the events API for longer time ranges
-    let allCommits: GitHubCommit[] = [];
+    const allCommits: GitHubCommit[] = [];
     let page = 1;
     const perPage = 100;
-    
-    while (page <= 10) { // Limit to 10 pages (1000 commits) to avoid rate limiting
+
+    while (page <= 10) {
+      // Limit to 10 pages (1000 commits) to avoid rate limiting
       const commitsResponse = await fetch(
         `${GITHUB_API_BASE}/repos/${owner}/${repo}/commits?sha=${defaultBranch}&since=${since.toISOString()}&per_page=${perPage}&page=${page}`,
         { headers }
@@ -804,14 +858,14 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
       if (commits.length === 0) {
         break; // No more commits
       }
-      
+
       allCommits.push(...commits);
-      
+
       // If we got less than a full page, we're done
       if (commits.length < perPage) {
         break;
       }
-      
+
       page++;
     }
 
@@ -821,15 +875,19 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
       console.log('YOLO Debug - PR commit SHAs collected: %s', prCommitShaSet.size);
       console.log(`YOLO Debug - Sample PR commit SHAs:`, Array.from(prCommitShaSet).slice(0, 5));
     }
-    
+
     const directCommitData = allCommits.filter((commit: any) => {
       const isDirectCommit = !prCommitShaSet.has(commit.sha);
       if (isDirectCommit && NODE_ENV === 'development') {
-        console.log('YOLO Debug - Direct commit found: %s by %s', commit.sha, commit.author?.login || commit.committer?.login || 'unknown');
+        console.log(
+          'YOLO Debug - Direct commit found: %s by %s',
+          commit.sha,
+          commit.author?.login || commit.committer?.login || 'unknown'
+        );
       }
       return isDirectCommit;
     });
-    
+
     if (NODE_ENV === 'development') {
       console.log('YOLO Debug - Direct commits found: %s', directCommitData.length);
     }
@@ -840,35 +898,39 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
       const login = author.login || 'unknown';
       const avatar_url = author.avatar_url || '';
       const isBot = login.includes('[bot]');
-      
+
       return {
         sha: commit.sha,
         actor: {
           login,
           avatar_url,
-          type: isBot ? 'Bot' as const : 'User' as const
+          type: isBot ? ('Bot' as const) : ('User' as const),
         },
-        event_time: commit.commit.author?.date || commit.commit.committer?.date || new Date().toISOString(),
-        push_num_commits: 1 // Each commit represents one commit
+        event_time:
+          commit.commit.author?.date || commit.commit.committer?.date || new Date().toISOString(),
+        push_num_commits: 1, // Each commit represents one commit
       };
     });
 
     // Calculate statistics for YOLO coders (authors with direct commits)
-    const yoloCoderMap = new Map<string, { 
-      login: string; 
-      avatar_url: string; 
-      directCommits: number;
-      totalCommits: number;
-      directCommitPercentage: number;
-      type?: 'User' | 'Bot'; 
-    }>();
+    const yoloCoderMap = new Map<
+      string,
+      {
+        login: string;
+        avatar_url: string;
+        directCommits: number;
+        totalCommits: number;
+        directCommitPercentage: number;
+        type?: 'User' | 'Bot';
+      }
+    >();
 
     for (const commit of directCommits) {
       const login = commit.actor.login;
-      
+
       // Check if this is a bot
       const isBot = login.includes('[bot]');
-      
+
       if (yoloCoderMap.has(login)) {
         const coder = yoloCoderMap.get(login)!;
         coder.directCommits += 1;
@@ -880,17 +942,16 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
           directCommits: 1,
           totalCommits: commit.push_num_commits,
           directCommitPercentage: 0, // Will be calculated below
-          type: isBot ? 'Bot' as const : 'User' as const,
+          type: isBot ? ('Bot' as const) : ('User' as const),
         });
       }
     }
 
     const yoloCoderStats = Array.from(yoloCoderMap.values())
-      .map(coder => ({
+      .map((coder) => ({
         ...coder,
-        directCommitPercentage: coder.totalCommits > 0 
-          ? Math.round((coder.directCommits / coder.totalCommits) * 100)
-          : 0
+        directCommitPercentage:
+          coder.totalCommits > 0 ? Math.round((coder.directCommits / coder.totalCommits) * 100) : 0,
       }))
       .sort((a, b) => b.directCommits - a.directCommits);
 

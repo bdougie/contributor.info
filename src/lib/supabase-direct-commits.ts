@@ -30,7 +30,6 @@ export async function fetchDirectCommitsWithDatabaseFallback(
   repo: string,
   timeRange: string = '30'
 ): Promise<DirectCommitsResult> {
-  
   return trackDatabaseOperation(
     'fetchDirectCommitsWithDatabaseFallback',
     async () => {
@@ -49,14 +48,17 @@ export async function fetchDirectCommitsWithDatabaseFallback(
             category: 'database',
             message: `Repository not found in database: ${owner}/${repo}`,
             level: 'info',
-            data: { owner, repo, error: repoError?.message }
+            data: { owner, repo, error: repoError?.message },
           });
           return getEmptyDirectCommitsResult();
         }
 
         // Use the smart commit analyzer to get results from database
-        const result = await smartCommitAnalyzer.getDirectCommitsFromDatabase(repoData.id, timeRange);
-        
+        const result = await smartCommitAnalyzer.getDirectCommitsFromDatabase(
+          repoData.id,
+          timeRange
+        );
+
         // Track analytics about the results
         // Simple breadcrumb logging without analytics
         console.log('Direct commits breadcrumb:', {
@@ -66,21 +68,20 @@ export async function fetchDirectCommitsWithDatabaseFallback(
           data: {
             yolo_coders_found: result.yoloCoderStats.length,
             has_yolo_coders: result.hasYoloCoders,
-            time_range: timeRange
-          }
+            time_range: timeRange,
+          },
         });
-        
-        return result;
 
+        return result;
       } catch (error) {
         // Simple error logging without analytics
         console.error('Direct commits error:', {
           owner,
           repo,
           timeRange,
-          error: error instanceof Error ? error.message : String(error)
+          error: error instanceof Error ? error.message : String(error),
         });
-        
+
         return getEmptyDirectCommitsResult();
       }
     },
@@ -89,7 +90,7 @@ export async function fetchDirectCommitsWithDatabaseFallback(
       table: 'direct_commits_analysis',
       repository: `${owner}/${repo}`,
       fallbackUsed: false,
-      cacheHit: false
+      cacheHit: false,
     }
   );
 }
@@ -97,6 +98,6 @@ export async function fetchDirectCommitsWithDatabaseFallback(
 function getEmptyDirectCommitsResult(): DirectCommitsResult {
   return {
     hasYoloCoders: false,
-    yoloCoderStats: []
+    yoloCoderStats: [],
   };
 }

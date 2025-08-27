@@ -39,13 +39,13 @@ export function ProfileRouter() {
 
     const detectProfileType = async () => {
       try {
-        setState(prev => ({ ...prev, isLoading: true, error: null }));
+        setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
         // Check cache first
         const cached = profileTypeCache[username];
         const now = Date.now();
-        
-        if (cached && (now - cached.timestamp) < CACHE_DURATION) {
+
+        if (cached && now - cached.timestamp < CACHE_DURATION) {
           setState({
             profileType: cached.type,
             isLoading: false,
@@ -61,7 +61,7 @@ export function ProfileRouter() {
         // Try users API first (more common case)
         try {
           await octokit.rest.users.getByUsername({ username });
-          
+
           // If successful, it's a user
           profileTypeCache[username] = { type: 'user', timestamp: now };
           setState({
@@ -72,10 +72,13 @@ export function ProfileRouter() {
           return;
         } catch (userError: any) {
           // If user API fails with 404, try org API
-          if (userError?.status === 404 || (userError instanceof Error && userError.message.includes('404'))) {
+          if (
+            userError?.status === 404 ||
+            (userError instanceof Error && userError.message.includes('404'))
+          ) {
             try {
               await octokit.rest.orgs.get({ org: username });
-              
+
               // If successful, it's an organization
               profileTypeCache[username] = { type: 'org', timestamp: now };
               setState({
@@ -105,7 +108,7 @@ export function ProfileRouter() {
         } else if (error instanceof Error) {
           errorMessage = error.message;
         }
-        
+
         setState({
           profileType: null,
           isLoading: false,
@@ -127,7 +130,7 @@ export function ProfileRouter() {
           <span>/</span>
           <Skeleton className="h-4 w-20" />
         </div>
-        
+
         {/* Header skeleton */}
         <div className="flex items-center gap-3">
           <Skeleton className="w-12 h-12 rounded-full" />
@@ -136,7 +139,7 @@ export function ProfileRouter() {
             <Skeleton className="h-4 w-48" />
           </div>
         </div>
-        
+
         {/* Table skeleton */}
         <Card>
           <div className="p-4 border-b">
@@ -144,7 +147,10 @@ export function ProfileRouter() {
           </div>
           <div className="p-4 space-y-3">
             {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="flex items-center justify-between py-3 border-b last:border-0">
+              <div
+                key={i}
+                className="flex items-center justify-between py-3 border-b last:border-0"
+              >
                 <div className="flex-1 space-y-2">
                   <Skeleton className="h-4 w-32" />
                   <Skeleton className="h-3 w-48" />
@@ -166,9 +172,7 @@ export function ProfileRouter() {
           <CardContent className="pt-6">
             <div className="text-center space-y-4">
               <h2 className="text-xl font-semibold text-destructive">Profile Not Found</h2>
-              <p className="text-muted-foreground">
-                {state.error}
-              </p>
+              <p className="text-muted-foreground">{state.error}</p>
               <Button asChild>
                 <Link to="/">Return to Home</Link>
               </Button>

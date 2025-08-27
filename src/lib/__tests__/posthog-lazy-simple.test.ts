@@ -4,7 +4,7 @@ import {
   getRateLimiterStats,
   enablePostHogInDev,
   disablePostHogInDev,
-  isPostHogEnabled
+  isPostHogEnabled,
 } from '../posthog-lazy';
 
 // Mock localStorage
@@ -21,7 +21,7 @@ const localStorageMock = {
   },
   clear() {
     this.store = {};
-  }
+  },
 };
 
 describe('PostHog Lazy Loading - Simple Tests', () => {
@@ -29,13 +29,13 @@ describe('PostHog Lazy Loading - Simple Tests', () => {
     // Reset localStorage
     Object.defineProperty(window, 'localStorage', {
       value: localStorageMock,
-      writable: true
+      writable: true,
     });
     localStorageMock.clear();
-    
+
     // Reset rate limiter
     resetRateLimiter();
-    
+
     // Clear mocks
     vi.clearAllMocks();
   });
@@ -81,7 +81,7 @@ describe('PostHog Lazy Loading - Simple Tests', () => {
     it('should respect opt-out preference via localStorage', () => {
       localStorageMock.setItem('posthog_opt_out', 'true');
       expect(localStorageMock.getItem('posthog_opt_out')).toBe('true');
-      
+
       localStorageMock.removeItem('posthog_opt_out');
       expect(localStorageMock.getItem('posthog_opt_out')).toBeNull();
     });
@@ -99,7 +99,7 @@ describe('PostHog Lazy Loading - Simple Tests', () => {
     it('should persist distinct ID across sessions', () => {
       const testId = 'user_456_def';
       localStorageMock.setItem('contributor_info_distinct_id', testId);
-      
+
       // Simulate new session by reading again
       const retrievedId = localStorageMock.getItem('contributor_info_distinct_id');
       expect(retrievedId).toBe(testId);

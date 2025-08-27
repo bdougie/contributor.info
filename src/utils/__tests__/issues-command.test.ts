@@ -3,15 +3,15 @@ import { describe, it, expect } from 'vitest';
 // Inline the function to test without imports
 function containsIssuesCommand(commentBody: string): boolean {
   const normalizedBody = commentBody.toLowerCase().trim();
-  
+
   // Check if comment starts with .issues
   if (normalizedBody.startsWith('.issues')) {
     return true;
   }
-  
+
   // Check if .issues appears on its own line
   const lines = normalizedBody.split('\n');
-  return lines.some(line => line.trim().startsWith('.issues'));
+  return lines.some((line) => line.trim().startsWith('.issues'));
 }
 
 describe('containsIssuesCommand', () => {

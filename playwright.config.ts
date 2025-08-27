@@ -10,11 +10,11 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   workers: 1, // Always use 1 worker to avoid resource conflicts
   reporter: 'html',
-  
+
   // Reasonable timeouts for critical user flows only
   timeout: 30000,
   globalTimeout: 180000, // 3 minutes total
-  
+
   use: {
     baseURL: process.env.CI ? 'http://localhost:4173' : 'http://localhost:5173',
     trace: 'on-first-retry',
@@ -31,17 +31,19 @@ export default defineConfig({
   ],
 
   // Server setup - different for CI vs local development
-  webServer: process.env.CI ? {
-    command: 'npm run preview',
-    port: 4173,
-    reuseExistingServer: false,
-    timeout: 120000, // Increased timeout for CI
-    stdout: 'pipe',
-    stderr: 'pipe',
-  } : {
-    command: 'npm run dev',
-    url: 'http://localhost:5173',
-    reuseExistingServer: true,
-    timeout: 60000,
-  },
+  webServer: process.env.CI
+    ? {
+        command: 'npm run preview',
+        port: 4173,
+        reuseExistingServer: false,
+        timeout: 120000, // Increased timeout for CI
+        stdout: 'pipe',
+        stderr: 'pipe',
+      }
+    : {
+        command: 'npm run dev',
+        url: 'http://localhost:5173',
+        reuseExistingServer: true,
+        timeout: 60000,
+      },
 });

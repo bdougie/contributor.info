@@ -19,14 +19,14 @@ if (typeof window !== 'undefined') {
     MODE: 'test',
     DEV: false,
     PROD: false,
-    SSR: false
+    SSR: false,
   };
 }
 
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
-  value: vi.fn().mockImplementation(query => ({
+  value: vi.fn().mockImplementation((query) => ({
     matches: false,
     media: query,
     onchange: null,
@@ -53,10 +53,10 @@ global.IntersectionObserver = class IntersectionObserver {
 beforeEach(() => {
   // Clear all mocks before each test
   vi.clearAllMocks();
-  
+
   // Reset document body
   document.body.innerHTML = '';
-  
+
   // Ensure Storybook root exists
   if (!document.getElementById('storybook-root')) {
     const root = document.createElement('div');
@@ -69,8 +69,8 @@ beforeEach(() => {
 afterEach(() => {
   // Clean up any leftover portals or modals
   const portals = document.querySelectorAll('[data-radix-portal], [data-portal], .portal-root');
-  portals.forEach(portal => portal.remove());
-  
+  portals.forEach((portal) => portal.remove());
+
   const dialogs = document.querySelectorAll('[role="dialog"], [role="alertdialog"]');
-  dialogs.forEach(dialog => dialog.remove());
+  dialogs.forEach((dialog) => dialog.remove());
 });

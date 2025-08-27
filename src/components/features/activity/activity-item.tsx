@@ -1,18 +1,13 @@
-import { PullRequestActivity } from "@/lib/types";
-import { OptimizedAvatar } from "@/components/ui/optimized-avatar";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { ContributorHoverCard } from "../contributor";
-import { useContext, useMemo, useState, useEffect } from "react"
+import { PullRequestActivity } from '@/lib/types';
+import { OptimizedAvatar } from '@/components/ui/optimized-avatar';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ContributorHoverCard } from '../contributor';
+import { useContext, useMemo, useState, useEffect } from 'react';
 import { BotIcon } from '@/components/ui/icon';
-import { RepoStatsContext } from "@/lib/repo-stats-context";
-import { createContributorStats, createContributorStatsWithOrgs } from "@/lib/contributor-utils";
-import { useContributorRole } from "@/hooks/useContributorRoles";
-import type { ContributorStats } from "@/lib/types";
+import { RepoStatsContext } from '@/lib/repo-stats-context';
+import { createContributorStats, createContributorStatsWithOrgs } from '@/lib/contributor-utils';
+import { useContributorRole } from '@/hooks/useContributorRoles';
+import type { ContributorStats } from '@/lib/types';
 
 interface ActivityItemProps {
   activity: PullRequestActivity;
@@ -22,18 +17,13 @@ export function ActivityItem({ activity }: ActivityItemProps) {
   const { type, user, pullRequest, repository, timestamp } = activity;
   const { stats } = useContext(RepoStatsContext);
   const [contributorData, setContributorData] = useState<ContributorStats | null>(null);
-  
+
   // Get the contributor's role
   const { role } = useContributorRole(repository.owner, repository.name, user.id);
 
   // Create initial contributor data
   const initialContributorData = useMemo(() => {
-    return createContributorStats(
-      stats.pullRequests,
-      user.name,
-      user.avatar,
-      user.id
-    );
+    return createContributorStats(stats.pullRequests, user.name, user.avatar, user.id);
   }, [user, stats.pullRequests]);
 
   // Fetch organizations data
@@ -58,50 +48,50 @@ export function ActivityItem({ activity }: ActivityItemProps) {
   const activityCounts = useMemo(() => {
     let reviews = 0;
     let comments = 0;
-    
-    stats.pullRequests.forEach(pr => {
+
+    stats.pullRequests.forEach((pr) => {
       if (pr.reviews) {
-        reviews += pr.reviews.filter(review => review.user.login === user.name).length;
+        reviews += pr.reviews.filter((review) => review.user.login === user.name).length;
       }
       if (pr.comments) {
-        comments += pr.comments.filter(comment => comment.user.login === user.name).length;
+        comments += pr.comments.filter((comment) => comment.user.login === user.name).length;
       }
     });
-    
+
     return { reviews, comments };
   }, [stats.pullRequests, user.name]);
 
   const getActivityColor = () => {
     switch (type) {
-      case "opened":
-        return "bg-emerald-500";
-      case "closed":
-        return "bg-red-500";
-      case "merged":
-        return "bg-purple-500";
-      case "reviewed":
-        return "bg-blue-500";
-      case "commented":
-        return "bg-gray-500";
+      case 'opened':
+        return 'bg-emerald-500';
+      case 'closed':
+        return 'bg-red-500';
+      case 'merged':
+        return 'bg-purple-500';
+      case 'reviewed':
+        return 'bg-blue-500';
+      case 'commented':
+        return 'bg-gray-500';
       default:
-        return "bg-gray-400";
+        return 'bg-gray-400';
     }
   };
 
   const getActivityText = () => {
     switch (type) {
-      case "opened":
-        return "opened";
-      case "closed":
-        return "closed";
-      case "merged":
-        return "merged";
-      case "reviewed":
-        return "reviewed";
-      case "commented":
-        return "commented on";
+      case 'opened':
+        return 'opened';
+      case 'closed':
+        return 'closed';
+      case 'merged':
+        return 'merged';
+      case 'reviewed':
+        return 'reviewed';
+      case 'commented':
+        return 'commented on';
       default:
-        return "updated";
+        return 'updated';
     }
   };
 
@@ -110,17 +100,17 @@ export function ActivityItem({ activity }: ActivityItemProps) {
       <div className="relative flex-shrink-0">
         <ContributorHoverCard
           contributor={displayData}
-          role={role?.role || (user.isBot ? "Bot" : "Contributor")}
+          role={role?.role || (user.isBot ? 'Bot' : 'Contributor')}
           showReviews={true}
           showComments={true}
           reviewsCount={activityCounts.reviews}
           commentsCount={activityCounts.comments}
         >
-          <OptimizedAvatar 
+          <OptimizedAvatar
             className="h-8 w-8 cursor-pointer"
             src={user.avatar}
             alt={user.name}
-            fallback={user.name ? user.name.charAt(0).toUpperCase() : "?"}
+            fallback={user.name ? user.name.charAt(0).toUpperCase() : '?'}
             size={32}
             lazy={true}
             priority={false}
@@ -141,7 +131,10 @@ export function ActivityItem({ activity }: ActivityItemProps) {
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger>
-                      <BotIcon className="h-3 w-3 text-muted-foreground ml-1" aria-label="Bot user" />
+                      <BotIcon
+                        className="h-3 w-3 text-muted-foreground ml-1"
+                        aria-label="Bot user"
+                      />
                     </TooltipTrigger>
                     <TooltipContent>
                       <p>Bot</p>

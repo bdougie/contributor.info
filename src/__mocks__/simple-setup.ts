@@ -1,10 +1,10 @@
 /**
  * Comprehensive mock setup for bulletproof testing with proper isolation
  * Goal: Minimal mocking to prevent hanging while ensuring complete mock isolation
- * 
+ *
  * Key changes:
  * 1. Added vi.resetModules() to clear module cache between tests
- * 2. Added vi.unstubAllGlobals() to reset global mocks  
+ * 2. Added vi.unstubAllGlobals() to reset global mocks
  * 3. Added DOM cleanup to prevent state leakage
  * 4. Enhanced Supabase mock with proper chainable methods
  * 5. Added React Router mock at global level
@@ -155,10 +155,10 @@ vi.mock('@/lib/utils', () => ({
 vi.mock('lucide-react', async (importOriginal) => {
   const React = (await import('react')).default;
   const createIcon = () => (props: any) => React.createElement('svg', { ...props }, null);
-  
+
   // Get the actual module to preserve any exports we don't explicitly mock
-  const actual = await importOriginal() as any;
-  
+  const actual = (await importOriginal()) as any;
+
   return {
     ...actual,
     // Common icons used across the app
@@ -208,15 +208,14 @@ vi.mock('lucide-react', async (importOriginal) => {
 vi.mock('@/components/ui/card', async () => {
   const React = (await import('react')).default;
   return {
-    Card: ({ children, className, role, ...props }: any) => 
+    Card: ({ children, className, role, ...props }: any) =>
       React.createElement('div', { className, role, ...props }, children),
-    CardContent: ({ children, className }: any) => 
+    CardContent: ({ children, className }: any) =>
       React.createElement('div', { className }, children),
-    CardHeader: ({ children, className }: any) => 
+    CardHeader: ({ children, className }: any) =>
       React.createElement('div', { className }, children),
-    CardTitle: ({ children, className }: any) => 
-      React.createElement('h3', { className }, children),
-    CardDescription: ({ children, className }: any) => 
+    CardTitle: ({ children, className }: any) => React.createElement('h3', { className }, children),
+    CardDescription: ({ children, className }: any) =>
       React.createElement('p', { className }, children),
   };
 });
@@ -224,7 +223,7 @@ vi.mock('@/components/ui/card', async () => {
 vi.mock('@/components/ui/badge', async () => {
   const React = (await import('react')).default;
   return {
-    Badge: ({ children, className, variant }: any) => 
+    Badge: ({ children, className, variant }: any) =>
       React.createElement('span', { className }, children),
   };
 });
@@ -240,23 +239,31 @@ vi.mock('react-router-dom', async () => {
     Route: ({ children }: any) => React.createElement('div', null, children),
     useParams: vi.fn(() => ({})),
     useNavigate: vi.fn(() => vi.fn()),
-    useLocation: vi.fn(() => ({ pathname: '/', search: '', hash: '', state: null, key: 'default' })),
+    useLocation: vi.fn(() => ({
+      pathname: '/',
+      search: '',
+      hash: '',
+      state: null,
+      key: 'default',
+    })),
     useSearchParams: vi.fn(() => [new URLSearchParams(), vi.fn()]),
     useOutletContext: vi.fn(() => ({})),
     Outlet: () => null,
     Navigate: ({ to }: { to: string }) => React.createElement('div', null, `Navigate to ${to}`),
-    Link: ({ children, to, ...props }: any) => React.createElement('a', { href: to, ...props }, children),
-    NavLink: ({ children, to, ...props }: any) => React.createElement('a', { href: to, ...props }, children),
+    Link: ({ children, to, ...props }: any) =>
+      React.createElement('a', { href: to, ...props }, children),
+    NavLink: ({ children, to, ...props }: any) =>
+      React.createElement('a', { href: to, ...props }, children),
   };
 });
 
 // Mock problematic dependencies with empty implementations
 vi.mock('@nivo/scatterplot', () => ({ default: () => null }));
-vi.mock('@nivo/core', () => ({ 
+vi.mock('@nivo/core', () => ({
   default: () => null,
   ResponsiveWrapper: ({ children }: any) => children,
 }));
-vi.mock('d3-interpolate', () => ({ 
+vi.mock('d3-interpolate', () => ({
   default: vi.fn(),
   interpolate: vi.fn(),
 }));
@@ -276,32 +283,32 @@ vi.mock('@/hooks/use-github-auth', () => ({
 beforeEach(() => {
   // Reset all mocks to their initial state
   vi.resetAllMocks();
-  
+
   // Clear all mock implementations but keep the mocks themselves
   vi.clearAllMocks();
-  
+
   // Reset modules to clear any cached state
   vi.resetModules();
-  
+
   // Reset global stubs
   vi.unstubAllGlobals();
-  
+
   // Clean up any DOM state from previous tests
   cleanup();
-  
+
   // Clear any remaining DOM content
   document.body.innerHTML = '';
   document.head.innerHTML = '';
-  
+
   // Reset document state
   if (document.title !== 'Test') {
     document.title = 'Test';
   }
-  
+
   // Clear localStorage and sessionStorage
   localStorage.clear();
   sessionStorage.clear();
-  
+
   // Reset location if it was modified
   if (typeof window !== 'undefined' && window.location) {
     // Reset history state
@@ -313,28 +320,28 @@ beforeEach(() => {
 afterEach(() => {
   // Clear all mock call history (not implementations)
   vi.clearAllMocks();
-  
+
   // Clean up React Testing Library state
   cleanup();
-  
+
   // Clear any timers
   vi.clearAllTimers();
-  
+
   // Reset any fake timers
   if (vi.isFakeTimers) {
     vi.useRealTimers();
   }
-  
+
   // Clear DOM completely
   document.body.innerHTML = '';
   document.head.innerHTML = '<title>Test</title>';
-  
+
   // Clear storage
   localStorage.clear();
   sessionStorage.clear();
-  
+
   // Clear any event listeners on window/document
-  ['error', 'unhandledrejection', 'resize', 'scroll', 'beforeunload'].forEach(event => {
+  ['error', 'unhandledrejection', 'resize', 'scroll', 'beforeunload'].forEach((event) => {
     window.removeAllListeners?.(event);
   });
 });

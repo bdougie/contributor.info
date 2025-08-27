@@ -1,13 +1,15 @@
-import type { Meta, StoryObj } from "@storybook/react";
-import { expect, within } from "@storybook/test";
+import type { Meta, StoryObj } from '@storybook/react';
+import { expect, within } from '@storybook/test';
 import { getVariantValue } from '@/lib/utils/performance-helpers';
 
 // Create a simple mock insights sidebar component for Storybook
-const MockInsightsSidebar = ({ variant = "default" }: { 
-  variant?: "default" | "collapsed" | "mobile" | "high-activity" | "low-activity";
+const MockInsightsSidebar = ({
+  variant = 'default',
+}: {
+  variant?: 'default' | 'collapsed' | 'mobile' | 'high-activity' | 'low-activity';
 }) => {
-  const isCollapsed = variant === "collapsed";
-  const isMobile = variant === "mobile";
+  const isCollapsed = variant === 'collapsed';
+  const isMobile = variant === 'mobile';
   const criticalCount = getVariantValue(variant, 0, 8, 3);
 
   if (isMobile) {
@@ -26,17 +28,15 @@ const MockInsightsSidebar = ({ variant = "default" }: {
   }
 
   return (
-    <div className={`border-r bg-card transition-all duration-200 ${
-      isCollapsed ? 'w-16' : 'w-80'
-    } h-screen overflow-hidden`}>
+    <div
+      className={`border-r bg-card transition-all duration-200 ${
+        isCollapsed ? 'w-16' : 'w-80'
+      } h-screen overflow-hidden`}
+    >
       {/* Header */}
       <div className="p-4 border-b flex items-center justify-between">
-        {!isCollapsed && (
-          <h2 className="font-semibold text-lg">Insights</h2>
-        )}
-        <button className="p-1 hover:bg-muted rounded">
-          {isCollapsed ? '→' : '←'}
-        </button>
+        {!isCollapsed && <h2 className="font-semibold text-lg">Insights</h2>}
+        <button className="p-1 hover:bg-muted rounded">{isCollapsed ? '→' : '←'}</button>
       </div>
 
       {/* Content */}
@@ -64,9 +64,7 @@ const MockInsightsSidebar = ({ variant = "default" }: {
 
         {/* Repository Health */}
         <div className="space-y-2">
-          {!isCollapsed && (
-            <h3 className="font-medium text-sm">Repository Health</h3>
-          )}
+          {!isCollapsed && <h3 className="font-medium text-sm">Repository Health</h3>}
           <div className={`${isCollapsed ? 'w-8 h-8' : 'h-24'} bg-muted rounded`}>
             {!isCollapsed && (
               <div className="p-3">
@@ -79,9 +77,7 @@ const MockInsightsSidebar = ({ variant = "default" }: {
 
         {/* Recommendations */}
         <div className="space-y-2">
-          {!isCollapsed && (
-            <h3 className="font-medium text-sm">AI Recommendations</h3>
-          )}
+          {!isCollapsed && <h3 className="font-medium text-sm">AI Recommendations</h3>}
           <div className={`${isCollapsed ? 'w-8 h-8' : 'h-20'} bg-muted rounded`}>
             {!isCollapsed && (
               <div className="p-3">
@@ -94,9 +90,7 @@ const MockInsightsSidebar = ({ variant = "default" }: {
 
         {/* Trends */}
         <div className="space-y-2">
-          {!isCollapsed && (
-            <h3 className="font-medium text-sm">Trends</h3>
-          )}
+          {!isCollapsed && <h3 className="font-medium text-sm">Trends</h3>}
           <div className={`${isCollapsed ? 'w-8 h-8' : 'h-16'} bg-muted rounded`}>
             {!isCollapsed && (
               <div className="p-3">
@@ -108,9 +102,7 @@ const MockInsightsSidebar = ({ variant = "default" }: {
 
         {/* PR Activity */}
         <div className="space-y-2">
-          {!isCollapsed && (
-            <h3 className="font-medium text-sm">PR Activity</h3>
-          )}
+          {!isCollapsed && <h3 className="font-medium text-sm">PR Activity</h3>}
           <div className={`${isCollapsed ? 'w-8 h-8' : 'h-16'} bg-muted rounded`}>
             {!isCollapsed && (
               <div className="p-3">
@@ -125,27 +117,28 @@ const MockInsightsSidebar = ({ variant = "default" }: {
 };
 
 const meta: Meta<typeof MockInsightsSidebar> = {
-  title: "Components/Insights/InsightsSidebar",
+  title: 'Components/Insights/InsightsSidebar',
   component: MockInsightsSidebar,
   parameters: {
-    layout: "fullscreen",
+    layout: 'fullscreen',
     docs: {
       description: {
-        component: "Collapsible sidebar container that orchestrates all insight sections including health assessment, recommendations, trends, and critical PR alerts. Adapts to mobile with sheet overlay."
-      }
-    }
+        component:
+          'Collapsible sidebar container that orchestrates all insight sections including health assessment, recommendations, trends, and critical PR alerts. Adapts to mobile with sheet overlay.',
+      },
+    },
   },
   argTypes: {
     variant: {
-      control: "select",
-      options: ["default", "collapsed", "mobile", "high-activity", "low-activity"],
-      description: "Sidebar state variant"
-    }
+      control: 'select',
+      options: ['default', 'collapsed', 'mobile', 'high-activity', 'low-activity'],
+      description: 'Sidebar state variant',
+    },
   },
   args: {
-    variant: "default"
+    variant: 'default',
   },
-  tags: ["autodocs"]
+  tags: ['autodocs'],
 };
 
 export default meta;
@@ -159,11 +152,12 @@ export const Default: Story = {
       <div className="flex-1 p-8">
         <h1 className="text-2xl font-bold mb-4">Repository Dashboard</h1>
         <p className="text-muted-foreground">
-          Main content area. The insights sidebar provides contextual information about repository health and recommendations.
+          Main content area. The insights sidebar provides contextual information about repository
+          health and recommendations.
         </p>
       </div>
     </div>
-  )
+  ),
 };
 
 // Collapsed sidebar state
@@ -174,19 +168,20 @@ export const Collapsed: Story = {
       <div className="flex-1 p-8">
         <h1 className="text-2xl font-bold mb-4">Repository Dashboard</h1>
         <p className="text-muted-foreground">
-          Sidebar is collapsed to provide more space for the main content. Click the expand button to access insights.
+          Sidebar is collapsed to provide more space for the main content. Click the expand button
+          to access insights.
         </p>
       </div>
     </div>
-  )
+  ),
 };
 
 // Mobile view
 export const Mobile: Story = {
   parameters: {
     viewport: {
-      defaultViewport: "mobile"
-    }
+      defaultViewport: 'mobile',
+    },
   },
   render: () => (
     <div className="flex h-screen bg-background">
@@ -194,11 +189,12 @@ export const Mobile: Story = {
       <div className="flex-1 p-4">
         <h1 className="text-xl font-bold mb-4">Repository Dashboard</h1>
         <p className="text-sm text-muted-foreground">
-          On mobile, insights are accessible through a slide-out sheet. Tap the insights button to view.
+          On mobile, insights are accessible through a slide-out sheet. Tap the insights button to
+          view.
         </p>
       </div>
     </div>
-  )
+  ),
 };
 
 // High activity repository with critical alerts
@@ -209,11 +205,12 @@ export const HighActivity: Story = {
       <div className="flex-1 p-8">
         <h1 className="text-2xl font-bold mb-4">High Activity Repository</h1>
         <p className="text-muted-foreground">
-          This repository has high activity with 8 PRs needing immediate attention. Notice the alert indicators in the sidebar.
+          This repository has high activity with 8 PRs needing immediate attention. Notice the alert
+          indicators in the sidebar.
         </p>
       </div>
     </div>
-  )
+  ),
 };
 
 // Repository with no critical issues
@@ -228,7 +225,7 @@ export const LowActivity: Story = {
         </p>
       </div>
     </div>
-  )
+  ),
 };
 
 // Interactive behavior testing
@@ -246,15 +243,15 @@ export const Interactive: Story = {
   ),
   play: ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    
+
     // Verify sidebar is visible
-    expect(canvas.getByText("Insights")).toBeInTheDocument();
-    
+    expect(canvas.getByText('Insights')).toBeInTheDocument();
+
     // Check for insight sections
-    expect(canvas.getByText("Repository Health")).toBeInTheDocument();
-    expect(canvas.getByText("AI Recommendations")).toBeInTheDocument();
-    expect(canvas.getByText("Needs Attention")).toBeInTheDocument();
-  }
+    expect(canvas.getByText('Repository Health')).toBeInTheDocument();
+    expect(canvas.getByText('AI Recommendations')).toBeInTheDocument();
+    expect(canvas.getByText('Needs Attention')).toBeInTheDocument();
+  },
 };
 
 // Responsive design showcase
@@ -298,5 +295,5 @@ export const ResponsiveDesign: Story = {
         </div>
       </div>
     </div>
-  )
+  ),
 };

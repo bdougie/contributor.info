@@ -7,32 +7,32 @@ import { supabase } from '../../supabase';
  */
 export const updatePrActivity = inngest.createFunction(
   {
-    id: "update-pr-activity",
-    name: "Update PR Comments and Reviews",
+    id: 'update-pr-activity',
+    name: 'Update PR Comments and Reviews',
     concurrency: {
       limit: 5,
-      key: "event.data.repositoryId",
+      key: 'event.data.repositoryId',
     },
     throttle: {
       limit: 30,
-      period: "1m",
+      period: '1m',
     },
   },
-  { event: "update/pr.activity" },
+  { event: 'update/pr.activity' },
   async ({ event, step }) => {
     const { repositoryId, days = 7 } = event.data;
-    
+
     // Input validation
     if (!repositoryId || typeof repositoryId !== 'string') {
       throw new Error('Invalid repositoryId: must be a non-empty string');
     }
-    
+
     if (typeof days !== 'number' || days < 1 || days > 365) {
       throw new Error('Invalid days parameter: must be a number between 1 and 365');
     }
 
     // Step 1: Find PRs that might have new activity
-    const prsToUpdate = await step.run("find-prs-needing-update", async () => {
+    const prsToUpdate = await step.run('find-prs-needing-update', async () => {
       const { data: repository } = await supabase
         .from('repositories')
         .select('owner, name')
@@ -46,16 +46,20 @@ export const updatePrActivity = inngest.createFunction(
       // Find open PRs or recently closed PRs that might have new comments/reviews
       const { data: prs, error } = await supabase
         .from('pull_requests')
-        .select(`
+        .select(
+          `
           id,
           number,
           github_id,
           state,
           updated_at,
           created_at
-        `)
+        `
+        )
         .eq('repository_id', repositoryId)
-        .or(`state.eq.open,updated_at.gte.${new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString()}`)
+        .or(
+          `state.eq.open,updated_at.gte.${new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString()}`
+        )
         .order('updated_at', { ascending: false })
         .limit(100);
 
@@ -63,12 +67,17 @@ export const updatePrActivity = inngest.createFunction(
         throw new Error(`Failed to fetch PRs: ${error.message}`);
       }
 
-      console.log('Found %s PRs to check for updates in %s/%s', prs?.length || 0, repository.owner, repository.name);
+      console.log(
+        'Found %s PRs to check for updates in %s/%s',
+        prs?.length || 0,
+        repository.owner,
+        repository.name
+      );
       return { prs: prs || [], repository };
     });
 
     // Step 2: Queue detail capture jobs for PRs
-    const jobsQueued = await step.run("queue-update-jobs", async () => {
+    const jobsQueued = await step.run('queue-update-jobs', async () => {
       const jobs = [];
       const { prs, repository } = prsToUpdate;
 
@@ -94,7 +103,7 @@ export const updatePrActivity = inngest.createFunction(
           .limit(1)
           .maybeSingle();
 
-        const hoursSinceLastSync = lastSync?.completed_at 
+        const hoursSinceLastSync = lastSync?.completed_at
           ? (Date.now() - new Date(lastSync.completed_at).getTime()) / (1000 * 60 * 60)
           : Infinity;
 
@@ -102,13 +111,14 @@ export const updatePrActivity = inngest.createFunction(
         // 1. PR is open (always check for new activity)
         // 2. No comments/reviews captured yet
         // 3. Haven't synced in over 6 hours
-        const needsUpdate = pr.state === 'open' || 
-                           (commentCount === 0 && reviewCount === 0) ||
-                           hoursSinceLastSync > 6;
+        const needsUpdate =
+          pr.state === 'open' ||
+          (commentCount === 0 && reviewCount === 0) ||
+          hoursSinceLastSync > 6;
 
         if (needsUpdate) {
           jobs.push({
-            name: "capture/pr.details.graphql",
+            name: 'capture/pr.details.graphql',
             data: {
               repositoryId,
               prNumber: pr.number.toString(),
@@ -120,7 +130,12 @@ export const updatePrActivity = inngest.createFunction(
         }
       }
 
-      console.log('Queueing %s PR update jobs for %s/%s', jobs.length, repository.owner, repository.name);
+      console.log(
+        'Queueing %s PR update jobs for %s/%s',
+        jobs.length,
+        repository.owner,
+        repository.name
+      );
       return jobs;
     });
 

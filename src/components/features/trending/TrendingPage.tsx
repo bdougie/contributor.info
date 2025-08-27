@@ -1,7 +1,13 @@
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TrendingRepositoryCard } from './TrendingRepositoryCard';
 import type { TrendingRepositoryData } from './TrendingRepositoryCard';
@@ -24,7 +30,7 @@ export function TrendingPage({ repositories, loading = false, className }: Trend
   // Get unique languages for filter
   const availableLanguages = useMemo(() => {
     const languages = repositories
-      .map(repo => repo.language)
+      .map((repo) => repo.language)
       .filter((lang): lang is string => Boolean(lang))
       .reduce((acc, lang) => acc.add(lang), new Set<string>());
     return Array.from(languages).sort();
@@ -36,7 +42,7 @@ export function TrendingPage({ repositories, loading = false, className }: Trend
 
     // Apply language filter
     if (languageFilter !== 'all') {
-      filtered = filtered.filter(repo => repo.language === languageFilter);
+      filtered = filtered.filter((repo) => repo.language === languageFilter);
     }
 
     // Sort repositories
@@ -116,7 +122,9 @@ export function TrendingPage({ repositories, loading = false, className }: Trend
               <Zap className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600 dark:text-orange-400" />
             </div>
             <div className="min-w-0">
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Trending Repositories</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+                Trending Repositories
+              </h1>
               <p className="text-sm sm:text-base text-muted-foreground hidden sm:block">
                 Discover repositories with significant recent activity and growth
               </p>
@@ -126,7 +134,9 @@ export function TrendingPage({ repositories, loading = false, className }: Trend
           <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4" />
-              <span className="hidden sm:inline">Showing trends for {getTimePeriodLabel(timePeriod).toLowerCase()}</span>
+              <span className="hidden sm:inline">
+                Showing trends for {getTimePeriodLabel(timePeriod).toLowerCase()}
+              </span>
               <span className="sm:hidden">{getTimePeriodLabel(timePeriod)}</span>
             </div>
             <Badge variant="secondary">
@@ -140,15 +150,23 @@ export function TrendingPage({ repositories, loading = false, className }: Trend
           <Tabs value={timePeriod} onValueChange={(value) => setTimePeriod(value as TimePeriod)}>
             <div className="flex flex-col gap-4 mb-6">
               <TabsList className="w-full sm:w-fit">
-                <TabsTrigger value="24h" className="flex-1 sm:flex-none flex items-center gap-1 sm:gap-2">
+                <TabsTrigger
+                  value="24h"
+                  className="flex-1 sm:flex-none flex items-center gap-1 sm:gap-2"
+                >
                   <Sparkles className="w-3 h-3 sm:w-4 sm:h-4" />
                   <span>24h</span>
                 </TabsTrigger>
-                <TabsTrigger value="7d" className="flex-1 sm:flex-none flex items-center gap-1 sm:gap-2">
+                <TabsTrigger
+                  value="7d"
+                  className="flex-1 sm:flex-none flex items-center gap-1 sm:gap-2"
+                >
                   <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4" />
                   <span>7d</span>
                 </TabsTrigger>
-                <TabsTrigger value="30d" className="flex-1 sm:flex-none">30d</TabsTrigger>
+                <TabsTrigger value="30d" className="flex-1 sm:flex-none">
+                  30d
+                </TabsTrigger>
               </TabsList>
 
               <div className="flex flex-col sm:flex-row gap-3">
@@ -170,8 +188,10 @@ export function TrendingPage({ repositories, loading = false, className }: Trend
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Languages</SelectItem>
-                    {availableLanguages.map(lang => (
-                      <SelectItem key={lang} value={lang}>{lang}</SelectItem>
+                    {availableLanguages.map((lang) => (
+                      <SelectItem key={lang} value={lang}>
+                        {lang}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -206,8 +226,8 @@ export function TrendingPage({ repositories, loading = false, className }: Trend
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
-                        <TrendingRepositoryCard 
-                          repository={filteredRepos[0]} 
+                        <TrendingRepositoryCard
+                          repository={filteredRepos[0]}
                           showDataFreshness={true}
                         />
                       </CardContent>

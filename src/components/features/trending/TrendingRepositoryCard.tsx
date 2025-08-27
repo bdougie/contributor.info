@@ -3,7 +3,14 @@ import { Badge } from '@/components/ui/badge';
 import { OptimizedAvatar } from '@/components/ui/optimized-avatar';
 import { DataFreshnessIndicator } from '@/components/ui/data-freshness-indicator';
 import { cn } from '@/lib/utils';
-import { ChevronUp, ChevronDown, TrendingUp, Star, GitPullRequest, Users } from '@/components/ui/icon';
+import {
+  ChevronUp,
+  ChevronDown,
+  TrendingUp,
+  Star,
+  GitPullRequest,
+  Users,
+} from '@/components/ui/icon';
 
 export interface TrendingRepositoryData {
   id: string;
@@ -40,23 +47,18 @@ function MetricChange({ label: _label, value, icon: Icon, formatValue }: MetricC
   const isPositive = value > 0;
   const isNeutral = value === 0;
   const displayValue = formatValue ? formatValue(Math.abs(value)) : `${Math.abs(value)}`;
-  
+
   return (
-    <div className={cn(
-      'flex items-center gap-1 text-xs',
-      isPositive ? 'text-green-600' : isNeutral ? 'text-muted-foreground' : 'text-red-600'
-    )}>
-      {!isNeutral && (
-        isPositive ? (
-          <ChevronUp className="w-3 h-3" />
-        ) : (
-          <ChevronDown className="w-3 h-3" />
-        )
+    <div
+      className={cn(
+        'flex items-center gap-1 text-xs',
+        isPositive ? 'text-green-600' : isNeutral ? 'text-muted-foreground' : 'text-red-600'
       )}
+    >
+      {!isNeutral &&
+        (isPositive ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
       <Icon className="w-3 h-3" />
-      <span>
-        {isNeutral ? '0%' : `${isPositive ? '+' : '-'}${displayValue}`}
-      </span>
+      <span>{isNeutral ? '0%' : `${isPositive ? '+' : '-'}${displayValue}`}</span>
     </div>
   );
 }
@@ -68,13 +70,13 @@ export function TrendingRepositoryCard({
   compact = false,
 }: TrendingRepositoryCardProps) {
   const formatPercentage = (value: number) => `${Math.round(value)}%`;
-  
+
   // Calculate data freshness based on last activity
   const calculateFreshness = (lastActivity: string): 'fresh' | 'stale' | 'old' => {
     const lastUpdate = new Date(lastActivity);
     const now = new Date();
     const hoursSince = (now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60);
-    
+
     if (hoursSince <= 24) return 'fresh';
     if (hoursSince <= 168) return 'stale'; // 7 days
     return 'old';
@@ -101,16 +103,13 @@ export function TrendingRepositoryCard({
                   rel="noopener noreferrer"
                   className="hover:underline min-w-0"
                 >
-                  <h3 className={cn(
-                    'font-semibold truncate',
-                    compact ? 'text-sm' : 'text-base'
-                  )}>
+                  <h3 className={cn('font-semibold truncate', compact ? 'text-sm' : 'text-base')}>
                     {repository.owner}/{repository.name}
                   </h3>
                 </a>
                 {/* Freshness indicator next to repo name */}
                 {showDataFreshness && (
-                  <DataFreshnessIndicator 
+                  <DataFreshnessIndicator
                     freshness={calculateFreshness(repository.last_activity)}
                     lastUpdate={repository.last_activity}
                     className="flex-shrink-0"
@@ -119,7 +118,7 @@ export function TrendingRepositoryCard({
               </div>
             </div>
           </div>
-          
+
           {/* Second row: Description (desktop only) */}
           {repository.description && !compact && (
             <p className="text-sm text-muted-foreground line-clamp-2 hidden sm:block">
@@ -152,7 +151,7 @@ export function TrendingRepositoryCard({
               formatValue={formatPercentage}
             />
           </div>
-          
+
           {/* Mobile: Badges on bottom row - aligned left */}
           <div className="flex items-center justify-start gap-2 sm:hidden">
             <Badge variant="secondary" className="flex items-center gap-1 text-xs">

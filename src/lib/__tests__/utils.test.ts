@@ -25,7 +25,11 @@ describe('humanizeNumber function', () => {
 
 describe('calculateLotteryFactor function', () => {
   // Create mock data for testing
-  const createMockPR = (username: string, createdAt: string, orgs: { login: string; avatar_url: string }[] = []): PullRequest => ({
+  const createMockPR = (
+    username: string,
+    createdAt: string,
+    orgs: { login: string; avatar_url: string }[] = []
+  ): PullRequest => ({
     id: Math.floor(Math.random() * 10000),
     number: Math.floor(Math.random() * 100),
     title: `Test PR by ${username}`,
@@ -67,7 +71,7 @@ describe('calculateLotteryFactor function', () => {
     ];
 
     const result = calculateLotteryFactor(prs);
-    
+
     expect(result.totalContributors).toBe(2);
   });
 
@@ -78,22 +82,22 @@ describe('calculateLotteryFactor function', () => {
       createMockPR('user1', getRecentDate()),
       createMockPR('user1', getRecentDate()),
       createMockPR('user1', getRecentDate()),
-      
+
       // User2 makes 3 PRs (30%)
       createMockPR('user2', getRecentDate()),
       createMockPR('user2', getRecentDate()),
       createMockPR('user2', getRecentDate()),
-      
+
       // User3 makes 2 PRs (20%)
       createMockPR('user3', getRecentDate()),
       createMockPR('user3', getRecentDate()),
-      
+
       // User4 makes 1 PR (10%)
       createMockPR('user4', getRecentDate()),
     ];
 
     const result = calculateLotteryFactor(prs);
-    
+
     expect(result.riskLevel).toBe('High');
     expect(result.topContributorsPercentage).toBe(70);
   });
@@ -104,27 +108,27 @@ describe('calculateLotteryFactor function', () => {
       createMockPR('user1', getRecentDate()),
       createMockPR('user1', getRecentDate()),
       createMockPR('user1', getRecentDate()),
-      
+
       // User2 makes 2 PRs (20%)
       createMockPR('user2', getRecentDate()),
       createMockPR('user2', getRecentDate()),
-      
+
       // User3 makes 2 PRs (20%)
       createMockPR('user3', getRecentDate()),
       createMockPR('user3', getRecentDate()),
-      
+
       // User4 makes 1 PR (10%)
       createMockPR('user4', getRecentDate()),
-      
+
       // User5 makes 1 PR (10%)
       createMockPR('user5', getRecentDate()),
-      
+
       // User6 makes 1 PR (10%)
       createMockPR('user6', getRecentDate()),
     ];
 
     const result = calculateLotteryFactor(prs);
-    
+
     expect(result.riskLevel).toBe('Medium');
     expect(result.topContributorsPercentage).toBe(50);
   });
@@ -145,7 +149,7 @@ describe('calculateLotteryFactor function', () => {
     ];
 
     const result = calculateLotteryFactor(prs);
-    
+
     expect(result.riskLevel).toBe('Low');
     expect(result.topContributorsPercentage).toBe(20);
   });
@@ -163,21 +167,21 @@ describe('calculateLotteryFactor function', () => {
     ];
 
     const result = calculateLotteryFactor(prs);
-    
+
     expect(result.contributors.length).toBe(7);
   });
 
   it('should preserve organization information for contributors', () => {
     const org = { login: 'test-org', avatar_url: 'https://github.com/test-org.png' };
-    
+
     const prs: PullRequest[] = [
       createMockPR('user1', getRecentDate(), [org]),
       createMockPR('user2', getRecentDate()),
     ];
 
     const result = calculateLotteryFactor(prs);
-    
-    const user1 = result.contributors.find(c => c.login === 'user1');
+
+    const user1 = result.contributors.find((c) => c.login === 'user1');
     expect(user1?.organizations).toBeDefined();
     expect(user1?.organizations?.[0].login).toBe('test-org');
   });

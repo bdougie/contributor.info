@@ -4,8 +4,8 @@ import { supabase } from '../supabase';
 // Mock the Supabase client
 vi.mock('../supabase', () => ({
   supabase: {
-    from: vi.fn()
-  }
+    from: vi.fn(),
+  },
 }));
 
 describe('Supabase Query Patterns - 406 Error Prevention', () => {
@@ -18,9 +18,9 @@ describe('Supabase Query Patterns - 406 Error Prevention', () => {
       const mockQuery = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null })
+        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
       };
-      
+
       (supabase.from as any).mockReturnValue(mockQuery);
 
       const { data, error } = await supabase
@@ -39,9 +39,9 @@ describe('Supabase Query Patterns - 406 Error Prevention', () => {
       const mockQuery = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null })
+        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
       };
-      
+
       (supabase.from as any).mockReturnValue(mockQuery);
 
       const { data, error } = await supabase
@@ -58,9 +58,9 @@ describe('Supabase Query Patterns - 406 Error Prevention', () => {
       const mockQuery = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null })
+        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
       };
-      
+
       (supabase.from as any).mockReturnValue(mockQuery);
 
       const { data, error } = await supabase
@@ -77,9 +77,9 @@ describe('Supabase Query Patterns - 406 Error Prevention', () => {
       const mockQuery = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null })
+        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
       };
-      
+
       (supabase.from as any).mockReturnValue(mockQuery);
 
       const { data, error } = await supabase
@@ -96,19 +96,19 @@ describe('Supabase Query Patterns - 406 Error Prevention', () => {
 
   describe('maybeSingle() behavior with data found', () => {
     it('should return data when repository exists', async () => {
-      const mockRepo = { 
-        id: '123', 
-        owner: 'test', 
+      const mockRepo = {
+        id: '123',
+        owner: 'test',
         name: 'repo',
-        last_updated_at: new Date().toISOString()
+        last_updated_at: new Date().toISOString(),
       };
-      
+
       const mockQuery = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        maybeSingle: vi.fn().mockResolvedValue({ data: mockRepo, error: null })
+        maybeSingle: vi.fn().mockResolvedValue({ data: mockRepo, error: null }),
       };
-      
+
       (supabase.from as any).mockReturnValue(mockQuery);
 
       const { data, error } = await supabase
@@ -129,27 +129,30 @@ describe('Supabase Query Patterns - 406 Error Prevention', () => {
         id: 'uuid-123',
         github_id: 12345,
         username: 'testuser',
-        avatar_url: 'https://example.com/avatar.jpg'
+        avatar_url: 'https://example.com/avatar.jpg',
       };
 
       const mockQuery = {
         upsert: vi.fn().mockReturnThis(),
         select: vi.fn().mockReturnThis(),
-        maybeSingle: vi.fn().mockResolvedValue({ data: newContributor, error: null })
+        maybeSingle: vi.fn().mockResolvedValue({ data: newContributor, error: null }),
       };
-      
+
       (supabase.from as any).mockReturnValue(mockQuery);
 
       const { data, error } = await supabase
         .from('contributors')
-        .upsert({
-          github_id: 12345,
-          username: 'testuser',
-          avatar_url: 'https://example.com/avatar.jpg'
-        }, {
-          onConflict: 'github_id',
-          ignoreDuplicates: false
-        })
+        .upsert(
+          {
+            github_id: 12345,
+            username: 'testuser',
+            avatar_url: 'https://example.com/avatar.jpg',
+          },
+          {
+            onConflict: 'github_id',
+            ignoreDuplicates: false,
+          }
+        )
         .select('id')
         .maybeSingle();
 
@@ -162,9 +165,9 @@ describe('Supabase Query Patterns - 406 Error Prevention', () => {
       const mockQuery = {
         upsert: vi.fn().mockReturnThis(),
         select: vi.fn().mockReturnThis(),
-        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null })
+        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
       };
-      
+
       (supabase.from as any).mockReturnValue(mockQuery);
 
       const { data, error } = await supabase
@@ -184,9 +187,9 @@ describe('Supabase Query Patterns - 406 Error Prevention', () => {
       const mockQuery = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null })
+        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
       };
-      
+
       (supabase.from as any).mockReturnValue(mockQuery);
 
       const { data, error } = await supabase
@@ -205,13 +208,13 @@ describe('Supabase Query Patterns - 406 Error Prevention', () => {
 
     it('should handle actual database errors differently from not-found', async () => {
       const dbError = { message: 'Database connection error', code: '500' };
-      
+
       const mockQuery = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: dbError })
+        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: dbError }),
       };
-      
+
       (supabase.from as any).mockReturnValue(mockQuery);
 
       const { data, error } = await supabase
@@ -231,9 +234,9 @@ describe('Supabase Query Patterns - 406 Error Prevention', () => {
       const mockQuery = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null })
+        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
       };
-      
+
       (supabase.from as any).mockReturnValue(mockQuery);
 
       // Pattern from supabase-pr-data.ts
@@ -254,9 +257,9 @@ describe('Supabase Query Patterns - 406 Error Prevention', () => {
       const mockQuery = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null })
+        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
       };
-      
+
       (supabase.from as any).mockReturnValue(mockQuery);
 
       // Pattern from github-graphql-stats.ts
@@ -276,9 +279,9 @@ describe('Supabase Query Patterns - 406 Error Prevention', () => {
       const mockQuery = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null })
+        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
       };
-      
+
       (supabase.from as any).mockReturnValue(mockQuery);
 
       // Pattern from inngest functions
@@ -299,9 +302,9 @@ describe('Supabase Query Patterns - 406 Error Prevention', () => {
       const mockQuery = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null })
+        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
       };
-      
+
       (supabase.from as any).mockReturnValue(mockQuery);
 
       // This would have thrown a 406 error with .single()
@@ -319,20 +322,20 @@ describe('Supabase Query Patterns - 406 Error Prevention', () => {
     });
 
     it('should still return error when multiple rows found', async () => {
-      const multipleRowsError = { 
-        message: 'Multiple rows returned', 
-        code: 'PGRST116' 
+      const multipleRowsError = {
+        message: 'Multiple rows returned',
+        code: 'PGRST116',
       };
-      
+
       const mockQuery = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        maybeSingle: vi.fn().mockResolvedValue({ 
-          data: null, 
-          error: multipleRowsError 
-        })
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: null,
+          error: multipleRowsError,
+        }),
       };
-      
+
       (supabase.from as any).mockReturnValue(mockQuery);
 
       const { data, error } = await supabase

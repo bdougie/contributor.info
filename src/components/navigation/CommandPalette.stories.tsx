@@ -10,7 +10,8 @@ const meta = {
     layout: 'fullscreen',
     docs: {
       description: {
-        component: 'A command palette for quick navigation between workspaces, repositories, and actions. Accessible via Cmd+K or Ctrl+K.',
+        component:
+          'A command palette for quick navigation between workspaces, repositories, and actions. Accessible via Cmd+K or Ctrl+K.',
       },
     },
   },
@@ -60,11 +61,46 @@ const mockWorkspaces = [
 ];
 
 const mockRepositories = [
-  { owner: 'microsoft', name: 'vscode', full_name: 'microsoft/vscode', stars: 173000, language: 'TypeScript', description: 'Visual Studio Code' },
-  { owner: 'facebook', name: 'react', full_name: 'facebook/react', stars: 227000, language: 'JavaScript', description: 'A declarative, efficient, and flexible JavaScript library' },
-  { owner: 'vercel', name: 'next.js', full_name: 'vercel/next.js', stars: 127000, language: 'TypeScript', description: 'The React Framework' },
-  { owner: 'ollama', name: 'ollama', full_name: 'ollama/ollama', stars: 149000, language: 'Go', description: 'Get up and running with Llama 3.3, Mistral, Gemini 2.0' },
-  { owner: 'kubernetes', name: 'kubernetes', full_name: 'kubernetes/kubernetes', stars: 115000, language: 'Go', description: 'Production-Grade Container Scheduling and Management' },
+  {
+    owner: 'microsoft',
+    name: 'vscode',
+    full_name: 'microsoft/vscode',
+    stars: 173000,
+    language: 'TypeScript',
+    description: 'Visual Studio Code',
+  },
+  {
+    owner: 'facebook',
+    name: 'react',
+    full_name: 'facebook/react',
+    stars: 227000,
+    language: 'JavaScript',
+    description: 'A declarative, efficient, and flexible JavaScript library',
+  },
+  {
+    owner: 'vercel',
+    name: 'next.js',
+    full_name: 'vercel/next.js',
+    stars: 127000,
+    language: 'TypeScript',
+    description: 'The React Framework',
+  },
+  {
+    owner: 'ollama',
+    name: 'ollama',
+    full_name: 'ollama/ollama',
+    stars: 149000,
+    language: 'Go',
+    description: 'Get up and running with Llama 3.3, Mistral, Gemini 2.0',
+  },
+  {
+    owner: 'kubernetes',
+    name: 'kubernetes',
+    full_name: 'kubernetes/kubernetes',
+    stars: 115000,
+    language: 'Go',
+    description: 'Production-Grade Container Scheduling and Management',
+  },
 ];
 
 const mockRecentItems = [
@@ -129,7 +165,7 @@ export const WorkspacesOnly: Story = {
     open: true,
     workspaces: mockWorkspaces,
     repositories: [],
-    recentItems: mockRecentItems.filter(item => item.type === 'workspace'),
+    recentItems: mockRecentItems.filter((item) => item.type === 'workspace'),
   },
 };
 
@@ -138,7 +174,7 @@ export const RepositoriesOnly: Story = {
     open: true,
     workspaces: [],
     repositories: mockRepositories,
-    recentItems: mockRecentItems.filter(item => item.type === 'repository'),
+    recentItems: mockRecentItems.filter((item) => item.type === 'repository'),
   },
 };
 
@@ -147,7 +183,8 @@ export const WithKeyboardNavigation: Story = {
   parameters: {
     docs: {
       description: {
-        story: 'Use arrow keys to navigate, Enter to select, and Escape to close. Try typing "workspace:" or "repo:" to filter by type.',
+        story:
+          'Use arrow keys to navigate, Enter to select, and Escape to close. Try typing "workspace:" or "repo:" to filter by type.',
       },
     },
   },

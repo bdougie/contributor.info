@@ -1,14 +1,14 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState } from 'react';
 import { ArrowLeft } from '@/components/ui/icon';
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/lib/supabase";
-import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
-import type { User } from "@supabase/supabase-js";
-import { LastUpdated } from "@/components/ui/last-updated";
-import { usePageTimestamp } from "@/hooks/use-data-timestamp";
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/lib/supabase';
+import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+import type { User } from '@supabase/supabase-js';
+import { LastUpdated } from '@/components/ui/last-updated';
+import { usePageTimestamp } from '@/hooks/use-data-timestamp';
 
 interface EmailPreferences {
   welcome_emails: boolean;
@@ -29,27 +29,30 @@ export function SettingsPage() {
     notification_emails: true,
     transactional_emails: true,
   });
-  
+
   // Track when the page was loaded for freshness indicator
   const { pageLoadedAt } = usePageTimestamp();
 
   useEffect(() => {
     const fetchUserAndPreferences = async () => {
       try {
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-        
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser();
+
         if (userError || !user) {
-          navigate("/");
+          navigate('/');
           return;
         }
-        
+
         setUser(user);
 
         // Fetch email preferences
         const { data } = await supabase
-          .from("user_email_preferences")
-          .select("*")
-          .eq("user_id", user.id)
+          .from('user_email_preferences')
+          .select('*')
+          .eq('user_id', user.id)
           .single();
 
         if (data) {
@@ -61,7 +64,7 @@ export function SettingsPage() {
           });
         }
       } catch (error) {
-        console.error("Failed to fetch preferences:", error);
+        console.error('Failed to fetch preferences:', error);
       } finally {
         setLoading(false);
       }
@@ -75,26 +78,24 @@ export function SettingsPage() {
 
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from("user_email_preferences")
-        .upsert({
-          user_id: user.id,
-          ...preferences,
-          updated_at: new Date().toISOString(),
-        });
+      const { error } = await supabase.from('user_email_preferences').upsert({
+        user_id: user.id,
+        ...preferences,
+        updated_at: new Date().toISOString(),
+      });
 
       if (error) throw error;
 
       toast({
-        title: "Settings saved",
-        description: "Your email preferences have been updated.",
+        title: 'Settings saved',
+        description: 'Your email preferences have been updated.',
       });
     } catch (error) {
-      console.error("Failed to save preferences:", error);
+      console.error('Failed to save preferences:', error);
       toast({
-        title: "Error",
-        description: "Failed to save your preferences. Please try again.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to save your preferences. Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setSaving(false);
@@ -111,22 +112,14 @@ export function SettingsPage() {
 
   return (
     <div className="container max-w-2xl mx-auto py-8 px-4">
-      <Button
-        variant="ghost"
-        onClick={() => navigate(-1)}
-        className="mb-6"
-      >
+      <Button variant="ghost" onClick={() => navigate(-1)} className="mb-6">
         <ArrowLeft className="mr-2 h-4 w-4" />
         Back
       </Button>
 
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-semibold">Settings</h1>
-        <LastUpdated 
-          timestamp={pageLoadedAt}
-          label="Settings loaded"
-          size="sm"
-        />
+        <LastUpdated timestamp={pageLoadedAt} label="Settings loaded" size="sm" />
       </div>
 
       <div className="space-y-8">
@@ -196,12 +189,8 @@ export function SettingsPage() {
             </div>
           </div>
 
-          <Button
-            onClick={handleSavePreferences}
-            disabled={saving}
-            className="mt-6"
-          >
-            {saving ? "Saving..." : "Save Preferences"}
+          <Button onClick={handleSavePreferences} disabled={saving} className="mt-6">
+            {saving ? 'Saving...' : 'Save Preferences'}
           </Button>
         </section>
 
@@ -212,19 +201,11 @@ export function SettingsPage() {
               Learn about how we handle your data and protect your privacy.
             </p>
             <div className="flex gap-4">
-              <Button
-                variant="outline"
-                onClick={() => navigate("/privacy")}
-              >
+              <Button variant="outline" onClick={() => navigate('/privacy')}>
                 Privacy Policy
               </Button>
-              <Button
-                variant="outline"
-                asChild
-              >
-                <a href="https://contributor.info/privacy/data-request">
-                  Request Your Data
-                </a>
+              <Button variant="outline" asChild>
+                <a href="https://contributor.info/privacy/data-request">Request Your Data</a>
               </Button>
             </div>
           </div>
@@ -240,7 +221,7 @@ export function SettingsPage() {
               variant="outline"
               onClick={() => {
                 supabase.auth.signOut();
-                navigate("/");
+                navigate('/');
               }}
             >
               Sign Out

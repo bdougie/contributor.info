@@ -1,21 +1,21 @@
-import type { Meta, StoryObj } from "@storybook/react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import type { Meta, StoryObj } from '@storybook/react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 const meta = {
-  title: "Tests/Accessibility",
+  title: 'Tests/Accessibility',
   parameters: {
-    layout: "centered",
+    layout: 'centered',
     docs: {
       description: {
-        component: "Accessibility-focused interaction tests for UI components.",
+        component: 'Accessibility-focused interaction tests for UI components.',
       },
     },
   },
-  tags: ["skip-test"], // TODO: Fix test
+  tags: ['skip-test'], // TODO: Fix test
 } satisfies Meta;
 
 export default meta;
@@ -86,7 +86,7 @@ export const ScreenReaderSupport: Story = {
       </div>
     </div>
   ),
-  tags: ["accessibility", "screen-reader"],
+  tags: ['accessibility', 'screen-reader'],
 };
 
 export const ColorContrastAndVisualCues: Story = {
@@ -120,7 +120,7 @@ export const ColorContrastAndVisualCues: Story = {
       </div>
     </div>
   ),
-  tags: ["accessibility", "visual"],
+  tags: ['accessibility', 'visual'],
 };
 
 export const FocusManagement: Story = {

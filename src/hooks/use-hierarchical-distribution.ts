@@ -53,7 +53,7 @@ const QUADRANT_INFO = {
 };
 
 export function useHierarchicalDistribution(
-  pullRequests: PullRequest[], 
+  pullRequests: PullRequest[],
   externalSelectedQuadrant?: string | null
 ): UseHierarchicalDistributionReturn {
   const [currentView, setCurrentView] = useState<'overview' | 'quadrant'>('overview');
@@ -84,7 +84,7 @@ export function useHierarchicalDistribution(
     ContributionAnalyzer.resetCounts();
 
     // Categorize each PR
-    pullRequests.forEach(pr => {
+    pullRequests.forEach((pr) => {
       try {
         const metrics = ContributionAnalyzer.analyze(pr);
         const quadrant = metrics.quadrant;
@@ -100,47 +100,51 @@ export function useHierarchicalDistribution(
     });
 
     // Transform into hierarchical structure
-    const children: QuadrantNode[] = Object.entries(quadrantMap).map(([quadrantId, contributors]) => {
-      const contributorNodes: ContributorNode[] = Object.entries(contributors)
-        .map(([login, prs]) => ({
-          id: `${quadrantId}-${login}`,
-          name: login,
-          value: prs.length,
-          login,
-          avatar_url: prs[0]?.user.avatar_url || `https://avatars.githubusercontent.com/u/${prs[0]?.user.id}`,
-          prs,
-        }))
-        .sort((a, b) => b.value - a.value)
-        .slice(0, 20); // Limit to top 20 contributors per quadrant
+    const children: QuadrantNode[] = Object.entries(quadrantMap).map(
+      ([quadrantId, contributors]) => {
+        const contributorNodes: ContributorNode[] = Object.entries(contributors)
+          .map(([login, prs]) => ({
+            id: `${quadrantId}-${login}`,
+            name: login,
+            value: prs.length,
+            login,
+            avatar_url:
+              prs[0]?.user.avatar_url ||
+              `https://avatars.githubusercontent.com/u/${prs[0]?.user.id}`,
+            prs,
+          }))
+          .sort((a, b) => b.value - a.value)
+          .slice(0, 20); // Limit to top 20 contributors per quadrant
 
-      // Add "Others" node if there are more contributors
-      const totalContributors = Object.keys(contributors).length;
-      if (totalContributors > 20) {
-        const othersCount = Object.entries(contributors)
-          .slice(20)
-          .reduce((sum, [_, prs]) => sum + prs.length, 0);
-        
-        if (othersCount > 0) {
-          contributorNodes.push({
-            id: `${quadrantId}-others`,
-            name: `Others (${totalContributors - 20})`,
-            value: othersCount,
-            login: 'others',
-            avatar_url: '',
-            prs: [],
-          });
+        // Add "Others" node if there are more contributors
+        const totalContributors = Object.keys(contributors).length;
+        if (totalContributors > 20) {
+          const othersCount = Object.entries(contributors)
+            .slice(20)
+            .reduce((sum, [_, prs]) => sum + prs.length, 0);
+
+          if (othersCount > 0) {
+            contributorNodes.push({
+              id: `${quadrantId}-others`,
+              name: `Others (${totalContributors - 20})`,
+              value: othersCount,
+              login: 'others',
+              avatar_url: '',
+              prs: [],
+            });
+          }
         }
-      }
 
-      const info = QUADRANT_INFO[quadrantId as keyof typeof QUADRANT_INFO];
-      return {
-        id: quadrantId,
-        name: info.label,
-        value: contributorNodes.reduce((sum, node) => sum + node.value, 0),
-        color: info.color,
-        children: contributorNodes,
-      };
-    });
+        const info = QUADRANT_INFO[quadrantId as keyof typeof QUADRANT_INFO];
+        return {
+          id: quadrantId,
+          name: info.label,
+          value: contributorNodes.reduce((sum, node) => sum + node.value, 0),
+          color: info.color,
+          children: contributorNodes,
+        };
+      }
+    );
 
     return {
       name: 'Distribution',

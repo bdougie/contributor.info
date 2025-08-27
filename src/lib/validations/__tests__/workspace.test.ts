@@ -10,21 +10,15 @@ import {
   validateWorkspaceRole,
   validateAddRepository,
   validateInviteMember,
-  formatValidationErrors
+  formatValidationErrors,
 } from '../workspace';
 
 describe('Workspace Validation', () => {
   describe('validateWorkspaceName', () => {
     it('should accept valid workspace names', () => {
-      const validNames = [
-        'My Workspace',
-        'workspace-123',
-        'test_workspace',
-        'A',
-        'a'.repeat(100)
-      ];
+      const validNames = ['My Workspace', 'workspace-123', 'test_workspace', 'A', 'a'.repeat(100)];
 
-      validNames.forEach(name => {
+      validNames.forEach((name) => {
         const result = validateWorkspaceName(name);
         expect(result.valid).toBe(true);
         expect(result.errors).toHaveLength(0);
@@ -38,28 +32,24 @@ describe('Workspace Validation', () => {
         { name: undefined as any, error: 'Name is required' },
         { name: 'a'.repeat(101), error: 'Name must be between 1 and 100 characters' },
         { name: 'workspace@#$%', error: 'Name contains invalid characters' },
-        { name: 'workspace!', error: 'Name contains invalid characters' }
+        { name: 'workspace!', error: 'Name contains invalid characters' },
       ];
 
       invalidCases.forEach(({ name, error }) => {
         const result = validateWorkspaceName(name);
         expect(result.valid).toBe(false);
-        expect(result.errors.some(e => e.message.includes(error.split(' ').slice(0, 3).join(' ')))).toBe(true);
+        expect(
+          result.errors.some((e) => e.message.includes(error.split(' ').slice(0, 3).join(' ')))
+        ).toBe(true);
       });
     });
   });
 
   describe('validateWorkspaceDescription', () => {
     it('should accept valid descriptions', () => {
-      const validDescriptions = [
-        'A simple description',
-        '',
-        null,
-        undefined,
-        'a'.repeat(500)
-      ];
+      const validDescriptions = ['A simple description', '', null, undefined, 'a'.repeat(500)];
 
-      validDescriptions.forEach(desc => {
+      validDescriptions.forEach((desc) => {
         const result = validateWorkspaceDescription(desc);
         expect(result.valid).toBe(true);
         expect(result.errors).toHaveLength(0);
@@ -100,20 +90,20 @@ describe('Workspace Validation', () => {
         { theme: 'dark' },
         { dashboard_layout: 'grid' },
         { default_time_range: '30d' },
-        { 
+        {
           custom_branding: {
             logo_url: 'https://example.com/logo.png',
-            primary_color: '#FF5733'
-          }
+            primary_color: '#FF5733',
+          },
         },
         {
           theme: 'light',
           dashboard_layout: 'list',
-          default_time_range: '90d'
-        }
+          default_time_range: '90d',
+        },
       ];
 
-      validSettings.forEach(settings => {
+      validSettings.forEach((settings) => {
         const result = validateWorkspaceSettings(settings as any);
         expect(result.valid).toBe(true);
         expect(result.errors).toHaveLength(0);
@@ -122,36 +112,36 @@ describe('Workspace Validation', () => {
 
     it('should reject invalid settings', () => {
       const invalidCases = [
-        { 
-          settings: { theme: 'invalid' }, 
-          error: 'Invalid theme value' 
+        {
+          settings: { theme: 'invalid' },
+          error: 'Invalid theme value',
         },
-        { 
-          settings: { dashboard_layout: 'invalid' }, 
-          error: 'Invalid dashboard layout' 
+        {
+          settings: { dashboard_layout: 'invalid' },
+          error: 'Invalid dashboard layout',
         },
-        { 
-          settings: { default_time_range: '60d' }, 
-          error: 'Invalid default time range' 
+        {
+          settings: { default_time_range: '60d' },
+          error: 'Invalid default time range',
         },
-        { 
-          settings: { custom_branding: { primary_color: 'red' } }, 
-          error: 'valid hex color' 
+        {
+          settings: { custom_branding: { primary_color: 'red' } },
+          error: 'valid hex color',
         },
-        { 
-          settings: { custom_branding: { logo_url: 123 } }, 
-          error: 'Logo URL must be a string' 
+        {
+          settings: { custom_branding: { logo_url: 123 } },
+          error: 'Logo URL must be a string',
         },
         {
           settings: 'not an object' as any,
-          error: 'Settings must be an object'
-        }
+          error: 'Settings must be an object',
+        },
       ];
 
       invalidCases.forEach(({ settings, error }) => {
         const result = validateWorkspaceSettings(settings);
         expect(result.valid).toBe(false);
-        expect(result.errors.some(e => e.message.includes(error))).toBe(true);
+        expect(result.errors.some((e) => e.message.includes(error))).toBe(true);
       });
     });
   });
@@ -163,8 +153,8 @@ describe('Workspace Validation', () => {
         description: 'A test workspace',
         visibility: 'public' as const,
         settings: {
-          theme: 'dark' as const
-        }
+          theme: 'dark' as const,
+        },
       };
 
       const result = validateCreateWorkspace(validRequest);
@@ -178,17 +168,17 @@ describe('Workspace Validation', () => {
         description: 'a'.repeat(501),
         visibility: 'invalid' as any,
         settings: {
-          theme: 'invalid' as any
-        }
+          theme: 'invalid' as any,
+        },
       };
 
       const result = validateCreateWorkspace(invalidRequest);
       expect(result.valid).toBe(false);
       expect(result.errors.length).toBeGreaterThan(0);
-      expect(result.errors.some(e => e.field === 'name')).toBe(true);
-      expect(result.errors.some(e => e.field === 'description')).toBe(true);
-      expect(result.errors.some(e => e.field === 'visibility')).toBe(true);
-      expect(result.errors.some(e => e.field === 'settings.theme')).toBe(true);
+      expect(result.errors.some((e) => e.field === 'name')).toBe(true);
+      expect(result.errors.some((e) => e.field === 'description')).toBe(true);
+      expect(result.errors.some((e) => e.field === 'visibility')).toBe(true);
+      expect(result.errors.some((e) => e.field === 'settings.theme')).toBe(true);
     });
   });
 
@@ -204,11 +194,11 @@ describe('Workspace Validation', () => {
           name: 'New Name',
           description: 'New description',
           visibility: 'public' as const,
-          settings: {}
-        }
+          settings: {},
+        },
       ];
 
-      validUpdates.forEach(update => {
+      validUpdates.forEach((update) => {
         const result = validateUpdateWorkspace(update);
         expect(result.valid).toBe(true);
         expect(result.errors).toHaveLength(0);
@@ -218,25 +208,21 @@ describe('Workspace Validation', () => {
     it('should reject invalid update workspace request', () => {
       const invalidRequest = {
         name: 'a'.repeat(101),
-        visibility: 'internal' as any
+        visibility: 'internal' as any,
       };
 
       const result = validateUpdateWorkspace(invalidRequest);
       expect(result.valid).toBe(false);
-      expect(result.errors.some(e => e.field === 'name')).toBe(true);
-      expect(result.errors.some(e => e.field === 'visibility')).toBe(true);
+      expect(result.errors.some((e) => e.field === 'name')).toBe(true);
+      expect(result.errors.some((e) => e.field === 'visibility')).toBe(true);
     });
   });
 
   describe('validateEmail', () => {
     it('should accept valid email addresses', () => {
-      const validEmails = [
-        'user@example.com',
-        'test.user@domain.co.uk',
-        'name+tag@company.org'
-      ];
+      const validEmails = ['user@example.com', 'test.user@domain.co.uk', 'name+tag@company.org'];
 
-      validEmails.forEach(email => {
+      validEmails.forEach((email) => {
         const result = validateEmail(email);
         expect(result.valid).toBe(true);
         expect(result.errors).toHaveLength(0);
@@ -251,10 +237,10 @@ describe('Workspace Validation', () => {
         'user@',
         'user @example.com',
         null as any,
-        undefined as any
+        undefined as any,
       ];
 
-      invalidEmails.forEach(email => {
+      invalidEmails.forEach((email) => {
         const result = validateEmail(email);
         expect(result.valid).toBe(false);
         expect(result.errors.length).toBeGreaterThan(0);
@@ -265,8 +251,8 @@ describe('Workspace Validation', () => {
   describe('validateWorkspaceRole', () => {
     it('should accept valid roles', () => {
       const validRoles = ['admin', 'editor', 'viewer'];
-      
-      validRoles.forEach(role => {
+
+      validRoles.forEach((role) => {
         const result = validateWorkspaceRole(role);
         expect(result.valid).toBe(true);
         expect(result.errors).toHaveLength(0);
@@ -287,8 +273,8 @@ describe('Workspace Validation', () => {
 
     it('should reject invalid roles', () => {
       const invalidRoles = ['', 'superadmin', 'guest', null, undefined];
-      
-      invalidRoles.forEach(role => {
+
+      invalidRoles.forEach((role) => {
         const result = validateWorkspaceRole(role as any);
         expect(result.valid).toBe(false);
         expect(result.errors.length).toBeGreaterThan(0);
@@ -307,11 +293,11 @@ describe('Workspace Validation', () => {
           repository_id: 'repo-123',
           notes: 'Main repository',
           tags: ['production'],
-          is_pinned: false
-        }
+          is_pinned: false,
+        },
       ];
 
-      validRequests.forEach(request => {
+      validRequests.forEach((request) => {
         const result = validateAddRepository(request);
         expect(result.valid).toBe(true);
         expect(result.errors).toHaveLength(0);
@@ -320,36 +306,36 @@ describe('Workspace Validation', () => {
 
     it('should reject invalid add repository request', () => {
       const invalidCases = [
-        { 
-          request: { repository_id: '' }, 
-          error: 'Repository ID is required' 
+        {
+          request: { repository_id: '' },
+          error: 'Repository ID is required',
         },
-        { 
-          request: { repository_id: null as any }, 
-          error: 'Repository ID is required' 
+        {
+          request: { repository_id: null as any },
+          error: 'Repository ID is required',
         },
-        { 
-          request: { repository_id: 'repo', notes: 'a'.repeat(501) }, 
-          error: '500 characters' 
+        {
+          request: { repository_id: 'repo', notes: 'a'.repeat(501) },
+          error: '500 characters',
         },
-        { 
-          request: { repository_id: 'repo', tags: 'not-array' as any }, 
-          error: 'Tags must be an array' 
+        {
+          request: { repository_id: 'repo', tags: 'not-array' as any },
+          error: 'Tags must be an array',
         },
-        { 
-          request: { repository_id: 'repo', tags: ['a'.repeat(51)] }, 
-          error: '50 characters' 
+        {
+          request: { repository_id: 'repo', tags: ['a'.repeat(51)] },
+          error: '50 characters',
         },
-        { 
-          request: { repository_id: 'repo', is_pinned: 'true' as any }, 
-          error: 'must be a boolean' 
-        }
+        {
+          request: { repository_id: 'repo', is_pinned: 'true' as any },
+          error: 'must be a boolean',
+        },
       ];
 
       invalidCases.forEach(({ request, error }) => {
         const result = validateAddRepository(request);
         expect(result.valid).toBe(false);
-        expect(result.errors.some(e => e.message.includes(error))).toBe(true);
+        expect(result.errors.some((e) => e.message.includes(error))).toBe(true);
       });
     });
   });
@@ -359,14 +345,14 @@ describe('Workspace Validation', () => {
       const validRequests = [
         { email: 'user@example.com', role: 'viewer' as const },
         { email: 'admin@company.org', role: 'admin' as const },
-        { 
-          email: 'user@example.com', 
+        {
+          email: 'user@example.com',
           role: 'editor' as const,
-          message: 'Welcome to the team!' 
-        }
+          message: 'Welcome to the team!',
+        },
       ];
 
-      validRequests.forEach(request => {
+      validRequests.forEach((request) => {
         const result = validateInviteMember(request);
         expect(result.valid).toBe(true);
         expect(result.errors).toHaveLength(0);
@@ -375,28 +361,28 @@ describe('Workspace Validation', () => {
 
     it('should reject invalid invite member request', () => {
       const invalidCases = [
-        { 
-          request: { email: 'invalid', role: 'viewer' as const }, 
-          error: 'Invalid email' 
+        {
+          request: { email: 'invalid', role: 'viewer' as const },
+          error: 'Invalid email',
         },
-        { 
-          request: { email: 'user@example.com', role: 'owner' as const }, 
-          error: 'admin, editor, viewer' 
+        {
+          request: { email: 'user@example.com', role: 'owner' as const },
+          error: 'admin, editor, viewer',
         },
-        { 
-          request: { 
-            email: 'user@example.com', 
-            role: 'viewer' as const, 
-            message: 'a'.repeat(501) 
-          }, 
-          error: '500 characters' 
-        }
+        {
+          request: {
+            email: 'user@example.com',
+            role: 'viewer' as const,
+            message: 'a'.repeat(501),
+          },
+          error: '500 characters',
+        },
       ];
 
       invalidCases.forEach(({ request, error }) => {
         const result = validateInviteMember(request);
         expect(result.valid).toBe(false);
-        expect(result.errors.some(e => e.message.includes(error))).toBe(true);
+        expect(result.errors.some((e) => e.message.includes(error))).toBe(true);
       });
     });
   });
@@ -414,9 +400,11 @@ describe('Workspace Validation', () => {
     it('should format multiple errors correctly', () => {
       const errors = [
         { field: 'name', message: 'Name is required' },
-        { field: 'email', message: 'Invalid email' }
+        { field: 'email', message: 'Invalid email' },
       ];
-      expect(formatValidationErrors(errors)).toBe('Validation failed: name: Name is required, email: Invalid email');
+      expect(formatValidationErrors(errors)).toBe(
+        'Validation failed: name: Name is required, email: Invalid email'
+      );
     });
   });
 });

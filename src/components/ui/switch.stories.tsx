@@ -15,7 +15,8 @@ const meta = {
     layout: 'centered',
     docs: {
       description: {
-        component: 'A toggle switch component for binary choices. Built on Radix UI with full accessibility support, keyboard navigation, and customizable styling.',
+        component:
+          'A toggle switch component for binary choices. Built on Radix UI with full accessibility support, keyboard navigation, and customizable styling.',
       },
     },
   },
@@ -67,10 +68,12 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <div style={{ 
-        minWidth: '300px',
-        padding: designTokens.spacing[4],
-      }}>
+      <div
+        style={{
+          minWidth: '300px',
+          padding: designTokens.spacing[4],
+        }}
+      >
         <Story />
       </div>
     ),
@@ -119,17 +122,17 @@ export const LabelPositions: Story = {
         <Switch id="label-right" />
         <Label htmlFor="label-right">Label on Right</Label>
       </div>
-      
+
       <div className="flex items-center space-x-2">
         <Label htmlFor="label-left">Label on Left</Label>
         <Switch id="label-left" />
       </div>
-      
+
       <div className="flex flex-col gap-1">
         <Label htmlFor="label-top">Label on Top</Label>
         <Switch id="label-top" />
       </div>
-      
+
       <div className="flex flex-col gap-1">
         <Switch id="label-bottom" />
         <Label htmlFor="label-bottom">Label on Bottom</Label>
@@ -152,12 +155,12 @@ export const Sizes: Story = {
         <Switch id="small" className="scale-75" />
         <Label htmlFor="small">Small (75% scale)</Label>
       </div>
-      
+
       <div className="flex items-center space-x-2">
         <Switch id="default" />
         <Label htmlFor="default">Default Size</Label>
       </div>
-      
+
       <div className="flex items-center space-x-2">
         <Switch id="large" className="scale-125" />
         <Label htmlFor="large">Large (125% scale)</Label>
@@ -175,31 +178,33 @@ export const Sizes: Story = {
 
 export const States: Story = {
   render: () => (
-    <div style={{ 
-      display: 'grid', 
-      gridTemplateColumns: 'repeat(2, 1fr)', 
-      gap: designTokens.spacing[4] 
-    }}>
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(2, 1fr)',
+        gap: designTokens.spacing[4],
+      }}
+    >
       <div>
         <Label className="text-sm font-medium mb-2 block">Unchecked</Label>
         <Switch />
       </div>
-      
+
       <div>
         <Label className="text-sm font-medium mb-2 block">Checked</Label>
         <Switch defaultChecked />
       </div>
-      
+
       <div>
         <Label className="text-sm font-medium mb-2 block">Disabled Off</Label>
         <Switch disabled />
       </div>
-      
+
       <div>
         <Label className="text-sm font-medium mb-2 block">Disabled On</Label>
         <Switch disabled defaultChecked />
       </div>
-      
+
       <div>
         <Label className="text-sm font-medium mb-2 block">Loading</Label>
         <div className="flex items-center space-x-2">
@@ -207,7 +212,7 @@ export const States: Story = {
           <span className="text-sm text-muted-foreground">Processing...</span>
         </div>
       </div>
-      
+
       <div>
         <Label className="text-sm font-medium mb-2 block">Error State</Label>
         <div>
@@ -249,40 +254,24 @@ export const ColoredSwitches: Story = {
         <Switch id="default-color" defaultChecked />
         <Label htmlFor="default-color">Default (Primary)</Label>
       </div>
-      
+
       <div className="flex items-center space-x-2">
-        <Switch 
-          id="success" 
-          defaultChecked 
-          className="data-[state=checked]:bg-green-500"
-        />
+        <Switch id="success" defaultChecked className="data-[state=checked]:bg-green-500" />
         <Label htmlFor="success">Success State</Label>
       </div>
-      
+
       <div className="flex items-center space-x-2">
-        <Switch 
-          id="warning" 
-          defaultChecked 
-          className="data-[state=checked]:bg-amber-500"
-        />
+        <Switch id="warning" defaultChecked className="data-[state=checked]:bg-amber-500" />
         <Label htmlFor="warning">Warning State</Label>
       </div>
-      
+
       <div className="flex items-center space-x-2">
-        <Switch 
-          id="danger" 
-          defaultChecked 
-          className="data-[state=checked]:bg-red-500"
-        />
+        <Switch id="danger" defaultChecked className="data-[state=checked]:bg-red-500" />
         <Label htmlFor="danger">Danger State</Label>
       </div>
-      
+
       <div className="flex items-center space-x-2">
-        <Switch 
-          id="info" 
-          defaultChecked 
-          className="data-[state=checked]:bg-blue-500"
-        />
+        <Switch id="info" defaultChecked className="data-[state=checked]:bg-blue-500" />
         <Label htmlFor="info">Info State</Label>
       </div>
     </div>
@@ -304,7 +293,10 @@ export const Interactive: Story = {
 
       const handleChange = (checked: boolean) => {
         setIsEnabled(checked);
-        setLog(prev => [...prev, `Switch ${checked ? 'enabled' : 'disabled'} at ${new Date().toLocaleTimeString()}`]);
+        setLog((prev) => [
+          ...prev,
+          `Switch ${checked ? 'enabled' : 'disabled'} at ${new Date().toLocaleTimeString()}`,
+        ]);
       };
 
       return (
@@ -318,13 +310,9 @@ export const Interactive: Story = {
                 {isEnabled ? '✅ Feature is active' : '❌ Feature is inactive'}
               </p>
             </div>
-            <Switch 
-              id="interactive" 
-              checked={isEnabled}
-              onCheckedChange={handleChange}
-            />
+            <Switch id="interactive" checked={isEnabled} onCheckedChange={handleChange} />
           </div>
-          
+
           {isEnabled && (
             <Card className="border-green-200 bg-green-50">
               <CardContent className="pt-6">
@@ -334,12 +322,14 @@ export const Interactive: Story = {
               </CardContent>
             </Card>
           )}
-          
+
           {log.length > 0 && (
             <div className="text-xs space-y-1">
               <p className="font-medium">Activity Log:</p>
               {log.slice(-3).map((entry, i) => (
-                <p key={i} className="text-muted-foreground">{entry}</p>
+                <p key={i} className="text-muted-foreground">
+                  {entry}
+                </p>
               ))}
             </div>
           )}
@@ -351,13 +341,12 @@ export const Interactive: Story = {
   play: ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const switchElement = canvas.getByRole('switch');
-    
+
     // Check initial state
     expect(switchElement).toBeInTheDocument();
     expect(switchElement).toHaveAttribute('aria-checked', 'false');
-    
+
     // Click to enable
-    
   },
   parameters: {
     docs: {
@@ -373,9 +362,7 @@ export const SettingsPanel: Story = {
     <Card className="w-full max-w-md">
       <CardHeader>
         <CardTitle>Notification Settings</CardTitle>
-        <CardDescription>
-          Manage how you receive notifications.
-        </CardDescription>
+        <CardDescription>Manage how you receive notifications.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-4">
@@ -388,7 +375,7 @@ export const SettingsPanel: Story = {
             </Label>
             <Switch id="push" defaultChecked />
           </div>
-          
+
           <div className="flex items-center justify-between">
             <Label htmlFor="email" className="flex flex-col space-y-1">
               <span>Email Alerts</span>
@@ -398,7 +385,7 @@ export const SettingsPanel: Story = {
             </Label>
             <Switch id="email" defaultChecked />
           </div>
-          
+
           <div className="flex items-center justify-between">
             <Label htmlFor="sms" className="flex flex-col space-y-1">
               <span>SMS Messages</span>
@@ -408,7 +395,7 @@ export const SettingsPanel: Story = {
             </Label>
             <Switch id="sms" />
           </div>
-          
+
           <div className="flex items-center justify-between">
             <Label htmlFor="weekly" className="flex flex-col space-y-1">
               <span>Weekly Digest</span>
@@ -445,13 +432,13 @@ export const AccessibilityFeatures: Story = {
               Increase contrast for better visibility
             </span>
           </Label>
-          <Switch 
-            id="high-contrast" 
+          <Switch
+            id="high-contrast"
             aria-label="Toggle high contrast mode"
             aria-describedby="high-contrast-desc"
           />
         </div>
-        
+
         <div className="flex items-center justify-between">
           <Label htmlFor="large-text" className="flex flex-col space-y-1">
             <span>Large Text</span>
@@ -459,13 +446,13 @@ export const AccessibilityFeatures: Story = {
               Increase text size throughout the app
             </span>
           </Label>
-          <Switch 
+          <Switch
             id="large-text"
             aria-label="Toggle large text"
             aria-describedby="large-text-desc"
           />
         </div>
-        
+
         <div className="flex items-center justify-between">
           <Label htmlFor="reduce-motion" className="flex flex-col space-y-1">
             <span>Reduce Motion</span>
@@ -473,14 +460,14 @@ export const AccessibilityFeatures: Story = {
               Minimize animations and transitions
             </span>
           </Label>
-          <Switch 
+          <Switch
             id="reduce-motion"
             aria-label="Toggle reduced motion"
             aria-describedby="reduce-motion-desc"
             defaultChecked
           />
         </div>
-        
+
         <div className="flex items-center justify-between">
           <Label htmlFor="screen-reader" className="flex flex-col space-y-1">
             <span>Screen Reader Optimization</span>
@@ -488,7 +475,7 @@ export const AccessibilityFeatures: Story = {
               Optimize for screen reader software
             </span>
           </Label>
-          <Switch 
+          <Switch
             id="screen-reader"
             aria-label="Toggle screen reader optimization"
             aria-describedby="screen-reader-desc"
@@ -513,32 +500,32 @@ export const KeyboardNavigation: Story = {
         <Switch id="first" />
         <Label htmlFor="first">First Switch (Tab to focus)</Label>
       </div>
-      
+
       <div className="flex items-center space-x-2">
         <Switch id="second" />
         <Label htmlFor="second">Second Switch (Tab to navigate)</Label>
       </div>
-      
+
       <div className="flex items-center space-x-2">
         <Switch id="third" />
         <Label htmlFor="third">Third Switch (Space to toggle)</Label>
       </div>
-      
+
       <Button type="submit">Submit</Button>
     </form>
   ),
   play: ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const switches = canvas.getAllByRole('switch');
-    
+
     // Focus first switch
     switches[0].focus();
     expect(document.activeElement).toBe(switches[0]);
-    
+
     // Simulate Space key to toggle
     const spaceEvent = new KeyboardEvent('keydown', { key: ' ' });
     switches[0].dispatchEvent(spaceEvent);
-    
+
     // Tab to next switch
     const tabEvent = new KeyboardEvent('keydown', { key: 'Tab' });
     document.dispatchEvent(tabEvent);
@@ -563,47 +550,37 @@ export const MobileOptimized: Story = {
               <Label htmlFor="mobile-wifi" className="text-base">
                 Wi-Fi
               </Label>
-              <Switch 
-                id="mobile-wifi" 
-                defaultChecked
-                className="touch-manipulation scale-110"
-              />
+              <Switch id="mobile-wifi" defaultChecked className="touch-manipulation scale-110" />
             </div>
-            
+
             <div className="flex items-center justify-between py-2">
               <Label htmlFor="mobile-bluetooth" className="text-base">
                 Bluetooth
               </Label>
-              <Switch 
-                id="mobile-bluetooth"
-                className="touch-manipulation scale-110"
-              />
+              <Switch id="mobile-bluetooth" className="touch-manipulation scale-110" />
             </div>
-            
+
             <div className="flex items-center justify-between py-2">
               <Label htmlFor="mobile-location" className="text-base">
                 Location Services
               </Label>
-              <Switch 
-                id="mobile-location" 
+              <Switch
+                id="mobile-location"
                 defaultChecked
                 className="touch-manipulation scale-110"
               />
             </div>
-            
+
             <div className="flex items-center justify-between py-2">
               <Label htmlFor="mobile-data" className="text-base">
                 Mobile Data
               </Label>
-              <Switch 
-                id="mobile-data"
-                className="touch-manipulation scale-110"
-              />
+              <Switch id="mobile-data" className="touch-manipulation scale-110" />
             </div>
           </div>
         </CardContent>
       </Card>
-      
+
       <p className="text-sm text-muted-foreground text-center">
         Optimized for touch with larger tap targets
       </p>
@@ -631,7 +608,7 @@ export const WithIcons: Story = {
         </div>
         <Switch id="dark-mode" />
       </div>
-      
+
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <span className="text-xl">🔔</span>
@@ -639,7 +616,7 @@ export const WithIcons: Story = {
         </div>
         <Switch id="notifications" defaultChecked />
       </div>
-      
+
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <span className="text-xl">🔒</span>
@@ -647,7 +624,7 @@ export const WithIcons: Story = {
         </div>
         <Switch id="privacy" />
       </div>
-      
+
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <span className="text-xl">✈️</span>
@@ -670,48 +647,30 @@ export const Controlled: Story = {
   render: () => {
     const ControlledExample = () => {
       const [checked, setChecked] = useState(false);
-      
+
       return (
         <div className="space-y-4">
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
-                <Label htmlFor="controlled">
-                  Status: {checked ? 'Active' : 'Inactive'}
-                </Label>
-                <Switch 
-                  id="controlled" 
-                  checked={checked} 
-                  onCheckedChange={setChecked}
-                />
+                <Label htmlFor="controlled">Status: {checked ? 'Active' : 'Inactive'}</Label>
+                <Switch id="controlled" checked={checked} onCheckedChange={setChecked} />
               </div>
             </CardContent>
           </Card>
-          
+
           <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => setChecked(true)}
-            >
+            <Button variant="outline" size="sm" onClick={() => setChecked(true)}>
               Turn On
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => setChecked(false)}
-            >
+            <Button variant="outline" size="sm" onClick={() => setChecked(false)}>
               Turn Off
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => setChecked(!checked)}
-            >
+            <Button variant="outline" size="sm" onClick={() => setChecked(!checked)}>
               Toggle
             </Button>
           </div>
-          
+
           <p className="text-sm text-muted-foreground">
             The switch is currently <strong>{checked ? 'ON' : 'OFF'}</strong>
           </p>
@@ -731,51 +690,53 @@ export const Controlled: Story = {
 
 export const AllVariants: Story = {
   render: () => (
-    <div style={{ 
-      display: 'grid', 
-      gridTemplateColumns: 'repeat(3, 1fr)', 
-      gap: designTokens.spacing[4],
-    }}>
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(3, 1fr)',
+        gap: designTokens.spacing[4],
+      }}
+    >
       <div className="text-center">
         <Label className="text-xs mb-2 block">Default Off</Label>
         <Switch />
       </div>
-      
+
       <div className="text-center">
         <Label className="text-xs mb-2 block">Default On</Label>
         <Switch defaultChecked />
       </div>
-      
+
       <div className="text-center">
         <Label className="text-xs mb-2 block">Disabled Off</Label>
         <Switch disabled />
       </div>
-      
+
       <div className="text-center">
         <Label className="text-xs mb-2 block">Disabled On</Label>
         <Switch disabled defaultChecked />
       </div>
-      
+
       <div className="text-center">
         <Label className="text-xs mb-2 block">Small</Label>
         <Switch className="scale-75" />
       </div>
-      
+
       <div className="text-center">
         <Label className="text-xs mb-2 block">Large</Label>
         <Switch className="scale-125" />
       </div>
-      
+
       <div className="text-center">
         <Label className="text-xs mb-2 block">Success</Label>
         <Switch defaultChecked className="data-[state=checked]:bg-green-500" />
       </div>
-      
+
       <div className="text-center">
         <Label className="text-xs mb-2 block">Warning</Label>
         <Switch defaultChecked className="data-[state=checked]:bg-amber-500" />
       </div>
-      
+
       <div className="text-center">
         <Label className="text-xs mb-2 block">Danger</Label>
         <Switch defaultChecked className="data-[state=checked]:bg-red-500" />

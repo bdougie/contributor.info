@@ -51,15 +51,18 @@ class ServiceWorkerClient {
       // Register the enhanced service worker
       const registration = await navigator.serviceWorker.register('/sw-enhanced.js', {
         scope: '/',
-        updateViaCache: 'none' // Always check for updates
+        updateViaCache: 'none', // Always check for updates
       });
 
       console.log('[SW Client] Service Worker registered:', registration);
 
       // Check for updates every hour
-      setInterval(() => {
-        registration.update();
-      }, 60 * 60 * 1000);
+      setInterval(
+        () => {
+          registration.update();
+        },
+        60 * 60 * 1000
+      );
 
       // Handle controller change (new version activated)
       navigator.serviceWorker.addEventListener('controllerchange', () => {
@@ -84,7 +87,6 @@ class ServiceWorkerClient {
       // Wait for service worker to be ready
       await navigator.serviceWorker.ready;
       this.sw = navigator.serviceWorker.controller;
-
     } catch (error) {
       console.error('[SW Client] Registration failed:', error);
     }
@@ -95,7 +97,7 @@ class ServiceWorkerClient {
    */
   private handleMessage(message: ServiceWorkerMessage) {
     const handlers = this.messageHandlers.get(message.type) || [];
-    handlers.forEach(handler => handler(message));
+    handlers.forEach((handler) => handler(message));
 
     // Default handlers
     switch (message.type) {
@@ -157,7 +159,7 @@ class ServiceWorkerClient {
 
     this.postMessage({
       type: 'PREFETCH_RESOURCES',
-      data: { resources }
+      data: { resources },
     });
 
     console.log('[SW Client] Prefetching resources:', resources);
@@ -169,7 +171,7 @@ class ServiceWorkerClient {
   private getRouteResources(routes: string[]): string[] {
     const resources: string[] = [];
 
-    routes.forEach(route => {
+    routes.forEach((route) => {
       // Map routes to their chunk files
       // This should match your actual chunk naming
       switch (route) {
@@ -202,7 +204,7 @@ class ServiceWorkerClient {
   public prefetchResources(resources: string[]) {
     this.postMessage({
       type: 'PREFETCH_RESOURCES',
-      data: { resources }
+      data: { resources },
     });
   }
 
@@ -212,7 +214,7 @@ class ServiceWorkerClient {
   public clearCache(cacheName?: string) {
     this.postMessage({
       type: 'CLEAR_CACHE',
-      data: { cacheName }
+      data: { cacheName },
     });
   }
 
@@ -229,10 +231,7 @@ class ServiceWorkerClient {
         resolve(event.data as CacheStatus);
       };
 
-      this.sw?.postMessage(
-        { type: 'CACHE_STATUS' },
-        [messageChannel.port2]
-      );
+      this.sw?.postMessage({ type: 'CACHE_STATUS' }, [messageChannel.port2]);
 
       // Timeout after 5 seconds
       setTimeout(() => resolve(null), 5000);
@@ -248,7 +247,7 @@ class ServiceWorkerClient {
       new Notification('App Updated', {
         body: 'A new version of Contributor.info is available. Refresh to update.',
         icon: '/icons/icon-192x192.png',
-        badge: '/icons/icon-192x192.png'
+        badge: '/icons/icon-192x192.png',
       });
     }
   }
@@ -325,7 +324,7 @@ export function usePrefetchOnInteraction(route: string) {
   return {
     onMouseEnter: handleInteraction,
     onFocus: handleInteraction,
-    onTouchStart: handleInteraction
+    onTouchStart: handleInteraction,
   };
 }
 

@@ -52,14 +52,16 @@ export const AvatarFallback = ({ children, className }: any) => (
 );
 
 // Button component
-export const Button = React.forwardRef(({ children, className, variant, size, ...props }: any, ref: any) => (
-  <button ref={ref} className={className} data-variant={variant} data-size={size} {...props}>
-    {children}
-  </button>
-));
+export const Button = React.forwardRef(
+  ({ children, className, variant, size, ...props }: any, ref: any) => (
+    <button ref={ref} className={className} data-variant={variant} data-size={size} {...props}>
+      {children}
+    </button>
+  )
+);
 Button.displayName = 'Button';
 
-// Alert components  
+// Alert components
 export const Alert = ({ children, className, role = 'alert', ...props }: any) => (
   <div role={role} className={className} aria-live="assertive" {...props}>
     {children}
@@ -72,7 +74,13 @@ export const AlertDescription = ({ children, className }: any) => (
 
 // Progress component
 export const Progress = ({ value, className }: any) => (
-  <div className={className} role="progressbar" aria-valuenow={value} aria-valuemin={0} aria-valuemax={100}>
+  <div
+    className={className}
+    role="progressbar"
+    aria-valuenow={value}
+    aria-valuemin={0}
+    aria-valuemax={100}
+  >
     <div style={{ width: `${value}%` }} />
   </div>
 );

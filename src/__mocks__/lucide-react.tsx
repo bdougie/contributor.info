@@ -7,11 +7,7 @@ import React from 'react';
 // Helper function to create icon components
 const createIcon = (name: string) => {
   const Icon = React.forwardRef<SVGSVGElement, any>((props, ref) => (
-    <svg 
-      ref={ref}
-      data-testid={`${name}-icon`}
-      {...props}
-    />
+    <svg ref={ref} data-testid={`${name}-icon`} {...props} />
   ));
   Icon.displayName = name;
   return Icon;
@@ -166,5 +162,5 @@ export default {
   Users,
   X,
   XCircle,
-  Zap
+  Zap,
 };

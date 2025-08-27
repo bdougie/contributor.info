@@ -24,9 +24,17 @@ describe('NavigationMenu Components', () => {
           <div>Content</div>
         </NavigationMenu>
       );
-      
+
       const navMenu = screen.getByTestId('nav-menu');
-      expect(navMenu).toHaveClass('relative', 'z-10', 'flex', 'max-w-max', 'flex-1', 'items-center', 'justify-center');
+      expect(navMenu).toHaveClass(
+        'relative',
+        'z-10',
+        'flex',
+        'max-w-max',
+        'flex-1',
+        'items-center',
+        'justify-center'
+      );
       expect(screen.getByText('Content')).toBeInTheDocument();
     });
 
@@ -36,7 +44,7 @@ describe('NavigationMenu Components', () => {
           <div>Content</div>
         </NavigationMenu>
       );
-      
+
       const navMenu = screen.getByTestId('nav-menu');
       expect(navMenu).toHaveClass('custom-class');
     });
@@ -47,10 +55,11 @@ describe('NavigationMenu Components', () => {
           <div>Content</div>
         </NavigationMenu>
       );
-      
+
       // The viewport should be present (though it might not be visible)
-      const viewport = document.querySelector('[data-radix-collection-item]') || 
-                     document.querySelector('[class*="radix-navigation-menu-viewport"]');
+      const viewport =
+        document.querySelector('[data-radix-collection-item]') ||
+        document.querySelector('[class*="radix-navigation-menu-viewport"]');
       // We can't easily test the viewport without complex DOM queries, so we just ensure the component renders
       expect(screen.getByText('Content')).toBeInTheDocument();
     });
@@ -65,9 +74,17 @@ describe('NavigationMenu Components', () => {
           </NavigationMenuList>
         </NavigationMenu>
       );
-      
+
       const navList = screen.getByTestId('nav-list');
-      expect(navList).toHaveClass('group', 'flex', 'flex-1', 'list-none', 'items-center', 'justify-center', 'space-x-1');
+      expect(navList).toHaveClass(
+        'group',
+        'flex',
+        'flex-1',
+        'list-none',
+        'items-center',
+        'justify-center',
+        'space-x-1'
+      );
     });
 
     it('applies custom className', () => {
@@ -78,7 +95,7 @@ describe('NavigationMenu Components', () => {
           </NavigationMenuList>
         </NavigationMenu>
       );
-      
+
       const navList = screen.getByTestId('nav-list');
       expect(navList).toHaveClass('custom-list-class');
     });
@@ -90,18 +107,16 @@ describe('NavigationMenu Components', () => {
         <NavigationMenu>
           <NavigationMenuList>
             <NavigationMenuItem>
-              <NavigationMenuTrigger data-testid="nav-trigger">
-                Trigger Text
-              </NavigationMenuTrigger>
+              <NavigationMenuTrigger data-testid="nav-trigger">Trigger Text</NavigationMenuTrigger>
             </NavigationMenuItem>
           </NavigationMenuList>
         </NavigationMenu>
       );
-      
+
       const trigger = screen.getByTestId('nav-trigger');
       expect(trigger).toHaveClass('group', 'inline-flex', 'h-9', 'w-max', 'items-center');
       expect(screen.getByText('Trigger Text')).toBeInTheDocument();
-      
+
       // Check for chevron icon (should have aria-hidden="true")
       const chevronIcon = document.querySelector('[aria-hidden="true"]');
       expect(chevronIcon).toBeInTheDocument();
@@ -119,7 +134,7 @@ describe('NavigationMenu Components', () => {
           </NavigationMenuList>
         </NavigationMenu>
       );
-      
+
       const trigger = screen.getByTestId('nav-trigger');
       expect(trigger).toHaveClass('custom-trigger-class');
     });
@@ -141,7 +156,7 @@ describe('NavigationMenu Components', () => {
           </NavigationMenuList>
         </NavigationMenu>
       );
-      
+
       // Verify the trigger renders
       expect(screen.getByText('Trigger')).toBeInTheDocument();
       // NavigationMenuContent is not rendered in the DOM until the menu is opened
@@ -165,7 +180,7 @@ describe('NavigationMenu Components', () => {
           </NavigationMenuList>
         </NavigationMenu>
       );
-      
+
       // Verify the menu structure renders without errors
       expect(screen.getByText('Item')).toBeInTheDocument();
     });
@@ -197,9 +212,7 @@ describe('NavigationMenu Components', () => {
         <NavigationMenu data-testid="complete-nav">
           <NavigationMenuList>
             <NavigationMenuItem>
-              <NavigationMenuTrigger>
-                Menu Item
-              </NavigationMenuTrigger>
+              <NavigationMenuTrigger>Menu Item</NavigationMenuTrigger>
               <NavigationMenuContent>
                 <div>Content Area</div>
               </NavigationMenuContent>
@@ -207,7 +220,7 @@ describe('NavigationMenu Components', () => {
           </NavigationMenuList>
         </NavigationMenu>
       );
-      
+
       expect(screen.getByTestId('complete-nav')).toBeInTheDocument();
       expect(screen.getByText('Menu Item')).toBeInTheDocument();
       // NavigationMenuContent is not visible by default (closed state)

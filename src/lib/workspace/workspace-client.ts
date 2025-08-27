@@ -15,7 +15,7 @@ import type {
   WorkspaceFilters,
   WorkspaceRepositoryFilters,
   MetricsTimeRange,
-  WorkspaceRole
+  WorkspaceRole,
 } from '@/types/workspace';
 
 // =====================================================
@@ -32,9 +32,10 @@ export async function createWorkspace(data: CreateWorkspaceRequest) {
   }
 
   // Generate slug from name
-  const { data: slugData, error: slugError } = await supabase
-    .rpc('generate_workspace_slug', { workspace_name: data.name });
-  
+  const { data: slugData, error: slugError } = await supabase.rpc('generate_workspace_slug', {
+    workspace_name: data.name,
+  });
+
   if (slugError) {
     throw new Error('Failed to generate workspace slug');
   }
@@ -47,7 +48,7 @@ export async function createWorkspace(data: CreateWorkspaceRequest) {
       description: data.description || null,
       owner_id: user.user.id,
       visibility: data.visibility || 'public',
-      settings: data.settings || {}
+      settings: data.settings || {},
     })
     .select()
     .single();
@@ -57,22 +58,17 @@ export async function createWorkspace(data: CreateWorkspaceRequest) {
   }
 
   // Automatically add owner as a member
-  const { error: memberError } = await supabase
-    .from('workspace_members')
-    .insert({
-      workspace_id: workspace.id,
-      user_id: user.user.id,
-      role: 'owner',
-      accepted_at: new Date().toISOString()
-    });
+  const { error: memberError } = await supabase.from('workspace_members').insert({
+    workspace_id: workspace.id,
+    user_id: user.user.id,
+    role: 'owner',
+    accepted_at: new Date().toISOString(),
+  });
 
   if (memberError) {
     // Clean up the workspace if membership creation fails
-    await supabase
-      .from('workspaces')
-      .delete()
-      .eq('id', workspace.id);
-    
+    await supabase.from('workspaces').delete().eq('id', workspace.id);
+
     throw new Error(`Failed to create workspace membership: ${memberError.message}`);
   }
 
@@ -85,15 +81,17 @@ export async function createWorkspace(data: CreateWorkspaceRequest) {
 export async function getWorkspace(idOrSlug: string): Promise<WorkspaceWithStats | null> {
   // First try to get the workspace
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrSlug);
-  
+
   const query = supabase
     .from('workspaces')
-    .select(`
+    .select(
+      `
       *,
       owner:owner_id(id, email, raw_user_meta_data),
       workspace_repositories(count),
       workspace_members(count)
-    `)
+    `
+    )
     .eq('is_active', true);
 
   if (isUuid) {
@@ -111,19 +109,22 @@ export async function getWorkspace(idOrSlug: string): Promise<WorkspaceWithStats
   // Get aggregated stats
   const { data: stats } = await supabase
     .from('workspace_repositories')
-    .select(`
+    .select(
+      `
       repository:repositories(
         stargazers_count,
         contributors(count)
       )
-    `)
+    `
+    )
     .eq('workspace_id', data.id);
 
-  const total_stars = stats?.reduce((sum, item: any) => 
-    sum + (item.repository?.stargazers_count || 0), 0) || 0;
-  
-  const total_contributors = stats?.reduce((sum, item: any) => 
-    sum + (item.repository?.contributors?.[0]?.count || 0), 0) || 0;
+  const total_stars =
+    stats?.reduce((sum, item: any) => sum + (item.repository?.stargazers_count || 0), 0) || 0;
+
+  const total_contributors =
+    stats?.reduce((sum, item: any) => sum + (item.repository?.contributors?.[0]?.count || 0), 0) ||
+    0;
 
   return {
     ...data,
@@ -135,8 +136,8 @@ export async function getWorkspace(idOrSlug: string): Promise<WorkspaceWithStats
       id: (data as any).owner.id,
       email: (data as any).owner.email,
       avatar_url: (data as any).owner.raw_user_meta_data?.avatar_url,
-      display_name: (data as any).owner.raw_user_meta_data?.full_name
-    }
+      display_name: (data as any).owner.raw_user_meta_data?.full_name,
+    },
   } as WorkspaceWithStats;
 }
 
@@ -151,7 +152,7 @@ export async function updateWorkspace(id: string, data: UpdateWorkspaceRequest) 
       description: data.description,
       visibility: data.visibility,
       settings: data.settings,
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     })
     .eq('id', id)
     .select()
@@ -168,10 +169,7 @@ export async function updateWorkspace(id: string, data: UpdateWorkspaceRequest) 
  * Delete workspace (soft delete)
  */
 export async function deleteWorkspace(id: string) {
-  const { error } = await supabase
-    .from('workspaces')
-    .update({ is_active: false })
-    .eq('id', id);
+  const { error } = await supabase.from('workspaces').update({ is_active: false }).eq('id', id);
 
   if (error) {
     throw new Error(`Failed to delete workspace: ${error.message}`);
@@ -183,14 +181,16 @@ export async function deleteWorkspace(id: string) {
  */
 export async function listWorkspaces(filters: WorkspaceFilters = {}) {
   const { data: user } = await supabase.auth.getUser();
-  
+
   let query = supabase
     .from('workspaces')
-    .select(`
+    .select(
+      `
       *,
       workspace_repositories(count),
       workspace_members(count)
-    `)
+    `
+    )
     .eq('is_active', true);
 
   // Apply filters
@@ -231,10 +231,7 @@ export async function listWorkspaces(filters: WorkspaceFilters = {}) {
 /**
  * Add repository to workspace
  */
-export async function addRepositoryToWorkspace(
-  workspaceId: string,
-  data: AddRepositoryRequest
-) {
+export async function addRepositoryToWorkspace(workspaceId: string, data: AddRepositoryRequest) {
   const { data: user, error: userError } = await supabase.auth.getUser();
   if (userError || !user?.user) {
     throw new Error('User not authenticated');
@@ -248,13 +245,14 @@ export async function addRepositoryToWorkspace(
       added_by: user.user.id,
       notes: data.notes || null,
       tags: data.tags || [],
-      is_pinned: data.is_pinned || false
+      is_pinned: data.is_pinned || false,
     })
     .select()
     .single();
 
   if (error) {
-    if (error.code === '23505') { // Unique violation
+    if (error.code === '23505') {
+      // Unique violation
       throw new Error('Repository already exists in this workspace');
     }
     throw new Error(`Failed to add repository: ${error.message}`);
@@ -266,10 +264,7 @@ export async function addRepositoryToWorkspace(
 /**
  * Remove repository from workspace
  */
-export async function removeRepositoryFromWorkspace(
-  workspaceId: string,
-  repositoryId: string
-) {
+export async function removeRepositoryFromWorkspace(workspaceId: string, repositoryId: string) {
   const { error } = await supabase
     .from('workspace_repositories')
     .delete()
@@ -290,10 +285,12 @@ export async function listWorkspaceRepositories(
 ) {
   let query = supabase
     .from('workspace_repositories')
-    .select(`
+    .select(
+      `
       *,
       repository:repositories(*)
-    `)
+    `
+    )
     .eq('workspace_id', workspaceId);
 
   // Apply filters
@@ -320,7 +317,7 @@ export async function listWorkspaceRepositories(
   // Apply sorting
   const sortBy = filters.sort_by || 'added_at';
   const sortOrder = filters.sort_order || 'desc';
-  
+
   if (sortBy === 'name') {
     query = query.order('repository.name', { ascending: sortOrder === 'asc' });
   } else if (sortBy === 'stars') {
@@ -345,10 +342,7 @@ export async function listWorkspaceRepositories(
 /**
  * Invite member to workspace
  */
-export async function inviteMemberToWorkspace(
-  workspaceId: string,
-  data: InviteMemberRequest
-) {
+export async function inviteMemberToWorkspace(workspaceId: string, data: InviteMemberRequest) {
   const { data: user, error: userError } = await supabase.auth.getUser();
   if (userError || !user?.user) {
     throw new Error('User not authenticated');
@@ -360,13 +354,14 @@ export async function inviteMemberToWorkspace(
       workspace_id: workspaceId,
       email: data.email,
       role: data.role,
-      invited_by: user.user.id
+      invited_by: user.user.id,
     })
     .select()
     .single();
 
   if (error) {
-    if (error.code === '23505') { // Unique violation
+    if (error.code === '23505') {
+      // Unique violation
       throw new Error('An invitation for this email already exists');
     }
     throw new Error(`Failed to create invitation: ${error.message}`);
@@ -401,7 +396,7 @@ export async function acceptInvitation(invitationToken: string) {
     .from('workspace_invitations')
     .update({
       status: 'accepted',
-      accepted_at: new Date().toISOString()
+      accepted_at: new Date().toISOString(),
     })
     .eq('id', invitation.id);
 
@@ -418,7 +413,7 @@ export async function acceptInvitation(invitationToken: string) {
       role: invitation.role,
       invited_by: invitation.invited_by,
       invited_at: invitation.invited_at,
-      accepted_at: new Date().toISOString()
+      accepted_at: new Date().toISOString(),
     })
     .select()
     .single();
@@ -436,11 +431,13 @@ export async function acceptInvitation(invitationToken: string) {
 export async function listWorkspaceMembers(workspaceId: string) {
   const { data, error } = await supabase
     .from('workspace_members')
-    .select(`
+    .select(
+      `
       *,
       user:user_id(id, email, raw_user_meta_data),
       invited_by_user:invited_by(id, email, raw_user_meta_data)
-    `)
+    `
+    )
     .eq('workspace_id', workspaceId)
     .order('created_at', { ascending: false });
 
@@ -454,11 +451,7 @@ export async function listWorkspaceMembers(workspaceId: string) {
 /**
  * Update member role
  */
-export async function updateMemberRole(
-  workspaceId: string,
-  userId: string,
-  role: WorkspaceRole
-) {
+export async function updateMemberRole(workspaceId: string, userId: string, role: WorkspaceRole) {
   if (role === 'owner') {
     throw new Error('Cannot assign owner role through this method');
   }
@@ -477,10 +470,7 @@ export async function updateMemberRole(
 /**
  * Remove member from workspace
  */
-export async function removeMemberFromWorkspace(
-  workspaceId: string,
-  userId: string
-) {
+export async function removeMemberFromWorkspace(workspaceId: string, userId: string) {
   const { error } = await supabase
     .from('workspace_members')
     .delete()
@@ -497,40 +487,9 @@ export async function removeMemberFromWorkspace(
 // =====================================================
 
 /**
- * Get workspace metrics
- */
-export async function getWorkspaceMetrics(
-  workspaceId: string,
-  timeRange: MetricsTimeRange = '30d'
-): Promise<WorkspaceMetrics | null> {
-  // First check cache
-  const { data: cached, error: cacheError } = await supabase
-    .from('workspace_metrics_cache')
-    .select('*')
-    .eq('workspace_id', workspaceId)
-    .eq('time_range', timeRange)
-    .eq('is_stale', false)
-    .gte('expires_at', new Date().toISOString())
-    .order('calculated_at', { ascending: false })
-    .limit(1)
-    .single();
-
-  if (!cacheError && cached) {
-    return cached as WorkspaceMetrics;
-  }
-
-  // If no cache or expired, trigger recalculation
-  // This would typically be done by a background job
-  // For now, return null and let the UI handle it
-  return null;
-}
-
-/**
  * Get user's role in workspace
  */
-export async function getUserWorkspaceRole(
-  workspaceId: string
-): Promise<WorkspaceRole | null> {
+export async function getUserWorkspaceRole(workspaceId: string): Promise<WorkspaceRole | null> {
   const { data: user, error: userError } = await supabase.auth.getUser();
   if (userError || !user?.user) {
     return null;
@@ -607,7 +566,7 @@ export async function getWorkspaceMetrics(
 
     if (error) {
       console.error('Error fetching workspace metrics:', error);
-      
+
       // If cache miss, trigger aggregation in background
       await triggerMetricsAggregation(workspaceId, timeRange);
       return null;
@@ -641,11 +600,11 @@ export async function getWorkspaceMetrics(
         languages: data.language_distribution || {},
         top_contributors: data.top_contributors || [],
         activity_timeline: data.activity_timeline || [],
-        repository_stats: data.repository_stats
+        repository_stats: data.repository_stats,
       },
       calculated_at: data.calculated_at,
       expires_at: data.expires_at,
-      is_stale: data.is_stale
+      is_stale: data.is_stale,
     };
 
     // Update in-memory cache
@@ -673,14 +632,14 @@ export async function getWorkspaceTrendData(
   timeRange: MetricsTimeRange = '30d'
 ) {
   const metrics = await getWorkspaceMetrics(workspaceId, timeRange);
-  
+
   if (!metrics?.metrics.activity_timeline) {
     return null;
   }
 
   // Transform activity timeline into chart-friendly format
   const timeline = metrics.metrics.activity_timeline;
-  const labels = timeline.map(point => {
+  const labels = timeline.map((point) => {
     const date = new Date(point.date);
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   });
@@ -690,20 +649,20 @@ export async function getWorkspaceTrendData(
     datasets: [
       {
         label: 'Pull Requests',
-        data: timeline.map(p => p.prs),
-        color: '#10b981'
+        data: timeline.map((p) => p.prs),
+        color: '#10b981',
       },
       {
         label: 'Issues',
-        data: timeline.map(p => p.issues),
-        color: '#f97316'
+        data: timeline.map((p) => p.issues),
+        color: '#f97316',
       },
       {
         label: 'Commits',
-        data: timeline.map(p => p.commits),
-        color: '#8b5cf6'
-      }
-    ]
+        data: timeline.map((p) => p.commits),
+        color: '#8b5cf6',
+      },
+    ],
   };
 }
 
@@ -719,13 +678,13 @@ async function triggerMetricsAggregation(
     const response = await fetch('/api/workspaces/metrics/aggregate', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         workspaceId,
         timeRange,
-        priority: 50
-      })
+        priority: 50,
+      }),
     });
 
     if (!response.ok) {
@@ -745,7 +704,7 @@ export async function invalidateWorkspaceMetrics(workspaceId: string): Promise<v
 
   // Mark database cache as stale
   const { error } = await supabase.rpc('mark_workspace_cache_stale', {
-    p_workspace_id: workspaceId
+    p_workspace_id: workspaceId,
   });
 
   if (error) {
@@ -772,7 +731,7 @@ export async function getWorkspaceMetricsMultiple(
   });
 
   const allResults = await Promise.all(promises);
-  
+
   allResults.forEach(({ timeRange, metrics }) => {
     results.set(timeRange, metrics);
   });
@@ -785,9 +744,9 @@ export async function getWorkspaceMetricsMultiple(
  */
 export async function warmWorkspaceCache(workspaceId: string): Promise<void> {
   const timeRanges: MetricsTimeRange[] = ['7d', '30d', '90d'];
-  
+
   // Trigger aggregation for all time ranges
   await Promise.all(
-    timeRanges.map(timeRange => triggerMetricsAggregation(workspaceId, timeRange))
+    timeRanges.map((timeRange) => triggerMetricsAggregation(workspaceId, timeRange))
   );
 }

@@ -16,13 +16,14 @@ export const useTimeRangeStore = create<TimeRangeState>((set) => ({
   timeRangeNumber: 30, // Default numeric value
   effectiveTimeRange: '30', // Initial value
   effectiveTimeRangeNumber: 30, // Initial numeric value
-  setTimeRange: (newTimeRange) => set({ 
-    timeRange: newTimeRange, 
-    timeRangeNumber: parseInt(newTimeRange, 10),
-    // For mobile, we always use the default values regardless of user selection
-    effectiveTimeRange: isMobile() ? '30' : newTimeRange,
-    effectiveTimeRangeNumber: isMobile() ? 30 : parseInt(newTimeRange, 10)
-  }),
+  setTimeRange: (newTimeRange) =>
+    set({
+      timeRange: newTimeRange,
+      timeRangeNumber: parseInt(newTimeRange, 10),
+      // For mobile, we always use the default values regardless of user selection
+      effectiveTimeRange: isMobile() ? '30' : newTimeRange,
+      effectiveTimeRangeNumber: isMobile() ? 30 : parseInt(newTimeRange, 10),
+    }),
 }));
 
 // Initialize window resize listener to update timeRange on viewport changes
@@ -31,7 +32,7 @@ if (typeof window !== 'undefined') {
     const { timeRange } = useTimeRangeStore.getState();
     useTimeRangeStore.getState().setTimeRange(timeRange);
   });
-  
+
   // Set initial values based on current viewport
   window.addEventListener('load', () => {
     const { timeRange } = useTimeRangeStore.getState();

@@ -1,7 +1,7 @@
-import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { SkeletonChart } from "../base/skeleton-chart";
-import { cn } from "@/lib/utils";
+import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { SkeletonChart } from '../base/skeleton-chart';
+import { cn } from '@/lib/utils';
 
 interface DistributionSkeletonProps {
   className?: string;
@@ -10,7 +10,7 @@ interface DistributionSkeletonProps {
 
 export function DistributionSkeleton({ className, isMobile = false }: DistributionSkeletonProps) {
   return (
-    <Card className={cn("overflow-hidden animate-pulse", className)}>
+    <Card className={cn('overflow-hidden animate-pulse', className)}>
       <CardHeader>
         <CardTitle>
           <Skeleton className="h-7 w-80" />
@@ -47,10 +47,12 @@ export function DistributionSkeleton({ className, isMobile = false }: Distributi
 
 function LanguageLegendSkeleton({ isMobile }: { isMobile: boolean }) {
   return (
-    <div className={cn(
-      "flex flex-wrap items-center gap-3",
-      isMobile ? "justify-center" : "justify-center sm:justify-start"
-    )}>
+    <div
+      className={cn(
+        'flex flex-wrap items-center gap-3',
+        isMobile ? 'justify-center' : 'justify-center sm:justify-start'
+      )}
+    >
       {Array.from({ length: 6 }).map((_, i) => (
         <div key={i} className="flex items-center gap-2">
           <Skeleton className="w-3 h-3 rounded-full" />
@@ -78,12 +80,7 @@ function QuadrantChartSkeleton({ isMobile }: { isMobile: boolean }) {
   return (
     <div className="hidden md:block">
       <div className="aspect-[16/9] w-full">
-        <SkeletonChart
-          height="xl"
-          variant="quadrant"
-          showAxes={true}
-          className="w-full h-full"
-        />
+        <SkeletonChart height="xl" variant="quadrant" showAxes={true} className="w-full h-full" />
       </div>
     </div>
   );

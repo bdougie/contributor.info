@@ -31,9 +31,7 @@ export const Default: Story = {
     <div>
       <div className="space-y-1">
         <h4 className="text-sm font-medium leading-none">Radix Primitives</h4>
-        <p className="text-sm text-muted-foreground">
-          An open-source UI component library.
-        </p>
+        <p className="text-sm text-muted-foreground">An open-source UI component library.</p>
       </div>
       <Separator className="my-4" />
       <div className="flex h-5 items-center space-x-4 text-sm">
@@ -95,13 +93,21 @@ export const Navigation: Story = {
   args: {},
   render: () => (
     <nav className="flex items-center space-x-4 text-sm">
-      <a href="#" className="font-medium">Home</a>
+      <a href="#" className="font-medium">
+        Home
+      </a>
       <Separator orientation="vertical" className="h-4" />
-      <a href="#" className="text-muted-foreground hover:text-foreground">About</a>
+      <a href="#" className="text-muted-foreground hover:text-foreground">
+        About
+      </a>
       <Separator orientation="vertical" className="h-4" />
-      <a href="#" className="text-muted-foreground hover:text-foreground">Services</a>
+      <a href="#" className="text-muted-foreground hover:text-foreground">
+        Services
+      </a>
       <Separator orientation="vertical" className="h-4" />
-      <a href="#" className="text-muted-foreground hover:text-foreground">Contact</a>
+      <a href="#" className="text-muted-foreground hover:text-foreground">
+        Contact
+      </a>
     </nav>
   ),
 };

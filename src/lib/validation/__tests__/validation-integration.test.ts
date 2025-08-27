@@ -9,10 +9,10 @@ import {
   contributorCreateSchema,
   repositoryCreateSchema,
   pullRequestCreateSchema,
-  
+
   // GitHub API schemas
   githubUserSchema,
-  
+
   // Validation utilities
   validateData,
   validateBulkData,
@@ -235,8 +235,18 @@ describe('Validation Integration Tests', () => {
 
     it('should create readable error messages', () => {
       const errors = [
-        { field: 'username', message: 'Username is required', code: 'required', received: undefined },
-        { field: 'email', message: 'Invalid email format', code: 'invalid_string', received: 'invalid@' },
+        {
+          field: 'username',
+          message: 'Username is required',
+          code: 'required',
+          received: undefined,
+        },
+        {
+          field: 'email',
+          message: 'Invalid email format',
+          code: 'invalid_string',
+          received: 'invalid@',
+        },
       ];
 
       const message = createErrorMessage(errors);
@@ -267,12 +277,10 @@ describe('Validation Integration Tests', () => {
 
   describe('Error Handling', () => {
     it('should handle ValidationError correctly', () => {
-      const errors = [
-        { field: 'test', message: 'Test error', code: 'test', received: 'invalid' },
-      ];
-      
+      const errors = [{ field: 'test', message: 'Test error', code: 'test', received: 'invalid' }];
+
       const error = new ValidationError('Test validation failed', errors);
-      
+
       expect(error.message).toBe('Test validation failed');
       expect(error.name).toBe('ValidationError');
       expect(error.validationErrors).toEqual(errors);

@@ -46,16 +46,16 @@ export const Default: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const toggle = canvas.getByRole('button', { name: /toggle/i });
-    
+
     // Initial state should be off
     expect(toggle).toHaveAttribute('data-state', 'off');
-    
+
     // Click to toggle on
     await userEvent.click(toggle);
     await waitFor(() => {
       expect(toggle).toHaveAttribute('data-state', 'on');
     });
-    
+
     // Click to toggle off
     await userEvent.click(toggle);
     await waitFor(() => {
@@ -139,7 +139,7 @@ export const FormattingToolbar: Story = {
           <path d="M15 20a4 4 0 0 0 0-8H6v8Z" />
         </svg>
       </Toggle>
-      
+
       <Toggle size="sm" aria-label="Toggle italic">
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -157,7 +157,7 @@ export const FormattingToolbar: Story = {
           <line x1="15" x2="9" y1="4" y2="20" />
         </svg>
       </Toggle>
-      
+
       <Toggle size="sm" aria-label="Toggle underline">
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -174,9 +174,9 @@ export const FormattingToolbar: Story = {
           <line x1="4" x2="20" y1="20" y2="20" />
         </svg>
       </Toggle>
-      
+
       <div className="w-px h-6 bg-border mx-1" />
-      
+
       <Toggle size="sm" aria-label="Align left">
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -194,7 +194,7 @@ export const FormattingToolbar: Story = {
           <line x1="17" x2="3" y1="18" y2="18" />
         </svg>
       </Toggle>
-      
+
       <Toggle size="sm" aria-label="Align center">
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -212,7 +212,7 @@ export const FormattingToolbar: Story = {
           <line x1="19" x2="5" y1="18" y2="18" />
         </svg>
       </Toggle>
-      
+
       <Toggle size="sm" aria-label="Align right">
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -258,7 +258,7 @@ export const ViewToggle: Story = {
           <line x1="3" x2="3.01" y1="18" y2="18" />
         </svg>
       </Toggle>
-      
+
       <Toggle size="sm" aria-label="Grid view">
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -303,7 +303,7 @@ export const WithText: Story = {
         </svg>
         Home
       </Toggle>
-      
+
       <Toggle variant="outline">
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -322,7 +322,7 @@ export const WithText: Story = {
         </svg>
         History
       </Toggle>
-      
+
       <Toggle variant="outline" pressed>
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -366,7 +366,7 @@ export const StatusToggle: Story = {
           </svg>
         </Toggle>
       </div>
-      
+
       <div className="flex items-center justify-between">
         <span className="text-sm">Notifications</span>
         <Toggle size="sm" pressed aria-label="Toggle notifications">
@@ -386,7 +386,7 @@ export const StatusToggle: Story = {
           </svg>
         </Toggle>
       </div>
-      
+
       <div className="flex items-center justify-between">
         <span className="text-sm">Auto-save</span>
         <Toggle size="sm" disabled aria-label="Toggle auto-save">

@@ -1,30 +1,23 @@
-import type { Meta, StoryObj } from "@storybook/react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./tabs";
-import { Button } from "./button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "./card";
-import { Input } from "./input";
-import { Label } from "./label";
+import type { Meta, StoryObj } from '@storybook/react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './tabs';
+import { Button } from './button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './card';
+import { Input } from './input';
+import { Label } from './label';
 
 const meta = {
-  title: "UI/Navigation/Tabs",
+  title: 'UI/Navigation/Tabs',
   component: Tabs,
   parameters: {
-    layout: "centered",
+    layout: 'centered',
     docs: {
       description: {
         component:
-          "A set of layered sections of content—known as tab panels—that are displayed one at a time.",
+          'A set of layered sections of content—known as tab panels—that are displayed one at a time.',
       },
     },
   },
-  tags: ["autodocs"],
+  tags: ['autodocs'],
   decorators: [
     (Story) => (
       <div className="w-[400px]">
@@ -157,18 +150,14 @@ export const ThreeTabs: Story = {
             Detailed analytics and insights about your application performance.
           </p>
           <div className="h-32 rounded-lg border border-dashed flex items-center justify-center">
-            <p className="text-sm text-muted-foreground">
-              Analytics Chart Placeholder
-            </p>
+            <p className="text-sm text-muted-foreground">Analytics Chart Placeholder</p>
           </div>
         </div>
       </TabsContent>
       <TabsContent value="reports" className="mt-6">
         <div className="space-y-4">
           <h3 className="text-lg font-medium">Reports</h3>
-          <p className="text-sm text-muted-foreground">
-            Generate and download various reports.
-          </p>
+          <p className="text-sm text-muted-foreground">Generate and download various reports.</p>
           <div className="space-y-2">
             <Button variant="outline" className="w-full justify-start">
               Download Monthly Report
@@ -358,5 +347,5 @@ export const TabsKeyboardNavigation: Story = {
       </TabsContent>
     </Tabs>
   ),
-  tags: ["interaction", "accessibility"],
+  tags: ['interaction', 'accessibility'],
 };

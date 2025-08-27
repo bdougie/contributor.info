@@ -49,13 +49,13 @@ export const handler: Handler = async (event) => {
   const pathParts = event.path.split('/').filter(Boolean);
   let owner: string | undefined;
   let repo: string | undefined;
-  
+
   // Try to get from path: /api/validate-repository/{owner}/{repo}
   if (pathParts.length >= 4) {
     owner = pathParts[pathParts.length - 2];
     repo = pathParts[pathParts.length - 1];
   }
-  
+
   // Fallback to query parameters
   if (!owner || !repo) {
     const params = event.queryStringParameters || {};
@@ -67,9 +67,9 @@ export const handler: Handler = async (event) => {
     return {
       statusCode: 400,
       headers,
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         error: 'Missing required parameters: owner and repo',
-        status: 'not_found' 
+        status: 'not_found',
       }),
     };
   }
@@ -97,7 +97,8 @@ export const handler: Handler = async (event) => {
         body: JSON.stringify({
           status: 'exists_on_github',
           repository: githubCheck.repository,
-          suggestion: 'This repository exists on GitHub but is not yet tracked. It will be added automatically.',
+          suggestion:
+            'This repository exists on GitHub but is not yet tracked. It will be added automatically.',
         } as ValidationResponse),
       };
     }
@@ -116,15 +117,18 @@ export const handler: Handler = async (event) => {
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         error: 'Internal server error',
-        status: 'not_found'
+        status: 'not_found',
       }),
     };
   }
 };
 
-async function checkSupabase(owner: string, repo: string): Promise<{ exists: boolean; repository?: any }> {
+async function checkSupabase(
+  owner: string,
+  repo: string
+): Promise<{ exists: boolean; repository?: any }> {
   if (!VITE_SUPABASE_URL || !VITE_SUPABASE_ANON_KEY) {
     console.warn('Supabase credentials not configured, skipping database check');
     return { exists: false };
@@ -135,10 +139,10 @@ async function checkSupabase(owner: string, repo: string): Promise<{ exists: boo
       `${VITE_SUPABASE_URL}/rest/v1/repositories?owner=eq.${owner}&name=eq.${repo}&select=*`,
       {
         headers: {
-          'apikey': VITE_SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${VITE_SUPABASE_ANON_KEY}`,
+          apikey: VITE_SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${VITE_SUPABASE_ANON_KEY}`,
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
+          Accept: 'application/json',
         },
       }
     );
@@ -172,20 +176,20 @@ async function checkSupabase(owner: string, repo: string): Promise<{ exists: boo
   }
 }
 
-async function checkGitHub(owner: string, repo: string): Promise<{ exists: boolean; repository?: any }> {
+async function checkGitHub(
+  owner: string,
+  repo: string
+): Promise<{ exists: boolean; repository?: any }> {
   try {
     const headers: HeadersInit = {
-      'Accept': 'application/vnd.github.v3+json',
+      Accept: 'application/vnd.github.v3+json',
     };
 
     if (GITHUB_TOKEN) {
       headers['Authorization'] = `Bearer ${GITHUB_TOKEN}`;
     }
 
-    const response = await fetch(
-      `https://api.github.com/repos/${owner}/${repo}`,
-      { headers }
-    );
+    const response = await fetch(`https://api.github.com/repos/${owner}/${repo}`, { headers });
 
     if (response.status === 404) {
       return { exists: false };

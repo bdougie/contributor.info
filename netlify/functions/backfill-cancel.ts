@@ -13,7 +13,7 @@ export const handler: Handler = async (event) => {
       statusCode: 405,
       headers: {
         ...headers,
-        'Allow': 'POST',
+        Allow: 'POST',
       },
       body: JSON.stringify({ error: 'Method not allowed' }),
     };
@@ -24,9 +24,9 @@ export const handler: Handler = async (event) => {
     return {
       statusCode: 503,
       headers,
-      body: JSON.stringify({ 
-        error: 'Service unavailable', 
-        message: 'Manual backfill service is not configured' 
+      body: JSON.stringify({
+        error: 'Service unavailable',
+        message: 'Manual backfill service is not configured',
       }),
     };
   }
@@ -36,14 +36,14 @@ export const handler: Handler = async (event) => {
     // Path format: /api/backfill/cancel/{job_id}
     const pathParts = event.path.split('/');
     const jobId = pathParts[pathParts.length - 1];
-    
+
     if (!jobId || jobId === 'cancel') {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ 
-          error: 'Bad request', 
-          message: 'Job ID is required' 
+        body: JSON.stringify({
+          error: 'Bad request',
+          message: 'Job ID is required',
         }),
       };
     }
@@ -58,16 +58,16 @@ export const handler: Handler = async (event) => {
     };
   } catch (error) {
     console.error('[backfill-cancel] Error:', error);
-    
+
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     const statusCode = errorMessage.includes('not found') ? 404 : 500;
-    
+
     return {
       statusCode,
       headers,
-      body: JSON.stringify({ 
-        error: statusCode === 404 ? 'Not found' : 'Internal server error', 
-        message: errorMessage 
+      body: JSON.stringify({
+        error: statusCode === 404 ? 'Not found' : 'Internal server error',
+        message: errorMessage,
       }),
     };
   }
