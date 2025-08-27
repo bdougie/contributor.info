@@ -23,13 +23,54 @@ dotenv.config({ path: join(__dirname, '../../.env') });
 const args = process.argv.slice(2);
 const isDryRun = args.includes('--dry-run');
 const isVerbose = args.includes('--verbose');
+const showHelp = args.includes('--help') || args.includes('-h');
 
-// Configuration
+// Show help if requested
+if (showHelp) {
+  console.log(`
+🌱 Seed Data Generator - Usage
+
+Options:
+  --days=N        Number of days to fetch (1-90, default: 14 or SEED_DATA_DAYS env)
+  --repos=LIST    Comma-separated repositories (default: from SEED_REPOSITORIES env)
+  --dry-run       Preview what would be fetched without writing to database
+  --verbose       Show detailed logging
+  --help, -h      Show this help message
+
+Examples:
+  # Quick test with minimal data
+  npm run db:seed -- --days=3
+  
+  # Test specific repository
+  npm run db:seed -- --repos=facebook/react --days=7
+  
+  # Preview without writing
+  npm run db:seed -- --dry-run --days=14
+  
+  # Multiple repositories with custom timeframe
+  npm run db:seed -- --repos=vitejs/vite,continuedev/continue --days=10
+
+Environment variables:
+  SEED_DATA_DAYS        Default number of days (currently: ${process.env.SEED_DATA_DAYS || '14'})
+  SEED_REPOSITORIES     Default repositories (currently: ${process.env.SEED_REPOSITORIES || 'not set'})
+  `);
+  process.exit(0);
+}
+
+// Parse days from command line (e.g., --days=7)
+const daysArg = args.find(arg => arg.startsWith('--days='));
+const cliDays = daysArg ? parseInt(daysArg.split('=')[1], 10) : null;
+
+// Parse repositories from command line (e.g., --repos=owner/repo1,owner/repo2)
+const reposArg = args.find(arg => arg.startsWith('--repos='));
+const cliRepos = reposArg ? reposArg.split('=')[1] : null;
+
+// Configuration (CLI > ENV > Default)
 const GITHUB_TOKEN = process.env.VITE_GITHUB_TOKEN || process.env.GITHUB_TOKEN;
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'http://localhost:54321';
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
-const SEED_DATA_DAYS = parseInt(process.env.SEED_DATA_DAYS || '14', 10);
-const SEED_REPOSITORIES = (process.env.SEED_REPOSITORIES || 'continuedev/continue,vitejs/vite,facebook/react,vercel/next.js,supabase/supabase').split(',');
+const SEED_DATA_DAYS = cliDays || parseInt(process.env.SEED_DATA_DAYS || '14', 10);
+const SEED_REPOSITORIES = (cliRepos || process.env.SEED_REPOSITORIES || 'continuedev/continue,vitejs/vite,facebook/react,vercel/next.js,supabase/supabase').split(',');
 const INNGEST_EVENT_KEY = process.env.INNGEST_EVENT_KEY || 'dev-key';
 const INNGEST_URL = process.env.INNGEST_URL || 'http://localhost:8288';
 

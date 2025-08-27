@@ -17,8 +17,9 @@ The seed data generation system fetches real data from popular GitHub repositori
 # 2. Start local Supabase
 npm run supabase:start
 
-# 3. Generate seed data
-npm run db:seed
+# 3. Generate seed data (choose one):
+npm run db:seed:quick  # Quick: 3 days from 1 repo (~5 mins)
+npm run db:seed        # Standard: 14 days from 5 repos (~15-30 mins)
 
 # 4. Start Inngest to process the data
 npm run dev:inngest
@@ -28,6 +29,16 @@ npm run seed:status
 
 # 6. Start development
 npm run dev
+```
+
+### Quick Testing Option
+For rapid testing with minimal data:
+```bash
+# Just 3 days from continuedev/continue
+npm run db:seed:quick
+
+# Or customize on the fly
+npm run db:seed -- --days=1 --repos=vitejs/vite
 ```
 
 ## Setting Up Your GitHub Token
@@ -90,17 +101,34 @@ Data becomes available as it's processed:
 
 ## Configuration Options
 
-### Customize Timeframe
-Edit `.env.local` to change the data collection period:
+### Command Line Arguments (Highest Priority)
+Override settings directly when running the command:
+
 ```bash
-SEED_DATA_DAYS=7  # Collect last 7 days instead of 14
+# Fetch only 3 days of data
+npm run db:seed -- --days=3
+
+# Use specific repositories
+npm run db:seed -- --repos=facebook/react,vercel/next.js
+
+# Combine options
+npm run db:seed -- --days=7 --repos=continuedev/continue --dry-run
+
+# Show all available options
+npm run db:seed -- --help
 ```
 
-### Add Different Repositories
-Modify the repository list in `.env.local`:
+### Environment Variables (Medium Priority)
+Set defaults in `.env.local`:
 ```bash
-SEED_REPOSITORIES=owner1/repo1,owner2/repo2,owner3/repo3
+SEED_DATA_DAYS=7  # Default: 14 days
+SEED_REPOSITORIES=owner1/repo1,owner2/repo2  # Default: popular repos
 ```
+
+### Priority Order
+1. **CLI arguments** (--days, --repos)
+2. **Environment variables** (SEED_DATA_DAYS, SEED_REPOSITORIES)
+3. **Default values** (14 days, popular repositories)
 
 ## Monitoring Progress
 
