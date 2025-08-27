@@ -323,7 +323,7 @@ export function ActivityChart({
   loading = false,
   height = 300,
   className,
-  emptyMessage = "No activity data available for the selected period",
+  emptyMessage = "No code activity data available for the selected period. Try selecting a different time range or ensure your repositories have recent merged pull requests.",
   isExpanded = false,
   onExpandToggle,
 }: ActivityChartProps) {
@@ -489,11 +489,15 @@ export function ActivityChart({
           </div>
         ) : (
           <div 
-            className="flex items-center justify-center text-muted-foreground"
+            className="flex flex-col items-center justify-center gap-3 text-muted-foreground"
             style={{ height }}
           >
-            <div className="text-center">
-              <p className="text-sm">{emptyMessage}</p>
+            <div className="text-center space-y-2">
+              <div className="text-4xl opacity-30">📊</div>
+              <p className="text-sm font-medium">No activity data available</p>
+              <p className="text-xs text-muted-foreground max-w-xs mx-auto">
+                {emptyMessage}
+              </p>
             </div>
           </div>
         )}
