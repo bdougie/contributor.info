@@ -1,0 +1,87 @@
+# A standard Supabase project
+
+[api]
+enabled = true
+# Port for the local Supabase API
+port = 54321
+# Schemas to expose via the API
+schemas = ["public", "storage", "graphql_public"]
+# Extra schemas to add to the search_path of every request
+extra_search_path = ["public", "extensions"]
+# The maximum number of rows returns from a view, table, or stored procedure
+max_rows = 1000
+
+[db]
+# Port for the local database
+port = 54322
+# The database major version to use
+major_version = 15
+
+[db.pooler]
+enabled = false
+port = 54329
+pool_mode = "transaction"
+default_pool_size = 20
+max_client_conn = 100
+
+[realtime]
+enabled = true
+# Listen for changes on public schema
+broadcast.self = true
+broadcast_changes = true
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+[auth]
+enabled = true
+# The base URL of your website - for local development
+site_url = "http://localhost:5173"
+# A list of allowed redirect URLs for auth
+additional_redirect_urls = ["http://localhost:5173/**", "http://localhost:5174/**"]
+# How long tokens are valid for (in seconds)
+jwt_expiry = 3600
+# Allow/disallow new user signups to your project
+enable_signup = true
+# Enable email confirmations
+enable_confirmations = false
+
+[auth.email]
+# Allow/disallow new user signups via email to your project
+enable_signup = true
+# If enabled, a user will be required to confirm their email
+enable_confirmations = false
+
+[auth.sms]
+# Allow/disallow new user signups via SMS to your project
+enable_signup = false
+# If enabled, a user will be required to confirm their phone number
+enable_confirmations = false
+
+[studio]
+enabled = true
+# Port for Supabase Studio
+port = 54323
+# External URL for Supabase Studio
+api_url = "http://localhost"
+
+[inbucket]
+enabled = true
+# Port for email testing
+port = 54324
+# Logs all emails to the console
+smtp_port = 54325
+pop3_port = 54326
+
+[analytics]
+enabled = false
+port = 54327
+vector_port = 54328
+# Configure one of the supported backends: `postgres`, `bigquery`
+backend = "postgres"
+
+[functions]
+enabled = true
+# Path to Supabase Edge Functions
+functions_dir = "functions"
