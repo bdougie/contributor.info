@@ -83,13 +83,14 @@ async function run(): Promise<void> {
     const { owner, repo } = context.repo;
 
     // Check rate limit before proceeding
-    const { data: rateLimit } = await octokit.rest.rateLimit.get();
-    console.log('📊 GitHub API Rate Limit: %s/%s', rateLimit.core.remaining, rateLimit.core.limit);
+    const { data: rateLimitData } = await octokit.rest.rateLimit.get();
+    const rateLimit = rateLimitData.resources?.core || rateLimitData.core || rateLimitData;
+    console.log('📊 GitHub API Rate Limit: %s/%s', rateLimit.remaining, rateLimit.limit);
 
-    if (rateLimit.core.remaining < 10) {
-      const resetDate = new Date(rateLimit.core.reset * 1000);
+    if (rateLimit.remaining < 10) {
+      const resetDate = new Date(rateLimit.reset * 1000);
       throw new Error(
-        `GitHub API rate limit too low: ${rateLimit.core.remaining} remaining. Resets at ${resetDate.toISOString()}`
+        `GitHub API rate limit too low: ${rateLimit.remaining} remaining. Resets at ${resetDate.toISOString()}`
       );
     }
 
