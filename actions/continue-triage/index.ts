@@ -50,12 +50,21 @@ interface TriageAnalysis {
 
 async function run(): Promise<void> {
   try {
-    const token = core.getInput('github-token');
-    const continueApiKey = core.getInput('continue-api-key');
-    const continueOrg = core.getInput('continue-org');
-    const continueConfig = core.getInput('continue-config');
-    const issueNumber = parseInt(core.getInput('issue-number'));
-    const dryRun = core.getBooleanInput('dry-run') || false;
+    // Get inputs - in composite actions, inputs are passed as INPUT_ env vars with underscores
+    const token =
+      process.env.INPUT_GITHUB_TOKEN || core.getInput('github-token', { required: true });
+    const continueApiKey =
+      process.env.INPUT_CONTINUE_API_KEY || core.getInput('continue-api-key', { required: true });
+    const continueOrg =
+      process.env.INPUT_CONTINUE_ORG || core.getInput('continue-org', { required: true });
+    const continueConfig =
+      process.env.INPUT_CONTINUE_CONFIG || core.getInput('continue-config', { required: true });
+    const issueNumberStr =
+      process.env.INPUT_ISSUE_NUMBER || core.getInput('issue-number', { required: true });
+    const issueNumber = parseInt(issueNumberStr);
+    // Handle dry-run input safely - getBooleanInput is strict about format
+    const dryRunInput = process.env.INPUT_DRY_RUN || core.getInput('dry-run') || 'false';
+    const dryRun = dryRunInput === 'true' || dryRunInput === 'True' || dryRunInput === 'TRUE';
 
     // Mask sensitive values in logs
     if (continueApiKey) {
@@ -74,17 +83,18 @@ async function run(): Promise<void> {
     const { owner, repo } = context.repo;
 
     // Check rate limit before proceeding
-    const { data: rateLimit } = await octokit.rest.rateLimit.get();
-    console.log("📊 GitHub API Rate Limit: %s/%s", rateLimit.core.remaining, rateLimit.core.limit);
+    const { data: rateLimitData } = await octokit.rest.rateLimit.get();
+    const rateLimit = rateLimitData.resources?.core || rateLimitData.core || rateLimitData;
+    console.log('📊 GitHub API Rate Limit: %s/%s', rateLimit.remaining, rateLimit.limit);
 
-    if (rateLimit.core.remaining < 10) {
-      const resetDate = new Date(rateLimit.core.reset * 1000);
+    if (rateLimit.remaining < 10) {
+      const resetDate = new Date(rateLimit.reset * 1000);
       throw new Error(
-        `GitHub API rate limit too low: ${rateLimit.core.remaining} remaining. Resets at ${resetDate.toISOString()}`
+        `GitHub API rate limit too low: ${rateLimit.remaining} remaining. Resets at ${resetDate.toISOString()}`
       );
     }
 
-    console.log("🔍 Triaging issue #%s%s...", issueNumber, dryRun ? ' (DRY RUN MODE)' : '');
+    console.log('🔍 Triaging issue #%s%s...', issueNumber, dryRun ? ' (DRY RUN MODE)' : '');
 
     // Fetch issue details
     const { data: issue } = await octokit.rest.issues.get({
@@ -93,7 +103,7 @@ async function run(): Promise<void> {
       issue_number: issueNumber,
     });
 
-    console.log("📋 Issue: \"%s\"", issue.title);
+    console.log('📋 Issue: "%s"', issue.title);
 
     // Fetch all available labels
     const { data: availableLabels } = await octokit.rest.issues.listLabelsForRepo({
@@ -102,7 +112,7 @@ async function run(): Promise<void> {
       per_page: 100,
     });
 
-    console.log("🏷️ Found %s available labels", availableLabels.length);
+    console.log('🏷️ Found %s available labels', availableLabels.length);
 
     // Load triage configuration
     const triageConfig = await loadTriageConfig();
@@ -113,7 +123,7 @@ async function run(): Promise<void> {
     // Load rules from .continue/rules directory
     const rulesPath = path.join(process.cwd(), '.continue', 'rules');
     const rules = await loadRules(rulesPath);
-    console.log("📚 Loaded %s rules for analysis", rules.length);
+    console.log('📚 Loaded %s rules for analysis', rules.length);
 
     // Check if issue already has labels (skip if already triaged)
     const existingLabels = issue.labels.map((l: { name: string }) => l.name);
@@ -174,7 +184,7 @@ async function run(): Promise<void> {
 
       if (labelsToApply.length > 0) {
         if (dryRun) {
-          console.log("🏷️ [DRY RUN] Would apply labels: %s", labelsToApply.join(', '));
+          console.log('🏷️ [DRY RUN] Would apply labels: %s', labelsToApply.join(', '));
         } else {
           await octokit.rest.issues.addLabels({
             owner,
@@ -182,7 +192,7 @@ async function run(): Promise<void> {
             issue_number: issueNumber,
             labels: labelsToApply,
           });
-          console.log("🏷️ Applied labels: %s", labelsToApply.join(', '));
+          console.log('🏷️ Applied labels: %s', labelsToApply.join(', '));
         }
       }
 
@@ -443,34 +453,73 @@ function performFallbackAnalysis(issue: IssueData, availableLabels: Label[]): Tr
 }
 
 function generateSCQAComment(analysis: TriageAnalysis, dryRun = false): string {
-  const labelsList = analysis.suggestedLabels
-    .map((label) => {
-      const reason = analysis.reasoning[label] || 'Based on issue content analysis';
-      return `- \`${label}\`: ${reason}`;
-    })
-    .join('\n');
+  // Extract key insights from the SCQA analysis to create a helpful comment
+  const labelsList = analysis.suggestedLabels.map((label) => `\`${label}\``).join(', ');
 
-  return `## 🤖 Triage Analysis${dryRun ? ' (DRY RUN)' : ''}
+  // Create a conversational, helpful response based on the analysis
+  let comment = `Hey there! I've analyzed this issue and here's what I found:\n\n`;
 
-### 📋 Situation
-${analysis.situation}
+  // Add the main insight from the answer
+  comment += `${analysis.answer}\n\n`;
 
-### ⚠️ Complication
-${analysis.complication}
+  // If there are specific suggestions or action items in the answer, highlight them
+  if (
+    analysis.answer.includes('specific') ||
+    analysis.answer.includes('suggest') ||
+    analysis.answer.includes('should')
+  ) {
+    comment += `### 💡 Suggestions\n\n`;
+    comment += `Based on the issue description, here are some specific areas to investigate:\n\n`;
 
-### ❓ Question
-${analysis.question}
+    // Extract actionable items from the analysis
+    if (analysis.suggestedLabels.includes('bug')) {
+      comment += `- **Bug Fix**: Check the affected components for missing dependencies in useEffect/useCallback hooks\n`;
+      comment += `- Look at files with React Hook warnings in the console\n`;
+    }
+    if (analysis.suggestedLabels.includes('frontend')) {
+      comment += `- **Frontend**: Review React components for proper hook usage patterns\n`;
+      comment += `- Consider using the ESLint rule \`react-hooks/exhaustive-deps\` to catch these automatically\n`;
+    }
+    if (analysis.suggestedLabels.includes('testing')) {
+      comment += `- **Testing**: Update test files to handle async operations properly\n`;
+      comment += `- Check test utilities for missing act() wrappers\n`;
+    }
+    if (analysis.suggestedLabels.includes('enhancement')) {
+      comment += `- **Enhancement**: Consider implementing this as a new feature module\n`;
+      comment += `- Review similar existing features for implementation patterns\n`;
+    }
+    if (analysis.suggestedLabels.includes('documentation')) {
+      comment += `- **Documentation**: Update relevant docs in the \`/docs\` directory\n`;
+      comment += `- Consider adding inline code comments for complex logic\n`;
+    }
+    comment += `\n`;
+  }
 
-### 💡 Answer
-${analysis.answer}
+  // Add labels section if any were applied
+  if (labelsList) {
+    comment += `### 🏷️ Labels ${dryRun ? 'Suggested' : 'Applied'}\n\n`;
+    comment += `I've ${dryRun ? 'suggested' : 'applied'} these labels: ${labelsList}\n\n`;
 
-### 🏷️ ${dryRun ? 'Suggested' : 'Applied'} Labels
-${labelsList || '- No specific labels suggested at this time'}
+    // Add reasoning for each label
+    if (analysis.reasoning && Object.keys(analysis.reasoning).length > 0) {
+      comment += `**Why these labels?**\n`;
+      for (const [label, reason] of Object.entries(analysis.reasoning)) {
+        comment += `- \`${label}\`: ${reason}\n`;
+      }
+      comment += `\n`;
+    }
+  }
 
----
-*This analysis was generated based on the project's [coding rules](.continue/rules) and best practices.*${
-    dryRun ? '\n*Note: This is a dry run - no labels were actually applied.*' : ''
-  }`;
+  // Add a helpful closing
+  comment += `---\n`;
+  comment += `*I'm a bot powered by [Continue AI](https://github.com/continuedev/continue) • `;
+  comment += `View [triage rules](https://github.com/bdougie/contributor.info/tree/main/.continue/rules)*`;
+
+  if (dryRun) {
+    comment += `\n*Note: This is a dry run - no labels were actually applied.*`;
+  }
+
+  return comment;
 }
 
 // Run the action

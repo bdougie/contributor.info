@@ -64,6 +64,7 @@ runs:
         INPUT_CONTINUE_ORG: ${{ inputs.continue-org }}
         INPUT_CONTINUE_CONFIG: ${{ inputs.continue-config }}
         INPUT_ISSUE_NUMBER: ${{ inputs.issue-number }}
+        INPUT_DRY_RUN: ${{ inputs.dry-run }}
       run: |
         echo "Running Continue Triage for issue #${{ inputs.issue-number }}..."
         npx tsx index.ts

@@ -55,4 +55,4 @@ jobs:
           continue-org: 'continuedev' # Continue's organization
           continue-config: 'continuedev/review-bot' # Continue's review assistant (used for triage)
           issue-number: ${{ github.event.inputs.issue_number || github.event.issue.number }}
-          dry-run: ${{ github.event.inputs.dry_run || false }}
+          dry-run: ${{ github.event.inputs.dry_run || 'false' }}
