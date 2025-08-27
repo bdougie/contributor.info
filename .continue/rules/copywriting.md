@@ -1,3 +1,8 @@
+---
+globs: ["**/*.md", "**/docs/**/*", "**/public/docs/**/*"]
+description: Enforces copywriting guidelines for clear, concise, and professional documentation
+---
+
 # Copywriting Guidelines
 
 ## Keep It Clear and Concise
