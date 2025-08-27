@@ -56,6 +56,15 @@ interface MergedPR {
   commits: number;
 }
 
+// Time range mappings - shared across the component
+const TIME_RANGE_DAYS = {
+  '7d': 7,
+  '30d': 30,
+  '90d': 90,
+  '1y': 365,
+  'all': 730 // 2 years for "all" to limit data size
+} as const;
+
 // Generate mock metrics for now
 const generateMockMetrics = (repos: Repository[], timeRange: TimeRange): WorkspaceMetrics => {
   const totalStars = repos.reduce((sum, repo) => sum + (repo.stars || 0), 0);
@@ -1298,15 +1307,7 @@ export default function WorkspacePage() {
           const repoIds = transformedRepos.map(r => r.id);
           
           // Calculate date range based on selected time range
-          const timeRangeDays = {
-            '7d': 7,
-            '30d': 30,
-            '90d': 90,
-            '1y': 365,
-            'all': 730 // 2 years for "all" to limit data size
-          };
-          
-          const daysToFetch = timeRangeDays[timeRange];
+          const daysToFetch = TIME_RANGE_DAYS[timeRange];
           const startDate = new Date(Date.now() - daysToFetch * 24 * 60 * 60 * 1000);
           
           // Fetch both merged PRs and all PR activity for better coverage
@@ -1314,7 +1315,7 @@ export default function WorkspacePage() {
             .from('pull_requests')
             .select('merged_at, created_at, updated_at, additions, deletions, changed_files, commits, state')
             .in('repository_id', repoIds)
-            .gte('created_at', startDate.toISOString())
+            .or(`created_at.gte.${startDate.toISOString()},merged_at.gte.${startDate.toISOString()}`)
             .order('created_at', { ascending: true });
           
           if (prError) {
@@ -1359,15 +1360,8 @@ export default function WorkspacePage() {
         setRepositories(transformedRepos);
         
         // Generate metrics, trend data, and activity data
-        const timeRangeDays = {
-          '7d': 7,
-          '30d': 30,
-          '90d': 90,
-          '1y': 365,
-          'all': 730
-        };
         const mockMetrics = generateMockMetrics(transformedRepos, timeRange);
-        const mockTrendData = generateMockTrendData(timeRangeDays[timeRange]);
+        const mockTrendData = generateMockTrendData(TIME_RANGE_DAYS[timeRange]);
         const activityDataPoints = generateActivityDataFromPRs(mergedPRs, timeRange);
         
         setMetrics(mockMetrics);
