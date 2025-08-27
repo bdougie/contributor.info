@@ -1629,7 +1629,7 @@ export default function WorkspacePage() {
         setSelectedRepositories(formattedRepos.map((r) => r.id));
 
         // Update metrics with new repository data
-        const newMetrics = generateMockMetrics(formattedRepos, timeRange, selectedRepositories);
+        const newMetrics = generateMockMetrics(formattedRepos, timeRange, formattedRepos.map((r) => r.id));
         setMetrics(newMetrics);
       }
     } catch (error) {
