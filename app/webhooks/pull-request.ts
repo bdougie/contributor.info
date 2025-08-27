@@ -32,7 +32,7 @@ export async function handlePullRequestEvent(event: PullRequestEvent) {
   }
 
   try {
-    console.log(`Processing PR #${event.pull_request.number} in ${event.repository.full_name}`);
+    console.log("Processing PR #%s in ${event.repository.full_name}", event.pull_request.number);
 
     // Check if we should comment on this PR
     const shouldComment = await checkIfShouldComment(event);
@@ -59,7 +59,7 @@ export async function handlePullRequestEvent(event: PullRequestEvent) {
 
     // Check if PR author is excluded
     if (isUserExcluded(config, event.pull_request.user.login, 'author')) {
-      console.log(`PR author ${event.pull_request.user.login} is excluded from comments`);
+      console.log("PR author %s is excluded from comments", event.pull_request.user.login);
       return;
     }
 
@@ -126,7 +126,7 @@ export async function handlePullRequestEvent(event: PullRequestEvent) {
       body: comment,
     });
 
-    console.log(`Posted comment ${postedComment.id} on PR #${event.pull_request.number}`);
+    console.log("Posted comment %s on PR #${event.pull_request.number}", postedComment.id);
 
     // Store insights in database
     await storePRInsights({
@@ -149,7 +149,7 @@ export async function handlePullRequestEvent(event: PullRequestEvent) {
  */
 async function handlePROpened(event: PullRequestEvent) {
   try {
-    console.log(`Processing opened PR #${event.pull_request.number} in ${event.repository.full_name}`);
+    console.log("Processing opened PR #%s in ${event.repository.full_name}", event.pull_request.number);
 
     // Check if we should comment on this PR
     const shouldComment = await checkIfShouldComment(event);
@@ -176,7 +176,7 @@ async function handlePROpened(event: PullRequestEvent) {
 
     // Check if PR author is excluded
     if (isUserExcluded(config, event.pull_request.user.login, 'author')) {
-      console.log(`PR author ${event.pull_request.user.login} is excluded from comments`);
+      console.log("PR author %s is excluded from comments", event.pull_request.user.login);
       return;
     }
 
@@ -212,7 +212,7 @@ async function handlePROpened(event: PullRequestEvent) {
       body: comment,
     });
 
-    console.log(`Posted similarity comment ${postedComment.id} on PR #${event.pull_request.number}`);
+    console.log("Posted similarity comment %s on PR #${event.pull_request.number}", postedComment.id);
 
     // Store basic tracking info (lightweight compared to full insights)
     await storePRSimilarityComment({

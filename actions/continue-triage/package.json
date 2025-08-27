@@ -1,0 +1,24 @@
+{
+  "name": "continue-triage-action",
+  "version": "1.0.0",
+  "description": "GitHub Action for triaging issues with Continue AI",
+  "main": "index.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"No tests configured\""
+  },
+  "dependencies": {
+    "@actions/core": "^1.10.1",
+    "@actions/exec": "^1.1.1",
+    "@actions/github": "^6.0.0",
+    "@continuedev/cli": "latest",
+    "glob": "^10.3.10",
+    "js-yaml": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20.10.5",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  }
+}
