@@ -94,10 +94,35 @@ const TIME_RANGE_DAYS = {
   all: 730, // 2 years for "all" to limit data size
 } as const;
 
+/**
+ * Utility function to filter repositories based on selection
+ * @param repos - All available repositories
+ * @param selectedRepoIds - Array of selected repository IDs (empty array means show all)
+ * @returns Filtered array of repositories
+ */
+const filterRepositoriesBySelection = <T extends { id: string }>(
+  repos: T[],
+  selectedRepoIds?: string[]
+): T[] => {
+  // If no selection provided or empty selection, return all repositories
+  if (!selectedRepoIds || selectedRepoIds.length === 0) {
+    return repos;
+  }
+  // Filter repositories by selected IDs
+  return repos.filter((repo) => selectedRepoIds.includes(repo.id));
+};
+
 // Generate mock metrics for now
-const generateMockMetrics = (repos: Repository[], timeRange: TimeRange): WorkspaceMetrics => {
-  const totalStars = repos.reduce((sum, repo) => sum + (repo.stars || 0), 0);
-  const totalContributors = repos.reduce((sum, repo) => sum + (repo.contributors || 0), 0);
+const generateMockMetrics = (
+  repos: Repository[],
+  timeRange: TimeRange,
+  selectedRepoIds?: string[]
+): WorkspaceMetrics => {
+  // Use utility function to filter repositories
+  const filteredRepos = filterRepositoriesBySelection(repos, selectedRepoIds);
+
+  const totalStars = filteredRepos.reduce((sum, repo) => sum + (repo.stars || 0), 0);
+  const totalContributors = filteredRepos.reduce((sum, repo) => sum + (repo.contributors || 0), 0);
 
   // Generate time-range aware trend percentages
   // Shorter time ranges typically show more volatile changes
@@ -133,7 +158,19 @@ const generateMockMetrics = (repos: Repository[], timeRange: TimeRange): Workspa
 };
 
 // Generate mock trend data for now
-const generateMockTrendData = (days: number): WorkspaceTrendData => {
+const generateMockTrendData = (
+  days: number,
+  repos?: Repository[],
+  selectedRepoIds?: string[]
+): WorkspaceTrendData => {
+  // Use utility function to filter repositories (for future use with real data)
+  const filteredRepos = repos ? filterRepositoriesBySelection(repos, selectedRepoIds) : [];
+
+  // Currently using mock data, but scale based on filtered repo count
+  const repoMultiplier =
+    filteredRepos.length > 0 && repos && repos.length > 0
+      ? Math.max(0.1, filteredRepos.length / repos.length)
+      : 1;
   const labels = [];
   const prs = [];
   const issues = [];
@@ -146,9 +183,9 @@ const generateMockTrendData = (days: number): WorkspaceTrendData => {
     date.setDate(date.getDate() - i);
     labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
 
-    prs.push(Math.floor(Math.random() * 30) + 10);
-    issues.push(Math.floor(Math.random() * 20) + 5);
-    commits.push(Math.floor(Math.random() * 60) + 20);
+    prs.push(Math.floor((Math.random() * 30 + 10) * repoMultiplier));
+    issues.push(Math.floor((Math.random() * 20 + 5) * repoMultiplier));
+    commits.push(Math.floor((Math.random() * 60 + 20) * repoMultiplier));
   }
 
   return {
@@ -174,9 +211,14 @@ const generateMockTrendData = (days: number): WorkspaceTrendData => {
 };
 
 // Generate activity data from merged PRs with better aggregation
+// Note: repos and selectedRepoIds params reserved for future filtering implementation
 const generateActivityDataFromPRs = (
   mergedPRs: MergedPR[],
-  timeRange: TimeRange
+  timeRange: TimeRange,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _repos?: Repository[],
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _selectedRepoIds?: string[]
 ): ActivityDataPoint[] => {
   // If no data at all, return empty array (let the chart handle empty state)
   if (!mergedPRs || mergedPRs.length === 0) {
@@ -265,11 +307,8 @@ function WorkspacePRs({
       }
 
       try {
-        // Filter repositories if specific ones are selected
-        const filteredRepos =
-          selectedRepositories.length > 0
-            ? repositories.filter((r) => selectedRepositories.includes(r.id))
-            : repositories;
+        // Use utility function to filter repositories
+        const filteredRepos = filterRepositoriesBySelection(repositories, selectedRepositories);
 
         const repoIds = filteredRepos.map((r) => r.id);
         const { data, error } = await supabase
@@ -432,11 +471,8 @@ function WorkspaceIssues({
       }
 
       try {
-        // Filter repositories if specific ones are selected
-        const filteredRepos =
-          selectedRepositories.length > 0
-            ? repositories.filter((r) => selectedRepositories.includes(r.id))
-            : repositories;
+        // Use utility function to filter repositories
+        const filteredRepos = filterRepositoriesBySelection(repositories, selectedRepositories);
 
         const repoIds = filteredRepos.map((r) => r.id);
 
@@ -1393,7 +1429,12 @@ export default function WorkspacePage() {
         // Fetch merged PRs for activity data - respect time range
         let mergedPRs: MergedPR[] = [];
         if (transformedRepos.length > 0) {
-          const repoIds = transformedRepos.map((r) => r.id);
+          // Use utility function to filter repositories
+          const filteredRepos = filterRepositoriesBySelection(
+            transformedRepos,
+            selectedRepositories
+          );
+          const repoIds = filteredRepos.map((r) => r.id);
 
           // Calculate date range based on selected time range
           const daysToFetch = TIME_RANGE_DAYS[timeRange];
@@ -1455,9 +1496,18 @@ export default function WorkspacePage() {
         setRepositories(transformedRepos);
 
         // Generate metrics, trend data, and activity data
-        const mockMetrics = generateMockMetrics(transformedRepos, timeRange);
-        const mockTrendData = generateMockTrendData(TIME_RANGE_DAYS[timeRange]);
-        const activityDataPoints = generateActivityDataFromPRs(mergedPRs, timeRange);
+        const mockMetrics = generateMockMetrics(transformedRepos, timeRange, selectedRepositories);
+        const mockTrendData = generateMockTrendData(
+          TIME_RANGE_DAYS[timeRange],
+          transformedRepos,
+          selectedRepositories
+        );
+        const activityDataPoints = generateActivityDataFromPRs(
+          mergedPRs,
+          timeRange,
+          transformedRepos,
+          selectedRepositories
+        );
 
         setMetrics(mockMetrics);
         setTrendData(mockTrendData);
@@ -1471,7 +1521,7 @@ export default function WorkspacePage() {
     }
 
     fetchWorkspace();
-  }, [workspaceId, timeRange]);
+  }, [workspaceId, timeRange, selectedRepositories]);
 
   const handleTabChange = (value: string) => {
     if (value === 'overview') {
@@ -1579,7 +1629,7 @@ export default function WorkspacePage() {
         setSelectedRepositories(formattedRepos.map((r) => r.id));
 
         // Update metrics with new repository data
-        const newMetrics = generateMockMetrics(formattedRepos, timeRange);
+        const newMetrics = generateMockMetrics(formattedRepos, timeRange, formattedRepos.map((r) => r.id));
         setMetrics(newMetrics);
       }
     } catch (error) {
@@ -1607,7 +1657,7 @@ export default function WorkspacePage() {
 
         // Update metrics after removing repository
         const updatedRepos = repositories.filter((r) => r.id !== repo.id);
-        const newMetrics = generateMockMetrics(updatedRepos, timeRange);
+        const newMetrics = generateMockMetrics(updatedRepos, timeRange, selectedRepositories);
         setMetrics(newMetrics);
 
         toast.success('Repository removed from workspace');
