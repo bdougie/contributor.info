@@ -248,7 +248,7 @@ function writeEnvFile(filePath, env) {
     .map(([key, value]) => {
       // Escape special characters in value if needed
       const escapedValue = value.includes('\n') || value.includes('"') 
-        ? `"${value.replace(/"/g, '\\"').replace(/\n/g, '\\n')}"` 
+        ? `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n')}"` 
         : value;
       return `${key}=${escapedValue}`;
     })
