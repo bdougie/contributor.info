@@ -1,9 +1,9 @@
 name: Continue Agent Issue Triage
 on:
   schedule:
-    - cron: '0 * * * *' # Runs every hour to triage issues without labels
+    - cron: '4 16 * * *' # Runs daily at 4:04 PM UTC
   issues:
-    types: [opened, edited, reopened]
+    types: [opened, edited]
   workflow_dispatch: # Allow manual testing
     inputs:
       issue_number:
@@ -26,8 +26,10 @@ jobs:
     # Only run on issues that need triage
     if: |
       github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'schedule' ||
       (github.event_name == 'issues' && 
        (github.event.action == 'opened' || 
+        github.event.action == 'edited' ||
         contains(github.event.issue.labels.*.name, 'needs-triage')))
 
     permissions:
