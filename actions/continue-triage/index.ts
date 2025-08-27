@@ -75,7 +75,7 @@ async function run(): Promise<void> {
 
     // Check rate limit before proceeding
     const { data: rateLimit } = await octokit.rest.rateLimit.get();
-    console.log(`📊 GitHub API Rate Limit: ${rateLimit.core.remaining}/${rateLimit.core.limit}`);
+    console.log("📊 GitHub API Rate Limit: %s/%s", rateLimit.core.remaining, rateLimit.core.limit);
 
     if (rateLimit.core.remaining < 10) {
       const resetDate = new Date(rateLimit.core.reset * 1000);
@@ -84,7 +84,7 @@ async function run(): Promise<void> {
       );
     }
 
-    console.log(`🔍 Triaging issue #${issueNumber}${dryRun ? ' (DRY RUN MODE)' : ''}...`);
+    console.log("🔍 Triaging issue #%s%s...", issueNumber, dryRun ? ' (DRY RUN MODE)' : '');
 
     // Fetch issue details
     const { data: issue } = await octokit.rest.issues.get({
@@ -93,7 +93,7 @@ async function run(): Promise<void> {
       issue_number: issueNumber,
     });
 
-    console.log(`📋 Issue: "${issue.title}"`);
+    console.log("📋 Issue: \"%s\"", issue.title);
 
     // Fetch all available labels
     const { data: availableLabels } = await octokit.rest.issues.listLabelsForRepo({
@@ -102,7 +102,7 @@ async function run(): Promise<void> {
       per_page: 100,
     });
 
-    console.log(`🏷️ Found ${availableLabels.length} available labels`);
+    console.log("🏷️ Found %s available labels", availableLabels.length);
 
     // Load triage configuration
     const triageConfig = await loadTriageConfig();
@@ -113,7 +113,7 @@ async function run(): Promise<void> {
     // Load rules from .continue/rules directory
     const rulesPath = path.join(process.cwd(), '.continue', 'rules');
     const rules = await loadRules(rulesPath);
-    console.log(`📚 Loaded ${rules.length} rules for analysis`);
+    console.log("📚 Loaded %s rules for analysis", rules.length);
 
     // Check if issue already has labels (skip if already triaged)
     const existingLabels = issue.labels.map((l: { name: string }) => l.name);
@@ -174,7 +174,7 @@ async function run(): Promise<void> {
 
       if (labelsToApply.length > 0) {
         if (dryRun) {
-          console.log(`🏷️ [DRY RUN] Would apply labels: ${labelsToApply.join(', ')}`);
+          console.log("🏷️ [DRY RUN] Would apply labels: %s", labelsToApply.join(', '));
         } else {
           await octokit.rest.issues.addLabels({
             owner,
@@ -182,12 +182,13 @@ async function run(): Promise<void> {
             issue_number: issueNumber,
             labels: labelsToApply,
           });
-          console.log(`🏷️ Applied labels: ${labelsToApply.join(', ')}`);
+          console.log("🏷️ Applied labels: %s", labelsToApply.join(', '));
         }
       }
 
-      // Remove needs-triage label after successful triage
-      if (hasNeedsTriageLabel || existingLabels.length === 0) {
+      // Remove needs-triage label after successful SCQA analysis
+      // Always remove the label when we've completed the analysis, regardless of whether we applied new labels
+      if (hasNeedsTriageLabel) {
         try {
           if (dryRun) {
             console.log('🏷️ [DRY RUN] Would remove "needs-triage" label');

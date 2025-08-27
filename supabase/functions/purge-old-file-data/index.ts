@@ -27,7 +27,7 @@ Deno.serve(async (req) => {
     cutoffDate.setDate(cutoffDate.getDate() - 30);
     const cutoffDateStr = cutoffDate.toISOString();
 
-    console.log(`Purging file data older than ${cutoffDateStr}`);
+    console.log("Purging file data older than %s", cutoffDateStr);
 
     // Purge old file contributors data
     const { data: contributorsData, error: contributorsError, count: contributorsCount } = await supabase

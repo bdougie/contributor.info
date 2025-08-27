@@ -15,7 +15,7 @@ import {
  */
 export async function handlePROpenedImproved(event: PullRequestEvent) {
   try {
-    console.log(`Processing opened PR #${event.pull_request.number} in ${event.repository.full_name}`);
+    console.log("Processing opened PR #%s in ${event.repository.full_name}", event.pull_request.number);
 
     // Get installation token
     const installationId = event.installation?.id;
@@ -35,7 +35,7 @@ export async function handlePROpenedImproved(event: PullRequestEvent) {
 
     // Check if PR author is excluded
     if (isUserExcluded(config, event.pull_request.user.login, 'author')) {
-      console.log(`PR author ${event.pull_request.user.login} is excluded from comments`);
+      console.log("PR author %s is excluded from comments", event.pull_request.user.login);
       return;
     }
 
@@ -146,9 +146,9 @@ export async function handlePROpenedImproved(event: PullRequestEvent) {
       body: comment,
     });
     
-    console.log(`Posted comment ${postedComment.id} on PR #${event.pull_request.number}`);
-    console.log(`  - Similar issues: ${similarIssues.length}`);
-    console.log(`  - Reviewer suggestions: ${reviewerSuggestions.length}`);
+    console.log("Posted comment %s on PR #${event.pull_request.number}", postedComment.id);
+    console.log("  - Similar issues: %s", similarIssues.length);
+    console.log("  - Reviewer suggestions: %s", reviewerSuggestions.length);
 
   } catch (error) {
     console.error('Error handling PR opened event:', error);

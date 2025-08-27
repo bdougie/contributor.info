@@ -40,7 +40,7 @@ interface ReviewContext {
  */
 async function loadRules(changedFiles: string[]): Promise<Rule[]> {
   const rules: Rule[] = [];
-  const rulesDir = '.continue/rules';
+  const rulesDir = path.join(process.cwd(), '.continue', 'rules');
 
   try {
     const ruleFiles = await glob(`${rulesDir}/*.md`);

@@ -41,7 +41,7 @@ export class Logger {
     if (args.length > 0) {
       console.log(`[${this.context}] ${message}`, ...args);
     } else {
-      console.log(`[${this.context}] ${message}`);
+      console.log("[%s] ${message}", this.context);
     }
   }
 
@@ -82,7 +82,7 @@ export class Logger {
       if (args.length > 0) {
         console.log(`[${this.context}] DEBUG: ${message}`, ...args);
       } else {
-        console.log(`[${this.context}] DEBUG: ${message}`);
+        console.log("[%s] DEBUG: ${message}", this.context);
       }
     }
   }

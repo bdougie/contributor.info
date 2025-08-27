@@ -196,7 +196,7 @@ serve(async (req) => {
       throw new Error('Repository data is required');
     }
     
-    console.log(`Processing summary for ${repository.full_name}`);
+    console.log("Processing summary for %s", repository.full_name);
     
     // Create activity hash
     const activityHash = createActivityHash(pullRequests || []);

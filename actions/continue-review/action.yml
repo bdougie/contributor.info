@@ -30,7 +30,7 @@ runs:
         echo "Installing Continue CLI..."
         # Install locally in action directory
         cd ${{ github.action_path }}
-        npm install @continuedev/cli@latest
+        npm install @continuedev/cli@1.4.30
         # Add to PATH
         echo "${{ github.action_path }}/node_modules/.bin" >> $GITHUB_PATH
 

@@ -56,7 +56,7 @@ serve(async (req) => {
 
     // Single PR detection
     if (pr_id) {
-      console.log(`[Spam Detection] Analyzing single PR: ${pr_id}`)
+      console.log("[Spam Detection] Analyzing single PR: %s", pr_id)
       
       // Fetch PR data with all necessary joins
       const { data: pr, error: prError } = await supabase
@@ -195,11 +195,11 @@ serve(async (req) => {
       // Process each repository
       for (const repo of repositories) {
         try {
-          console.log(`[Spam Detection] Processing repository: ${repo.full_name}`)
+          console.log("[Spam Detection] Processing repository: %s", repo.full_name)
           
           // If force_recheck is true, clear existing spam scores first
           if (force_recheck) {
-            console.log(`[Spam Detection] Force recheck enabled for ${repo.full_name}, clearing existing spam scores`)
+            console.log("[Spam Detection] Force recheck enabled for %s, clearing existing spam scores", repo.full_name)
             const { error: clearError } = await supabase
               .from('pull_requests')
               .update({
@@ -228,7 +228,7 @@ serve(async (req) => {
             errors
           });
           
-          console.log(`[Spam Detection] Completed ${repo.full_name}: ${processed} processed, ${errors} errors`)
+          console.log("[Spam Detection] Completed %s: ${processed} processed, ${errors} errors", repo.full_name)
           
         } catch (repoError) {
           console.error(`[Spam Detection] Error processing repository ${repo.full_name}:`, repoError)
@@ -299,7 +299,7 @@ serve(async (req) => {
         repoId = repo.id;
       }
       
-      console.log(`[Spam Detection] Running batch detection for repository: ${repoId}`)
+      console.log("[Spam Detection] Running batch detection for repository: %s", repoId)
       
       // If force_recheck is true, clear existing spam scores first
       if (force_recheck) {
