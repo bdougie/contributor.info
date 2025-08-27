@@ -28,7 +28,13 @@ npm run env:production
 bash supabase/migrations-local/setup-local.sh
 # See docs/setup/DATABASE_MIGRATIONS.md for details
 
-# 6. Start development server
+# 6. Generate seed data (optional but recommended)
+npm run db:seed
+# See docs/setup/SEED_DATA.md for details
+
+# 7. Start development server (includes Inngest)
+npm run start
+# Or just the dev server:
 npm run dev
 ```
 
@@ -94,6 +100,26 @@ npm run supabase:status
 # Access Supabase Studio (database GUI)
 # Open: http://localhost:54323
 ```
+
+### Seed Data Generation
+
+The project includes an automated seed data generation system:
+
+```bash
+# Generate seed data from example repositories
+npm run db:seed
+
+# Check seed data status
+npm run seed:status
+```
+
+This will:
+- Track example repositories (continuedev/continue, vitejs/vite, etc.)
+- Queue data capture jobs using Inngest
+- Fetch 14 days of recent PR data
+- Process data in the background while you work
+
+See [SEED_DATA.md](./SEED_DATA.md) for complete documentation.
 
 ### Database Migrations
 

@@ -60,6 +60,8 @@
     "db:setup": "npm run supabase:start && npm run supabase:migrate",
     "env:local": "node scripts/setup/switch-environment.js local",
     "env:production": "node scripts/setup/switch-environment.js production",
+    "db:seed": "node scripts/setup/generate-seed-data.mjs",
+    "seed:status": "node scripts/setup/check-seed-status.mjs",
     "setup-storage": "node scripts/setup/setup-supabase-storage.js",
     "test-social-cards": "node scripts/testing-tools/test-social-cards.js",
     "migrate-images": "node scripts/assets/migrate-to-supabase-storage.js",
