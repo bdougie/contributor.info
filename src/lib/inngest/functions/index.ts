@@ -15,3 +15,12 @@ export { classifyRepositorySize, classifySingleRepository } from './classify-rep
 
 // Embedding generation for issues and PRs
 export { generateEmbeddings, batchGenerateEmbeddings } from './generate-embeddings';
+
+// Workspace metrics aggregation
+export { 
+  aggregateWorkspaceMetrics,
+  scheduledWorkspaceAggregation,
+  handleWorkspaceRepositoryChange,
+  cleanupWorkspaceMetricsData,
+  workspaceMetricsFunctions
+} from './aggregate-workspace-metrics';

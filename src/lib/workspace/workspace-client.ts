@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '@/lib/supabase';
+import { workspaceMetricsCache } from '@/lib/cache/workspace-metrics-cache';
 import type {
   WorkspaceWithStats,
   WorkspaceMetrics,
@@ -573,4 +574,220 @@ export async function canAccessWorkspace(workspaceId: string): Promise<boolean> 
 
   const role = await getUserWorkspaceRole(workspaceId);
   return role !== null;
+}
+
+// =====================================================
+// WORKSPACE METRICS OPERATIONS
+// =====================================================
+
+/**
+ * Get workspace metrics with cache-first strategy
+ */
+export async function getWorkspaceMetrics(
+  workspaceId: string,
+  timeRange: MetricsTimeRange = '30d',
+  forceRefresh = false
+): Promise<WorkspaceMetrics | null> {
+  try {
+    // Check in-memory cache first (unless force refresh)
+    if (!forceRefresh) {
+      const cachedMetrics = workspaceMetricsCache.get(workspaceId, timeRange);
+      if (cachedMetrics && !cachedMetrics.is_stale) {
+        return cachedMetrics;
+      }
+    }
+
+    // Query database cache
+    const { data, error } = await supabase
+      .from('workspace_metrics_cache')
+      .select('*')
+      .eq('workspace_id', workspaceId)
+      .eq('time_range', timeRange)
+      .single();
+
+    if (error) {
+      console.error('Error fetching workspace metrics:', error);
+      
+      // If cache miss, trigger aggregation in background
+      await triggerMetricsAggregation(workspaceId, timeRange);
+      return null;
+    }
+
+    // Transform database format to TypeScript format
+    const metrics: WorkspaceMetrics = {
+      id: data.id,
+      workspace_id: data.workspace_id,
+      period_start: data.period_start,
+      period_end: data.period_end,
+      time_range: data.time_range,
+      metrics: {
+        total_prs: data.total_prs,
+        merged_prs: data.merged_prs,
+        open_prs: data.open_prs,
+        draft_prs: data.draft_prs,
+        total_issues: data.total_issues,
+        closed_issues: data.closed_issues,
+        open_issues: data.open_issues,
+        total_contributors: data.total_contributors,
+        active_contributors: data.active_contributors,
+        new_contributors: data.new_contributors,
+        total_commits: data.total_commits,
+        total_stars: data.total_stars,
+        total_forks: data.total_forks,
+        total_watchers: data.total_watchers,
+        avg_pr_merge_time_hours: data.avg_pr_merge_time_hours,
+        pr_velocity: data.pr_velocity,
+        issue_closure_rate: data.issue_closure_rate,
+        languages: data.language_distribution || {},
+        top_contributors: data.top_contributors || [],
+        activity_timeline: data.activity_timeline || [],
+        repository_stats: data.repository_stats
+      },
+      calculated_at: data.calculated_at,
+      expires_at: data.expires_at,
+      is_stale: data.is_stale
+    };
+
+    // Update in-memory cache
+    if (!data.is_stale) {
+      workspaceMetricsCache.set(workspaceId, timeRange, metrics);
+    }
+
+    // If stale, trigger background refresh
+    if (data.is_stale && !forceRefresh) {
+      await triggerMetricsAggregation(workspaceId, timeRange);
+    }
+
+    return metrics;
+  } catch (error) {
+    console.error('Failed to get workspace metrics:', error);
+    return null;
+  }
+}
+
+/**
+ * Get workspace trend data for charts
+ */
+export async function getWorkspaceTrendData(
+  workspaceId: string,
+  timeRange: MetricsTimeRange = '30d'
+) {
+  const metrics = await getWorkspaceMetrics(workspaceId, timeRange);
+  
+  if (!metrics?.metrics.activity_timeline) {
+    return null;
+  }
+
+  // Transform activity timeline into chart-friendly format
+  const timeline = metrics.metrics.activity_timeline;
+  const labels = timeline.map(point => {
+    const date = new Date(point.date);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  });
+
+  return {
+    labels,
+    datasets: [
+      {
+        label: 'Pull Requests',
+        data: timeline.map(p => p.prs),
+        color: '#10b981'
+      },
+      {
+        label: 'Issues',
+        data: timeline.map(p => p.issues),
+        color: '#f97316'
+      },
+      {
+        label: 'Commits',
+        data: timeline.map(p => p.commits),
+        color: '#8b5cf6'
+      }
+    ]
+  };
+}
+
+/**
+ * Trigger metrics aggregation via API
+ */
+async function triggerMetricsAggregation(
+  workspaceId: string,
+  timeRange: MetricsTimeRange
+): Promise<void> {
+  try {
+    // Call the API endpoint to trigger aggregation
+    const response = await fetch('/api/workspaces/metrics/aggregate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        workspaceId,
+        timeRange,
+        priority: 50
+      })
+    });
+
+    if (!response.ok) {
+      console.error('Failed to trigger metrics aggregation:', response.statusText);
+    }
+  } catch (error) {
+    console.error('Error triggering metrics aggregation:', error);
+  }
+}
+
+/**
+ * Invalidate metrics cache when data changes
+ */
+export async function invalidateWorkspaceMetrics(workspaceId: string): Promise<void> {
+  // Invalidate in-memory cache
+  workspaceMetricsCache.invalidate(workspaceId);
+
+  // Mark database cache as stale
+  const { error } = await supabase.rpc('mark_workspace_cache_stale', {
+    p_workspace_id: workspaceId
+  });
+
+  if (error) {
+    console.error('Failed to invalidate workspace metrics:', error);
+  }
+
+  // Trigger re-aggregation for default time range
+  await triggerMetricsAggregation(workspaceId, '30d');
+}
+
+/**
+ * Get multiple time ranges at once for a workspace
+ */
+export async function getWorkspaceMetricsMultiple(
+  workspaceId: string,
+  timeRanges: MetricsTimeRange[]
+): Promise<Map<MetricsTimeRange, WorkspaceMetrics | null>> {
+  const results = new Map<MetricsTimeRange, WorkspaceMetrics | null>();
+
+  // Fetch all time ranges in parallel
+  const promises = timeRanges.map(async (timeRange) => {
+    const metrics = await getWorkspaceMetrics(workspaceId, timeRange);
+    return { timeRange, metrics };
+  });
+
+  const allResults = await Promise.all(promises);
+  
+  allResults.forEach(({ timeRange, metrics }) => {
+    results.set(timeRange, metrics);
+  });
+
+  return results;
+}
+
+/**
+ * Warm cache for a workspace
+ */
+export async function warmWorkspaceCache(workspaceId: string): Promise<void> {
+  const timeRanges: MetricsTimeRange[] = ['7d', '30d', '90d'];
+  
+  // Trigger aggregation for all time ranges
+  await Promise.all(
+    timeRanges.map(timeRange => triggerMetricsAggregation(workspaceId, timeRange))
+  );
 }
