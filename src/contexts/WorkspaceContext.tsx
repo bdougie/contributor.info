@@ -118,15 +118,19 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
       // Clear any existing timeout
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
       }
       
-      timeoutRef.current = setTimeout(() => {
-        // Double-check if still loading to avoid race condition
-        if (workspacesLoading) {
-          console.error('[WorkspaceContext] Workspace loading timed out');
-          setHasTimedOut(true);
-        }
-      }, WORKSPACE_TIMEOUTS.CONTEXT);
+      // Only set timeout if not already timed out (prevents resetting timeout on refetch)
+      if (!hasTimedOut) {
+        timeoutRef.current = setTimeout(() => {
+          // Double-check if still loading to avoid race condition
+          if (workspacesLoading) {
+            console.error('[WorkspaceContext] Workspace loading timed out after', WORKSPACE_TIMEOUTS.CONTEXT, 'ms');
+            setHasTimedOut(true);
+          }
+        }, WORKSPACE_TIMEOUTS.CONTEXT);
+      }
       
       return () => {
         if (timeoutRef.current) {
@@ -135,11 +139,16 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
         }
       };
     } else {
+      // Data loaded successfully - clear timeout state
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
       setHasTimedOut(false);
       // Reset retry count on successful load
       retryCountRef.current = 0;
     }
-  }, [workspacesLoading]);
+  }, [workspacesLoading, hasTimedOut]);
 
   // Log workspace errors
   useEffect(() => {
@@ -212,8 +221,17 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     }
     
     retryCountRef.current += 1;
+    console.log(`[WorkspaceContext] Retrying workspace fetch (attempt ${retryCountRef.current}/${WORKSPACE_TIMEOUTS.MAX_RETRIES})`);
+    
+    // Clear error and timeout states
     setError(null);
     setHasTimedOut(false);
+    
+    // Clear any existing timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
     
     // Trigger refetch if available
     if (refetch) {

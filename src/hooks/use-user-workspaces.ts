@@ -327,6 +327,20 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
     }
   }, []);
 
+  // Debounced fetch function to prevent rapid refetching
+  const debouncedFetchRef = useRef<NodeJS.Timeout | null>(null);
+  const debouncedFetch = useCallback(() => {
+    // Clear any existing debounce timer
+    if (debouncedFetchRef.current) {
+      clearTimeout(debouncedFetchRef.current);
+    }
+    
+    // Set new debounce timer
+    debouncedFetchRef.current = setTimeout(() => {
+      fetchUserWorkspaces();
+    }, 500); // 500ms debounce delay
+  }, [fetchUserWorkspaces]);
+
   useEffect(() => {
     let mounted = true;
     let loadingTimeout: NodeJS.Timeout;
@@ -350,14 +364,33 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
     
     initFetch();
 
-    // Listen for auth state changes
+    // Listen for auth state changes with better filtering
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
+      
+      // Log auth events for debugging
+      console.log(`[Workspace] Auth event: ${event}`, { 
+        hasSession: !!session, 
+        userId: session?.user?.id?.substring(0, 8) 
+      });
+      
+      // Only refetch on actual sign in/out events, ignore token refreshes and other events
       if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-        // Only refetch on actual sign in/out, not token refresh
-        await fetchUserWorkspaces();
+        console.log(`[Workspace] Triggering workspace refetch for auth event: ${event}`);
+        // Use debounced fetch to prevent rapid successive calls
+        debouncedFetch();
+      } else if (event === 'TOKEN_REFRESHED') {
+        // Explicitly ignore token refresh events
+        console.log('[Workspace] Ignoring TOKEN_REFRESHED event');
+      } else if (event === 'USER_UPDATED') {
+        // Only refetch if user metadata changed significantly
+        console.log('[Workspace] USER_UPDATED event detected, checking if refetch needed');
+        // For now, we'll ignore USER_UPDATED events as they don't affect workspace data
+      } else {
+        // Log other events for debugging
+        console.log(`[Workspace] Received auth event: ${event}, no action taken`);
       }
     });
 
@@ -365,13 +398,18 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
       mounted = false;
       subscription.unsubscribe();
       if (loadingTimeout) clearTimeout(loadingTimeout);
+      // Clear debounce timer
+      if (debouncedFetchRef.current) {
+        clearTimeout(debouncedFetchRef.current);
+        debouncedFetchRef.current = null;
+      }
       // Cancel any pending requests
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
         abortControllerRef.current = null;
       }
     };
-  }, []); // Empty dependency array - only run once on mount
+  }, [debouncedFetch]); // Include debouncedFetch in dependencies
 
   return {
     workspaces,
