@@ -10,12 +10,15 @@ inputs:
     description: 'Path to the rules directory'
     required: false
     default: '.continue/rules'
+  pr-number:
+    description: 'Pull request number (for workflow_dispatch)'
+    required: false
 
 runs:
   using: 'composite'
   steps:
     - name: Setup Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4.0.3
       with:
         node-version: '20'
 
@@ -35,6 +38,7 @@ runs:
         GITHUB_TOKEN: ${{ inputs.github-token }}
         INPUT_GITHUB_TOKEN: ${{ inputs.github-token }}
         INPUT_RULES_PATH: ${{ inputs.rules-path }}
+        INPUT_PR_NUMBER: ${{ inputs.pr-number }}
       run: |
         echo "Running Documentation Review..."
         npx tsx index.ts

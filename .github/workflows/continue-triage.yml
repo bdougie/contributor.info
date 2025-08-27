@@ -1,7 +1,5 @@
 name: Continue Agent Issue Triage
 on:
-  schedule:
-    - cron: '4 16 * * *' # Runs daily at 4:04 PM UTC
   issues:
     types: [opened, edited]
   workflow_dispatch: # Allow manual testing
@@ -26,7 +24,6 @@ jobs:
     # Only run on issues that need triage
     if: |
       github.event_name == 'workflow_dispatch' ||
-      github.event_name == 'schedule' ||
       (github.event_name == 'issues' && 
        (github.event.action == 'opened' || 
         github.event.action == 'edited' ||

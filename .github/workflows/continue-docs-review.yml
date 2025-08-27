@@ -61,6 +61,7 @@ jobs:
         with:
           github-token: ${{ steps.app-token.outputs.token }}
           rules-path: '.continue/rules'
+          pr-number: ${{ github.event.inputs.pr_number || github.event.issue.number || github.event.pull_request.number }}
 
       - name: Documentation Coverage Check
         if: github.event_name == 'pull_request'

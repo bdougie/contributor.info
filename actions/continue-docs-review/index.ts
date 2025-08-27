@@ -66,30 +66,37 @@ async function loadRules(rulesPath: string): Promise<Rule[]> {
 }
 
 async function getChangedDocFiles(): Promise<string[]> {
-  const token = process.env.GITHUB_TOKEN || '';
+  const token = process.env.GITHUB_TOKEN || process.env.INPUT_GITHUB_TOKEN || '';
   const octokit = github.getOctokit(token);
   const context = github.context;
 
-  if (!context.payload.pull_request) {
-    core.info('Not running in a pull request context');
+  let pullNumber: number | undefined;
+
+  // Handle different event contexts
+  if (context.payload.pull_request) {
+    // Direct pull_request event
+    pullNumber = context.payload.pull_request.number;
+  } else if (context.payload.issue?.pull_request) {
+    // issue_comment event on a PR
+    pullNumber = context.payload.issue.number;
+  } else if (process.env.INPUT_PR_NUMBER) {
+    // workflow_dispatch with pr_number input
+    pullNumber = parseInt(process.env.INPUT_PR_NUMBER, 10);
+  }
+
+  if (!pullNumber) {
+    core.info('No pull request context found');
     return [];
   }
 
   const { data: files } = await octokit.rest.pulls.listFiles({
     ...context.repo,
-    pull_number: context.payload.pull_request.number,
+    pull_number: pullNumber,
   });
 
-  // Filter for documentation files
+  // Filter for all markdown files
   const docFiles = files
-    .filter(
-      (file) =>
-        file.filename.endsWith('.md') &&
-        (file.filename.startsWith('docs/') ||
-          file.filename.startsWith('public/docs/') ||
-          file.filename === 'CONTRIBUTING.md' ||
-          file.filename === 'README.md')
-    )
+    .filter((file) => file.filename.endsWith('.md'))
     .map((file) => file.filename);
 
   core.info(`Found ${docFiles.length} documentation files changed`);
@@ -161,8 +168,8 @@ async function analyzeDocumentation(files: string[], rules: Rule[]): Promise<Doc
 
         // Check for passive voice patterns
         const passivePatterns = [
-          /\b(is|are|was|were|been|being)\s+\w+ed\b/gi,
-          /\b(has|have|had)\s+been\s+\w+ed\b/gi,
+          /\b(is|are|was|were|been|being)\s+\w+ed\b/i,
+          /\b(has|have|had)\s+been\s+\w+ed\b/i,
         ];
 
         for (let i = 0; i < lines.length; i++) {
@@ -183,9 +190,9 @@ async function analyzeDocumentation(files: string[], rules: Rule[]): Promise<Doc
 
         // Check for marketing speak and fluff
         const fluffPatterns = [
-          /\b(unlock|unleash|empower|revolutionize|transform)\b/gi,
-          /\b(blazingly|incredibly|amazingly|extremely)\s+fast\b/gi,
-          /\b(100%|completely|totally)\s+(secure|safe|reliable)\b/gi,
+          /\b(unlock|unleash|empower|revolutionize|transform)\b/i,
+          /\b(blazingly|incredibly|amazingly|extremely)\s+fast\b/i,
+          /\b(100%|completely|totally)\s+(secure|safe|reliable)\b/i,
         ];
 
         for (let i = 0; i < lines.length; i++) {
@@ -252,8 +259,19 @@ async function postReviewComments(issues: DocumentationIssue[]): Promise<void> {
   const octokit = github.getOctokit(token);
   const context = github.context;
 
-  if (!context.payload.pull_request) {
-    core.info('Not in a pull request context, skipping comment posting');
+  let pullNumber: number | undefined;
+
+  // Handle different event contexts (same logic as getChangedDocFiles)
+  if (context.payload.pull_request) {
+    pullNumber = context.payload.pull_request.number;
+  } else if (context.payload.issue?.pull_request) {
+    pullNumber = context.payload.issue.number;
+  } else if (process.env.INPUT_PR_NUMBER) {
+    pullNumber = parseInt(process.env.INPUT_PR_NUMBER, 10);
+  }
+
+  if (!pullNumber) {
+    core.info('No pull request context found, skipping comment posting');
     return;
   }
 
@@ -261,7 +279,7 @@ async function postReviewComments(issues: DocumentationIssue[]): Promise<void> {
   try {
     const { data: reviews } = await octokit.rest.pulls.listReviews({
       ...context.repo,
-      pull_number: context.payload.pull_request.number,
+      pull_number: pullNumber,
       per_page: 10,
     });
 
@@ -340,7 +358,7 @@ async function postReviewComments(issues: DocumentationIssue[]): Promise<void> {
   try {
     await octokit.rest.pulls.createReview({
       ...context.repo,
-      pull_number: context.payload.pull_request.number,
+      pull_number: pullNumber,
       body: reviewBody,
       event: 'COMMENT', // Non-blocking review
     });
