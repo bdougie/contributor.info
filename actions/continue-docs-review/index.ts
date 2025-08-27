@@ -82,6 +82,12 @@ async function getChangedDocFiles(): Promise<string[]> {
   } else if (process.env.INPUT_PR_NUMBER) {
     // workflow_dispatch with pr_number input
     pullNumber = parseInt(process.env.INPUT_PR_NUMBER, 10);
+    if (isNaN(pullNumber) || pullNumber <= 0) {
+      core.warning(`Invalid PR number provided: ${process.env.INPUT_PR_NUMBER}`);
+      pullNumber = undefined;
+    } else {
+      core.info(`Using PR number from workflow_dispatch: #${pullNumber}`);
+    }
   }
 
   if (!pullNumber) {
@@ -268,6 +274,10 @@ async function postReviewComments(issues: DocumentationIssue[]): Promise<void> {
     pullNumber = context.payload.issue.number;
   } else if (process.env.INPUT_PR_NUMBER) {
     pullNumber = parseInt(process.env.INPUT_PR_NUMBER, 10);
+    if (isNaN(pullNumber) || pullNumber <= 0) {
+      core.warning(`Invalid PR number provided: ${process.env.INPUT_PR_NUMBER}`);
+      pullNumber = undefined;
+    }
   }
 
   if (!pullNumber) {

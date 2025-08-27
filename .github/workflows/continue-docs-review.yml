@@ -14,7 +14,7 @@ on:
     inputs:
       pr_number:
         description: 'Pull request number to review'
-        required: false
+        required: true
         type: string
 
 permissions:
