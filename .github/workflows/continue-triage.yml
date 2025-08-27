@@ -1,7 +1,9 @@
 name: Continue Agent Issue Triage
 on:
+  schedule:
+    - cron: '0 * * * *' # Runs every hour to triage issues without labels
   issues:
-    types: [opened, edited]
+    types: [opened, edited, reopened]
   workflow_dispatch: # Allow manual testing
     inputs:
       issue_number:
