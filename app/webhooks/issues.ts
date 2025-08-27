@@ -8,7 +8,7 @@ import { createIssueComment } from '../services/github-api';
  * Handle issue webhook events
  */
 export async function handleIssuesEvent(event: IssuesEvent) {
-  console.log(`Issue ${event.action}: #${event.issue.number} in ${event.repository.full_name}`);
+  console.log("Issue %s: #${event.issue.number} in ${event.repository.full_name}", event.action);
 
   switch (event.action) {
     case 'opened':

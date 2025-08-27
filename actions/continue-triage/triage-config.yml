@@ -1,0 +1,97 @@
+# Continue Triage Configuration
+# This file defines label mapping rules and customization options
+
+# Label mapping rules
+labelMappings:
+  # Type detection patterns
+  type:
+    bug:
+      patterns: ['bug', 'error', 'broken', 'issue', 'problem', 'crash', 'fail']
+      description: 'Issue describes something not working correctly'
+    enhancement:
+      patterns: ['feature', 'add', 'implement', 'new', 'enhancement', 'request']
+      description: 'Issue requests new functionality'
+    documentation:
+      patterns: ['doc', 'readme', 'guide', 'tutorial', 'example']
+      description: 'Issue relates to documentation'
+    question:
+      patterns: ['how', 'what', 'why', 'when', 'where', '?']
+      description: 'Issue is asking a question'
+
+  # Area detection patterns
+  area:
+    frontend:
+      patterns: ['ui', 'frontend', 'component', 'react', 'css', 'style', 'layout']
+      description: 'Issue relates to UI/frontend'
+    backend:
+      patterns: ['api', 'server', 'backend', 'endpoint', 'route']
+      description: 'Issue relates to backend/API'
+    database:
+      patterns: ['database', 'supabase', 'sql', 'query', 'migration', 'schema']
+      description: 'Issue relates to database operations'
+    testing:
+      patterns: ['test', 'spec', 'jest', 'vitest', 'coverage', 'e2e']
+      description: 'Issue relates to testing'
+    ci:
+      patterns: ['ci', 'cd', 'pipeline', 'workflow', 'action', 'deploy']
+      description: 'Issue relates to CI/CD'
+
+  # Technical detection patterns
+  technical:
+    security:
+      patterns: ['security', 'vulnerability', 'cve', 'auth', 'permission', 'xss', 'csrf']
+      description: 'Issue has security implications'
+    performance:
+      patterns: ['performance', 'slow', 'optimize', 'fast', 'speed', 'memory', 'cpu']
+      description: 'Issue relates to performance'
+    dependencies:
+      patterns: ['dependency', 'package', 'npm', 'node_modules', 'version', 'upgrade']
+      description: 'Issue relates to dependencies'
+    build:
+      patterns: ['build', 'compile', 'webpack', 'vite', 'bundle', 'transpile']
+      description: 'Issue relates to build process'
+
+  # Complexity detection patterns
+  complexity:
+    'good first issue':
+      patterns: ['easy', 'simple', 'beginner', 'starter', 'first']
+      description: 'Good for newcomers'
+    'help wanted':
+      patterns: ['help', 'stuck', 'blocked', 'assistance']
+      description: 'Extra attention is needed'
+
+# Tier assignment rules (based on keywords and impact)
+tierRules:
+  'tier 1':
+    patterns: ['critical', 'urgent', 'blocker', 'production', 'breaking']
+    description: 'Major features and critical issues'
+  'tier 2':
+    patterns: ['important', 'medium', 'significant']
+    description: 'Important features and enhancements'
+  'tier 3':
+    patterns: ['minor', 'small', 'low', 'nice-to-have']
+    description: 'Smaller improvements and updates'
+
+# SCQA prompt customization
+scqaPrompt:
+  situationPrefix: 'The issue'
+  complicationPrefix: 'The challenge is'
+  questionPrefix: 'The core question is'
+  answerPrefix: 'The recommended approach is'
+
+# Behavior configuration
+behavior:
+  # Skip triage if issue already has any of these labels
+  skipIfHasLabels: ['triaged', 'wontfix', 'duplicate', 'invalid']
+
+  # Maximum number of labels to apply per category
+  maxLabelsPerCategory: 2
+
+  # Minimum confidence score (0-1) to apply a label
+  confidenceThreshold: 0.6
+
+  # Enable metrics collection (future feature)
+  collectMetrics: true
+
+  # Webhook validation (future feature)
+  validateWebhook: true

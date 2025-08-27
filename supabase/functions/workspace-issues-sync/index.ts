@@ -126,7 +126,7 @@ serve(async (req) => {
       )
     }
 
-    console.log(`Found ${workspaceRepos.length} repositories to sync issues for`)
+    console.log("Found %s repositories to sync issues for", workspaceRepos.length)
 
     // Calculate the time window for issues
     const sinceDate = new Date()
@@ -141,7 +141,7 @@ serve(async (req) => {
     for (const repo of workspaceRepos) {
       const repository = repo.tracked_repositories?.repositories
       if (!repository || !repository.has_issues) {
-        console.log(`Skipping ${repository?.full_name || 'unknown'}: issues disabled`)
+        console.log("Skipping %s: issues disabled", repository?.full_name || 'unknown')
         continue
       }
 
@@ -149,7 +149,7 @@ serve(async (req) => {
       const workspaceName = repo.workspaces?.name || 'Unknown'
       const tier = repo.workspaces?.tier || 'free'
 
-      console.log(`Syncing issues for ${owner}/${name} (workspace: ${workspaceName}, tier: ${tier})`)
+      console.log("Syncing issues for %s/${name} (workspace: ${workspaceName}, tier: ${tier})", owner)
 
       try {
         // Fetch issues from GitHub API with pagination support
@@ -211,7 +211,7 @@ serve(async (req) => {
         // Filter out pull requests (they have a pull_request field)
         const actualIssues = allIssues.filter(issue => !issue.pull_request)
         
-        console.log(`Found ${actualIssues.length} issues for ${owner}/${name}`)
+        console.log("Found %s issues for ${owner}/${name}", actualIssues.length)
 
         if (actualIssues.length === 0) {
           results.push({

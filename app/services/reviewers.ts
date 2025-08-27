@@ -281,7 +281,7 @@ async function findCodeOwners(
         });
       } catch (error) {
         // User might not exist or be accessible
-        console.log(`Could not fetch data for user ${suggestion.username}`);
+        console.log("Could not fetch data for user %s", suggestion.username);
         ownersWithData.push({
           login: suggestion.username,
           name: suggestion.username,

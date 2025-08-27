@@ -57,7 +57,7 @@ async function withRetry<T>(
       if (attempt < config.maxRetries) {
         // Check if error is retryable
         if (isRetryableError(error)) {
-          console.log(`Retrying ${operation} in ${delay}ms...`);
+          console.log("Retrying %s in %sms...", operation, delay);
           await sleep(delay);
           delay = Math.min(delay * config.backoffMultiplier, config.maxDelay);
         } else {
@@ -164,7 +164,7 @@ async function processFileEmbedding(
       );
       
       if (existing) {
-        console.log(`Skipping ${filePath} - embedding already exists`);
+        console.log("Skipping %s - embedding already exists", filePath);
         return null;
       }
       
@@ -199,7 +199,7 @@ export async function generateFileEmbeddings(
   octokit: Octokit,
   filePaths: string[]
 ): Promise<void> {
-  console.log(`Generating embeddings for ${filePaths.length} files in ${repository.full_name}`);
+  console.log("Generating embeddings for %s files in %s", filePaths.length, repository.full_name);
   
   try {
     // Get repository record
@@ -250,7 +250,7 @@ export async function generateFileEmbeddings(
               throw error;
             }
             
-            console.log(`Inserted ${batchEmbeddings.length} embeddings`);
+            console.log("Inserted %s embeddings", batchEmbeddings.length);
           },
           `Inserting ${batchEmbeddings.length} embeddings`
         ).catch(error => {
@@ -265,7 +265,7 @@ export async function generateFileEmbeddings(
       }
     }
     
-    console.log(`Completed embedding generation for ${repository.full_name}`);
+    console.log("Completed embedding generation for %s", repository.full_name);
     
   } catch (error) {
     console.error('Error generating file embeddings:', error);

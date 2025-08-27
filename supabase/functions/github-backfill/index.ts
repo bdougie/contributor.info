@@ -45,7 +45,7 @@ async function fetchAllRepositoryEvents(
   let hasMore = true
   const perPage = 100
 
-  console.log(`Fetching events for ${owner}/${repo} from last ${daysBack} days`)
+  console.log("Fetching events for %s/${repo} from last ${daysBack} days", owner)
 
   while (hasMore && page <= 10) { // Limit to 10 pages (1000 events) per backfill
     const url = `https://api.github.com/repos/${owner}/${repo}/events?per_page=${perPage}&page=${page}`
@@ -101,7 +101,7 @@ async function fetchAllRepositoryEvents(
     }
   }
 
-  console.log(`Fetched ${allEvents.length} events for ${owner}/${repo}`)
+  console.log("Fetched %s events for ${owner}/${repo}", allEvents.length)
   return allEvents
 }
 
@@ -204,7 +204,7 @@ serve(async (req) => {
       )
     }
 
-    console.log(`Starting backfill for ${repository_owner}/${repository_name}`)
+    console.log("Starting backfill for %s/${repository_name}", repository_owner)
 
     // Update sync status
     await supabase
