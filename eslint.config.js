@@ -24,6 +24,7 @@ export default tseslint.config(
       'supabase/functions/',
       'tests/',
       'app/',
+      '.eslintcache',
     ],
   },
   {
@@ -40,7 +41,6 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
-      ...eslintConfigPrettier.rules,
       'prettier/prettier': 'error',
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
       // Prevent nested ternaries that break Rollup tree shaking
@@ -63,5 +63,6 @@ export default tseslint.config(
       ],
     },
   },
+  eslintConfigPrettier,
   storybook.configs['flat/recommended']
 );

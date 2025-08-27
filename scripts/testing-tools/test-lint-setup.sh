@@ -48,17 +48,20 @@ fi
 
 # Test 6: Test lint-staged
 echo "✓ Testing lint-staged..."
-echo "const test = 'test'" > test-lint-temp.ts
-git add test-lint-temp.ts
+TEST_FILE="test-lint-temp.ts"
+trap "git reset HEAD $TEST_FILE 2>/dev/null; rm -f $TEST_FILE" EXIT
+
+echo "const test = 'test'" > $TEST_FILE
+git add $TEST_FILE
 npx lint-staged
-if [ $? -eq 0 ]; then
+LINT_RESULT=$?
+git reset HEAD $TEST_FILE 2>/dev/null
+rm -f $TEST_FILE
+
+if [ $LINT_RESULT -eq 0 ]; then
     echo "  lint-staged working correctly ✅"
-    git reset HEAD test-lint-temp.ts
-    rm test-lint-temp.ts
 else
     echo "❌ lint-staged failed"
-    git reset HEAD test-lint-temp.ts
-    rm test-lint-temp.ts
     exit 1
 fi
 
