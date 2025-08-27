@@ -280,5 +280,5 @@ VALUES (999999, 'test/repo', 'test', 'repo');
 
 - [Local Development Guide](./LOCAL_DEVELOPMENT.md)
 - [Database Migrations](./DATABASE_MIGRATIONS.md)
-- [Progressive Capture System](../features/progressive-capture.md)
-- [Inngest Integration](../features/inngest-integration.md)
+- [Progressive Capture System](../data-fetching/progressive-data-capture-implementation.md)
+- [Inngest Integration](../data-fetching/inngest-integration.md)
