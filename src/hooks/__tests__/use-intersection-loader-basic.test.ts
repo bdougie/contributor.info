@@ -69,7 +69,7 @@ describe('useIntersectionLoader - Basic Tests', () => {
     // Try to load and catch the error
     try {
       await result.current.load();
-    } catch (e) {
+    } catch (_e) {
       // Error is expected
     }
 
