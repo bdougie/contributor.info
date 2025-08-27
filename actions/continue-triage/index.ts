@@ -17,6 +17,28 @@ interface RuleFile {
   content?: string;
 }
 
+interface TriageConfig {
+  labelMappings: {
+    [category: string]: {
+      [label: string]: {
+        patterns: string[];
+        description: string;
+      };
+    };
+  };
+  tierRules: {
+    [tier: string]: {
+      patterns: string[];
+      description: string;
+    };
+  };
+  behavior: {
+    skipIfHasLabels?: string[];
+    maxLabelsPerCategory?: number;
+    confidenceThreshold?: number;
+  };
+}
+
 interface TriageAnalysis {
   situation: string;
   complication: string;
@@ -33,6 +55,7 @@ async function run(): Promise<void> {
     const continueOrg = core.getInput('continue-org');
     const continueConfig = core.getInput('continue-config');
     const issueNumber = parseInt(core.getInput('issue-number'));
+    const dryRun = core.getBooleanInput('dry-run') || false;
 
     // Mask sensitive values in logs
     if (continueApiKey) {
@@ -50,7 +73,18 @@ async function run(): Promise<void> {
     const context = github.context;
     const { owner, repo } = context.repo;
 
-    console.log(`🔍 Triaging issue #${issueNumber}...`);
+    // Check rate limit before proceeding
+    const { data: rateLimit } = await octokit.rest.rateLimit.get();
+    console.log(`📊 GitHub API Rate Limit: ${rateLimit.core.remaining}/${rateLimit.core.limit}`);
+
+    if (rateLimit.core.remaining < 10) {
+      const resetDate = new Date(rateLimit.core.reset * 1000);
+      throw new Error(
+        `GitHub API rate limit too low: ${rateLimit.core.remaining} remaining. Resets at ${resetDate.toISOString()}`
+      );
+    }
+
+    console.log(`🔍 Triaging issue #${issueNumber}${dryRun ? ' (DRY RUN MODE)' : ''}...`);
 
     // Fetch issue details
     const { data: issue } = await octokit.rest.issues.get({
@@ -70,6 +104,12 @@ async function run(): Promise<void> {
 
     console.log(`🏷️ Found ${availableLabels.length} available labels`);
 
+    // Load triage configuration
+    const triageConfig = await loadTriageConfig();
+    if (triageConfig) {
+      console.log('⚙️ Loaded triage configuration');
+    }
+
     // Load rules from .continue/rules directory
     const rulesPath = path.join(process.cwd(), '.continue', 'rules');
     const rules = await loadRules(rulesPath);
@@ -87,13 +127,17 @@ async function run(): Promise<void> {
 
     // Add needs-triage label if not present
     if (!hasNeedsTriageLabel && existingLabels.length === 0) {
-      await octokit.rest.issues.addLabels({
-        owner,
-        repo,
-        issue_number: issueNumber,
-        labels: ['needs-triage'],
-      });
-      console.log('🏷️ Added "needs-triage" label');
+      if (dryRun) {
+        console.log('🏷️ [DRY RUN] Would add "needs-triage" label');
+      } else {
+        await octokit.rest.issues.addLabels({
+          owner,
+          repo,
+          issue_number: issueNumber,
+          labels: ['needs-triage'],
+        });
+        console.log('🏷️ Added "needs-triage" label');
+      }
     }
 
     // Perform triage analysis using Continue
@@ -107,14 +151,19 @@ async function run(): Promise<void> {
     );
 
     // Post SCQA comment
-    const comment = generateSCQAComment(analysis);
-    await octokit.rest.issues.createComment({
-      owner,
-      repo,
-      issue_number: issueNumber,
-      body: comment,
-    });
-    console.log('💬 Posted SCQA analysis comment');
+    const comment = generateSCQAComment(analysis, dryRun);
+    if (dryRun) {
+      console.log('💬 [DRY RUN] Would post comment:');
+      console.log(comment);
+    } else {
+      await octokit.rest.issues.createComment({
+        owner,
+        repo,
+        issue_number: issueNumber,
+        body: comment,
+      });
+      console.log('💬 Posted SCQA analysis comment');
+    }
 
     // Apply suggested labels
     if (analysis.suggestedLabels.length > 0) {
@@ -124,25 +173,33 @@ async function run(): Promise<void> {
       );
 
       if (labelsToApply.length > 0) {
-        await octokit.rest.issues.addLabels({
-          owner,
-          repo,
-          issue_number: issueNumber,
-          labels: labelsToApply,
-        });
-        console.log(`🏷️ Applied labels: ${labelsToApply.join(', ')}`);
+        if (dryRun) {
+          console.log(`🏷️ [DRY RUN] Would apply labels: ${labelsToApply.join(', ')}`);
+        } else {
+          await octokit.rest.issues.addLabels({
+            owner,
+            repo,
+            issue_number: issueNumber,
+            labels: labelsToApply,
+          });
+          console.log(`🏷️ Applied labels: ${labelsToApply.join(', ')}`);
+        }
       }
 
       // Remove needs-triage label after successful triage
       if (hasNeedsTriageLabel || existingLabels.length === 0) {
         try {
-          await octokit.rest.issues.removeLabel({
-            owner,
-            repo,
-            issue_number: issueNumber,
-            name: 'needs-triage',
-          });
-          console.log('🏷️ Removed "needs-triage" label');
+          if (dryRun) {
+            console.log('🏷️ [DRY RUN] Would remove "needs-triage" label');
+          } else {
+            await octokit.rest.issues.removeLabel({
+              owner,
+              repo,
+              issue_number: issueNumber,
+              name: 'needs-triage',
+            });
+            console.log('🏷️ Removed "needs-triage" label');
+          }
         } catch {
           // Label might not exist, ignore error
         }
@@ -158,6 +215,19 @@ async function run(): Promise<void> {
       core.setFailed('An unknown error occurred');
     }
   }
+}
+
+async function loadTriageConfig(): Promise<TriageConfig | null> {
+  try {
+    const configPath = path.join(__dirname, 'triage-config.yml');
+    if (fs.existsSync(configPath)) {
+      const configContent = fs.readFileSync(configPath, 'utf-8');
+      return yaml.load(configContent) as TriageConfig;
+    }
+  } catch (error) {
+    console.warn('⚠️ Could not load triage config:', error);
+  }
+  return null;
 }
 
 async function loadRules(rulesPath: string): Promise<RuleFile[]> {
@@ -371,7 +441,7 @@ function performFallbackAnalysis(issue: IssueData, availableLabels: Label[]): Tr
   };
 }
 
-function generateSCQAComment(analysis: TriageAnalysis): string {
+function generateSCQAComment(analysis: TriageAnalysis, dryRun = false): string {
   const labelsList = analysis.suggestedLabels
     .map((label) => {
       const reason = analysis.reasoning[label] || 'Based on issue content analysis';
@@ -379,7 +449,7 @@ function generateSCQAComment(analysis: TriageAnalysis): string {
     })
     .join('\n');
 
-  return `## 🤖 Triage Analysis
+  return `## 🤖 Triage Analysis${dryRun ? ' (DRY RUN)' : ''}
 
 ### 📋 Situation
 ${analysis.situation}
@@ -393,11 +463,13 @@ ${analysis.question}
 ### 💡 Answer
 ${analysis.answer}
 
-### 🏷️ Applied Labels
+### 🏷️ ${dryRun ? 'Suggested' : 'Applied'} Labels
 ${labelsList || '- No specific labels suggested at this time'}
 
 ---
-*This analysis was generated based on the project's [coding rules](.continue/rules) and best practices.*`;
+*This analysis was generated based on the project's [coding rules](.continue/rules) and best practices.*${
+    dryRun ? '\n*Note: This is a dry run - no labels were actually applied.*' : ''
+  }`;
 }
 
 // Run the action

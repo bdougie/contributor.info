@@ -19,6 +19,10 @@ inputs:
   issue-number:
     description: 'Issue number to triage'
     required: true
+  dry-run:
+    description: 'Run in dry-run mode without applying changes'
+    required: false
+    default: 'false'
 
 runs:
   using: 'composite'

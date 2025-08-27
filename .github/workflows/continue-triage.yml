@@ -8,6 +8,11 @@ on:
         description: 'Issue number to triage'
         required: false
         type: string
+      dry_run:
+        description: 'Run in dry-run mode (no changes applied)'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -50,3 +55,4 @@ jobs:
           continue-org: 'continuedev' # Continue's organization
           continue-config: 'continuedev/review-bot' # Continue's review assistant (used for triage)
           issue-number: ${{ github.event.inputs.issue_number || github.event.issue.number }}
+          dry-run: ${{ github.event.inputs.dry_run || false }}
