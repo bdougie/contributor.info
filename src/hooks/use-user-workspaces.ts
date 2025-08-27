@@ -113,7 +113,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
         } else {
           user = authData?.user;
         }
-      } catch (timeoutError) {
+      } catch {
         clearTimeout(authTimeoutId);
         
         if (signal.aborted) {
@@ -376,7 +376,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
     // Listen for auth state changes with better filtering
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, _session) => {
+    } = supabase.auth.onAuthStateChange(async (event) => {
       if (!mounted) return;
       
       // Auth event received - only process SIGNED_IN and SIGNED_OUT events
@@ -388,7 +388,16 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
       } else if (event === 'TOKEN_REFRESHED') {
         // Explicitly ignore token refresh events to prevent unnecessary refetches
       } else if (event === 'USER_UPDATED') {
-        // For now, we'll ignore USER_UPDATED events as they don't affect workspace data
+        // USER_UPDATED can change user metadata (avatar_url, display_name) which is used
+        // for workspace owner info. Use a longer debounce to avoid excessive refetches
+        // if multiple profile fields are updated in quick succession
+        if (debouncedFetchRef.current) {
+          clearTimeout(debouncedFetchRef.current);
+        }
+        debouncedFetchRef.current = setTimeout(() => {
+          console.log('[Workspace] User profile updated, refreshing workspace data...');
+          fetchUserWorkspaces();
+        }, 1000); // 1 second debounce for USER_UPDATED events
       } else {
         // Ignore other auth events
       }
@@ -409,7 +418,8 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
         abortControllerRef.current = null;
       }
     };
-  }, [debouncedFetch]); // Include debouncedFetch in dependencies
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedFetch]); // Include debouncedFetch in dependencies, exclude others intentionally
 
   return {
     workspaces,

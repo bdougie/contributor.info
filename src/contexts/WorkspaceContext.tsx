@@ -143,7 +143,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
         timeoutRef.current = null;
       }
     };
-  }, [workspacesLoading]);
+  }, [workspacesLoading, hasTimedOut]);
 
   // Log workspace errors
   useEffect(() => {
