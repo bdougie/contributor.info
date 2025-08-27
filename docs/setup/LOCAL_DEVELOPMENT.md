@@ -145,8 +145,9 @@ npm run test:watch      # Watch mode
 npm run test:ui         # Vitest UI
 
 # Code Quality
-npm run lint            # ESLint check
-npm run typecheck       # TypeScript check
+npm run lint                 # ESLint check
+npm run typecheck:functions  # TypeScript check for functions
+npm run build               # Full build (includes TypeScript check)
 ```
 
 ### Project Structure
