@@ -50,21 +50,20 @@ interface TriageAnalysis {
 
 async function run(): Promise<void> {
   try {
-    // Debug environment variables
-    console.log('Environment check:');
-    console.log('  INPUT_GITHUB_TOKEN:', process.env.INPUT_GITHUB_TOKEN ? 'present' : 'missing');
-    console.log(
-      '  INPUT_CONTINUE_API_KEY:',
-      process.env.INPUT_CONTINUE_API_KEY ? 'present' : 'missing'
-    );
-
-    const token = core.getInput('github_token') || core.getInput('github-token');
-    const continueApiKey = core.getInput('continue_api_key') || core.getInput('continue-api-key');
-    const continueOrg = core.getInput('continue_org') || core.getInput('continue-org');
-    const continueConfig = core.getInput('continue_config') || core.getInput('continue-config');
-    const issueNumber = parseInt(core.getInput('issue_number') || core.getInput('issue-number'));
+    // Get inputs - in composite actions, inputs are passed as INPUT_ env vars with underscores
+    const token =
+      process.env.INPUT_GITHUB_TOKEN || core.getInput('github-token', { required: true });
+    const continueApiKey =
+      process.env.INPUT_CONTINUE_API_KEY || core.getInput('continue-api-key', { required: true });
+    const continueOrg =
+      process.env.INPUT_CONTINUE_ORG || core.getInput('continue-org', { required: true });
+    const continueConfig =
+      process.env.INPUT_CONTINUE_CONFIG || core.getInput('continue-config', { required: true });
+    const issueNumberStr =
+      process.env.INPUT_ISSUE_NUMBER || core.getInput('issue-number', { required: true });
+    const issueNumber = parseInt(issueNumberStr);
     // Handle dry-run input safely - getBooleanInput is strict about format
-    const dryRunInput = core.getInput('dry_run') || core.getInput('dry-run');
+    const dryRunInput = process.env.INPUT_DRY_RUN || core.getInput('dry-run') || 'false';
     const dryRun = dryRunInput === 'true' || dryRunInput === 'True' || dryRunInput === 'TRUE';
 
     // Mask sensitive values in logs
@@ -76,12 +75,6 @@ async function run(): Promise<void> {
     }
 
     if (!token || !continueApiKey || !continueOrg || !continueConfig || !issueNumber) {
-      console.error('Debug - Input values:');
-      console.error('  token:', token ? 'present' : 'missing');
-      console.error('  continueApiKey:', continueApiKey ? 'present' : 'missing');
-      console.error('  continueOrg:', continueOrg || 'missing');
-      console.error('  continueConfig:', continueConfig || 'missing');
-      console.error('  issueNumber:', issueNumber || 'missing');
       throw new Error('Missing required inputs');
     }
 
