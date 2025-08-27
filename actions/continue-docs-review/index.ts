@@ -23,8 +23,19 @@ async function loadRules(rulesPath: string): Promise<Rule[]> {
   const rules: Rule[] = [];
 
   try {
+    // Validate rules path
+    if (!rulesPath || typeof rulesPath !== 'string') {
+      throw new Error('Invalid rules path provided');
+    }
+
+    // Sanitize the path to prevent directory traversal
+    const sanitizedPath = path.resolve(rulesPath);
+    if (!sanitizedPath.includes(process.cwd())) {
+      throw new Error('Rules path must be within the project directory');
+    }
+
     // Find all .md files in the rules directory
-    const ruleFiles = await glob(`${rulesPath}/*.md`);
+    const ruleFiles = await glob(`${sanitizedPath}/*.md`);
 
     for (const file of ruleFiles) {
       const content = await fs.readFile(file, 'utf-8');
@@ -193,14 +204,16 @@ async function analyzeDocumentation(files: string[], rules: Rule[]): Promise<Doc
           }
         }
 
-        // Check for TODO comments
-        if (/TODO|FIXME|XXX/.test(content)) {
+        // Check for TODO comments (case-insensitive)
+        const todoPattern = /\b(TODO|FIXME|XXX|HACK)\b/i;
+        if (todoPattern.test(content)) {
           for (let i = 0; i < lines.length; i++) {
-            if (/TODO|FIXME|XXX/.test(lines[i])) {
+            if (todoPattern.test(lines[i])) {
+              const match = lines[i].match(todoPattern);
               issues.push({
                 file,
                 line: i + 1,
-                message: 'Documentation contains TODO/FIXME comments. Please complete or remove.',
+                message: `Documentation contains ${match?.[0] || 'TODO/FIXME'} comment. Please complete or remove.`,
                 severity: 'warning',
                 rule: 'documentation-completeness',
               });
@@ -230,13 +243,43 @@ async function analyzeDocumentation(files: string[], rules: Rule[]): Promise<Doc
 }
 
 async function postReviewComments(issues: DocumentationIssue[]): Promise<void> {
-  const token = process.env.GITHUB_TOKEN || '';
+  const token = process.env.GITHUB_TOKEN || process.env.INPUT_GITHUB_TOKEN || '';
+  if (!token) {
+    core.warning('No GitHub token available, skipping review posting');
+    return;
+  }
+
   const octokit = github.getOctokit(token);
   const context = github.context;
 
   if (!context.payload.pull_request) {
     core.info('Not in a pull request context, skipping comment posting');
     return;
+  }
+
+  // Check for recent review to avoid spam
+  try {
+    const { data: reviews } = await octokit.rest.pulls.listReviews({
+      ...context.repo,
+      pull_number: context.payload.pull_request.number,
+      per_page: 10,
+    });
+
+    // Check if we already posted a review in the last hour
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const recentReview = reviews.find(
+      (r) =>
+        r.user?.login === 'github-actions[bot]' &&
+        new Date(r.submitted_at || '') > oneHourAgo &&
+        r.body?.includes('📚 Documentation Review')
+    );
+
+    if (recentReview) {
+      core.info('Skipping review - already posted within the last hour');
+      return;
+    }
+  } catch (error) {
+    core.warning(`Failed to check existing reviews: ${error}`);
   }
 
   // Group issues by file
@@ -310,8 +353,18 @@ async function postReviewComments(issues: DocumentationIssue[]): Promise<void> {
 
 async function run(): Promise<void> {
   try {
-    // Get configuration
+    // Validate environment
+    if (!process.env.GITHUB_TOKEN && !process.env.INPUT_GITHUB_TOKEN) {
+      throw new Error('GitHub token is required but not provided');
+    }
+
+    // Get configuration with validation
     const rulesPath = process.env.INPUT_RULES_PATH || '.continue/rules';
+
+    // Validate rules path format
+    if (rulesPath.includes('..') || rulesPath.startsWith('/')) {
+      throw new Error('Invalid rules path: must be a relative path within the project');
+    }
 
     core.info('Starting documentation review...');
     core.info(`Rules path: ${rulesPath}`);

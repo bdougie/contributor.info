@@ -3,17 +3,8 @@ description: 'Review documentation changes using Continue Agent with copywriting
 author: 'Continue'
 
 inputs:
-  continue-api-key:
-    description: 'API key for Continue service'
-    required: true
   github-token:
     description: 'GitHub token for API access (use output from actions/create-github-app-token for App authentication)'
-    required: true
-  continue-org:
-    description: 'Continue organization/username from Continue Hub'
-    required: true
-  continue-config:
-    description: 'Continue assistant path (format: username/assistant-name)'
     required: true
   rules-path:
     description: 'Path to the rules directory'
@@ -27,16 +18,6 @@ runs:
       uses: actions/setup-node@v4
       with:
         node-version: '20'
-
-    - name: Install Continue CLI
-      shell: bash
-      run: |
-        echo "Installing Continue CLI..."
-        # Install locally in action directory
-        cd ${{ github.action_path }}
-        npm install @continuedev/cli@1.4.30
-        # Add to PATH
-        echo "${{ github.action_path }}/node_modules/.bin" >> $GITHUB_PATH
 
     - name: Install action dependencies
       shell: bash
@@ -52,14 +33,7 @@ runs:
       working-directory: ${{ github.action_path }}
       env:
         GITHUB_TOKEN: ${{ inputs.github-token }}
-        CONTINUE_API_KEY: ${{ inputs.continue-api-key }}
-        CONTINUE_ORG: ${{ inputs.continue-org }}
-        CONTINUE_CONFIG: ${{ inputs.continue-config }}
-        RULES_PATH: ${{ inputs.rules-path }}
         INPUT_GITHUB_TOKEN: ${{ inputs.github-token }}
-        INPUT_CONTINUE_API_KEY: ${{ inputs.continue-api-key }}
-        INPUT_CONTINUE_ORG: ${{ inputs.continue-org }}
-        INPUT_CONTINUE_CONFIG: ${{ inputs.continue-config }}
         INPUT_RULES_PATH: ${{ inputs.rules-path }}
       run: |
         echo "Running Documentation Review..."

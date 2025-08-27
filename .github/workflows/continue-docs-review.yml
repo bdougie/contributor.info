@@ -25,12 +25,15 @@ permissions:
 jobs:
   docs-review:
     runs-on: ubuntu-latest
-    # Run on PRs with doc changes, or when triggered by @continue-docs in comments
+    # Run on PRs with doc changes, or when triggered by @continue-docs in comments from maintainers
     if: |
       github.event_name == 'pull_request' || 
       (github.event_name == 'issue_comment' && 
        github.event.issue.pull_request && 
-       contains(github.event.comment.body, '@continue-docs')) ||
+       contains(github.event.comment.body, '@continue-docs') &&
+       (github.event.comment.author_association == 'OWNER' || 
+        github.event.comment.author_association == 'MEMBER' || 
+        github.event.comment.author_association == 'COLLABORATOR')) ||
       github.event_name == 'workflow_dispatch'
 
     permissions:
@@ -57,9 +60,6 @@ jobs:
         uses: ./actions/continue-docs-review
         with:
           github-token: ${{ steps.app-token.outputs.token }}
-          continue-api-key: ${{ secrets.CONTINUE_API_KEY }}
-          continue-org: 'continuedev' # Continue's organization
-          continue-config: 'continuedev/docs-reviewer' # Continue's documentation review agent
           rules-path: '.continue/rules'
 
       - name: Documentation Coverage Check
