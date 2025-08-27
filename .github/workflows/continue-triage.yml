@@ -48,5 +48,5 @@ jobs:
           github-token: ${{ steps.app-token.outputs.token }}
           continue-api-key: ${{ secrets.CONTINUE_API_KEY }}
           continue-org: 'continuedev' # Continue's organization
-          continue-config: 'continuedev/triage-bot' # Continue's triage assistant
+          continue-config: 'continuedev/review-bot' # Continue's review assistant (used for triage)
           issue-number: ${{ github.event.inputs.issue_number || github.event.issue.number }}

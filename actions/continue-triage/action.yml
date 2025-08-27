@@ -15,6 +15,7 @@ inputs:
   continue-config:
     description: 'Continue assistant path (format: username/assistant-name)'
     required: true
+    default: 'continuedev/review-bot'
   issue-number:
     description: 'Issue number to triage'
     required: true
