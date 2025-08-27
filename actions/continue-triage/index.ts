@@ -453,34 +453,73 @@ function performFallbackAnalysis(issue: IssueData, availableLabels: Label[]): Tr
 }
 
 function generateSCQAComment(analysis: TriageAnalysis, dryRun = false): string {
-  const labelsList = analysis.suggestedLabels
-    .map((label) => {
-      const reason = analysis.reasoning[label] || 'Based on issue content analysis';
-      return `- \`${label}\`: ${reason}`;
-    })
-    .join('\n');
+  // Extract key insights from the SCQA analysis to create a helpful comment
+  const labelsList = analysis.suggestedLabels.map((label) => `\`${label}\``).join(', ');
 
-  return `## 🤖 Triage Analysis${dryRun ? ' (DRY RUN)' : ''}
+  // Create a conversational, helpful response based on the analysis
+  let comment = `Hey there! I've analyzed this issue and here's what I found:\n\n`;
 
-### 📋 Situation
-${analysis.situation}
+  // Add the main insight from the answer
+  comment += `${analysis.answer}\n\n`;
 
-### ⚠️ Complication
-${analysis.complication}
+  // If there are specific suggestions or action items in the answer, highlight them
+  if (
+    analysis.answer.includes('specific') ||
+    analysis.answer.includes('suggest') ||
+    analysis.answer.includes('should')
+  ) {
+    comment += `### 💡 Suggestions\n\n`;
+    comment += `Based on the issue description, here are some specific areas to investigate:\n\n`;
 
-### ❓ Question
-${analysis.question}
+    // Extract actionable items from the analysis
+    if (analysis.suggestedLabels.includes('bug')) {
+      comment += `- **Bug Fix**: Check the affected components for missing dependencies in useEffect/useCallback hooks\n`;
+      comment += `- Look at files with React Hook warnings in the console\n`;
+    }
+    if (analysis.suggestedLabels.includes('frontend')) {
+      comment += `- **Frontend**: Review React components for proper hook usage patterns\n`;
+      comment += `- Consider using the ESLint rule \`react-hooks/exhaustive-deps\` to catch these automatically\n`;
+    }
+    if (analysis.suggestedLabels.includes('testing')) {
+      comment += `- **Testing**: Update test files to handle async operations properly\n`;
+      comment += `- Check test utilities for missing act() wrappers\n`;
+    }
+    if (analysis.suggestedLabels.includes('enhancement')) {
+      comment += `- **Enhancement**: Consider implementing this as a new feature module\n`;
+      comment += `- Review similar existing features for implementation patterns\n`;
+    }
+    if (analysis.suggestedLabels.includes('documentation')) {
+      comment += `- **Documentation**: Update relevant docs in the \`/docs\` directory\n`;
+      comment += `- Consider adding inline code comments for complex logic\n`;
+    }
+    comment += `\n`;
+  }
 
-### 💡 Answer
-${analysis.answer}
+  // Add labels section if any were applied
+  if (labelsList) {
+    comment += `### 🏷️ Labels ${dryRun ? 'Suggested' : 'Applied'}\n\n`;
+    comment += `I've ${dryRun ? 'suggested' : 'applied'} these labels: ${labelsList}\n\n`;
 
-### 🏷️ ${dryRun ? 'Suggested' : 'Applied'} Labels
-${labelsList || '- No specific labels suggested at this time'}
+    // Add reasoning for each label
+    if (analysis.reasoning && Object.keys(analysis.reasoning).length > 0) {
+      comment += `**Why these labels?**\n`;
+      for (const [label, reason] of Object.entries(analysis.reasoning)) {
+        comment += `- \`${label}\`: ${reason}\n`;
+      }
+      comment += `\n`;
+    }
+  }
 
----
-*This analysis was generated based on the project's [coding rules](.continue/rules) and best practices.*${
-    dryRun ? '\n*Note: This is a dry run - no labels were actually applied.*' : ''
-  }`;
+  // Add a helpful closing
+  comment += `---\n`;
+  comment += `*I'm a bot powered by [Continue AI](https://github.com/continuedev/continue) • `;
+  comment += `View [triage rules](https://github.com/bdougie/contributor.info/tree/main/.continue/rules)*`;
+
+  if (dryRun) {
+    comment += `\n*Note: This is a dry run - no labels were actually applied.*`;
+  }
+
+  return comment;
 }
 
 // Run the action
