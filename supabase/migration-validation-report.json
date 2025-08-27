@@ -1,0 +1,1266 @@
+{
+  "timestamp": "2025-08-27T02:45:12.377Z",
+  "summary": {
+    "total": 144,
+    "passed": 6,
+    "errors": 100,
+    "warnings": 38,
+    "criticalFiles": 52
+  },
+  "issues": [
+    {
+      "file": "20240115000000_add_spam_detection_fields.sql",
+      "rule": "transactionSafety",
+      "message": "DDL operations without transaction wrapper",
+      "severity": "warning",
+      "fix": "Wrap migration in BEGIN; ... COMMIT; for rollback capability"
+    },
+    {
+      "file": "20241225000000_add_share_analytics.sql",
+      "rule": "serviceRole",
+      "message": "References service_role which may not exist",
+      "matches": ["service_role"],
+      "count": 4,
+      "severity": "error",
+      "fix": "Create role if missing: IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN CREATE ROLE service_role; END IF;",
+      "line": 132
+    },
+    {
+      "file": "20241225000000_add_share_analytics.sql",
+      "rule": "transactionSafety",
+      "message": "DDL operations without transaction wrapper",
+      "severity": "warning",
+      "fix": "Wrap migration in BEGIN; ... COMMIT; for rollback capability"
+    },
+    {
+      "file": "20250103000000_add_ai_summaries_support.sql",
+      "rule": "transactionSafety",
+      "message": "DDL operations without transaction wrapper",
+      "severity": "warning",
+      "fix": "Wrap migration in BEGIN; ... COMMIT; for rollback capability"
+    },
+    {
+      "file": "20250113000000_add_repository_size_classification.sql",
+      "rule": "transactionSafety",
+      "message": "DDL operations without transaction wrapper",
+      "severity": "warning",
+      "fix": "Wrap migration in BEGIN; ... COMMIT; for rollback capability"
+    },
+    {
+      "file": "20250114_enable_rls_missing_tables.sql",
+      "rule": "serviceRole",
+      "message": "References service_role which may not exist",
+      "matches": ["service_role"],
+      "count": 3,
+      "severity": "error",
+      "fix": "Create role if missing: IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN CREATE ROLE service_role; END IF;",
+      "line": 17
+    },
+    {
+      "file": "20250114_github_app_schema.sql",
+      "rule": "authDependency",
+      "message": "Uses auth functions that may not be available locally",
+      "matches": ["auth.role()"],
+      "count": 4,
+      "severity": "error",
+      "fix": "Wrap in conditional check: IF EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'uid' AND pronamespace = 'auth'::regnamespace)",
+      "line": 137
+    },
+    {
+      "file": "20250114_github_app_schema.sql",
+      "rule": "serviceRole",
+      "message": "References service_role which may not exist",
+      "matches": ["service_role"],
+      "count": 1,
+      "severity": "error",
+      "fix": "Create role if missing: IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN CREATE ROLE service_role; END IF;",
+      "line": 147
+    },
+    {
+      "file": "20250114_github_app_schema.sql",
+      "rule": "transactionSafety",
+      "message": "DDL operations without transaction wrapper",
+      "severity": "warning",
+      "fix": "Wrap migration in BEGIN; ... COMMIT; for rollback capability"
+    },
+    {
+      "file": "20250120000000_progressive_backfill_tables.sql",
+      "rule": "serviceRole",
+      "message": "References service_role which may not exist",
+      "matches": ["service_role"],
+      "count": 2,
+      "severity": "error",
+      "fix": "Create role if missing: IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN CREATE ROLE service_role; END IF;",
+      "line": 91
+    },
+    {
+      "file": "20250120000000_progressive_backfill_tables.sql",
+      "rule": "transactionSafety",
+      "message": "DDL operations without transaction wrapper",
+      "severity": "warning",
+      "fix": "Wrap migration in BEGIN; ... COMMIT; for rollback capability"
+    },
+    {
+      "file": "20250120_github_events_classification.sql",
+      "rule": "transactionSafety",
+      "message": "DDL operations without transaction wrapper",
+      "severity": "warning",
+      "fix": "Wrap migration in BEGIN; ... COMMIT; for rollback capability"
+    },
+    {
+      "file": "20250120_self_selection_analytics.sql",
+      "rule": "pgCron",
+      "message": "Requires pg_cron extension (needs superuser)",
+      "matches": ["cron.schedule"],
+      "count": 1,
+      "severity": "error",
+      "fix": "Make optional: IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron')",
+      "line": 157
+    },
+    {
+      "file": "20250120_self_selection_analytics.sql",
+      "rule": "transactionSafety",
+      "message": "DDL operations without transaction wrapper",
+      "severity": "warning",
+      "fix": "Wrap migration in BEGIN; ... COMMIT; for rollback capability"
+    },
+    {
+      "file": "20250120_setup_pg_cron.sql",
+      "rule": "serviceRole",
+      "message": "References service_role which may not exist",
+      "matches": ["service_role"],
+      "count": 4,
+      "severity": "error",
+      "fix": "Create role if missing: IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN CREATE ROLE service_role; END IF;",
+      "line": 16
+    },
+    {
+      "file": "20250120_setup_pg_cron.sql",
+      "rule": "pgCron",
+      "message": "Requires pg_cron extension (needs superuser)",
+      "matches": ["pg_cron", "cron.schedule"],
+      "count": 9,
+      "severity": "error",
+      "fix": "Make optional: IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron')",
+      "line": 1
+    },
+    {
+      "file": "20250120_setup_pg_cron.sql",
+      "rule": "transactionSafety",
+      "message": "DDL operations without transaction wrapper",
+      "severity": "warning",
+      "fix": "Wrap migration in BEGIN; ... COMMIT; for rollback capability"
+    },
+    {
+      "file": "20250121_fix_tracked_repositories.sql",
+      "rule": "serviceRole",
+      "message": "References service_role which may not exist",
+      "matches": ["service_role"],
+      "count": 2,
+      "severity": "error",
+      "fix": "Create role if missing: IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN CREATE ROLE service_role; END IF;",
+      "line": 79
+    },
+    {
+      "file": "20250121_fix_tracked_repositories.sql",
+      "rule": "transactionSafety",
+      "message": "DDL operations without transaction wrapper",
+      "severity": "warning",
+      "fix": "Wrap migration in BEGIN; ... COMMIT; for rollback capability"
+    },
+    {
+      "file": "20250121_fix_tracked_repositories_fixed.sql",
+      "rule": "serviceRole",
+      "message": "References service_role which may not exist",
+      "matches": ["service_role"],
+      "count": 3,
+      "severity": "error",
+      "fix": "Create role if missing: IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN CREATE ROLE service_role; END IF;",
+      "line": 81
+    },
+    {
+      "file": "20250121_fix_tracked_repositories_fixed.sql",
+      "rule": "transactionSafety",
+      "message": "DDL operations without transaction wrapper",
+      "severity": "warning",
+      "fix": "Wrap migration in BEGIN; ... COMMIT; for rollback capability"
+    },
+    {
+      "file": "20250122000000_add_issue_pr_embeddings.sql",
+      "rule": "transactionSafety",
+      "message": "DDL operations without transaction wrapper",
+      "severity": "warning",
+      "fix": "Wrap migration in BEGIN; ... COMMIT; for rollback capability"
+    },
+    {
+      "file": "20250124_workspace_contributors.sql",
+      "rule": "authDependency",
+      "message": "Uses auth functions that may not be available locally",
+      "matches": ["auth.uid()"],
+      "count": 6,
+      "severity": "error",
+      "fix": "Wrap in conditional check: IF EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'uid' AND pronamespace = 'auth'::regnamespace)",
+      "line": 31
+    },
+    {
+      "file": "20250124_workspace_contributors.sql",
+      "rule": "authUsersTable",
+      "message": "References auth.users table",
+      "matches": ["auth.users"],
+      "count": 1,
+      "severity": "error",
+      "fix": "Check if auth schema exists: IF EXISTS (SELECT 1 FROM information_schema.schemata WHERE schema_name = 'auth')",
+      "line": 6
+    },
+    {
+      "file": "20250124_workspace_contributors.sql",
+      "rule": "transactionSafety",
+      "message": "DDL operations without transaction wrapper",
+      "severity": "warning",
+      "fix": "Wrap migration in BEGIN; ... COMMIT; for rollback capability"
+    },
+    {
+      "file": "20250125000000_workspace_data_fetching.sql",
+      "rule": "authUsersTable",
+      "message": "References auth.users table",
+      "matches": ["auth.users"],
+      "count": 1,
+      "severity": "error",
+      "fix": "Check if auth schema exists: IF EXISTS (SELECT 1 FROM information_schema.schemata WHERE schema_name = 'auth')",
+      "line": 29
+    },
+    {
+      "file": "20250125000000_workspace_data_fetching.sql",
+      "rule": "serviceRole",
+      "message": "References service_role which may not exist",
+      "matches": ["service_role"],
+      "count": 4,
+      "severity": "error",
+      "fix": "Create role if missing: IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN CREATE ROLE service_role; END IF;",
+      "line": 391
+    },
+    {
+      "file": "20250125000000_workspace_data_fetching.sql",
+      "rule": "transactionSafety",
+      "message": "DDL operations without transaction wrapper",
+      "severity": "warning",
+      "fix": "Wrap migration in BEGIN; ... COMMIT; for rollback capability"
+    },
+    {
+      "file": "20250125000001_add_workspace_tiers.sql",
+      "rule": "transactionSafety",
+      "message": "DDL operations without transaction wrapper",
+      "severity": "warning",
+      "fix": "Wrap migration in BEGIN; ... COMMIT; for rollback capability"
+    },
+    {
+      "file": "20250126_fix_all_rls_issues.sql",
+      "rule": "serviceRole",
+      "message": "References service_role which may not exist",
+      "matches": ["service_role"],
+      "count": 9,
+      "severity": "error",
+      "fix": "Create role if missing: IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN CREATE ROLE service_role; END IF;",
+      "line": 324
+    },
+    {
+      "file": "20250131_add_maintainer_admin_overrides.sql",
+      "rule": "authDependency",
+      "message": "Uses auth functions that may not be available locally",
+      "matches": ["auth.uid()"],
+      "count": 2,
+      "severity": "error",
+      "fix": "Wrap in conditional check: IF EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'uid' AND pronamespace = 'auth'::regnamespace)",
+      "line": 37
+    },
+    {
+      "file": "20250131_add_maintainer_admin_overrides.sql",
+      "rule": "transactionSafety",
+      "message": "DDL operations without transaction wrapper",
+      "severity": "warning",
+      "fix": "Wrap migration in BEGIN; ... COMMIT; for rollback capability"
+    },
+    {
+      "file": "20250616000002_enable_performance_monitoring.sql",
+      "rule": "authDependency",
+      "message": "Uses auth functions that may not be available locally",
+      "matches": ["auth.role()"],
+      "count": 2,
+      "severity": "error",
+      "fix": "Wrap in conditional check: IF EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'uid' AND pronamespace = 'auth'::regnamespace)",
+      "line": 236
+    },
+    {
+      "file": "20250616000002_enable_performance_monitoring.sql",
+      "rule": "serviceRole",
+      "message": "References service_role which may not exist",
+      "matches": ["service_role"],
+      "count": 2,
+      "severity": "error",
+      "fix": "Create role if missing: IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN CREATE ROLE service_role; END IF;",
+      "line": 236
+    },
+    {
+      "file": "20250616000002_enable_performance_monitoring.sql",
+      "rule": "transactionSafety",
+      "message": "DDL operations without transaction wrapper",
+      "severity": "warning",
+      "fix": "Wrap migration in BEGIN; ... COMMIT; for rollback capability"
+    },
+    {
+      "file": "20250627000000_repository_confidence_cache.sql",
+      "rule": "authDependency",
+      "message": "Uses auth functions that may not be available locally",
+      "matches": ["auth.role()"],
+      "count": 2,
+      "severity": "error",
+      "fix": "Wrap in conditional check: IF EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'uid' AND pronamespace = 'auth'::regnamespace)",
+      "line": 54
+    },
+    {
+      "file": "20250627000000_repository_confidence_cache.sql",
+      "rule": "serviceRole",
+      "message": "References service_role which may not exist",
+      "matches": ["service_role"],
+      "count": 1,
+      "severity": "error",
+      "fix": "Create role if missing: IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN CREATE ROLE service_role; END IF;",
+      "line": 54
+    },
+    {
+      "file": "20250627000000_repository_confidence_cache.sql",
+      "rule": "transactionSafety",
+      "message": "DDL operations without transaction wrapper",
+      "severity": "warning",
+      "fix": "Wrap migration in BEGIN; ... COMMIT; for rollback capability"
+    },
+    {
+      "file": "20250629000000_add_admin_system.sql",
+      "rule": "authDependency",
+      "message": "Uses auth functions that may not be available locally",
+      "matches": ["auth.uid()"],
+      "count": 5,
+      "severity": "error",
+      "fix": "Wrap in conditional check: IF EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'uid' AND pronamespace = 'auth'::regnamespace)",
+      "line": 167
+    },
+    {
+      "file": "20250629000000_add_admin_system.sql",
+      "rule": "authUsersTable",
+      "message": "References auth.users table",
+      "matches": ["auth.users"],
+      "count": 1,
+      "severity": "error",
+      "fix": "Check if auth schema exists: IF EXISTS (SELECT 1 FROM information_schema.schemata WHERE schema_name = 'auth')",
+      "line": 7
+    },
+    {
+      "file": "20250629000000_add_admin_system.sql",
+      "rule": "transactionSafety",
+      "message": "DDL operations without transaction wrapper",
+      "severity": "warning",
+      "fix": "Wrap migration in BEGIN; ... COMMIT; for rollback capability"
+    },
+    {
+      "file": "20250629000001_add_pr_template_support.sql",
+      "rule": "transactionSafety",
+      "message": "DDL operations without transaction wrapper",
+      "severity": "warning",
+      "fix": "Wrap migration in BEGIN; ... COMMIT; for rollback capability"
+    },
+    {
+      "file": "20250710000000_add_progressive_capture_jobs.sql",
+      "rule": "serviceRole",
+      "message": "References service_role which may not exist",
+      "matches": ["service_role"],
+      "count": 4,
+      "severity": "error",
+      "fix": "Create role if missing: IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN CREATE ROLE service_role; END IF;",
+      "line": 61
+    },
+    {
+      "file": "20250710000000_add_progressive_capture_jobs.sql",
+      "rule": "transactionSafety",
+      "message": "DDL operations without transaction wrapper",
+      "severity": "warning",
+      "fix": "Wrap migration in BEGIN; ... COMMIT; for rollback capability"
+    },
+    {
+      "file": "20250710010000_add_rollout_configuration.sql",
+      "rule": "transactionSafety",
+      "message": "DDL operations without transaction wrapper",
+      "severity": "warning",
+      "fix": "Wrap migration in BEGIN; ... COMMIT; for rollback capability"
+    },
+    {
+      "file": "20250712000000_add_email_logs.sql",
+      "rule": "authDependency",
+      "message": "Uses auth functions that may not be available locally",
+      "matches": ["auth.uid()", "auth.jwt()"],
+      "count": 2,
+      "severity": "error",
+      "fix": "Wrap in conditional check: IF EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'uid' AND pronamespace = 'auth'::regnamespace)",
+      "line": 27
+    },
+    {
+      "file": "20250712000000_add_email_logs.sql",
+      "rule": "authUsersTable",
+      "message": "References auth.users table",
+      "matches": ["auth.users"],
+      "count": 1,
+      "severity": "error",
+      "fix": "Check if auth schema exists: IF EXISTS (SELECT 1 FROM information_schema.schemata WHERE schema_name = 'auth')",
+      "line": 4
+    },
+    {
+      "file": "20250712000000_add_email_logs.sql",
+      "rule": "serviceRole",
+      "message": "References service_role which may not exist",
+      "matches": ["service_role"],
+      "count": 2,
+      "severity": "error",
+      "fix": "Create role if missing: IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN CREATE ROLE service_role; END IF;",
+      "line": 31
+    },
+    {
+      "file": "20250712000000_add_email_logs.sql",
+      "rule": "transactionSafety",
+      "message": "DDL operations without transaction wrapper",
+      "severity": "warning",
+      "fix": "Wrap migration in BEGIN; ... COMMIT; for rollback capability"
+    },
+    {
+      "file": "20250712000001_add_auth_user_trigger.sql",
+      "rule": "authUsersTable",
+      "message": "References auth.users table",
+      "matches": ["auth.users"],
+      "count": 5,
+      "severity": "error",
+      "fix": "Check if auth schema exists: IF EXISTS (SELECT 1 FROM information_schema.schemata WHERE schema_name = 'auth')",
+      "line": 73
+    },
+    {
+      "file": "20250712000001_add_auth_user_trigger.sql",
+      "rule": "transactionSafety",
+      "message": "DDL operations without transaction wrapper",
+      "severity": "warning",
+      "fix": "Wrap migration in BEGIN; ... COMMIT; for rollback capability"
+    },
+    {
+      "file": "20250712000002_fix_auth_trigger_with_error_handling.sql",
+      "rule": "authUsersTable",
+      "message": "References auth.users table",
+      "matches": ["auth.users"],
+      "count": 5,
+      "severity": "error",
+      "fix": "Check if auth schema exists: IF EXISTS (SELECT 1 FROM information_schema.schemata WHERE schema_name = 'auth')",
+      "line": 5
+    },
+    {
+      "file": "20250712000002_fix_auth_trigger_with_error_handling.sql",
+      "rule": "transactionSafety",
+      "message": "DDL operations without transaction wrapper",
+      "severity": "warning",
+      "fix": "Wrap migration in BEGIN; ... COMMIT; for rollback capability"
+    },
+    {
+      "file": "20250712000003_simplify_auth_fix.sql",
+      "rule": "authUsersTable",
+      "message": "References auth.users table",
+      "matches": ["auth.users"],
+      "count": 3,
+      "severity": "error",
+      "fix": "Check if auth schema exists: IF EXISTS (SELECT 1 FROM information_schema.schemata WHERE schema_name = 'auth')",
+      "line": 4
+    },
+    {
+      "file": "20250712000003_simplify_auth_fix.sql",
+      "rule": "transactionSafety",
+      "message": "DDL operations without transaction wrapper",
+      "severity": "warning",
+      "fix": "Wrap migration in BEGIN; ... COMMIT; for rollback capability"
+    },
+    {
+      "file": "20250712000004_remove_auth_trigger.sql",
+      "rule": "authUsersTable",
+      "message": "References auth.users table",
+      "matches": ["auth.users"],
+      "count": 3,
+      "severity": "error",
+      "fix": "Check if auth schema exists: IF EXISTS (SELECT 1 FROM information_schema.schemata WHERE schema_name = 'auth')",
+      "line": 4
+    },
+    {
+      "file": "20250712000005_fix_email_preferences_trigger.sql",
+      "rule": "authUsersTable",
+      "message": "References auth.users table",
+      "matches": ["auth.users"],
+      "count": 2,
+      "severity": "error",
+      "fix": "Check if auth schema exists: IF EXISTS (SELECT 1 FROM information_schema.schemata WHERE schema_name = 'auth')",
+      "line": 46
+    },
+    {
+      "file": "20250712000005_fix_email_preferences_trigger.sql",
+      "rule": "transactionSafety",
+      "message": "DDL operations without transaction wrapper",
+      "severity": "warning",
+      "fix": "Wrap migration in BEGIN; ... COMMIT; for rollback capability"
+    },
+    {
+      "file": "20250712000006_disable_email_trigger.sql",
+      "rule": "authUsersTable",
+      "message": "References auth.users table",
+      "matches": ["auth.users"],
+      "count": 1,
+      "severity": "error",
+      "fix": "Check if auth schema exists: IF EXISTS (SELECT 1 FROM information_schema.schemata WHERE schema_name = 'auth')",
+      "line": 4
+    },
+    {
+      "file": "20250802000000_enhance_vector_similarity_search.sql",
+      "rule": "transactionSafety",
+      "message": "DDL operations without transaction wrapper",
+      "severity": "warning",
+      "fix": "Wrap migration in BEGIN; ... COMMIT; for rollback capability"
+    },
+    {
+      "file": "20250802000001_update_to_minilm_embeddings.sql",
+      "rule": "transactionSafety",
+      "message": "DDL operations without transaction wrapper",
+      "severity": "warning",
+      "fix": "Wrap migration in BEGIN; ... COMMIT; for rollback capability"
+    },
+    {
+      "file": "20250802000002_add_file_contributors_and_embeddings.sql",
+      "rule": "authDependency",
+      "message": "Uses auth functions that may not be available locally",
+      "matches": ["auth.role()"],
+      "count": 5,
+      "severity": "error",
+      "fix": "Wrap in conditional check: IF EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'uid' AND pronamespace = 'auth'::regnamespace)",
+      "line": 181
+    },
+    {
+      "file": "20250802000002_add_file_contributors_and_embeddings.sql",
+      "rule": "serviceRole",
+      "message": "References service_role which may not exist",
+      "matches": ["service_role"],
+      "count": 3,
+      "severity": "error",
+      "fix": "Create role if missing: IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN CREATE ROLE service_role; END IF;",
+      "line": 190
+    },
+    {
+      "file": "20250802000002_add_file_contributors_and_embeddings.sql",
+      "rule": "transactionSafety",
+      "message": "DDL operations without transaction wrapper",
+      "severity": "warning",
+      "fix": "Wrap migration in BEGIN; ... COMMIT; for rollback capability"
+    },
+    {
+      "file": "20250802000003_add_data_purge_cron.sql",
+      "rule": "authDependency",
+      "message": "Uses auth functions that may not be available locally",
+      "matches": ["auth.role()"],
+      "count": 2,
+      "severity": "error",
+      "fix": "Wrap in conditional check: IF EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'uid' AND pronamespace = 'auth'::regnamespace)",
+      "line": 99
+    },
+    {
+      "file": "20250802000003_add_data_purge_cron.sql",
+      "rule": "serviceRole",
+      "message": "References service_role which may not exist",
+      "matches": ["service_role"],
+      "count": 1,
+      "severity": "error",
+      "fix": "Create role if missing: IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN CREATE ROLE service_role; END IF;",
+      "line": 103
+    },
+    {
+      "file": "20250802000003_add_data_purge_cron.sql",
+      "rule": "pgCron",
+      "message": "Requires pg_cron extension (needs superuser)",
+      "matches": ["pg_cron", "cron.schedule"],
+      "count": 5,
+      "severity": "error",
+      "fix": "Make optional: IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron')",
+      "line": 2
+    },
+    {
+      "file": "20250802000003_add_data_purge_cron.sql",
+      "rule": "transactionSafety",
+      "message": "DDL operations without transaction wrapper",
+      "severity": "warning",
+      "fix": "Wrap migration in BEGIN; ... COMMIT; for rollback capability"
+    },
+    {
+      "file": "20250804000000_fix_reviews_author_id.sql",
+      "rule": "transactionSafety",
+      "message": "DDL operations without transaction wrapper",
+      "severity": "warning",
+      "fix": "Wrap migration in BEGIN; ... COMMIT; for rollback capability"
+    },
+    {
+      "file": "20250804080754_add_pull_request_count_column.sql",
+      "rule": "transactionSafety",
+      "message": "DDL operations without transaction wrapper",
+      "severity": "warning",
+      "fix": "Wrap migration in BEGIN; ... COMMIT; for rollback capability"
+    },
+    {
+      "file": "20250805_enable_rls_comment_commands.sql",
+      "rule": "authDependency",
+      "message": "Uses auth functions that may not be available locally",
+      "matches": ["auth.role()", "auth.uid()"],
+      "count": 13,
+      "severity": "error",
+      "fix": "Wrap in conditional check: IF EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'uid' AND pronamespace = 'auth'::regnamespace)",
+      "line": 12
+    },
+    {
+      "file": "20250805_enable_rls_comment_commands.sql",
+      "rule": "serviceRole",
+      "message": "References service_role which may not exist",
+      "matches": ["service_role"],
+      "count": 11,
+      "severity": "error",
+      "fix": "Create role if missing: IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN CREATE ROLE service_role; END IF;",
+      "line": 12
+    },
+    {
+      "file": "20250805_fix_function_search_paths.sql",
+      "rule": "serviceRole",
+      "message": "References service_role which may not exist",
+      "matches": ["service_role"],
+      "count": 1,
+      "severity": "error",
+      "fix": "Create role if missing: IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN CREATE ROLE service_role; END IF;",
+      "line": 39
+    },
+    {
+      "file": "20250806_remove_security_definer_from_views.sql",
+      "rule": "serviceRole",
+      "message": "References service_role which may not exist",
+      "matches": ["service_role"],
+      "count": 9,
+      "severity": "error",
+      "fix": "Create role if missing: IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN CREATE ROLE service_role; END IF;",
+      "line": 244
+    },
+    {
+      "file": "20250810_add_metric_history_tracking.sql",
+      "rule": "transactionSafety",
+      "message": "DDL operations without transaction wrapper",
+      "severity": "warning",
+      "fix": "Wrap migration in BEGIN; ... COMMIT; for rollback capability"
+    },
+    {
+      "file": "20250812_add_repository_id_to_comments.sql",
+      "rule": "transactionSafety",
+      "message": "DDL operations without transaction wrapper",
+      "severity": "warning",
+      "fix": "Wrap migration in BEGIN; ... COMMIT; for rollback capability"
+    },
+    {
+      "file": "20250821000000_add_avatar_caching.sql",
+      "rule": "authDependency",
+      "message": "Uses auth functions that may not be available locally",
+      "matches": ["auth.jwt()"],
+      "count": 2,
+      "severity": "error",
+      "fix": "Wrap in conditional check: IF EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'uid' AND pronamespace = 'auth'::regnamespace)",
+      "line": 90
+    },
+    {
+      "file": "20250821000000_add_avatar_caching.sql",
+      "rule": "serviceRole",
+      "message": "References service_role which may not exist",
+      "matches": ["service_role"],
+      "count": 2,
+      "severity": "error",
+      "fix": "Create role if missing: IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN CREATE ROLE service_role; END IF;",
+      "line": 90
+    },
+    {
+      "file": "20250821000000_add_avatar_caching.sql",
+      "rule": "transactionSafety",
+      "message": "DDL operations without transaction wrapper",
+      "severity": "warning",
+      "fix": "Wrap migration in BEGIN; ... COMMIT; for rollback capability"
+    },
+    {
+      "file": "20250821001000_add_sync_monitoring.sql",
+      "rule": "authDependency",
+      "message": "Uses auth functions that may not be available locally",
+      "matches": ["auth.role()"],
+      "count": 6,
+      "severity": "error",
+      "fix": "Wrap in conditional check: IF EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'uid' AND pronamespace = 'auth'::regnamespace)",
+      "line": 183
+    },
+    {
+      "file": "20250821001000_add_sync_monitoring.sql",
+      "rule": "serviceRole",
+      "message": "References service_role which may not exist",
+      "matches": ["service_role"],
+      "count": 9,
+      "severity": "error",
+      "fix": "Create role if missing: IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN CREATE ROLE service_role; END IF;",
+      "line": 183
+    },
+    {
+      "file": "20250821001000_add_sync_monitoring.sql",
+      "rule": "transactionSafety",
+      "message": "DDL operations without transaction wrapper",
+      "severity": "warning",
+      "fix": "Wrap migration in BEGIN; ... COMMIT; for rollback capability"
+    },
+    {
+      "file": "20250823_add_rate_limits_table.sql",
+      "rule": "authDependency",
+      "message": "Uses auth functions that may not be available locally",
+      "matches": ["auth.uid()"],
+      "count": 1,
+      "severity": "error",
+      "fix": "Wrap in conditional check: IF EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'uid' AND pronamespace = 'auth'::regnamespace)",
+      "line": 61
+    },
+    {
+      "file": "20250823_add_rate_limits_table.sql",
+      "rule": "serviceRole",
+      "message": "References service_role which may not exist",
+      "matches": ["service_role"],
+      "count": 2,
+      "severity": "error",
+      "fix": "Create role if missing: IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN CREATE ROLE service_role; END IF;",
+      "line": 44
+    },
+    {
+      "file": "20250823_add_rate_limits_table.sql",
+      "rule": "pgCron",
+      "message": "Requires pg_cron extension (needs superuser)",
+      "matches": ["pg_cron", "cron.schedule"],
+      "count": 4,
+      "severity": "error",
+      "fix": "Make optional: IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron')",
+      "line": 38
+    },
+    {
+      "file": "20250823_add_rate_limits_table.sql",
+      "rule": "transactionSafety",
+      "message": "DDL operations without transaction wrapper",
+      "severity": "warning",
+      "fix": "Wrap migration in BEGIN; ... COMMIT; for rollback capability"
+    },
+    {
+      "file": "20250823_atomic_repository_count.sql",
+      "rule": "serviceRole",
+      "message": "References service_role which may not exist",
+      "matches": ["service_role"],
+      "count": 3,
+      "severity": "error",
+      "fix": "Create role if missing: IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN CREATE ROLE service_role; END IF;",
+      "line": 58
+    },
+    {
+      "file": "20250823_atomic_repository_count.sql",
+      "rule": "transactionSafety",
+      "message": "DDL operations without transaction wrapper",
+      "severity": "warning",
+      "fix": "Wrap migration in BEGIN; ... COMMIT; for rollback capability"
+    },
+    {
+      "file": "20250823_workspace_rls_policies.sql",
+      "rule": "authDependency",
+      "message": "Uses auth functions that may not be available locally",
+      "matches": ["auth.uid()", "auth.role()", "auth.jwt()"],
+      "count": 45,
+      "severity": "error",
+      "fix": "Wrap in conditional check: IF EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'uid' AND pronamespace = 'auth'::regnamespace)",
+      "line": 29
+    },
+    {
+      "file": "20250823_workspace_rls_policies.sql",
+      "rule": "serviceRole",
+      "message": "References service_role which may not exist",
+      "matches": ["service_role"],
+      "count": 1,
+      "severity": "error",
+      "fix": "Create role if missing: IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN CREATE ROLE service_role; END IF;",
+      "line": 318
+    },
+    {
+      "file": "20250823_workspace_schema.sql",
+      "rule": "authUsersTable",
+      "message": "References auth.users table",
+      "matches": ["auth.users"],
+      "count": 5,
+      "severity": "error",
+      "fix": "Check if auth schema exists: IF EXISTS (SELECT 1 FROM information_schema.schemata WHERE schema_name = 'auth')",
+      "line": 15
+    },
+    {
+      "file": "20250823_workspace_schema.sql",
+      "rule": "transactionSafety",
+      "message": "DDL operations without transaction wrapper",
+      "severity": "warning",
+      "fix": "Wrap migration in BEGIN; ... COMMIT; for rollback capability"
+    },
+    {
+      "file": "20250824_enhance_trending_capture.sql",
+      "rule": "transactionSafety",
+      "message": "DDL operations without transaction wrapper",
+      "severity": "warning",
+      "fix": "Wrap migration in BEGIN; ... COMMIT; for rollback capability"
+    },
+    {
+      "file": "20250824_subscription_system.sql",
+      "rule": "authDependency",
+      "message": "Uses auth functions that may not be available locally",
+      "matches": ["auth.uid()", "auth.role()"],
+      "count": 10,
+      "severity": "error",
+      "fix": "Wrap in conditional check: IF EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'uid' AND pronamespace = 'auth'::regnamespace)",
+      "line": 370
+    },
+    {
+      "file": "20250824_subscription_system.sql",
+      "rule": "authUsersTable",
+      "message": "References auth.users table",
+      "matches": ["auth.users"],
+      "count": 4,
+      "severity": "error",
+      "fix": "Check if auth schema exists: IF EXISTS (SELECT 1 FROM information_schema.schemata WHERE schema_name = 'auth')",
+      "line": 11
+    },
+    {
+      "file": "20250824_subscription_system.sql",
+      "rule": "serviceRole",
+      "message": "References service_role which may not exist",
+      "matches": ["service_role"],
+      "count": 6,
+      "severity": "error",
+      "fix": "Create role if missing: IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN CREATE ROLE service_role; END IF;",
+      "line": 374
+    },
+    {
+      "file": "20250824_subscription_system.sql",
+      "rule": "transactionSafety",
+      "message": "DDL operations without transaction wrapper",
+      "severity": "warning",
+      "fix": "Wrap migration in BEGIN; ... COMMIT; for rollback capability"
+    },
+    {
+      "file": "20250826_add_pr_corruption_detection_index.sql",
+      "rule": "transactionSafety",
+      "message": "DDL operations without transaction wrapper",
+      "severity": "warning",
+      "fix": "Wrap migration in BEGIN; ... COMMIT; for rollback capability"
+    },
+    {
+      "file": "20250826_fix_workspace_owner_member.sql",
+      "rule": "authDependency",
+      "message": "Uses auth functions that may not be available locally",
+      "matches": ["auth.uid()"],
+      "count": 2,
+      "severity": "error",
+      "fix": "Wrap in conditional check: IF EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'uid' AND pronamespace = 'auth'::regnamespace)",
+      "line": 97
+    },
+    {
+      "file": "20250826_fix_workspace_owner_member.sql",
+      "rule": "transactionSafety",
+      "message": "DDL operations without transaction wrapper",
+      "severity": "warning",
+      "fix": "Wrap migration in BEGIN; ... COMMIT; for rollback capability"
+    }
+  ],
+  "warnings": [
+    {
+      "file": "20240614000000_initial_contributor_schema.sql",
+      "rule": "idempotency",
+      "message": "CREATE TABLE without IF NOT EXISTS",
+      "severity": "warning",
+      "fix": "Add IF NOT EXISTS for idempotency"
+    },
+    {
+      "file": "20241225000000_add_share_analytics.sql",
+      "rule": "unconditionalGrant",
+      "message": "Unconditional GRANT that may fail if role missing",
+      "matches": ["Grant ", "GRANT "],
+      "count": 7,
+      "severity": "warning",
+      "fix": "Make conditional with DO block",
+      "line": 141
+    },
+    {
+      "file": "20250103000000_add_ai_summaries_support.sql",
+      "rule": "vectorExtension",
+      "message": "Requires vector extension",
+      "matches": ["vector ", "VECTOR("],
+      "count": 6,
+      "severity": "warning",
+      "fix": "Check extension: CREATE EXTENSION IF NOT EXISTS vector;",
+      "line": 1
+    },
+    {
+      "file": "20250120_github_events_classification.sql",
+      "rule": "idempotency",
+      "message": "CREATE TABLE without IF NOT EXISTS",
+      "severity": "warning",
+      "fix": "Add IF NOT EXISTS for idempotency"
+    },
+    {
+      "file": "20250120_self_selection_analytics.sql",
+      "rule": "unconditionalGrant",
+      "message": "Unconditional GRANT that may fail if role missing",
+      "matches": ["Grant ", "GRANT "],
+      "count": 5,
+      "severity": "warning",
+      "fix": "Make conditional with DO block",
+      "line": 203
+    },
+    {
+      "file": "20250120_setup_pg_cron.sql",
+      "rule": "unconditionalGrant",
+      "message": "Unconditional GRANT that may fail if role missing",
+      "matches": ["Grant ", "GRANT "],
+      "count": 4,
+      "severity": "warning",
+      "fix": "Make conditional with DO block",
+      "line": 8
+    },
+    {
+      "file": "20250121_fix_self_selection_function.sql",
+      "rule": "unconditionalGrant",
+      "message": "Unconditional GRANT that may fail if role missing",
+      "matches": ["Grant ", "GRANT "],
+      "count": 3,
+      "severity": "warning",
+      "fix": "Make conditional with DO block",
+      "line": 95
+    },
+    {
+      "file": "20250121_fix_self_selection_function_v2.sql",
+      "rule": "unconditionalGrant",
+      "message": "Unconditional GRANT that may fail if role missing",
+      "matches": ["Grant ", "GRANT "],
+      "count": 3,
+      "severity": "warning",
+      "fix": "Make conditional with DO block",
+      "line": 96
+    },
+    {
+      "file": "20250122000000_add_issue_pr_embeddings.sql",
+      "rule": "vectorExtension",
+      "message": "Requires vector extension",
+      "matches": ["VECTOR(", "vector "],
+      "count": 5,
+      "severity": "warning",
+      "fix": "Check extension: CREATE EXTENSION IF NOT EXISTS vector;",
+      "line": 6
+    },
+    {
+      "file": "20250122000000_add_issue_pr_embeddings.sql",
+      "rule": "idempotency",
+      "message": "CREATE TABLE without IF NOT EXISTS",
+      "severity": "warning",
+      "fix": "Add IF NOT EXISTS for idempotency"
+    },
+    {
+      "file": "20250122000001_add_vector_search_functions.sql",
+      "rule": "vectorExtension",
+      "message": "Requires vector extension",
+      "matches": ["vector ", "vector\n\n", "vector("],
+      "count": 8,
+      "severity": "warning",
+      "fix": "Check extension: CREATE EXTENSION IF NOT EXISTS vector;",
+      "line": 1
+    },
+    {
+      "file": "20250122000001_add_vector_search_functions.sql",
+      "rule": "unconditionalGrant",
+      "message": "Unconditional GRANT that may fail if role missing",
+      "matches": ["Grant ", "GRANT "],
+      "count": 3,
+      "severity": "warning",
+      "fix": "Make conditional with DO block",
+      "line": 84
+    },
+    {
+      "file": "20250124_workspace_contributors.sql",
+      "rule": "unconditionalGrant",
+      "message": "Unconditional GRANT that may fail if role missing",
+      "matches": ["Grant ", "GRANT "],
+      "count": 3,
+      "severity": "warning",
+      "fix": "Make conditional with DO block",
+      "line": 81
+    },
+    {
+      "file": "20250125000000_workspace_data_fetching.sql",
+      "rule": "unconditionalGrant",
+      "message": "Unconditional GRANT that may fail if role missing",
+      "matches": ["Grant ", "GRANT "],
+      "count": 12,
+      "severity": "warning",
+      "fix": "Make conditional with DO block",
+      "line": 385
+    },
+    {
+      "file": "20250125000000_workspace_data_fetching.sql",
+      "rule": "idempotency",
+      "message": "CREATE TABLE without IF NOT EXISTS",
+      "severity": "warning",
+      "fix": "Add IF NOT EXISTS for idempotency"
+    },
+    {
+      "file": "20250126_fix_all_rls_issues.sql",
+      "rule": "unconditionalGrant",
+      "message": "Unconditional GRANT that may fail if role missing",
+      "matches": ["Grant ", "GRANT "],
+      "count": 6,
+      "severity": "warning",
+      "fix": "Make conditional with DO block",
+      "line": 337
+    },
+    {
+      "file": "20250131_add_maintainer_admin_overrides.sql",
+      "rule": "unconditionalGrant",
+      "message": "Unconditional GRANT that may fail if role missing",
+      "matches": ["Grant ", "GRANT "],
+      "count": 2,
+      "severity": "warning",
+      "fix": "Make conditional with DO block",
+      "line": 117
+    },
+    {
+      "file": "20250629000000_add_admin_system.sql",
+      "rule": "unconditionalGrant",
+      "message": "Unconditional GRANT that may fail if role missing",
+      "matches": ["Grant "],
+      "count": 1,
+      "severity": "warning",
+      "fix": "Make conditional with DO block",
+      "line": 231
+    },
+    {
+      "file": "20250710000000_add_progressive_capture_jobs.sql",
+      "rule": "unconditionalGrant",
+      "message": "Unconditional GRANT that may fail if role missing",
+      "matches": ["Grant ", "GRANT "],
+      "count": 4,
+      "severity": "warning",
+      "fix": "Make conditional with DO block",
+      "line": 87
+    },
+    {
+      "file": "20250712000000_add_email_logs.sql",
+      "rule": "unconditionalGrant",
+      "message": "Unconditional GRANT that may fail if role missing",
+      "matches": ["Grant ", "GRANT "],
+      "count": 4,
+      "severity": "warning",
+      "fix": "Make conditional with DO block",
+      "line": 70
+    },
+    {
+      "file": "20250712000001_add_auth_user_trigger.sql",
+      "rule": "unconditionalGrant",
+      "message": "Unconditional GRANT that may fail if role missing",
+      "matches": ["Grant ", "GRANT "],
+      "count": 3,
+      "severity": "warning",
+      "fix": "Make conditional with DO block",
+      "line": 106
+    },
+    {
+      "file": "20250712000002_fix_auth_trigger_with_error_handling.sql",
+      "rule": "unconditionalGrant",
+      "message": "Unconditional GRANT that may fail if role missing",
+      "matches": ["Grant ", "GRANT "],
+      "count": 3,
+      "severity": "warning",
+      "fix": "Make conditional with DO block",
+      "line": 111
+    },
+    {
+      "file": "20250802000000_enhance_vector_similarity_search.sql",
+      "rule": "vectorExtension",
+      "message": "Requires vector extension",
+      "matches": ["vector ", "vector("],
+      "count": 5,
+      "severity": "warning",
+      "fix": "Check extension: CREATE EXTENSION IF NOT EXISTS vector;",
+      "line": 1
+    },
+    {
+      "file": "20250802000000_enhance_vector_similarity_search.sql",
+      "rule": "unconditionalGrant",
+      "message": "Unconditional GRANT that may fail if role missing",
+      "matches": ["Grant ", "GRANT ", "grant "],
+      "count": 11,
+      "severity": "warning",
+      "fix": "Make conditional with DO block",
+      "line": 295
+    },
+    {
+      "file": "20250802000001_update_to_minilm_embeddings.sql",
+      "rule": "vectorExtension",
+      "message": "Requires vector extension",
+      "matches": ["vector ", "VECTOR(", "vector("],
+      "count": 12,
+      "severity": "warning",
+      "fix": "Check extension: CREATE EXTENSION IF NOT EXISTS vector;",
+      "line": 2
+    },
+    {
+      "file": "20250802000001_update_to_minilm_embeddings.sql",
+      "rule": "unconditionalGrant",
+      "message": "Unconditional GRANT that may fail if role missing",
+      "matches": ["Grant ", "GRANT "],
+      "count": 9,
+      "severity": "warning",
+      "fix": "Make conditional with DO block",
+      "line": 236
+    },
+    {
+      "file": "20250802000002_add_file_contributors_and_embeddings.sql",
+      "rule": "vectorExtension",
+      "message": "Requires vector extension",
+      "matches": ["vector(", "vector ", "Vector "],
+      "count": 3,
+      "severity": "warning",
+      "fix": "Check extension: CREATE EXTENSION IF NOT EXISTS vector;",
+      "line": 26
+    },
+    {
+      "file": "20250802000003_add_data_purge_cron.sql",
+      "rule": "unconditionalGrant",
+      "message": "Unconditional GRANT that may fail if role missing",
+      "matches": ["Grant ", "GRANT "],
+      "count": 2,
+      "severity": "warning",
+      "fix": "Make conditional with DO block",
+      "line": 141
+    },
+    {
+      "file": "20250805_fix_function_search_paths.sql",
+      "rule": "vectorExtension",
+      "message": "Requires vector extension",
+      "matches": ["vector "],
+      "count": 1,
+      "severity": "warning",
+      "fix": "Check extension: CREATE EXTENSION IF NOT EXISTS vector;",
+      "line": 43
+    },
+    {
+      "file": "20250805_fix_function_search_paths.sql",
+      "rule": "unconditionalGrant",
+      "message": "Unconditional GRANT that may fail if role missing",
+      "matches": ["Grant ", "GRANT "],
+      "count": 2,
+      "severity": "warning",
+      "fix": "Make conditional with DO block",
+      "line": 38
+    },
+    {
+      "file": "20250806_remove_security_definer_from_views.sql",
+      "rule": "unconditionalGrant",
+      "message": "Unconditional GRANT that may fail if role missing",
+      "matches": ["Grant ", "GRANT "],
+      "count": 10,
+      "severity": "warning",
+      "fix": "Make conditional with DO block",
+      "line": 243
+    },
+    {
+      "file": "20250810_add_metric_history_tracking.sql",
+      "rule": "idempotency",
+      "message": "CREATE TABLE without IF NOT EXISTS",
+      "severity": "warning",
+      "fix": "Add IF NOT EXISTS for idempotency"
+    },
+    {
+      "file": "20250821001000_add_sync_monitoring.sql",
+      "rule": "unconditionalGrant",
+      "message": "Unconditional GRANT that may fail if role missing",
+      "matches": ["Grant ", "GRANT "],
+      "count": 5,
+      "severity": "warning",
+      "fix": "Make conditional with DO block",
+      "line": 200
+    },
+    {
+      "file": "20250823_add_rate_limits_table.sql",
+      "rule": "unconditionalGrant",
+      "message": "Unconditional GRANT that may fail if role missing",
+      "matches": ["Grant ", "GRANT "],
+      "count": 3,
+      "severity": "warning",
+      "fix": "Make conditional with DO block",
+      "line": 43
+    },
+    {
+      "file": "20250823_atomic_repository_count.sql",
+      "rule": "unconditionalGrant",
+      "message": "Unconditional GRANT that may fail if role missing",
+      "matches": ["Grant ", "GRANT "],
+      "count": 4,
+      "severity": "warning",
+      "fix": "Make conditional with DO block",
+      "line": 57
+    },
+    {
+      "file": "20250823_workspace_schema.sql",
+      "rule": "idempotency",
+      "message": "CREATE TABLE without IF NOT EXISTS",
+      "severity": "warning",
+      "fix": "Add IF NOT EXISTS for idempotency"
+    },
+    {
+      "file": "20250824_enhance_trending_capture.sql",
+      "rule": "unconditionalGrant",
+      "message": "Unconditional GRANT that may fail if role missing",
+      "matches": ["Grant ", "GRANT "],
+      "count": 5,
+      "severity": "warning",
+      "fix": "Make conditional with DO block",
+      "line": 250
+    },
+    {
+      "file": "20250824_subscription_system.sql",
+      "rule": "idempotency",
+      "message": "CREATE TABLE without IF NOT EXISTS",
+      "severity": "warning",
+      "fix": "Add IF NOT EXISTS for idempotency"
+    }
+  ],
+  "passed": [
+    "20240615000000_improved_cascade_deletes.sql",
+    "20240616000001_add_validation_constraints.sql",
+    "20250104_add_chunk_sequence.sql",
+    "20250116_mark_app_installed.sql",
+    "20250620_allow_anon_track_repositories.sql",
+    "20250627000000_add_missing_performance_functions.sql"
+  ],
+  "recommendations": [
+    {
+      "issue": "Auth dependencies",
+      "solution": "Use the consolidated migrations that separate auth features",
+      "priority": "high"
+    },
+    {
+      "issue": "pg_cron requirement",
+      "solution": "Make cron jobs optional or provide alternative scheduling",
+      "priority": "high"
+    },
+    {
+      "issue": "Non-idempotent operations",
+      "solution": "Add IF EXISTS/IF NOT EXISTS clauses",
+      "priority": "medium"
+    }
+  ]
+}

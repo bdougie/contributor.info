@@ -282,6 +282,33 @@ For the best development experience on Windows:
    }
    ```
 
+## Troubleshooting Database Migrations
+
+### Common Migration Issues on Windows
+
+1. **Auth schema not found**:
+   ```bash
+   # Use local-safe migrations instead
+   bash supabase/migrations-local/setup-local.sh
+   ```
+
+2. **Permission denied for pg_cron**:
+   - pg_cron requires superuser privileges
+   - Local-safe migrations skip pg_cron features
+   - Features degrade gracefully without cron jobs
+
+3. **Role 'service_role' does not exist**:
+   - Local-safe migrations create roles automatically
+   - Or manually create: `CREATE ROLE service_role;`
+
+4. **Path issues on Windows**:
+   ```bash
+   # Use forward slashes or escaped backslashes
+   psql $DATABASE_URL -f supabase/migrations-local/000_consolidated_local_safe.sql
+   ```
+
+See the [Database Migrations Guide](./DATABASE_MIGRATIONS.md) for detailed troubleshooting.
+
 ## Getting Help
 
 If you encounter issues not covered here:

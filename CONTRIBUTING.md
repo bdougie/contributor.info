@@ -108,6 +108,117 @@ Our database includes:
 - **Monthly Rankings** - Contributor leaderboards
 - **Analytics Tables** - Activity tracking and insights
 
+## 🗃️ Database Migrations
+
+### Writing New Migrations
+
+When creating database schema changes, follow these guidelines to ensure migrations work in both production and local development environments:
+
+1. **Use the Migration Template**
+   ```bash
+   # Copy the template for new migrations
+   cp supabase/migrations/TEMPLATE.sql supabase/migrations/$(date +%Y%m%d%H%M%S)_your_migration_name.sql
+   ```
+
+2. **Key Patterns for Local Compatibility**
+
+   **Auth Dependencies** - Wrap auth-dependent code in conditional checks:
+   ```sql
+   DO $$
+   BEGIN
+     IF EXISTS (SELECT 1 FROM information_schema.schemata WHERE schema_name = 'auth') THEN
+       -- Your auth-dependent code here
+       CREATE POLICY "Users can view own data" ON your_table
+         FOR SELECT
+         USING (auth.uid() = user_id);
+     END IF;
+   END $$;
+   ```
+
+   **Role Creation** - Create roles if they don't exist:
+   ```sql
+   DO $$
+   BEGIN
+     IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN
+       CREATE ROLE service_role;
+     END IF;
+   END $$;
+   ```
+
+   **Extensions** - Make extensions optional:
+   ```sql
+   CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+   
+   -- For extensions that might not be available locally (like pg_cron)
+   DO $$
+   BEGIN
+     IF EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = 'pg_cron') THEN
+       CREATE EXTENSION IF NOT EXISTS pg_cron;
+     ELSE
+       RAISE NOTICE 'pg_cron not available - skipping';
+     END IF;
+   END $$;
+   ```
+
+   **Idempotent Operations** - Always use IF EXISTS/IF NOT EXISTS:
+   ```sql
+   CREATE TABLE IF NOT EXISTS your_table (...);
+   CREATE INDEX IF NOT EXISTS idx_your_index ON your_table(column);
+   DROP TRIGGER IF EXISTS your_trigger ON your_table;
+   ```
+
+3. **Validate Your Migration**
+   ```bash
+   # Check for environment-specific dependencies
+   node scripts/migrations/analyze-migrations.js
+   
+   # Validate migrations for local compatibility
+   node scripts/migrations/validate-migrations.js
+   
+   # Generate local-safe versions
+   node scripts/migrations/generate-local-safe.js
+   ```
+
+4. **Test Locally**
+   ```bash
+   # Reset local database with new migration
+   npm run supabase:reset
+   
+   # Or apply just your migration
+   npx supabase db push
+   ```
+
+### Migration CI/CD Pipeline
+
+All migrations are automatically validated when you create a PR:
+
+1. **Validation Workflow** - Checks for environment-specific dependencies
+2. **Local-Safe Generation** - Creates compatible versions for local development
+3. **Test on Fresh Database** - Ensures migrations run cleanly
+4. **Auto-Sync** - When merged, local-safe versions are automatically generated
+
+### Migration Organization
+
+Migrations are organized into categories:
+- **Core Schema** - Tables, indexes, functions
+- **Auth & RLS** - Authentication and security policies
+- **Extensions** - PostgreSQL extensions and features
+- **Seed Data** - Initial data and configurations
+
+### Troubleshooting Migration Issues
+
+| Issue | Solution |
+|-------|----------|
+| "auth schema not found" | Migration uses auth functions - wrap in conditional checks |
+| "role does not exist" | Create roles conditionally before granting permissions |
+| "extension not available" | Use IF NOT EXISTS and handle pg_cron specially |
+| "multiple migration matches" | Migrations aren't idempotent - add IF EXISTS checks |
+
+For detailed documentation, see:
+- [Migration Template](./supabase/migrations/TEMPLATE.sql) - Complete examples
+- [Database Migrations Guide](./docs/setup/DATABASE_MIGRATIONS.md) - Full documentation
+- [Migration Scripts](./scripts/migrations/) - Analysis and fix tools
+
 ## 🔧 Environment Variables
 
 The `.env.example` file includes all necessary variables with clear sections:
