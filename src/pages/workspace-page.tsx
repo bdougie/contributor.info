@@ -94,13 +94,33 @@ const TIME_RANGE_DAYS = {
   all: 730, // 2 years for "all" to limit data size
 } as const;
 
+/**
+ * Utility function to filter repositories based on selection
+ * @param repos - All available repositories
+ * @param selectedRepoIds - Array of selected repository IDs (empty array means show all)
+ * @returns Filtered array of repositories
+ */
+const filterRepositoriesBySelection = <T extends { id: string }>(
+  repos: T[],
+  selectedRepoIds?: string[]
+): T[] => {
+  // If no selection provided or empty selection, return all repositories
+  if (!selectedRepoIds || selectedRepoIds.length === 0) {
+    return repos;
+  }
+  // Filter repositories by selected IDs
+  return repos.filter((repo) => selectedRepoIds.includes(repo.id));
+};
+
 // Generate mock metrics for now
-const generateMockMetrics = (repos: Repository[], timeRange: TimeRange, selectedRepoIds?: string[]): WorkspaceMetrics => {
-  // Filter repositories if specific ones are selected (empty array means show all)
-  const filteredRepos = selectedRepoIds && selectedRepoIds.length > 0 
-    ? repos.filter(repo => selectedRepoIds.includes(repo.id))
-    : repos;
-    
+const generateMockMetrics = (
+  repos: Repository[],
+  timeRange: TimeRange,
+  selectedRepoIds?: string[]
+): WorkspaceMetrics => {
+  // Use utility function to filter repositories
+  const filteredRepos = filterRepositoriesBySelection(repos, selectedRepoIds);
+
   const totalStars = filteredRepos.reduce((sum, repo) => sum + (repo.stars || 0), 0);
   const totalContributors = filteredRepos.reduce((sum, repo) => sum + (repo.contributors || 0), 0);
 
@@ -138,16 +158,19 @@ const generateMockMetrics = (repos: Repository[], timeRange: TimeRange, selected
 };
 
 // Generate mock trend data for now
-const generateMockTrendData = (days: number, repos?: Repository[], selectedRepoIds?: string[]): WorkspaceTrendData => {
-  // Filter repositories if specific ones are selected (for future use with real data)
-  const filteredRepos = selectedRepoIds && selectedRepoIds.length > 0 && repos
-    ? repos.filter(repo => selectedRepoIds.includes(repo.id))
-    : repos;
-    
+const generateMockTrendData = (
+  days: number,
+  repos?: Repository[],
+  selectedRepoIds?: string[]
+): WorkspaceTrendData => {
+  // Use utility function to filter repositories (for future use with real data)
+  const filteredRepos = repos ? filterRepositoriesBySelection(repos, selectedRepoIds) : [];
+
   // Currently using mock data, but scale based on filtered repo count
-  const repoMultiplier = filteredRepos && filteredRepos.length > 0 
-    ? Math.max(0.1, filteredRepos.length / (repos?.length || 1)) 
-    : 1;
+  const repoMultiplier =
+    filteredRepos.length > 0 && repos && repos.length > 0
+      ? Math.max(0.1, filteredRepos.length / repos.length)
+      : 1;
   const labels = [];
   const prs = [];
   const issues = [];
@@ -188,10 +211,13 @@ const generateMockTrendData = (days: number, repos?: Repository[], selectedRepoI
 };
 
 // Generate activity data from merged PRs with better aggregation
+// Note: repos and selectedRepoIds params reserved for future filtering implementation
 const generateActivityDataFromPRs = (
   mergedPRs: MergedPR[],
   timeRange: TimeRange,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _repos?: Repository[],
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _selectedRepoIds?: string[]
 ): ActivityDataPoint[] => {
   // If no data at all, return empty array (let the chart handle empty state)
@@ -281,11 +307,8 @@ function WorkspacePRs({
       }
 
       try {
-        // Filter repositories if specific ones are selected
-        const filteredRepos =
-          selectedRepositories.length > 0
-            ? repositories.filter((r) => selectedRepositories.includes(r.id))
-            : repositories;
+        // Use utility function to filter repositories
+        const filteredRepos = filterRepositoriesBySelection(repositories, selectedRepositories);
 
         const repoIds = filteredRepos.map((r) => r.id);
         const { data, error } = await supabase
@@ -448,11 +471,8 @@ function WorkspaceIssues({
       }
 
       try {
-        // Filter repositories if specific ones are selected
-        const filteredRepos =
-          selectedRepositories.length > 0
-            ? repositories.filter((r) => selectedRepositories.includes(r.id))
-            : repositories;
+        // Use utility function to filter repositories
+        const filteredRepos = filterRepositoriesBySelection(repositories, selectedRepositories);
 
         const repoIds = filteredRepos.map((r) => r.id);
 
@@ -1409,10 +1429,11 @@ export default function WorkspacePage() {
         // Fetch merged PRs for activity data - respect time range
         let mergedPRs: MergedPR[] = [];
         if (transformedRepos.length > 0) {
-          // Filter repositories if specific ones are selected
-          const filteredRepos = selectedRepositories && selectedRepositories.length > 0
-            ? transformedRepos.filter(repo => selectedRepositories.includes(repo.id))
-            : transformedRepos;
+          // Use utility function to filter repositories
+          const filteredRepos = filterRepositoriesBySelection(
+            transformedRepos,
+            selectedRepositories
+          );
           const repoIds = filteredRepos.map((r) => r.id);
 
           // Calculate date range based on selected time range
@@ -1476,8 +1497,17 @@ export default function WorkspacePage() {
 
         // Generate metrics, trend data, and activity data
         const mockMetrics = generateMockMetrics(transformedRepos, timeRange, selectedRepositories);
-        const mockTrendData = generateMockTrendData(TIME_RANGE_DAYS[timeRange], transformedRepos, selectedRepositories);
-        const activityDataPoints = generateActivityDataFromPRs(mergedPRs, timeRange, transformedRepos, selectedRepositories);
+        const mockTrendData = generateMockTrendData(
+          TIME_RANGE_DAYS[timeRange],
+          transformedRepos,
+          selectedRepositories
+        );
+        const activityDataPoints = generateActivityDataFromPRs(
+          mergedPRs,
+          timeRange,
+          transformedRepos,
+          selectedRepositories
+        );
 
         setMetrics(mockMetrics);
         setTrendData(mockTrendData);
