@@ -24,7 +24,11 @@ npm run supabase:start
 npm run env:production
 # Add your production keys to .env.local
 
-# 5. Start development server
+# 5. Run migrations (local development)
+bash supabase/migrations-local/setup-local.sh
+# See docs/setup/DATABASE_MIGRATIONS.md for details
+
+# 6. Start development server
 npm run dev
 ```
 
@@ -96,15 +100,24 @@ npm run supabase:status
 When working with local Supabase:
 
 ```bash
-# Apply existing migrations
-npm run supabase:migrate
+# IMPORTANT: Use local-safe migrations for local development
+# Original migrations have auth/extension dependencies that fail locally
 
-# Reset database (applies all migrations fresh)
+# Quick setup with local-safe migrations (recommended)
+bash supabase/migrations-local/setup-local.sh
+
+# Or manually apply consolidated migration
+psql "postgresql://postgres:postgres@localhost:54322/postgres" \
+  -f supabase/migrations-local/000_consolidated_local_safe.sql
+
+# Reset database (be careful - may fail with original migrations)
 npm run supabase:reset
 
 # Create a new migration (after making schema changes)
 npx supabase migration new your_migration_name
 ```
+
+**Note**: The original migrations contain environment-specific dependencies (auth, roles, extensions) that prevent them from running on fresh local Supabase. Use the local-safe versions in `supabase/migrations-local/` instead. See [Database Migrations Guide](./DATABASE_MIGRATIONS.md) for details.
 
 ### Seed Data
 

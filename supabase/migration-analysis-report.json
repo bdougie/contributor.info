@@ -1,0 +1,1880 @@
+{
+  "summary": {
+    "totalMigrations": 62,
+    "criticalMigrations": 6,
+    "categorizedIssues": [
+      {
+        "category": "extensions",
+        "fileCount": 12,
+        "issueCount": 17
+      },
+      {
+        "category": "triggers",
+        "fileCount": 26,
+        "issueCount": 35
+      },
+      {
+        "category": "functions",
+        "fileCount": 44,
+        "issueCount": 51
+      },
+      {
+        "category": "roles",
+        "fileCount": 38,
+        "issueCount": 59
+      },
+      {
+        "category": "auth",
+        "fileCount": 24,
+        "issueCount": 57
+      },
+      {
+        "category": "environment",
+        "fileCount": 1,
+        "issueCount": 1
+      }
+    ]
+  },
+  "issues": [
+    {
+      "file": "20240614000000_initial_contributor_schema.sql",
+      "category": "extensions",
+      "description": "Extension dependency",
+      "matches": ["CREATE EXTENSION"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20240614000000_initial_contributor_schema.sql",
+      "category": "extensions",
+      "description": "Extension dependency",
+      "matches": ["uuid-ossp"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20240614000000_initial_contributor_schema.sql",
+      "category": "triggers",
+      "description": "Trigger dependency",
+      "matches": ["CREATE TRIGGER"],
+      "count": 3,
+      "canFail": false
+    },
+    {
+      "file": "20240614000000_initial_contributor_schema.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["CREATE OR REPLACE FUNCTION"],
+      "count": 4,
+      "canFail": false
+    },
+    {
+      "file": "20241225000000_add_share_analytics.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["service_role"],
+      "count": 4,
+      "canFail": false
+    },
+    {
+      "file": "20241225000000_add_share_analytics.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["authenticated"],
+      "count": 4,
+      "canFail": false
+    },
+    {
+      "file": "20241225000000_add_share_analytics.sql",
+      "category": "triggers",
+      "description": "Trigger dependency",
+      "matches": ["CREATE TRIGGER"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20241225000000_add_share_analytics.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["CREATE OR REPLACE FUNCTION"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250103000000_add_ai_summaries_support.sql",
+      "category": "extensions",
+      "description": "Extension dependency",
+      "matches": ["CREATE EXTENSION"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250103000000_add_ai_summaries_support.sql",
+      "category": "extensions",
+      "description": "Extension dependency",
+      "matches": ["vector", "VECTOR"],
+      "count": 8,
+      "canFail": false
+    },
+    {
+      "file": "20250104_add_chunk_sequence.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["CREATE OR REPLACE FUNCTION"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250113000000_add_repository_size_classification.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["CREATE OR REPLACE FUNCTION"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250114_enable_rls_missing_tables.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["service_role"],
+      "count": 3,
+      "canFail": true
+    },
+    {
+      "file": "20250114_enable_rls_missing_tables.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["Authenticated", "authenticated"],
+      "count": 3,
+      "canFail": true
+    },
+    {
+      "file": "20250114_github_app_schema.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth.role()"],
+      "count": 4,
+      "canFail": false
+    },
+    {
+      "file": "20250114_github_app_schema.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth."],
+      "count": 4,
+      "canFail": false
+    },
+    {
+      "file": "20250114_github_app_schema.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["service_role"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250114_github_app_schema.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["Authenticated", "authenticated"],
+      "count": 6,
+      "canFail": false
+    },
+    {
+      "file": "20250120000000_progressive_backfill_tables.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["service_role"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250120000000_progressive_backfill_tables.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["authenticated", "Authenticated"],
+      "count": 6,
+      "canFail": false
+    },
+    {
+      "file": "20250120000000_progressive_backfill_tables.sql",
+      "category": "triggers",
+      "description": "Trigger dependency",
+      "matches": ["CREATE TRIGGER"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250120000000_progressive_backfill_tables.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["CREATE OR REPLACE FUNCTION"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250120_github_events_classification.sql",
+      "category": "triggers",
+      "description": "Trigger dependency",
+      "matches": ["CREATE TRIGGER"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250120_github_events_classification.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["CREATE OR REPLACE FUNCTION", "Create function"],
+      "count": 3,
+      "canFail": false
+    },
+    {
+      "file": "20250120_self_selection_analytics.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["authenticated"],
+      "count": 4,
+      "canFail": false
+    },
+    {
+      "file": "20250120_self_selection_analytics.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["Create function", "CREATE OR REPLACE FUNCTION"],
+      "count": 4,
+      "canFail": false
+    },
+    {
+      "file": "20250120_setup_pg_cron.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["service_role"],
+      "count": 4,
+      "canFail": false
+    },
+    {
+      "file": "20250120_setup_pg_cron.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["authenticated"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250120_setup_pg_cron.sql",
+      "category": "extensions",
+      "description": "Extension dependency",
+      "matches": ["CREATE EXTENSION"],
+      "count": 1,
+      "canFail": true
+    },
+    {
+      "file": "20250120_setup_pg_cron.sql",
+      "category": "extensions",
+      "description": "Extension dependency",
+      "matches": ["pg_cron"],
+      "count": 3,
+      "canFail": true
+    },
+    {
+      "file": "20250120_setup_pg_cron.sql",
+      "category": "extensions",
+      "description": "Extension dependency",
+      "matches": ["pg_net"],
+      "count": 1,
+      "canFail": true
+    },
+    {
+      "file": "20250120_setup_pg_cron.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["Create function", "CREATE OR REPLACE FUNCTION"],
+      "count": 4,
+      "canFail": false
+    },
+    {
+      "file": "20250120_setup_pg_cron.sql",
+      "category": "environment",
+      "description": "Production-specific configuration",
+      "matches": ["production"],
+      "count": 1,
+      "canFail": true
+    },
+    {
+      "file": "20250121_fix_self_selection_function.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["authenticated"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250121_fix_self_selection_function.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["CREATE OR REPLACE FUNCTION"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250121_fix_self_selection_function.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["DROP FUNCTION"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250121_fix_self_selection_function_v2.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["authenticated"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250121_fix_self_selection_function_v2.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["CREATE OR REPLACE FUNCTION"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250121_fix_self_selection_function_v2.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["DROP FUNCTION"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250121_fix_tracked_repositories.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["service_role"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250121_fix_tracked_repositories.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["authenticated"],
+      "count": 4,
+      "canFail": false
+    },
+    {
+      "file": "20250121_fix_tracked_repositories.sql",
+      "category": "triggers",
+      "description": "Trigger dependency",
+      "matches": ["Create trigger", "CREATE TRIGGER"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250121_fix_tracked_repositories.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["Create function", "CREATE OR REPLACE FUNCTION"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250121_fix_tracked_repositories_fixed.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["service_role"],
+      "count": 3,
+      "canFail": false
+    },
+    {
+      "file": "20250121_fix_tracked_repositories_fixed.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["authenticated"],
+      "count": 5,
+      "canFail": false
+    },
+    {
+      "file": "20250121_fix_tracked_repositories_fixed.sql",
+      "category": "triggers",
+      "description": "Trigger dependency",
+      "matches": ["Create trigger", "CREATE TRIGGER"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250121_fix_tracked_repositories_fixed.sql",
+      "category": "triggers",
+      "description": "Trigger dependency",
+      "matches": ["DROP TRIGGER"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250121_fix_tracked_repositories_fixed.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["Create function", "CREATE OR REPLACE FUNCTION"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250121_fix_tracked_repositories_fixed.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["DROP FUNCTION"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250122000000_add_issue_pr_embeddings.sql",
+      "category": "extensions",
+      "description": "Extension dependency",
+      "matches": ["VECTOR", "vector"],
+      "count": 7,
+      "canFail": false
+    },
+    {
+      "file": "20250122000001_add_vector_search_functions.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["authenticated"],
+      "count": 3,
+      "canFail": false
+    },
+    {
+      "file": "20250122000001_add_vector_search_functions.sql",
+      "category": "extensions",
+      "description": "Extension dependency",
+      "matches": ["vector"],
+      "count": 10,
+      "canFail": false
+    },
+    {
+      "file": "20250122000001_add_vector_search_functions.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["CREATE OR REPLACE FUNCTION"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250124_workspace_contributors.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth.uid()"],
+      "count": 6,
+      "canFail": false
+    },
+    {
+      "file": "20250124_workspace_contributors.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth.users"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250124_workspace_contributors.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth."],
+      "count": 7,
+      "canFail": false
+    },
+    {
+      "file": "20250124_workspace_contributors.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["authenticated"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250125000000_workspace_data_fetching.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth.users"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250125000000_workspace_data_fetching.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth."],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250125000000_workspace_data_fetching.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["service_role"],
+      "count": 4,
+      "canFail": false
+    },
+    {
+      "file": "20250125000000_workspace_data_fetching.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["authenticated"],
+      "count": 6,
+      "canFail": false
+    },
+    {
+      "file": "20250125000000_workspace_data_fetching.sql",
+      "category": "triggers",
+      "description": "Trigger dependency",
+      "matches": ["CREATE TRIGGER"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250125000000_workspace_data_fetching.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["CREATE OR REPLACE FUNCTION"],
+      "count": 4,
+      "canFail": false
+    },
+    {
+      "file": "20250125000001_add_workspace_tiers.sql",
+      "category": "triggers",
+      "description": "Trigger dependency",
+      "matches": ["CREATE TRIGGER", "Create trigger"],
+      "count": 4,
+      "canFail": false
+    },
+    {
+      "file": "20250125000001_add_workspace_tiers.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["CREATE OR REPLACE FUNCTION"],
+      "count": 4,
+      "canFail": false
+    },
+    {
+      "file": "20250126_fix_all_rls_issues.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["service_role"],
+      "count": 9,
+      "canFail": false
+    },
+    {
+      "file": "20250126_fix_all_rls_issues.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["authenticated"],
+      "count": 25,
+      "canFail": false
+    },
+    {
+      "file": "20250131_add_maintainer_admin_overrides.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth.uid()"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250131_add_maintainer_admin_overrides.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth."],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250131_add_maintainer_admin_overrides.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["authenticated"],
+      "count": 3,
+      "canFail": false
+    },
+    {
+      "file": "20250131_add_maintainer_admin_overrides.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["Create function", "CREATE OR REPLACE FUNCTION"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250616000002_enable_performance_monitoring.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth.role()"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250616000002_enable_performance_monitoring.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth."],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250616000002_enable_performance_monitoring.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["service_role"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250616000002_enable_performance_monitoring.sql",
+      "category": "extensions",
+      "description": "Extension dependency",
+      "matches": ["CREATE EXTENSION"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250616000002_enable_performance_monitoring.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["CREATE OR REPLACE FUNCTION"],
+      "count": 3,
+      "canFail": false
+    },
+    {
+      "file": "20250620_allow_anon_track_repositories.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["anon\n"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250620_allow_anon_track_repositories.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["authenticated"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250627000000_add_missing_performance_functions.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["CREATE OR REPLACE FUNCTION"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250627000000_repository_confidence_cache.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth.role()"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250627000000_repository_confidence_cache.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth."],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250627000000_repository_confidence_cache.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["service_role"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250627000000_repository_confidence_cache.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["authenticated"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250627000000_repository_confidence_cache.sql",
+      "category": "triggers",
+      "description": "Trigger dependency",
+      "matches": ["CREATE TRIGGER"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250627000000_repository_confidence_cache.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["CREATE OR REPLACE FUNCTION"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250629000000_add_admin_system.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth.uid()"],
+      "count": 5,
+      "canFail": false
+    },
+    {
+      "file": "20250629000000_add_admin_system.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth.users"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250629000000_add_admin_system.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth."],
+      "count": 6,
+      "canFail": false
+    },
+    {
+      "file": "20250629000000_add_admin_system.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["CREATE OR REPLACE FUNCTION"],
+      "count": 4,
+      "canFail": false
+    },
+    {
+      "file": "20250629000001_add_pr_template_support.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["authenticated"],
+      "count": 3,
+      "canFail": false
+    },
+    {
+      "file": "20250629000001_add_pr_template_support.sql",
+      "category": "triggers",
+      "description": "Trigger dependency",
+      "matches": ["Create trigger", "CREATE TRIGGER"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250629000001_add_pr_template_support.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["CREATE OR REPLACE FUNCTION"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250710000000_add_progressive_capture_jobs.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["service_role"],
+      "count": 4,
+      "canFail": false
+    },
+    {
+      "file": "20250710000000_add_progressive_capture_jobs.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["authenticated"],
+      "count": 6,
+      "canFail": false
+    },
+    {
+      "file": "20250710000000_add_progressive_capture_jobs.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["CREATE OR REPLACE FUNCTION"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250710010000_add_rollout_configuration.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["CREATE OR REPLACE FUNCTION"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250712000000_add_email_logs.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth.uid()"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250712000000_add_email_logs.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth.jwt()"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250712000000_add_email_logs.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth.users"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250712000000_add_email_logs.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth."],
+      "count": 3,
+      "canFail": false
+    },
+    {
+      "file": "20250712000000_add_email_logs.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["service_role"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250712000000_add_email_logs.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["authenticated"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250712000000_add_email_logs.sql",
+      "category": "triggers",
+      "description": "Trigger dependency",
+      "matches": ["CREATE TRIGGER"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250712000000_add_email_logs.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["CREATE OR REPLACE FUNCTION"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250712000001_add_auth_user_trigger.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth.users"],
+      "count": 5,
+      "canFail": false
+    },
+    {
+      "file": "20250712000001_add_auth_user_trigger.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth."],
+      "count": 5,
+      "canFail": false
+    },
+    {
+      "file": "20250712000001_add_auth_user_trigger.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["authenticated"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250712000001_add_auth_user_trigger.sql",
+      "category": "triggers",
+      "description": "Trigger dependency",
+      "matches": ["Create trigger", "CREATE TRIGGER"],
+      "count": 4,
+      "canFail": false
+    },
+    {
+      "file": "20250712000001_add_auth_user_trigger.sql",
+      "category": "triggers",
+      "description": "Trigger dependency",
+      "matches": ["DROP TRIGGER"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250712000001_add_auth_user_trigger.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["Create or replace function", "CREATE OR REPLACE FUNCTION"],
+      "count": 4,
+      "canFail": false
+    },
+    {
+      "file": "20250712000002_fix_auth_trigger_with_error_handling.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth.users"],
+      "count": 5,
+      "canFail": false
+    },
+    {
+      "file": "20250712000002_fix_auth_trigger_with_error_handling.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth."],
+      "count": 5,
+      "canFail": false
+    },
+    {
+      "file": "20250712000002_fix_auth_trigger_with_error_handling.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["authenticated"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250712000002_fix_auth_trigger_with_error_handling.sql",
+      "category": "triggers",
+      "description": "Trigger dependency",
+      "matches": ["Create trigger", "CREATE TRIGGER"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250712000002_fix_auth_trigger_with_error_handling.sql",
+      "category": "triggers",
+      "description": "Trigger dependency",
+      "matches": ["DROP TRIGGER"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250712000002_fix_auth_trigger_with_error_handling.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["CREATE OR REPLACE FUNCTION"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250712000002_fix_auth_trigger_with_error_handling.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["DROP FUNCTION"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250712000003_simplify_auth_fix.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth.users"],
+      "count": 3,
+      "canFail": false
+    },
+    {
+      "file": "20250712000003_simplify_auth_fix.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth."],
+      "count": 3,
+      "canFail": false
+    },
+    {
+      "file": "20250712000003_simplify_auth_fix.sql",
+      "category": "triggers",
+      "description": "Trigger dependency",
+      "matches": ["CREATE TRIGGER"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250712000003_simplify_auth_fix.sql",
+      "category": "triggers",
+      "description": "Trigger dependency",
+      "matches": ["DROP TRIGGER"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250712000003_simplify_auth_fix.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["CREATE OR REPLACE FUNCTION"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250712000003_simplify_auth_fix.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["DROP FUNCTION"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250712000004_remove_auth_trigger.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth.users"],
+      "count": 3,
+      "canFail": false
+    },
+    {
+      "file": "20250712000004_remove_auth_trigger.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth."],
+      "count": 3,
+      "canFail": false
+    },
+    {
+      "file": "20250712000004_remove_auth_trigger.sql",
+      "category": "triggers",
+      "description": "Trigger dependency",
+      "matches": ["DROP TRIGGER"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250712000004_remove_auth_trigger.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["DROP FUNCTION"],
+      "count": 4,
+      "canFail": false
+    },
+    {
+      "file": "20250712000005_fix_email_preferences_trigger.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth.users"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250712000005_fix_email_preferences_trigger.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth."],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250712000005_fix_email_preferences_trigger.sql",
+      "category": "triggers",
+      "description": "Trigger dependency",
+      "matches": ["CREATE TRIGGER"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250712000005_fix_email_preferences_trigger.sql",
+      "category": "triggers",
+      "description": "Trigger dependency",
+      "matches": ["DROP TRIGGER"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250712000005_fix_email_preferences_trigger.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["CREATE OR REPLACE FUNCTION"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250712000006_disable_email_trigger.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth.users"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250712000006_disable_email_trigger.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth."],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250712000006_disable_email_trigger.sql",
+      "category": "triggers",
+      "description": "Trigger dependency",
+      "matches": ["DROP TRIGGER"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250802000000_enhance_vector_similarity_search.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["authenticated"],
+      "count": 6,
+      "canFail": false
+    },
+    {
+      "file": "20250802000000_enhance_vector_similarity_search.sql",
+      "category": "extensions",
+      "description": "Extension dependency",
+      "matches": ["vector"],
+      "count": 12,
+      "canFail": false
+    },
+    {
+      "file": "20250802000000_enhance_vector_similarity_search.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["CREATE OR REPLACE FUNCTION"],
+      "count": 5,
+      "canFail": false
+    },
+    {
+      "file": "20250802000001_update_to_minilm_embeddings.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["authenticated"],
+      "count": 4,
+      "canFail": false
+    },
+    {
+      "file": "20250802000001_update_to_minilm_embeddings.sql",
+      "category": "extensions",
+      "description": "Extension dependency",
+      "matches": ["vector", "VECTOR"],
+      "count": 27,
+      "canFail": false
+    },
+    {
+      "file": "20250802000001_update_to_minilm_embeddings.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["CREATE OR REPLACE FUNCTION"],
+      "count": 4,
+      "canFail": false
+    },
+    {
+      "file": "20250802000001_update_to_minilm_embeddings.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["DROP FUNCTION"],
+      "count": 4,
+      "canFail": false
+    },
+    {
+      "file": "20250802000002_add_file_contributors_and_embeddings.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth.role()"],
+      "count": 5,
+      "canFail": false
+    },
+    {
+      "file": "20250802000002_add_file_contributors_and_embeddings.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth."],
+      "count": 5,
+      "canFail": false
+    },
+    {
+      "file": "20250802000002_add_file_contributors_and_embeddings.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["service_role"],
+      "count": 3,
+      "canFail": false
+    },
+    {
+      "file": "20250802000002_add_file_contributors_and_embeddings.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["Authenticated", "authenticated"],
+      "count": 5,
+      "canFail": false
+    },
+    {
+      "file": "20250802000002_add_file_contributors_and_embeddings.sql",
+      "category": "extensions",
+      "description": "Extension dependency",
+      "matches": ["vector", "Vector"],
+      "count": 4,
+      "canFail": false
+    },
+    {
+      "file": "20250802000002_add_file_contributors_and_embeddings.sql",
+      "category": "triggers",
+      "description": "Trigger dependency",
+      "matches": ["Create trigger", "CREATE TRIGGER"],
+      "count": 6,
+      "canFail": false
+    },
+    {
+      "file": "20250802000002_add_file_contributors_and_embeddings.sql",
+      "category": "triggers",
+      "description": "Trigger dependency",
+      "matches": ["DROP TRIGGER"],
+      "count": 5,
+      "canFail": false
+    },
+    {
+      "file": "20250802000002_add_file_contributors_and_embeddings.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["Create function", "CREATE OR REPLACE FUNCTION"],
+      "count": 4,
+      "canFail": false
+    },
+    {
+      "file": "20250802000003_add_data_purge_cron.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth.role()"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250802000003_add_data_purge_cron.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth."],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250802000003_add_data_purge_cron.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["service_role"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250802000003_add_data_purge_cron.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["authenticated", "Authenticated"],
+      "count": 4,
+      "canFail": false
+    },
+    {
+      "file": "20250802000003_add_data_purge_cron.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["Grant access to "],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250802000003_add_data_purge_cron.sql",
+      "category": "extensions",
+      "description": "Extension dependency",
+      "matches": ["CREATE EXTENSION"],
+      "count": 1,
+      "canFail": true
+    },
+    {
+      "file": "20250802000003_add_data_purge_cron.sql",
+      "category": "extensions",
+      "description": "Extension dependency",
+      "matches": ["pg_cron"],
+      "count": 4,
+      "canFail": true
+    },
+    {
+      "file": "20250802000003_add_data_purge_cron.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["CREATE OR REPLACE FUNCTION"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250804080754_add_pull_request_count_column.sql",
+      "category": "triggers",
+      "description": "Trigger dependency",
+      "matches": ["Create trigger", "CREATE TRIGGER"],
+      "count": 4,
+      "canFail": false
+    },
+    {
+      "file": "20250804080754_add_pull_request_count_column.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["CREATE OR REPLACE FUNCTION"],
+      "count": 3,
+      "canFail": false
+    },
+    {
+      "file": "20250805_enable_rls_comment_commands.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth.uid()"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250805_enable_rls_comment_commands.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth.role()"],
+      "count": 11,
+      "canFail": false
+    },
+    {
+      "file": "20250805_enable_rls_comment_commands.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth."],
+      "count": 13,
+      "canFail": false
+    },
+    {
+      "file": "20250805_enable_rls_comment_commands.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["service_role"],
+      "count": 11,
+      "canFail": false
+    },
+    {
+      "file": "20250805_enable_rls_comment_commands.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["authenticated"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250805_fix_function_search_paths.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["service_role"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250805_fix_function_search_paths.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["authenticated"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250805_fix_function_search_paths.sql",
+      "category": "extensions",
+      "description": "Extension dependency",
+      "matches": ["vector"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250806_remove_security_definer_from_views.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["service_role"],
+      "count": 9,
+      "canFail": false
+    },
+    {
+      "file": "20250806_remove_security_definer_from_views.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["authenticated"],
+      "count": 9,
+      "canFail": false
+    },
+    {
+      "file": "20250810_add_metric_history_tracking.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["authenticated"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250810_add_metric_history_tracking.sql",
+      "category": "triggers",
+      "description": "Trigger dependency",
+      "matches": ["Create trigger", "CREATE TRIGGER"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250810_add_metric_history_tracking.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["CREATE OR REPLACE FUNCTION"],
+      "count": 3,
+      "canFail": false
+    },
+    {
+      "file": "20250821000000_add_avatar_caching.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth.jwt()"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250821000000_add_avatar_caching.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth."],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250821000000_add_avatar_caching.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["service_role"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250821000000_add_avatar_caching.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["CREATE OR REPLACE FUNCTION"],
+      "count": 3,
+      "canFail": false
+    },
+    {
+      "file": "20250821001000_add_sync_monitoring.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth.role()"],
+      "count": 6,
+      "canFail": false
+    },
+    {
+      "file": "20250821001000_add_sync_monitoring.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth."],
+      "count": 6,
+      "canFail": false
+    },
+    {
+      "file": "20250821001000_add_sync_monitoring.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["service_role"],
+      "count": 9,
+      "canFail": false
+    },
+    {
+      "file": "20250821001000_add_sync_monitoring.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["authenticated", "Authenticated"],
+      "count": 5,
+      "canFail": false
+    },
+    {
+      "file": "20250821001000_add_sync_monitoring.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["CREATE OR REPLACE FUNCTION"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250823_add_rate_limits_table.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth.uid()"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250823_add_rate_limits_table.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth."],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250823_add_rate_limits_table.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["service_role"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250823_add_rate_limits_table.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["authenticated", "Authenticated"],
+      "count": 3,
+      "canFail": false
+    },
+    {
+      "file": "20250823_add_rate_limits_table.sql",
+      "category": "extensions",
+      "description": "Extension dependency",
+      "matches": ["pg_cron"],
+      "count": 3,
+      "canFail": true
+    },
+    {
+      "file": "20250823_add_rate_limits_table.sql",
+      "category": "triggers",
+      "description": "Trigger dependency",
+      "matches": ["CREATE TRIGGER"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250823_add_rate_limits_table.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["CREATE OR REPLACE FUNCTION"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250823_atomic_repository_count.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["service_role"],
+      "count": 3,
+      "canFail": false
+    },
+    {
+      "file": "20250823_atomic_repository_count.sql",
+      "category": "triggers",
+      "description": "Trigger dependency",
+      "matches": ["Create trigger", "CREATE TRIGGER"],
+      "count": 3,
+      "canFail": false
+    },
+    {
+      "file": "20250823_atomic_repository_count.sql",
+      "category": "triggers",
+      "description": "Trigger dependency",
+      "matches": ["DROP TRIGGER"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250823_atomic_repository_count.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["Create function", "CREATE OR REPLACE FUNCTION"],
+      "count": 5,
+      "canFail": false
+    },
+    {
+      "file": "20250823_workspace_rls_policies.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth.uid()"],
+      "count": 41,
+      "canFail": false
+    },
+    {
+      "file": "20250823_workspace_rls_policies.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth.role()"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250823_workspace_rls_policies.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth.jwt()"],
+      "count": 3,
+      "canFail": false
+    },
+    {
+      "file": "20250823_workspace_rls_policies.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth."],
+      "count": 45,
+      "canFail": false
+    },
+    {
+      "file": "20250823_workspace_rls_policies.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["service_role"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250823_workspace_rls_policies.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["CREATE OR REPLACE FUNCTION"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250823_workspace_schema.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth.users"],
+      "count": 5,
+      "canFail": true
+    },
+    {
+      "file": "20250823_workspace_schema.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth."],
+      "count": 5,
+      "canFail": true
+    },
+    {
+      "file": "20250823_workspace_schema.sql",
+      "category": "triggers",
+      "description": "Trigger dependency",
+      "matches": ["CREATE TRIGGER"],
+      "count": 4,
+      "canFail": false
+    },
+    {
+      "file": "20250823_workspace_schema.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["CREATE OR REPLACE FUNCTION"],
+      "count": 3,
+      "canFail": false
+    },
+    {
+      "file": "20250824_enhance_trending_capture.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["authenticated"],
+      "count": 4,
+      "canFail": false
+    },
+    {
+      "file": "20250824_enhance_trending_capture.sql",
+      "category": "triggers",
+      "description": "Trigger dependency",
+      "matches": ["CREATE TRIGGER"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250824_enhance_trending_capture.sql",
+      "category": "triggers",
+      "description": "Trigger dependency",
+      "matches": ["DROP TRIGGER"],
+      "count": 1,
+      "canFail": false
+    },
+    {
+      "file": "20250824_enhance_trending_capture.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["CREATE OR REPLACE FUNCTION", "Create function"],
+      "count": 7,
+      "canFail": false
+    },
+    {
+      "file": "20250824_subscription_system.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth.uid()"],
+      "count": 4,
+      "canFail": true
+    },
+    {
+      "file": "20250824_subscription_system.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth.role()"],
+      "count": 6,
+      "canFail": true
+    },
+    {
+      "file": "20250824_subscription_system.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth.users"],
+      "count": 4,
+      "canFail": true
+    },
+    {
+      "file": "20250824_subscription_system.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth."],
+      "count": 14,
+      "canFail": true
+    },
+    {
+      "file": "20250824_subscription_system.sql",
+      "category": "roles",
+      "description": "Role dependency",
+      "matches": ["service_role"],
+      "count": 6,
+      "canFail": true
+    },
+    {
+      "file": "20250824_subscription_system.sql",
+      "category": "triggers",
+      "description": "Trigger dependency",
+      "matches": ["CREATE TRIGGER"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250824_subscription_system.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["CREATE OR REPLACE FUNCTION"],
+      "count": 4,
+      "canFail": false
+    },
+    {
+      "file": "20250826_fix_workspace_owner_member.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth.uid()"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250826_fix_workspace_owner_member.sql",
+      "category": "auth",
+      "description": "Auth schema dependency",
+      "matches": ["auth."],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250826_fix_workspace_owner_member.sql",
+      "category": "triggers",
+      "description": "Trigger dependency",
+      "matches": ["Create trigger", "CREATE TRIGGER"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250826_fix_workspace_owner_member.sql",
+      "category": "triggers",
+      "description": "Trigger dependency",
+      "matches": ["DROP TRIGGER"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250826_fix_workspace_owner_member.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["CREATE OR REPLACE FUNCTION"],
+      "count": 2,
+      "canFail": false
+    },
+    {
+      "file": "20250826_fix_workspace_owner_member.sql",
+      "category": "functions",
+      "description": "Function dependency",
+      "matches": ["DROP FUNCTION"],
+      "count": 2,
+      "canFail": false
+    }
+  ],
+  "orderIssues": [
+    {
+      "type": "fix_migrations",
+      "description": "Multiple fix/patch migrations indicate underlying issues",
+      "files": [
+        "20250121_fix_self_selection_function.sql",
+        "20250121_fix_self_selection_function_v2.sql",
+        "20250121_fix_tracked_repositories.sql",
+        "20250121_fix_tracked_repositories_fixed.sql",
+        "20250126_fix_all_rls_issues.sql",
+        "20250712000002_fix_auth_trigger_with_error_handling.sql",
+        "20250712000003_simplify_auth_fix.sql",
+        "20250712000005_fix_email_preferences_trigger.sql",
+        "20250804000000_fix_reviews_author_id.sql",
+        "20250805_fix_function_search_paths.sql",
+        "20250826_fix_workspace_owner_member.sql"
+      ],
+      "recommendation": "Consolidate fixes into original migrations"
+    },
+    {
+      "type": "duplicate_table",
+      "description": "Table \"github_app_installations\" created in multiple migrations",
+      "files": [
+        "20250114_github_app_schema.sql",
+        "20250802000002_add_file_contributors_and_embeddings.sql"
+      ],
+      "recommendation": "Consolidate table creation into single migration"
+    },
+    {
+      "type": "duplicate_table",
+      "description": "Table \"pr_insights\" created in multiple migrations",
+      "files": [
+        "20250114_github_app_schema.sql",
+        "20250802000002_add_file_contributors_and_embeddings.sql"
+      ],
+      "recommendation": "Consolidate table creation into single migration"
+    },
+    {
+      "type": "duplicate_table",
+      "description": "Table \"github_app_installation_settings\" created in multiple migrations",
+      "files": [
+        "20250114_github_app_schema.sql",
+        "20250802000002_add_file_contributors_and_embeddings.sql"
+      ],
+      "recommendation": "Consolidate table creation into single migration"
+    },
+    {
+      "type": "duplicate_table",
+      "description": "Table \"public\" created in multiple migrations",
+      "files": [
+        "20250120_github_events_classification.sql",
+        "20250120_github_events_classification.sql",
+        "20250120_github_events_classification.sql",
+        "20250120_github_events_classification.sql",
+        "20250120_github_events_classification.sql",
+        "20250120_github_events_classification.sql",
+        "20250120_github_events_classification.sql",
+        "20250120_github_events_classification.sql"
+      ],
+      "recommendation": "Consolidate table creation into single migration"
+    },
+    {
+      "type": "duplicate_table",
+      "description": "Table \"for\" created in multiple migrations",
+      "files": [
+        "20250120_github_events_classification.sql",
+        "20250810_add_metric_history_tracking.sql",
+        "20250810_add_metric_history_tracking.sql"
+      ],
+      "recommendation": "Consolidate table creation into single migration"
+    }
+  ],
+  "criticalFiles": [
+    "20250114_enable_rls_missing_tables.sql",
+    "20250120_setup_pg_cron.sql",
+    "20250802000003_add_data_purge_cron.sql",
+    "20250823_add_rate_limits_table.sql",
+    "20250823_workspace_schema.sql",
+    "20250824_subscription_system.sql"
+  ]
+}
