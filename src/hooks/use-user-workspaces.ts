@@ -92,15 +92,24 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
         // If auth error, try to get session as fallback
         if (authError) {
           console.log('[Workspace] Auth error, checking session:', authError.message);
-          const { data: { session } } = await supabase.auth.getSession();
-          if (!session) {
-            console.log('[Workspace] No session found, user is not authenticated');
+          try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+              console.log('[Workspace] No session found, user is not authenticated');
+              setWorkspaces([]);
+              setLoading(false);
+              hasInitialLoadRef.current = true;
+              return;
+            }
+            user = session.user;
+          } catch (sessionError) {
+            console.error('[Workspace] Failed to get session in auth fallback:', sessionError);
             setWorkspaces([]);
             setLoading(false);
+            setError(new Error('Unable to verify authentication'));
             hasInitialLoadRef.current = true;
             return;
           }
-          user = session.user;
         } else {
           user = authData?.user;
         }
@@ -356,8 +365,12 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
     } = supabase.auth.onAuthStateChange(async (event) => {
       if (!mounted) return;
       if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-        // Only refetch on actual sign in/out, not token refresh
-        await fetchUserWorkspaces();
+        try {
+          // Only refetch on actual sign in/out, not token refresh
+          await fetchUserWorkspaces();
+        } catch (error) {
+          console.error('[Workspace] Failed to refetch workspaces on auth state change:', error);
+        }
       }
     });
 
