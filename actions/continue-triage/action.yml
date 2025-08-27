@@ -48,7 +48,7 @@ runs:
       run: |
         echo "Installing action dependencies..."
         npm init -y
-        npm install @actions/core @actions/github @actions/exec js-yaml glob @octokit/rest
+        npm install @actions/core @actions/github @actions/exec js-yaml glob
         npm install --save-dev @types/js-yaml @types/node typescript tsx
 
     - name: Run Continue Triage
