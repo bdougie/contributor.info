@@ -34,6 +34,14 @@ async function run(): Promise<void> {
     const continueConfig = core.getInput('continue-config');
     const issueNumber = parseInt(core.getInput('issue-number'));
 
+    // Mask sensitive values in logs
+    if (continueApiKey) {
+      core.setSecret(continueApiKey);
+    }
+    if (token) {
+      core.setSecret(token);
+    }
+
     if (!token || !continueApiKey || !continueOrg || !continueConfig || !issueNumber) {
       throw new Error('Missing required inputs');
     }
@@ -250,14 +258,12 @@ Please respond in the following JSON format:
     const tmpPromptFile = path.join(process.cwd(), '.continue-triage-prompt.txt');
     fs.writeFileSync(tmpPromptFile, prompt);
 
-    // Execute Continue CLI
+    // Execute Continue CLI with API key as environment variable
     const exitCode = await exec.exec(
       'npx',
       [
         '@continuedev/cli',
         'chat',
-        '--api-key',
-        apiKey,
         '--config',
         `${org}/${config}`,
         '--model',
@@ -267,6 +273,10 @@ Please respond in the following JSON format:
         '--json',
       ],
       {
+        env: {
+          ...process.env,
+          CONTINUE_API_KEY: apiKey, // Pass API key securely via environment variable
+        },
         listeners: {
           stdout: (data: Buffer) => {
             output += data.toString();
