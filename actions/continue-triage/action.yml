@@ -1,0 +1,68 @@
+name: 'Continue Agent Issue Triage'
+description: 'Perform issue triage using Continue Agent with automatic labeling and SCQA feedback'
+author: 'Continue'
+
+inputs:
+  continue-api-key:
+    description: 'API key for Continue service'
+    required: true
+  github-token:
+    description: 'GitHub token for API access (use output from actions/create-github-app-token for App authentication)'
+    required: true
+  continue-org:
+    description: 'Continue organization/username from Continue Hub'
+    required: true
+  continue-config:
+    description: 'Continue assistant path (format: username/assistant-name)'
+    required: true
+  issue-number:
+    description: 'Issue number to triage'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install Continue CLI
+      shell: bash
+      run: |
+        echo "Installing Continue CLI..."
+        # Install locally in action directory
+        cd ${{ github.action_path }}
+        npm install @continuedev/cli@latest
+        # Add to PATH
+        echo "${{ github.action_path }}/node_modules/.bin" >> $GITHUB_PATH
+
+    - name: Install action dependencies
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: |
+        echo "Installing action dependencies..."
+        npm init -y
+        npm install @actions/core @actions/github @actions/exec js-yaml glob @octokit/rest
+        npm install --save-dev @types/js-yaml @types/node typescript tsx
+
+    - name: Run Continue Triage
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        CONTINUE_API_KEY: ${{ inputs.continue-api-key }}
+        CONTINUE_ORG: ${{ inputs.continue-org }}
+        CONTINUE_CONFIG: ${{ inputs.continue-config }}
+        INPUT_GITHUB_TOKEN: ${{ inputs.github-token }}
+        INPUT_CONTINUE_API_KEY: ${{ inputs.continue-api-key }}
+        INPUT_CONTINUE_ORG: ${{ inputs.continue-org }}
+        INPUT_CONTINUE_CONFIG: ${{ inputs.continue-config }}
+        INPUT_ISSUE_NUMBER: ${{ inputs.issue-number }}
+      run: |
+        echo "Running Continue Triage for issue #${{ inputs.issue-number }}..."
+        npx tsx index.ts
+
+branding:
+  icon: 'tag'
+  color: 'blue'
