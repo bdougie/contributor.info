@@ -58,13 +58,13 @@ async function run(): Promise<void> {
       process.env.INPUT_CONTINUE_API_KEY ? 'present' : 'missing'
     );
 
-    const token = core.getInput('github-token');
-    const continueApiKey = core.getInput('continue-api-key');
-    const continueOrg = core.getInput('continue-org');
-    const continueConfig = core.getInput('continue-config');
-    const issueNumber = parseInt(core.getInput('issue-number'));
+    const token = core.getInput('github_token') || core.getInput('github-token');
+    const continueApiKey = core.getInput('continue_api_key') || core.getInput('continue-api-key');
+    const continueOrg = core.getInput('continue_org') || core.getInput('continue-org');
+    const continueConfig = core.getInput('continue_config') || core.getInput('continue-config');
+    const issueNumber = parseInt(core.getInput('issue_number') || core.getInput('issue-number'));
     // Handle dry-run input safely - getBooleanInput is strict about format
-    const dryRunInput = core.getInput('dry-run');
+    const dryRunInput = core.getInput('dry_run') || core.getInput('dry-run');
     const dryRun = dryRunInput === 'true' || dryRunInput === 'True' || dryRunInput === 'TRUE';
 
     // Mask sensitive values in logs

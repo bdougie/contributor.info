@@ -59,12 +59,12 @@ runs:
         CONTINUE_API_KEY: ${{ inputs.continue-api-key }}
         CONTINUE_ORG: ${{ inputs.continue-org }}
         CONTINUE_CONFIG: ${{ inputs.continue-config }}
-        INPUT_GITHUB-TOKEN: ${{ inputs.github-token }}
-        INPUT_CONTINUE-API-KEY: ${{ inputs.continue-api-key }}
-        INPUT_CONTINUE-ORG: ${{ inputs.continue-org }}
-        INPUT_CONTINUE-CONFIG: ${{ inputs.continue-config }}
-        INPUT_ISSUE-NUMBER: ${{ inputs.issue-number }}
-        INPUT_DRY-RUN: ${{ inputs.dry-run }}
+        INPUT_GITHUB_TOKEN: ${{ inputs.github-token }}
+        INPUT_CONTINUE_API_KEY: ${{ inputs.continue-api-key }}
+        INPUT_CONTINUE_ORG: ${{ inputs.continue-org }}
+        INPUT_CONTINUE_CONFIG: ${{ inputs.continue-config }}
+        INPUT_ISSUE_NUMBER: ${{ inputs.issue-number }}
+        INPUT_DRY_RUN: ${{ inputs.dry-run }}
       run: |
         echo "Running Continue Triage for issue #${{ inputs.issue-number }}..."
         npx tsx index.ts
