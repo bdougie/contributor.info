@@ -29,9 +29,9 @@
     "test:lighthouse:comprehensive": "npm run build && npm run preview & sleep 3 && npm run lighthouse && npm run lighthouse:desktop && npm run lighthouse:mobile && npm run lighthouse:mobile-fast && npm run lighthouse:mobile-slow && kill %1",
     "analyze:mobile-performance": "node scripts/performance/analyze-mobile-performance.js",
     "test:mobile-performance": "npm run test:lighthouse:mobile && npm run analyze:mobile-performance",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
-    "lint:build": "eslint src/ --ext .ts,.tsx --ignore-pattern '**/__mocks__/**' --ignore-pattern '**/*.stories.*' --ignore-pattern '**/*.test.*' --ignore-pattern '**/stories/**' --max-warnings 10",
+    "lint": "eslint . --cache",
+    "lint:fix": "eslint . --fix --cache",
+    "lint:build": "eslint src/ --ext .ts,.tsx --ignore-pattern '**/__mocks__/**' --ignore-pattern '**/*.stories.*' --ignore-pattern '**/*.test.*' --ignore-pattern '**/stories/**' --max-warnings 10 --cache",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "preview": "vite preview",
@@ -214,14 +214,5 @@
     "vite": "^6.3.5",
     "vitest": "^3.1.1",
     "wait-on": "^8.0.3"
-  },
-  "lint-staged": {
-    "*.{js,jsx,ts,tsx}": [
-      "eslint --fix",
-      "prettier --write"
-    ],
-    "*.{json,css,scss,md,mdx,html}": [
-      "prettier --write"
-    ]
   }
 }

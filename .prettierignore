@@ -58,6 +58,13 @@ e2e/fixtures/
 
 # Markdown files that may contain code snippets
 *.md
+*.mdx
+
+# HTML files (may have specific formatting)
+*.html
+
+# Storybook mocks with special import handling
+.storybook/mocks/supabase.ts
 
 # Configuration files that may have specific formatting requirements
 tsconfig.json
