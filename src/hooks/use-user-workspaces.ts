@@ -113,7 +113,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
         } else {
           user = authData?.user;
         }
-      } catch (timeoutError) {
+      } catch {
         clearTimeout(authTimeoutId);
         
         if (signal.aborted) {
@@ -336,6 +336,20 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
     }
   }, []);
 
+  // Debounced fetch function to prevent rapid refetching
+  const debouncedFetchRef = useRef<NodeJS.Timeout | null>(null);
+  const debouncedFetch = useCallback(() => {
+    // Clear any existing debounce timer
+    if (debouncedFetchRef.current) {
+      clearTimeout(debouncedFetchRef.current);
+    }
+    
+    // Set new debounce timer
+    debouncedFetchRef.current = setTimeout(() => {
+      fetchUserWorkspaces();
+    }, 500); // 500ms debounce delay
+  }, [fetchUserWorkspaces]);
+
   useEffect(() => {
     let mounted = true;
     let loadingTimeout: NodeJS.Timeout;
@@ -359,18 +373,33 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
     
     initFetch();
 
-    // Listen for auth state changes
+    // Listen for auth state changes with better filtering
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event) => {
       if (!mounted) return;
+      
+      // Auth event received - only process SIGNED_IN and SIGNED_OUT events
+      
+      // Only refetch on actual sign in/out events, ignore token refreshes and other events
       if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-        try {
-          // Only refetch on actual sign in/out, not token refresh
-          await fetchUserWorkspaces();
-        } catch (error) {
-          console.error('[Workspace] Failed to refetch workspaces on auth state change:', error);
+        // Use debounced fetch to prevent rapid successive calls
+        debouncedFetch();
+      } else if (event === 'TOKEN_REFRESHED') {
+        // Explicitly ignore token refresh events to prevent unnecessary refetches
+      } else if (event === 'USER_UPDATED') {
+        // USER_UPDATED can change user metadata (avatar_url, display_name) which is used
+        // for workspace owner info. Use a longer debounce to avoid excessive refetches
+        // if multiple profile fields are updated in quick succession
+        if (debouncedFetchRef.current) {
+          clearTimeout(debouncedFetchRef.current);
         }
+        debouncedFetchRef.current = setTimeout(() => {
+          console.log('[Workspace] User profile updated, refreshing workspace data...');
+          fetchUserWorkspaces();
+        }, 1000); // 1 second debounce for USER_UPDATED events
+      } else {
+        // Ignore other auth events
       }
     });
 
@@ -378,13 +407,19 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
       mounted = false;
       subscription.unsubscribe();
       if (loadingTimeout) clearTimeout(loadingTimeout);
+      // Clear debounce timer
+      if (debouncedFetchRef.current) {
+        clearTimeout(debouncedFetchRef.current);
+        debouncedFetchRef.current = null;
+      }
       // Cancel any pending requests
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
         abortControllerRef.current = null;
       }
     };
-  }, []); // Empty dependency array - only run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedFetch]); // Include debouncedFetch in dependencies, exclude others intentionally
 
   return {
     workspaces,
