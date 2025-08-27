@@ -8,8 +8,8 @@ import * as github from '@actions/github';
  */
 export async function getAuthenticatedOctokit(
   githubToken: string,
-  owner: string,
-  repo: string
+  _owner: string,
+  _repo: string
 ): Promise<ReturnType<typeof github.getOctokit>> {
   // Validate that we have a token
   if (!githubToken) {

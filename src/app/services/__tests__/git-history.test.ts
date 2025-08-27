@@ -28,7 +28,6 @@ vi.mock('../../../lib/supabase', () => ({
 describe('Git History Service', () => {
   let mockOctokit: Partial<Octokit>;
   let mockRepository: Repository;
-  let mockLogger: any;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -67,7 +66,6 @@ describe('Git History Service', () => {
     } as Partial<Octokit>;
 
     // Logger instance is already mocked
-    mockLogger = mockLoggerInstance;
   });
 
   describe('Structured Logging', () => {
