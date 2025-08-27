@@ -50,6 +50,14 @@ interface TriageAnalysis {
 
 async function run(): Promise<void> {
   try {
+    // Debug environment variables
+    console.log('Environment check:');
+    console.log('  INPUT_GITHUB_TOKEN:', process.env.INPUT_GITHUB_TOKEN ? 'present' : 'missing');
+    console.log(
+      '  INPUT_CONTINUE_API_KEY:',
+      process.env.INPUT_CONTINUE_API_KEY ? 'present' : 'missing'
+    );
+
     const token = core.getInput('github-token');
     const continueApiKey = core.getInput('continue-api-key');
     const continueOrg = core.getInput('continue-org');
