@@ -1,0 +1,82 @@
+# Dependencies
+node_modules/
+
+# Production build
+dist/
+build/
+.netlify/
+
+# Test coverage
+coverage/
+
+# Storybook
+storybook-static/
+
+# Generated files
+**/*.generated.*
+*.min.js
+*.min.css
+
+# Public assets
+public/
+
+# Lighthouse reports
+lighthouse-reports/
+
+# Supabase
+supabase/functions/
+
+# Lock files
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# Environment files
+.env*
+
+# Temporary files
+*.tmp
+*.temp
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Log files
+*.log
+
+# Test files that may have specific formatting
+tests/fixtures/
+e2e/fixtures/
+
+# Markdown files that may contain code snippets
+*.md
+*.mdx
+
+# HTML files (may have specific formatting)
+*.html
+
+# Storybook mocks with special import handling
+.storybook/mocks/supabase.ts
+
+# Configuration files that may have specific formatting requirements
+tsconfig.json
+tsconfig.*.json
+
+# Git
+.git/
+.gitignore
+
+# Tailwind CSS
+tailwind.config.js
+
+# Vite config
+vite.config.ts
+vite.config.*.ts

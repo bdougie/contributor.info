@@ -41,6 +41,9 @@ chromatic-diagnostics.json
 # Coverage reports
 coverage
 
+# ESLint cache
+.eslintcache
+
 # eval
 eval-outputs/
 
