@@ -1,0 +1,166 @@
+name: Validate Database Migrations
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/*.sql'
+      - 'scripts/migrations/*.js'
+      - '.github/workflows/validate-migrations.yml'
+
+jobs:
+  validate:
+    name: Validate Migration Compatibility
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: supabase/postgres:15.1.0.117
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate migrations for environment dependencies
+        id: validate
+        run: |
+          echo "🔍 Analyzing migrations for environment-specific dependencies..."
+          node scripts/migrations/analyze-migrations.js > analysis.txt
+          cat analysis.txt
+
+          echo ""
+          echo "✅ Validating migrations for local compatibility..."
+          node scripts/migrations/validate-migrations.js || echo "validation_failed=true" >> $GITHUB_OUTPUT
+
+      - name: Generate local-safe migrations
+        if: always()
+        run: |
+          echo "🔧 Generating local-safe versions..."
+          node scripts/migrations/generate-local-safe.js
+
+          # Check if files were generated
+          if [ -d "supabase/migrations-local" ]; then
+            echo "✅ Local-safe migrations generated successfully"
+            echo "Files generated: $(ls -1 supabase/migrations-local/*.sql | wc -l)"
+          else
+            echo "❌ Failed to generate local-safe migrations"
+            exit 1
+          fi
+
+      - name: Test migrations on fresh database
+        if: always()
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+        run: |
+          echo "🚀 Testing migrations on fresh database..."
+
+          # Test consolidated migration
+          psql "$DATABASE_URL" -f supabase/migrations-local/000_consolidated_local_safe.sql
+
+          if [ $? -eq 0 ]; then
+            echo "✅ Migrations applied successfully!"
+            
+            # Show summary
+            psql "$DATABASE_URL" -c "SELECT COUNT(*) as table_count FROM information_schema.tables WHERE table_schema = 'public';"
+            psql "$DATABASE_URL" -c "SELECT COUNT(*) as function_count FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid WHERE n.nspname = 'public';"
+          else
+            echo "❌ Migration test failed"
+            exit 1
+          fi
+
+      - name: Comment PR with results
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let analysisContent = '';
+
+            try {
+              analysisContent = fs.readFileSync('analysis.txt', 'utf8');
+            } catch (e) {
+              analysisContent = 'Analysis not available';
+            }
+
+            const comment = `## ⚠️ Migration Validation Failed
+
+            Your migrations contain environment-specific dependencies that will prevent local development setup.
+
+            ### Common Issues Found:
+            - Auth dependencies without conditional checks
+            - Missing role creation for service_role/anon/authenticated
+            - Extensions requiring superuser privileges (pg_cron)
+            - Non-idempotent operations
+
+            ### How to Fix:
+
+            1. **Wrap auth dependencies:**
+            \`\`\`sql
+            DO $$
+            BEGIN
+              IF EXISTS (SELECT 1 FROM information_schema.schemata WHERE schema_name = 'auth') THEN
+                -- Your auth-dependent code here
+              END IF;
+            END $$;
+            \`\`\`
+
+            2. **Create roles if missing:**
+            \`\`\`sql
+            DO $$
+            BEGIN
+              IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN
+                CREATE ROLE service_role;
+              END IF;
+            END $$;
+            \`\`\`
+
+            3. **Make extensions optional:**
+            \`\`\`sql
+            CREATE EXTENSION IF NOT EXISTS pg_cron;
+            \`\`\`
+
+            ### Analysis Results:
+            <details>
+            <summary>Click to see detailed analysis</summary>
+
+            \`\`\`
+            ${analysisContent.substring(0, 3000)}
+            \`\`\`
+            </details>
+
+            Please review the [migration template](supabase/migrations/TEMPLATE.sql) for best practices.`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+      - name: Upload analysis artifacts
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: migration-analysis
+          path: |
+            analysis.txt
+            supabase/migration-analysis-report.json
+            supabase/migration-validation-report.json

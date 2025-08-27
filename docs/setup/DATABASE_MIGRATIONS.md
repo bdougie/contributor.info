@@ -222,6 +222,96 @@ SELECT * FROM pg_available_extensions;
 - Basic roles only
 - Use local-safe migrations in `supabase/migrations-local/`
 
+## Testing Strategy
+
+### Unit Testing Migrations
+
+Test individual migrations in isolation:
+
+```bash
+# 1. Start fresh database
+supabase db reset --db-url postgresql://postgres:postgres@localhost:54322/postgres
+
+# 2. Test single migration
+psql "postgresql://postgres:postgres@localhost:54322/postgres" \
+  -f supabase/migrations/your_migration.sql
+
+# 3. Verify expected schema
+psql "postgresql://postgres:postgres@localhost:54322/postgres" -c "\dt"
+psql "postgresql://postgres:postgres@localhost:54322/postgres" -c "\df"
+```
+
+### Integration Testing
+
+Test complete migration sequence:
+
+```bash
+# 1. Run all migrations
+bash supabase/migrations-local/setup-local.sh
+
+# 2. Run test queries
+node scripts/test-database-queries.js
+
+# 3. Verify data integrity
+psql "postgresql://postgres:postgres@localhost:54322/postgres" \
+  -f scripts/test-data-integrity.sql
+```
+
+### Regression Testing
+
+Before merging changes:
+
+```bash
+# 1. Backup current schema
+pg_dump --schema-only postgresql://postgres:postgres@localhost:54322/postgres > before.sql
+
+# 2. Apply new migrations
+bash supabase/migrations-local/setup-local.sh
+
+# 3. Compare schemas
+pg_dump --schema-only postgresql://postgres:postgres@localhost:54322/postgres > after.sql
+diff before.sql after.sql
+```
+
+### Performance Testing
+
+Check migration performance:
+
+```bash
+# Time migration execution
+time psql "postgresql://postgres:postgres@localhost:54322/postgres" \
+  -f supabase/migrations-local/000_consolidated_local_safe.sql
+
+# Check index usage
+psql "postgresql://postgres:postgres@localhost:54322/postgres" \
+  -c "SELECT schemaname, tablename, indexname FROM pg_indexes;"
+
+# Analyze query plans
+psql "postgresql://postgres:postgres@localhost:54322/postgres" \
+  -c "EXPLAIN ANALYZE SELECT * FROM contributors;"
+```
+
+### CI Testing
+
+Automated testing in GitHub Actions:
+
+1. **Validation on PR** - `.github/workflows/validate-migrations.yml`
+2. **Fresh database test** - Runs on Postgres container
+3. **Local-safe generation** - Ensures compatibility
+4. **Analysis reports** - Uploaded as artifacts
+
+### Test Coverage Checklist
+
+- [ ] Migration runs on fresh database
+- [ ] Migration is idempotent (can run twice)
+- [ ] Auth dependencies are conditional
+- [ ] Roles are created if missing
+- [ ] Extensions are optional
+- [ ] No data loss on rollback
+- [ ] Performance acceptable (<5s per migration)
+- [ ] Works on Windows/Mac/Linux
+- [ ] CI validation passes
+
 ## Best Practices
 
 1. **Always test migrations locally first**
@@ -229,6 +319,9 @@ SELECT * FROM pg_available_extensions;
 3. **Make migrations idempotent (can run multiple times)**
 4. **Document dependencies in migration comments**
 5. **Group related changes in single migration**
+6. **Test on fresh database before merging**
+7. **Verify rollback procedures work**
+8. **Check cross-platform compatibility**
 
 ## Migration Development Workflow
 
@@ -285,6 +378,167 @@ Production deployments should use original migrations:
 ```bash
 # Production deployment
 supabase db push --db-url $PRODUCTION_DATABASE_URL
+```
+
+## Rollback Strategy
+
+### Migration Rollback Procedures
+
+Each migration should have a corresponding rollback plan to safely revert changes if issues occur.
+
+### Creating Rollback Scripts
+
+For each migration, create a corresponding rollback:
+
+```bash
+# Migration file: 20240101_add_feature.sql
+# Rollback file: rollback_20240101_add_feature.sql
+```
+
+Example rollback script structure:
+
+```sql
+-- Rollback for: 20240101_add_feature.sql
+-- Description: Safely removes feature X additions
+
+BEGIN;
+
+-- 1. Save any data that needs preserving
+CREATE TEMP TABLE backup_data AS 
+SELECT * FROM table_to_modify 
+WHERE created_at > '2024-01-01';
+
+-- 2. Reverse schema changes (in reverse order)
+DROP TRIGGER IF EXISTS new_trigger ON table_name;
+DROP FUNCTION IF EXISTS new_function();
+ALTER TABLE table_name DROP COLUMN IF EXISTS new_column;
+DROP TABLE IF EXISTS new_table CASCADE;
+
+-- 3. Restore previous state if needed
+-- UPDATE table_name SET column = old_value WHERE condition;
+
+-- 4. Verify rollback success
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns 
+             WHERE table_name = 'table_name' AND column_name = 'new_column') THEN
+    RAISE EXCEPTION 'Rollback failed: new_column still exists';
+  END IF;
+END $$;
+
+COMMIT;
+```
+
+### Rollback Procedures by Type
+
+#### Table Changes
+```sql
+-- Rolling back new table
+DROP TABLE IF EXISTS table_name CASCADE;
+
+-- Rolling back new column
+ALTER TABLE table_name DROP COLUMN IF EXISTS column_name;
+
+-- Rolling back column type change (requires data backup)
+ALTER TABLE table_name 
+ALTER COLUMN column_name TYPE original_type 
+USING column_name::original_type;
+```
+
+#### Index Changes
+```sql
+-- Rolling back new index
+DROP INDEX IF EXISTS index_name;
+
+-- Rolling back index changes
+DROP INDEX IF EXISTS new_index_name;
+CREATE INDEX old_index_name ON table_name(column);
+```
+
+#### Function/Trigger Changes
+```sql
+-- Rolling back function changes
+DROP FUNCTION IF EXISTS function_name() CASCADE;
+-- Recreate original function if needed
+CREATE OR REPLACE FUNCTION function_name() ...
+
+-- Rolling back triggers
+DROP TRIGGER IF EXISTS trigger_name ON table_name;
+```
+
+#### RLS Policy Changes
+```sql
+-- Rolling back RLS policies
+DROP POLICY IF EXISTS policy_name ON table_name;
+-- Recreate original policy if needed
+CREATE POLICY old_policy_name ON table_name ...
+```
+
+### Emergency Rollback Process
+
+For production emergencies:
+
+```bash
+# 1. Stop application to prevent data corruption
+kubectl scale deployment app --replicas=0
+
+# 2. Create backup of current state
+pg_dump $DATABASE_URL > emergency_backup_$(date +%s).sql
+
+# 3. Run rollback scripts in reverse chronological order
+psql $DATABASE_URL -f rollback_20240103.sql
+psql $DATABASE_URL -f rollback_20240102.sql
+psql $DATABASE_URL -f rollback_20240101.sql
+
+# 4. Verify database state
+psql $DATABASE_URL -f scripts/verify-schema.sql
+
+# 5. Restart application
+kubectl scale deployment app --replicas=3
+```
+
+### Rollback Testing
+
+Always test rollbacks before production deployment:
+
+```bash
+# 1. Apply migration to test database
+psql $TEST_DB -f migration.sql
+
+# 2. Insert test data
+psql $TEST_DB -f test_data.sql
+
+# 3. Execute rollback
+psql $TEST_DB -f rollback_migration.sql
+
+# 4. Verify data integrity
+psql $TEST_DB -c "SELECT COUNT(*) FROM critical_table;"
+
+# 5. Verify schema restored
+psql $TEST_DB -c "\d+ table_name"
+```
+
+### Rollback Best Practices
+
+1. **Always use transactions** - Wrap rollbacks in BEGIN/COMMIT
+2. **Backup before rollback** - Create point-in-time backup
+3. **Test in staging first** - Never rollback production without testing
+4. **Document data loss** - Clearly note what data will be lost
+5. **Preserve critical data** - Use TEMP tables to save important data
+6. **Verify success** - Include checks to confirm rollback worked
+7. **Consider cascade effects** - Check foreign key dependencies
+8. **Plan for downtime** - Some rollbacks require app shutdown
+
+### Point-in-Time Recovery
+
+For catastrophic failures, use Supabase's point-in-time recovery:
+
+```bash
+# Restore to specific timestamp
+supabase db restore --timestamp "2024-01-01 10:00:00"
+
+# Or restore to specific backup
+supabase db restore --backup-id abc123
 ```
 
 ## Summary

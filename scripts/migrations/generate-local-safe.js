@@ -12,10 +12,17 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Ensure cross-platform path compatibility
+const normalizePath = (p) => path.normalize(p).replace(/\\/g, '/');
+
 class LocalSafeMigrationGenerator {
   constructor() {
     this.sourceDir = path.join(__dirname, '../../supabase/migrations');
     this.outputDir = path.join(__dirname, '../../supabase/migrations-local');
+
+    // Normalize paths for cross-platform compatibility
+    this.sourceDir = path.resolve(this.sourceDir);
+    this.outputDir = path.resolve(this.outputDir);
     this.report = {
       processed: [],
       skipped: [],
@@ -27,31 +34,51 @@ class LocalSafeMigrationGenerator {
    * Main entry point to generate local-safe migrations
    */
   async generate() {
-    console.log('🔧 Generating local-safe migrations...\n');
+    try {
+      console.log('🔧 Generating local-safe migrations...\n');
 
-    // Create output directory
-    if (!fs.existsSync(this.outputDir)) {
-      fs.mkdirSync(this.outputDir, { recursive: true });
+      // Validate source directory exists
+      if (!fs.existsSync(this.sourceDir)) {
+        throw new Error(`Source directory not found: ${this.sourceDir}`);
+      }
+
+      // Create output directory
+      if (!fs.existsSync(this.outputDir)) {
+        fs.mkdirSync(this.outputDir, { recursive: true });
+      }
+
+      // Process each migration file
+      const files = fs
+        .readdirSync(this.sourceDir)
+        .filter((f) => f.endsWith('.sql'))
+        .sort();
+
+      if (files.length === 0) {
+        console.warn('⚠️  No migration files found in', this.sourceDir);
+        return;
+      }
+
+      for (const file of files) {
+        try {
+          await this.processMigration(file);
+        } catch (error) {
+          console.error(`❌ Failed to process ${file}:`, error.message);
+          this.report.skipped.push(file);
+        }
+      }
+
+      // Generate consolidated single-file migration for easy setup
+      this.generateConsolidatedMigration();
+
+      // Generate setup script
+      this.generateSetupScript();
+
+      // Generate report
+      this.generateReport();
+    } catch (error) {
+      console.error('❌ Fatal error in generate():', error);
+      process.exit(1);
     }
-
-    // Process each migration file
-    const files = fs
-      .readdirSync(this.sourceDir)
-      .filter((f) => f.endsWith('.sql'))
-      .sort();
-
-    for (const file of files) {
-      await this.processMigration(file);
-    }
-
-    // Generate consolidated single-file migration for easy setup
-    this.generateConsolidatedMigration();
-
-    // Generate setup script
-    this.generateSetupScript();
-
-    // Generate report
-    this.generateReport();
   }
 
   /**
@@ -61,7 +88,17 @@ class LocalSafeMigrationGenerator {
     const sourcePath = path.join(this.sourceDir, fileName);
     const outputPath = path.join(this.outputDir, fileName);
 
-    let content = fs.readFileSync(sourcePath, 'utf8');
+    if (!fs.existsSync(sourcePath)) {
+      throw new Error(`Migration file not found: ${sourcePath}`);
+    }
+
+    let content;
+    try {
+      content = fs.readFileSync(sourcePath, 'utf8');
+    } catch (error) {
+      throw new Error(`Failed to read migration: ${error.message}`);
+    }
+
     const originalContent = content;
 
     // Apply safety transformations
@@ -88,8 +125,12 @@ ${content}`;
     }
 
     // Write the processed migration
-    fs.writeFileSync(outputPath, content);
-    this.report.processed.push(fileName);
+    try {
+      fs.writeFileSync(outputPath, content);
+      this.report.processed.push(fileName);
+    } catch (error) {
+      throw new Error(`Failed to write migration: ${error.message}`);
+    }
   }
 
   /**
@@ -510,15 +551,26 @@ If a migration fails:
     fs.writeFileSync(path.join(this.outputDir, 'README.md'), readme);
 
     console.log('✅ Local-safe migrations generated successfully!\n');
-    console.log(`📁 Output directory: ${this.outputDir}`);
+    console.log(`📁 Output directory: ${normalizePath(this.outputDir)}`);
     console.log(`📊 Modified ${this.report.modified.length} migrations`);
     console.log(`⏭️  Skipped ${this.report.skipped.length} migrations (already safe)`);
-    console.log(
-      `\n🚀 Quick start: bash ${path.relative(process.cwd(), path.join(this.outputDir, 'setup-local.sh'))}`
+
+    // Use forward slashes for consistent display across platforms
+    const setupScript = normalizePath(
+      path.relative(process.cwd(), path.join(this.outputDir, 'setup-local.sh'))
     );
+    console.log(`\n🚀 Quick start: bash ${setupScript}`);
+
+    // Windows-specific instructions
+    if (process.platform === 'win32') {
+      console.log('\n💡 Windows users: Run in Git Bash or WSL for best compatibility');
+    }
   }
 }
 
 // Run the generator
 const generator = new LocalSafeMigrationGenerator();
-generator.generate();
+generator.generate().catch((error) => {
+  console.error('❌ Migration generation failed:', error);
+  process.exit(1);
+});

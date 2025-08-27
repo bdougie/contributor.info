@@ -155,7 +155,62 @@ END $$;`
     return safeContent;
   }
 
+  /**
+   * Validate migrations before consolidation
+   */
+  validateBeforeConsolidation() {
+    const errors = [];
+
+    // Check if migrations directory exists
+    if (!fs.existsSync(this.migrationsDir)) {
+      errors.push(`Migrations directory not found: ${this.migrationsDir}`);
+    }
+
+    // Check for SQL syntax errors in each file
+    const files = fs.readdirSync(this.migrationsDir).filter((f) => f.endsWith('.sql'));
+
+    files.forEach((file) => {
+      const filePath = path.join(this.migrationsDir, file);
+      const content = fs.readFileSync(filePath, 'utf8');
+
+      // Basic SQL validation checks
+      const openParens = (content.match(/\(/g) || []).length;
+      const closeParens = (content.match(/\)/g) || []).length;
+      if (openParens !== closeParens) {
+        errors.push(`${file}: Unbalanced parentheses (${openParens} open, ${closeParens} close)`);
+      }
+
+      // Check for unterminated strings
+      const quotes = content.split("'").length - 1;
+      if (quotes % 2 !== 0) {
+        errors.push(`${file}: Unterminated string literal`);
+      }
+
+      // Check for required transaction blocks
+      if (content.includes('DROP TABLE') && !content.includes('BEGIN')) {
+        errors.push(`${file}: Contains DROP TABLE without transaction block`);
+      }
+    });
+
+    return {
+      success: errors.length === 0,
+      errors,
+      fileCount: files.length,
+    };
+  }
+
   consolidate() {
+    console.log('📦 Starting migration consolidation process...\n');
+
+    // Validate before consolidation
+    const validation = this.validateBeforeConsolidation();
+    if (!validation.success) {
+      console.error('❌ Validation failed:');
+      validation.errors.forEach((err) => console.error(`  - ${err}`));
+      process.exit(1);
+    }
+    console.log(`✅ Validated ${validation.fileCount} migrations\n`);
+
     // Create output directory structure
     if (!fs.existsSync(this.outputDir)) {
       fs.mkdirSync(this.outputDir, { recursive: true });
