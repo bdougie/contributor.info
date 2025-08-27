@@ -68,6 +68,12 @@ async function run(): Promise<void> {
     }
 
     if (!token || !continueApiKey || !continueOrg || !continueConfig || !issueNumber) {
+      console.error('Debug - Input values:');
+      console.error('  token:', token ? 'present' : 'missing');
+      console.error('  continueApiKey:', continueApiKey ? 'present' : 'missing');
+      console.error('  continueOrg:', continueOrg || 'missing');
+      console.error('  continueConfig:', continueConfig || 'missing');
+      console.error('  issueNumber:', issueNumber || 'missing');
       throw new Error('Missing required inputs');
     }
 
