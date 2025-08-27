@@ -27,9 +27,8 @@ runs:
       working-directory: ${{ github.action_path }}
       run: |
         echo "Installing action dependencies..."
-        npm init -y
-        npm install @actions/core @actions/github @actions/exec js-yaml glob @octokit/rest
-        npm install --save-dev @types/js-yaml @types/node typescript tsx
+        # Install exact versions as specified in package.json
+        npm ci || npm install
 
     - name: Run Documentation Review
       shell: bash
