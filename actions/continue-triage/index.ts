@@ -453,9 +453,6 @@ function performFallbackAnalysis(issue: IssueData, availableLabels: Label[]): Tr
 }
 
 function generateSCQAComment(analysis: TriageAnalysis, dryRun = false): string {
-  // Extract key insights from the SCQA analysis to create a helpful comment
-  const labelsList = analysis.suggestedLabels.map((label) => `\`${label}\``).join(', ');
-
   // Create a conversational, helpful response based on the analysis
   let comment = `Hey there! I've analyzed this issue and here's what I found:\n\n`;
 
@@ -495,25 +492,12 @@ function generateSCQAComment(analysis: TriageAnalysis, dryRun = false): string {
     comment += `\n`;
   }
 
-  // Add labels section if any were applied
-  if (labelsList) {
-    comment += `### 🏷️ Labels ${dryRun ? 'Suggested' : 'Applied'}\n\n`;
-    comment += `I've ${dryRun ? 'suggested' : 'applied'} these labels: ${labelsList}\n\n`;
-
-    // Add reasoning for each label
-    if (analysis.reasoning && Object.keys(analysis.reasoning).length > 0) {
-      comment += `**Why these labels?**\n`;
-      for (const [label, reason] of Object.entries(analysis.reasoning)) {
-        comment += `- \`${label}\`: ${reason}\n`;
-      }
-      comment += `\n`;
-    }
-  }
+  // Note: Labels section removed per user request - labels are applied silently
 
   // Add a helpful closing
   comment += `---\n`;
-  comment += `*I'm a bot powered by [Continue AI](https://github.com/continuedev/continue) • `;
-  comment += `View [triage rules](https://github.com/bdougie/contributor.info/tree/main/.continue/rules)*`;
+  comment += `*I'm a bot powered by [Continue](https://continue.dev) `;
+  comment += `[view my triage rules](https://github.com/bdougie/contributor.info/tree/main/.continue/rules)*`;
 
   if (dryRun) {
     comment += `\n*Note: This is a dry run - no labels were actually applied.*`;
