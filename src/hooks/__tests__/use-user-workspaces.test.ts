@@ -22,6 +22,7 @@ describe('useUserWorkspaces', () => {
   beforeEach(() => {
     // Reset mocks
     vi.clearAllMocks();
+    vi.useFakeTimers();
     
     // Mock auth state change subscription
     unsubscribe = vi.fn();
@@ -48,21 +49,23 @@ describe('useUserWorkspaces', () => {
       },
     });
 
-    // Mock workspace queries
-    const mockFrom = vi.fn(() => ({
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          eq: vi.fn(() => Promise.resolve({ data: [], error: null })),
-        })),
-        in: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            order: vi.fn(() => ({
-              returns: vi.fn(() => Promise.resolve({ data: [], error: null })),
-            })),
-          })),
-        })),
-      })),
-    }));
+    // Mock workspace queries with proper chain
+    const mockFrom = vi.fn((table: string) => {
+      // Base chain object that all queries return
+      const createChain = (data: any = [], error: any = null) => ({
+        select: vi.fn(() => createChain(data, error)),
+        eq: vi.fn(() => createChain(data, error)),
+        in: vi.fn(() => createChain(data, error)),
+        order: vi.fn(() => createChain(data, error)),
+        limit: vi.fn(() => createChain(data, error)),
+        returns: vi.fn(() => Promise.resolve({ data, error })),
+        // Direct promise resolution for simple queries
+        then: (resolve: any) => Promise.resolve({ data, error }).then(resolve),
+        catch: (reject: any) => Promise.resolve({ data, error }).catch(reject),
+      });
+      
+      return createChain();
+    });
     (supabase.from as any).mockImplementation(mockFrom);
   });
 
@@ -71,17 +74,16 @@ describe('useUserWorkspaces', () => {
   });
 
   it('should ignore TOKEN_REFRESHED events', async () => {
-    const fetchSpy = vi.spyOn(console, 'log');
-    
     renderHook(() => useUserWorkspaces());
 
-    // Wait for initial load
-    await waitFor(() => {
-      expect(supabase.auth.getUser).toHaveBeenCalled();
+    // Wait for initial load by advancing timers
+    await act(async () => {
+      await vi.runAllTimersAsync();
     });
+    
+    expect(supabase.auth.getUser).toHaveBeenCalled();
 
-    // Clear the spy to ignore initial logs
-    fetchSpy.mockClear();
+    const authCalls = (supabase.auth.getUser as any).mock.calls.length;
 
     // Simulate TOKEN_REFRESHED event
     act(() => {
@@ -91,34 +93,27 @@ describe('useUserWorkspaces', () => {
         });
       }
     });
-
-    // Verify that TOKEN_REFRESHED is explicitly ignored
-    expect(fetchSpy).toHaveBeenCalledWith('[Workspace] Ignoring TOKEN_REFRESHED event');
     
-    // The fetch should not be triggered again
-    const authCalls = (supabase.auth.getUser as any).mock.calls.length;
+    // Advance timers to ensure debounce doesn't trigger
+    act(() => {
+      vi.advanceTimersByTime(600);
+    });
     
-    // Wait a bit to ensure no new fetch is triggered
-    await waitFor(() => new Promise(resolve => setTimeout(resolve, 100)));
-    
-    // Auth.getUser should not have been called again
+    // Auth.getUser should not have been called again (TOKEN_REFRESHED is ignored)
     expect((supabase.auth.getUser as any).mock.calls.length).toBe(authCalls);
-    
-    fetchSpy.mockRestore();
   });
 
-  it('should handle SIGNED_IN and SIGNED_OUT events', async () => {
-    const fetchSpy = vi.spyOn(console, 'log');
-    
+  it('should handle SIGNED_IN event', async () => {
     renderHook(() => useUserWorkspaces());
 
-    // Wait for initial load
-    await waitFor(() => {
-      expect(supabase.auth.getUser).toHaveBeenCalled();
+    // Wait for initial load by advancing timers
+    await act(async () => {
+      await vi.runAllTimersAsync();
     });
+    
+    expect(supabase.auth.getUser).toHaveBeenCalled();
 
     const initialAuthCalls = (supabase.auth.getUser as any).mock.calls.length;
-    fetchSpy.mockClear();
 
     // Simulate SIGNED_IN event
     act(() => {
@@ -129,25 +124,24 @@ describe('useUserWorkspaces', () => {
       }
     });
 
-    // Verify that SIGNED_IN triggers a refetch
-    expect(fetchSpy).toHaveBeenCalledWith('[Workspace] Triggering workspace refetch for auth event: SIGNED_IN');
-    
-    // Wait for debounced fetch to execute (500ms delay)
-    await new Promise(resolve => setTimeout(resolve, 600));
+    // Advance timers for debounced fetch to execute (500ms delay)
+    act(() => {
+      vi.advanceTimersByTime(600);
+    });
 
     // Should trigger a new fetch after debounce
     expect((supabase.auth.getUser as any).mock.calls.length).toBeGreaterThan(initialAuthCalls);
-
-    fetchSpy.mockRestore();
   });
 
   it('should debounce rapid auth state changes', async () => {
     const { result } = renderHook(() => useUserWorkspaces());
 
-    // Wait for initial load
-    await waitFor(() => {
-      expect(supabase.auth.getUser).toHaveBeenCalled();
+    // Wait for initial load by advancing timers
+    await act(async () => {
+      await vi.runAllTimersAsync();
     });
+    
+    expect(supabase.auth.getUser).toHaveBeenCalled();
 
     const initialAuthCalls = (supabase.auth.getUser as any).mock.calls.length;
 
@@ -160,31 +154,35 @@ describe('useUserWorkspaces', () => {
       }
     });
 
-    // Wait less than debounce delay
-    await new Promise(resolve => setTimeout(resolve, 300));
+    // Advance timers less than debounce delay
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
 
     // Should not have triggered any new fetches yet
     expect((supabase.auth.getUser as any).mock.calls.length).toBe(initialAuthCalls);
 
-    // Wait past debounce delay
-    await new Promise(resolve => setTimeout(resolve, 300)); // Total 600ms
+    // Advance past debounce delay and run all pending timers
+    await act(async () => {
+      vi.advanceTimersByTime(300); // Total 600ms
+      await vi.runAllTimersAsync();
+    });
 
     // Should trigger only one new fetch despite multiple events
     expect((supabase.auth.getUser as any).mock.calls.length).toBe(initialAuthCalls + 1);
   });
 
-  it('should log USER_UPDATED but not refetch', async () => {
-    const fetchSpy = vi.spyOn(console, 'log');
-    
+  it('should ignore USER_UPDATED events', async () => {
     renderHook(() => useUserWorkspaces());
 
-    // Wait for initial load
-    await waitFor(() => {
-      expect(supabase.auth.getUser).toHaveBeenCalled();
+    // Wait for initial load by advancing timers
+    await act(async () => {
+      await vi.runAllTimersAsync();
     });
+    
+    expect(supabase.auth.getUser).toHaveBeenCalled();
 
     const initialAuthCalls = (supabase.auth.getUser as any).mock.calls.length;
-    fetchSpy.mockClear();
 
     // Simulate USER_UPDATED event
     act(() => {
@@ -195,30 +193,26 @@ describe('useUserWorkspaces', () => {
       }
     });
 
-    // Verify that USER_UPDATED is logged but doesn't trigger refetch
-    expect(fetchSpy).toHaveBeenCalledWith('[Workspace] USER_UPDATED event detected, checking if refetch needed');
+    // Advance timers past debounce period to ensure no new fetch is triggered
+    act(() => {
+      vi.advanceTimersByTime(600);
+    });
     
-    // Wait to ensure no new fetch is triggered
-    await waitFor(() => new Promise(resolve => setTimeout(resolve, 600)));
-    
-    // Auth.getUser should not have been called again
+    // Auth.getUser should not have been called again (USER_UPDATED is ignored)
     expect((supabase.auth.getUser as any).mock.calls.length).toBe(initialAuthCalls);
-    
-    fetchSpy.mockRestore();
   });
 
   it('should handle SIGNED_OUT event', async () => {
-    const fetchSpy = vi.spyOn(console, 'log');
-    
     renderHook(() => useUserWorkspaces());
 
-    // Wait for initial load
-    await waitFor(() => {
-      expect(supabase.auth.getUser).toHaveBeenCalled();
+    // Wait for initial load by advancing timers
+    await act(async () => {
+      await vi.runAllTimersAsync();
     });
+    
+    expect(supabase.auth.getUser).toHaveBeenCalled();
 
     const initialAuthCalls = (supabase.auth.getUser as any).mock.calls.length;
-    fetchSpy.mockClear();
 
     // Simulate SIGNED_OUT event
     act(() => {
@@ -227,16 +221,13 @@ describe('useUserWorkspaces', () => {
       }
     });
 
-    // Verify that SIGNED_OUT triggers a refetch
-    expect(fetchSpy).toHaveBeenCalledWith('[Workspace] Triggering workspace refetch for auth event: SIGNED_OUT');
-    
-    // Wait for debounce timer
-    await new Promise(resolve => setTimeout(resolve, 600));
+    // Advance timers for debounce to execute
+    act(() => {
+      vi.advanceTimersByTime(600);
+    });
 
     // Should trigger a new fetch
     expect((supabase.auth.getUser as any).mock.calls.length).toBeGreaterThan(initialAuthCalls);
-
-    fetchSpy.mockRestore();
   });
 
   it('should cleanup debounce timer on unmount', () => {

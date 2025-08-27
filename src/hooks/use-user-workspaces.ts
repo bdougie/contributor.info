@@ -367,30 +367,21 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
     // Listen for auth state changes with better filtering
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, _session) => {
       if (!mounted) return;
       
-      // Log auth events for debugging
-      console.log(`[Workspace] Auth event: ${event}`, { 
-        hasSession: !!session, 
-        userId: session?.user?.id?.substring(0, 8) 
-      });
+      // Auth event received - only process SIGNED_IN and SIGNED_OUT events
       
       // Only refetch on actual sign in/out events, ignore token refreshes and other events
       if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-        console.log(`[Workspace] Triggering workspace refetch for auth event: ${event}`);
         // Use debounced fetch to prevent rapid successive calls
         debouncedFetch();
       } else if (event === 'TOKEN_REFRESHED') {
-        // Explicitly ignore token refresh events
-        console.log('[Workspace] Ignoring TOKEN_REFRESHED event');
+        // Explicitly ignore token refresh events to prevent unnecessary refetches
       } else if (event === 'USER_UPDATED') {
-        // Only refetch if user metadata changed significantly
-        console.log('[Workspace] USER_UPDATED event detected, checking if refetch needed');
         // For now, we'll ignore USER_UPDATED events as they don't affect workspace data
       } else {
-        // Log other events for debugging
-        console.log(`[Workspace] Received auth event: ${event}, no action taken`);
+        // Ignore other auth events
       }
     });
 

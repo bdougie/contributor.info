@@ -193,7 +193,8 @@ async function handleSupabaseRequest(request, cacheName) {
         console.warn('[SW] Could not cache Supabase response:', cacheError.message);
       }
     } else if (networkResponse.status === 206) {
-      console.log('[SW] Skipping cache for partial content (206) response:', request.url);
+      // Skip caching for partial content (206) responses
+      // These are typically range requests that shouldn't be cached
     }
     
     return networkResponse;

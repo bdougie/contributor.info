@@ -114,41 +114,36 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
 
   // Set up loading timeout to prevent infinite loading states with proper cleanup
   useEffect(() => {
-    if (workspacesLoading) {
-      // Clear any existing timeout
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
-      
-      // Only set timeout if not already timed out (prevents resetting timeout on refetch)
-      if (!hasTimedOut) {
-        timeoutRef.current = setTimeout(() => {
-          // Double-check if still loading to avoid race condition
-          if (workspacesLoading) {
-            console.error('[WorkspaceContext] Workspace loading timed out after', WORKSPACE_TIMEOUTS.CONTEXT, 'ms');
-            setHasTimedOut(true);
-          }
-        }, WORKSPACE_TIMEOUTS.CONTEXT);
-      }
-      
-      return () => {
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current);
-          timeoutRef.current = null;
+    // Clear any existing timeout on mount/unmount or when loading state changes
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+
+    if (workspacesLoading && !hasTimedOut) {
+      // Set timeout only if loading and not already timed out
+      timeoutRef.current = setTimeout(() => {
+        // Double-check if still loading to avoid race condition
+        if (workspacesLoading) {
+          console.error('[WorkspaceContext] Workspace loading timed out after', WORKSPACE_TIMEOUTS.CONTEXT, 'ms');
+          setHasTimedOut(true);
         }
-      };
-    } else {
+      }, WORKSPACE_TIMEOUTS.CONTEXT);
+    } else if (!workspacesLoading) {
       // Data loaded successfully - clear timeout state
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
       setHasTimedOut(false);
       // Reset retry count on successful load
       retryCountRef.current = 0;
     }
-  }, [workspacesLoading, hasTimedOut]);
+
+    // Cleanup function
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
+  }, [workspacesLoading]);
 
   // Log workspace errors
   useEffect(() => {
