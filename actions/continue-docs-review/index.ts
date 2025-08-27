@@ -285,25 +285,47 @@ async function postReviewComments(issues: DocumentationIssue[]): Promise<void> {
     return;
   }
 
-  // Check for recent review to avoid spam
+  // Check for ANY existing review from our bot to avoid duplicates
   try {
     const { data: reviews } = await octokit.rest.pulls.listReviews({
       ...context.repo,
       pull_number: pullNumber,
-      per_page: 10,
+      per_page: 100,
     });
 
-    // Check if we already posted a review in the last hour
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-    const recentReview = reviews.find(
+    // Check if we already posted ANY documentation review on this PR
+    const existingReview = reviews.find(
       (r) =>
-        r.user?.login === 'github-actions[bot]' &&
-        new Date(r.submitted_at || '') > oneHourAgo &&
-        r.body?.includes('📚 Documentation Review')
+        (r.user?.login === 'github-actions[bot]' ||
+          r.user?.login?.includes('continue') ||
+          r.user?.login?.includes('docs-review')) &&
+        (r.body?.includes('<!-- docs-review-action -->') ||
+          r.body?.includes('📚 Documentation Review'))
     );
 
-    if (recentReview) {
-      core.info('Skipping review - already posted within the last hour');
+    if (existingReview) {
+      core.info('Documentation review already exists for this PR - skipping duplicate');
+      return;
+    }
+
+    // Also check comments for existing review
+    const { data: comments } = await octokit.rest.issues.listComments({
+      ...context.repo,
+      issue_number: pullNumber,
+      per_page: 100,
+    });
+
+    const existingComment = comments.find(
+      (c) =>
+        (c.user?.login === 'github-actions[bot]' ||
+          c.user?.login?.includes('continue') ||
+          c.user?.login?.includes('docs-review')) &&
+        (c.body?.includes('<!-- docs-review-action -->') ||
+          c.body?.includes('📚 Documentation Review'))
+    );
+
+    if (existingComment) {
+      core.info('Documentation review comment already exists - skipping duplicate');
       return;
     }
   } catch (error) {
@@ -319,8 +341,9 @@ async function postReviewComments(issues: DocumentationIssue[]): Promise<void> {
     issuesByFile.get(issue.file)!.push(issue);
   }
 
-  // Create a review comment
+  // Create a review comment with a unique identifier
   let reviewBody = '## 📚 Documentation Review\n\n';
+  reviewBody += '<!-- docs-review-action -->\n\n';
 
   if (issues.length === 0) {
     reviewBody +=
