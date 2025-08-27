@@ -28,6 +28,7 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'issues' && 
        (github.event.action == 'opened' || 
+        github.event.action == 'edited' ||
         contains(github.event.issue.labels.*.name, 'needs-triage')))
 
     permissions:

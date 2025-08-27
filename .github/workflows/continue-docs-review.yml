@@ -1,0 +1,99 @@
+name: Continue Documentation Review
+on:
+  pull_request:
+    types: [opened, ready_for_review]
+    paths:
+      - 'docs/**'
+      - 'public/docs/**'
+      - '**.md'
+      - 'CONTRIBUTING.md'
+      - 'README.md'
+  issue_comment:
+    types: [created]
+  workflow_dispatch: # Allow manual testing
+    inputs:
+      pr_number:
+        description: 'Pull request number to review'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  docs-review:
+    runs-on: ubuntu-latest
+    # Run on PRs with doc changes, or when triggered by @continue-docs in comments from maintainers
+    if: |
+      github.event_name == 'pull_request' || 
+      (github.event_name == 'issue_comment' && 
+       github.event.issue.pull_request && 
+       contains(github.event.comment.body, '@continue-docs') &&
+       (github.event.comment.author_association == 'OWNER' || 
+        github.event.comment.author_association == 'MEMBER' || 
+        github.event.comment.author_association == 'COLLABORATOR')) ||
+      github.event_name == 'workflow_dispatch'
+
+    permissions:
+      contents: read # Read documentation and rules
+      pull-requests: write # Post review comments
+      issues: write # Update issue comments
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          fetch-depth: 0 # Full history for better context
+
+      # Generate GitHub App token for authentication
+      - name: Generate App Token
+        id: app-token
+        uses: actions/create-github-app-token@5d869da34e18e7287c1daad50e0b8ea0f506ce69 # v2.0.0
+        with:
+          app-id: ${{ vars.CONTINUE_APP_ID }}
+          private-key: ${{ secrets.CONTINUE_APP_PRIVATE_KEY }}
+
+      # Run Documentation Review with App authentication
+      - name: Run Documentation Review
+        uses: ./actions/continue-docs-review
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
+          rules-path: '.continue/rules'
+          pr-number: ${{ github.event.inputs.pr_number || github.event.issue.number || github.event.pull_request.number }}
+
+      - name: Documentation Coverage Check
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          echo "## Documentation Coverage Report"
+          echo
+
+          # Check for feature documentation
+          if ls docs/features/*.md 1> /dev/null 2>&1; then
+            echo "✅ Feature documentation found"
+          else
+            echo "⚠️ No feature documentation found in docs/features/"
+          fi
+
+          # Check for architecture documentation
+          if ls docs/architecture/*.md 1> /dev/null 2>&1; then
+            echo "✅ Architecture documentation found"
+          else
+            echo "⚠️ No architecture documentation found in docs/architecture/"
+          fi
+
+          # Check for public user docs
+          if ls public/docs/*.md 1> /dev/null 2>&1; then
+            echo "✅ Public user documentation found"
+          else
+            echo "⚠️ No public user documentation found in public/docs/"
+          fi
+
+          # Check for contributing guide
+          if [ -f "CONTRIBUTING.md" ]; then
+            echo "✅ Contributing guide exists"
+          else
+            echo "⚠️ Missing CONTRIBUTING.md"
+          fi

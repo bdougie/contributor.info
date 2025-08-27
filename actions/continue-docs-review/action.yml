@@ -1,0 +1,47 @@
+name: 'Continue Docs Review'
+description: 'Review documentation changes using Continue Agent with copywriting and formatting rules'
+author: 'Continue'
+
+inputs:
+  github-token:
+    description: 'GitHub token for API access (use output from actions/create-github-app-token for App authentication)'
+    required: true
+  rules-path:
+    description: 'Path to the rules directory'
+    required: false
+    default: '.continue/rules'
+  pr-number:
+    description: 'Pull request number (for workflow_dispatch)'
+    required: false
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4.0.3
+      with:
+        node-version: '20'
+
+    - name: Install action dependencies
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: |
+        echo "Installing action dependencies..."
+        # Install exact versions as specified in package.json
+        npm ci || npm install
+
+    - name: Run Documentation Review
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        INPUT_GITHUB_TOKEN: ${{ inputs.github-token }}
+        INPUT_RULES_PATH: ${{ inputs.rules-path }}
+        INPUT_PR_NUMBER: ${{ inputs.pr-number }}
+      run: |
+        echo "Running Documentation Review..."
+        npx tsx index.ts
+
+branding:
+  icon: 'book-open'
+  color: 'blue'
