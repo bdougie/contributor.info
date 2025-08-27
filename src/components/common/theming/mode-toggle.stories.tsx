@@ -1,16 +1,15 @@
-import type { Meta, StoryObj } from "@storybook/react";
-import { ModeToggle } from "./mode-toggle";
-import { ThemeProvider } from "./theme-provider";
+import type { Meta, StoryObj } from '@storybook/react';
+import { ModeToggle } from './mode-toggle';
+import { ThemeProvider } from './theme-provider';
 
 const meta = {
-  title: "Common/Theming/ModeToggle",
+  title: 'Common/Theming/ModeToggle',
   component: ModeToggle,
   parameters: {
-    layout: "centered",
+    layout: 'centered',
     docs: {
       description: {
-        component:
-          "A dropdown toggle button to switch between light, dark, and system themes.",
+        component: 'A dropdown toggle button to switch between light, dark, and system themes.',
       },
     },
     // Skip smoke tests for this component
@@ -19,7 +18,7 @@ const meta = {
       skip: false,
     },
   },
-  tags: ["autodocs", "skip-test"],
+  tags: ['autodocs', 'skip-test'],
   decorators: [
     (Story) => (
       <ThemeProvider>
@@ -36,7 +35,7 @@ export const Default: Story = {};
 
 export const InDarkMode: Story = {
   parameters: {
-    backgrounds: { default: "dark" },
+    backgrounds: { default: 'dark' },
   },
   decorators: [
     (Story) => (
@@ -51,7 +50,7 @@ export const InDarkMode: Story = {
 
 export const InLightMode: Story = {
   parameters: {
-    backgrounds: { default: "light" },
+    backgrounds: { default: 'light' },
   },
   decorators: [
     (Story) => (

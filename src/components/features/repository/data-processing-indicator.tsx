@@ -1,5 +1,13 @@
-import { useState, useEffect } from 'react'
-import { Loader2, Database, CheckCircle, Zap, GitBranch, Clock, AlertCircle } from '@/components/ui/icon';
+import { useState, useEffect } from 'react';
+import {
+  Loader2,
+  Database,
+  CheckCircle,
+  Zap,
+  GitBranch,
+  Clock,
+  AlertCircle,
+} from '@/components/ui/icon';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -23,11 +31,11 @@ export function DataProcessingIndicator({ repository, className }: DataProcessin
 
   useEffect(() => {
     let completionTimeout: NodeJS.Timeout;
-    
+
     // Listen for progressive data updates
     const handleProgressiveUpdate = (event: CustomEvent) => {
       const { repository: eventRepo, dataType, processor: eventProcessor } = event.detail;
-      
+
       if (eventRepo === repository) {
         setIsProcessing(false);
         setRecentlyCompleted(true);
@@ -38,12 +46,12 @@ export function DataProcessingIndicator({ repository, className }: DataProcessin
         setCurrentStep('Completed');
         setHasError(false);
         setErrorMessage('');
-        
+
         // Clear any existing timeout
         if (completionTimeout) {
           clearTimeout(completionTimeout);
         }
-        
+
         // Hide the completed state after 5 seconds
         completionTimeout = setTimeout(() => {
           setRecentlyCompleted(false);
@@ -57,16 +65,22 @@ export function DataProcessingIndicator({ repository, className }: DataProcessin
 
     // Listen for processing start events
     const handleProcessingStart = (event: CustomEvent) => {
-      const { repository: eventRepo, processor: eventProcessor, estimatedTime: eventEstimatedTime } = event.detail;
-      
+      const {
+        repository: eventRepo,
+        processor: eventProcessor,
+        estimatedTime: eventEstimatedTime,
+      } = event.detail;
+
       if (eventRepo === repository) {
         setIsProcessing(true);
         setProcessor(eventProcessor);
         setEstimatedTime(eventEstimatedTime);
         setProcessingStage(
-          eventProcessor === 'inngest' ? 'Real-time processing...' :
-          eventProcessor === 'github_actions' ? 'Bulk processing...' :
-          'Hybrid processing...'
+          eventProcessor === 'inngest'
+            ? 'Real-time processing...'
+            : eventProcessor === 'github_actions'
+              ? 'Bulk processing...'
+              : 'Hybrid processing...'
         );
         setRecentlyCompleted(false);
         setProgress(10); // Start with small progress
@@ -79,7 +93,7 @@ export function DataProcessingIndicator({ repository, className }: DataProcessin
     // Listen for progress updates
     const handleProgressUpdate = (event: CustomEvent) => {
       const { repository: eventRepo, progress: eventProgress, step, error } = event.detail;
-      
+
       if (eventRepo === repository) {
         if (error) {
           setHasError(true);
@@ -96,14 +110,29 @@ export function DataProcessingIndicator({ repository, className }: DataProcessin
     };
 
     window.addEventListener('progressive-data-updated', handleProgressiveUpdate as EventListener);
-    window.addEventListener('progressive-processing-started', handleProcessingStart as EventListener);
-    window.addEventListener('progressive-processing-progress', handleProgressUpdate as EventListener);
+    window.addEventListener(
+      'progressive-processing-started',
+      handleProcessingStart as EventListener
+    );
+    window.addEventListener(
+      'progressive-processing-progress',
+      handleProgressUpdate as EventListener
+    );
 
     return () => {
-      window.removeEventListener('progressive-data-updated', handleProgressiveUpdate as EventListener);
-      window.removeEventListener('progressive-processing-started', handleProcessingStart as EventListener);
-      window.removeEventListener('progressive-processing-progress', handleProgressUpdate as EventListener);
-      
+      window.removeEventListener(
+        'progressive-data-updated',
+        handleProgressiveUpdate as EventListener
+      );
+      window.removeEventListener(
+        'progressive-processing-started',
+        handleProcessingStart as EventListener
+      );
+      window.removeEventListener(
+        'progressive-processing-progress',
+        handleProgressUpdate as EventListener
+      );
+
       // Clean up timeout on unmount
       if (completionTimeout) {
         clearTimeout(completionTimeout);
@@ -125,7 +154,7 @@ export function DataProcessingIndicator({ repository, className }: DataProcessin
           icon: Zap,
           label: 'Real-time',
           bgClass: 'border-l-blue-500 bg-blue-50 dark:bg-blue-950/20',
-          iconClass: 'text-blue-600 dark:text-blue-400'
+          iconClass: 'text-blue-600 dark:text-blue-400',
         };
       case 'github_actions':
         return {
@@ -133,7 +162,7 @@ export function DataProcessingIndicator({ repository, className }: DataProcessin
           icon: GitBranch,
           label: 'Bulk',
           bgClass: 'border-l-purple-500 bg-purple-50 dark:bg-purple-950/20',
-          iconClass: 'text-purple-600 dark:text-purple-400'
+          iconClass: 'text-purple-600 dark:text-purple-400',
         };
       case 'hybrid':
         return {
@@ -141,7 +170,7 @@ export function DataProcessingIndicator({ repository, className }: DataProcessin
           icon: Database,
           label: 'Hybrid',
           bgClass: 'border-l-indigo-500 bg-indigo-50 dark:bg-indigo-950/20',
-          iconClass: 'text-indigo-600 dark:text-indigo-400'
+          iconClass: 'text-indigo-600 dark:text-indigo-400',
         };
       default:
         return {
@@ -149,7 +178,7 @@ export function DataProcessingIndicator({ repository, className }: DataProcessin
           icon: Database,
           label: 'Processing',
           bgClass: 'border-l-gray-500 bg-gray-50 dark:bg-gray-950/20',
-          iconClass: 'text-gray-600 dark:text-gray-400'
+          iconClass: 'text-gray-600 dark:text-gray-400',
         };
     }
   };
@@ -158,12 +187,14 @@ export function DataProcessingIndicator({ repository, className }: DataProcessin
   const ProcessorIcon = processorInfo.icon;
 
   return (
-    <Card className={cn(
-      "transition-all duration-300 ease-in-out border-l-4",
-      isProcessing && processorInfo.bgClass,
-      recentlyCompleted && "border-l-green-500 bg-green-50 dark:bg-green-950/20",
-      className
-    )}>
+    <Card
+      className={cn(
+        'transition-all duration-300 ease-in-out border-l-4',
+        isProcessing && processorInfo.bgClass,
+        recentlyCompleted && 'border-l-green-500 bg-green-50 dark:bg-green-950/20',
+        className
+      )}
+    >
       <CardContent className="py-3 px-4">
         <div className="flex items-center gap-3">
           {isProcessing && (
@@ -173,19 +204,19 @@ export function DataProcessingIndicator({ repository, className }: DataProcessin
               ) : (
                 <Loader2 className="h-4 w-4 animate-spin text-blue-600 dark:text-blue-400" />
               )}
-              <ProcessorIcon className={cn("h-3 w-3", processorInfo.iconClass)} />
+              <ProcessorIcon className={cn('h-3 w-3', processorInfo.iconClass)} />
             </div>
           )}
           {recentlyCompleted && (
             <div className="flex items-center gap-2">
               <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-              {processor && <ProcessorIcon className={cn("h-3 w-3", processorInfo.iconClass)} />}
+              {processor && <ProcessorIcon className={cn('h-3 w-3', processorInfo.iconClass)} />}
             </div>
           )}
           {!isProcessing && !recentlyCompleted && (
             <Database className="h-4 w-4 text-gray-600 dark:text-gray-400" />
           )}
-          
+
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <div className="text-sm font-medium">
@@ -201,16 +232,14 @@ export function DataProcessingIndicator({ repository, className }: DataProcessin
             <div className="space-y-1">
               {(processingStage || currentStep) && (
                 <div className="text-xs text-muted-foreground">
-                  {hasError ? errorMessage : (currentStep || processingStage)}
+                  {hasError ? errorMessage : currentStep || processingStage}
                 </div>
               )}
               {isProcessing && progress > 0 && !hasError && (
                 <div className="w-full">
                   <Progress value={progress} className="h-1.5" />
                   <div className="flex justify-between items-center mt-1">
-                    <span className="text-xs text-muted-foreground">
-                      {progress}%
-                    </span>
+                    <span className="text-xs text-muted-foreground">{progress}%</span>
                     {estimatedTime && (
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
                         <Clock className="h-3 w-3" />
@@ -238,7 +267,7 @@ export function useDataProcessingState(repository: string) {
   useEffect(() => {
     const handleProgressiveUpdate = (event: CustomEvent) => {
       const { repository: eventRepo } = event.detail;
-      
+
       if (eventRepo === repository) {
         setIsProcessing(false);
         setLastUpdated(new Date());
@@ -247,18 +276,27 @@ export function useDataProcessingState(repository: string) {
 
     const handleProcessingStart = (event: CustomEvent) => {
       const { repository: eventRepo } = event.detail;
-      
+
       if (eventRepo === repository) {
         setIsProcessing(true);
       }
     };
 
     window.addEventListener('progressive-data-updated', handleProgressiveUpdate as EventListener);
-    window.addEventListener('progressive-processing-started', handleProcessingStart as EventListener);
+    window.addEventListener(
+      'progressive-processing-started',
+      handleProcessingStart as EventListener
+    );
 
     return () => {
-      window.removeEventListener('progressive-data-updated', handleProgressiveUpdate as EventListener);
-      window.removeEventListener('progressive-processing-started', handleProcessingStart as EventListener);
+      window.removeEventListener(
+        'progressive-data-updated',
+        handleProgressiveUpdate as EventListener
+      );
+      window.removeEventListener(
+        'progressive-processing-started',
+        handleProcessingStart as EventListener
+      );
     };
   }, [repository]);
 

@@ -16,5 +16,5 @@ export default {
   interpolateRgb,
   interpolateHsl,
   interpolateArray,
-  interpolateObject
+  interpolateObject,
 };

@@ -4,16 +4,16 @@ import { resolve } from 'path';
 
 /**
  * Test Isolation Configuration
- * 
+ *
  * RESOLUTION: Tests were hanging due to mock dependencies creating shared state.
  * This configuration runs only pure unit tests without mocks to ensure:
  * - Complete isolation between tests
  * - Fast execution (< 3 seconds total)
  * - No hanging or timeout issues
- * 
+ *
  * Excluded tests require refactoring to remove mock dependencies.
  * See docs/test-isolation-solution.md for migration guide.
- * 
+ *
  * GitHub Issue: https://github.com/bdougie/contributor.info/issues/299
  */
 export default defineConfig({
@@ -21,34 +21,31 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
-    
+
     // Complete isolation
     isolate: true,
     fileParallelism: false,
-    
+
     // Increased timeouts for complex async tests
     testTimeout: 15000,
     hookTimeout: 10000,
     teardownTimeout: 5000,
-    
+
     // Single thread for stability
     pool: 'forks',
     poolOptions: {
       forks: {
         singleFork: true,
         isolate: true,
-      }
+      },
     },
-    
+
     // No mocks - only DOM cleanup
     setupFiles: ['./src/__mocks__/no-mocks-setup.ts'],
-    
+
     // Run all tests
-    include: [
-      'src/**/*.test.ts',
-      'src/**/*.test.tsx'
-    ],
-    
+    include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+
     // Exclude tests that cause hanging due to mock issues
     exclude: [
       '**/node_modules/**',
@@ -78,31 +75,31 @@ export default defineConfig({
       'src/lib/insights/health-metrics.test.ts',
       'src/lib/progressive-capture/__tests__/hybrid-queue-manager.test.ts',
     ],
-    
+
     // No coverage
     coverage: {
-      enabled: false
+      enabled: false,
     },
-    
+
     // Simple reporter
     reporters: ['default'],
-    
+
     // Basic environment
     environmentOptions: {
       jsdom: {
         pretendToBeVisual: true,
-      }
+      },
     },
-    
+
     // No threads for stability
     threads: false,
     maxWorkers: 1,
     minWorkers: 1,
   },
-  
+
   resolve: {
     alias: {
-      '@': resolve(__dirname, './src')
-    }
-  }
+      '@': resolve(__dirname, './src'),
+    },
+  },
 });

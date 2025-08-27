@@ -1,6 +1,6 @@
 /**
  * Deduplication wrapper for supabase-pr-data-smart
- * 
+ *
  * This extends the existing fetchPRDataSmart function with request deduplication
  * to prevent concurrent API calls for the same data. Maintains full compatibility
  * with the original function while adding transparent deduplication.
@@ -26,10 +26,10 @@ export const fetchPRDataSmart = withRequestDeduplication(
   (owner: string, repo: string, options: FetchOptions = {}): string => {
     const { timeRange = '30', triggerBackgroundSync = true, showNotifications = false } = options;
     return RequestDeduplicator.generateKey.repository(
-      owner, 
-      repo, 
+      owner,
+      repo,
       'pr-data-smart',
-      timeRange, 
+      timeRange,
       triggerBackgroundSync.toString(),
       showNotifications.toString()
     );

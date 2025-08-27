@@ -244,16 +244,17 @@ const meta: Meta<typeof WelcomeEmailTemplate> = {
     layout: 'fullscreen',
     docs: {
       description: {
-        component: 'Welcome email template that matches the contributor.info design system. This shows how the email will look when sent to new users.'
-      }
-    }
+        component:
+          'Welcome email template that matches the contributor.info design system. This shows how the email will look when sent to new users.',
+      },
+    },
   },
   argTypes: {
     userName: {
       control: 'text',
-      description: 'The name of the user'
-    }
-  }
+      description: 'The name of the user',
+    },
+  },
 };
 
 export default meta;
@@ -261,24 +262,24 @@ type Story = StoryObj<typeof WelcomeEmailTemplate>;
 
 export const Default: Story = {
   args: {
-    userName: 'Brian Douglas'
-  }
+    userName: 'Brian Douglas',
+  },
 };
 
 export const LongName: Story = {
   args: {
-    userName: 'Christopher Alexander Thompson'
-  }
+    userName: 'Christopher Alexander Thompson',
+  },
 };
 
 export const ShortName: Story = {
   args: {
-    userName: 'Alex'
-  }
+    userName: 'Alex',
+  },
 };
 
 export const DifferentName: Story = {
   args: {
-    userName: 'Sarah Chen'
-  }
+    userName: 'Sarah Chen',
+  },
 };

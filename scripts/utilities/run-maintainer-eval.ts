@@ -25,7 +25,7 @@ function parseArgs(): CLIOptions {
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
-    
+
     switch (arg) {
       case '--config':
       case '-c':
@@ -78,9 +78,9 @@ Examples:
   npm run eval:maintainer -c standard -e ./custom-results
 
 Available Configurations:
-${Object.entries(DEFAULT_CONFIGS).map(([name, config]) => 
-  `  ${name.padEnd(12)} - ${config.description}`
-).join('\n')}
+${Object.entries(DEFAULT_CONFIGS)
+  .map(([name, config]) => `  ${name.padEnd(12)} - ${config.description}`)
+  .join('\n')}
   `);
 }
 
@@ -93,7 +93,7 @@ async function main() {
   }
 
   console.log('🚀 Starting Maintainer Classification Evaluation');
-  console.log('=' .repeat(60));
+  console.log('='.repeat(60));
 
   // Validate environment
   if (!process.env.VITE_SUPABASE_URL || !process.env.SUPABASE_TOKEN) {
@@ -106,28 +106,35 @@ async function main() {
     if (options.benchmark) {
       console.log('🏁 Running benchmark comparison...\n');
       const results = await runBenchmark();
-      
+
       console.log('\n📊 Benchmark Summary:');
-      console.log('=' .repeat(50));
+      console.log('='.repeat(50));
       results.forEach((result, index) => {
         const accuracy = (result.metrics.overall_accuracy * 100).toFixed(2);
-        const precision = Object.values(result.metrics.per_class_metrics)
-          .reduce((sum, metric) => sum + metric.precision, 0) / 3;
-        const recall = Object.values(result.metrics.per_class_metrics)
-          .reduce((sum, metric) => sum + metric.recall, 0) / 3;
-        
+        const precision =
+          Object.values(result.metrics.per_class_metrics).reduce(
+            (sum, metric) => sum + metric.precision,
+            0
+          ) / 3;
+        const recall =
+          Object.values(result.metrics.per_class_metrics).reduce(
+            (sum, metric) => sum + metric.recall,
+            0
+          ) / 3;
+
         console.log(`${index + 1}. ${result.config.name}`);
         console.log(`   Accuracy: ${accuracy}%`);
         console.log(`   Avg Precision: ${(precision * 100).toFixed(2)}%`);
         console.log(`   Avg Recall: ${(recall * 100).toFixed(2)}%`);
-        console.log(`   Execution Time: ${result.metrics.execution_stats.average_execution_time_ms.toFixed(2)}ms`);
+        console.log(
+          `   Execution Time: ${result.metrics.execution_stats.average_execution_time_ms.toFixed(2)}ms`
+        );
         console.log('');
       });
-      
     } else {
       const configName = options.config || 'standard';
       console.log(`🔧 Using configuration: ${configName}`);
-      
+
       if (!DEFAULT_CONFIGS[configName]) {
         console.error(`❌ Unknown configuration: ${configName}`);
         console.error('Available configurations:', Object.keys(DEFAULT_CONFIGS).join(', '));
@@ -147,19 +154,23 @@ async function main() {
       console.log(`   Description: ${config.description}`);
       console.log(`   Owner threshold: ${config.confidence_thresholds.owner}`);
       console.log(`   Maintainer threshold: ${config.confidence_thresholds.maintainer}`);
-      console.log(`   Min accuracy: ${(config.evaluation_criteria.min_accuracy * 100)}%`);
+      console.log(`   Min accuracy: ${config.evaluation_criteria.min_accuracy * 100}%`);
       console.log(`   Min samples: ${config.evaluation_criteria.min_samples}`);
       console.log('');
 
       const results = await runEvaluation(configName);
-      
+
       console.log('\n🎯 Evaluation Results:');
-      console.log('=' .repeat(40));
+      console.log('='.repeat(40));
       console.log(`Overall Accuracy: ${(results.metrics.overall_accuracy * 100).toFixed(2)}%`);
       console.log(`Total Samples: ${results.metrics.execution_stats.total_samples}`);
-      console.log(`Successful Predictions: ${results.metrics.execution_stats.successful_predictions}`);
-      console.log(`Average Execution Time: ${results.metrics.execution_stats.average_execution_time_ms.toFixed(2)}ms`);
-      
+      console.log(
+        `Successful Predictions: ${results.metrics.execution_stats.successful_predictions}`
+      );
+      console.log(
+        `Average Execution Time: ${results.metrics.execution_stats.average_execution_time_ms.toFixed(2)}ms`
+      );
+
       console.log('\n📈 Per-Class Performance:');
       Object.entries(results.metrics.per_class_metrics).forEach(([role, metrics]) => {
         console.log(`${role.charAt(0).toUpperCase() + role.slice(1)}:`);
@@ -170,31 +181,41 @@ async function main() {
       });
 
       console.log('\n🎯 Confidence Calibration:');
-      console.log(`Expected Accuracy: ${(results.metrics.confidence_calibration.expected_accuracy * 100).toFixed(2)}%`);
-      console.log(`Actual Accuracy: ${(results.metrics.confidence_calibration.actual_accuracy * 100).toFixed(2)}%`);
-      console.log(`Calibration Error: ${(results.metrics.confidence_calibration.calibration_error * 100).toFixed(2)}%`);
+      console.log(
+        `Expected Accuracy: ${(results.metrics.confidence_calibration.expected_accuracy * 100).toFixed(2)}%`
+      );
+      console.log(
+        `Actual Accuracy: ${(results.metrics.confidence_calibration.actual_accuracy * 100).toFixed(2)}%`
+      );
+      console.log(
+        `Calibration Error: ${(results.metrics.confidence_calibration.calibration_error * 100).toFixed(2)}%`
+      );
 
       // Quality check
-      const passedCriteria = results.metrics.overall_accuracy >= config.evaluation_criteria.min_accuracy;
-      console.log(`\n${passedCriteria ? '✅' : '❌'} Quality Check: ${passedCriteria ? 'PASSED' : 'FAILED'}`);
-      
+      const passedCriteria =
+        results.metrics.overall_accuracy >= config.evaluation_criteria.min_accuracy;
+      console.log(
+        `\n${passedCriteria ? '✅' : '❌'} Quality Check: ${passedCriteria ? 'PASSED' : 'FAILED'}`
+      );
+
       if (!passedCriteria) {
-        console.log(`   Required accuracy: ${(config.evaluation_criteria.min_accuracy * 100)}%`);
-        console.log(`   Achieved accuracy: ${(results.metrics.overall_accuracy * 100).toFixed(2)}%`);
+        console.log(`   Required accuracy: ${config.evaluation_criteria.min_accuracy * 100}%`);
+        console.log(
+          `   Achieved accuracy: ${(results.metrics.overall_accuracy * 100).toFixed(2)}%`
+        );
       }
     }
 
     console.log('\n🎉 Evaluation completed successfully!');
-    
   } catch (error) {
     console.error('\n❌ Evaluation failed:');
     console.error(error instanceof Error ? error.message : 'Unknown error');
-    
+
     if (error instanceof Error && error.stack) {
       console.error('\nStack trace:');
       console.error(error.stack);
     }
-    
+
     process.exit(1);
   }
 }

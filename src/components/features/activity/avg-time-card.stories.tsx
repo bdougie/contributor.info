@@ -1,19 +1,19 @@
-import type { Meta, StoryObj } from "@storybook/react";
-import { AvgTimeCard } from "./avg-time-card";
+import type { Meta, StoryObj } from '@storybook/react';
+import { AvgTimeCard } from './avg-time-card';
 
 const meta = {
-  title: "Features/Activity/AvgTimeCard",
+  title: 'Features/Activity/AvgTimeCard',
   component: AvgTimeCard,
   parameters: {
-    layout: "centered",
+    layout: 'centered',
     docs: {
       description: {
         component:
-          "A card component that displays the average time it takes to merge pull requests, with trend indicators and color-coded values based on merge time thresholds.",
+          'A card component that displays the average time it takes to merge pull requests, with trend indicators and color-coded values based on merge time thresholds.',
       },
     },
   },
-  tags: ["autodocs"],
+  tags: ['autodocs'],
   decorators: [
     (Story) => (
       <div className="w-[200px] p-4">
@@ -23,17 +23,17 @@ const meta = {
   ],
   argTypes: {
     averageMergeTime: {
-      control: "number",
-      description: "Average merge time in hours",
+      control: 'number',
+      description: 'Average merge time in hours',
     },
     averageMergeTimeTrend: {
-      control: "select",
-      options: ["up", "down", "stable"],
-      description: "Trend direction for merge time",
+      control: 'select',
+      options: ['up', 'down', 'stable'],
+      description: 'Trend direction for merge time',
     },
     loading: {
-      control: "boolean",
-      description: "Whether the card is in a loading state",
+      control: 'boolean',
+      description: 'Whether the card is in a loading state',
     },
   },
 } satisfies Meta<typeof AvgTimeCard>;
@@ -44,7 +44,7 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   args: {
     averageMergeTime: 36,
-    averageMergeTimeTrend: "down",
+    averageMergeTimeTrend: 'down',
     loading: false,
   },
 };
@@ -52,7 +52,7 @@ export const Default: Story = {
 export const Loading: Story = {
   args: {
     averageMergeTime: 0,
-    averageMergeTimeTrend: "stable",
+    averageMergeTimeTrend: 'stable',
     loading: true,
   },
 };
@@ -60,7 +60,7 @@ export const Loading: Story = {
 export const FastMergeTime: Story = {
   args: {
     averageMergeTime: 6,
-    averageMergeTimeTrend: "down",
+    averageMergeTimeTrend: 'down',
     loading: false,
   },
 };
@@ -68,7 +68,7 @@ export const FastMergeTime: Story = {
 export const ModerateTime: Story = {
   args: {
     averageMergeTime: 48,
-    averageMergeTimeTrend: "stable",
+    averageMergeTimeTrend: 'stable',
     loading: false,
   },
 };
@@ -76,7 +76,7 @@ export const ModerateTime: Story = {
 export const SlowMergeTime: Story = {
   args: {
     averageMergeTime: 168,
-    averageMergeTimeTrend: "up",
+    averageMergeTimeTrend: 'up',
     loading: false,
   },
 };
@@ -84,7 +84,7 @@ export const SlowMergeTime: Story = {
 export const TrendingUp: Story = {
   args: {
     averageMergeTime: 72,
-    averageMergeTimeTrend: "up",
+    averageMergeTimeTrend: 'up',
     loading: false,
   },
 };
@@ -92,7 +92,7 @@ export const TrendingUp: Story = {
 export const TrendingDown: Story = {
   args: {
     averageMergeTime: 24,
-    averageMergeTimeTrend: "down",
+    averageMergeTimeTrend: 'down',
     loading: false,
   },
 };
@@ -100,7 +100,7 @@ export const TrendingDown: Story = {
 export const VeryFast: Story = {
   args: {
     averageMergeTime: 2,
-    averageMergeTimeTrend: "down",
+    averageMergeTimeTrend: 'down',
     loading: false,
   },
 };
@@ -108,7 +108,7 @@ export const VeryFast: Story = {
 export const VerySlow: Story = {
   args: {
     averageMergeTime: 336,
-    averageMergeTimeTrend: "up",
+    averageMergeTimeTrend: 'up',
     loading: false,
   },
 };

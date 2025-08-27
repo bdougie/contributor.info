@@ -35,7 +35,7 @@ interface ClassificationThresholds {
 
 export class RepositorySizeClassifier {
   private octokit: Octokit;
-  
+
   // Size classification thresholds
   private readonly thresholds: ClassificationThresholds = {
     small: {
@@ -43,29 +43,29 @@ export class RepositorySizeClassifier {
       forks: 100,
       monthlyPRs: 100,
       monthlyCommits: 500,
-      activeContributors: 10
+      activeContributors: 10,
     },
     medium: {
       stars: 10000,
       forks: 1000,
       monthlyPRs: 500,
       monthlyCommits: 2000,
-      activeContributors: 50
+      activeContributors: 50,
     },
     large: {
       stars: 50000,
       forks: 5000,
       monthlyPRs: 2000,
       monthlyCommits: 10000,
-      activeContributors: 200
+      activeContributors: 200,
     },
     xl: {
       stars: Infinity,
       forks: Infinity,
       monthlyPRs: Infinity,
       monthlyCommits: Infinity,
-      activeContributors: Infinity
-    }
+      activeContributors: Infinity,
+    },
   };
 
   constructor(githubToken: string) {
@@ -88,7 +88,7 @@ export class RepositorySizeClassifier {
       // Get recent pull requests (last 30 days)
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      
+
       const { data: pullRequests } = await this.octokit.pulls.list({
         owner,
         repo,
@@ -96,12 +96,12 @@ export class RepositorySizeClassifier {
         sort: 'created',
         direction: 'desc',
         per_page: 100,
-        since: thirtyDaysAgo.toISOString()
+        since: thirtyDaysAgo.toISOString(),
       });
 
       // Count PRs in the last 30 days
       const monthlyPRs = pullRequests.filter(
-        pr => new Date(pr.created_at) >= thirtyDaysAgo
+        (pr) => new Date(pr.created_at) >= thirtyDaysAgo
       ).length;
 
       // Get contributor stats
@@ -118,13 +118,11 @@ export class RepositorySizeClassifier {
       });
 
       // Calculate monthly commits (average of last 4 weeks)
-      const monthlyCommits = commitActivity
-        .slice(-4)
-        .reduce((sum, week) => sum + week.total, 0);
+      const monthlyCommits = commitActivity.slice(-4).reduce((sum, week) => sum + week.total, 0);
 
       // Count active contributors (those who contributed in the last 30 days)
       const activeContributors = contributors.filter(
-        contributor => contributor.contributions > 0
+        (contributor) => contributor.contributions > 0
       ).length;
 
       return {
@@ -132,7 +130,7 @@ export class RepositorySizeClassifier {
         forks: repoData.forks_count,
         monthlyPRs,
         monthlyCommits,
-        activeContributors: Math.min(activeContributors, contributors.length)
+        activeContributors: Math.min(activeContributors, contributors.length),
       };
     } catch (error) {
       console.error('Error calculating repository metrics:', error);
@@ -149,15 +147,21 @@ export class RepositorySizeClassifier {
       small: 0,
       medium: 0,
       large: 0,
-      xl: 0
+      xl: 0,
     };
 
     // Check each metric against thresholds
-    const metricKeys: (keyof RepoMetrics)[] = ['stars', 'forks', 'monthlyPRs', 'monthlyCommits', 'activeContributors'];
-    
+    const metricKeys: (keyof RepoMetrics)[] = [
+      'stars',
+      'forks',
+      'monthlyPRs',
+      'monthlyCommits',
+      'activeContributors',
+    ];
+
     for (const metric of metricKeys) {
       const value = metrics[metric];
-      
+
       if (value < this.thresholds.small[metric]) {
         scores.small++;
       } else if (value < this.thresholds.medium[metric]) {
@@ -171,7 +175,7 @@ export class RepositorySizeClassifier {
 
     // Determine size based on majority scoring
     const maxScore = Math.max(scores.small, scores.medium, scores.large, scores.xl);
-    
+
     if (scores.xl === maxScore && scores.xl >= 2) {
       return 'xl';
     } else if (scores.large === maxScore && scores.large >= 2) {
@@ -187,15 +191,18 @@ export class RepositorySizeClassifier {
    * Enhanced classification for edge cases using weighted scoring
    * This handles repositories that don't fit neatly into categories
    */
-  classifySizeWithEdgeCaseHandling(metrics: RepoMetrics, repoContext?: {
-    isMonorepo?: boolean;
-    isMirror?: boolean;
-    primaryLanguage?: string;
-    organizationType?: 'enterprise' | 'community' | 'personal';
-  }): RepositorySize {
+  classifySizeWithEdgeCaseHandling(
+    metrics: RepoMetrics,
+    repoContext?: {
+      isMonorepo?: boolean;
+      isMirror?: boolean;
+      primaryLanguage?: string;
+      organizationType?: 'enterprise' | 'community' | 'personal';
+    }
+  ): RepositorySize {
     // Get base classification
     let baseSize = this.classifySize(metrics);
-    
+
     // Apply edge case adjustments
     if (repoContext) {
       // Monorepos tend to have more activity, adjust thresholds
@@ -207,7 +214,7 @@ export class RepositorySizeClassifier {
           baseSize = 'large';
         }
       }
-      
+
       // Mirror repositories have inflated metrics, adjust down
       if (repoContext.isMirror) {
         if (baseSize === 'xl') {
@@ -216,7 +223,7 @@ export class RepositorySizeClassifier {
           baseSize = 'medium';
         }
       }
-      
+
       // Enterprise repos might have fewer public contributors but high activity
       if (repoContext.organizationType === 'enterprise') {
         const activityScore = metrics.monthlyPRs + metrics.monthlyCommits;
@@ -224,21 +231,24 @@ export class RepositorySizeClassifier {
           baseSize = 'large';
         }
       }
-      
+
       // Documentation or website repos (detected by language) have different patterns
-      if (repoContext.primaryLanguage && ['HTML', 'CSS', 'Markdown'].includes(repoContext.primaryLanguage)) {
+      if (
+        repoContext.primaryLanguage &&
+        ['HTML', 'CSS', 'Markdown'].includes(repoContext.primaryLanguage)
+      ) {
         // These repos typically have lower commit activity but might still be important
         if (metrics.stars > 5000 && baseSize === 'small') {
           baseSize = 'medium';
         }
       }
     }
-    
+
     // Handle extreme edge cases
     if (this.isEdgeCase(metrics)) {
       baseSize = this.handleExtremeEdgeCase(metrics, baseSize);
     }
-    
+
     return baseSize;
   }
 
@@ -248,14 +258,15 @@ export class RepositorySizeClassifier {
   private isEdgeCase(metrics: RepoMetrics): boolean {
     // High stars but low activity (abandoned popular project)
     const highStarsLowActivity = metrics.stars > 10000 && metrics.monthlyPRs < 10;
-    
+
     // Very high activity but low stars (internal tool made public)
     const highActivityLowStars = metrics.monthlyPRs > 500 && metrics.stars < 100;
-    
+
     // Unusual contributor patterns
-    const unusualContributors = metrics.activeContributors > 500 || 
+    const unusualContributors =
+      metrics.activeContributors > 500 ||
       (metrics.activeContributors < 5 && metrics.monthlyPRs > 100);
-    
+
     return highStarsLowActivity || highActivityLowStars || unusualContributors;
   }
 
@@ -269,53 +280,57 @@ export class RepositorySizeClassifier {
         return 'medium'; // Still important but not actively maintained
       }
     }
-    
+
     // Very active internal tool - increase size classification
     if (metrics.monthlyPRs > 500 && metrics.stars < 100) {
       if (currentSize === 'small') {
         return 'medium'; // High activity warrants higher classification
       }
     }
-    
+
     // Bot-driven repository (few contributors, many PRs)
     if (metrics.activeContributors < 5 && metrics.monthlyPRs > 100) {
       return 'medium'; // Standardize bot-driven repos as medium
     }
-    
+
     return currentSize;
   }
 
   /**
    * Classify and update a repository in the database
    */
-  async classifyAndUpdateRepository(repositoryId: string, owner: string, repo: string): Promise<RepositorySize> {
+  async classifyAndUpdateRepository(
+    repositoryId: string,
+    owner: string,
+    repo: string
+  ): Promise<RepositorySize> {
     try {
       // Calculate metrics
       const metrics = await this.calculateMetrics(owner, repo);
-      
+
       // Classify size
       const size = this.classifySize(metrics);
-      
+
       // Prepare metrics for storage
       const metricsData: RepositoryMetrics = {
         ...metrics,
-        lastCalculated: new Date()
+        lastCalculated: new Date(),
       };
-      
+
       // Update in database
       const { error } = await supabase
         .from('tracked_repositories')
         .update({
           size,
           metrics: metricsData,
-          size_calculated_at: new Date().toISOString()
+          size_calculated_at: new Date().toISOString(),
         })
         .eq('repository_id', repositoryId);
-      
+
       if (error) {
         throw error;
       }
-      
+
       console.log('Repository %s/%s classified as %s', owner, repo, size);
       return size;
     } catch (error) {
@@ -327,15 +342,15 @@ export class RepositorySizeClassifier {
   /**
    * Classify multiple repositories (batch operation)
    */
-  async classifyBatch(repositories: Array<{ id: string; owner: string; name: string }>): Promise<void> {
+  async classifyBatch(
+    repositories: Array<{ id: string; owner: string; name: string }>
+  ): Promise<void> {
     const results = await Promise.allSettled(
-      repositories.map(repo => 
-        this.classifyAndUpdateRepository(repo.id, repo.owner, repo.name)
-      )
+      repositories.map((repo) => this.classifyAndUpdateRepository(repo.id, repo.owner, repo.name))
     );
 
-    const successful = results.filter(r => r.status === 'fulfilled').length;
-    const failed = results.filter(r => r.status === 'rejected').length;
+    const successful = results.filter((r) => r.status === 'fulfilled').length;
+    const failed = results.filter((r) => r.status === 'rejected').length;
 
     console.log('Batch classification complete: %s successful, %s failed', successful, failed);
   }
@@ -346,7 +361,8 @@ export class RepositorySizeClassifier {
   async getUnclassifiedRepositories(): Promise<Array<{ id: string; owner: string; name: string }>> {
     const { data, error } = await supabase
       .from('tracked_repositories')
-      .select(`
+      .select(
+        `
         id,
         repository_id,
         repositories!inner(
@@ -354,7 +370,8 @@ export class RepositorySizeClassifier {
           owner,
           name
         )
-      `)
+      `
+      )
       .is('size', null)
       .eq('tracking_enabled', true);
 
@@ -364,12 +381,14 @@ export class RepositorySizeClassifier {
 
     // Cast the data to the expected shape
     const typedData = data as unknown as TrackedRepositoryWithRepo[];
-    
-    return typedData?.map((item) => ({
-      id: item.id,
-      owner: item.repositories.owner,
-      name: item.repositories.name
-    })) || [];
+
+    return (
+      typedData?.map((item) => ({
+        id: item.id,
+        owner: item.repositories.owner,
+        name: item.repositories.name,
+      })) || []
+    );
   }
 
   /**
@@ -381,7 +400,8 @@ export class RepositorySizeClassifier {
 
     const { data, error } = await supabase
       .from('tracked_repositories')
-      .select(`
+      .select(
+        `
         id,
         repository_id,
         repositories!inner(
@@ -389,7 +409,8 @@ export class RepositorySizeClassifier {
           owner,
           name
         )
-      `)
+      `
+      )
       .or(`size_calculated_at.is.null,size_calculated_at.lt.${cutoffDate.toISOString()}`)
       .eq('tracking_enabled', true);
 
@@ -399,15 +420,15 @@ export class RepositorySizeClassifier {
 
     if (data && data.length > 0) {
       console.log('Found %s repositories to reclassify', data.length);
-      
+
       // Cast the data to the expected shape
       const typedData = data as unknown as TrackedRepositoryWithRepo[];
-      
+
       await this.classifyBatch(
         typedData.map((item) => ({
           id: item.id,
           owner: item.repositories.owner,
-          name: item.repositories.name
+          name: item.repositories.name,
         }))
       );
     }

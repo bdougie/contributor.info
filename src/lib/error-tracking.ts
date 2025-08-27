@@ -53,7 +53,7 @@ class ErrorTracker {
           message: `Navigation to ${window.location.pathname}`,
           category: 'navigation',
           level: 'info',
-          data: { path: window.location.pathname }
+          data: { path: window.location.pathname },
         });
       });
 
@@ -64,7 +64,7 @@ class ErrorTracker {
           message: `Console error: ${args.join(' ')}`,
           category: 'system',
           level: 'error',
-          data: { args }
+          data: { args },
         });
         originalConsoleError.apply(console, args);
       };
@@ -83,7 +83,9 @@ class ErrorTracker {
     }
   }
 
-  private createErrorContext(additionalContext?: Partial<ErrorTrackingContext>): ErrorTrackingContext {
+  private createErrorContext(
+    additionalContext?: Partial<ErrorTrackingContext>
+  ): ErrorTrackingContext {
     return {
       sessionId: this.sessionId,
       repository: additionalContext?.repository || 'unknown',
@@ -117,7 +119,7 @@ class ErrorTracker {
         stage: error.stage,
         type: error.type,
         retryable: error.retryable,
-      }
+      },
     });
 
     // Send to multiple tracking services
@@ -135,19 +137,19 @@ class ErrorTracker {
     console.error('Error:', report.error);
     console.info('Context:', report.context);
     console.info('User Message:', report.error.userMessage);
-    
+
     if (report.error.technicalDetails) {
       console.info('Technical Details:', report.error.technicalDetails);
     }
-    
+
     if (report.additionalData) {
       console.info('Additional Data:', report.additionalData);
     }
-    
+
     if (report.breadcrumbs && report.breadcrumbs.length > 0) {
       console.info('Recent Activity:', report.breadcrumbs.slice(-10));
     }
-    
+
     console.groupEnd();
   }
 
@@ -170,11 +172,10 @@ class ErrorTracker {
       // Store in localStorage for debugging
       const existingLogs = JSON.parse(localStorage.getItem('data-loading-errors') || '[]');
       existingLogs.push(errorLog);
-      
+
       // Keep only last 100 errors
       const recentLogs = existingLogs.slice(-100);
       localStorage.setItem('data-loading-errors', JSON.stringify(recentLogs));
-
     } catch (storageError) {
       console.warn('Failed to store error in localStorage:', storageError);
     }
@@ -232,12 +233,15 @@ class ErrorTracker {
       }
 
       const storedErrors = JSON.parse(localStorage.getItem('data-loading-errors') || '[]');
-      
-      const errorsByStage = storedErrors.reduce((acc: Record<LoadingStage, number>, error: any) => {
-        acc[error.stage as LoadingStage] = (acc[error.stage as LoadingStage] || 0) + 1;
-        return acc;
-      }, { critical: 0, full: 0, enhancement: 0 });
-      
+
+      const errorsByStage = storedErrors.reduce(
+        (acc: Record<LoadingStage, number>, error: any) => {
+          acc[error.stage as LoadingStage] = (acc[error.stage as LoadingStage] || 0) + 1;
+          return acc;
+        },
+        { critical: 0, full: 0, enhancement: 0 }
+      );
+
       const errorsByType = storedErrors.reduce((acc: Record<string, number>, error: any) => {
         acc[error.type] = (acc[error.type] || 0) + 1;
         return acc;
@@ -276,7 +280,7 @@ class ErrorTracker {
   exportErrorData(): string {
     try {
       if (typeof window === 'undefined') return '[]';
-      
+
       const storedErrors = localStorage.getItem('data-loading-errors') || '[]';
       return storedErrors;
     } catch (error) {

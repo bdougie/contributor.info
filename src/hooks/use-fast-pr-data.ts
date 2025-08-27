@@ -29,7 +29,7 @@ export function useFastPRData(
   const [pullRequests, setPullRequests] = useState<PullRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   const fetchingRef = useRef(false);
 
   useEffect(() => {
@@ -41,7 +41,7 @@ export function useFastPRData(
       const cachedData = fastPRCache[cacheKey];
 
       // Check for cached data first
-      if (cachedData && (now - cachedData.timestamp) < FAST_CACHE_DURATION) {
+      if (cachedData && now - cachedData.timestamp < FAST_CACHE_DURATION) {
         setPullRequests(cachedData.pullRequests);
         setLoading(false);
         setError(null);
@@ -60,10 +60,10 @@ export function useFastPRData(
 
       try {
         fetchingRef.current = true;
-        
+
         const dataResult = await fetchPRDataWithFallback(owner, repo, timeRange);
         const prs = dataResult.data;
-        
+
         // Cache the results
         fastPRCache[cacheKey] = {
           pullRequests: prs,
@@ -73,10 +73,10 @@ export function useFastPRData(
         // Clean up old cache entries (keep only last 5)
         const cacheKeys = Object.keys(fastPRCache);
         if (cacheKeys.length > 5) {
-          const sortedKeys = cacheKeys.sort((a, b) => 
-            fastPRCache[b].timestamp - fastPRCache[a].timestamp
+          const sortedKeys = cacheKeys.sort(
+            (a, b) => fastPRCache[b].timestamp - fastPRCache[a].timestamp
           );
-          sortedKeys.slice(5).forEach(key => {
+          sortedKeys.slice(5).forEach((key) => {
             delete fastPRCache[key];
           });
         }

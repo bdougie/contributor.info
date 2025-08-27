@@ -11,7 +11,7 @@ export const mockPRData = [
   },
   {
     id: 2,
-    title: 'Test PR 2', 
+    title: 'Test PR 2',
     user: { login: 'user2', avatar_url: 'avatar2.jpg' },
     state: 'open',
     created_at: '2023-01-02T00:00:00Z',
@@ -26,9 +26,7 @@ export const mockPRData = [
 ];
 
 export const mockDirectCommitsData = {
-  commits: [
-    { sha: 'abc123', message: 'Test commit', author: 'user1' },
-  ],
+  commits: [{ sha: 'abc123', message: 'Test commit', author: 'user1' }],
   totalCommits: 1,
 };
 

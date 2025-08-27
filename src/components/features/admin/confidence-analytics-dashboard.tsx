@@ -1,5 +1,14 @@
-import { useState, useEffect } from 'react'
-import { TrendingDown, TrendingUp, Users, AlertTriangle, BarChart3, RefreshCw, Search, Filter } from '@/components/ui/icon';
+import { useState, useEffect } from 'react';
+import {
+  TrendingDown,
+  TrendingUp,
+  Users,
+  AlertTriangle,
+  BarChart3,
+  RefreshCw,
+  Search,
+  Filter,
+} from '@/components/ui/icon';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,7 +16,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/lib/supabase';
 import { ConfidenceScoreBreakdown } from './confidence-score-breakdown';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface ConfidenceStats {
   total_repositories: number;
@@ -46,7 +61,9 @@ export function ConfidenceAnalyticsDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [confidenceFilter, setConfidenceFilter] = useState<'all' | 'low' | 'medium' | 'high'>('all');
+  const [confidenceFilter, setConfidenceFilter] = useState<'all' | 'low' | 'medium' | 'high'>(
+    'all'
+  );
 
   // Fetch confidence analytics data
   const fetchAnalytics = async () => {
@@ -55,14 +72,16 @@ export function ConfidenceAnalyticsDashboard() {
       setError(null);
 
       // Fetch overall confidence statistics
-      const { data: confidenceData, error: confidenceError } = await supabase
-        .rpc('get_confidence_analytics_summary_simple');
+      const { data: confidenceData, error: confidenceError } = await supabase.rpc(
+        'get_confidence_analytics_summary_simple'
+      );
 
       if (confidenceError) throw confidenceError;
 
       // Fetch repository-level confidence data
-      const { data: repoData, error: repoError } = await supabase
-        .rpc('get_repository_confidence_summary_simple');
+      const { data: repoData, error: repoError } = await supabase.rpc(
+        'get_repository_confidence_summary_simple'
+      );
 
       if (repoError) throw repoError;
 
@@ -81,13 +100,13 @@ export function ConfidenceAnalyticsDashboard() {
   }, []);
 
   // Filter repositories based on search and confidence level
-  const filteredRepositories = repositories.filter(repo => {
-    const matchesSearch = 
+  const filteredRepositories = repositories.filter((repo) => {
+    const matchesSearch =
       repo.repository_owner?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       repo.repository_name?.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const score = repo.avg_confidence_score || 0;
-    const matchesFilter = 
+    const matchesFilter =
       confidenceFilter === 'all' ||
       (confidenceFilter === 'low' && score <= 15) ||
       (confidenceFilter === 'medium' && score > 15 && score <= 35) ||
@@ -120,7 +139,7 @@ export function ConfidenceAnalyticsDashboard() {
           </div>
           <Skeleton className="h-10 w-32" />
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
             <Card key={i}>
@@ -211,7 +230,9 @@ export function ConfidenceAnalyticsDashboard() {
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-2">
-                <div className="text-2xl font-bold">{stats?.avg_confidence_score?.toFixed(1) || '0.0'}%</div>
+                <div className="text-2xl font-bold">
+                  {stats?.avg_confidence_score?.toFixed(1) || '0.0'}%
+                </div>
                 {(stats?.avg_confidence_score || 0) < 15 ? (
                   <TrendingDown className="h-4 w-4 text-red-500" />
                 ) : (
@@ -228,7 +249,9 @@ export function ConfidenceAnalyticsDashboard() {
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-2">
-                <div className="text-2xl font-bold text-red-600">{stats?.low_confidence_repos || 0}</div>
+                <div className="text-2xl font-bold text-red-600">
+                  {stats?.low_confidence_repos || 0}
+                </div>
                 <AlertTriangle className="h-4 w-4 text-red-500" />
               </div>
               <p className="text-xs text-muted-foreground">need attention</p>
@@ -256,7 +279,7 @@ export function ConfidenceAnalyticsDashboard() {
                   <div className="w-24 text-sm font-medium">{bucket.range}</div>
                   <div className="flex-1">
                     <div className="w-full bg-muted rounded-full h-2">
-                      <div 
+                      <div
                         className="bg-blue-600 h-2 rounded-full"
                         style={{ width: `${bucket.percentage}%` }}
                       />
@@ -284,9 +307,7 @@ export function ConfidenceAnalyticsDashboard() {
                 <Users className="h-5 w-5" />
                 Repository Confidence Scores
               </CardTitle>
-              <CardDescription>
-                Detailed confidence analysis for each repository
-              </CardDescription>
+              <CardDescription>Detailed confidence analysis for each repository</CardDescription>
             </div>
             <div className="flex items-center gap-2">
               <div className="relative">
@@ -298,7 +319,10 @@ export function ConfidenceAnalyticsDashboard() {
                   className="pl-8 w-64"
                 />
               </div>
-              <Select value={confidenceFilter} onValueChange={(value: any) => setConfidenceFilter(value)}>
+              <Select
+                value={confidenceFilter}
+                onValueChange={(value: any) => setConfidenceFilter(value)}
+              >
                 <SelectTrigger className="w-32">
                   <Filter className="h-4 w-4 mr-2" />
                   <SelectValue />
@@ -316,7 +340,7 @@ export function ConfidenceAnalyticsDashboard() {
         <CardContent>
           <div className="space-y-3">
             {filteredRepositories.map((repo) => (
-              <div 
+              <div
                 key={`${repo.repository_owner}/${repo.repository_name}`}
                 className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 cursor-pointer"
                 onClick={() => setSelectedRepo(`${repo.repository_owner}/${repo.repository_name}`)}
@@ -331,19 +355,23 @@ export function ConfidenceAnalyticsDashboard() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center gap-4">
                   <div className="text-right">
                     <div className="text-sm text-muted-foreground">Self-Selection Rate</div>
                     <div className="font-medium">
-                      {repo.self_selection_rate > 0 ? `${repo.self_selection_rate.toFixed(1)}%` : 'N/A'}
+                      {repo.self_selection_rate > 0
+                        ? `${repo.self_selection_rate.toFixed(1)}%`
+                        : 'N/A'}
                     </div>
                   </div>
-                  
+
                   <div className="text-right">
                     <div className="text-sm text-muted-foreground">Confidence Score</div>
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-lg">{repo.avg_confidence_score?.toFixed(1) || '0.0'}%</span>
+                      <span className="font-bold text-lg">
+                        {repo.avg_confidence_score?.toFixed(1) || '0.0'}%
+                      </span>
                       <Badge variant={getConfidenceBadgeVariant(repo.avg_confidence_score || 0)}>
                         {getConfidenceLabel(repo.avg_confidence_score || 0)}
                       </Badge>
@@ -356,7 +384,7 @@ export function ConfidenceAnalyticsDashboard() {
                 </div>
               </div>
             ))}
-            
+
             {filteredRepositories.length === 0 && (
               <div className="text-center py-8 text-muted-foreground">
                 No repositories match your current filters
@@ -368,7 +396,7 @@ export function ConfidenceAnalyticsDashboard() {
 
       {/* Detailed breakdown for selected repository */}
       {selectedRepo && (
-        <ConfidenceScoreBreakdown 
+        <ConfidenceScoreBreakdown
           repositoryId={selectedRepo}
           onClose={() => setSelectedRepo(null)}
         />

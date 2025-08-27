@@ -16,30 +16,33 @@ async function ensureContributorExists(githubUser: any): Promise<string | null> 
 
   const { data, error } = await supabase
     .from('contributors')
-    .upsert({
-      github_id: githubUser.id,
-      username: githubUser.login,
-      display_name: githubUser.name || null,
-      email: githubUser.email || null,
-      avatar_url: githubUser.avatar_url || null,
-      profile_url: `https://github.com/${githubUser.login}`,
-      bio: githubUser.bio || null,
-      company: githubUser.company || null,
-      location: githubUser.location || null,
-      blog: githubUser.blog || null,
-      public_repos: githubUser.public_repos || 0,
-      public_gists: githubUser.public_gists || 0,
-      followers: githubUser.followers || 0,
-      following: githubUser.following || 0,
-      github_created_at: githubUser.created_at || new Date().toISOString(),
-      is_bot: githubUser.type === 'Bot' || githubUser.login.includes('[bot]'),
-      is_active: true,
-      first_seen_at: new Date().toISOString(),
-      last_updated_at: new Date().toISOString(),
-    }, {
-      onConflict: 'github_id',
-      ignoreDuplicates: false
-    })
+    .upsert(
+      {
+        github_id: githubUser.id,
+        username: githubUser.login,
+        display_name: githubUser.name || null,
+        email: githubUser.email || null,
+        avatar_url: githubUser.avatar_url || null,
+        profile_url: `https://github.com/${githubUser.login}`,
+        bio: githubUser.bio || null,
+        company: githubUser.company || null,
+        location: githubUser.location || null,
+        blog: githubUser.blog || null,
+        public_repos: githubUser.public_repos || 0,
+        public_gists: githubUser.public_gists || 0,
+        followers: githubUser.followers || 0,
+        following: githubUser.following || 0,
+        github_created_at: githubUser.created_at || new Date().toISOString(),
+        is_bot: githubUser.type === 'Bot' || githubUser.login.includes('[bot]'),
+        is_active: true,
+        first_seen_at: new Date().toISOString(),
+        last_updated_at: new Date().toISOString(),
+      },
+      {
+        onConflict: 'github_id',
+        ignoreDuplicates: false,
+      }
+    )
     .select('id')
     .maybeSingle();
 
@@ -56,21 +59,21 @@ async function ensureContributorExists(githubUser: any): Promise<string | null> 
 
 export const captureRepositorySync = inngest.createFunction(
   {
-    id: "capture-repository-sync",
-    name: "Sync Recent Repository PRs",
+    id: 'capture-repository-sync',
+    name: 'Sync Recent Repository PRs',
     concurrency: {
       limit: 3, // Reduced for better rate limit management
-      key: "event.data.repositoryId",
+      key: 'event.data.repositoryId',
     },
     retries: 2,
   },
-  { event: "capture/repository.sync" },
+  { event: 'capture/repository.sync' },
   async ({ event, step }) => {
     const { repositoryId, days, priority, reason } = event.data;
     const effectiveDays = Math.min(days || DEFAULT_DAYS_LIMIT, DEFAULT_DAYS_LIMIT);
 
     // Step 1: Get repository details and check if it was recently processed
-    const repository = await step.run("get-repository", async () => {
+    const repository = await step.run('get-repository', async () => {
       const { data, error } = await supabase
         .from('repositories')
         .select('owner, name, last_updated_at')
@@ -85,12 +88,15 @@ export const captureRepositorySync = inngest.createFunction(
       if (data.last_updated_at) {
         const lastSyncTime = new Date(data.last_updated_at).getTime();
         const hoursSinceSync = (Date.now() - lastSyncTime) / (1000 * 60 * 60);
-        
+
         if (hoursSinceSync < RATE_LIMIT_CONFIG.COOLDOWN_HOURS && reason !== 'manual') {
-          const timeAgo = hoursSinceSync < 1 
-            ? `${Math.round(hoursSinceSync * 60)} minutes`
-            : `${Math.round(hoursSinceSync)} hours`;
-          throw new Error(`Repository ${data.owner}/${data.name} was synced ${timeAgo} ago. Skipping to prevent rate limiting.`);
+          const timeAgo =
+            hoursSinceSync < 1
+              ? `${Math.round(hoursSinceSync * 60)} minutes`
+              : `${Math.round(hoursSinceSync)} hours`;
+          throw new Error(
+            `Repository ${data.owner}/${data.name} was synced ${timeAgo} ago. Skipping to prevent rate limiting.`
+          );
         }
       }
 
@@ -98,27 +104,33 @@ export const captureRepositorySync = inngest.createFunction(
     });
 
     // Step 2: Check repository size before proceeding
-    await step.run("check-repository-size", async () => {
+    await step.run('check-repository-size', async () => {
       const { count: prCount } = await supabase
         .from('pull_requests')
         .select('*', { count: 'exact', head: true })
         .eq('repository_id', repositoryId);
 
       if (prCount && prCount > LARGE_REPO_THRESHOLD) {
-        console.warn(`Large repository detected: ${repository.owner}/${repository.name} has ${prCount} PRs`);
+        console.warn(
+          `Large repository detected: ${repository.owner}/${repository.name} has ${prCount} PRs`
+        );
       }
 
       return { prCount: prCount || 0 };
     });
 
     // Step 3: Fetch recent PRs from GitHub with strict limits
-    const recentPRs = await step.run("fetch-recent-prs", async () => {
+    const recentPRs = await step.run('fetch-recent-prs', async () => {
       const since = new Date(Date.now() - effectiveDays * 24 * 60 * 60 * 1000).toISOString();
-      
+
       try {
         // Use existing fetchPullRequests function from github.ts
         const { fetchPullRequests } = await import('../../github');
-        const prs = await fetchPullRequests(repository.owner, repository.name, effectiveDays.toString()) as unknown as GitHubPullRequest[];
+        const prs = (await fetchPullRequests(
+          repository.owner,
+          repository.name,
+          effectiveDays.toString()
+        )) as unknown as GitHubPullRequest[];
 
         // Filter PRs updated within the time range and apply limit
         const filteredPRs = prs
@@ -126,7 +138,9 @@ export const captureRepositorySync = inngest.createFunction(
           .slice(0, MAX_PRS_PER_SYNC); // Strict limit to prevent rate limiting
 
         if (prs.length > MAX_PRS_PER_SYNC) {
-          console.warn(`Limited ${repository.owner}/${repository.name} sync to ${MAX_PRS_PER_SYNC} most recent PRs out of ${prs.length} total`);
+          console.warn(
+            `Limited ${repository.owner}/${repository.name} sync to ${MAX_PRS_PER_SYNC} most recent PRs out of ${prs.length} total`
+          );
         }
 
         return filteredPRs;
@@ -136,20 +150,22 @@ export const captureRepositorySync = inngest.createFunction(
           throw new Error(`Repository ${repository.owner}/${repository.name} not found`);
         }
         if (apiError.status === 403) {
-          throw new Error(`Rate limit hit for ${repository.owner}/${repository.name}. Please try again later.`);
+          throw new Error(
+            `Rate limit hit for ${repository.owner}/${repository.name}. Please try again later.`
+          );
         }
         throw error;
       }
     });
 
     // Step 4: Store PRs in database
-    const storedPRs = await step.run("store-prs", async () => {
+    const storedPRs = await step.run('store-prs', async () => {
       if (recentPRs.length === 0) {
         return [];
       }
 
       // First, ensure all contributors exist and get their UUIDs
-      const contributorPromises = recentPRs.map(pr => ensureContributorExists(pr.user));
+      const contributorPromises = recentPRs.map((pr) => ensureContributorExists(pr.user));
       const contributorIds = await Promise.all(contributorPromises);
 
       // Then create PRs with proper UUIDs
@@ -159,8 +175,7 @@ export const captureRepositorySync = inngest.createFunction(
         number: pr.number,
         title: pr.title,
         body: null, // PR body not available in simplified type
-        state: pr.state === 'open' ? 'open' : 
-               pr.merged ? 'merged' : 'closed',
+        state: pr.state === 'open' ? 'open' : pr.merged ? 'merged' : 'closed',
         author_id: contributorIds[index], // Now this is a proper UUID
         created_at: pr.created_at,
         updated_at: pr.updated_at,
@@ -192,7 +207,7 @@ export const captureRepositorySync = inngest.createFunction(
     });
 
     // Step 5: Prepare job queue data (no nested steps)
-    const jobsToQueue = await step.run("prepare-job-queue", async () => {
+    const jobsToQueue = await step.run('prepare-job-queue', async () => {
       const jobs = {
         details: [] as any[],
         reviews: [] as any[],
@@ -203,7 +218,7 @@ export const captureRepositorySync = inngest.createFunction(
       const MAX_DETAIL_JOBS = 20;
       // Use centralized configuration for review/comment job limits
       const MAX_REVIEW_COMMENT_JOBS = RATE_LIMIT_CONFIG.MAX_REVIEW_COMMENT_JOBS;
-      
+
       let detailJobsQueued = 0;
       let reviewJobsQueued = 0;
       let commentJobsQueued = 0;
@@ -211,14 +226,16 @@ export const captureRepositorySync = inngest.createFunction(
       for (const pr of storedPRs) {
         // Queue jobs for PRs that likely need more data
         const prData = recentPRs.find((p: GitHubPullRequest) => p.number === pr.number);
-        
+
         if (!prData) continue;
 
         // If PR has no file change data, prepare details job (limited)
-        if (detailJobsQueued < MAX_DETAIL_JOBS && 
-            ((prData.additions === 0 && prData.deletions === 0) || prData.changed_files === 0)) {
+        if (
+          detailJobsQueued < MAX_DETAIL_JOBS &&
+          ((prData.additions === 0 && prData.deletions === 0) || prData.changed_files === 0)
+        ) {
           jobs.details.push({
-            name: "capture/pr.details",
+            name: 'capture/pr.details',
             data: {
               repositoryId,
               prNumber: pr.number.toString(),
@@ -232,7 +249,7 @@ export const captureRepositorySync = inngest.createFunction(
         // Prepare review capture (limited)
         if (reviewJobsQueued < MAX_REVIEW_COMMENT_JOBS) {
           jobs.reviews.push({
-            name: "capture/pr.reviews",
+            name: 'capture/pr.reviews',
             data: {
               repositoryId,
               prNumber: pr.number.toString(),
@@ -247,7 +264,7 @@ export const captureRepositorySync = inngest.createFunction(
         // Prepare comment capture (limited)
         if (commentJobsQueued < MAX_REVIEW_COMMENT_JOBS) {
           jobs.comments.push({
-            name: "capture/pr.comments",
+            name: 'capture/pr.comments',
             data: {
               repositoryId,
               prNumber: pr.number.toString(),
@@ -260,10 +277,14 @@ export const captureRepositorySync = inngest.createFunction(
         }
 
         // Stop if we've hit all limits
-        if (detailJobsQueued >= MAX_DETAIL_JOBS && 
-            reviewJobsQueued >= MAX_REVIEW_COMMENT_JOBS && 
-            commentJobsQueued >= MAX_REVIEW_COMMENT_JOBS) {
-          console.warn(`Hit job queue limits for ${repository.owner}/${repository.name}. Some PRs may not have complete data.`);
+        if (
+          detailJobsQueued >= MAX_DETAIL_JOBS &&
+          reviewJobsQueued >= MAX_REVIEW_COMMENT_JOBS &&
+          commentJobsQueued >= MAX_REVIEW_COMMENT_JOBS
+        ) {
+          console.warn(
+            `Hit job queue limits for ${repository.owner}/${repository.name}. Some PRs may not have complete data.`
+          );
           break;
         }
       }
@@ -298,7 +319,7 @@ export const captureRepositorySync = inngest.createFunction(
     };
 
     // Step 7: Update repository sync timestamp
-    await step.run("update-sync-timestamp", async () => {
+    await step.run('update-sync-timestamp', async () => {
       const { error } = await supabase
         .from('repositories')
         .update({

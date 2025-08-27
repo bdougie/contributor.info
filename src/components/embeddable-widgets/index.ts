@@ -14,5 +14,5 @@ export type {
   EmbeddableWidgetConfig,
   WidgetData,
   CitationFormat,
-  PermalinkConfig
+  PermalinkConfig,
 } from './widget-types';

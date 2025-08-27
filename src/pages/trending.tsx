@@ -11,32 +11,34 @@ export function TrendingPageRoute() {
     <>
       <Helmet>
         <title>Trending Repositories - Contributor.info</title>
-        <meta 
-          name="description" 
-          content="Discover trending repositories with significant recent activity and growth. Find the hottest GitHub projects based on stars, PRs, and contributor metrics." 
+        <meta
+          name="description"
+          content="Discover trending repositories with significant recent activity and growth. Find the hottest GitHub projects based on stars, PRs, and contributor metrics."
         />
         <meta property="og:title" content="Trending Repositories - Contributor.info" />
-        <meta 
-          property="og:description" 
-          content="Discover trending repositories with significant recent activity and growth." 
+        <meta
+          property="og:description"
+          content="Discover trending repositories with significant recent activity and growth."
         />
         <meta property="og:type" content="website" />
         <link rel="canonical" href="https://contributor.info/trending" />
-        
+
         {/* Schema.org markup for trending repositories */}
         <script type="application/ld+json">
           {JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "WebPage",
-            "name": "Trending Repositories",
-            "description": "Discover trending repositories with significant recent activity and growth",
-            "url": "https://contributor.info/trending",
-            "mainEntity": {
-              "@type": "ItemList",
-              "name": "Trending GitHub Repositories",
-              "description": "A curated list of trending GitHub repositories based on recent activity metrics",
-              "numberOfItems": repositories.length
-            }
+            '@context': 'https://schema.org',
+            '@type': 'WebPage',
+            name: 'Trending Repositories',
+            description:
+              'Discover trending repositories with significant recent activity and growth',
+            url: 'https://contributor.info/trending',
+            mainEntity: {
+              '@type': 'ItemList',
+              name: 'Trending GitHub Repositories',
+              description:
+                'A curated list of trending GitHub repositories based on recent activity metrics',
+              numberOfItems: repositories.length,
+            },
           })}
         </script>
       </Helmet>
@@ -48,21 +50,15 @@ export function TrendingPageRoute() {
               <AlertCircle className="h-4 w-4" />
               <AlertDescription className="flex items-center justify-between">
                 <span>{error}</span>
-                <button 
-                  onClick={refetch}
-                  className="ml-4 text-sm underline hover:no-underline"
-                >
+                <button onClick={refetch} className="ml-4 text-sm underline hover:no-underline">
                   Try again
                 </button>
               </AlertDescription>
             </Alert>
           </div>
         )}
-        
-        <TrendingPage 
-          repositories={repositories} 
-          loading={loading}
-        />
+
+        <TrendingPage repositories={repositories} loading={loading} />
       </div>
     </>
   );

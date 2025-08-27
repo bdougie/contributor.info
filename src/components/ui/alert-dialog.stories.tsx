@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from '@storybook/react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -9,22 +9,22 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "./alert-dialog";
-import { Button } from "./button";
+} from './alert-dialog';
+import { Button } from './button';
 
 const meta = {
-  title: "UI/Overlay/AlertDialog",
+  title: 'UI/Overlay/AlertDialog',
   component: AlertDialog,
   parameters: {
-    layout: "centered",
+    layout: 'centered',
     docs: {
       description: {
         component:
-          "A modal dialog that interrupts the user with important content and expects a response.",
+          'A modal dialog that interrupts the user with important content and expects a response.',
       },
     },
   },
-  tags: ["autodocs"],
+  tags: ['autodocs'],
 } satisfies Meta<typeof AlertDialog>;
 
 export default meta;
@@ -40,8 +40,8 @@ export const Default: Story = {
         <AlertDialogHeader>
           <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
           <AlertDialogDescription>
-            This action cannot be undone. This will permanently delete your
-            account and remove your data from our servers.
+            This action cannot be undone. This will permanently delete your account and remove your
+            data from our servers.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -63,8 +63,8 @@ export const Destructive: Story = {
         <AlertDialogHeader>
           <AlertDialogTitle>Delete Account</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to delete your account? This action cannot be
-            undone. All your data will be permanently removed from our servers.
+            Are you sure you want to delete your account? This action cannot be undone. All your
+            data will be permanently removed from our servers.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -88,8 +88,8 @@ export const Confirmation: Story = {
         <AlertDialogHeader>
           <AlertDialogTitle>Save Changes</AlertDialogTitle>
           <AlertDialogDescription>
-            Do you want to save the changes you made? Your changes will be lost
-            if you don't save them.
+            Do you want to save the changes you made? Your changes will be lost if you don't save
+            them.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -113,43 +113,22 @@ export const LongContent: Story = {
           <AlertDialogDescription asChild>
             <div className="max-h-[300px] overflow-y-auto">
               <p className="mb-4">
-                By using this service, you agree to the following terms and
-                conditions:
+                By using this service, you agree to the following terms and conditions:
               </p>
               <ol className="list-decimal list-inside space-y-2 text-sm">
                 <li>You must be at least 18 years old to use this service.</li>
-                <li>
-                  You are responsible for maintaining the confidentiality of
-                  your account.
-                </li>
-                <li>
-                  You agree not to use the service for any unlawful purposes.
-                </li>
-                <li>
-                  We reserve the right to terminate your account at any time.
-                </li>
-                <li>
-                  All content you submit must comply with our community
-                  guidelines.
-                </li>
-                <li>
-                  We may update these terms at any time without prior notice.
-                </li>
+                <li>You are responsible for maintaining the confidentiality of your account.</li>
+                <li>You agree not to use the service for any unlawful purposes.</li>
+                <li>We reserve the right to terminate your account at any time.</li>
+                <li>All content you submit must comply with our community guidelines.</li>
+                <li>We may update these terms at any time without prior notice.</li>
                 <li>Your use of the service is at your own risk.</li>
-                <li>
-                  We are not liable for any damages resulting from your use of
-                  the service.
-                </li>
-                <li>
-                  These terms are governed by the laws of your jurisdiction.
-                </li>
-                <li>
-                  Any disputes will be resolved through binding arbitration.
-                </li>
+                <li>We are not liable for any damages resulting from your use of the service.</li>
+                <li>These terms are governed by the laws of your jurisdiction.</li>
+                <li>Any disputes will be resolved through binding arbitration.</li>
               </ol>
               <p className="mt-4 text-sm">
-                Last updated: December 2024. Please review these terms regularly
-                as they may change.
+                Last updated: December 2024. Please review these terms regularly as they may change.
               </p>
             </div>
           </AlertDialogDescription>
@@ -193,9 +172,8 @@ export const Warning: Story = {
             Warning
           </AlertDialogTitle>
           <AlertDialogDescription>
-            You are about to perform an action that may have unintended
-            consequences. Please review your selection carefully before
-            proceeding.
+            You are about to perform an action that may have unintended consequences. Please review
+            your selection carefully before proceeding.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -218,9 +196,7 @@ export const SimpleConfirm: Story = {
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Confirm Action</AlertDialogTitle>
-          <AlertDialogDescription>
-            Are you sure you want to continue?
-          </AlertDialogDescription>
+          <AlertDialogDescription>Are you sure you want to continue?</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>No</AlertDialogCancel>
@@ -266,8 +242,8 @@ export const AlertDialogInteraction: Story = {
         <AlertDialogHeader>
           <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
           <AlertDialogDescription>
-            This action cannot be undone. This will permanently delete your
-            account and remove your data from our servers.
+            This action cannot be undone. This will permanently delete your account and remove your
+            data from our servers.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -310,9 +286,7 @@ export const AlertDialogKeyboardNavigation: Story = {
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Keyboard Navigation</AlertDialogTitle>
-          <AlertDialogDescription>
-            Test keyboard navigation in alert dialog.
-          </AlertDialogDescription>
+          <AlertDialogDescription>Test keyboard navigation in alert dialog.</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -321,5 +295,5 @@ export const AlertDialogKeyboardNavigation: Story = {
       </AlertDialogContent>
     </AlertDialog>
   ),
-  tags: ["interaction", "accessibility"],
+  tags: ['interaction', 'accessibility'],
 };

@@ -1,8 +1,8 @@
-import { useEffect } from "react"
+import { useEffect } from 'react';
 import { Loader2 } from '@/components/ui/icon';
-import type { ReactNode } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { useGitHubAuth } from "@/hooks/use-github-auth";
+import type { ReactNode } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useGitHubAuth } from '@/hooks/use-github-auth';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -17,8 +17,8 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     if (!loading && !isLoggedIn) {
       // Store the attempted URL for redirect after login
       const redirectTo = location.pathname + location.search;
-      localStorage.setItem("redirectTo", redirectTo);
-      navigate("/login");
+      localStorage.setItem('redirectTo', redirectTo);
+      navigate('/login');
     }
   }, [isLoggedIn, loading, navigate, location]);
 

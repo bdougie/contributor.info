@@ -42,7 +42,7 @@ export function getCurrentMonthlyCycleState(): MonthlyCycleState {
 export function getMonthDateRange(month: number, year: number): { startDate: Date; endDate: Date } {
   const startDate = new Date(year, month, 1);
   const endDate = new Date(year, month + 1, 0, 23, 59, 59, 999); // Last day of month, end of day
-  
+
   return { startDate, endDate };
 }
 
@@ -131,13 +131,13 @@ export function getPhaseDescription(phase: CyclePhase): string {
 export function getTimeUntilNextPhase(): { days: number; phase: CyclePhase } {
   const now = new Date();
   const dayOfMonth = now.getDate();
-  
+
   if (dayOfMonth <= 7) {
     // Currently in winner announcement, next transition is to running leaderboard on 8th
     const nextPhaseDate = new Date(now.getFullYear(), now.getMonth(), 8);
     const timeDiff = nextPhaseDate.getTime() - now.getTime();
     const daysUntil = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
-    
+
     return {
       days: daysUntil,
       phase: CyclePhase.RUNNING_LEADERBOARD,
@@ -147,7 +147,7 @@ export function getTimeUntilNextPhase(): { days: number; phase: CyclePhase } {
     const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
     const timeDiff = nextMonth.getTime() - now.getTime();
     const daysUntil = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
-    
+
     return {
       days: daysUntil,
       phase: CyclePhase.WINNER_ANNOUNCEMENT,
@@ -168,16 +168,16 @@ export function isSameMonth(date1: Date, date2: Date): boolean {
 export function getCurrentWeekDateRange(): { startDate: Date; endDate: Date } {
   const now = new Date();
   const day = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
-  
+
   // Calculate start of week (Sunday)
   const startDate = new Date(now);
   startDate.setDate(now.getDate() - day);
   startDate.setHours(0, 0, 0, 0);
-  
+
   // Calculate end of week (Saturday)
   const endDate = new Date(startDate);
   endDate.setDate(startDate.getDate() + 6);
   endDate.setHours(23, 59, 59, 999);
-  
+
   return { startDate, endDate };
 }

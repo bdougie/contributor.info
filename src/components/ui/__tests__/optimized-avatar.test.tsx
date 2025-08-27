@@ -18,12 +18,12 @@ global.IntersectionObserver = vi.fn().mockImplementation(() => ({
 vi.mock('@/components/ui/avatar', () => {
   const React = require('react');
   return {
-    Avatar: React.forwardRef(({ children, className, style }: any, ref: any) => 
+    Avatar: React.forwardRef(({ children, className, style }: any, ref: any) =>
       React.createElement('div', { ref, className, style }, children)
     ),
-    AvatarImage: ({ src, alt, onLoad, onError, className }: any) => 
+    AvatarImage: ({ src, alt, onLoad, onError, className }: any) =>
       React.createElement('img', { src, alt, onLoad, onError, className }),
-    AvatarFallback: ({ children, className }: any) => 
+    AvatarFallback: ({ children, className }: any) =>
       React.createElement('div', { className }, children),
   };
 });
@@ -67,11 +67,7 @@ describe('OptimizedAvatar', () => {
 
   it('generates fallback initials from alt text', async () => {
     const { container } = render(
-      <OptimizedAvatar
-        src="invalid-url"
-        alt="Jane Smith"
-        lazy={false}
-      />
+      <OptimizedAvatar src="invalid-url" alt="Jane Smith" lazy={false} />
     );
 
     // Should show fallback initials immediately since image will fail to load

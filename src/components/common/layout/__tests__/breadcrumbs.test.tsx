@@ -13,7 +13,7 @@ vi.mock('@/lib/utils/mobile-detection', () => ({
 const renderWithRouter = (initialPath: string, isMobile = false) => {
   // Update the mock for this specific test
   mockUseIsMobile.mockReturnValue(isMobile);
-  
+
   return render(
     <HelmetProvider>
       <MemoryRouter initialEntries={[initialPath]}>
@@ -113,10 +113,10 @@ describe('Breadcrumbs', () => {
       // Just verify the component renders without hard-coded domains
       // The actual JSON-LD is managed by react-helmet-async which doesn't render in tests
       const { container } = renderWithRouter('/facebook/react');
-      
+
       // Verify the component renders without errors
       expect(container).toBeInTheDocument();
-      
+
       // Verify the breadcrumbs are rendered
       expect(screen.getByText('home')).toBeInTheDocument();
       expect(screen.getByText('facebook')).toBeInTheDocument();

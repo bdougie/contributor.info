@@ -24,7 +24,7 @@ export const COMMON_SPAM_TEMPLATES: SpamTemplate[] = [
     category: 'hacktoberfest',
     weight: 0.7,
   },
-  
+
   // First contribution templates
   {
     id: 'first_contrib_basic',
@@ -40,7 +40,7 @@ export const COMMON_SPAM_TEMPLATES: SpamTemplate[] = [
     category: 'first_contribution',
     weight: 0.7,
   },
-  
+
   // Generic spam
   {
     id: 'generic_update',
@@ -63,7 +63,7 @@ export const COMMON_SPAM_TEMPLATES: SpamTemplate[] = [
     category: 'generic_spam',
     weight: 0.8,
   },
-  
+
   // Automated/bot patterns
   {
     id: 'auto_dependency',
@@ -79,7 +79,7 @@ export const COMMON_SPAM_TEMPLATES: SpamTemplate[] = [
     category: 'automated',
     weight: 0.6,
   },
-  
+
   // Repository-specific templates - Continue project
   {
     id: 'continue_template_unchanged',
@@ -90,10 +90,11 @@ export const COMMON_SPAM_TEMPLATES: SpamTemplate[] = [
   },
   {
     id: 'continue_placeholder_sections',
-    template: 'for visual changes include screenshots screen recordings are particularly helpful what tests were added or updated',
+    template:
+      'for visual changes include screenshots screen recordings are particularly helpful what tests were added or updated',
     description: 'Continue PR template sections left as placeholders',
     category: 'generic_spam',
-    weight: 0.90,
+    weight: 0.9,
   },
   {
     id: 'continue_empty_checklist',
@@ -120,24 +121,25 @@ export const EXACT_MATCH_TEMPLATES = [
 export const SPAM_PATTERNS = {
   // Very short descriptions with no context
   MINIMAL_EFFORT: /^(update|fix|change|test)\.?$/i,
-  
+
   // Hacktoberfest specific patterns
   HACKTOBERFEST: /hacktoberfest|added?\s+(my\s+)?name|name\s+add(ed)?/i,
-  
-  // Generic first contribution patterns  
+
+  // Generic first contribution patterns
   FIRST_CONTRIB: /first\s+(contribution|commit|pr|pull\s+request)|hello\s+world/i,
-  
+
   // Whitespace only changes
   WHITESPACE_ONLY: /^\s*(whitespace|spaces?|tabs?|formatting)\s*$/i,
-  
+
   // Single character or emoji only
   SINGLE_CHAR: /^.{1,3}$/,
-  
+
   // Common meaningless phrases
   MEANINGLESS: /^(done|finished|complete|ok|good|nice|cool|awesome)\.?$/i,
-  
+
   // Continue project specific placeholder patterns
-  CONTINUE_PLACEHOLDERS: /what changed\??\s*feel free to be brief|for visual changes,?\s*include screenshots|what tests were added or updated|screen recordings are particularly helpful/i,
+  CONTINUE_PLACEHOLDERS:
+    /what changed\??\s*feel free to be brief|for visual changes,?\s*include screenshots|what tests were added or updated|screen recordings are particularly helpful/i,
 };
 
 export class TemplateDetector {
@@ -147,30 +149,32 @@ export class TemplateDetector {
   private calculateSimilarity(str1: string, str2: string): number {
     const len1 = str1.length;
     const len2 = str2.length;
-    
+
     if (len1 === 0) return len2;
     if (len2 === 0) return len1;
-    
-    const matrix = Array(len2 + 1).fill(null).map(() => Array(len1 + 1).fill(null));
-    
+
+    const matrix = Array(len2 + 1)
+      .fill(null)
+      .map(() => Array(len1 + 1).fill(null));
+
     for (let i = 0; i <= len1; i++) matrix[0][i] = i;
     for (let j = 0; j <= len2; j++) matrix[j][0] = j;
-    
+
     for (let j = 1; j <= len2; j++) {
       for (let i = 1; i <= len1; i++) {
         const indicator = str1[i - 1] === str2[j - 1] ? 0 : 1;
         matrix[j][i] = Math.min(
-          matrix[j][i - 1] + 1,     // deletion
-          matrix[j - 1][i] + 1,     // insertion
+          matrix[j][i - 1] + 1, // deletion
+          matrix[j - 1][i] + 1, // insertion
           matrix[j - 1][i - 1] + indicator // substitution
         );
       }
     }
-    
+
     const maxLen = Math.max(len1, len2);
-    return 1 - (matrix[len2][len1] / maxLen);
+    return 1 - matrix[len2][len1] / maxLen;
   }
-  
+
   /**
    * Check if description matches any known spam templates
    */
@@ -188,10 +192,14 @@ export class TemplateDetector {
         template: '',
       };
     }
-    
-    const normalizedDesc = description.toLowerCase().trim().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ');
+
+    const normalizedDesc = description
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s]/g, '')
+      .replace(/\s+/g, ' ');
     const originalNormalized = description.toLowerCase().trim();
-    
+
     // Check regex patterns first (more specific)
     for (const [patternName, pattern] of Object.entries(SPAM_PATTERNS)) {
       if (pattern.test(originalNormalized)) {
@@ -203,7 +211,7 @@ export class TemplateDetector {
         };
       }
     }
-    
+
     // Check exact matches (less specific) - but only for very short descriptions
     if (normalizedDesc.split(' ').length <= 2) {
       for (const template of EXACT_MATCH_TEMPLATES) {
@@ -218,11 +226,11 @@ export class TemplateDetector {
         }
       }
     }
-    
+
     // Check template similarity
     for (const template of COMMON_SPAM_TEMPLATES) {
       const similarity = this.calculateSimilarity(normalizedDesc, template.template);
-      
+
       if (similarity >= 0.8) {
         return {
           is_match: true,
@@ -232,12 +240,12 @@ export class TemplateDetector {
         };
       }
     }
-    
+
     return {
       is_match: false,
     };
   }
-  
+
   /**
    * Get all matching templates with their similarity scores
    */
@@ -246,18 +254,18 @@ export class TemplateDetector {
     similarity: number;
   }> {
     if (!description) return [];
-    
+
     const normalizedDesc = description.toLowerCase().trim();
     const matches: Array<{ template: SpamTemplate; similarity: number }> = [];
-    
+
     for (const template of COMMON_SPAM_TEMPLATES) {
       const similarity = this.calculateSimilarity(normalizedDesc, template.template);
-      
+
       if (similarity >= 0.5) {
         matches.push({ template, similarity });
       }
     }
-    
+
     return matches.sort((a, b) => b.similarity - a.similarity);
   }
 }

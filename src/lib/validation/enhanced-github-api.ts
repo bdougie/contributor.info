@@ -4,7 +4,7 @@
  */
 
 import { supabase } from '../supabase';
-import { 
+import {
   validateGitHubPullRequest,
   validateGitHubRepository,
   validateAndTransformGitHubRepository,
@@ -24,8 +24,8 @@ const GITHUB_API_BASE = 'https://api.github.com';
  * This is an example of how to integrate validation into existing API functions
  */
 export async function fetchPullRequestsWithValidation(
-  owner: string, 
-  repo: string, 
+  owner: string,
+  repo: string,
   timeRange: string = '30'
 ): Promise<{
   pullRequests: Array<{
@@ -58,11 +58,13 @@ export async function fetchPullRequestsWithValidation(
   }>;
 }> {
   const headers: HeadersInit = {
-    'Accept': 'application/vnd.github.v3+json',
+    Accept: 'application/vnd.github.v3+json',
   };
 
   // Try to get user's GitHub token from Supabase session
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
   const userToken = session?.provider_token;
 
   // Use user's token if available, otherwise fall back to env token
@@ -81,7 +83,7 @@ export async function fetchPullRequestsWithValidation(
     // Calculate date range based on timeRange parameter
     const since = new Date();
     since.setDate(since.getDate() - parseInt(timeRange));
-    
+
     const response = await fetch(
       `${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls?state=all&sort=updated&direction=desc&per_page=100&since=${since.toISOString()}`,
       { headers }
@@ -90,21 +92,27 @@ export async function fetchPullRequestsWithValidation(
     if (!response.ok) {
       const error = await response.json();
       if (response.status === 404) {
-        throw new Error(`Repository "${owner}/${repo}" not found. Please check if the repository exists and is public.`);
+        throw new Error(
+          `Repository "${owner}/${repo}" not found. Please check if the repository exists and is public.`
+        );
       } else if (response.status === 403 && error.message?.includes('rate limit')) {
         if (!token) {
-          throw new Error('GitHub API rate limit exceeded. Please log in with GitHub to increase the rate limit.');
+          throw new Error(
+            'GitHub API rate limit exceeded. Please log in with GitHub to increase the rate limit.'
+          );
         } else {
           throw new Error('GitHub API rate limit exceeded. Please try again later.');
         }
       } else if (response.status === 401) {
-        throw new Error('Invalid GitHub token. Please check your token and try again. Make sure you\'ve copied the entire token correctly.');
+        throw new Error(
+          "Invalid GitHub token. Please check your token and try again. Make sure you've copied the entire token correctly."
+        );
       }
       throw new Error(`GitHub API error: ${error.message || response.statusText}`);
     }
 
     const rawPullRequests = await response.json();
-    
+
     // Validate the array of pull requests
     const arrayValidationResult = safeValidateGitHubResponse(
       githubPullRequestsArraySchema,
@@ -121,7 +129,7 @@ export async function fetchPullRequestsWithValidation(
       const prDate = new Date(pr.updated_at);
       return prDate >= since;
     });
-    
+
     // Process each PR with validation
     const validatedPullRequests = await Promise.all(
       filteredPRs.map(async (pr: any, index: number) => {
@@ -173,7 +181,7 @@ export async function fetchPullRequestsWithValidation(
 
           const detailsData = await detailsResponse.json();
           const validatedDetails = validateGitHubPullRequest(detailsData);
-          
+
           if (!validatedDetails) {
             validationErrors.push({
               index,
@@ -205,11 +213,15 @@ export async function fetchPullRequestsWithValidation(
               comments: [],
             };
           }
-          
+
           // Fetch PR reviews and comments (in parallel)
           const [reviewsResponse, commentsResponse] = await Promise.all([
-            fetch(`${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls/${pr.number}/reviews`, { headers }),
-            fetch(`${GITHUB_API_BASE}/repos/${owner}/${repo}/issues/${pr.number}/comments`, { headers })
+            fetch(`${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls/${pr.number}/reviews`, {
+              headers,
+            }),
+            fetch(`${GITHUB_API_BASE}/repos/${owner}/${repo}/issues/${pr.number}/comments`, {
+              headers,
+            }),
           ]);
 
           let validatedReviews: any[] = [];
@@ -223,16 +235,16 @@ export async function fetchPullRequestsWithValidation(
               reviewsData,
               `PR #${pr.number} reviews`
             );
-            
+
             if (Array.isArray(reviewsValidation)) {
               validatedReviews = reviewsValidation.map((review: any) => ({
                 id: review.id,
                 state: review.state,
                 user: {
                   login: review.user.login,
-                  avatar_url: review.user.avatar_url
+                  avatar_url: review.user.avatar_url,
                 },
-                submitted_at: review.submitted_at
+                submitted_at: review.submitted_at,
               }));
             } else {
               validationErrors.push({
@@ -251,15 +263,15 @@ export async function fetchPullRequestsWithValidation(
               commentsData,
               `PR #${pr.number} comments`
             );
-            
+
             if (Array.isArray(commentsValidation)) {
               validatedComments = commentsValidation.map((comment: any) => ({
                 id: comment.id,
                 user: {
                   login: comment.user.login,
-                  avatar_url: comment.user.avatar_url
+                  avatar_url: comment.user.avatar_url,
                 },
-                created_at: comment.created_at
+                created_at: comment.created_at,
               }));
             } else {
               validationErrors.push({
@@ -269,12 +281,11 @@ export async function fetchPullRequestsWithValidation(
               });
             }
           }
-          
+
           // Check if user is a bot by their type or by checking if name contains [bot]
-          const isBot = 
-            validatedDetails.user.type === 'Bot' || 
-            validatedDetails.user.login.includes('[bot]');
-          
+          const isBot =
+            validatedDetails.user.type === 'Bot' || validatedDetails.user.login.includes('[bot]');
+
           return {
             id: validatedDetails.id,
             number: validatedDetails.number,
@@ -293,7 +304,7 @@ export async function fetchPullRequestsWithValidation(
               id: validatedDetails.user.id,
               login: validatedDetails.user.login,
               avatar_url: validatedDetails.user.avatar_url,
-              type: isBot ? 'Bot' as const : 'User' as const,
+              type: isBot ? ('Bot' as const) : ('User' as const),
             },
             reviews: validatedReviews,
             comments: validatedComments,
@@ -330,28 +341,27 @@ export async function fetchPullRequestsWithValidation(
  * Enhanced function to fetch and validate user organizations
  */
 export async function fetchUserOrganizationsWithValidation(
-  username: string, 
+  username: string,
   headers: HeadersInit
 ): Promise<{
-  organizations: Array<{ login: string; avatar_url: string; }>;
-  validationErrors: Array<{ error: string; rawData: unknown; }>;
+  organizations: Array<{ login: string; avatar_url: string }>;
+  validationErrors: Array<{ error: string; rawData: unknown }>;
 }> {
   try {
-    const response = await fetch(
-      `${GITHUB_API_BASE}/users/${username}/orgs`,
-      { headers }
-    );
+    const response = await fetch(`${GITHUB_API_BASE}/users/${username}/orgs`, { headers });
 
     if (!response.ok) {
       return {
         organizations: [],
-        validationErrors: [{ error: `Failed to fetch organizations: ${response.statusText}`, rawData: null }],
+        validationErrors: [
+          { error: `Failed to fetch organizations: ${response.statusText}`, rawData: null },
+        ],
       };
     }
 
     const orgsData = await response.json();
-    const validationErrors: Array<{ error: string; rawData: unknown; }> = [];
-    
+    const validationErrors: Array<{ error: string; rawData: unknown }> = [];
+
     // Validate the organizations array
     const validatedOrgs = safeValidateGitHubResponse(
       githubUsersArraySchema, // Organizations use same schema as users
@@ -370,7 +380,7 @@ export async function fetchUserOrganizationsWithValidation(
       };
     }
 
-    const organizations = Array.isArray(validatedOrgs) 
+    const organizations = Array.isArray(validatedOrgs)
       ? validatedOrgs.slice(0, 3).map((org: any) => ({
           login: org.login,
           avatar_url: org.avatar_url,
@@ -399,24 +409,23 @@ export async function fetchRepositoryWithValidation(
   headers: HeadersInit
 ): Promise<{
   repository: any | null;
-  validationErrors: Array<{ error: string; rawData: unknown; }>;
+  validationErrors: Array<{ error: string; rawData: unknown }>;
 }> {
   try {
-    const response = await fetch(
-      `${GITHUB_API_BASE}/repos/${owner}/${repo}`,
-      { headers }
-    );
+    const response = await fetch(`${GITHUB_API_BASE}/repos/${owner}/${repo}`, { headers });
 
     if (!response.ok) {
       return {
         repository: null,
-        validationErrors: [{ error: `Failed to fetch repository: ${response.statusText}`, rawData: null }],
+        validationErrors: [
+          { error: `Failed to fetch repository: ${response.statusText}`, rawData: null },
+        ],
       };
     }
 
     const repoData = await response.json();
-    const validationErrors: Array<{ error: string; rawData: unknown; }> = [];
-    
+    const validationErrors: Array<{ error: string; rawData: unknown }> = [];
+
     // Validate the repository data
     const validatedRepo = validateGitHubRepository(repoData);
 
@@ -457,17 +466,17 @@ export function withValidation<TInput, TOutput>(
 ) {
   return async (input: TInput): Promise<TOutput> => {
     const output = await apiFunction(input);
-    
+
     if (validator && !validator(output)) {
       const error = 'API response validation failed';
-      
+
       if (onValidationError) {
         onValidationError(error, input, output);
       } else {
         console.warn(error, { input, output });
       }
     }
-    
+
     return output;
   };
 }

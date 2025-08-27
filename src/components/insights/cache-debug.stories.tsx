@@ -1,44 +1,47 @@
-import type { Meta, StoryObj } from "@storybook/react";
-import { expect, within } from "@storybook/test";
+import type { Meta, StoryObj } from '@storybook/react';
+import { expect, within } from '@storybook/test';
 
 // Create a simple mock cache debug component for Storybook
-const MockCacheDebug = ({ variant = "high-performance" }: { 
-  variant?: "high-performance" | "low-performance" | "empty" | "production";
+const MockCacheDebug = ({
+  variant = 'high-performance',
+}: {
+  variant?: 'high-performance' | 'low-performance' | 'empty' | 'production';
 }) => {
   // Only show in development (simulated)
-  if (variant === "production") {
+  if (variant === 'production') {
     return null;
   }
 
   const cacheData = {
-    "high-performance": {
+    'high-performance': {
       totalEntries: 45,
       totalHits: 128,
       totalMisses: 22,
       hitRate: 85.3,
-      totalSize: "2.0 MB",
-      entriesByType: { health: 15, recommendation: 18, pattern: 12 }
+      totalSize: '2.0 MB',
+      entriesByType: { health: 15, recommendation: 18, pattern: 12 },
     },
-    "low-performance": {
+    'low-performance': {
       totalEntries: 8,
       totalHits: 12,
       totalMisses: 35,
       hitRate: 25.5,
-      totalSize: "512 KB",
-      entriesByType: { health: 2, recommendation: 3, pattern: 3 }
+      totalSize: '512 KB',
+      entriesByType: { health: 2, recommendation: 3, pattern: 3 },
     },
-    "empty": {
+    empty: {
       totalEntries: 0,
       totalHits: 0,
       totalMisses: 5,
       hitRate: 0,
-      totalSize: "0 B",
-      entriesByType: { health: 0, recommendation: 0, pattern: 0 }
-    }
+      totalSize: '0 B',
+      entriesByType: { health: 0, recommendation: 0, pattern: 0 },
+    },
   };
 
   const data = cacheData[variant as keyof typeof cacheData];
-  const hitRateColor = data.hitRate >= 80 ? "text-green-600" : data.hitRate >= 60 ? "text-yellow-600" : "text-red-600";
+  const hitRateColor =
+    data.hitRate >= 80 ? 'text-green-600' : data.hitRate >= 60 ? 'text-yellow-600' : 'text-red-600';
 
   return (
     <div className="p-4 border rounded-lg bg-card w-fit">
@@ -55,9 +58,7 @@ const MockCacheDebug = ({ variant = "high-performance" }: {
           <div className="text-xs text-muted-foreground">Entries</div>
         </div>
         <div>
-          <div className={`text-lg font-bold ${hitRateColor}`}>
-            {data.hitRate}%
-          </div>
+          <div className={`text-lg font-bold ${hitRateColor}`}>{data.hitRate}%</div>
           <div className="text-xs text-muted-foreground">Hit Rate</div>
         </div>
         <div>
@@ -74,7 +75,7 @@ const MockCacheDebug = ({ variant = "high-performance" }: {
       <div className="mb-4">
         <div className="text-sm font-medium mb-1">Memory: {data.totalSize}</div>
         <div className="w-full bg-muted rounded-full h-1">
-          <div 
+          <div
             className="h-1 rounded-full bg-blue-500"
             style={{ width: `${Math.min(100, (data.totalEntries / 50) * 100)}%` }}
           />
@@ -106,27 +107,28 @@ const MockCacheDebug = ({ variant = "high-performance" }: {
 };
 
 const meta: Meta<typeof MockCacheDebug> = {
-  title: "Components/Insights/CacheDebug",
+  title: 'Components/Insights/CacheDebug',
   component: MockCacheDebug,
   parameters: {
-    layout: "padded",
+    layout: 'padded',
     docs: {
       description: {
-        component: "Development-only debug component for monitoring LLM cache performance, hit rates, and memory usage. Provides tools for cache management and performance optimization during development."
-      }
-    }
+        component:
+          'Development-only debug component for monitoring LLM cache performance, hit rates, and memory usage. Provides tools for cache management and performance optimization during development.',
+      },
+    },
   },
   argTypes: {
     variant: {
-      control: "select",
-      options: ["high-performance", "low-performance", "empty", "production"],
-      description: "Cache performance state"
-    }
+      control: 'select',
+      options: ['high-performance', 'low-performance', 'empty', 'production'],
+      description: 'Cache performance state',
+    },
   },
   args: {
-    variant: "high-performance"
+    variant: 'high-performance',
   },
-  tags: ["autodocs"]
+  tags: ['autodocs'],
 };
 
 export default meta;
@@ -138,45 +140,45 @@ export const HighPerformance: Story = {};
 // Low performance cache state
 export const LowPerformance: Story = {
   args: {
-    variant: "low-performance"
-  }
+    variant: 'low-performance',
+  },
 };
 
 // Empty cache state
 export const EmptyCache: Story = {
   args: {
-    variant: "empty"
-  }
+    variant: 'empty',
+  },
 };
 
 // Production mode (should not render)
 export const ProductionMode: Story = {
   args: {
-    variant: "production"
-  }
+    variant: 'production',
+  },
 };
 
 // Interactive cache management
 export const Interactive: Story = {
-  play: ({ canvasElement }) => {
+  play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    
+
     // Verify cache debug component is displayed
-    expect(canvas.getByText("Cache Debug")).toBeInTheDocument();
-    
+    await expect(canvas.getByText('Cache Debug')).toBeInTheDocument();
+
     // Check hit rate is displayed
-    expect(canvas.getByText("85.3%")).toBeInTheDocument();
-    
+    await expect(canvas.getByText('85.3%')).toBeInTheDocument();
+
     // Check total entries count
-    expect(canvas.getByText("45")).toBeInTheDocument();
-    
+    await expect(canvas.getByText('45')).toBeInTheDocument();
+
     // Test action buttons
-    const cleanupButton = canvas.getByText("Cleanup");
-    expect(cleanupButton).toBeInTheDocument();
-    
-    const clearButton = canvas.getByText("Clear All");
-    expect(clearButton).toBeInTheDocument();
-  }
+    const cleanupButton = canvas.getByText('Cleanup');
+    await expect(cleanupButton).toBeInTheDocument();
+
+    const clearButton = canvas.getByText('Clear All');
+    await expect(clearButton).toBeInTheDocument();
+  },
 };
 
 // Cache performance comparison
@@ -196,7 +198,7 @@ export const PerformanceComparison: Story = {
         <MockCacheDebug variant="empty" />
       </div>
     </div>
-  )
+  ),
 };
 
 // Different cache states side by side
@@ -216,5 +218,5 @@ export const CacheStatesComparison: Story = {
         <MockCacheDebug variant="empty" />
       </div>
     </div>
-  )
+  ),
 };

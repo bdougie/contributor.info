@@ -13,9 +13,7 @@ import { z } from 'zod';
 /**
  * UUID validation schema
  */
-export const uuidSchema = z
-  .string()
-  .uuid('Invalid UUID format');
+export const uuidSchema = z.string().uuid('Invalid UUID format');
 
 /**
  * GitHub ID validation schema (64-bit integer)
@@ -60,18 +58,12 @@ export const repoFullNameSchema = z
 /**
  * URL validation schema with optional null
  */
-export const urlSchema = z
-  .string()
-  .url('Invalid URL format')
-  .nullable();
+export const urlSchema = z.string().url('Invalid URL format').nullable();
 
 /**
  * Email validation schema with optional null
  */
-export const emailSchema = z
-  .string()
-  .email('Invalid email format')
-  .nullable();
+export const emailSchema = z.string().email('Invalid email format').nullable();
 
 /**
  * Non-negative integer schema
@@ -84,10 +76,7 @@ export const nonNegativeIntSchema = z
 /**
  * Positive integer schema
  */
-export const positiveIntSchema = z
-  .number()
-  .int('Must be an integer')
-  .positive('Must be positive');
+export const positiveIntSchema = z.number().int('Must be an integer').positive('Must be positive');
 
 // =====================================================
 // CORE TABLE SCHEMAS
@@ -258,24 +247,26 @@ export const pullRequestUpdateSchema = pullRequestBaseSchema.partial().omit({
   github_id: true,
 });
 
-export const pullRequestSelectSchema = pullRequestBaseSchema.extend({
-  id: uuidSchema,
-}).refine(
-  (data) => {
-    // If merged is true, merged_at should be set
-    if (data.merged && !data.merged_at) {
-      return false;
+export const pullRequestSelectSchema = pullRequestBaseSchema
+  .extend({
+    id: uuidSchema,
+  })
+  .refine(
+    (data) => {
+      // If merged is true, merged_at should be set
+      if (data.merged && !data.merged_at) {
+        return false;
+      }
+      // If closed, closed_at should be set
+      if (data.state === 'closed' && !data.closed_at) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: 'Merged PRs must have merged_at timestamp, closed PRs must have closed_at timestamp',
     }
-    // If closed, closed_at should be set
-    if (data.state === 'closed' && !data.closed_at) {
-      return false;
-    }
-    return true;
-  },
-  {
-    message: 'Merged PRs must have merged_at timestamp, closed PRs must have closed_at timestamp',
-  }
-);
+  );
 
 /**
  * Reviews table schema
@@ -372,21 +363,23 @@ export const monthlyRankingCreateSchema = monthlyRankingBaseSchema.refine(
 
 export const monthlyRankingUpdateSchema = monthlyRankingBaseSchema.partial();
 
-export const monthlyRankingSelectSchema = monthlyRankingBaseSchema.extend({
-  id: uuidSchema,
-  calculated_at: z.coerce.date(),
-}).refine(
-  (data) => {
-    // If both contribution dates exist, first should be <= last
-    if (data.first_contribution_at && data.last_contribution_at) {
-      return data.first_contribution_at <= data.last_contribution_at;
+export const monthlyRankingSelectSchema = monthlyRankingBaseSchema
+  .extend({
+    id: uuidSchema,
+    calculated_at: z.coerce.date(),
+  })
+  .refine(
+    (data) => {
+      // If both contribution dates exist, first should be <= last
+      if (data.first_contribution_at && data.last_contribution_at) {
+        return data.first_contribution_at <= data.last_contribution_at;
+      }
+      return true;
+    },
+    {
+      message: 'First contribution date must be before or equal to last contribution date',
     }
-    return true;
-  },
-  {
-    message: 'First contribution date must be before or equal to last contribution date',
-  }
-);
+  );
 
 /**
  * Daily activity snapshots table schema
@@ -454,7 +447,8 @@ export const syncLogCreateSchema = syncLogBaseSchema.refine(
     return true;
   },
   {
-    message: 'Completed/failed syncs must have completed_at timestamp, failed syncs must have error_message',
+    message:
+      'Completed/failed syncs must have completed_at timestamp, failed syncs must have error_message',
   }
 );
 
@@ -503,14 +497,16 @@ export const repositoryPrioritySchema = z.enum(['high', 'medium', 'low'], {
 /**
  * Repository metrics schema for size classification
  */
-export const repositoryMetricsSchema = z.object({
-  stars: nonNegativeIntSchema,
-  forks: nonNegativeIntSchema,
-  monthlyPRs: nonNegativeIntSchema,
-  monthlyCommits: nonNegativeIntSchema,
-  activeContributors: nonNegativeIntSchema,
-  lastCalculated: z.coerce.date(),
-}).nullable();
+export const repositoryMetricsSchema = z
+  .object({
+    stars: nonNegativeIntSchema,
+    forks: nonNegativeIntSchema,
+    monthlyPRs: nonNegativeIntSchema,
+    monthlyCommits: nonNegativeIntSchema,
+    activeContributors: nonNegativeIntSchema,
+    lastCalculated: z.coerce.date(),
+  })
+  .nullable();
 
 /**
  * Tracked repositories table schema
@@ -520,7 +516,11 @@ export const trackedRepositoryCreateSchema = z.object({
   added_by_user_id: uuidSchema.nullable(),
   tracking_enabled: z.boolean().default(true),
   last_sync_at: z.coerce.date().nullable(),
-  sync_frequency_hours: z.number().int().min(1, 'Sync frequency must be at least 1 hour').default(24),
+  sync_frequency_hours: z
+    .number()
+    .int()
+    .min(1, 'Sync frequency must be at least 1 hour')
+    .default(24),
   include_forks: z.boolean().default(false),
   include_bots: z.boolean().default(false),
   size: repositorySizeSchema.nullable(),
@@ -544,11 +544,21 @@ export const trackedRepositorySelectSchema = trackedRepositoryCreateSchema.exten
 /**
  * Bulk insert schemas for efficient batch operations
  */
-export const bulkContributorInsertSchema = z.array(contributorCreateSchema).min(1, 'At least one contributor required');
-export const bulkRepositoryInsertSchema = z.array(repositoryCreateSchema).min(1, 'At least one repository required');
-export const bulkPullRequestInsertSchema = z.array(pullRequestCreateSchema).min(1, 'At least one pull request required');
-export const bulkReviewInsertSchema = z.array(reviewCreateSchema).min(1, 'At least one review required');
-export const bulkCommentInsertSchema = z.array(commentCreateSchema).min(1, 'At least one comment required');
+export const bulkContributorInsertSchema = z
+  .array(contributorCreateSchema)
+  .min(1, 'At least one contributor required');
+export const bulkRepositoryInsertSchema = z
+  .array(repositoryCreateSchema)
+  .min(1, 'At least one repository required');
+export const bulkPullRequestInsertSchema = z
+  .array(pullRequestCreateSchema)
+  .min(1, 'At least one pull request required');
+export const bulkReviewInsertSchema = z
+  .array(reviewCreateSchema)
+  .min(1, 'At least one review required');
+export const bulkCommentInsertSchema = z
+  .array(commentCreateSchema)
+  .min(1, 'At least one comment required');
 
 // =====================================================
 // TYPE EXPORTS

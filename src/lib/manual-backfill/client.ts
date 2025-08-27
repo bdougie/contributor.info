@@ -1,6 +1,6 @@
 /**
  * Manual Backfill API Client
- * 
+ *
  * This module provides functions to interact with the gh-datapipe manual backfill API
  */
 
@@ -49,7 +49,7 @@ class ManualBackfillClient {
     // Use server-side environment variables for API configuration
     this.apiUrl = process.env.GH_DATPIPE_API_URL || 'https://gh-datapipe.fly.dev';
     this.apiKey = process.env.GH_DATPIPE_KEY || '';
-    
+
     if (!this.apiKey) {
       console.warn('GH_DATPIPE_KEY not configured. Manual backfill will not work.');
     }
@@ -71,7 +71,8 @@ class ManualBackfillClient {
       headers: this.getHeaders(),
       body: JSON.stringify({
         ...request,
-        callback_url: request.callback_url || `${window.location.origin}/api/webhook/backfill-complete`,
+        callback_url:
+          request.callback_url || `${window.location.origin}/api/webhook/backfill-complete`,
       }),
     });
 
@@ -146,7 +147,7 @@ class ManualBackfillClient {
     // Note: This is less secure than headers, but EventSource limitations require it
     const url = new URL(`${this.apiUrl}/api/backfill/events`);
     url.searchParams.append('api_key', this.apiKey);
-    
+
     return new EventSource(url.toString());
   }
 

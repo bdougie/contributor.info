@@ -1,4 +1,9 @@
 import { useState, useEffect } from 'react';
+import {
+  getWorkspaceMetrics,
+  getWorkspaceTrendData,
+  getWorkspace,
+} from '@/lib/workspace/workspace-client';
 import type { WorkspaceMetrics, WorkspaceTrendData } from '@/components/features/workspace';
 import type { Repository } from '@/components/features/workspace';
 import type { TimeRange } from '@/components/features/workspace';
@@ -45,19 +50,19 @@ const generateMockTrendData = (days: number): WorkspaceTrendData => {
   const prs = [];
   const issues = [];
   const commits = [];
-  
+
   const today = new Date();
-  
+
   for (let i = days - 1; i >= 0; i--) {
     const date = new Date(today);
     date.setDate(date.getDate() - i);
     labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
-    
+
     prs.push(Math.floor(Math.random() * 30) + 10);
     issues.push(Math.floor(Math.random() * 20) + 5);
     commits.push(Math.floor(Math.random() * 60) + 20);
   }
-  
+
   return {
     labels,
     datasets: [
@@ -108,7 +113,10 @@ const generateMockRepositories = (): Repository[] => {
   }));
 };
 
-export function useWorkspace({ workspaceId, timeRange = '30d' }: UseWorkspaceOptions): UseWorkspaceReturn {
+export function useWorkspace({
+  workspaceId,
+  timeRange = '30d',
+}: UseWorkspaceOptions): UseWorkspaceReturn {
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [metrics, setMetrics] = useState<WorkspaceMetrics | null>(null);
   const [trendData, setTrendData] = useState<WorkspaceTrendData | null>(null);
@@ -121,35 +129,74 @@ export function useWorkspace({ workspaceId, timeRange = '30d' }: UseWorkspaceOpt
       setLoading(true);
       setError(null);
 
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Fetch workspace details
+      const workspaceData = await getWorkspace(workspaceId);
+      if (!workspaceData) {
+        throw new Error('Workspace not found');
+      }
 
-      // For now, return mock data
-      // TODO: Replace with actual API calls to Supabase
-      const mockWorkspace: Workspace = {
-        id: workspaceId,
-        name: 'My Workspace',
-        description: 'A collection of my favorite open source projects',
-        created_at: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
-        updated_at: new Date().toISOString(),
-        owner_id: 'user-1',
-        tier: 'free',
+      // Transform workspace data
+      const transformedWorkspace: Workspace = {
+        id: workspaceData.id,
+        name: workspaceData.name,
+        description: workspaceData.description || undefined,
+        created_at: workspaceData.created_at,
+        updated_at: workspaceData.updated_at,
+        owner_id: workspaceData.owner_id,
+        tier: workspaceData.tier,
       };
+      setWorkspace(transformedWorkspace);
 
-      const daysMap: Record<TimeRange, number> = {
-        '7d': 7,
-        '30d': 30,
-        '90d': 90,
-        '1y': 365,
-        'all': 365 * 2,
-      };
+      // Fetch metrics with the real API
+      const metricsData = await getWorkspaceMetrics(workspaceId, timeRange as any);
+      if (metricsData) {
+        // Transform metrics to component format
+        const transformedMetrics: WorkspaceMetrics = {
+          totalStars: metricsData.metrics.total_stars,
+          totalPRs: metricsData.metrics.total_prs,
+          totalContributors: metricsData.metrics.total_contributors,
+          totalCommits: metricsData.metrics.total_commits,
+          starsTrend: metricsData.metrics.stars_trend || 0,
+          prsTrend: metricsData.metrics.prs_trend || 0,
+          contributorsTrend: metricsData.metrics.contributors_trend || 0,
+          commitsTrend: metricsData.metrics.commits_trend || 0,
+        };
+        setMetrics(transformedMetrics);
 
-      setWorkspace(mockWorkspace);
-      setMetrics(generateMockMetrics());
-      setTrendData(generateMockTrendData(daysMap[timeRange]));
+        // Get trend data
+        const trend = await getWorkspaceTrendData(workspaceId, timeRange as any);
+        setTrendData(trend);
+      } else {
+        // If no metrics, trigger aggregation and show loading state
+        console.log('No metrics found, aggregation triggered in background');
+        setMetrics(null);
+        setTrendData(null);
+      }
+
+      // Fetch repositories (using mock for now until repository endpoint is ready)
+      // TODO: Replace with real repository API call
       setRepositories(generateMockRepositories());
     } catch (err) {
+      console.error('Error fetching workspace data:', err);
       setError(err instanceof Error ? err : new Error('Failed to fetch workspace data'));
+
+      // Fallback to mock data in development
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Using mock data as fallback');
+        const mockWorkspace: Workspace = {
+          id: workspaceId,
+          name: 'My Workspace',
+          description: 'A collection of my favorite open source projects',
+          created_at: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
+          updated_at: new Date().toISOString(),
+          owner_id: 'user-1',
+          tier: 'free',
+        };
+        setWorkspace(mockWorkspace);
+        setMetrics(generateMockMetrics());
+        setTrendData(generateMockTrendData(30));
+        setRepositories(generateMockRepositories());
+      }
     } finally {
       setLoading(false);
     }
@@ -181,13 +228,34 @@ export function useWorkspaceMetrics(workspaceId: string, timeRange: TimeRange = 
       try {
         setLoading(true);
         setError(null);
-        
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        setMetrics(generateMockMetrics());
+
+        const metricsData = await getWorkspaceMetrics(workspaceId, timeRange as any);
+        if (metricsData) {
+          const transformedMetrics: WorkspaceMetrics = {
+            totalStars: metricsData.metrics.total_stars,
+            totalPRs: metricsData.metrics.total_prs,
+            totalContributors: metricsData.metrics.total_contributors,
+            totalCommits: metricsData.metrics.total_commits,
+            starsTrend: metricsData.metrics.stars_trend || 0,
+            prsTrend: metricsData.metrics.prs_trend || 0,
+            contributorsTrend: metricsData.metrics.contributors_trend || 0,
+            commitsTrend: metricsData.metrics.commits_trend || 0,
+          };
+          setMetrics(transformedMetrics);
+        } else {
+          // Fallback to mock in development
+          if (process.env.NODE_ENV === 'development') {
+            setMetrics(generateMockMetrics());
+          } else {
+            setMetrics(null);
+          }
+        }
       } catch (err) {
         setError(err instanceof Error ? err : new Error('Failed to fetch metrics'));
+        // Fallback to mock in development
+        if (process.env.NODE_ENV === 'development') {
+          setMetrics(generateMockMetrics());
+        }
       } finally {
         setLoading(false);
       }
@@ -210,10 +278,10 @@ export function useWorkspaceRepositories(workspaceId: string) {
       try {
         setLoading(true);
         setError(null);
-        
+
         // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 700));
-        
+        await new Promise((resolve) => setTimeout(resolve, 700));
+
         setRepositories(generateMockRepositories());
       } catch (err) {
         setError(err instanceof Error ? err : new Error('Failed to fetch repositories'));

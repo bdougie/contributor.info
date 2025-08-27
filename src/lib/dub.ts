@@ -2,10 +2,10 @@ import { supabase } from './supabase';
 
 // Environment-specific configuration
 const isDev = import.meta.env.DEV;
-const DOMAIN = isDev ? "dub.sh" : "oss.fyi";
+const DOMAIN = isDev ? 'dub.sh' : 'oss.fyi';
 const DUB_API_KEY = import.meta.env.VITE_DUB_CO_KEY;
 
-console.log("Environment:", isDev ? "Development" : "Production", "- Using Dub API directly");
+console.log('Environment:', isDev ? 'Development' : 'Production', '- Using Dub API directly');
 
 interface CreateShortUrlOptions {
   url: string;
@@ -48,11 +48,11 @@ export async function createShortUrl({
   title,
   description,
   expiresAt,
-  rewrite = false
+  rewrite = false,
 }: CreateShortUrlOptions): Promise<ShortUrlResponse | null> {
   // In development, skip API call and return original URL for faster development
   if (isDev) {
-    console.warn("Development mode: Skipping URL shortening, returning original URL");
+    console.warn('Development mode: Skipping URL shortening, returning original URL');
     return {
       id: 'dev-mock',
       domain: 'localhost',
@@ -70,7 +70,7 @@ export async function createShortUrl({
 
   // Check if API key is available
   if (!DUB_API_KEY) {
-    console.warn("DUB_API_KEY not configured, returning original URL");
+    console.warn('DUB_API_KEY not configured, returning original URL');
     return {
       id: 'no-api-key',
       domain: 'original',
@@ -87,19 +87,19 @@ export async function createShortUrl({
   }
 
   try {
-    console.log("Creating short URL via Dub API:", {
+    console.log('Creating short URL via Dub API:', {
       url,
       domain: DOMAIN,
       key,
       title,
-      description
+      description,
     });
-    
+
     // Call Dub API directly
     const response = await fetch('https://api.dub.co/links', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${DUB_API_KEY}`,
+        Authorization: `Bearer ${DUB_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -110,28 +110,28 @@ export async function createShortUrl({
         description,
         expiresAt,
         rewrite,
-        utmSource: "contributor-info",
-        utmMedium: "chart-share",
-        utmCampaign: "social-sharing"
+        utmSource: 'contributor-info',
+        utmMedium: 'chart-share',
+        utmCampaign: 'social-sharing',
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Dub API error:", {
+      console.error('Dub API error:', {
         status: response.status,
         statusText: response.statusText,
-        error: errorText
+        error: errorText,
       });
       return null;
     }
 
     const data = await response.json();
-    console.log("URL shortening success:", data.shortLink);
-    
+    console.log('URL shortening success:', data.shortLink);
+
     // Track the short URL creation in Supabase for analytics
     await trackShortUrlCreation(data);
-    
+
     return {
       id: data.id,
       domain: data.domain,
@@ -151,11 +151,10 @@ export async function createShortUrl({
       clicks: data.clicks || 0,
       title: data.title,
       description: data.description,
-      image: data.image
+      image: data.image,
     };
-    
   } catch (error: any) {
-    console.error("Failed to create short URL:", error);
+    console.error('Failed to create short URL:', error);
     return null;
   }
 }
@@ -166,29 +165,27 @@ export async function createShortUrl({
 async function trackShortUrlCreation(dubData: any) {
   try {
     // Store the short URL data in Supabase for our internal analytics
-    const { error } = await supabase
-      .from('short_urls')
-      .insert({
-        dub_id: dubData.id,
-        short_url: dubData.shortLink,
-        original_url: dubData.url,
-        domain: dubData.domain,
-        key: dubData.key,
-        title: dubData.title,
-        description: dubData.description,
-        utm_source: dubData.utmSource,
-        utm_medium: dubData.utmMedium,
-        utm_campaign: dubData.utmCampaign,
-        created_at: dubData.createdAt
-      });
+    const { error } = await supabase.from('short_urls').insert({
+      dub_id: dubData.id,
+      short_url: dubData.shortLink,
+      original_url: dubData.url,
+      domain: dubData.domain,
+      key: dubData.key,
+      title: dubData.title,
+      description: dubData.description,
+      utm_source: dubData.utmSource,
+      utm_medium: dubData.utmMedium,
+      utm_campaign: dubData.utmCampaign,
+      created_at: dubData.createdAt,
+    });
 
     if (error) {
-      console.error("Failed to track short URL creation:", error);
+      console.error('Failed to track short URL creation:', error);
     } else {
-      console.log("Short URL tracked in Supabase analytics");
+      console.log('Short URL tracked in Supabase analytics');
     }
   } catch (error) {
-    console.error("Error tracking short URL creation:", error);
+    console.error('Error tracking short URL creation:', error);
   }
 }
 
@@ -197,7 +194,7 @@ async function trackShortUrlCreation(dubData: any) {
  */
 export async function getUrlAnalytics(linkId: string) {
   if (isDev) {
-    console.warn("Development mode: Skipping analytics request");
+    console.warn('Development mode: Skipping analytics request');
     return null;
   }
 
@@ -210,13 +207,13 @@ export async function getUrlAnalytics(linkId: string) {
       .maybeSingle();
 
     if (error) {
-      console.error("Failed to get URL analytics:", error);
+      console.error('Failed to get URL analytics:', error);
       return null;
     }
 
     return data;
   } catch (error: any) {
-    console.error("Failed to get URL analytics:", error);
+    console.error('Failed to get URL analytics:', error);
     return null;
   }
 }
@@ -227,19 +224,19 @@ export async function getUrlAnalytics(linkId: string) {
 function getCustomKey(url: string): string | undefined {
   try {
     const urlPath = new URL(url).pathname;
-    
+
     // ex: /owner/repo (repository pages)
     const repoMatch = urlPath.match(/^\/([^\/]+)\/([^\/]+)(?:\/.*)?$/);
     if (repoMatch) {
       return `${repoMatch[1]}/${repoMatch[2]}`;
     }
-    
-    // ex: /u/username or /user/username 
+
+    // ex: /u/username or /user/username
     const userMatch = urlPath.match(/^\/(u|user)\/(.+)$/);
     if (userMatch) {
       return userMatch[2];
     }
-    
+
     return undefined;
   } catch {
     return undefined;
@@ -252,12 +249,12 @@ function getCustomKey(url: string): string | undefined {
 function validateUrl(url: string): boolean {
   try {
     const urlObj = new URL(url);
-    
+
     // Allow contributor.info domains and localhost for development
     return (
-      urlObj.host.endsWith("contributor.info") ||
-      urlObj.host.includes("localhost") ||
-      urlObj.host.endsWith("netlify.app") // Allow Netlify preview deployments
+      urlObj.host.endsWith('contributor.info') ||
+      urlObj.host.includes('localhost') ||
+      urlObj.host.endsWith('netlify.app') // Allow Netlify preview deployments
     );
   } catch {
     return false;
@@ -274,22 +271,20 @@ export async function createChartShareUrl(
 ): Promise<string> {
   // Validate URL for security
   if (!validateUrl(fullUrl)) {
-    console.warn("Invalid URL for shortening:", fullUrl);
+    console.warn('Invalid URL for shortening:', fullUrl);
     return fullUrl;
   }
 
   // Generate custom key based on URL pattern
   const customKey = getCustomKey(fullUrl);
-  
+
   const shortUrl = await createShortUrl({
     url: fullUrl,
     key: customKey,
-    title: repository 
-      ? `${chartType} for ${repository}`
-      : `${chartType} Chart`,
+    title: repository ? `${chartType} for ${repository}` : `${chartType} Chart`,
     description: repository
       ? `Interactive ${chartType} chart showing metrics for ${repository} repository`
-      : `Interactive ${chartType} chart from contributor.info`
+      : `Interactive ${chartType} chart from contributor.info`,
   });
 
   return shortUrl?.shortLink || fullUrl;
@@ -301,7 +296,7 @@ export async function createChartShareUrl(
 export async function trackClick(shortUrl: string, metadata?: Record<string, any>) {
   // This will be automatically tracked by dub.co when the link is clicked
   // Additional custom tracking can be added here if needed
-  console.log("Click tracked for:", shortUrl, metadata);
+  console.log('Click tracked for:', shortUrl, metadata);
 }
 
 /**
@@ -311,6 +306,6 @@ export function getDubConfig() {
   return {
     domain: DOMAIN,
     isDev,
-    hasApiKey: !!DUB_API_KEY
+    hasApiKey: !!DUB_API_KEY,
   };
 }

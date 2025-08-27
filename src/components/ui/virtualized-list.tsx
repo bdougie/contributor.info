@@ -32,18 +32,13 @@ export function VirtualizedList<T>({
   const rowVirtualizer = useVirtualizer({
     count: items.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: estimateSize || (typeof itemHeight === 'function' ? itemHeight : () => itemHeight as number),
+    estimateSize:
+      estimateSize || (typeof itemHeight === 'function' ? itemHeight : () => itemHeight as number),
     overscan,
   });
 
   return (
-    <div 
-      ref={parentRef}
-      className={cn(
-        "overflow-auto will-change-scroll",
-        containerClassName
-      )}
-    >
+    <div ref={parentRef} className={cn('overflow-auto will-change-scroll', containerClassName)}>
       <div
         style={{
           height: `${rowVirtualizer.getTotalSize()}px`,
@@ -62,7 +57,7 @@ export function VirtualizedList<T>({
                 left: 0,
                 width: '100%',
                 height: `${virtualItem.size}px`,
-                transform: `translateY(${virtualItem.start + (virtualItem.index * gap)}px)`,
+                transform: `translateY(${virtualItem.start + virtualItem.index * gap}px)`,
               }}
               className={className}
             >
@@ -104,7 +99,7 @@ export function VirtualizedGrid<T>({
 
   // Calculate rows from items and columns
   const rowCount = Math.ceil(items.length / columnCount);
-  
+
   const rowVirtualizer = useVirtualizer({
     count: rowCount,
     getScrollElement: () => parentRef.current,
@@ -113,13 +108,7 @@ export function VirtualizedGrid<T>({
   });
 
   return (
-    <div
-      ref={parentRef}
-      className={cn(
-        "overflow-auto will-change-scroll",
-        containerClassName
-      )}
-    >
+    <div ref={parentRef} className={cn('overflow-auto will-change-scroll', containerClassName)}>
       <div
         style={{
           height: `${rowVirtualizer.getTotalSize()}px`,
@@ -143,20 +132,11 @@ export function VirtualizedGrid<T>({
                 height: `${virtualRow.size}px`,
                 transform: `translateY(${virtualRow.start}px)`,
               }}
-              className={cn(
-                "grid",
-                `grid-cols-${columnCount}`,
-                gap && `gap-${gap / 4}`,
-                className
-              )}
+              className={cn('grid', `grid-cols-${columnCount}`, gap && `gap-${gap / 4}`, className)}
             >
               {rowItems.map((item, colIndex) => {
                 const actualIndex = startIndex + colIndex;
-                return (
-                  <div key={actualIndex}>
-                    {renderItem(item, actualIndex)}
-                  </div>
-                );
+                return <div key={actualIndex}>{renderItem(item, actualIndex)}</div>;
               })}
             </div>
           );
@@ -170,56 +150,52 @@ export function VirtualizedGrid<T>({
  * Window scroller for full-page virtualization
  * Use when the list takes up the entire viewport
  */
-export const WindowVirtualizedList = forwardRef<
-  HTMLDivElement,
-  VirtualizedListProps<any>
->(function WindowVirtualizedList({ 
-  items, 
-  renderItem, 
-  itemHeight = 100,
-  overscan = 5,
-  className,
-  estimateSize,
-  gap = 0,
-}, ref) {
-  const virtualizer = useVirtualizer({
-    count: items.length,
-    getScrollElement: () => typeof window !== 'undefined' ? document.documentElement : null,
-    estimateSize: estimateSize || (typeof itemHeight === 'function' ? itemHeight : () => itemHeight as number),
-    overscan,
-  });
+export const WindowVirtualizedList = forwardRef<HTMLDivElement, VirtualizedListProps<any>>(
+  function WindowVirtualizedList(
+    { items, renderItem, itemHeight = 100, overscan = 5, className, estimateSize, gap = 0 },
+    ref
+  ) {
+    const virtualizer = useVirtualizer({
+      count: items.length,
+      getScrollElement: () => (typeof window !== 'undefined' ? document.documentElement : null),
+      estimateSize:
+        estimateSize ||
+        (typeof itemHeight === 'function' ? itemHeight : () => itemHeight as number),
+      overscan,
+    });
 
-  return (
-    <div ref={ref}>
-      <div
-        style={{
-          height: `${virtualizer.getTotalSize()}px`,
-          width: '100%',
-          position: 'relative',
-        }}
-      >
-        {virtualizer.getVirtualItems().map((virtualItem) => {
-          const item = items[virtualItem.index];
-          return (
-            <div
-              key={virtualItem.key}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: `${virtualItem.size}px`,
-                transform: `translateY(${virtualItem.start + (virtualItem.index * gap)}px)`,
-              }}
-              className={className}
-            >
-              {renderItem(item, virtualItem.index)}
-            </div>
-          );
-        })}
+    return (
+      <div ref={ref}>
+        <div
+          style={{
+            height: `${virtualizer.getTotalSize()}px`,
+            width: '100%',
+            position: 'relative',
+          }}
+        >
+          {virtualizer.getVirtualItems().map((virtualItem) => {
+            const item = items[virtualItem.index];
+            return (
+              <div
+                key={virtualItem.key}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: `${virtualItem.size}px`,
+                  transform: `translateY(${virtualItem.start + virtualItem.index * gap}px)`,
+                }}
+                className={className}
+              >
+                {renderItem(item, virtualItem.index)}
+              </div>
+            );
+          })}
+        </div>
       </div>
-    </div>
-  );
-});
+    );
+  }
+);
 
 export default VirtualizedList;

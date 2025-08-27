@@ -1,13 +1,13 @@
-import { Component, ReactNode } from 'react'
+import { Component, ReactNode } from 'react';
 import { AlertCircle, RefreshCw, Clock, Wifi, Shield, AlertTriangle } from '@/components/ui/icon';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  LoadingError, 
-  ErrorBoundaryState, 
+import {
+  LoadingError,
+  ErrorBoundaryState,
   LoadingStage,
   RecoveryAction,
   getRetryDelay,
-  canRecoverInNextStage
+  canRecoverInNextStage,
 } from '@/lib/types/data-loading-errors';
 
 interface Props {
@@ -56,7 +56,7 @@ export class DataLoadingErrorBoundary extends Component<Props, State> {
   static getDerivedStateFromError(error: Error): Partial<State> {
     // Check if this is a LoadingError, otherwise create a generic one
     const loadingError = error as LoadingError;
-    
+
     if (!loadingError.stage || !loadingError.type) {
       // Convert generic error to LoadingError
       const genericError = error as LoadingError;
@@ -80,17 +80,17 @@ export class DataLoadingErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: any) {
     const loadingError = error as LoadingError;
-    
+
     console.error(`DataLoadingErrorBoundary (${this.props.stage}):`, error, errorInfo);
-    
+
     // Track error for monitoring
     this.props.onError?.(loadingError, errorInfo);
-    
+
     // Log technical details for debugging
     if (loadingError.technicalDetails) {
       console.error('Technical details:', loadingError.technicalDetails);
     }
-    
+
     if (loadingError.context) {
       console.error('Error context:', loadingError.context);
     }
@@ -113,7 +113,7 @@ export class DataLoadingErrorBoundary extends Component<Props, State> {
 
   handleRetry = async () => {
     const { currentError } = this.state;
-    
+
     if (!currentError || !currentError.retryable) {
       return;
     }
@@ -151,9 +151,9 @@ export class DataLoadingErrorBoundary extends Component<Props, State> {
 
   startRetryCountdown = (seconds: number) => {
     this.setState({ retryCountdown: seconds });
-    
+
     this.countdownIntervalId = setInterval(() => {
-      this.setState(prev => {
+      this.setState((prev) => {
         const newCountdown = prev.retryCountdown - 1;
         if (newCountdown <= 0) {
           this.clearTimeouts();
@@ -166,11 +166,11 @@ export class DataLoadingErrorBoundary extends Component<Props, State> {
 
   executeRetry = () => {
     this.clearTimeouts();
-    this.setState({ 
-      hasError: false, 
-      currentError: null, 
+    this.setState({
+      hasError: false,
+      currentError: null,
       isRetrying: false,
-      retryCountdown: 0 
+      retryCountdown: 0,
     });
     this.props.onRetry?.();
   };
@@ -182,9 +182,9 @@ export class DataLoadingErrorBoundary extends Component<Props, State> {
         break;
       case 'use_partial_data':
         // Use any available partial data and continue
-        this.setState({ 
-          hasError: false, 
-          currentError: null 
+        this.setState({
+          hasError: false,
+          currentError: null,
         });
         break;
       case 'clear_cache':
@@ -202,12 +202,12 @@ export class DataLoadingErrorBoundary extends Component<Props, State> {
     try {
       localStorage.clear();
       sessionStorage.clear();
-      
+
       if ('caches' in window) {
         const cacheNames = await caches.keys();
-        await Promise.all(cacheNames.map(name => caches.delete(name)));
+        await Promise.all(cacheNames.map((name) => caches.delete(name)));
       }
-      
+
       // Retry after cache clear
       this.handleRetry();
     } catch (error) {
@@ -227,34 +227,43 @@ export class DataLoadingErrorBoundary extends Component<Props, State> {
 
   getErrorIcon = (type: string) => {
     switch (type) {
-      case 'network': return <Wifi className="h-5 w-5" />;
-      case 'timeout': return <Clock className="h-5 w-5" />;
-      case 'permission': return <Shield className="h-5 w-5" />;
-      case 'rate_limit': return <AlertTriangle className="h-5 w-5" />;
-      default: return <AlertCircle className="h-5 w-5" />;
+      case 'network':
+        return <Wifi className="h-5 w-5" />;
+      case 'timeout':
+        return <Clock className="h-5 w-5" />;
+      case 'permission':
+        return <Shield className="h-5 w-5" />;
+      case 'rate_limit':
+        return <AlertTriangle className="h-5 w-5" />;
+      default:
+        return <AlertCircle className="h-5 w-5" />;
     }
   };
 
   getSeverityColor = (stage: LoadingStage) => {
     switch (stage) {
-      case 'critical': return 'text-red-500';
-      case 'full': return 'text-orange-500';
-      case 'enhancement': return 'text-yellow-500';
-      default: return 'text-red-500';
+      case 'critical':
+        return 'text-red-500';
+      case 'full':
+        return 'text-orange-500';
+      case 'enhancement':
+        return 'text-yellow-500';
+      default:
+        return 'text-red-500';
     }
   };
 
   canShowPartialData = (): boolean => {
     const { currentError } = this.state;
     const { enableGracefulDegradation, fallbackData } = this.props;
-    
+
     if (!enableGracefulDegradation || !currentError) {
       return false;
     }
 
     // Show partial data for non-critical errors or if we can recover
     return (
-      currentError.stage !== 'critical' || 
+      currentError.stage !== 'critical' ||
       canRecoverInNextStage(currentError) ||
       Boolean(fallbackData)
     );
@@ -273,7 +282,7 @@ export class DataLoadingErrorBoundary extends Component<Props, State> {
               {typeof fallbackData === 'function' ? fallbackData() : fallbackData}
             </div>
           )}
-          
+
           <Card className="border-yellow-200 bg-yellow-50">
             <CardContent className="p-4">
               <div className="flex items-start gap-3">
@@ -282,7 +291,9 @@ export class DataLoadingErrorBoundary extends Component<Props, State> {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900">
-                    {currentError?.stage === 'enhancement' ? 'Additional data unavailable' : 'Partial data shown'}
+                    {currentError?.stage === 'enhancement'
+                      ? 'Additional data unavailable'
+                      : 'Partial data shown'}
                   </p>
                   <p className="text-xs text-gray-600 mt-1">
                     {currentError?.userMessage || 'Some data could not be loaded.'}
@@ -314,7 +325,9 @@ export class DataLoadingErrorBoundary extends Component<Props, State> {
                 {this.getErrorIcon(currentError.type)}
               </div>
               <span className="text-lg">
-                {currentError.stage === 'critical' ? 'Failed to load data' : 'Partial loading error'}
+                {currentError.stage === 'critical'
+                  ? 'Failed to load data'
+                  : 'Partial loading error'}
               </span>
             </CardTitle>
           </CardHeader>
@@ -342,9 +355,10 @@ export class DataLoadingErrorBoundary extends Component<Props, State> {
                       disabled={isRetrying}
                       className={`
                         w-full text-left p-3 rounded-lg border transition-colors disabled:opacity-50
-                        ${option.priority === 'high' 
-                          ? 'bg-blue-50 border-blue-200 hover:bg-blue-100' 
-                          : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                        ${
+                          option.priority === 'high'
+                            ? 'bg-blue-50 border-blue-200 hover:bg-blue-100'
+                            : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
                         }
                       `}
                     >

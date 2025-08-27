@@ -1,17 +1,23 @@
-import React from "react";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { 
-  Layout as LayoutDashboard, 
-  Circle as CircleDot, 
-  GitPullRequest, 
-  Users, 
+import React from 'react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import {
+  Layout as LayoutDashboard,
+  Circle as CircleDot,
+  GitPullRequest,
+  Users,
   Settings,
-  Activity
-} from "@/components/ui/icon";
-import { cn } from "@/lib/utils";
+  Activity,
+} from '@/components/ui/icon';
+import { cn } from '@/lib/utils';
 
-export type TabValue = 'overview' | 'issues' | 'pull-requests' | 'contributors' | 'activity' | 'settings';
+export type TabValue =
+  | 'overview'
+  | 'issues'
+  | 'pull-requests'
+  | 'contributors'
+  | 'activity'
+  | 'settings';
 
 export interface TabConfig {
   value: TabValue;
@@ -76,7 +82,7 @@ export function WorkspaceTabNavigation({
   showCounts,
 }: WorkspaceTabNavigationProps) {
   // Add counts to tabs if provided
-  const tabsWithCounts = tabs.map(tab => {
+  const tabsWithCounts = tabs.map((tab) => {
     if (showCounts) {
       if (tab.value === 'issues' && showCounts.issues !== undefined) {
         return { ...tab, badge: showCounts.issues };
@@ -95,7 +101,7 @@ export function WorkspaceTabNavigation({
     <Tabs
       value={activeTab}
       onValueChange={(value) => onTabChange(value as TabValue)}
-      className={cn("w-full", className)}
+      className={cn('w-full', className)}
     >
       <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-grid">
         {tabsWithCounts.map((tab) => (
@@ -108,24 +114,15 @@ export function WorkspaceTabNavigation({
             {tab.icon}
             <span className="hidden sm:inline">{tab.label}</span>
             {tab.badge !== undefined && (
-              <Badge 
-                variant="secondary" 
-                className="ml-1.5 h-5 px-1.5 text-xs"
-              >
-                {typeof tab.badge === 'number' && tab.badge > 99 
-                  ? '99+' 
-                  : tab.badge}
+              <Badge variant="secondary" className="ml-1.5 h-5 px-1.5 text-xs">
+                {typeof tab.badge === 'number' && tab.badge > 99 ? '99+' : tab.badge}
               </Badge>
             )}
           </TabsTrigger>
         ))}
       </TabsList>
 
-      {children && (
-        <div className="mt-6">
-          {children}
-        </div>
-      )}
+      {children && <div className="mt-6">{children}</div>}
     </Tabs>
   );
 }
@@ -189,23 +186,23 @@ export function WorkspaceTabNavigationMobile({
   ];
 
   return (
-    <div className={cn("flex justify-around border-b", className)}>
+    <div className={cn('flex justify-around border-b', className)}>
       {mobileTabs.map((tab) => (
         <button
           key={tab.value}
           onClick={() => onTabChange(tab.value)}
           className={cn(
-            "flex flex-col items-center gap-1 px-3 py-2 text-sm transition-colors relative",
+            'flex flex-col items-center gap-1 px-3 py-2 text-sm transition-colors relative',
             activeTab === tab.value
-              ? "text-primary border-b-2 border-primary"
-              : "text-muted-foreground hover:text-foreground"
+              ? 'text-primary border-b-2 border-primary'
+              : 'text-muted-foreground hover:text-foreground'
           )}
         >
           <div className="relative">
             {tab.icon}
             {tab.badge !== undefined && (typeof tab.badge === 'number' ? tab.badge > 0 : true) && (
-              <Badge 
-                variant="destructive" 
+              <Badge
+                variant="destructive"
                 className="absolute -top-2 -right-2 h-4 w-4 p-0 flex items-center justify-center text-[10px]"
               >
                 {typeof tab.badge === 'number' && tab.badge > 9 ? '9+' : tab.badge}
@@ -230,7 +227,7 @@ export function WorkspaceTabWithContent({
 }: WorkspaceTabNavigationProps & {
   children: Record<TabValue, React.ReactNode>;
 }) {
-  const tabsWithCounts = tabs.map(tab => {
+  const tabsWithCounts = tabs.map((tab) => {
     if (showCounts) {
       if (tab.value === 'issues' && showCounts.issues !== undefined) {
         return { ...tab, badge: showCounts.issues };
@@ -249,7 +246,7 @@ export function WorkspaceTabWithContent({
     <Tabs
       value={activeTab}
       onValueChange={(value) => onTabChange(value as TabValue)}
-      className={cn("w-full", className)}
+      className={cn('w-full', className)}
     >
       <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-grid">
         {tabsWithCounts.map((tab) => (
@@ -262,13 +259,8 @@ export function WorkspaceTabWithContent({
             {tab.icon}
             <span className="hidden sm:inline">{tab.label}</span>
             {tab.badge !== undefined && (
-              <Badge 
-                variant="secondary" 
-                className="ml-1.5 h-5 px-1.5 text-xs"
-              >
-                {typeof tab.badge === 'number' && tab.badge > 99 
-                  ? '99+' 
-                  : tab.badge}
+              <Badge variant="secondary" className="ml-1.5 h-5 px-1.5 text-xs">
+                {typeof tab.badge === 'number' && tab.badge > 99 ? '99+' : tab.badge}
               </Badge>
             )}
           </TabsTrigger>

@@ -1,13 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { 
-  Users, 
-  Package,
-  Plus,
-  Sparkles,
-  BarChart3,
-  Share2
-} from '@/components/ui/icon';
+import { Users, Package, Plus, Sparkles, BarChart3, Share2 } from '@/components/ui/icon';
 
 export interface WorkspaceOnboardingProps {
   onCreateClick: () => void;
@@ -28,7 +21,7 @@ export function WorkspaceOnboarding({ onCreateClick, className }: WorkspaceOnboa
           Organize repositories, track contributors, and collaborate with your team
         </p>
       </CardHeader>
-      
+
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="flex items-start gap-3 p-2">
@@ -42,7 +35,7 @@ export function WorkspaceOnboarding({ onCreateClick, className }: WorkspaceOnboa
               </p>
             </div>
           </div>
-          
+
           <div className="flex items-start gap-3 p-2">
             <div className="p-2 bg-muted rounded-md flex-shrink-0">
               <Users className="h-4 w-4 text-muted-foreground" />
@@ -54,39 +47,30 @@ export function WorkspaceOnboarding({ onCreateClick, className }: WorkspaceOnboa
               </p>
             </div>
           </div>
-          
+
           <div className="flex items-start gap-3 p-2">
             <div className="p-2 bg-muted rounded-md flex-shrink-0">
               <BarChart3 className="h-4 w-4 text-muted-foreground" />
             </div>
             <div className="flex-1 min-w-0">
               <h4 className="text-sm font-medium">View Analytics</h4>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Get insights on contributions
-              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">Get insights on contributions</p>
             </div>
           </div>
-          
+
           <div className="flex items-start gap-3 p-2">
             <div className="p-2 bg-muted rounded-md flex-shrink-0">
               <Share2 className="h-4 w-4 text-muted-foreground" />
             </div>
             <div className="flex-1 min-w-0">
               <h4 className="text-sm font-medium">Collaborate</h4>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Share with team members
-              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">Share with team members</p>
             </div>
           </div>
         </div>
 
         <div className="border-t pt-4">
-          <Button 
-            type="button"
-            onClick={onCreateClick}
-            className="w-full"
-            size="lg"
-          >
+          <Button type="button" onClick={onCreateClick} className="w-full" size="lg">
             <Plus className="mr-2 h-4 w-4" />
             Create Your First Workspace
           </Button>

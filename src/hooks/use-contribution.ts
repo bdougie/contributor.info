@@ -12,36 +12,36 @@ export function useContribution(pullRequests: PullRequest[]) {
     refinement: 0,
     new: 0,
     refactoring: 0,
-    maintenance: 0
+    maintenance: 0,
   });
-  
+
   useEffect(() => {
     if (pullRequests.length === 0) return;
-    
+
     // Reset analyzer counts
     ContributionAnalyzer.resetCounts();
-    
+
     // Analyze each PR
-    pullRequests.forEach(pr => {
+    pullRequests.forEach((pr) => {
       ContributionAnalyzer.analyze(pr);
     });
-    
+
     // Get the distribution and counts
     const newDistribution = ContributionAnalyzer.getDistribution();
     setDistribution(newDistribution);
     setQuadrantCounts(ContributionAnalyzer.getCounts());
   }, [pullRequests]);
-  
+
   /**
    * Calculate the total number of contributions analyzed
    */
   const getTotalContributions = (): number => {
     return Object.values(quadrantCounts).reduce((sum, count) => sum + count, 0);
   };
-  
-  return { 
-    distribution, 
+
+  return {
+    distribution,
     quadrantCounts,
-    getTotalContributions
+    getTotalContributions,
   };
 }

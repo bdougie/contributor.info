@@ -9,7 +9,8 @@ const meta: Meta<typeof PWAInstallPrompt> = {
     layout: 'padded',
     docs: {
       description: {
-        component: 'A mobile-first install prompt for PWA installation. Shows when the beforeinstallprompt event is triggered and hides when the app is already installed.',
+        component:
+          'A mobile-first install prompt for PWA installation. Shows when the beforeinstallprompt event is triggered and hides when the app is already installed.',
       },
     },
   },
@@ -56,7 +57,7 @@ export const Installing: Story = {
                 <span className="text-primary">📱</span>
               </div>
             </div>
-            
+
             <div className="flex-1 min-w-0">
               <h3 className="font-semibold text-sm text-card-foreground">
                 Install Contributor Info
@@ -64,16 +65,16 @@ export const Installing: Story = {
               <p className="text-xs text-muted-foreground mt-1">
                 Get quick access to contributor insights right from your home screen.
               </p>
-              
+
               <div className="flex items-center gap-2 mt-3">
-                <button 
+                <button
                   disabled
                   className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-3 text-xs"
                 >
                   <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
                   Installing...
                 </button>
-                
+
                 <button className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 px-3 text-xs">
                   Not now
                 </button>

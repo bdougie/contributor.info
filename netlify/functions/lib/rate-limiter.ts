@@ -22,7 +22,7 @@ export class RateLimiter {
     this.config = {
       maxRequests: config.maxRequests || 100,
       windowMs: config.windowMs || 60000, // 1 minute default
-      keyPrefix: config.keyPrefix || 'rate_limit'
+      keyPrefix: config.keyPrefix || 'rate_limit',
     };
   }
 
@@ -30,7 +30,7 @@ export class RateLimiter {
     const key = `${this.config.keyPrefix}:${identifier}`;
     const now = Date.now();
     const windowStart = now - this.config.windowMs;
-    
+
     try {
       // Get current request count from database
       const { data: rateLimitData, error: fetchError } = await this.supabase
@@ -46,7 +46,7 @@ export class RateLimiter {
         return {
           allowed: true,
           remaining: this.config.maxRequests,
-          resetTime: now + this.config.windowMs
+          resetTime: now + this.config.windowMs,
         };
       }
 
@@ -56,7 +56,7 @@ export class RateLimiter {
       if (rateLimitData) {
         // Check if we're in the same window
         const dataWindowStart = new Date(rateLimitData.window_start).getTime();
-        
+
         if (dataWindowStart > windowStart) {
           // Same window, increment counter
           requestCount = rateLimitData.request_count;
@@ -74,24 +74,25 @@ export class RateLimiter {
           allowed: false,
           remaining: 0,
           resetTime,
-          retryAfter: Math.ceil((resetTime - now) / 1000)
+          retryAfter: Math.ceil((resetTime - now) / 1000),
         };
       }
 
       // Increment counter
       requestCount++;
-      
+
       // Upsert rate limit record
-      const { error: upsertError } = await this.supabase
-        .from('rate_limits')
-        .upsert({
+      const { error: upsertError } = await this.supabase.from('rate_limits').upsert(
+        {
           key,
           request_count: requestCount,
           window_start: new Date(currentWindowStart).toISOString(),
-          last_request: new Date(now).toISOString()
-        }, {
-          onConflict: 'key'
-        });
+          last_request: new Date(now).toISOString(),
+        },
+        {
+          onConflict: 'key',
+        }
+      );
 
       if (upsertError) {
         console.error('Rate limit update error:', upsertError);
@@ -100,7 +101,7 @@ export class RateLimiter {
       return {
         allowed: true,
         remaining: this.config.maxRequests - requestCount,
-        resetTime: currentWindowStart + this.config.windowMs
+        resetTime: currentWindowStart + this.config.windowMs,
       };
     } catch (error) {
       console.error('Rate limiter error:', error);
@@ -108,19 +109,16 @@ export class RateLimiter {
       return {
         allowed: true,
         remaining: this.config.maxRequests,
-        resetTime: now + this.config.windowMs
+        resetTime: now + this.config.windowMs,
       };
     }
   }
 
   async reset(identifier: string): Promise<void> {
     const key = `${this.config.keyPrefix}:${identifier}`;
-    
+
     try {
-      await this.supabase
-        .from('rate_limits')
-        .delete()
-        .eq('key', key);
+      await this.supabase.from('rate_limits').delete().eq('key', key);
     } catch (error) {
       console.error('Rate limit reset error:', error);
     }
@@ -132,7 +130,7 @@ export function getRateLimitKey(req: Request, userId?: string): string {
   if (userId) {
     return `user:${userId}`;
   }
-  
+
   // Fallback to IP-based rate limiting
   const forwardedFor = req.headers.get('x-forwarded-for');
   const ip = forwardedFor ? forwardedFor.split(',')[0].trim() : 'unknown';
@@ -141,22 +139,25 @@ export function getRateLimitKey(req: Request, userId?: string): string {
 
 // Helper function to apply rate limit headers to response
 export function applyRateLimitHeaders(
-  response: Response, 
+  response: Response,
   rateLimitResult: RateLimitResult
 ): Response {
   const headers = new Headers(response.headers);
-  
-  headers.set('X-RateLimit-Limit', String(rateLimitResult.remaining + (rateLimitResult.allowed ? 1 : 0)));
+
+  headers.set(
+    'X-RateLimit-Limit',
+    String(rateLimitResult.remaining + (rateLimitResult.allowed ? 1 : 0))
+  );
   headers.set('X-RateLimit-Remaining', String(rateLimitResult.remaining));
   headers.set('X-RateLimit-Reset', String(Math.floor(rateLimitResult.resetTime / 1000)));
-  
+
   if (!rateLimitResult.allowed && rateLimitResult.retryAfter) {
     headers.set('Retry-After', String(rateLimitResult.retryAfter));
   }
-  
+
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
-    headers
+    headers,
   });
 }

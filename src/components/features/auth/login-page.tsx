@@ -1,16 +1,10 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState } from 'react';
 import { GithubIcon } from '@/components/ui/icon';
-import { useNavigate } from "react-router-dom";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { useGitHubAuth } from "@/hooks/use-github-auth";
-import { SocialMetaTags } from "@/components/common/layout";
+import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { useGitHubAuth } from '@/hooks/use-github-auth';
+import { SocialMetaTags } from '@/components/common/layout';
 
 /**
  * Validates redirect URLs to prevent open redirect attacks
@@ -37,14 +31,14 @@ export default function LoginPage() {
 
   // Get the intended destination from URL param or use home page as default
   const urlParams = new URLSearchParams(window.location.search);
-  const rawRedirectTo = urlParams.get("redirectTo") || "/";
+  const rawRedirectTo = urlParams.get('redirectTo') || '/';
   // Validate the redirect URL to prevent open redirect attacks
-  const redirectTo = isValidRedirectUrl(rawRedirectTo) ? rawRedirectTo : "/";
+  const redirectTo = isValidRedirectUrl(rawRedirectTo) ? rawRedirectTo : '/';
 
   // If already logged in, redirect to the intended destination
   useEffect(() => {
     if (isLoggedIn) {
-      console.log("User is logged in, redirecting to:", redirectTo);
+      console.log('User is logged in, redirecting to:', redirectTo);
       navigate(redirectTo, { replace: true });
     }
   }, [isLoggedIn, navigate, redirectTo]);
@@ -53,17 +47,15 @@ export default function LoginPage() {
     try {
       setError(null);
       // Store redirect destination
-      if (redirectTo !== "/") {
-        localStorage.setItem("redirectAfterLogin", redirectTo);
+      if (redirectTo !== '/') {
+        localStorage.setItem('redirectAfterLogin', redirectTo);
       }
 
       await login();
     } catch (err) {
-      console.error("Login error:", err);
+      console.error('Login error:', err);
 
-      setError(
-        err instanceof Error ? err.message : "Login failed. Please try again."
-      );
+      setError(err instanceof Error ? err.message : 'Login failed. Please try again.');
     }
   };
 
@@ -78,8 +70,8 @@ export default function LoginPage() {
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Login Required</CardTitle>
           <CardDescription>
-            You need to log in to search for repositories. This helps avoid rate
-            limiting and provides access to more GitHub data.
+            You need to log in to search for repositories. This helps avoid rate limiting and
+            provides access to more GitHub data.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4 items-center">
@@ -88,9 +80,7 @@ export default function LoginPage() {
             Login with GitHub
           </Button>
 
-          {error && (
-            <div className="text-red-500 text-sm mt-2 text-center">{error}</div>
-          )}
+          {error && <div className="text-red-500 text-sm mt-2 text-center">{error}</div>}
         </CardContent>
       </Card>
     </div>

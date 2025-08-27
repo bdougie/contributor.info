@@ -36,19 +36,24 @@ vi.mock('../meta-tags-provider', () => ({
 }));
 
 vi.mock('@/components/ui/github-search-input', () => ({
-  GitHubSearchInput: ({ onSearch, onSelect, placeholder, buttonText }: {
+  GitHubSearchInput: ({
+    onSearch,
+    onSelect,
+    placeholder,
+    buttonText,
+  }: {
     onSearch: (path: string) => void;
     onSelect: (repo: any) => void;
     placeholder: string;
     buttonText: string;
   }) => (
     <div data-testid="github-search-input">
-      <input 
+      <input
         placeholder={placeholder}
         onChange={(e) => onSearch(e.target.value)}
         data-testid="search-input"
       />
-      <button 
+      <button
         onClick={() => onSelect({ full_name: 'test/selected-repo' })}
         data-testid="select-button"
       >
@@ -61,9 +66,7 @@ vi.mock('@/components/ui/github-search-input', () => ({
 function renderWithRouter(component: JSX.Element) {
   return render(
     <HelmetProvider>
-      <BrowserRouter>
-        {component}
-      </BrowserRouter>
+      <BrowserRouter>{component}</BrowserRouter>
     </HelmetProvider>
   );
 }
@@ -77,7 +80,9 @@ describe('Home Component', () => {
     renderWithRouter(<Home />);
 
     expect(screen.getByText('Analyze GitHub Repository Contributors')).toBeInTheDocument();
-    expect(screen.getByText(/Enter a GitHub repository URL or owner\/repo to visualize/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Enter a GitHub repository URL or owner\/repo to visualize/)
+    ).toBeInTheDocument();
     expect(screen.getByTestId('social-meta-tags')).toBeInTheDocument();
     expect(screen.getByTestId('github-search-input')).toBeInTheDocument();
     expect(screen.getByTestId('example-repos')).toBeInTheDocument();
@@ -85,7 +90,7 @@ describe('Home Component', () => {
 
   it('extracts owner and repo from GitHub URL and navigates correctly', () => {
     renderWithRouter(<Home />);
-    
+
     const searchInput = screen.getByTestId('search-input');
     fireEvent.change(searchInput, { target: { value: 'https://github.com/facebook/react' } });
 
@@ -95,7 +100,7 @@ describe('Home Component', () => {
 
   it('handles owner/repo format without full URL', () => {
     renderWithRouter(<Home />);
-    
+
     const searchInput = screen.getByTestId('search-input');
     fireEvent.change(searchInput, { target: { value: 'microsoft/vscode' } });
 
@@ -104,7 +109,7 @@ describe('Home Component', () => {
 
   it('handles repository selection from search input', () => {
     renderWithRouter(<Home />);
-    
+
     const selectButton = screen.getByTestId('select-button');
     fireEvent.click(selectButton);
 
@@ -113,7 +118,7 @@ describe('Home Component', () => {
 
   it('handles example repository selection', () => {
     renderWithRouter(<Home />);
-    
+
     const exampleRepos = screen.getByTestId('example-repos');
     fireEvent.click(exampleRepos);
 
@@ -122,13 +127,13 @@ describe('Home Component', () => {
 
   it('renders with proper semantic structure', () => {
     renderWithRouter(<Home />);
-    
+
     const article = screen.getByRole('article');
     expect(article).toHaveClass('flex', 'items-center', 'justify-center');
-    
+
     const heading = screen.getByRole('heading', { level: 1 });
     expect(heading).toHaveTextContent('Analyze GitHub Repository Contributors');
-    
+
     // Use more specific selector instead of generic role
     expect(screen.getByTestId('github-search-input')).toBeInTheDocument();
     expect(screen.getByTestId('example-repos')).toBeInTheDocument();

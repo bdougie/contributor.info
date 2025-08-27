@@ -3,11 +3,11 @@ export { FileHoverCard } from './file-hover-card';
 export { FileHoverInfo } from './file-hover-info';
 
 // Re-export UI card components
-export { 
-  Card, 
-  CardHeader, 
-  CardTitle, 
-  CardDescription, 
-  CardContent, 
-  CardFooter 
+export {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
 } from '@/components/ui/card';

@@ -2,21 +2,21 @@
  * Business logic for ContributorOfTheMonth component
  * Pure functions with no React dependencies
  */
-import type { ContributorRanking } from "@/lib/types";
+import type { ContributorRanking } from '@/lib/types';
 
-export type ComponentState = 
-  | { type: "loading" }
-  | { type: "error"; message: string }
-  | { type: "no_activity" }
-  | { type: "minimal_activity"; contributors: any[]; month: string; year: number }
-  | { type: "winner_phase"; ranking: ContributorRanking; topContributors: any[] }
-  | { type: "leaderboard_phase"; ranking: ContributorRanking; topContributors: any[] };
+export type ComponentState =
+  | { type: 'loading' }
+  | { type: 'error'; message: string }
+  | { type: 'no_activity' }
+  | { type: 'minimal_activity'; contributors: any[]; month: string; year: number }
+  | { type: 'winner_phase'; ranking: ContributorRanking; topContributors: any[] }
+  | { type: 'leaderboard_phase'; ranking: ContributorRanking; topContributors: any[] };
 
 export interface DisplayContent {
   title: string;
   description: string;
   badgeText: string;
-  badgeVariant: "default" | "secondary";
+  badgeVariant: 'default' | 'secondary';
 }
 
 export interface WinnerDisplayContent {
@@ -41,30 +41,27 @@ export function getComponentState(
   error: string | null
 ): ComponentState {
   if (loading) {
-    return { type: "loading" };
+    return { type: 'loading' };
   }
 
   if (error) {
-    return { type: "error", message: error };
+    return { type: 'error', message: error };
   }
 
   if (!ranking || ranking.contributors.length === 0) {
-    return { type: "no_activity" };
+    return { type: 'no_activity' };
   }
 
-  const isWinnerPhase = ranking.phase === "winner_announcement";
+  const isWinnerPhase = ranking.phase === 'winner_announcement';
   const topContributors = ranking.contributors.slice(0, 5);
-  
+
   // Check for minimal activity
-  const totalActivity = ranking.contributors.reduce(
-    (sum, c) => sum + c.activity.totalScore,
-    0
-  );
+  const totalActivity = ranking.contributors.reduce((sum, c) => sum + c.activity.totalScore, 0);
   const hasMinimalActivity = ranking.contributors.length < 3 || totalActivity < 10;
 
   if (hasMinimalActivity && !isWinnerPhase) {
     return {
-      type: "minimal_activity",
+      type: 'minimal_activity',
       contributors: ranking.contributors,
       month: ranking.month,
       year: ranking.year,
@@ -73,14 +70,14 @@ export function getComponentState(
 
   if (isWinnerPhase) {
     return {
-      type: "winner_phase",
+      type: 'winner_phase',
       ranking,
       topContributors,
     };
   }
 
   return {
-    type: "leaderboard_phase",
+    type: 'leaderboard_phase',
     ranking,
     topContributors,
   };
@@ -94,12 +91,12 @@ export function getDisplayContent(
   isWinnerPhase: boolean
 ): DisplayContent {
   return {
-    title: isWinnerPhase ? "Contributor of the Month" : "Monthly Leaderboard",
-    description: isWinnerPhase 
+    title: isWinnerPhase ? 'Contributor of the Month' : 'Monthly Leaderboard',
+    description: isWinnerPhase
       ? `Celebrating ${ranking.month} ${ranking.year}'s top contributor`
       : `Top contributors for ${ranking.month} ${ranking.year}`,
-    badgeText: isWinnerPhase ? "Winner" : "Current",
-    badgeVariant: isWinnerPhase ? "default" : "secondary",
+    badgeText: isWinnerPhase ? 'Winner' : 'Current',
+    badgeVariant: isWinnerPhase ? 'default' : 'secondary',
   };
 }
 
@@ -111,9 +108,9 @@ export function getWinnerDisplayContent(
   topContributors: any[]
 ): WinnerDisplayContent {
   return {
-    sectionTitle: "Winner Display",
+    sectionTitle: 'Winner Display',
     winnerTitle: `${ranking.month} ${ranking.year} Winner`,
-    runnersUpTitle: "Top Contributors",
+    runnersUpTitle: 'Top Contributors',
     runnersUpCount: `${topContributors.length - 1} runners-up`,
   };
 }
@@ -125,13 +122,14 @@ export function getLeaderboardDisplayContent(
   ranking: ContributorRanking,
   topContributors: any[]
 ): LeaderboardDisplayContent {
-  const activeCount = `${topContributors.length} active contributor${topContributors.length !== 1 ? "s" : ""}`;
-  const moreContributorsText = ranking.contributors.length > 5
-    ? `And ${ranking.contributors.length - 5} more contributors this month`
-    : undefined;
+  const activeCount = `${topContributors.length} active contributor${topContributors.length !== 1 ? 's' : ''}`;
+  const moreContributorsText =
+    ranking.contributors.length > 5
+      ? `And ${ranking.contributors.length - 5} more contributors this month`
+      : undefined;
 
   return {
-    iconName: "TrendingUp",
+    iconName: 'TrendingUp',
     activeCount,
     moreContributorsText,
   };
@@ -142,8 +140,8 @@ export function getLeaderboardDisplayContent(
  */
 export function getCardAccessibility() {
   return {
-    role: "region" as const,
-    ariaLabelledBy: "contributor-heading",
+    role: 'region' as const,
+    ariaLabelledBy: 'contributor-heading',
   };
 }
 
@@ -152,9 +150,9 @@ export function getCardAccessibility() {
  */
 export function getTrophyIconProps() {
   return {
-    iconName: "Trophy",
-    className: "h-5 w-5 text-yellow-600",
-    ariaLabel: "Trophy",
-    role: "img" as const,
+    iconName: 'Trophy',
+    className: 'h-5 w-5 text-yellow-600',
+    ariaLabel: 'Trophy',
+    role: 'img' as const,
   };
 }

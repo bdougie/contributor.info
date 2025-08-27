@@ -9,7 +9,7 @@ export {
   getIsMobileUserAgent,
   useIsMobileDetailed,
   useViewportSize,
-  useNetworkAwareDetection
+  useNetworkAwareDetection,
 } from './utils/mobile-detection';
 
 export function cn(...inputs: ClassValue[]) {
@@ -17,9 +17,9 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function humanizeNumber(num: number): string {
-  if (num === 0) return "0";
-  
-  const units = ["", "K", "M", "B", "T"];
+  if (num === 0) return '0';
+
+  const units = ['', 'K', 'M', 'B', 'T'];
   const order = Math.floor(Math.log(Math.abs(num)) / Math.log(1000));
   const unitname = units[order];
   const value = Math.round(num / Math.pow(1000, order));
@@ -38,11 +38,11 @@ export function validateRepositoryPath(path: string): string | null {
 
   // Remove any leading/trailing whitespace and slashes
   const trimmedPath = path.trim().replace(/^\/+|\/+$/g, '');
-  
+
   // Repository path should be in format "owner/repo"
   // Allow alphanumeric characters, hyphens, underscores, and dots
   const repoPathRegex = /^[a-zA-Z0-9._-]+\/[a-zA-Z0-9._-]+$/;
-  
+
   if (!repoPathRegex.test(trimmedPath)) {
     return null;
   }
@@ -54,7 +54,7 @@ export function validateRepositoryPath(path: string): string | null {
   }
 
   const [owner, repo] = parts;
-  
+
   // Check for potential XSS patterns or malicious content
   const dangerousPatterns = [
     /<script/i,
@@ -62,10 +62,10 @@ export function validateRepositoryPath(path: string): string | null {
     /data:/i,
     /vbscript:/i,
     /on\w+\s*=/i, // onclick, onload, etc.
-    /[<>'"]/,     // HTML/XML characters
-    /[{}[\]]/,    // Template injection patterns
-    /\.\./,       // Path traversal
-    /^[.-]/,      // Leading dots or hyphens (invalid usernames)
+    /[<>'"]/, // HTML/XML characters
+    /[{}[\]]/, // Template injection patterns
+    /\.\./, // Path traversal
+    /^[.-]/, // Leading dots or hyphens (invalid usernames)
   ];
 
   const pathToCheck = `${owner}/${repo}`;
@@ -89,31 +89,31 @@ export function validateRepositoryPath(path: string): string | null {
 }
 
 export function calculateLotteryFactor(
-  prs: PullRequest[], 
-  timeRange: string = '30', 
+  prs: PullRequest[],
+  timeRange: string = '30',
   includeBots: boolean = false
 ): LotteryFactor {
   // Use the provided time range
   const daysAgo = new Date();
   daysAgo.setDate(daysAgo.getDate() - parseInt(timeRange));
-  
+
   // Filter by time range and optionally by bot status
-  const recentPRs = prs.filter(pr => {
+  const recentPRs = prs.filter((pr) => {
     const isRecent = new Date(pr.created_at) > daysAgo;
     const isBot = pr.user.type === 'Bot';
-    
+
     // If includeBots is false, filter out bots
     if (!includeBots && isBot) {
       return false;
     }
-    
+
     return isRecent;
   });
 
   // Count PRs per contributor and collect their recent PRs
   const contributorMap = new Map<string, ContributorStats>();
-  
-  recentPRs.forEach(pr => {
+
+  recentPRs.forEach((pr) => {
     const existing = contributorMap.get(pr.user.login);
     if (existing) {
       existing.pullRequests += 1;
@@ -139,9 +139,9 @@ export function calculateLotteryFactor(
   // Calculate percentages and sort by contribution count
   const totalPRs = recentPRs.length;
   const contributors = Array.from(contributorMap.values())
-    .map(contributor => ({
+    .map((contributor) => ({
       ...contributor,
-      percentage: (contributor.pullRequests / totalPRs) * 100
+      percentage: (contributor.pullRequests / totalPRs) * 100,
     }))
     .sort((a, b) => b.pullRequests - a.pullRequests);
 
@@ -168,6 +168,6 @@ export function calculateLotteryFactor(
     totalContributors: contributors.length,
     topContributorsPercentage: Math.round(topTwoPercentage),
     contributors: topContributors,
-    riskLevel
+    riskLevel,
   };
 }

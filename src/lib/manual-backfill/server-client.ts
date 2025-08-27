@@ -1,6 +1,6 @@
 /**
  * Manual Backfill API Server Client
- * 
+ *
  * Server-side client for use in Netlify Functions and server environments
  */
 
@@ -14,7 +14,7 @@ class ManualBackfillServerClient {
     // Use process.env directly in server context
     this.apiUrl = process.env.GH_DATPIPE_API_URL || 'https://gh-datapipe.fly.dev';
     this.apiKey = process.env.GH_DATPIPE_KEY || '';
-    
+
     if (!this.apiKey) {
       console.error('[ManualBackfillServerClient] GH_DATPIPE_KEY not configured');
     }
@@ -35,7 +35,8 @@ class ManualBackfillServerClient {
       throw new Error('GH_DATPIPE_KEY not configured');
     }
 
-    const webhookUrl = request.callback_url || 
+    const webhookUrl =
+      request.callback_url ||
       (process.env.BASE_URL || 'https://contributor.info') + '/api/webhook/backfill-complete';
 
     const response = await fetch(`${this.apiUrl}/api/backfill/trigger`, {
@@ -54,7 +55,11 @@ class ManualBackfillServerClient {
     }
 
     const result = await response.json();
-    console.log('[ManualBackfillServerClient] Triggered backfill job %s for %s', result.job_id, request.repository);
+    console.log(
+      '[ManualBackfillServerClient] Triggered backfill job %s for %s',
+      result.job_id,
+      request.repository
+    );
     return result;
   }
 

@@ -79,14 +79,11 @@ export function getOrganizationSchema(): Organization {
       {
         '@type': 'ContactPoint',
         contactType: 'customer service',
-        url: 'https://github.com/bdougie/contributor.info/issues'
-      }
+        url: 'https://github.com/bdougie/contributor.info/issues',
+      },
     ],
     foundingDate: '2024',
-    sameAs: [
-      'https://github.com/bdougie/contributor.info',
-      'https://twitter.com/bdougieYO'
-    ]
+    sameAs: ['https://github.com/bdougie/contributor.info', 'https://twitter.com/bdougieYO'],
   };
 }
 
@@ -98,7 +95,8 @@ export function getSoftwareApplicationSchema(): SoftwareApplication {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
     name: 'contributor.info',
-    description: 'Discover and visualize GitHub contributors and their contributions. Track open source activity, analyze contribution patterns, and celebrate community impact.',
+    description:
+      'Discover and visualize GitHub contributors and their contributions. Track open source activity, analyze contribution patterns, and celebrate community impact.',
     url: 'https://contributor.info',
     applicationCategory: 'DeveloperApplication',
     operatingSystem: 'Any',
@@ -106,11 +104,11 @@ export function getSoftwareApplicationSchema(): SoftwareApplication {
     offers: {
       '@type': 'Offer',
       price: '0',
-      priceCurrency: 'USD'
+      priceCurrency: 'USD',
     },
     author: getOrganizationSchema(),
     datePublished: '2024',
-    version: '1.0'
+    version: '1.0',
   };
 }
 
@@ -123,27 +121,30 @@ export function getWebSiteSchema(): WebSite {
     '@type': 'WebSite',
     name: 'contributor.info',
     url: 'https://contributor.info',
-    description: 'Discover and visualize GitHub contributors and their contributions. Track open source activity, analyze contribution patterns, and celebrate community impact.',
+    description:
+      'Discover and visualize GitHub contributors and their contributions. Track open source activity, analyze contribution patterns, and celebrate community impact.',
     potentialAction: {
       '@type': 'SearchAction',
       target: {
         '@type': 'EntryPoint',
-        urlTemplate: 'https://contributor.info/{owner}/{repo}'
+        urlTemplate: 'https://contributor.info/{owner}/{repo}',
       },
-      'query-input': 'required name=search_term_string'
+      'query-input': 'required name=search_term_string',
     },
-    publisher: getOrganizationSchema()
+    publisher: getOrganizationSchema(),
   };
 }
 
 /**
  * Generate JSON-LD script tag content for schema markup
  */
-export function generateSchemaMarkup(schemas: (Organization | SoftwareApplication | WebSite)[]): string {
+export function generateSchemaMarkup(
+  schemas: (Organization | SoftwareApplication | WebSite)[]
+): string {
   if (schemas.length === 1) {
     return JSON.stringify(schemas[0], null, 0);
   }
-  
+
   // Multiple schemas - wrap in array
   return JSON.stringify(schemas, null, 0);
 }
@@ -152,8 +153,5 @@ export function generateSchemaMarkup(schemas: (Organization | SoftwareApplicatio
  * Get all platform-level schemas for the main application
  */
 export function getPlatformSchemas(): (Organization | SoftwareApplication | WebSite)[] {
-  return [
-    getSoftwareApplicationSchema(),
-    getWebSiteSchema()
-  ];
+  return [getSoftwareApplicationSchema(), getWebSiteSchema()];
 }

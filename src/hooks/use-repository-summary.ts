@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { trackDatabaseOperation, trackCacheOperation, trackRateLimit, setApplicationContext } from '@/lib/simple-logging';
+import {
+  trackDatabaseOperation,
+  trackCacheOperation,
+  trackRateLimit,
+  setApplicationContext,
+} from '@/lib/simple-logging';
 
 interface UseRepositorySummaryReturn {
   summary: string | null;
@@ -13,7 +18,7 @@ interface UseRepositorySummaryReturn {
 function createActivityHash(pullRequests: any[]): string {
   const activityData = pullRequests
     .slice(0, 10)
-    .map(pr => `${pr.number}-${pr.merged_at || pr.created_at}`)
+    .map((pr) => `${pr.number}-${pr.merged_at || pr.created_at}`)
     .join('|');
   return btoa(activityData);
 }
@@ -23,10 +28,10 @@ function needsRegeneration(repo: any, activityHash: string): boolean {
   if (!repo.summary_generated_at || !repo.recent_activity_hash) {
     return true;
   }
-  
+
   const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
   const generatedAt = new Date(repo.summary_generated_at);
-  
+
   return generatedAt < fourteenDaysAgo || repo.recent_activity_hash !== activityHash;
 }
 
@@ -43,32 +48,33 @@ function humanizeNumber(num: number): string {
 
 // Generate summary locally as fallback
 async function generateLocalSummary(repository: any, pullRequests: any[]): Promise<string> {
-  const recentMergedPRs = (pullRequests || [])
-    .filter(pr => pr.merged_at !== null)
-    .slice(0, 5);
-  
-  const recentOpenPRs = (pullRequests || [])
-    .filter(pr => pr.state === 'open')
-    .slice(0, 3);
-  
+  const recentMergedPRs = (pullRequests || []).filter((pr) => pr.merged_at !== null).slice(0, 5);
+
+  const recentOpenPRs = (pullRequests || []).filter((pr) => pr.state === 'open').slice(0, 3);
+
   const parts: string[] = [];
-  
+
   // Repository overview with humanized numbers
   const stars = humanizeNumber(repository.stargazers_count || 0);
   const forks = humanizeNumber(repository.forks_count || 0);
-  parts.push(`**${repository.full_name || repository.name}** is ${repository.description ? repository.description.toLowerCase() : 'a repository'} with ${stars} stars and ${forks} forks.`);
-  
+  parts.push(
+    `**${repository.full_name || repository.name}** is ${repository.description ? repository.description.toLowerCase() : 'a repository'} with ${stars} stars and ${forks} forks.`
+  );
+
   // Recent activity
   if (recentMergedPRs.length > 0) {
-    const prTitles = recentMergedPRs.slice(0, 3).map(pr => pr.title).join(', ');
+    const prTitles = recentMergedPRs
+      .slice(0, 3)
+      .map((pr) => pr.title)
+      .join(', ');
     parts.push(`Recent development includes: ${prTitles}.`);
   }
-  
+
   // Current focus
   if (recentOpenPRs.length > 0) {
     parts.push(`Current open pull requests suggest focus on ${recentOpenPRs[0].title}.`);
   }
-  
+
   return parts.join('\n\n');
 }
 
@@ -88,7 +94,7 @@ export function useRepositorySummary(
     setApplicationContext({
       route: 'repository-summary',
       repository: `${owner}/${repo}`,
-      dataSource: 'database'
+      dataSource: 'database',
     });
 
     setLoading(true);
@@ -101,7 +107,9 @@ export function useRepositorySummary(
         async () => {
           const { data, error } = await supabase
             .from('repositories')
-            .select('id, full_name, description, language, stargazers_count, forks_count, ai_summary, summary_generated_at, recent_activity_hash')
+            .select(
+              'id, full_name, description, language, stargazers_count, forks_count, ai_summary, summary_generated_at, recent_activity_hash'
+            )
             .eq('owner', owner)
             .eq('name', repo)
             .maybeSingle();
@@ -112,7 +120,7 @@ export function useRepositorySummary(
         {
           operation: 'fetch',
           table: 'repositories',
-          repository: `${owner}/${repo}`
+          repository: `${owner}/${repo}`,
         }
       );
 
@@ -136,7 +144,7 @@ export function useRepositorySummary(
             operation: 'get',
             cacheType: 'database',
             hit: true,
-            key: `summary:${owner}/${repo}`
+            key: `summary:${owner}/${repo}`,
           }
         );
         setLoading(false);
@@ -150,7 +158,7 @@ export function useRepositorySummary(
           setApplicationContext({
             route: 'repository-summary',
             repository: `${owner}/${repo}`,
-            dataSource: 'api'
+            dataSource: 'api',
           });
 
           const { data, error: functionError } = await supabase.functions.invoke(
@@ -159,14 +167,17 @@ export function useRepositorySummary(
               body: {
                 repository: repositoryData,
                 pullRequests: pullRequests || [],
-                forceRegeneration: shouldRegenerate
-              }
+                forceRegeneration: shouldRegenerate,
+              },
             }
           );
 
           if (functionError) {
             // Track rate limiting if detected
-            if (functionError.message.includes('rate limit') || functionError.message.includes('429')) {
+            if (
+              functionError.message.includes('rate limit') ||
+              functionError.message.includes('429')
+            ) {
               trackRateLimit('supabase', 'repository-summary');
             }
             throw new Error(`Failed to generate summary: ${functionError.message}`);
@@ -183,12 +194,12 @@ export function useRepositorySummary(
           operation: 'set',
           cacheType: 'api',
           hit: false,
-          key: `summary:${owner}/${repo}`
+          key: `summary:${owner}/${repo}`,
         }
       );
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
-      
+
       // Fallback to local generation if Edge Function fails
       if (errorMessage.includes('500') || errorMessage.includes('non-2xx')) {
         console.log('Edge Function failed, generating summary locally');
@@ -200,7 +211,7 @@ export function useRepositorySummary(
             .eq('owner', owner)
             .eq('name', repo)
             .maybeSingle();
-          
+
           const fallbackSummary = await generateLocalSummary(repoData || {}, pullRequests || []);
           setSummary(fallbackSummary);
           setError(null);
@@ -229,7 +240,9 @@ export function useRepositorySummary(
         async () => {
           const { data, error } = await supabase
             .from('repositories')
-            .select('id, full_name, description, language, stargazers_count, forks_count, ai_summary, summary_generated_at, recent_activity_hash')
+            .select(
+              'id, full_name, description, language, stargazers_count, forks_count, ai_summary, summary_generated_at, recent_activity_hash'
+            )
             .eq('owner', owner)
             .eq('name', repo)
             .maybeSingle();
@@ -241,7 +254,7 @@ export function useRepositorySummary(
           operation: 'fetch',
           table: 'repositories',
           repository: `${owner}/${repo}`,
-          fallbackUsed: false
+          fallbackUsed: false,
         }
       );
 
@@ -259,13 +272,16 @@ export function useRepositorySummary(
               body: {
                 repository: repositoryData,
                 pullRequests: pullRequests || [],
-                forceRegeneration: true
-              }
+                forceRegeneration: true,
+              },
             }
           );
 
           if (functionError) {
-            if (functionError.message.includes('rate limit') || functionError.message.includes('429')) {
+            if (
+              functionError.message.includes('rate limit') ||
+              functionError.message.includes('429')
+            ) {
               trackRateLimit('supabase', 'repository-summary');
             }
             throw new Error(`Failed to generate summary: ${functionError.message}`);
@@ -282,7 +298,7 @@ export function useRepositorySummary(
           cacheType: 'api',
           hit: false,
           key: `summary:${owner}/${repo}`,
-          ttl: 14 * 24 * 60 * 60 * 1000 // 14 days in ms
+          ttl: 14 * 24 * 60 * 60 * 1000, // 14 days in ms
         }
       );
 
@@ -290,7 +306,7 @@ export function useRepositorySummary(
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
       setError(errorMessage);
-      
+
       // Simple error logging without analytics
       console.error('AI summary refresh error:', errorMessage, { owner, repo });
     } finally {
@@ -306,6 +322,6 @@ export function useRepositorySummary(
     summary,
     loading,
     error,
-    refetch
+    refetch,
   };
 }

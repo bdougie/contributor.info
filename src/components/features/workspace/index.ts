@@ -15,7 +15,11 @@ export { RepositoryList, RepositoryListSkeleton } from './RepositoryList';
 export type { Repository, RepositoryListProps } from './RepositoryList';
 
 export { WorkspaceDashboard, WorkspaceDashboardSkeleton } from './WorkspaceDashboard';
-export type { WorkspaceDashboardProps, WorkspaceMetrics, WorkspaceTrendData } from './WorkspaceDashboard';
+export type {
+  WorkspaceDashboardProps,
+  WorkspaceMetrics,
+  WorkspaceTrendData,
+} from './WorkspaceDashboard';
 
 export { WorkspacePreviewCard } from './WorkspacePreviewCard';
 export type { WorkspacePreviewCardProps, WorkspacePreviewData } from './WorkspacePreviewCard';

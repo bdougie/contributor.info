@@ -45,24 +45,24 @@ interface GitHubRepository {
  */
 export const discoverNewRepository = inngest.createFunction(
   {
-    id: "discover-new-repository",
-    name: "Discover New Repository",
+    id: 'discover-new-repository',
+    name: 'Discover New Repository',
     concurrency: {
       limit: 10, // Allow parallel discoveries
-      key: "event.data.owner/event.data.repo", // One discovery per repo at a time
+      key: 'event.data.owner/event.data.repo', // One discovery per repo at a time
     },
     retries: 2,
   },
-  { event: "discover/repository.new" },
+  { event: 'discover/repository.new' },
   async ({ event, step }) => {
     const { owner, repo, source } = event.data;
-    
+
     // Validate required fields
     if (!owner || !repo) {
       console.error('Missing required fields in discovery event:', event.data);
       throw new NonRetriableError(`Missing required fields: owner=${owner}, repo=${repo}`);
     }
-    
+
     const fullName = `${owner}/${repo}`;
     console.log('Starting discovery for %s from %s', fullName, source);
 
@@ -70,47 +70,47 @@ export const discoverNewRepository = inngest.createFunction(
     const supabase = createSupabaseAdmin();
 
     // Step 1: Check if repository already exists (race condition protection)
-    const existingRepo = await step.run("check-existing-repository", async () => {
+    const existingRepo = await step.run('check-existing-repository', async () => {
       const { data } = await supabase
         .from('repositories')
         .select('id, owner, name')
         .eq('owner', owner)
         .eq('name', repo)
         .maybeSingle();
-      
+
       return data;
     });
 
     if (existingRepo) {
       console.log('Repository %s already exists with ID %s', fullName, existingRepo.id);
-      
+
       // Still trigger a sync in case it needs fresh data
-      await step.sendEvent("trigger-sync-existing", {
-        name: "capture/repository.sync.graphql",
+      await step.sendEvent('trigger-sync-existing', {
+        name: 'capture/repository.sync.graphql',
         data: {
           repositoryId: existingRepo.id,
           days: 30,
           priority: 'high',
-          reason: 'User discovery of existing repo'
-        }
+          reason: 'User discovery of existing repo',
+        },
       });
-      
+
       return {
         success: true,
         status: 'existing',
         repositoryId: existingRepo.id,
-        message: `Repository ${fullName} already tracked`
+        message: `Repository ${fullName} already tracked`,
       };
     }
 
     // Step 2: Fetch repository data from GitHub
-    const githubData = await step.run("fetch-github-repository", async () => {
+    const githubData = await step.run('fetch-github-repository', async () => {
       const response = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
         headers: {
-          'Accept': 'application/vnd.github.v3+json',
-          'Authorization': `token ${process.env.GITHUB_TOKEN || process.env.VITE_GITHUB_TOKEN}`,
-          'User-Agent': 'contributor-info'
-        }
+          Accept: 'application/vnd.github.v3+json',
+          Authorization: `token ${process.env.GITHUB_TOKEN || process.env.VITE_GITHUB_TOKEN}`,
+          'User-Agent': 'contributor-info',
+        },
       });
 
       if (response.status === 404) {
@@ -126,7 +126,7 @@ export const discoverNewRepository = inngest.createFunction(
     });
 
     // Step 3: Create repository record
-    const repository = await step.run("create-repository", async () => {
+    const repository = await step.run('create-repository', async () => {
       const { data, error } = await supabase
         .from('repositories')
         .insert({
@@ -159,7 +159,7 @@ export const discoverNewRepository = inngest.createFunction(
           github_pushed_at: githubData.pushed_at,
           first_tracked_at: new Date().toISOString(),
           last_updated_at: new Date().toISOString(),
-          is_active: true
+          is_active: true,
         })
         .select()
         .maybeSingle();
@@ -172,7 +172,7 @@ export const discoverNewRepository = inngest.createFunction(
             .select('id')
             .eq('github_id', githubData.id)
             .maybeSingle();
-          
+
           if (existingRepo) {
             return existingRepo;
           }
@@ -184,45 +184,44 @@ export const discoverNewRepository = inngest.createFunction(
     });
 
     // Step 4: Add to tracked repositories
-    await step.run("add-to-tracking", async () => {
-      const { error } = await supabase
-        .from('tracked_repositories')
-        .insert({
-          repository_id: repository.id,
-          organization_name: owner,
-          repository_name: repo,
-          tracking_enabled: true,
-          priority: 'high', // High priority for user-discovered repos
-          added_by_user_id: null, // Could track authenticated user in future
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        });
+    await step.run('add-to-tracking', async () => {
+      const { error } = await supabase.from('tracked_repositories').insert({
+        repository_id: repository.id,
+        organization_name: owner,
+        repository_name: repo,
+        tracking_enabled: true,
+        priority: 'high', // High priority for user-discovered repos
+        added_by_user_id: null, // Could track authenticated user in future
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
 
-      if (error && error.code !== '23505') { // Ignore duplicate key errors
+      if (error && error.code !== '23505') {
+        // Ignore duplicate key errors
         console.error(`Failed to track repository: ${error.message}`);
         // Don't throw - repository exists which is the main goal
       }
     });
 
     // Step 5: Trigger classification
-    await step.sendEvent("trigger-classification", {
-      name: "classify/repository.single",
+    await step.sendEvent('trigger-classification', {
+      name: 'classify/repository.single',
       data: {
         repositoryId: repository.id,
         owner,
-        repo
-      }
+        repo,
+      },
     });
 
     // Step 6: Trigger initial data sync
-    await step.sendEvent("trigger-initial-sync", {
-      name: "capture/repository.sync.graphql",
+    await step.sendEvent('trigger-initial-sync', {
+      name: 'capture/repository.sync.graphql',
       data: {
         repositoryId: repository.id,
         days: 30, // Get last 30 days of data
         priority: 'high',
-        reason: 'Initial repository discovery'
-      }
+        reason: 'Initial repository discovery',
+      },
     });
 
     console.log('Successfully discovered and set up %s with ID %s', fullName, repository.id);
@@ -236,9 +235,9 @@ export const discoverNewRepository = inngest.createFunction(
         owner: repository.owner,
         name: repository.name,
         stars: repository.stargazers_count,
-        language: repository.language
+        language: repository.language,
       },
-      message: `Successfully discovered ${fullName}`
+      message: `Successfully discovered ${fullName}`,
     };
   }
 );

@@ -1,25 +1,27 @@
-import { useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ExampleRepos } from "../../features/repository";
-import { useNavigate } from "react-router-dom";
-import { SocialMetaTags } from "./meta-tags-provider";
-import { GitHubSearchInput } from "@/components/ui/github-search-input";
-import { WorkspacePreviewCard } from "@/components/features/workspace/WorkspacePreviewCard";
-import { WorkspaceOnboarding } from "@/components/features/workspace/WorkspaceOnboarding";
-import { WorkspaceCreateModal } from "@/components/features/workspace/WorkspaceCreateModal";
-import { useAuth } from "@/hooks/use-auth";
-import { usePrimaryWorkspace } from "@/hooks/use-user-workspaces";
-import type { GitHubRepository } from "@/lib/github";
+import { useState } from 'react';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { ExampleRepos } from '../../features/repository';
+import { useNavigate } from 'react-router-dom';
+import { SocialMetaTags } from './meta-tags-provider';
+import { GitHubSearchInput } from '@/components/ui/github-search-input';
+import { WorkspacePreviewCard } from '@/components/features/workspace/WorkspacePreviewCard';
+import { WorkspaceOnboarding } from '@/components/features/workspace/WorkspaceOnboarding';
+import { WorkspaceCreateModal } from '@/components/features/workspace/WorkspaceCreateModal';
+import { useAuth } from '@/hooks/use-auth';
+import { usePrimaryWorkspace } from '@/hooks/use-user-workspaces';
+import type { GitHubRepository } from '@/lib/github';
 
 export default function Home() {
   const navigate = useNavigate();
   const { isLoggedIn, loading: authLoading } = useAuth();
-  const { workspace, hasWorkspace, loading: workspaceLoading, error: workspaceError, refetch: refetchWorkspace } = usePrimaryWorkspace();
+  const {
+    workspace,
+    hasWorkspace,
+    loading: workspaceLoading,
+    error: workspaceError,
+    refetch: refetchWorkspace,
+  } = usePrimaryWorkspace();
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
   const handleSearch = (repositoryPath: string) => {
@@ -58,8 +60,7 @@ export default function Home() {
               Analyze GitHub Repository Contributors
             </h1>
             <p className="text-center text-lg mt-2 text-muted-foreground">
-              Enter a GitHub repository URL or owner/repo to visualize
-              contribution patterns
+              Enter a GitHub repository URL or owner/repo to visualize contribution patterns
             </p>
           </CardHeader>
           <CardContent>

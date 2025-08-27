@@ -26,7 +26,7 @@ const generateMockIssues = (count: number): Issue[] => {
     { owner: 'vuejs', name: 'vue', avatar_url: 'https://github.com/vuejs.png' },
     { owner: 'angular', name: 'angular', avatar_url: 'https://github.com/angular.png' },
   ];
-  
+
   const authors = [
     { username: 'alice', avatar_url: 'https://avatars.githubusercontent.com/u/1?v=4' },
     { username: 'bob', avatar_url: 'https://avatars.githubusercontent.com/u/2?v=4' },
@@ -73,23 +73,25 @@ const generateMockIssues = (count: number): Issue[] => {
 
     const createdAt = new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000);
     const updatedAt = new Date(createdAt.getTime() + Math.random() * 30 * 24 * 60 * 60 * 1000);
-    const closedAt = state === 'closed' 
-      ? new Date(updatedAt.getTime() + Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString()
-      : undefined;
+    const closedAt =
+      state === 'closed'
+        ? new Date(updatedAt.getTime() + Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString()
+        : undefined;
 
     // Generate linked pull requests (60% chance of having linked PRs)
-    const linkedPRs = Math.random() > 0.4
-      ? Array.from({ length: Math.floor(Math.random() * 4) + 1 }, (_, prIndex) => {
-          const prStates = ['open', 'closed', 'merged'] as const;
-          const prState = prStates[Math.floor(Math.random() * prStates.length)];
-          const prNumber = 2000 + i * 10 + prIndex;
-          return {
-            number: prNumber,
-            url: `https://github.com/${repo.owner}/${repo.name}/pull/${prNumber}`,
-            state: prState,
-          };
-        })
-      : undefined;
+    const linkedPRs =
+      Math.random() > 0.4
+        ? Array.from({ length: Math.floor(Math.random() * 4) + 1 }, (_, prIndex) => {
+            const prStates = ['open', 'closed', 'merged'] as const;
+            const prState = prStates[Math.floor(Math.random() * prStates.length)];
+            const prNumber = 2000 + i * 10 + prIndex;
+            return {
+              number: prNumber,
+              url: `https://github.com/${repo.owner}/${repo.name}/pull/${prNumber}`,
+              state: prState,
+            };
+          })
+        : undefined;
 
     return {
       id: `issue-${i + 1}`,
@@ -136,14 +138,14 @@ export const WithManyIssues: Story = {
 
 export const OnlyOpenIssues: Story = {
   args: {
-    issues: generateMockIssues(20).map(issue => ({ ...issue, state: 'open' as const })),
+    issues: generateMockIssues(20).map((issue) => ({ ...issue, state: 'open' as const })),
   },
 };
 
 export const OnlyClosedIssues: Story = {
   args: {
-    issues: generateMockIssues(20).map(issue => ({ 
-      ...issue, 
+    issues: generateMockIssues(20).map((issue) => ({
+      ...issue,
       state: 'closed' as const,
       closed_at: new Date().toISOString(),
     })),
@@ -152,7 +154,7 @@ export const OnlyClosedIssues: Story = {
 
 export const WithManyLabels: Story = {
   args: {
-    issues: generateMockIssues(10).map(issue => ({
+    issues: generateMockIssues(10).map((issue) => ({
       ...issue,
       labels: [
         { name: 'bug', color: 'd73a4a' },
@@ -167,7 +169,7 @@ export const WithManyLabels: Story = {
 
 export const HighCommentCount: Story = {
   args: {
-    issues: generateMockIssues(10).map(issue => ({
+    issues: generateMockIssues(10).map((issue) => ({
       ...issue,
       comments_count: Math.floor(Math.random() * 50) + 20,
     })),
@@ -203,7 +205,7 @@ export const WithLinkedPullRequests: Story = {
 export const NoLinkedPullRequests: Story = {
   name: 'No Linked Pull Requests',
   args: {
-    issues: generateMockIssues(10).map(issue => ({
+    issues: generateMockIssues(10).map((issue) => ({
       ...issue,
       linked_pull_requests: undefined,
     })),

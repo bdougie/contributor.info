@@ -7,26 +7,26 @@ import { OptimizedAvatarSimple } from '../optimized-avatar-simple';
 class MockIntersectionObserver {
   callback: IntersectionObserverCallback;
   elements: Set<Element> = new Set();
-  
+
   constructor(callback: IntersectionObserverCallback) {
     this.callback = callback;
   }
-  
+
   observe(element: Element) {
     this.elements.add(element);
   }
-  
+
   unobserve(element: Element) {
     this.elements.delete(element);
   }
-  
+
   disconnect() {
     this.elements.clear();
   }
-  
+
   // Trigger intersection for testing
   triggerIntersection(isIntersecting: boolean) {
-    const entries = Array.from(this.elements).map(element => ({
+    const entries = Array.from(this.elements).map((element) => ({
       isIntersecting,
       target: element,
       intersectionRatio: isIntersecting ? 1 : 0,
@@ -55,11 +55,7 @@ afterEach(() => {
 describe('OptimizedAvatarSimple - Rendering', () => {
   it('renders with basic props', () => {
     render(
-      <OptimizedAvatarSimple
-        src="https://example.com/avatar.jpg"
-        alt="John Doe"
-        lazy={false}
-      />
+      <OptimizedAvatarSimple src="https://example.com/avatar.jpg" alt="John Doe" lazy={false} />
     );
 
     const img = screen.getByRole('img', { name: 'John Doe' });
@@ -68,24 +64,13 @@ describe('OptimizedAvatarSimple - Rendering', () => {
   });
 
   it('renders with custom fallback text', () => {
-    render(
-      <OptimizedAvatarSimple
-        alt="John Doe"
-        fallback="JD"
-        lazy={false}
-      />
-    );
+    render(<OptimizedAvatarSimple alt="John Doe" fallback="JD" lazy={false} />);
 
     expect(screen.getByText('JD')).toBeInTheDocument();
   });
 
   it('generates fallback initials from alt text', () => {
-    render(
-      <OptimizedAvatarSimple
-        alt="Jane Smith"
-        lazy={false}
-      />
-    );
+    render(<OptimizedAvatarSimple alt="Jane Smith" lazy={false} />);
 
     expect(screen.getByText('JS')).toBeInTheDocument();
   });
@@ -123,7 +108,7 @@ describe('OptimizedAvatarSimple - Rendering', () => {
 describe('OptimizedAvatarSimple - Image Loading', () => {
   it('calls onLoad when image loads successfully', () => {
     const onLoad = vi.fn();
-    
+
     render(
       <OptimizedAvatarSimple
         src="https://example.com/avatar.jpg"
@@ -135,13 +120,13 @@ describe('OptimizedAvatarSimple - Image Loading', () => {
 
     const img = screen.getByRole('img');
     fireEvent.load(img);
-    
+
     expect(onLoad).toHaveBeenCalledOnce();
   });
 
   it('calls onError and shows fallback when image fails to load', () => {
     const onError = vi.fn();
-    
+
     render(
       <OptimizedAvatarSimple
         src="https://example.com/avatar.jpg"
@@ -153,18 +138,14 @@ describe('OptimizedAvatarSimple - Image Loading', () => {
 
     const img = screen.getByRole('img');
     fireEvent.error(img);
-    
+
     expect(onError).toHaveBeenCalledOnce();
     expect(screen.getByText('?')).toBeInTheDocument();
   });
 
   it('shows fallback while image is loading', () => {
     render(
-      <OptimizedAvatarSimple
-        src="https://example.com/avatar.jpg"
-        alt="Loading User"
-        lazy={false}
-      />
+      <OptimizedAvatarSimple src="https://example.com/avatar.jpg" alt="Loading User" lazy={false} />
     );
 
     // Fallback should be visible initially
@@ -174,16 +155,12 @@ describe('OptimizedAvatarSimple - Image Loading', () => {
 
   it('hides fallback after image loads', () => {
     render(
-      <OptimizedAvatarSimple
-        src="https://example.com/avatar.jpg"
-        alt="Success User"
-        lazy={false}
-      />
+      <OptimizedAvatarSimple src="https://example.com/avatar.jpg" alt="Success User" lazy={false} />
     );
 
     const img = screen.getByRole('img');
     fireEvent.load(img);
-    
+
     // Fallback should be hidden after load
     expect(screen.getByText('SU')).toHaveClass('opacity-0');
   });
@@ -192,11 +169,7 @@ describe('OptimizedAvatarSimple - Image Loading', () => {
 describe('OptimizedAvatarSimple - Lazy Loading', () => {
   it('does not render image initially when lazy is true', () => {
     render(
-      <OptimizedAvatarSimple
-        src="https://example.com/avatar.jpg"
-        alt="Lazy User"
-        lazy={true}
-      />
+      <OptimizedAvatarSimple src="https://example.com/avatar.jpg" alt="Lazy User" lazy={true} />
     );
 
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
@@ -296,26 +269,14 @@ describe('OptimizedAvatarSimple - URL Optimization', () => {
   });
 
   it('handles invalid URLs gracefully', () => {
-    render(
-      <OptimizedAvatarSimple
-        src="not-a-valid-url"
-        alt="Invalid URL User"
-        lazy={false}
-      />
-    );
+    render(<OptimizedAvatarSimple src="not-a-valid-url" alt="Invalid URL User" lazy={false} />);
 
     const img = screen.getByRole('img');
     expect(img).toHaveAttribute('src', 'not-a-valid-url');
   });
 
   it('handles relative URLs', () => {
-    render(
-      <OptimizedAvatarSimple
-        src="/images/avatar.jpg"
-        alt="Relative URL User"
-        lazy={false}
-      />
-    );
+    render(<OptimizedAvatarSimple src="/images/avatar.jpg" alt="Relative URL User" lazy={false} />);
 
     const img = screen.getByRole('img');
     expect(img).toHaveAttribute('src', '/images/avatar.jpg');
@@ -324,25 +285,14 @@ describe('OptimizedAvatarSimple - URL Optimization', () => {
 
 describe('OptimizedAvatarSimple - Edge Cases', () => {
   it('handles undefined src gracefully', () => {
-    render(
-      <OptimizedAvatarSimple
-        alt="No Source User"
-        lazy={false}
-      />
-    );
+    render(<OptimizedAvatarSimple alt="No Source User" lazy={false} />);
 
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
     expect(screen.getByText('NS')).toBeInTheDocument();
   });
 
   it('handles empty alt text', () => {
-    render(
-      <OptimizedAvatarSimple
-        src="https://example.com/avatar.jpg"
-        alt=""
-        lazy={false}
-      />
-    );
+    render(<OptimizedAvatarSimple src="https://example.com/avatar.jpg" alt="" lazy={false} />);
 
     // Images with empty alt have role="presentation"
     const img = screen.getByRole('presentation');
@@ -350,40 +300,26 @@ describe('OptimizedAvatarSimple - Edge Cases', () => {
   });
 
   it('handles single character alt text', () => {
-    render(
-      <OptimizedAvatarSimple
-        alt="X"
-        lazy={false}
-      />
-    );
+    render(<OptimizedAvatarSimple alt="X" lazy={false} />);
 
     expect(screen.getByText('X')).toBeInTheDocument();
   });
 
   it('handles alt text with special characters', () => {
-    render(
-      <OptimizedAvatarSimple
-        alt="John-Paul O'Connor"
-        lazy={false}
-      />
-    );
+    render(<OptimizedAvatarSimple alt="John-Paul O'Connor" lazy={false} />);
 
     expect(screen.getByText('JO')).toBeInTheDocument();
   });
 
   it('cleans up intersection observer on unmount', () => {
     const { unmount } = render(
-      <OptimizedAvatarSimple
-        src="https://example.com/avatar.jpg"
-        alt="Cleanup User"
-        lazy={true}
-      />
+      <OptimizedAvatarSimple src="https://example.com/avatar.jpg" alt="Cleanup User" lazy={true} />
     );
 
     const disconnectSpy = vi.spyOn(mockObserver!, 'unobserve');
-    
+
     unmount();
-    
+
     expect(disconnectSpy).toHaveBeenCalled();
   });
 });

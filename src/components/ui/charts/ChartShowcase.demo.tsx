@@ -9,7 +9,7 @@ import { useTheme } from '@/components/common/theming/theme-provider';
 export const ChartShowcaseDemo: React.FC = () => {
   const { theme } = useTheme();
   const [selectedChart, setSelectedChart] = useState<'line' | 'area' | 'bar'>('line');
-  
+
   // Determine if dark mode is active
   const isDark = useMemo(() => {
     if (theme === 'dark') return true;
@@ -64,7 +64,7 @@ export const ChartShowcaseDemo: React.FC = () => {
     datasets: [
       {
         label: 'Response Time (ms)',
-        data: Array.from({ length: 30 }, (_, i) => 
+        data: Array.from({ length: 30 }, (_, i) =>
           Math.floor(Math.sin(i * 0.2) * 30 + Math.random() * 20 + 80)
         ),
         color: '#06b6d4',
@@ -72,7 +72,7 @@ export const ChartShowcaseDemo: React.FC = () => {
       },
       {
         label: 'Error Rate (%)',
-        data: Array.from({ length: 30 }, (_, i) => 
+        data: Array.from({ length: 30 }, (_, i) =>
           Math.max(0, Math.floor(Math.cos(i * 0.15) * 2 + Math.random() * 3 + 2))
         ),
         color: '#f97316',
@@ -87,8 +87,8 @@ export const ChartShowcaseDemo: React.FC = () => {
       <div className="text-center space-y-4">
         <h1 className="text-3xl font-bold text-foreground">Chart Migration Showcase</h1>
         <p className="text-muted-foreground max-w-2xl mx-auto">
-          Interactive demonstration of LineChart, AreaChart, and BarChart components built with uPlot, 
-          providing a Recharts-like API with better performance and theme support.
+          Interactive demonstration of LineChart, AreaChart, and BarChart components built with
+          uPlot, providing a Recharts-like API with better performance and theme support.
         </p>
       </div>
 
@@ -257,8 +257,9 @@ export const ChartShowcaseDemo: React.FC = () => {
       {/* API Compatibility note */}
       <div className="bg-muted/50 border rounded-lg p-4 text-center">
         <p className="text-sm text-muted-foreground">
-          💡 <strong>Migration Ready:</strong> These components provide a Recharts-compatible API 
-          for easy migration of existing charts while offering improved performance and theme integration.
+          💡 <strong>Migration Ready:</strong> These components provide a Recharts-compatible API
+          for easy migration of existing charts while offering improved performance and theme
+          integration.
         </p>
       </div>
     </div>

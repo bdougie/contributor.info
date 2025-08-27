@@ -1,27 +1,21 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback } from 'react';
 import { Book, FileText } from '@/components/ui/icon';
-import { Markdown } from "@/components/common/layout/markdown";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { DocsNavigation } from "./docs-navigation";
-import { DocsToc } from "./docs-toc";
-import { DocsSEO } from "./docs-seo";
-import { LastUpdated } from "@/components/ui/last-updated";
-import { usePageTimestamp } from "@/hooks/use-data-timestamp";
-import { DOCS_METADATA, fetchDocsContent, preloadDocs } from "./docs-loader";
+import { Markdown } from '@/components/common/layout/markdown';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { DocsNavigation } from './docs-navigation';
+import { DocsToc } from './docs-toc';
+import { DocsSEO } from './docs-seo';
+import { LastUpdated } from '@/components/ui/last-updated';
+import { usePageTimestamp } from '@/hooks/use-data-timestamp';
+import { DOCS_METADATA, fetchDocsContent, preloadDocs } from './docs-loader';
 
 interface DocsSection {
   title: string;
   description: string;
   content: string;
-  category: "feature" | "insight";
+  category: 'feature' | 'insight';
 }
 
 /**
@@ -34,7 +28,7 @@ export function DocsPageOptimized() {
   const [error, setError] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<string | undefined>();
   const [loadedFiles, setLoadedFiles] = useState<Set<string>>(new Set());
-  
+
   // Track when the page was loaded for freshness indicator
   const { pageLoadedAt } = usePageTimestamp();
 
@@ -49,31 +43,31 @@ export function DocsPageOptimized() {
     try {
       setLoading(true);
       setError(null);
-      
+
       // Load only the first 3 docs initially for faster initial render
       const initialDocs = DOCS_METADATA.slice(0, 3);
       const sections: DocsSection[] = [];
-      
+
       for (const doc of initialDocs) {
         try {
           const content = await fetchDocsContent(doc.file);
           sections.push({
             ...doc,
-            content
+            content,
           });
-          setLoadedFiles(prev => new Set([...prev, doc.file]));
+          setLoadedFiles((prev) => new Set([...prev, doc.file]));
         } catch (err) {
           console.error(`Failed to load ${doc.file}:`, err);
         }
       }
-      
+
       // Set initial content
       setDocsContent(sections);
-      
+
       // Load remaining docs in the background
       loadRemainingDocs();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load documentation");
+      setError(err instanceof Error ? err.message : 'Failed to load documentation');
     } finally {
       setLoading(false);
     }
@@ -82,22 +76,25 @@ export function DocsPageOptimized() {
   const loadRemainingDocs = useCallback(async () => {
     // Load the rest of the docs progressively
     const remainingDocs = DOCS_METADATA.slice(3);
-    
+
     for (const doc of remainingDocs) {
       if (loadedFiles.has(doc.file)) continue;
-      
+
       try {
         const content = await fetchDocsContent(doc.file);
-        
-        setDocsContent(prev => [...prev, {
-          ...doc,
-          content
-        }]);
-        
-        setLoadedFiles(prev => new Set([...prev, doc.file]));
-        
+
+        setDocsContent((prev) => [
+          ...prev,
+          {
+            ...doc,
+            content,
+          },
+        ]);
+
+        setLoadedFiles((prev) => new Set([...prev, doc.file]));
+
         // Small delay between loads to not block the main thread
-        await new Promise(resolve => setTimeout(resolve, 50));
+        await new Promise((resolve) => setTimeout(resolve, 50));
       } catch (err) {
         console.error(`Failed to load ${doc.file}:`, err);
       }
@@ -108,7 +105,7 @@ export function DocsPageOptimized() {
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        entries.forEach(entry => {
+        entries.forEach((entry) => {
           if (entry.isIntersecting) {
             const sectionId = entry.target.id;
             setActiveSection(sectionId);
@@ -119,10 +116,10 @@ export function DocsPageOptimized() {
     );
 
     const sections = document.querySelectorAll('.docs-section');
-    sections.forEach(section => observer.observe(section));
+    sections.forEach((section) => observer.observe(section));
 
     return () => {
-      sections.forEach(section => observer.unobserve(section));
+      sections.forEach((section) => observer.unobserve(section));
     };
   }, [docsContent]);
 
@@ -143,8 +140,8 @@ export function DocsPageOptimized() {
     );
   }
 
-  const featureDocs = docsContent.filter(doc => doc.category === "feature");
-  const insightDocs = docsContent.filter(doc => doc.category === "insight");
+  const featureDocs = docsContent.filter((doc) => doc.category === 'feature');
+  const insightDocs = docsContent.filter((doc) => doc.category === 'insight');
 
   return (
     <>
@@ -153,11 +150,11 @@ export function DocsPageOptimized() {
         <div className="flex gap-8">
           {/* Left sidebar navigation */}
           <aside className="hidden lg:block w-64 shrink-0">
-            <DocsNavigation 
-              entries={docsContent.map(doc => ({
+            <DocsNavigation
+              entries={docsContent.map((doc) => ({
                 title: doc.title,
                 category: doc.category,
-                anchor: doc.title.toLowerCase().replace(/\s+/g, '-')
+                anchor: doc.title.toLowerCase().replace(/\s+/g, '-'),
               }))}
               activeSection={activeSection}
             />
@@ -173,8 +170,8 @@ export function DocsPageOptimized() {
                   <h1 className="text-4xl font-bold">Documentation</h1>
                 </div>
                 <p className="text-lg text-muted-foreground">
-                  Learn about all the features and insights that contributor.info provides
-                  to help you understand and analyze GitHub repositories.
+                  Learn about all the features and insights that contributor.info provides to help
+                  you understand and analyze GitHub repositories.
                 </p>
                 <LastUpdated timestamp={pageLoadedAt} />
               </div>
@@ -191,7 +188,11 @@ export function DocsPageOptimized() {
                     </div>
                     <div className="space-y-8">
                       {featureDocs.map((section) => (
-                        <Card key={section.title} id={section.title.toLowerCase().replace(/\s+/g, '-')} className="docs-section">
+                        <Card
+                          key={section.title}
+                          id={section.title.toLowerCase().replace(/\s+/g, '-')}
+                          className="docs-section"
+                        >
                           <CardHeader>
                             <CardTitle>{section.title}</CardTitle>
                             <CardDescription>{section.description}</CardDescription>
@@ -215,7 +216,11 @@ export function DocsPageOptimized() {
                     </div>
                     <div className="space-y-8">
                       {insightDocs.map((section) => (
-                        <Card key={section.title} id={section.title.toLowerCase().replace(/\s+/g, '-')} className="docs-section">
+                        <Card
+                          key={section.title}
+                          id={section.title.toLowerCase().replace(/\s+/g, '-')}
+                          className="docs-section"
+                        >
                           <CardHeader>
                             <CardTitle>{section.title}</CardTitle>
                             <CardDescription>{section.description}</CardDescription>
@@ -228,7 +233,7 @@ export function DocsPageOptimized() {
                     </div>
                   </section>
                 )}
-                
+
                 {/* Loading indicator for remaining docs */}
                 {docsContent.length < DOCS_METADATA.length && (
                   <div className="text-center py-4">
@@ -243,8 +248,8 @@ export function DocsPageOptimized() {
 
           {/* Right sidebar TOC */}
           <aside className="hidden xl:block w-64 shrink-0">
-            <DocsToc 
-              content={docsContent.map(doc => doc.content).join('\n\n')} 
+            <DocsToc
+              content={docsContent.map((doc) => doc.content).join('\n\n')}
               className="sticky top-4"
             />
           </aside>
@@ -275,7 +280,7 @@ function DocsLoadingSkeleton() {
               <Skeleton className="h-10 w-64" />
               <Skeleton className="h-6 w-full max-w-2xl" />
             </div>
-            
+
             <div className="space-y-6">
               {[1, 2, 3].map((i) => (
                 <Card key={i}>

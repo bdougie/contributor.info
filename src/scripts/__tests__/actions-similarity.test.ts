@@ -24,17 +24,17 @@ interface SimilarityItem {
 // Pure function to calculate cosine similarity
 function cosineSimilarity(a: number[], b: number[]): number {
   if (a.length !== b.length) return 0;
-  
+
   let dotProduct = 0;
   let normA = 0;
   let normB = 0;
-  
+
   for (let i = 0; i < a.length; i++) {
     dotProduct += a[i] * b[i];
     normA += a[i] * a[i];
     normB += b[i] * b[i];
   }
-  
+
   return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 
@@ -46,20 +46,17 @@ function findSimilarItemsSync(
   maxResults: number
 ): Array<{ item: SimilarityItem; similarity: number }> {
   if (!target.embedding) return [];
-  
+
   const results = items
-    .filter(item => 
-      item.number !== target.number && 
-      item.embedding !== undefined
-    )
-    .map(item => ({
+    .filter((item) => item.number !== target.number && item.embedding !== undefined)
+    .map((item) => ({
       item,
-      similarity: cosineSimilarity(target.embedding!, item.embedding!)
+      similarity: cosineSimilarity(target.embedding!, item.embedding!),
     }))
-    .filter(result => result.similarity >= threshold)
+    .filter((result) => result.similarity >= threshold)
     .sort((a, b) => b.similarity - a.similarity)
     .slice(0, maxResults);
-  
+
   return results;
 }
 
@@ -90,7 +87,7 @@ describe('actions-similarity utils', () => {
         html_url: 'url1',
         created_at: '2025-01-01',
         type: 'issue',
-        embedding: [1, 0, 0]
+        embedding: [1, 0, 0],
       },
       {
         number: 2,
@@ -100,8 +97,8 @@ describe('actions-similarity utils', () => {
         html_url: 'url2',
         created_at: '2025-01-02',
         type: 'issue',
-        embedding: [0.9, 0.1, 0]
-      }
+        embedding: [0.9, 0.1, 0],
+      },
     ];
 
     const results = findSimilarItemsSync(items[0], items, 0.8, 5);

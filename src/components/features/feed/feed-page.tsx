@@ -1,17 +1,14 @@
-import { useState } from "react";
-import { useParams } from "react-router-dom";
-import {
-  Card,
-  CardContent,
-} from "@/components/ui/card";
-import { RepoStatsProvider } from "@/lib/repo-stats-context";
-import PRActivityWrapper from "../activity/pr-activity-wrapper";
-import { useTimeRangeStore } from "@/lib/time-range-store";
-import { useCachedRepoData } from "@/hooks/use-cached-repo-data";
-import { FeedSkeleton } from "@/components/skeletons";
-import { SocialMetaTags } from "@/components/common/layout";
-import { LastUpdated } from "@/components/ui/last-updated";
-import { useDataTimestamp } from "@/hooks/use-data-timestamp";
+import { useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { Card, CardContent } from '@/components/ui/card';
+import { RepoStatsProvider } from '@/lib/repo-stats-context';
+import PRActivityWrapper from '../activity/pr-activity-wrapper';
+import { useTimeRangeStore } from '@/lib/time-range-store';
+import { useCachedRepoData } from '@/hooks/use-cached-repo-data';
+import { FeedSkeleton } from '@/components/skeletons';
+import { SocialMetaTags } from '@/components/common/layout';
+import { LastUpdated } from '@/components/ui/last-updated';
+import { useDataTimestamp } from '@/hooks/use-data-timestamp';
 
 export default function FeedPage() {
   const { owner, repo } = useParams<{ owner: string; repo: string }>();
@@ -28,7 +25,7 @@ export default function FeedPage() {
 
   // Track data timestamps for freshness indicators
   const { lastUpdated } = useDataTimestamp([stats, lotteryFactor, directCommitsData], {
-    autoUpdate: true
+    autoUpdate: true,
   });
 
   if (!owner || !repo) {
@@ -58,9 +55,7 @@ export default function FeedPage() {
         <Card>
           <CardContent className="p-8">
             <div className="text-center">
-              <h2 className="text-2xl font-semibold text-destructive mb-2">
-                Error
-              </h2>
+              <h2 className="text-2xl font-semibold text-destructive mb-2">Error</h2>
               <p className="text-muted-foreground">{stats.error}</p>
             </div>
           </CardContent>
@@ -82,15 +77,11 @@ export default function FeedPage() {
         type="article"
         image={`social-cards/repo-${owner}-${repo}.png`}
       />
-      
+
       {/* Add timestamp indicator for feed freshness */}
       {!stats.loading && (
         <div className="mb-4 flex justify-end">
-          <LastUpdated 
-            timestamp={lastUpdated}
-            label="Feed updated"
-            size="sm"
-          />
+          <LastUpdated timestamp={lastUpdated} label="Feed updated" size="sm" />
         </div>
       )}
 

@@ -1,10 +1,12 @@
-import type { Meta, StoryObj } from "@storybook/react";
-import { expect, within } from "@storybook/test";
+import type { Meta, StoryObj } from '@storybook/react';
+import { expect, within } from '@storybook/test';
 
 // Mock the entire RepoInsightsContainer to avoid Supabase dependency chain
 const MockRepoInsightsContainer = ({ owner, repo }: { owner: string; repo: string }) => (
   <div className="space-y-6">
-    <h1 className="text-2xl font-bold">Repository Insights: {owner}/{repo}</h1>
+    <h1 className="text-2xl font-bold">
+      Repository Insights: {owner}/{repo}
+    </h1>
     <div className="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-sm">
       <MockPullRequestInsights owner={owner} repo={repo} dateRange={{}} />
     </div>
@@ -18,12 +20,14 @@ const MockPullRequestInsights = ({ owner, repo, dateRange }: any) => (
     <div className="space-y-3">
       <div className="flex justify-between">
         <span className="text-sm font-medium">Repository:</span>
-        <span className="text-sm text-muted-foreground">{owner}/{repo}</span>
+        <span className="text-sm text-muted-foreground">
+          {owner}/{repo}
+        </span>
       </div>
       <div className="flex justify-between">
         <span className="text-sm font-medium">Date Range:</span>
         <span className="text-sm text-muted-foreground">
-          {dateRange?.startDate ? dateRange.startDate.toLocaleDateString() : 'All time'} - 
+          {dateRange?.startDate ? dateRange.startDate.toLocaleDateString() : 'All time'} -
           {dateRange?.endDate ? dateRange.endDate.toLocaleDateString() : 'Present'}
         </span>
       </div>
@@ -43,8 +47,8 @@ const MockPullRequestInsights = ({ owner, repo, dateRange }: any) => (
       </div>
       <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950 rounded">
         <p className="text-sm text-blue-800 dark:text-blue-200">
-          Mock insights: Strong development velocity with efficient merge process. 
-          PR review time has improved by 15% over the selected period.
+          Mock insights: Strong development velocity with efficient merge process. PR review time
+          has improved by 15% over the selected period.
         </p>
       </div>
     </div>
@@ -52,36 +56,36 @@ const MockPullRequestInsights = ({ owner, repo, dateRange }: any) => (
 );
 
 const meta: Meta<typeof MockRepoInsightsContainer> = {
-  title: "Components/Insights/RepoInsightsContainer",
+  title: 'Components/Insights/RepoInsightsContainer',
   component: MockRepoInsightsContainer,
   parameters: {
-    layout: "padded",
+    layout: 'padded',
     docs: {
       description: {
-        component: "Main container component for repository insights that wraps PullRequestInsights with header and future date range controls. Provides structured layout for comprehensive repository analysis."
-      }
-    }
+        component:
+          'Main container component for repository insights that wraps PullRequestInsights with header and future date range controls. Provides structured layout for comprehensive repository analysis.',
+      },
+    },
   },
   argTypes: {
     owner: {
-      control: "text",
-      description: "Repository owner username"
+      control: 'text',
+      description: 'Repository owner username',
     },
     repo: {
-      control: "text",
-      description: "Repository name"
-    }
+      control: 'text',
+      description: 'Repository name',
+    },
   },
   args: {
-    owner: "facebook",
-    repo: "react"
+    owner: 'facebook',
+    repo: 'react',
   },
-  tags: ["autodocs"]
+  tags: ['autodocs'],
 };
 
 export default meta;
 type Story = StoryObj<typeof meta>;
-
 
 // Default story
 export const Default: Story = {};
@@ -96,47 +100,47 @@ export const DifferentRepositories: Story = {
         <MockRepoInsightsContainer owner="vercel" repo="next.js" />
       </div>
     </div>
-  )
+  ),
 };
 
 // Large repository name
 export const LongRepositoryName: Story = {
   args: {
-    owner: "microsoft",
-    repo: "terminal-with-a-very-long-repository-name-that-might-overflow"
-  }
+    owner: 'microsoft',
+    repo: 'terminal-with-a-very-long-repository-name-that-might-overflow',
+  },
 };
 
 // Organization with special characters
 export const SpecialCharacters: Story = {
   args: {
-    owner: "facebook",
-    repo: "react-native"
-  }
+    owner: 'facebook',
+    repo: 'react-native',
+  },
 };
 
 // Interactive testing
 export const Interactive: Story = {
-  play: ({ canvasElement }) => {
+  play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    
+
     // Verify main heading is displayed
-    expect(canvas.getByText(/Repository Insights/)).toBeInTheDocument();
-    
+    await expect(canvas.getByText(/Repository Insights/)).toBeInTheDocument();
+
     // Check repository name is shown
-    expect(canvas.getByText("facebook/react")).toBeInTheDocument();
-    
+    await expect(canvas.getByText('facebook/react')).toBeInTheDocument();
+
     // Verify PullRequestInsights component is rendered
-    expect(canvas.getByText("Pull Request Insights")).toBeInTheDocument();
-    
+    await expect(canvas.getByText('Pull Request Insights')).toBeInTheDocument();
+
     // Check metrics are displayed
-    expect(canvas.getByText("42")).toBeInTheDocument(); // Total PRs
-    expect(canvas.getByText("38")).toBeInTheDocument(); // Merged
-    expect(canvas.getByText("2.3")).toBeInTheDocument(); // Avg Days
-    
+    await expect(canvas.getByText('42')).toBeInTheDocument(); // Total PRs
+    await expect(canvas.getByText('38')).toBeInTheDocument(); // Merged
+    await expect(canvas.getByText('2.3')).toBeInTheDocument(); // Avg Days
+
     // Verify insights text is present
-    expect(canvas.getByText(/Strong development velocity/)).toBeInTheDocument();
-  }
+    await expect(canvas.getByText(/Strong development velocity/)).toBeInTheDocument();
+  },
 };
 
 // Responsive layout testing
@@ -162,7 +166,7 @@ export const ResponsiveLayout: Story = {
         </div>
       </div>
     </div>
-  )
+  ),
 };
 
 // With future date range controls (design preview)
@@ -176,8 +180,8 @@ export const WithDateRangeControls: Story = {
           <div className="flex gap-3 items-center">
             <div className="flex-1">
               <label className="text-sm font-medium">Start Date</label>
-              <input 
-                type="date" 
+              <input
+                type="date"
                 className="w-full mt-1 px-3 py-2 border rounded text-sm"
                 defaultValue="2024-01-01"
                 disabled
@@ -185,14 +189,14 @@ export const WithDateRangeControls: Story = {
             </div>
             <div className="flex-1">
               <label className="text-sm font-medium">End Date</label>
-              <input 
-                type="date" 
+              <input
+                type="date"
                 className="w-full mt-1 px-3 py-2 border rounded text-sm"
                 defaultValue="2024-12-31"
                 disabled
               />
             </div>
-            <button 
+            <button
               className="px-4 py-2 bg-primary text-primary-foreground rounded text-sm mt-6"
               disabled
             >
@@ -203,11 +207,11 @@ export const WithDateRangeControls: Story = {
             Future enhancement: Custom date range selection for targeted analysis
           </p>
         </div>
-        
+
         <MockRepoInsightsContainer owner="facebook" repo="react" />
       </div>
     </div>
-  )
+  ),
 };
 
 // Multiple insight components preview
@@ -216,7 +220,7 @@ export const MultipleInsightTypes: Story = {
     <div className="max-w-4xl">
       <div className="space-y-6">
         <MockRepoInsightsContainer owner="facebook" repo="react" />
-        
+
         {/* Future: Issue Insights */}
         <div className="p-6 border rounded-lg bg-card opacity-60">
           <h3 className="text-xl font-semibold mb-4">Issue Insights (Coming Soon)</h3>
@@ -235,7 +239,7 @@ export const MultipleInsightTypes: Story = {
             </div>
           </div>
         </div>
-        
+
         {/* Future: Contributor Insights */}
         <div className="p-6 border rounded-lg bg-card opacity-60">
           <h3 className="text-xl font-semibold mb-4">Contributor Insights (Coming Soon)</h3>
@@ -256,5 +260,5 @@ export const MultipleInsightTypes: Story = {
         </div>
       </div>
     </div>
-  )
+  ),
 };

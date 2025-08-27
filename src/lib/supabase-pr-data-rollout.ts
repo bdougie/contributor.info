@@ -10,16 +10,12 @@ import type { PullRequest } from './types';
 
 // Rollout percentage (0-100)
 // Start with 10% and gradually increase
-const ROLLOUT_PERCENTAGE = process.env.VITE_SMART_FETCH_ROLLOUT 
-  ? parseInt(process.env.VITE_SMART_FETCH_ROLLOUT) 
+const ROLLOUT_PERCENTAGE = process.env.VITE_SMART_FETCH_ROLLOUT
+  ? parseInt(process.env.VITE_SMART_FETCH_ROLLOUT)
   : 10;
 
 // Repositories to always use new strategy (for testing)
-const FORCE_NEW_STRATEGY = [
-  'facebook/react',
-  'vercel/next.js',
-  'microsoft/typescript'
-];
+const FORCE_NEW_STRATEGY = ['facebook/react', 'vercel/next.js', 'microsoft/typescript'];
 
 // Repositories to never use new strategy (safety)
 const FORCE_OLD_STRATEGY: string[] = [];
@@ -29,15 +25,15 @@ const FORCE_OLD_STRATEGY: string[] = [];
  */
 function shouldUseSmartStrategy(owner: string, repo: string): boolean {
   const repoName = `${owner}/${repo}`;
-  
+
   // Check force lists
   if (FORCE_NEW_STRATEGY.includes(repoName)) return true;
   if (FORCE_OLD_STRATEGY.includes(repoName)) return false;
-  
+
   // Use hash-based rollout for consistent behavior per repository
   const hash = simpleHash(repoName);
   const threshold = ROLLOUT_PERCENTAGE / 100;
-  
+
   return hash < threshold;
 }
 
@@ -48,7 +44,7 @@ function simpleHash(str: string): number {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash; // Convert to 32-bit integer
   }
   // Normalize to 0-1 range
@@ -65,11 +61,16 @@ export async function fetchPRData(
   timeRange: string = '30'
 ): Promise<DataResult<PullRequest[]>> {
   const useSmartStrategy = shouldUseSmartStrategy(owner, repo);
-  
+
   if (process.env.NODE_ENV === 'development') {
-    console.log('🚀 Fetch strategy for %s/%s: %s', owner, repo, useSmartStrategy ? 'SMART (new)' : 'LEGACY (old)');
+    console.log(
+      '🚀 Fetch strategy for %s/%s: %s',
+      owner,
+      repo,
+      useSmartStrategy ? 'SMART (new)' : 'LEGACY (old)'
+    );
   }
-  
+
   try {
     if (useSmartStrategy) {
       return await fetchPRDataWithSmartStrategy(owner, repo, timeRange);
@@ -97,6 +98,6 @@ export function getRolloutStatus(): {
   return {
     percentage: ROLLOUT_PERCENTAGE,
     forcedNew: FORCE_NEW_STRATEGY,
-    forcedOld: FORCE_OLD_STRATEGY
+    forcedOld: FORCE_OLD_STRATEGY,
   };
 }

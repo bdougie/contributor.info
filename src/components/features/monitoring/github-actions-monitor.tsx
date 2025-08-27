@@ -1,5 +1,14 @@
-import { useState, useEffect } from 'react'
-import { GitBranch, ExternalLink, CheckCircle, XCircle, Clock, Loader2, RefreshCw, Activity } from '@/components/ui/icon';
+import { useState, useEffect } from 'react';
+import {
+  GitBranch,
+  ExternalLink,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Loader2,
+  RefreshCw,
+  Activity,
+} from '@/components/ui/icon';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -26,11 +35,11 @@ interface GitHubActionsMonitorProps {
   refreshInterval?: number;
 }
 
-export function GitHubActionsMonitor({ 
+export function GitHubActionsMonitor({
   className,
   showAll = false,
   autoRefresh = true,
-  refreshInterval = 60000 // 1 minute
+  refreshInterval = 60000, // 1 minute
 }: GitHubActionsMonitorProps) {
   const [workflows, setWorkflows] = useState<WorkflowRun[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,7 +61,7 @@ export function GitHubActionsMonitor({
           html_url: 'https://github.com/bdougie/jobs/actions/runs/123456',
           repository: 'contributor.info',
           workflow_name: 'Bulk Capture',
-          run_number: 42
+          run_number: 42,
         },
         {
           id: '2',
@@ -64,8 +73,8 @@ export function GitHubActionsMonitor({
           html_url: 'https://github.com/bdougie/jobs/actions/runs/123455',
           repository: 'react',
           workflow_name: 'Historical PR Sync',
-          run_number: 41
-        }
+          run_number: 41,
+        },
       ];
 
       setWorkflows(showAll ? mockWorkflows : mockWorkflows.slice(0, 3));
@@ -136,7 +145,7 @@ export function GitHubActionsMonitor({
     const startTime = new Date(start).getTime();
     const endTime = end ? new Date(end).getTime() : Date.now();
     const duration = Math.round((endTime - startTime) / 1000);
-    
+
     if (duration < 60) return `${duration}s`;
     if (duration < 3600) return `${Math.round(duration / 60)}m`;
     return `${Math.round(duration / 3600)}h`;
@@ -153,9 +162,7 @@ export function GitHubActionsMonitor({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            Loading workflow status...
-          </div>
+          <div className="text-center py-8 text-muted-foreground">Loading workflow status...</div>
         </CardContent>
       </Card>
     );
@@ -196,9 +203,7 @@ export function GitHubActionsMonitor({
                 {workflows.length} workflows
               </Badge>
             </CardTitle>
-            <CardDescription>
-              Bulk processing workflows for historical data capture
-            </CardDescription>
+            <CardDescription>Bulk processing workflows for historical data capture</CardDescription>
           </div>
           <div className="flex items-center gap-2">
             <div className="text-xs text-muted-foreground">
@@ -212,9 +217,7 @@ export function GitHubActionsMonitor({
       </CardHeader>
       <CardContent>
         {workflows.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            No active workflows
-          </div>
+          <div className="text-center py-8 text-muted-foreground">No active workflows</div>
         ) : (
           <div className="space-y-4">
             {workflows.map((workflow) => {
@@ -227,18 +230,18 @@ export function GitHubActionsMonitor({
                 <div key={workflow.id} className="border rounded-lg p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <StatusIcon className={cn("h-4 w-4", statusColor, {
-                        'animate-spin': workflow.status === 'in_progress'
-                      })} />
+                      <StatusIcon
+                        className={cn('h-4 w-4', statusColor, {
+                          'animate-spin': workflow.status === 'in_progress',
+                        })}
+                      />
                       <span className="font-medium">{workflow.workflow_name}</span>
                       <Badge variant={statusBadge.variant} className="text-xs">
                         {statusBadge.text}
                       </Badge>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">
-                        #{workflow.run_number}
-                      </span>
+                      <span className="text-xs text-muted-foreground">#{workflow.run_number}</span>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -253,9 +256,11 @@ export function GitHubActionsMonitor({
                   <div className="space-y-2">
                     <div className="flex justify-between text-xs text-muted-foreground">
                       <span>Repository: {workflow.repository}</span>
-                      <span>Duration: {formatDuration(workflow.created_at, workflow.updated_at)}</span>
+                      <span>
+                        Duration: {formatDuration(workflow.created_at, workflow.updated_at)}
+                      </span>
                     </div>
-                    
+
                     {workflow.status === 'in_progress' && (
                       <div className="space-y-1">
                         <div className="flex justify-between text-xs">

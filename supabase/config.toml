@@ -27,8 +27,7 @@ max_client_conn = 100
 [realtime]
 enabled = true
 # Listen for changes on public schema
-broadcast.self = true
-broadcast_changes = true
+# broadcast configuration moved to new format
 
 [storage]
 enabled = true
@@ -44,8 +43,6 @@ additional_redirect_urls = ["http://localhost:5173/**", "http://localhost:5174/*
 jwt_expiry = 3600
 # Allow/disallow new user signups to your project
 enable_signup = true
-# Enable email confirmations
-enable_confirmations = false
 
 [auth.email]
 # Allow/disallow new user signups via email to your project
@@ -81,7 +78,5 @@ vector_port = 54328
 # Configure one of the supported backends: `postgres`, `bigquery`
 backend = "postgres"
 
-[functions]
-enabled = true
-# Path to Supabase Edge Functions
-functions_dir = "functions"
+# Edge Functions configuration
+# (Edge functions are configured per-project in Dashboard)

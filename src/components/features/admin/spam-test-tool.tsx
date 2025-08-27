@@ -1,5 +1,12 @@
-import { useState } from 'react'
-import { Search, AlertTriangle, CheckCircle, RefreshCw, ExternalLink, Bug } from '@/components/ui/icon';
+import { useState } from 'react';
+import {
+  Search,
+  AlertTriangle,
+  CheckCircle,
+  RefreshCw,
+  ExternalLink,
+  Bug,
+} from '@/components/ui/icon';
 import { supabase } from '@/lib/supabase';
 import { SpamDetectionService } from '@/lib/spam';
 import { PRTemplateService } from '@/lib/spam/PRTemplateService';
@@ -52,7 +59,7 @@ export function SpamTestTool() {
     return {
       owner: match[1],
       repo: match[2],
-      prNumber: parseInt(match[3])
+      prNumber: parseInt(match[3]),
     };
   };
 
@@ -68,14 +75,12 @@ export function SpamTestTool() {
   };
 
   const addRepositoryToTracking = async (owner: string, repo: string) => {
-    const { error } = await supabase
-      .from('tracked_repositories')
-      .insert({
-        organization_name: owner,
-        repository_name: repo,
-        tracking_enabled: true,
-        created_at: new Date().toISOString()
-      });
+    const { error } = await supabase.from('tracked_repositories').insert({
+      organization_name: owner,
+      repository_name: repo,
+      tracking_enabled: true,
+      created_at: new Date().toISOString(),
+    });
 
     if (error) {
       throw new Error(`Failed to add repository to tracking: ${error.message}`);
@@ -96,7 +101,7 @@ export function SpamTestTool() {
   const ensureRepositoryTemplate = async (owner: string, repo: string) => {
     try {
       setTemplateSyncLoading(true);
-      
+
       // Get or create repository in database
       let { data: repository, error } = await supabase
         .from('repositories')
@@ -114,7 +119,7 @@ export function SpamTestTool() {
             name: repo,
             full_name: `${owner}/${repo}`,
             tracking_enabled: true,
-            created_at: new Date().toISOString()
+            created_at: new Date().toISOString(),
           })
           .select('id')
           .single();
@@ -125,7 +130,7 @@ export function SpamTestTool() {
         repository = {
           ...newRepo,
           pr_template_content: null,
-          pr_template_fetched_at: null
+          pr_template_fetched_at: null,
         };
       } else if (error) {
         throw new Error(`Database error: ${error.message}`);
@@ -137,28 +142,37 @@ export function SpamTestTool() {
 
       // Fetch and cache PR template
       const template = await prTemplateService.ensurePRTemplate(repository.id, owner, repo);
-      
+
       if (template) {
-        setAdminGuidance(prev => [...prev, {
-          type: 'info',
-          title: 'PR Template Cached',
-          message: `Successfully fetched and cached PR template for ${owner}/${repo}. Repository-specific spam patterns have been generated.`
-        }]);
+        setAdminGuidance((prev) => [
+          ...prev,
+          {
+            type: 'info',
+            title: 'PR Template Cached',
+            message: `Successfully fetched and cached PR template for ${owner}/${repo}. Repository-specific spam patterns have been generated.`,
+          },
+        ]);
       } else {
-        setAdminGuidance(prev => [...prev, {
-          type: 'warning',
-          title: 'No PR Template Found',
-          message: `No PR template found for ${owner}/${repo}. Using fallback spam detection patterns.`
-        }]);
+        setAdminGuidance((prev) => [
+          ...prev,
+          {
+            type: 'warning',
+            title: 'No PR Template Found',
+            message: `No PR template found for ${owner}/${repo}. Using fallback spam detection patterns.`,
+          },
+        ]);
       }
 
       return template;
     } catch (error) {
-      setAdminGuidance(prev => [...prev, {
-        type: 'error',
-        title: 'Template Sync Failed',
-        message: `Failed to sync PR template: ${error instanceof Error ? error.message : 'Unknown error'}`
-      }]);
+      setAdminGuidance((prev) => [
+        ...prev,
+        {
+          type: 'error',
+          title: 'Template Sync Failed',
+          message: `Failed to sync PR template: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        },
+      ]);
       throw error;
     } finally {
       setTemplateSyncLoading(false);
@@ -167,7 +181,7 @@ export function SpamTestTool() {
 
   const analyzePR = async () => {
     if (!prUrl.trim()) return;
-    
+
     try {
       setLoading(true);
       setError(null);
@@ -180,33 +194,43 @@ export function SpamTestTool() {
 
       // Check if repository is tracked
       const { isTracked } = await checkRepositoryTracking(owner, repo);
-      
+
       if (!isTracked) {
-        setAdminGuidance([{
-          type: 'warning',
-          title: 'Repository Not Tracked',
-          message: `The repository ${owner}/${repo} is not in our tracking system. This means we don't have historical data for spam analysis. You can add it to tracking to enable full analysis.`,
-          action: {
-            label: 'Add to Tracking',
-            onClick: async () => {
-              try {
-                await addRepositoryToTracking(owner, repo);
-                setAdminGuidance(prev => prev.filter(g => g.title !== 'Repository Not Tracked'));
-                setAdminGuidance(prev => [...prev, {
-                  type: 'info',
-                  title: 'Repository Added',
-                  message: `Successfully added ${owner}/${repo} to tracking. Future syncs will include this repository's data.`
-                }]);
-              } catch (err) {
-                setAdminGuidance(prev => [...prev, {
-                  type: 'error',
-                  title: 'Failed to Add Repository',
-                  message: err instanceof Error ? err.message : 'Unknown error occurred'
-                }]);
-              }
-            }
-          }
-        }]);
+        setAdminGuidance([
+          {
+            type: 'warning',
+            title: 'Repository Not Tracked',
+            message: `The repository ${owner}/${repo} is not in our tracking system. This means we don't have historical data for spam analysis. You can add it to tracking to enable full analysis.`,
+            action: {
+              label: 'Add to Tracking',
+              onClick: async () => {
+                try {
+                  await addRepositoryToTracking(owner, repo);
+                  setAdminGuidance((prev) =>
+                    prev.filter((g) => g.title !== 'Repository Not Tracked')
+                  );
+                  setAdminGuidance((prev) => [
+                    ...prev,
+                    {
+                      type: 'info',
+                      title: 'Repository Added',
+                      message: `Successfully added ${owner}/${repo} to tracking. Future syncs will include this repository's data.`,
+                    },
+                  ]);
+                } catch (err) {
+                  setAdminGuidance((prev) => [
+                    ...prev,
+                    {
+                      type: 'error',
+                      title: 'Failed to Add Repository',
+                      message: err instanceof Error ? err.message : 'Unknown error occurred',
+                    },
+                  ]);
+                }
+              },
+            },
+          },
+        ]);
         warnings.push('Repository not tracked - limited historical context available');
       }
 
@@ -233,15 +257,17 @@ export function SpamTestTool() {
       if (repositoryData && !repoError) {
         const { data: prData, error: prQueryError } = await supabase
           .from('pull_requests')
-          .select(`
+          .select(
+            `
             *,
             repository:repositories(owner, name),
             author:contributors!pull_requests_contributor_id_fkey(username)
-          `)
+          `
+          )
           .eq('repository_id', repositoryData.id)
           .eq('number', prNumber)
           .single();
-        
+
         existingPR = prData;
         dbError = prQueryError;
       }
@@ -253,18 +279,21 @@ export function SpamTestTool() {
       if (dbError || !existingPR) {
         try {
           // Call GitHub sync to fetch the PR
-          const syncResponse = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/github-sync`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              owner,
-              repository: repo,
-              force_refresh: true
-            })
-          });
+          const syncResponse = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/github-sync`,
+            {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                owner,
+                repository: repo,
+                force_refresh: true,
+              }),
+            }
+          );
 
           if (!syncResponse.ok) {
             const errorText = await syncResponse.text();
@@ -272,17 +301,19 @@ export function SpamTestTool() {
           }
 
           // Wait a moment for the sync to complete
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          await new Promise((resolve) => setTimeout(resolve, 2000));
 
           // Try to get the PR from database again
           // Simplified query without foreign key syntax to avoid PostgREST issues
           const { data: newPR, error: newError } = await supabase
             .from('pull_requests')
-            .select(`
+            .select(
+              `
               *,
               repository:repositories(owner, name),
               author:contributors(username)
-            `)
+            `
+            )
             .eq('repository.owner', owner)
             .eq('repository.name', repo)
             .eq('number', prNumber)
@@ -299,12 +330,14 @@ export function SpamTestTool() {
           console.warn('GitHub sync failed, trying direct GitHub API:', syncError);
           dataSource = 'github_api';
           warnings.push('GitHub sync service unavailable - using direct API');
-          
+
           try {
-            const githubResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}`);
+            const githubResponse = await fetch(
+              `https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}`
+            );
             if (githubResponse.ok) {
               const githubPR = await githubResponse.json();
-              
+
               // Transform GitHub API response to our format
               prData = {
                 id: `github-${githubPR.id}`,
@@ -314,30 +347,36 @@ export function SpamTestTool() {
                 html_url: githubPR.html_url,
                 author_id: `github-${githubPR.user.id}`,
                 author: {
-                  username: githubPR.user.login
+                  username: githubPR.user.login,
                 },
                 repository: {
                   owner,
-                  name: repo
+                  name: repo,
                 },
                 created_at: githubPR.created_at,
                 additions: githubPR.additions || 0,
                 deletions: githubPR.deletions || 0,
-                changed_files: githubPR.changed_files || 0
+                changed_files: githubPR.changed_files || 0,
               };
               currentDbScore = null;
 
-              setAdminGuidance(prev => [...prev, {
-                type: 'warning',
-                title: 'Using GitHub API Fallback',
-                message: 'Could not sync through our system. Data fetched directly from GitHub API. Consider checking the GitHub sync service status.',
-                action: {
-                  label: 'Check Sync Status',
-                  onClick: () => window.open('/dev/sync-test', '_blank')
-                }
-              }]);
+              setAdminGuidance((prev) => [
+                ...prev,
+                {
+                  type: 'warning',
+                  title: 'Using GitHub API Fallback',
+                  message:
+                    'Could not sync through our system. Data fetched directly from GitHub API. Consider checking the GitHub sync service status.',
+                  action: {
+                    label: 'Check Sync Status',
+                    onClick: () => window.open('/dev/sync-test', '_blank'),
+                  },
+                },
+              ]);
             } else if (githubResponse.status === 404) {
-              throw new Error(`PR #${prNumber} not found in ${owner}/${repo}. Please verify the URL is correct.`);
+              throw new Error(
+                `PR #${prNumber} not found in ${owner}/${repo}. Please verify the URL is correct.`
+              );
             } else if (githubResponse.status === 403) {
               throw new Error('GitHub API rate limit exceeded or access denied. Try again later.');
             } else {
@@ -347,17 +386,21 @@ export function SpamTestTool() {
             console.warn('Direct GitHub API also failed:', githubError);
             dataSource = 'mock';
             warnings.push('All data sources failed - using mock data for algorithm testing');
-            
-            setAdminGuidance(prev => [...prev, {
-              type: 'error',
-              title: 'All Data Sources Failed',
-              message: 'Could not fetch PR data from database, sync service, or GitHub API. Using mock data for testing. This indicates a system-wide issue.',
-              action: {
-                label: 'Check System Status',
-                onClick: () => window.open('/admin/performance-monitoring', '_blank')
-              }
-            }]);
-            
+
+            setAdminGuidance((prev) => [
+              ...prev,
+              {
+                type: 'error',
+                title: 'All Data Sources Failed',
+                message:
+                  'Could not fetch PR data from database, sync service, or GitHub API. Using mock data for testing. This indicates a system-wide issue.',
+                action: {
+                  label: 'Check System Status',
+                  onClick: () => window.open('/admin/performance-monitoring', '_blank'),
+                },
+              },
+            ]);
+
             // Final fallback - create mock data
             prData = {
               id: `mock-${owner}-${repo}-${prNumber}`,
@@ -367,16 +410,16 @@ export function SpamTestTool() {
               html_url: prUrl,
               author_id: 'mock-contributor',
               author: {
-                username: 'unknown-user'
+                username: 'unknown-user',
               },
               repository: {
                 owner,
-                name: repo
+                name: repo,
               },
               created_at: new Date().toISOString(),
               additions: 0,
               deletions: 0,
-              changed_files: 0
+              changed_files: 0,
             };
             currentDbScore = null;
           }
@@ -398,33 +441,41 @@ export function SpamTestTool() {
         author: {
           id: prData.author_id || 0,
           login: prData.author?.username || 'unknown',
-          created_at: prData.author?.created_at || new Date().toISOString()
+          created_at: prData.author?.created_at || new Date().toISOString(),
         },
         repository: {
-          full_name: `${prData.repository?.owner}/${prData.repository?.name}` || 'unknown/unknown'
+          full_name: `${prData.repository?.owner}/${prData.repository?.name}` || 'unknown/unknown',
         },
         created_at: prData.created_at,
         additions: prData.additions || 0,
         deletions: prData.deletions || 0,
-        changed_files: prData.changed_files || 0
+        changed_files: prData.changed_files || 0,
       });
 
       // Add success guidance based on data source
       if (dataSource === 'database') {
-        setAdminGuidance(prev => [...prev, {
-          type: 'info',
-          title: 'Using Database Data',
-          message: 'PR data found in database with complete historical context. This provides the most accurate spam analysis.'
-        }]);
+        setAdminGuidance((prev) => [
+          ...prev,
+          {
+            type: 'info',
+            title: 'Using Database Data',
+            message:
+              'PR data found in database with complete historical context. This provides the most accurate spam analysis.',
+          },
+        ]);
       } else if (existingPR && !dbError) {
         // This means we successfully synced from GitHub
         dataSource = 'github_sync';
         warnings.push('Data synced from GitHub - fresh but no historical context yet');
-        setAdminGuidance(prev => [...prev, {
-          type: 'info',
-          title: 'Synced from GitHub',
-          message: 'PR data freshly synced from GitHub. Analysis based on current state without historical context.'
-        }]);
+        setAdminGuidance((prev) => [
+          ...prev,
+          {
+            type: 'info',
+            title: 'Synced from GitHub',
+            message:
+              'PR data freshly synced from GitHub. Analysis based on current state without historical context.',
+          },
+        ]);
       }
 
       setResult({
@@ -434,26 +485,25 @@ export function SpamTestTool() {
         currentDbScore,
         wasDetected: (currentDbScore || 0) > 50,
         dataSource,
-        warnings
+        warnings,
       });
 
       // Show success toast for analysis completion
       toast({
-        title: "Analysis Complete",
+        title: 'Analysis Complete',
         description: `PR #${prNumber} analyzed. Spam score: ${analysis.spam_score}%. Data source: ${dataSource.replace('_', ' ')}.`,
-        variant: "default"
+        variant: 'default',
       });
-
     } catch (err) {
       console.error('Error analyzing PR:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to analyze PR';
       setError(errorMessage);
-      
+
       // Show error toast for analysis failure
       toast({
-        title: "Analysis Failed",
+        title: 'Analysis Failed',
         description: errorMessage,
-        variant: "destructive"
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
@@ -463,9 +513,9 @@ export function SpamTestTool() {
   const markAsSpam = async (isSpam: boolean) => {
     if (!result || !adminGitHubId) {
       toast({
-        title: "Cannot mark spam",
-        description: "Missing PR data or admin authentication",
-        variant: "destructive"
+        title: 'Cannot mark spam',
+        description: 'Missing PR data or admin authentication',
+        variant: 'destructive',
       });
       return;
     }
@@ -473,20 +523,22 @@ export function SpamTestTool() {
     setMarkingSpam(true);
     try {
       // Only create spam detection record if we have real database IDs (not GitHub API fallback)
-      if (result.pr.id && !result.pr.id.toString().startsWith('github-') && !result.pr.id.toString().startsWith('mock-')) {
+      if (
+        result.pr.id &&
+        !result.pr.id.toString().startsWith('github-') &&
+        !result.pr.id.toString().startsWith('mock-')
+      ) {
         // Create spam detection record
-        const { error: insertError } = await supabase
-          .from('spam_detections')
-          .insert({
-            pr_id: result.pr.id,
-            contributor_id: result.pr.author_id,
-            spam_score: result.spamScore, // Keep 0-100 scale
-            status: isSpam ? 'confirmed' : 'false_positive',
-            admin_reviewed_by: adminGitHubId,
-            admin_reviewed_at: new Date().toISOString(),
-            detection_reasons: result.detectionReasons,
-            detected_at: new Date().toISOString()
-          });
+        const { error: insertError } = await supabase.from('spam_detections').insert({
+          pr_id: result.pr.id,
+          contributor_id: result.pr.author_id,
+          spam_score: result.spamScore, // Keep 0-100 scale
+          status: isSpam ? 'confirmed' : 'false_positive',
+          admin_reviewed_by: adminGitHubId,
+          admin_reviewed_at: new Date().toISOString(),
+          detection_reasons: result.detectionReasons,
+          detected_at: new Date().toISOString(),
+        });
 
         if (insertError) {
           throw insertError;
@@ -494,12 +546,16 @@ export function SpamTestTool() {
       }
 
       // Update PR spam score in database (only for real database records)
-      if (result.pr.id && !result.pr.id.toString().startsWith('github-') && !result.pr.id.toString().startsWith('mock-')) {
+      if (
+        result.pr.id &&
+        !result.pr.id.toString().startsWith('github-') &&
+        !result.pr.id.toString().startsWith('mock-')
+      ) {
         const { error: updateError } = await supabase
           .from('pull_requests')
           .update({
             spam_score: isSpam ? Math.max(result.spamScore, 75) : Math.min(result.spamScore, 25),
-            is_spam: isSpam
+            is_spam: isSpam,
           })
           .eq('id', result.pr.id);
 
@@ -518,35 +574,34 @@ export function SpamTestTool() {
           pr_url: result.pr.html_url,
           original_score: result.spamScore,
           manual_classification: isSpam ? 'spam' : 'not_spam',
-          feedback: manualFeedback.trim() || undefined
+          feedback: manualFeedback.trim() || undefined,
         }
       );
 
       // Update local state
       const newScore = isSpam ? Math.max(result.spamScore, 75) : Math.min(result.spamScore, 25);
-      setResult(prev => prev ? { ...prev, currentDbScore: newScore } : null);
+      setResult((prev) => (prev ? { ...prev, currentDbScore: newScore } : null));
       setError(null);
 
       // Show success toast
       toast({
-        title: isSpam ? "Marked as Spam" : "Marked as Legitimate",
+        title: isSpam ? 'Marked as Spam' : 'Marked as Legitimate',
         description: `PR #${result.pr.number} has been successfully classified. Spam score updated to ${newScore}%.`,
-        variant: "default"
+        variant: 'default',
       });
 
       // Clear feedback after successful submission
       setManualFeedback('');
-      
     } catch (err) {
       console.error('Error updating spam status:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to update spam status';
       setError(errorMessage);
-      
+
       // Show error toast
       toast({
-        title: "Failed to update spam status",
+        title: 'Failed to update spam status',
         description: errorMessage,
-        variant: "destructive"
+        variant: 'destructive',
       });
     } finally {
       setMarkingSpam(false);
@@ -554,10 +609,10 @@ export function SpamTestTool() {
   };
 
   const getScoreBadgeVariant = (score: number) => {
-    if (score >= 75) return "destructive";
-    if (score >= 50) return "secondary";
-    if (score >= 25) return "outline";
-    return "default";
+    if (score >= 75) return 'destructive';
+    if (score >= 50) return 'secondary';
+    if (score >= 25) return 'outline';
+    return 'default';
   };
 
   return (
@@ -569,9 +624,7 @@ export function SpamTestTool() {
         </div>
         <div>
           <h1 className="text-3xl font-bold">Spam Test Tool</h1>
-          <p className="text-muted-foreground">
-            Test and improve spam detection on individual PRs
-          </p>
+          <p className="text-muted-foreground">Test and improve spam detection on individual PRs</p>
         </div>
       </div>
 
@@ -585,24 +638,31 @@ export function SpamTestTool() {
       {adminGuidance.length > 0 && (
         <div className="space-y-3 mb-6">
           {adminGuidance.map((guidance, index) => (
-            <Alert 
-              key={index} 
+            <Alert
+              key={index}
               variant={guidance.type === 'error' ? 'destructive' : 'default'}
               className={
-                guidance.type === 'warning' ? 'border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-950' :
-                guidance.type === 'info' ? 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950' : ''
+                guidance.type === 'warning'
+                  ? 'border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-950'
+                  : guidance.type === 'info'
+                    ? 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950'
+                    : ''
               }
             >
-              <AlertTriangle className={`h-4 w-4 ${
-                guidance.type === 'error' ? 'text-red-600 dark:text-red-400' :
-                guidance.type === 'warning' ? 'text-yellow-600 dark:text-yellow-400' :
-                'text-blue-600 dark:text-blue-400'
-              }`} />
+              <AlertTriangle
+                className={`h-4 w-4 ${
+                  guidance.type === 'error'
+                    ? 'text-red-600 dark:text-red-400'
+                    : guidance.type === 'warning'
+                      ? 'text-yellow-600 dark:text-yellow-400'
+                      : 'text-blue-600 dark:text-blue-400'
+                }`}
+              />
               <div className="flex-1">
                 <div className="font-semibold">{guidance.title}</div>
                 <AlertDescription>{guidance.message}</AlertDescription>
                 {guidance.action && (
-                  <Button 
+                  <Button
                     onClick={guidance.action.onClick}
                     variant="outline"
                     size="sm"
@@ -639,7 +699,7 @@ export function SpamTestTool() {
               )}
               Analyze
             </Button>
-            <Button 
+            <Button
               onClick={() => setPrUrl('https://github.com/continuedev/continue/pull/6274')}
               variant="outline"
               disabled={loading}
@@ -664,11 +724,7 @@ export function SpamTestTool() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 PR Analysis Results
-                <Link 
-                  to={result.pr.html_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
+                <Link to={result.pr.html_url} target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="h-4 w-4 text-muted-foreground hover:text-foreground" />
                 </Link>
               </CardTitle>
@@ -718,11 +774,17 @@ export function SpamTestTool() {
                   <div>
                     <span className="text-sm text-muted-foreground">Data Source</span>
                     <div className="font-semibold">
-                      <Badge variant={
-                        result.dataSource === 'database' ? 'default' :
-                        result.dataSource === 'github_sync' ? 'secondary' :
-                        result.dataSource === 'github_api' ? 'outline' : 'destructive'
-                      }>
+                      <Badge
+                        variant={
+                          result.dataSource === 'database'
+                            ? 'default'
+                            : result.dataSource === 'github_sync'
+                              ? 'secondary'
+                              : result.dataSource === 'github_api'
+                                ? 'outline'
+                                : 'destructive'
+                        }
+                      >
                         {result.dataSource.replace('_', ' ').toUpperCase()}
                       </Badge>
                     </div>
@@ -740,7 +802,11 @@ export function SpamTestTool() {
                     <span className="text-sm text-muted-foreground">Analysis Warnings:</span>
                     <div className="mt-1 flex flex-wrap gap-1">
                       {result.warnings.map((warning, idx) => (
-                        <Badge key={idx} variant="outline" className="text-xs text-yellow-700 border-yellow-300">
+                        <Badge
+                          key={idx}
+                          variant="outline"
+                          className="text-xs text-yellow-700 border-yellow-300"
+                        >
                           {warning}
                         </Badge>
                       ))}

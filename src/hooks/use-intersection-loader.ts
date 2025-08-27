@@ -6,13 +6,13 @@ interface UseIntersectionLoaderOptions extends IntersectionObserverInit {
    * @default false
    */
   loadImmediately?: boolean;
-  
+
   /**
    * Whether to continue observing after first intersection
    * @default false
    */
   continuous?: boolean;
-  
+
   /**
    * Delay in ms before triggering load after intersection
    * @default 0
@@ -25,32 +25,32 @@ interface UseIntersectionLoaderResult<T> {
    * Ref to attach to the element that should trigger loading
    */
   ref: React.RefObject<HTMLDivElement>;
-  
+
   /**
    * The loaded data
    */
   data: T | null;
-  
+
   /**
    * Loading state
    */
   isLoading: boolean;
-  
+
   /**
    * Error state
    */
   error: Error | null;
-  
+
   /**
    * Whether the element is currently intersecting
    */
   isIntersecting: boolean;
-  
+
   /**
    * Manually trigger loading
    */
   load: () => Promise<void>;
-  
+
   /**
    * Reset the loader state
    */
@@ -60,14 +60,14 @@ interface UseIntersectionLoaderResult<T> {
 /**
  * Hook for lazy loading data when an element enters the viewport
  * Perfect for implementing progressive loading of below-the-fold content
- * 
+ *
  * @example
  * ```tsx
  * const { ref, data, isLoading } = useIntersectionLoader(
  *   () => fetchContributorData(repo),
  *   { rootMargin: '100px' } // Start loading 100px before element is visible
  * );
- * 
+ *
  * return (
  *   <div ref={ref}>
  *     {isLoading && <Skeleton />}
@@ -94,7 +94,7 @@ export function useIntersectionLoader<T>(
   const [error, setError] = useState<Error | null>(null);
   const [isIntersecting, setIsIntersecting] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
-  
+
   const ref = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout>();
   const loadingRef = useRef(false);
@@ -102,11 +102,11 @@ export function useIntersectionLoader<T>(
 
   const load = useCallback(async () => {
     if (loadingRef.current || (hasLoaded && !continuous)) return;
-    
+
     loadingRef.current = true;
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const result = await loadFn();
       // Only update state if component is still mounted
@@ -134,7 +134,7 @@ export function useIntersectionLoader<T>(
     setHasLoaded(false);
     setIsIntersecting(false);
     loadingRef.current = false;
-    
+
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
@@ -153,7 +153,7 @@ export function useIntersectionLoader<T>(
       ([entry]) => {
         const intersecting = entry.isIntersecting;
         setIsIntersecting(intersecting);
-        
+
         if (intersecting && (!hasLoaded || continuous)) {
           if (delay > 0) {
             timeoutRef.current = setTimeout(() => {
@@ -206,9 +206,7 @@ export function useIntersectionLoader<T>(
  * Simple hook for tracking element visibility without data loading
  * Useful for analytics or triggering animations
  */
-export function useIntersectionObserver(
-  options: IntersectionObserverInit = {}
-): {
+export function useIntersectionObserver(options: IntersectionObserverInit = {}): {
   ref: React.RefObject<HTMLDivElement>;
   isIntersecting: boolean;
   hasIntersected: boolean;
@@ -220,17 +218,14 @@ export function useIntersectionObserver(
   useEffect(() => {
     if (!ref.current) return;
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        const intersecting = entry.isIntersecting;
-        setIsIntersecting(intersecting);
-        
-        if (intersecting) {
-          setHasIntersected(true);
-        }
-      },
-      options
-    );
+    const observer = new IntersectionObserver(([entry]) => {
+      const intersecting = entry.isIntersecting;
+      setIsIntersecting(intersecting);
+
+      if (intersecting) {
+        setHasIntersected(true);
+      }
+    }, options);
 
     observer.observe(ref.current);
 

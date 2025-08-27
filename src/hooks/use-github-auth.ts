@@ -10,7 +10,7 @@ export function useGitHubAuth() {
   const [loading, setLoading] = useState<boolean>(true);
   const [showLoginDialog, setShowLoginDialog] = useState<boolean>(false);
   const navigate = useNavigate();
-  
+
   useEffect(() => {
     // Check login status
     async function checkAuth() {
@@ -23,38 +23,40 @@ export function useGitHubAuth() {
           const hashParams = new URLSearchParams(window.location.hash.substring(1));
           const accessToken = hashParams.get('access_token');
           const refreshToken = hashParams.get('refresh_token');
-          
+
           if (accessToken && refreshToken) {
             // Set the session manually using the extracted tokens
             const { error } = await supabase.auth.setSession({
               access_token: accessToken,
-              refresh_token: refreshToken
+              refresh_token: refreshToken,
             });
-            
+
             if (error) {
               // Silently handle session setting errors
-            };
+            }
           }
         } catch (err) {
           // Silently handle auth token processing errors
         }
-        
+
         // Clear the URL hash after processing
         if (typeof window !== 'undefined' && window.history) {
           window.history.replaceState({}, document.title, window.location.pathname);
         }
       }
-      
-      const { data: { session } } = await supabase.auth.getSession();
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       const isAuthenticated = !!session;
       setIsLoggedIn(isAuthenticated);
-      
+
       // Close login dialog if logged in
       if (isAuthenticated) {
         if (showLoginDialog) {
           setShowLoginDialog(false);
         }
-        
+
         // Only redirect if we're on the login page itself
         // Otherwise let the OAuth redirect handle returning to the original page
         if (window.location.pathname === '/login') {
@@ -67,10 +69,10 @@ export function useGitHubAuth() {
           }
         }
       }
-      
+
       setLoading(false);
     }
-    
+
     checkAuth();
 
     // Listen for auth changes
@@ -78,13 +80,13 @@ export function useGitHubAuth() {
       const authSubscription = supabase.auth.onAuthStateChange((_, session) => {
         const loggedIn = !!session;
         setIsLoggedIn(loggedIn);
-        
+
         // Close login dialog if logged in
         if (loggedIn) {
           if (showLoginDialog) {
             setShowLoginDialog(false);
           }
-          
+
           // Only redirect if we're on the login page
           // OAuth redirect will handle returning to the original page
           if (window.location.pathname === '/login') {
@@ -97,12 +99,17 @@ export function useGitHubAuth() {
             }
           }
         }
-    });
+      });
 
       // Return proper cleanup function
       return () => {
         // For newer versions of Supabase client - the subscription object has an unsubscribe method
-        if (authSubscription && authSubscription.data && authSubscription.data.subscription && typeof authSubscription.data.subscription.unsubscribe === 'function') {
+        if (
+          authSubscription &&
+          authSubscription.data &&
+          authSubscription.data.subscription &&
+          typeof authSubscription.data.subscription.unsubscribe === 'function'
+        ) {
           authSubscription.data.subscription.unsubscribe();
         }
       };
@@ -130,7 +137,7 @@ export function useGitHubAuth() {
           scopes: 'repo read:user user:email', // 'repo' scope needed to check repository permissions
         },
       });
-      
+
       if (error) {
         throw error;
       }
@@ -154,13 +161,13 @@ export function useGitHubAuth() {
     return !!data.session;
   };
 
-  return { 
-    isLoggedIn, 
-    loading, 
-    login, 
+  return {
+    isLoggedIn,
+    loading,
+    login,
     logout,
     checkSession,
     showLoginDialog,
-    setShowLoginDialog
+    setShowLoginDialog,
   };
 }

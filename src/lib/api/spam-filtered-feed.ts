@@ -7,15 +7,15 @@ type PullRequestWithAuthor = Database['public']['Tables']['pull_requests']['Row'
 };
 
 export interface SpamFilterOptions {
-  maxSpamScore?: number;      // Maximum spam score to include (0-100)
-  minSpamScore?: number;      // Minimum spam score to include (0-100)
-  includeSpam?: boolean;       // Include PRs marked as spam (deprecated - now always true)
+  maxSpamScore?: number; // Maximum spam score to include (0-100)
+  minSpamScore?: number; // Minimum spam score to include (0-100)
+  includeSpam?: boolean; // Include PRs marked as spam (deprecated - now always true)
   includeUnreviewed?: boolean; // Include PRs not yet analyzed
 }
 
 export const DEFAULT_SPAM_FILTER: SpamFilterOptions = {
-  maxSpamScore: 100,         // Show all PRs (will be sorted by score)
-  includeUnreviewed: true,   // Show PRs not yet analyzed
+  maxSpamScore: 100, // Show all PRs (will be sorted by score)
+  includeUnreviewed: true, // Show PRs not yet analyzed
 };
 
 /**
@@ -32,14 +32,16 @@ export async function fetchFilteredPullRequests(
     // Fetch more PRs than needed to account for filtering
     // This reduces the need for refetching when filters change
     const fetchLimit = Math.max(limit * 3, 300);
-    
-    let query = supabase
+
+    const query = supabase
       .from('pull_requests')
-      .select(`
+      .select(
+        `
         *,
         author:contributors!author_id(*),
         repository:repositories!repository_id(*)
-      `)
+      `
+      )
       .eq('repository.owner', owner)
       .eq('repository.name', repo)
       .order('spam_score', { ascending: false, nullsFirst: false })
@@ -56,10 +58,10 @@ export async function fetchFilteredPullRequests(
     if (!data) return [];
 
     // Apply client-side filtering
-    let filtered = data.filter(pr => {
+    const filtered = data.filter((pr) => {
       // Treat both null and 0 spam scores as unanalyzed
       const isUnanalyzed = pr.spam_score === null || pr.spam_score === 0;
-      
+
       if (isUnanalyzed) {
         return options.includeUnreviewed !== false;
       }
@@ -118,12 +120,12 @@ export async function getRepositorySpamStats(owner: string, repo: string) {
           warning: 0,
           likelySpam: 0,
           definiteSpam: 0,
-        }
+        },
       };
     }
 
     // Filter only analyzed PRs for statistics (exclude both null and 0 scores)
-    const stats = allPRs.filter(pr => pr.spam_score !== null && pr.spam_score !== 0);
+    const stats = allPRs.filter((pr) => pr.spam_score !== null && pr.spam_score !== 0);
 
     if (!stats || stats.length === 0) {
       return {
@@ -136,19 +138,20 @@ export async function getRepositorySpamStats(owner: string, repo: string) {
           warning: 0,
           likelySpam: 0,
           definiteSpam: 0,
-        }
+        },
       };
     }
 
     const totalAnalyzed = stats.length;
-    const spamCount = stats.filter(pr => pr.is_spam).length;
+    const spamCount = stats.filter((pr) => pr.is_spam).length;
     const averageScore = stats.reduce((sum, pr) => sum + (pr.spam_score || 0), 0) / totalAnalyzed;
 
     const distribution = {
-      legitimate: stats.filter(pr => (pr.spam_score || 0) <= 25).length,
-      warning: stats.filter(pr => (pr.spam_score || 0) > 25 && (pr.spam_score || 0) <= 50).length,
-      likelySpam: stats.filter(pr => (pr.spam_score || 0) > 50 && (pr.spam_score || 0) <= 75).length,
-      definiteSpam: stats.filter(pr => (pr.spam_score || 0) > 75).length,
+      legitimate: stats.filter((pr) => (pr.spam_score || 0) <= 25).length,
+      warning: stats.filter((pr) => (pr.spam_score || 0) > 25 && (pr.spam_score || 0) <= 50).length,
+      likelySpam: stats.filter((pr) => (pr.spam_score || 0) > 50 && (pr.spam_score || 0) <= 75)
+        .length,
+      definiteSpam: stats.filter((pr) => (pr.spam_score || 0) > 75).length,
     };
 
     return {

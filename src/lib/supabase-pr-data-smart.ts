@@ -1,11 +1,11 @@
 import { supabase } from './supabase';
 import type { PullRequest } from './types';
 import { trackDatabaseOperation } from './simple-logging';
-import { 
+import {
   createSuccessResult,
   createNoDataResult,
   createPendingDataResult,
-  type DataResult 
+  type DataResult,
 } from './errors/repository-errors';
 import { sendInngestEvent } from './inngest/client-safe';
 import { toast } from 'sonner';
@@ -18,13 +18,13 @@ interface FetchOptions {
 
 /**
  * Smart database-first PR data fetcher
- * 
+ *
  * This replaces the problematic fetchPRDataWithFallback by:
  * 1. Always returning available data immediately (even if stale)
  * 2. Never attempting risky GitHub API calls for large repos
  * 3. Triggering background sync when data is missing/stale
  * 4. Providing clear status information to the UI
- * 
+ *
  * Philosophy: Show what we have, fetch what we need in background
  */
 export async function fetchPRDataSmart(
@@ -32,11 +32,7 @@ export async function fetchPRDataSmart(
   repo: string,
   options: FetchOptions = {}
 ): Promise<DataResult<PullRequest[]>> {
-  const {
-    timeRange = '30',
-    triggerBackgroundSync = true,
-    showNotifications = false
-  } = options;
+  const { timeRange = '30', triggerBackgroundSync = true, showNotifications = false } = options;
 
   return trackDatabaseOperation(
     'fetchPRDataSmart',
@@ -60,12 +56,13 @@ export async function fetchPRDataSmart(
           // Add to tracking (handled by useRepositoryDiscovery)
           if (showNotifications) {
             toast.info(`Setting up ${owner}/${repo}...`, {
-              description: "We're gathering data for this repository. This usually takes 1-2 minutes.",
-              duration: 6000
+              description:
+                "We're gathering data for this repository. This usually takes 1-2 minutes.",
+              duration: 6000,
             });
           }
         }
-        
+
         return createPendingDataResult(
           `${owner}/${repo}`,
           [],
@@ -76,7 +73,8 @@ export async function fetchPRDataSmart(
       // Fetch PRs from database
       const { data: dbPRs, error: dbError } = await supabase
         .from('pull_requests')
-        .select(`
+        .select(
+          `
           id,
           github_id,
           number,
@@ -129,7 +127,8 @@ export async function fetchPRDataSmart(
               is_bot
             )
           )
-        `)
+        `
+        )
         .eq('repository_id', repoData.id)
         .gte('created_at', since.toISOString())
         .order('created_at', { ascending: false })
@@ -156,7 +155,7 @@ export async function fetchPRDataSmart(
           login: dbPR.contributors?.username || 'unknown',
           id: dbPR.contributors?.github_id || 0,
           avatar_url: dbPR.contributors?.avatar_url || '',
-          type: (dbPR.contributors?.is_bot ? 'Bot' : 'User') as 'Bot' | 'User'
+          type: (dbPR.contributors?.is_bot ? 'Bot' : 'User') as 'Bot' | 'User',
         },
         base: { ref: dbPR.base_branch },
         head: { ref: dbPR.head_branch },
@@ -174,8 +173,8 @@ export async function fetchPRDataSmart(
           submitted_at: review.submitted_at,
           user: {
             login: review.contributors?.username || 'unknown',
-            avatar_url: review.contributors?.avatar_url || ''
-          }
+            avatar_url: review.contributors?.avatar_url || '',
+          },
         })),
         comments: (dbPR.comments || []).map((comment: any) => ({
           id: comment.github_id,
@@ -183,20 +182,22 @@ export async function fetchPRDataSmart(
           created_at: comment.created_at,
           user: {
             login: comment.contributors?.username || 'unknown',
-            avatar_url: comment.contributors?.avatar_url || ''
-          }
-        }))
+            avatar_url: comment.contributors?.avatar_url || '',
+          },
+        })),
       }));
 
       // Check data freshness
       const isEmpty = transformedPRs.length === 0;
-      
+
       // Check if repository data is stale (older than 6 hours)
       const STALE_THRESHOLD_MS = 6 * 60 * 60 * 1000; // 6 hours
       const now = Date.now();
-      const lastUpdateMs = repoData.last_updated_at ? new Date(repoData.last_updated_at).getTime() : 0;
-      const isRepositoryStale = (now - lastUpdateMs) > STALE_THRESHOLD_MS;
-      
+      const lastUpdateMs = repoData.last_updated_at
+        ? new Date(repoData.last_updated_at).getTime()
+        : 0;
+      const isRepositoryStale = now - lastUpdateMs > STALE_THRESHOLD_MS;
+
       const isStale = isEmpty || isRepositoryStale;
 
       // Trigger background sync if needed
@@ -208,14 +209,14 @@ export async function fetchPRDataSmart(
               owner,
               repo,
               priority: isEmpty ? 'high' : 'medium',
-              source: 'smart-fetch-stale-data'
-            }
+              source: 'smart-fetch-stale-data',
+            },
           });
 
           if (showNotifications && isEmpty) {
             toast.info(`Getting familiar with ${owner}/${repo}...`, {
               description: "We're fetching the latest data. Check back in a minute!",
-              duration: 5000
+              duration: 5000,
             });
           }
         } catch (error) {
@@ -228,7 +229,7 @@ export async function fetchPRDataSmart(
         return createSuccessResult(transformedPRs, {
           isStale,
           lastUpdate: repoData.last_updated_at,
-          dataCompleteness: calculateDataCompleteness(transformedPRs)
+          dataCompleteness: calculateDataCompleteness(transformedPRs),
         });
       }
 
@@ -236,14 +237,16 @@ export async function fetchPRDataSmart(
       return createPendingDataResult(
         `${owner}/${repo}`,
         [],
-        isEmpty ? 'Data is being gathered. This usually takes 1-2 minutes.' : 'No recent pull requests found.'
+        isEmpty
+          ? 'Data is being gathered. This usually takes 1-2 minutes.'
+          : 'No recent pull requests found.'
       );
     },
     {
       operation: 'fetch',
       table: 'pull_requests',
       repository: `${owner}/${repo}`,
-      strategy: 'smart-database-first'
+      strategy: 'smart-database-first',
     }
   );
 }
@@ -257,19 +260,20 @@ function calculateDataCompleteness(prs: PullRequest[]): number {
   let totalScore = 0;
   let prCount = 0;
 
-  for (const pr of prs.slice(0, 20)) { // Sample first 20 PRs
+  for (const pr of prs.slice(0, 20)) {
+    // Sample first 20 PRs
     let score = 0.5; // Base score for having PR data
-    
+
     // Check for reviews
     if (pr.reviews && pr.reviews.length > 0) {
       score += 0.25;
     }
-    
+
     // Check for comments
     if (pr.comments && pr.comments.length > 0) {
       score += 0.25;
     }
-    
+
     totalScore += score;
     prCount++;
   }

@@ -4,14 +4,14 @@ import { resolve } from 'path';
 
 /**
  * Bulletproof Test Configuration
- * 
+ *
  * This configuration strictly follows the bulletproof testing guidelines:
  * - NO async/await patterns
  * - NO complex mocking
  * - NO integration tests
  * - Maximum 5 second timeout per test
  * - Complete isolation between tests
- * 
+ *
  * See: docs/testing/BULLETPROOF_TESTING_GUIDELINES.md
  */
 export default defineConfig({
@@ -19,34 +19,31 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
-    
+
     // Strict timeouts per bulletproof guidelines
-    testTimeout: 5000,  // 5 seconds max per test
-    hookTimeout: 2000,  // 2 seconds for setup/teardown
+    testTimeout: 5000, // 5 seconds max per test
+    hookTimeout: 2000, // 2 seconds for setup/teardown
     teardownTimeout: 1000,
-    
+
     // Complete isolation - no shared state
     isolate: true,
     fileParallelism: false,
-    
+
     // Single thread for absolute stability
     pool: 'forks',
     poolOptions: {
       forks: {
         singleFork: true,
         isolate: true,
-      }
+      },
     },
-    
+
     // Minimal setup - just DOM cleanup
     setupFiles: ['./src/__mocks__/no-mocks-setup.ts'],
-    
+
     // Include all tests except known problematic ones
-    include: [
-      'src/**/*.test.ts',
-      'src/**/*.test.tsx'
-    ],
-    
+    include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+
     // Exclude tests with forbidden patterns
     exclude: [
       '**/node_modules/**',
@@ -75,27 +72,27 @@ export default defineConfig({
       'src/lib/insights/health-metrics.test.ts',
       'src/lib/progressive-capture/__tests__/hybrid-queue-manager.test.ts',
     ],
-    
+
     // No coverage - focus on stability
     coverage: {
-      enabled: false
+      enabled: false,
     },
-    
+
     // Simple reporter for CI
     reporters: process.env.CI ? ['default'] : ['default', 'html'],
-    
+
     // Fail fast in CI
     bail: process.env.CI ? 1 : 0,
-    
+
     // No threads for maximum stability
     threads: false,
     maxWorkers: 1,
     minWorkers: 1,
   },
-  
+
   resolve: {
     alias: {
-      '@': resolve(__dirname, './src')
-    }
-  }
+      '@': resolve(__dirname, './src'),
+    },
+  },
 });

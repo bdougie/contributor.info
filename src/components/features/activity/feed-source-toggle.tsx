@@ -1,13 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react';
 import { Database } from '@/components/ui/icon';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export type FeedSource = 'github' | 'database';
 
@@ -38,7 +33,9 @@ export function FeedSourceToggle({ className }: { className?: string }) {
           </TooltipTrigger>
           <TooltipContent>
             <p>Advanced spam detection and analysis</p>
-            <p className="text-xs text-muted-foreground">Requires authentication • Navigate to dedicated spam page</p>
+            <p className="text-xs text-muted-foreground">
+              Requires authentication • Navigate to dedicated spam page
+            </p>
           </TooltipContent>
         </Tooltip>
       </div>

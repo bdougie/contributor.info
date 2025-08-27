@@ -15,7 +15,8 @@ const meta = {
     layout: 'centered',
     docs: {
       description: {
-        component: 'A versatile textarea component with auto-resize capabilities, character counting, validation states, and accessibility features.',
+        component:
+          'A versatile textarea component with auto-resize capabilities, character counting, validation states, and accessibility features.',
       },
     },
   },
@@ -64,10 +65,12 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <div style={{ 
-        minWidth: '400px',
-        padding: designTokens.spacing[4],
-      }}>
+      <div
+        style={{
+          minWidth: '400px',
+          padding: designTokens.spacing[4],
+        }}
+      >
         <Story />
       </div>
     ),
@@ -85,7 +88,8 @@ export const Default: Story = {
 
 export const WithValue: Story = {
   args: {
-    defaultValue: 'This is a textarea with some initial content that demonstrates how text wraps naturally within the component.',
+    defaultValue:
+      'This is a textarea with some initial content that demonstrates how text wraps naturally within the component.',
   },
 };
 
@@ -148,31 +152,33 @@ export const ValidationStates: Story = {
     <div style={{ display: 'flex', flexDirection: 'column', gap: designTokens.spacing[4] }}>
       <div>
         <Label htmlFor="valid">Valid Input</Label>
-        <Textarea 
-          id="valid" 
+        <Textarea
+          id="valid"
           defaultValue="This content meets all requirements."
           className="border-green-500 focus:ring-green-500"
           aria-invalid="false"
         />
         <p className="text-sm text-green-600 mt-1">✓ Looks good!</p>
       </div>
-      
+
       <div>
         <Label htmlFor="invalid">Invalid Input</Label>
-        <Textarea 
-          id="invalid" 
+        <Textarea
+          id="invalid"
           defaultValue="Too short"
           className="border-red-500 focus:ring-red-500"
           aria-invalid="true"
           aria-describedby="invalid-error"
         />
-        <p id="invalid-error" className="text-sm text-red-600 mt-1">Message must be at least 20 characters</p>
+        <p id="invalid-error" className="text-sm text-red-600 mt-1">
+          Message must be at least 20 characters
+        </p>
       </div>
-      
+
       <div>
         <Label htmlFor="warning">Warning State</Label>
-        <Textarea 
-          id="warning" 
+        <Textarea
+          id="warning"
           defaultValue="This message might be too informal for a professional context."
           className="border-amber-500 focus:ring-amber-500"
         />
@@ -239,7 +245,7 @@ export const WithCharacterCount: Story = {
       const maxLength = 280;
       const remaining = maxLength - value.length;
       const percentage = (value.length / maxLength) * 100;
-      
+
       return (
         <div className="space-y-2">
           <Label htmlFor="limited">Tweet-style Message</Label>
@@ -253,19 +259,21 @@ export const WithCharacterCount: Story = {
           />
           <div className="flex justify-between items-center">
             <div className="h-1 flex-1 bg-gray-200 rounded mr-3">
-              <div 
+              <div
                 className={`h-full rounded transition-all ${
-                  percentage > 90 ? 'bg-red-500' : 
-                  percentage > 75 ? 'bg-amber-500' : 'bg-green-500'
+                  percentage > 90 ? 'bg-red-500' : percentage > 75 ? 'bg-amber-500' : 'bg-green-500'
                 }`}
                 style={{ width: `${Math.min(percentage, 100)}%` }}
               />
             </div>
-            <p 
+            <p
               id="char-count"
               className={`text-sm font-medium ${
-                remaining < 20 ? 'text-red-600' : 
-                remaining < 50 ? 'text-amber-600' : 'text-gray-600'
+                remaining < 20
+                  ? 'text-red-600'
+                  : remaining < 50
+                    ? 'text-amber-600'
+                    : 'text-gray-600'
               }`}
             >
               {remaining}
@@ -295,7 +303,7 @@ export const WithMentions: Story = {
       const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         const text = e.target.value;
         setValue(text);
-        
+
         // Check if user is typing a mention
         const lastWord = text.split(' ').pop() || '';
         setShowSuggestions(lastWord.startsWith('@') && lastWord.length > 1);
@@ -314,7 +322,7 @@ export const WithMentions: Story = {
           {showSuggestions && (
             <div className="absolute mt-1 p-2 bg-white border rounded-md shadow-lg z-10">
               <p className="text-sm font-medium mb-1">Suggestions:</p>
-              {suggestions.map(user => (
+              {suggestions.map((user) => (
                 <button
                   key={user}
                   className="block w-full text-left px-2 py-1 text-sm hover:bg-gray-100 rounded"
@@ -358,11 +366,7 @@ export const MarkdownEditor: Story = {
           <CardHeader>
             <div className="flex justify-between items-center">
               <CardTitle>Markdown Editor</CardTitle>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPreview(!preview)}
-              >
+              <Button variant="outline" size="sm" onClick={() => setPreview(!preview)}>
                 {preview ? 'Edit' : 'Preview'}
               </Button>
             </div>
@@ -370,13 +374,15 @@ export const MarkdownEditor: Story = {
           <CardContent>
             {preview ? (
               <div className="prose prose-sm max-w-none">
-                <div dangerouslySetInnerHTML={{ 
-                  __html: value
-                    .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-                    .replace(/\*\*(.*)\*\*/g, '<strong>$1</strong>')
-                    .replace(/\*(.*)\*/g, '<em>$1</em>')
-                    .replace(/\n/g, '<br />')
-                }} />
+                <div
+                  dangerouslySetInnerHTML={{
+                    __html: value
+                      .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+                      .replace(/\*\*(.*)\*\*/g, '<strong>$1</strong>')
+                      .replace(/\*(.*)\*/g, '<em>$1</em>')
+                      .replace(/\n/g, '<br />'),
+                  }}
+                />
               </div>
             ) : (
               <Textarea
@@ -443,13 +449,16 @@ export const Interactive: Story = {
             }}
             rows={4}
             className={
-              errors.length > 0 ? 'border-red-500' : 
-              value.length >= minLength ? 'border-green-500' : ''
+              errors.length > 0
+                ? 'border-red-500'
+                : value.length >= minLength
+                  ? 'border-green-500'
+                  : ''
             }
             aria-invalid={errors.length > 0}
             aria-describedby={errors.length > 0 ? 'interactive-errors' : undefined}
           />
-          
+
           {errors.length > 0 && (
             <ul id="interactive-errors" className="text-sm text-red-600">
               {errors.map((error, i) => (
@@ -457,14 +466,16 @@ export const Interactive: Story = {
               ))}
             </ul>
           )}
-          
+
           {errors.length === 0 && value.length >= minLength && (
             <p className="text-sm text-green-600">✓ Description is valid</p>
           )}
-          
+
           <div className="flex justify-between text-xs text-gray-500">
-            <span>Words: {value.split(' ').filter(w => w).length}</span>
-            <span>{value.length}/{maxLength}</span>
+            <span>Words: {value.split(' ').filter((w) => w).length}</span>
+            <span>
+              {value.length}/{maxLength}
+            </span>
           </div>
         </div>
       );
@@ -480,10 +491,8 @@ export const Interactive: Story = {
     expect(textarea).toHaveValue('');
 
     // Test typing
-    
 
     // Type valid content
-    
   },
   parameters: {
     docs: {
@@ -511,7 +520,7 @@ export const FormExample: Story = {
               required
             />
           </div>
-          
+
           <div>
             <Label htmlFor="message">Message *</Label>
             <Textarea
@@ -521,7 +530,7 @@ export const FormExample: Story = {
               required
             />
           </div>
-          
+
           <div>
             <Label htmlFor="additional">Additional Information</Label>
             <Textarea
@@ -530,8 +539,10 @@ export const FormExample: Story = {
               rows={3}
             />
           </div>
-          
-          <Button type="submit" className="w-full">Send Message</Button>
+
+          <Button type="submit" className="w-full">
+            Send Message
+          </Button>
         </form>
       </CardContent>
     </Card>
@@ -557,11 +568,11 @@ export const KeyboardNavigation: Story = {
   play: ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const textareas = canvas.getAllByRole('textbox');
-    
+
     // Focus first textarea
     textareas[0].focus();
     expect(document.activeElement).toBe(textareas[0]);
-    
+
     // Simulate Tab key to next field
     const tabEvent = new KeyboardEvent('keydown', { key: 'Tab' });
     document.dispatchEvent(tabEvent);
@@ -581,24 +592,24 @@ export const MobileOptimized: Story = {
     <div className="space-y-3">
       <div>
         <Label htmlFor="mobile-comment">Comment</Label>
-        <Textarea 
-          id="mobile-comment" 
+        <Textarea
+          id="mobile-comment"
           placeholder="Share your thoughts..."
           className="touch-manipulation"
           rows={3}
         />
       </div>
-      
+
       <div>
         <Label htmlFor="mobile-feedback">Quick Feedback</Label>
-        <Textarea 
-          id="mobile-feedback" 
+        <Textarea
+          id="mobile-feedback"
           placeholder="Tap to start typing..."
           className="touch-manipulation text-base"
           rows={2}
         />
       </div>
-      
+
       <p className="text-sm text-muted-foreground">
         Optimized for mobile with larger touch targets and appropriate font sizes.
       </p>
@@ -618,46 +629,48 @@ export const MobileOptimized: Story = {
 
 export const AllVariants: Story = {
   render: () => (
-    <div style={{ 
-      display: 'grid', 
-      gridTemplateColumns: 'repeat(2, 1fr)', 
-      gap: designTokens.spacing[4],
-    }}>
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(2, 1fr)',
+        gap: designTokens.spacing[4],
+      }}
+    >
       <div>
         <Label>Default</Label>
         <Textarea placeholder="Default textarea" />
       </div>
-      
+
       <div>
         <Label>With Value</Label>
         <Textarea defaultValue="Pre-filled content" />
       </div>
-      
+
       <div>
         <Label>Disabled</Label>
         <Textarea placeholder="Disabled" disabled />
       </div>
-      
+
       <div>
         <Label>Read-only</Label>
         <Textarea value="Read-only content" readOnly />
       </div>
-      
+
       <div>
         <Label>Required</Label>
         <Textarea placeholder="Required field" required />
       </div>
-      
+
       <div>
         <Label>With Max Length</Label>
         <Textarea placeholder="Max 50 chars" maxLength={50} />
       </div>
-      
+
       <div>
         <Label>Small (2 rows)</Label>
         <Textarea placeholder="Compact" rows={2} />
       </div>
-      
+
       <div>
         <Label>Large (6 rows)</Label>
         <Textarea placeholder="Expanded" rows={6} />

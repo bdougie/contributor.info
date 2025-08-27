@@ -8,9 +8,9 @@ const meta = {
   parameters: {
     layout: 'fullscreen',
     viewport: { defaultViewport: 'socialCard' },
-    chromatic: { 
+    chromatic: {
       viewports: [1200],
-      delay: 500
+      delay: 500,
     },
     docs: {
       description: {
@@ -40,25 +40,25 @@ Dynamic social cards for individual repositories that display contributor data, 
 ## CDN Distribution
 Repository cards are generated for popular repos and cached:
 \`https://egcxzonpmmcirmgqdrla.supabase.co/storage/v1/object/public/social-cards/repo-{owner}-{repo}.png\`
-        `
-      }
-    }
+        `,
+      },
+    },
   },
   tags: ['autodocs'],
   argTypes: {
     owner: {
       control: 'text',
-      description: 'Repository owner/organization name'
+      description: 'Repository owner/organization name',
     },
     repo: {
-      control: 'text', 
-      description: 'Repository name'
+      control: 'text',
+      description: 'Repository name',
     },
     stats: {
       control: 'object',
-      description: 'Repository statistics and contributor data'
-    }
-  }
+      description: 'Repository statistics and contributor data',
+    },
+  },
 } satisfies Meta<typeof RepoSocialCard>;
 
 export default meta;
@@ -72,15 +72,16 @@ export const PopularRepository: Story = {
   args: {
     owner: mockRepositories.react.owner,
     repo: mockRepositories.react.repo,
-    stats: mockRepositories.react.stats
+    stats: mockRepositories.react.stats,
   },
   parameters: {
     docs: {
       description: {
-        story: 'Card for a popular repository like React with many contributors and high activity levels.'
-      }
-    }
-  }
+        story:
+          'Card for a popular repository like React with many contributors and high activity levels.',
+      },
+    },
+  },
 };
 
 /**
@@ -91,15 +92,15 @@ export const GrowingRepository: Story = {
   args: {
     owner: mockRepositories.vue.owner,
     repo: mockRepositories.vue.repo,
-    stats: mockRepositories.vue.stats
+    stats: mockRepositories.vue.stats,
   },
   parameters: {
     docs: {
       description: {
-        story: 'Card for a growing repository with moderate contributor activity and engagement.'
-      }
-    }
-  }
+        story: 'Card for a growing repository with moderate contributor activity and engagement.',
+      },
+    },
+  },
 };
 
 /**
@@ -108,17 +109,18 @@ export const GrowingRepository: Story = {
  */
 export const MinimalRepository: Story = {
   args: {
-    owner: mockRepositories["awesome-project"].owner,
-    repo: mockRepositories["awesome-project"].repo,
-    stats: mockRepositories["awesome-project"].stats
+    owner: mockRepositories['awesome-project'].owner,
+    repo: mockRepositories['awesome-project'].repo,
+    stats: mockRepositories['awesome-project'].stats,
   },
   parameters: {
     docs: {
       description: {
-        story: 'Card for a smaller repository with minimal contributor activity and fewer statistics.'
-      }
-    }
-  }
+        story:
+          'Card for a smaller repository with minimal contributor activity and fewer statistics.',
+      },
+    },
+  },
 };
 
 /**
@@ -127,17 +129,18 @@ export const MinimalRepository: Story = {
  */
 export const EnterpriseRepository: Story = {
   args: {
-    owner: mockRepositories["enterprise-platform"].owner,
-    repo: mockRepositories["enterprise-platform"].repo,
-    stats: mockRepositories["enterprise-platform"].stats
+    owner: mockRepositories['enterprise-platform'].owner,
+    repo: mockRepositories['enterprise-platform'].repo,
+    stats: mockRepositories['enterprise-platform'].stats,
   },
   parameters: {
     docs: {
       description: {
-        story: 'Card for an enterprise repository with extensive contributor activity and large-scale statistics.'
-      }
-    }
-  }
+        story:
+          'Card for an enterprise repository with extensive contributor activity and large-scale statistics.',
+      },
+    },
+  },
 };
 
 /**
@@ -146,17 +149,17 @@ export const EnterpriseRepository: Story = {
  */
 export const LongRepositoryName: Story = {
   args: {
-    owner: mockRepositories["super-long-repository-name-that-might-overflow"].owner,
-    repo: mockRepositories["super-long-repository-name-that-might-overflow"].repo,
-    stats: mockRepositories["super-long-repository-name-that-might-overflow"].stats
+    owner: mockRepositories['super-long-repository-name-that-might-overflow'].owner,
+    repo: mockRepositories['super-long-repository-name-that-might-overflow'].repo,
+    stats: mockRepositories['super-long-repository-name-that-might-overflow'].stats,
   },
   parameters: {
     docs: {
       description: {
-        story: 'Tests layout stability with extremely long repository and organization names.'
-      }
-    }
-  }
+        story: 'Tests layout stability with extremely long repository and organization names.',
+      },
+    },
+  },
 };
 
 /**
@@ -165,17 +168,17 @@ export const LongRepositoryName: Story = {
  */
 export const NoStats: Story = {
   args: {
-    owner: "example",
-    repo: "repository",
-    stats: undefined
+    owner: 'example',
+    repo: 'repository',
+    stats: undefined,
   },
   parameters: {
     docs: {
       description: {
-        story: 'Card rendering when repository statistics are unavailable or still loading.'
-      }
-    }
-  }
+        story: 'Card rendering when repository statistics are unavailable or still loading.',
+      },
+    },
+  },
 };
 
 /**
@@ -184,28 +187,28 @@ export const NoStats: Story = {
  */
 export const SingleContributor: Story = {
   args: {
-    owner: "solo-dev",
-    repo: "personal-project",
+    owner: 'solo-dev',
+    repo: 'personal-project',
     stats: {
       totalContributors: 1,
       totalPRs: 5,
       mergedPRs: 4,
       topContributors: [
         {
-          login: "solo-dev",
-          avatar_url: "https://avatars.githubusercontent.com/u/583231?v=4",
-          contributions: 42
-        }
-      ]
-    }
+          login: 'solo-dev',
+          avatar_url: 'https://avatars.githubusercontent.com/u/583231?v=4',
+          contributions: 42,
+        },
+      ],
+    },
   },
   parameters: {
     docs: {
       description: {
-        story: 'Card for repositories with a single contributor, common for personal projects.'
-      }
-    }
-  }
+        story: 'Card for repositories with a single contributor, common for personal projects.',
+      },
+    },
+  },
 };
 
 /**
@@ -216,19 +219,19 @@ export const TwitterCard: Story = {
   args: {
     owner: mockRepositories.react.owner,
     repo: mockRepositories.react.repo,
-    stats: mockRepositories.react.stats
+    stats: mockRepositories.react.stats,
   },
   parameters: {
     chromatic: {
       viewports: [1200],
-      delay: 500
+      delay: 500,
     },
     docs: {
       description: {
-        story: 'Repository card optimized for Twitter Card requirements and validation.'
-      }
-    }
-  }
+        story: 'Repository card optimized for Twitter Card requirements and validation.',
+      },
+    },
+  },
 };
 
 /**
@@ -239,17 +242,17 @@ export const FacebookCard: Story = {
   args: {
     owner: mockRepositories.vue.owner,
     repo: mockRepositories.vue.repo,
-    stats: mockRepositories.vue.stats
+    stats: mockRepositories.vue.stats,
   },
   parameters: {
     chromatic: {
       viewports: [1200],
-      delay: 500  
+      delay: 500,
     },
     docs: {
       description: {
-        story: 'Repository card optimized for Facebook Open Graph sharing requirements.'
-      }
-    }
-  }
+        story: 'Repository card optimized for Facebook Open Graph sharing requirements.',
+      },
+    },
+  },
 };

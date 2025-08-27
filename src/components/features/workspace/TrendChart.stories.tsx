@@ -7,20 +7,20 @@ const generateSampleData = (days: number) => {
   const prs = [];
   const issues = [];
   const commits = [];
-  
+
   const today = new Date();
-  
+
   for (let i = days - 1; i >= 0; i--) {
     const date = new Date(today);
     date.setDate(date.getDate() - i);
     labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
-    
+
     // Generate realistic looking data with some variance
     prs.push(Math.floor(Math.random() * 20) + 10);
     issues.push(Math.floor(Math.random() * 15) + 5);
     commits.push(Math.floor(Math.random() * 50) + 20);
   }
-  
+
   return {
     labels,
     datasets: [
@@ -50,7 +50,8 @@ const meta = {
     layout: 'padded',
     docs: {
       description: {
-        component: 'A trend chart component for displaying workspace activity over time using line charts.',
+        component:
+          'A trend chart component for displaying workspace activity over time using line charts.',
       },
     },
   },

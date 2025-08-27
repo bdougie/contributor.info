@@ -1,17 +1,11 @@
-import { useState } from "react"
+import { useState } from 'react';
 import { Loader2, MessageSquare, AlertCircle } from '@/components/ui/icon';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import ReactMarkdown from "react-markdown";
-import { analyzePullRequests } from "@/lib/insights/pullRequests";
-import { useParams } from "react-router-dom";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import ReactMarkdown from 'react-markdown';
+import { analyzePullRequests } from '@/lib/insights/pullRequests';
+import { useParams } from 'react-router-dom';
 
 export function InsightsDrawer() {
   const { owner, repo } = useParams<{ owner: string; repo: string }>();
@@ -26,32 +20,25 @@ export function InsightsDrawer() {
     try {
       // Verify we have owner/repo from URL parameters
       if (!owner || !repo) {
-        throw new Error(
-          "Repository information not available. Please check the URL."
-        );
+        throw new Error('Repository information not available. Please check the URL.');
       }
 
       console.log('Analyzing repository: %s/%s', owner, repo);
 
       // Use the local analysis function
       const analysisResult = await analyzePullRequests(owner, repo);
-      console.log("Analysis result:", analysisResult);
+      console.log('Analysis result:', analysisResult);
 
       if (analysisResult.totalPRs === 0) {
-        throw new Error("No pull requests available for analysis");
+        throw new Error('No pull requests available for analysis');
       }
 
       // Generate markdown insights based on the analysis results
-      const insightsMarkdown = generateMarkdownInsights(
-        owner,
-        repo,
-        analysisResult
-      );
+      const insightsMarkdown = generateMarkdownInsights(owner, repo, analysisResult);
       setInsights(insightsMarkdown);
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to generate insights";
-      console.error("Error generating insights:", err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to generate insights';
+      console.error('Error generating insights:', err);
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -76,12 +63,9 @@ export function InsightsDrawer() {
 
     // Calculate fastest/slowest merge times
     const authorMergeTimes: Record<string, number> = {};
-    for (const [author, times] of Object.entries(
-      analysis.prMergeTimesByAuthor
-    )) {
+    for (const [author, times] of Object.entries(analysis.prMergeTimesByAuthor)) {
       if (times.length > 0) {
-        authorMergeTimes[author] =
-          times.reduce((sum, time) => sum + time, 0) / times.length;
+        authorMergeTimes[author] = times.reduce((sum, time) => sum + time, 0) / times.length;
       }
     }
 
@@ -104,27 +88,21 @@ This repository has **${
     )} hours** (about ${(analysis.averageTimeToMerge / 24).toFixed(1)} days).
 
 ## Top Contributors
-${topContributors
-  .map((c, i) => `${i + 1}. **${c[0]}** - ${c[1]} PRs`)
-  .join("\n")}
+${topContributors.map((c, i) => `${i + 1}. **${c[0]}** - ${c[1]} PRs`).join('\n')}
 
 ## Merge Time Statistics
 ### Fastest Merged PRs
 ${
   fastestMergers.length > 0
-    ? fastestMergers
-        .map((c, i) => `${i + 1}. **${c[0]}** - ${c[1].toFixed(1)} hours`)
-        .join("\n")
-    : "No merge time data available."
+    ? fastestMergers.map((c, i) => `${i + 1}. **${c[0]}** - ${c[1].toFixed(1)} hours`).join('\n')
+    : 'No merge time data available.'
 }
 
 ### Slowest Merged PRs
 ${
   slowestMergers.length > 0
-    ? slowestMergers
-        .map((c, i) => `${i + 1}. **${c[0]}** - ${c[1].toFixed(1)} hours`)
-        .join("\n")
-    : "No merge time data available."
+    ? slowestMergers.map((c, i) => `${i + 1}. **${c[0]}** - ${c[1].toFixed(1)} hours`).join('\n')
+    : 'No merge time data available.'
 }
 
 ## Health Assessment
@@ -145,25 +123,22 @@ ${getHealthAssessment(analysis)}
     // Check merge time (below 24 hours is good)
     const mergeTimeAssessment =
       analysis.averageTimeToMerge <= 24
-        ? "The average merge time is good, suggesting an efficient review process."
+        ? 'The average merge time is good, suggesting an efficient review process.'
         : analysis.averageTimeToMerge <= 72
-        ? "The average merge time is acceptable but could be improved."
-        : "The average merge time is quite long, which could indicate review bottlenecks.";
+          ? 'The average merge time is acceptable but could be improved.'
+          : 'The average merge time is quite long, which could indicate review bottlenecks.';
 
     // Check contribution distribution
-    const topContributorCount = Object.values(analysis.prsByAuthor).reduce(
-      (count, prCount) => {
-        return count + (prCount > totalPRs * 0.1 ? 1 : 0);
-      },
-      0
-    );
+    const topContributorCount = Object.values(analysis.prsByAuthor).reduce((count, prCount) => {
+      return count + (prCount > totalPRs * 0.1 ? 1 : 0);
+    }, 0);
 
     const distributionAssessment =
       totalAuthors === 1
-        ? "This repository has only one contributor, which presents a high bus factor risk."
+        ? 'This repository has only one contributor, which presents a high bus factor risk.'
         : topContributorCount <= 3 && totalAuthors >= 5
-        ? "The repository has a healthy distribution of contributors."
-        : "The repository has a concentration of contributions among a few developers.";
+          ? 'The repository has a healthy distribution of contributors.'
+          : 'The repository has a concentration of contributions among a few developers.';
 
     return `
 ### Observations
@@ -174,20 +149,20 @@ ${getHealthAssessment(analysis)}
 ### Recommendations
 ${
   analysis.averageTimeToMerge > 72
-    ? "- Consider streamlining your PR review process to reduce merge times.\n"
-    : ""
+    ? '- Consider streamlining your PR review process to reduce merge times.\n'
+    : ''
 }${
       topContributorCount === 1 && totalAuthors === 1
-        ? "- Onboard more contributors to reduce the bus factor risk.\n"
-        : ""
+        ? '- Onboard more contributors to reduce the bus factor risk.\n'
+        : ''
     }${
       topContributorCount > totalAuthors * 0.4 && totalAuthors > 1
-        ? "- Encourage more distributed contribution across the team.\n"
-        : ""
+        ? '- Encourage more distributed contribution across the team.\n'
+        : ''
     }${
       analysis.totalPRs < 10
-        ? "- There are relatively few PRs to analyze. Consider a longer time frame for better insights.\n"
-        : ""
+        ? '- There are relatively few PRs to analyze. Consider a longer time frame for better insights.\n'
+        : ''
     }
 `;
   };
@@ -227,11 +202,7 @@ ${
                   <p className="text-sm text-muted-foreground mt-1">{error}</p>
                 </div>
               </div>
-              <Button
-                variant="outline"
-                onClick={generateInsights}
-                className="w-full"
-              >
+              <Button variant="outline" onClick={generateInsights} className="w-full">
                 Try Again
               </Button>
             </div>

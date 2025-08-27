@@ -9,7 +9,8 @@ const meta = {
     layout: 'fullscreen',
     docs: {
       description: {
-        component: 'The main trending repositories page that displays repositories with significant recent activity and metric improvements. Features filtering, sorting, and time period selection.',
+        component:
+          'The main trending repositories page that displays repositories with significant recent activity and metric improvements. Features filtering, sorting, and time period selection.',
       },
     },
   },
@@ -32,7 +33,8 @@ const mockTrendingRepos: TrendingRepositoryData[] = [
     id: 'repo-1',
     owner: 'continuedev',
     name: 'continue',
-    description: 'The open-source autopilot for software development—bring the power of ChatGPT to VS Code',
+    description:
+      'The open-source autopilot for software development—bring the power of ChatGPT to VS Code',
     language: 'TypeScript',
     stars: 15240,
     trending_score: 156.8,
@@ -77,7 +79,7 @@ const mockTrendingRepos: TrendingRepositoryData[] = [
     id: 'repo-4',
     owner: 'vitejs',
     name: 'vite',
-    description: 'Next generation frontend tooling. It\'s fast!',
+    description: "Next generation frontend tooling. It's fast!",
     language: 'JavaScript',
     stars: 65420,
     trending_score: 87.3,
@@ -92,7 +94,8 @@ const mockTrendingRepos: TrendingRepositoryData[] = [
     id: 'repo-5',
     owner: 'facebook',
     name: 'react',
-    description: 'A declarative, efficient, and flexible JavaScript library for building user interfaces.',
+    description:
+      'A declarative, efficient, and flexible JavaScript library for building user interfaces.',
     language: 'JavaScript',
     stars: 225680,
     trending_score: 76.5,
@@ -147,7 +150,7 @@ const mockTrendingRepos: TrendingRepositoryData[] = [
     last_activity: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
     avatar_url: 'https://github.com/golang.png',
     html_url: 'https://github.com/golang/go',
-  }
+  },
 ];
 
 export const Default: Story = {
@@ -187,7 +190,7 @@ export const FewRepositories: Story = {
 
 export const TypeScriptOnly: Story = {
   args: {
-    repositories: mockTrendingRepos.filter(repo => repo.language === 'TypeScript'),
+    repositories: mockTrendingRepos.filter((repo) => repo.language === 'TypeScript'),
     loading: false,
   },
 };
@@ -233,7 +236,7 @@ export const MixedLanguages: Story = {
 
 export const LowTrendingScores: Story = {
   args: {
-    repositories: mockTrendingRepos.map(repo => ({
+    repositories: mockTrendingRepos.map((repo) => ({
       ...repo,
       trending_score: repo.trending_score * 0.3,
       star_change: repo.star_change * 0.5,

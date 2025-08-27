@@ -26,7 +26,7 @@ const generateMockPullRequests = (count: number): PullRequest[] => {
     { owner: 'vuejs', name: 'vue', avatar_url: 'https://github.com/vuejs.png' },
     { owner: 'angular', name: 'angular', avatar_url: 'https://github.com/angular.png' },
   ];
-  
+
   const authors = [
     { username: 'alice', avatar_url: 'https://avatars.githubusercontent.com/u/1?v=4' },
     { username: 'bob', avatar_url: 'https://avatars.githubusercontent.com/u/2?v=4' },
@@ -36,11 +36,31 @@ const generateMockPullRequests = (count: number): PullRequest[] => {
   ];
 
   const reviewers = [
-    { username: 'reviewer1', avatar_url: 'https://avatars.githubusercontent.com/u/10?v=4', approved: true },
-    { username: 'reviewer2', avatar_url: 'https://avatars.githubusercontent.com/u/11?v=4', approved: false },
-    { username: 'reviewer3', avatar_url: 'https://avatars.githubusercontent.com/u/12?v=4', approved: true },
-    { username: 'reviewer4', avatar_url: 'https://avatars.githubusercontent.com/u/13?v=4', approved: false },
-    { username: 'reviewer5', avatar_url: 'https://avatars.githubusercontent.com/u/14?v=4', approved: true },
+    {
+      username: 'reviewer1',
+      avatar_url: 'https://avatars.githubusercontent.com/u/10?v=4',
+      approved: true,
+    },
+    {
+      username: 'reviewer2',
+      avatar_url: 'https://avatars.githubusercontent.com/u/11?v=4',
+      approved: false,
+    },
+    {
+      username: 'reviewer3',
+      avatar_url: 'https://avatars.githubusercontent.com/u/12?v=4',
+      approved: true,
+    },
+    {
+      username: 'reviewer4',
+      avatar_url: 'https://avatars.githubusercontent.com/u/13?v=4',
+      approved: false,
+    },
+    {
+      username: 'reviewer5',
+      avatar_url: 'https://avatars.githubusercontent.com/u/14?v=4',
+      approved: true,
+    },
   ];
 
   const labels = [
@@ -78,20 +98,19 @@ const generateMockPullRequests = (count: number): PullRequest[] => {
     const prLabels = labels
       .filter(() => Math.random() > 0.6)
       .slice(0, Math.floor(Math.random() * 3) + 1);
-    
+
     const prReviewers = reviewers
       .filter(() => Math.random() > 0.5)
       .slice(0, Math.floor(Math.random() * 4) + 1)
-      .map(r => ({ ...r, approved: Math.random() > 0.4 }));
+      .map((r) => ({ ...r, approved: Math.random() > 0.4 }));
 
     const createdAt = new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000);
     const updatedAt = new Date(createdAt.getTime() + Math.random() * 7 * 24 * 60 * 60 * 1000);
-    const closedAt = (state === 'closed' || state === 'merged')
-      ? new Date(updatedAt.getTime() + Math.random() * 3 * 24 * 60 * 60 * 1000).toISOString()
-      : undefined;
-    const mergedAt = state === 'merged'
-      ? closedAt
-      : undefined;
+    const closedAt =
+      state === 'closed' || state === 'merged'
+        ? new Date(updatedAt.getTime() + Math.random() * 3 * 24 * 60 * 60 * 1000).toISOString()
+        : undefined;
+    const mergedAt = state === 'merged' ? closedAt : undefined;
 
     return {
       id: `pr-${i + 1}`,
@@ -143,14 +162,14 @@ export const WithManyPRs: Story = {
 
 export const OnlyOpenPRs: Story = {
   args: {
-    pullRequests: generateMockPullRequests(20).map(pr => ({ ...pr, state: 'open' as const })),
+    pullRequests: generateMockPullRequests(20).map((pr) => ({ ...pr, state: 'open' as const })),
   },
 };
 
 export const OnlyMergedPRs: Story = {
   args: {
-    pullRequests: generateMockPullRequests(20).map(pr => ({ 
-      ...pr, 
+    pullRequests: generateMockPullRequests(20).map((pr) => ({
+      ...pr,
       state: 'merged' as const,
       merged_at: new Date().toISOString(),
       closed_at: new Date().toISOString(),
@@ -160,8 +179,8 @@ export const OnlyMergedPRs: Story = {
 
 export const DraftPRs: Story = {
   args: {
-    pullRequests: generateMockPullRequests(10).map(pr => ({ 
-      ...pr, 
+    pullRequests: generateMockPullRequests(10).map((pr) => ({
+      ...pr,
       state: 'draft' as const,
       reviewers: [], // Draft PRs typically don't have reviewers yet
     })),
@@ -170,14 +189,34 @@ export const DraftPRs: Story = {
 
 export const WithManyReviewers: Story = {
   args: {
-    pullRequests: generateMockPullRequests(10).map(pr => ({
+    pullRequests: generateMockPullRequests(10).map((pr) => ({
       ...pr,
       reviewers: [
-        { username: 'alice', avatar_url: 'https://avatars.githubusercontent.com/u/1?v=4', approved: true },
-        { username: 'bob', avatar_url: 'https://avatars.githubusercontent.com/u/2?v=4', approved: true },
-        { username: 'charlie', avatar_url: 'https://avatars.githubusercontent.com/u/3?v=4', approved: false },
-        { username: 'diana', avatar_url: 'https://avatars.githubusercontent.com/u/4?v=4', approved: false },
-        { username: 'eve', avatar_url: 'https://avatars.githubusercontent.com/u/5?v=4', approved: true },
+        {
+          username: 'alice',
+          avatar_url: 'https://avatars.githubusercontent.com/u/1?v=4',
+          approved: true,
+        },
+        {
+          username: 'bob',
+          avatar_url: 'https://avatars.githubusercontent.com/u/2?v=4',
+          approved: true,
+        },
+        {
+          username: 'charlie',
+          avatar_url: 'https://avatars.githubusercontent.com/u/3?v=4',
+          approved: false,
+        },
+        {
+          username: 'diana',
+          avatar_url: 'https://avatars.githubusercontent.com/u/4?v=4',
+          approved: false,
+        },
+        {
+          username: 'eve',
+          avatar_url: 'https://avatars.githubusercontent.com/u/5?v=4',
+          approved: true,
+        },
       ],
     })),
   },
@@ -185,7 +224,7 @@ export const WithManyReviewers: Story = {
 
 export const LargeChanges: Story = {
   args: {
-    pullRequests: generateMockPullRequests(10).map(pr => ({
+    pullRequests: generateMockPullRequests(10).map((pr) => ({
       ...pr,
       additions: Math.floor(Math.random() * 5000) + 1000,
       deletions: Math.floor(Math.random() * 3000) + 500,

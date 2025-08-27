@@ -6,12 +6,12 @@ interface UserAvatarProps {
   lazy?: boolean;
 }
 
-export function UserAvatar({ 
-  src, 
-  alt, 
-  size = 48, 
-  priority = false, 
-  lazy = true 
+export function UserAvatar({
+  src,
+  alt,
+  size = 48,
+  priority = false,
+  lazy = true,
 }: UserAvatarProps) {
   return (
     <img
@@ -20,7 +20,7 @@ export function UserAvatar({
       width={size}
       height={size}
       className="rounded-full object-cover"
-      loading={lazy && !priority ? "lazy" : "eager"}
+      loading={lazy && !priority ? 'lazy' : 'eager'}
       onError={(e) => {
         const target = e.target as HTMLImageElement;
         // Clear the onError handler to prevent infinite loops if fallback also fails

@@ -2,14 +2,13 @@
 export { SpamDetectionService } from './SpamDetectionService';
 export { PRAnalysisService } from './PRAnalysisService';
 export { AccountAnalysisService } from './AccountAnalysisService';
-export { TemplateDetector, COMMON_SPAM_TEMPLATES, SPAM_PATTERNS } from './templates/CommonTemplates';
+export {
+  TemplateDetector,
+  COMMON_SPAM_TEMPLATES,
+  SPAM_PATTERNS,
+} from './templates/CommonTemplates';
 
-export type {
-  SpamFlags,
-  SpamDetectionResult,
-  PullRequestData,
-  SpamTemplate,
-} from './types';
+export type { SpamFlags, SpamDetectionResult, PullRequestData, SpamTemplate } from './types';
 
 export {
   SPAM_THRESHOLDS,

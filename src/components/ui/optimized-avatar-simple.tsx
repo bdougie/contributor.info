@@ -36,10 +36,7 @@ export interface OptimizedAvatarSimpleProps {
     onError: () => void;
     className: string;
   }) => React.ReactNode;
-  renderFallback?: (props: {
-    className: string;
-    children: React.ReactNode;
-  }) => React.ReactNode;
+  renderFallback?: (props: { className: string; children: React.ReactNode }) => React.ReactNode;
 }
 
 /**
@@ -116,30 +113,31 @@ export function OptimizedAvatarSimple({
   const fallbackTextSize = getFallbackTextSize(size);
 
   // Default renderers (for production use)
-  const avatarRenderer = renderAvatar || ((props) => (
-    <div ref={props.ref} className={props.className} style={props.style}>
-      {props.children}
-    </div>
-  ));
+  const avatarRenderer =
+    renderAvatar ||
+    ((props) => (
+      <div ref={props.ref} className={props.className} style={props.style}>
+        {props.children}
+      </div>
+    ));
 
-  const imageRenderer = renderImage || ((props) => (
-    <img
-      src={props.src}
-      alt={props.alt}
-      loading={props.loading}
-      width={props.width}
-      height={props.height}
-      onLoad={props.onLoad}
-      onError={props.onError}
-      className={props.className}
-    />
-  ));
+  const imageRenderer =
+    renderImage ||
+    ((props) => (
+      <img
+        src={props.src}
+        alt={props.alt}
+        loading={props.loading}
+        width={props.width}
+        height={props.height}
+        onLoad={props.onLoad}
+        onError={props.onError}
+        className={props.className}
+      />
+    ));
 
-  const fallbackRenderer = renderFallback || ((props) => (
-    <div className={props.className}>
-      {props.children}
-    </div>
-  ));
+  const fallbackRenderer =
+    renderFallback || ((props) => <div className={props.className}>{props.children}</div>);
 
   return avatarRenderer({
     ref: imgRef,
@@ -151,24 +149,27 @@ export function OptimizedAvatarSimple({
     style: sizeConfig.style,
     children: (
       <>
-        {shouldLoad && optimizedSrc && !error && imageRenderer({
-          src: optimizedSrc,
-          alt,
-          loading: getLoadingAttribute(priority),
-          width: size,
-          height: size,
-          onLoad: handleLoad,
-          onError: handleError,
-          className: cn(
-            'aspect-square h-full w-full transition-opacity duration-200',
-            isLoaded ? 'opacity-100' : 'opacity-0'
-          ),
-        })}
+        {shouldLoad &&
+          optimizedSrc &&
+          !error &&
+          imageRenderer({
+            src: optimizedSrc,
+            alt,
+            loading: getLoadingAttribute(priority),
+            width: size,
+            height: size,
+            onLoad: handleLoad,
+            onError: handleError,
+            className: cn(
+              'aspect-square h-full w-full transition-opacity duration-200',
+              isLoaded ? 'opacity-100' : 'opacity-0'
+            ),
+          })}
         {fallbackRenderer({
           className: cn(
             'flex h-full w-full items-center justify-center rounded-full bg-muted text-sm font-medium',
             fallbackTextSize,
-            (!shouldLoad || error || !isLoaded) ? 'opacity-100' : 'opacity-0'
+            !shouldLoad || error || !isLoaded ? 'opacity-100' : 'opacity-0'
           ),
           children: fallbackText,
         })}

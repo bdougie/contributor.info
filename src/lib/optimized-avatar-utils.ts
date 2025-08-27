@@ -18,7 +18,7 @@ export interface AvatarConfig {
  */
 export function optimizeAvatarUrl(src: string | undefined, size: number): string | undefined {
   if (!src) return src; // Return empty string as-is, undefined as undefined
-  
+
   try {
     const url = new URL(src);
     if (url.hostname === 'avatars.githubusercontent.com') {
@@ -28,7 +28,7 @@ export function optimizeAvatarUrl(src: string | undefined, size: number): string
   } catch {
     // Invalid URL or relative path, return as-is
   }
-  
+
   return src;
 }
 
@@ -42,20 +42,20 @@ export function optimizeAvatarUrl(src: string | undefined, size: number): string
 export function generateFallbackText(alt: string, fallback?: string, hasError?: boolean): string {
   if (fallback) return fallback;
   if (hasError) return '?';
-  
+
   // Generate initials from alt text
-  const words = alt.split(' ').filter(word => word.length > 0);
-  
+  const words = alt.split(' ').filter((word) => word.length > 0);
+
   if (words.length >= 2) {
     // Take first letter of first two words
     return `${words[0][0]}${words[1][0]}`.toUpperCase();
   }
-  
+
   if (words.length === 1 && words[0].length >= 2) {
     // Take first two letters of single word
     return words[0].slice(0, 2).toUpperCase();
   }
-  
+
   // Fallback to first two characters of entire string
   return alt.slice(0, 2).toUpperCase();
 }
@@ -81,7 +81,7 @@ export function getAvatarSizeConfig(size: number): {
     96: 'h-24 w-24',
     128: 'h-32 w-32',
   };
-  
+
   return {
     className: sizeMap[size] || 'h-10 w-10',
     style: {

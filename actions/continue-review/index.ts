@@ -44,11 +44,11 @@ async function loadRules(changedFiles: string[]): Promise<Rule[]> {
 
   try {
     const ruleFiles = await glob(`${rulesDir}/*.md`);
-    
+
     for (const ruleFile of ruleFiles) {
       const content = await fs.readFile(ruleFile, 'utf-8');
       const rule = parseRule(ruleFile, content);
-      
+
       if (rule && shouldApplyRule(rule, changedFiles)) {
         rules.push(rule);
       }
@@ -65,7 +65,7 @@ async function loadRules(changedFiles: string[]): Promise<Rule[]> {
  */
 function parseRule(filepath: string, content: string): Rule | null {
   const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
-  
+
   if (!frontmatterMatch) {
     return null;
   }
@@ -100,8 +100,8 @@ function shouldApplyRule(rule: Rule, changedFiles: string[]): boolean {
   }
 
   // Check if any changed file matches the rule's glob pattern
-  const patterns = rule.globs.split(',').map(p => p.trim());
-  
+  const patterns = rule.globs.split(',').map((p) => p.trim());
+
   for (const file of changedFiles) {
     for (const pattern of patterns) {
       if (matchesPattern(file, pattern)) {
@@ -123,7 +123,7 @@ function matchesPattern(filepath: string, pattern: string): boolean {
     .replace(/\*/g, '[^/]*')
     .replace(/\?/g, '.')
     .replace(/\{([^}]+)\}/g, (_, group) => `(${group.split(',').join('|')})`);
-  
+
   const regex = new RegExp(`^${regexPattern}$`);
   return regex.test(filepath);
 }
@@ -135,7 +135,7 @@ async function generateReview(
   context: ReviewContext,
   continueConfig: string,
   continueApiKey: string,
-  githubToken: string,
+  githubToken: string
 ): Promise<string> {
   // Build the review prompt
   let prompt = `You are reviewing a pull request. Please provide constructive feedback.
@@ -163,7 +163,7 @@ Please address the user's specific request while reviewing the code changes belo
   if (context.rules.length > 0) {
     prompt += '\n\nProject Rules to Consider\n';
     prompt += 'The following project-specific rules apply to this review:\n\n';
-    
+
     for (const rule of context.rules) {
       prompt += `### ${rule.description || rule.file}\n`;
       prompt += `${rule.content}\n\n`;
@@ -173,7 +173,7 @@ Please address the user's specific request while reviewing the code changes belo
   // Add code changes (truncate if too large)
   prompt += '\nCode Changes\n';
   let diffContent = '';
-  
+
   for (const file of context.pr.files) {
     if (file.patch) {
       diffContent += `\n=== File: ${file.filename} ===\n${file.patch}\n`;
@@ -217,31 +217,33 @@ Please address the user's specific request while reviewing the code changes belo
     // Allow Bash tool since the review bot needs it to access PR information via gh CLI
     const command = `cn --config ${continueConfig} -p @${tempFile} --allow Bash`;
     core.info(`Executing command: cn --config ${continueConfig} -p @${tempFile} --allow Bash`);
-    
-    const { stdout, stderr } = await new Promise<{stdout: string; stderr: string}>((resolve, reject) => {
-      exec(
-        command,
-        {
-          env: {
-            ...process.env,
-            CONTINUE_API_KEY: continueApiKey,
-            GITHUB_TOKEN: githubToken, // Provide GitHub token for gh CLI
-            GH_TOKEN: githubToken, // gh CLI also looks for GH_TOKEN
+
+    const { stdout, stderr } = await new Promise<{ stdout: string; stderr: string }>(
+      (resolve, reject) => {
+        exec(
+          command,
+          {
+            env: {
+              ...process.env,
+              CONTINUE_API_KEY: continueApiKey,
+              GITHUB_TOKEN: githubToken, // Provide GitHub token for gh CLI
+              GH_TOKEN: githubToken, // gh CLI also looks for GH_TOKEN
+            },
+            timeout: 360000, // 6 minutes
+            maxBuffer: 10 * 1024 * 1024, // 10MB buffer for large responses
           },
-          timeout: 360000, // 6 minutes
-          maxBuffer: 10 * 1024 * 1024, // 10MB buffer for large responses
-        },
-        (error, stdout, stderr) => {
-          if (error) {
-            core.error(`Continue CLI error: ${error.message}`);
-            reject(error);
-          } else {
-            core.info(`Continue CLI completed successfully`);
-            resolve({ stdout, stderr });
+          (error, stdout, stderr) => {
+            if (error) {
+              core.error(`Continue CLI error: ${error.message}`);
+              reject(error);
+            } else {
+              core.info(`Continue CLI completed successfully`);
+              resolve({ stdout, stderr });
+            }
           }
-        }
-      );
-    });
+        );
+      }
+    );
 
     if (stderr) {
       core.warning(`Continue CLI stderr: ${stderr}`);
@@ -252,14 +254,14 @@ Please address the user's specific request while reviewing the code changes belo
 
     // Clean up the response
     let review = stdout.trim();
-    
+
     core.info(`Raw Continue CLI output length: ${stdout.length} characters`);
     core.info(`First 500 chars of output: ${stdout.substring(0, 500)}`);
-    
+
     // Remove ANSI codes
     // eslint-disable-next-line no-control-regex
     review = review.replace(/\x1b\[[0-9;]*m/g, '');
-    
+
     core.info(`Cleaned review length: ${review.length} characters`);
 
     if (!review) {
@@ -274,7 +276,7 @@ Please address the user's specific request while reviewing the code changes belo
     await fs.unlink(tempFile).catch(() => {});
 
     const errorMessage = error instanceof Error ? error.message : String(error);
-    
+
     if (errorMessage.includes('not found') || errorMessage.includes('ENOENT')) {
       return 'Continue CLI is not properly installed. Please ensure @continuedev/cli is installed globally.';
     } else if (errorMessage.includes('config') || errorMessage.includes('assistant')) {
@@ -297,16 +299,16 @@ async function postReview(
   prNumber: number,
   review: string,
   isProgress: boolean = false,
-  updateCommentId?: number,
+  updateCommentId?: number
 ): Promise<number | undefined> {
   const marker = '<!-- continue-agent-review -->';
   const timestamp = new Date().toISOString();
-  
+
   core.info(`Posting review comment to PR #${prNumber} (isProgress: ${isProgress})`);
   core.info(`Review length: ${review.length} characters`);
-  
+
   let body = '';
-  
+
   if (isProgress) {
     body = review;
   } else {
@@ -320,7 +322,7 @@ async function postReview(
     body += review;
     body += `\n\n---\n<!-- ${timestamp} | Powered by Continue (https://continue.dev) -->`;
   }
-  
+
   body = `${marker}\n${body}`;
   core.info(`Comment body length: ${body.length} characters`);
 
@@ -345,24 +347,26 @@ async function postReview(
         issue_number: prNumber,
         per_page: 100,
       });
-      
+
       core.info(`Found ${comments.length} existing comments`);
 
       // Find the most recent comment with our marker
       const continueComments = comments
-        .filter(c => c.body?.includes(marker))
+        .filter((c) => c.body?.includes(marker))
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-      
+
       const existingComment = continueComments[0]; // Most recent Continue review comment
 
       if (existingComment) {
         // Check if the comment is less than 1 hour old
         const commentAge = Date.now() - new Date(existingComment.created_at).getTime();
         const oneHour = 60 * 60 * 1000; // 1 hour in milliseconds
-        
+
         if (commentAge < oneHour) {
           // Update existing comment if it's less than 1 hour old
-          core.info(`Updating existing comment ${existingComment.id} (${Math.round(commentAge / 1000 / 60)} minutes old)`);
+          core.info(
+            `Updating existing comment ${existingComment.id} (${Math.round(commentAge / 1000 / 60)} minutes old)`
+          );
           await octokit.rest.issues.updateComment({
             owner,
             repo,
@@ -373,7 +377,9 @@ async function postReview(
           return existingComment.id;
         } else {
           // Create new comment if the existing one is older than 1 hour
-          core.info(`Existing comment ${existingComment.id} is ${Math.round(commentAge / 1000 / 60)} minutes old, creating new comment for history`);
+          core.info(
+            `Existing comment ${existingComment.id} is ${Math.round(commentAge / 1000 / 60)} minutes old, creating new comment for history`
+          );
           const { data: newComment } = await octokit.rest.issues.createComment({
             owner,
             repo,
@@ -420,10 +426,14 @@ function extractCommand(comment: string): string | undefined {
 async function run(): Promise<void> {
   try {
     // Get inputs - in composite actions, inputs are passed as INPUT_ env vars
-    const githubToken = process.env.INPUT_GITHUB_TOKEN || core.getInput('github-token', { required: true });
-    const continueApiKey = process.env.INPUT_CONTINUE_API_KEY || core.getInput('continue-api-key', { required: true });
-    const continueConfig = process.env.INPUT_CONTINUE_CONFIG || core.getInput('continue-config', { required: true });
-    const continueOrg = process.env.INPUT_CONTINUE_ORG || core.getInput('continue-org', { required: true });
+    const githubToken =
+      process.env.INPUT_GITHUB_TOKEN || core.getInput('github-token', { required: true });
+    const continueApiKey =
+      process.env.INPUT_CONTINUE_API_KEY || core.getInput('continue-api-key', { required: true });
+    const continueConfig =
+      process.env.INPUT_CONTINUE_CONFIG || core.getInput('continue-config', { required: true });
+    const continueOrg =
+      process.env.INPUT_CONTINUE_ORG || core.getInput('continue-org', { required: true });
 
     // Validate inputs
     if (!githubToken) {
@@ -439,7 +449,7 @@ async function run(): Promise<void> {
     // Get context
     const context = github.context;
     const { owner, repo } = context.repo;
-    
+
     core.info(`Repository: ${owner}/${repo}`);
     core.info(`Event: ${context.eventName}`);
     core.info(`Continue Config: ${continueConfig}`);
@@ -447,22 +457,22 @@ async function run(): Promise<void> {
 
     // Determine PR number
     let prNumber: number | undefined;
-    
+
     core.info(`Context payload: ${JSON.stringify(context.payload, null, 2).substring(0, 1000)}`);
-    
+
     if (context.eventName === 'pull_request') {
       prNumber = context.payload.pull_request?.number;
       core.info(`Pull request event, PR number: ${prNumber}`);
     } else if (context.eventName === 'issue_comment') {
       prNumber = context.payload.issue?.number;
       core.info(`Issue comment event, issue number: ${prNumber}`);
-      
+
       // Only process if it's a PR comment with @continue-agent
       if (!context.payload.issue?.pull_request) {
         core.info('Not a pull request comment, skipping');
         return;
       }
-      
+
       const comment = context.payload.comment?.body || '';
       if (!comment.includes('@continue-agent')) {
         core.info('Comment does not mention @continue-agent, skipping');
@@ -471,14 +481,14 @@ async function run(): Promise<void> {
     } else if (context.eventName === 'workflow_dispatch') {
       // For manual workflow dispatch, need to find the PR for this branch
       core.info('Workflow dispatch event - searching for associated PR');
-      
+
       // Initialize GitHub client early to search for PR
       const octokit = await getAuthenticatedOctokit(githubToken, owner, repo);
-      
+
       // Get the current branch name
       const branch = context.ref.replace('refs/heads/', '');
       core.info(`Current branch: ${branch}`);
-      
+
       try {
         // Search for open PRs from this branch
         const { data: prs } = await octokit.rest.pulls.list({
@@ -487,7 +497,7 @@ async function run(): Promise<void> {
           head: `${owner}:${branch}`,
           state: 'open',
         });
-        
+
         if (prs.length > 0) {
           prNumber = prs[0].number;
           core.info(`Found PR #${prNumber} for branch ${branch}`);
@@ -527,7 +537,7 @@ async function run(): Promise<void> {
     });
 
     // Load rules
-    const rules = await loadRules(files.map(f => f.filename));
+    const rules = await loadRules(files.map((f) => f.filename));
     core.info(`Loaded ${rules.length} applicable rules`);
 
     // Extract command from comment if present
@@ -544,7 +554,7 @@ async function run(): Promise<void> {
         title: pr.title,
         body: pr.body || '',
         author: pr.user?.login || 'unknown',
-        files: files.map(f => ({
+        files: files.map((f) => ({
           filename: f.filename,
           patch: f.patch || '',
           additions: f.additions,
@@ -563,19 +573,14 @@ async function run(): Promise<void> {
       owner,
       repo,
       prNumber,
-      '🔄 **Review in progress...**\n\nI\'m analyzing the changes in this pull request. This may take a moment.',
-      true, // isProgress
+      "🔄 **Review in progress...**\n\nI'm analyzing the changes in this pull request. This may take a moment.",
+      true // isProgress
     );
     core.info(`Progress comment ID: ${progressCommentId}`);
 
     // Generate review using Continue
     core.info('Generating review with Continue CLI...');
-    const review = await generateReview(
-      reviewContext,
-      continueConfig,
-      continueApiKey,
-      githubToken,
-    );
+    const review = await generateReview(reviewContext, continueConfig, continueApiKey, githubToken);
     core.info(`Generated review length: ${review.length} characters`);
 
     // Post final review
@@ -587,7 +592,7 @@ async function run(): Promise<void> {
       prNumber,
       review,
       false, // isProgress
-      progressCommentId,
+      progressCommentId
     );
 
     core.info('Review completed successfully');

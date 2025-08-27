@@ -2,16 +2,16 @@
  * Production wrapper for ContributorCard
  * Connects the simple component to real dependencies
  */
-import { useMemo, useContext } from "react"
+import { useMemo, useContext } from 'react';
 import { GitPullRequest, MessageSquare, GitPullRequestDraft, Trophy } from '@/components/ui/icon';
-import { ContributorCardSimple } from "./contributor-card-simple";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
-import { ContributorHoverCard } from "./contributor-hover-card";
-import { RepoStatsContext } from "@/lib/repo-stats-context";
-import { createContributorStats } from "@/lib/contributor-utils";
-import type { MonthlyContributor } from "@/lib/types";
+import { ContributorCardSimple } from './contributor-card-simple';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
+import { ContributorHoverCard } from './contributor-hover-card';
+import { RepoStatsContext } from '@/lib/repo-stats-context';
+import { createContributorStats } from '@/lib/contributor-utils';
+import type { MonthlyContributor } from '@/lib/types';
 
 interface ContributorCardProps {
   contributor: MonthlyContributor;
@@ -49,13 +49,7 @@ export function ContributorCard(props: ContributorCardProps) {
 
   const renderAvatar = ({ src, alt, fallback, className }: any) => (
     <Avatar className={className}>
-      <AvatarImage 
-        src={src}
-        alt={alt}
-        loading="lazy"
-        width={40}
-        height={40}
-      />
+      <AvatarImage src={src} alt={alt} loading="lazy" width={40} height={40} />
       <AvatarFallback>{fallback}</AvatarFallback>
     </Avatar>
   );
@@ -63,17 +57,17 @@ export function ContributorCard(props: ContributorCardProps) {
   const renderTooltip = ({ trigger, content, side, className }: any) => (
     <TooltipProvider>
       <Tooltip>
-        <TooltipTrigger asChild>
-          {trigger}
-        </TooltipTrigger>
+        <TooltipTrigger asChild>{trigger}</TooltipTrigger>
         <TooltipContent side={side} className={className}>
           <div className="space-y-1">
             <div className="font-medium">{content.title}</div>
             <div className="text-xs space-y-1">
               {content.items.map((item: any, index: number) => (
                 <div key={index} className="flex items-center gap-2">
-                  {renderIcon(item.iconName, "h-3 w-3")}
-                  <span>{item.count} {item.label}</span>
+                  {renderIcon(item.iconName, 'h-3 w-3')}
+                  <span>
+                    {item.count} {item.label}
+                  </span>
                 </div>
               ))}
             </div>
@@ -90,9 +84,7 @@ export function ContributorCard(props: ContributorCardProps) {
   );
 
   const renderHoverCard = ({ children }: any) => (
-    <ContributorHoverCard contributor={contributorData}>
-      {children}
-    </ContributorHoverCard>
+    <ContributorHoverCard contributor={contributorData}>{children}</ContributorHoverCard>
   );
 
   return (

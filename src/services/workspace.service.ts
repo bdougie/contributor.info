@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase';
 import {
   validateCreateWorkspace,
   validateUpdateWorkspace,
-  formatValidationErrors
+  formatValidationErrors,
 } from '@/lib/validations/workspace';
 import type {
   Workspace,
@@ -19,7 +19,7 @@ import type {
   AddRepositoryRequest,
   WorkspaceRepository,
   WorkspaceRepositoryWithDetails,
-  WorkspaceRepositoryFilters
+  WorkspaceRepositoryFilters,
 } from '@/types/workspace';
 
 /**
@@ -63,7 +63,7 @@ export class WorkspaceService {
         return {
           success: false,
           error: formatValidationErrors(validation.errors),
-          statusCode: 400
+          statusCode: 400,
         };
       }
 
@@ -78,7 +78,7 @@ export class WorkspaceService {
         return {
           success: false,
           error: 'Failed to check workspace limit',
-          statusCode: 500
+          statusCode: 500,
         };
       }
 
@@ -94,12 +94,12 @@ export class WorkspaceService {
       const workspaceLimit = subscription?.max_workspaces || 1; // Default to free tier
       const maxRepositories = subscription?.max_repos_per_workspace || 4; // Default to free tier (4 repos)
       const tier = subscription?.tier || 'free';
-      
+
       // Define tier limits mapping for clarity
       const tierRetentionDays = {
         enterprise: 365,
         pro: 90,
-        free: 30
+        free: 30,
       };
       const dataRetentionDays = tierRetentionDays[tier as keyof typeof tierRetentionDays] || 30;
 
@@ -107,19 +107,20 @@ export class WorkspaceService {
         return {
           success: false,
           error: `You have reached the limit of ${workspaceLimit} workspaces for your current plan`,
-          statusCode: 403
+          statusCode: 403,
         };
       }
 
       // Generate slug
-      const { data: slugData, error: slugError } = await supabase
-        .rpc('generate_workspace_slug', { workspace_name: data.name });
+      const { data: slugData, error: slugError } = await supabase.rpc('generate_workspace_slug', {
+        workspace_name: data.name,
+      });
 
       if (slugError || !slugData) {
         return {
           success: false,
           error: 'Failed to generate workspace slug',
-          statusCode: 500
+          statusCode: 500,
         };
       }
 
@@ -137,7 +138,7 @@ export class WorkspaceService {
           tier: tier,
           max_repositories: maxRepositories,
           current_repository_count: 0,
-          data_retention_days: dataRetentionDays
+          data_retention_days: dataRetentionDays,
         })
         .select()
         .maybeSingle();
@@ -147,20 +148,18 @@ export class WorkspaceService {
           return {
             success: false,
             error: 'A workspace with this name already exists',
-            statusCode: 409
+            statusCode: 409,
           };
         }
         throw createError;
       }
 
       // Add creator as owner member
-      const { error: memberError } = await supabase
-        .from('workspace_members')
-        .insert({
-          workspace_id: workspace.id,
-          user_id: userId,
-          role: 'owner'
-        });
+      const { error: memberError } = await supabase.from('workspace_members').insert({
+        workspace_id: workspace.id,
+        user_id: userId,
+        role: 'owner',
+      });
 
       if (memberError) {
         // Rollback workspace creation
@@ -171,14 +170,14 @@ export class WorkspaceService {
       return {
         success: true,
         data: workspace,
-        statusCode: 201
+        statusCode: 201,
       };
     } catch (error) {
       console.error('Create workspace error:', error);
       return {
         success: false,
         error: 'Failed to create workspace',
-        statusCode: 500
+        statusCode: 500,
       };
     }
   }
@@ -198,7 +197,7 @@ export class WorkspaceService {
         return {
           success: false,
           error: formatValidationErrors(validation.errors),
-          statusCode: 400
+          statusCode: 400,
         };
       }
 
@@ -214,13 +213,15 @@ export class WorkspaceService {
         return {
           success: false,
           error: 'Insufficient permissions to update workspace',
-          statusCode: 403
+          statusCode: 403,
         };
       }
 
       // Prepare update data
-      const updateData: Partial<Pick<Workspace, 'name' | 'description' | 'visibility' | 'settings' | 'updated_at'>> = {
-        updated_at: new Date().toISOString()
+      const updateData: Partial<
+        Pick<Workspace, 'name' | 'description' | 'visibility' | 'settings' | 'updated_at'>
+      > = {
+        updated_at: new Date().toISOString(),
       };
 
       if (data.name !== undefined) updateData.name = data.name;
@@ -241,7 +242,7 @@ export class WorkspaceService {
           return {
             success: false,
             error: 'Workspace not found',
-            statusCode: 404
+            statusCode: 404,
           };
         }
         throw updateError;
@@ -250,14 +251,14 @@ export class WorkspaceService {
       return {
         success: true,
         data: workspace,
-        statusCode: 200
+        statusCode: 200,
       };
     } catch (error) {
       console.error('Update workspace error:', error);
       return {
         success: false,
         error: 'Failed to update workspace',
-        statusCode: 500
+        statusCode: 500,
       };
     }
   }
@@ -281,7 +282,7 @@ export class WorkspaceService {
         return {
           success: false,
           error: 'Workspace not found',
-          statusCode: 404
+          statusCode: 404,
         };
       }
 
@@ -289,7 +290,7 @@ export class WorkspaceService {
         return {
           success: false,
           error: 'Only workspace owner can delete workspace',
-          statusCode: 403
+          statusCode: 403,
         };
       }
 
@@ -305,14 +306,14 @@ export class WorkspaceService {
 
       return {
         success: true,
-        statusCode: 200
+        statusCode: 200,
       };
     } catch (error) {
       console.error('Delete workspace error:', error);
       return {
         success: false,
         error: 'Failed to delete workspace',
-        statusCode: 500
+        statusCode: 500,
       };
     }
   }
@@ -328,7 +329,8 @@ export class WorkspaceService {
       // Get workspace with member check
       const { data: workspace, error } = await supabase
         .from('workspaces')
-        .select(`
+        .select(
+          `
           *,
           workspace_members!inner(
             user_id,
@@ -342,7 +344,8 @@ export class WorkspaceService {
             display_name,
             avatar_url
           )
-        `)
+        `
+        )
         .eq('id', workspaceId)
         .eq('workspace_members.user_id', userId)
         .maybeSingle();
@@ -352,7 +355,7 @@ export class WorkspaceService {
           return {
             success: false,
             error: 'Workspace not found or access denied',
-            statusCode: 404
+            statusCode: 404,
           };
         }
         throw error;
@@ -363,25 +366,25 @@ export class WorkspaceService {
         repository_count: workspace.repository_count?.[0]?.count || 0,
         member_count: workspace.member_count?.[0]?.count || 0,
         total_stars: 0, // TODO: Calculate from repositories
-        total_contributors: 0 // TODO: Calculate from repositories
+        total_contributors: 0, // TODO: Calculate from repositories
       };
 
       const workspaceWithStats: WorkspaceWithStats = {
         ...workspace,
-        ...stats
+        ...stats,
       };
 
       return {
         success: true,
         data: workspaceWithStats,
-        statusCode: 200
+        statusCode: 200,
       };
     } catch (error) {
       console.error('Get workspace error:', error);
       return {
         success: false,
         error: 'Failed to get workspace',
-        statusCode: 500
+        statusCode: 500,
       };
     }
   }
@@ -400,7 +403,8 @@ export class WorkspaceService {
 
       let query = supabase
         .from('workspaces')
-        .select(`
+        .select(
+          `
           *,
           workspace_members!inner(
             user_id,
@@ -414,7 +418,9 @@ export class WorkspaceService {
             display_name,
             avatar_url
           )
-        `, { count: 'exact' })
+        `,
+          { count: 'exact' }
+        )
         .eq('workspace_members.user_id', userId)
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);
@@ -437,12 +443,12 @@ export class WorkspaceService {
       }
 
       // Transform workspaces with stats
-      const workspacesWithStats: WorkspaceWithStats[] = (workspaces || []).map(w => ({
+      const workspacesWithStats: WorkspaceWithStats[] = (workspaces || []).map((w) => ({
         ...w,
         repository_count: w.repository_count?.[0]?.count || 0,
         member_count: w.member_count?.[0]?.count || 0,
         total_stars: 0, // TODO: Calculate
-        total_contributors: 0 // TODO: Calculate
+        total_contributors: 0, // TODO: Calculate
       }));
 
       return {
@@ -453,17 +459,17 @@ export class WorkspaceService {
             page,
             limit,
             total: count || 0,
-            totalPages: Math.ceil((count || 0) / limit)
-          }
+            totalPages: Math.ceil((count || 0) / limit),
+          },
         },
-        statusCode: 200
+        statusCode: 200,
       };
     } catch (error) {
       console.error('List workspaces error:', error);
       return {
         success: false,
         error: 'Failed to list workspaces',
-        statusCode: 500
+        statusCode: 500,
       };
     }
   }
@@ -490,7 +496,7 @@ export class WorkspaceService {
 
       return {
         hasPermission: requiredRoles.includes(member.role as WorkspaceRole),
-        role: member.role as WorkspaceRole
+        role: member.role as WorkspaceRole,
       };
     } catch (error) {
       console.error('Check permission error:', error);
@@ -508,12 +514,16 @@ export class WorkspaceService {
   ): Promise<ServiceResponse<WorkspaceRepository>> {
     try {
       // Check permissions
-      const permission = await this.checkPermission(workspaceId, userId, ['owner', 'admin', 'editor']);
+      const permission = await this.checkPermission(workspaceId, userId, [
+        'owner',
+        'admin',
+        'editor',
+      ]);
       if (!permission.hasPermission) {
         return {
           success: false,
           error: 'Insufficient permissions to add repositories',
-          statusCode: 403
+          statusCode: 403,
         };
       }
 
@@ -529,7 +539,7 @@ export class WorkspaceService {
         return {
           success: false,
           error: 'Repository already exists in this workspace',
-          statusCode: 409
+          statusCode: 409,
         };
       }
 
@@ -544,7 +554,7 @@ export class WorkspaceService {
         return {
           success: false,
           error: 'Workspace not found',
-          statusCode: 404
+          statusCode: 404,
         };
       }
 
@@ -552,7 +562,7 @@ export class WorkspaceService {
         return {
           success: false,
           error: `Repository limit reached. Maximum ${workspace.max_repositories} repositories allowed.`,
-          statusCode: 403
+          statusCode: 403,
         };
       }
 
@@ -565,7 +575,7 @@ export class WorkspaceService {
           added_by: userId,
           notes: data.notes || null,
           tags: data.tags || [],
-          is_pinned: data.is_pinned || false
+          is_pinned: data.is_pinned || false,
         })
         .select()
         .maybeSingle();
@@ -579,21 +589,21 @@ export class WorkspaceService {
         .from('workspaces')
         .update({
           current_repository_count: workspace.current_repository_count + 1,
-          last_activity_at: new Date().toISOString()
+          last_activity_at: new Date().toISOString(),
         })
         .eq('id', workspaceId);
 
       return {
         success: true,
         data: workspaceRepo,
-        statusCode: 201
+        statusCode: 201,
       };
     } catch (error) {
       console.error('Add repository to workspace error:', error);
       return {
         success: false,
         error: 'Failed to add repository to workspace',
-        statusCode: 500
+        statusCode: 500,
       };
     }
   }
@@ -608,12 +618,16 @@ export class WorkspaceService {
   ): Promise<ServiceResponse<void>> {
     try {
       // Check permissions
-      const permission = await this.checkPermission(workspaceId, userId, ['owner', 'admin', 'editor']);
+      const permission = await this.checkPermission(workspaceId, userId, [
+        'owner',
+        'admin',
+        'editor',
+      ]);
       if (!permission.hasPermission) {
         return {
           success: false,
           error: 'Insufficient permissions to remove repositories',
-          statusCode: 403
+          statusCode: 403,
         };
       }
 
@@ -640,21 +654,21 @@ export class WorkspaceService {
           .from('workspaces')
           .update({
             current_repository_count: workspace.current_repository_count - 1,
-            last_activity_at: new Date().toISOString()
+            last_activity_at: new Date().toISOString(),
           })
           .eq('id', workspaceId);
       }
 
       return {
         success: true,
-        statusCode: 200
+        statusCode: 200,
       };
     } catch (error) {
       console.error('Remove repository from workspace error:', error);
       return {
         success: false,
         error: 'Failed to remove repository from workspace',
-        statusCode: 500
+        statusCode: 500,
       };
     }
   }
@@ -674,12 +688,16 @@ export class WorkspaceService {
   ): Promise<ServiceResponse<WorkspaceRepository>> {
     try {
       // Check permissions
-      const permission = await this.checkPermission(workspaceId, userId, ['owner', 'admin', 'editor']);
+      const permission = await this.checkPermission(workspaceId, userId, [
+        'owner',
+        'admin',
+        'editor',
+      ]);
       if (!permission.hasPermission) {
         return {
           success: false,
           error: 'Insufficient permissions to update repository settings',
-          statusCode: 403
+          statusCode: 403,
         };
       }
 
@@ -690,7 +708,7 @@ export class WorkspaceService {
           notes: updates.notes,
           tags: updates.tags,
           is_pinned: updates.is_pinned,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('workspace_id', workspaceId)
         .eq('repository_id', repositoryId)
@@ -705,21 +723,21 @@ export class WorkspaceService {
         return {
           success: false,
           error: 'Repository not found in workspace',
-          statusCode: 404
+          statusCode: 404,
         };
       }
 
       return {
         success: true,
         data,
-        statusCode: 200
+        statusCode: 200,
       };
     } catch (error) {
       console.error('Update workspace repository error:', error);
       return {
         success: false,
         error: 'Failed to update repository settings',
-        statusCode: 500
+        statusCode: 500,
       };
     }
   }
@@ -734,12 +752,17 @@ export class WorkspaceService {
   ): Promise<ServiceResponse<PaginatedResponse<WorkspaceRepositoryWithDetails>>> {
     try {
       // Check permissions
-      const permission = await this.checkPermission(workspaceId, userId, ['owner', 'admin', 'editor', 'viewer']);
+      const permission = await this.checkPermission(workspaceId, userId, [
+        'owner',
+        'admin',
+        'editor',
+        'viewer',
+      ]);
       if (!permission.hasPermission) {
         return {
           success: false,
           error: 'Insufficient permissions to view repositories',
-          statusCode: 403
+          statusCode: 403,
         };
       }
 
@@ -749,7 +772,8 @@ export class WorkspaceService {
 
       let query = supabase
         .from('workspace_repositories')
-        .select(`
+        .select(
+          `
           *,
           repository:repositories!workspace_repositories_repository_id_fkey(
             id,
@@ -770,7 +794,9 @@ export class WorkspaceService {
             email,
             display_name
           )
-        `, { count: 'exact' })
+        `,
+          { count: 'exact' }
+        )
         .eq('workspace_id', workspaceId);
 
       // Apply filters
@@ -784,13 +810,15 @@ export class WorkspaceService {
 
       if (filters?.search) {
         // Note: This searches in the joined repository data
-        query = query.or(`repository.full_name.ilike.%${filters.search}%,repository.description.ilike.%${filters.search}%`);
+        query = query.or(
+          `repository.full_name.ilike.%${filters.search}%,repository.description.ilike.%${filters.search}%`
+        );
       }
 
       // Apply sorting
       const sortBy = filters?.sort_by || 'added_at';
       const sortOrder = filters?.sort_order || 'desc';
-      
+
       if (sortBy === 'added_at') {
         query = query.order('added_at', { ascending: sortOrder === 'asc' });
       } else if (sortBy === 'name') {
@@ -814,17 +842,17 @@ export class WorkspaceService {
             page,
             limit,
             total: count || 0,
-            totalPages: Math.ceil((count || 0) / limit)
-          }
+            totalPages: Math.ceil((count || 0) / limit),
+          },
         },
-        statusCode: 200
+        statusCode: 200,
       };
     } catch (error) {
       console.error('List workspace repositories error:', error);
       return {
         success: false,
         error: 'Failed to list workspace repositories',
-        statusCode: 500
+        statusCode: 500,
       };
     }
   }

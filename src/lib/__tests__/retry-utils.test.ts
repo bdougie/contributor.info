@@ -4,10 +4,10 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { 
+import {
   resetCircuitBreaker,
   getCircuitBreakerState,
-  clearAllCircuitBreakers
+  clearAllCircuitBreakers,
 } from '../retry-utils';
 
 describe('retry-utils', () => {
@@ -32,10 +32,10 @@ describe('retry-utils', () => {
       resetCircuitBreaker('circuit1');
       resetCircuitBreaker('circuit2');
       clearAllCircuitBreakers();
-      
+
       const state1 = getCircuitBreakerState('circuit1');
       const state2 = getCircuitBreakerState('circuit2');
-      
+
       expect(state1).toBe(null);
       expect(state2).toBe(null);
     });

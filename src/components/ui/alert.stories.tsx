@@ -45,9 +45,7 @@ export const Default: Story = {
         <path d="m12 17 .01 0" />
       </svg>
       <AlertTitle>Heads up!</AlertTitle>
-      <AlertDescription>
-        You can add components to your app using the cli.
-      </AlertDescription>
+      <AlertDescription>You can add components to your app using the cli.</AlertDescription>
     </Alert>
   ),
 };
@@ -72,9 +70,7 @@ export const Destructive: Story = {
         <path d="m9 9 6 6" />
       </svg>
       <AlertTitle>Error</AlertTitle>
-      <AlertDescription>
-        Your session has expired. Please log in again.
-      </AlertDescription>
+      <AlertDescription>Your session has expired. Please log in again.</AlertDescription>
     </Alert>
   ),
 };
@@ -98,9 +94,7 @@ export const Success: Story = {
         <path d="m9 12 2 2 4-4" />
       </svg>
       <AlertTitle>Success!</AlertTitle>
-      <AlertDescription>
-        Your account has been created successfully.
-      </AlertDescription>
+      <AlertDescription>Your account has been created successfully.</AlertDescription>
     </Alert>
   ),
 };
@@ -162,9 +156,7 @@ export const Warning: Story = {
 export const SimpleMessage: Story = {
   render: () => (
     <Alert>
-      <AlertDescription>
-        This is a simple alert message without a title or icon.
-      </AlertDescription>
+      <AlertDescription>This is a simple alert message without a title or icon.</AlertDescription>
     </Alert>
   ),
 };
@@ -190,10 +182,11 @@ export const LongContent: Story = {
       </svg>
       <AlertTitle>System Maintenance</AlertTitle>
       <AlertDescription>
-        We will be performing scheduled maintenance on our servers from 2:00 AM to 4:00 AM UTC on Sunday, December 15th. 
-        During this time, the service may be temporarily unavailable. We apologize for any inconvenience this may cause. 
-        All data will be preserved and no action is required from your end. If you experience any issues after the maintenance window, 
-        please contact our support team.
+        We will be performing scheduled maintenance on our servers from 2:00 AM to 4:00 AM UTC on
+        Sunday, December 15th. During this time, the service may be temporarily unavailable. We
+        apologize for any inconvenience this may cause. All data will be preserved and no action is
+        required from your end. If you experience any issues after the maintenance window, please
+        contact our support team.
       </AlertDescription>
     </Alert>
   ),

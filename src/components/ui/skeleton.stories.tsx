@@ -145,7 +145,7 @@ export const UserProfile: Story = {
           <Skeleton className="h-3 w-[150px]" />
         </div>
       </div>
-      
+
       <div className="space-y-3">
         <Skeleton className="h-5 w-[100px]" />
         <div className="space-y-2">
@@ -154,7 +154,7 @@ export const UserProfile: Story = {
           <Skeleton className="h-3 w-[80%]" />
         </div>
       </div>
-      
+
       <div className="flex space-x-2">
         <Skeleton className="h-9 w-[80px]" />
         <Skeleton className="h-9 w-[100px]" />

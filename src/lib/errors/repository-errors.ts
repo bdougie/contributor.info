@@ -28,7 +28,13 @@ export class NoDataAvailableError extends Error {
 
 export interface DataResult<T> {
   data: T;
-  status: 'success' | 'large_repository_protected' | 'no_data' | 'error' | 'partial_data' | 'pending';
+  status:
+    | 'success'
+    | 'large_repository_protected'
+    | 'no_data'
+    | 'error'
+    | 'partial_data'
+    | 'pending';
   message?: string;
   repositoryName?: string;
   metadata?: Record<string, any>;
@@ -38,14 +44,14 @@ export interface DataResult<T> {
  * Creates a protected result for large repositories
  */
 export function createLargeRepositoryResult<T>(
-  repositoryName: string, 
+  repositoryName: string,
   fallbackData: T
 ): DataResult<T> {
   return {
     data: fallbackData,
     status: 'large_repository_protected',
     message: `This repository (${repositoryName}) is protected from resource-intensive operations. Progressive data capture is recommended for complete analysis.`,
-    repositoryName
+    repositoryName,
   };
 }
 
@@ -56,22 +62,19 @@ export function createSuccessResult<T>(data: T, metadata?: Record<string, any>):
   return {
     data,
     status: 'success',
-    metadata
+    metadata,
   };
 }
 
 /**
  * Creates a no data result
  */
-export function createNoDataResult<T>(
-  repositoryName: string, 
-  fallbackData: T
-): DataResult<T> {
+export function createNoDataResult<T>(repositoryName: string, fallbackData: T): DataResult<T> {
   return {
     data: fallbackData,
     status: 'no_data',
     message: `No recent data found for ${repositoryName}. Try using progressive data capture to populate the database.`,
-    repositoryName
+    repositoryName,
   };
 }
 
@@ -87,7 +90,7 @@ export function createPartialDataResult<T>(
     data: partialData,
     status: 'partial_data',
     message: reason,
-    repositoryName
+    repositoryName,
   };
 }
 
@@ -102,7 +105,8 @@ export function createPendingDataResult<T>(
   return {
     data: fallbackData,
     status: 'pending',
-    message: message || `Data for ${repositoryName} is being gathered. Please check back in a moment.`,
-    repositoryName
+    message:
+      message || `Data for ${repositoryName} is being gathered. Please check back in a moment.`,
+    repositoryName,
   };
 }
