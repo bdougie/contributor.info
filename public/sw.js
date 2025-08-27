@@ -1,6 +1,6 @@
 // Enhanced Service Worker for contributor.info PWA
-// Version 2.2.0 - Added offline mode support
-const CACHE_VERSION = '2.2.0';
+// Version 2.2.1 - Fixed 206 partial content caching issue
+const CACHE_VERSION = '2.2.1';
 const CACHE_NAME = `contributor-info-v${CACHE_VERSION}`;
 const STATIC_CACHE = `static-v${CACHE_VERSION}`;
 const API_CACHE = `api-v${CACHE_VERSION}`;
@@ -168,7 +168,8 @@ async function handleSupabaseRequest(request, cacheName) {
     // Try network first
     const networkResponse = await fetch(request);
     
-    if (networkResponse.ok) {
+    // Only cache successful responses that are NOT partial content (206)
+    if (networkResponse.ok && networkResponse.status !== 206) {
       // Cache successful responses
       const cache = await caches.open(cacheName);
       const responseClone = networkResponse.clone();
@@ -183,10 +184,16 @@ async function handleSupabaseRequest(request, cacheName) {
         headers
       });
       
-      await cache.put(request, modifiedResponse);
-      
-      // Limit cache size
-      await limitCacheSize(cacheName, CACHE_CONFIG.MAX_ENTRIES.API);
+      try {
+        await cache.put(request, modifiedResponse);
+        // Limit cache size
+        await limitCacheSize(cacheName, CACHE_CONFIG.MAX_ENTRIES.API);
+      } catch (cacheError) {
+        // Log but don't throw - caching is a nice-to-have, not critical
+        console.warn('[SW] Could not cache Supabase response:', cacheError.message);
+      }
+    } else if (networkResponse.status === 206) {
+      console.log('[SW] Skipping cache for partial content (206) response:', request.url);
     }
     
     return networkResponse;
