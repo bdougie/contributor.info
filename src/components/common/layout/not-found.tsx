@@ -65,7 +65,11 @@ export default function NotFound() {
     }
   );
 
-  // Load repository data from Supabase
+  /**
+   * Loads popular and recently accessed repositories from the database
+   * to display as suggestions to the user on the 404 page.
+   * Falls back to hardcoded examples if database query fails.
+   */
   const loadRepositoryData = useCallback(async () => {
     try {
       // Get popular repositories (by stars)
@@ -138,7 +142,11 @@ export default function NotFound() {
     }
   }, []);
 
-  // Generate URL suggestions based on current path
+  /**
+   * Generates URL suggestions based on the current 404 path.
+   * Provides context-aware suggestions depending on whether the path
+   * looks like a repository URL or some other path.
+   */
   const generateUrlSuggestions = useCallback(() => {
     const currentPath = location.pathname;
     const suggestions: SuggestedUrl[] = [];
@@ -160,7 +168,11 @@ export default function NotFound() {
     setSuggestedUrls(suggestions);
   }, [location.pathname]);
 
-  // Track 404 occurrence (placeholder for analytics)
+  /**
+   * Tracks 404 page occurrences for analytics purposes.
+   * Logs the path, timestamp, and user agent to the console.
+   * In production, this would send data to an analytics service.
+   */
   const track404Occurrence = useCallback(() => {
     // In a real implementation, you would send this to your analytics service
     console.log('404 tracked:', {

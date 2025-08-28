@@ -105,6 +105,11 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
     }
   };
 
+  /**
+   * Loads trend metrics and PR activity metrics for the repository.
+   * Fetches data in parallel and updates component state.
+   * Handles errors gracefully by resetting state on failure.
+   */
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
@@ -132,7 +137,14 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
     }
   }, [owner, repo, timeRange]);
 
-  // Check if metrics suggest missing data or have special status
+  /**
+   * Evaluates the quality of repository metrics data.
+   * Checks for protected repositories, missing data, or suspiciously low engagement.
+   * Used to determine whether to show data refresh prompts to users.
+   * @param {ActivityMetrics | null} metrics - The activity metrics to evaluate
+   * @param {TrendData[]} trends - The trend data to check for engagement
+   * @returns {boolean} True if data quality is low or missing
+   */
   const hasLowDataQuality = useCallback(
     (metrics: ActivityMetrics | null, trends: TrendData[]) => {
       if (!metrics) return true;

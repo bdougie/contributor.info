@@ -26,6 +26,11 @@ export function DocDetail() {
     return docSlug === slug;
   });
 
+  /**
+   * Loads documentation content from the file system.
+   * Fetches the markdown content for the current doc page and updates state.
+   * Handles errors by setting an appropriate error message.
+   */
   const loadDocContent = useCallback(async () => {
     if (!docMeta) return;
 
