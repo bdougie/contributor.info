@@ -90,7 +90,7 @@ function calculateHealthMetricsFromStats(stats: RepoStats, timeRange: string): H
 
   // 3. Review Coverage Factor
   const reviewedPRs = pullRequests.filter(
-    (pr: PullRequest) => pr.reviews && pr.reviews.length > 0
+    (pr: PullRequest) => (pr.requested_reviewers && pr.requested_reviewers.length > 0) || (pr.reviews && pr.reviews.length > 0)
   );
   const reviewCoverage = totalPRs > 0 ? (reviewedPRs.length / totalPRs) * 100 : 0;
 

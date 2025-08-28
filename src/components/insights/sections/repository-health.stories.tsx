@@ -98,17 +98,18 @@ const MockRepositoryHealth = ({
     },
   };
 
-  const data =
-    variant === 'low-confidence'
-      ? {
-          ...healthData.warning,
-          confidence: 35,
-          insight:
-            'Based on limited data, your repository appears to have mixed health indicators.',
-        }
-      : variant === 'llm-unavailable'
-        ? healthData.excellent
-        : healthData[variant as keyof typeof healthData] || healthData.excellent;
+  let data;
+  if (variant === 'low-confidence') {
+    data = {
+      ...healthData.warning,
+      confidence: 35,
+      insight: 'Based on limited data, your repository appears to have mixed health indicators.',
+    };
+  } else if (variant === 'llm-unavailable') {
+    data = healthData.excellent;
+  } else {
+    data = healthData[variant as keyof typeof healthData] || healthData.excellent;
+  }
 
   const showLLM = variant !== 'llm-unavailable';
 
@@ -133,7 +134,7 @@ const MockRepositoryHealth = ({
       {/* Health Factors */}
       <div className="space-y-3 mb-6">
         <h4 className="font-medium">Health Factors</h4>
-        {data.factors.map((factor: { name: string; score: number; status: string; description: string }, index: number) => (
+        {data.factors.map((factor: { name: string; score: number; status: 'excellent' | 'good' | 'warning' | 'critical'; description: string }, index: number) => (
           <div key={index} className="flex items-center justify-between">
             <span className="text-sm">{factor.name}</span>
             <div className="flex items-center gap-2">
