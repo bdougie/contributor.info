@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-// Start Supabase locally without auto-running migrations by temporarily moving
-// the supabase/migrations directory out of the way, then restoring it.
+// Start Supabase locally without auto-running migrations and seed by temporarily moving
+// the supabase/migrations directory and seed.sql out of the way, then restoring them.
 //
 // Notes:
 // - ESM module (package.json has "type": "module")
@@ -80,8 +80,48 @@ function restoreMigrations() {
   }
 }
 
+function temporarilyMoveSeed() {
+  const seedPath = path.join(ROOT, 'supabase', 'seed.sql');
+  const tempSeedPath = path.join(ROOT, 'supabase', 'seed.sql.temp');
+
+  if (fs.existsSync(seedPath)) {
+    log('📦 Temporarily moving seed.sql to prevent auto-seeding...', colors.yellow);
+
+    // Remove any stale temp file
+    if (fs.existsSync(tempSeedPath)) {
+      fs.rmSync(tempSeedPath, { force: true });
+    }
+
+    // Move the real seed aside and place a no-op seed file
+    fs.renameSync(seedPath, tempSeedPath);
+    fs.writeFileSync(seedPath, '-- no-op seed for local start\nSELECT 1;\n');
+    return true;
+  }
+  return false;
+}
+
+function restoreSeed() {
+  const seedPath = path.join(ROOT, 'supabase', 'seed.sql');
+  const tempSeedPath = path.join(ROOT, 'supabase', 'seed.sql.temp');
+
+  if (fs.existsSync(tempSeedPath)) {
+    log('📦 Restoring seed.sql...', colors.yellow);
+
+    // Remove placeholder if it exists
+    if (fs.existsSync(seedPath)) {
+      try {
+        fs.rmSync(seedPath, { force: true });
+      } catch (_) {
+        /* ignore */
+      }
+    }
+
+    fs.renameSync(tempSeedPath, seedPath);
+  }
+}
+
 function startSupabase() {
-  log('🚀 Starting Supabase without auto-migrations...', colors.cyan);
+  log('🚀 Starting Supabase without auto-migrations and auto-seed...', colors.cyan);
 
   return new Promise((resolve, reject) => {
     const supabaseProcess = spawn('npx', ['supabase', 'start'], {
@@ -109,18 +149,25 @@ async function main() {
     }
 
     const moved = temporarilyMoveMigrations();
+    const seedMoved = temporarilyMoveSeed();
 
     try {
       await startSupabase();
       log('✅ Supabase started!', colors.green);
       log('📝 Next: bash supabase/migrations-local/setup-local.sh', colors.cyan);
     } finally {
+      if (seedMoved) restoreSeed();
       if (moved) restoreMigrations();
     }
   } catch (error) {
     const message = error && error.message ? error.message : String(error);
     log('❌ Error: ' + message, colors.red);
-    // Attempt to restore migrations before exiting
+    // Attempt to restore seed and migrations before exiting
+    try {
+      restoreSeed();
+    } catch (_) {
+      /* ignore */
+    }
     try {
       restoreMigrations();
     } catch (_) {
@@ -131,6 +178,11 @@ async function main() {
 }
 
 process.on('SIGINT', () => {
+  try {
+    restoreSeed();
+  } catch (_) {
+    /* ignore */
+  }
   try {
     restoreMigrations();
   } catch (_) {
