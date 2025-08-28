@@ -7,6 +7,7 @@ import { Textarea } from './textarea';
 import { Label } from './label';
 import { Button } from './button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from './card';
+import { getPercentageBgColor } from '@/lib/utils/threshold-styling';
 
 const meta = {
   title: 'UI/Forms/Textarea',
@@ -260,9 +261,7 @@ export const WithCharacterCount: Story = {
           <div className="flex justify-between items-center">
             <div className="h-1 flex-1 bg-gray-200 rounded mr-3">
               <div
-                className={`h-full rounded transition-all ${
-                  percentage > 90 ? 'bg-red-500' : percentage > 75 ? 'bg-amber-500' : 'bg-green-500'
-                }`}
+                className={`h-full rounded transition-all ${getPercentageBgColor(percentage)}`}
                 style={{ width: `${Math.min(percentage, 100)}%` }}
               />
             </div>

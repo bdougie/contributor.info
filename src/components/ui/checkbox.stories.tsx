@@ -7,6 +7,7 @@ import { Checkbox } from './checkbox';
 import { Label } from './label';
 import { Button } from './button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './card';
+import { getCheckboxState } from '@/lib/utils/ui-state';
 
 const meta = {
   title: 'UI/Forms/Checkbox',
@@ -359,7 +360,7 @@ export const SelectAllPattern: Story = {
             <div className="flex items-center space-x-2 pb-2 border-b">
               <Checkbox
                 id="select-all"
-                checked={allChecked ? true : indeterminate ? 'indeterminate' : false}
+                checked={getCheckboxState(allChecked, indeterminate)}
                 onCheckedChange={handleSelectAll}
               />
               <Label htmlFor="select-all" className="font-medium">
