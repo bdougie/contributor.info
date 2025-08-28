@@ -60,18 +60,34 @@ import type {
 } from '@/components/features/workspace';
 import type { Workspace } from '@/types/workspace';
 import { WorkspaceService } from '@/services/workspace.service';
-import { AnalyticsDashboard } from '@/components/features/workspace/AnalyticsDashboard';
+// Analytics imports disabled - will be implemented in issue #598
+// import { AnalyticsDashboard } from '@/components/features/workspace/AnalyticsDashboard';
 import { ActivityTable } from '@/components/features/workspace/ActivityTable';
 import { TrendChart } from '@/components/features/workspace/TrendChart';
 import { ContributorLeaderboard } from '@/components/features/workspace/ContributorLeaderboard';
-import { WorkspaceExportService } from '@/services/workspace-export.service';
-import type {
-  AnalyticsData,
-  ActivityItem,
-  ContributorStat,
-  RepositoryMetric,
-  TrendDataset,
-} from '@/components/features/workspace/AnalyticsDashboard';
+// import { WorkspaceExportService } from '@/services/workspace-export.service';
+// import type {
+//   AnalyticsData,
+//   ActivityItem,
+//   ContributorStat,
+//   RepositoryMetric,
+//   TrendDataset,
+// } from '@/components/features/workspace/AnalyticsDashboard';
+
+// Temporary type definition for ActivityItem until analytics is properly implemented in issue #598
+interface ActivityItem {
+  id: string;
+  type: 'pr' | 'issue' | 'commit' | 'review';
+  title: string;
+  author: {
+    username: string;
+    avatar_url: string;
+  };
+  repository: string;
+  created_at: string;
+  status: 'open' | 'merged' | 'closed' | 'approved';
+  url: string;
+}
 
 interface WorkspaceRepository {
   id: string;
@@ -1871,6 +1887,8 @@ export default function WorkspacePage() {
     toast.info('Upgrade to Pro coming soon!');
   };
 
+  // Analytics functions disabled - will be implemented in issue #598
+  /*
   // Generate analytics data from existing workspace data
   const generateAnalyticsData = (): AnalyticsData => {
     // Get current pull requests and issues from the workspace tabs
@@ -2011,6 +2029,7 @@ export default function WorkspacePage() {
       toast.error(`Failed to export analytics: ${error}`);
     }
   };
+  */
 
   return (
     <div className="min-h-screen">
@@ -2075,10 +2094,11 @@ export default function WorkspacePage() {
                 <Users className="h-4 w-4" />
                 <span className="hidden sm:inline">Contributors</span>
               </TabsTrigger>
+              {/* Analytics tab disabled - will be implemented in issue #598
               <TabsTrigger value="analytics" className="flex items-center gap-2">
                 <TrendingUp className="h-4 w-4" />
                 <span className="hidden sm:inline">Analytics</span>
-              </TabsTrigger>
+              </TabsTrigger> */}
               <TabsTrigger value="activity" className="flex items-center gap-2">
                 <Activity className="h-4 w-4" />
                 <span className="hidden sm:inline">Activity</span>
@@ -2129,6 +2149,7 @@ export default function WorkspacePage() {
             />
           </TabsContent>
 
+          {/* Analytics tab content disabled - will be implemented in issue #598
           <TabsContent value="analytics" className="mt-6">
             <div className="container max-w-7xl mx-auto">
               <AnalyticsDashboard
@@ -2167,7 +2188,7 @@ export default function WorkspacePage() {
                 onExport={handleAnalyticsExport}
               />
             </div>
-          </TabsContent>
+          </TabsContent> */}
 
           <TabsContent value="activity" className="mt-6">
             <div className="container max-w-7xl mx-auto">
