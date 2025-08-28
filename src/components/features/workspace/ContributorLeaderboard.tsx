@@ -12,15 +12,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
-  Trophy,
   TrendingUp,
   TrendingDown,
   GitPullRequest,
   GitCommit,
   MessageSquare,
   AlertCircle,
-  Star,
-  Crown,
   Users,
 } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
@@ -38,15 +35,9 @@ export interface ContributorLeaderboardProps {
 type SortBy = 'contributions' | 'pull_requests' | 'commits' | 'reviews' | 'issues';
 
 const RANK_COLORS = {
-  1: 'text-yellow-600 dark:text-yellow-400',
-  2: 'text-gray-500 dark:text-gray-400',
-  3: 'text-orange-600 dark:text-orange-400',
-};
-
-const RANK_ICONS = {
-  1: Trophy,
-  2: Star,
-  3: Crown,
+  1: 'bg-gradient-to-r from-yellow-500 to-amber-500 text-white',
+  2: 'bg-muted text-muted-foreground',
+  3: 'bg-muted text-muted-foreground',
 };
 
 export function ContributorLeaderboard({
@@ -57,6 +48,17 @@ export function ContributorLeaderboard({
 }: ContributorLeaderboardProps) {
   const [sortBy, setSortBy] = useState<SortBy>('contributions');
   const [showAll, setShowAll] = useState(false);
+
+  // Calculate activity score (similar to monthly leaderboard)
+  const calculateScore = (contributor: ContributorStat) => {
+    // Weight: PRs (40%), Reviews (30%), Commits (20%), Issues (10%)
+    return Math.round(
+      contributor.pull_requests * 40 +
+        contributor.reviews * 30 +
+        contributor.commits * 2 +
+        contributor.issues * 10
+    );
+  };
 
   // Sort and rank contributors
   const rankedContributors = useMemo(() => {
@@ -77,10 +79,11 @@ export function ContributorLeaderboard({
       }
     });
 
-    // Add rank
+    // Add rank and score
     return sorted.map((contributor, index) => ({
       ...contributor,
       rank: index + 1,
+      score: calculateScore(contributor),
     }));
   }, [contributors, sortBy]);
 
@@ -181,13 +184,19 @@ export function ContributorLeaderboard({
       {/* Top 3 Contributors */}
       <div className="grid gap-4 md:grid-cols-3">
         {rankedContributors.slice(0, 3).map((contributor) => {
-          const RankIcon = RANK_ICONS[contributor.rank as keyof typeof RANK_ICONS];
-          const rankColor = RANK_COLORS[contributor.rank as keyof typeof RANK_COLORS];
+          const rankStyle = RANK_COLORS[contributor.rank as keyof typeof RANK_COLORS];
 
           return (
             <Card key={contributor.id} className="relative overflow-hidden">
               <div className="absolute top-2 right-2">
-                {RankIcon && <RankIcon className={cn('h-6 w-6', rankColor)} />}
+                <div
+                  className={cn(
+                    'h-8 w-8 rounded-full flex items-center justify-center text-sm font-bold',
+                    rankStyle || 'bg-muted text-muted-foreground'
+                  )}
+                >
+                  {contributor.rank}
+                </div>
               </div>
               <CardHeader className="pb-4">
                 <div className="flex items-center gap-3">
@@ -225,7 +234,7 @@ export function ContributorLeaderboard({
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-2">
+              <CardContent className="relative space-y-2">
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div className="flex items-center gap-1">
                     <GitPullRequest className="h-3.5 w-3.5 text-muted-foreground" />
@@ -242,6 +251,13 @@ export function ContributorLeaderboard({
                   <div className="flex items-center gap-1">
                     <AlertCircle className="h-3.5 w-3.5 text-muted-foreground" />
                     <span>{contributor.issues} Issues</span>
+                  </div>
+                </div>
+                {/* Activity Score Badge */}
+                <div className="absolute bottom-2 right-2">
+                  <div className="text-xs text-muted-foreground">
+                    Score:{' '}
+                    <span className="font-semibold text-foreground">{contributor.score}</span>
                   </div>
                 </div>
               </CardContent>
@@ -263,17 +279,17 @@ export function ContributorLeaderboard({
             >
               <div className="flex items-center gap-3">
                 {/* Rank */}
-                <div className="w-8 text-center">
-                  <span
+                <div className="w-8 flex justify-center">
+                  <div
                     className={cn(
-                      'font-semibold text-sm',
-                      contributor.rank <= 3
-                        ? RANK_COLORS[contributor.rank as keyof typeof RANK_COLORS]
-                        : 'text-muted-foreground'
+                      'h-6 w-6 rounded-full flex items-center justify-center text-xs font-semibold',
+                      contributor.rank === 1
+                        ? 'bg-gradient-to-r from-yellow-500 to-amber-500 text-white'
+                        : 'bg-muted text-muted-foreground'
                     )}
                   >
-                    #{contributor.rank}
-                  </span>
+                    {contributor.rank}
+                  </div>
                 </div>
 
                 {/* Avatar and Name */}
@@ -300,22 +316,27 @@ export function ContributorLeaderboard({
                     className="h-2"
                   />
                 </div>
-                <div className="w-20 text-right">
-                  <span className="text-sm font-semibold">{contributor.contributions}</span>
-                  {contributor.trend !== undefined && contributor.trend !== 0 && (
-                    <Badge
-                      variant="secondary"
-                      className={cn(
-                        'ml-1 text-xs px-1 py-0',
-                        contributor.trend > 0
-                          ? 'bg-green-500/10 text-green-700 dark:text-green-400'
-                          : 'bg-red-500/10 text-red-700 dark:text-red-400'
-                      )}
-                    >
-                      {contributor.trend > 0 ? '+' : ''}
-                      {contributor.trend}%
-                    </Badge>
-                  )}
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    <span className="text-sm font-semibold">{contributor.contributions}</span>
+                    {contributor.trend !== undefined && contributor.trend !== 0 && (
+                      <Badge
+                        variant="secondary"
+                        className={cn(
+                          'ml-1 text-xs px-1 py-0',
+                          contributor.trend > 0
+                            ? 'bg-green-500/10 text-green-700 dark:text-green-400'
+                            : 'bg-red-500/10 text-red-700 dark:text-red-400'
+                        )}
+                      >
+                        {contributor.trend > 0 ? '+' : ''}
+                        {contributor.trend}%
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="text-xs text-muted-foreground border-l pl-3">
+                    Score: <span className="font-semibold">{contributor.score}</span>
+                  </div>
                 </div>
               </div>
             </div>
