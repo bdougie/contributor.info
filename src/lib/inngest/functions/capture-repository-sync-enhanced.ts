@@ -3,6 +3,7 @@ import { supabase } from '../../supabase';
 import { NonRetriableError } from 'inngest';
 import { getGraphQLClient } from '../graphql-client';
 import { RATE_LIMIT_CONFIG } from '../queue-manager';
+import { getPRState } from '../../utils/state-mapping';
 
 // Constants
 const MAX_PRS_PER_SYNC = 150;
@@ -263,7 +264,7 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
         number: pr.number,
         title: pr.title,
         body: null, // Basic PR list doesn't include body
-        state: pr.state?.toLowerCase() === 'open' ? 'open' : pr.merged ? 'merged' : 'closed',
+        state: getPRState({ state: pr.state || '', merged: pr.merged }),
         author_id: contributorIds[index],
         created_at: pr.createdAt,
         updated_at: pr.updatedAt,

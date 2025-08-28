@@ -3,6 +3,7 @@ import { supabase } from '../../supabase';
 import { GraphQLClient } from '../graphql-client';
 import type { NonRetriableError } from 'inngest';
 import { getThrottleHours, QUEUE_CONFIG } from '../../progressive-capture/throttle-config';
+import { getPRState } from '../../utils/state-mapping';
 
 // Rate limiting constants for GraphQL (more generous)
 const MAX_PRS_PER_SYNC = QUEUE_CONFIG.maxPrsPerSync || 150; // Higher than REST due to efficiency
@@ -280,7 +281,7 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
         number: pr.number,
         title: pr.title,
         body: null, // Basic PR list doesn't include body
-        state: pr.state?.toLowerCase() === 'open' ? 'open' : pr.merged ? 'merged' : 'closed',
+        state: getPRState({ state: pr.state || '', merged: pr.merged }),
         author_id: contributorIds[index], // Now this is a proper UUID
         created_at: pr.createdAt,
         updated_at: pr.updatedAt,

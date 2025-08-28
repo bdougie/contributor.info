@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { expect, within } from '@storybook/test';
+import { getHitRateColor } from '../../lib/utils/score-styling';
 
 // Create a simple mock cache debug component for Storybook
 const MockCacheDebug = ({
@@ -40,8 +41,7 @@ const MockCacheDebug = ({
   };
 
   const data = cacheData[variant as keyof typeof cacheData];
-  const hitRateColor =
-    data.hitRate >= 80 ? 'text-green-600' : data.hitRate >= 60 ? 'text-yellow-600' : 'text-red-600';
+  const hitRateColor = getHitRateColor(data.hitRate);
 
   return (
     <div className="p-4 border rounded-lg bg-card w-fit">
