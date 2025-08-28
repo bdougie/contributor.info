@@ -1685,21 +1685,38 @@ function WorkspaceSettings({ workspace }: { workspace: Workspace }) {
                   </Button>
                 </>
               ) : (
-                <>
-                  <p className="flex-1 text-sm">{workspace.name}</p>
-                  <Button onClick={() => setIsEditingName(true)} size="sm" variant="outline">
-                    Edit
-                  </Button>
-                </>
+                <div
+                  className="flex-1 flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded px-2 py-1 transition-colors"
+                  onClick={() => setIsEditingName(true)}
+                  title="Click to edit"
+                >
+                  <p className="text-sm">{workspace.name}</p>
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="text-muted-foreground"
+                  >
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  </svg>
+                </div>
               )}
             </div>
           </div>
 
           <div>
             <label className="text-sm font-medium text-foreground">Workspace Slug</label>
-            <p className="text-xs text-muted-foreground mt-1">
-              ⚠️ Changing the slug will break all existing external links to this workspace
-            </p>
+            {isEditingSlug && (
+              <p className="text-xs text-muted-foreground mt-1">
+                ⚠️ Changing the slug will break all existing external links to this workspace
+              </p>
+            )}
             <div className="mt-2 flex items-center gap-2">
               {isEditingSlug ? (
                 <>
@@ -1727,12 +1744,29 @@ function WorkspaceSettings({ workspace }: { workspace: Workspace }) {
                   </Button>
                 </>
               ) : (
-                <>
-                  <p className="flex-1 text-sm font-mono">{workspace.slug}</p>
-                  <Button onClick={() => setIsEditingSlug(true)} size="sm" variant="outline">
-                    Edit
-                  </Button>
-                </>
+                <div className="flex-1 flex items-center gap-2">
+                  <div
+                    className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded px-2 py-1 transition-colors flex-1"
+                    onClick={() => setIsEditingSlug(true)}
+                    title="Click to edit"
+                  >
+                    <p className="text-sm font-mono">{workspace.slug}</p>
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="text-muted-foreground"
+                    >
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                    </svg>
+                  </div>
+                </div>
               )}
             </div>
             {slugError && <p className="text-xs text-red-500 mt-2">{slugError}</p>}
