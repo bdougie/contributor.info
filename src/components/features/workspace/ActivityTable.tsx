@@ -1,13 +1,5 @@
 import { useState, useMemo, useRef, useCallback } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -175,7 +167,7 @@ export function ActivityTable({
   }
 
   return (
-    <div className={cn('space-y-4', className)}>
+    <div className={cn('space-y-4 w-full', className)}>
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
@@ -202,11 +194,12 @@ export function ActivityTable({
       </div>
 
       {/* Table with virtualization */}
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>
+      <div className="rounded-md border w-full">
+        {/* Table Header */}
+        <div className="border-b bg-muted/50">
+          <div className="flex items-center px-4 py-3">
+            <div className="flex items-center gap-4 w-full">
+              <div className="flex-shrink-0 w-24">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -216,9 +209,9 @@ export function ActivityTable({
                   Type
                   <SortIcon field="type" />
                 </Button>
-              </TableHead>
-              <TableHead>Activity</TableHead>
-              <TableHead>
+              </div>
+              <div className="flex-1 min-w-0">Activity</div>
+              <div className="flex-shrink-0 w-32">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -228,8 +221,8 @@ export function ActivityTable({
                   Author
                   <SortIcon field="author" />
                 </Button>
-              </TableHead>
-              <TableHead>
+              </div>
+              <div className="flex-shrink-0 min-w-[10rem]">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -239,9 +232,9 @@ export function ActivityTable({
                   Repository
                   <SortIcon field="repository" />
                 </Button>
-              </TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>
+              </div>
+              <div className="flex-shrink-0 w-24">Status</div>
+              <div className="flex-shrink-0 w-32">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -251,223 +244,216 @@ export function ActivityTable({
                   Date
                   <SortIcon field="created_at" />
                 </Button>
-              </TableHead>
-              <TableHead className="w-12"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {paginatedActivities.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                  No activities found
-                </TableCell>
-              </TableRow>
-            ) : (
+              </div>
+              <div className="w-12"></div>
+            </div>
+          </div>
+        </div>
+        {/* Table Body */}
+        <div>
+          {paginatedActivities.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">No activities found</div>
+          ) : (
+            <div
+              ref={parentRef}
+              className="h-[600px] w-full overflow-auto"
+              style={{
+                contain: 'strict',
+                width: '100%',
+              }}
+            >
               <div
-                ref={parentRef}
-                className="h-[600px] overflow-auto"
                 style={{
-                  contain: 'strict',
+                  height: `${virtualizer.getTotalSize()}px`,
+                  width: '100%',
+                  position: 'relative',
                 }}
               >
-                <div
-                  style={{
-                    height: `${virtualizer.getTotalSize()}px`,
-                    width: '100%',
-                    position: 'relative',
-                  }}
-                >
-                  {virtualizer.getVirtualItems().map((virtualItem) => {
-                    const activity = paginatedActivities[virtualItem.index];
-                    const Icon = TYPE_ICONS[activity.type];
+                {virtualizer.getVirtualItems().map((virtualItem) => {
+                  const activity = paginatedActivities[virtualItem.index];
+                  const Icon = TYPE_ICONS[activity.type];
 
-                    return (
-                      <div
-                        key={activity.id}
-                        style={{
-                          position: 'absolute',
-                          top: 0,
-                          left: 0,
-                          width: '100%',
-                          height: `${virtualItem.size}px`,
-                          transform: `translateY(${virtualItem.start}px)`,
-                        }}
-                      >
-                        <div className="flex items-center px-4 py-2 border-b">
-                          <div className="flex items-center gap-8 w-full">
-                            {/* Type */}
-                            <div className="w-24">
+                  return (
+                    <div
+                      key={activity.id}
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: `${virtualItem.size}px`,
+                        transform: `translateY(${virtualItem.start}px)`,
+                      }}
+                    >
+                      <div className="flex items-center px-4 py-2 border-b">
+                        <div className="flex items-center gap-4 w-full">
+                          {/* Type */}
+                          <div className="flex-shrink-0 w-24">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Badge
+                                    variant="secondary"
+                                    className={cn('gap-1 cursor-help', TYPE_COLORS[activity.type])}
+                                  >
+                                    <Icon className="h-3 w-3" />
+                                    {activity.type.toUpperCase()}
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="font-semibold">
+                                    {(() => {
+                                      if (activity.type === 'pr') return 'Pull Request';
+                                      if (activity.type === 'issue') return 'Issue';
+                                      if (activity.type === 'commit') return 'Commit';
+                                      return 'Review';
+                                    })()}
+                                  </p>
+                                  <p className="text-xs">Status: {activity.status}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+
+                          {/* Activity */}
+                          <div className="flex-1 min-w-0">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <p className="text-sm font-medium truncate cursor-help">
+                                    {activity.title}
+                                  </p>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <p className="font-semibold text-sm">{activity.title}</p>
+                                  <p className="text-xs mt-1">Repository: {activity.repository}</p>
+                                  <p className="text-xs">
+                                    Created: {format(parseISO(activity.created_at), 'PPp')}
+                                  </p>
+                                  <p className="text-xs">Click to open in GitHub</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+
+                          {/* Author */}
+                          <div className="flex-shrink-0 w-32 flex items-center gap-2">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="flex items-center gap-2 cursor-help">
+                                    <Avatar className="h-6 w-6">
+                                      <AvatarImage src={activity.author.avatar_url} />
+                                      <AvatarFallback>
+                                        {activity.author.username.slice(0, 2).toUpperCase()}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <span className="text-sm truncate">
+                                      {activity.author.username}
+                                    </span>
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="font-semibold">@{activity.author.username}</p>
+                                  <p className="text-xs">Contributor</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+
+                          {/* Repository */}
+                          <div className="flex-shrink-0 min-w-[10rem]">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <p className="text-sm text-muted-foreground truncate cursor-help">
+                                    {activity.repository}
+                                  </p>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="font-semibold">{activity.repository}</p>
+                                  <p className="text-xs">Click to view repository</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+
+                          {/* Status */}
+                          <div className="flex-shrink-0 w-24">
+                            {activity.status && (
                               <TooltipProvider>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <Badge
                                       variant="secondary"
                                       className={cn(
-                                        'gap-1 cursor-help',
-                                        TYPE_COLORS[activity.type]
+                                        'cursor-help',
+                                        STATUS_COLORS[
+                                          activity.status as keyof typeof STATUS_COLORS
+                                        ] || ''
                                       )}
                                     >
-                                      <Icon className="h-3 w-3" />
-                                      {activity.type.toUpperCase()}
+                                      {activity.status}
                                     </Badge>
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    <p className="font-semibold">
+                                    <p className="font-semibold">Status: {activity.status}</p>
+                                    <p className="text-xs">
                                       {(() => {
-                                        if (activity.type === 'pr') return 'Pull Request';
-                                        if (activity.type === 'issue') return 'Issue';
-                                        if (activity.type === 'commit') return 'Commit';
-                                        return 'Review';
+                                        if (activity.status === 'merged')
+                                          return 'Successfully merged';
+                                        if (activity.status === 'open') return 'Awaiting review';
+                                        if (activity.status === 'closed')
+                                          return 'Closed without merging';
+                                        return 'Review approved';
                                       })()}
                                     </p>
-                                    <p className="text-xs">Status: {activity.status}</p>
                                   </TooltipContent>
                                 </Tooltip>
                               </TooltipProvider>
-                            </div>
+                            )}
+                          </div>
 
-                            {/* Activity */}
-                            <div className="flex-1 min-w-0">
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <p className="text-sm font-medium truncate cursor-help">
-                                      {activity.title}
-                                    </p>
-                                  </TooltipTrigger>
-                                  <TooltipContent className="max-w-xs">
-                                    <p className="font-semibold text-sm">{activity.title}</p>
-                                    <p className="text-xs mt-1">
-                                      Repository: {activity.repository}
-                                    </p>
-                                    <p className="text-xs">
-                                      Created: {format(parseISO(activity.created_at), 'PPp')}
-                                    </p>
-                                    <p className="text-xs">Click to open in GitHub</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </div>
+                          {/* Date */}
+                          <div className="flex-shrink-0 w-32">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <p className="text-sm text-muted-foreground cursor-help">
+                                    {formatDistanceToNow(parseISO(activity.created_at), {
+                                      addSuffix: true,
+                                    })}
+                                  </p>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="font-semibold">Exact time</p>
+                                  <p className="text-xs">
+                                    {format(parseISO(activity.created_at), 'PPpp')}
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
 
-                            {/* Author */}
-                            <div className="w-32 flex items-center gap-2">
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <div className="flex items-center gap-2 cursor-help">
-                                      <Avatar className="h-6 w-6">
-                                        <AvatarImage src={activity.author.avatar_url} />
-                                        <AvatarFallback>
-                                          {activity.author.username.slice(0, 2).toUpperCase()}
-                                        </AvatarFallback>
-                                      </Avatar>
-                                      <span className="text-sm truncate">
-                                        {activity.author.username}
-                                      </span>
-                                    </div>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p className="font-semibold">@{activity.author.username}</p>
-                                    <p className="text-xs">Contributor</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </div>
-
-                            {/* Repository */}
-                            <div className="w-40">
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <p className="text-sm text-muted-foreground truncate cursor-help">
-                                      {activity.repository}
-                                    </p>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p className="font-semibold">{activity.repository}</p>
-                                    <p className="text-xs">Click to view repository</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </div>
-
-                            {/* Status */}
-                            <div className="w-32">
-                              {activity.status && (
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Badge
-                                        variant="secondary"
-                                        className={cn(
-                                          'cursor-help',
-                                          STATUS_COLORS[
-                                            activity.status as keyof typeof STATUS_COLORS
-                                          ] || ''
-                                        )}
-                                      >
-                                        {activity.status}
-                                      </Badge>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p className="font-semibold">Status: {activity.status}</p>
-                                      <p className="text-xs">
-                                        {(() => {
-                                          if (activity.status === 'merged')
-                                            return 'Successfully merged';
-                                          if (activity.status === 'open') return 'Awaiting review';
-                                          if (activity.status === 'closed')
-                                            return 'Closed without merging';
-                                          return 'Review approved';
-                                        })()}
-                                      </p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              )}
-                            </div>
-
-                            {/* Date */}
-                            <div className="w-32">
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <p className="text-sm text-muted-foreground cursor-help">
-                                      {formatDistanceToNow(parseISO(activity.created_at), {
-                                        addSuffix: true,
-                                      })}
-                                    </p>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p className="font-semibold">Exact time</p>
-                                    <p className="text-xs">
-                                      {format(parseISO(activity.created_at), 'PPpp')}
-                                    </p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </div>
-
-                            {/* Link */}
-                            <div className="w-12">
-                              {activity.url && (
-                                <Button variant="ghost" size="sm" asChild>
-                                  <a href={activity.url} target="_blank" rel="noopener noreferrer">
-                                    <ExternalLink className="h-4 w-4" />
-                                  </a>
-                                </Button>
-                              )}
-                            </div>
+                          {/* Link */}
+                          <div className="w-12">
+                            {activity.url && (
+                              <Button variant="ghost" size="sm" asChild>
+                                <a href={activity.url} target="_blank" rel="noopener noreferrer">
+                                  <ExternalLink className="h-4 w-4" />
+                                </a>
+                              </Button>
+                            )}
                           </div>
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
+                    </div>
+                  );
+                })}
               </div>
-            )}
-          </TableBody>
-        </Table>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Pagination */}

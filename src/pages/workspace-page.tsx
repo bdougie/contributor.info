@@ -62,6 +62,7 @@ import type { Workspace } from '@/types/workspace';
 import { WorkspaceService } from '@/services/workspace.service';
 import { AnalyticsDashboard } from '@/components/features/workspace/AnalyticsDashboard';
 import { ActivityTable } from '@/components/features/workspace/ActivityTable';
+import { TrendChart } from '@/components/features/workspace/TrendChart';
 import { WorkspaceExportService } from '@/services/workspace-export.service';
 import type {
   AnalyticsData,
@@ -1333,8 +1334,65 @@ function WorkspaceActivity({ repositories }: { repositories: Repository[] }) {
   // Sort by date, most recent first
   activities.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
+  // Generate trend data for the chart
+  const last30Days = Array.from({ length: 30 }, (_, i) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (29 - i));
+    return date.toISOString().split('T')[0];
+  });
+
+  const activityByDay = last30Days.map((date) => {
+    const dayActivities = activities.filter((a) => a.created_at.split('T')[0] === date);
+    return {
+      date,
+      total: dayActivities.length,
+      prs: dayActivities.filter((a) => a.type === 'pr').length,
+      issues: dayActivities.filter((a) => a.type === 'issue').length,
+      commits: dayActivities.filter((a) => a.type === 'commit').length,
+      reviews: dayActivities.filter((a) => a.type === 'review').length,
+    };
+  });
+
   return (
     <div className="space-y-4">
+      {/* Activity Trend Chart */}
+      <TrendChart
+        title="Activity Trend"
+        description="Daily activity across all workspace repositories"
+        data={{
+          labels: activityByDay.map((d) => {
+            const date = new Date(d.date);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          }),
+          datasets: [
+            {
+              label: 'Pull Requests',
+              data: activityByDay.map((d) => d.prs),
+              color: '#10b981',
+            },
+            {
+              label: 'Issues',
+              data: activityByDay.map((d) => d.issues),
+              color: '#f97316',
+            },
+            {
+              label: 'Commits',
+              data: activityByDay.map((d) => d.commits),
+              color: '#3b82f6',
+            },
+            {
+              label: 'Reviews',
+              data: activityByDay.map((d) => d.reviews),
+              color: '#8b5cf6',
+            },
+          ],
+        }}
+        height={350}
+        showLegend={true}
+        showGrid={true}
+      />
+
+      {/* Activity Feed Table */}
       <Card>
         <CardHeader>
           <CardTitle>Activity Feed</CardTitle>

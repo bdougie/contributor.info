@@ -2,13 +2,18 @@ import { useState, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ActivityTable } from './ActivityTable';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { ContributorLeaderboard } from './ContributorLeaderboard';
 import { RepositoryComparison } from './RepositoryComparison';
 import { TrendChart } from './TrendChart';
 import { TimeRangeSelector, TimeRange } from './TimeRangeSelector';
-import { Download, Filter, BarChart3, Users, GitBranch, TrendingUp } from '@/components/ui/icon';
+import { Download, Filter, BarChart3, Users, GitBranch } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 import type { WorkspaceRepositoryWithDetails } from '@/types/workspace';
 
@@ -97,18 +102,16 @@ const TIER_LIMITS = {
 };
 
 export function AnalyticsDashboard({
-  workspaceId: _workspaceId,
   data,
   repositories = [],
   loading = false,
   tier = 'free',
   onExport,
   className,
-}: AnalyticsDashboardProps) {
+}: Omit<AnalyticsDashboardProps, 'workspaceId'>) {
   const [timeRange, setTimeRange] = useState<TimeRange>('30d');
   const [selectedTab, setSelectedTab] = useState('overview');
   const [selectedRepos, setSelectedRepos] = useState<string[]>([]);
-  const [activityFilter, setActivityFilter] = useState<string>('all');
 
   const tierLimits = TIER_LIMITS[tier];
 
@@ -117,25 +120,17 @@ export function AnalyticsDashboard({
     if (selectedRepos.length === 0) return data;
 
     return {
-      activities: data.activities.filter((a) => 
-        selectedRepos.some(repoId => {
-          const repo = repositories.find(r => r.id === repoId);
+      activities: data.activities.filter((a) =>
+        selectedRepos.some((repoId) => {
+          const repo = repositories.find((r) => r.id === repoId);
           return repo && a.repository === `${repo.repository.owner}/${repo.repository.name}`;
         })
       ),
       contributors: data.contributors,
-      repositories: data.repositories.filter((r) =>
-        selectedRepos.includes(r.id)
-      ),
+      repositories: data.repositories.filter((r) => selectedRepos.includes(r.id)),
       trends: data.trends,
     };
   }, [data, selectedRepos, repositories]);
-
-  // Filter activities based on type
-  const filteredActivities = useMemo(() => {
-    if (activityFilter === 'all') return filteredData.activities;
-    return filteredData.activities.filter((a) => a.type === activityFilter);
-  }, [filteredData.activities, activityFilter]);
 
   const handleExport = (format: 'csv' | 'json' | 'pdf') => {
     if (tierLimits.exportFormats.includes(format)) {
@@ -162,10 +157,7 @@ export function AnalyticsDashboard({
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
-              <TimeRangeSelector
-                value={timeRange}
-                onChange={setTimeRange}
-              />
+              <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
               {tierLimits.exportFormats.length > 0 && (
                 <Select onValueChange={(value) => handleExport(value as 'csv' | 'json' | 'pdf')}>
                   <SelectTrigger className="w-32">
@@ -204,22 +196,27 @@ export function AnalyticsDashboard({
               >
                 All Repositories
               </Button>
-              {repositories.slice(0, tierLimits.maxRepositories === -1 ? undefined : tierLimits.maxRepositories).map((repo) => (
-                <Button
-                  key={repo.id}
-                  variant={selectedRepos.includes(repo.id) ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => {
-                    if (selectedRepos.includes(repo.id)) {
-                      setSelectedRepos(selectedRepos.filter((id) => id !== repo.id));
-                    } else {
-                      handleRepositorySelect([...selectedRepos, repo.id]);
-                    }
-                  }}
-                >
-                  {repo.repository.name}
-                </Button>
-              ))}
+              {repositories
+                .slice(
+                  0,
+                  tierLimits.maxRepositories === -1 ? undefined : tierLimits.maxRepositories
+                )
+                .map((repo) => (
+                  <Button
+                    key={repo.id}
+                    variant={selectedRepos.includes(repo.id) ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => {
+                      if (selectedRepos.includes(repo.id)) {
+                        setSelectedRepos(selectedRepos.filter((id) => id !== repo.id));
+                      } else {
+                        handleRepositorySelect([...selectedRepos, repo.id]);
+                      }
+                    }}
+                  >
+                    {repo.repository.name}
+                  </Button>
+                ))}
             </div>
             {tier === 'free' && repositories.length > tierLimits.maxRepositories && (
               <p className="text-sm text-muted-foreground mt-2">
@@ -232,14 +229,10 @@ export function AnalyticsDashboard({
 
       {/* Main Analytics Tabs */}
       <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-        <TabsList className="grid grid-cols-4 w-full max-w-2xl">
+        <TabsList className="grid grid-cols-3 w-full max-w-xl">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4" />
             Overview
-          </TabsTrigger>
-          <TabsTrigger value="activity" className="flex items-center gap-2">
-            <TrendingUp className="h-4 w-4" />
-            Activity
           </TabsTrigger>
           <TabsTrigger value="contributors" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
@@ -262,12 +255,14 @@ export function AnalyticsDashboard({
                 <TrendChart
                   title=""
                   data={{
-                    labels: filteredData.trends[0]?.data.map(d => d.date) || [],
-                    datasets: [{
-                      label: 'Pull Requests',
-                      data: filteredData.trends[0]?.data.map(d => d.value) || [],
-                      color: '#10b981',
-                    }],
+                    labels: filteredData.trends[0]?.data.map((d) => d.date) || [],
+                    datasets: [
+                      {
+                        label: 'Pull Requests',
+                        data: filteredData.trends[0]?.data.map((d) => d.value) || [],
+                        color: '#10b981',
+                      },
+                    ],
                   }}
                   loading={loading}
                 />
@@ -282,12 +277,14 @@ export function AnalyticsDashboard({
                 <TrendChart
                   title=""
                   data={{
-                    labels: filteredData.trends[1]?.data.map(d => d.date) || [],
-                    datasets: [{
-                      label: 'Active Contributors',
-                      data: filteredData.trends[1]?.data.map(d => d.value) || [],
-                      color: '#3b82f6',
-                    }],
+                    labels: filteredData.trends[1]?.data.map((d) => d.date) || [],
+                    datasets: [
+                      {
+                        label: 'Active Contributors',
+                        data: filteredData.trends[1]?.data.map((d) => d.value) || [],
+                        color: '#3b82f6',
+                      },
+                    ],
                   }}
                   loading={loading}
                 />
@@ -329,41 +326,12 @@ export function AnalyticsDashboard({
                 <div className="text-2xl font-bold">
                   {Math.round(
                     filteredData.repositories.reduce((sum, r) => sum + r.activity_score, 0) /
-                    (filteredData.repositories.length || 1)
+                      (filteredData.repositories.length || 1)
                   )}
                 </div>
               </CardContent>
             </Card>
           </div>
-        </TabsContent>
-
-        <TabsContent value="activity">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Recent Activity</CardTitle>
-                <Select value={activityFilter} onValueChange={setActivityFilter}>
-                  <SelectTrigger className="w-32">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value="pr">Pull Requests</SelectItem>
-                    <SelectItem value="issue">Issues</SelectItem>
-                    <SelectItem value="commit">Commits</SelectItem>
-                    <SelectItem value="review">Reviews</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <ActivityTable
-                activities={filteredActivities}
-                loading={loading}
-                pageSize={50}
-              />
-            </CardContent>
-          </Card>
         </TabsContent>
 
         <TabsContent value="contributors">
