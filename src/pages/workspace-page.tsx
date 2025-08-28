@@ -1494,12 +1494,38 @@ function WorkspaceActivity({ repositories }: { repositories: Repository[] }) {
 }
 
 function WorkspaceSettings({ workspace }: { workspace: Workspace }) {
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [isEditingSlug, setIsEditingSlug] = useState(false);
   const [workspaceName, setWorkspaceName] = useState(workspace.name);
+  const [workspaceSlug, setWorkspaceSlug] = useState(workspace.slug);
   const [isSaving, setIsSaving] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [slugError, setSlugError] = useState<string | null>(null);
 
-  const handleSave = async () => {
+  const formatSlug = (value: string) => {
+    // Convert to lowercase, replace spaces with hyphens, remove special characters
+    return value
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-]/g, '')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+  };
+
+  const checkSlugUniqueness = async (slug: string) => {
+    if (!slug) return false;
+
+    const { data, error } = await supabase
+      .from('workspaces')
+      .select('id')
+      .eq('slug', slug)
+      .neq('id', workspace.id)
+      .maybeSingle();
+
+    return !data && !error;
+  };
+
+  const handleSaveName = async () => {
     if (!workspaceName.trim()) {
       toast.error('Workspace name cannot be empty');
       return;
@@ -1515,7 +1541,7 @@ function WorkspaceSettings({ workspace }: { workspace: Workspace }) {
       if (error) throw error;
 
       toast.success('Workspace name updated successfully');
-      setIsEditing(false);
+      setIsEditingName(false);
       // Reload the page to reflect the changes
       window.location.reload();
     } catch (error) {
@@ -1526,9 +1552,81 @@ function WorkspaceSettings({ workspace }: { workspace: Workspace }) {
     }
   };
 
-  const handleCancel = () => {
+  const handleSaveSlug = async () => {
+    const formattedSlug = formatSlug(workspaceSlug);
+
+    if (!formattedSlug) {
+      toast.error('Slug cannot be empty');
+      return;
+    }
+
+    // Show warning about breaking links
+    const confirmed = window.confirm(
+      '⚠️ WARNING: Changing your workspace slug will break all existing external links!\n\n' +
+        `Current URL: /i/${workspace.slug}\n` +
+        `New URL: /i/${formattedSlug}\n\n` +
+        'All bookmarks, shared links, and external references will stop working.\n\n' +
+        'Are you sure you want to continue?'
+    );
+
+    if (!confirmed) {
+      setWorkspaceSlug(workspace.slug);
+      setIsEditingSlug(false);
+      return;
+    }
+
+    setIsSaving(true);
+    setSlugError(null);
+
+    try {
+      // Check if slug is unique
+      const isUnique = await checkSlugUniqueness(formattedSlug);
+
+      if (!isUnique) {
+        setSlugError('This slug is already taken. Please choose another.');
+        setIsSaving(false);
+        return;
+      }
+
+      const { error } = await supabase
+        .from('workspaces')
+        .update({ slug: formattedSlug })
+        .eq('id', workspace.id);
+
+      if (error) {
+        if (error.code === '23505') {
+          // Unique constraint violation
+          setSlugError('This slug is already taken. Please choose another.');
+        } else {
+          throw error;
+        }
+        return;
+      }
+
+      toast.success('Workspace slug updated successfully. Redirecting to new URL...');
+      setIsEditingSlug(false);
+
+      // Redirect to the new slug URL
+      setTimeout(() => {
+        window.location.href = `/i/${formattedSlug}/settings`;
+      }, 1500);
+    } catch (error) {
+      console.error('Failed to update workspace slug:', error);
+      toast.error('Failed to update workspace slug');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancelName = () => {
     setWorkspaceName(workspace.name);
-    setIsEditing(false);
+    setIsEditingName(false);
+  };
+
+  const handleCancelSlug = () => {
+    setWorkspaceSlug(workspace.slug);
+    setIsEditingSlug(false);
+    setSlugError(null);
   };
 
   const handleCopy = async (value: string, field: string) => {
@@ -1557,7 +1655,7 @@ function WorkspaceSettings({ workspace }: { workspace: Workspace }) {
           <div>
             <label className="text-sm font-medium text-foreground">Workspace Name</label>
             <div className="mt-2 flex items-center gap-2">
-              {isEditing ? (
+              {isEditingName ? (
                 <>
                   <input
                     type="text"
@@ -1567,22 +1665,75 @@ function WorkspaceSettings({ workspace }: { workspace: Workspace }) {
                     placeholder="Enter workspace name"
                     disabled={isSaving}
                   />
-                  <Button onClick={handleSave} size="sm" disabled={isSaving}>
+                  <Button onClick={handleSaveName} size="sm" disabled={isSaving}>
                     {isSaving ? 'Saving...' : 'Save'}
                   </Button>
-                  <Button onClick={handleCancel} size="sm" variant="outline" disabled={isSaving}>
+                  <Button
+                    onClick={handleCancelName}
+                    size="sm"
+                    variant="outline"
+                    disabled={isSaving}
+                  >
                     Cancel
                   </Button>
                 </>
               ) : (
                 <>
                   <p className="flex-1 text-sm">{workspace.name}</p>
-                  <Button onClick={() => setIsEditing(true)} size="sm" variant="outline">
+                  <Button onClick={() => setIsEditingName(true)} size="sm" variant="outline">
                     Edit
                   </Button>
                 </>
               )}
             </div>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-foreground">Workspace Slug</label>
+            <p className="text-xs text-muted-foreground mt-1">
+              ⚠️ Changing the slug will break all existing external links to this workspace
+            </p>
+            <div className="mt-2 flex items-center gap-2">
+              {isEditingSlug ? (
+                <>
+                  <input
+                    type="text"
+                    value={workspaceSlug}
+                    onChange={(e) => {
+                      setWorkspaceSlug(e.target.value);
+                      setSlugError(null);
+                    }}
+                    className="flex-1 px-3 py-2 text-sm border border-input bg-background rounded-md focus:outline-none focus:ring-2 focus:ring-primary font-mono"
+                    placeholder="workspace-slug"
+                    disabled={isSaving}
+                  />
+                  <Button onClick={handleSaveSlug} size="sm" disabled={isSaving}>
+                    {isSaving ? 'Saving...' : 'Save'}
+                  </Button>
+                  <Button
+                    onClick={handleCancelSlug}
+                    size="sm"
+                    variant="outline"
+                    disabled={isSaving}
+                  >
+                    Cancel
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <p className="flex-1 text-sm font-mono">{workspace.slug}</p>
+                  <Button onClick={() => setIsEditingSlug(true)} size="sm" variant="outline">
+                    Edit
+                  </Button>
+                </>
+              )}
+            </div>
+            {slugError && <p className="text-xs text-red-500 mt-2">{slugError}</p>}
+            {isEditingSlug && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Preview: /i/{formatSlug(workspaceSlug) || 'workspace-slug'}
+              </p>
+            )}
           </div>
 
           <div className="pt-4 border-t">
