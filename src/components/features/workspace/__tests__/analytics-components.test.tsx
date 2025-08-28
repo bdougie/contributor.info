@@ -1,16 +1,57 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import React from 'react';
+
+// Mock the Select component to avoid jsdom issues with Radix UI
+interface SelectProps {
+  children: React.ReactNode;
+  value: string;
+  onValueChange: (value: string) => void;
+}
+
+interface SelectItemProps {
+  value: string;
+  children: React.ReactNode;
+}
+
+interface SelectTriggerProps {
+  children: React.ReactNode;
+}
+
+interface SelectContentProps {
+  children: React.ReactNode;
+}
+
+vi.mock('@/components/ui/select', () => ({
+  Select: ({ children, value, onValueChange }: SelectProps) => {
+    const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+      onValueChange(e.target.value);
+    };
+
+    return (
+      <select
+        value={value}
+        onChange={handleChange}
+        role="combobox"
+        aria-label="Filter by activity type"
+        data-testid="type-filter-select"
+      >
+        {children}
+      </select>
+    );
+  },
+  SelectTrigger: ({ children }: SelectTriggerProps) => <>{children}</>,
+  SelectContent: ({ children }: SelectContentProps) => <>{children}</>,
+  SelectItem: ({ value, children }: SelectItemProps) => <option value={value}>{children}</option>,
+  SelectValue: () => null,
+}));
+
 import { ActivityTableFilters } from '../components/ActivityTableFilters';
 import { ActivityTableHeader } from '../components/ActivityTableHeader';
 import { ActivityTableRow } from '../components/ActivityTableRow';
 import { AnalyticsErrorBoundary } from '../ErrorBoundary';
-import {
-  sortData,
-  filterData,
-  calculateTrend,
-  formatNumber,
-} from '../utils/analytics-utils';
+import { sortData, filterData, calculateTrend, formatNumber } from '../utils/analytics-utils';
 
 // Mock data for testing
 const mockActivity = {
@@ -106,12 +147,13 @@ describe('ActivityTableFilters', () => {
       />
     );
 
+    // Find the select element (mocked)
     const select = screen.getByRole('combobox');
-    fireEvent.click(select);
 
-    const prOption = await screen.findByText('Pull Requests');
-    fireEvent.click(prOption);
+    // Change the select value
+    fireEvent.change(select, { target: { value: 'pr' } });
 
+    // Verify the callback was called
     expect(onTypeFilterChange).toHaveBeenCalledWith('pr');
   });
 });
