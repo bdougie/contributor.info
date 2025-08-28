@@ -1560,7 +1560,14 @@ function WorkspaceSettings({ workspace }: { workspace: Workspace }) {
       return;
     }
 
-    // Show warning about breaking links
+    // Check if slug has actually changed
+    if (formattedSlug === workspace.slug) {
+      // No change, just exit edit mode
+      setIsEditingSlug(false);
+      return;
+    }
+
+    // Show warning about breaking links only if slug is different
     const confirmed = window.confirm(
       '⚠️ WARNING: Changing your workspace slug will break all existing external links!\n\n' +
         `Current URL: /i/${workspace.slug}\n` +
