@@ -6,6 +6,7 @@ import { Input } from './input';
 import { Label } from './label';
 import { Button } from './button';
 import { Card, CardContent, CardHeader, CardTitle } from './card';
+import { getValidationBorderClass } from '@/lib/utils/threshold-styling';
 
 const meta = {
   title: 'UI/Forms/Input',
@@ -338,9 +339,7 @@ export const Interactive: Story = {
             setValue(e.target.value);
             validate(e.target.value);
           }}
-          className={
-            errors.length > 0 ? 'border-red-500' : value.length >= 3 ? 'border-green-500' : ''
-          }
+          className={getValidationBorderClass(errors.length > 0, value.length >= 3)}
           aria-invalid={errors.length > 0}
           aria-describedby={errors.length > 0 ? 'username-errors' : undefined}
         />
