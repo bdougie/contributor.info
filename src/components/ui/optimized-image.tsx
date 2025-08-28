@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, forwardRef } from 'react';
 import { cn } from '@/lib/utils';
+import { getImageLoadingStrategy, getOptimizedImageUrls } from '@/lib/utils/image-optimization';
 
 interface OptimizedImageProps extends Omit<React.ImgHTMLAttributes<HTMLImageElement>, 'src'> {
   src: string;
@@ -49,53 +50,7 @@ export const OptimizedImage = forwardRef<HTMLImageElement, OptimizedImageProps>(
     const [error, setError] = useState(false);
     const imgRef = useRef<HTMLImageElement>(null);
 
-    // Generate optimized image URLs
-    const generateImageUrls = (originalSrc: string) => {
-      // Check if it's a relative path or local image first
-      const isRelativePath =
-        !originalSrc.startsWith('http://') &&
-        !originalSrc.startsWith('https://') &&
-        !originalSrc.startsWith('//');
-
-      if (isRelativePath) {
-        // Handle local/static images with vite-imagetools optimization
-        return {
-          webp: `${originalSrc}?format=webp&quality=80${width ? `&w=${width}` : ''}${height ? `&h=${height}` : ''}`,
-          fallback: originalSrc,
-          isGitHubAvatar: false,
-        };
-      }
-
-      try {
-        const url = new URL(originalSrc);
-
-        // Handle GitHub avatars specially
-        if (url.hostname === 'avatars.githubusercontent.com') {
-          const size = width || height || 80;
-          return {
-            webp: `${url.origin}${url.pathname}?s=${size}&v=4`,
-            fallback: `${url.origin}${url.pathname}?s=${size}&v=4`,
-            isGitHubAvatar: true,
-          };
-        }
-
-        // For other external images, return as-is
-        return {
-          webp: originalSrc,
-          fallback: originalSrc,
-          isGitHubAvatar: false,
-        };
-      } catch {
-        // Fallback for any edge cases
-        return {
-          webp: originalSrc,
-          fallback: originalSrc,
-          isGitHubAvatar: false,
-        };
-      }
-    };
-
-    const imageUrls = generateImageUrls(src);
+    const imageUrls = getOptimizedImageUrls(src, width, height);
 
     // Intersection Observer for lazy loading
     useEffect(() => {
@@ -163,7 +118,7 @@ export const OptimizedImage = forwardRef<HTMLImageElement, OptimizedImageProps>(
           alt={alt}
           width={width}
           height={height}
-          loading={priority ? 'eager' : 'lazy'}
+          loading={getImageLoadingStrategy(priority, lazy)}
           className={cn('transition-opacity duration-200', className)}
           onLoad={handleLoad}
           {...props}
@@ -183,7 +138,7 @@ export const OptimizedImage = forwardRef<HTMLImageElement, OptimizedImageProps>(
             alt={alt}
             width={width}
             height={height}
-            loading={priority ? 'eager' : 'lazy'}
+            loading={getImageLoadingStrategy(priority, lazy)}
             className={cn(
               'transition-opacity duration-200',
               isLoaded ? 'opacity-100' : 'opacity-0'
@@ -204,7 +159,7 @@ export const OptimizedImage = forwardRef<HTMLImageElement, OptimizedImageProps>(
         alt={alt}
         width={width}
         height={height}
-        loading={priority ? 'eager' : 'lazy'}
+        loading={getImageLoadingStrategy(priority, lazy)}
         sizes={sizes}
         className={cn(
           'transition-opacity duration-200',

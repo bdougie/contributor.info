@@ -12,6 +12,7 @@ import {
 
 import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
+import { getFormErrorContent } from '@/lib/utils/component-state';
 
 const Form = FormProvider;
 
@@ -136,7 +137,7 @@ const FormMessage = React.forwardRef<
   React.HTMLAttributes<HTMLParagraphElement>
 >(({ className, children, ...props }, ref) => {
   const { error, formMessageId } = useFormField();
-  const body = error ? String(error?.message) : children;
+  const body = getFormErrorContent(error, children);
 
   if (!body) {
     return null;

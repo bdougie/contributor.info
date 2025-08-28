@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { createChartShareUrl, getDubConfig } from '@/lib/dub';
+import { getDubKeyStatus } from '@/lib/utils/data-type-mapping';
 
 export function DubTest() {
   const [result, setResult] = useState<string>('');
@@ -39,7 +40,7 @@ export function DubTest() {
         </div>
         <div>
           API Key format:{' '}
-          {import.meta.env.VITE_DUB_CO_KEY?.startsWith('dub_') ? '✅ Valid' : '❌ Invalid'}
+          {getDubKeyStatus(import.meta.env.VITE_DUB_CO_KEY)}
         </div>
         <div>
           API Mode: {import.meta.env.DEV ? 'Development (mocked)' : 'Production (Netlify function)'}

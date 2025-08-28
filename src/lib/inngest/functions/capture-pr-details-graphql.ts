@@ -3,6 +3,7 @@ import { supabase } from '../../supabase';
 import { GraphQLClient } from '../graphql-client';
 import type { NonRetriableError } from 'inngest';
 import { getMergeableStatus } from '../../utils/performance-helpers';
+import { getPRState } from '../../utils/data-type-mapping';
 
 // Type definitions for GitHub user data
 interface GitHubUser {
@@ -258,7 +259,7 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
             number: pullRequest.number,
             title: pullRequest.title,
             body: pullRequest.body,
-            state: pullRequest.state?.toLowerCase() === 'open' ? 'open' : 'closed',
+            state: getPRState(pullRequest.state),
             draft: pullRequest.isDraft || false,
             additions: pullRequest.additions || 0,
             deletions: pullRequest.deletions || 0,

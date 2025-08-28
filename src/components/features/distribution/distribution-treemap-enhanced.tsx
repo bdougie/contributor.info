@@ -8,6 +8,8 @@ import { SkeletonChart } from '@/components/skeletons/base/skeleton-chart';
 import { supabaseAvatarCache } from '@/lib/supabase-avatar-cache';
 import type { QuadrantNode, HierarchicalData } from '@/hooks/use-hierarchical-distribution';
 import type { PullRequest } from '@/lib/types';
+import { getHoverOpacity, getHoverFilter } from '@/lib/utils/component-state';
+import { findContributorInQuadrant } from '@/lib/utils/data-type-mapping';
 import { getPrimaryLanguage } from '@/lib/language-utils';
 
 interface DistributionTreemapEnhancedProps {
@@ -225,7 +227,7 @@ export function DistributionTreemapEnhanced({
     } else if (currentView === 'contributor') {
       // Show PRs for the selected contributor
       const quadrant = data.children.find((q: QuadrantNode) => q.id === selectedQuadrant);
-      const contributor = quadrant?.children?.find((c: any) => c.id === selectedContributor);
+      const contributor = findContributorInQuadrant(quadrant, selectedContributor ?? undefined);
 
       // Transform PRs into treemap nodes
       return (
@@ -330,8 +332,8 @@ export function DistributionTreemapEnhanced({
               stroke: '#ffffff',
               strokeWidth: 2,
               strokeOpacity: 0.8,
-              opacity: isQuadrant ? (isHovered ? 1 : 0.92) : 1,
-              filter: isQuadrant && isHovered ? 'brightness(1.1)' : 'none',
+              opacity: getHoverOpacity(isQuadrant, isHovered),
+              filter: getHoverFilter(isQuadrant, isHovered),
               transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
             }}
             onClick={handleClick}

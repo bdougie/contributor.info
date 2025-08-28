@@ -7,6 +7,7 @@ import { supabaseAvatarCache } from '@/lib/supabase-avatar-cache';
 import { ProgressiveChart } from '@/components/ui/charts/ProgressiveChart';
 import { SkeletonChart } from '@/components/skeletons/base/skeleton-chart';
 import { getAvatarUrl } from '@/lib/utils/avatar';
+import { getUserRole } from '@/lib/utils/data-type-mapping';
 
 // Lazy load the heavy visualization component
 const ResponsiveScatterPlot = lazy(() =>
@@ -286,7 +287,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
         <div style={{ width: '100%', height: '100%' }}>
           <PrHoverCard
             pullRequest={props.node.data._pr}
-            role={role?.role || (props.node.data._pr.user.type === 'Bot' ? 'Bot' : 'Contributor')}
+            role={getUserRole(role, { type: props.node.data._pr.user.type })}
           >
             <Avatar
               className={`${
