@@ -199,62 +199,70 @@ export function ContributorLeaderboard({
                 </div>
               </div>
               <CardHeader className="pb-4">
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-12 w-12 border-2 border-background">
+                <div className="flex flex-col items-center text-center">
+                  <Avatar className="h-12 w-12 border-2 border-background mb-3">
                     <AvatarImage src={contributor.avatar_url} />
                     <AvatarFallback>
                       {contributor.username.slice(0, 2).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
-                  <div>
-                    <p className="font-semibold">{contributor.username}</p>
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <span className="font-medium text-foreground">
-                        {contributor.contributions}
+                  <p className="font-semibold">{contributor.username}</p>
+                  <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
+                    <span className="font-medium text-foreground">{contributor.contributions}</span>
+                    contributions
+                    {contributor.trend !== undefined && contributor.trend !== 0 && (
+                      <span
+                        className={cn(
+                          'flex items-center gap-0.5 ml-1',
+                          contributor.trend > 0
+                            ? 'text-green-600 dark:text-green-400'
+                            : 'text-red-600 dark:text-red-400'
+                        )}
+                      >
+                        {contributor.trend > 0 ? (
+                          <TrendingUp className="h-3 w-3" />
+                        ) : (
+                          <TrendingDown className="h-3 w-3" />
+                        )}
+                        {Math.abs(contributor.trend)}%
                       </span>
-                      contributions
-                      {contributor.trend !== undefined && contributor.trend !== 0 && (
-                        <span
-                          className={cn(
-                            'flex items-center gap-0.5 ml-1',
-                            contributor.trend > 0
-                              ? 'text-green-600 dark:text-green-400'
-                              : 'text-red-600 dark:text-red-400'
-                          )}
-                        >
-                          {contributor.trend > 0 ? (
-                            <TrendingUp className="h-3 w-3" />
-                          ) : (
-                            <TrendingDown className="h-3 w-3" />
-                          )}
-                          {Math.abs(contributor.trend)}%
-                        </span>
-                      )}
-                    </div>
+                    )}
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="relative space-y-2">
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div className="flex items-center gap-1">
-                    <GitPullRequest className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span>{contributor.pull_requests} PRs</span>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-4 gap-2 text-center">
+                  <div>
+                    <div className="flex justify-center mb-1">
+                      <GitPullRequest className="h-3.5 w-3.5 text-muted-foreground" />
+                    </div>
+                    <div className="text-sm font-medium">{contributor.pull_requests}</div>
+                    <div className="text-xs text-muted-foreground">PRs</div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <GitCommit className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span>{contributor.commits} Commits</span>
+                  <div>
+                    <div className="flex justify-center mb-1">
+                      <GitCommit className="h-3.5 w-3.5 text-muted-foreground" />
+                    </div>
+                    <div className="text-sm font-medium">{contributor.commits}</div>
+                    <div className="text-xs text-muted-foreground">Commits</div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span>{contributor.reviews} Reviews</span>
+                  <div>
+                    <div className="flex justify-center mb-1">
+                      <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
+                    </div>
+                    <div className="text-sm font-medium">{contributor.reviews}</div>
+                    <div className="text-xs text-muted-foreground">Reviews</div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <AlertCircle className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span>{contributor.issues} Issues</span>
+                  <div>
+                    <div className="flex justify-center mb-1">
+                      <AlertCircle className="h-3.5 w-3.5 text-muted-foreground" />
+                    </div>
+                    <div className="text-sm font-medium">{contributor.issues}</div>
+                    <div className="text-xs text-muted-foreground">Issues</div>
                   </div>
                 </div>
                 {/* Activity Score Badge */}
-                <div className="absolute bottom-2 right-2">
+                <div className="flex justify-center pt-2">
                   <Badge variant="secondary" className="text-xs">
                     Score: {contributor.score}
                   </Badge>
