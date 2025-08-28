@@ -1,6 +1,6 @@
 name: Continue Agent Code Review
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, synchronize, ready_for_review]
   issue_comment:
     types: [created]
@@ -16,23 +16,25 @@ jobs:
     runs-on: ubuntu-latest
     # Run on PRs automatically, or when triggered by @continue-agent in comments
     if: |
-      github.event_name == 'pull_request' || 
+      github.event_name == 'pull_request_target' || 
       (github.event_name == 'issue_comment' && 
        github.event.issue.pull_request && 
        contains(github.event.comment.body, '@continue-agent')) ||
       github.event_name == 'workflow_dispatch'
-    
+
     permissions:
-      contents: read        # Read code for review
-      pull-requests: write  # Post review comments
-      issues: write        # Update issue comments
-    
+      contents: read # Read code for review
+      pull-requests: write # Post review comments
+      issues: write # Update issue comments
+
     steps:
       - name: Checkout code
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
-          fetch-depth: 0  # Full history for better context
-      
+          fetch-depth: 0 # Full history for better context
+          # For pull_request_target, checkout the PR head for code review
+          ref: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.head.sha || github.sha }}
+
       # Generate GitHub App token for authentication
       - name: Generate App Token
         id: app-token
@@ -40,12 +42,12 @@ jobs:
         with:
           app-id: ${{ vars.CONTINUE_APP_ID }}
           private-key: ${{ secrets.CONTINUE_APP_PRIVATE_KEY }}
-      
+
       # Run Continue Review with App authentication
       - name: Run Continue Review
         uses: ./actions/continue-review
         with:
           github-token: ${{ steps.app-token.outputs.token }}
           continue-api-key: ${{ secrets.CONTINUE_API_KEY }}
-          continue-org: 'continuedev'  # Continue's organization
-          continue-config: 'continuedev/review-bot'  # Continue's pr review agent
+          continue-org: 'continuedev' # Continue's organization
+          continue-config: 'continuedev/review-bot' # Continue's pr review agent

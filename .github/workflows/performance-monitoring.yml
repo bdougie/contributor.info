@@ -1,7 +1,7 @@
 name: Performance Monitoring
 
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, synchronize]
   push:
     branches: [main]
@@ -12,38 +12,41 @@ on:
 
 env:
   # Set deployment URL based on context
-  DEPLOY_URL: ${{ github.event_name == 'pull_request' && format('https://deploy-preview-{0}--contributor-info.netlify.app', github.event.number) || 'https://contributor.info' }}
+  DEPLOY_URL: ${{ github.event_name == 'pull_request_target' && format('https://deploy-preview-{0}--contributor-info.netlify.app', github.event.number) || 'https://contributor.info' }}
 
 jobs:
   bundle-size-check:
     runs-on: ubuntu-latest
     name: Bundle Size Check
-    if: github.event_name == 'pull_request'
-    
+    if: github.event_name == 'pull_request_target'
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+        with:
+          # Checkout PR head for building and analyzing the actual PR code
+          ref: ${{ github.event.pull_request.head.sha }}
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-      
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Build and analyze bundle
         id: bundle
         run: |
           npm run build > build.log 2>&1
-          
+
           # Extract bundle sizes
           echo "### Bundle Size Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Chunk | Size | Gzipped |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|------|---------|" >> $GITHUB_STEP_SUMMARY
-          
+
           # Parse build output for sizes
           grep -E "dist/assets/.*\.js" build.log | while read line; do
             chunk=$(echo "$line" | awk '{print $1}' | sed 's/dist\/assets\///')
@@ -51,7 +54,7 @@ jobs:
             gzip=$(echo "$line" | awk '{print $5 " " $6}')
             echo "| $chunk | $size | $gzip |" >> $GITHUB_STEP_SUMMARY
           done
-          
+
           # Check for oversized chunks (>600KB)
           if grep -q "(!) Some chunks are larger than 600 kB" build.log; then
             echo "" >> $GITHUB_STEP_SUMMARY
@@ -62,12 +65,12 @@ jobs:
             echo "✅ **All chunks within size limits**" >> $GITHUB_STEP_SUMMARY
             echo "oversized=false" >> $GITHUB_OUTPUT
           fi
-          
+
           # Calculate total bundle size
           total_size=$(grep "dist/assets/.*\.js" build.log | awk '{print $2}' | sed 's/[^0-9.]//g' | paste -sd+ | bc)
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Total Bundle Size:** ${total_size} KB" >> $GITHUB_STEP_SUMMARY
-      
+
       - name: Comment PR with bundle analysis
         if: always()
         uses: actions/github-script@v7
@@ -76,29 +79,29 @@ jobs:
             const oversized = '${{ steps.bundle.outputs.oversized }}' === 'true';
             const emoji = oversized ? '⚠️' : '✅';
             const status = oversized ? 'Some chunks exceed size limits' : 'All chunks within limits';
-            
+
             // Create the comment body with a unique identifier for sticky behavior
             const commentBody = `<!-- bundle-size-analysis -->
             ## ${emoji} Bundle Size Analysis
-            
+
             ${status}
-            
+
             <!-- Last Updated: ${new Date().toISOString()} -->
             **Commit:** ${context.sha.substring(0, 7)}
-            
+
             See the [workflow summary](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}) for detailed bundle sizes.`;
-            
+
             // Find existing bundle size comment using the HTML comment identifier
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
             });
-            
+
             const existingComment = comments.find(comment => 
               comment.body.includes('<!-- bundle-size-analysis -->')
             );
-            
+
             if (existingComment) {
               // Update existing comment (sticky behavior)
               await github.rest.issues.updateComment({
@@ -118,7 +121,7 @@ jobs:
               });
               console.log('Created new bundle size comment');
             }
-      
+
       - name: Fail if chunks are oversized
         if: steps.bundle.outputs.oversized == 'true'
         run: |
@@ -129,14 +132,17 @@ jobs:
   lighthouse-audit:
     runs-on: ubuntu-latest
     name: Lighthouse Performance Audit
-    if: github.event_name != 'pull_request' || github.event_name == 'pull_request'
-    
+    if: github.event_name != 'pull_request_target' || github.event_name == 'pull_request_target'
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+        with:
+          # Checkout PR head for Lighthouse testing
+          ref: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.head.sha || github.sha }}
+
       - name: Wait for deployment (PR only)
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request_target'
         run: |
           echo "Waiting for Netlify deployment to be ready..."
           # Wait up to 5 minutes for deployment
@@ -151,7 +157,7 @@ jobs:
             sleep 30
             attempt=$((attempt + 1))
           done
-      
+
       - name: Run Lighthouse CI
         uses: treosh/lighthouse-ci-action@v12
         with:
@@ -162,7 +168,7 @@ jobs:
           uploadArtifacts: true
           temporaryPublicStorage: true
         continue-on-error: true
-      
+
       - name: Format Lighthouse Results
         id: format_results
         if: always()
@@ -185,26 +191,29 @@ jobs:
   performance-budget:
     runs-on: ubuntu-latest
     name: Performance Budget Check
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+        with:
+          # Checkout PR head for performance tests
+          ref: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.head.sha || github.sha }}
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-      
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Build and analyze bundle
         run: |
           npm run build
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-      
+
       - name: Check bundle size
         run: |
           # Get the size of the dist folder
@@ -232,12 +241,12 @@ jobs:
             echo "❌ dist folder not found!" >> $GITHUB_STEP_SUMMARY
             exit 1
           fi
-      
+
       - name: Analyze JavaScript bundles
         run: |
           echo "### JavaScript Chunk Analysis" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
+
           # Check individual chunk sizes
           LARGE_CHUNKS=0
           for file in dist/assets/*.js; do
@@ -252,7 +261,7 @@ jobs:
               fi
             fi
           done
-          
+
           if [ $LARGE_CHUNKS -eq 0 ]; then
             echo "✅ All JavaScript chunks are under 200KB" >> $GITHUB_STEP_SUMMARY
           else
@@ -263,20 +272,23 @@ jobs:
   web-vitals-test:
     runs-on: ubuntu-latest
     name: Web Vitals Tests
-    if: github.event_name == 'pull_request' || github.event_name == 'push'
-    
+    if: github.event_name == 'pull_request_target' || github.event_name == 'push'
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+        with:
+          # Checkout PR head for performance tests
+          ref: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.head.sha || github.sha }}
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-      
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Run Web Vitals tests
         run: |
           # Check if the comparison script exists
@@ -290,7 +302,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BASE_URL: https://contributor.info
           PR_URL: ${{ env.DEPLOY_URL }}
-      
+
       - name: Run performance tests
         run: |
           # Run performance test suite if it exists
@@ -301,7 +313,7 @@ jobs:
             echo "Performance tests not configured yet"
           fi
         continue-on-error: true
-      
+
       - name: Generate summary
         if: always()
         run: |
@@ -313,54 +325,54 @@ jobs:
     runs-on: ubuntu-latest
     name: Comment PR Results
     needs: [bundle-size-check, lighthouse-audit, performance-budget]
-    if: github.event_name == 'pull_request' && !cancelled()
-    
+    if: github.event_name == 'pull_request_target' && !cancelled()
+
     steps:
       - name: Comment on PR
         uses: actions/github-script@v7
         with:
           script: |
             const url = '${{ env.DEPLOY_URL }}';
-            
+
             const comment = `<!-- performance-report -->
             ## 🚀 Performance Report
-            
+
             ### 📊 Lighthouse Audit
             ✅ Lighthouse tests completed for:
             - [Homepage](${url})
             - [Vercel/Next.js](${url}/vercel/next.js)
             - [Continue Dev](${url}/continuedev/continue)
-            
+
             ### 📦 Bundle Analysis
             Performance budget checks completed. See workflow summary for details.
-            
+
             ### 🎯 Core Web Vitals Targets
             - **LCP:** < 2.5s (Largest Contentful Paint)
             - **INP:** < 200ms (Interaction to Next Paint)
             - **CLS:** < 0.1 (Cumulative Layout Shift)
             - **FCP:** < 1.8s (First Contentful Paint)
-            
+
             ### 📈 Next Steps
             - Review the Lighthouse reports in the workflow artifacts
             - Check the workflow summary for detailed metrics
             - Address any performance warnings or errors
-            
+
             <!-- Last Updated: ${new Date().toISOString()} -->
             **Commit:** ${context.sha.substring(0, 7)}
-            
+
             [View Full Workflow Results](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})`;
-            
+
             // Find existing performance report comment using the HTML comment identifier
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
             });
-            
+
             const existingComment = comments.find(comment => 
               comment.body.includes('<!-- performance-report -->')
             );
-            
+
             if (existingComment) {
               // Update existing comment (sticky behavior)
               await github.rest.issues.updateComment({

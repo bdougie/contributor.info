@@ -3,7 +3,7 @@ name: Similarity Check
 on:
   issues:
     types: [opened, edited]
-  pull_request:
+  pull_request_target:
     types: [opened, edited]
   workflow_dispatch:
     inputs:
@@ -39,20 +39,23 @@ jobs:
       issues: write
       pull-requests: write
       contents: read
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
+        with:
+          # Checkout PR head for similarity checking
+          ref: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.head.sha || github.sha }}
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-      
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Determine repository and item
         id: determine
         run: |
@@ -86,7 +89,7 @@ jobs:
             echo "max_items=100" >> $GITHUB_OUTPUT
             echo "similarity_threshold=0.85" >> $GITHUB_OUTPUT
           fi
-      
+
       - name: Run similarity check
         id: similarity
         env:
@@ -96,17 +99,17 @@ jobs:
         run: |
           # Build command based on inputs
           COMMAND="npx tsx scripts/actions-similarity.ts --owner ${{ steps.determine.outputs.owner }} --repo ${{ steps.determine.outputs.repo }}"
-          
+
           # Add optional parameters
           if [ -n "${{ steps.determine.outputs.item_number }}" ]; then
             COMMAND="$COMMAND --item-type ${{ steps.determine.outputs.item_type }} --item-number ${{ steps.determine.outputs.item_number }}"
           fi
-          
+
           COMMAND="$COMMAND --max-items ${{ steps.determine.outputs.max_items }} --similarity-threshold ${{ steps.determine.outputs.similarity_threshold }}"
-          
+
           echo "Running: $COMMAND"
           $COMMAND
-      
+
       - name: Read similarity results
         id: results
         if: success()
@@ -126,7 +129,7 @@ jobs:
             echo "found_similar=false" >> $GITHUB_OUTPUT
             echo "similar_count=0" >> $GITHUB_OUTPUT
           fi
-      
+
       - name: Comment on issue with similar items
         if: >
           success() && 
@@ -139,14 +142,14 @@ jobs:
           script: |
             const fs = require('fs');
             const results = JSON.parse(fs.readFileSync('similarity-results.json', 'utf8'));
-            
+
             // Group similar issues by state
             const openIssues = results.similarItems.filter(item => item.state === 'open' && item.type === 'issue');
             const closedIssues = results.similarItems.filter(item => item.state === 'closed' && item.type === 'issue');
-            
+
             let comment = '## Potentially related issues\n\n';
             comment += '_The following issues have been identified as potentially related based on semantic similarity analysis:_\n\n';
-            
+
             // Add open issues section if any exist
             if (openIssues.length > 0) {
               comment += '### Open Issues\n\n';
@@ -159,7 +162,7 @@ jobs:
               }
               comment += '\n';
             }
-            
+
             // Add closed issues section if any exist
             if (closedIssues.length > 0) {
               comment += '### Closed Issues\n\n';
@@ -172,12 +175,12 @@ jobs:
               }
               comment += '\n';
             }
-            
+
             // Add helpful context
             comment += '---\n';
             comment += '_This helps identify duplicate issues and related discussions. ';
             comment += 'Powered by semantic similarity analysis from [contributor.info](https://contributor.info)_';
-            
+
             // Post comment
             const issue_number = parseInt('${{ steps.determine.outputs.item_number }}');
             await github.rest.issues.createComment({
@@ -186,7 +189,7 @@ jobs:
               issue_number: issue_number,
               body: comment
             });
-      
+
       - name: Comment on PR with similar items
         if: >
           success() && 
@@ -199,13 +202,13 @@ jobs:
           script: |
             const fs = require('fs');
             const results = JSON.parse(fs.readFileSync('similarity-results.json', 'utf8'));
-            
+
             // Separate issues and PRs
             const relatedIssues = results.similarItems.filter(item => item.type === 'issue');
             const relatedPRs = results.similarItems.filter(item => item.type === 'pull_request');
-            
+
             let comment = '## Related Items Found\n\n';
-            
+
             // Add related issues section
             if (relatedIssues.length > 0) {
               comment += '### Related Issues\n\n';
@@ -216,7 +219,7 @@ jobs:
               }
               comment += '\n';
             }
-            
+
             // Add similar PRs section
             if (relatedPRs.length > 0) {
               comment += '### Similar Pull Requests\n\n';
@@ -226,11 +229,11 @@ jobs:
               }
               comment += '\n';
             }
-            
+
             comment += '---\n';
             comment += '_This helps prevent duplicate work and identify related changes. ';
             comment += 'Powered by [contributor.info](https://contributor.info)_';
-            
+
             // Post comment
             const issue_number = parseInt('${{ steps.determine.outputs.item_number }}');
             await github.rest.issues.createComment({
@@ -239,7 +242,7 @@ jobs:
               issue_number: issue_number,
               body: comment
             });
-      
+
       - name: Upload similarity results
         if: always()
         uses: actions/upload-artifact@v4
@@ -247,13 +250,13 @@ jobs:
           name: similarity-results
           path: similarity-results.json
           retention-days: 30
-      
+
       - name: Create job summary
         if: always()
         run: |
           echo "## Similarity Check Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
+
           if [ -f similarity-results.json ]; then
             echo "- **Repository**: $(jq -r '.repository' similarity-results.json)" >> $GITHUB_STEP_SUMMARY
             echo "- **Items Processed**: $(jq -r '.processedItems' similarity-results.json)" >> $GITHUB_STEP_SUMMARY
