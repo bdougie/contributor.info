@@ -84,17 +84,48 @@ function temporarilyMoveSeed() {
   const seedPath = path.join(ROOT, 'supabase', 'seed.sql');
   const tempSeedPath = path.join(ROOT, 'supabase', 'seed.sql.temp');
 
-  if (fs.existsSync(seedPath)) {
+  const seedExists = fs.existsSync(seedPath);
+  const tempExists = fs.existsSync(tempSeedPath);
+
+  if (!seedExists && tempExists) {
+    // Another run likely already moved the seed; do not delete temp or proceed
+    log('ℹ️ seed.sql appears already moved by another process; skipping.', colors.yellow);
+    return false;
+  }
+
+  if (tempExists) {
+    // Treat temp as a lock from a concurrent run; do NOT delete it
+    log(
+      'ℹ️ Detected existing seed.sql.temp; another process may be running. Skipping seed move.',
+      colors.yellow
+    );
+    return false;
+  }
+
+  if (seedExists) {
     log('📦 Temporarily moving seed.sql to prevent auto-seeding...', colors.yellow);
 
-    // Remove any stale temp file
-    if (fs.existsSync(tempSeedPath)) {
-      fs.rmSync(tempSeedPath, { force: true });
+    try {
+      // Move the real seed aside and place a no-op seed file
+      fs.renameSync(seedPath, tempSeedPath);
+    } catch (e) {
+      // If a race occurred and rename failed, skip moving
+      return false;
     }
 
-    // Move the real seed aside and place a no-op seed file
-    fs.renameSync(seedPath, tempSeedPath);
-    fs.writeFileSync(seedPath, '-- no-op seed for local start\nSELECT 1;\n');
+    try {
+      fs.writeFileSync(seedPath, '-- no-op seed for local start\nSELECT 1;\n', { flag: 'w' });
+    } catch (e) {
+      // Roll back if we failed to write placeholder
+      try {
+        if (fs.existsSync(tempSeedPath)) {
+          fs.renameSync(tempSeedPath, seedPath);
+        }
+      } catch (_) {
+        /* ignore */
+      }
+      throw e;
+    }
     return true;
   }
   return false;
