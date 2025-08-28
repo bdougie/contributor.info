@@ -129,6 +129,11 @@ function startSupabase() {
       shell: true,
     });
 
+    // Handle spawn errors (e.g., ENOENT) so we can restore migrations/seed properly
+    supabaseProcess.on('error', (err) => {
+      reject(err);
+    });
+
     supabaseProcess.on('close', (code) => {
       if (code === 0) {
         resolve();
