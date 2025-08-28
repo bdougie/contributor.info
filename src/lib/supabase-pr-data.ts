@@ -1,57 +1,9 @@
 import { supabase } from './supabase';
 import type { PullRequest } from './types';
+import { validateAndTransformPRData, type SupabasePullRequestWithRelations } from './validation';
 
-// Type definitions for Supabase query responses
-interface SupabaseContributor {
-  github_id: number;
-  username: string;
-  avatar_url: string;
-  is_bot: boolean;
-}
-
-interface SupabaseReview {
-  id: string;
-  github_id: number;
-  state: string;
-  body: string | null;
-  submitted_at: string;
-  contributors: SupabaseContributor | null;
-}
-
-interface SupabaseComment {
-  id: string;
-  github_id: number;
-  body: string;
-  created_at: string;
-  comment_type: string;
-  contributors: SupabaseContributor | null;
-}
-
-interface SupabasePullRequest {
-  id: string;
-  github_id: number;
-  number: number;
-  title: string;
-  body: string | null;
-  state: string;
-  created_at: string;
-  updated_at: string;
-  closed_at: string | null;
-  merged_at: string | null;
-  merged: boolean;
-  base_branch: string;
-  head_branch: string;
-  additions: number;
-  deletions: number;
-  changed_files: number;
-  commits: number;
-  html_url: string;
-  repository_id: string;
-  author_id: string;
-  contributors: SupabaseContributor | null;
-  reviews: SupabaseReview[] | null;
-  comments: SupabaseComment[] | null;
-}
+// Note: Type definitions moved to src/lib/validation/supabase-response-schemas.ts
+// Using Zod schemas for runtime validation instead of type assertions
 import { trackDatabaseOperation, trackRateLimit } from './simple-logging';
 import {
   createLargeRepositoryResult,
@@ -62,76 +14,8 @@ import {
 } from './errors/repository-errors';
 // Removed Sentry import - using simple logging instead
 
-/**
- * Type guard to check if an object has the SupabaseContributor shape
- * This provides runtime validation for dynamically typed Supabase responses
- * TODO: Replace with Zod validation when fully implemented (Issue #541)
- */
-function isSupabaseContributor(obj: unknown): obj is SupabaseContributor {
-  if (!obj || typeof obj !== 'object') return false;
-  const contributor = obj as Record<string, unknown>;
-
-  return (
-    typeof contributor.github_id === 'number' &&
-    typeof contributor.username === 'string' &&
-    typeof contributor.avatar_url === 'string' &&
-    typeof contributor.is_bot === 'boolean'
-  );
-}
-
-/**
- * Type guard to check if an object has a nested contributors property
- * Used to safely extract contributor data from Supabase join queries
- * TODO: Replace with Zod validation when fully implemented (Issue #541)
- */
-function hasContributorProperty(obj: unknown): obj is { contributors?: SupabaseContributor } {
-  if (!obj || typeof obj !== 'object') return false;
-  const record = obj as Record<string, unknown>;
-
-  if (!('contributors' in record)) return true; // Property is optional
-  return isSupabaseContributor(record.contributors);
-}
-
-/**
- * Safely extract contributor data with proper validation
- * Returns default values if the data doesn't match expected shape
- *
- * Example usage:
- * const contributor = extractContributor(dbPR);
- * const user = {
- *   login: contributor.username,
- *   id: contributor.github_id,
- *   avatar_url: contributor.avatar_url,
- *   type: contributor.is_bot ? 'Bot' : 'User'
- * };
- *
- * Note: This function is kept for future use when replacing type assertions
- * TODO: Use this function to replace type assertions (Issue #541)
- */
-// @ts-expect-error - Function kept for future use when replacing type assertions
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function extractContributor(data: unknown): {
-  username: string;
-  github_id: number;
-  avatar_url: string;
-  is_bot: boolean;
-} {
-  if (hasContributorProperty(data) && data.contributors) {
-    return {
-      username: data.contributors.username,
-      github_id: data.contributors.github_id,
-      avatar_url: data.contributors.avatar_url,
-      is_bot: data.contributors.is_bot,
-    };
-  }
-
-  return {
-    username: 'unknown',
-    github_id: 0,
-    avatar_url: '',
-    is_bot: false,
-  };
-}
+// Type guards and validation functions removed - now using Zod validation
+// See validateAndTransformPRData() from './validation' for the new approach
 
 /**
  * Fetch PR data from Supabase database first, fallback to GitHub API
@@ -236,69 +120,8 @@ export async function fetchPRDataWithFallback(
           if (dbError) {
             // Database query failed, will fall back to API
           } else if (dbPRs && dbPRs.length > 0) {
-            // Transform database data to match GitHub API format
-            const transformedPRs: PullRequest[] = dbPRs.map((dbPR) => ({
-              id: dbPR.github_id,
-              number: dbPR.number,
-              title: dbPR.title,
-              state: dbPR.state as 'open' | 'closed',
-              created_at: dbPR.created_at,
-              updated_at: dbPR.updated_at,
-              closed_at: dbPR.closed_at,
-              merged_at: dbPR.merged_at,
-              user: {
-                // TODO: Replace with Zod validation when implemented (Issue #541)
-                // These type assertions are temporary until proper runtime validation is added
-                login:
-                  (dbPR as unknown as { contributors?: SupabaseContributor }).contributors
-                    ?.username || 'unknown',
-                id:
-                  (dbPR as unknown as { contributors?: SupabaseContributor }).contributors
-                    ?.github_id || 0,
-                avatar_url:
-                  (dbPR as unknown as { contributors?: SupabaseContributor }).contributors
-                    ?.avatar_url || '',
-                type: ((dbPR as unknown as { contributors?: SupabaseContributor }).contributors
-                  ?.is_bot
-                  ? 'Bot'
-                  : 'User') as 'Bot' | 'User',
-              },
-              additions: dbPR.additions || 0, // Note: may be 0 due to missing cached data
-              deletions: dbPR.deletions || 0, // Note: may be 0 due to missing cached data
-              changed_files: dbPR.changed_files || 0, // Note: may be 0 due to missing cached data
-              html_url: dbPR.html_url || `https://github.com/${owner}/${repo}/pull/${dbPR.number}`,
-              repository_owner: owner,
-              repository_name: repo,
-              reviews: (dbPR.reviews || []).map((review) => ({
-                id: review.github_id,
-                state: review.state,
-                body: review.body,
-                submitted_at: review.submitted_at,
-                user: {
-                  // TODO: Replace with Zod validation when implemented (Issue #541)
-                  login:
-                    (review as unknown as { contributors?: SupabaseContributor }).contributors
-                      ?.username || 'unknown',
-                  avatar_url:
-                    (review as unknown as { contributors?: SupabaseContributor }).contributors
-                      ?.avatar_url || '',
-                },
-              })),
-              comments: (dbPR.comments || []).map((comment) => ({
-                id: comment.github_id,
-                body: comment.body,
-                created_at: comment.created_at,
-                user: {
-                  // TODO: Replace with Zod validation when implemented (Issue #541)
-                  login:
-                    (comment as unknown as { contributors?: SupabaseContributor }).contributors
-                      ?.username || 'unknown',
-                  avatar_url:
-                    (comment as unknown as { contributors?: SupabaseContributor }).contributors
-                      ?.avatar_url || '',
-                },
-              })),
-            }));
+            // Use Zod validation to safely transform database data
+            const transformedPRs = validateAndTransformPRData(dbPRs, owner, repo);
 
             // Log data quality for debugging
             if (process.env.NODE_ENV === 'development') {
@@ -430,43 +253,8 @@ export async function fetchPRDataWithFallback(
                 .limit(200);
 
               if (!cacheError && cachedPRs && cachedPRs.length > 0) {
-                // We have cached data - apply protection and return it
-                const transformedPRs: PullRequest[] = cachedPRs.map((dbPR) => ({
-                  id: dbPR.github_id,
-                  number: dbPR.number,
-                  title: dbPR.title,
-                  body: dbPR.body,
-                  state: dbPR.state as 'open' | 'closed',
-                  created_at: dbPR.created_at,
-                  updated_at: dbPR.updated_at,
-                  closed_at: dbPR.closed_at,
-                  merged_at: dbPR.merged_at,
-                  user: {
-                    // TODO: Replace with Zod validation when implemented (Issue #541)
-                    login:
-                      (dbPR as unknown as { contributors?: SupabaseContributor }).contributors
-                        ?.username || 'unknown',
-                    id:
-                      (dbPR as unknown as { contributors?: SupabaseContributor }).contributors
-                        ?.github_id || 0,
-                    avatar_url:
-                      (dbPR as unknown as { contributors?: SupabaseContributor }).contributors
-                        ?.avatar_url || '',
-                    type: ((dbPR as unknown as { contributors?: SupabaseContributor }).contributors
-                      ?.is_bot
-                      ? 'Bot'
-                      : 'User') as 'Bot' | 'User',
-                  },
-                  additions: dbPR.additions || 0,
-                  deletions: dbPR.deletions || 0,
-                  changed_files: dbPR.changed_files || 0,
-                  html_url:
-                    dbPR.html_url || `https://github.com/${owner}/${repo}/pull/${dbPR.number}`,
-                  repository_owner: owner,
-                  repository_name: repo,
-                  reviews: [],
-                  comments: [],
-                }));
+                // Use Zod validation for cached data with simplified response (no reviews/comments)
+                const transformedPRs = validateAndTransformPRData(cachedPRs, owner, repo);
 
                 const days = parseInt(timeRange) || 30;
                 const since = new Date();
@@ -500,7 +288,7 @@ export async function fetchPRDataWithFallback(
           // Use a simple in-memory flag to prevent duplicate discovery triggers
           const discoveryKey = `discovery_${owner}_${repo}`;
           const globalWindow = window as Window & {
-            emergencyPRData?: SupabasePullRequest[];
+            emergencyPRData?: SupabasePullRequestWithRelations[];
             __discoveryInProgress?: Record<string, boolean>;
           };
 
@@ -607,42 +395,8 @@ export async function fetchPRDataWithFallback(
               .limit(100);
 
             if (emergencyData && emergencyData.length > 0) {
-              const emergencyPRs = emergencyData.map((dbPR) => ({
-                id: dbPR.github_id,
-                number: dbPR.number,
-                title: dbPR.title,
-                body: dbPR.body,
-                state: dbPR.state as 'open' | 'closed',
-                created_at: dbPR.created_at,
-                updated_at: dbPR.updated_at,
-                closed_at: dbPR.closed_at,
-                merged_at: dbPR.merged_at,
-                user: {
-                  // TODO: Replace with Zod validation when implemented (Issue #541)
-                  login:
-                    (dbPR as unknown as { contributors?: SupabaseContributor }).contributors
-                      ?.username || 'unknown',
-                  id:
-                    (dbPR as unknown as { contributors?: SupabaseContributor }).contributors
-                      ?.github_id || 0,
-                  avatar_url:
-                    (dbPR as unknown as { contributors?: SupabaseContributor }).contributors
-                      ?.avatar_url || '',
-                  type: ((dbPR as unknown as { contributors?: SupabaseContributor }).contributors
-                    ?.is_bot
-                    ? 'Bot'
-                    : 'User') as 'Bot' | 'User',
-                },
-                additions: dbPR.additions || 0, // Note: may be 0 due to missing cached data
-                deletions: dbPR.deletions || 0, // Note: may be 0 due to missing cached data
-                changed_files: dbPR.changed_files || 0, // Note: may be 0 due to missing cached data
-                html_url:
-                  dbPR.html_url || `https://github.com/${owner}/${repo}/pull/${dbPR.number}`,
-                repository_owner: owner,
-                repository_name: repo,
-                reviews: [],
-                comments: [],
-              }));
+              // Use Zod validation for emergency fallback data
+              const emergencyPRs = validateAndTransformPRData(emergencyData, owner, repo);
 
               return createSuccessResult(emergencyPRs);
             }
