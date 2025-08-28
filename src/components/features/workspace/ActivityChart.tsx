@@ -323,10 +323,9 @@ export function ActivityChart({
   const hasData = data && data.length > 0;
   const isDarkMode = useIsDarkMode();
   const [tooltipData, setTooltipData] = useState<{
-    x: number;
-    y: number;
     point: ActivityDataPoint;
   } | null>(null);
+  const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number } | null>(null);
 
   const chartData = useMemo(() => {
     if (!hasData) return null;
@@ -343,15 +342,12 @@ export function ActivityChart({
         (u) => {
           const idx = u.cursor.idx;
           if (idx != null && data[idx]) {
-            const rect = u.over.getBoundingClientRect();
-            const x = u.valToPos(idx, 'x', true);
             setTooltipData({
-              x: rect.left + x,
-              y: rect.top,
               point: data[idx],
             });
           } else {
             setTooltipData(null);
+            setTooltipPosition(null);
           }
         },
       ],
@@ -428,16 +424,30 @@ export function ActivityChart({
           <div
             style={{ height }}
             className="pr-2 transition-[height] duration-500 ease-in-out relative"
-            onMouseLeave={() => setTooltipData(null)}
+            onMouseMove={(e) => {
+              if (tooltipData) {
+                const rect = e.currentTarget.getBoundingClientRect();
+                setTooltipPosition({
+                  x: e.clientX - rect.left,
+                  y: e.clientY - rect.top,
+                });
+              }
+            }}
+            onMouseLeave={() => {
+              setTooltipData(null);
+              setTooltipPosition(null);
+            }}
           >
             <UPlotChart data={chartData} options={chartOptions} height={height} responsive={true} />
-            {tooltipData && (
+            {tooltipData && tooltipPosition && (
               <div
                 className="absolute pointer-events-none z-50"
                 style={{
-                  left: tooltipData.x,
-                  top: tooltipData.y - 100,
-                  transform: 'translateX(-50%)',
+                  left: tooltipPosition.x + 15,
+                  top: tooltipPosition.y - 10,
+                  // Ensure tooltip doesn't go off-screen
+                  ...(tooltipPosition.x > 600 ? { left: 'auto', right: 15 } : {}),
+                  ...(tooltipPosition.y < 100 ? { top: tooltipPosition.y + 30 } : {}),
                 }}
               >
                 <div className="bg-popover text-popover-foreground rounded-md border shadow-md p-2">
