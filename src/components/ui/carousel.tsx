@@ -4,6 +4,7 @@ import useEmblaCarousel, { type UseEmblaCarouselType } from 'embla-carousel-reac
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { getCarouselOrientation } from '@/lib/utils/component-state';
 
 type CarouselApi = UseEmblaCarouselType[1];
 type UseCarouselParameters = Parameters<typeof useEmblaCarousel>;
@@ -110,7 +111,7 @@ const Carousel = React.forwardRef<
         carouselRef,
         api: api,
         opts,
-        orientation: orientation || (opts?.axis === 'y' ? 'vertical' : 'horizontal'),
+        orientation: getCarouselOrientation(orientation, opts),
         scrollPrev,
         scrollNext,
         canScrollPrev,

@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { expect, within } from '@storybook/test';
+import { formatDateRange } from '@/lib/utils/data-type-mapping';
 
 // Mock the entire RepoInsightsContainer to avoid Supabase dependency chain
 const MockRepoInsightsContainer = ({ owner, repo }: { owner: string; repo: string }) => (
@@ -33,8 +34,7 @@ const MockPullRequestInsights = ({ owner, repo, dateRange }: MockPullRequestInsi
       <div className="flex justify-between">
         <span className="text-sm font-medium">Date Range:</span>
         <span className="text-sm text-muted-foreground">
-          {dateRange?.startDate ? dateRange.startDate.toLocaleDateString() : 'All time'} -
-          {dateRange?.endDate ? dateRange.endDate.toLocaleDateString() : 'Present'}
+          {formatDateRange(dateRange)}
         </span>
       </div>
       <div className="grid grid-cols-3 gap-4 mt-4">
