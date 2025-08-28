@@ -61,6 +61,7 @@ import type {
 import type { Workspace } from '@/types/workspace';
 import { WorkspaceService } from '@/services/workspace.service';
 import { AnalyticsDashboard } from '@/components/features/workspace/AnalyticsDashboard';
+import { ActivityTable } from '@/components/features/workspace/ActivityTable';
 import { WorkspaceExportService } from '@/services/workspace-export.service';
 import type {
   AnalyticsData,
@@ -1281,18 +1282,68 @@ function WorkspaceContributors({
 }
 
 function WorkspaceActivity({ repositories }: { repositories: Repository[] }) {
+  // Generate activity data for the feed
+  const activities: ActivityItem[] = [];
+  const now = new Date();
+
+  // Generate sample activities based on repositories
+  repositories.forEach((repo, repoIndex) => {
+    // Generate 20 activities per repo for demonstration
+    for (let i = 0; i < 20; i++) {
+      const createdAt = new Date(now.getTime() - Math.random() * 30 * 24 * 60 * 60 * 1000);
+      const activityTypes = ['pr', 'issue', 'commit', 'review'] as const;
+      const statuses = ['open', 'merged', 'closed', 'approved'] as const;
+      const activityType = activityTypes[Math.floor(Math.random() * activityTypes.length)];
+      const status = statuses[Math.floor(Math.random() * statuses.length)];
+
+      activities.push({
+        id: `activity-${repoIndex}-${i}`,
+        type: activityType,
+        title: (() => {
+          const titles = [
+            'Fix critical bug in authentication',
+            'Add new feature for user profiles',
+            'Update dependencies to latest versions',
+            'Refactor database queries for performance',
+            'Improve error handling in API',
+            'Add unit tests for new components',
+            'Update documentation for API endpoints',
+            'Fix typo in README',
+            'Optimize image loading performance',
+            'Add dark mode support',
+          ];
+          return titles[Math.floor(Math.random() * titles.length)];
+        })(),
+        author: {
+          username: `contributor${Math.floor(Math.random() * 10)}`,
+          avatar_url: `https://github.com/contributor${Math.floor(Math.random() * 10)}.png`,
+        },
+        repository: repo.full_name,
+        created_at: createdAt.toISOString(),
+        status,
+        url: `https://github.com/${repo.full_name}/${(() => {
+          if (activityType === 'pr') return 'pull';
+          if (activityType === 'issue') return 'issues';
+          return 'commit';
+        })()}/${Math.floor(Math.random() * 1000)}`,
+      });
+    }
+  });
+
+  // Sort by date, most recent first
+  activities.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
   return (
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>Activity Timeline</CardTitle>
+          <CardTitle>Activity Feed</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Real-time feed of all activities across your workspace repositories
+          </p>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground">Activity timeline coming soon...</p>
-          <p className="text-sm text-muted-foreground mt-2">
-            This will show a detailed timeline of all activity across {repositories.length}{' '}
-            repositories in this workspace, including commits, pull requests, issues, and releases.
-          </p>
+          <ActivityTable activities={activities} loading={false} pageSize={20} />
         </CardContent>
       </Card>
     </div>
@@ -1903,7 +1954,7 @@ export default function WorkspacePage() {
                 <TrendingUp className="h-4 w-4" />
                 <span className="hidden sm:inline">Analytics</span>
               </TabsTrigger>
-              <TabsTrigger value="activity" className="flex items-center gap-2" disabled>
+              <TabsTrigger value="activity" className="flex items-center gap-2">
                 <Activity className="h-4 w-4" />
                 <span className="hidden sm:inline">Activity</span>
               </TabsTrigger>

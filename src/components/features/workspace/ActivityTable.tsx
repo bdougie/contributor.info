@@ -12,6 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Select,
   SelectContent,
@@ -141,23 +142,29 @@ export function ActivityTable({
     overscan: 5,
   });
 
-  const handleSort = useCallback((field: SortField) => {
-    if (sortField === field) {
-      setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-    } else {
-      setSortField(field);
-      setSortOrder('desc');
-    }
-  }, [sortField]);
+  const handleSort = useCallback(
+    (field: SortField) => {
+      if (sortField === field) {
+        setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+      } else {
+        setSortField(field);
+        setSortOrder('desc');
+      }
+    },
+    [sortField]
+  );
 
-  const SortIcon = useCallback(({ field }: { field: SortField }) => {
-    if (sortField !== field) return null;
-    return sortOrder === 'asc' ? (
-      <ChevronUp className="h-4 w-4" />
-    ) : (
-      <ChevronDown className="h-4 w-4" />
-    );
-  }, [sortField, sortOrder]);
+  const SortIcon = useCallback(
+    ({ field }: { field: SortField }) => {
+      if (sortField !== field) return null;
+      return sortOrder === 'asc' ? (
+        <ChevronUp className="h-4 w-4" />
+      ) : (
+        <ChevronDown className="h-4 w-4" />
+      );
+    },
+    [sortField, sortOrder]
+  );
 
   if (loading) {
     return (
@@ -290,50 +297,155 @@ export function ActivityTable({
                           <div className="flex items-center gap-8 w-full">
                             {/* Type */}
                             <div className="w-24">
-                              <Badge variant="secondary" className={cn('gap-1', TYPE_COLORS[activity.type])}>
-                                <Icon className="h-3 w-3" />
-                                {activity.type.toUpperCase()}
-                              </Badge>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Badge
+                                      variant="secondary"
+                                      className={cn(
+                                        'gap-1 cursor-help',
+                                        TYPE_COLORS[activity.type]
+                                      )}
+                                    >
+                                      <Icon className="h-3 w-3" />
+                                      {activity.type.toUpperCase()}
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p className="font-semibold">
+                                      {(() => {
+                                        if (activity.type === 'pr') return 'Pull Request';
+                                        if (activity.type === 'issue') return 'Issue';
+                                        if (activity.type === 'commit') return 'Commit';
+                                        return 'Review';
+                                      })()}
+                                    </p>
+                                    <p className="text-xs">Status: {activity.status}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             </div>
 
                             {/* Activity */}
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium truncate">{activity.title}</p>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <p className="text-sm font-medium truncate cursor-help">
+                                      {activity.title}
+                                    </p>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="max-w-xs">
+                                    <p className="font-semibold text-sm">{activity.title}</p>
+                                    <p className="text-xs mt-1">
+                                      Repository: {activity.repository}
+                                    </p>
+                                    <p className="text-xs">
+                                      Created: {format(parseISO(activity.created_at), 'PPp')}
+                                    </p>
+                                    <p className="text-xs">Click to open in GitHub</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             </div>
 
                             {/* Author */}
                             <div className="w-32 flex items-center gap-2">
-                              <Avatar className="h-6 w-6">
-                                <AvatarImage src={activity.author.avatar_url} />
-                                <AvatarFallback>
-                                  {activity.author.username.slice(0, 2).toUpperCase()}
-                                </AvatarFallback>
-                              </Avatar>
-                              <span className="text-sm truncate">{activity.author.username}</span>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div className="flex items-center gap-2 cursor-help">
+                                      <Avatar className="h-6 w-6">
+                                        <AvatarImage src={activity.author.avatar_url} />
+                                        <AvatarFallback>
+                                          {activity.author.username.slice(0, 2).toUpperCase()}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                      <span className="text-sm truncate">
+                                        {activity.author.username}
+                                      </span>
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p className="font-semibold">@{activity.author.username}</p>
+                                    <p className="text-xs">Contributor</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             </div>
 
                             {/* Repository */}
                             <div className="w-40">
-                              <p className="text-sm text-muted-foreground truncate">{activity.repository}</p>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <p className="text-sm text-muted-foreground truncate cursor-help">
+                                      {activity.repository}
+                                    </p>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p className="font-semibold">{activity.repository}</p>
+                                    <p className="text-xs">Click to view repository</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             </div>
 
                             {/* Status */}
                             <div className="w-32">
                               {activity.status && (
-                                <Badge
-                                  variant="secondary"
-                                  className={STATUS_COLORS[activity.status as keyof typeof STATUS_COLORS] || ''}
-                                >
-                                  {activity.status}
-                                </Badge>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Badge
+                                        variant="secondary"
+                                        className={cn(
+                                          'cursor-help',
+                                          STATUS_COLORS[
+                                            activity.status as keyof typeof STATUS_COLORS
+                                          ] || ''
+                                        )}
+                                      >
+                                        {activity.status}
+                                      </Badge>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p className="font-semibold">Status: {activity.status}</p>
+                                      <p className="text-xs">
+                                        {(() => {
+                                          if (activity.status === 'merged')
+                                            return 'Successfully merged';
+                                          if (activity.status === 'open') return 'Awaiting review';
+                                          if (activity.status === 'closed')
+                                            return 'Closed without merging';
+                                          return 'Review approved';
+                                        })()}
+                                      </p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
                               )}
                             </div>
 
                             {/* Date */}
                             <div className="w-32">
-                              <p className="text-sm text-muted-foreground" title={format(parseISO(activity.created_at), 'PPpp')}>
-                                {formatDistanceToNow(parseISO(activity.created_at), { addSuffix: true })}
-                              </p>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <p className="text-sm text-muted-foreground cursor-help">
+                                      {formatDistanceToNow(parseISO(activity.created_at), {
+                                        addSuffix: true,
+                                      })}
+                                    </p>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p className="font-semibold">Exact time</p>
+                                    <p className="text-xs">
+                                      {format(parseISO(activity.created_at), 'PPpp')}
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             </div>
 
                             {/* Link */}
@@ -362,7 +474,8 @@ export function ActivityTable({
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            Showing {page * pageSize + 1} to {Math.min((page + 1) * pageSize, processedActivities.length)} of{' '}
+            Showing {page * pageSize + 1} to{' '}
+            {Math.min((page + 1) * pageSize, processedActivities.length)} of{' '}
             {processedActivities.length} activities
           </p>
           <div className="flex items-center gap-2">
