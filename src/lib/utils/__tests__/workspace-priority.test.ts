@@ -21,4 +21,3 @@ describe('getWorkspacePriority', () => {
     expect(getWorkspacePriority('')).toBe(100);
   });
 });
-EOF < /dev/null
