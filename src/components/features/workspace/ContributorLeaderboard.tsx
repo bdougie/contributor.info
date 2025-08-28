@@ -21,6 +21,7 @@ import {
   AlertCircle,
   Star,
   Crown,
+  Users,
 } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 import type { ContributorStat } from './AnalyticsDashboard';
@@ -51,7 +52,6 @@ const RANK_ICONS = {
 export function ContributorLeaderboard({
   contributors,
   loading = false,
-  timeRange: _timeRange = '30d',
   maxDisplay = 20,
   className,
 }: ContributorLeaderboardProps) {
@@ -93,21 +93,62 @@ export function ContributorLeaderboard({
 
   if (loading) {
     return (
-      <Card className={className}>
-        <CardContent className="flex items-center justify-center py-8">
-          <div className="text-muted-foreground">Loading leaderboard...</div>
-        </CardContent>
-      </Card>
+      <div className={cn('space-y-6', className)}>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="h-6 w-48 bg-muted animate-pulse rounded" />
+                <div className="h-4 w-64 bg-muted animate-pulse rounded mt-2" />
+              </div>
+              <div className="h-10 w-40 bg-muted animate-pulse rounded" />
+            </div>
+          </CardHeader>
+        </Card>
+        <div className="grid gap-4 md:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="relative overflow-hidden">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 bg-muted animate-pulse rounded-full" />
+                  <div className="space-y-2">
+                    <div className="h-4 w-24 bg-muted animate-pulse rounded" />
+                    <div className="h-3 w-32 bg-muted animate-pulse rounded" />
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-2">
+                  {[1, 2, 3, 4].map((j) => (
+                    <div key={j} className="h-3 w-16 bg-muted animate-pulse rounded" />
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
     );
   }
 
   if (contributors.length === 0) {
     return (
-      <Card className={className}>
-        <CardContent className="flex items-center justify-center py-8">
-          <div className="text-muted-foreground">No contributor data available</div>
-        </CardContent>
-      </Card>
+      <div className={cn('space-y-6', className)}>
+        <Card>
+          <CardHeader>
+            <CardTitle>Contributor Leaderboard</CardTitle>
+            <CardDescription>Top contributors ranked by activity</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Users className="h-12 w-12 text-muted-foreground mb-4" />
+            <p className="text-lg font-medium mb-2">No contributors yet</p>
+            <p className="text-sm text-muted-foreground text-center max-w-md">
+              Contributors will appear here once they start contributing to your workspace
+              repositories. Add contributors to your workspace to start tracking their activity.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
@@ -119,9 +160,7 @@ export function ContributorLeaderboard({
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>Contributor Leaderboard</CardTitle>
-              <CardDescription>
-                Top contributors ranked by activity
-              </CardDescription>
+              <CardDescription>Top contributors ranked by activity</CardDescription>
             </div>
             <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortBy)}>
               <SelectTrigger className="w-40">
@@ -240,9 +279,7 @@ export function ContributorLeaderboard({
                 {/* Avatar and Name */}
                 <Avatar className="h-8 w-8">
                   <AvatarImage src={contributor.avatar_url} />
-                  <AvatarFallback>
-                    {contributor.username.slice(0, 2).toUpperCase()}
-                  </AvatarFallback>
+                  <AvatarFallback>{contributor.username.slice(0, 2).toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{contributor.username}</p>
@@ -275,7 +312,8 @@ export function ContributorLeaderboard({
                           : 'bg-red-500/10 text-red-700 dark:text-red-400'
                       )}
                     >
-                      {contributor.trend > 0 ? '+' : ''}{contributor.trend}%
+                      {contributor.trend > 0 ? '+' : ''}
+                      {contributor.trend}%
                     </Badge>
                   )}
                 </div>
@@ -285,11 +323,7 @@ export function ContributorLeaderboard({
 
           {!showAll && rankedContributors.length > maxDisplay && (
             <div className="text-center pt-4">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowAll(true)}
-              >
+              <Button variant="outline" size="sm" onClick={() => setShowAll(true)}>
                 Show {rankedContributors.length - maxDisplay} more contributors
               </Button>
             </div>
@@ -297,11 +331,7 @@ export function ContributorLeaderboard({
 
           {showAll && rankedContributors.length > maxDisplay && (
             <div className="text-center pt-4">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowAll(false)}
-              >
+              <Button variant="outline" size="sm" onClick={() => setShowAll(false)}>
                 Show less
               </Button>
             </div>
