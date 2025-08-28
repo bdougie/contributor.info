@@ -97,7 +97,19 @@ BEGIN
     
     RETURN v_log_id;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- Function to atomically increment workspace member count
+CREATE OR REPLACE FUNCTION increment_workspace_member_count(workspace_id_param UUID)
+RETURNS void AS $$
+BEGIN
+    UPDATE workspaces 
+    SET 
+        member_count = COALESCE(member_count, 0) + 1,
+        updated_at = NOW()
+    WHERE id = workspace_id_param;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- Update workspace_invitations table to add metadata column if it doesn't exist
 ALTER TABLE workspace_invitations 
@@ -130,8 +142,12 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- SELECT cron.schedule('expire-invitations', '0 0 * * *', 'SELECT expire_old_invitations();');
 
 -- Grant necessary permissions
-GRANT SELECT, INSERT ON workspace_activity_log TO authenticated;
-GRANT SELECT, INSERT, UPDATE ON gdpr_processing_log TO authenticated;
+-- Only allow authenticated users to view logs, not modify them
+GRANT SELECT ON workspace_activity_log TO authenticated;
+GRANT SELECT ON gdpr_processing_log TO authenticated;
+-- Service role can insert logs
+GRANT INSERT ON workspace_activity_log TO service_role;
+GRANT INSERT, UPDATE ON gdpr_processing_log TO service_role;
 
 -- RLS Policies for new tables
 ALTER TABLE workspace_activity_log ENABLE ROW LEVEL SECURITY;
@@ -154,9 +170,10 @@ CREATE POLICY "Users can view activity for their workspaces"
         )
     );
 
--- Service role can insert activity logs
+-- Only service role can insert activity logs
 CREATE POLICY "Service role can insert activity logs"
     ON workspace_activity_log FOR INSERT
+    TO service_role
     WITH CHECK (true);
 
 -- GDPR log policies (restricted to service role and the user themselves)
@@ -164,9 +181,10 @@ CREATE POLICY "Users can view their own GDPR logs"
     ON gdpr_processing_log FOR SELECT
     USING (user_id = auth.uid());
 
--- Service role can manage GDPR logs
+-- Only service role can manage GDPR logs
 CREATE POLICY "Service role can manage GDPR logs"
     ON gdpr_processing_log FOR ALL
+    TO service_role
     USING (true)
     WITH CHECK (true);
 
