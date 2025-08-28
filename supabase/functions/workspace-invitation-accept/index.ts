@@ -95,7 +95,6 @@ Deno.serve(async (req: Request) => {
         .update({ 
           status: 'expired',
           metadata: {
-<<<<<<< HEAD
             ...(invitation.metadata ?? {}),
             expired_at: new Date().toISOString()
           }
@@ -109,24 +108,21 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Verify that the user email matches the invitation email
-    const { data: user, error: userError } = await supabase
-      .from('auth.users')
-      .select('email')
-      .eq('id', userId)
-      .single();
+    // Verify that the user email matches the invitation email using RPC
+    const { data: userEmail, error: userError } = await supabase
+      .rpc('get_user_email', { user_id: userId });
 
-    if (userError || !user) {
-      console.error('Failed to fetch user:', userError);
+    if (userError || !userEmail) {
+      console.error('Failed to fetch user email:', userError);
       return new Response(
         JSON.stringify({ error: 'User not found' }),
         { status: 404, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
-    if (user.email !== invitation.email) {
+    if (userEmail !== invitation.email) {
       console.error('Email mismatch:', {
-        userEmail: user.email,
+        userEmail: userEmail,
         invitationEmail: invitation.email
       });
       return new Response(
@@ -141,7 +137,7 @@ Deno.serve(async (req: Request) => {
       .select('id')
       .eq('workspace_id', invitation.workspace_id)
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
     if (existingMember) {
       // User is already a member, just update the invitation status

@@ -97,7 +97,6 @@ BEGIN
     
     RETURN v_log_id;
 END;
-<<<<<<< HEAD
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- Function to atomically increment workspace member count
@@ -109,11 +108,27 @@ BEGIN
         member_count = COALESCE(member_count, 0) + 1,
         updated_at = NOW()
     WHERE id = workspace_id_param;
+    
+    -- Ensure member_count is never null for any workspace
+    UPDATE workspaces 
+    SET member_count = 0 
+    WHERE member_count IS NULL;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
-=======
-$$ LANGUAGE plpgsql SECURITY DEFINER;
->>>>>>> origin/main
+
+-- Function to get user email by ID (for service role to access auth.users)
+CREATE OR REPLACE FUNCTION get_user_email(user_id UUID)
+RETURNS TEXT AS $$
+DECLARE
+    user_email TEXT;
+BEGIN
+    SELECT email INTO user_email
+    FROM auth.users
+    WHERE id = user_id;
+    
+    RETURN user_email;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- Update workspace_invitations table to add metadata column if it doesn't exist
 ALTER TABLE workspace_invitations 
@@ -202,6 +217,15 @@ CREATE POLICY "Service role can manage GDPR logs"
     TO service_role
     USING (true)
     WITH CHECK (true);
+
+-- Initialize member_count for existing workspaces
+UPDATE workspaces 
+SET member_count = COALESCE(member_count, (
+    SELECT COUNT(*) 
+    FROM workspace_members 
+    WHERE workspace_id = workspaces.id
+))
+WHERE member_count IS NULL;
 
 -- Add comments for documentation
 COMMENT ON TABLE workspace_activity_log IS 'Audit log for all workspace-related activities';
