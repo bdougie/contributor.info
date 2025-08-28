@@ -37,7 +37,7 @@ export const supabaseReviewWithContributorSchema = z.object({
   pull_request_id: z.string().uuid(),
   reviewer_id: z.string().uuid().nullable(),
   author_id: z.string().uuid().nullable(),
-  // Nested contributor from join
+  // Nested contributor from reviewer_id join
   contributors: supabaseContributorNestedSchema,
 });
 
@@ -53,7 +53,7 @@ export const supabaseCommentWithContributorSchema = z.object({
   comment_type: z.enum(['issue_comment', 'review_comment']),
   pull_request_id: z.string().uuid(),
   commenter_id: z.string().uuid(),
-  // Nested contributor from join
+  // Nested contributor from commenter_id join
   contributors: supabaseContributorNestedSchema,
 });
 

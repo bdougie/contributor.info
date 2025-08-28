@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { expect, within } from '@storybook/test';
+import { getScoreBgColor } from '../../../lib/utils/score-styling';
 
 // Create a simple mock repository health component for Storybook
 const MockRepositoryHealth = ({
@@ -123,7 +124,7 @@ const MockRepositoryHealth = ({
         </div>
         <div className="w-full bg-muted rounded-full h-2">
           <div
-            className={`h-2 rounded-full ${data.score >= 80 ? 'bg-green-500' : data.score >= 60 ? 'bg-yellow-500' : 'bg-red-500'}`}
+            className={`h-2 rounded-full ${getScoreBgColor(data.score)}`}
             style={{ width: `${data.score}%` }}
           />
         </div>

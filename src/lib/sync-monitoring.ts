@@ -2,6 +2,7 @@
 // Tracks execution times, success rates, and timeout occurrences
 
 import { supabase } from './supabase';
+import { getMonitoringEmoji } from './utils/state-mapping';
 
 export interface SyncMetrics {
   functionName: string;
@@ -226,7 +227,7 @@ export class SyncMonitoring {
   // Private helper methods
 
   private static logMetrics(metrics: SyncMetrics): void {
-    const emoji = metrics.success ? '✅' : metrics.timedOut ? '⏰' : '❌';
+    const emoji = getMonitoringEmoji({ success: metrics.success, timedOut: metrics.timedOut });
     const router = metrics.router.toUpperCase();
 
     console.log(

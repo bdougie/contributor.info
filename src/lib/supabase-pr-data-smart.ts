@@ -9,6 +9,7 @@ import {
 } from './errors/repository-errors';
 import { sendInngestEvent } from './inngest/client-safe';
 import { toast } from 'sonner';
+import { validateAndTransformPRData } from './validation';
 
 interface FetchOptions {
   timeRange?: string;
@@ -139,53 +140,8 @@ export async function fetchPRDataSmart(
         return createNoDataResult(`${owner}/${repo}`, []);
       }
 
-      // Transform data
-      const transformedPRs: PullRequest[] = (dbPRs || []).map((dbPR: any) => ({
-        id: dbPR.github_id,
-        number: dbPR.number,
-        title: dbPR.title,
-        body: dbPR.body,
-        state: dbPR.state,
-        created_at: dbPR.created_at,
-        updated_at: dbPR.updated_at,
-        closed_at: dbPR.closed_at,
-        merged_at: dbPR.merged_at,
-        merged: dbPR.merged,
-        user: {
-          login: dbPR.contributors?.username || 'unknown',
-          id: dbPR.contributors?.github_id || 0,
-          avatar_url: dbPR.contributors?.avatar_url || '',
-          type: (dbPR.contributors?.is_bot ? 'Bot' : 'User') as 'Bot' | 'User',
-        },
-        base: { ref: dbPR.base_branch },
-        head: { ref: dbPR.head_branch },
-        additions: dbPR.additions || 0,
-        deletions: dbPR.deletions || 0,
-        changed_files: dbPR.changed_files || 0,
-        commits: dbPR.commits || 0,
-        html_url: dbPR.html_url || `https://github.com/${owner}/${repo}/pull/${dbPR.number}`,
-        repository_owner: owner,
-        repository_name: repo,
-        reviews: (dbPR.reviews || []).map((review: any) => ({
-          id: review.github_id,
-          state: review.state,
-          body: review.body,
-          submitted_at: review.submitted_at,
-          user: {
-            login: review.contributors?.username || 'unknown',
-            avatar_url: review.contributors?.avatar_url || '',
-          },
-        })),
-        comments: (dbPR.comments || []).map((comment: any) => ({
-          id: comment.github_id,
-          body: comment.body,
-          created_at: comment.created_at,
-          user: {
-            login: comment.contributors?.username || 'unknown',
-            avatar_url: comment.contributors?.avatar_url || '',
-          },
-        })),
-      }));
+      // Use Zod validation to safely transform data
+      const transformedPRs = validateAndTransformPRData(dbPRs || [], owner, repo);
 
       // Check data freshness
       const isEmpty = transformedPRs.length === 0;
@@ -301,7 +257,7 @@ export async function hasAnyPRData(owner: string, repo: string): Promise<boolean
       .eq('repository_id', repoData.id);
 
     return (count || 0) > 0;
-  } catch (error) {
+  } catch {
     return false;
   }
 }

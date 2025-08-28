@@ -1,6 +1,7 @@
 import { supabase } from '../supabase';
 import { ProgressiveCaptureNotifications } from './ui-notifications';
 import { env } from '../env';
+import { getPriorityLevel } from '../utils/priority-classification';
 
 export interface DataCaptureJob {
   id: string;
@@ -732,8 +733,7 @@ export class DataCaptureQueueManager {
 
         const { error: insertError } = await supabase.from('data_capture_queue').insert({
           type: 'workspace_issues',
-          priority:
-            repo.priority_score >= 70 ? 'high' : repo.priority_score >= 50 ? 'medium' : 'low',
+          priority: getPriorityLevel(repo.priority_score),
           repository_id: repositoryId,
           resource_id: `${hoursBack}h`,
           estimated_api_calls: 5, // Estimate for issues in time window

@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { OptimizedAvatar } from '@/components/ui/optimized-avatar';
 import { DataFreshnessIndicator } from '@/components/ui/data-freshness-indicator';
 import { cn } from '@/lib/utils';
+import { getChangeDirectionColor, formatPercentageChange } from '@/lib/utils/state-mapping';
 import {
   ChevronUp,
   ChevronDown,
@@ -52,13 +53,13 @@ function MetricChange({ label: _label, value, icon: Icon, formatValue }: MetricC
     <div
       className={cn(
         'flex items-center gap-1 text-xs',
-        isPositive ? 'text-green-600' : isNeutral ? 'text-muted-foreground' : 'text-red-600'
+        getChangeDirectionColor(isPositive, isNeutral)
       )}
     >
       {!isNeutral &&
         (isPositive ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
       <Icon className="w-3 h-3" />
-      <span>{isNeutral ? '0%' : `${isPositive ? '+' : '-'}${displayValue}`}</span>
+      <span>{formatPercentageChange(isNeutral, isPositive, displayValue)}</span>
     </div>
   );
 }
