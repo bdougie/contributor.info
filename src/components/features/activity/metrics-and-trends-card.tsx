@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { TrendingUp, TrendingDown, Link } from '@/components/ui/icon';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -100,34 +100,17 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
     try {
       await navigator.clipboard.writeText(window.location.href);
       toast.success('Link copied to clipboard!');
-    } catch (error) {
+    } catch {
       toast.error('Failed to copy link');
     }
   };
 
-  useEffect(() => {
-    loadData();
-  }, [owner, repo, timeRange]);
-
-  // Track when status messages are displayed for monitoring
-  useEffect(() => {
-    if (!loading && hasLowDataQuality(metrics, trends) && metrics) {
-      const statusMessage = getStatusMessage(metrics);
-
-      // Simple logging for user experience tracking
-      console.log('Metrics and trends user experience:', {
-        repository: `${owner}/${repo}`,
-        statusDisplayed: statusMessage.title,
-        statusDescription: statusMessage.description,
-        userCanRetry: metrics.status !== 'large_repository_protected',
-        timeRange,
-        component: 'MetricsAndTrendsCard',
-        status: metrics.status,
-      });
-    }
-  }, [loading, metrics, trends, owner, repo, timeRange]);
-
-  const loadData = async () => {
+  /**
+   * Loads trend metrics and PR activity metrics for the repository.
+   * Fetches data in parallel and updates component state.
+   * Handles errors gracefully by resetting state on failure.
+   */
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const [trendData, metricsData] = await Promise.all([
@@ -152,65 +135,75 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
     } finally {
       setLoading(false);
     }
-  };
+  }, [owner, repo, timeRange]);
 
-  // Check if metrics suggest missing data or have special status
-  const hasLowDataQuality = (metrics: ActivityMetrics | null, trends: TrendData[]) => {
-    if (!metrics) return true;
+  /**
+   * Evaluates the quality of repository metrics data.
+   * Checks for protected repositories, missing data, or suspiciously low engagement.
+   * Used to determine whether to show data refresh prompts to users.
+   * @param {ActivityMetrics | null} metrics - The activity metrics to evaluate
+   * @param {TrendData[]} trends - The trend data to check for engagement
+   * @returns {boolean} True if data quality is low or missing
+   */
+  const hasLowDataQuality = useCallback(
+    (metrics: ActivityMetrics | null, trends: TrendData[]) => {
+      if (!metrics) return true;
 
-    // Check for protected or error status
-    if (
-      metrics.status === 'large_repository_protected' ||
-      metrics.status === 'no_data' ||
-      metrics.status === 'error'
-    ) {
-      return true;
-    }
+      // Check for protected or error status
+      if (
+        metrics.status === 'large_repository_protected' ||
+        metrics.status === 'no_data' ||
+        metrics.status === 'error'
+      ) {
+        return true;
+      }
 
-    // More intelligent data quality check for successful status
-    const reviewTrend = trends.find((t) => t.metric === 'Review Activity');
-    const commentTrend = trends.find((t) => t.metric === 'Comment Activity');
+      // More intelligent data quality check for successful status
+      const reviewTrend = trends.find((t) => t.metric === 'Review Activity');
+      const commentTrend = trends.find((t) => t.metric === 'Comment Activity');
 
-    // Case 1: No PRs at all (definitely missing data)
-    if (metrics.totalPRs === 0) {
-      return true;
-    }
+      // Case 1: No PRs at all (definitely missing data)
+      if (metrics.totalPRs === 0) {
+        return true;
+      }
 
-    // Case 2: Has multiple PRs but suspiciously low engagement
-    // Only flag as low quality if we have a significant number of PRs but zero engagement
-    const hasSignificantPRs = metrics.totalPRs >= 5;
-    const hasZeroReviews = reviewTrend?.current === 0;
-    const hasZeroComments = commentTrend?.current === 0;
-    const hasBothZero = hasZeroReviews && hasZeroComments;
+      // Case 2: Has multiple PRs but suspiciously low engagement
+      // Only flag as low quality if we have a significant number of PRs but zero engagement
+      const hasSignificantPRs = metrics.totalPRs >= 5;
+      const hasZeroReviews = reviewTrend?.current === 0;
+      const hasZeroComments = commentTrend?.current === 0;
+      const hasBothZero = hasZeroReviews && hasZeroComments;
 
-    // Development logging for data completeness tracking
-    if (process.env.NODE_ENV === 'development') {
-      const reviewTotal = metrics.totalReviews || 0;
-      const commentTotal = metrics.totalComments || 0;
-      const engagementRatio =
-        metrics.totalPRs > 0 ? (reviewTotal + commentTotal) / metrics.totalPRs : 0;
+      // Development logging for data completeness tracking
+      if (process.env.NODE_ENV === 'development') {
+        const reviewTotal = metrics.totalReviews || 0;
+        const commentTotal = metrics.totalComments || 0;
+        const engagementRatio =
+          metrics.totalPRs > 0 ? (reviewTotal + commentTotal) / metrics.totalPRs : 0;
 
-      console.log('📊 Data Quality Analysis for %s/%s:', owner, repo, {
-        totalPRs: metrics.totalPRs,
-        totalReviews: reviewTotal,
-        totalComments: commentTotal,
-        engagementRatio: engagementRatio.toFixed(2),
-        hasZeroReviews,
-        hasZeroComments,
-        wouldShowRefresh:
-          (hasSignificantPRs && hasBothZero) ||
-          (metrics.totalPRs >= 10 && (hasZeroReviews || hasZeroComments)),
-      });
-    }
+        console.log('📊 Data Quality Analysis for %s/%s:', owner, repo, {
+          totalPRs: metrics.totalPRs,
+          totalReviews: reviewTotal,
+          totalComments: commentTotal,
+          engagementRatio: engagementRatio.toFixed(2),
+          hasZeroReviews,
+          hasZeroComments,
+          wouldShowRefresh:
+            (hasSignificantPRs && hasBothZero) ||
+            (metrics.totalPRs >= 10 && (hasZeroReviews || hasZeroComments)),
+        });
+      }
 
-    // Only show refresh button if:
-    // - We have 5+ PRs but absolutely no reviews AND no comments (very suspicious)
-    // - OR we have 10+ PRs but missing either reviews OR comments entirely
-    return (
-      (hasSignificantPRs && hasBothZero) ||
-      (metrics.totalPRs >= 10 && (hasZeroReviews || hasZeroComments))
-    );
-  };
+      // Only show refresh button if:
+      // - We have 5+ PRs but absolutely no reviews AND no comments (very suspicious)
+      // - OR we have 10+ PRs but missing either reviews OR comments entirely
+      return (
+        (hasSignificantPRs && hasBothZero) ||
+        (metrics.totalPRs >= 10 && (hasZeroReviews || hasZeroComments))
+      );
+    },
+    [owner, repo]
+  );
 
   // Get appropriate message based on status
   const getStatusMessage = (metrics: ActivityMetrics | null) => {
@@ -245,6 +238,28 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
         };
     }
   };
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Track when status messages are displayed for monitoring
+  useEffect(() => {
+    if (!loading && hasLowDataQuality(metrics, trends) && metrics) {
+      const statusMessage = getStatusMessage(metrics);
+
+      // Simple logging for user experience tracking
+      console.log('Metrics and trends user experience:', {
+        repository: `${owner}/${repo}`,
+        statusDisplayed: statusMessage.title,
+        statusDescription: statusMessage.description,
+        userCanRetry: metrics.status !== 'large_repository_protected',
+        timeRange,
+        component: 'MetricsAndTrendsCard',
+        status: metrics.status,
+      });
+    }
+  }, [loading, metrics, trends, owner, repo, timeRange, hasLowDataQuality]);
 
   return (
     <Card>
@@ -358,24 +373,32 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
         {/* Trends Section */}
         <section>
           <h3 className="text-sm font-medium mb-3">Trends</h3>
-          {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-              {[1, 2, 3, 4].map((i) => (
-                <TrendCard key={i} loading={true} />
-              ))}
-            </div>
-          ) : trends.length === 0 ? (
-            <div className="text-center py-8">
-              <TrendingUp className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground">Not enough data to show trends</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-              {trends.slice(0, 4).map((trend, index) => (
-                <TrendCard key={index} trend={trend} loading={loading} />
-              ))}
-            </div>
-          )}
+          {(() => {
+            if (loading) {
+              return (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                  {[1, 2, 3, 4].map((i) => (
+                    <TrendCard key={i} loading={true} />
+                  ))}
+                </div>
+              );
+            }
+            if (trends.length === 0) {
+              return (
+                <div className="text-center py-8">
+                  <TrendingUp className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                  <p className="text-sm text-muted-foreground">Not enough data to show trends</p>
+                </div>
+              );
+            }
+            return (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                {trends.slice(0, 4).map((trend, index) => (
+                  <TrendCard key={index} trend={trend} loading={loading} />
+                ))}
+              </div>
+            );
+          })()}
         </section>
       </CardContent>
     </Card>

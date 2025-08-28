@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { Markdown } from '@/components/common/layout/markdown';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -26,17 +26,12 @@ export function DocDetail() {
     return docSlug === slug;
   });
 
-  useEffect(() => {
-    if (!docMeta) {
-      setError('Documentation page not found');
-      setLoading(false);
-      return;
-    }
-
-    loadDocContent();
-  }, [slug, docMeta]);
-
-  const loadDocContent = async () => {
+  /**
+   * Loads documentation content from the file system.
+   * Fetches the markdown content for the current doc page and updates state.
+   * Handles errors by setting an appropriate error message.
+   */
+  const loadDocContent = useCallback(async () => {
     if (!docMeta) return;
 
     try {
@@ -50,7 +45,17 @@ export function DocDetail() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [docMeta]);
+
+  useEffect(() => {
+    if (!docMeta) {
+      setError('Documentation page not found');
+      setLoading(false);
+      return;
+    }
+
+    loadDocContent();
+  }, [docMeta, loadDocContent]);
 
   if (loading) {
     return (
