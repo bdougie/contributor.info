@@ -5,7 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import type { HealthMetrics } from '@/lib/insights/health-metrics';
-import type { RepoStats } from '@/lib/types';
+import type { RepoStats, PullRequest } from '@/lib/types';
 
 interface RepositoryHealthCoreProps {
   stats: RepoStats;
@@ -22,11 +22,11 @@ function calculateHealthMetricsFromStats(stats: RepoStats, timeRange: string): H
   const recommendations: string[] = [];
 
   // 1. PR Merge Time Factor
-  const mergedPRs = pullRequests.filter((pr: any) => pr.merged_at);
+  const mergedPRs = pullRequests.filter((pr: PullRequest) => pr.merged_at);
   let avgMergeTime = 0;
 
   if (mergedPRs.length > 0) {
-    const mergeTimes = mergedPRs.map((pr: any) => {
+    const mergeTimes = mergedPRs.map((pr: PullRequest) => {
       const created = new Date(pr.created_at);
       const merged = new Date(pr.merged_at!);
       return (merged.getTime() - created.getTime()) / (1000 * 60 * 60); // hours
@@ -59,7 +59,7 @@ function calculateHealthMetricsFromStats(stats: RepoStats, timeRange: string): H
   });
 
   // 2. Contributor Diversity Factor
-  const uniqueContributors = new Set(pullRequests.map((pr: any) => pr.user.login)).size;
+  const uniqueContributors = new Set(pullRequests.map((pr: PullRequest) => pr.user.login)).size;
   const totalPRs = pullRequests.length;
 
   let diversityScore = 100;
@@ -88,7 +88,7 @@ function calculateHealthMetricsFromStats(stats: RepoStats, timeRange: string): H
 
   // 3. Review Coverage Factor
   const reviewedPRs = pullRequests.filter(
-    (pr: any) => pr.requested_reviewers?.length > 0 || pr.reviews?.length > 0
+    (pr: PullRequest) => (pr.requested_reviewers && pr.requested_reviewers.length > 0) || (pr.reviews && pr.reviews.length > 0)
   );
   const reviewCoverage = totalPRs > 0 ? (reviewedPRs.length / totalPRs) * 100 : 0;
 
@@ -139,8 +139,8 @@ function calculateHealthMetricsFromStats(stats: RepoStats, timeRange: string): H
 
   // 5. Response Time Factor
   const responseTimes = pullRequests
-    .filter((pr: any) => pr.comments > 0)
-    .map((pr: any) => {
+    .filter((pr: PullRequest) => pr.comments && pr.comments.length > 0)
+    .map((pr: PullRequest) => {
       // Estimate response time (simplified)
       const created = new Date(pr.created_at);
       const updated = new Date(pr.updated_at);
