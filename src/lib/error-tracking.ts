@@ -20,7 +20,7 @@ export interface ErrorReport {
   context: ErrorTrackingContext;
   stackTrace?: string;
   breadcrumbs?: ErrorBreadcrumb[];
-  additionalData?: Record<string, any>;
+  additionalData?: Record<string, unknown>;
 }
 
 export interface ErrorBreadcrumb {
@@ -28,7 +28,7 @@ export interface ErrorBreadcrumb {
   message: string;
   category: 'navigation' | 'user' | 'data' | 'system';
   level: 'info' | 'warning' | 'error';
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
 }
 
 class ErrorTracker {
@@ -100,7 +100,7 @@ class ErrorTracker {
   async reportError(
     error: LoadingError,
     context?: Partial<ErrorTrackingContext>,
-    additionalData?: Record<string, any>
+    additionalData?: Record<string, unknown>
   ): Promise<void> {
     const report: ErrorReport = {
       error,
@@ -201,7 +201,7 @@ class ErrorTracker {
           scope.addBreadcrumb({
             message: breadcrumb.message,
             category: breadcrumb.category,
-            level: breadcrumb.level as any,
+            level: breadcrumb.level,
             timestamp: breadcrumb.timestamp / 1000,
             data: breadcrumb.data,
           });
@@ -220,7 +220,7 @@ class ErrorTracker {
     totalErrors: number;
     errorsByStage: Record<LoadingStage, number>;
     errorsByType: Record<string, number>;
-    recentErrors: any[];
+    recentErrors: LoadingError[];
   } {
     try {
       if (typeof window === 'undefined') {
@@ -235,17 +235,20 @@ class ErrorTracker {
       const storedErrors = JSON.parse(localStorage.getItem('data-loading-errors') || '[]');
 
       const errorsByStage = storedErrors.reduce(
-        (acc: Record<LoadingStage, number>, error: any) => {
+        (acc: Record<LoadingStage, number>, error: LoadingError) => {
           acc[error.stage as LoadingStage] = (acc[error.stage as LoadingStage] || 0) + 1;
           return acc;
         },
         { critical: 0, full: 0, enhancement: 0 }
       );
 
-      const errorsByType = storedErrors.reduce((acc: Record<string, number>, error: any) => {
-        acc[error.type] = (acc[error.type] || 0) + 1;
-        return acc;
-      }, {});
+      const errorsByType = storedErrors.reduce(
+        (acc: Record<string, number>, error: LoadingError) => {
+          acc[error.type] = (acc[error.type] || 0) + 1;
+          return acc;
+        },
+        {}
+      );
 
       return {
         totalErrors: storedErrors.length,
@@ -297,7 +300,7 @@ export const errorTracker = new ErrorTracker();
 export function trackDataLoadingError(
   error: LoadingError,
   context?: Partial<ErrorTrackingContext>,
-  additionalData?: Record<string, any>
+  additionalData?: Record<string, unknown>
 ): void {
   errorTracker.reportError(error, context, additionalData);
 }
@@ -323,7 +326,7 @@ export function useErrorTracking() {
   const trackError = (
     error: LoadingError,
     context?: Partial<ErrorTrackingContext>,
-    additionalData?: Record<string, any>
+    additionalData?: Record<string, unknown>
   ) => {
     trackDataLoadingError(error, context, additionalData);
   };
@@ -332,7 +335,7 @@ export function useErrorTracking() {
     message: string,
     category: ErrorBreadcrumb['category'] = 'user',
     level: ErrorBreadcrumb['level'] = 'info',
-    data?: Record<string, any>
+    data?: Record<string, unknown>
   ) => {
     addBreadcrumb({ message, category, level, data });
   };

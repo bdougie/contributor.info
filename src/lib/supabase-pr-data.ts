@@ -1,5 +1,57 @@
 import { supabase } from './supabase';
 import type { PullRequest } from './types';
+
+// Type definitions for Supabase query responses
+interface SupabaseContributor {
+  github_id: number;
+  username: string;
+  avatar_url: string;
+  is_bot: boolean;
+}
+
+interface SupabaseReview {
+  id: string;
+  github_id: number;
+  state: string;
+  body: string | null;
+  submitted_at: string;
+  contributors: SupabaseContributor | null;
+}
+
+interface SupabaseComment {
+  id: string;
+  github_id: number;
+  body: string;
+  created_at: string;
+  comment_type: string;
+  contributors: SupabaseContributor | null;
+}
+
+interface SupabasePullRequest {
+  id: string;
+  github_id: number;
+  number: number;
+  title: string;
+  body: string | null;
+  state: string;
+  created_at: string;
+  updated_at: string;
+  closed_at: string | null;
+  merged_at: string | null;
+  merged: boolean;
+  base_branch: string;
+  head_branch: string;
+  additions: number;
+  deletions: number;
+  changed_files: number;
+  commits: number;
+  html_url: string;
+  repository_id: string;
+  author_id: string;
+  contributors: SupabaseContributor | null;
+  reviews: SupabaseReview[] | null;
+  comments: SupabaseComment[] | null;
+}
 import { trackDatabaseOperation, trackRateLimit } from './simple-logging';
 import {
   createLargeRepositoryResult,
@@ -111,55 +163,64 @@ export async function fetchPRDataWithFallback(
             .limit(300); // Get up to 300 PRs from database
 
           if (dbError) {
+            // Database query failed, will fall back to API
           } else if (dbPRs && dbPRs.length > 0) {
             // Transform database data to match GitHub API format
-            const transformedPRs: PullRequest[] = dbPRs.map((dbPR: any) => ({
+            const transformedPRs: PullRequest[] = dbPRs.map((dbPR) => ({
               id: dbPR.github_id,
               number: dbPR.number,
               title: dbPR.title,
-              body: dbPR.body,
-              state: dbPR.state,
+              state: dbPR.state as 'open' | 'closed',
               created_at: dbPR.created_at,
               updated_at: dbPR.updated_at,
               closed_at: dbPR.closed_at,
               merged_at: dbPR.merged_at,
-              merged: dbPR.merged,
               user: {
-                login: dbPR.contributors?.username || 'unknown',
-                id: dbPR.contributors?.github_id || 0,
-                avatar_url: dbPR.contributors?.avatar_url || '',
-                type: (dbPR.contributors?.is_bot ? 'Bot' : 'User') as 'Bot' | 'User',
-              },
-              base: {
-                ref: dbPR.base_branch,
-              },
-              head: {
-                ref: dbPR.head_branch,
+                login:
+                  (dbPR as unknown as { contributors?: SupabaseContributor }).contributors
+                    ?.username || 'unknown',
+                id:
+                  (dbPR as unknown as { contributors?: SupabaseContributor }).contributors
+                    ?.github_id || 0,
+                avatar_url:
+                  (dbPR as unknown as { contributors?: SupabaseContributor }).contributors
+                    ?.avatar_url || '',
+                type: ((dbPR as unknown as { contributors?: SupabaseContributor }).contributors
+                  ?.is_bot
+                  ? 'Bot'
+                  : 'User') as 'Bot' | 'User',
               },
               additions: dbPR.additions || 0, // Note: may be 0 due to missing cached data
               deletions: dbPR.deletions || 0, // Note: may be 0 due to missing cached data
               changed_files: dbPR.changed_files || 0, // Note: may be 0 due to missing cached data
-              commits: dbPR.commits || 0,
               html_url: dbPR.html_url || `https://github.com/${owner}/${repo}/pull/${dbPR.number}`,
               repository_owner: owner,
               repository_name: repo,
-              reviews: (dbPR.reviews || []).map((review: any) => ({
+              reviews: (dbPR.reviews || []).map((review) => ({
                 id: review.github_id,
                 state: review.state,
                 body: review.body,
                 submitted_at: review.submitted_at,
                 user: {
-                  login: review.contributors?.username || 'unknown',
-                  avatar_url: review.contributors?.avatar_url || '',
+                  login:
+                    (review as unknown as { contributors?: SupabaseContributor }).contributors
+                      ?.username || 'unknown',
+                  avatar_url:
+                    (review as unknown as { contributors?: SupabaseContributor }).contributors
+                      ?.avatar_url || '',
                 },
               })),
-              comments: (dbPR.comments || []).map((comment: any) => ({
+              comments: (dbPR.comments || []).map((comment) => ({
                 id: comment.github_id,
                 body: comment.body,
                 created_at: comment.created_at,
                 user: {
-                  login: comment.contributors?.username || 'unknown',
-                  avatar_url: comment.contributors?.avatar_url || '',
+                  login:
+                    (comment as unknown as { contributors?: SupabaseContributor }).contributors
+                      ?.username || 'unknown',
+                  avatar_url:
+                    (comment as unknown as { contributors?: SupabaseContributor }).contributors
+                      ?.avatar_url || '',
                 },
               })),
             }));
@@ -208,6 +269,7 @@ export async function fetchPRDataWithFallback(
                   filteredPRs.length > 0 ? filteredPRs : transformedPRs.slice(0, 100);
                 return createSuccessResult(dataToReturn);
               } else {
+                // Data is too old, continue to fetch fresh data
               }
             }
 
@@ -219,9 +281,12 @@ export async function fetchPRDataWithFallback(
               return createSuccessResult(dataToReturn);
             }
           } else {
+            // No recent data found, continue to API fallback
           }
         }
-      } catch (error) {}
+      } catch {
+        // Silent fallback - defensive programming
+      }
 
       // Fallback to GitHub API - STRICTLY LIMITED to prevent resource exhaustion
       // Only fetch basic repository info, never attempt to fetch all PRs for unknown repos
@@ -291,29 +356,34 @@ export async function fetchPRDataWithFallback(
 
               if (!cacheError && cachedPRs && cachedPRs.length > 0) {
                 // We have cached data - apply protection and return it
-                const transformedPRs: PullRequest[] = cachedPRs.map((dbPR: any) => ({
+                const transformedPRs: PullRequest[] = cachedPRs.map((dbPR) => ({
                   id: dbPR.github_id,
                   number: dbPR.number,
                   title: dbPR.title,
                   body: dbPR.body,
-                  state: dbPR.state,
+                  state: dbPR.state as 'open' | 'closed',
                   created_at: dbPR.created_at,
                   updated_at: dbPR.updated_at,
                   closed_at: dbPR.closed_at,
                   merged_at: dbPR.merged_at,
-                  merged: dbPR.merged,
                   user: {
-                    login: dbPR.contributors?.username || 'unknown',
-                    id: dbPR.contributors?.github_id || 0,
-                    avatar_url: dbPR.contributors?.avatar_url || '',
-                    type: (dbPR.contributors?.is_bot ? 'Bot' : 'User') as 'Bot' | 'User',
+                    login:
+                      (dbPR as unknown as { contributors?: SupabaseContributor }).contributors
+                        ?.username || 'unknown',
+                    id:
+                      (dbPR as unknown as { contributors?: SupabaseContributor }).contributors
+                        ?.github_id || 0,
+                    avatar_url:
+                      (dbPR as unknown as { contributors?: SupabaseContributor }).contributors
+                        ?.avatar_url || '',
+                    type: ((dbPR as unknown as { contributors?: SupabaseContributor }).contributors
+                      ?.is_bot
+                      ? 'Bot'
+                      : 'User') as 'Bot' | 'User',
                   },
-                  base: { ref: dbPR.base_branch },
-                  head: { ref: dbPR.head_branch },
                   additions: dbPR.additions || 0,
                   deletions: dbPR.deletions || 0,
                   changed_files: dbPR.changed_files || 0,
-                  commits: dbPR.commits || 0,
                   html_url:
                     dbPR.html_url || `https://github.com/${owner}/${repo}/pull/${dbPR.number}`,
                   repository_owner: owner,
@@ -334,7 +404,7 @@ export async function fetchPRDataWithFallback(
                 return createLargeRepositoryResult(repoName, filteredPRs);
               }
             }
-          } catch (cacheError) {
+          } catch {
             // Silent fallback - continue to API if cache fails
           }
 
@@ -353,7 +423,10 @@ export async function fetchPRDataWithFallback(
         if (owner && repo) {
           // Use a simple in-memory flag to prevent duplicate discovery triggers
           const discoveryKey = `discovery_${owner}_${repo}`;
-          const globalWindow = window as any;
+          const globalWindow = window as Window & {
+            emergencyPRData?: SupabasePullRequest[];
+            __discoveryInProgress?: Record<string, boolean>;
+          };
 
           if (!globalWindow.__discoveryInProgress) {
             globalWindow.__discoveryInProgress = {};
@@ -377,11 +450,15 @@ export async function fetchPRDataWithFallback(
 
               // Clear flag after 5 seconds to allow retry if needed
               setTimeout(() => {
-                delete globalWindow.__discoveryInProgress[discoveryKey];
+                if (globalWindow.__discoveryInProgress) {
+                  delete globalWindow.__discoveryInProgress[discoveryKey];
+                }
               }, 5000);
             } catch (error) {
               console.error('Failed to trigger repository discovery:', error);
-              delete globalWindow.__discoveryInProgress[discoveryKey];
+              if (globalWindow.__discoveryInProgress) {
+                delete globalWindow.__discoveryInProgress[discoveryKey];
+              }
             }
           } else {
             console.log(
@@ -454,29 +531,34 @@ export async function fetchPRDataWithFallback(
               .limit(100);
 
             if (emergencyData && emergencyData.length > 0) {
-              const emergencyPRs = emergencyData.map((dbPR: any) => ({
+              const emergencyPRs = emergencyData.map((dbPR) => ({
                 id: dbPR.github_id,
                 number: dbPR.number,
                 title: dbPR.title,
                 body: dbPR.body,
-                state: dbPR.state,
+                state: dbPR.state as 'open' | 'closed',
                 created_at: dbPR.created_at,
                 updated_at: dbPR.updated_at,
                 closed_at: dbPR.closed_at,
                 merged_at: dbPR.merged_at,
-                merged: dbPR.merged,
                 user: {
-                  login: dbPR.contributors?.username || 'unknown',
-                  id: dbPR.contributors?.github_id || 0,
-                  avatar_url: dbPR.contributors?.avatar_url || '',
-                  type: (dbPR.contributors?.is_bot ? 'Bot' : 'User') as 'Bot' | 'User',
+                  login:
+                    (dbPR as unknown as { contributors?: SupabaseContributor }).contributors
+                      ?.username || 'unknown',
+                  id:
+                    (dbPR as unknown as { contributors?: SupabaseContributor }).contributors
+                      ?.github_id || 0,
+                  avatar_url:
+                    (dbPR as unknown as { contributors?: SupabaseContributor }).contributors
+                      ?.avatar_url || '',
+                  type: ((dbPR as unknown as { contributors?: SupabaseContributor }).contributors
+                    ?.is_bot
+                    ? 'Bot'
+                    : 'User') as 'Bot' | 'User',
                 },
-                base: { ref: dbPR.base_branch },
-                head: { ref: dbPR.head_branch },
                 additions: dbPR.additions || 0, // Note: may be 0 due to missing cached data
                 deletions: dbPR.deletions || 0, // Note: may be 0 due to missing cached data
                 changed_files: dbPR.changed_files || 0, // Note: may be 0 due to missing cached data
-                commits: dbPR.commits || 0,
                 html_url:
                   dbPR.html_url || `https://github.com/${owner}/${repo}/pull/${dbPR.number}`,
                 repository_owner: owner,
@@ -488,7 +570,9 @@ export async function fetchPRDataWithFallback(
               return createSuccessResult(emergencyPRs);
             }
           }
-        } catch (emergencyError) {}
+        } catch {
+          // Silent fallback - emergency data failed
+        }
 
         // If everything fails, return no data result instead of throwing
         console.error('All data fetching methods failed:', githubError);
@@ -537,7 +621,7 @@ export async function hasRecentPRData(
       .limit(1);
 
     return !error && data && data.length > 0;
-  } catch (error) {
+  } catch {
     return false;
   }
 }
