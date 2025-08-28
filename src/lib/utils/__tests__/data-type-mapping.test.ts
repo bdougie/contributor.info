@@ -127,20 +127,20 @@ describe('data-type-mapping utilities', () => {
 
     describe('formatRange', () => {
       it('formats date range with both dates', () => {
-        const startDate = new Date('2023-01-01');
-        const endDate = new Date('2023-12-31');
+        const startDate = new Date(2023, 0, 1); // Jan 1, 2023 local time
+        const endDate = new Date(2023, 11, 31); // Dec 31, 2023 local time
         const result = DATE_MAPPING.formatRange(startDate, endDate);
         expect(result).toBe('1/1/2023 - 12/31/2023');
       });
 
       it('uses "All time" for missing start date', () => {
-        const endDate = new Date('2023-12-31');
+        const endDate = new Date(2023, 11, 31); // Dec 31, 2023 local time
         const result = DATE_MAPPING.formatRange(null, endDate);
         expect(result).toBe('All time - 12/31/2023');
       });
 
       it('uses "Present" for missing end date', () => {
-        const startDate = new Date('2023-01-01');
+        const startDate = new Date(2023, 0, 1); // Jan 1, 2023 local time
         const result = DATE_MAPPING.formatRange(startDate, null);
         expect(result).toBe('1/1/2023 - Present');
       });
@@ -177,8 +177,8 @@ describe('data-type-mapping utilities', () => {
   describe('formatDateRange', () => {
     it('formats date range with both dates', () => {
       const dateRange = {
-        startDate: new Date('2023-01-01'),
-        endDate: new Date('2023-12-31'),
+        startDate: new Date(2023, 0, 1), // Jan 1, 2023 local time
+        endDate: new Date(2023, 11, 31), // Dec 31, 2023 local time
       };
       const result = formatDateRange(dateRange);
       expect(result).toBe('1/1/2023 - 12/31/2023');
@@ -243,7 +243,7 @@ describe('data-type-mapping utilities', () => {
           { id: 'user3', name: 'Charlie' },
         ],
       };
-      
+
       const result = findContributorInQuadrant(quadrant, 'user2');
       expect(result).toEqual({ id: 'user2', name: 'Bob' });
     });
@@ -255,7 +255,7 @@ describe('data-type-mapping utilities', () => {
           { id: 'user2', name: 'Bob' },
         ],
       };
-      
+
       expect(findContributorInQuadrant(quadrant, 'user3')).toBeUndefined();
     });
 

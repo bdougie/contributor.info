@@ -162,18 +162,18 @@ describe('component-state utilities', () => {
   describe('getFormErrorContent', () => {
     it('returns error message when error has message', () => {
       const error = { message: 'Field is required' };
-      const children = <div>Default content</div>;
+      const children = 'Default content';
       expect(getFormErrorContent(error, children)).toBe('Field is required');
     });
 
     it('returns children when error has no message', () => {
       const error = {};
-      const children = <div>Default content</div>;
+      const children = 'Default content';
       expect(getFormErrorContent(error, children)).toBe(children);
     });
 
     it('returns children when error is undefined', () => {
-      const children = <div>Default content</div>;
+      const children = 'Default content';
       expect(getFormErrorContent(undefined, children)).toBe(children);
     });
 
@@ -183,13 +183,13 @@ describe('component-state utilities', () => {
 
     it('handles error message that is empty string', () => {
       const error = { message: '' };
-      const children = <div>Default content</div>;
+      const children = 'Default content';
       expect(getFormErrorContent(error, children)).toBe(children);
     });
 
     it('handles error message that is null', () => {
-      const error = { message: null as any };
-      const children = <div>Default content</div>;
+      const error = { message: null as string | null };
+      const children = 'Default content';
       expect(getFormErrorContent(error, children)).toBe(children);
     });
   });
