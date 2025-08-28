@@ -60,6 +60,15 @@ import type {
 } from '@/components/features/workspace';
 import type { Workspace } from '@/types/workspace';
 import { WorkspaceService } from '@/services/workspace.service';
+import { AnalyticsDashboard } from '@/components/features/workspace/AnalyticsDashboard';
+import { WorkspaceExportService } from '@/services/workspace-export.service';
+import type {
+  AnalyticsData,
+  ActivityItem,
+  ContributorStat,
+  RepositoryMetric,
+  TrendDataset,
+} from '@/components/features/workspace/AnalyticsDashboard';
 
 interface WorkspaceRepository {
   id: string;
@@ -1629,7 +1638,11 @@ export default function WorkspacePage() {
         setSelectedRepositories(formattedRepos.map((r) => r.id));
 
         // Update metrics with new repository data
-        const newMetrics = generateMockMetrics(formattedRepos, timeRange, formattedRepos.map((r) => r.id));
+        const newMetrics = generateMockMetrics(
+          formattedRepos,
+          timeRange,
+          formattedRepos.map((r) => r.id)
+        );
         setMetrics(newMetrics);
       }
     } catch (error) {
@@ -1682,6 +1695,147 @@ export default function WorkspacePage() {
     toast.info('Upgrade to Pro coming soon!');
   };
 
+  // Generate analytics data from existing workspace data
+  const generateAnalyticsData = (): AnalyticsData => {
+    // Get current pull requests and issues from the workspace tabs
+    const activities: ActivityItem[] = [];
+    const contributorMap = new Map<string, ContributorStat>();
+    const repositoryMetrics: RepositoryMetric[] = [];
+
+    // Generate activities from recent data (mock for now, should be fetched from DB)
+    const now = new Date();
+    const activityTypes = ['pr', 'issue', 'commit', 'review'] as const;
+    const statuses = ['open', 'merged', 'closed', 'approved'] as const;
+
+    // Create sample activities based on repositories
+    repositories.forEach((repo, repoIndex) => {
+      // Add repository metrics
+      repositoryMetrics.push({
+        id: repo.id,
+        name: repo.name,
+        owner: repo.owner,
+        stars: repo.stars,
+        forks: repo.forks,
+        pull_requests: repo.open_prs,
+        issues: repo.open_issues,
+        contributors: repo.contributors,
+        activity_score: Math.floor(Math.random() * 100),
+        trend: Math.floor(Math.random() * 30) - 15,
+      });
+
+      // Generate activities for each repo
+      for (let i = 0; i < 10; i++) {
+        const createdAt = new Date(now.getTime() - Math.random() * 30 * 24 * 60 * 60 * 1000);
+        const activityType = activityTypes[Math.floor(Math.random() * activityTypes.length)];
+        const status = statuses[Math.floor(Math.random() * statuses.length)];
+        const contributorName = `contributor${Math.floor(Math.random() * 10)}`;
+
+        activities.push({
+          id: `activity-${repoIndex}-${i}`,
+          type: activityType,
+          title:
+            (() => {
+              if (activityType === 'pr') return 'Pull Request';
+              if (activityType === 'issue') return 'Issue';
+              return 'Activity';
+            })() + ` #${Math.floor(Math.random() * 1000)}`,
+          author: {
+            username: contributorName,
+            avatar_url: `https://github.com/${contributorName}.png`,
+          },
+          repository: repo.full_name,
+          created_at: createdAt.toISOString(),
+          status,
+          url: `https://github.com/${repo.full_name}/${(() => {
+            if (activityType === 'pr') return 'pull';
+            if (activityType === 'issue') return 'issues';
+            return 'commit';
+          })()}/${Math.floor(Math.random() * 1000)}`,
+        });
+
+        // Update contributor stats
+        if (!contributorMap.has(contributorName)) {
+          contributorMap.set(contributorName, {
+            id: contributorName,
+            username: contributorName,
+            avatar_url: `https://github.com/${contributorName}.png`,
+            contributions: 0,
+            pull_requests: 0,
+            issues: 0,
+            reviews: 0,
+            commits: 0,
+            trend: Math.floor(Math.random() * 40) - 20,
+          });
+        }
+
+        const contributor = contributorMap.get(contributorName)!;
+        contributor.contributions++;
+        if (activityType === 'pr') contributor.pull_requests++;
+        if (activityType === 'issue') contributor.issues++;
+        if (activityType === 'review') contributor.reviews++;
+        if (activityType === 'commit') contributor.commits++;
+      }
+    });
+
+    // Generate trend data
+    const trends: TrendDataset[] = [];
+    const dates = [];
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+      dates.push(date.toISOString().split('T')[0]);
+    }
+
+    trends.push({
+      label: 'Pull Requests',
+      data: dates.map((date) => ({
+        date,
+        value: Math.floor(Math.random() * 50) + 10,
+      })),
+      color: '#10b981',
+    });
+
+    trends.push({
+      label: 'Active Contributors',
+      data: dates.map((date) => ({
+        date,
+        value: Math.floor(Math.random() * 30) + 5,
+      })),
+      color: '#3b82f6',
+    });
+
+    return {
+      activities: activities.sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      ),
+      contributors: Array.from(contributorMap.values()).sort(
+        (a, b) => b.contributions - a.contributions
+      ),
+      repositories: repositoryMetrics,
+      trends,
+    };
+  };
+
+  // Handle analytics export
+  const handleAnalyticsExport = async (format: 'csv' | 'json' | 'pdf') => {
+    try {
+      const analyticsData = generateAnalyticsData();
+      await WorkspaceExportService.export(analyticsData, format, {
+        workspaceName: workspace.name,
+        dateRange:
+          timeRange !== 'all'
+            ? {
+                start: new Date(Date.now() - TIME_RANGE_DAYS[timeRange] * 24 * 60 * 60 * 1000),
+                end: new Date(),
+              }
+            : undefined,
+      });
+      toast.success(`Analytics exported as ${format.toUpperCase()}`);
+    } catch (error) {
+      console.error('Export failed:', error);
+      toast.error(`Failed to export analytics: ${error}`);
+    }
+  };
+
   return (
     <div className="min-h-screen">
       {/* Workspace Header */}
@@ -1728,7 +1882,7 @@ export default function WorkspacePage() {
       <div className="px-6 mt-6">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <div className="container max-w-7xl mx-auto">
-            <TabsList className="grid w-full grid-cols-6 mb-6">
+            <TabsList className="grid w-full grid-cols-7 mb-6">
               <TabsTrigger value="overview" className="flex items-center gap-2">
                 <Layout className="h-4 w-4" />
                 <span className="hidden sm:inline">Overview</span>
@@ -1744,6 +1898,10 @@ export default function WorkspacePage() {
               <TabsTrigger value="contributors" className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
                 <span className="hidden sm:inline">Contributors</span>
+              </TabsTrigger>
+              <TabsTrigger value="analytics" className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4" />
+                <span className="hidden sm:inline">Analytics</span>
               </TabsTrigger>
               <TabsTrigger value="activity" className="flex items-center gap-2" disabled>
                 <Activity className="h-4 w-4" />
@@ -1793,6 +1951,47 @@ export default function WorkspacePage() {
               selectedRepositories={selectedRepositories}
               workspaceId={workspace.id}
             />
+          </TabsContent>
+
+          <TabsContent value="analytics" className="mt-6">
+            <div className="container max-w-7xl mx-auto">
+              <AnalyticsDashboard
+                workspaceId={workspace.id}
+                data={generateAnalyticsData()}
+                repositories={repositories.map((repo) => ({
+                  id: `wr-${repo.id}`,
+                  workspace_id: workspace.id,
+                  repository_id: repo.id,
+                  added_by: workspace.owner_id,
+                  added_at: new Date().toISOString(),
+                  notes: null,
+                  tags: [],
+                  is_pinned: false,
+                  repository: {
+                    id: repo.id,
+                    full_name: repo.full_name,
+                    owner: repo.owner,
+                    name: repo.name,
+                    description: repo.description || '',
+                    language: repo.language || null,
+                    stargazers_count: repo.stars,
+                    forks_count: repo.forks,
+                    open_issues_count: repo.open_issues,
+                    topics: [],
+                    is_private: false,
+                    is_archived: false,
+                  },
+                  added_by_user: {
+                    id: workspace.owner_id,
+                    email: '',
+                    display_name: '',
+                  },
+                }))}
+                loading={loading}
+                tier={workspace.tier as 'free' | 'pro' | 'enterprise'}
+                onExport={handleAnalyticsExport}
+              />
+            </div>
           </TabsContent>
 
           <TabsContent value="activity" className="mt-6">
