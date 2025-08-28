@@ -9,6 +9,9 @@ export * from './database-schemas';
 // GitHub API schema exports
 export * from './github-api-schemas';
 
+// Supabase response schema exports
+export * from './supabase-response-schemas';
+
 // Validation utility exports
 export * from './validation-utils';
 

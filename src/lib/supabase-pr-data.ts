@@ -63,6 +63,77 @@ import {
 // Removed Sentry import - using simple logging instead
 
 /**
+ * Type guard to check if an object has the SupabaseContributor shape
+ * This provides runtime validation for dynamically typed Supabase responses
+ * TODO: Replace with Zod validation when fully implemented (Issue #541)
+ */
+function isSupabaseContributor(obj: unknown): obj is SupabaseContributor {
+  if (!obj || typeof obj !== 'object') return false;
+  const contributor = obj as Record<string, unknown>;
+
+  return (
+    typeof contributor.github_id === 'number' &&
+    typeof contributor.username === 'string' &&
+    typeof contributor.avatar_url === 'string' &&
+    typeof contributor.is_bot === 'boolean'
+  );
+}
+
+/**
+ * Type guard to check if an object has a nested contributors property
+ * Used to safely extract contributor data from Supabase join queries
+ * TODO: Replace with Zod validation when fully implemented (Issue #541)
+ */
+function hasContributorProperty(obj: unknown): obj is { contributors?: SupabaseContributor } {
+  if (!obj || typeof obj !== 'object') return false;
+  const record = obj as Record<string, unknown>;
+
+  if (!('contributors' in record)) return true; // Property is optional
+  return isSupabaseContributor(record.contributors);
+}
+
+/**
+ * Safely extract contributor data with proper validation
+ * Returns default values if the data doesn't match expected shape
+ *
+ * Example usage:
+ * const contributor = extractContributor(dbPR);
+ * const user = {
+ *   login: contributor.username,
+ *   id: contributor.github_id,
+ *   avatar_url: contributor.avatar_url,
+ *   type: contributor.is_bot ? 'Bot' : 'User'
+ * };
+ *
+ * Note: This function is kept for future use when replacing type assertions
+ * TODO: Use this function to replace type assertions (Issue #541)
+ */
+// @ts-expect-error - Function kept for future use when replacing type assertions
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function extractContributor(data: unknown): {
+  username: string;
+  github_id: number;
+  avatar_url: string;
+  is_bot: boolean;
+} {
+  if (hasContributorProperty(data) && data.contributors) {
+    return {
+      username: data.contributors.username,
+      github_id: data.contributors.github_id,
+      avatar_url: data.contributors.avatar_url,
+      is_bot: data.contributors.is_bot,
+    };
+  }
+
+  return {
+    username: 'unknown',
+    github_id: 0,
+    avatar_url: '',
+    is_bot: false,
+  };
+}
+
+/**
  * Fetch PR data from Supabase database first, fallback to GitHub API
  * This reduces rate limiting by using cached database data when available
  * Returns a DataResult with status information for proper error handling
@@ -176,6 +247,8 @@ export async function fetchPRDataWithFallback(
               closed_at: dbPR.closed_at,
               merged_at: dbPR.merged_at,
               user: {
+                // TODO: Replace with Zod validation when implemented (Issue #541)
+                // These type assertions are temporary until proper runtime validation is added
                 login:
                   (dbPR as unknown as { contributors?: SupabaseContributor }).contributors
                     ?.username || 'unknown',
@@ -202,6 +275,7 @@ export async function fetchPRDataWithFallback(
                 body: review.body,
                 submitted_at: review.submitted_at,
                 user: {
+                  // TODO: Replace with Zod validation when implemented (Issue #541)
                   login:
                     (review as unknown as { contributors?: SupabaseContributor }).contributors
                       ?.username || 'unknown',
@@ -215,6 +289,7 @@ export async function fetchPRDataWithFallback(
                 body: comment.body,
                 created_at: comment.created_at,
                 user: {
+                  // TODO: Replace with Zod validation when implemented (Issue #541)
                   login:
                     (comment as unknown as { contributors?: SupabaseContributor }).contributors
                       ?.username || 'unknown',
@@ -367,6 +442,7 @@ export async function fetchPRDataWithFallback(
                   closed_at: dbPR.closed_at,
                   merged_at: dbPR.merged_at,
                   user: {
+                    // TODO: Replace with Zod validation when implemented (Issue #541)
                     login:
                       (dbPR as unknown as { contributors?: SupabaseContributor }).contributors
                         ?.username || 'unknown',
@@ -542,6 +618,7 @@ export async function fetchPRDataWithFallback(
                 closed_at: dbPR.closed_at,
                 merged_at: dbPR.merged_at,
                 user: {
+                  // TODO: Replace with Zod validation when implemented (Issue #541)
                   login:
                     (dbPR as unknown as { contributors?: SupabaseContributor }).contributors
                       ?.username || 'unknown',
