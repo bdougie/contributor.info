@@ -153,7 +153,7 @@ export async function createShortUrl({
       description: data.description,
       image: data.image,
     };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Failed to create short URL:', error);
     return null;
   }
@@ -162,7 +162,7 @@ export async function createShortUrl({
 /**
  * Track short URL creation in Supabase for analytics
  */
-async function trackShortUrlCreation(dubData: any) {
+async function trackShortUrlCreation(dubData: ShortUrlResponse) {
   try {
     // Store the short URL data in Supabase for our internal analytics
     const { error } = await supabase.from('short_urls').insert({
@@ -212,7 +212,7 @@ export async function getUrlAnalytics(linkId: string) {
     }
 
     return data;
-  } catch (error: any) {
+  } catch (error) {
     console.error('Failed to get URL analytics:', error);
     return null;
   }
@@ -226,7 +226,7 @@ function getCustomKey(url: string): string | undefined {
     const urlPath = new URL(url).pathname;
 
     // ex: /owner/repo (repository pages)
-    const repoMatch = urlPath.match(/^\/([^\/]+)\/([^\/]+)(?:\/.*)?$/);
+    const repoMatch = urlPath.match(/^\/([^/]+)\/([^/]+)(?:\/.*)?$/);
     if (repoMatch) {
       return `${repoMatch[1]}/${repoMatch[2]}`;
     }
@@ -293,7 +293,7 @@ export async function createChartShareUrl(
 /**
  * Track a click event for analytics
  */
-export async function trackClick(shortUrl: string, metadata?: Record<string, any>) {
+export async function trackClick(shortUrl: string, metadata?: Record<string, unknown>) {
   // This will be automatically tracked by dub.co when the link is clicked
   // Additional custom tracking can be added here if needed
   console.log('Click tracked for:', shortUrl, metadata);
