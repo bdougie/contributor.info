@@ -289,9 +289,7 @@ export const AllPercentages: Story = {
             <span className="font-bold tracking-[-0.05px]">{value}</span>
             <span className="font-bold text-xs tracking-[-0.01px]">%</span>
           </CircularProgress>
-          <span className="mt-2 text-sm text-muted-foreground">
-{getValueCategoryColor(value)}
-          </span>
+          <span className="mt-2 text-sm text-muted-foreground">{getValueCategoryColor(value)}</span>
         </div>
       ))}
     </div>
