@@ -90,4 +90,3 @@ export const formatPercentageChange = (
   const prefix = isPositive ? '+' : '-';
   return `${prefix}${displayValue}`;
 };
-EOF < /dev/null

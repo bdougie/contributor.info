@@ -73,4 +73,3 @@ export const getImageLoadingStrategy = (
   if (lazy) return 'lazy';
   return 'eager';
 };
-EOF < /dev/null
