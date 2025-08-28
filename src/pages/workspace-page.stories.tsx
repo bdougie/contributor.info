@@ -27,6 +27,7 @@ import {
 } from '@tanstack/react-table';
 import { useState } from 'react';
 import type { Contributor } from '@/components/features/workspace/ContributorsList';
+import { getTrendColor } from '@/lib/utils/state-mapping';
 
 // Mock data for contributors
 const mockContributors: Contributor[] = [
@@ -160,8 +161,7 @@ function ContributorsTableView({
         const stats = row.original.stats;
         const contributions = row.original.contributions;
         const trend = stats.contribution_trend;
-        const trendColor =
-          trend > 0 ? 'text-green-600' : trend < 0 ? 'text-red-600' : 'text-muted-foreground';
+        const trendColor = getTrendColor(trend);
         const TrendIcon = trend > 0 ? TrendingUp : TrendingDown;
 
         const repoCount = row.original.stats.repositories_contributed;
