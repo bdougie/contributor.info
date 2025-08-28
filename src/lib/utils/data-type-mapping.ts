@@ -1,6 +1,6 @@
 /**
  * Data Type Mapping Utilities
- * 
+ *
  * Utilities for mapping and transforming data types that typically require
  * nested ternary expressions. These utilities provide cleaner, more maintainable
  * ways to handle data type conversions and mappings.
@@ -13,20 +13,20 @@ export const USER_TYPE_MAP = {
   /**
    * Maps database bot flag to user type
    */
-  fromBotFlag: (isBot: boolean): 'Bot' | 'User' => isBot ? 'Bot' : 'User',
+  fromBotFlag: (isBot: boolean): 'Bot' | 'User' => (isBot ? 'Bot' : 'User'),
 
   /**
    * Maps user type string to proper type
    */
-  fromTypeString: (type?: string): 'Bot' | 'User' => type === 'Bot' ? 'Bot' : 'User',
+  fromTypeString: (type?: string): 'Bot' | 'User' => (type === 'Bot' ? 'Bot' : 'User'),
 } as const;
 
 /**
  * Gets the appropriate user type from database contributor data
- * 
+ *
  * @param contributor - The contributor object from database
  * @returns The properly typed user type
- * 
+ *
  * @example
  * ```tsx
  * type: getUserType(dbPR.contributors)
@@ -47,10 +47,10 @@ export const PR_STATE_MAP = {
 
 /**
  * Gets the appropriate PR state based on GitHub API data
- * 
+ *
  * @param state - The state from GitHub API (may be 'OPEN', 'open', etc.)
  * @returns The normalized state value
- * 
+ *
  * @example
  * ```tsx
  * state: getPRState(pullRequest.state)
@@ -70,7 +70,7 @@ export const ROLE_MAPPING = {
    * Default role for bots
    */
   bot: 'Bot',
-  
+
   /**
    * Default role for regular contributors
    */
@@ -79,11 +79,11 @@ export const ROLE_MAPPING = {
 
 /**
  * Gets the appropriate role for a user/contributor
- * 
+ *
  * @param role - The explicit role if available
  * @param user - The user object with type information
  * @returns The appropriate role string
- * 
+ *
  * @example
  * ```tsx
  * role={getUserRole(role, user)}
@@ -95,12 +95,12 @@ export const getUserRole = (
   user?: { isBot?: boolean; type?: string }
 ): string => {
   if (role?.role) return role.role;
-  
+
   // Check various ways the bot flag might be set
   if (user?.isBot || user?.type === 'Bot') {
     return ROLE_MAPPING.bot;
   }
-  
+
   return ROLE_MAPPING.contributor;
 };
 
@@ -114,7 +114,7 @@ export const DATE_MAPPING = {
   fromTimestamp: (timestamp?: string | null): Date | undefined => {
     return timestamp ? new Date(timestamp) : undefined;
   },
-  
+
   /**
    * Formats date range display text
    */
@@ -127,10 +127,10 @@ export const DATE_MAPPING = {
 
 /**
  * Gets the appropriate last sync date from repository data
- * 
+ *
  * @param repo - The repository object with sync timestamp
  * @returns The Date object or undefined if no sync date
- * 
+ *
  * @example
  * ```tsx
  * lastSync: getLastSyncDate(repo)
@@ -143,17 +143,20 @@ export const getLastSyncDate = (repo?: { last_synced_at?: string | null }): Date
 
 /**
  * Formats a date range for display
- * 
+ *
  * @param dateRange - Object with start and end dates
  * @returns Formatted date range string
- * 
+ *
  * @example
  * ```tsx
  * {formatDateRange(dateRange)}
  * // Instead of: {dateRange?.startDate ? dateRange.startDate.toLocaleDateString() : 'All time'} - {dateRange?.endDate ? dateRange.endDate.toLocaleDateString() : 'Present'}
  * ```
  */
-export const formatDateRange = (dateRange?: { startDate?: Date | null; endDate?: Date | null }): string => {
+export const formatDateRange = (dateRange?: {
+  startDate?: Date | null;
+  endDate?: Date | null;
+}): string => {
   return DATE_MAPPING.formatRange(dateRange?.startDate, dateRange?.endDate);
 };
 
@@ -166,17 +169,17 @@ export const VALIDATION_MAP = {
    */
   dubKey: {
     isValid: (key?: string): boolean => Boolean(key?.startsWith('dub_')),
-    getStatus: (key?: string): '✅ Valid' | '❌ Invalid' => 
+    getStatus: (key?: string): '✅ Valid' | '❌ Invalid' =>
       VALIDATION_MAP.dubKey.isValid(key) ? '✅ Valid' : '❌ Invalid',
   },
 } as const;
 
 /**
  * Gets the validation status for DUB.CO API key
- * 
+ *
  * @param key - The API key to validate
  * @returns The validation status string
- * 
+ *
  * @example
  * ```tsx
  * {getDubKeyStatus(import.meta.env.VITE_DUB_CO_KEY)}
@@ -189,11 +192,11 @@ export const getDubKeyStatus = (key?: string): '✅ Valid' | '❌ Invalid' => {
 
 /**
  * Safely finds a contributor in nested data structures
- * 
+ *
  * @param quadrant - The quadrant object with nested children
  * @param selectedContributor - The contributor ID to find
  * @returns The found contributor or undefined
- * 
+ *
  * @example
  * ```tsx
  * const contributor = findContributorInQuadrant(quadrant, selectedContributor);

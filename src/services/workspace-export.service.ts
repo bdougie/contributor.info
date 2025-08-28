@@ -49,10 +49,7 @@ export class WorkspaceExportService {
   /**
    * Export data as CSV
    */
-  private static async exportToCSV(
-    data: AnalyticsData,
-    options: ExportOptions
-  ): Promise<Blob> {
+  private static async exportToCSV(data: AnalyticsData, options: ExportOptions): Promise<Blob> {
     const sections: string[] = [];
 
     // Header
@@ -199,10 +196,7 @@ export class WorkspaceExportService {
   /**
    * Export data as JSON
    */
-  private static async exportToJSON(
-    data: AnalyticsData,
-    options: ExportOptions
-  ): Promise<Blob> {
+  private static async exportToJSON(data: AnalyticsData, options: ExportOptions): Promise<Blob> {
     const exportData: Record<string, unknown> = {
       workspace: options.workspaceName,
       exportDate: new Date().toISOString(),
@@ -240,13 +234,10 @@ export class WorkspaceExportService {
    * Note: This requires a PDF generation library like jsPDF or pdfmake
    * For now, this is a placeholder implementation
    */
-  private static async exportToPDF(
-    data: AnalyticsData,
-    options: ExportOptions
-  ): Promise<Blob> {
+  private static async exportToPDF(data: AnalyticsData, options: ExportOptions): Promise<Blob> {
     // Dynamic import to avoid loading heavy library unless needed
     const { generatePDF } = await import('./pdf-generator');
-    
+
     return generatePDF(data, options);
   }
 

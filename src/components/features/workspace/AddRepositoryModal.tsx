@@ -22,7 +22,7 @@ import type { GitHubRepository } from '@/lib/github';
 import type { User } from '@supabase/supabase-js';
 import { z } from 'zod';
 
-// Use mock supabase in Storybook if available  
+// Use mock supabase in Storybook if available
 interface WindowWithMocks extends Window {
   __mockSupabase?: typeof defaultSupabase;
   __mockWorkspaceService?: typeof DefaultWorkspaceService;
@@ -151,27 +151,31 @@ export function AddRepositoryModal({
 
         if (existingWorkspaceRepos) {
           // Use Zod to validate the query result instead of casting
-          const workspaceRepoSchema = z.array(z.object({
-            repository_id: z.string(),
-            is_pinned: z.boolean().nullable().optional(),
-            repositories: z.object({
-              id: z.string(),
-              full_name: z.string(),
-              name: z.string(),
-              owner: z.string(),
-              description: z.string().nullable(),
-              language: z.string().nullable(),
-              stargazers_count: z.number(),
-              forks_count: z.number(),
-            }).nullable(),
-          }));
-          
+          const workspaceRepoSchema = z.array(
+            z.object({
+              repository_id: z.string(),
+              is_pinned: z.boolean().nullable().optional(),
+              repositories: z
+                .object({
+                  id: z.string(),
+                  full_name: z.string(),
+                  name: z.string(),
+                  owner: z.string(),
+                  description: z.string().nullable(),
+                  language: z.string().nullable(),
+                  stargazers_count: z.number(),
+                  forks_count: z.number(),
+                })
+                .nullable(),
+            })
+          );
+
           const validationResult = workspaceRepoSchema.safeParse(existingWorkspaceRepos);
           if (!validationResult.success) {
             console.error('Invalid workspace repos data:', validationResult.error);
             return [];
           }
-          
+
           const repos = validationResult.data
             .filter((r) => r.repositories)
             .map(

@@ -132,8 +132,7 @@ export class WorkspaceAggregationService {
    * Get cached metrics from database
    */
   private async getCachedMetrics(workspaceId: string, timeRange: MetricsTimeRange) {
-    const { data, error } = await this.supabase!
-      .from('workspace_metrics_cache')
+    const { data, error } = await this.supabase!.from('workspace_metrics_cache')
       .select('*')
       .eq('workspace_id', workspaceId)
       .eq('time_range', timeRange)
@@ -158,8 +157,7 @@ export class WorkspaceAggregationService {
    * Get all repositories in a workspace
    */
   private async getWorkspaceRepositories(workspaceId: string) {
-    const { data, error } = await this.supabase!
-      .from('workspace_repositories')
+    const { data, error } = await this.supabase!.from('workspace_repositories')
       .select(
         `
         repository_id,
@@ -334,8 +332,7 @@ export class WorkspaceAggregationService {
    * Get pull request data from database
    */
   private async getPullRequestData(repositoryId: string, periodStart: Date, periodEnd: Date) {
-    const { data, error } = await this.supabase!
-      .from('pull_requests')
+    const { data, error } = await this.supabase!.from('pull_requests')
       .select('state, draft, created_at, merged_at')
       .eq('repository_id', repositoryId)
       .gte('created_at', periodStart.toISOString())
@@ -375,8 +372,7 @@ export class WorkspaceAggregationService {
    * Get issue data from database
    */
   private async getIssueData(repositoryId: string, periodStart: Date, periodEnd: Date) {
-    const { data, error } = await this.supabase!
-      .from('issues')
+    const { data, error } = await this.supabase!.from('issues')
       .select('state, created_at, closed_at')
       .eq('repository_id', repositoryId)
       .gte('created_at', periodStart.toISOString())
@@ -419,8 +415,7 @@ export class WorkspaceAggregationService {
     periodEnd: Date
   ): Promise<MetricsContributor[]> {
     // Get PR contributors
-    const { data: prContributors } = await this.supabase!
-      .from('pull_requests')
+    const { data: prContributors } = await this.supabase!.from('pull_requests')
       .select(
         `
         author_id,
@@ -435,8 +430,7 @@ export class WorkspaceAggregationService {
       .lte('created_at', periodEnd.toISOString());
 
     // Get issue contributors
-    const { data: issueContributors } = await this.supabase!
-      .from('issues')
+    const { data: issueContributors } = await this.supabase!.from('issues')
       .select(
         `
         author_id,
@@ -539,8 +533,7 @@ export class WorkspaceAggregationService {
     const previousEnd = new Date(currentPeriodStart.getTime());
 
     // Query historical metrics
-    const { data } = await this.supabase!
-      .from('workspace_metrics_history')
+    const { data } = await this.supabase!.from('workspace_metrics_history')
       .select('*')
       .eq('workspace_id', workspaceId)
       .gte('metric_date', previousStart.toISOString().split('T')[0])
@@ -621,10 +614,14 @@ export class WorkspaceAggregationService {
         : 0;
 
     // Get top contributors (sorted by total contributions)
-    const contributorValues = Array.from(aggregatedData.contributors.values()) as MetricsContributor[];
+    const contributorValues = Array.from(
+      aggregatedData.contributors.values()
+    ) as MetricsContributor[];
     const topContributors = contributorValues
-      .sort((a: MetricsContributor, b: MetricsContributor) => 
-        (b.prs + b.issues + b.commits) - (a.prs + a.issues + a.commits))
+      .sort(
+        (a: MetricsContributor, b: MetricsContributor) =>
+          b.prs + b.issues + b.commits - (a.prs + a.issues + a.commits)
+      )
       .slice(0, 10);
 
     // Build activity timeline

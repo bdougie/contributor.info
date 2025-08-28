@@ -49,7 +49,13 @@ export interface RepositoryComparisonProps {
   className?: string;
 }
 
-type ComparisonMetric = 'stars' | 'forks' | 'pull_requests' | 'issues' | 'contributors' | 'activity_score';
+type ComparisonMetric =
+  | 'stars'
+  | 'forks'
+  | 'pull_requests'
+  | 'issues'
+  | 'contributors'
+  | 'activity_score';
 type ChartType = 'bar' | 'line' | 'radar';
 
 const METRIC_LABELS: Record<ComparisonMetric, string> = {
@@ -104,23 +110,35 @@ export function RepositoryComparison({
   const chartData = useMemo(() => {
     if (chartType === 'radar') {
       // Radar chart needs all metrics for each repository
-      const metrics: ComparisonMetric[] = ['stars', 'forks', 'pull_requests', 'issues', 'contributors', 'activity_score'];
-      
+      const metrics: ComparisonMetric[] = [
+        'stars',
+        'forks',
+        'pull_requests',
+        'issues',
+        'contributors',
+        'activity_score',
+      ];
+
       // Normalize values to 0-100 scale for radar chart
-      const maxValues = metrics.reduce((acc, metric) => {
-        acc[metric] = Math.max(...repositories.map(r => r[metric]));
-        return acc;
-      }, {} as Record<ComparisonMetric, number>);
+      const maxValues = metrics.reduce(
+        (acc, metric) => {
+          acc[metric] = Math.max(...repositories.map((r) => r[metric]));
+          return acc;
+        },
+        {} as Record<ComparisonMetric, number>
+      );
 
       return metrics.map((metric) => ({
         metric: METRIC_LABELS[metric],
-        ...comparisonRepos.reduce((acc, repo) => {
-          const normalizedValue = maxValues[metric] > 0 
-            ? (repo[metric] / maxValues[metric]) * 100 
-            : 0;
-          acc[repo.name] = Math.round(normalizedValue);
-          return acc;
-        }, {} as Record<string, number>),
+        ...comparisonRepos.reduce(
+          (acc, repo) => {
+            const normalizedValue =
+              maxValues[metric] > 0 ? (repo[metric] / maxValues[metric]) * 100 : 0;
+            acc[repo.name] = Math.round(normalizedValue);
+            return acc;
+          },
+          {} as Record<string, number>
+        ),
       }));
     } else {
       // Bar and Line charts
@@ -200,9 +218,7 @@ export function RepositoryComparison({
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>Repository Metrics Comparison</CardTitle>
-              <CardDescription>
-                Visual comparison of selected repositories
-              </CardDescription>
+              <CardDescription>Visual comparison of selected repositories</CardDescription>
             </div>
             <div className="flex items-center gap-2">
               {chartType !== 'radar' && (
@@ -250,60 +266,56 @@ export function RepositoryComparison({
           ) : (
             <>
               {chartType === 'bar' && (
-              <ResponsiveContainer width="100%" height={400}>
-                <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar
-                    dataKey="value"
-                    fill="#3b82f6"
-                    name={METRIC_LABELS[selectedMetric]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            )}
+                <ResponsiveContainer width="100%" height={400}>
+                  <BarChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="value" fill="#3b82f6" name={METRIC_LABELS[selectedMetric]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
 
-            {chartType === 'line' && (
-              <ResponsiveContainer width="100%" height={400}>
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Line
-                    type="monotone"
-                    dataKey="value"
-                    stroke="#3b82f6"
-                    strokeWidth={2}
-                    name={METRIC_LABELS[selectedMetric]}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            )}
-
-            {chartType === 'radar' && (
-              <ResponsiveContainer width="100%" height={400}>
-                <RadarChart data={chartData}>
-                  <PolarGrid />
-                  <PolarAngleAxis dataKey="metric" />
-                  <PolarRadiusAxis angle={90} domain={[0, 100]} />
-                  <Tooltip />
-                  <Legend />
-                  {comparisonRepos.map((repo, index) => (
-                    <Radar
-                      key={repo.id}
-                      name={repo.name}
-                      dataKey={repo.name}
-                      stroke={CHART_COLORS[index % CHART_COLORS.length]}
-                      fill={CHART_COLORS[index % CHART_COLORS.length]}
-                      fillOpacity={0.3}
+              {chartType === 'line' && (
+                <ResponsiveContainer width="100%" height={400}>
+                  <LineChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Line
+                      type="monotone"
+                      dataKey="value"
+                      stroke="#3b82f6"
+                      strokeWidth={2}
+                      name={METRIC_LABELS[selectedMetric]}
                     />
-                  ))}
-                </RadarChart>
-              </ResponsiveContainer>
-            )}
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+
+              {chartType === 'radar' && (
+                <ResponsiveContainer width="100%" height={400}>
+                  <RadarChart data={chartData}>
+                    <PolarGrid />
+                    <PolarAngleAxis dataKey="metric" />
+                    <PolarRadiusAxis angle={90} domain={[0, 100]} />
+                    <Tooltip />
+                    <Legend />
+                    {comparisonRepos.map((repo, index) => (
+                      <Radar
+                        key={repo.id}
+                        name={repo.name}
+                        dataKey={repo.name}
+                        stroke={CHART_COLORS[index % CHART_COLORS.length]}
+                        fill={CHART_COLORS[index % CHART_COLORS.length]}
+                        fillOpacity={0.3}
+                      />
+                    ))}
+                  </RadarChart>
+                </ResponsiveContainer>
+              )}
             </>
           )}
         </CardContent>
@@ -342,7 +354,9 @@ export function RepositoryComparison({
                           className="h-3 w-3 rounded-full flex-shrink-0"
                           style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }}
                         />
-                        <span className="font-medium">{repo.owner}/{repo.name}</span>
+                        <span className="font-medium">
+                          {repo.owner}/{repo.name}
+                        </span>
                       </div>
                     </td>
                     {Object.keys(METRIC_LABELS).map((metric) => {
@@ -362,7 +376,11 @@ export function RepositoryComparison({
                                     : 'bg-red-500/10 text-red-700 dark:text-red-400'
                                 )}
                               >
-                                {trend > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                                {trend > 0 ? (
+                                  <TrendingUp className="h-3 w-3" />
+                                ) : (
+                                  <TrendingDown className="h-3 w-3" />
+                                )}
                                 {Math.abs(trend)}%
                               </Badge>
                             )}

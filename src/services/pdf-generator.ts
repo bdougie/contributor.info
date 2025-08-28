@@ -22,15 +22,12 @@ interface ExportOptions {
  * This is a placeholder implementation that generates a simple HTML-based PDF
  * For production, consider using a proper PDF generation library like jsPDF or pdfmake
  */
-export async function generatePDF(
-  data: AnalyticsData,
-  options: ExportOptions
-): Promise<Blob> {
+export async function generatePDF(data: AnalyticsData, options: ExportOptions): Promise<Blob> {
   // For now, we'll create an HTML representation and convert it to PDF
   // In production, you'd want to use a proper PDF library
-  
+
   const html = generateHTMLReport(data, options);
-  
+
   // Create a blob from the HTML content
   // In a real implementation, you'd use a library to convert HTML to PDF
   return new Blob([html], { type: 'text/html' });

@@ -3,7 +3,7 @@ import {
   getCheckboxState,
   getHealthStatus,
   getSyncButtonText,
-  getProgressiveCaptureText
+  getProgressiveCaptureText,
 } from '../ui-state';
 
 describe('ui-state utilities', () => {

@@ -78,10 +78,10 @@ describe('priority-classification utilities', () => {
     it('follows precedence order: priority > loading > lazy > default', () => {
       // Priority overrides everything
       expect(getImageLoadingStrategy(true, 'lazy', true)).toBe('eager');
-      
+
       // Loading overrides lazy and default
       expect(getImageLoadingStrategy(false, 'eager', true)).toBe('eager');
-      
+
       // Lazy overrides default
       expect(getImageLoadingStrategy(false, undefined, true)).toBe('lazy');
     });
