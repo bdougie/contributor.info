@@ -25,6 +25,10 @@ Features documentation helps developers:
 - **[Bulk Backfill Implementation](./bulk-backfill-implementation.md)** - UI-driven bulk repository backfill system
 - **[Bulk Backfill Smart Fetch](./bulk-backfill-smart-fetch.md)** - Smart fetching strategy for bulk operations
 
+### 📧 Email & Communications
+- **[Email System Overview](./email-system.md)** - Complete email infrastructure documentation
+- **[Email Templates Reference](./email-templates-reference.md)** - Quick reference for email templates and variables
+
 ## Feature Categories
 
 ### 🎯 Core Features
