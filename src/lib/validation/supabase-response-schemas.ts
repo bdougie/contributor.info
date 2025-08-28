@@ -36,6 +36,7 @@ export const supabaseReviewWithContributorSchema = z.object({
   submitted_at: z.string(),
   pull_request_id: z.string().uuid(),
   reviewer_id: z.string().uuid().nullable(),
+  author_id: z.string().uuid().nullable(),
   // Nested contributor from reviewer_id join
   contributors: supabaseContributorNestedSchema,
 });
@@ -249,7 +250,7 @@ export function validateAndTransformPRData(data: unknown, owner: string, repo: s
   const validation = validateSupabasePRArray(data);
 
   if (!validation.success) {
-    console.error(`Failed to validate PR data for ${owner}/${repo}:`, validation.error);
+    console.error('Failed to validate PR data for %s/%s:', owner, repo, validation.error);
     return [];
   }
 

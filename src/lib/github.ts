@@ -27,6 +27,28 @@ export interface GitHubRepository {
   language?: string | null;
 }
 
+// GitHub API PR response type
+interface GitHubPullRequest {
+  id: number;
+  number: number;
+  title: string;
+  state: string;
+  created_at: string;
+  updated_at: string;
+  merged_at: string | null;
+  closed_at: string | null;
+  html_url: string;
+  user: {
+    id: number;
+    login: string;
+    avatar_url: string;
+    type?: string;
+  };
+  additions?: number;
+  deletions?: number;
+  changed_files?: number;
+}
+
 // GitHub API interfaces for better type safety
 interface GitHubOrganization {
   login: string;
@@ -72,9 +94,18 @@ interface GitHubCommit {
       email: string;
       date: string;
     };
+    committer?: {
+      name: string;
+      email: string;
+      date: string;
+    };
     message: string;
   };
   author?: {
+    login: string;
+    avatar_url: string;
+  };
+  committer?: {
     login: string;
     avatar_url: string;
   };
@@ -200,7 +231,7 @@ export async function fetchUserOrganizations(
       login: org.login,
       avatar_url: org.avatar_url,
     }));
-  } catch (error) {
+  } catch {
     return [];
   }
 }
@@ -226,7 +257,7 @@ async function fetchPRReviews(owner: string, repo: string, prNumber: number, hea
       },
       submitted_at: review.submitted_at,
     }));
-  } catch (error) {
+  } catch {
     return [];
   }
 }
@@ -256,7 +287,7 @@ async function fetchPRComments(
       },
       created_at: comment.created_at,
     }));
-  } catch (error) {
+  } catch {
     return [];
   }
 }
@@ -302,7 +333,7 @@ export async function fetchPullRequests(
         since.setDate(since.getDate() - parseInt(timeRange));
 
         // Fetch multiple pages of PRs to ensure we get all recent ones
-        const allPRs: PullRequest[] = [];
+        const allPRs: GitHubPullRequest[] = [];
         let page = 1;
         const perPage = 100;
 
@@ -359,7 +390,7 @@ export async function fetchPullRequests(
           } else {
             // Production: Use enhanced API request with retry logic and 503 handling
             try {
-              const { data: prs, rateLimitInfo } = await githubApiRequest<any[]>(
+              const { data: prs, rateLimitInfo } = await githubApiRequest<GitHubPullRequest[]>(
                 `${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls?state=all&sort=updated&direction=desc&per_page=${perPage}&page=${page}`,
                 { headers }
               );
@@ -421,14 +452,14 @@ export async function fetchPullRequests(
         }
 
         // Filter PRs by the time range
-        const filteredPRs = allPRs.filter((pr: any) => {
+        const filteredPRs = allPRs.filter((pr: GitHubPullRequest) => {
           const prDate = new Date(pr.updated_at);
           return prDate >= since;
         });
 
         // Fetch additional details for each PR to get additions/deletions
         const detailedPRs = await Promise.all(
-          filteredPRs.map(async (pr: any) => {
+          filteredPRs.map(async (pr: GitHubPullRequest) => {
             const detailsResponse = await fetch(
               `${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls/${pr.number}`,
               { headers }
@@ -682,7 +713,7 @@ export async function fetchRepositoryCommitActivity(
 
     const commits = await response.json();
     const uniqueCommitters = new Set();
-    const recentCommits = commits.slice(0, 10).map((commit: any) => {
+    const recentCommits = commits.slice(0, 10).map((commit: GitHubCommit) => {
       if (commit.author?.login) {
         uniqueCommitters.add(commit.author.login);
       }
@@ -815,7 +846,7 @@ export async function fetchDirectCommits(
             if (NODE_ENV === 'development') {
               console.log('YOLO Debug - PR #%s has %s commits', pr.number, prCommits.length);
             }
-            prCommits.forEach((commit: any) => {
+            prCommits.forEach((commit: GitHubCommit) => {
               prCommitShaSet.add(commit.sha);
             });
           } else if (NODE_ENV === 'development') {
@@ -876,7 +907,7 @@ export async function fetchDirectCommits(
       console.log(`YOLO Debug - Sample PR commit SHAs:`, Array.from(prCommitShaSet).slice(0, 5));
     }
 
-    const directCommitData = allCommits.filter((commit: any) => {
+    const directCommitData = allCommits.filter((commit: GitHubCommit) => {
       const isDirectCommit = !prCommitShaSet.has(commit.sha);
       if (isDirectCommit && NODE_ENV === 'development') {
         console.log(
@@ -893,8 +924,8 @@ export async function fetchDirectCommits(
     }
 
     // Format the direct commits data
-    const directCommits = directCommitData.map((commit: any) => {
-      const author = commit.author || commit.committer || {};
+    const directCommits = directCommitData.map((commit: GitHubCommit) => {
+      const author = commit.author || commit.committer || { login: 'unknown', avatar_url: '' };
       const login = author.login || 'unknown';
       const avatar_url = author.avatar_url || '';
       const isBot = login.includes('[bot]');
@@ -960,7 +991,7 @@ export async function fetchDirectCommits(
       hasYoloCoders: directCommits.length > 0,
       yoloCoderStats,
     };
-  } catch (error) {
+  } catch {
     return {
       directCommits: [],
       hasYoloCoders: false,
