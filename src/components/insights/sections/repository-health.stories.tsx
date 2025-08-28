@@ -133,7 +133,7 @@ const MockRepositoryHealth = ({
       {/* Health Factors */}
       <div className="space-y-3 mb-6">
         <h4 className="font-medium">Health Factors</h4>
-        {data.factors.map((factor: any, index: number) => (
+        {data.factors.map((factor: { name: string; score: number; status: string; description: string }, index: number) => (
           <div key={index} className="flex items-center justify-between">
             <span className="text-sm">{factor.name}</span>
             <div className="flex items-center gap-2">

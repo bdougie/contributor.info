@@ -303,7 +303,7 @@ export function SpamManagement() {
                 />
               </div>
             </div>
-            <Select value={filterStatus} onValueChange={(value: any) => setFilterStatus(value)}>
+            <Select value={filterStatus} onValueChange={(value: 'all' | 'pending' | 'confirmed' | 'false_positive') => setFilterStatus(value)}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
@@ -314,7 +314,7 @@ export function SpamManagement() {
                 <SelectItem value="false_positive">False Positive</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={filterScore} onValueChange={(value: any) => setFilterScore(value)}>
+            <Select value={filterScore} onValueChange={(value: 'all' | 'high' | 'medium' | 'low') => setFilterScore(value)}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Filter by score" />
               </SelectTrigger>
