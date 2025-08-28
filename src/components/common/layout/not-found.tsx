@@ -358,7 +358,7 @@ export default function NotFound() {
 
               {/* Show validation status for repository paths */}
               {(() => {
-                if (pathInfo.isRepo && validationResult.status === 'checking') {
+                if (pathInfo?.isRepo && validationResult?.status === 'checking') {
                   return (
                     <div className="mt-4 text-yellow-600">
                       <div className="flex items-center gap-2">
@@ -371,7 +371,7 @@ export default function NotFound() {
                     </div>
                   );
                 }
-                if (pathInfo.isRepo && validationResult.status === 'exists_on_github') {
+                if (pathInfo?.isRepo && validationResult?.status === 'exists_on_github') {
                   return (
                     <div className="mt-4 text-green-600">
                       <div className="flex items-center gap-2">
@@ -387,7 +387,7 @@ export default function NotFound() {
                     </div>
                   );
                 }
-                if (pathInfo.isRepo && validationResult.status === 'exists_in_db') {
+                if (pathInfo?.isRepo && validationResult?.status === 'exists_in_db') {
                   return (
                     <div className="mt-4 text-green-600">
                       <div className="flex items-center gap-2">
@@ -407,11 +407,11 @@ export default function NotFound() {
                       <span>fatal: 404 Not Found</span>
                     </div>
                     <div className="mt-2 text-sm">
-                      {pathInfo.isRepo && validationResult.status === 'not_found'
+                      {pathInfo?.isRepo && validationResult?.status === 'not_found'
                         ? `Repository '${pathInfo.owner}/${pathInfo.repo}' doesn't exist on GitHub.`
                         : `The path '${location.pathname}' doesn't exist or has been moved.`}
                     </div>
-                    {validationResult.suggestion && (
+                    {validationResult?.suggestion && (
                       <div className="mt-2 text-sm text-muted-foreground">
                         {validationResult.suggestion}
                       </div>
