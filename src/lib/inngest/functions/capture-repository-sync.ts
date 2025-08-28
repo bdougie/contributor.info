@@ -2,6 +2,7 @@ import { inngest } from '../client';
 import { supabase } from '../../supabase';
 import type { GitHubPullRequest } from '../types';
 import { RATE_LIMIT_CONFIG } from '../queue-manager';
+import { getPRState } from '../../utils/state-mapping';
 
 // Rate limiting constants
 const MAX_PRS_PER_SYNC = 100;
@@ -175,7 +176,7 @@ export const captureRepositorySync = inngest.createFunction(
         number: pr.number,
         title: pr.title,
         body: null, // PR body not available in simplified type
-        state: pr.state === 'open' ? 'open' : pr.merged ? 'merged' : 'closed',
+        state: getPRState({ state: pr.state, merged: pr.merged }),
         author_id: contributorIds[index], // Now this is a proper UUID
         created_at: pr.created_at,
         updated_at: pr.updated_at,

@@ -8,6 +8,7 @@ import { WorkspaceAggregationService } from '@/services/workspace-aggregation.se
 import { createSupabaseAdmin } from '@/lib/supabase-admin';
 import { cacheInvalidator } from '@/lib/cache/workspace-metrics-cache';
 import type { MetricsTimeRange } from '@/types/workspace';
+import { getWorkspacePriority } from '@/lib/utils/workspace-priority';
 
 // Event types for workspace metric aggregation
 export interface WorkspaceAggregationEvent {
@@ -79,9 +80,7 @@ export const aggregateWorkspaceMetrics = inngest.createFunction(
 
     // Step 2: Add to aggregation queue
     const queueEntry = await step.run('queue-aggregation', async () => {
-      const priority =
-        event.data.priority ||
-        (workspace.tier === 'enterprise' ? 10 : workspace.tier === 'pro' ? 50 : 100);
+      const priority = event.data.priority || getWorkspacePriority(workspace.tier);
 
       const supabaseAdmin = createSupabaseAdmin();
       const { data, error } = await supabaseAdmin
@@ -258,7 +257,7 @@ export const scheduledWorkspaceAggregation = inngest.createFunction(
         data: {
           workspaceId: workspace.id,
           timeRange: '30d' as MetricsTimeRange,
-          priority: workspace.tier === 'enterprise' ? 10 : workspace.tier === 'pro' ? 50 : 100,
+          priority: getWorkspacePriority(workspace.tier),
           triggeredBy: 'schedule' as const,
         },
       }));

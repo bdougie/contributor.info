@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { expect, within } from '@storybook/test';
+import { getConfidenceByVariant } from '../../../lib/utils/priority-classification';
 
 // Create a simple mock recommendations component for Storybook
 const MockRecommendations = ({
@@ -58,7 +59,7 @@ const MockRecommendations = ({
     );
   }
 
-  const confidence = variant === 'low-confidence' ? 40 : variant === 'high-priority' ? 95 : 85;
+  const confidence = getConfidenceByVariant(variant);
   const content =
     variant === 'low-confidence'
       ? 'Based on limited data, consider reviewing your PR workflow. More analysis may be needed for specific recommendations.'

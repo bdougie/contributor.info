@@ -1,4 +1,5 @@
 import React from 'react';
+import { getImageLoadingStrategy } from '../../lib/utils/priority-classification';
 
 interface OptimizedImageProps {
   src: string;
@@ -61,7 +62,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
           sizes={sizes || '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw'}
           alt={alt}
           className={className}
-          loading={priority ? 'eager' : loading || (lazy ? 'lazy' : 'eager')}
+          loading={getImageLoadingStrategy(priority, loading, lazy)}
           width={width}
           height={height}
           decoding="async"
@@ -75,7 +76,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
         src={src}
         alt={alt}
         className={className}
-        loading={priority ? 'eager' : loading || (lazy ? 'lazy' : 'eager')}
+        loading={getImageLoadingStrategy(priority, loading, lazy)}
         width={width}
         height={height}
         decoding="async"
@@ -124,7 +125,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
         src={src}
         alt={alt}
         className={className}
-        loading={priority ? 'eager' : loading || (lazy ? 'lazy' : 'eager')}
+        loading={getImageLoadingStrategy(priority, loading, lazy)}
         width={width}
         height={height}
         decoding="async"
@@ -151,7 +152,7 @@ export const SimpleOptimizedImage: React.FC<OptimizedImageProps> = ({
         src={src}
         alt={alt}
         className={className}
-        loading={priority ? 'eager' : loading || (lazy ? 'lazy' : 'eager')}
+        loading={getImageLoadingStrategy(priority, loading, lazy)}
         width={width}
         height={height}
         decoding="async"
@@ -170,7 +171,7 @@ export const SimpleOptimizedImage: React.FC<OptimizedImageProps> = ({
         src={src}
         alt={alt}
         className={className}
-        loading={priority ? 'eager' : loading || (lazy ? 'lazy' : 'eager')}
+        loading={getImageLoadingStrategy(priority, loading, lazy)}
         width={width}
         height={height}
         decoding="async"
