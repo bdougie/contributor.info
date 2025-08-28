@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 import { humanizeNumber } from '@/lib/utils';
+import { getTrendColor } from '@/lib/utils/state-mapping';
 
 export interface Contributor {
   id: string;
@@ -70,8 +71,7 @@ function ContributorCard({
 }) {
   const trend = contributor.stats.contribution_trend;
   const TrendIcon = trend > 0 ? TrendingUp : trend < 0 ? TrendingDown : Minus;
-  const trendColor =
-    trend > 0 ? 'text-green-600' : trend < 0 ? 'text-red-600' : 'text-muted-foreground';
+  const trendColor = getTrendColor(trend);
 
   return (
     <Card className="relative hover:shadow-md transition-shadow">
@@ -168,8 +168,7 @@ function ContributorListItem({
 }) {
   const trend = contributor.stats.contribution_trend;
   const TrendIcon = trend > 0 ? TrendingUp : trend < 0 ? TrendingDown : Minus;
-  const trendColor =
-    trend > 0 ? 'text-green-600' : trend < 0 ? 'text-red-600' : 'text-muted-foreground';
+  const trendColor = getTrendColor(trend);
 
   return (
     <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">

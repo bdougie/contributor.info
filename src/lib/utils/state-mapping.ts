@@ -90,3 +90,21 @@ export const formatPercentageChange = (
   const prefix = isPositive ? '+' : '-';
   return `${prefix}${displayValue}`;
 };
+
+/**
+ * Get trend color based on numeric trend value
+ * Determines text color class based on positive, negative, or zero trend
+ * 
+ * @param trend - Numeric trend value (positive = good, negative = bad, zero = neutral)
+ * @returns Tailwind CSS text color class
+ * 
+ * @example
+ * getTrendColor(5) // returns 'text-green-600' (positive trend)
+ * getTrendColor(-3) // returns 'text-red-600' (negative trend)  
+ * getTrendColor(0) // returns 'text-muted-foreground' (neutral)
+ */
+export const getTrendColor = (trend: number): string => {
+  if (trend > 0) return 'text-green-600';
+  if (trend < 0) return 'text-red-600';
+  return 'text-muted-foreground';
+};

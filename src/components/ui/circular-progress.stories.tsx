@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { CircularProgress } from './circular-progress';
 import { useState, useEffect } from 'react';
 import { Button } from './button';
+import { getValueCategoryColor } from '@/lib/utils/threshold-styling';
 
 const meta = {
   title: 'UI/Feedback/SemicircleProgress',
@@ -289,7 +290,7 @@ export const AllPercentages: Story = {
             <span className="font-bold text-xs tracking-[-0.01px]">%</span>
           </CircularProgress>
           <span className="mt-2 text-sm text-muted-foreground">
-            {value <= 30 ? 'Red' : value <= 50 ? 'Orange' : value <= 70 ? 'Blue' : 'Green'}
+{getValueCategoryColor(value)}
           </span>
         </div>
       ))}
