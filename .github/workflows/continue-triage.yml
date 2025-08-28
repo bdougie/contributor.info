@@ -4,6 +4,8 @@ on:
     - cron: '0 * * * *' # Runs every hour to triage issues without labels
   issues:
     types: [opened, edited, reopened]
+  issue_comment:
+    types: [created] # Trigger on new comments to detect @continue-agent mentions
   workflow_dispatch: # Allow manual testing
     inputs:
       issue_number:
@@ -23,13 +25,15 @@ permissions:
 jobs:
   triage:
     runs-on: ubuntu-latest
-    # Only run on issues that need triage
+    # Only run on issues that need triage or when @continue-agent is mentioned
     if: |
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'issues' && 
        (github.event.action == 'opened' || 
         github.event.action == 'edited' ||
-        contains(github.event.issue.labels.*.name, 'needs-triage')))
+        contains(github.event.issue.labels.*.name, 'needs-triage'))) ||
+      (github.event_name == 'issue_comment' && 
+       contains(github.event.comment.body, '@continue-agent'))
 
     permissions:
       contents: read # Read code and rules for analysis

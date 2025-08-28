@@ -59,9 +59,35 @@ async function run(): Promise<void> {
       process.env.INPUT_CONTINUE_ORG || core.getInput('continue-org', { required: true });
     const continueConfig =
       process.env.INPUT_CONTINUE_CONFIG || core.getInput('continue-config', { required: true });
-    const issueNumberStr =
-      process.env.INPUT_ISSUE_NUMBER || core.getInput('issue-number', { required: true });
-    const issueNumber = parseInt(issueNumberStr);
+
+    // Determine issue number based on event type
+    let issueNumber: number;
+    const context = github.context;
+
+    // Check if triggered by comment with @continue-agent mention
+    let userPrompt = '';
+    let isCommentTrigger = false;
+
+    if (context.eventName === 'issue_comment' && context.payload.comment) {
+      // Extract issue number from comment event
+      issueNumber = context.payload.issue?.number;
+      isCommentTrigger = true;
+
+      // Extract user prompt from comment (remove @continue-agent mention)
+      const commentBody = context.payload.comment.body || '';
+      userPrompt = commentBody.replace(/@continue-agent/gi, '').trim();
+
+      console.log('🤖 Triggered by @continue-agent mention in comment');
+      console.log('📝 User prompt: %s', userPrompt || '(no additional prompt)');
+    } else {
+      // Use input or issue number from issue event
+      const issueNumberStr =
+        process.env.INPUT_ISSUE_NUMBER ||
+        core.getInput('issue-number') ||
+        context.payload.issue?.number;
+      issueNumber = parseInt(issueNumberStr);
+    }
+
     // Handle dry-run input safely - getBooleanInput is strict about format
     const dryRunInput = process.env.INPUT_DRY_RUN || core.getInput('dry-run') || 'false';
     const dryRun = dryRunInput === 'true' || dryRunInput === 'True' || dryRunInput === 'TRUE';
@@ -157,7 +183,9 @@ async function run(): Promise<void> {
       rules,
       continueApiKey,
       continueOrg,
-      continueConfig
+      continueConfig,
+      userPrompt,
+      isCommentTrigger
     );
 
     // Post SCQA comment
@@ -197,8 +225,9 @@ async function run(): Promise<void> {
       }
 
       // Remove needs-triage label after successful SCQA analysis
-      // Always remove the label when we've completed the analysis, regardless of whether we applied new labels
-      if (hasNeedsTriageLabel) {
+      // Only remove if we've properly categorized the issue (not if we're asking for more info)
+      const stillNeedsTriage = analysis.suggestedLabels.includes('needs-triage');
+      if (hasNeedsTriageLabel && !stillNeedsTriage) {
         try {
           if (dryRun) {
             console.log('🏷️ [DRY RUN] Would remove "needs-triage" label');
@@ -214,6 +243,8 @@ async function run(): Promise<void> {
         } catch {
           // Label might not exist, ignore error
         }
+      } else if (stillNeedsTriage) {
+        console.log('🏷️ Keeping "needs-triage" label - more information needed');
       }
     }
 
@@ -289,8 +320,20 @@ async function performTriageAnalysis(
   rules: RuleFile[],
   apiKey: string,
   org: string,
-  config: string
+  config: string,
+  userPrompt = '',
+  isCommentTrigger = false
 ): Promise<TriageAnalysis> {
+  // Check if issue has insufficient context
+  const hasVideo =
+    (issue.body || '').toLowerCase().includes('video') ||
+    (issue.body || '').includes('mp4') ||
+    (issue.body || '').includes('youtube') ||
+    (issue.body || '').includes('loom') ||
+    (issue.body || '').includes('.mov');
+
+  const isVeryShort = (issue.body || '').length < 50;
+
   // Prepare the prompt for Continue
   const prompt = `
 You are an issue triage assistant. Analyze the following GitHub issue and provide structured feedback.
@@ -299,6 +342,14 @@ You are an issue triage assistant. Analyze the following GitHub issue and provid
 Title: ${issue.title}
 Body: ${issue.body || 'No description provided'}
 
+${userPrompt ? `## User Request\nThe user has specifically asked: "${userPrompt}"` : ''}
+
+${isCommentTrigger ? '## Note\nThis analysis was triggered by an @continue-agent mention in a comment.' : ''}
+
+## Context Assessment
+${hasVideo ? 'NOTE: The issue contains a video. You should ask the user to provide a written description of what the video shows, as you cannot analyze video content.' : ''}
+${isVeryShort ? 'NOTE: The issue description is very brief. You may need to ask for more details.' : ''}
+
 ## Available Labels
 ${availableLabels.map((l) => `- ${l.name}: ${l.description || 'No description'}`).join('\n')}
 
@@ -306,22 +357,29 @@ ${availableLabels.map((l) => `- ${l.name}: ${l.description || 'No description'}`
 ${rules.map((r) => `### ${r.description}\n${r.content}`).join('\n\n')}
 
 ## Task
-1. Analyze the issue against the project rules
-2. Determine appropriate labels from the available list
-3. Generate SCQA analysis (Situation, Complication, Question, Answer)
-4. Focus on categorizing by:
+1. First, assess if you have enough information to properly triage the issue
+2. If the issue contains a video or lacks sufficient detail, ask for clarification
+3. If you have enough information, analyze the issue against the project rules
+4. Determine appropriate labels from the available list
+5. Generate SCQA analysis (Situation, Complication, Question, Answer)
+6. Focus on categorizing by:
    - Type: bug, enhancement, documentation, question
    - Area: frontend, components, hooks, lib, database, ci, testing, etc.
    - Tier: tier 1 (major), tier 2 (important), tier 3 (smaller)
    - Technical: security, performance, dependencies, build
    - Complexity: good first issue (if appropriate)
 
+IMPORTANT: If the issue lacks context (especially if it only contains a video), your answer should:
+1. Acknowledge what information is missing
+2. Ask specific questions to gather the needed context
+3. Explain that you need this information to properly triage the issue
+
 Please respond in the following JSON format:
 {
   "situation": "Clear restatement of what the issue is about",
-  "complication": "Challenges or blockers identified",
-  "question": "First principles hypothesis about the root problem",
-  "answer": "Suggested approach or fix",
+  "complication": "Challenges or blockers identified (including lack of context if applicable)",
+  "question": "First principles hypothesis about the root problem OR questions you need answered",
+  "answer": "Suggested approach or fix OR request for more information with specific questions",
   "suggestedLabels": ["label1", "label2"],
   "reasoning": {
     "label1": "Why this label applies",
@@ -384,14 +442,18 @@ Please respond in the following JSON format:
     console.error('Continue analysis failed, using fallback analysis');
 
     // Fallback analysis without Continue
-    return performFallbackAnalysis(issue, availableLabels);
+    return performFallbackAnalysis(issue, availableLabels, userPrompt);
   }
 }
 
-function performFallbackAnalysis(issue: IssueData, availableLabels: Label[]): TriageAnalysis {
+function performFallbackAnalysis(
+  issue: IssueData,
+  availableLabels: Label[],
+  userPrompt = ''
+): TriageAnalysis {
   const title = issue.title.toLowerCase();
   const body = (issue.body || '').toLowerCase();
-  const fullText = `${title} ${body}`;
+  const fullText = `${title} ${body} ${userPrompt.toLowerCase()}`;
 
   const suggestedLabels: string[] = [];
   const reasoning: Record<string, string> = {};
@@ -440,6 +502,45 @@ function performFallbackAnalysis(issue: IssueData, availableLabels: Label[]): Tr
     reasoning['performance'] = 'Issue relates to performance';
   }
 
+  // Check for videos or insufficient context
+  const hasVideo =
+    body.includes('video') ||
+    body.includes('mp4') ||
+    body.includes('youtube') ||
+    body.includes('loom') ||
+    body.includes('.mov');
+  const isVeryShort = issue.body && issue.body.length < 50;
+
+  if (hasVideo || isVeryShort) {
+    return {
+      situation: `The issue "${issue.title}" has been submitted for triage.`,
+      complication: hasVideo
+        ? 'The issue contains a video that cannot be analyzed automatically. Written context is needed.'
+        : 'The issue description is very brief and lacks sufficient detail for proper triage.',
+      question:
+        'What additional information is needed to properly understand and categorize this issue?',
+      answer: hasVideo
+        ? "I see you've included a video in your issue. To help triage this properly, could you please:\n\n" +
+          '1. Describe what the video shows\n' +
+          '2. Explain the expected behavior vs. what actually happens\n' +
+          '3. List any error messages or console output\n' +
+          "4. Mention which browser/environment you're using\n\n" +
+          'This will help me categorize the issue accurately and suggest the right approach.'
+        : 'Thanks for submitting this issue! To help triage it properly, could you provide more details about:\n\n' +
+          "1. The specific problem you're experiencing\n" +
+          '2. Steps to reproduce the issue\n' +
+          '3. Expected vs. actual behavior\n' +
+          '4. Any relevant error messages\n\n' +
+          "Feel free to mention me again with @continue-agent once you've added more context!",
+      suggestedLabels: ['needs-triage'], // Keep needs-triage label when more info is needed
+      reasoning: {
+        'needs-triage': hasVideo
+          ? 'Video content requires written description for proper analysis'
+          : 'Insufficient information provided for complete triage',
+      },
+    };
+  }
+
   return {
     situation: `The issue "${issue.title}" has been submitted for triage.`,
     complication:
@@ -453,17 +554,26 @@ function performFallbackAnalysis(issue: IssueData, availableLabels: Label[]): Tr
 }
 
 function generateSCQAComment(analysis: TriageAnalysis, dryRun = false): string {
+  // Check if we're asking for more information
+  const needsMoreInfo =
+    analysis.answer.includes('could you please') ||
+    analysis.answer.includes('could you provide') ||
+    analysis.answer.includes('video');
+
   // Create a conversational, helpful response based on the analysis
-  let comment = `Hey there! I've analyzed this issue and here's what I found:\n\n`;
+  let comment = needsMoreInfo
+    ? `Hey there! I'm here to help triage this issue.\n\n`
+    : `Hey there! I've analyzed this issue and here's what I found:\n\n`;
 
   // Add the main insight from the answer
   comment += `${analysis.answer}\n\n`;
 
-  // If there are specific suggestions or action items in the answer, highlight them
+  // Only add suggestions if we're not asking for more information
   if (
-    analysis.answer.includes('specific') ||
-    analysis.answer.includes('suggest') ||
-    analysis.answer.includes('should')
+    !needsMoreInfo &&
+    (analysis.answer.includes('specific') ||
+      analysis.answer.includes('suggest') ||
+      analysis.answer.includes('should'))
   ) {
     comment += `### 💡 Suggestions\n\n`;
     comment += `Based on the issue description, here are some specific areas to investigate:\n\n`;
