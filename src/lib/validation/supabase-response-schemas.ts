@@ -250,7 +250,7 @@ export function validateAndTransformPRData(data: unknown, owner: string, repo: s
   const validation = validateSupabasePRArray(data);
 
   if (!validation.success) {
-    console.error(`Failed to validate PR data for ${owner}/${repo}:`, validation.error);
+    console.error('Failed to validate PR data for %s/%s:', owner, repo, validation.error);
     return [];
   }
 
