@@ -255,10 +255,9 @@ export function ContributorLeaderboard({
                 </div>
                 {/* Activity Score Badge */}
                 <div className="absolute bottom-2 right-2">
-                  <div className="text-xs text-muted-foreground">
-                    Score:{' '}
-                    <span className="font-semibold text-foreground">{contributor.score}</span>
-                  </div>
+                  <Badge variant="secondary" className="text-xs">
+                    Score: {contributor.score}
+                  </Badge>
                 </div>
               </CardContent>
             </Card>
@@ -334,9 +333,9 @@ export function ContributorLeaderboard({
                       </Badge>
                     )}
                   </div>
-                  <div className="text-xs text-muted-foreground border-l pl-3">
-                    Score: <span className="font-semibold">{contributor.score}</span>
-                  </div>
+                  <Badge variant="secondary" className="text-xs ml-3">
+                    Score: {contributor.score}
+                  </Badge>
                 </div>
               </div>
             </div>
