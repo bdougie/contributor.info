@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, forwardRef } from 'react';
 import { cn } from '@/lib/utils';
-import { getImageLoadingStrategy, getOptimizedImageUrls } from '@/lib/utils/component-state';
+import { getImageLoadingStrategy, getOptimizedImageUrls } from '@/lib/utils/image-optimization';
 
 interface OptimizedImageProps extends Omit<React.ImgHTMLAttributes<HTMLImageElement>, 'src'> {
   src: string;
