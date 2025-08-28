@@ -4,6 +4,7 @@ import PRActivity from './pr-activity';
 import { RepoStatsContext } from '@/lib/repo-stats-context';
 import type { PullRequest } from '@/lib/types';
 import { designTokens } from '../../../../.storybook/design-tokens';
+import { getLabelsByIndex } from '@/lib/utils/label-patterns';
 
 // Helper function to create mock pull requests with varied activity
 const createMockPR = (
@@ -217,7 +218,7 @@ const highActivityDataset: PullRequest[] = Array.from({ length: 30 }, (_, i) => 
   const daysAgo = Math.floor(Math.random() * 14) + 1; // Within last 2 weeks
   const hasReviews = Math.random() > 0.2; // 80% have reviews
   const hasComments = Math.random() > 0.3; // 70% have comments
-  const labels = i % 3 === 0 ? ['bug', 'high-priority'] : i % 2 === 0 ? ['enhancement'] : [];
+  const labels = getLabelsByIndex(i);
 
   return createMockPR(
     i + 1,

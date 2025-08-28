@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { StatCardConfig, WidgetData } from './widget-types';
+import { getIconSize } from '@/lib/utils/size-styling';
 
 interface StatCardProps {
   config: StatCardConfig;
@@ -113,7 +114,7 @@ export function StatCard({ config, data, className }: StatCardProps) {
                   className={cn(
                     'flex-shrink-0',
                     metricConfig.color,
-                    size === 'small' ? 'h-3 w-3' : size === 'large' ? 'h-6 w-6' : 'h-4 w-4'
+                    getIconSize(size)
                   )}
                 />
                 <div className="min-w-0">

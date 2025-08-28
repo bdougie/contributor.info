@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { isPostHogEnabled, getRateLimiterStats } from '@/lib/posthog-lazy';
 import { env } from '@/lib/env';
+import { getHealthStatus } from '@/lib/utils/ui-state';
 
 interface PostHogHealth {
   enabled: boolean;
@@ -108,7 +109,7 @@ export function PostHogHealthMonitor() {
                       : 'text-gray-600'
                 }`}
               >
-                {health.lastError ? 'Error' : health.enabled ? 'Active' : 'Inactive'}
+                {getHealthStatus(Boolean(health.lastError), health.enabled)}
               </span>
             </div>
 
