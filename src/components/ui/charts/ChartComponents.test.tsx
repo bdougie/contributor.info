@@ -27,12 +27,12 @@ class MockResizeObserver {
   unobserve = vi.fn();
   disconnect = vi.fn();
 
-  constructor(...args: any[]) {
+  constructor(...args: unknown[]) {
     mockResizeObserverConstructor(...args);
   }
 }
 
-global.ResizeObserver = MockResizeObserver as any;
+global.ResizeObserver = MockResizeObserver as typeof ResizeObserver;
 
 describe('Chart Components', () => {
   const mockLineData = {

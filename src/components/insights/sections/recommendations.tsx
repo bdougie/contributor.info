@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { llmService, type LLMInsight } from '@/lib/llm';
-import { calculateHealthMetrics } from '@/lib/insights/health-metrics';
+import { calculateHealthMetrics, type HealthMetrics } from '@/lib/insights/health-metrics';
 import { calculatePrActivityMetrics } from '@/lib/insights/pr-activity-metrics';
 import { calculateTrendMetrics } from '@/lib/insights/trends-metrics';
 
@@ -73,7 +73,7 @@ export function Recommendations({ owner, repo, timeRange }: RecommendationsProps
     }
   };
 
-  const loadLLMRecommendations = async (healthData: any, activityData: any, trendsData: any[]) => {
+  const loadLLMRecommendations = async (healthData: HealthMetrics, activityData: unknown, trendsData: unknown[]) => {
     setLlmLoading(true);
     try {
       const combinedData = {
@@ -101,7 +101,7 @@ export function Recommendations({ owner, repo, timeRange }: RecommendationsProps
 
     // Health-based recommendations
     if (healthData.score < 60) {
-      const criticalFactors = healthData.factors.filter((f: any) => f.status === 'critical');
+      const criticalFactors = healthData.factors.filter((f: HealthMetrics['factors'][0]) => f.status === 'critical');
       if (criticalFactors.length > 0) {
         recommendations.push({
           id: 'health-critical',

@@ -20,17 +20,23 @@ import { Package, X, AlertCircle, CheckCircle2, Loader2, Star } from '@/componen
 import type { Workspace } from '@/types/workspace';
 import type { GitHubRepository } from '@/lib/github';
 import type { User } from '@supabase/supabase-js';
+import { z } from 'zod';
 
-// Use mock supabase in Storybook if available
+// Use mock supabase in Storybook if available  
+interface WindowWithMocks extends Window {
+  __mockSupabase?: typeof defaultSupabase;
+  __mockWorkspaceService?: typeof DefaultWorkspaceService;
+}
+
 const supabase =
-  typeof window !== 'undefined' && (window as any).__mockSupabase
-    ? (window as any).__mockSupabase
+  typeof window !== 'undefined' && (window as WindowWithMocks).__mockSupabase
+    ? (window as WindowWithMocks).__mockSupabase!
     : defaultSupabase;
 
 // Use mock WorkspaceService in Storybook if available
 const WorkspaceService =
-  typeof window !== 'undefined' && (window as any).__mockWorkspaceService
-    ? (window as any).__mockWorkspaceService
+  typeof window !== 'undefined' && (window as WindowWithMocks).__mockWorkspaceService
+    ? (window as WindowWithMocks).__mockWorkspaceService!
     : DefaultWorkspaceService;
 
 // Tier configuration
@@ -56,20 +62,7 @@ interface ExistingRepository
 }
 
 // Type for workspace repository query result
-interface WorkspaceRepoQueryResult {
-  repository_id: string;
-  is_pinned: boolean;
-  repositories: {
-    id: string;
-    full_name: string;
-    name: string;
-    owner: string;
-    description: string | null;
-    language: string | null;
-    stargazers_count: number;
-    forks_count: number;
-  } | null;
-}
+// Removed WorkspaceRepoQueryResult - now using Zod schema validation instead
 
 export interface AddRepositoryModalProps {
   open: boolean;
@@ -157,13 +150,35 @@ export function AddRepositoryModal({
           .eq('workspace_id', workspaceId);
 
         if (existingWorkspaceRepos) {
-          const repos = (existingWorkspaceRepos as WorkspaceRepoQueryResult[])
+          // Use Zod to validate the query result instead of casting
+          const workspaceRepoSchema = z.array(z.object({
+            repository_id: z.string(),
+            is_pinned: z.boolean().nullable().optional(),
+            repositories: z.object({
+              id: z.string(),
+              full_name: z.string(),
+              name: z.string(),
+              owner: z.string(),
+              description: z.string().nullable(),
+              language: z.string().nullable(),
+              stargazers_count: z.number(),
+              forks_count: z.number(),
+            }).nullable(),
+          }));
+          
+          const validationResult = workspaceRepoSchema.safeParse(existingWorkspaceRepos);
+          if (!validationResult.success) {
+            console.error('Invalid workspace repos data:', validationResult.error);
+            return [];
+          }
+          
+          const repos = validationResult.data
             .filter((r) => r.repositories)
             .map(
               (r): ExistingRepository => ({
                 ...r.repositories!,
                 workspace_repo_id: r.repository_id,
-                is_pinned: r.is_pinned,
+                is_pinned: r.is_pinned ?? false,
               })
             );
 
