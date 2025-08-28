@@ -1,5 +1,4 @@
-import { useState, useMemo } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -9,11 +8,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ContributorLeaderboard } from './ContributorLeaderboard';
-import { RepositoryComparison } from './RepositoryComparison';
-import { TrendChart } from './TrendChart';
 import { TimeRangeSelector, TimeRange } from './TimeRangeSelector';
-import { Download, Filter, BarChart3, Users, GitBranch } from '@/components/ui/icon';
+import { Download, Filter } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 import type { WorkspaceRepositoryWithDetails } from '@/types/workspace';
 
@@ -102,35 +98,15 @@ const TIER_LIMITS = {
 };
 
 export function AnalyticsDashboard({
-  data,
   repositories = [],
-  loading = false,
   tier = 'free',
   onExport,
   className,
 }: Omit<AnalyticsDashboardProps, 'workspaceId'>) {
   const [timeRange, setTimeRange] = useState<TimeRange>('30d');
-  const [selectedTab, setSelectedTab] = useState('overview');
   const [selectedRepos, setSelectedRepos] = useState<string[]>([]);
 
   const tierLimits = TIER_LIMITS[tier];
-
-  // Filter data based on selected repositories
-  const filteredData = useMemo(() => {
-    if (selectedRepos.length === 0) return data;
-
-    return {
-      activities: data.activities.filter((a) =>
-        selectedRepos.some((repoId) => {
-          const repo = repositories.find((r) => r.id === repoId);
-          return repo && a.repository === `${repo.repository.owner}/${repo.repository.name}`;
-        })
-      ),
-      contributors: data.contributors,
-      repositories: data.repositories.filter((r) => selectedRepos.includes(r.id)),
-      trends: data.trends,
-    };
-  }, [data, selectedRepos, repositories]);
 
   const handleExport = (format: 'csv' | 'json' | 'pdf') => {
     if (tierLimits.exportFormats.includes(format)) {
@@ -227,129 +203,17 @@ export function AnalyticsDashboard({
         </Card>
       )}
 
-      {/* Main Analytics Tabs */}
-      <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-        <TabsList className="grid grid-cols-3 w-full max-w-xl">
-          <TabsTrigger value="overview" className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4" />
-            Overview
-          </TabsTrigger>
-          <TabsTrigger value="contributors" className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            Contributors
-          </TabsTrigger>
-          <TabsTrigger value="repositories" className="flex items-center gap-2">
-            <GitBranch className="h-4 w-4" />
-            Repositories
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview" className="space-y-6">
-          {/* Trend Charts */}
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Pull Requests Trend</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <TrendChart
-                  title=""
-                  data={{
-                    labels: filteredData.trends[0]?.data.map((d) => d.date) || [],
-                    datasets: [
-                      {
-                        label: 'Pull Requests',
-                        data: filteredData.trends[0]?.data.map((d) => d.value) || [],
-                        color: '#10b981',
-                      },
-                    ],
-                  }}
-                  loading={loading}
-                />
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Contributor Activity</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <TrendChart
-                  title=""
-                  data={{
-                    labels: filteredData.trends[1]?.data.map((d) => d.date) || [],
-                    datasets: [
-                      {
-                        label: 'Active Contributors',
-                        data: filteredData.trends[1]?.data.map((d) => d.value) || [],
-                        color: '#3b82f6',
-                      },
-                    ],
-                  }}
-                  loading={loading}
-                />
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Quick Stats */}
-          <div className="grid gap-4 md:grid-cols-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Total Contributors</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{filteredData.contributors.length}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Total Activities</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{filteredData.activities.length}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Active Repositories</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{filteredData.repositories.length}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Activity Score</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {Math.round(
-                    filteredData.repositories.reduce((sum, r) => sum + r.activity_score, 0) /
-                      (filteredData.repositories.length || 1)
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="contributors">
-          <ContributorLeaderboard
-            contributors={filteredData.contributors}
-            loading={loading}
-            timeRange={timeRange}
-          />
-        </TabsContent>
-
-        <TabsContent value="repositories">
-          <RepositoryComparison
-            repositories={filteredData.repositories}
-            loading={loading}
-            maxRepositories={tierLimits.maxRepositories === -1 ? 10 : tierLimits.maxRepositories}
-          />
-        </TabsContent>
-      </Tabs>
+      {/* Analytics content - temporarily empty for redesign */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Analytics Dashboard</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground">
+            Analytics dashboard is being redesigned. Please check back soon.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -7,12 +7,12 @@ import { useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { AnalyticsDashboard } from '@/components/features/workspace/AnalyticsDashboard';
 import { WorkspaceExportService } from '@/services/workspace-export.service';
-import type { 
+import type {
   AnalyticsData,
   ActivityItem,
   ContributorStat,
   RepositoryMetric,
-  TrendDataset
+  TrendDataset,
 } from '@/components/features/workspace/AnalyticsDashboard';
 import type { WorkspaceRepositoryWithDetails } from '@/types/workspace';
 
@@ -28,7 +28,7 @@ function generateDemoData(): AnalyticsData {
   // Generate activities
   const activityTypes = ['pr', 'issue', 'commit', 'review'] as const;
   const statuses = ['open', 'merged', 'closed', 'approved'] as const;
-  
+
   for (let i = 0; i < 200; i++) {
     const createdAt = new Date(now.getTime() - Math.random() * 30 * 24 * 60 * 60 * 1000);
     activities.push({
@@ -116,7 +116,7 @@ function generateDemoData(): AnalyticsData {
 export function WorkspaceAnalyticsDemoPage() {
   const { workspaceId = 'demo-workspace' } = useParams<{ workspaceId: string }>();
   const [tier] = useState<'free' | 'pro' | 'enterprise'>('pro');
-  
+
   // Generate demo data
   const demoData = useMemo(() => generateDemoData(), []);
 
@@ -236,7 +236,6 @@ export function WorkspaceAnalyticsDemoPage() {
         </div>
 
         <AnalyticsDashboard
-          workspaceId={workspaceId}
           data={demoData}
           repositories={mockRepositories}
           loading={false}

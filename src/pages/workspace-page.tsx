@@ -63,6 +63,7 @@ import { WorkspaceService } from '@/services/workspace.service';
 import { AnalyticsDashboard } from '@/components/features/workspace/AnalyticsDashboard';
 import { ActivityTable } from '@/components/features/workspace/ActivityTable';
 import { TrendChart } from '@/components/features/workspace/TrendChart';
+import { ContributorLeaderboard } from '@/components/features/workspace/ContributorLeaderboard';
 import { WorkspaceExportService } from '@/services/workspace-export.service';
 import type {
   AnalyticsData,
@@ -1129,10 +1130,28 @@ function WorkspaceContributors({
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-6">
+          {/* Contributor Leaderboard */}
+          <ContributorLeaderboard
+            contributors={contributors.map((contributor) => ({
+              id: contributor.id,
+              username: contributor.username,
+              avatar_url: contributor.avatar_url,
+              contributions: contributor.stats.total_contributions,
+              pull_requests: contributor.contributions.pull_requests,
+              issues: contributor.contributions.issues,
+              reviews: contributor.contributions.reviews,
+              commits: contributor.contributions.commits,
+              trend: contributor.stats.contribution_trend,
+            }))}
+            loading={loading}
+            timeRange="30d"
+            maxDisplay={10}
+          />
+
           {/* View Toggle */}
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Contributors</h2>
+            <h2 className="text-lg font-semibold">All Contributors</h2>
             <div className="flex items-center gap-2">
               <div className="flex items-center rounded-lg border bg-muted/50 p-1">
                 <Button
@@ -1353,6 +1372,14 @@ function WorkspaceActivity({ repositories }: { repositories: Repository[] }) {
     };
   });
 
+  // Calculate stats
+  const totalActivities = activities.length;
+  const uniqueContributors = new Set(activities.map((a) => a.author.username)).size;
+  const activeRepos = new Set(activities.map((a) => a.repository)).size;
+  const activityScore = Math.round(
+    (totalActivities + uniqueContributors * 2 + activeRepos * 3) / 3
+  );
+
   return (
     <div className="space-y-4">
       {/* Activity Trend Chart */}
@@ -1391,6 +1418,46 @@ function WorkspaceActivity({ repositories }: { repositories: Repository[] }) {
         showLegend={true}
         showGrid={true}
       />
+
+      {/* Quick Stats */}
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Total Activities</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalActivities}</div>
+            <p className="text-xs text-muted-foreground">Last 30 days</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Active Contributors</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{uniqueContributors}</div>
+            <p className="text-xs text-muted-foreground">Unique authors</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Active Repositories</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{activeRepos}</div>
+            <p className="text-xs text-muted-foreground">With activity</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Activity Score</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{activityScore}</div>
+            <p className="text-xs text-muted-foreground">Composite metric</p>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Activity Feed Table */}
       <Card>
@@ -2065,7 +2132,6 @@ export default function WorkspacePage() {
           <TabsContent value="analytics" className="mt-6">
             <div className="container max-w-7xl mx-auto">
               <AnalyticsDashboard
-                workspaceId={workspace.id}
                 data={generateAnalyticsData()}
                 repositories={repositories.map((repo) => ({
                   id: `wr-${repo.id}`,
