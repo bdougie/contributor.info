@@ -69,23 +69,50 @@ async function run(): Promise<void> {
     let isCommentTrigger = false;
 
     if (context.eventName === 'issue_comment' && context.payload.comment) {
+      // Don't respond to bot's own comments
+      const commentAuthor = context.payload.comment.user?.login || '';
+      const isAppComment =
+        commentAuthor.includes('continue-agent') ||
+        commentAuthor.includes('[bot]') ||
+        context.payload.comment.user?.type === 'Bot';
+
+      if (isAppComment) {
+        console.log('🤖 Ignoring comment from bot user: %s', commentAuthor);
+        return;
+      }
+
       // Extract issue number from comment event
-      issueNumber = context.payload.issue?.number;
+      const issueNumberFromComment = context.payload.issue?.number;
+      if (!issueNumberFromComment) {
+        console.error('❌ Could not extract issue number from comment event');
+        return;
+      }
+      issueNumber = issueNumberFromComment;
       isCommentTrigger = true;
 
       // Extract user prompt from comment (remove @continue-agent mention)
       const commentBody = context.payload.comment.body || '';
       userPrompt = commentBody.replace(/@continue-agent/gi, '').trim();
 
-      console.log('🤖 Triggered by @continue-agent mention in comment');
+      console.log('🤖 Triggered by @continue-agent mention in comment from %s', commentAuthor);
       console.log('📝 User prompt: %s', userPrompt || '(no additional prompt)');
     } else {
       // Use input or issue number from issue event
       const issueNumberStr =
         process.env.INPUT_ISSUE_NUMBER ||
         core.getInput('issue-number') ||
-        context.payload.issue?.number;
+        context.payload.issue?.number?.toString();
+
+      if (!issueNumberStr) {
+        console.error('❌ Could not determine issue number');
+        return;
+      }
+
       issueNumber = parseInt(issueNumberStr);
+      if (isNaN(issueNumber)) {
+        console.error('❌ Invalid issue number: %s', issueNumberStr);
+        return;
+      }
     }
 
     // Handle dry-run input safely - getBooleanInput is strict about format
