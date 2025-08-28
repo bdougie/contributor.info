@@ -58,6 +58,9 @@ export const UPlotChart: React.FC<UPlotChartProps> = ({
     // Only resize if in responsive mode
     if (!responsive) return;
 
+    // Check if setSize method exists (for test compatibility)
+    if (typeof plotRef.current.setSize !== 'function') return;
+
     const { width, height } = getDimensions();
     plotRef.current.setSize({ width, height });
     // Don't update state when responsive is true to avoid unnecessary re-renders
