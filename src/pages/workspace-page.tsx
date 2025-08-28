@@ -37,6 +37,8 @@ import {
   Search,
   Menu,
   Package,
+  Copy,
+  Check,
 } from '@/components/ui/icon';
 import {
   useReactTable,
@@ -1495,6 +1497,7 @@ function WorkspaceSettings({ workspace }: { workspace: Workspace }) {
   const [isEditing, setIsEditing] = useState(false);
   const [workspaceName, setWorkspaceName] = useState(workspace.name);
   const [isSaving, setIsSaving] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
 
   const handleSave = async () => {
     if (!workspaceName.trim()) {
@@ -1526,6 +1529,22 @@ function WorkspaceSettings({ workspace }: { workspace: Workspace }) {
   const handleCancel = () => {
     setWorkspaceName(workspace.name);
     setIsEditing(false);
+  };
+
+  const handleCopy = async (value: string, field: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopiedField(field);
+      toast.success(`${field} copied to clipboard`);
+
+      // Reset the copied state after 2 seconds
+      setTimeout(() => {
+        setCopiedField(null);
+      }, 2000);
+    } catch (error) {
+      console.error('Failed to copy:', error);
+      toast.error('Failed to copy to clipboard');
+    }
   };
 
   return (
@@ -1580,13 +1599,41 @@ function WorkspaceSettings({ workspace }: { workspace: Workspace }) {
           <CardTitle>Workspace Information</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          <div className="flex justify-between">
+          <div className="flex justify-between items-center">
             <span className="text-sm text-muted-foreground">Workspace ID</span>
-            <span className="text-sm font-mono">{workspace.id}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-mono">{workspace.id}</span>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-6 w-6 p-0"
+                onClick={() => handleCopy(workspace.id, 'Workspace ID')}
+              >
+                {copiedField === 'Workspace ID' ? (
+                  <Check className="h-3 w-3" />
+                ) : (
+                  <Copy className="h-3 w-3" />
+                )}
+              </Button>
+            </div>
           </div>
-          <div className="flex justify-between">
+          <div className="flex justify-between items-center">
             <span className="text-sm text-muted-foreground">Workspace Slug</span>
-            <span className="text-sm font-mono">{workspace.slug}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-mono">{workspace.slug}</span>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-6 w-6 p-0"
+                onClick={() => handleCopy(workspace.slug, 'Workspace Slug')}
+              >
+                {copiedField === 'Workspace Slug' ? (
+                  <Check className="h-3 w-3" />
+                ) : (
+                  <Copy className="h-3 w-3" />
+                )}
+              </Button>
+            </div>
           </div>
           <div className="flex justify-between">
             <span className="text-sm text-muted-foreground">Tier</span>
