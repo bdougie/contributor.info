@@ -1492,18 +1492,110 @@ function WorkspaceActivity({ repositories }: { repositories: Repository[] }) {
 }
 
 function WorkspaceSettings({ workspace }: { workspace: Workspace }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [workspaceName, setWorkspaceName] = useState(workspace.name);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!workspaceName.trim()) {
+      toast.error('Workspace name cannot be empty');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('workspaces')
+        .update({ name: workspaceName.trim() })
+        .eq('id', workspace.id);
+
+      if (error) throw error;
+
+      toast.success('Workspace name updated successfully');
+      setIsEditing(false);
+      // Reload the page to reflect the changes
+      window.location.reload();
+    } catch (error) {
+      console.error('Failed to update workspace name:', error);
+      toast.error('Failed to update workspace name');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setWorkspaceName(workspace.name);
+    setIsEditing(false);
+  };
+
   return (
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>Workspace Settings</CardTitle>
+          <CardTitle>General Settings</CardTitle>
         </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">Workspace settings coming soon...</p>
-          <p className="text-sm text-muted-foreground mt-2">
-            Manage workspace "{workspace.name}" settings, members, repositories, and permissions
-            here.
-          </p>
+        <CardContent className="space-y-4">
+          <div>
+            <label className="text-sm font-medium text-foreground">Workspace Name</label>
+            <div className="mt-2 flex items-center gap-2">
+              {isEditing ? (
+                <>
+                  <input
+                    type="text"
+                    value={workspaceName}
+                    onChange={(e) => setWorkspaceName(e.target.value)}
+                    className="flex-1 px-3 py-2 text-sm border border-input bg-background rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder="Enter workspace name"
+                    disabled={isSaving}
+                  />
+                  <Button onClick={handleSave} size="sm" disabled={isSaving}>
+                    {isSaving ? 'Saving...' : 'Save'}
+                  </Button>
+                  <Button onClick={handleCancel} size="sm" variant="outline" disabled={isSaving}>
+                    Cancel
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <p className="flex-1 text-sm">{workspace.name}</p>
+                  <Button onClick={() => setIsEditing(true)} size="sm" variant="outline">
+                    Edit
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="pt-4 border-t">
+            <p className="text-sm text-muted-foreground">
+              More settings coming soon: member management, repository settings, permissions, and
+              integrations.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Workspace Information</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <div className="flex justify-between">
+            <span className="text-sm text-muted-foreground">Workspace ID</span>
+            <span className="text-sm font-mono">{workspace.id}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-sm text-muted-foreground">Workspace Slug</span>
+            <span className="text-sm font-mono">{workspace.slug}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-sm text-muted-foreground">Tier</span>
+            <span className="text-sm capitalize">{workspace.tier}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-sm text-muted-foreground">Created</span>
+            <span className="text-sm">{new Date(workspace.created_at).toLocaleDateString()}</span>
+          </div>
         </CardContent>
       </Card>
     </div>
@@ -2103,7 +2195,7 @@ export default function WorkspacePage() {
                 <Activity className="h-4 w-4" />
                 <span className="hidden sm:inline">Activity</span>
               </TabsTrigger>
-              <TabsTrigger value="settings" className="flex items-center gap-2" disabled>
+              <TabsTrigger value="settings" className="flex items-center gap-2">
                 <Settings className="h-4 w-4" />
                 <span className="hidden sm:inline">Settings</span>
               </TabsTrigger>
