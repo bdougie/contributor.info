@@ -307,7 +307,7 @@ const getInvitationEmailHTML = (data: WorkspaceInvitationData) => `
                 </ul>
                 
                 <div class="expiry-notice">
-                    ⏰ This invitation expires on <strong>${new Date(data.expiresAt).toLocaleDateString('en-US', {
+                    ⏰ This invitation expires on <strong>${new Date(data.expiresAt).toLocaleString('en-US', {
                         year: 'numeric',
                         month: 'long',
                         day: 'numeric',
@@ -375,7 +375,7 @@ ${data.role === 'admin' ? `
 • Monitor contributor activity
 `}
 
-⏰ This invitation expires on ${new Date(data.expiresAt).toLocaleDateString('en-US', {
+⏰ This invitation expires on ${new Date(data.expiresAt).toLocaleString('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',

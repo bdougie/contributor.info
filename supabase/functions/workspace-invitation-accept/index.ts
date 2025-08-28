@@ -15,9 +15,40 @@ Deno.serve(async (req: Request) => {
     // Get environment variables
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 
-    // Parse the request payload
-    const { token, userId } = await req.json();
+    // Get the authorization header
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Authorization required' }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Create client with user context from auth header
+    const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: {
+          Authorization: authHeader,
+        },
+      },
+    });
+
+    // Get the authenticated user
+    const { data: { user: authUser }, error: authError } = await supabaseUser.auth.getUser();
+    if (authError || !authUser) {
+      console.error('Authentication failed:', authError);
+      return new Response(
+        JSON.stringify({ error: 'Authentication failed' }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const userId = authUser.id;
+
+    // Parse the request payload for the token
+    const { token } = await req.json();
     
     if (!token) {
       console.error('Invalid payload: missing invitation token');
@@ -27,14 +58,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    if (!userId) {
-      console.error('Invalid payload: missing userId');
-      return new Response(
-        JSON.stringify({ error: 'User authentication required' }),
-        { status: 401, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
-
+    // Create service role client for database operations
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Fetch invitation details
@@ -46,7 +70,8 @@ Deno.serve(async (req: Request) => {
           id,
           name,
           slug,
-          owner_id
+          owner_id,
+          member_count
         )
       `)
       .eq('invitation_token', token)
@@ -70,7 +95,7 @@ Deno.serve(async (req: Request) => {
         .update({ 
           status: 'expired',
           metadata: {
-            ...invitation.metadata,
+            ...(invitation.metadata ?? {}),
             expired_at: new Date().toISOString()
           }
         })
@@ -83,24 +108,21 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Verify that the user email matches the invitation email
-    const { data: user, error: userError } = await supabase
-      .from('auth.users')
-      .select('email')
-      .eq('id', userId)
-      .single();
+    // Verify that the user email matches the invitation email using RPC
+    const { data: userEmail, error: userError } = await supabase
+      .rpc('get_user_email', { user_id: userId });
 
-    if (userError || !user) {
-      console.error('Failed to fetch user:', userError);
+    if (userError || !userEmail) {
+      console.error('Failed to fetch user email:', userError);
       return new Response(
         JSON.stringify({ error: 'User not found' }),
         { status: 404, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
-    if (user.email !== invitation.email) {
+    if (userEmail !== invitation.email) {
       console.error('Email mismatch:', {
-        userEmail: user.email,
+        userEmail: userEmail,
         invitationEmail: invitation.email
       });
       return new Response(
@@ -115,7 +137,7 @@ Deno.serve(async (req: Request) => {
       .select('id')
       .eq('workspace_id', invitation.workspace_id)
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
     if (existingMember) {
       // User is already a member, just update the invitation status
@@ -197,14 +219,15 @@ Deno.serve(async (req: Request) => {
       // Don't fail the request as member was added successfully
     }
 
-    // Update workspace member count
-    await supabase
-      .from('workspaces')
-      .update({ 
-        member_count: invitation.workspace.member_count + 1,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', invitation.workspace_id);
+    // Update workspace member count atomically using SQL
+    const { error: countError } = await supabase.rpc('increment_workspace_member_count', {
+      workspace_id_param: invitation.workspace_id
+    });
+    
+    if (countError) {
+      console.warn('Failed to update member count:', countError);
+      // Don't fail the request as member was added successfully
+    }
 
     // Log activity for audit trail
     await supabase
