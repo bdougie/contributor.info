@@ -8,6 +8,7 @@ import { RepoStatsContext } from '@/lib/repo-stats-context';
 import { createContributorStats, createContributorStatsWithOrgs } from '@/lib/contributor-utils';
 import { useContributorRole } from '@/hooks/useContributorRoles';
 import type { ContributorStats } from '@/lib/types';
+import { getUserRole } from '@/lib/utils/data-type-mapping';
 
 interface ActivityItemProps {
   activity: PullRequestActivity;
@@ -100,7 +101,7 @@ export function ActivityItem({ activity }: ActivityItemProps) {
       <div className="relative flex-shrink-0">
         <ContributorHoverCard
           contributor={displayData}
-          role={role?.role || (user.isBot ? 'Bot' : 'Contributor')}
+          role={getUserRole(role, user)}
           showReviews={true}
           showComments={true}
           reviewsCount={activityCounts.reviews}

@@ -8,6 +8,7 @@ import {
   createPartialDataResult,
   type DataResult,
 } from './errors/repository-errors';
+import { getUserType } from './utils/data-type-mapping';
 import { getFetchStrategy, calculateFetchWindow, shouldUseCachedData } from './fetch-strategies';
 import { RepositorySize } from './validation/database-schemas';
 import { sendInngestEvent } from './inngest/client-safe';
@@ -405,7 +406,7 @@ function transformDatabasePRs(dbPRs: any[], owner: string, repo: string): PullRe
       login: dbPR.contributors?.username || 'unknown',
       id: dbPR.contributors?.github_id || 0,
       avatar_url: dbPR.contributors?.avatar_url || '',
-      type: (dbPR.contributors?.is_bot ? 'Bot' : 'User') as 'Bot' | 'User',
+      type: getUserType(dbPR.contributors),
     },
     base: {
       ref: dbPR.base_branch,

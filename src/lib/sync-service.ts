@@ -2,6 +2,7 @@
 // Intelligently routes to Netlify or Supabase based on operation size
 
 import { supabase } from './supabase';
+import { getLastSyncDate } from './utils/data-type-mapping';
 
 // Configuration
 const USE_HYBRID_ROUTING = import.meta.env.VITE_USE_HYBRID_ROUTING === 'true';
@@ -179,7 +180,7 @@ export class SyncService {
 
     return {
       issyncing: repo?.sync_status === 'syncing' || progress?.status === 'partial',
-      lastSync: repo?.last_synced_at ? new Date(repo.last_synced_at) : undefined,
+      lastSync: getLastSyncDate(repo || undefined),
       progress: progress?.prs_processed,
     };
   }
