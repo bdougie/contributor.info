@@ -1,0 +1,102 @@
+name: Daily Sitemap Generation
+
+on:
+  schedule:
+    # Run daily at 2:00 AM UTC
+    - cron: '0 2 * * *'
+  # Allow manual trigger for testing
+  workflow_dispatch:
+
+jobs:
+  generate-sitemap:
+    name: Generate and Commit Sitemap
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          # Only install necessary dependencies for sitemap generation
+          npm ci --production
+
+      - name: Generate sitemap
+        run: |
+          echo "📝 Generating sitemap with latest repository data..."
+          node scripts/sitemap/generate-sitemap.js
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+      - name: Check for changes
+        id: check-changes
+        run: |
+          # Check if there are any changes to commit
+          if git diff --quiet public/sitemap*.xml; then
+            echo "No changes detected in sitemap files"
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "Changes detected in sitemap files"
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            
+            # Show what changed for the summary
+            echo "## Changed files:" >> $GITHUB_STEP_SUMMARY
+            git diff --name-only public/sitemap*.xml >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Commit changes
+        if: steps.check-changes.outputs.has_changes == 'true'
+        run: |
+          # Configure git with bot credentials
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+          # Add and commit sitemap files with non-conventional commit message
+          git add public/sitemap*.xml
+
+          # Use a simple commit message without conventional format to avoid changelog
+          git commit -m "update sitemap with latest repository data"
+
+          echo "✅ Sitemap changes committed" >> $GITHUB_STEP_SUMMARY
+
+      - name: Push changes
+        if: steps.check-changes.outputs.has_changes == 'true'
+        run: |
+          git push origin main
+          echo "✅ Changes pushed to main branch" >> $GITHUB_STEP_SUMMARY
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## 🗺️ Daily Sitemap Generation Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ steps.check-changes.outputs.has_changes }}" = "true" ]; then
+            echo "### ✅ Sitemap Updated" >> $GITHUB_STEP_SUMMARY
+            echo "- New sitemap committed to main branch" >> $GITHUB_STEP_SUMMARY
+            echo "- Search engines will be notified via weekly submission workflow" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ℹ️ No Changes" >> $GITHUB_STEP_SUMMARY
+            echo "- Sitemap is already up to date" >> $GITHUB_STEP_SUMMARY
+            echo "- No commit necessary" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📊 Repository Data" >> $GITHUB_STEP_SUMMARY
+          echo "- Data source: Supabase (production)" >> $GITHUB_STEP_SUMMARY
+          echo "- Generated files:" >> $GITHUB_STEP_SUMMARY
+          echo "  - sitemap.xml (main sitemap)" >> $GITHUB_STEP_SUMMARY
+          echo "  - sitemap-news.xml (news/changelog sitemap)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔗 Related Workflows" >> $GITHUB_STEP_SUMMARY
+          echo "- [Weekly Sitemap Submission](.github/workflows/submit-sitemap.yml) - Submits to search engines" >> $GITHUB_STEP_SUMMARY
