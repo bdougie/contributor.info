@@ -61,7 +61,7 @@ Deno.serve(async (req: Request) => {
         .update({ 
           status: 'expired',
           metadata: {
-            ...invitation.metadata,
+            ...(invitation.metadata ?? {}),
             expired_at: new Date().toISOString()
           }
         })
@@ -98,8 +98,12 @@ Deno.serve(async (req: Request) => {
       console.error('Failed to update invitation status:', updateError);
       return new Response(
         JSON.stringify({ 
+<<<<<<< HEAD
+          error: 'Failed to decline invitation' 
+=======
           error: 'Failed to decline invitation',
           details: updateError.message 
+>>>>>>> origin/main
         }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       );
@@ -145,8 +149,12 @@ Deno.serve(async (req: Request) => {
     
     return new Response(
       JSON.stringify({ 
+<<<<<<< HEAD
+        error: 'Failed to decline workspace invitation' 
+=======
         error: 'Failed to decline workspace invitation',
         details: error.message 
+>>>>>>> origin/main
       }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );

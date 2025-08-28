@@ -370,7 +370,7 @@ GET /api-workspaces-members?workspaceId=:id&page=1&role=admin
 
 #### Invite Member
 
-Invite a new member to workspace.
+Invite a new member to workspace. This will send an invitation email to the specified address.
 
 ```http
 POST /api-workspaces-members
@@ -382,7 +382,8 @@ POST /api-workspaces-members
   "workspace_id": "workspace-uuid",
   "email": "user@example.com",
   "role": "editor",
-  "message": "Optional invitation message"
+  "message": "Optional invitation message",
+  "send_email": true
 }
 ```
 
@@ -395,7 +396,10 @@ POST /api-workspaces-members
     "email": "user@example.com",
     "role": "editor",
     "status": "pending",
-    "expires_at": "2024-01-08T00:00:00Z"
+    "invitation_token": "secure-token",
+    "expires_at": "2024-01-08T00:00:00Z",
+    "email_sent": true,
+    "email_sent_at": "2024-01-01T00:00:00Z"
   }
 }
 ```
@@ -404,6 +408,78 @@ POST /api-workspaces-members
 - `400 Bad Request`: Invalid email or role
 - `403 Forbidden`: Insufficient permissions
 - `409 Conflict`: User already member or invited
+- `429 Too Many Requests`: Rate limit exceeded
+
+#### Accept Invitation
+
+Accept a workspace invitation using the token from the invitation email.
+
+```http
+POST /.netlify/functions/workspace-invitation-accept
+```
+
+**Headers:**
+```
+Authorization: Bearer <user-token>
+```
+
+**Request Body:**
+```json
+{
+  "token": "invitation-token-from-email"
+}
+```
+
+**Response:** `200 OK`
+```json
+{
+  "success": true,
+  "message": "Successfully joined the workspace",
+  "workspace": {
+    "id": "workspace-uuid",
+    "name": "Workspace Name",
+    "slug": "workspace-slug"
+  },
+  "member": {
+    "id": "member-uuid",
+    "role": "editor"
+  }
+}
+```
+
+**Error Responses:**
+- `401 Unauthorized`: Authentication required or failed
+- `403 Forbidden`: Email mismatch with invitation
+- `404 Not Found`: Invalid or expired invitation
+- `410 Gone`: Invitation has expired
+
+#### Decline Invitation
+
+Decline a workspace invitation.
+
+```http
+POST /.netlify/functions/workspace-invitation-decline
+```
+
+**Request Body:**
+```json
+{
+  "token": "invitation-token-from-email",
+  "reason": "Optional reason for declining"
+}
+```
+
+**Response:** `200 OK`
+```json
+{
+  "success": true,
+  "message": "Invitation declined"
+}
+```
+
+**Error Responses:**
+- `404 Not Found`: Invalid invitation
+- `410 Gone`: Invitation has expired
 
 #### Update Member Role
 
