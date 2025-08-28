@@ -43,6 +43,11 @@ export interface PullRequest {
     };
     submitted_at: string;
   }>;
+  requested_reviewers?: Array<{
+    id?: number;
+    login: string;
+    avatar_url?: string;
+  }>;
   comments?: Array<{
     id: number;
     user: {

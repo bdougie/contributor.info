@@ -97,6 +97,7 @@ BEGIN
     
     RETURN v_log_id;
 END;
+<<<<<<< HEAD
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- Function to atomically increment workspace member count
@@ -110,6 +111,9 @@ BEGIN
     WHERE id = workspace_id_param;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+=======
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+>>>>>>> origin/main
 
 -- Update workspace_invitations table to add metadata column if it doesn't exist
 ALTER TABLE workspace_invitations 
@@ -142,12 +146,17 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- SELECT cron.schedule('expire-invitations', '0 0 * * *', 'SELECT expire_old_invitations();');
 
 -- Grant necessary permissions
+<<<<<<< HEAD
 -- Only allow authenticated users to view logs, not modify them
 GRANT SELECT ON workspace_activity_log TO authenticated;
 GRANT SELECT ON gdpr_processing_log TO authenticated;
 -- Service role can insert logs
 GRANT INSERT ON workspace_activity_log TO service_role;
 GRANT INSERT, UPDATE ON gdpr_processing_log TO service_role;
+=======
+GRANT SELECT, INSERT ON workspace_activity_log TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON gdpr_processing_log TO authenticated;
+>>>>>>> origin/main
 
 -- RLS Policies for new tables
 ALTER TABLE workspace_activity_log ENABLE ROW LEVEL SECURITY;
@@ -170,10 +179,16 @@ CREATE POLICY "Users can view activity for their workspaces"
         )
     );
 
+<<<<<<< HEAD
 -- Only service role can insert activity logs
 CREATE POLICY "Service role can insert activity logs"
     ON workspace_activity_log FOR INSERT
     TO service_role
+=======
+-- Service role can insert activity logs
+CREATE POLICY "Service role can insert activity logs"
+    ON workspace_activity_log FOR INSERT
+>>>>>>> origin/main
     WITH CHECK (true);
 
 -- GDPR log policies (restricted to service role and the user themselves)

@@ -69,7 +69,7 @@ vi.mock('@/hooks/use-github-search', () => ({
 }));
 
 vi.mock('@/components/ui/github-search-input', () => ({
-  GitHubSearchInput: ({ onSearch, placeholder }: any) => (
+  GitHubSearchInput: ({ onSearch, placeholder }: { onSearch: (value: string) => void; placeholder?: string }) => (
     <form
       onSubmit={(e) => {
         e.preventDefault();

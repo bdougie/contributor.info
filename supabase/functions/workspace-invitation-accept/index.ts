@@ -95,6 +95,7 @@ Deno.serve(async (req: Request) => {
         .update({ 
           status: 'expired',
           metadata: {
+<<<<<<< HEAD
             ...(invitation.metadata ?? {}),
             expired_at: new Date().toISOString()
           }
@@ -124,7 +125,10 @@ Deno.serve(async (req: Request) => {
     }
 
     if (user.email !== invitation.email) {
-      console.error('Email mismatch detected for invitation');
+      console.error('Email mismatch:', {
+        userEmail: user.email,
+        invitationEmail: invitation.email
+      });
       return new Response(
         JSON.stringify({ error: 'This invitation was sent to a different email address' }),
         { status: 403, headers: { 'Content-Type': 'application/json' } }
@@ -193,7 +197,8 @@ Deno.serve(async (req: Request) => {
       console.error('Failed to add workspace member:', memberError);
       return new Response(
         JSON.stringify({ 
-          error: 'Failed to add you to the workspace' 
+          error: 'Failed to add you to the workspace',
+          details: memberError.message 
         }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       );
@@ -271,7 +276,8 @@ Deno.serve(async (req: Request) => {
     
     return new Response(
       JSON.stringify({ 
-        error: 'Failed to accept workspace invitation' 
+        error: 'Failed to accept workspace invitation',
+        details: error.message 
       }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
