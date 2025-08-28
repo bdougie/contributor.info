@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { ProgressiveCaptureTrigger } from '@/lib/progressive-capture/manual-trigger';
 import { HybridQueueManager } from '@/lib/progressive-capture/hybrid-queue-manager';
 import { toast } from 'sonner';
+import { getProgressiveCaptureText } from '@/lib/utils/ui-state';
 
 interface ProcessorRouting {
   inngestJobs: number;
@@ -148,7 +149,7 @@ export function ProgressiveCaptureButton({
         ) : (
           <Database className="h-4 w-4" />
         )}
-        {isTriggering ? 'Starting...' : isProcessing ? 'Processing...' : 'Fix Data'}
+        {getProgressiveCaptureText(isTriggering, isProcessing)}
         {routingInfo && (
           <Badge variant="secondary" className="ml-2">
             {routingInfo.processor === 'inngest'

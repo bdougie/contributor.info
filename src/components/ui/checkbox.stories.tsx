@@ -557,7 +557,7 @@ export const TableSelection: Story = {
               <tr>
                 <th className="p-2 text-left">
                   <Checkbox
-                    checked={allSelected ? true : someSelected ? 'indeterminate' : false}
+                    checked={getCheckboxState(allSelected, someSelected)}
                     onCheckedChange={handleSelectAll}
                     aria-label="Select all rows"
                   />
