@@ -7,6 +7,7 @@ import { inngest } from '@/lib/inngest/client';
 import { supabase } from '@/lib/supabase';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { POLLING_CONFIG, isSyncAllowed } from '@/lib/progressive-capture/throttle-config';
+import { getSyncButtonText } from '@/lib/utils/ui-state';
 
 interface UnifiedSyncButtonProps {
   owner: string;
@@ -348,7 +349,7 @@ export function UnifiedSyncButton({
         <Lock className={showLabel ? 'mr-2 h-4 w-4' : 'h-4 w-4'} />
       )}
       {showLabel && (
-        <span>{isSyncing ? 'Syncing...' : isLoggedIn ? 'Sync Now' : 'Login to Sync'}</span>
+        <span>{getSyncButtonText(isSyncing, isLoggedIn)}</span>
       )}
     </>
   );

@@ -1,5 +1,6 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
+import { getDiffSymbol } from '@/lib/utils/code-styling';
 
 interface CodeDiffProps {
   before: string;
@@ -192,7 +193,7 @@ export const MultiLineDiff: React.FC<MultiLineDiffProps> = ({
               ? 'border-red-500'
               : 'border-transparent';
 
-        const symbol = line.type === 'addition' ? '+' : line.type === 'deletion' ? '-' : ' ';
+        const symbol = getDiffSymbol(line.type);
 
         const symbolColor =
           line.type === 'addition'
