@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Terminal,
   Search,
@@ -65,30 +65,12 @@ export default function NotFound() {
     }
   );
 
-  // Set focus to the container when component mounts and load data
-  useEffect(() => {
-    if (containerRef.current) {
-      containerRef.current.focus();
-    }
-
-    // Load popular and recent repositories
-    loadRepositoryData();
-
-    // Generate URL suggestions
-    generateUrlSuggestions();
-
-    // Track 404 occurrence
-    track404Occurrence();
-
-    // Set proper HTTP status for SEO (only works on server-side rendering)
-    if (typeof window !== 'undefined' && window.history) {
-      // For client-side, we can at least update the document title to indicate 404
-      document.title = '404 - Page Not Found | contributor.info';
-    }
-  }, [location.pathname]);
-
-  // Load repository data from Supabase
-  const loadRepositoryData = async () => {
+  /**
+   * Loads popular and recently accessed repositories from the database
+   * to display as suggestions to the user on the 404 page.
+   * Falls back to hardcoded examples if database query fails.
+   */
+  const loadRepositoryData = useCallback(async () => {
     try {
       // Get popular repositories (by stars)
       const { data: popular } = await supabase
@@ -158,10 +140,14 @@ export default function NotFound() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  // Generate URL suggestions based on current path
-  const generateUrlSuggestions = () => {
+  /**
+   * Generates URL suggestions based on the current 404 path.
+   * Provides context-aware suggestions depending on whether the path
+   * looks like a repository URL or some other path.
+   */
+  const generateUrlSuggestions = useCallback(() => {
     const currentPath = location.pathname;
     const suggestions: SuggestedUrl[] = [];
 
@@ -180,17 +166,43 @@ export default function NotFound() {
     }
 
     setSuggestedUrls(suggestions);
-  };
+  }, [location.pathname]);
 
-  // Track 404 occurrence (placeholder for analytics)
-  const track404Occurrence = () => {
+  /**
+   * Tracks 404 page occurrences for analytics purposes.
+   * Logs the path, timestamp, and user agent to the console.
+   * In production, this would send data to an analytics service.
+   */
+  const track404Occurrence = useCallback(() => {
     // In a real implementation, you would send this to your analytics service
     console.log('404 tracked:', {
       path: location.pathname,
       timestamp: new Date().toISOString(),
       userAgent: navigator.userAgent,
     });
-  };
+  }, [location.pathname]);
+
+  // Set focus to the container when component mounts and load data
+  useEffect(() => {
+    if (containerRef.current) {
+      containerRef.current.focus();
+    }
+
+    // Load popular and recent repositories
+    loadRepositoryData();
+
+    // Generate URL suggestions
+    generateUrlSuggestions();
+
+    // Track 404 occurrence
+    track404Occurrence();
+
+    // Set proper HTTP status for SEO (only works on server-side rendering)
+    if (typeof window !== 'undefined' && window.history) {
+      // For client-side, we can at least update the document title to indicate 404
+      document.title = '404 - Page Not Found | contributor.info';
+    }
+  }, [loadRepositoryData, generateUrlSuggestions, track404Occurrence]);
 
   // Blinking cursor effect
   useEffect(() => {
@@ -357,57 +369,68 @@ export default function NotFound() {
               </div>
 
               {/* Show validation status for repository paths */}
-              {pathInfo.isRepo && validationResult.status === 'checking' ? (
-                <div className="mt-4 text-yellow-600">
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Checking repository existence...</span>
-                  </div>
-                  <div className="mt-2 text-sm">
-                    Verifying {pathInfo.owner}/{pathInfo.repo} in our database and on GitHub...
-                  </div>
-                </div>
-              ) : pathInfo.isRepo && validationResult.status === 'exists_on_github' ? (
-                <div className="mt-4 text-green-600">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4" />
-                    <span>Repository found on GitHub!</span>
-                  </div>
-                  <div className="mt-2 text-sm">
-                    Adding {pathInfo.owner}/{pathInfo.repo} to our tracking system...
-                  </div>
-                  <div className="mt-2 text-sm text-muted-foreground">
-                    You'll be redirected automatically in a moment.
-                  </div>
-                </div>
-              ) : pathInfo.isRepo && validationResult.status === 'exists_in_db' ? (
-                <div className="mt-4 text-green-600">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4" />
-                    <span>Repository found!</span>
-                  </div>
-                  <div className="mt-2 text-sm">
-                    Redirecting to {pathInfo.owner}/{pathInfo.repo}...
-                  </div>
-                </div>
-              ) : (
-                <div className="mt-4 text-destructive">
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4" />
-                    <span>fatal: 404 Not Found</span>
-                  </div>
-                  <div className="mt-2 text-sm">
-                    {pathInfo.isRepo && validationResult.status === 'not_found'
-                      ? `Repository '${pathInfo.owner}/${pathInfo.repo}' doesn't exist on GitHub.`
-                      : `The path '${location.pathname}' doesn't exist or has been moved.`}
-                  </div>
-                  {validationResult.suggestion && (
-                    <div className="mt-2 text-sm text-muted-foreground">
-                      {validationResult.suggestion}
+              {(() => {
+                if (pathInfo?.isRepo && validationResult?.status === 'checking') {
+                  return (
+                    <div className="mt-4 text-yellow-600">
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>Checking repository existence...</span>
+                      </div>
+                      <div className="mt-2 text-sm">
+                        Verifying {pathInfo.owner}/{pathInfo.repo} in our database and on GitHub...
+                      </div>
                     </div>
-                  )}
-                </div>
-              )}
+                  );
+                }
+                if (pathInfo?.isRepo && validationResult?.status === 'exists_on_github') {
+                  return (
+                    <div className="mt-4 text-green-600">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4" />
+                        <span>Repository found on GitHub!</span>
+                      </div>
+                      <div className="mt-2 text-sm">
+                        Adding {pathInfo.owner}/{pathInfo.repo} to our tracking system...
+                      </div>
+                      <div className="mt-2 text-sm text-muted-foreground">
+                        You'll be redirected automatically in a moment.
+                      </div>
+                    </div>
+                  );
+                }
+                if (pathInfo?.isRepo && validationResult?.status === 'exists_in_db') {
+                  return (
+                    <div className="mt-4 text-green-600">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4" />
+                        <span>Repository found!</span>
+                      </div>
+                      <div className="mt-2 text-sm">
+                        Redirecting to {pathInfo.owner}/{pathInfo.repo}...
+                      </div>
+                    </div>
+                  );
+                }
+                return (
+                  <div className="mt-4 text-destructive">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4" />
+                      <span>fatal: 404 Not Found</span>
+                    </div>
+                    <div className="mt-2 text-sm">
+                      {pathInfo?.isRepo && validationResult?.status === 'not_found'
+                        ? `Repository '${pathInfo.owner}/${pathInfo.repo}' doesn't exist on GitHub.`
+                        : `The path '${location.pathname}' doesn't exist or has been moved.`}
+                    </div>
+                    {validationResult?.suggestion && (
+                      <div className="mt-2 text-sm text-muted-foreground">
+                        {validationResult.suggestion}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {suggestedUrls.length > 0 && (
                 <div className="mt-4">
