@@ -15,7 +15,7 @@ export function isValidUrl(url: string): boolean {
 
   try {
     const parsed = new URL(url);
-    
+
     // Only allow http and https protocols
     if (!['http:', 'https:'].includes(parsed.protocol)) {
       return false;
@@ -45,7 +45,7 @@ export function isValidUrl(url: string): boolean {
 export function isValidGitHubUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
-    
+
     // Must be from github.com or api.github.com
     if (!['github.com', 'api.github.com', 'www.github.com'].includes(parsed.hostname)) {
       return false;
@@ -89,7 +89,7 @@ export function sanitizeUrl(url: string): string {
  */
 export function openUrlSafely(url: string): boolean {
   const sanitized = sanitizeUrl(url);
-  
+
   if (!sanitized) {
     console.error('Blocked attempt to open invalid URL:', url);
     return false;
@@ -107,7 +107,7 @@ export enum WorkspacePermission {
   VIEW = 'view',
   EDIT = 'edit',
   ADMIN = 'admin',
-  OWNER = 'owner'
+  OWNER = 'owner',
 }
 
 /**
@@ -159,24 +159,22 @@ class ExportRateLimiter {
   checkLimit(userId: string, tier: 'free' | 'pro' | 'enterprise' = 'free'): boolean {
     const now = Date.now();
     const limit = EXPORT_RATE_LIMITS[tier];
-    
+
     // Get user's request history
     const userRequests = this.requests.get(userId) || [];
-    
+
     // Filter out old requests outside the window
-    const recentRequests = userRequests.filter(
-      timestamp => now - timestamp < limit.windowMs
-    );
-    
+    const recentRequests = userRequests.filter((timestamp) => now - timestamp < limit.windowMs);
+
     // Check if under limit
     if (recentRequests.length >= limit.requests) {
       return false;
     }
-    
+
     // Add new request
     recentRequests.push(now);
     this.requests.set(userId, recentRequests);
-    
+
     return true;
   }
 
@@ -189,12 +187,10 @@ class ExportRateLimiter {
   getRemainingRequests(userId: string, tier: 'free' | 'pro' | 'enterprise' = 'free'): number {
     const now = Date.now();
     const limit = EXPORT_RATE_LIMITS[tier];
-    
+
     const userRequests = this.requests.get(userId) || [];
-    const recentRequests = userRequests.filter(
-      timestamp => now - timestamp < limit.windowMs
-    );
-    
+    const recentRequests = userRequests.filter((timestamp) => now - timestamp < limit.windowMs);
+
     return Math.max(0, limit.requests - recentRequests.length);
   }
 }

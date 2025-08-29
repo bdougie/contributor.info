@@ -184,18 +184,16 @@ export const AnalyticsDashboard = memo(
     const handleExport = async (format: 'csv' | 'json' | 'pdf') => {
       try {
         // Validate export request with security checks
-        const validation = validateExportRequest(
-          userId,
-          tier,
-          format as 'csv' | 'json' | 'pdf'
-        );
+        const validation = validateExportRequest(userId, tier, format as 'csv' | 'json' | 'pdf');
 
         if (!validation.allowed) {
           announce(validation.reason || 'Export not allowed');
           return;
         }
 
-        announce(`Exporting data as ${format.toUpperCase()}. ${validation.remaining} exports remaining.`);
+        announce(
+          `Exporting data as ${format.toUpperCase()}. ${validation.remaining} exports remaining.`
+        );
 
         if (format === 'csv') {
           await exportToCSV(

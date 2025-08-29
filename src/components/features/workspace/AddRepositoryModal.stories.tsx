@@ -54,7 +54,9 @@ if (typeof window !== 'undefined' && window.location.href.includes('storybook'))
   (window as unknown as { __mockSupabase: MockSupabaseClient }).__mockSupabase = {
     auth: {
       getUser: () => Promise.resolve({ data: { user: mockUser }, error: null }),
-      onAuthStateChange: (callback: (event: string, session: { user: MockUser } | null) => void) => {
+      onAuthStateChange: (
+        callback: (event: string, session: { user: MockUser } | null) => void
+      ) => {
         // Immediately call with signed in state
         setTimeout(() => callback('SIGNED_IN', { user: mockUser }), 0);
         return { data: { subscription: { unsubscribe: () => {} } } };
@@ -111,7 +113,11 @@ if (typeof window !== 'undefined' && window.location.href.includes('storybook'))
 
   // Mock the WorkspaceService
   (window as unknown as { __mockWorkspaceService: MockWorkspaceService }).__mockWorkspaceService = {
-    addRepositoryToWorkspace: (workspaceId: string, data: { full_name: string; owner: string; repo: string }, userId: string) =>
+    addRepositoryToWorkspace: (
+      workspaceId: string,
+      data: { full_name: string; owner: string; repo: string },
+      userId: string
+    ) =>
       Promise.resolve({
         success: true,
         data: { id: 'new-link', repository_id: 'repo-123' },
@@ -131,7 +137,9 @@ const setupMockSupabase = (authenticated = true, options: StorybookMockOptions =
         auth: {
           getUser: () =>
             Promise.resolve({ data: { user: authenticated ? mockUser : null }, error: null }),
-          onAuthStateChange: (callback: (event: string, session: { user: MockUser } | null) => void) => {
+          onAuthStateChange: (
+            callback: (event: string, session: { user: MockUser } | null) => void
+          ) => {
             setTimeout(
               () =>
                 callback(authenticated ? 'SIGNED_IN' : 'SIGNED_OUT', {
@@ -192,18 +200,25 @@ const setupMockSupabase = (authenticated = true, options: StorybookMockOptions =
       };
     }
 
-    const currentMock = (window as unknown as { __mockSupabase: MockSupabaseClient }).__mockSupabase;
+    const currentMock = (window as unknown as { __mockSupabase: MockSupabaseClient })
+      .__mockSupabase;
 
     if (!authenticated && currentMock?.auth) {
       // Update to unauthenticated state
       currentMock.auth.getUser = () => Promise.resolve({ data: { user: null }, error: null });
-      currentMock.auth.onAuthStateChange = (callback: (event: string, session: { user: MockUser } | null) => void) => {
+      currentMock.auth.onAuthStateChange = (
+        callback: (event: string, session: { user: MockUser } | null) => void
+      ) => {
         setTimeout(() => callback('SIGNED_OUT', { user: null }), 0);
         return { data: { subscription: { unsubscribe: () => {} } } };
       };
-      if ((window as unknown as { __mockWorkspaceService?: MockWorkspaceService }).__mockWorkspaceService) {
-        (window as unknown as { __mockWorkspaceService: MockWorkspaceService }).__mockWorkspaceService.checkPermissions = () =>
-          Promise.resolve({ hasPermission: false });
+      if (
+        (window as unknown as { __mockWorkspaceService?: MockWorkspaceService })
+          .__mockWorkspaceService
+      ) {
+        (
+          window as unknown as { __mockWorkspaceService: MockWorkspaceService }
+        ).__mockWorkspaceService.checkPermissions = () => Promise.resolve({ hasPermission: false });
       }
     }
 
@@ -416,8 +431,11 @@ export const ProTierWorkspace: Story = {
         };
 
         if ((window as unknown as { __mockSupabase?: MockSupabaseClient }).__mockSupabase) {
-          const originalFrom = (window as unknown as { __mockSupabase: MockSupabaseClient }).__mockSupabase.from;
-          (window as unknown as { __mockSupabase: MockSupabaseClient }).__mockSupabase.from = (table: string) => {
+          const originalFrom = (window as unknown as { __mockSupabase: MockSupabaseClient })
+            .__mockSupabase.from;
+          (window as unknown as { __mockSupabase: MockSupabaseClient }).__mockSupabase.from = (
+            table: string
+          ) => {
             const result = originalFrom(table);
             if (table === 'workspaces') {
               return {
@@ -475,8 +493,11 @@ export const EnterpriseTierWorkspace: Story = {
         };
 
         if ((window as unknown as { __mockSupabase?: MockSupabaseClient }).__mockSupabase) {
-          const originalFrom = (window as unknown as { __mockSupabase: MockSupabaseClient }).__mockSupabase.from;
-          (window as unknown as { __mockSupabase: MockSupabaseClient }).__mockSupabase.from = (table: string) => {
+          const originalFrom = (window as unknown as { __mockSupabase: MockSupabaseClient })
+            .__mockSupabase.from;
+          (window as unknown as { __mockSupabase: MockSupabaseClient }).__mockSupabase.from = (
+            table: string
+          ) => {
             const result = originalFrom(table);
             if (table === 'workspaces') {
               return {

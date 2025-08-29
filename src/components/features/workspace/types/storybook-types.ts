@@ -8,7 +8,9 @@ export interface WorkspaceFormData {
 }
 
 export interface MockSupabaseAuth {
-  onAuthStateChange: (callback: (event: string, session: MockSession | null) => void) => { unsubscribe: () => void };
+  onAuthStateChange: (callback: (event: string, session: MockSession | null) => void) => {
+    unsubscribe: () => void;
+  };
   signIn?: () => Promise<{ user: MockUser | null; error: null }>;
   signOut?: () => Promise<{ error: null }>;
   signUp?: () => Promise<{ user: MockUser | null; error: null }>;
@@ -46,8 +48,12 @@ export interface MockSupabaseClient {
   auth: MockSupabaseAuth;
   from: (table: string) => {
     select: (columns?: string) => MockSupabaseQuery & Promise<MockSupabaseResponse<unknown[]>>;
-    insert: (data: Record<string, unknown> | Record<string, unknown>[]) => MockSupabaseQuery & Promise<MockSupabaseResponse<unknown>>;
-    update: (data: Record<string, unknown>) => MockSupabaseQuery & Promise<MockSupabaseResponse<unknown>>;
+    insert: (
+      data: Record<string, unknown> | Record<string, unknown>[]
+    ) => MockSupabaseQuery & Promise<MockSupabaseResponse<unknown>>;
+    update: (
+      data: Record<string, unknown>
+    ) => MockSupabaseQuery & Promise<MockSupabaseResponse<unknown>>;
     delete: () => MockSupabaseQuery & Promise<MockSupabaseResponse<unknown>>;
   };
 }
@@ -58,7 +64,10 @@ export interface MockWorkspaceService {
     data: { full_name: string; owner: string; repo: string },
     userId: string
   ) => Promise<{ data: unknown; error: null | { message: string } }>;
-  checkPermissions?: (workspaceId: string, userId: string) => Promise<{
+  checkPermissions?: (
+    workspaceId: string,
+    userId: string
+  ) => Promise<{
     canAdd: boolean;
     reason?: string;
     limit?: number;

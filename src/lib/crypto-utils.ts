@@ -49,9 +49,9 @@ export function generateSecureId(length: number = 16): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   const array = new Uint8Array(length);
   crypto.getRandomValues(array);
-  
+
   return Array.from(array)
-    .map(byte => chars[byte % chars.length])
+    .map((byte) => chars[byte % chars.length])
     .join('');
 }
 
@@ -64,19 +64,19 @@ export function generateUUID(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return crypto.randomUUID();
   }
-  
+
   // Fallback to manual UUID v4 generation
   const array = new Uint8Array(16);
   crypto.getRandomValues(array);
-  
+
   // Set version (4) and variant bits
   array[6] = (array[6] & 0x0f) | 0x40;
   array[8] = (array[8] & 0x3f) | 0x80;
-  
+
   const hex = Array.from(array)
-    .map(b => b.toString(16).padStart(2, '0'))
+    .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
-  
+
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
 }
 
@@ -109,9 +109,7 @@ export function isDemoMode(): boolean {
   // Check if we're in Storybook or demo pages
   if (typeof window !== 'undefined') {
     const url = window.location.href;
-    return url.includes('storybook') || 
-           url.includes('demo') || 
-           url.includes('localhost:6006'); // Storybook default port
+    return url.includes('storybook') || url.includes('demo') || url.includes('localhost:6006'); // Storybook default port
   }
   return false;
 }

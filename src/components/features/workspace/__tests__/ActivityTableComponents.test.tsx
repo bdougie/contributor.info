@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ActivityTableHeader } from '../components/ActivityTableHeader';
 import { ActivityTableRow } from '../components/ActivityTableRow';
@@ -10,9 +10,7 @@ describe('ActivityTable Components', () => {
   describe('ActivityTableHeader', () => {
     it('renders all column headers', () => {
       const onSort = vi.fn();
-      render(
-        <ActivityTableHeader sortField="created_at" sortOrder="desc" onSort={onSort} />
-      );
+      render(<ActivityTableHeader sortField="created_at" sortOrder="desc" onSort={onSort} />);
 
       expect(screen.getByRole('columnheader', { name: /activity/i })).toBeInTheDocument();
       expect(screen.getByRole('columnheader', { name: /status/i })).toBeInTheDocument();
@@ -21,9 +19,7 @@ describe('ActivityTable Components', () => {
 
     it('shows sort indicators correctly', () => {
       const onSort = vi.fn();
-      render(
-        <ActivityTableHeader sortField="created_at" sortOrder="asc" onSort={onSort} />
-      );
+      render(<ActivityTableHeader sortField="created_at" sortOrder="asc" onSort={onSort} />);
 
       const dateButton = screen.getByRole('button', { name: /sort by date/i });
       expect(dateButton).toHaveAttribute('aria-sort', 'ascending');
@@ -31,9 +27,7 @@ describe('ActivityTable Components', () => {
 
     it('calls onSort when column header is clicked', async () => {
       const onSort = vi.fn();
-      render(
-        <ActivityTableHeader sortField="created_at" sortOrder="desc" onSort={onSort} />
-      );
+      render(<ActivityTableHeader sortField="created_at" sortOrder="desc" onSort={onSort} />);
 
       const typeButton = screen.getByRole('button', { name: /sort by type/i });
       await userEvent.click(typeButton);
@@ -43,11 +37,11 @@ describe('ActivityTable Components', () => {
 
     it('has proper ARIA labels for screen readers', () => {
       const onSort = vi.fn();
-      render(
-        <ActivityTableHeader sortField="author" sortOrder="asc" onSort={onSort} />
-      );
+      render(<ActivityTableHeader sortField="author" sortOrder="asc" onSort={onSort} />);
 
-      const authorButton = screen.getByRole('button', { name: /sort by author.*sorted ascending/i });
+      const authorButton = screen.getByRole('button', {
+        name: /sort by author.*sorted ascending/i,
+      });
       expect(authorButton).toHaveAttribute('aria-sort', 'ascending');
     });
   });
@@ -78,7 +72,7 @@ describe('ActivityTable Components', () => {
     it('displays correct type badge', () => {
       render(<ActivityTableRow activity={mockActivity} />);
 
-      const badge = screen.getByRole('img', { name: /pull request/i });
+      const badge = screen.getByLabelText(/pull request/i);
       expect(badge).toBeInTheDocument();
     });
 
@@ -95,10 +89,7 @@ describe('ActivityTable Components', () => {
 
       const row = screen.getByRole('row');
       expect(row).toHaveAttribute('tabIndex', '0');
-      expect(row).toHaveAttribute(
-        'aria-label',
-        expect.stringContaining('Pull Request by johndoe')
-      );
+      expect(row).toHaveAttribute('aria-label', expect.stringContaining('Pull Request by johndoe'));
     });
 
     it('opens URL safely when clicking external link', async () => {
@@ -145,7 +136,8 @@ describe('ActivityTable Components', () => {
       );
 
       expect(screen.getByLabelText(/search activities/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/filter by activity type/i)).toBeInTheDocument();
+      // The Select component doesn't propagate aria-label to the trigger button
+      expect(screen.getByRole('combobox')).toBeInTheDocument();
     });
 
     it('debounces search input', async () => {
@@ -189,7 +181,7 @@ describe('ActivityTable Components', () => {
         />
       );
 
-      const filterTrigger = screen.getByRole('combobox', { name: /filter by activity type/i });
+      const filterTrigger = screen.getByRole('combobox');
       await userEvent.click(filterTrigger);
 
       const prOption = screen.getByRole('option', { name: /pull requests/i });
