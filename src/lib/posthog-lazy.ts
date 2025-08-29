@@ -75,11 +75,13 @@ function validateApiKey(key: string): boolean {
 
 /**
  * Configuration for PostHog initialization
+ * Privacy-first approach: only identifies users after login, uses autocapture for baseline tracking
  */
 const POSTHOG_CONFIG = {
   api_host: env.POSTHOG_HOST || 'https://us.i.posthog.com',
-  // Minimal configuration to reduce impact
-  autocapture: !env.DEV, // Enable autocapture in production
+  // Privacy-first configuration
+  person_profiles: 'identified_only' as const, // Only create profiles for identified users (4x cheaper)
+  autocapture: !env.DEV, // Enable autocapture in production for baseline tracking
   capture_pageview: true, // Track page views
   capture_pageleave: true, // Track page leaves
   disable_session_recording: true, // No session recording for performance
@@ -122,6 +124,11 @@ function shouldEnablePostHog(): boolean {
     return false;
   }
 
+  // Filter out internal users (bdougie account)
+  if (isInternalUser()) {
+    return false;
+  }
+
   return true;
 }
 
@@ -146,12 +153,12 @@ async function loadPostHog(): Promise<any> {
   // Start loading PostHog
   posthogLoadPromise = import('posthog-js')
     .then(({ default: posthog }) => {
-      // Initialize PostHog with minimal configuration
+      // Initialize PostHog with privacy-first configuration
       posthog.init(env.POSTHOG_KEY!, POSTHOG_CONFIG);
 
-      // Set a unique ID for the user (using a hash of user agent + timestamp)
-      const distinctId = generateDistinctId();
-      posthog.identify(distinctId);
+      // Don't identify users automatically - only after login
+      // This uses anonymous events which are 4x cheaper
+      // Note: We only call posthog.identify() after user login/signup
 
       posthogInstance = posthog;
       return posthog;
@@ -166,7 +173,7 @@ async function loadPostHog(): Promise<any> {
 }
 
 /**
- * Generate a stable distinct ID for the user
+ * Generate a stable distinct ID for the user (used in identifyUser)
  */
 function generateDistinctId(): string {
   const stored = localStorage.getItem('contributor_info_distinct_id');
@@ -376,6 +383,102 @@ export function isPostHogEnabled(): boolean {
  */
 export function resetRateLimiter(): void {
   rateLimiter.reset();
+}
+
+/**
+ * Check if the current user is an internal user (should be filtered from analytics)
+ */
+function isInternalUser(): boolean {
+  // Filter bdougie account based on various indicators
+  try {
+    // Check for GitHub username in localStorage (if user is logged in)
+    const githubUser = localStorage.getItem('github_user');
+    if (githubUser) {
+      const user = JSON.parse(githubUser);
+      if (user.login === 'bdougie') {
+        return true;
+      }
+    }
+
+    // Check URL patterns that indicate bdougie is the user
+    const hostname = window.location.hostname;
+    const pathname = window.location.pathname;
+    
+    // If viewing bdougie's repositories as the owner
+    if (pathname.startsWith('/bdougie/')) {
+      return true;
+    }
+
+    // Development environment check
+    if (hostname === 'localhost' || hostname.includes('127.0.0.1')) {
+      return true;
+    }
+
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Identify user in PostHog (only call after login/signup)
+ */
+export async function identifyUser(userId: string, properties?: Record<string, any>): Promise<void> {
+  if (!shouldEnablePostHog()) {
+    return;
+  }
+
+  try {
+    const posthog = await loadPostHog();
+    if (!posthog) return;
+
+    // Only identify if not an internal user
+    if (!isInternalUser()) {
+      // Use the stored distinct ID or generate a new one
+      const distinctId = generateDistinctId();
+      posthog.identify(userId, {
+        signup_date: new Date().toISOString(),
+        distinct_id: distinctId,
+        ...properties,
+      });
+      console.log('[PostHog] User identified:', userId);
+    }
+  } catch (error) {
+    if (env.DEV) {
+      console.error('Failed to identify user in PostHog:', error);
+    }
+  }
+}
+
+/**
+ * Track custom events (for high-value actions)
+ */
+export async function trackEvent(
+  eventName: string,
+  properties?: Record<string, any>
+): Promise<void> {
+  if (!shouldEnablePostHog()) {
+    return;
+  }
+
+  // Apply rate limiting
+  if (!rateLimiter.canSendEvent(eventName)) {
+    return;
+  }
+
+  try {
+    const posthog = await loadPostHog();
+    if (!posthog) return;
+
+    posthog.capture(eventName, {
+      timestamp: new Date().toISOString(),
+      ...properties,
+    });
+  } catch (error) {
+    if (env.DEV) {
+      console.error('Failed to track event in PostHog:', error);
+    }
+  }
 }
 
 /**
