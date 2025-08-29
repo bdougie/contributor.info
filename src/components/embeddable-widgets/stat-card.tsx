@@ -110,13 +110,7 @@ export function StatCard({ config, data, className }: StatCardProps) {
 
             return (
               <div key={metric} className="flex items-center gap-2">
-                <Icon
-                  className={cn(
-                    'flex-shrink-0',
-                    metricConfig.color,
-                    getIconSize(size)
-                  )}
-                />
+                <Icon className={cn('flex-shrink-0', metricConfig.color, getIconSize(size))} />
                 <div className="min-w-0">
                   <div
                     className={cn(

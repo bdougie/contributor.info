@@ -3,7 +3,7 @@ import {
   getDiffSymbol,
   getDiffBackgroundColor,
   getDiffTextColor,
-  getDiffBorderColor
+  getDiffBorderColor,
 } from '../code-styling';
 
 describe('code-styling utilities', () => {

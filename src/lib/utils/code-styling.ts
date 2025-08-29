@@ -7,10 +7,10 @@ export type LineType = 'addition' | 'deletion' | 'unchanged';
 /**
  * Get diff line symbol based on line type
  * Provides consistent symbols for code diff displays
- * 
+ *
  * @param type - Type of diff line ('addition', 'deletion', 'unchanged')
  * @returns Symbol character: '+' for additions, '-' for deletions, ' ' for unchanged
- * 
+ *
  * @example
  * getDiffSymbol('addition') // returns '+'
  * getDiffSymbol('deletion') // returns '-'
@@ -25,10 +25,10 @@ export const getDiffSymbol = (type: LineType): string => {
 /**
  * Get diff line background color based on line type
  * Provides consistent background colors for code diff displays
- * 
+ *
  * @param type - Type of diff line ('addition', 'deletion', 'unchanged')
  * @returns Tailwind CSS background color class
- * 
+ *
  * @example
  * getDiffBackgroundColor('addition') // returns 'bg-green-50 dark:bg-green-950'
  * getDiffBackgroundColor('deletion') // returns 'bg-red-50 dark:bg-red-950'
@@ -43,10 +43,10 @@ export const getDiffBackgroundColor = (type: LineType): string => {
 /**
  * Get diff line text color based on line type
  * Provides consistent text colors for code diff displays
- * 
+ *
  * @param type - Type of diff line ('addition', 'deletion', 'unchanged')
  * @returns Tailwind CSS text color class
- * 
+ *
  * @example
  * getDiffTextColor('addition') // returns 'text-green-700 dark:text-green-300'
  * getDiffTextColor('deletion') // returns 'text-red-700 dark:text-red-300'
@@ -61,10 +61,10 @@ export const getDiffTextColor = (type: LineType): string => {
 /**
  * Get diff line border color based on line type
  * Provides consistent border colors for code diff displays
- * 
+ *
  * @param type - Type of diff line ('addition', 'deletion', 'unchanged')
  * @returns Tailwind CSS border color class
- * 
+ *
  * @example
  * getDiffBorderColor('addition') // returns 'border-l-green-500'
  * getDiffBorderColor('deletion') // returns 'border-l-red-500'

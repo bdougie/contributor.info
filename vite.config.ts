@@ -110,14 +110,8 @@ export default defineConfig(() => ({
       strictRequires: 'auto'
     },
     rollupOptions: {
-      // Re-enable tree shaking after nested ternary refactoring
-      treeshake: {
-        moduleSideEffects: true,
-        propertyReadSideEffects: true,
-        tryCatchDeoptimization: false,
-        unknownGlobalSideEffects: true,
-        correctVarValueBeforeDeclaration: false,
-      },
+      // Use default tree shaking to avoid initialization issues
+      // Custom tree shaking was causing "Cannot access before initialization" errors
       output: {
         // Ensure proper module format
         format: 'es',
@@ -144,31 +138,22 @@ export default defineConfig(() => ({
           }
           return 'assets/[name]-[hash][extname]';
         },
-        // Allow modules to be properly hoisted for correct initialization order
+        // Allow hoisting for proper module loading
         hoistTransitiveImports: true,
-        // Hybrid approach - use function-based chunking for all packages
-        // to ensure proper grouping of React ecosystem libraries
+        // Safer chunking strategy - bundle React ecosystem together
         manualChunks: (id) => {
-          // For node_modules, handle package-specific grouping below or return undefined for default chunking
           if (id.includes('node_modules')) {
-            // Check for specific packages that need to be bundled together
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+            // Bundle React and all React-dependent libraries together
+            // This prevents initialization order issues
+            if (id.includes('react') || 
+                id.includes('react-dom') || 
+                id.includes('react-router') ||
+                id.includes('@radix-ui') ||
+                id.includes('@nivo') ||
+                id.includes('recharts') ||
+                id.includes('d3-') ||
+                id.includes('uplot')) {
               return 'vendor-react';
-            }
-            if (id.includes('@radix-ui')) {
-              return 'vendor-react'; // Bundle with React to avoid forwardRef issues
-            }
-            if (id.includes('@nivo')) {
-              return 'vendor-react'; // Bundle with React to avoid memo issues
-            }
-            if (id.includes('recharts')) {
-              return 'vendor-react'; // Recharts also needs React context
-            }
-            if (id.includes('d3-')) {
-              return 'vendor-react'; // D3 modules used by Recharts need to be together
-            }
-            if (id.includes('uplot')) {
-              return 'vendor-react'; // Keep all visualization libraries together
             }
             if (id.includes('@supabase')) {
               return 'vendor-supabase';
@@ -189,9 +174,7 @@ export default defineConfig(() => ({
               return 'embeddings-excluded';
             }
           }
-          
-          // Don't split app code - it all uses React components
-          // Let everything stay in the main bundle to avoid initialization issues
+          // Don't split app code - let it stay in main bundle to avoid issues
         },
       },
     },
@@ -203,7 +186,7 @@ export default defineConfig(() => ({
     minify: 'esbuild',
     target: 'es2020', // Modern target with good compatibility
     // Optimize chunk size warnings  
-    chunkSizeWarningLimit: 1300, // Increased to accommodate 1.2MB vendor-react bundle
+    chunkSizeWarningLimit: 1300, // Increased to accommodate vendor-react bundle
     // Enable compression reporting
     reportCompressedSize: true,
     // Module preload optimization - load minimal React first

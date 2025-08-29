@@ -22,7 +22,7 @@ import type { GitHubRepository } from '@/lib/github';
 import type { User } from '@supabase/supabase-js';
 import { z } from 'zod';
 
-// Use mock supabase in Storybook if available  
+// Use mock supabase in Storybook if available
 interface WindowWithMocks extends Window {
   __mockSupabase?: typeof defaultSupabase;
   __mockWorkspaceService?: typeof DefaultWorkspaceService;
@@ -122,7 +122,7 @@ export function AddRepositoryModal({
           .from('workspaces')
           .select('*')
           .eq('id', workspaceId)
-          .single();
+          .maybeSingle();
 
         if (workspaceData) {
           setWorkspace(workspaceData);
@@ -151,27 +151,31 @@ export function AddRepositoryModal({
 
         if (existingWorkspaceRepos) {
           // Use Zod to validate the query result instead of casting
-          const workspaceRepoSchema = z.array(z.object({
-            repository_id: z.string(),
-            is_pinned: z.boolean().nullable().optional(),
-            repositories: z.object({
-              id: z.string(),
-              full_name: z.string(),
-              name: z.string(),
-              owner: z.string(),
-              description: z.string().nullable(),
-              language: z.string().nullable(),
-              stargazers_count: z.number(),
-              forks_count: z.number(),
-            }).nullable(),
-          }));
-          
+          const workspaceRepoSchema = z.array(
+            z.object({
+              repository_id: z.string(),
+              is_pinned: z.boolean().nullable().optional(),
+              repositories: z
+                .object({
+                  id: z.string(),
+                  full_name: z.string(),
+                  name: z.string(),
+                  owner: z.string(),
+                  description: z.string().nullable(),
+                  language: z.string().nullable(),
+                  stargazers_count: z.number(),
+                  forks_count: z.number(),
+                })
+                .nullable(),
+            })
+          );
+
           const validationResult = workspaceRepoSchema.safeParse(existingWorkspaceRepos);
           if (!validationResult.success) {
-            console.error('Invalid workspace repos data:', validationResult.error);
+            console.error('%s %o', 'Invalid workspace repos data:', validationResult.error);
             return [];
           }
-          
+
           const repos = validationResult.data
             .filter((r) => r.repositories)
             .map(
@@ -186,7 +190,7 @@ export function AddRepositoryModal({
           setExistingRepoIds(new Set(repos.map((r) => r.full_name)));
         }
       } catch (err) {
-        console.error('Error initializing modal:', err);
+        console.error('%s %o', 'Error initializing modal:', err);
         const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
         setError(`Failed to load workspace details: ${errorMessage}`);
       } finally {
@@ -285,7 +289,7 @@ export function AddRepositoryModal({
           onSuccess();
         }
       } catch (err) {
-        console.error('Error removing repository:', err);
+        console.error('%s %o', 'Error removing repository:', err);
         const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
         toast.error(`Failed to remove ${repoName}: ${errorMessage}`);
       } finally {
@@ -317,7 +321,7 @@ export function AddRepositoryModal({
           .from('repositories')
           .select('id')
           .eq('full_name', repo.full_name)
-          .single();
+          .maybeSingle();
 
         if (existingRepo) {
           return existingRepo.id;
@@ -339,10 +343,10 @@ export function AddRepositoryModal({
             is_active: true,
           })
           .select('id')
-          .single();
+          .maybeSingle();
 
         if (createError || !newRepo) {
-          console.error('Error creating repository:', createError);
+          console.error('%s %o', 'Error creating repository:', createError);
           throw new Error(`Failed to add ${repo.full_name}`);
         }
 
@@ -396,7 +400,7 @@ export function AddRepositoryModal({
         setError(errors.join('\n'));
       }
     } catch (err) {
-      console.error('Error adding repositories to workspace:', err);
+      console.error('%s %o', 'Error adding repositories to workspace:', err);
       setError('An unexpected error occurred. Please try again.');
     } finally {
       setSubmitting(false);

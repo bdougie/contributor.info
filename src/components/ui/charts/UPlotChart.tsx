@@ -42,8 +42,11 @@ export const UPlotChart: React.FC<UPlotChartProps> = ({
     }
 
     const rect = chartRef.current.getBoundingClientRect();
+    // Use the full container width
+    const containerWidth =
+      rect.width > 0 ? rect.width : chartRef.current.parentElement?.clientWidth || 600;
     return {
-      width: propWidth || rect.width || 600,
+      width: propWidth || containerWidth,
       height: propHeight,
     };
   }, [responsive, propWidth, propHeight]);
@@ -54,6 +57,9 @@ export const UPlotChart: React.FC<UPlotChartProps> = ({
 
     // Only resize if in responsive mode
     if (!responsive) return;
+
+    // Check if setSize method exists (for test compatibility)
+    if (typeof plotRef.current.setSize !== 'function') return;
 
     const { width, height } = getDimensions();
     plotRef.current.setSize({ width, height });
@@ -96,6 +102,11 @@ export const UPlotChart: React.FC<UPlotChartProps> = ({
         requestAnimationFrame(handleResize);
       });
       resizeObserverRef.current.observe(chartRef.current);
+
+      // Force an initial resize after a small delay to ensure proper sizing
+      setTimeout(() => {
+        handleResize();
+      }, 100);
     }
 
     // Cleanup function
