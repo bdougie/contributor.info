@@ -23,6 +23,18 @@ import type {
 import type { WorkspaceRepositoryWithDetails } from '@/types/workspace';
 
 /**
+ * Simple deterministic pseudo-random number generator for demo data
+ * This is NOT for cryptographic use, only for generating consistent demo data
+ */
+function createDemoRandomGenerator(seed: number = 42) {
+  let currentSeed = seed;
+  return () => {
+    currentSeed = (currentSeed * 1103515245 + 12345) % 2147483648;
+    return currentSeed / 2147483648;
+  };
+}
+
+/**
  * Generate demo data for testing
  */
 function generateDemoData(): AnalyticsData {
@@ -31,30 +43,33 @@ function generateDemoData(): AnalyticsData {
   const contributors: ContributorStat[] = [];
   const repositories: RepositoryMetric[] = [];
 
+  // Use deterministic random for demo data generation
+  const demoRandom = createDemoRandomGenerator();
+
   // Generate activities
   const activityTypes = ['pr', 'issue', 'commit', 'review'] as const;
   const statuses = ['open', 'merged', 'closed', 'approved'] as const;
 
   for (let i = 0; i < 200; i++) {
-    const createdAt = new Date(now.getTime() - Math.random() * 30 * 24 * 60 * 60 * 1000);
+    const createdAt = new Date(now.getTime() - demoRandom() * 30 * 24 * 60 * 60 * 1000);
     activities.push({
       id: `activity-${i}`,
-      type: activityTypes[Math.floor(Math.random() * activityTypes.length)],
-      title: `Activity ${i}: ${['Fix bug', 'Add feature', 'Update docs', 'Refactor code'][Math.floor(Math.random() * 4)]}`,
+      type: activityTypes[Math.floor(demoRandom() * activityTypes.length)],
+      title: `Activity ${i}: ${['Fix bug', 'Add feature', 'Update docs', 'Refactor code'][Math.floor(demoRandom() * 4)]}`,
       author: {
-        username: `user${Math.floor(Math.random() * 20)}`,
-        avatar_url: `https://github.com/user${Math.floor(Math.random() * 20)}.png`,
+        username: `user${Math.floor(demoRandom() * 20)}`,
+        avatar_url: `https://github.com/user${Math.floor(demoRandom() * 20)}.png`,
       },
-      repository: ['owner/repo1', 'owner/repo2', 'owner/repo3'][Math.floor(Math.random() * 3)],
+      repository: ['owner/repo1', 'owner/repo2', 'owner/repo3'][Math.floor(demoRandom() * 3)],
       created_at: createdAt.toISOString(),
-      status: statuses[Math.floor(Math.random() * statuses.length)],
+      status: statuses[Math.floor(demoRandom() * statuses.length)],
       url: `https://github.com/owner/repo/pull/${i}`,
     });
   }
 
   // Generate contributors
   for (let i = 0; i < 50; i++) {
-    const contributions = Math.floor(Math.random() * 100) + 1;
+    const contributions = Math.floor(demoRandom() * 100) + 1;
     contributors.push({
       id: `contributor-${i}`,
       username: `user${i}`,
@@ -64,7 +79,7 @@ function generateDemoData(): AnalyticsData {
       issues: Math.floor(contributions * 0.2),
       reviews: Math.floor(contributions * 0.3),
       commits: Math.floor(contributions * 0.1),
-      trend: Math.floor(Math.random() * 40) - 20,
+      trend: Math.floor(demoRandom() * 40) - 20,
     });
   }
 
@@ -75,13 +90,13 @@ function generateDemoData(): AnalyticsData {
       id: `repo-${i}`,
       name: repoNames[i],
       owner: 'organization',
-      stars: Math.floor(Math.random() * 5000),
-      forks: Math.floor(Math.random() * 1000),
-      pull_requests: Math.floor(Math.random() * 200),
-      issues: Math.floor(Math.random() * 100),
-      contributors: Math.floor(Math.random() * 50) + 10,
-      activity_score: Math.floor(Math.random() * 100),
-      trend: Math.floor(Math.random() * 30) - 15,
+      stars: Math.floor(demoRandom() * 5000),
+      forks: Math.floor(demoRandom() * 1000),
+      pull_requests: Math.floor(demoRandom() * 200),
+      issues: Math.floor(demoRandom() * 100),
+      contributors: Math.floor(demoRandom() * 50) + 10,
+      activity_score: Math.floor(demoRandom() * 100),
+      trend: Math.floor(demoRandom() * 30) - 15,
     });
   }
 
@@ -97,7 +112,7 @@ function generateDemoData(): AnalyticsData {
     label: 'Pull Requests',
     data: dates.map((date) => ({
       date,
-      value: Math.floor(Math.random() * 50) + 10,
+      value: Math.floor(demoRandom() * 50) + 10,
     })),
     color: '#10b981',
   });
@@ -106,7 +121,7 @@ function generateDemoData(): AnalyticsData {
     label: 'Active Contributors',
     data: dates.map((date) => ({
       date,
-      value: Math.floor(Math.random() * 30) + 5,
+      value: Math.floor(demoRandom() * 30) + 5,
     })),
     color: '#3b82f6',
   });

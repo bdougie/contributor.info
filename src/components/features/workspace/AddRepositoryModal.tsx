@@ -345,7 +345,7 @@ export function AddRepositoryModal({
           .select('id')
           .maybeSingle();
 
-        if (createError) {
+        if (createError || !newRepo) {
           console.error('%s %o', 'Error creating repository:', createError);
           throw new Error(`Failed to add ${repo.full_name}`);
         }

@@ -36,7 +36,7 @@ interface PerformanceAlert {
 
 class WebVitalsAnalytics {
   private sessionId: string;
-  private providers: Set<AnalyticsProvider> = new Set(['supabase']);
+  private providers: Set<AnalyticsProvider> = new Set(['supabase', 'posthog']);
   private alertThresholds: Map<string, { warning: number; critical: number }> = new Map([
     ['LCP', { warning: 2500, critical: 4000 }],
     ['INP', { warning: 200, critical: 500 }],
@@ -120,8 +120,9 @@ class WebVitalsAnalytics {
       viewport_height: window.innerHeight,
       screen_width: window.screen.width,
       screen_height: window.screen.height,
-      connection_type: (navigator as any).connection?.effectiveType,
-      device_memory: (navigator as any).deviceMemory,
+      connection_type: (navigator as unknown as { connection?: { effectiveType?: string } })
+        .connection?.effectiveType,
+      device_memory: (navigator as unknown as { deviceMemory?: number }).deviceMemory,
       hardware_concurrency: navigator.hardwareConcurrency,
       timestamp: new Date().toISOString(),
       repository,
@@ -130,7 +131,7 @@ class WebVitalsAnalytics {
 
   private extractRepository(pathname: string): string | undefined {
     // Extract repository from path like /owner/repo
-    const match = pathname.match(/^\/([^\/]+)\/([^\/]+)/);
+    const match = pathname.match(/^\/([^/]+)\/([^/]+)/);
     return match ? `${match[1]}/${match[2]}` : undefined;
   }
 
@@ -357,7 +358,7 @@ class WebVitalsAnalytics {
     });
 
     // Calculate percentiles and ratings
-    const summary: Record<string, any> = {};
+    const summary: Record<string, unknown> = {};
     const metricNames = ['LCP', 'INP', 'CLS', 'FCP', 'TTFB'];
 
     for (const metricName of metricNames) {
