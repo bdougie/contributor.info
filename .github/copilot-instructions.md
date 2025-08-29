@@ -167,3 +167,15 @@ When implementing features that load data or process information in the backgrou
 - Subtle, helpful notifications (not technical jargon)
 - Graceful error handling and fallbacks
 - check the bulletproof testing doc before fixing tests
+
+## Ephemeral GitHub Markdown Drafts (PRs, Issues, Releases, Discussions)
+
+- When a temporary markdown file is needed, create it under `.github/` (e.g., `pr-review-comment-<number>.md` or `gh-draft-<type>-<id>.md`).
+- Use the file only to pass content to tools (e.g., `gh` CLI), then delete it in the same operation—regardless of success or failure.
+- Preferred: keep drafts in memory; only write a file if a tool requires a `--body-file` path.
+- Never stage, commit, or push these draft files. If one appears in `git status`, delete it immediately instead of committing.
+- On interruption (errors/Ctrl+C), clean up the draft before exiting.
+
+Acceptance criteria:
+- No `*.md` draft files remain under `.github/` after posting.
+- The working tree and CI contain no draft artifacts.
