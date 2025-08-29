@@ -58,10 +58,9 @@ const mockActivity = {
   id: '1',
   type: 'pr' as const,
   title: 'Fix authentication bug',
-  description: 'Resolved issue with JWT token validation',
   author: {
     username: 'johndoe',
-    avatar: 'https://example.com/avatar.jpg',
+    avatar_url: 'https://example.com/avatar.jpg',
   },
   repository: 'company/app',
   created_at: '2024-01-15T10:00:00Z',
@@ -76,7 +75,7 @@ const mockActivities = [
     id: '2',
     type: 'issue' as const,
     title: 'Add dark mode support',
-    author: { username: 'janedoe', avatar: '' },
+    author: { username: 'janedoe', avatar_url: '' },
     status: 'open' as const,
   },
   {
@@ -198,7 +197,6 @@ describe('ActivityTableRow', () => {
     render(<ActivityTableRow activity={mockActivity} />);
 
     expect(screen.getByText('Fix authentication bug')).toBeInTheDocument();
-    expect(screen.getByText('Resolved issue with JWT token validation')).toBeInTheDocument();
     expect(screen.getByText('johndoe')).toBeInTheDocument();
     expect(screen.getByText('company/app')).toBeInTheDocument();
   });
