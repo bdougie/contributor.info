@@ -1,5 +1,5 @@
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import { useWorkspaceContributors } from '@/hooks/useWorkspaceContributors';
@@ -146,11 +146,12 @@ const filterRepositoriesBySelection = <T extends { id: string }>(
 const generateMockMetrics = (
   repos: Repository[],
   timeRange: TimeRange,
-  selectedRepoIds?: string[]
+  selectedRepoIds?: string[],
+  demoRandom?: ReturnType<typeof createDemoRandomGenerator>
 ): WorkspaceMetrics => {
-  // Use deterministic random for demo data generation
-  const demoRandom = createDemoRandomGenerator();
-  
+  // Use deterministic random for demo data generation passed as parameter
+  const random = demoRandom || createDemoRandomGenerator();
+
   // Use utility function to filter repositories
   const filteredRepos = filterRepositoriesBySelection(repos, selectedRepoIds);
 
@@ -180,13 +181,13 @@ const generateMockMetrics = (
 
   return {
     totalStars,
-    totalPRs: Math.floor(demoRandom() * 500) + 100,
+    totalPRs: Math.floor(random() * 500) + 100,
     totalContributors,
-    totalCommits: Math.floor(demoRandom() * 10000) + 1000,
-    starsTrend: (demoRandom() - 0.5) * 20 * multiplier,
-    prsTrend: (demoRandom() - 0.5) * 15 * multiplier,
-    contributorsTrend: (demoRandom() - 0.5) * 10 * multiplier,
-    commitsTrend: (demoRandom() - 0.5) * 25 * multiplier,
+    totalCommits: Math.floor(random() * 10000) + 1000,
+    starsTrend: (random() - 0.5) * 20 * multiplier,
+    prsTrend: (random() - 0.5) * 15 * multiplier,
+    contributorsTrend: (random() - 0.5) * 10 * multiplier,
+    commitsTrend: (random() - 0.5) * 25 * multiplier,
   };
 };
 
@@ -194,11 +195,12 @@ const generateMockMetrics = (
 const generateMockTrendData = (
   days: number,
   repos?: Repository[],
-  selectedRepoIds?: string[]
+  selectedRepoIds?: string[],
+  demoRandom?: ReturnType<typeof createDemoRandomGenerator>
 ): WorkspaceTrendData => {
   // Use deterministic random for demo data generation
-  const demoRandom = createDemoRandomGenerator();
-  
+  const random = demoRandom || createDemoRandomGenerator();
+
   // Use utility function to filter repositories (for future use with real data)
   const filteredRepos = repos ? filterRepositoriesBySelection(repos, selectedRepoIds) : [];
 
@@ -219,9 +221,9 @@ const generateMockTrendData = (
     date.setDate(date.getDate() - i);
     labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
 
-    prs.push(Math.floor((demoRandom() * 30 + 10) * repoMultiplier));
-    issues.push(Math.floor((demoRandom() * 20 + 5) * repoMultiplier));
-    commits.push(Math.floor((demoRandom() * 60 + 20) * repoMultiplier));
+    prs.push(Math.floor((random() * 30 + 10) * repoMultiplier));
+    issues.push(Math.floor((random() * 20 + 5) * repoMultiplier));
+    commits.push(Math.floor((random() * 60 + 20) * repoMultiplier));
   }
 
   return {
@@ -1343,7 +1345,7 @@ function WorkspaceActivity({ repositories }: { repositories: Repository[] }) {
   const now = new Date();
 
   // Use deterministic random for demo data generation
-  const demoRandom = createDemoRandomGenerator();
+  const demoRandom = useMemo(() => createDemoRandomGenerator(), []);
 
   // Generate sample activities based on repositories
   repositories.forEach((repo, repoIndex) => {
@@ -1878,9 +1880,9 @@ export default function WorkspacePage() {
   const [addRepositoryModalOpen, setAddRepositoryModalOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isWorkspaceOwner, setIsWorkspaceOwner] = useState(false);
-  
+
   // Use deterministic random for demo data generation
-  const demoRandom = createDemoRandomGenerator();
+  const demoRandom = useMemo(() => createDemoRandomGenerator(), []);
 
   // Determine active tab from URL
   const pathSegments = location.pathname.split('/');
@@ -2052,11 +2054,17 @@ export default function WorkspacePage() {
         setRepositories(transformedRepos);
 
         // Generate metrics, trend data, and activity data
-        const mockMetrics = generateMockMetrics(transformedRepos, timeRange, selectedRepositories);
+        const mockMetrics = generateMockMetrics(
+          transformedRepos,
+          timeRange,
+          selectedRepositories,
+          demoRandom
+        );
         const mockTrendData = generateMockTrendData(
           TIME_RANGE_DAYS[timeRange],
           transformedRepos,
-          selectedRepositories
+          selectedRepositories,
+          demoRandom
         );
         const activityDataPoints = generateActivityDataFromPRs(
           mergedPRs,
@@ -2077,7 +2085,7 @@ export default function WorkspacePage() {
     }
 
     fetchWorkspace();
-  }, [workspaceId, timeRange, selectedRepositories]);
+  }, [workspaceId, timeRange, selectedRepositories, demoRandom]);
 
   const handleTabChange = (value: string) => {
     if (value === 'overview') {
@@ -2188,7 +2196,8 @@ export default function WorkspacePage() {
         const newMetrics = generateMockMetrics(
           formattedRepos,
           timeRange,
-          formattedRepos.map((r) => r.id)
+          formattedRepos.map((r) => r.id),
+          demoRandom
         );
         setMetrics(newMetrics);
       }
@@ -2217,7 +2226,12 @@ export default function WorkspacePage() {
 
         // Update metrics after removing repository
         const updatedRepos = repositories.filter((r) => r.id !== repo.id);
-        const newMetrics = generateMockMetrics(updatedRepos, timeRange, selectedRepositories);
+        const newMetrics = generateMockMetrics(
+          updatedRepos,
+          timeRange,
+          selectedRepositories,
+          demoRandom
+        );
         setMetrics(newMetrics);
 
         toast.success('Repository removed from workspace');

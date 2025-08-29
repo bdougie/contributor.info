@@ -5,9 +5,20 @@
 
 import { env } from './env';
 
+// Type definition for PostHog instance methods we use
+interface PostHogInstance {
+  capture: (eventName: string, properties?: Record<string, unknown>) => void;
+  identify: (userId: string, properties?: Record<string, unknown>) => void;
+  opt_out_capturing: () => void;
+  opt_in_capturing: () => void;
+  people: {
+    set: (properties: Record<string, unknown>) => void;
+  };
+}
+
 // PostHog instance cache
-let posthogInstance: any = null;
-let posthogLoadPromise: Promise<any> | null = null;
+let posthogInstance: PostHogInstance | null = null;
+let posthogLoadPromise: Promise<PostHogInstance | null> | null = null;
 
 // Rate limiting for events
 const rateLimiter = {
@@ -135,7 +146,7 @@ function shouldEnablePostHog(): boolean {
 /**
  * Lazy load PostHog library
  */
-async function loadPostHog(): Promise<any> {
+async function loadPostHog(): Promise<PostHogInstance | null> {
   if (!shouldEnablePostHog()) {
     return null;
   }
@@ -160,8 +171,8 @@ async function loadPostHog(): Promise<any> {
       // This uses anonymous events which are 4x cheaper
       // Note: We only call posthog.identify() after user login/signup
 
-      posthogInstance = posthog;
-      return posthog;
+      posthogInstance = posthog as PostHogInstance;
+      return posthog as PostHogInstance;
     })
     .catch((error) => {
       console.error('Failed to load PostHog:', error);
@@ -220,8 +231,9 @@ export async function trackWebVitals(metrics: {
       page_url: window.location.href,
       page_path: window.location.pathname,
       // Performance context
-      connection_type: (navigator as any).connection?.effectiveType,
-      device_memory: (navigator as any).deviceMemory,
+      connection_type: (navigator as unknown as { connection?: { effectiveType?: string } })
+        .connection?.effectiveType,
+      device_memory: (navigator as unknown as { deviceMemory?: number }).deviceMemory,
       hardware_concurrency: navigator.hardwareConcurrency,
       // Timestamp
       timestamp: new Date().toISOString(),
@@ -247,7 +259,7 @@ export async function trackWebVitals(metrics: {
 export async function trackPerformanceMetric(
   name: string,
   value: number,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ): Promise<void> {
   if (!shouldEnablePostHog()) {
     return;
@@ -300,7 +312,7 @@ export async function batchTrackWebVitals(
     if (!posthog) return;
 
     // Create a summary object for all metrics
-    const summary: Record<string, any> = {
+    const summary: Record<string, unknown> = {
       timestamp: new Date().toISOString(),
       page_url: window.location.href,
       page_path: window.location.pathname,
@@ -367,7 +379,7 @@ export async function optInToPostHog(): Promise<void> {
 /**
  * Get PostHog instance (if loaded)
  */
-export function getPostHogInstance(): any {
+export function getPostHogInstance(): PostHogInstance | null {
   return posthogInstance;
 }
 
@@ -403,7 +415,7 @@ function isInternalUser(): boolean {
     // Check URL patterns that indicate bdougie is the user
     const hostname = window.location.hostname;
     const pathname = window.location.pathname;
-    
+
     // If viewing bdougie's repositories as the owner
     if (pathname.startsWith('/bdougie/')) {
       return true;
@@ -423,7 +435,10 @@ function isInternalUser(): boolean {
 /**
  * Identify user in PostHog (only call after login/signup)
  */
-export async function identifyUser(userId: string, properties?: Record<string, any>): Promise<void> {
+export async function identifyUser(
+  userId: string,
+  properties?: Record<string, unknown>
+): Promise<void> {
   if (!shouldEnablePostHog()) {
     return;
   }
@@ -455,7 +470,7 @@ export async function identifyUser(userId: string, properties?: Record<string, a
  */
 export async function trackEvent(
   eventName: string,
-  properties?: Record<string, any>
+  properties?: Record<string, unknown>
 ): Promise<void> {
   if (!shouldEnablePostHog()) {
     return;
