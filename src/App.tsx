@@ -104,6 +104,7 @@ const TermsPage = lazy(() =>
 
 // Workspace components
 const WorkspacePage = lazy(() => import('@/pages/workspace-page'));
+const WorkspaceNewPage = lazy(() => import('@/pages/workspace-new-page'));
 
 // Trending components
 const TrendingPageRoute = lazy(() =>
@@ -373,6 +374,7 @@ function App() {
                 <Route path="/" element={<Layout />}>
                   <Route index element={<Home />} />
                   <Route path="/trending" element={<TrendingPageRoute />} />
+                  <Route path="/workspaces/new" element={<WorkspaceNewPage />} />
                   <Route path="/i/:workspaceId" element={<WorkspacePage />} />
                   <Route path="/i/:workspaceId/:tab" element={<WorkspacePage />} />
                   <Route path="/changelog" element={<ChangelogPage />} />
