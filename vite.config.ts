@@ -110,12 +110,14 @@ export default defineConfig(() => ({
       strictRequires: 'auto'
     },
     rollupOptions: {
-      // Optimize tree shaking with safer settings
+      // Optimize tree shaking with safer settings (addresses PR #599 feedback)
       treeshake: {
         moduleSideEffects: 'no-external', // Only tree-shake internal modules aggressively
-        propertyReadSideEffects: false, // Assume property reads have no side effects
+        propertyReadSideEffects: false, // Assume property reads have no side effects for better optimization
         annotations: true, // Respect pure annotations
-        correctVarValueBeforeDeclaration: true // Better handling of var declarations
+        correctVarValueBeforeDeclaration: true, // Better handling of var declarations
+        tryCatchDeoptimization: false, // Keep from main: better optimization of try-catch blocks
+        unknownGlobalSideEffects: true // Keep from main: safer handling of globals
       },
       output: {
         // Ensure proper module format
