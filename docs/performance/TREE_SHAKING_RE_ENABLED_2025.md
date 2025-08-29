@@ -113,7 +113,7 @@ Based on the original analysis in `/docs/performance/BUNDLE_OPTIMIZATION_2025.md
 ### The Original Problem:
 - Rollup 4.45.0 had a critical bug causing build failures with nested ternary operators
 - Tree shaking was disabled as a temporary workaround
-- This resulted in 55% larger bundles (2.3MB → 1.4MB impact noted in original issue)
+- This resulted in 55% larger bundles (1.4MB → 2.3MB impact noted in original issue)
 
 ### The Solution:
 1. **✅ Refactored all nested ternaries** into utility functions (PRs #574, #592, #594, #595)
