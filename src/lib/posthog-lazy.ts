@@ -79,9 +79,9 @@ function validateApiKey(key: string): boolean {
 const POSTHOG_CONFIG = {
   api_host: env.POSTHOG_HOST || 'https://us.i.posthog.com',
   // Minimal configuration to reduce impact
-  autocapture: false, // Disable autocapture to reduce overhead
-  capture_pageview: false, // We'll manually track page views if needed
-  capture_pageleave: false, // Disable automatic page leave tracking
+  autocapture: !env.DEV, // Enable autocapture in production
+  capture_pageview: true, // Track page views
+  capture_pageleave: true, // Track page leaves
   disable_session_recording: true, // No session recording for performance
   advanced_disable_decide: true, // Disable feature flag evaluation
   disable_surveys: true, // No surveys
@@ -91,7 +91,10 @@ const POSTHOG_CONFIG = {
   },
   loaded: () => {
     // Callback when PostHog is loaded
-    console.log('PostHog loaded successfully');
+    console.log('[PostHog] Initialized successfully for', window.location.hostname);
+    if (window.location.hostname === 'localhost') {
+      console.log('[PostHog] Note: Events may not be sent in development mode');
+    }
   },
 };
 
