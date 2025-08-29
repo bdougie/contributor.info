@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Sparkles, Lightbulb, Target, Zap, CheckCircle, Brain } from '@/components/ui/icon';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,8 +7,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { llmService, type LLMInsight } from '@/lib/llm';
 import { calculateHealthMetrics, type HealthMetrics } from '@/lib/insights/health-metrics';
-import { calculatePrActivityMetrics } from '@/lib/insights/pr-activity-metrics';
-import { calculateTrendMetrics } from '@/lib/insights/trends-metrics';
+import {
+  calculatePrActivityMetrics,
+  type ActivityMetrics,
+} from '@/lib/insights/pr-activity-metrics';
+import { calculateTrendMetrics, type TrendData } from '@/lib/insights/trends-metrics';
 
 interface Recommendation {
   id: string;
@@ -39,11 +42,7 @@ export function Recommendations({ owner, repo, timeRange }: RecommendationsProps
   const [llmInsight, setLlmInsight] = useState<LLMInsight | null>(null);
   const [llmLoading, setLlmLoading] = useState(false);
 
-  useEffect(() => {
-    loadRecommendations();
-  }, [owner, repo, timeRange]);
-
-  const loadRecommendations = async () => {
+  const loadRecommendations = useCallback(async () => {
     setLoading(true);
     setLlmInsight(null);
 
@@ -71,19 +70,27 @@ export function Recommendations({ owner, repo, timeRange }: RecommendationsProps
     } finally {
       setLoading(false);
     }
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [owner, repo, timeRange]);
 
   const loadLLMRecommendations = async (
     healthData: HealthMetrics,
-    activityData: unknown,
-    trendsData: unknown[]
+    activityData: ActivityMetrics,
+    trendsData: TrendData[]
   ) => {
     setLlmLoading(true);
     try {
       const combinedData = {
         health: healthData,
-        activity: activityData,
-        trends: trendsData,
+        activity: {
+          weeklyVelocity: activityData.velocity.current,
+          contributors: activityData.topContributors.length,
+        },
+        trends: trendsData.map((t) => ({
+          metric: t.metric,
+          change: t.change,
+          period: t.unit,
+        })),
       };
 
       const insight = await llmService.generateRecommendations(combinedData, { owner, repo });
@@ -96,10 +103,14 @@ export function Recommendations({ owner, repo, timeRange }: RecommendationsProps
     }
   };
 
+  useEffect(() => {
+    loadRecommendations();
+  }, [loadRecommendations]);
+
   const generateRuleBasedRecommendations = (
-    healthData: any,
-    activityData: any,
-    trendsData: any[]
+    healthData: HealthMetrics,
+    activityData: ActivityMetrics,
+    trendsData: TrendData[]
   ): Recommendation[] => {
     const recommendations: Recommendation[] = [];
 
@@ -125,7 +136,7 @@ export function Recommendations({ owner, repo, timeRange }: RecommendationsProps
     }
 
     // Activity-based recommendations
-    if (activityData.weeklyVelocity < 5) {
+    if (activityData.velocity.current < 5) {
       recommendations.push({
         id: 'velocity-low',
         type: 'process',
@@ -358,22 +369,30 @@ export function Recommendations({ owner, repo, timeRange }: RecommendationsProps
             )}
           </div>
 
-          {llmLoading ? (
-            <div className="space-y-2">
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-4/5" />
-              <Skeleton className="h-4 w-3/4" />
-            </div>
-          ) : llmInsight ? (
-            <div className="space-y-3">
-              <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
-                {llmInsight.content}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Generated {new Date(llmInsight.timestamp).toLocaleTimeString()}
-              </p>
-            </div>
-          ) : null}
+          {(() => {
+            if (llmLoading) {
+              return (
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-4/5" />
+                  <Skeleton className="h-4 w-3/4" />
+                </div>
+              );
+            }
+            if (llmInsight) {
+              return (
+                <div className="space-y-3">
+                  <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
+                    {llmInsight.content}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Generated {new Date(llmInsight.timestamp).toLocaleTimeString()}
+                  </p>
+                </div>
+              );
+            }
+            return null;
+          })()}
         </Card>
       )}
 
