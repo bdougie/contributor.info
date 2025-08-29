@@ -2,8 +2,10 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.39.1';
 import { corsHeaders } from '../_shared/cors.ts';
 
-// Use OPENAI_API_KEY instead of VITE_ prefixed key for edge functions
+// Environment variables
 const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+const posthogApiKey = Deno.env.get('POSTHOG_API_KEY');
+const posthogHost = Deno.env.get('POSTHOG_HOST') || 'https://us.i.posthog.com';
 
 interface PullRequest {
   title: string;
@@ -12,6 +14,29 @@ interface PullRequest {
   merged_at: string | null;
   number: number;
   html_url: string;
+}
+
+/**
+ * Calculate estimated cost based on usage and model
+ */
+function calculateCost(usage: any, model: string): number {
+  if (!usage) return 0;
+
+  // OpenAI pricing per 1M tokens (as of 2025)
+  const pricing: Record<string, { input: number; output: number }> = {
+    'gpt-4o': { input: 2.50, output: 10.00 },
+    'gpt-4o-mini': { input: 0.15, output: 0.60 },
+    'gpt-4-turbo': { input: 10.00, output: 30.00 },
+    'gpt-4': { input: 30.00, output: 60.00 },
+    'gpt-3.5-turbo': { input: 0.50, output: 1.50 },
+    'gpt-4-1106-preview': { input: 10.00, output: 30.00 }, // Fallback for older model
+  };
+
+  const modelPricing = pricing[model] || pricing['gpt-4o-mini']; // fallback
+  const inputCost = (usage.prompt_tokens / 1000000) * modelPricing.input;
+  const outputCost = (usage.completion_tokens / 1000000) * modelPricing.output;
+
+  return parseFloat((inputCost + outputCost).toFixed(6));
 }
 
 serve(async (req) => {
@@ -30,7 +55,7 @@ serve(async (req) => {
     const body = await req.json();
     console.log('Request body:', JSON.stringify(body, null, 2));
 
-    const { pullRequests } = body;
+    const { pullRequests, repository, userId } = body;
 
     // Validate OpenAI API key with more specific error message
     if (!openaiApiKey) {
@@ -79,6 +104,29 @@ Provide a markdown-formatted analysis that includes:
 Format the response in clear markdown sections.`;
 
     console.log('Sending request to OpenAI API');
+
+    // Initialize PostHog client if available
+    let posthogClient = null;
+    if (posthogApiKey) {
+      try {
+        const posthogModule = await import('npm:posthog-node');
+        const PostHogClass = posthogModule.PostHog || (posthogModule as any).default?.PostHog;
+        
+        if (!PostHogClass) {
+          throw new Error('PostHog class not found');
+        }
+        
+        posthogClient = new PostHogClass(posthogApiKey, { 
+          host: posthogHost,
+        });
+        console.log('PostHog initialized for tracking');
+      } catch (error) {
+        console.warn('PostHog initialization failed - install posthog-node for tracking:', error);
+      }
+    }
+
+    const startTime = Date.now();
+    const traceId = `edge-insights-${Date.now()}`;
 
     try {
       // Call OpenAI API with improved error handling and timeout
@@ -138,6 +186,43 @@ Format the response in clear markdown sections.`;
       }
 
       const insights = data.choices[0].message.content;
+      const latency = Date.now() - startTime;
+
+      // Track the successful LLM call with PostHog
+      if (posthogClient) {
+        try {
+          const cost = calculateCost(data.usage, data.model);
+          
+          posthogClient.capture({
+            distinctId: userId || 'anonymous',
+            event: '$ai_generation',
+            properties: {
+              $ai_model: data.model,
+              $ai_input_tokens: data.usage?.prompt_tokens,
+              $ai_output_tokens: data.usage?.completion_tokens,
+              $ai_total_tokens: data.usage?.total_tokens,
+              $ai_cost_dollars: cost,
+              $ai_latency_ms: latency,
+              $ai_provider: 'openai',
+              
+              // Custom properties
+              feature: 'pr-insights',
+              repository: repository,
+              trace_id: traceId,
+              pull_request_count: pullRequests.length,
+              open_pr_count: openPRs.length,
+              merged_pr_count: mergedPRs.length,
+              function_type: 'edge_function',
+            },
+          });
+
+          await posthogClient.shutdown();
+          console.log('PostHog tracking completed');
+        } catch (trackingError) {
+          console.warn('PostHog tracking failed:', trackingError);
+        }
+      }
+
       console.log('Function completed successfully');
 
       return new Response(
@@ -150,6 +235,30 @@ Format the response in clear markdown sections.`;
         },
       );
     } catch (error) {
+      // Track the error with PostHog
+      if (posthogClient) {
+        try {
+          posthogClient.capture({
+            distinctId: userId || 'anonymous',
+            event: '$ai_generation_error',
+            properties: {
+              error_message: error.message,
+              error_type: error.constructor.name,
+              feature: 'pr-insights',
+              repository: repository,
+              trace_id: traceId,
+              pull_request_count: pullRequests?.length || 0,
+              function_type: 'edge_function',
+            },
+          });
+
+          await posthogClient.shutdown();
+          console.log('PostHog error tracking completed');
+        } catch (trackingError) {
+          console.warn('PostHog error tracking failed:', trackingError);
+        }
+      }
+
       if (error.name === 'AbortError') {
         throw new Error('OpenAI API request timed out after 30 seconds');
       }

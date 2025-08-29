@@ -1,15 +1,18 @@
 /**
  * LLM Service with caching and fallbacks
  * Manages multiple LLM providers and implements smart caching
+ * Now supports PostHog LLM analytics for comprehensive observability
  */
 
 import { openAIService, type LLMInsight } from './openai-service';
+import { posthogOpenAIService, type LLMCallMetadata } from './posthog-openai-service';
 import { cacheService } from './cache-service';
 
 export interface LLMServiceOptions {
   enableCaching: boolean;
   cacheExpiryMinutes: number;
   enableFallbacks: boolean;
+  enablePostHogTracking: boolean;
 }
 
 class LLMService {
@@ -20,6 +23,7 @@ class LLMService {
       enableCaching: true,
       cacheExpiryMinutes: 60, // 1 hour default
       enableFallbacks: true,
+      enablePostHogTracking: true,
       ...options,
     };
   }
@@ -28,15 +32,25 @@ class LLMService {
    * Check if any LLM service is available
    */
   isAvailable(): boolean {
-    return openAIService.isAvailable();
+    return this.options.enablePostHogTracking 
+      ? posthogOpenAIService.isAvailable() 
+      : openAIService.isAvailable();
   }
 
   /**
-   * Generate health insight with caching
+   * Check if PostHog tracking is enabled and available
+   */
+  isTrackingEnabled(): boolean {
+    return this.options.enablePostHogTracking && posthogOpenAIService.isTrackingEnabled();
+  }
+
+  /**
+   * Generate health insight with caching and optional PostHog tracking
    */
   async generateHealthInsight(
     healthData: any,
-    repoInfo: { owner: string; repo: string }
+    repoInfo: { owner: string; repo: string },
+    metadata?: LLMCallMetadata
   ): Promise<LLMInsight | null> {
     const cacheKey = this.buildCacheKey('health', repoInfo, healthData.score);
     const dataHash = this.generateDataHash(healthData);
@@ -49,9 +63,11 @@ class LLMService {
       }
     }
 
-    // Try OpenAI service
+    // Try OpenAI service (with or without PostHog tracking)
     try {
-      const insight = await openAIService.generateHealthInsight(healthData, repoInfo);
+      const insight = this.options.enablePostHogTracking
+        ? await posthogOpenAIService.generateHealthInsight(healthData, repoInfo, metadata)
+        : await openAIService.generateHealthInsight(healthData, repoInfo);
 
       if (insight && this.options.enableCaching) {
         cacheService.set(cacheKey, insight, dataHash);
@@ -75,11 +91,12 @@ class LLMService {
   }
 
   /**
-   * Generate recommendations with caching
+   * Generate recommendations with caching and optional PostHog tracking
    */
   async generateRecommendations(
     data: any,
-    repoInfo: { owner: string; repo: string }
+    repoInfo: { owner: string; repo: string },
+    metadata?: LLMCallMetadata
   ): Promise<LLMInsight | null> {
     const cacheKey = this.buildCacheKey('recommendations', repoInfo, data.health?.score || 0);
     const dataHash = this.generateDataHash(data);
@@ -92,9 +109,11 @@ class LLMService {
       }
     }
 
-    // Try OpenAI service
+    // Try OpenAI service (with or without PostHog tracking)
     try {
-      const insight = await openAIService.generateRecommendations(data, repoInfo);
+      const insight = this.options.enablePostHogTracking
+        ? await posthogOpenAIService.generateRecommendations(data, repoInfo, metadata)
+        : await openAIService.generateRecommendations(data, repoInfo);
 
       if (insight && this.options.enableCaching) {
         cacheService.set(cacheKey, insight, dataHash);
@@ -118,11 +137,12 @@ class LLMService {
   }
 
   /**
-   * Analyze PR patterns with caching
+   * Analyze PR patterns with caching and optional PostHog tracking
    */
   async analyzePRPatterns(
     prData: any[],
-    repoInfo: { owner: string; repo: string }
+    repoInfo: { owner: string; repo: string },
+    metadata?: LLMCallMetadata
   ): Promise<LLMInsight | null> {
     const cacheKey = this.buildCacheKey('patterns', repoInfo, prData.length);
     const dataHash = this.generateDataHash(prData);
@@ -135,9 +155,11 @@ class LLMService {
       }
     }
 
-    // Try OpenAI service
+    // Try OpenAI service (with or without PostHog tracking)
     try {
-      const insight = await openAIService.analyzePRPatterns(prData, repoInfo);
+      const insight = this.options.enablePostHogTracking
+        ? await posthogOpenAIService.analyzePRPatterns(prData, repoInfo, metadata)
+        : await openAIService.analyzePRPatterns(prData, repoInfo);
 
       if (insight && this.options.enableCaching) {
         cacheService.set(cacheKey, insight, dataHash);
@@ -304,5 +326,14 @@ class LLMService {
 // Export singleton instance
 export const llmService = new LLMService();
 
+/**
+ * Ensure proper shutdown of PostHog tracking
+ */
+export const shutdownLLMService = async (): Promise<void> => {
+  if (posthogOpenAIService) {
+    await posthogOpenAIService.shutdown();
+  }
+};
+
 // Export types
-export type { LLMInsight };
+export type { LLMInsight, LLMCallMetadata };
