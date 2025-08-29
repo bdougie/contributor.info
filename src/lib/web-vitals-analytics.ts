@@ -36,7 +36,7 @@ interface PerformanceAlert {
 
 class WebVitalsAnalytics {
   private sessionId: string;
-  private providers: Set<AnalyticsProvider> = new Set(['supabase']);
+  private providers: Set<AnalyticsProvider> = new Set(['supabase', 'posthog']);
   private alertThresholds: Map<string, { warning: number; critical: number }> = new Map([
     ['LCP', { warning: 2500, critical: 4000 }],
     ['INP', { warning: 200, critical: 500 }],
