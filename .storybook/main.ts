@@ -74,11 +74,17 @@ const config: StorybookConfig = {
   async viteFinal(config) {
     // Merge custom configuration into the default config
     return mergeConfig(config, {
-      // Workaround for Rollup 4.45.0 bug with nested conditional expressions
-      // Same issue as main build - treeshaking fails on nested ternaries
+      // Re-enable tree shaking after nested ternary refactoring (PRs #574, #592, #594, #595)
+      // Tree shaking now safe to use with utility function patterns
       build: {
         rollupOptions: {
-          treeshake: false,
+          treeshake: {
+            moduleSideEffects: true,
+            propertyReadSideEffects: true,
+            tryCatchDeoptimization: false,
+            unknownGlobalSideEffects: true,
+            correctVarValueBeforeDeclaration: false,
+          },
         },
       },
       resolve: {
