@@ -38,7 +38,7 @@ class PostHogOpenAIService {
   private baseUrl = 'https://api.openai.com/v1';
   private config: LLMServiceConfig;
   private posthogConfig: PostHogConfig;
-  private posthogClient: any = null; // Will be dynamically imported
+  private posthogClient: unknown = null; // Will be dynamically imported
 
   constructor() {
     // Handle both Vite and Node.js environments
@@ -54,7 +54,10 @@ class PostHogOpenAIService {
 
     this.posthogConfig = {
       apiKey: import.meta.env?.VITE_POSTHOG_API_KEY || process.env.POSTHOG_API_KEY,
-      host: import.meta.env?.VITE_POSTHOG_HOST || process.env.POSTHOG_HOST || 'https://us.i.posthog.com',
+      host:
+        import.meta.env?.VITE_POSTHOG_HOST ||
+        process.env.POSTHOG_HOST ||
+        'https://us.i.posthog.com',
       enableTracking: !!(import.meta.env?.VITE_POSTHOG_API_KEY || process.env.POSTHOG_API_KEY),
       enablePrivacyMode: false, // Set to true to prevent capturing conversation content
     };
@@ -84,7 +87,7 @@ class PostHogOpenAIService {
       if (!posthogModule) {
         throw new Error('posthog-node not available');
       }
-      
+
       this.posthogClient = posthogModule;
       console.log('PostHog LLM analytics initialized');
     } catch (error) {
@@ -96,21 +99,26 @@ class PostHogOpenAIService {
   /**
    * Load PostHog module dynamically
    */
-  private async loadPostHogModule(): Promise<any> {
+
+  private async loadPostHogModule(): Promise<unknown> {
     try {
-      // Use Function constructor to avoid static analysis by bundlers
-      const dynamicImport = new Function('moduleName', 'return import(moduleName)');
-      const posthogModule = await dynamicImport('posthog-node');
-      
+      // Dynamic import with explicit module name for security
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const posthogModule = await (globalThis as any).import('posthog-node');
+
       const PostHogClass = posthogModule.PostHog || posthogModule.default?.PostHog;
       if (!PostHogClass) {
-        throw new Error('PostHog class not found');
+        throw new Error('PostHog class not found in module');
       }
-      
+
       return new PostHogClass(this.posthogConfig.apiKey, {
         host: this.posthogConfig.host,
       });
     } catch (error) {
+      console.warn(
+        'Failed to initialize PostHog client:',
+        error instanceof Error ? error.message : 'Unknown error'
+      );
       return null;
     }
   }
@@ -155,15 +163,11 @@ class PostHogOpenAIService {
     const model = this.selectModel('health');
 
     try {
-      const result = await this.callOpenAI(
-        prompt,
-        model,
-        {
-          feature: 'health-insight',
-          repository: `${repoInfo.owner}/${repoInfo.repo}`,
-          ...metadata,
-        }
-      );
+      const result = await this.callOpenAI(prompt, model, {
+        feature: 'health-insight',
+        repository: `${repoInfo.owner}/${repoInfo.repo}`,
+        ...metadata,
+      });
 
       return {
         type: 'health',
@@ -182,9 +186,9 @@ class PostHogOpenAIService {
    */
   async generateRecommendations(
     data: {
-      health: any;
-      trends: any[];
-      activity: any;
+      health: { score: number; trend?: string };
+      trends: Array<{ metric: string; change: number; period?: string }>;
+      activity: { weeklyVelocity?: number; contributors?: number };
     },
     repoInfo: { owner: string; repo: string },
     metadata?: LLMCallMetadata
@@ -197,15 +201,11 @@ class PostHogOpenAIService {
     const model = this.selectModel('recommendation');
 
     try {
-      const result = await this.callOpenAI(
-        prompt,
-        model,
-        {
-          feature: 'recommendations',
-          repository: `${repoInfo.owner}/${repoInfo.repo}`,
-          ...metadata,
-        }
-      );
+      const result = await this.callOpenAI(prompt, model, {
+        feature: 'recommendations',
+        repository: `${repoInfo.owner}/${repoInfo.repo}`,
+        ...metadata,
+      });
 
       return {
         type: 'recommendation',
@@ -223,7 +223,14 @@ class PostHogOpenAIService {
    * Analyze PR patterns with PostHog tracking
    */
   async analyzePRPatterns(
-    prData: any[],
+    prData: Array<{
+      merged_at: string | null;
+      additions: number;
+      deletions: number;
+      created_at?: string;
+      closed_at?: string | null;
+      review_comments?: number;
+    }>,
     repoInfo: { owner: string; repo: string },
     metadata?: LLMCallMetadata
   ): Promise<LLMInsight | null> {
@@ -235,15 +242,11 @@ class PostHogOpenAIService {
     const model = this.selectModel('pattern');
 
     try {
-      const result = await this.callOpenAI(
-        prompt,
-        model,
-        {
-          feature: 'pr-pattern-analysis',
-          repository: `${repoInfo.owner}/${repoInfo.repo}`,
-          ...metadata,
-        }
-      );
+      const result = await this.callOpenAI(prompt, model, {
+        feature: 'pr-pattern-analysis',
+        repository: `${repoInfo.owner}/${repoInfo.repo}`,
+        ...metadata,
+      });
 
       return {
         type: 'pattern',
@@ -265,6 +268,11 @@ class PostHogOpenAIService {
     model?: string,
     metadata?: LLMCallMetadata
   ): Promise<LLMCallResult> {
+    // Input validation
+    if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
+      throw new Error('Invalid prompt: must be a non-empty string');
+    }
+
     if (!this.apiKey) {
       throw new Error('OpenAI API key not configured');
     }
@@ -285,7 +293,7 @@ class PostHogOpenAIService {
     try {
       // Try to use PostHog-wrapped OpenAI client if available
       if (this.isTrackingEnabled()) {
-        return await this.callOpenAIWithPostHog(prompt, model, metadata, controller);
+        return await this.callOpenAIWithPostHog(prompt, model, metadata);
       }
 
       // Fallback to direct OpenAI API call
@@ -369,8 +377,7 @@ class PostHogOpenAIService {
   private async callOpenAIWithPostHog(
     prompt: string,
     model: string | undefined,
-    metadata: LLMCallMetadata | undefined,
-    _controller: AbortController
+    metadata: LLMCallMetadata | undefined
   ): Promise<LLMCallResult> {
     try {
       // Load PostHog OpenAI wrapper dynamically
@@ -380,7 +387,7 @@ class PostHogOpenAIService {
       }
 
       const startTime = Date.now();
-      
+
       const completion = await client.chat.completions.create({
         model: model || this.config.model,
         messages: [
@@ -396,7 +403,7 @@ class PostHogOpenAIService {
         ],
         max_tokens: this.config.maxTokens,
         temperature: this.config.temperature,
-        
+
         // PostHog tracking metadata
         posthogDistinctId: metadata?.userId || 'anonymous',
         posthogTraceId: metadata?.traceId || `trace-${Date.now()}`,
@@ -406,7 +413,9 @@ class PostHogOpenAIService {
           repository: metadata?.repository,
           privacy_mode: this.posthogConfig.enablePrivacyMode,
         },
-        posthogGroups: metadata?.organizationId ? { organization: metadata.organizationId } : undefined,
+        posthogGroups: metadata?.organizationId
+          ? { organization: metadata.organizationId }
+          : undefined,
       });
 
       const latency = Date.now() - startTime;
@@ -419,7 +428,10 @@ class PostHogOpenAIService {
         cost: this.calculateCost(completion.usage, completion.model),
       };
     } catch (error) {
-      console.warn('PostHog OpenAI wrapper not available - install @posthog/ai for automatic tracking. Falling back to manual tracking:', error);
+      console.warn(
+        'PostHog OpenAI wrapper not available - install @posthog/ai for automatic tracking. Falling back to manual tracking:',
+        error
+      );
       throw error;
     }
   }
@@ -427,22 +439,22 @@ class PostHogOpenAIService {
   /**
    * Load PostHog OpenAI client dynamically
    */
-  private async loadPostHogOpenAIClient(): Promise<any> {
+  private async loadPostHogOpenAIClient(): Promise<unknown> {
     try {
-      // Use Function constructor to avoid static analysis by bundlers
-      const dynamicImport = new Function('moduleName', 'return import(moduleName)');
-      const posthogAiModule = await dynamicImport('@posthog/ai');
-      
+      // Dynamic import with explicit module name for security
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const posthogAiModule = await (globalThis as any).import('@posthog/ai');
+
       const OpenAIClass = posthogAiModule.OpenAI || posthogAiModule.default?.OpenAI;
       if (!OpenAIClass) {
         throw new Error('PostHog OpenAI wrapper not found');
       }
-      
+
       return new OpenAIClass({
         apiKey: this.apiKey,
         posthog: this.posthogClient,
       });
-    } catch (error) {
+    } catch {
       return null;
     }
   }
@@ -467,7 +479,7 @@ class PostHogOpenAIService {
           $ai_provider: 'openai',
           $ai_input: this.posthogConfig.enablePrivacyMode ? '[REDACTED]' : prompt,
           $ai_output: this.posthogConfig.enablePrivacyMode ? '[REDACTED]' : result.content,
-          
+
           // Custom properties
           feature: metadata.feature,
           repository: metadata.repository,
@@ -484,7 +496,7 @@ class PostHogOpenAIService {
   /**
    * Track LLM errors
    */
-  private trackLLMError(error: any, metadata: LLMCallMetadata, prompt: string): void {
+  private trackLLMError(error: unknown, metadata: LLMCallMetadata, prompt: string): void {
     if (!this.posthogClient) return;
 
     try {
@@ -510,16 +522,19 @@ class PostHogOpenAIService {
   /**
    * Calculate estimated cost based on usage and model
    */
-  private calculateCost(usage: any, model: string): number {
+  private calculateCost(
+    usage: { prompt_tokens?: number; completion_tokens?: number } | null | undefined,
+    model: string
+  ): number {
     if (!usage) return 0;
 
     // OpenAI pricing per 1M tokens (as of 2025)
     const pricing: Record<string, { input: number; output: number }> = {
-      'gpt-4o': { input: 2.50, output: 10.00 },
-      'gpt-4o-mini': { input: 0.15, output: 0.60 },
-      'gpt-4-turbo': { input: 10.00, output: 30.00 },
-      'gpt-4': { input: 30.00, output: 60.00 },
-      'gpt-3.5-turbo': { input: 0.50, output: 1.50 },
+      'gpt-4o': { input: 2.5, output: 10.0 },
+      'gpt-4o-mini': { input: 0.15, output: 0.6 },
+      'gpt-4-turbo': { input: 10.0, output: 30.0 },
+      'gpt-4': { input: 30.0, output: 60.0 },
+      'gpt-3.5-turbo': { input: 0.5, output: 1.5 },
     };
 
     const modelPricing = pricing[model] || pricing['gpt-4o-mini']; // fallback
@@ -547,13 +562,16 @@ class PostHogOpenAIService {
   /**
    * Build prompt for health assessment
    */
-  private buildHealthPrompt(healthData: any, repoInfo: { owner: string; repo: string }): string {
+  private buildHealthPrompt(
+    healthData: HealthData,
+    repoInfo: { owner: string; repo: string }
+  ): string {
     return `Analyze the health of repository ${repoInfo.owner}/${repoInfo.repo}:
 
 Health Score: ${healthData.score}/100 (${healthData.trend})
 
 Factors:
-${healthData.factors.map((f: any) => `- ${f.name}: ${f.score}/100 (${f.status}) - ${f.description}`).join('\n')}
+${healthData.factors.map((f: { name: string; score: number; status: string; description: string }) => `- ${f.name}: ${f.score}/100 (${f.status}) - ${f.description}`).join('\n')}
 
 Current Recommendations:
 ${healthData.recommendations.map((r: string) => `- ${r}`).join('\n')}
@@ -570,11 +588,14 @@ Include insights about development workflow effectiveness, review patterns, and 
   /**
    * Build prompt for recommendations
    */
-  private buildRecommendationPrompt(data: any, repoInfo: { owner: string; repo: string }): string {
+  private buildRecommendationPrompt(
+    data: RecommendationData,
+    repoInfo: { owner: string; repo: string }
+  ): string {
     return `Based on ${repoInfo.owner}/${repoInfo.repo} repository data, provide 3 specific, actionable recommendations:
 
 Health: ${data.health.score}/100
-Trends: ${data.trends.map((t: any) => `${t.metric}: ${t.change > 0 ? '+' : ''}${t.change}%`).join(', ')}
+Trends: ${data.trends.map((t: { metric: string; change: number }) => `${t.metric}: ${t.change > 0 ? '+' : ''}${t.change}%`).join(', ')}
 Activity: ${data.activity.weeklyVelocity} PRs/week
 
 Analyze workflow patterns and provide recommendations for:
@@ -588,7 +609,7 @@ Focus on specific, measurable steps that address both metrics and development wo
   /**
    * Build prompt for pattern analysis
    */
-  private buildPatternPrompt(prData: any[], repoInfo: { owner: string; repo: string }): string {
+  private buildPatternPrompt(prData: PRData[], repoInfo: { owner: string; repo: string }): string {
     const totalPRs = prData.length;
     const merged = prData.filter((pr) => pr.merged_at).length;
     const avgSize = prData.reduce((sum, pr) => sum + (pr.additions + pr.deletions), 0) / totalPRs;

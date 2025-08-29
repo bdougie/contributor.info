@@ -8,6 +8,9 @@ import { openAIService, type LLMInsight } from './openai-service';
 import { posthogOpenAIService, type LLMCallMetadata } from './posthog-openai-service';
 import { cacheService } from './cache-service';
 
+// Re-export types from posthog-openai-service
+import type { HealthData, RecommendationData, PRData } from './posthog-openai-service';
+
 export interface LLMServiceOptions {
   enableCaching: boolean;
   cacheExpiryMinutes: number;
@@ -32,8 +35,8 @@ class LLMService {
    * Check if any LLM service is available
    */
   isAvailable(): boolean {
-    return this.options.enablePostHogTracking 
-      ? posthogOpenAIService.isAvailable() 
+    return this.options.enablePostHogTracking
+      ? posthogOpenAIService.isAvailable()
       : openAIService.isAvailable();
   }
 
@@ -48,7 +51,7 @@ class LLMService {
    * Generate health insight with caching and optional PostHog tracking
    */
   async generateHealthInsight(
-    healthData: any,
+    healthData: HealthData,
     repoInfo: { owner: string; repo: string },
     metadata?: LLMCallMetadata
   ): Promise<LLMInsight | null> {
@@ -94,7 +97,7 @@ class LLMService {
    * Generate recommendations with caching and optional PostHog tracking
    */
   async generateRecommendations(
-    data: any,
+    data: RecommendationData,
     repoInfo: { owner: string; repo: string },
     metadata?: LLMCallMetadata
   ): Promise<LLMInsight | null> {
@@ -140,7 +143,7 @@ class LLMService {
    * Analyze PR patterns with caching and optional PostHog tracking
    */
   async analyzePRPatterns(
-    prData: any[],
+    prData: PRData[],
     repoInfo: { owner: string; repo: string },
     metadata?: LLMCallMetadata
   ): Promise<LLMInsight | null> {
@@ -224,7 +227,7 @@ class LLMService {
   /**
    * Generate hash from data for cache invalidation
    */
-  private generateDataHash(data: any): string {
+  private generateDataHash(data: HealthData | RecommendationData | PRData[]): string {
     // Simple hash function for data changes detection
     const dataString = JSON.stringify(data);
     let hash = 0;
@@ -239,7 +242,7 @@ class LLMService {
   /**
    * Generate fallback health insight when LLM fails
    */
-  private generateFallbackHealthInsight(healthData: any): LLMInsight {
+  private generateFallbackHealthInsight(healthData: HealthData): LLMInsight {
     let content = '';
 
     if (healthData.score >= 80) {
@@ -254,7 +257,10 @@ class LLMService {
     }
 
     // Add specific recommendations from the data
-    const criticalFactors = healthData.factors?.filter((f: any) => f.status === 'critical') || [];
+    const criticalFactors =
+      healthData.factors?.filter(
+        (f: { status: string; name: string }) => f.status === 'critical'
+      ) || [];
     if (criticalFactors.length > 0) {
       content += ` Priority: ${criticalFactors[0].name.toLowerCase()}.`;
     }
@@ -270,7 +276,7 @@ class LLMService {
   /**
    * Generate fallback recommendations when LLM fails
    */
-  private generateFallbackRecommendations(data: any): LLMInsight {
+  private generateFallbackRecommendations(data: RecommendationData): LLMInsight {
     const recommendations = [];
 
     if (data.health?.score < 70) {
@@ -299,9 +305,9 @@ class LLMService {
   /**
    * Generate fallback pattern insight when LLM fails
    */
-  private generateFallbackPatternInsight(prData: any[]): LLMInsight {
+  private generateFallbackPatternInsight(prData: Array<{ merged_at: string | null }>): LLMInsight {
     const totalPRs = prData.length;
-    const merged = prData.filter((pr: any) => pr.merged_at).length;
+    const merged = prData.filter((pr) => pr.merged_at).length;
     const mergeRate = totalPRs > 0 ? Math.round((merged / totalPRs) * 100) : 0;
 
     let content = `Analyzed ${totalPRs} PRs with ${mergeRate}% merge rate. `;
