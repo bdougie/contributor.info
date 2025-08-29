@@ -140,7 +140,11 @@ const MetricCard = memo(
           <p
             className={cn(
               'text-xs',
-              change > 0 ? 'text-green-600' : change < 0 ? 'text-red-600' : 'text-muted-foreground'
+              (() => {
+                if (change > 0) return 'text-green-600';
+                if (change < 0) return 'text-red-600';
+                return 'text-muted-foreground';
+              })()
             )}
           >
             {change > 0 ? '+' : ''}
@@ -190,7 +194,7 @@ export const AnalyticsDashboard = memo(
 
         announce(`Export completed successfully`);
       } catch (error) {
-        console.error('Export failed:', error);
+        console.error('%s %o', 'Export failed:', error);
         announce(`Export failed. Please try again.`);
       }
     };
