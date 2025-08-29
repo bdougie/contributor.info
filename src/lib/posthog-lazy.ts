@@ -5,9 +5,20 @@
 
 import { env } from './env';
 
+// Type definition for PostHog instance methods we use
+interface PostHogInstance {
+  capture: (eventName: string, properties?: Record<string, unknown>) => void;
+  identify: (userId: string, properties?: Record<string, unknown>) => void;
+  opt_out_capturing: () => void;
+  opt_in_capturing: () => void;
+  people: {
+    set: (properties: Record<string, unknown>) => void;
+  };
+}
+
 // PostHog instance cache
-let posthogInstance: unknown = null;
-let posthogLoadPromise: Promise<unknown> | null = null;
+let posthogInstance: PostHogInstance | null = null;
+let posthogLoadPromise: Promise<PostHogInstance | null> | null = null;
 
 // Rate limiting for events
 const rateLimiter = {
@@ -135,7 +146,7 @@ function shouldEnablePostHog(): boolean {
 /**
  * Lazy load PostHog library
  */
-async function loadPostHog(): Promise<unknown> {
+async function loadPostHog(): Promise<PostHogInstance | null> {
   if (!shouldEnablePostHog()) {
     return null;
   }
@@ -160,8 +171,8 @@ async function loadPostHog(): Promise<unknown> {
       // This uses anonymous events which are 4x cheaper
       // Note: We only call posthog.identify() after user login/signup
 
-      posthogInstance = posthog;
-      return posthog;
+      posthogInstance = posthog as PostHogInstance;
+      return posthog as PostHogInstance;
     })
     .catch((error) => {
       console.error('Failed to load PostHog:', error);
@@ -368,7 +379,7 @@ export async function optInToPostHog(): Promise<void> {
 /**
  * Get PostHog instance (if loaded)
  */
-export function getPostHogInstance(): unknown {
+export function getPostHogInstance(): PostHogInstance | null {
   return posthogInstance;
 }
 
