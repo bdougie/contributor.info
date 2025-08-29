@@ -26,6 +26,7 @@ describe('LLM Service', () => {
   beforeEach(() => {
     // Reset all mocks before each test
     vi.clearAllMocks();
+    vi.resetModules();
 
     // Set up default mock implementations
     mockOpenAIService.isAvailable.mockReturnValue(true);
@@ -50,6 +51,10 @@ describe('LLM Service', () => {
 
     // Clear the LLM service cache
     llmService.clearCache();
+  });
+
+  afterAll(() => {
+    vi.restoreAllMocks();
   });
 
   describe('Service Availability', () => {
