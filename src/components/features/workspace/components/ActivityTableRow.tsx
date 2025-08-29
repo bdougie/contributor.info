@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import { memo } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -33,7 +33,9 @@ export const TYPE_COLORS = {
   review: 'bg-purple-500/10 text-purple-700 dark:text-purple-400',
 };
 
-export const STATUS_COLORS = {
+type StatusType = 'open' | 'merged' | 'closed' | 'approved' | 'changes_requested';
+
+export const STATUS_COLORS: Record<StatusType, string> = {
   open: 'bg-blue-500/10 text-blue-700 dark:text-blue-400',
   merged: 'bg-purple-500/10 text-purple-700 dark:text-purple-400',
   closed: 'bg-gray-500/10 text-gray-700 dark:text-gray-400',
@@ -59,7 +61,8 @@ export const ActivityTableRow = memo(({ activity, style }: ActivityTableRowProps
     }
   };
 
-  const getStatusLabel = (status: string) => {
+  const getStatusLabel = (status: string | undefined) => {
+    if (!status) return 'Unknown';
     return status
       .split('_')
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
@@ -102,9 +105,6 @@ export const ActivityTableRow = memo(({ activity, style }: ActivityTableRowProps
           {/* Activity Title */}
           <div className="flex-1 min-w-0" role="cell">
             <div className="truncate font-medium">{activity.title}</div>
-            {activity.description && (
-              <div className="truncate text-sm text-muted-foreground">{activity.description}</div>
-            )}
           </div>
 
           {/* Author */}
@@ -115,7 +115,7 @@ export const ActivityTableRow = memo(({ activity, style }: ActivityTableRowProps
                   <div className="flex items-center gap-2 cursor-help">
                     <Avatar className="h-6 w-6">
                       <AvatarImage
-                        src={activity.author.avatar}
+                        src={activity.author.avatar_url || ''}
                         alt={`${activity.author.username}'s avatar`}
                       />
                       <AvatarFallback>
@@ -143,7 +143,7 @@ export const ActivityTableRow = memo(({ activity, style }: ActivityTableRowProps
           <div className="flex-shrink-0 w-24" role="cell">
             <Badge
               variant="outline"
-              className={cn('text-xs', STATUS_COLORS[activity.status])}
+              className={cn('text-xs', STATUS_COLORS[activity.status as StatusType] || '')}
               aria-label={`Status: ${getStatusLabel(activity.status)}`}
             >
               {getStatusLabel(activity.status)}

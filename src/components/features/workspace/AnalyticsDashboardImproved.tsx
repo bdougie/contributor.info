@@ -25,9 +25,9 @@ import type { WorkspaceRepositoryWithDetails } from '@/types/workspace';
 const ActivityTable = lazy(() =>
   import('./ActivityTableRefactored').then((m) => ({ default: m.ActivityTable }))
 );
-const ContributorLeaderboard = lazy(() => import('./ContributorLeaderboard'));
-const RepositoryComparison = lazy(() => import('./RepositoryComparison'));
-const ActivityChart = lazy(() => import('./ActivityChart'));
+const ContributorLeaderboard = lazy(() => import('./ContributorLeaderboard').then(m => ({ default: m.ContributorLeaderboard })));
+const RepositoryComparison = lazy(() => import('./RepositoryComparison').then(m => ({ default: m.RepositoryComparison })));
+const ActivityChart = lazy(() => import('./ActivityChart').then(m => ({ default: m.ActivityChart })));
 
 // Type definitions
 export interface AnalyticsData {
@@ -44,7 +44,7 @@ export interface ActivityItem {
   description?: string;
   author: {
     username: string;
-    avatar?: string;
+    avatar_url?: string;
   };
   repository: string;
   created_at: string;
@@ -163,11 +163,7 @@ export const AnalyticsDashboard = memo(
     onExport,
     className,
   }: AnalyticsDashboardProps) => {
-    const [timeRange, setTimeRange] = useState<TimeRange>({
-      start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-      end: new Date(),
-      period: '30d',
-    });
+    const [timeRange, setTimeRange] = useState<TimeRange>('30d');
     const [activeTab, setActiveTab] = useState<
       'overview' | 'activity' | 'contributors' | 'repositories'
     >('overview');
@@ -181,7 +177,7 @@ export const AnalyticsDashboard = memo(
         announce(`Exporting data as ${format.toUpperCase()}`);
 
         if (format === 'csv') {
-          await exportToCSV(data.activities, 'analytics-export');
+          await exportToCSV(data.activities as unknown as Record<string, unknown>[], 'analytics-export');
         } else if (format === 'json') {
           await exportToJSON(data, 'analytics-export');
         } else if (format === 'pdf' && onExport) {
@@ -214,7 +210,7 @@ export const AnalyticsDashboard = memo(
             <TimeRangeSelector
               value={timeRange}
               onChange={setTimeRange}
-              maxDays={limits.historyDays}
+              tier={tier}
               aria-label="Select time range for analytics"
             />
 
@@ -286,7 +282,13 @@ export const AnalyticsDashboard = memo(
                 <AnalyticsErrorBoundary>
                   <Suspense fallback={<ChartSkeleton />}>
                     <ActivityChart
-                      data={data.trends}
+                      data={data.trends.map(trend => ({
+                        date: trend.data[0]?.date || new Date().toISOString(),
+                        additions: trend.data[0]?.value || 0,
+                        deletions: 0,
+                        commits: trend.data[0]?.value || 0,
+                        files_changed: 0
+                      }))}
                       title="Activity Trends"
                       description="Activity over time across all repositories"
                     />
@@ -297,7 +299,6 @@ export const AnalyticsDashboard = memo(
                   <Suspense fallback={<LeaderboardSkeleton />}>
                     <ContributorLeaderboard
                       contributors={data.contributors.slice(0, 5)}
-                      title="Top Contributors"
                     />
                   </Suspense>
                 </AnalyticsErrorBoundary>
@@ -318,8 +319,7 @@ export const AnalyticsDashboard = memo(
               <Suspense fallback={<LeaderboardSkeleton />}>
                 <ContributorLeaderboard
                   contributors={data.contributors}
-                  title="All Contributors"
-                  showAll
+                  maxDisplay={100}
                 />
               </Suspense>
             </AnalyticsErrorBoundary>
@@ -330,7 +330,6 @@ export const AnalyticsDashboard = memo(
               <Suspense fallback={<ChartSkeleton />}>
                 <RepositoryComparison
                   repositories={data.repositories}
-                  title="Repository Comparison"
                 />
               </Suspense>
             </AnalyticsErrorBoundary>

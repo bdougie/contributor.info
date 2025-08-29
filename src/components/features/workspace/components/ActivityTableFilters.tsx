@@ -30,7 +30,7 @@ export const ActivityTableFilters = memo(
     const debouncedSearch = useCallback(
       debounce((query: string) => {
         onSearchChange(query);
-      }, 300),
+      }, 300) as (query: string) => void,
       [onSearchChange]
     );
 

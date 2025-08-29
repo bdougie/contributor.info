@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import { memo } from 'react';
 import { Button } from '@/components/ui/button';
 import { ChevronUp, ChevronDown } from '@/components/ui/icon';
 

@@ -53,7 +53,7 @@ const ActivityTableContent = memo(
           case 'created_at':
             return new Date(item.created_at).getTime();
           default:
-            return (item as Record<string, unknown>)[key];
+            return (item as unknown as Record<string, unknown>)[key];
         }
       });
 
@@ -144,9 +144,11 @@ const ActivityTableContent = memo(
             ) : (
               <div
                 ref={(el) => {
-                  parentRef.current = el;
-                  if (containerRef.current !== el && el) {
-                    (containerRef as React.MutableRefObject<HTMLDivElement>).current = el;
+                  if (el) {
+                    (parentRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+                    if (containerRef.current !== el) {
+                      (containerRef as React.MutableRefObject<HTMLDivElement>).current = el;
+                    }
                   }
                 }}
                 className="h-[600px] w-full overflow-auto"

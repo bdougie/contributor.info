@@ -43,7 +43,7 @@ export function sortData<T>(
 }
 
 // Filtering utilities
-export function filterData<T>(data: T[], filters: FilterConfig, searchFields: (keyof T)[]): T[] {
+export function filterData<T extends object>(data: T[], filters: FilterConfig, searchFields: (keyof T)[]): T[] {
   return data.filter((item) => {
     // Search filter
     if (filters.search) {
@@ -175,7 +175,7 @@ export async function exportToCSV<T extends Record<string, unknown>>(
   URL.revokeObjectURL(link.href);
 }
 
-export async function exportToJSON<T>(data: T[], filename: string) {
+export async function exportToJSON<T>(data: T, filename: string) {
   const jsonContent = JSON.stringify(data, null, 2);
   const blob = new Blob([jsonContent], { type: 'application/json' });
   const link = document.createElement('a');
@@ -186,13 +186,13 @@ export async function exportToJSON<T>(data: T[], filename: string) {
 }
 
 // Debounce utility for search inputs
-export function debounce<T extends (...args: unknown[]) => unknown>(
-  func: T,
+export function debounce<Args extends unknown[]>(
+  func: (...args: Args) => void,
   delay: number
-): (...args: Parameters<T>) => void {
+): (...args: Args) => void {
   let timeoutId: NodeJS.Timeout;
 
-  return (...args: Parameters<T>) => {
+  return (...args: Args) => {
     clearTimeout(timeoutId);
     timeoutId = setTimeout(() => func(...args), delay);
   };

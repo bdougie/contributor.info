@@ -12,6 +12,30 @@ import type {
 } from '@/types/workspace';
 import { createSupabaseAdmin } from '@/lib/supabase-admin';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/types/database';
+
+// Type definitions for aggregation
+type Repository = Database['public']['Tables']['repositories']['Row'];
+
+interface AggregatedData {
+  totalPRs: number;
+  mergedPRs: number;
+  openPRs: number;
+  draftPRs: number;
+  totalIssues: number;
+  closedIssues: number;
+  openIssues: number;
+  totalCommits: number;
+  totalStars: number;
+  totalForks: number;
+  totalWatchers: number;
+  prMergeTimes: number[];
+  issueCloseTimes: number[];
+  languages: LanguageDistribution;
+  contributors: Map<string, MetricsContributor>;
+  activityByDate: Map<string, ActivityDataPoint>;
+  repositoryStats: RepositoryStat[];
+}
 
 export interface AggregationOptions {
   timeRange: MetricsTimeRange;
@@ -156,22 +180,12 @@ export class WorkspaceAggregationService {
   /**
    * Get all repositories in a workspace
    */
-  private async getWorkspaceRepositories(workspaceId: string) {
+  private async getWorkspaceRepositories(workspaceId: string): Promise<Repository[]> {
     const { data, error } = await this.supabase!.from('workspace_repositories')
       .select(
         `
         repository_id,
-        repositories (
-          id,
-          github_id,
-          owner,
-          name,
-          full_name,
-          language,
-          stargazers_count,
-          forks_count,
-          open_issues_count
-        )
+        repositories (*)
       `
       )
       .eq('workspace_id', workspaceId);
@@ -180,7 +194,9 @@ export class WorkspaceAggregationService {
       throw new Error(`Failed to fetch workspace repositories: ${error.message}`);
     }
 
-    return data?.map((wr) => wr.repositories).filter(Boolean) || [];
+    // Extract and type the repositories properly
+    const repositories = data?.map((wr) => wr.repositories).filter(Boolean) || [];
+    return repositories as unknown as Repository[];
   }
 
   /**
@@ -215,11 +231,11 @@ export class WorkspaceAggregationService {
    * Aggregate data from all repositories
    */
   private async aggregateRepositoryData(
-    repositories: any[],
+    repositories: Repository[],
     periodStart: Date,
     periodEnd: Date,
     options: AggregationOptions
-  ) {
+  ): Promise<AggregatedData> {
     const aggregated = {
       totalPRs: 0,
       mergedPRs: 0,
@@ -258,10 +274,10 @@ export class WorkspaceAggregationService {
    * Process a single repository's metrics
    */
   private async processRepository(
-    repository: any,
+    repository: Repository,
     periodStart: Date,
     periodEnd: Date,
-    aggregated: any,
+    aggregated: AggregatedData,
     options: AggregationOptions
   ) {
     const repoFullName = repository.full_name;
