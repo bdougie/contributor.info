@@ -145,8 +145,8 @@ export default defineConfig(() => ({
           }
           return 'assets/[name]-[hash][extname]';
         },
-        // Allow modules to be properly hoisted for correct initialization order
-        hoistTransitiveImports: true,
+        // Prevent hoisting to maintain proper initialization order for complex dependencies
+        hoistTransitiveImports: false,
         // Optimized chunking strategy for better code splitting
         manualChunks: (id) => {
           // Optimize vendor chunking with more granular splits
@@ -162,8 +162,9 @@ export default defineConfig(() => ({
             if (id.includes('@radix-ui')) {
               return 'vendor-ui';
             }
-            // Visualization libraries - lazy load when needed
-            if (id.includes('@nivo') || id.includes('recharts') || id.includes('d3-') || id.includes('uplot')) {
+            // Visualization libraries - keep together to avoid initialization issues
+            // These libraries have complex interdependencies and must stay in the same chunk
+            if (id.includes('@nivo') || id.includes('recharts') || id.includes('d3') || id.includes('uplot') || id.includes('victory')) {
               return 'vendor-charts';
             }
             if (id.includes('@supabase')) {
