@@ -108,7 +108,7 @@ export function RepositoryList({
   ]);
 
   const columns = useMemo<ColumnDef<Repository>[]>(() => {
-    const cols: ColumnDef<Repository>[] = [
+    const cols: any[] = [
       columnHelper.accessor('full_name', {
         header: ({ column }) => {
           return (
@@ -299,11 +299,11 @@ export function RepositoryList({
               </DropdownMenu>
             );
           },
-        })
+        }) as ColumnDef<Repository>
       );
     }
 
-    return cols;
+    return cols as ColumnDef<Repository>[];
   }, [showActions, onPinToggle, onRemove]);
 
   const table = useReactTable({
