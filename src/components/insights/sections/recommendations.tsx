@@ -7,8 +7,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { llmService, type LLMInsight } from '@/lib/llm';
 import { calculateHealthMetrics, type HealthMetrics } from '@/lib/insights/health-metrics';
-import { calculatePrActivityMetrics } from '@/lib/insights/pr-activity-metrics';
-import { calculateTrendMetrics } from '@/lib/insights/trends-metrics';
+import {
+  calculatePrActivityMetrics,
+  type ActivityMetrics,
+} from '@/lib/insights/pr-activity-metrics';
+import { calculateTrendMetrics, type TrendData } from '@/lib/insights/trends-metrics';
 
 interface Recommendation {
   id: string;
@@ -72,15 +75,22 @@ export function Recommendations({ owner, repo, timeRange }: RecommendationsProps
 
   const loadLLMRecommendations = async (
     healthData: HealthMetrics,
-    activityData: unknown,
-    trendsData: unknown[]
+    activityData: ActivityMetrics,
+    trendsData: TrendData[]
   ) => {
     setLlmLoading(true);
     try {
       const combinedData = {
         health: healthData,
-        activity: activityData as { weeklyVelocity?: number; contributors?: number },
-        trends: trendsData as Array<{ metric: string; change: number; period?: string }>,
+        activity: {
+          weeklyVelocity: activityData.velocity.current,
+          contributors: activityData.topContributors.length,
+        },
+        trends: trendsData.map((t) => ({
+          metric: t.metric,
+          change: t.change,
+          period: t.unit,
+        })),
       };
 
       const insight = await llmService.generateRecommendations(combinedData, { owner, repo });
@@ -99,8 +109,8 @@ export function Recommendations({ owner, repo, timeRange }: RecommendationsProps
 
   const generateRuleBasedRecommendations = (
     healthData: HealthMetrics,
-    activityData: { weeklyVelocity?: number; contributors?: number },
-    trendsData: Array<{ metric: string; change: number; period?: string }>
+    activityData: ActivityMetrics,
+    trendsData: TrendData[]
   ): Recommendation[] => {
     const recommendations: Recommendation[] = [];
 
@@ -126,7 +136,7 @@ export function Recommendations({ owner, repo, timeRange }: RecommendationsProps
     }
 
     // Activity-based recommendations
-    if (activityData.weeklyVelocity < 5) {
+    if (activityData.velocity.current < 5) {
       recommendations.push({
         id: 'velocity-low',
         type: 'process',
