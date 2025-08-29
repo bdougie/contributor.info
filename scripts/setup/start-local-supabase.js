@@ -25,6 +25,10 @@ const colors = {
   cyan: '\x1b[36m',
 };
 
+// Track ownership to avoid interfering with concurrent runs
+let migrationsMoved = false;
+let seedWasMoved = false;
+
 function log(message, color = '') {
   // Security: no template literals in console.log
   console.log('%s%s%s', color, message, colors.reset);
@@ -52,11 +56,22 @@ function temporarilyMoveMigrations() {
     log('📦 Temporarily moving migrations to prevent auto-migration...', colors.yellow);
 
     if (fs.existsSync(tempDir)) {
-      fs.rmSync(tempDir, { recursive: true, force: true });
+      // Treat as lock from another concurrent run; do NOT delete.
+      log(
+        'ℹ️ Detected existing migrations.temp; another process may be running. Skipping migrations move.',
+        colors.yellow
+      );
+      return false;
     }
 
     // Move migrations to temp, then create an empty migrations dir with .gitkeep
-    fs.renameSync(migrationsDir, tempDir);
+    try {
+      fs.renameSync(migrationsDir, tempDir);
+    } catch (_) {
+      // Race condition or permissions issue; skip moving
+      return false;
+    }
+
     fs.mkdirSync(migrationsDir, { recursive: true });
     fs.writeFileSync(path.join(migrationsDir, '.gitkeep'), '');
 
@@ -186,6 +201,9 @@ async function main() {
 
     const moved = temporarilyMoveMigrations();
     const seedMoved = temporarilyMoveSeed();
+    // Track ownership for out-of-band restoration (errors/SIGINT)
+    migrationsMoved = moved;
+    seedWasMoved = seedMoved;
 
     try {
       await startSupabase();
@@ -194,18 +212,21 @@ async function main() {
     } finally {
       if (seedMoved) restoreSeed();
       if (moved) restoreMigrations();
+      // Clear ownership after normal completion
+      migrationsMoved = false;
+      seedWasMoved = false;
     }
   } catch (error) {
     const message = error && error.message ? error.message : String(error);
     log('❌ Error: ' + message, colors.red);
-    // Attempt to restore seed and migrations before exiting
+    // Attempt to restore only if we own the moved resources
     try {
-      restoreSeed();
+      if (seedWasMoved) restoreSeed();
     } catch (_) {
       /* ignore */
     }
     try {
-      restoreMigrations();
+      if (migrationsMoved) restoreMigrations();
     } catch (_) {
       /* ignore */
     }
@@ -215,12 +236,12 @@ async function main() {
 
 process.on('SIGINT', () => {
   try {
-    restoreSeed();
+    if (seedWasMoved) restoreSeed();
   } catch (_) {
     /* ignore */
   }
   try {
-    restoreMigrations();
+    if (migrationsMoved) restoreMigrations();
   } catch (_) {
     /* ignore */
   }
