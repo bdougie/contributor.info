@@ -134,27 +134,37 @@ const MockRepositoryHealth = ({
       {/* Health Factors */}
       <div className="space-y-3 mb-6">
         <h4 className="font-medium">Health Factors</h4>
-        {data.factors.map((factor: { name: string; score: number; status: 'excellent' | 'good' | 'warning' | 'critical'; description: string }, index: number) => (
-          <div key={index} className="flex items-center justify-between">
-            <span className="text-sm">{factor.name}</span>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium">{factor.score}/100</span>
-              <span
-                className={`text-xs px-2 py-1 rounded ${
-                  factor.status === 'excellent'
-                    ? 'bg-green-100 text-green-800'
-                    : factor.status === 'good'
-                      ? 'bg-blue-100 text-blue-800'
-                      : factor.status === 'warning'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : 'bg-red-100 text-red-800'
-                }`}
-              >
-                {factor.status}
-              </span>
+        {data.factors.map(
+          (
+            factor: {
+              name: string;
+              score: number;
+              status: 'excellent' | 'good' | 'warning' | 'critical';
+              description: string;
+            },
+            index: number
+          ) => (
+            <div key={index} className="flex items-center justify-between">
+              <span className="text-sm">{factor.name}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">{factor.score}/100</span>
+                <span
+                  className={`text-xs px-2 py-1 rounded ${
+                    factor.status === 'excellent'
+                      ? 'bg-green-100 text-green-800'
+                      : factor.status === 'good'
+                        ? 'bg-blue-100 text-blue-800'
+                        : factor.status === 'warning'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-red-100 text-red-800'
+                  }`}
+                >
+                  {factor.status}
+                </span>
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        )}
       </div>
 
       {/* AI Insight */}

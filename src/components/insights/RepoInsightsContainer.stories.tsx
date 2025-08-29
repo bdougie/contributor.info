@@ -33,9 +33,7 @@ const MockPullRequestInsights = ({ owner, repo, dateRange }: MockPullRequestInsi
       </div>
       <div className="flex justify-between">
         <span className="text-sm font-medium">Date Range:</span>
-        <span className="text-sm text-muted-foreground">
-          {formatDateRange(dateRange)}
-        </span>
+        <span className="text-sm text-muted-foreground">{formatDateRange(dateRange)}</span>
       </div>
       <div className="grid grid-cols-3 gap-4 mt-4">
         <div className="text-center p-3 bg-muted rounded">

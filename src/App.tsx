@@ -104,6 +104,7 @@ const TermsPage = lazy(() =>
 
 // Workspace components
 const WorkspacePage = lazy(() => import('@/pages/workspace-page'));
+const WorkspaceNewPage = lazy(() => import('@/pages/workspace-new-page'));
 
 // Trending components
 const TrendingPageRoute = lazy(() =>
@@ -180,93 +181,103 @@ const PageSkeleton = () => {
 
       {/* Main content */}
       <main className="container px-4 py-6 flex-1">
-        {isHomePage ? (
-          /* Home page skeleton - centered card with search */
-          <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
-            <div className="w-full max-w-2xl border rounded-lg p-8 space-y-6">
-              {/* Title */}
-              <div className="space-y-3">
-                <div className="h-8 bg-muted animate-pulse rounded mx-auto w-3/4" />
-                <div className="h-5 bg-muted animate-pulse rounded mx-auto w-2/3" />
-              </div>
-              {/* Search input skeleton */}
-              <div className="h-10 bg-muted animate-pulse rounded" />
-              {/* Example repos skeleton */}
-              <div className="space-y-2 pt-4">
-                <div className="h-4 bg-muted animate-pulse rounded w-32" />
-                <div className="flex gap-2 flex-wrap">
-                  {Array.from({ length: 4 }).map((_, i) => (
-                    <div key={i} className="h-8 w-24 bg-muted animate-pulse rounded" />
-                  ))}
+        {(() => {
+          if (isHomePage) {
+            /* Home page skeleton - centered card with search */
+            return (
+              <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
+                <div className="w-full max-w-2xl border rounded-lg p-8 space-y-6">
+                  {/* Title */}
+                  <div className="space-y-3">
+                    <div className="h-8 bg-muted animate-pulse rounded mx-auto w-3/4" />
+                    <div className="h-5 bg-muted animate-pulse rounded mx-auto w-2/3" />
+                  </div>
+                  {/* Search input skeleton */}
+                  <div className="h-10 bg-muted animate-pulse rounded" />
+                  {/* Example repos skeleton */}
+                  <div className="space-y-2 pt-4">
+                    <div className="h-4 bg-muted animate-pulse rounded w-32" />
+                    <div className="flex gap-2 flex-wrap">
+                      {Array.from({ length: 4 }).map((_, i) => (
+                        <div key={i} className="h-8 w-24 bg-muted animate-pulse rounded" />
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
-        ) : isOrgPage ? (
-          /* Organization page skeleton */
-          <div className="max-w-6xl mx-auto space-y-6">
-            {/* Breadcrumbs */}
-            <div className="flex items-center gap-2 text-sm">
-              <div className="h-4 w-12 bg-muted animate-pulse rounded" />
-              <span>/</span>
-              <div className="h-4 w-20 bg-muted animate-pulse rounded" />
-            </div>
-            {/* Org header with avatar and name */}
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-muted animate-pulse rounded-md" />
-              <div>
-                <div className="h-8 w-32 bg-muted animate-pulse rounded mb-2" />
-                <div className="h-4 w-48 bg-muted animate-pulse rounded" />
+            );
+          }
+
+          if (isOrgPage) {
+            /* Organization page skeleton */
+            return (
+              <div className="max-w-6xl mx-auto space-y-6">
+                {/* Breadcrumbs */}
+                <div className="flex items-center gap-2 text-sm">
+                  <div className="h-4 w-12 bg-muted animate-pulse rounded" />
+                  <span>/</span>
+                  <div className="h-4 w-20 bg-muted animate-pulse rounded" />
+                </div>
+                {/* Org header with avatar and name */}
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-muted animate-pulse rounded-md" />
+                  <div>
+                    <div className="h-8 w-32 bg-muted animate-pulse rounded mb-2" />
+                    <div className="h-4 w-48 bg-muted animate-pulse rounded" />
+                  </div>
+                </div>
+                {/* Table skeleton */}
+                <div className="border rounded-lg">
+                  <div className="p-4 border-b">
+                    <div className="h-6 w-24 bg-muted animate-pulse rounded" />
+                  </div>
+                  <div className="p-4 space-y-3">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center justify-between py-3 border-b last:border-0"
+                      >
+                        <div className="flex-1 space-y-2">
+                          <div className="h-4 w-32 bg-muted animate-pulse rounded" />
+                          <div className="h-3 w-48 bg-muted animate-pulse rounded" />
+                        </div>
+                        <div className="h-6 w-16 bg-muted animate-pulse rounded" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
-            </div>
-            {/* Table skeleton */}
-            <div className="border rounded-lg">
-              <div className="p-4 border-b">
-                <div className="h-6 w-24 bg-muted animate-pulse rounded" />
-              </div>
-              <div className="p-4 space-y-3">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between py-3 border-b last:border-0"
-                  >
-                    <div className="flex-1 space-y-2">
-                      <div className="h-4 w-32 bg-muted animate-pulse rounded" />
-                      <div className="h-3 w-48 bg-muted animate-pulse rounded" />
-                    </div>
-                    <div className="h-6 w-16 bg-muted animate-pulse rounded" />
+            );
+          }
+
+          /* Repository/default page skeleton */
+          return (
+            <div className="space-y-6">
+              {/* Breadcrumbs for repo pages */}
+              {isRepoPage && (
+                <div className="flex items-center gap-2 text-sm">
+                  <div className="h-4 w-12 bg-muted animate-pulse rounded" />
+                  <span>/</span>
+                  <div className="h-4 w-24 bg-muted animate-pulse rounded" />
+                  <span>/</span>
+                  <div className="h-4 w-24 bg-muted animate-pulse rounded" />
+                </div>
+              )}
+              {/* Page title */}
+              <div className="h-8 w-2/3 bg-muted animate-pulse rounded" />
+              {/* Content cards */}
+              <div className="space-y-4">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="border rounded-lg p-6 space-y-3">
+                    <div className="h-5 w-3/4 bg-muted animate-pulse rounded" />
+                    <div className="h-4 w-1/2 bg-muted animate-pulse rounded" />
+                    <div className="h-4 w-5/6 bg-muted animate-pulse rounded" />
                   </div>
                 ))}
               </div>
             </div>
-          </div>
-        ) : (
-          /* Repository/default page skeleton */
-          <div className="space-y-6">
-            {/* Breadcrumbs for repo pages */}
-            {isRepoPage && (
-              <div className="flex items-center gap-2 text-sm">
-                <div className="h-4 w-12 bg-muted animate-pulse rounded" />
-                <span>/</span>
-                <div className="h-4 w-24 bg-muted animate-pulse rounded" />
-                <span>/</span>
-                <div className="h-4 w-24 bg-muted animate-pulse rounded" />
-              </div>
-            )}
-            {/* Page title */}
-            <div className="h-8 w-2/3 bg-muted animate-pulse rounded" />
-            {/* Content cards */}
-            <div className="space-y-4">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="border rounded-lg p-6 space-y-3">
-                  <div className="h-5 w-3/4 bg-muted animate-pulse rounded" />
-                  <div className="h-4 w-1/2 bg-muted animate-pulse rounded" />
-                  <div className="h-4 w-5/6 bg-muted animate-pulse rounded" />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+          );
+        })()}
       </main>
 
       {/* Footer */}
@@ -375,6 +386,7 @@ function App() {
                   <Route path="/trending" element={<TrendingPageRoute />} />
                   <Route path="/i/:workspaceId" element={<WorkspacePage />} />
                   <Route path="/i/:workspaceId/:tab" element={<WorkspacePage />} />
+                  <Route path="/workspaces/new" element={<WorkspaceNewPage />} />
                   <Route path="/changelog" element={<ChangelogPage />} />
                   <Route path="/docs" element={<DocsList />} />
                   <Route path="/docs/:slug" element={<DocDetail />} />

@@ -1,5 +1,5 @@
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import { useWorkspaceContributors } from '@/hooks/useWorkspaceContributors';
@@ -37,6 +37,8 @@ import {
   Search,
   Menu,
   Package,
+  Copy,
+  Check,
 } from '@/components/ui/icon';
 import {
   useReactTable,
@@ -60,6 +62,34 @@ import type {
 } from '@/components/features/workspace';
 import type { Workspace } from '@/types/workspace';
 import { WorkspaceService } from '@/services/workspace.service';
+// Analytics imports disabled - will be implemented in issue #598
+// import { AnalyticsDashboard } from '@/components/features/workspace/AnalyticsDashboard';
+import { ActivityTable } from '@/components/features/workspace/ActivityTable';
+import { TrendChart } from '@/components/features/workspace/TrendChart';
+import { ContributorLeaderboard } from '@/components/features/workspace/ContributorLeaderboard';
+// import { WorkspaceExportService } from '@/services/workspace-export.service';
+// import type {
+//   AnalyticsData,
+//   ActivityItem,
+//   ContributorStat,
+//   RepositoryMetric,
+//   TrendDataset,
+// } from '@/components/features/workspace/AnalyticsDashboard';
+
+// Temporary type definition for ActivityItem until analytics is properly implemented in issue #598
+interface ActivityItem {
+  id: string;
+  type: 'pr' | 'issue' | 'commit' | 'review';
+  title: string;
+  author: {
+    username: string;
+    avatar_url: string;
+  };
+  repository: string;
+  created_at: string;
+  status: 'open' | 'merged' | 'closed' | 'approved';
+  url: string;
+}
 
 interface WorkspaceRepository {
   id: string;
@@ -116,8 +146,12 @@ const filterRepositoriesBySelection = <T extends { id: string }>(
 const generateMockMetrics = (
   repos: Repository[],
   timeRange: TimeRange,
-  selectedRepoIds?: string[]
+  selectedRepoIds?: string[],
+  demoRandom?: ReturnType<typeof createDemoRandomGenerator>
 ): WorkspaceMetrics => {
+  // Use deterministic random for demo data generation passed as parameter
+  const random = demoRandom || createDemoRandomGenerator();
+
   // Use utility function to filter repositories
   const filteredRepos = filterRepositoriesBySelection(repos, selectedRepoIds);
 
@@ -147,13 +181,13 @@ const generateMockMetrics = (
 
   return {
     totalStars,
-    totalPRs: Math.floor(Math.random() * 500) + 100,
+    totalPRs: Math.floor(random() * 500) + 100,
     totalContributors,
-    totalCommits: Math.floor(Math.random() * 10000) + 1000,
-    starsTrend: (Math.random() - 0.5) * 20 * multiplier,
-    prsTrend: (Math.random() - 0.5) * 15 * multiplier,
-    contributorsTrend: (Math.random() - 0.5) * 10 * multiplier,
-    commitsTrend: (Math.random() - 0.5) * 25 * multiplier,
+    totalCommits: Math.floor(random() * 10000) + 1000,
+    starsTrend: (random() - 0.5) * 20 * multiplier,
+    prsTrend: (random() - 0.5) * 15 * multiplier,
+    contributorsTrend: (random() - 0.5) * 10 * multiplier,
+    commitsTrend: (random() - 0.5) * 25 * multiplier,
   };
 };
 
@@ -161,8 +195,12 @@ const generateMockMetrics = (
 const generateMockTrendData = (
   days: number,
   repos?: Repository[],
-  selectedRepoIds?: string[]
+  selectedRepoIds?: string[],
+  demoRandom?: ReturnType<typeof createDemoRandomGenerator>
 ): WorkspaceTrendData => {
+  // Use deterministic random for demo data generation
+  const random = demoRandom || createDemoRandomGenerator();
+
   // Use utility function to filter repositories (for future use with real data)
   const filteredRepos = repos ? filterRepositoriesBySelection(repos, selectedRepoIds) : [];
 
@@ -183,9 +221,9 @@ const generateMockTrendData = (
     date.setDate(date.getDate() - i);
     labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
 
-    prs.push(Math.floor((Math.random() * 30 + 10) * repoMultiplier));
-    issues.push(Math.floor((Math.random() * 20 + 5) * repoMultiplier));
-    commits.push(Math.floor((Math.random() * 60 + 20) * repoMultiplier));
+    prs.push(Math.floor((random() * 30 + 10) * repoMultiplier));
+    issues.push(Math.floor((random() * 20 + 5) * repoMultiplier));
+    commits.push(Math.floor((random() * 60 + 20) * repoMultiplier));
   }
 
   return {
@@ -1118,10 +1156,28 @@ function WorkspaceContributors({
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-6">
+          {/* Contributor Leaderboard */}
+          <ContributorLeaderboard
+            contributors={contributors.map((contributor) => ({
+              id: contributor.id,
+              username: contributor.username,
+              avatar_url: contributor.avatar_url,
+              contributions: contributor.stats.total_contributions,
+              pull_requests: contributor.contributions.pull_requests,
+              issues: contributor.contributions.issues,
+              reviews: contributor.contributions.reviews,
+              commits: contributor.contributions.commits,
+              trend: contributor.stats.contribution_trend,
+            }))}
+            loading={loading}
+            timeRange="30d"
+            maxDisplay={10}
+          />
+
           {/* View Toggle */}
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Contributors</h2>
+            <h2 className="text-lg font-semibold">All Contributors</h2>
             <div className="flex items-center gap-2">
               <div className="flex items-center rounded-lg border bg-muted/50 p-1">
                 <Button
@@ -1271,19 +1327,189 @@ function WorkspaceContributors({
   );
 }
 
+/**
+ * Simple deterministic pseudo-random number generator for demo data
+ * This is NOT for cryptographic use, only for generating consistent demo data
+ */
+function createDemoRandomGenerator(seed: number = 42) {
+  let currentSeed = seed;
+  return () => {
+    currentSeed = (currentSeed * 1103515245 + 12345) % 2147483648;
+    return currentSeed / 2147483648;
+  };
+}
+
 function WorkspaceActivity({ repositories }: { repositories: Repository[] }) {
+  // Generate activity data for the feed
+  const activities: ActivityItem[] = [];
+  const now = new Date();
+
+  // Use deterministic random for demo data generation
+  const demoRandom = useMemo(() => createDemoRandomGenerator(), []);
+
+  // Generate sample activities based on repositories
+  repositories.forEach((repo, repoIndex) => {
+    // Generate 20 activities per repo for demonstration
+    for (let i = 0; i < 20; i++) {
+      const createdAt = new Date(now.getTime() - demoRandom() * 30 * 24 * 60 * 60 * 1000);
+      const activityTypes = ['pr', 'issue', 'commit', 'review'] as const;
+      const statuses = ['open', 'merged', 'closed', 'approved'] as const;
+      const activityType = activityTypes[Math.floor(demoRandom() * activityTypes.length)];
+      const status = statuses[Math.floor(demoRandom() * statuses.length)];
+
+      activities.push({
+        id: `activity-${repoIndex}-${i}`,
+        type: activityType,
+        title: (() => {
+          const titles = [
+            'Fix critical bug in authentication',
+            'Add new feature for user profiles',
+            'Update dependencies to latest versions',
+            'Refactor database queries for performance',
+            'Improve error handling in API',
+            'Add unit tests for new components',
+            'Update documentation for API endpoints',
+            'Fix typo in README',
+            'Optimize image loading performance',
+            'Add dark mode support',
+          ];
+          return titles[Math.floor(demoRandom() * titles.length)];
+        })(),
+        author: {
+          username: `contributor${Math.floor(demoRandom() * 10)}`,
+          avatar_url: `https://github.com/contributor${Math.floor(demoRandom() * 10)}.png`,
+        },
+        repository: repo.full_name,
+        created_at: createdAt.toISOString(),
+        status,
+        url: `https://github.com/${repo.full_name}/${(() => {
+          if (activityType === 'pr') return 'pull';
+          if (activityType === 'issue') return 'issues';
+          return 'commit';
+        })()}/${Math.floor(demoRandom() * 1000)}`,
+      });
+    }
+  });
+
+  // Sort by date, most recent first
+  activities.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+  // Generate trend data for the chart
+  const last30Days = Array.from({ length: 30 }, (_, i) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (29 - i));
+    return date.toISOString().split('T')[0];
+  });
+
+  const activityByDay = last30Days.map((date) => {
+    const dayActivities = activities.filter((a) => a.created_at.split('T')[0] === date);
+    return {
+      date,
+      total: dayActivities.length,
+      prs: dayActivities.filter((a) => a.type === 'pr').length,
+      issues: dayActivities.filter((a) => a.type === 'issue').length,
+      commits: dayActivities.filter((a) => a.type === 'commit').length,
+      reviews: dayActivities.filter((a) => a.type === 'review').length,
+    };
+  });
+
+  // Calculate stats
+  const totalActivities = activities.length;
+  const uniqueContributors = new Set(activities.map((a) => a.author.username)).size;
+  const activeRepos = new Set(activities.map((a) => a.repository)).size;
+  const activityScore = Math.round(
+    (totalActivities + uniqueContributors * 2 + activeRepos * 3) / 3
+  );
+
   return (
     <div className="space-y-4">
+      {/* Activity Trend Chart */}
+      <TrendChart
+        title="Activity Trend"
+        description="Daily activity across all workspace repositories"
+        data={{
+          labels: activityByDay.map((d) => {
+            const date = new Date(d.date);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          }),
+          datasets: [
+            {
+              label: 'Pull Requests',
+              data: activityByDay.map((d) => d.prs),
+              color: '#10b981',
+            },
+            {
+              label: 'Issues',
+              data: activityByDay.map((d) => d.issues),
+              color: '#f97316',
+            },
+            {
+              label: 'Commits',
+              data: activityByDay.map((d) => d.commits),
+              color: '#3b82f6',
+            },
+            {
+              label: 'Reviews',
+              data: activityByDay.map((d) => d.reviews),
+              color: '#8b5cf6',
+            },
+          ],
+        }}
+        height={350}
+        showLegend={true}
+        showGrid={true}
+      />
+
+      {/* Quick Stats */}
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Total Activities</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalActivities}</div>
+            <p className="text-xs text-muted-foreground">Last 30 days</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Active Contributors</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{uniqueContributors}</div>
+            <p className="text-xs text-muted-foreground">Unique authors</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Active Repositories</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{activeRepos}</div>
+            <p className="text-xs text-muted-foreground">With activity</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Activity Score</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{activityScore}</div>
+            <p className="text-xs text-muted-foreground">Composite metric</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Activity Feed Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Activity Timeline</CardTitle>
+          <CardTitle>Activity Feed</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Real-time feed of all activities across your workspace repositories
+          </p>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground">Activity timeline coming soon...</p>
-          <p className="text-sm text-muted-foreground mt-2">
-            This will show a detailed timeline of all activity across {repositories.length}{' '}
-            repositories in this workspace, including commits, pull requests, issues, and releases.
-          </p>
+          <ActivityTable activities={activities} loading={false} pageSize={20} />
         </CardContent>
       </Card>
     </div>
@@ -1291,18 +1517,347 @@ function WorkspaceActivity({ repositories }: { repositories: Repository[] }) {
 }
 
 function WorkspaceSettings({ workspace }: { workspace: Workspace }) {
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [isEditingSlug, setIsEditingSlug] = useState(false);
+  const [workspaceName, setWorkspaceName] = useState(workspace.name);
+  const [workspaceSlug, setWorkspaceSlug] = useState(workspace.slug);
+  const [isSaving, setIsSaving] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [slugError, setSlugError] = useState<string | null>(null);
+
+  const formatSlug = (value: string) => {
+    // Convert to lowercase, replace spaces with hyphens, remove special characters
+    return value
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-]/g, '')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+  };
+
+  const checkSlugUniqueness = async (slug: string) => {
+    if (!slug) return false;
+
+    const { data, error } = await supabase
+      .from('workspaces')
+      .select('id')
+      .eq('slug', slug)
+      .neq('id', workspace.id)
+      .maybeSingle();
+
+    return !data && !error;
+  };
+
+  const handleSaveName = async () => {
+    if (!workspaceName.trim()) {
+      toast.error('Workspace name cannot be empty');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('workspaces')
+        .update({ name: workspaceName.trim() })
+        .eq('id', workspace.id);
+
+      if (error) throw error;
+
+      toast.success('Workspace name updated successfully');
+      setIsEditingName(false);
+      // Reload the page to reflect the changes
+      window.location.reload();
+    } catch (error) {
+      console.error('Failed to update workspace name:', error);
+      toast.error('Failed to update workspace name');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSaveSlug = async () => {
+    const formattedSlug = formatSlug(workspaceSlug);
+
+    if (!formattedSlug) {
+      toast.error('Slug cannot be empty');
+      return;
+    }
+
+    // Check if slug has actually changed
+    if (formattedSlug === workspace.slug) {
+      // No change, just exit edit mode
+      setIsEditingSlug(false);
+      return;
+    }
+
+    // Show warning about breaking links only if slug is different
+    const confirmed = window.confirm(
+      '⚠️ WARNING: Changing your workspace slug will break all existing external links!\n\n' +
+        `Current URL: /i/${workspace.slug}\n` +
+        `New URL: /i/${formattedSlug}\n\n` +
+        'All bookmarks, shared links, and external references will stop working.\n\n' +
+        'Are you sure you want to continue?'
+    );
+
+    if (!confirmed) {
+      setWorkspaceSlug(workspace.slug);
+      setIsEditingSlug(false);
+      return;
+    }
+
+    setIsSaving(true);
+    setSlugError(null);
+
+    try {
+      // Check if slug is unique
+      const isUnique = await checkSlugUniqueness(formattedSlug);
+
+      if (!isUnique) {
+        setSlugError('This slug is already taken. Please choose another.');
+        setIsSaving(false);
+        return;
+      }
+
+      const { error } = await supabase
+        .from('workspaces')
+        .update({ slug: formattedSlug })
+        .eq('id', workspace.id);
+
+      if (error) {
+        if (error.code === '23505') {
+          // Unique constraint violation
+          setSlugError('This slug is already taken. Please choose another.');
+        } else {
+          throw error;
+        }
+        return;
+      }
+
+      toast.success('Workspace slug updated successfully. Redirecting to new URL...');
+      setIsEditingSlug(false);
+
+      // Redirect to the new slug URL
+      setTimeout(() => {
+        window.location.href = `/i/${formattedSlug}/settings`;
+      }, 1500);
+    } catch (error) {
+      console.error('Failed to update workspace slug:', error);
+      toast.error('Failed to update workspace slug');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancelName = () => {
+    setWorkspaceName(workspace.name);
+    setIsEditingName(false);
+  };
+
+  const handleCancelSlug = () => {
+    setWorkspaceSlug(workspace.slug);
+    setIsEditingSlug(false);
+    setSlugError(null);
+  };
+
+  const handleCopy = async (value: string, field: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopiedField(field);
+      toast.success(`${field} copied to clipboard`);
+
+      // Reset the copied state after 2 seconds
+      setTimeout(() => {
+        setCopiedField(null);
+      }, 2000);
+    } catch (error) {
+      console.error('Failed to copy:', error);
+      toast.error('Failed to copy to clipboard');
+    }
+  };
+
   return (
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>Workspace Settings</CardTitle>
+          <CardTitle>General Settings</CardTitle>
         </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">Workspace settings coming soon...</p>
-          <p className="text-sm text-muted-foreground mt-2">
-            Manage workspace "{workspace.name}" settings, members, repositories, and permissions
-            here.
-          </p>
+        <CardContent className="space-y-4">
+          <div>
+            <label className="text-sm font-medium text-foreground">Workspace Name</label>
+            <div className="mt-2 flex items-center gap-2">
+              {isEditingName ? (
+                <>
+                  <input
+                    type="text"
+                    value={workspaceName}
+                    onChange={(e) => setWorkspaceName(e.target.value)}
+                    className="flex-1 px-3 py-2 text-sm border border-input bg-background rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder="Enter workspace name"
+                    disabled={isSaving}
+                  />
+                  <Button onClick={handleSaveName} size="sm" disabled={isSaving}>
+                    {isSaving ? 'Saving...' : 'Save'}
+                  </Button>
+                  <Button
+                    onClick={handleCancelName}
+                    size="sm"
+                    variant="outline"
+                    disabled={isSaving}
+                  >
+                    Cancel
+                  </Button>
+                </>
+              ) : (
+                <div
+                  className="flex-1 flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded px-2 py-1 transition-colors"
+                  onClick={() => setIsEditingName(true)}
+                  title="Click to edit"
+                >
+                  <p className="text-sm">{workspace.name}</p>
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="text-muted-foreground"
+                  >
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  </svg>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-foreground">Workspace Slug</label>
+            {isEditingSlug && (
+              <p className="text-xs text-muted-foreground mt-1">
+                ⚠️ Changing the slug will break all existing external links to this workspace
+              </p>
+            )}
+            <div className="mt-2 flex items-center gap-2">
+              {isEditingSlug ? (
+                <>
+                  <input
+                    type="text"
+                    value={workspaceSlug}
+                    onChange={(e) => {
+                      setWorkspaceSlug(e.target.value);
+                      setSlugError(null);
+                    }}
+                    className="flex-1 px-3 py-2 text-sm border border-input bg-background rounded-md focus:outline-none focus:ring-2 focus:ring-primary font-mono"
+                    placeholder="workspace-slug"
+                    disabled={isSaving}
+                  />
+                  <Button onClick={handleSaveSlug} size="sm" disabled={isSaving}>
+                    {isSaving ? 'Saving...' : 'Save'}
+                  </Button>
+                  <Button
+                    onClick={handleCancelSlug}
+                    size="sm"
+                    variant="outline"
+                    disabled={isSaving}
+                  >
+                    Cancel
+                  </Button>
+                </>
+              ) : (
+                <div className="flex-1 flex items-center gap-2">
+                  <div
+                    className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded px-2 py-1 transition-colors flex-1"
+                    onClick={() => setIsEditingSlug(true)}
+                    title="Click to edit"
+                  >
+                    <p className="text-sm font-mono">{workspace.slug}</p>
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="text-muted-foreground"
+                    >
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                    </svg>
+                  </div>
+                </div>
+              )}
+            </div>
+            {slugError && <p className="text-xs text-red-500 mt-2">{slugError}</p>}
+            {isEditingSlug && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Preview: /i/{formatSlug(workspaceSlug) || 'workspace-slug'}
+              </p>
+            )}
+          </div>
+
+          <div className="pt-4 border-t">
+            <p className="text-sm text-muted-foreground">
+              More settings coming soon: member management, repository settings, permissions, and
+              integrations.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Workspace Information</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-muted-foreground">Workspace ID</span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-mono">{workspace.id}</span>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-6 w-6 p-0"
+                onClick={() => handleCopy(workspace.id, 'Workspace ID')}
+              >
+                {copiedField === 'Workspace ID' ? (
+                  <Check className="h-3 w-3" />
+                ) : (
+                  <Copy className="h-3 w-3" />
+                )}
+              </Button>
+            </div>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-muted-foreground">Workspace Slug</span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-mono">{workspace.slug}</span>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-6 w-6 p-0"
+                onClick={() => handleCopy(workspace.slug, 'Workspace Slug')}
+              >
+                {copiedField === 'Workspace Slug' ? (
+                  <Check className="h-3 w-3" />
+                ) : (
+                  <Copy className="h-3 w-3" />
+                )}
+              </Button>
+            </div>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-sm text-muted-foreground">Tier</span>
+            <span className="text-sm capitalize">{workspace.tier}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-sm text-muted-foreground">Created</span>
+            <span className="text-sm">{new Date(workspace.created_at).toLocaleDateString()}</span>
+          </div>
         </CardContent>
       </Card>
     </div>
@@ -1325,6 +1880,9 @@ export default function WorkspacePage() {
   const [addRepositoryModalOpen, setAddRepositoryModalOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isWorkspaceOwner, setIsWorkspaceOwner] = useState(false);
+
+  // Use deterministic random for demo data generation
+  const demoRandom = useMemo(() => createDemoRandomGenerator(), []);
 
   // Determine active tab from URL
   const pathSegments = location.pathname.split('/');
@@ -1415,11 +1973,11 @@ export default function WorkspacePage() {
             language: r.repositories.language ?? undefined,
             stars: r.repositories.stargazers_count,
             forks: r.repositories.forks_count,
-            open_prs: Math.floor(Math.random() * 50) + 5, // Mock for now
+            open_prs: Math.floor(demoRandom() * 50) + 5, // Mock for now
             open_issues: r.repositories.open_issues_count,
-            contributors: Math.floor(Math.random() * 100) + 10, // Mock for now
+            contributors: Math.floor(demoRandom() * 100) + 10, // Mock for now
             last_activity: new Date(
-              Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000
+              Date.now() - demoRandom() * 30 * 24 * 60 * 60 * 1000
             ).toISOString(),
             is_pinned: r.is_pinned,
             avatar_url: `https://avatars.githubusercontent.com/${r.repositories.owner}`,
@@ -1486,7 +2044,7 @@ export default function WorkspacePage() {
               }));
 
             if (openPRActivity.length > 0) {
-              console.log(`Found ${openPRActivity.length} open PRs to show activity`);
+              console.log('Found %d open PRs to show activity', openPRActivity.length);
               mergedPRs = openPRActivity;
             }
           }
@@ -1496,11 +2054,17 @@ export default function WorkspacePage() {
         setRepositories(transformedRepos);
 
         // Generate metrics, trend data, and activity data
-        const mockMetrics = generateMockMetrics(transformedRepos, timeRange, selectedRepositories);
+        const mockMetrics = generateMockMetrics(
+          transformedRepos,
+          timeRange,
+          selectedRepositories,
+          demoRandom
+        );
         const mockTrendData = generateMockTrendData(
           TIME_RANGE_DAYS[timeRange],
           transformedRepos,
-          selectedRepositories
+          selectedRepositories,
+          demoRandom
         );
         const activityDataPoints = generateActivityDataFromPRs(
           mergedPRs,
@@ -1521,7 +2085,7 @@ export default function WorkspacePage() {
     }
 
     fetchWorkspace();
-  }, [workspaceId, timeRange, selectedRepositories]);
+  }, [workspaceId, timeRange, selectedRepositories, demoRandom]);
 
   const handleTabChange = (value: string) => {
     if (value === 'overview') {
@@ -1616,9 +2180,9 @@ export default function WorkspacePage() {
             forks: item.repositories.forks_count || 0,
             open_prs: 0, // Mock for now
             open_issues: item.repositories.open_issues_count || 0,
-            contributors: Math.floor(Math.random() * 50) + 10, // Mock for now
+            contributors: Math.floor(demoRandom() * 50) + 10, // Mock for now
             avatar_url: `https://avatars.githubusercontent.com/${item.repositories.owner}`,
-            last_activity: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000)
+            last_activity: new Date(Date.now() - demoRandom() * 30 * 24 * 60 * 60 * 1000)
               .toISOString()
               .split('T')[0],
             is_pinned: item.is_pinned || false,
@@ -1629,7 +2193,12 @@ export default function WorkspacePage() {
         setSelectedRepositories(formattedRepos.map((r) => r.id));
 
         // Update metrics with new repository data
-        const newMetrics = generateMockMetrics(formattedRepos, timeRange, formattedRepos.map((r) => r.id));
+        const newMetrics = generateMockMetrics(
+          formattedRepos,
+          timeRange,
+          formattedRepos.map((r) => r.id),
+          demoRandom
+        );
         setMetrics(newMetrics);
       }
     } catch (error) {
@@ -1657,7 +2226,12 @@ export default function WorkspacePage() {
 
         // Update metrics after removing repository
         const updatedRepos = repositories.filter((r) => r.id !== repo.id);
-        const newMetrics = generateMockMetrics(updatedRepos, timeRange, selectedRepositories);
+        const newMetrics = generateMockMetrics(
+          updatedRepos,
+          timeRange,
+          selectedRepositories,
+          demoRandom
+        );
         setMetrics(newMetrics);
 
         toast.success('Repository removed from workspace');
@@ -1681,6 +2255,150 @@ export default function WorkspacePage() {
   const handleUpgradeClick = () => {
     toast.info('Upgrade to Pro coming soon!');
   };
+
+  // Analytics functions disabled - will be implemented in issue #598
+  /*
+  // Generate analytics data from existing workspace data
+  const generateAnalyticsData = (): AnalyticsData => {
+    // Get current pull requests and issues from the workspace tabs
+    const activities: ActivityItem[] = [];
+    const contributorMap = new Map<string, ContributorStat>();
+    const repositoryMetrics: RepositoryMetric[] = [];
+
+    // Generate activities from recent data (mock for now, should be fetched from DB)
+    const now = new Date();
+    const activityTypes = ['pr', 'issue', 'commit', 'review'] as const;
+    const statuses = ['open', 'merged', 'closed', 'approved'] as const;
+
+    // Create sample activities based on repositories
+    repositories.forEach((repo, repoIndex) => {
+      // Add repository metrics
+      repositoryMetrics.push({
+        id: repo.id,
+        name: repo.name,
+        owner: repo.owner,
+        stars: repo.stars,
+        forks: repo.forks,
+        pull_requests: repo.open_prs,
+        issues: repo.open_issues,
+        contributors: repo.contributors,
+        activity_score: Math.floor(demoRandom() * 100),
+        trend: Math.floor(demoRandom() * 30) - 15,
+      });
+
+      // Generate activities for each repo
+      for (let i = 0; i < 10; i++) {
+        const createdAt = new Date(now.getTime() - demoRandom() * 30 * 24 * 60 * 60 * 1000);
+        const activityType = activityTypes[Math.floor(demoRandom() * activityTypes.length)];
+        const status = statuses[Math.floor(demoRandom() * statuses.length)];
+        const contributorName = `contributor${Math.floor(demoRandom() * 10)}`;
+
+        activities.push({
+          id: `activity-${repoIndex}-${i}`,
+          type: activityType,
+          title:
+            (() => {
+              if (activityType === 'pr') return 'Pull Request';
+              if (activityType === 'issue') return 'Issue';
+              return 'Activity';
+            })() + ` #${Math.floor(demoRandom() * 1000)}`,
+          author: {
+            username: contributorName,
+            avatar_url: `https://github.com/${contributorName}.png`,
+          },
+          repository: repo.full_name,
+          created_at: createdAt.toISOString(),
+          status,
+          url: `https://github.com/${repo.full_name}/${(() => {
+            if (activityType === 'pr') return 'pull';
+            if (activityType === 'issue') return 'issues';
+            return 'commit';
+          })()}/${Math.floor(demoRandom() * 1000)}`,
+        });
+
+        // Update contributor stats
+        if (!contributorMap.has(contributorName)) {
+          contributorMap.set(contributorName, {
+            id: contributorName,
+            username: contributorName,
+            avatar_url: `https://github.com/${contributorName}.png`,
+            contributions: 0,
+            pull_requests: 0,
+            issues: 0,
+            reviews: 0,
+            commits: 0,
+            trend: Math.floor(demoRandom() * 40) - 20,
+          });
+        }
+
+        const contributor = contributorMap.get(contributorName)!;
+        contributor.contributions++;
+        if (activityType === 'pr') contributor.pull_requests++;
+        if (activityType === 'issue') contributor.issues++;
+        if (activityType === 'review') contributor.reviews++;
+        if (activityType === 'commit') contributor.commits++;
+      }
+    });
+
+    // Generate trend data
+    const trends: TrendDataset[] = [];
+    const dates = [];
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+      dates.push(date.toISOString().split('T')[0]);
+    }
+
+    trends.push({
+      label: 'Pull Requests',
+      data: dates.map((date) => ({
+        date,
+        value: Math.floor(demoRandom() * 50) + 10,
+      })),
+      color: '#10b981',
+    });
+
+    trends.push({
+      label: 'Active Contributors',
+      data: dates.map((date) => ({
+        date,
+        value: Math.floor(demoRandom() * 30) + 5,
+      })),
+      color: '#3b82f6',
+    });
+
+    return {
+      activities: activities.sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      ),
+      contributors: Array.from(contributorMap.values()).sort(
+        (a, b) => b.contributions - a.contributions
+      ),
+      repositories: repositoryMetrics,
+      trends,
+    };
+  };
+
+  // Handle analytics export
+  const handleAnalyticsExport = async (format: 'csv' | 'json' | 'pdf') => {
+    try {
+      const analyticsData = generateAnalyticsData();
+      await WorkspaceExportService.export(analyticsData, format, {
+        workspaceName: workspace.name,
+        dateRange:
+          timeRange !== 'all'
+            ? {
+                start: new Date(Date.now() - TIME_RANGE_DAYS[timeRange] * 24 * 60 * 60 * 1000),
+                end: new Date(),
+              }
+            : undefined,
+      });
+      toast.success(`Analytics exported as ${format.toUpperCase()}`);
+    } catch (error) {
+      console.error('Export failed:', error);
+      toast.error(`Failed to export analytics: ${error}`);
+    }
+  };
+  */
 
   return (
     <div className="min-h-screen">
@@ -1728,7 +2446,7 @@ export default function WorkspacePage() {
       <div className="px-6 mt-6">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <div className="container max-w-7xl mx-auto">
-            <TabsList className="grid w-full grid-cols-6 mb-6">
+            <TabsList className="grid w-full grid-cols-7 mb-6">
               <TabsTrigger value="overview" className="flex items-center gap-2">
                 <Layout className="h-4 w-4" />
                 <span className="hidden sm:inline">Overview</span>
@@ -1745,11 +2463,16 @@ export default function WorkspacePage() {
                 <Users className="h-4 w-4" />
                 <span className="hidden sm:inline">Contributors</span>
               </TabsTrigger>
-              <TabsTrigger value="activity" className="flex items-center gap-2" disabled>
+              {/* Analytics tab disabled - will be implemented in issue #598
+              <TabsTrigger value="analytics" className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4" />
+                <span className="hidden sm:inline">Analytics</span>
+              </TabsTrigger> */}
+              <TabsTrigger value="activity" className="flex items-center gap-2">
                 <Activity className="h-4 w-4" />
                 <span className="hidden sm:inline">Activity</span>
               </TabsTrigger>
-              <TabsTrigger value="settings" className="flex items-center gap-2" disabled>
+              <TabsTrigger value="settings" className="flex items-center gap-2">
                 <Settings className="h-4 w-4" />
                 <span className="hidden sm:inline">Settings</span>
               </TabsTrigger>
@@ -1794,6 +2517,47 @@ export default function WorkspacePage() {
               workspaceId={workspace.id}
             />
           </TabsContent>
+
+          {/* Analytics tab content disabled - will be implemented in issue #598
+          <TabsContent value="analytics" className="mt-6">
+            <div className="container max-w-7xl mx-auto">
+              <AnalyticsDashboard
+                data={generateAnalyticsData()}
+                repositories={repositories.map((repo) => ({
+                  id: `wr-${repo.id}`,
+                  workspace_id: workspace.id,
+                  repository_id: repo.id,
+                  added_by: workspace.owner_id,
+                  added_at: new Date().toISOString(),
+                  notes: null,
+                  tags: [],
+                  is_pinned: false,
+                  repository: {
+                    id: repo.id,
+                    full_name: repo.full_name,
+                    owner: repo.owner,
+                    name: repo.name,
+                    description: repo.description || '',
+                    language: repo.language || null,
+                    stargazers_count: repo.stars,
+                    forks_count: repo.forks,
+                    open_issues_count: repo.open_issues,
+                    topics: [],
+                    is_private: false,
+                    is_archived: false,
+                  },
+                  added_by_user: {
+                    id: workspace.owner_id,
+                    email: '',
+                    display_name: '',
+                  },
+                }))}
+                loading={loading}
+                tier={workspace.tier as 'free' | 'pro' | 'enterprise'}
+                onExport={handleAnalyticsExport}
+              />
+            </div>
+          </TabsContent> */}
 
           <TabsContent value="activity" className="mt-6">
             <div className="container max-w-7xl mx-auto">
