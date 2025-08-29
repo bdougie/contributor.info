@@ -179,7 +179,7 @@ ${getBatchCapabilityMessage(canMake100, canMake10, !canMake1)}
         .maybeSingle();
 
       if (error || !repoData) {
-        console.log(`❌ Repository ${owner}/${repo} not found in database`);
+        console.log('❌ Repository %s/%s not found in database', owner, repo);
         return;
       }
 
@@ -232,12 +232,12 @@ ${getBatchCapabilityMessage(canMake100, canMake10, !canMake1)}
       const { fetchPullRequests } = await import('../github');
       const days = metadata?.days || 7;
 
-      console.log(`🔄 Fetching recent PRs for ${repo.owner}/${repo.name} (last ${days} days)`);
+      console.log('🔄 Fetching recent PRs for %s/%s (last %d days)', repo.owner, repo.name, days);
 
       const recentPRs = await fetchPullRequests(repo.owner, repo.name, days.toString());
 
       if (!recentPRs || recentPRs.length === 0) {
-        console.log(`✅ No recent PRs found for ${repo.owner}/${repo.name}`);
+        console.log('✅ No recent PRs found for %s/%s', repo.owner, repo.name);
         return { success: true };
       }
 
@@ -293,7 +293,7 @@ ${getBatchCapabilityMessage(canMake100, canMake10, !canMake1)}
         .maybeSingle();
 
       if (error || !repoData) {
-        console.log(`❌ Repository ${owner}/${repo} not found in database`);
+        console.log('❌ Repository %s/%s not found in database', owner, repo);
         return;
       }
 

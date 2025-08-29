@@ -73,7 +73,11 @@ export function Recommendations({ owner, repo, timeRange }: RecommendationsProps
     }
   };
 
-  const loadLLMRecommendations = async (healthData: HealthMetrics, activityData: unknown, trendsData: unknown[]) => {
+  const loadLLMRecommendations = async (
+    healthData: HealthMetrics,
+    activityData: unknown,
+    trendsData: unknown[]
+  ) => {
     setLlmLoading(true);
     try {
       const combinedData = {
@@ -101,7 +105,9 @@ export function Recommendations({ owner, repo, timeRange }: RecommendationsProps
 
     // Health-based recommendations
     if (healthData.score < 60) {
-      const criticalFactors = healthData.factors.filter((f: HealthMetrics['factors'][0]) => f.status === 'critical');
+      const criticalFactors = healthData.factors.filter(
+        (f: HealthMetrics['factors'][0]) => f.status === 'critical'
+      );
       if (criticalFactors.length > 0) {
         recommendations.push({
           id: 'health-critical',

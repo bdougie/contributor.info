@@ -38,10 +38,7 @@ export function DubTest() {
           API Key from import.meta.env:{' '}
           {import.meta.env.VITE_DUB_CO_KEY ? '✅ Present' : '❌ Missing'}
         </div>
-        <div>
-          API Key format:{' '}
-          {getDubKeyStatus(import.meta.env.VITE_DUB_CO_KEY)}
-        </div>
+        <div>API Key format: {getDubKeyStatus(import.meta.env.VITE_DUB_CO_KEY)}</div>
         <div>
           API Mode: {import.meta.env.DEV ? 'Development (mocked)' : 'Production (Netlify function)'}
         </div>

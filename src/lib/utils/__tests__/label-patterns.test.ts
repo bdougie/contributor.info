@@ -3,7 +3,7 @@ import {
   getLabelsByIndex,
   getPRStateByIndex,
   getRoleByIndex,
-  getPriorityByIndex
+  getPriorityByIndex,
 } from '../label-patterns';
 
 describe('label-patterns utilities', () => {

@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { getPercentageBgColor, getValueCategoryColor, getValidationBorderClass } from './threshold-styling';
+import {
+  getPercentageBgColor,
+  getValueCategoryColor,
+  getValidationBorderClass,
+} from './threshold-styling';
 
 describe('getPercentageBgColor', () => {
   it('should return red for critical percentages', () => {
