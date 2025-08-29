@@ -110,15 +110,8 @@ export default defineConfig(() => ({
       strictRequires: 'auto'
     },
     rollupOptions: {
-      // Optimize tree shaking with safer settings (addresses PR #599 feedback)
-      treeshake: {
-        moduleSideEffects: 'no-external', // Only tree-shake internal modules aggressively
-        propertyReadSideEffects: false, // Assume property reads have no side effects for better optimization
-        annotations: true, // Respect pure annotations
-        correctVarValueBeforeDeclaration: true, // Better handling of var declarations
-        tryCatchDeoptimization: false, // Keep from main: better optimization of try-catch blocks
-        unknownGlobalSideEffects: true // Keep from main: safer handling of globals
-      },
+      // Use default tree shaking to avoid initialization issues
+      // Custom tree shaking was causing "Cannot access before initialization" errors
       output: {
         // Ensure proper module format
         format: 'es',
@@ -145,27 +138,22 @@ export default defineConfig(() => ({
           }
           return 'assets/[name]-[hash][extname]';
         },
-        // Prevent hoisting to maintain proper initialization order for complex dependencies
-        hoistTransitiveImports: false,
-        // Optimized chunking strategy for better code splitting
+        // Allow hoisting for proper module loading
+        hoistTransitiveImports: true,
+        // Safer chunking strategy - bundle React ecosystem together
         manualChunks: (id) => {
-          // Optimize vendor chunking with more granular splits
           if (id.includes('node_modules')) {
-            // Core React bundle - minimal size
-            if (id.includes('react') || id.includes('react-dom')) {
-              return 'vendor-react-core';
-            }
-            if (id.includes('react-router')) {
-              return 'vendor-router';
-            }
-            // UI components - separate from core React
-            if (id.includes('@radix-ui')) {
-              return 'vendor-ui';
-            }
-            // Visualization libraries - keep together to avoid initialization issues
-            // These libraries have complex interdependencies and must stay in the same chunk
-            if (id.includes('@nivo') || id.includes('recharts') || id.includes('d3') || id.includes('uplot') || id.includes('victory')) {
-              return 'vendor-charts';
+            // Bundle React and all React-dependent libraries together
+            // This prevents initialization order issues
+            if (id.includes('react') || 
+                id.includes('react-dom') || 
+                id.includes('react-router') ||
+                id.includes('@radix-ui') ||
+                id.includes('@nivo') ||
+                id.includes('recharts') ||
+                id.includes('d3-') ||
+                id.includes('uplot')) {
+              return 'vendor-react';
             }
             if (id.includes('@supabase')) {
               return 'vendor-supabase';
@@ -186,22 +174,7 @@ export default defineConfig(() => ({
               return 'embeddings-excluded';
             }
           }
-          
-          // Split app code by feature for better code splitting
-          if (!id.includes('node_modules')) {
-            // Split workspace features into separate chunk
-            if (id.includes('/features/workspace/')) {
-              return 'feature-workspace';
-            }
-            // Split contributor features
-            if (id.includes('/features/contributor/')) {
-              return 'feature-contributor';
-            }
-            // Split analytics/charts components
-            if (id.includes('/analytics/') || id.includes('/charts/')) {
-              return 'feature-analytics';
-            }
-          }
+          // Don't split app code - let it stay in main bundle to avoid issues
         },
       },
     },
@@ -213,7 +186,7 @@ export default defineConfig(() => ({
     minify: 'esbuild',
     target: 'es2020', // Modern target with good compatibility
     // Optimize chunk size warnings  
-    chunkSizeWarningLimit: 600, // Target smaller chunks for better performance
+    chunkSizeWarningLimit: 1300, // Increased to accommodate vendor-react bundle
     // Enable compression reporting
     reportCompressedSize: true,
     // Module preload optimization - load minimal React first
