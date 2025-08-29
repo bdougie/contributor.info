@@ -28,7 +28,7 @@ export class AnalyticsErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('Analytics Error Boundary caught an error:', error, errorInfo);
+    console.error('%s %o %o', 'Analytics Error Boundary caught an error:', error, errorInfo);
 
     if (this.props.onError) {
       this.props.onError(error, errorInfo);

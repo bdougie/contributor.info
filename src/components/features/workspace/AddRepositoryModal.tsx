@@ -122,7 +122,7 @@ export function AddRepositoryModal({
           .from('workspaces')
           .select('*')
           .eq('id', workspaceId)
-          .single();
+          .maybeSingle();
 
         if (workspaceData) {
           setWorkspace(workspaceData);
@@ -172,7 +172,7 @@ export function AddRepositoryModal({
 
           const validationResult = workspaceRepoSchema.safeParse(existingWorkspaceRepos);
           if (!validationResult.success) {
-            console.error('Invalid workspace repos data:', validationResult.error);
+            console.error('%s %o', 'Invalid workspace repos data:', validationResult.error);
             return [];
           }
 
@@ -190,7 +190,7 @@ export function AddRepositoryModal({
           setExistingRepoIds(new Set(repos.map((r) => r.full_name)));
         }
       } catch (err) {
-        console.error('Error initializing modal:', err);
+        console.error('%s %o', 'Error initializing modal:', err);
         const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
         setError(`Failed to load workspace details: ${errorMessage}`);
       } finally {
@@ -289,7 +289,7 @@ export function AddRepositoryModal({
           onSuccess();
         }
       } catch (err) {
-        console.error('Error removing repository:', err);
+        console.error('%s %o', 'Error removing repository:', err);
         const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
         toast.error(`Failed to remove ${repoName}: ${errorMessage}`);
       } finally {
@@ -321,7 +321,7 @@ export function AddRepositoryModal({
           .from('repositories')
           .select('id')
           .eq('full_name', repo.full_name)
-          .single();
+          .maybeSingle();
 
         if (existingRepo) {
           return existingRepo.id;
@@ -343,10 +343,10 @@ export function AddRepositoryModal({
             is_active: true,
           })
           .select('id')
-          .single();
+          .maybeSingle();
 
         if (createError) {
-          console.error('Error creating repository:', createError);
+          console.error('%s %o', 'Error creating repository:', createError);
           throw new Error(`Failed to add ${repo.full_name}`);
         }
 
@@ -400,7 +400,7 @@ export function AddRepositoryModal({
         setError(errors.join('\n'));
       }
     } catch (err) {
-      console.error('Error adding repositories to workspace:', err);
+      console.error('%s %o', 'Error adding repositories to workspace:', err);
       setError('An unexpected error occurred. Please try again.');
     } finally {
       setSubmitting(false);
