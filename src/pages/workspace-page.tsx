@@ -147,9 +147,10 @@ const generateMockMetrics = (
   repos: Repository[],
   timeRange: TimeRange,
   selectedRepoIds?: string[],
-  demoRandom: ReturnType<typeof createDemoRandomGenerator>
+  demoRandom?: ReturnType<typeof createDemoRandomGenerator>
 ): WorkspaceMetrics => {
   // Use deterministic random for demo data generation passed as parameter
+  const random = demoRandom || createDemoRandomGenerator();
 
   // Use utility function to filter repositories
   const filteredRepos = filterRepositoriesBySelection(repos, selectedRepoIds);
@@ -180,13 +181,13 @@ const generateMockMetrics = (
 
   return {
     totalStars,
-    totalPRs: Math.floor(demoRandom() * 500) + 100,
+    totalPRs: Math.floor(random() * 500) + 100,
     totalContributors,
-    totalCommits: Math.floor(demoRandom() * 10000) + 1000,
-    starsTrend: (demoRandom() - 0.5) * 20 * multiplier,
-    prsTrend: (demoRandom() - 0.5) * 15 * multiplier,
-    contributorsTrend: (demoRandom() - 0.5) * 10 * multiplier,
-    commitsTrend: (demoRandom() - 0.5) * 25 * multiplier,
+    totalCommits: Math.floor(random() * 10000) + 1000,
+    starsTrend: (random() - 0.5) * 20 * multiplier,
+    prsTrend: (random() - 0.5) * 15 * multiplier,
+    contributorsTrend: (random() - 0.5) * 10 * multiplier,
+    commitsTrend: (random() - 0.5) * 25 * multiplier,
   };
 };
 
