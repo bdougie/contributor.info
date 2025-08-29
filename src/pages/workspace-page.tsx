@@ -148,6 +148,9 @@ const generateMockMetrics = (
   timeRange: TimeRange,
   selectedRepoIds?: string[]
 ): WorkspaceMetrics => {
+  // Use deterministic random for demo data generation
+  const demoRandom = createDemoRandomGenerator();
+  
   // Use utility function to filter repositories
   const filteredRepos = filterRepositoriesBySelection(repos, selectedRepoIds);
 
@@ -177,13 +180,13 @@ const generateMockMetrics = (
 
   return {
     totalStars,
-    totalPRs: Math.floor(Math.random() * 500) + 100,
+    totalPRs: Math.floor(demoRandom() * 500) + 100,
     totalContributors,
-    totalCommits: Math.floor(Math.random() * 10000) + 1000,
-    starsTrend: (Math.random() - 0.5) * 20 * multiplier,
-    prsTrend: (Math.random() - 0.5) * 15 * multiplier,
-    contributorsTrend: (Math.random() - 0.5) * 10 * multiplier,
-    commitsTrend: (Math.random() - 0.5) * 25 * multiplier,
+    totalCommits: Math.floor(demoRandom() * 10000) + 1000,
+    starsTrend: (demoRandom() - 0.5) * 20 * multiplier,
+    prsTrend: (demoRandom() - 0.5) * 15 * multiplier,
+    contributorsTrend: (demoRandom() - 0.5) * 10 * multiplier,
+    commitsTrend: (demoRandom() - 0.5) * 25 * multiplier,
   };
 };
 
@@ -193,6 +196,9 @@ const generateMockTrendData = (
   repos?: Repository[],
   selectedRepoIds?: string[]
 ): WorkspaceTrendData => {
+  // Use deterministic random for demo data generation
+  const demoRandom = createDemoRandomGenerator();
+  
   // Use utility function to filter repositories (for future use with real data)
   const filteredRepos = repos ? filterRepositoriesBySelection(repos, selectedRepoIds) : [];
 
@@ -213,9 +219,9 @@ const generateMockTrendData = (
     date.setDate(date.getDate() - i);
     labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
 
-    prs.push(Math.floor((Math.random() * 30 + 10) * repoMultiplier));
-    issues.push(Math.floor((Math.random() * 20 + 5) * repoMultiplier));
-    commits.push(Math.floor((Math.random() * 60 + 20) * repoMultiplier));
+    prs.push(Math.floor((demoRandom() * 30 + 10) * repoMultiplier));
+    issues.push(Math.floor((demoRandom() * 20 + 5) * repoMultiplier));
+    commits.push(Math.floor((demoRandom() * 60 + 20) * repoMultiplier));
   }
 
   return {
@@ -1319,20 +1325,35 @@ function WorkspaceContributors({
   );
 }
 
+/**
+ * Simple deterministic pseudo-random number generator for demo data
+ * This is NOT for cryptographic use, only for generating consistent demo data
+ */
+function createDemoRandomGenerator(seed: number = 42) {
+  let currentSeed = seed;
+  return () => {
+    currentSeed = (currentSeed * 1103515245 + 12345) % 2147483648;
+    return currentSeed / 2147483648;
+  };
+}
+
 function WorkspaceActivity({ repositories }: { repositories: Repository[] }) {
   // Generate activity data for the feed
   const activities: ActivityItem[] = [];
   const now = new Date();
 
+  // Use deterministic random for demo data generation
+  const demoRandom = createDemoRandomGenerator();
+
   // Generate sample activities based on repositories
   repositories.forEach((repo, repoIndex) => {
     // Generate 20 activities per repo for demonstration
     for (let i = 0; i < 20; i++) {
-      const createdAt = new Date(now.getTime() - Math.random() * 30 * 24 * 60 * 60 * 1000);
+      const createdAt = new Date(now.getTime() - demoRandom() * 30 * 24 * 60 * 60 * 1000);
       const activityTypes = ['pr', 'issue', 'commit', 'review'] as const;
       const statuses = ['open', 'merged', 'closed', 'approved'] as const;
-      const activityType = activityTypes[Math.floor(Math.random() * activityTypes.length)];
-      const status = statuses[Math.floor(Math.random() * statuses.length)];
+      const activityType = activityTypes[Math.floor(demoRandom() * activityTypes.length)];
+      const status = statuses[Math.floor(demoRandom() * statuses.length)];
 
       activities.push({
         id: `activity-${repoIndex}-${i}`,
@@ -1350,11 +1371,11 @@ function WorkspaceActivity({ repositories }: { repositories: Repository[] }) {
             'Optimize image loading performance',
             'Add dark mode support',
           ];
-          return titles[Math.floor(Math.random() * titles.length)];
+          return titles[Math.floor(demoRandom() * titles.length)];
         })(),
         author: {
-          username: `contributor${Math.floor(Math.random() * 10)}`,
-          avatar_url: `https://github.com/contributor${Math.floor(Math.random() * 10)}.png`,
+          username: `contributor${Math.floor(demoRandom() * 10)}`,
+          avatar_url: `https://github.com/contributor${Math.floor(demoRandom() * 10)}.png`,
         },
         repository: repo.full_name,
         created_at: createdAt.toISOString(),
@@ -1363,7 +1384,7 @@ function WorkspaceActivity({ repositories }: { repositories: Repository[] }) {
           if (activityType === 'pr') return 'pull';
           if (activityType === 'issue') return 'issues';
           return 'commit';
-        })()}/${Math.floor(Math.random() * 1000)}`,
+        })()}/${Math.floor(demoRandom() * 1000)}`,
       });
     }
   });
@@ -1857,6 +1878,9 @@ export default function WorkspacePage() {
   const [addRepositoryModalOpen, setAddRepositoryModalOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isWorkspaceOwner, setIsWorkspaceOwner] = useState(false);
+  
+  // Use deterministic random for demo data generation
+  const demoRandom = createDemoRandomGenerator();
 
   // Determine active tab from URL
   const pathSegments = location.pathname.split('/');
@@ -1947,11 +1971,11 @@ export default function WorkspacePage() {
             language: r.repositories.language ?? undefined,
             stars: r.repositories.stargazers_count,
             forks: r.repositories.forks_count,
-            open_prs: Math.floor(Math.random() * 50) + 5, // Mock for now
+            open_prs: Math.floor(demoRandom() * 50) + 5, // Mock for now
             open_issues: r.repositories.open_issues_count,
-            contributors: Math.floor(Math.random() * 100) + 10, // Mock for now
+            contributors: Math.floor(demoRandom() * 100) + 10, // Mock for now
             last_activity: new Date(
-              Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000
+              Date.now() - demoRandom() * 30 * 24 * 60 * 60 * 1000
             ).toISOString(),
             is_pinned: r.is_pinned,
             avatar_url: `https://avatars.githubusercontent.com/${r.repositories.owner}`,
@@ -2148,9 +2172,9 @@ export default function WorkspacePage() {
             forks: item.repositories.forks_count || 0,
             open_prs: 0, // Mock for now
             open_issues: item.repositories.open_issues_count || 0,
-            contributors: Math.floor(Math.random() * 50) + 10, // Mock for now
+            contributors: Math.floor(demoRandom() * 50) + 10, // Mock for now
             avatar_url: `https://avatars.githubusercontent.com/${item.repositories.owner}`,
-            last_activity: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000)
+            last_activity: new Date(Date.now() - demoRandom() * 30 * 24 * 60 * 60 * 1000)
               .toISOString()
               .split('T')[0],
             is_pinned: item.is_pinned || false,
@@ -2244,16 +2268,16 @@ export default function WorkspacePage() {
         pull_requests: repo.open_prs,
         issues: repo.open_issues,
         contributors: repo.contributors,
-        activity_score: Math.floor(Math.random() * 100),
-        trend: Math.floor(Math.random() * 30) - 15,
+        activity_score: Math.floor(demoRandom() * 100),
+        trend: Math.floor(demoRandom() * 30) - 15,
       });
 
       // Generate activities for each repo
       for (let i = 0; i < 10; i++) {
-        const createdAt = new Date(now.getTime() - Math.random() * 30 * 24 * 60 * 60 * 1000);
-        const activityType = activityTypes[Math.floor(Math.random() * activityTypes.length)];
-        const status = statuses[Math.floor(Math.random() * statuses.length)];
-        const contributorName = `contributor${Math.floor(Math.random() * 10)}`;
+        const createdAt = new Date(now.getTime() - demoRandom() * 30 * 24 * 60 * 60 * 1000);
+        const activityType = activityTypes[Math.floor(demoRandom() * activityTypes.length)];
+        const status = statuses[Math.floor(demoRandom() * statuses.length)];
+        const contributorName = `contributor${Math.floor(demoRandom() * 10)}`;
 
         activities.push({
           id: `activity-${repoIndex}-${i}`,
@@ -2263,7 +2287,7 @@ export default function WorkspacePage() {
               if (activityType === 'pr') return 'Pull Request';
               if (activityType === 'issue') return 'Issue';
               return 'Activity';
-            })() + ` #${Math.floor(Math.random() * 1000)}`,
+            })() + ` #${Math.floor(demoRandom() * 1000)}`,
           author: {
             username: contributorName,
             avatar_url: `https://github.com/${contributorName}.png`,
@@ -2275,7 +2299,7 @@ export default function WorkspacePage() {
             if (activityType === 'pr') return 'pull';
             if (activityType === 'issue') return 'issues';
             return 'commit';
-          })()}/${Math.floor(Math.random() * 1000)}`,
+          })()}/${Math.floor(demoRandom() * 1000)}`,
         });
 
         // Update contributor stats
@@ -2289,7 +2313,7 @@ export default function WorkspacePage() {
             issues: 0,
             reviews: 0,
             commits: 0,
-            trend: Math.floor(Math.random() * 40) - 20,
+            trend: Math.floor(demoRandom() * 40) - 20,
           });
         }
 
@@ -2314,7 +2338,7 @@ export default function WorkspacePage() {
       label: 'Pull Requests',
       data: dates.map((date) => ({
         date,
-        value: Math.floor(Math.random() * 50) + 10,
+        value: Math.floor(demoRandom() * 50) + 10,
       })),
       color: '#10b981',
     });
@@ -2323,7 +2347,7 @@ export default function WorkspacePage() {
       label: 'Active Contributors',
       data: dates.map((date) => ({
         date,
-        value: Math.floor(Math.random() * 30) + 5,
+        value: Math.floor(demoRandom() * 30) + 5,
       })),
       color: '#3b82f6',
     });
