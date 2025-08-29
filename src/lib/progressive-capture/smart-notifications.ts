@@ -244,7 +244,12 @@ export class SmartDataNotifications {
 
       if (missingData.includes('recent PRs')) {
         if (import.meta.env?.DEV) {
-          console.log('⏳ Queuing recent PRs job for %s/%s with priority: %s', owner, repo, priority);
+          console.log(
+            '⏳ Queuing recent PRs job for %s/%s with priority: %s',
+            owner,
+            repo,
+            priority
+          );
         }
         promises.push(hybridQueueManager.queueRecentDataCapture(repositoryId, `${owner}/${repo}`));
       }
@@ -257,7 +262,10 @@ export class SmartDataNotifications {
       ) {
         if (import.meta.env?.DEV) {
           console.log(
-            '⏳ Queuing historical data job for %s/%s with priority: %s', owner, repo, priority
+            '⏳ Queuing historical data job for %s/%s with priority: %s',
+            owner,
+            repo,
+            priority
           );
         }
         // Use queueJob directly to pass auto-fix reason
