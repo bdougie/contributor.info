@@ -47,7 +47,7 @@ export default function WorkspaceNewPage() {
         setError(response.error || 'Failed to create workspace');
       }
     } catch (err) {
-      console.error('Error creating workspace:', err);
+      console.error('%s', 'Error creating workspace:', err);
       setError('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
@@ -66,7 +66,7 @@ export default function WorkspaceNewPage() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate('/')}
+            onClick={handleCancel}
             className="mb-4 -ml-2"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
