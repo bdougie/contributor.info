@@ -7,10 +7,10 @@ export type Size = 'small' | 'medium' | 'large';
 /**
  * Get icon size classes based on size variant
  * Provides consistent icon sizing across components
- * 
+ *
  * @param size - Size variant ('small', 'medium', 'large')
  * @returns Tailwind CSS size classes
- * 
+ *
  * @example
  * getIconSize('small') // returns 'h-3 w-3'
  * getIconSize('medium') // returns 'h-4 w-4'
@@ -25,10 +25,10 @@ export const getIconSize = (size: Size = 'medium'): string => {
 /**
  * Get text size classes based on size variant
  * Provides consistent text sizing for different component sizes
- * 
+ *
  * @param size - Size variant ('small', 'medium', 'large')
  * @returns Tailwind CSS text size classes
- * 
+ *
  * @example
  * getTextSize('small') // returns 'text-sm'
  * getTextSize('medium') // returns 'text-base'
@@ -43,10 +43,10 @@ export const getTextSize = (size: Size = 'medium'): string => {
 /**
  * Get padding classes based on size variant
  * Provides consistent padding across different component sizes
- * 
+ *
  * @param size - Size variant ('small', 'medium', 'large')
  * @returns Tailwind CSS padding classes
- * 
+ *
  * @example
  * getPadding('small') // returns 'p-1'
  * getPadding('medium') // returns 'p-2'
@@ -61,10 +61,10 @@ export const getPadding = (size: Size = 'medium'): string => {
 /**
  * Get spacing gap classes based on size variant
  * Provides consistent spacing between elements
- * 
+ *
  * @param size - Size variant ('small', 'medium', 'large')
  * @returns Tailwind CSS gap classes
- * 
+ *
  * @example
  * getSpacing('small') // returns 'gap-1'
  * getSpacing('medium') // returns 'gap-2'

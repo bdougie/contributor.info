@@ -348,9 +348,7 @@ export function UnifiedSyncButton({
       ) : (
         <Lock className={showLabel ? 'mr-2 h-4 w-4' : 'h-4 w-4'} />
       )}
-      {showLabel && (
-        <span>{getSyncButtonText(isSyncing, isLoggedIn)}</span>
-      )}
+      {showLabel && <span>{getSyncButtonText(isSyncing, isLoggedIn)}</span>}
     </>
   );
 

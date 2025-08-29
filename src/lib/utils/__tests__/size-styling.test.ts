@@ -1,10 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { 
-  getIconSize, 
-  getTextSize, 
-  getPadding, 
-  getSpacing 
-} from '../size-styling';
+import { getIconSize, getTextSize, getPadding, getSpacing } from '../size-styling';
 
 describe('size-styling utilities', () => {
   describe('getIconSize', () => {

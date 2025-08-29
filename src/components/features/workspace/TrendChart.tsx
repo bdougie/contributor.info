@@ -66,7 +66,7 @@ function createUPlotOptions(
   const gridColor = isDark ? 'rgba(75, 85, 99, 0.3)' : 'rgba(156, 163, 175, 0.2)';
 
   return {
-    width: 800, // Will be overridden by responsive sizing
+    width: 800, // Initial width, will be overridden by responsive sizing
     height,
     scales: {
       x: {
@@ -240,7 +240,7 @@ export function TrendChart({
   }
 
   return (
-    <Card className={cn('transition-all duration-500 ease-in-out', className)}>
+    <Card className={cn('transition-all duration-500 ease-in-out w-full', className)}>
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
@@ -267,9 +267,9 @@ export function TrendChart({
           )}
         </div>
       </CardHeader>
-      <CardContent className="pb-2">
+      <CardContent className="pb-2 w-full">
         {hasData && chartData && chartOptions ? (
-          <div className="space-y-3">
+          <div className="space-y-3 w-full">
             {showLegend && (
               <div className="flex flex-wrap gap-3 px-2">
                 {data.datasets.map((dataset, index) => {
@@ -304,7 +304,7 @@ export function TrendChart({
                 })}
               </div>
             )}
-            <div style={{ height }} className="pr-2 transition-[height] duration-500 ease-in-out">
+            <div style={{ height }} className="w-full transition-[height] duration-500 ease-in-out">
               <UPlotChart
                 data={chartData}
                 options={chartOptions}
