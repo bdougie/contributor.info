@@ -2,6 +2,12 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { AddRepositoryModal } from './AddRepositoryModal';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import type {
+  MockSupabaseClient,
+  MockWorkspaceService,
+  MockUser,
+  StorybookMockOptions,
+} from './types/storybook-types';
 
 // Mock the supabase module for Storybook
 const mockUser = {
@@ -45,10 +51,10 @@ const mockRepositories = [
 // Set up mocks immediately on module load for Storybook
 if (typeof window !== 'undefined' && window.location.href.includes('storybook')) {
   // Create a mock for the supabase client
-  (window as any).__mockSupabase = {
+  (window as unknown as { __mockSupabase: MockSupabaseClient }).__mockSupabase = {
     auth: {
       getUser: () => Promise.resolve({ data: { user: mockUser }, error: null }),
-      onAuthStateChange: (callback: any) => {
+      onAuthStateChange: (callback: (event: string, session: { user: MockUser } | null) => void) => {
         // Immediately call with signed in state
         setTimeout(() => callback('SIGNED_IN', { user: mockUser }), 0);
         return { data: { subscription: { unsubscribe: () => {} } } };
@@ -56,7 +62,7 @@ if (typeof window !== 'undefined' && window.location.href.includes('storybook'))
     },
     from: (table: string) => ({
       select: (columns?: string) => ({
-        eq: (column: string, value: any) => ({
+        eq: (column: string, value: string | number | boolean) => ({
           single: () => {
             if (table === 'workspaces') {
               return Promise.resolve({ data: mockWorkspace, error: null });
@@ -73,7 +79,7 @@ if (typeof window !== 'undefined' && window.location.href.includes('storybook'))
             return Promise.resolve({ data: null, error: null });
           },
         }),
-        in: (column: string, values: any[]) => {
+        in: (column: string, values: Array<string | number>) => {
           if (table === 'repositories') {
             return Promise.resolve({ data: mockRepositories, error: null });
           }
@@ -86,7 +92,7 @@ if (typeof window !== 'undefined' && window.location.href.includes('storybook'))
           return Promise.resolve({ data: [], error: null });
         },
       }),
-      insert: (data: any) => ({
+      insert: (data: Record<string, unknown>) => ({
         select: () => ({
           single: () =>
             Promise.resolve({
@@ -95,7 +101,7 @@ if (typeof window !== 'undefined' && window.location.href.includes('storybook'))
             }),
         }),
       }),
-      update: (data: any) => ({
+      update: (data: Record<string, unknown>) => ({
         eq: () => ({
           select: () => Promise.resolve({ data: null, error: null }),
         }),
@@ -104,8 +110,8 @@ if (typeof window !== 'undefined' && window.location.href.includes('storybook'))
   };
 
   // Mock the WorkspaceService
-  (window as any).__mockWorkspaceService = {
-    addRepositoryToWorkspace: (workspaceId: string, data: any, userId: string) =>
+  (window as unknown as { __mockWorkspaceService: MockWorkspaceService }).__mockWorkspaceService = {
+    addRepositoryToWorkspace: (workspaceId: string, data: { full_name: string; owner: string; repo: string }, userId: string) =>
       Promise.resolve({
         success: true,
         data: { id: 'new-link', repository_id: 'repo-123' },
@@ -116,16 +122,16 @@ if (typeof window !== 'undefined' && window.location.href.includes('storybook'))
 }
 
 // Override supabase for specific story scenarios
-const setupMockSupabase = (authenticated = true, options: any = {}) => {
+const setupMockSupabase = (authenticated = true, options: StorybookMockOptions = {}) => {
   if (typeof window !== 'undefined') {
     // Ensure mock exists
-    if (!(window as any).__mockSupabase) {
+    if (!(window as unknown as { __mockSupabase?: MockSupabaseClient }).__mockSupabase) {
       // Initialize mock if not present
-      (window as any).__mockSupabase = {
+      (window as unknown as { __mockSupabase: MockSupabaseClient }).__mockSupabase = {
         auth: {
           getUser: () =>
             Promise.resolve({ data: { user: authenticated ? mockUser : null }, error: null }),
-          onAuthStateChange: (callback: any) => {
+          onAuthStateChange: (callback: (event: string, session: { user: MockUser } | null) => void) => {
             setTimeout(
               () =>
                 callback(authenticated ? 'SIGNED_IN' : 'SIGNED_OUT', {
@@ -138,7 +144,7 @@ const setupMockSupabase = (authenticated = true, options: any = {}) => {
         },
         from: (table: string) => ({
           select: (columns?: string) => ({
-            eq: (column: string, value: any) => ({
+            eq: (column: string, value: string | number | boolean) => ({
               single: () => {
                 if (table === 'workspaces' && authenticated) {
                   return Promise.resolve({ data: mockWorkspace, error: null });
@@ -155,7 +161,7 @@ const setupMockSupabase = (authenticated = true, options: any = {}) => {
                 return Promise.resolve({ data: null, error: null });
               },
             }),
-            in: (column: string, values: any[]) => {
+            in: (column: string, values: Array<string | number>) => {
               if (!authenticated) return Promise.resolve({ data: [], error: null });
               if (table === 'repositories') {
                 return Promise.resolve({ data: mockRepositories, error: null });
@@ -169,7 +175,7 @@ const setupMockSupabase = (authenticated = true, options: any = {}) => {
               return Promise.resolve({ data: [], error: null });
             },
           }),
-          insert: (data: any) => ({
+          insert: (data: Record<string, unknown>) => ({
             select: () => ({
               single: () =>
                 authenticated
@@ -177,7 +183,7 @@ const setupMockSupabase = (authenticated = true, options: any = {}) => {
                   : Promise.resolve({ data: null, error: { message: 'Authentication required' } }),
             }),
           }),
-          update: (data: any) => ({
+          update: (data: Record<string, unknown>) => ({
             eq: () => ({
               select: () => Promise.resolve({ data: null, error: null }),
             }),
@@ -186,22 +192,22 @@ const setupMockSupabase = (authenticated = true, options: any = {}) => {
       };
     }
 
-    const currentMock = (window as any).__mockSupabase;
+    const currentMock = (window as unknown as { __mockSupabase: MockSupabaseClient }).__mockSupabase;
 
     if (!authenticated && currentMock?.auth) {
       // Update to unauthenticated state
       currentMock.auth.getUser = () => Promise.resolve({ data: { user: null }, error: null });
-      currentMock.auth.onAuthStateChange = (callback: any) => {
+      currentMock.auth.onAuthStateChange = (callback: (event: string, session: { user: MockUser } | null) => void) => {
         setTimeout(() => callback('SIGNED_OUT', { user: null }), 0);
         return { data: { subscription: { unsubscribe: () => {} } } };
       };
-      if ((window as any).__mockWorkspaceService) {
-        (window as any).__mockWorkspaceService.checkPermissions = () =>
+      if ((window as unknown as { __mockWorkspaceService?: MockWorkspaceService }).__mockWorkspaceService) {
+        (window as unknown as { __mockWorkspaceService: MockWorkspaceService }).__mockWorkspaceService.checkPermissions = () =>
           Promise.resolve({ hasPermission: false });
       }
     }
 
-    // Apply any custom options (like workspace at limit)
+    // Apply custom options (like workspace at limit)
     if (options.workspaceAtLimit && currentMock?.from) {
       const originalFrom = currentMock.from;
       currentMock.from = (table: string) => {
@@ -409,9 +415,9 @@ export const ProTierWorkspace: Story = {
           current_repository_count: 5,
         };
 
-        if ((window as any).__mockSupabase) {
-          const originalFrom = (window as any).__mockSupabase.from;
-          (window as any).__mockSupabase.from = (table: string) => {
+        if ((window as unknown as { __mockSupabase?: MockSupabaseClient }).__mockSupabase) {
+          const originalFrom = (window as unknown as { __mockSupabase: MockSupabaseClient }).__mockSupabase.from;
+          (window as unknown as { __mockSupabase: MockSupabaseClient }).__mockSupabase.from = (table: string) => {
             const result = originalFrom(table);
             if (table === 'workspaces') {
               return {
@@ -468,9 +474,9 @@ export const EnterpriseTierWorkspace: Story = {
           current_repository_count: 8,
         };
 
-        if ((window as any).__mockSupabase) {
-          const originalFrom = (window as any).__mockSupabase.from;
-          (window as any).__mockSupabase.from = (table: string) => {
+        if ((window as unknown as { __mockSupabase?: MockSupabaseClient }).__mockSupabase) {
+          const originalFrom = (window as unknown as { __mockSupabase: MockSupabaseClient }).__mockSupabase.from;
+          (window as unknown as { __mockSupabase: MockSupabaseClient }).__mockSupabase.from = (table: string) => {
             const result = originalFrom(table);
             if (table === 'workspaces') {
               return {

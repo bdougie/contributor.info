@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/icon';
 import { format, parseISO, formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { openUrlSafely } from '../utils/security-utils';
 import type { ActivityItem } from '../AnalyticsDashboard';
 
 interface ActivityTableRowProps {
@@ -180,7 +181,7 @@ export const ActivityTableRow = memo(({ activity, style }: ActivityTableRowProps
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={() => window.open(activity.url, '_blank', 'noopener,noreferrer')}
+                    onClick={() => activity.url && openUrlSafely(activity.url)}
                     aria-label={`Open ${getTypeLabel(activity.type)} in new tab`}
                   >
                     <ExternalLink className="h-4 w-4" />

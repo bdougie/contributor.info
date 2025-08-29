@@ -4,6 +4,7 @@ import {
   getBatchSizeFactor,
   getPriorityFactor,
 } from '../utils/performance-helpers';
+import { secureRandom } from '../crypto-utils';
 
 export interface RoutingDecision {
   processor: 'inngest' | 'github_actions';
@@ -158,7 +159,7 @@ export class EnhancedHybridRouter {
     const adjustedActionsScore = actionsScore * (1 - factors.systemLoad.actionsLoad);
 
     // Apply random distribution for 25% GitHub Actions target
-    const randomFactor = Math.random();
+    const randomFactor = secureRandom();
     const useActions =
       randomFactor < this.GITHUB_ACTIONS_PERCENTAGE || adjustedActionsScore > adjustedInngestScore;
 

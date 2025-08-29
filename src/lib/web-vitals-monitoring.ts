@@ -11,6 +11,7 @@ import {
   TTFBMetric,
 } from 'web-vitals';
 import { getWebVitalsAnalytics } from './web-vitals-analytics';
+import { generateSecureId } from './crypto-utils';
 
 // Core Web Vitals thresholds (in milliseconds)
 const THRESHOLDS = {
@@ -122,7 +123,7 @@ class WebVitalsMonitor {
       value,
       rating,
       delta,
-      id: `${name}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `${name}-${Date.now()}-${generateSecureId(9)}`,
       navigationType: this.getNavigationType(),
       url: window.location.href,
       timestamp: Date.now(),

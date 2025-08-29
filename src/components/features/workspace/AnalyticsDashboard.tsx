@@ -133,7 +133,7 @@ export function AnalyticsDashboard({
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
-              <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
+              <TimeRangeSelector value={timeRange} onChange={setTimeRange} tier={tier} />
               {tierLimits.exportFormats.length > 0 && (
                 <Select onValueChange={(value) => handleExport(value as 'csv' | 'json' | 'pdf')}>
                   <SelectTrigger className="w-32">
@@ -183,11 +183,14 @@ export function AnalyticsDashboard({
                     variant={selectedRepos.includes(repo.id) ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => {
-                      if (selectedRepos.includes(repo.id)) {
-                        setSelectedRepos(selectedRepos.filter((id) => id !== repo.id));
-                      } else {
-                        handleRepositorySelect([...selectedRepos, repo.id]);
-                      }
+                      setSelectedRepos((prevSelectedRepos) => {
+                        if (prevSelectedRepos.includes(repo.id)) {
+                          return prevSelectedRepos.filter((id) => id !== repo.id);
+                        } else {
+                          handleRepositorySelect([...prevSelectedRepos, repo.id]);
+                          return [...prevSelectedRepos, repo.id];
+                        }
+                      });
                     }}
                   >
                     {repo.repository.name}

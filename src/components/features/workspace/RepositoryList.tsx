@@ -107,8 +107,8 @@ export function RepositoryList({
     { id: 'last_activity', desc: true },
   ]);
 
-  const columns = useMemo<ColumnDef<Repository, any>[]>(() => {
-    const cols: ColumnDef<Repository, any>[] = [
+  const columns = useMemo<ColumnDef<Repository>[]>(() => {
+    const cols: ColumnDef<Repository>[] = [
       columnHelper.accessor('full_name', {
         header: ({ column }) => {
           return (

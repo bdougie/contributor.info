@@ -4,6 +4,7 @@
  */
 
 import { env } from './env';
+import { generateSecureId } from './crypto-utils';
 
 // PostHog instance cache
 let posthogInstance: any = null;
@@ -171,8 +172,8 @@ function generateDistinctId(): string {
     return stored;
   }
 
-  // Create a new ID based on timestamp and random value
-  const id = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  // Create a new ID based on timestamp and secure random value
+  const id = `user_${Date.now()}_${generateSecureId(9)}`;
   localStorage.setItem('contributor_info_distinct_id', id);
   return id;
 }

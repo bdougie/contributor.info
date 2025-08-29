@@ -1,4 +1,5 @@
 import { RepositorySize } from '../validation/database-schemas';
+import { generateSecureId } from '../crypto-utils';
 
 interface FetchMetrics {
   fetchId: string;
@@ -18,7 +19,7 @@ class FetchPerformanceTelemetry {
   private startTimes: Map<string, { repository: string; startTime: number }> = new Map();
 
   startFetch(repository: string): string {
-    const fetchId = `${repository}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const fetchId = `${repository}_${Date.now()}_${generateSecureId(9)}`;
     this.startTimes.set(fetchId, { repository, startTime: Date.now() });
     return fetchId;
   }

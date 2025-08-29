@@ -13,6 +13,7 @@ import {
   ActivityTableSkeleton,
 } from './skeletons/AnalyticsSkeletons';
 import { exportToCSV, exportToJSON } from './utils/analytics-utils';
+import { validateExportRequest } from './utils/security-utils';
 import { useScreenReaderAnnounce } from './hooks/useAccessibility';
 import type { WorkspaceRepositoryWithDetails } from '@/types/workspace';
 
@@ -96,6 +97,7 @@ export interface AnalyticsDashboardProps {
   tier?: 'free' | 'pro' | 'enterprise';
   onExport?: (format: 'csv' | 'json' | 'pdf') => void;
   className?: string;
+  userId?: string; // Add userId for rate limiting
 }
 
 const TIER_LIMITS = {
@@ -161,12 +163,14 @@ MetricCard.displayName = 'MetricCard';
 // Main dashboard component
 export const AnalyticsDashboard = memo(
   ({
+    workspaceId,
     data,
     repositories = [],
     loading = false,
     tier = 'free',
     onExport,
     className,
+    userId = workspaceId, // Default to workspaceId if userId not provided
   }: AnalyticsDashboardProps) => {
     const [timeRange, setTimeRange] = useState<TimeRange>('30d');
     const [activeTab, setActiveTab] = useState<
@@ -176,10 +180,22 @@ export const AnalyticsDashboard = memo(
     const announce = useScreenReaderAnnounce();
     const limits = TIER_LIMITS[tier];
 
-    // Handle export with proper error handling
+    // Handle export with proper error handling and security validation
     const handleExport = async (format: 'csv' | 'json' | 'pdf') => {
       try {
-        announce(`Exporting data as ${format.toUpperCase()}`);
+        // Validate export request with security checks
+        const validation = validateExportRequest(
+          userId,
+          tier,
+          format as 'csv' | 'json' | 'pdf'
+        );
+
+        if (!validation.allowed) {
+          announce(validation.reason || 'Export not allowed');
+          return;
+        }
+
+        announce(`Exporting data as ${format.toUpperCase()}. ${validation.remaining} exports remaining.`);
 
         if (format === 'csv') {
           await exportToCSV(

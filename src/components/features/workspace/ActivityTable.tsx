@@ -478,7 +478,7 @@ export function ActivityTable({
                 const pageNum = Math.max(0, Math.min(page - 2 + i, totalPages - 1));
                 return (
                   <Button
-                    key={pageNum}
+                    key={`page-${i}-${pageNum}`}
                     variant={pageNum === page ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setPage(pageNum)}
