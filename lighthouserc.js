@@ -1,13 +1,23 @@
+// Get base URL from environment variable or default to localhost
+const baseUrl = process.env.LHCI_BUILD_CONTEXT__CURRENT_HASH 
+  ? process.env.DEPLOY_URL || 'https://contributor.info'
+  : 'http://localhost:4173';
+
 module.exports = {
   ci: {
     collect: {
-      staticDistDir: './dist',
-      url: [
-        'http://localhost/',
-        'http://localhost/vercel/next.js',
-        'http://localhost/continuedev/continue',
-      ],
-      numberOfRuns: 3,
+      // Use staticDistDir for local testing, URLs for CI
+      ...(baseUrl.startsWith('http://localhost') 
+        ? { staticDistDir: './dist' }
+        : { 
+            url: [
+              baseUrl,
+              `${baseUrl}/vercel/next.js`,
+              `${baseUrl}/continuedev/continue`,
+            ]
+          }
+      ),
+      numberOfRuns: baseUrl.startsWith('http://localhost') ? 1 : 3,
       settings: {
         preset: 'desktop',
         throttling: {
