@@ -110,9 +110,14 @@ export default defineConfig(() => ({
       strictRequires: 'auto'
     },
     rollupOptions: {
-      // Use default tree shaking to fix module loading issues
-      // (removing custom treeshake config entirely)
-      // Remove the external configuration as it's causing build issues
+      // Re-enable tree shaking after nested ternary refactoring
+      treeshake: {
+        moduleSideEffects: true,
+        propertyReadSideEffects: true,
+        tryCatchDeoptimization: false,
+        unknownGlobalSideEffects: true,
+        correctVarValueBeforeDeclaration: false,
+      },
       output: {
         // Ensure proper module format
         format: 'es',
