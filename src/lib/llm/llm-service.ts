@@ -68,9 +68,16 @@ class LLMService {
 
     // Try OpenAI service (with or without PostHog tracking)
     try {
+      // Ensure healthData has required fields for openAIService
+      const normalizedHealthData = {
+        ...healthData,
+        trend: healthData.trend || 'stable',
+        recommendations: healthData.recommendations || [],
+      };
+
       const insight = this.options.enablePostHogTracking
         ? await posthogOpenAIService.generateHealthInsight(healthData, repoInfo, metadata)
-        : await openAIService.generateHealthInsight(healthData, repoInfo);
+        : await openAIService.generateHealthInsight(normalizedHealthData, repoInfo);
 
       if (insight && this.options.enableCaching) {
         cacheService.set(cacheKey, insight, dataHash);
@@ -160,9 +167,16 @@ class LLMService {
 
     // Try OpenAI service (with or without PostHog tracking)
     try {
+      // Ensure prData has required fields for openAIService
+      const normalizedPRData = prData.map((pr) => ({
+        ...pr,
+        additions: pr.additions || 0,
+        deletions: pr.deletions || 0,
+      }));
+
       const insight = this.options.enablePostHogTracking
         ? await posthogOpenAIService.analyzePRPatterns(prData, repoInfo, metadata)
-        : await openAIService.analyzePRPatterns(prData, repoInfo);
+        : await openAIService.analyzePRPatterns(normalizedPRData, repoInfo);
 
       if (insight && this.options.enableCaching) {
         cacheService.set(cacheKey, insight, dataHash);
@@ -283,7 +297,7 @@ class LLMService {
       recommendations.push('Improve code review coverage to increase repository health');
     }
 
-    if (data.activity?.weeklyVelocity < 5) {
+    if (data.activity?.weeklyVelocity && data.activity.weeklyVelocity < 5) {
       recommendations.push('Consider breaking down large PRs to increase development velocity');
     }
 

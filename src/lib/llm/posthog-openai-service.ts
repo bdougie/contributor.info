@@ -33,12 +33,51 @@ export interface LLMCallResult {
   cost?: number;
 }
 
+// Data types for LLM service
+export interface HealthData {
+  score: number;
+  trend?: string;
+  factors: Array<{
+    name: string;
+    score: number;
+    status: string;
+    description: string;
+  }>;
+  recommendations?: string[];
+}
+
+export interface RecommendationData {
+  health: {
+    score: number;
+    trend?: string;
+  };
+  trends: Array<{
+    metric: string;
+    change: number;
+    period?: string;
+  }>;
+  activity: {
+    weeklyVelocity?: number;
+    contributors?: number;
+  };
+}
+
+export interface PRData {
+  merged_at: string | null;
+  additions?: number;
+  deletions?: number;
+  created_at?: string;
+  closed_at?: string | null;
+  review_comments?: number;
+}
+
 class PostHogOpenAIService {
   private apiKey: string | undefined;
   private baseUrl = 'https://api.openai.com/v1';
   private config: LLMServiceConfig;
   private posthogConfig: PostHogConfig;
-  private posthogClient: unknown = null; // Will be dynamically imported
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private posthogClient: any = null; // Will be dynamically imported
 
   constructor() {
     // Handle both Vite and Node.js environments
@@ -141,17 +180,7 @@ class PostHogOpenAIService {
    * Generate health assessment insight with PostHog tracking
    */
   async generateHealthInsight(
-    healthData: {
-      score: number;
-      trend: string;
-      factors: Array<{
-        name: string;
-        score: number;
-        status: string;
-        description: string;
-      }>;
-      recommendations: string[];
-    },
+    healthData: HealthData,
     repoInfo: { owner: string; repo: string },
     metadata?: LLMCallMetadata
   ): Promise<LLMInsight | null> {
@@ -185,11 +214,7 @@ class PostHogOpenAIService {
    * Generate actionable recommendations with PostHog tracking
    */
   async generateRecommendations(
-    data: {
-      health: { score: number; trend?: string };
-      trends: Array<{ metric: string; change: number; period?: string }>;
-      activity: { weeklyVelocity?: number; contributors?: number };
-    },
+    data: RecommendationData,
     repoInfo: { owner: string; repo: string },
     metadata?: LLMCallMetadata
   ): Promise<LLMInsight | null> {
@@ -223,14 +248,7 @@ class PostHogOpenAIService {
    * Analyze PR patterns with PostHog tracking
    */
   async analyzePRPatterns(
-    prData: Array<{
-      merged_at: string | null;
-      additions: number;
-      deletions: number;
-      created_at?: string;
-      closed_at?: string | null;
-      review_comments?: number;
-    }>,
+    prData: PRData[],
     repoInfo: { owner: string; repo: string },
     metadata?: LLMCallMetadata
   ): Promise<LLMInsight | null> {
@@ -388,7 +406,8 @@ class PostHogOpenAIService {
 
       const startTime = Date.now();
 
-      const completion = await client.chat.completions.create({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const completion = await (client as any).chat.completions.create({
         model: model || this.config.model,
         messages: [
           {
@@ -439,7 +458,8 @@ class PostHogOpenAIService {
   /**
    * Load PostHog OpenAI client dynamically
    */
-  private async loadPostHogOpenAIClient(): Promise<unknown> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private async loadPostHogOpenAIClient(): Promise<any> {
     try {
       // Dynamic import with explicit module name for security
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -496,7 +516,8 @@ class PostHogOpenAIService {
   /**
    * Track LLM errors
    */
-  private trackLLMError(error: unknown, metadata: LLMCallMetadata, prompt: string): void {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private trackLLMError(error: any, metadata: LLMCallMetadata, prompt: string): void {
     if (!this.posthogClient) return;
 
     try {
@@ -504,8 +525,8 @@ class PostHogOpenAIService {
         distinctId: metadata.userId || 'anonymous',
         event: '$ai_generation_error',
         properties: {
-          error_message: error.message,
-          error_type: error.constructor.name,
+          error_message: error?.message || 'Unknown error',
+          error_type: error?.constructor?.name || 'UnknownError',
           feature: metadata.feature,
           repository: metadata.repository,
           conversation_id: metadata.conversationId,
@@ -538,8 +559,8 @@ class PostHogOpenAIService {
     };
 
     const modelPricing = pricing[model] || pricing['gpt-4o-mini']; // fallback
-    const inputCost = (usage.prompt_tokens / 1000000) * modelPricing.input;
-    const outputCost = (usage.completion_tokens / 1000000) * modelPricing.output;
+    const inputCost = ((usage.prompt_tokens || 0) / 1000000) * modelPricing.input;
+    const outputCost = ((usage.completion_tokens || 0) / 1000000) * modelPricing.output;
 
     return parseFloat((inputCost + outputCost).toFixed(6));
   }
@@ -568,13 +589,13 @@ class PostHogOpenAIService {
   ): string {
     return `Analyze the health of repository ${repoInfo.owner}/${repoInfo.repo}:
 
-Health Score: ${healthData.score}/100 (${healthData.trend})
+Health Score: ${healthData.score}/100${healthData.trend ? ` (${healthData.trend})` : ''}
 
 Factors:
 ${healthData.factors.map((f: { name: string; score: number; status: string; description: string }) => `- ${f.name}: ${f.score}/100 (${f.status}) - ${f.description}`).join('\n')}
 
 Current Recommendations:
-${healthData.recommendations.map((r: string) => `- ${r}`).join('\n')}
+${healthData.recommendations ? healthData.recommendations.map((r: string) => `- ${r}`).join('\n') : 'None available'}
 
 Provide a concise assessment focusing on:
 1. Overall health interpretation with workflow patterns observed
@@ -612,7 +633,8 @@ Focus on specific, measurable steps that address both metrics and development wo
   private buildPatternPrompt(prData: PRData[], repoInfo: { owner: string; repo: string }): string {
     const totalPRs = prData.length;
     const merged = prData.filter((pr) => pr.merged_at).length;
-    const avgSize = prData.reduce((sum, pr) => sum + (pr.additions + pr.deletions), 0) / totalPRs;
+    const avgSize =
+      prData.reduce((sum, pr) => sum + ((pr.additions || 0) + (pr.deletions || 0)), 0) / totalPRs;
 
     return `Analyze PR patterns for ${repoInfo.owner}/${repoInfo.repo}:
 
@@ -645,8 +667,10 @@ Keep under 140 words, focus on actionable observations.`;
    * Ensure all events are flushed before shutdown
    */
   async shutdown(): Promise<void> {
-    if (this.posthogClient && typeof this.posthogClient.shutdown === 'function') {
-      await this.posthogClient.shutdown();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (this.posthogClient && typeof (this.posthogClient as any).shutdown === 'function') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (this.posthogClient as any).shutdown();
     }
   }
 }

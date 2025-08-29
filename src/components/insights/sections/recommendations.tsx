@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Sparkles, Lightbulb, Target, Zap, CheckCircle, Brain } from '@/components/ui/icon';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -39,11 +39,7 @@ export function Recommendations({ owner, repo, timeRange }: RecommendationsProps
   const [llmInsight, setLlmInsight] = useState<LLMInsight | null>(null);
   const [llmLoading, setLlmLoading] = useState(false);
 
-  useEffect(() => {
-    loadRecommendations();
-  }, [owner, repo, timeRange]);
-
-  const loadRecommendations = async () => {
+  const loadRecommendations = useCallback(async () => {
     setLoading(true);
     setLlmInsight(null);
 
@@ -71,15 +67,20 @@ export function Recommendations({ owner, repo, timeRange }: RecommendationsProps
     } finally {
       setLoading(false);
     }
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [owner, repo, timeRange]);
 
-  const loadLLMRecommendations = async (healthData: HealthMetrics, activityData: unknown, trendsData: unknown[]) => {
+  const loadLLMRecommendations = async (
+    healthData: HealthMetrics,
+    activityData: unknown,
+    trendsData: unknown[]
+  ) => {
     setLlmLoading(true);
     try {
       const combinedData = {
         health: healthData,
-        activity: activityData,
-        trends: trendsData,
+        activity: activityData as { weeklyVelocity?: number; contributors?: number },
+        trends: trendsData as Array<{ metric: string; change: number; period?: string }>,
       };
 
       const insight = await llmService.generateRecommendations(combinedData, { owner, repo });
@@ -92,16 +93,22 @@ export function Recommendations({ owner, repo, timeRange }: RecommendationsProps
     }
   };
 
+  useEffect(() => {
+    loadRecommendations();
+  }, [loadRecommendations]);
+
   const generateRuleBasedRecommendations = (
-    healthData: any,
-    activityData: any,
-    trendsData: any[]
+    healthData: HealthMetrics,
+    activityData: { weeklyVelocity?: number; contributors?: number },
+    trendsData: Array<{ metric: string; change: number; period?: string }>
   ): Recommendation[] => {
     const recommendations: Recommendation[] = [];
 
     // Health-based recommendations
     if (healthData.score < 60) {
-      const criticalFactors = healthData.factors.filter((f: HealthMetrics['factors'][0]) => f.status === 'critical');
+      const criticalFactors = healthData.factors.filter(
+        (f: HealthMetrics['factors'][0]) => f.status === 'critical'
+      );
       if (criticalFactors.length > 0) {
         recommendations.push({
           id: 'health-critical',
@@ -352,22 +359,30 @@ export function Recommendations({ owner, repo, timeRange }: RecommendationsProps
             )}
           </div>
 
-          {llmLoading ? (
-            <div className="space-y-2">
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-4/5" />
-              <Skeleton className="h-4 w-3/4" />
-            </div>
-          ) : llmInsight ? (
-            <div className="space-y-3">
-              <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
-                {llmInsight.content}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Generated {new Date(llmInsight.timestamp).toLocaleTimeString()}
-              </p>
-            </div>
-          ) : null}
+          {(() => {
+            if (llmLoading) {
+              return (
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-4/5" />
+                  <Skeleton className="h-4 w-3/4" />
+                </div>
+              );
+            }
+            if (llmInsight) {
+              return (
+                <div className="space-y-3">
+                  <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
+                    {llmInsight.content}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Generated {new Date(llmInsight.timestamp).toLocaleTimeString()}
+                  </p>
+                </div>
+              );
+            }
+            return null;
+          })()}
         </Card>
       )}
 
