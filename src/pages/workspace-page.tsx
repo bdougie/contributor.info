@@ -2018,7 +2018,7 @@ export default function WorkspacePage() {
               }));
 
             if (openPRActivity.length > 0) {
-              console.log(`Found ${openPRActivity.length} open PRs to show activity`);
+              console.log('Found %d open PRs to show activity', openPRActivity.length);
               mergedPRs = openPRActivity;
             }
           }

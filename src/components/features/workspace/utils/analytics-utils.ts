@@ -26,8 +26,12 @@ export function sortData<T>(
   if (!sortConfig) return data;
 
   return [...data].sort((a, b) => {
-    const aValue = getValueFn ? getValueFn(a, sortConfig.key) : (a as Record<string, unknown>)[sortConfig.key];
-    const bValue = getValueFn ? getValueFn(b, sortConfig.key) : (b as Record<string, unknown>)[sortConfig.key];
+    const aValue = getValueFn
+      ? getValueFn(a, sortConfig.key)
+      : (a as Record<string, unknown>)[sortConfig.key];
+    const bValue = getValueFn
+      ? getValueFn(b, sortConfig.key)
+      : (b as Record<string, unknown>)[sortConfig.key];
 
     if (aValue === null || aValue === undefined) return 1;
     if (bValue === null || bValue === undefined) return -1;
@@ -43,7 +47,11 @@ export function sortData<T>(
 }
 
 // Filtering utilities
-export function filterData<T extends object>(data: T[], filters: FilterConfig, searchFields: (keyof T)[]): T[] {
+export function filterData<T extends object>(
+  data: T[],
+  filters: FilterConfig,
+  searchFields: (keyof T)[]
+): T[] {
   return data.filter((item) => {
     // Search filter
     if (filters.search) {
@@ -132,7 +140,7 @@ export function calculateTrend(
 
   return {
     value: difference,
-    direction: difference > 0 ? 'up' : (difference < 0 ? 'down' : 'neutral'),
+    direction: difference > 0 ? 'up' : difference < 0 ? 'down' : 'neutral',
     percentage: Math.abs(percentage),
   };
 }

@@ -1,12 +1,7 @@
 import React, { useState, lazy, Suspense, memo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { TimeRangeSelector, TimeRange } from './TimeRangeSelector';
 import { Download } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
@@ -25,9 +20,15 @@ import type { WorkspaceRepositoryWithDetails } from '@/types/workspace';
 const ActivityTable = lazy(() =>
   import('./ActivityTableRefactored').then((m) => ({ default: m.ActivityTable }))
 );
-const ContributorLeaderboard = lazy(() => import('./ContributorLeaderboard').then(m => ({ default: m.ContributorLeaderboard })));
-const RepositoryComparison = lazy(() => import('./RepositoryComparison').then(m => ({ default: m.RepositoryComparison })));
-const ActivityChart = lazy(() => import('./ActivityChart').then(m => ({ default: m.ActivityChart })));
+const ContributorLeaderboard = lazy(() =>
+  import('./ContributorLeaderboard').then((m) => ({ default: m.ContributorLeaderboard }))
+);
+const RepositoryComparison = lazy(() =>
+  import('./RepositoryComparison').then((m) => ({ default: m.RepositoryComparison }))
+);
+const ActivityChart = lazy(() =>
+  import('./ActivityChart').then((m) => ({ default: m.ActivityChart }))
+);
 
 // Type definitions
 export interface AnalyticsData {
@@ -139,7 +140,7 @@ const MetricCard = memo(
           <p
             className={cn(
               'text-xs',
-              change > 0 ? 'text-green-600' : (change < 0 ? 'text-red-600' : 'text-muted-foreground')
+              change > 0 ? 'text-green-600' : change < 0 ? 'text-red-600' : 'text-muted-foreground'
             )}
           >
             {change > 0 ? '+' : ''}
@@ -177,7 +178,10 @@ export const AnalyticsDashboard = memo(
         announce(`Exporting data as ${format.toUpperCase()}`);
 
         if (format === 'csv') {
-          await exportToCSV(data.activities as unknown as Record<string, unknown>[], 'analytics-export');
+          await exportToCSV(
+            data.activities as unknown as Record<string, unknown>[],
+            'analytics-export'
+          );
         } else if (format === 'json') {
           await exportToJSON(data, 'analytics-export');
         } else if (format === 'pdf' && onExport) {
@@ -282,12 +286,12 @@ export const AnalyticsDashboard = memo(
                 <AnalyticsErrorBoundary>
                   <Suspense fallback={<ChartSkeleton />}>
                     <ActivityChart
-                      data={data.trends.map(trend => ({
+                      data={data.trends.map((trend) => ({
                         date: trend.data[0]?.date || new Date().toISOString(),
                         additions: trend.data[0]?.value || 0,
                         deletions: 0,
                         commits: trend.data[0]?.value || 0,
-                        files_changed: 0
+                        files_changed: 0,
                       }))}
                       title="Activity Trends"
                       description="Activity over time across all repositories"
@@ -297,9 +301,7 @@ export const AnalyticsDashboard = memo(
 
                 <AnalyticsErrorBoundary>
                   <Suspense fallback={<LeaderboardSkeleton />}>
-                    <ContributorLeaderboard
-                      contributors={data.contributors.slice(0, 5)}
-                    />
+                    <ContributorLeaderboard contributors={data.contributors.slice(0, 5)} />
                   </Suspense>
                 </AnalyticsErrorBoundary>
               </div>
@@ -317,10 +319,7 @@ export const AnalyticsDashboard = memo(
           {activeTab === 'contributors' && (
             <AnalyticsErrorBoundary>
               <Suspense fallback={<LeaderboardSkeleton />}>
-                <ContributorLeaderboard
-                  contributors={data.contributors}
-                  maxDisplay={100}
-                />
+                <ContributorLeaderboard contributors={data.contributors} maxDisplay={100} />
               </Suspense>
             </AnalyticsErrorBoundary>
           )}
@@ -328,9 +327,7 @@ export const AnalyticsDashboard = memo(
           {activeTab === 'repositories' && (
             <AnalyticsErrorBoundary>
               <Suspense fallback={<ChartSkeleton />}>
-                <RepositoryComparison
-                  repositories={data.repositories}
-                />
+                <RepositoryComparison repositories={data.repositories} />
               </Suspense>
             </AnalyticsErrorBoundary>
           )}

@@ -110,9 +110,13 @@ export default defineConfig(() => ({
       strictRequires: 'auto'
     },
     rollupOptions: {
-      // Use default tree shaking to fix module loading issues
-      // (removing custom treeshake config entirely)
-      // Remove the external configuration as it's causing build issues
+      // Optimize tree shaking with safer settings
+      treeshake: {
+        moduleSideEffects: 'no-external', // Only tree-shake internal modules aggressively
+        propertyReadSideEffects: false, // Assume property reads have no side effects
+        annotations: true, // Respect pure annotations
+        correctVarValueBeforeDeclaration: true // Better handling of var declarations
+      },
       output: {
         // Ensure proper module format
         format: 'es',
@@ -141,29 +145,24 @@ export default defineConfig(() => ({
         },
         // Allow modules to be properly hoisted for correct initialization order
         hoistTransitiveImports: true,
-        // Hybrid approach - use function-based chunking for all packages
-        // to ensure proper grouping of React ecosystem libraries
+        // Optimized chunking strategy for better code splitting
         manualChunks: (id) => {
-          // For node_modules, handle package-specific grouping below or return undefined for default chunking
+          // Optimize vendor chunking with more granular splits
           if (id.includes('node_modules')) {
-            // Check for specific packages that need to be bundled together
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
-              return 'vendor-react';
+            // Core React bundle - minimal size
+            if (id.includes('react') || id.includes('react-dom')) {
+              return 'vendor-react-core';
             }
+            if (id.includes('react-router')) {
+              return 'vendor-router';
+            }
+            // UI components - separate from core React
             if (id.includes('@radix-ui')) {
-              return 'vendor-react'; // Bundle with React to avoid forwardRef issues
+              return 'vendor-ui';
             }
-            if (id.includes('@nivo')) {
-              return 'vendor-react'; // Bundle with React to avoid memo issues
-            }
-            if (id.includes('recharts')) {
-              return 'vendor-react'; // Recharts also needs React context
-            }
-            if (id.includes('d3-')) {
-              return 'vendor-react'; // D3 modules used by Recharts need to be together
-            }
-            if (id.includes('uplot')) {
-              return 'vendor-react'; // Keep all visualization libraries together
+            // Visualization libraries - lazy load when needed
+            if (id.includes('@nivo') || id.includes('recharts') || id.includes('d3-') || id.includes('uplot')) {
+              return 'vendor-charts';
             }
             if (id.includes('@supabase')) {
               return 'vendor-supabase';
@@ -185,8 +184,21 @@ export default defineConfig(() => ({
             }
           }
           
-          // Don't split app code - it all uses React components
-          // Let everything stay in the main bundle to avoid initialization issues
+          // Split app code by feature for better code splitting
+          if (!id.includes('node_modules')) {
+            // Split workspace features into separate chunk
+            if (id.includes('/features/workspace/')) {
+              return 'feature-workspace';
+            }
+            // Split contributor features
+            if (id.includes('/features/contributor/')) {
+              return 'feature-contributor';
+            }
+            // Split analytics/charts components
+            if (id.includes('/analytics/') || id.includes('/charts/')) {
+              return 'feature-analytics';
+            }
+          }
         },
       },
     },
@@ -198,7 +210,7 @@ export default defineConfig(() => ({
     minify: 'esbuild',
     target: 'es2020', // Modern target with good compatibility
     // Optimize chunk size warnings  
-    chunkSizeWarningLimit: 1300, // Increased to accommodate 1.2MB vendor-react bundle
+    chunkSizeWarningLimit: 600, // Target smaller chunks for better performance
     // Enable compression reporting
     reportCompressedSize: true,
     // Module preload optimization - load minimal React first

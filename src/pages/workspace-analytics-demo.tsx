@@ -3,10 +3,16 @@
  * Demonstrates the advanced analytics dashboard functionality
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, lazy, Suspense } from 'react';
 import { useParams } from 'react-router-dom';
-import { AnalyticsDashboard } from '@/components/features/workspace/AnalyticsDashboard';
 import { WorkspaceExportService } from '@/services/workspace-export.service';
+
+// Lazy load the heavy analytics dashboard
+const AnalyticsDashboard = lazy(() =>
+  import('@/components/features/workspace/AnalyticsDashboard').then((m) => ({
+    default: m.AnalyticsDashboard,
+  }))
+);
 import type {
   AnalyticsData,
   ActivityItem,
@@ -235,13 +241,21 @@ export function WorkspaceAnalyticsDemoPage() {
           </p>
         </div>
 
-        <AnalyticsDashboard
-          data={demoData}
-          repositories={mockRepositories}
-          loading={false}
-          tier={tier}
-          onExport={handleExport}
-        />
+        <Suspense
+          fallback={
+            <div className="flex items-center justify-center min-h-[400px]">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          }
+        >
+          <AnalyticsDashboard
+            data={demoData}
+            repositories={mockRepositories}
+            loading={false}
+            tier={tier}
+            onExport={handleExport}
+          />
+        </Suspense>
       </div>
     </div>
   );

@@ -46,7 +46,11 @@ export const ActivityTableHeader = memo(
                 onClick={() => onSort('type')}
                 aria-label={`Sort by type, currently ${sortField === 'type' ? `sorted ${sortOrder}` : 'not sorted'}`}
                 aria-sort={
-                  sortField === 'type' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : ('none' as const)
+                  sortField === 'type'
+                    ? sortOrder === 'asc'
+                      ? 'ascending'
+                      : 'descending'
+                    : ('none' as const)
                 }
               >
                 Type
@@ -65,9 +69,9 @@ export const ActivityTableHeader = memo(
                 aria-label={`Sort by author, currently ${sortField === 'author' ? `sorted ${sortOrder}` : 'not sorted'}`}
                 aria-sort={
                   sortField === 'author'
-                    ? (sortOrder === 'asc'
+                    ? sortOrder === 'asc'
                       ? 'ascending'
-                      : 'descending')
+                      : 'descending'
                     : ('none' as const)
                 }
               >
@@ -84,9 +88,9 @@ export const ActivityTableHeader = memo(
                 aria-label={`Sort by repository, currently ${sortField === 'repository' ? `sorted ${sortOrder}` : 'not sorted'}`}
                 aria-sort={
                   sortField === 'repository'
-                    ? (sortOrder === 'asc'
+                    ? sortOrder === 'asc'
                       ? 'ascending'
-                      : 'descending')
+                      : 'descending'
                     : ('none' as const)
                 }
               >
@@ -106,9 +110,9 @@ export const ActivityTableHeader = memo(
                 aria-label={`Sort by date, currently ${sortField === 'created_at' ? `sorted ${sortOrder}` : 'not sorted'}`}
                 aria-sort={
                   sortField === 'created_at'
-                    ? (sortOrder === 'asc'
+                    ? sortOrder === 'asc'
                       ? 'ascending'
-                      : 'descending')
+                      : 'descending'
                     : ('none' as const)
                 }
               >
