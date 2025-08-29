@@ -98,8 +98,8 @@ function getPrivateKey(): string {
 }
 
 export const ENV_CONFIG = {
-  app_id: process.env.GITHUB_APP_ID || '',
-  private_key: getPrivateKey(),
+  app_id: process.env.CONTRIBUTOR_APP_ID || process.env.GITHUB_APP_ID || '',
+  private_key: process.env.CONTRIBUTOR_APP_KEY || getPrivateKey(),
   webhook_secret: process.env.GITHUB_APP_WEBHOOK_SECRET || '',
   client_id: process.env.GITHUB_APP_CLIENT_ID || '',
   client_secret: process.env.GITHUB_APP_CLIENT_SECRET || '',

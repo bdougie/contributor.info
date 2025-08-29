@@ -24,6 +24,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
+      # Generate GitHub App token for enhanced permissions
+      - name: Generate App Token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.CONTRIBUTOR_APP_ID }}
+          private-key: ${{ secrets.CONTRIBUTOR_APP_KEY }}
+      
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -269,6 +277,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
+      # Generate GitHub App token for enhanced permissions
+      - name: Generate App Token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.CONTRIBUTOR_APP_ID }}
+          private-key: ${{ secrets.CONTRIBUTOR_APP_KEY }}
+      
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -287,7 +303,7 @@ jobs:
             echo "Web Vitals comparison script not found, skipping..."
           fi
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
           BASE_URL: https://contributor.info
           PR_URL: ${{ env.DEPLOY_URL }}
       
