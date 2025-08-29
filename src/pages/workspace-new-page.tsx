@@ -63,20 +63,16 @@ export default function WorkspaceNewPage() {
       <div className="container max-w-2xl mx-auto py-8 px-4">
         {/* Header */}
         <div className="mb-8">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleCancel}
-            className="mb-4 -ml-2"
-          >
+          <Button variant="ghost" size="sm" onClick={handleCancel} className="mb-4 -ml-2">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Home
           </Button>
-          
+
           <div className="space-y-2">
             <h1 className="text-3xl font-bold tracking-tight">Create New Workspace</h1>
             <p className="text-muted-foreground">
-              Organize your favorite repositories and collaborate with your team. You can add repositories and invite members after creating your workspace.
+              Organize your favorite repositories and collaborate with your team. You can add
+              repositories and invite members after creating your workspace.
             </p>
           </div>
         </div>
@@ -103,8 +99,8 @@ export default function WorkspaceNewPage() {
             Need help? Check out our{' '}
             <Button variant="link" className="p-0 h-auto text-sm" onClick={() => navigate('/docs')}>
               documentation
-            </Button>
-            {' '}to learn more about workspaces.
+            </Button>{' '}
+            to learn more about workspaces.
           </p>
         </div>
       </div>
