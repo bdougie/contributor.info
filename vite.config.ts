@@ -110,8 +110,10 @@ export default defineConfig(() => ({
       strictRequires: 'auto'
     },
     rollupOptions: {
-      // Use default tree shaking to avoid initialization issues
-      // Custom tree shaking was causing "Cannot access before initialization" errors
+      // Conservative tree shaking optimization for better bundle size
+      treeshake: {
+        moduleSideEffects: false, // Safe optimization for better bundle size
+      },
       output: {
         // Ensure proper module format
         format: 'es',
