@@ -1,22 +1,80 @@
 import { describe, it, expect, beforeEach, vi, type MockedFunction } from 'vitest';
 import type { LLMInsight } from '../openai-service';
+import type { LLMCallMetadata } from '../posthog-openai-service';
+
+// Define types for test data
+interface HealthData {
+  score: number;
+  trend: string;
+  factors: Array<{
+    name: string;
+    score: number;
+    status: string;
+    description: string;
+  }>;
+  recommendations: string[];
+}
+
+interface RepoInfo {
+  owner: string;
+  repo: string;
+}
+
+interface PRData {
+  merged_at: string | null;
+  additions: number;
+  deletions: number;
+}
+
+interface RecommendationData {
+  health?: { score: number };
+  activity?: { weeklyVelocity: number };
+  trends?: Array<{ metric: string; change: number }>;
+}
 
 // Mock the OpenAI service module before importing the LLM service
 const mockOpenAIService = {
   isAvailable: vi.fn() as MockedFunction<() => boolean>,
   generateHealthInsight: vi.fn() as MockedFunction<
-    (healthData: any, repoInfo: { owner: string; repo: string }) => Promise<LLMInsight | null>
+    (healthData: HealthData, repoInfo: RepoInfo) => Promise<LLMInsight | null>
   >,
   generateRecommendations: vi.fn() as MockedFunction<
-    (data: any, repoInfo: { owner: string; repo: string }) => Promise<LLMInsight | null>
+    (data: RecommendationData, repoInfo: RepoInfo) => Promise<LLMInsight | null>
   >,
   analyzePRPatterns: vi.fn() as MockedFunction<
-    (prData: any[], repoInfo: { owner: string; repo: string }) => Promise<LLMInsight | null>
+    (prData: PRData[], repoInfo: RepoInfo) => Promise<LLMInsight | null>
+  >,
+};
+
+// Mock the PostHog OpenAI service module
+const mockPostHogOpenAIService = {
+  isAvailable: vi.fn() as MockedFunction<() => boolean>,
+  isTrackingEnabled: vi.fn() as MockedFunction<() => boolean>,
+  generateHealthInsight: vi.fn() as MockedFunction<
+    (
+      healthData: HealthData,
+      repoInfo: RepoInfo,
+      metadata?: LLMCallMetadata
+    ) => Promise<LLMInsight | null>
+  >,
+  generateRecommendations: vi.fn() as MockedFunction<
+    (
+      data: RecommendationData,
+      repoInfo: RepoInfo,
+      metadata?: LLMCallMetadata
+    ) => Promise<LLMInsight | null>
+  >,
+  analyzePRPatterns: vi.fn() as MockedFunction<
+    (prData: PRData[], repoInfo: RepoInfo, metadata?: LLMCallMetadata) => Promise<LLMInsight | null>
   >,
 };
 
 vi.mock('../openai-service', () => ({
   openAIService: mockOpenAIService,
+}));
+
+vi.mock('../posthog-openai-service', () => ({
+  posthogOpenAIService: mockPostHogOpenAIService,
 }));
 
 // Import the LLM service after mocking
@@ -27,7 +85,7 @@ describe('LLM Service', () => {
     // Reset all mocks before each test
     vi.clearAllMocks();
 
-    // Set up default mock implementations
+    // Set up default mock implementations for OpenAI service
     mockOpenAIService.isAvailable.mockReturnValue(true);
     mockOpenAIService.generateHealthInsight.mockResolvedValue({
       type: 'health',
@@ -48,27 +106,49 @@ describe('LLM Service', () => {
       timestamp: new Date(),
     });
 
+    // Set up default mock implementations for PostHog OpenAI service
+    mockPostHogOpenAIService.isAvailable.mockReturnValue(true);
+    mockPostHogOpenAIService.isTrackingEnabled.mockReturnValue(true);
+    mockPostHogOpenAIService.generateHealthInsight.mockResolvedValue({
+      type: 'health',
+      content: 'Mock health insight from OpenAI',
+      confidence: 0.85,
+      timestamp: new Date(),
+    });
+    mockPostHogOpenAIService.generateRecommendations.mockResolvedValue({
+      type: 'recommendation',
+      content: '1. Mock recommendation from OpenAI\n2. Another suggestion\n3. Third recommendation',
+      confidence: 0.8,
+      timestamp: new Date(),
+    });
+    mockPostHogOpenAIService.analyzePRPatterns.mockResolvedValue({
+      type: 'pattern',
+      content: 'Mock PR pattern analysis from OpenAI',
+      confidence: 0.7,
+      timestamp: new Date(),
+    });
+
     // Clear the LLM service cache
     llmService.clearCache();
   });
 
   describe('Service Availability', () => {
-    it('should return true when OpenAI service is available', () => {
-      mockOpenAIService.isAvailable.mockReturnValue(true);
+    it('should return true when PostHog OpenAI service is available', () => {
+      mockPostHogOpenAIService.isAvailable.mockReturnValue(true);
 
       const isAvailable = llmService.isAvailable();
 
       expect(isAvailable).toBe(true);
-      expect(mockOpenAIService.isAvailable).toHaveBeenCalledOnce();
+      expect(mockPostHogOpenAIService.isAvailable).toHaveBeenCalledOnce();
     });
 
-    it('should return false when OpenAI service is unavailable', () => {
-      mockOpenAIService.isAvailable.mockReturnValue(false);
+    it('should return false when PostHog OpenAI service is unavailable', () => {
+      mockPostHogOpenAIService.isAvailable.mockReturnValue(false);
 
       const isAvailable = llmService.isAvailable();
 
       expect(isAvailable).toBe(false);
-      expect(mockOpenAIService.isAvailable).toHaveBeenCalledOnce();
+      expect(mockPostHogOpenAIService.isAvailable).toHaveBeenCalledOnce();
     });
   });
 
@@ -88,7 +168,7 @@ describe('LLM Service', () => {
     };
     const sampleRepoInfo = { owner: 'test', repo: 'repo' };
 
-    it('should generate health insight using OpenAI when available', async () => {
+    it('should generate health insight using PostHog OpenAI when available', async () => {
       const insight = await llmService.generateHealthInsight(sampleHealthData, sampleRepoInfo);
 
       expect(insight).toBeTruthy();
@@ -96,14 +176,15 @@ describe('LLM Service', () => {
       expect(insight?.content).toBe('Mock health insight from OpenAI');
       expect(insight?.confidence).toBe(0.85);
       expect(insight?.timestamp).toBeInstanceOf(Date);
-      expect(mockOpenAIService.generateHealthInsight).toHaveBeenCalledWith(
+      expect(mockPostHogOpenAIService.generateHealthInsight).toHaveBeenCalledWith(
         sampleHealthData,
-        sampleRepoInfo
+        sampleRepoInfo,
+        undefined // metadata parameter
       );
     });
 
-    it('should use fallback when OpenAI fails', async () => {
-      mockOpenAIService.generateHealthInsight.mockRejectedValue(new Error('API Error'));
+    it('should use fallback when PostHog OpenAI fails', async () => {
+      mockPostHogOpenAIService.generateHealthInsight.mockRejectedValue(new Error('API Error'));
 
       const insight = await llmService.generateHealthInsight(sampleHealthData, sampleRepoInfo);
 
@@ -112,14 +193,15 @@ describe('LLM Service', () => {
       expect(insight?.content).toContain('needs attention'); // score 45 < 60
       expect(insight?.content).toContain('Priority: pr merge time'); // critical factor
       expect(insight?.confidence).toBe(0.6); // Lower confidence for fallback
-      expect(mockOpenAIService.generateHealthInsight).toHaveBeenCalledWith(
+      expect(mockPostHogOpenAIService.generateHealthInsight).toHaveBeenCalledWith(
         sampleHealthData,
-        sampleRepoInfo
+        sampleRepoInfo,
+        undefined
       );
     });
 
-    it('should use fallback when OpenAI returns null', async () => {
-      mockOpenAIService.generateHealthInsight.mockResolvedValue(null);
+    it('should use fallback when PostHog OpenAI returns null', async () => {
+      mockPostHogOpenAIService.generateHealthInsight.mockResolvedValue(null);
 
       const insight = await llmService.generateHealthInsight(sampleHealthData, sampleRepoInfo);
 
@@ -131,7 +213,7 @@ describe('LLM Service', () => {
     });
 
     it('should generate appropriate fallback for excellent health score', async () => {
-      mockOpenAIService.generateHealthInsight.mockResolvedValue(null);
+      mockPostHogOpenAIService.generateHealthInsight.mockResolvedValue(null);
       const excellentHealthData = { ...sampleHealthData, score: 85 };
 
       const insight = await llmService.generateHealthInsight(excellentHealthData, sampleRepoInfo);
@@ -148,7 +230,7 @@ describe('LLM Service', () => {
     };
     const sampleRepoInfo = { owner: 'test', repo: 'repo' };
 
-    it('should generate recommendations using OpenAI when available', async () => {
+    it('should generate recommendations using PostHog OpenAI when available', async () => {
       const insight = await llmService.generateRecommendations(sampleData, sampleRepoInfo);
 
       expect(insight).toBeTruthy();
@@ -157,14 +239,15 @@ describe('LLM Service', () => {
         '1. Mock recommendation from OpenAI\n2. Another suggestion\n3. Third recommendation'
       );
       expect(insight?.confidence).toBe(0.8);
-      expect(mockOpenAIService.generateRecommendations).toHaveBeenCalledWith(
+      expect(mockPostHogOpenAIService.generateRecommendations).toHaveBeenCalledWith(
         sampleData,
-        sampleRepoInfo
+        sampleRepoInfo,
+        undefined
       );
     });
 
-    it('should use fallback when OpenAI fails', async () => {
-      mockOpenAIService.generateRecommendations.mockRejectedValue(new Error('API Error'));
+    it('should use fallback when PostHog OpenAI fails', async () => {
+      mockPostHogOpenAIService.generateRecommendations.mockRejectedValue(new Error('API Error'));
 
       const insight = await llmService.generateRecommendations(sampleData, sampleRepoInfo);
 
@@ -176,7 +259,7 @@ describe('LLM Service', () => {
     });
 
     it('should include specific recommendations for low health score', async () => {
-      mockOpenAIService.generateRecommendations.mockResolvedValue(null);
+      mockPostHogOpenAIService.generateRecommendations.mockResolvedValue(null);
       const lowHealthData = { ...sampleData, health: { score: 65 } };
 
       const insight = await llmService.generateRecommendations(lowHealthData, sampleRepoInfo);
@@ -185,7 +268,7 @@ describe('LLM Service', () => {
     });
 
     it('should include velocity recommendations for low activity', async () => {
-      mockOpenAIService.generateRecommendations.mockResolvedValue(null);
+      mockPostHogOpenAIService.generateRecommendations.mockResolvedValue(null);
       const lowVelocityData = { ...sampleData, activity: { weeklyVelocity: 2 } };
 
       const insight = await llmService.generateRecommendations(lowVelocityData, sampleRepoInfo);
@@ -204,7 +287,7 @@ describe('LLM Service', () => {
     const sampleRepoInfo = { owner: 'test', repo: 'repo' };
 
     it('should cache health insights correctly', async () => {
-      // First call should hit OpenAI
+      // First call should hit PostHog OpenAI
       const insight1 = await llmService.generateHealthInsight(sampleHealthData, sampleRepoInfo);
 
       // Second call with same data should return cached result
@@ -212,7 +295,7 @@ describe('LLM Service', () => {
 
       expect(insight1?.content).toBe(insight2?.content);
       expect(insight1?.timestamp).toBe(insight2?.timestamp); // Same object reference from cache
-      expect(mockOpenAIService.generateHealthInsight).toHaveBeenCalledOnce(); // Only called once due to caching
+      expect(mockPostHogOpenAIService.generateHealthInsight).toHaveBeenCalledOnce(); // Only called once due to caching
     });
 
     it('should not use cache for different data', async () => {
@@ -220,25 +303,25 @@ describe('LLM Service', () => {
       const healthData2 = { ...sampleHealthData, score: 80 };
 
       // Clear mocks to ensure clean count
-      mockOpenAIService.generateHealthInsight.mockClear();
+      mockPostHogOpenAIService.generateHealthInsight.mockClear();
 
       await llmService.generateHealthInsight(healthData1, sampleRepoInfo);
       await llmService.generateHealthInsight(healthData2, sampleRepoInfo);
 
-      expect(mockOpenAIService.generateHealthInsight).toHaveBeenCalledTimes(2);
+      expect(mockPostHogOpenAIService.generateHealthInsight).toHaveBeenCalledTimes(2);
     });
 
     it('should clear cache when requested', async () => {
       // Clear mocks to ensure clean count
-      mockOpenAIService.generateHealthInsight.mockClear();
+      mockPostHogOpenAIService.generateHealthInsight.mockClear();
 
       await llmService.generateHealthInsight(sampleHealthData, sampleRepoInfo);
-      expect(mockOpenAIService.generateHealthInsight).toHaveBeenCalledTimes(1);
+      expect(mockPostHogOpenAIService.generateHealthInsight).toHaveBeenCalledTimes(1);
 
       llmService.clearCache();
 
       await llmService.generateHealthInsight(sampleHealthData, sampleRepoInfo);
-      expect(mockOpenAIService.generateHealthInsight).toHaveBeenCalledTimes(2);
+      expect(mockPostHogOpenAIService.generateHealthInsight).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -279,21 +362,22 @@ describe('LLM Service', () => {
     ];
     const sampleRepoInfo = { owner: 'test', repo: 'repo' };
 
-    it('should analyze PR patterns using OpenAI when available', async () => {
+    it('should analyze PR patterns using PostHog OpenAI when available', async () => {
       const insight = await llmService.analyzePRPatterns(samplePRData, sampleRepoInfo);
 
       expect(insight).toBeTruthy();
       expect(insight?.type).toBe('pattern');
       expect(insight?.content).toBe('Mock PR pattern analysis from OpenAI');
       expect(insight?.confidence).toBe(0.7);
-      expect(mockOpenAIService.analyzePRPatterns).toHaveBeenCalledWith(
+      expect(mockPostHogOpenAIService.analyzePRPatterns).toHaveBeenCalledWith(
         samplePRData,
-        sampleRepoInfo
+        sampleRepoInfo,
+        undefined
       );
     });
 
-    it('should use fallback when OpenAI fails', async () => {
-      mockOpenAIService.analyzePRPatterns.mockRejectedValue(new Error('API Error'));
+    it('should use fallback when PostHog OpenAI fails', async () => {
+      mockPostHogOpenAIService.analyzePRPatterns.mockRejectedValue(new Error('API Error'));
 
       const insight = await llmService.analyzePRPatterns(samplePRData, sampleRepoInfo);
 
