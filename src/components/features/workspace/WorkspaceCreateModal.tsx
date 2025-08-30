@@ -11,6 +11,7 @@ import { WorkspaceCreateForm } from './WorkspaceCreateForm';
 import { WorkspaceService } from '@/services/workspace.service';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { useAnalytics } from '@/hooks/use-analytics';
 import type { CreateWorkspaceRequest } from '@/types/workspace';
 import type { User } from '@supabase/supabase-js';
 
@@ -35,6 +36,7 @@ export function WorkspaceCreateModal({
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { trackWorkspaceCreated, trackWorkspaceSettingsModified } = useAnalytics();
 
   useEffect(() => {
     // Get the current user when the modal opens
@@ -77,6 +79,13 @@ export function WorkspaceCreateModal({
         }
 
         if (response.success && response.data) {
+          // Track workspace creation or update
+          if (mode === 'create') {
+            trackWorkspaceCreated('onboarding');
+          } else {
+            trackWorkspaceSettingsModified('general');
+          }
+
           toast.success(
             mode === 'create'
               ? 'Workspace created successfully!'

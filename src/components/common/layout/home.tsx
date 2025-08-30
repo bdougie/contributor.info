@@ -10,6 +10,7 @@ import { WorkspaceOnboarding } from '@/components/features/workspace/WorkspaceOn
 import { WorkspaceCreateModal } from '@/components/features/workspace/WorkspaceCreateModal';
 import { useAuth } from '@/hooks/use-auth';
 import { usePrimaryWorkspace } from '@/hooks/use-user-workspaces';
+import { useAnalytics } from '@/hooks/use-analytics';
 import type { GitHubRepository } from '@/lib/github';
 
 export default function Home() {
@@ -23,24 +24,30 @@ export default function Home() {
     refetch: refetchWorkspace,
   } = usePrimaryWorkspace();
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const { trackRepositorySearchInitiated, trackRepositorySelectedFromSearch, trackWorkspaceCreated } = useAnalytics();
 
   const handleSearch = (repositoryPath: string) => {
+    trackRepositorySearchInitiated('homepage', repositoryPath.length);
     const match = repositoryPath.match(/(?:github\.com\/)?([^/]+)\/([^/]+)/);
     if (match) {
       const [, owner, repo] = match;
+      trackRepositorySelectedFromSearch('homepage');
       navigate(`/${owner}/${repo}`);
     }
   };
 
   const handleSelectRepository = (repository: GitHubRepository) => {
+    trackRepositorySelectedFromSearch('homepage');
     navigate(`/${repository.full_name}`);
   };
 
   const handleSelectExample = (repo: string) => {
+    trackRepositorySelectedFromSearch('homepage');
     handleSearch(repo);
   };
 
   const handleCreateWorkspaceSuccess = async () => {
+    trackWorkspaceCreated('home');
     // Refetch workspace data after creation
     await refetchWorkspace();
   };
@@ -70,6 +77,7 @@ export default function Home() {
                 onSearch={handleSearch}
                 onSelect={handleSelectRepository}
                 buttonText="Analyze"
+                searchLocation="homepage"
               />
             </section>
             <aside>

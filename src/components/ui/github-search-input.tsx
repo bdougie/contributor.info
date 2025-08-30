@@ -7,6 +7,7 @@ import { useGitHubSearch } from '@/hooks/use-github-search';
 import { OrganizationAvatar } from '@/components/ui/organization-avatar';
 import { useTimeFormatter } from '@/hooks/use-time-formatter';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAnalytics } from '@/hooks/use-analytics';
 import type { GitHubRepository } from '@/lib/github';
 
 interface GitHubSearchInputProps {
@@ -17,6 +18,7 @@ interface GitHubSearchInputProps {
   className?: string;
   showButton?: boolean;
   buttonText?: string;
+  searchLocation?: 'header' | 'homepage' | 'trending';
 }
 
 // Language color mapping (subset of common languages)
@@ -51,6 +53,7 @@ export function GitHubSearchInput({
   className,
   showButton = true,
   buttonText = 'Search',
+  searchLocation = 'homepage',
 }: GitHubSearchInputProps) {
   const [inputValue, setInputValue] = useState(value);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -58,6 +61,7 @@ export function GitHubSearchInput({
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { formatRelativeTime } = useTimeFormatter();
+  const { trackSearchResultsViewed, trackRepositorySelectedFromSearch } = useAnalytics();
 
   const { setQuery, results, loading } = useGitHubSearch({
     debounceMs: 300,
@@ -72,9 +76,15 @@ export function GitHubSearchInput({
 
   // Show dropdown when we have results
   useEffect(() => {
-    setShowDropdown(results.length > 0 && inputValue.length > 1);
+    const shouldShowDropdown = results.length > 0 && inputValue.length > 1;
+    setShowDropdown(shouldShowDropdown);
     setSelectedIndex(-1);
-  }, [results, inputValue]);
+    
+    // Track search results viewed
+    if (shouldShowDropdown && results.length > 0) {
+      trackSearchResultsViewed(results.length, searchLocation);
+    }
+  }, [results, inputValue, searchLocation, trackSearchResultsViewed]);
 
   // Handle input change
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -96,7 +106,8 @@ export function GitHubSearchInput({
   };
 
   // Handle repository selection
-  const handleSelectRepository = (repository: GitHubRepository) => {
+  const handleSelectRepository = (repository: GitHubRepository, resultIndex?: number) => {
+    trackRepositorySelectedFromSearch(searchLocation, resultIndex);
     setInputValue(''); // Clear the input when selecting a repository
     setShowDropdown(false);
     setSelectedIndex(-1);
@@ -126,7 +137,7 @@ export function GitHubSearchInput({
       case 'Enter':
         e.preventDefault();
         if (selectedIndex >= 0 && results[selectedIndex]) {
-          handleSelectRepository(results[selectedIndex]);
+          handleSelectRepository(results[selectedIndex], selectedIndex);
         } else {
           handleSubmit(e);
         }
@@ -217,7 +228,7 @@ export function GitHubSearchInput({
                   <button
                     key={repo.id}
                     type="button"
-                    onClick={() => handleSelectRepository(repo)}
+                    onClick={() => handleSelectRepository(repo, index)}
                     className={cn(
                       'w-full px-4 py-3 text-left hover:bg-accent focus:bg-accent focus:outline-none transition-colors animate-in fade-in-0 slide-in-from-top-1 duration-300',
                       selectedIndex === index && 'bg-accent'
