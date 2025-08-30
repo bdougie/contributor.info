@@ -5,7 +5,6 @@ import { cn } from '@/lib/utils';
 interface OrganizationAvatarProps {
   src?: string;
   alt: string;
-  fallback?: string;
   className?: string;
   size?: 16 | 20 | 24 | 32 | 40 | 48 | 64 | 80 | 96 | 128;
   lazy?: boolean;
@@ -29,7 +28,6 @@ interface OrganizationAvatarProps {
 export function OrganizationAvatar({
   src,
   alt,
-  fallback,
   className,
   size = 40,
   lazy = true,
@@ -37,6 +35,8 @@ export function OrganizationAvatar({
   onLoad,
   onError,
 }: OrganizationAvatarProps) {
+  // Use plant sprite as default placeholder for organizations
+  const placeholderSrc = '/org-placeholder.png';
   const [isLoaded, setIsLoaded] = useState(false);
   const [shouldLoad, setShouldLoad] = useState(!lazy || priority);
   const [error, setError] = useState(false);
@@ -111,18 +111,6 @@ export function OrganizationAvatar({
     onError?.();
   };
 
-  // Generate fallback initials from alt text
-  const generateFallback = () => {
-    if (fallback) return fallback;
-    if (error) return '?';
-
-    const words = alt.split(' ');
-    if (words.length >= 2) {
-      return `${words[0][0]}${words[1][0]}`.toUpperCase();
-    }
-    return alt.slice(0, 2).toUpperCase();
-  };
-
   return (
     <AvatarPrimitive.Root
       ref={imgRef}
@@ -147,9 +135,9 @@ export function OrganizationAvatar({
         height: `${size}px`,
       }}
     >
-      {shouldLoad && avatarUrls.fallback && !error && (
+      {shouldLoad && (avatarUrls.fallback || placeholderSrc) && !error && (
         <AvatarPrimitive.Image
-          src={avatarUrls.fallback}
+          src={avatarUrls.fallback || placeholderSrc}
           alt={alt}
           loading={priority ? 'eager' : 'lazy'}
           width={size}
@@ -158,22 +146,29 @@ export function OrganizationAvatar({
           onError={handleError}
           className={cn(
             'aspect-square h-full w-full object-cover transition-opacity duration-200',
-            isLoaded ? 'opacity-100' : 'opacity-0'
+            isLoaded ? 'opacity-100' : 'opacity-0',
+            // Add pixelated style for the plant placeholder
+            (!avatarUrls.fallback || src === placeholderSrc) && 'image-rendering-pixelated'
           )}
+          style={{
+            imageRendering: !avatarUrls.fallback || src === placeholderSrc ? 'pixelated' : 'auto',
+          }}
         />
       )}
       <AvatarPrimitive.Fallback
         className={cn(
-          'flex h-full w-full items-center justify-center rounded-md bg-muted text-sm font-medium',
-          // Adjust text size based on avatar size
-          size <= 24 && 'text-xs',
-          size <= 32 && 'text-xs',
-          size >= 80 && 'text-base',
+          'flex h-full w-full items-center justify-center rounded-md',
           // Show fallback when loading or on error
           !shouldLoad || error || !isLoaded ? 'opacity-100' : 'opacity-0'
         )}
       >
-        {generateFallback()}
+        {/* Use plant image as fallback */}
+        <img
+          src={placeholderSrc}
+          alt={alt}
+          className="aspect-square h-full w-full object-cover rounded-md"
+          style={{ imageRendering: 'pixelated' }}
+        />
       </AvatarPrimitive.Fallback>
     </AvatarPrimitive.Root>
   );

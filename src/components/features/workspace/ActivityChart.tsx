@@ -375,7 +375,10 @@ export function ActivityChart({
   }
 
   return (
-    <Card className={cn('transition-all duration-500 ease-in-out', className)}>
+    <Card
+      className={cn('transition-all duration-500 ease-in-out', className)}
+      data-testid="activity-chart"
+    >
       <CardHeader>
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">

@@ -22,6 +22,7 @@ export interface TimeRangeSelectorProps {
   className?: string;
   variant?: 'select' | 'buttons';
   disabled?: boolean;
+  'data-testid'?: string;
 }
 
 const timeRangeLabels: Record<TimeRange, string> = {
@@ -49,6 +50,7 @@ export function TimeRangeSelector({
   className,
   variant = 'select',
   disabled = false,
+  'data-testid': dataTestId,
 }: TimeRangeSelectorProps) {
   const isRangeAvailable = (range: TimeRange) => {
     const requiredTier = timeRangeTiers[range];
@@ -129,7 +131,7 @@ export function TimeRangeSelector({
       onValueChange={(val) => handleRangeSelect(val as TimeRange)}
       disabled={disabled}
     >
-      <SelectTrigger className={cn('w-[180px]', className)}>
+      <SelectTrigger className={cn('w-[180px]', className)} data-testid={dataTestId}>
         <Calendar className="h-4 w-4 mr-2" />
         <SelectValue placeholder="Select time range" />
       </SelectTrigger>

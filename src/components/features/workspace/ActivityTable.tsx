@@ -167,7 +167,7 @@ export function ActivityTable({
   }
 
   return (
-    <div className={cn('space-y-4 w-full', className)}>
+    <div className={cn('space-y-4 w-full', className)} data-testid="activity-table">
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
