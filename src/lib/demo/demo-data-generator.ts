@@ -59,7 +59,7 @@ export function generateDemoAnalyticsData(): AnalyticsData {
       repository: ['owner/repo1', 'owner/repo2', 'owner/repo3'][Math.floor(demoRandom() * 3)],
       created_at: createdAt.toISOString(),
       status: statuses[Math.floor(demoRandom() * statuses.length)],
-      url: `https://github.com/owner/repo/pull/${i}`,
+      url: `https://github.com/${['owner/repo1', 'owner/repo2', 'owner/repo3'][Math.floor(demoRandom() * 3)]}/pull/${i}`,
     });
   }
 

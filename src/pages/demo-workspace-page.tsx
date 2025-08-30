@@ -1,5 +1,5 @@
 import { useState, useMemo, lazy, Suspense } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { WorkspaceExportService } from '@/services/workspace-export.service';
 import { WorkspaceDashboard } from '@/components/features/workspace';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,14 +14,14 @@ const AnalyticsDashboard = lazy(() =>
   }))
 );
 
-// Import demo data generators
+// Import demo data cache
 import {
-  generateDemoAnalyticsData,
-  generateDemoWorkspaceRepositories,
-  generateDemoWorkspaceMetrics,
-  generateDemoWorkspaceTrendData,
-  generateDemoRepositories,
-} from '@/lib/demo/demo-data-generator';
+  getCachedAnalyticsData,
+  getCachedWorkspaceRepositories,
+  getCachedWorkspaceMetrics,
+  getCachedWorkspaceTrendData,
+  getCachedRepositories,
+} from '@/lib/demo/demo-data-cache';
 
 import {
   TimeRangeSelector,
@@ -41,25 +41,34 @@ const TIME_RANGE_DAYS = {
 } as const;
 
 export function DemoWorkspacePage() {
-  const { workspaceId = 'demo' } = useParams<{ workspaceId: string }>();
+  const { workspaceId = 'demo', tab } = useParams<{ workspaceId: string; tab?: string }>();
+  const navigate = useNavigate();
   const [timeRange, setTimeRange] = useState<TimeRange>('30d');
   const [tier] = useState<'free' | 'pro' | 'enterprise'>('pro');
 
-  // Generate demo data
-  const demoAnalyticsData = useMemo(() => generateDemoAnalyticsData(), []);
-  const demoRepositories = useMemo(() => generateDemoWorkspaceRepositories(workspaceId), [workspaceId]);
-  const demoRepos = useMemo(() => generateDemoRepositories(), []);
+  // Generate demo data with caching
+  const demoAnalyticsData = useMemo(() => getCachedAnalyticsData(), []);
+  const demoRepositories = useMemo(() => getCachedWorkspaceRepositories(workspaceId), [workspaceId]);
+  const demoRepos = useMemo(() => getCachedRepositories(), []);
 
-  // Generate time-range aware metrics and trends
+  // Generate time-range aware metrics and trends with caching
   const demoMetrics = useMemo(
-    () => generateDemoWorkspaceMetrics(demoRepos, timeRange),
+    () => getCachedWorkspaceMetrics(demoRepos, timeRange),
     [demoRepos, timeRange]
   );
 
   const demoActivityData = useMemo(
-    () => generateDemoWorkspaceTrendData(TIME_RANGE_DAYS[timeRange], demoRepos),
+    () => getCachedWorkspaceTrendData(TIME_RANGE_DAYS[timeRange], demoRepos),
     [demoRepos, timeRange]
   );
+
+  const handleTabChange = (value: string) => {
+    if (value === 'overview') {
+      navigate(`/i/demo`);
+    } else {
+      navigate(`/i/demo/${value}`);
+    }
+  };
 
   const handleExport = async (format: 'csv' | 'json' | 'pdf') => {
     try {
@@ -102,7 +111,7 @@ export function DemoWorkspacePage() {
           </div>
         </div>
 
-        <Tabs defaultValue="overview" className="space-y-6">
+        <Tabs value={tab || "overview"} onValueChange={handleTabChange} className="space-y-6">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
