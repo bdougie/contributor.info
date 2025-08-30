@@ -70,3 +70,7 @@ trend-analysis-*.json
 *.pem
 # Images migrated to Supabase Storage
 public/docs/images/
+
+# Supabase local dev artifacts
+supabase/.temp/cli-latest
+supabase/.branches/_current_branch
