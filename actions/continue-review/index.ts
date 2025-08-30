@@ -137,25 +137,44 @@ async function generateReview(
   continueApiKey: string,
   githubToken: string
 ): Promise<string> {
-  // Build the review prompt
-  let prompt = `You are reviewing a pull request. Please provide constructive feedback.
+  // Build the review prompt with critical engineering standards
+  let prompt = `You are a senior engineering reviewer performing a CRITICAL code review. Your job is to find REAL issues that will break production, not style preferences.
 
-Pull Request Information
-- Title: ${context.pr.title}
-- Description: ${context.pr.body || 'No description provided'}
-- Files changed: ${context.pr.files.length}
+CRITICAL CONTEXT:
 - Repository: ${context.repository}
+- PR Title: ${context.pr.title}
+- Files Changed: ${context.pr.files.length}
+- Author: ${context.pr.author}
+
+YOUR MISSION:
+1. Find bugs that will ACTUALLY break the code
+2. Identify security vulnerabilities that are EXPLOITABLE
+3. Catch performance issues with MEASURABLE impact
+4. Flag missing error handling that will cause FAILURES
+
+DO NOT comment on:
+- Style (prettier handles this)
+- Preferences (unless it's objectively wrong)
+- "Could be better" without specifics
+- Theoretical issues without evidence
+
+Be SPECIFIC and ACTIONABLE:
+- ❌ "This might cause issues"
+- ✅ "This throws TypeError when data is null (line 45)"
+
+PR Description: ${context.pr.body || 'No description provided'}
 `;
 
   if (context.command) {
-    prompt = `You are reviewing a pull request. The user has provided a specific request: "${context.command}"
+    prompt = `CRITICAL REVIEW WITH SPECIFIC FOCUS
+
+User Request: "${context.command}"
 
 ${prompt}
 
-User Request
-${context.command}
-
-Please address the user's specific request while reviewing the code changes below.
+ADDITIONAL FOCUS:
+While maintaining critical review standards, pay special attention to the user's request above.
+However, DO NOT ignore other critical issues just because they weren't mentioned.
 `;
   }
 
@@ -186,8 +205,15 @@ Please address the user's specific request while reviewing the code changes belo
   }
 
   prompt += diffContent;
-  prompt += '\n\nYour Review\n';
-  prompt += 'Please provide your code review feedback below:';
+  prompt += '\n\nCRITICAL REVIEW OUTPUT\n';
+  prompt += 'List ONLY issues that are:\n';
+  prompt += '1. Actually broken (will fail at runtime)\n';
+  prompt += '2. Security vulnerabilities (exploitable)\n';
+  prompt += '3. Performance problems (measurable impact)\n';
+  prompt += '4. Logic errors (incorrect behavior)\n\n';
+  prompt +=
+    'Format: [SEVERITY: Critical/High/Medium] Issue description with specific line numbers\n';
+  prompt += 'If no critical issues found, state: "✅ No critical issues found"';
 
   // Write prompt to temp file for headless mode
   const tempFile = path.join('/tmp', `continue-review-${Date.now()}.txt`);
