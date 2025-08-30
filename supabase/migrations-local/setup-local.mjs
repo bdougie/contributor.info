@@ -60,6 +60,19 @@ function extractDbUrl(statusStdout) {
   return process.env.DB_URL || 'postgresql://postgres:postgres@127.0.0.1:54322/postgres';
 }
 
+// Redact sensitive parts of a connection string before logging
+function redactDbUrl(url) {
+  if (!url) return url;
+  try {
+    const u = new URL(url);
+    if (u.password) u.password = '****';
+    return u.toString();
+  } catch (_) {
+    // Fallback regex if URL parsing fails
+    return String(url).replace(/(postgres(?:ql)?:\/\/[^:\s/]+):[^@\s]+@/i, '$1:****@');
+  }
+}
+
 function pushMigrations(supabaseCmd, dbUrl, extraArgs = []) {
   if (supabaseCmd.via === 'direct') {
     const res = spawnSync(supabaseCmd.cmd, ['db', 'push', '--db-url', dbUrl, ...extraArgs], { stdio: 'inherit' });
@@ -113,7 +126,7 @@ async function main() {
 
   // 3) DB URL
   const dbUrl = extractDbUrl(statusRes.stdout);
-  console.log(`📌 Using DB URL: ${dbUrl}`);
+  console.log('📌 Using DB URL: %s', redactDbUrl(dbUrl));
 
   // 4) Extra flags passthrough (e.g., --dry-run)
   const extraArgs = process.argv.slice(2);
