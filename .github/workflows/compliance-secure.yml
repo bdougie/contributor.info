@@ -148,16 +148,22 @@ jobs:
       - name: Save check results
         if: always()
         run: |
-          cat > check-results.json << EOF
-          {
-            "conventional_commits": "${{ steps.conventional.outputs.result }}",
-            "code_quality": "${{ steps.quality.outputs.result }}",
-            "security_audit": "${{ steps.security.outputs.result }}",
-            "bundle_size": "${{ steps.bundle.outputs.result }}",
-            "bundle_details": "${{ steps.bundle.outputs.details }}",
-            "file_validation": "${{ steps.files.outputs.result }}"
-          }
-          EOF
+          # Use jq to properly escape JSON values, handling multiline strings
+          jq -n \
+            --arg conventional "${{ steps.conventional.outputs.result }}" \
+            --arg quality "${{ steps.quality.outputs.result }}" \
+            --arg security "${{ steps.security.outputs.result }}" \
+            --arg bundle "${{ steps.bundle.outputs.result }}" \
+            --arg details "${{ steps.bundle.outputs.details }}" \
+            --arg files "${{ steps.files.outputs.result }}" \
+            '{
+              conventional_commits: $conventional,
+              code_quality: $quality,
+              security_audit: $security,
+              bundle_size: $bundle,
+              bundle_details: $details,
+              file_validation: $files
+            }' > check-results.json
 
       - name: Upload results
         if: always()
