@@ -82,7 +82,7 @@ jobs:
           echo "Node version: $(node --version)"
           echo "NPM version: $(npm --version)"
           echo "Current directory: $(pwd)"
-          echo "Package.json type: $(node -p 'JSON.parse(require("fs").readFileSync("package.json", "utf8")).type')"
+          echo "Package.json type: $(grep -o '"type":[^,]*' package.json | cut -d'"' -f4)"
           ls -la node_modules/@nivo/ || echo "@nivo not found"
           ls -la node_modules/d3-interpolate/ || echo "d3-interpolate not found"
 
