@@ -21,6 +21,7 @@ import { OrganizationAvatar } from '@/components/ui/organization-avatar';
 import { useTimeFormatter } from '@/hooks/use-time-formatter';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRepositoryValidation, isRepositoryPath } from '@/hooks/use-repository-validation';
+import { useAnalytics } from '@/hooks/use-analytics';
 
 interface Repository {
   id: string;
@@ -51,6 +52,7 @@ export default function NotFound() {
   const [suggestedUrls, setSuggestedUrls] = useState<SuggestedUrl[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   const { formatRelativeTime } = useTimeFormatter();
+  const { trackPageNotFound } = useAnalytics();
 
   // Check if the current path looks like a repository
   const pathInfo = isRepositoryPath(location.pathname);
@@ -170,17 +172,12 @@ export default function NotFound() {
 
   /**
    * Tracks 404 page occurrences for analytics purposes.
-   * Logs the path, timestamp, and user agent to the console.
-   * In production, this would send data to an analytics service.
+   * Uses the analytics system to track page not found events.
    */
   const track404Occurrence = useCallback(() => {
-    // In a real implementation, you would send this to your analytics service
-    console.log('404 tracked:', {
-      path: location.pathname,
-      timestamp: new Date().toISOString(),
-      userAgent: navigator.userAgent,
-    });
-  }, [location.pathname]);
+    const referrer = document.referrer;
+    trackPageNotFound(location.pathname, referrer);
+  }, [location.pathname, trackPageNotFound]);
 
   // Set focus to the container when component mounts and load data
   useEffect(() => {

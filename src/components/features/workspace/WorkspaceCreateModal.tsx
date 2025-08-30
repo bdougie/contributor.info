@@ -11,6 +11,7 @@ import { WorkspaceCreateForm } from './WorkspaceCreateForm';
 import { WorkspaceService } from '@/services/workspace.service';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { useAnalytics } from '@/hooks/use-analytics';
 import type { CreateWorkspaceRequest } from '@/types/workspace';
 import type { User } from '@supabase/supabase-js';
 
@@ -21,6 +22,7 @@ export interface WorkspaceCreateModalProps {
   mode?: 'create' | 'edit';
   initialValues?: Partial<CreateWorkspaceRequest>;
   workspaceId?: string;
+  source?: 'home' | 'settings' | 'onboarding';
 }
 
 export function WorkspaceCreateModal({
@@ -30,11 +32,13 @@ export function WorkspaceCreateModal({
   mode = 'create',
   initialValues,
   workspaceId,
+  source = 'home',
 }: WorkspaceCreateModalProps) {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { trackWorkspaceCreated, trackWorkspaceSettingsModified } = useAnalytics();
 
   useEffect(() => {
     // Get the current user when the modal opens
@@ -77,6 +81,13 @@ export function WorkspaceCreateModal({
         }
 
         if (response.success && response.data) {
+          // Track workspace creation or update
+          if (mode === 'create') {
+            trackWorkspaceCreated(source);
+          } else {
+            trackWorkspaceSettingsModified('general');
+          }
+
           toast.success(
             mode === 'create'
               ? 'Workspace created successfully!'
@@ -105,7 +116,17 @@ export function WorkspaceCreateModal({
         setLoading(false);
       }
     },
-    [user, navigate, onOpenChange, onSuccess, mode, workspaceId]
+    [
+      user,
+      navigate,
+      onOpenChange,
+      onSuccess,
+      mode,
+      workspaceId,
+      source,
+      trackWorkspaceCreated,
+      trackWorkspaceSettingsModified,
+    ]
   );
 
   const handleCancel = useCallback(() => {
