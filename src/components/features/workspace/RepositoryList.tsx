@@ -39,7 +39,6 @@ import {
   getFilteredRowModel,
   getSortedRowModel,
   flexRender,
-  createColumnHelper,
   type SortingState,
   type ColumnDef,
 } from '@tanstack/react-table';
@@ -74,7 +73,7 @@ export interface RepositoryListProps {
   emptyMessage?: string;
 }
 
-const columnHelper = createColumnHelper<Repository>();
+// Removed columnHelper to avoid type issues
 
 function formatDate(dateString: string) {
   const date = new Date(dateString);
@@ -115,7 +114,9 @@ export function RepositoryList({
 
   const columns = useMemo<ColumnDef<Repository, unknown>[]>(() => {
     const cols: ColumnDef<Repository, unknown>[] = [
-      columnHelper.accessor('full_name', {
+      {
+        id: 'full_name',
+        accessorKey: 'full_name',
         header: ({ column }) => {
           return (
             <button
@@ -164,8 +165,10 @@ export function RepositoryList({
         },
         enableSorting: true,
         enableGlobalFilter: true,
-      }),
-      columnHelper.accessor('stars', {
+      },
+      {
+        id: 'stars',
+        accessorKey: 'stars',
         header: ({ column }) => {
           return (
             <button
@@ -179,12 +182,14 @@ export function RepositoryList({
           );
         },
         cell: ({ getValue }) => {
-          const stars = getValue();
+          const stars = getValue() as number;
           return <span className="tabular-nums font-medium">{humanizeNumber(stars)}</span>;
         },
         enableSorting: true,
-      }),
-      columnHelper.accessor('open_prs', {
+      },
+      {
+        id: 'open_prs',
+        accessorKey: 'open_prs',
         header: ({ column }) => {
           return (
             <button
@@ -198,11 +203,13 @@ export function RepositoryList({
           );
         },
         cell: ({ getValue }) => (
-          <span className="tabular-nums font-medium">{humanizeNumber(getValue())}</span>
+          <span className="tabular-nums font-medium">{humanizeNumber(getValue() as number)}</span>
         ),
         enableSorting: true,
-      }),
-      columnHelper.accessor('contributors', {
+      },
+      {
+        id: 'contributors',
+        accessorKey: 'contributors',
         header: ({ column }) => {
           return (
             <button
@@ -216,11 +223,13 @@ export function RepositoryList({
           );
         },
         cell: ({ getValue }) => (
-          <span className="tabular-nums font-medium">{humanizeNumber(getValue())}</span>
+          <span className="tabular-nums font-medium">{humanizeNumber(getValue() as number)}</span>
         ),
         enableSorting: true,
-      }),
-      columnHelper.accessor('last_activity', {
+      },
+      {
+        id: 'last_activity',
+        accessorKey: 'last_activity',
         header: ({ column }) => {
           return (
             <button
@@ -233,52 +242,54 @@ export function RepositoryList({
           );
         },
         cell: ({ getValue }) => (
-          <span className="text-muted-foreground whitespace-nowrap">{formatDate(getValue())}</span>
+          <span className="text-muted-foreground whitespace-nowrap">
+            {formatDate(getValue() as string)}
+          </span>
         ),
         enableSorting: true,
-      }),
+      },
       // Hidden column for pinned state (used for sorting)
-      columnHelper.accessor('is_pinned', {
+      {
+        id: 'is_pinned',
+        accessorKey: 'is_pinned',
         header: () => null,
         cell: () => null,
         enableSorting: true,
         enableHiding: true,
-      }),
+      },
     ];
 
     if (showActions) {
-      cols.push(
-        columnHelper.display({
-          id: 'actions',
-          cell: ({ row }) => {
-            const repo = row.original;
-            return (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => onRepositoryClick?.(repo)}>
-                    <ExternalLink className="mr-2 h-3 w-3" />
-                    View repo page
+      cols.push({
+        id: 'actions',
+        cell: ({ row }) => {
+          const repo = row.original;
+          return (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => onRepositoryClick?.(repo)}>
+                  <ExternalLink className="mr-2 h-3 w-3" />
+                  View repo page
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onPinToggle?.(repo)}>
+                  <Target className="mr-2 h-3 w-3" />
+                  {repo.is_pinned ? 'Unpin' : 'Pin'} repository
+                </DropdownMenuItem>
+                {onRemove && (
+                  <DropdownMenuItem onClick={() => onRemove(repo)} className="text-destructive">
+                    Remove from workspace
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onPinToggle?.(repo)}>
-                    <Target className="mr-2 h-3 w-3" />
-                    {repo.is_pinned ? 'Unpin' : 'Pin'} repository
-                  </DropdownMenuItem>
-                  {onRemove && (
-                    <DropdownMenuItem onClick={() => onRemove(repo)} className="text-destructive">
-                      Remove from workspace
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            );
-          },
-        })
-      );
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          );
+        },
+      });
     }
 
     return cols;
