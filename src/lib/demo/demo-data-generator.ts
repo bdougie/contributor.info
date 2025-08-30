@@ -133,7 +133,9 @@ export function generateDemoAnalyticsData(): AnalyticsData {
 /**
  * Generate mock workspace repositories for the demo workspace
  */
-export function generateDemoWorkspaceRepositories(workspaceId: string = 'demo'): WorkspaceRepositoryWithDetails[] {
+export function generateDemoWorkspaceRepositories(
+  workspaceId: string = 'demo'
+): WorkspaceRepositoryWithDetails[] {
   return [
     {
       id: 'wr-1',
@@ -284,12 +286,18 @@ export function generateDemoWorkspaceMetrics(
   // Generate time-range aware trend percentages
   const getTimeRangeMultiplier = (range: typeof timeRange): number => {
     switch (range) {
-      case '7d': return 1.0;
-      case '30d': return 0.7;
-      case '90d': return 0.5;
-      case '1y': return 0.3;
-      case 'all': return 0.2;
-      default: return 0.7;
+      case '7d':
+        return 1.0;
+      case '30d':
+        return 0.7;
+      case '90d':
+        return 0.5;
+      case '1y':
+        return 0.3;
+      case 'all':
+        return 0.2;
+      default:
+        return 0.7;
     }
   };
 
@@ -326,10 +334,16 @@ export function generateDemoWorkspaceTrendData(
     const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
     data.push({
       date: date.toISOString().split('T')[0],
-      additions: Math.floor(demoRandom() * 200 * baseScale) + baseScale,
-      deletions: Math.floor(demoRandom() * 100 * baseScale) + Math.floor(baseScale / 2),
-      commits: Math.floor(demoRandom() * 20 * baseScale) + baseScale,
-      files_changed: Math.floor(demoRandom() * 10 * baseScale) + Math.floor(baseScale / 3),
+      additions: Math.max(1, Math.floor(demoRandom() * 200 * baseScale) + baseScale),
+      deletions: Math.max(
+        1,
+        Math.floor(demoRandom() * 100 * baseScale) + Math.floor(baseScale / 2)
+      ),
+      commits: Math.max(1, Math.floor(demoRandom() * 20 * baseScale) + baseScale),
+      files_changed: Math.max(
+        1,
+        Math.floor(demoRandom() * 10 * baseScale) + Math.floor(baseScale / 3)
+      ),
     });
   }
 
@@ -342,11 +356,36 @@ export function generateDemoWorkspaceTrendData(
 export function generateDemoRepositories(): Repository[] {
   const demoRandom = createDemoRandomGenerator();
   const repoData = [
-    { name: 'frontend', description: 'React frontend application', language: 'TypeScript', topics: ['react', 'typescript'] },
-    { name: 'backend', description: 'Node.js backend API', language: 'JavaScript', topics: ['nodejs', 'api'] },
-    { name: 'mobile', description: 'React Native mobile app', language: 'TypeScript', topics: ['react-native', 'mobile'] },
-    { name: 'docs', description: 'Documentation site', language: 'Markdown', topics: ['documentation'] },
-    { name: 'infrastructure', description: 'Infrastructure as code', language: 'Terraform', topics: ['terraform', 'aws'] },
+    {
+      name: 'frontend',
+      description: 'React frontend application',
+      language: 'TypeScript',
+      topics: ['react', 'typescript'],
+    },
+    {
+      name: 'backend',
+      description: 'Node.js backend API',
+      language: 'JavaScript',
+      topics: ['nodejs', 'api'],
+    },
+    {
+      name: 'mobile',
+      description: 'React Native mobile app',
+      language: 'TypeScript',
+      topics: ['react-native', 'mobile'],
+    },
+    {
+      name: 'docs',
+      description: 'Documentation site',
+      language: 'Markdown',
+      topics: ['documentation'],
+    },
+    {
+      name: 'infrastructure',
+      description: 'Infrastructure as code',
+      language: 'Terraform',
+      topics: ['terraform', 'aws'],
+    },
   ];
 
   return repoData.map((repo, index) => ({

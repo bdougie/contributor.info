@@ -48,7 +48,10 @@ export function DemoWorkspacePage() {
 
   // Generate demo data with caching
   const demoAnalyticsData = useMemo(() => getCachedAnalyticsData(), []);
-  const demoRepositories = useMemo(() => getCachedWorkspaceRepositories(workspaceId), [workspaceId]);
+  const demoRepositories = useMemo(
+    () => getCachedWorkspaceRepositories(workspaceId),
+    [workspaceId]
+  );
   const demoRepos = useMemo(() => getCachedRepositories(), []);
 
   // Generate time-range aware metrics and trends with caching
@@ -92,7 +95,8 @@ export function DemoWorkspacePage() {
           <Sparkles className="h-4 w-4 text-amber-600" />
           <AlertDescription className="text-amber-800 dark:text-amber-200">
             <strong>Demo Workspace</strong> - This workspace uses sample data to showcase
-            contributor.info's features. All data shown here is generated for demonstration purposes.
+            contributor.info's features. All data shown here is generated for demonstration
+            purposes.
           </AlertDescription>
         </Alert>
 
@@ -107,11 +111,15 @@ export function DemoWorkspacePage() {
                 Explore contributor analytics with sample data
               </p>
             </div>
-            <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
+            <TimeRangeSelector
+              value={timeRange}
+              onChange={setTimeRange}
+              data-testid="time-range-selector"
+            />
           </div>
         </div>
 
-        <Tabs value={tab || "overview"} onValueChange={handleTabChange} className="space-y-6">
+        <Tabs value={tab || 'overview'} onValueChange={handleTabChange} className="space-y-6">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
@@ -141,9 +149,9 @@ export function DemoWorkspacePage() {
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
-                  This demo workspace showcases the full power of contributor.info's analytics platform.
-                  The data you see here is generated using deterministic algorithms to provide a realistic
-                  view of how the platform works with actual repository data.
+                  This demo workspace showcases the full power of contributor.info's analytics
+                  platform. The data you see here is generated using deterministic algorithms to
+                  provide a realistic view of how the platform works with actual repository data.
                 </p>
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                   <div>
@@ -213,10 +221,7 @@ export function DemoWorkspacePage() {
           </TabsContent>
 
           <TabsContent value="contributors" className="space-y-6">
-            <ContributorLeaderboard
-              contributors={demoAnalyticsData.contributors}
-              loading={false}
-            />
+            <ContributorLeaderboard contributors={demoAnalyticsData.contributors} loading={false} />
           </TabsContent>
         </Tabs>
       </div>

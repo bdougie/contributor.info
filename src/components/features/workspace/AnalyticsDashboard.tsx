@@ -121,7 +121,7 @@ export function AnalyticsDashboard({
   };
 
   return (
-    <div className={cn('space-y-6', className)}>
+    <div className={cn('space-y-6', className)} data-testid="analytics-dashboard">
       {/* Header Controls */}
       <Card>
         <CardHeader>
