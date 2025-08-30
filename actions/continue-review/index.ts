@@ -137,44 +137,48 @@ async function generateReview(
   continueApiKey: string,
   githubToken: string
 ): Promise<string> {
-  // Build the review prompt with critical engineering standards
-  let prompt = `You are a senior engineering reviewer performing a CRITICAL code review. Your job is to find REAL issues that will break production, not style preferences.
+  // Build the review prompt with context awareness
+  let prompt = `You are reviewing a pull request. Please provide helpful, context-aware feedback.
 
-CRITICAL CONTEXT:
+CONTEXT:
 - Repository: ${context.repository}
 - PR Title: ${context.pr.title}
 - Files Changed: ${context.pr.files.length}
 - Author: ${context.pr.author}
 
-YOUR MISSION:
-1. Find bugs that will ACTUALLY break the code
-2. Identify security vulnerabilities that are EXPLOITABLE
-3. Catch performance issues with MEASURABLE impact
-4. Flag missing error handling that will cause FAILURES
+REVIEW APPROACH:
+1. First, understand what this PR is trying to accomplish
+2. Check if similar patterns exist elsewhere in the codebase
+3. Focus on actual issues that affect functionality
+4. Be constructive and suggest solutions when possible
 
-DO NOT comment on:
-- Style (prettier handles this)
-- Preferences (unless it's objectively wrong)
-- "Could be better" without specifics
-- Theoretical issues without evidence
+FOCUS ON:
+- Bugs that will cause failures or incorrect behavior
+- Security vulnerabilities (exposed secrets, injection risks)
+- Breaking changes that affect other parts of the system
+- Performance issues with real impact (memory leaks, O(n²) algorithms)
+- Missing tests for new features or bug fixes
+- Missing documentation for APIs or complex logic
 
-Be SPECIFIC and ACTIONABLE:
-- ❌ "This might cause issues"
-- ✅ "This throws TypeError when data is null (line 45)"
+SKIP COMMENTING ON:
+- Style and formatting (handled by linters)
+- Alternative approaches unless current is broken
+- Minor naming unless genuinely confusing
+- Trivial documentation for self-explanatory code
+
+Be specific with line numbers and explain why something is an issue.
 
 PR Description: ${context.pr.body || 'No description provided'}
 `;
 
   if (context.command) {
-    prompt = `CRITICAL REVIEW WITH SPECIFIC FOCUS
+    prompt = `Review with specific focus requested by user.
 
 User Request: "${context.command}"
 
 ${prompt}
 
-ADDITIONAL FOCUS:
-While maintaining critical review standards, pay special attention to the user's request above.
-However, DO NOT ignore other critical issues just because they weren't mentioned.
+Please address the user's specific request while also checking for any significant issues in the code.
 `;
   }
 
@@ -205,15 +209,10 @@ However, DO NOT ignore other critical issues just because they weren't mentioned
   }
 
   prompt += diffContent;
-  prompt += '\n\nCRITICAL REVIEW OUTPUT\n';
-  prompt += 'List ONLY issues that are:\n';
-  prompt += '1. Actually broken (will fail at runtime)\n';
-  prompt += '2. Security vulnerabilities (exploitable)\n';
-  prompt += '3. Performance problems (measurable impact)\n';
-  prompt += '4. Logic errors (incorrect behavior)\n\n';
-  prompt +=
-    'Format: [SEVERITY: Critical/High/Medium] Issue description with specific line numbers\n';
-  prompt += 'If no critical issues found, state: "✅ No critical issues found"';
+  prompt += '\n\nYour Review\n';
+  prompt += 'Please provide constructive feedback on the code changes.\n';
+  prompt += 'Focus on issues that matter for functionality, security, and maintainability.\n';
+  prompt += 'If the code looks good overall, acknowledge that while noting any minor suggestions.';
 
   // Write prompt to temp file for headless mode
   const tempFile = path.join('/tmp', `continue-review-${Date.now()}.txt`);
