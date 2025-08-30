@@ -33,6 +33,7 @@ import { useDataTimestamp } from '@/hooks/use-data-timestamp';
 import { RepositoryTrackingCard } from './repository-tracking-card';
 import { GitHubAppInstallButton } from './github-app-install-button';
 import { UnifiedSyncButton } from './unified-sync-button';
+import { useAnalytics } from '@/hooks/use-analytics';
 
 export default function RepoView() {
   const { owner, repo } = useParams();
@@ -45,6 +46,7 @@ export default function RepoView() {
   const [showSkeleton, setShowSkeleton] = useState(true);
   const dubConfig = getDubConfig();
   const { isLoggedIn } = useGitHubAuth();
+  const { trackRepositoryPageViewed, trackRepositoryTabSwitch } = useAnalytics();
 
   // Handle repository tracking for new repositories
   const trackingState = useRepositoryTracking({
@@ -104,6 +106,14 @@ export default function RepoView() {
       document.title = `${owner}/${repo} - Contributor Analysis`;
     }
   }, [owner, repo]);
+
+  // Track repository page view
+  useEffect(() => {
+    if (owner && repo) {
+      // For now, assume public repos since we don't have private repo data readily available
+      trackRepositoryPageViewed('public');
+    }
+  }, [owner, repo, trackRepositoryPageViewed]);
 
   // Show skeleton immediately on navigation and hide when data is ready
   useEffect(() => {
@@ -336,6 +346,9 @@ export default function RepoView() {
               <Tabs
                 value={getCurrentTab()}
                 onValueChange={(value) => {
+                  const currentTab = getCurrentTab();
+                  trackRepositoryTabSwitch(currentTab, value, 'public');
+                  
                   if (value === 'contributions') {
                     navigate(`/${owner}/${repo}`);
                   } else if (value === 'lottery') {

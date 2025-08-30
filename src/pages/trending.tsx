@@ -3,9 +3,17 @@ import { TrendingPage } from '@/components/features/trending';
 import { useTrendingRepositories } from '@/hooks/use-trending-repositories';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from '@/components/ui/icon';
+import { useAnalytics } from '@/hooks/use-analytics';
+import { useEffect } from 'react';
 
 export function TrendingPageRoute() {
   const { repositories, loading, error, refetch } = useTrendingRepositories();
+  const { trackTrendingPageInteraction } = useAnalytics();
+
+  // Track page view
+  useEffect(() => {
+    trackTrendingPageInteraction('viewed');
+  }, [trackTrendingPageInteraction]);
 
   return (
     <>

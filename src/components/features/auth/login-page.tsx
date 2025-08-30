@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { useGitHubAuth } from '@/hooks/use-github-auth';
 import { SocialMetaTags } from '@/components/common/layout';
+import { useAnalytics } from '@/hooks/use-analytics';
 
 /**
  * Validates redirect URLs to prevent open redirect attacks
@@ -28,6 +29,7 @@ export default function LoginPage() {
   const { login, isLoggedIn } = useGitHubAuth();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
+  const { trackLoginInitiated, trackLoginSuccessful } = useAnalytics();
 
   // Get the intended destination from URL param or use home page as default
   const urlParams = new URLSearchParams(window.location.search);
@@ -39,13 +41,20 @@ export default function LoginPage() {
   useEffect(() => {
     if (isLoggedIn) {
       console.log('User is logged in, redirecting to:', redirectTo);
+      // Fire analytics event asynchronously without blocking navigation
+      // This prevents race conditions where navigation happens before analytics
+      Promise.resolve().then(() => {
+        trackLoginSuccessful('github');
+      });
       navigate(redirectTo, { replace: true });
     }
-  }, [isLoggedIn, navigate, redirectTo]);
+  }, [isLoggedIn, navigate, redirectTo, trackLoginSuccessful]);
 
   const handleLogin = async () => {
     try {
       setError(null);
+      trackLoginInitiated('github', 'login_page');
+
       // Store redirect destination
       if (redirectTo !== '/') {
         localStorage.setItem('redirectAfterLogin', redirectTo);
