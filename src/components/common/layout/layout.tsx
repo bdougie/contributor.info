@@ -121,6 +121,13 @@ export default function Layout() {
                   🔥 Trending
                 </Link>
                 <Link
+                  to="/i/demo"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="text-base hover:text-primary transition-colors flex items-center gap-2"
+                >
+                  ✨ View Demo
+                </Link>
+                <Link
                   to="/changelog"
                   onClick={() => setIsMenuOpen(false)}
                   className="text-base hover:text-primary transition-colors"

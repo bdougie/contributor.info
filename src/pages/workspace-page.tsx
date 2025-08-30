@@ -1,5 +1,5 @@
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import { useWorkspaceContributors } from '@/hooks/useWorkspaceContributors';
@@ -142,88 +142,34 @@ const filterRepositoriesBySelection = <T extends { id: string }>(
   return repos.filter((repo) => selectedRepoIds.includes(repo.id));
 };
 
-// Generate mock metrics for now
-const generateMockMetrics = (
-  repos: Repository[],
-  timeRange: TimeRange,
-  selectedRepoIds?: string[],
-  demoRandom?: ReturnType<typeof createDemoRandomGenerator>
-): WorkspaceMetrics => {
-  // Use deterministic random for demo data generation passed as parameter
-  const random = demoRandom || createDemoRandomGenerator();
-
-  // Use utility function to filter repositories
-  const filteredRepos = filterRepositoriesBySelection(repos, selectedRepoIds);
-
-  const totalStars = filteredRepos.reduce((sum, repo) => sum + (repo.stars || 0), 0);
-  const totalContributors = filteredRepos.reduce((sum, repo) => sum + (repo.contributors || 0), 0);
-
-  // Generate time-range aware trend percentages
-  // Shorter time ranges typically show more volatile changes
-  const getTimeRangeMultiplier = (range: TimeRange): number => {
-    switch (range) {
-      case '7d':
-        return 1.0; // More volatile for 7 days
-      case '30d':
-        return 0.7; // Moderate for 30 days
-      case '90d':
-        return 0.5; // Less volatile for 90 days
-      case '1y':
-        return 0.3; // Even less for 1 year
-      case 'all':
-        return 0.2; // Least volatile for all time
-      default:
-        return 0.7;
-    }
-  };
-
-  const multiplier = getTimeRangeMultiplier(timeRange);
-
+// Calculate real metrics from repository data
+const calculateRealMetrics = (repos: Repository[]): WorkspaceMetrics => {
+  const totalStars = repos.reduce((sum, repo) => sum + (repo.stars || 0), 0);
+  const totalContributors = repos.reduce((sum, repo) => sum + (repo.contributors || 0), 0);
+  
+  // For now, set these to 0 until we have real data from the backend
   return {
     totalStars,
-    totalPRs: Math.floor(random() * 500) + 100,
+    totalPRs: 0, // Will be populated from real data
     totalContributors,
-    totalCommits: Math.floor(random() * 10000) + 1000,
-    starsTrend: (random() - 0.5) * 20 * multiplier,
-    prsTrend: (random() - 0.5) * 15 * multiplier,
-    contributorsTrend: (random() - 0.5) * 10 * multiplier,
-    commitsTrend: (random() - 0.5) * 25 * multiplier,
+    totalCommits: 0, // Will be populated from real data
+    starsTrend: 0, // Will be calculated from historical data
+    prsTrend: 0, // Will be calculated from historical data
+    contributorsTrend: 0, // Will be calculated from historical data
+    commitsTrend: 0, // Will be calculated from historical data
   };
 };
 
-// Generate mock trend data for now
-const generateMockTrendData = (
-  days: number,
-  repos?: Repository[],
-  selectedRepoIds?: string[],
-  demoRandom?: ReturnType<typeof createDemoRandomGenerator>
-): WorkspaceTrendData => {
-  // Use deterministic random for demo data generation
-  const random = demoRandom || createDemoRandomGenerator();
-
-  // Use utility function to filter repositories (for future use with real data)
-  const filteredRepos = repos ? filterRepositoriesBySelection(repos, selectedRepoIds) : [];
-
-  // Currently using mock data, but scale based on filtered repo count
-  const repoMultiplier =
-    filteredRepos.length > 0 && repos && repos.length > 0
-      ? Math.max(0.1, filteredRepos.length / repos.length)
-      : 1;
+// Calculate real trend data from historical data
+const calculateRealTrendData = (days: number): WorkspaceTrendData => {
+  // Return empty data for now - will be populated with real historical data
   const labels = [];
-  const prs = [];
-  const issues = [];
-  const commits = [];
-
   const today = new Date();
 
   for (let i = days - 1; i >= 0; i--) {
     const date = new Date(today);
     date.setDate(date.getDate() - i);
     labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
-
-    prs.push(Math.floor((random() * 30 + 10) * repoMultiplier));
-    issues.push(Math.floor((random() * 20 + 5) * repoMultiplier));
-    commits.push(Math.floor((random() * 60 + 20) * repoMultiplier));
   }
 
   return {
@@ -231,17 +177,17 @@ const generateMockTrendData = (
     datasets: [
       {
         label: 'Pull Requests',
-        data: prs,
+        data: Array(days).fill(0), // Will be populated from real data
         color: '#10b981',
       },
       {
         label: 'Issues',
-        data: issues,
+        data: Array(days).fill(0), // Will be populated from real data
         color: '#f97316',
       },
       {
         label: 'Commits',
-        data: commits,
+        data: Array(days).fill(0), // Will be populated from real data
         color: '#8b5cf6',
       },
     ],
@@ -1327,69 +1273,13 @@ function WorkspaceContributors({
   );
 }
 
-/**
- * Simple deterministic pseudo-random number generator for demo data
- * This is NOT for cryptographic use, only for generating consistent demo data
- */
-function createDemoRandomGenerator(seed: number = 42) {
-  let currentSeed = seed;
-  return () => {
-    currentSeed = (currentSeed * 1103515245 + 12345) % 2147483648;
-    return currentSeed / 2147483648;
-  };
-}
 
-function WorkspaceActivity({ repositories }: { repositories: Repository[] }) {
+function WorkspaceActivity() {
   // Generate activity data for the feed
   const activities: ActivityItem[] = [];
-  const now = new Date();
 
-  // Use deterministic random for demo data generation
-  const demoRandom = useMemo(() => createDemoRandomGenerator(), []);
-
-  // Generate sample activities based on repositories
-  repositories.forEach((repo, repoIndex) => {
-    // Generate 20 activities per repo for demonstration
-    for (let i = 0; i < 20; i++) {
-      const createdAt = new Date(now.getTime() - demoRandom() * 30 * 24 * 60 * 60 * 1000);
-      const activityTypes = ['pr', 'issue', 'commit', 'review'] as const;
-      const statuses = ['open', 'merged', 'closed', 'approved'] as const;
-      const activityType = activityTypes[Math.floor(demoRandom() * activityTypes.length)];
-      const status = statuses[Math.floor(demoRandom() * statuses.length)];
-
-      activities.push({
-        id: `activity-${repoIndex}-${i}`,
-        type: activityType,
-        title: (() => {
-          const titles = [
-            'Fix critical bug in authentication',
-            'Add new feature for user profiles',
-            'Update dependencies to latest versions',
-            'Refactor database queries for performance',
-            'Improve error handling in API',
-            'Add unit tests for new components',
-            'Update documentation for API endpoints',
-            'Fix typo in README',
-            'Optimize image loading performance',
-            'Add dark mode support',
-          ];
-          return titles[Math.floor(demoRandom() * titles.length)];
-        })(),
-        author: {
-          username: `contributor${Math.floor(demoRandom() * 10)}`,
-          avatar_url: `https://github.com/contributor${Math.floor(demoRandom() * 10)}.png`,
-        },
-        repository: repo.full_name,
-        created_at: createdAt.toISOString(),
-        status,
-        url: `https://github.com/${repo.full_name}/${(() => {
-          if (activityType === 'pr') return 'pull';
-          if (activityType === 'issue') return 'issues';
-          return 'commit';
-        })()}/${Math.floor(demoRandom() * 1000)}`,
-      });
-    }
-  });
+  // TODO: Fetch real activity data from repositories
+  // For now, return empty activities until real implementation
 
   // Sort by date, most recent first
   activities.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -1881,9 +1771,6 @@ export default function WorkspacePage() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isWorkspaceOwner, setIsWorkspaceOwner] = useState(false);
 
-  // Use deterministic random for demo data generation
-  const demoRandom = useMemo(() => createDemoRandomGenerator(), []);
-
   // Determine active tab from URL
   const pathSegments = location.pathname.split('/');
   const activeTab = pathSegments[3] || 'overview';
@@ -1973,12 +1860,10 @@ export default function WorkspacePage() {
             language: r.repositories.language ?? undefined,
             stars: r.repositories.stargazers_count,
             forks: r.repositories.forks_count,
-            open_prs: Math.floor(demoRandom() * 50) + 5, // Mock for now
+            open_prs: 0, // Will be populated from real data
             open_issues: r.repositories.open_issues_count,
-            contributors: Math.floor(demoRandom() * 100) + 10, // Mock for now
-            last_activity: new Date(
-              Date.now() - demoRandom() * 30 * 24 * 60 * 60 * 1000
-            ).toISOString(),
+            contributors: 0, // Will be populated from real data
+            last_activity: new Date().toISOString(),
             is_pinned: r.is_pinned,
             avatar_url: `https://avatars.githubusercontent.com/${r.repositories.owner}`,
             html_url: `https://github.com/${r.repositories.full_name}`,
@@ -2054,18 +1939,8 @@ export default function WorkspacePage() {
         setRepositories(transformedRepos);
 
         // Generate metrics, trend data, and activity data
-        const mockMetrics = generateMockMetrics(
-          transformedRepos,
-          timeRange,
-          selectedRepositories,
-          demoRandom
-        );
-        const mockTrendData = generateMockTrendData(
-          TIME_RANGE_DAYS[timeRange],
-          transformedRepos,
-          selectedRepositories,
-          demoRandom
-        );
+        const realMetrics = calculateRealMetrics(transformedRepos);
+        const realTrendData = calculateRealTrendData(TIME_RANGE_DAYS[timeRange]);
         const activityDataPoints = generateActivityDataFromPRs(
           mergedPRs,
           timeRange,
@@ -2073,8 +1948,8 @@ export default function WorkspacePage() {
           selectedRepositories
         );
 
-        setMetrics(mockMetrics);
-        setTrendData(mockTrendData);
+        setMetrics(realMetrics);
+        setTrendData(realTrendData);
         setActivityData(activityDataPoints);
       } catch (err) {
         setError('Failed to load workspace');
@@ -2085,7 +1960,7 @@ export default function WorkspacePage() {
     }
 
     fetchWorkspace();
-  }, [workspaceId, timeRange, selectedRepositories, demoRandom]);
+  }, [workspaceId, timeRange, selectedRepositories]);
 
   const handleTabChange = (value: string) => {
     if (value === 'overview') {
@@ -2180,11 +2055,9 @@ export default function WorkspacePage() {
             forks: item.repositories.forks_count || 0,
             open_prs: 0, // Mock for now
             open_issues: item.repositories.open_issues_count || 0,
-            contributors: Math.floor(demoRandom() * 50) + 10, // Mock for now
+            contributors: 0, // Will be populated from real data
             avatar_url: `https://avatars.githubusercontent.com/${item.repositories.owner}`,
-            last_activity: new Date(Date.now() - demoRandom() * 30 * 24 * 60 * 60 * 1000)
-              .toISOString()
-              .split('T')[0],
+            last_activity: new Date().toISOString().split('T')[0],
             is_pinned: item.is_pinned || false,
             html_url: `https://github.com/${item.repositories.full_name}`,
           }));
@@ -2193,12 +2066,7 @@ export default function WorkspacePage() {
         setSelectedRepositories(formattedRepos.map((r) => r.id));
 
         // Update metrics with new repository data
-        const newMetrics = generateMockMetrics(
-          formattedRepos,
-          timeRange,
-          formattedRepos.map((r) => r.id),
-          demoRandom
-        );
+        const newMetrics = calculateRealMetrics(formattedRepos);
         setMetrics(newMetrics);
       }
     } catch (error) {
@@ -2226,12 +2094,7 @@ export default function WorkspacePage() {
 
         // Update metrics after removing repository
         const updatedRepos = repositories.filter((r) => r.id !== repo.id);
-        const newMetrics = generateMockMetrics(
-          updatedRepos,
-          timeRange,
-          selectedRepositories,
-          demoRandom
-        );
+        const newMetrics = calculateRealMetrics(updatedRepos);
         setMetrics(newMetrics);
 
         toast.success('Repository removed from workspace');
@@ -2282,89 +2145,16 @@ export default function WorkspacePage() {
         pull_requests: repo.open_prs,
         issues: repo.open_issues,
         contributors: repo.contributors,
-        activity_score: Math.floor(demoRandom() * 100),
-        trend: Math.floor(demoRandom() * 30) - 15,
+        activity_score: 50, // Placeholder
+        trend: 0, // Placeholder
       });
 
-      // Generate activities for each repo
-      for (let i = 0; i < 10; i++) {
-        const createdAt = new Date(now.getTime() - demoRandom() * 30 * 24 * 60 * 60 * 1000);
-        const activityType = activityTypes[Math.floor(demoRandom() * activityTypes.length)];
-        const status = statuses[Math.floor(demoRandom() * statuses.length)];
-        const contributorName = `contributor${Math.floor(demoRandom() * 10)}`;
-
-        activities.push({
-          id: `activity-${repoIndex}-${i}`,
-          type: activityType,
-          title:
-            (() => {
-              if (activityType === 'pr') return 'Pull Request';
-              if (activityType === 'issue') return 'Issue';
-              return 'Activity';
-            })() + ` #${Math.floor(demoRandom() * 1000)}`,
-          author: {
-            username: contributorName,
-            avatar_url: `https://github.com/${contributorName}.png`,
-          },
-          repository: repo.full_name,
-          created_at: createdAt.toISOString(),
-          status,
-          url: `https://github.com/${repo.full_name}/${(() => {
-            if (activityType === 'pr') return 'pull';
-            if (activityType === 'issue') return 'issues';
-            return 'commit';
-          })()}/${Math.floor(demoRandom() * 1000)}`,
-        });
-
-        // Update contributor stats
-        if (!contributorMap.has(contributorName)) {
-          contributorMap.set(contributorName, {
-            id: contributorName,
-            username: contributorName,
-            avatar_url: `https://github.com/${contributorName}.png`,
-            contributions: 0,
-            pull_requests: 0,
-            issues: 0,
-            reviews: 0,
-            commits: 0,
-            trend: Math.floor(demoRandom() * 40) - 20,
-          });
-        }
-
-        const contributor = contributorMap.get(contributorName)!;
-        contributor.contributions++;
-        if (activityType === 'pr') contributor.pull_requests++;
-        if (activityType === 'issue') contributor.issues++;
-        if (activityType === 'review') contributor.reviews++;
-        if (activityType === 'commit') contributor.commits++;
-      }
+      // TODO: Generate real activities from repository data
+      // Mock generation removed - will be implemented with real data fetching
     });
 
-    // Generate trend data
+    // TODO: Generate real trend data
     const trends: TrendDataset[] = [];
-    const dates = [];
-    for (let i = 29; i >= 0; i--) {
-      const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
-      dates.push(date.toISOString().split('T')[0]);
-    }
-
-    trends.push({
-      label: 'Pull Requests',
-      data: dates.map((date) => ({
-        date,
-        value: Math.floor(demoRandom() * 50) + 10,
-      })),
-      color: '#10b981',
-    });
-
-    trends.push({
-      label: 'Active Contributors',
-      data: dates.map((date) => ({
-        date,
-        value: Math.floor(demoRandom() * 30) + 5,
-      })),
-      color: '#3b82f6',
-    });
 
     return {
       activities: activities.sort(
@@ -2561,7 +2351,7 @@ export default function WorkspacePage() {
 
           <TabsContent value="activity" className="mt-6">
             <div className="container max-w-7xl mx-auto">
-              <WorkspaceActivity repositories={repositories} />
+              <WorkspaceActivity />
             </div>
           </TabsContent>
 
