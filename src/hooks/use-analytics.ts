@@ -38,26 +38,38 @@ export function useAnalytics() {
 
   const trackRepositorySelectedFromSearch = useCallback(
     (searchLocation: 'header' | 'homepage' | 'trending', resultIndex?: number) => {
-      track('repository_selected_from_search', {
+      const properties: Record<string, string | number | boolean> = {
         search_location: searchLocation,
-        result_index: resultIndex,
+      };
+
+      // Only include result_index if it's defined to maintain data quality
+      if (resultIndex !== undefined) {
+        properties.result_index = resultIndex;
+      }
+
+      track('repository_selected_from_search', properties);
+    },
+    [track]
+  );
+
+  const trackTrendingPageInteraction = useCallback(
+    (action: 'viewed' | 'repository_clicked') => {
+      track('trending_page_interaction', {
+        action,
       });
     },
     [track]
   );
 
-  const trackTrendingPageInteraction = useCallback((action: 'viewed' | 'repository_clicked') => {
-    track('trending_page_interaction', {
-      action,
-    });
-  }, [track]);
-
   // Repository Interaction Events
-  const trackRepositoryPageViewed = useCallback((repoCategory?: string) => {
-    track('repository_page_viewed', {
-      repo_category: repoCategory, // e.g., 'public', 'private', 'fork'
-    });
-  }, [track]);
+  const trackRepositoryPageViewed = useCallback(
+    (repoCategory?: string) => {
+      track('repository_page_viewed', {
+        repo_category: repoCategory, // e.g., 'public', 'private', 'fork'
+      });
+    },
+    [track]
+  );
 
   const trackRepositoryTabSwitch = useCallback(
     (fromTab: string, toTab: string, repoCategory?: string) => {
@@ -91,11 +103,14 @@ export function useAnalytics() {
   );
 
   // Workspace Management Events
-  const trackWorkspaceCreated = useCallback((source: 'home' | 'settings' | 'onboarding') => {
-    track('workspace_created', {
-      creation_source: source,
-    });
-  }, [track]);
+  const trackWorkspaceCreated = useCallback(
+    (source: 'home' | 'settings' | 'onboarding') => {
+      track('workspace_created', {
+        creation_source: source,
+      });
+    },
+    [track]
+  );
 
   const trackRepositoryAddedToWorkspace = useCallback(
     (addMethod: 'search' | 'manual' | 'bulk', repoCategory?: string) => {
@@ -117,47 +132,65 @@ export function useAnalytics() {
     [track]
   );
 
-  const trackWorkspaceSettingsModified = useCallback((settingType: string) => {
-    track('workspace_settings_modified', {
-      setting_type: settingType, // e.g., 'name', 'visibility', 'members'
-    });
-  }, [track]);
+  const trackWorkspaceSettingsModified = useCallback(
+    (settingType: string) => {
+      track('workspace_settings_modified', {
+        setting_type: settingType, // e.g., 'name', 'visibility', 'members'
+      });
+    },
+    [track]
+  );
 
   // User Authentication Events
-  const trackLoginInitiated = useCallback((provider: string, location: string) => {
-    track('login_initiated', {
-      auth_provider: provider, // e.g., 'github'
-      login_location: location, // e.g., 'header', 'protected_page'
-    });
-  }, [track]);
+  const trackLoginInitiated = useCallback(
+    (provider: string, location: string) => {
+      track('login_initiated', {
+        auth_provider: provider, // e.g., 'github'
+        login_location: location, // e.g., 'header', 'protected_page'
+      });
+    },
+    [track]
+  );
 
-  const trackLoginSuccessful = useCallback((provider: string, isFirstTime?: boolean) => {
-    track('login_successful', {
-      auth_provider: provider,
-      is_first_time: isFirstTime,
-    });
-  }, [track]);
+  const trackLoginSuccessful = useCallback(
+    (provider: string, isFirstTime?: boolean) => {
+      track('login_successful', {
+        auth_provider: provider,
+        is_first_time: isFirstTime,
+      });
+    },
+    [track]
+  );
 
-  const trackLogout = useCallback((trigger: 'user_initiated' | 'session_expired') => {
-    track('logout', {
-      logout_trigger: trigger,
-    });
-  }, [track]);
+  const trackLogout = useCallback(
+    (trigger: 'user_initiated' | 'session_expired') => {
+      track('logout', {
+        logout_trigger: trigger,
+      });
+    },
+    [track]
+  );
 
-  const trackSettingsPageAccessed = useCallback((section?: string) => {
-    track('settings_page_accessed', {
-      settings_section: section,
-    });
-  }, [track]);
+  const trackSettingsPageAccessed = useCallback(
+    (section?: string) => {
+      track('settings_page_accessed', {
+        settings_section: section,
+      });
+    },
+    [track]
+  );
 
   // Error & Recovery Events
-  const trackPageNotFound = useCallback((attemptedPath: string, referrer?: string) => {
-    track('page_not_found', {
-      attempted_path_length: attemptedPath.length,
-      has_referrer: Boolean(referrer),
-      path_segments: attemptedPath.split('/').length,
-    });
-  }, [track]);
+  const trackPageNotFound = useCallback(
+    (attemptedPath: string, referrer?: string) => {
+      track('page_not_found', {
+        attempted_path_length: attemptedPath.length,
+        has_referrer: Boolean(referrer),
+        path_segments: attemptedPath.split('/').length,
+      });
+    },
+    [track]
+  );
 
   const trackErrorBoundaryTriggered = useCallback(
     (errorContext: string, errorType?: string, componentStack?: string) => {

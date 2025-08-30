@@ -1,19 +1,24 @@
 import { renderHook } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useAnalytics } from '../useAnalytics';
 
 describe('useAnalytics', () => {
-  let originalEnv: string;
+  let originalEnv: boolean | undefined;
   let consoleLogSpy: ReturnType<typeof vi.spyOn>;
+  let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    originalEnv = process.env.NODE_ENV || '';
+    originalEnv = import.meta.env?.DEV;
     consoleLogSpy = vi.spyOn(console, 'log').mockImplementation();
+    consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation();
   });
 
   afterEach(() => {
-    process.env.NODE_ENV = originalEnv;
+    if (import.meta.env) {
+      import.meta.env.DEV = originalEnv;
+    }
     consoleLogSpy.mockRestore();
+    consoleWarnSpy.mockRestore();
   });
 
   it('should return a track function', () => {
@@ -23,7 +28,7 @@ describe('useAnalytics', () => {
   });
 
   it('should log events in development mode', () => {
-    process.env.NODE_ENV = 'development';
+    import.meta.env.DEV = true;
     const { result } = renderHook(() => useAnalytics());
 
     result.current.track('test_event', { foo: 'bar' });
@@ -32,7 +37,7 @@ describe('useAnalytics', () => {
   });
 
   it('should not log events in production mode', () => {
-    process.env.NODE_ENV = 'production';
+    import.meta.env.DEV = false;
     const { result } = renderHook(() => useAnalytics());
 
     result.current.track('test_event', { foo: 'bar' });
@@ -40,8 +45,19 @@ describe('useAnalytics', () => {
     expect(consoleLogSpy).not.toHaveBeenCalled();
   });
 
+  it('should warn about non-snake_case event names in development', () => {
+    import.meta.env.DEV = true;
+    const { result } = renderHook(() => useAnalytics());
+
+    result.current.track('testEvent', { foo: 'bar' });
+
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      '[Analytics] Event name "testEvent" should be snake_case'
+    );
+  });
+
   it('should handle events without properties', () => {
-    process.env.NODE_ENV = 'development';
+    import.meta.env.DEV = true;
     const { result } = renderHook(() => useAnalytics());
 
     result.current.track('simple_event');
@@ -50,7 +66,7 @@ describe('useAnalytics', () => {
   });
 
   it('should not throw errors even if logging fails', () => {
-    process.env.NODE_ENV = 'development';
+    import.meta.env.DEV = true;
     consoleLogSpy.mockImplementation(() => {
       throw new Error('Console log failed');
     });
@@ -64,7 +80,7 @@ describe('useAnalytics', () => {
   });
 
   it('should handle different property types', () => {
-    process.env.NODE_ENV = 'development';
+    import.meta.env.DEV = true;
     const { result } = renderHook(() => useAnalytics());
 
     const properties = {

@@ -13,8 +13,14 @@ export function useAnalytics() {
     (eventName: string, properties?: Record<string, string | number | boolean>) => {
       // Fire-and-forget analytics - fails silently by design
       try {
+        // Validate event name is snake_case for consistency (dev only)
+        if (import.meta.env?.DEV && !/^[a-z]+(_[a-z]+)*$/.test(eventName)) {
+          console.warn(`[Analytics] Event name "${eventName}" should be snake_case`);
+        }
+
         // For now, just log to console in development
-        if (process.env.NODE_ENV === 'development') {
+        // Use Vite-safe environment detection
+        if (import.meta.env?.DEV) {
           console.log('[Analytics]', eventName, properties);
         }
 

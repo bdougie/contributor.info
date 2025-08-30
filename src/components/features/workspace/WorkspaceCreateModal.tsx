@@ -22,6 +22,7 @@ export interface WorkspaceCreateModalProps {
   mode?: 'create' | 'edit';
   initialValues?: Partial<CreateWorkspaceRequest>;
   workspaceId?: string;
+  source?: 'home' | 'settings' | 'onboarding';
 }
 
 export function WorkspaceCreateModal({
@@ -31,6 +32,7 @@ export function WorkspaceCreateModal({
   mode = 'create',
   initialValues,
   workspaceId,
+  source = 'home',
 }: WorkspaceCreateModalProps) {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
@@ -81,7 +83,7 @@ export function WorkspaceCreateModal({
         if (response.success && response.data) {
           // Track workspace creation or update
           if (mode === 'create') {
-            trackWorkspaceCreated('onboarding');
+            trackWorkspaceCreated(source);
           } else {
             trackWorkspaceSettingsModified('general');
           }
@@ -114,7 +116,17 @@ export function WorkspaceCreateModal({
         setLoading(false);
       }
     },
-    [user, navigate, onOpenChange, onSuccess, mode, workspaceId]
+    [
+      user,
+      navigate,
+      onOpenChange,
+      onSuccess,
+      mode,
+      workspaceId,
+      source,
+      trackWorkspaceCreated,
+      trackWorkspaceSettingsModified,
+    ]
   );
 
   const handleCancel = useCallback(() => {
