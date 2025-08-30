@@ -3,6 +3,7 @@ name: Performance Monitoring
 # SECURITY NOTE: This workflow uses 'pull_request_target' to allow PR comments
 # from forks. The workflow checks out PR code explicitly using the PR head SHA
 # to ensure we're testing the actual PR changes while maintaining security.
+# Each job has explicit minimal permissions for security.
 
 on:
   pull_request_target:
@@ -14,6 +15,10 @@ on:
     - cron: '27 1 * * *'
   workflow_dispatch:
 
+# Default permissions for all jobs (principle of least privilege)
+permissions:
+  contents: read
+
 env:
   # Set deployment URL based on context
   DEPLOY_URL: ${{ github.event_name == 'pull_request_target' && format('https://deploy-preview-{0}--contributor-info.netlify.app', github.event.number) || 'https://contributor.info' }}
@@ -23,6 +28,9 @@ jobs:
     runs-on: ubuntu-latest
     name: Bundle Size Check
     if: github.repository == 'bdougie/contributor.info' && github.event_name == 'pull_request_target'
+    permissions:
+      contents: read
+      pull-requests: write # Required for commenting on PRs
 
     steps:
       - name: Checkout code
@@ -137,6 +145,8 @@ jobs:
     runs-on: ubuntu-latest
     name: Lighthouse Performance Audit
     if: github.repository == 'bdougie/contributor.info'
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout code
@@ -196,6 +206,8 @@ jobs:
     runs-on: ubuntu-latest
     name: Performance Budget Check
     if: github.repository == 'bdougie/contributor.info'
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout code
@@ -278,6 +290,8 @@ jobs:
     runs-on: ubuntu-latest
     name: Web Vitals Tests
     if: github.repository == 'bdougie/contributor.info' && (github.event_name == 'pull_request_target' || github.event_name == 'push')
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout code
@@ -331,6 +345,8 @@ jobs:
     name: Comment PR Results
     needs: [bundle-size-check, lighthouse-audit, performance-budget]
     if: github.repository == 'bdougie/contributor.info' && github.event_name == 'pull_request_target' && !cancelled()
+    permissions:
+      pull-requests: write # Required for commenting on PRs
 
     steps:
       - name: Comment on PR
