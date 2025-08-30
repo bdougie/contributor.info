@@ -156,7 +156,7 @@ export function ContributorLeaderboard({
   }
 
   return (
-    <div className={cn('space-y-6', className)}>
+    <div className={cn('space-y-6', className)} data-testid="contributor-leaderboard">
       {/* Header with sorting */}
       <Card>
         <CardHeader>

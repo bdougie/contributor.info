@@ -55,20 +55,15 @@ const timeRangeComparisonLabels: Record<TimeRange, string> = {
 };
 
 export function WorkspaceDashboard({
-  workspaceId: _workspaceId,
-  workspaceName: _workspaceName,
   metrics,
   trendData,
   activityData = [],
   repositories,
   loading = false,
-  tier: _tier = 'free',
   timeRange = '30d',
   onAddRepository,
   onRemoveRepository,
   onRepositoryClick,
-  onSettingsClick: _onSettingsClick,
-  onUpgradeClick: _onUpgradeClick,
   className,
 }: WorkspaceDashboardProps) {
   const [pinnedRepos, setPinnedRepos] = useState<Set<string>>(
@@ -97,7 +92,7 @@ export function WorkspaceDashboard({
   }));
 
   return (
-    <div className={cn('space-y-6', className)}>
+    <div className={cn('space-y-6', className)} data-testid="workspace-dashboard">
       {/* Metrics Grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard

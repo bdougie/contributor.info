@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { OrganizationAvatar } from '@/components/ui/organization-avatar';
 import {
   Star,
   GitPullRequest,
@@ -39,7 +39,6 @@ import {
   getFilteredRowModel,
   getSortedRowModel,
   flexRender,
-  createColumnHelper,
   type SortingState,
   type ColumnDef,
 } from '@tanstack/react-table';
@@ -74,7 +73,7 @@ export interface RepositoryListProps {
   emptyMessage?: string;
 }
 
-const columnHelper = createColumnHelper<Repository>();
+// Removed columnHelper to avoid type issues
 
 function formatDate(dateString: string) {
   const date = new Date(dateString);
@@ -88,6 +87,12 @@ function formatDate(dateString: string) {
   if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
   if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`;
   return `${Math.floor(diffDays / 365)} years ago`;
+}
+
+function getSortIcon(sortDirection: false | 'asc' | 'desc') {
+  if (sortDirection === 'asc') return <ChevronUp className="h-3 w-3" />;
+  if (sortDirection === 'desc') return <ChevronDown className="h-3 w-3" />;
+  return <ChevronsUpDown className="h-3 w-3" />;
 }
 
 export function RepositoryList({
@@ -107,9 +112,11 @@ export function RepositoryList({
     { id: 'last_activity', desc: true },
   ]);
 
-  const columns = useMemo<ColumnDef<Repository, any>[]>(() => {
-    const cols: ColumnDef<Repository, any>[] = [
-      columnHelper.accessor('full_name', {
+  const columns = useMemo<ColumnDef<Repository, unknown>[]>(() => {
+    const cols: ColumnDef<Repository, unknown>[] = [
+      {
+        id: 'full_name',
+        accessorKey: 'full_name',
         header: ({ column }) => {
           return (
             <button
@@ -117,13 +124,7 @@ export function RepositoryList({
               onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
             >
               Repository
-              {column.getIsSorted() === 'asc' ? (
-                <ChevronUp className="h-3 w-3" />
-              ) : column.getIsSorted() === 'desc' ? (
-                <ChevronDown className="h-3 w-3" />
-              ) : (
-                <ChevronsUpDown className="h-3 w-3" />
-              )}
+              {getSortIcon(column.getIsSorted())}
             </button>
           );
         },
@@ -132,10 +133,12 @@ export function RepositoryList({
           return (
             <div className="flex items-center gap-3">
               <div className="relative flex-shrink-0">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={repo.avatar_url} alt={repo.owner} />
-                  <AvatarFallback>{repo.owner.substring(0, 2).toUpperCase()}</AvatarFallback>
-                </Avatar>
+                <OrganizationAvatar
+                  src={repo.avatar_url}
+                  alt={repo.owner}
+                  size={32}
+                  className="h-8 w-8"
+                />
                 {repo.is_pinned && (
                   <div className="absolute -bottom-1 -right-1 h-4 w-4 bg-muted rounded-full flex items-center justify-center border border-background">
                     <Target className="h-2.5 w-2.5 text-muted-foreground" />
@@ -162,8 +165,10 @@ export function RepositoryList({
         },
         enableSorting: true,
         enableGlobalFilter: true,
-      }),
-      columnHelper.accessor('stars', {
+      },
+      {
+        id: 'stars',
+        accessorKey: 'stars',
         header: ({ column }) => {
           return (
             <button
@@ -172,23 +177,19 @@ export function RepositoryList({
             >
               <Star className="h-3 w-3" />
               Stars
-              {column.getIsSorted() === 'asc' ? (
-                <ChevronUp className="h-3 w-3" />
-              ) : column.getIsSorted() === 'desc' ? (
-                <ChevronDown className="h-3 w-3" />
-              ) : (
-                <ChevronsUpDown className="h-3 w-3" />
-              )}
+              {getSortIcon(column.getIsSorted())}
             </button>
           );
         },
         cell: ({ getValue }) => {
-          const stars = getValue();
+          const stars = getValue() as number;
           return <span className="tabular-nums font-medium">{humanizeNumber(stars)}</span>;
         },
         enableSorting: true,
-      }),
-      columnHelper.accessor('open_prs', {
+      },
+      {
+        id: 'open_prs',
+        accessorKey: 'open_prs',
         header: ({ column }) => {
           return (
             <button
@@ -197,22 +198,18 @@ export function RepositoryList({
             >
               <GitPullRequest className="h-3 w-3" />
               PRs
-              {column.getIsSorted() === 'asc' ? (
-                <ChevronUp className="h-3 w-3" />
-              ) : column.getIsSorted() === 'desc' ? (
-                <ChevronDown className="h-3 w-3" />
-              ) : (
-                <ChevronsUpDown className="h-3 w-3" />
-              )}
+              {getSortIcon(column.getIsSorted())}
             </button>
           );
         },
         cell: ({ getValue }) => (
-          <span className="tabular-nums font-medium">{humanizeNumber(getValue())}</span>
+          <span className="tabular-nums font-medium">{humanizeNumber(getValue() as number)}</span>
         ),
         enableSorting: true,
-      }),
-      columnHelper.accessor('contributors', {
+      },
+      {
+        id: 'contributors',
+        accessorKey: 'contributors',
         header: ({ column }) => {
           return (
             <button
@@ -221,22 +218,18 @@ export function RepositoryList({
             >
               <Users className="h-3 w-3" />
               Contributors
-              {column.getIsSorted() === 'asc' ? (
-                <ChevronUp className="h-3 w-3" />
-              ) : column.getIsSorted() === 'desc' ? (
-                <ChevronDown className="h-3 w-3" />
-              ) : (
-                <ChevronsUpDown className="h-3 w-3" />
-              )}
+              {getSortIcon(column.getIsSorted())}
             </button>
           );
         },
         cell: ({ getValue }) => (
-          <span className="tabular-nums font-medium">{humanizeNumber(getValue())}</span>
+          <span className="tabular-nums font-medium">{humanizeNumber(getValue() as number)}</span>
         ),
         enableSorting: true,
-      }),
-      columnHelper.accessor('last_activity', {
+      },
+      {
+        id: 'last_activity',
+        accessorKey: 'last_activity',
         header: ({ column }) => {
           return (
             <button
@@ -244,67 +237,63 @@ export function RepositoryList({
               onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
             >
               Last Activity
-              {column.getIsSorted() === 'asc' ? (
-                <ChevronUp className="h-3 w-3" />
-              ) : column.getIsSorted() === 'desc' ? (
-                <ChevronDown className="h-3 w-3" />
-              ) : (
-                <ChevronsUpDown className="h-3 w-3" />
-              )}
+              {getSortIcon(column.getIsSorted())}
             </button>
           );
         },
         cell: ({ getValue }) => (
-          <span className="text-muted-foreground whitespace-nowrap">{formatDate(getValue())}</span>
+          <span className="text-muted-foreground whitespace-nowrap">
+            {formatDate(getValue() as string)}
+          </span>
         ),
         enableSorting: true,
-      }),
+      },
       // Hidden column for pinned state (used for sorting)
-      columnHelper.accessor('is_pinned', {
+      {
+        id: 'is_pinned',
+        accessorKey: 'is_pinned',
         header: () => null,
         cell: () => null,
         enableSorting: true,
         enableHiding: true,
-      }),
+      },
     ];
 
     if (showActions) {
-      cols.push(
-        columnHelper.display({
-          id: 'actions',
-          cell: ({ row }) => {
-            const repo = row.original;
-            return (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => onRepositoryClick?.(repo)}>
-                    <ExternalLink className="mr-2 h-3 w-3" />
-                    View repo page
+      cols.push({
+        id: 'actions',
+        cell: ({ row }) => {
+          const repo = row.original;
+          return (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => onRepositoryClick?.(repo)}>
+                  <ExternalLink className="mr-2 h-3 w-3" />
+                  View repo page
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onPinToggle?.(repo)}>
+                  <Target className="mr-2 h-3 w-3" />
+                  {repo.is_pinned ? 'Unpin' : 'Pin'} repository
+                </DropdownMenuItem>
+                {onRemove && (
+                  <DropdownMenuItem onClick={() => onRemove(repo)} className="text-destructive">
+                    Remove from workspace
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onPinToggle?.(repo)}>
-                    <Target className="mr-2 h-3 w-3" />
-                    {repo.is_pinned ? 'Unpin' : 'Pin'} repository
-                  </DropdownMenuItem>
-                  {onRemove && (
-                    <DropdownMenuItem onClick={() => onRemove(repo)} className="text-destructive">
-                      Remove from workspace
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            );
-          },
-        })
-      );
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          );
+        },
+      });
     }
 
     return cols;
-  }, [showActions, onPinToggle, onRemove]);
+  }, [showActions, onPinToggle, onRemove, onRepositoryClick]);
 
   const table = useReactTable({
     data: repositories,
