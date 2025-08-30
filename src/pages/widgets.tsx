@@ -1,5 +1,5 @@
 import { useParams } from 'react-router-dom';
-import { WidgetGallery } from '@/components/embeddable-widgets/widget-gallery';
+import { LazyWidgetGallery as WidgetGallery } from '@/components/embeddable-widgets/widget-gallery-lazy';
 import { SocialMetaTags } from '@/components/common/layout';
 import { useCachedRepoData } from '@/hooks/use-cached-repo-data';
 import { useTimeRangeStore } from '@/lib/time-range-store';

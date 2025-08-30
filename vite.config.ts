@@ -175,6 +175,16 @@ export default defineConfig(() => ({
             if (id.includes('@xenova/transformers') || id.includes('onnxruntime')) {
               return 'embeddings-excluded';
             }
+            // Further split chart libraries for better code splitting
+            if (id.includes('uplot')) {
+              return 'vendor-uplot';
+            }
+            if (id.includes('@nivo')) {
+              return 'vendor-nivo';
+            }
+            if (id.includes('posthog-js')) {
+              return 'vendor-analytics';
+            }
           }
           // Don't split app code - let it stay in main bundle to avoid issues
         },

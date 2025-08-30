@@ -68,8 +68,8 @@ const ManualBackfillDebug = lazy(() =>
   }))
 );
 const PerformanceMonitoringDashboard = lazy(() =>
-  import('@/components/performance-monitoring-dashboard').then((m) => ({
-    default: m.PerformanceMonitoringDashboard,
+  import('@/components/performance-monitoring-dashboard-lazy').then((m) => ({
+    default: m.LazyPerformanceMonitoringDashboard,
   }))
 );
 const ShareableChartsPreview = lazy(() =>
