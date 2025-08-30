@@ -90,7 +90,6 @@ jobs:
         run: npm test -- --coverage --passWithNoTests --reporter=verbose
         env:
           VITE_OPENAI_API_KEY: test-key-for-ci
-          NODE_OPTIONS: '--unhandled-rejections=strict'
 
       - name: Upload coverage reports
         uses: codecov/codecov-action@v4
