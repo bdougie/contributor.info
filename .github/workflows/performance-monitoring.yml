@@ -1,7 +1,7 @@
 name: Performance Monitoring
 
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, synchronize]
   push:
     branches: [main]
@@ -12,25 +12,17 @@ on:
 
 env:
   # Set deployment URL based on context
-  DEPLOY_URL: ${{ github.event_name == 'pull_request' && format('https://deploy-preview-{0}--contributor-info.netlify.app', github.event.number) || 'https://contributor.info' }}
+  DEPLOY_URL: ${{ github.event_name == 'pull_request_target' && format('https://deploy-preview-{0}--contributor-info.netlify.app', github.event.number) || 'https://contributor.info' }}
 
 jobs:
   bundle-size-check:
     runs-on: ubuntu-latest
     name: Bundle Size Check
-    if: github.repository == 'bdougie/contributor.info' && github.event_name == 'pull_request'
+    if: github.repository == 'bdougie/contributor.info' && github.event_name == 'pull_request_target'
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      # Generate GitHub App token for enhanced permissions
-      - name: Generate App Token
-        id: app-token
-        uses: actions/create-github-app-token@v2
-        with:
-          app-id: ${{ vars.CONTRIBUTOR_APP_ID }}
-          private-key: ${{ secrets.CONTRIBUTOR_APP_KEY }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -144,7 +136,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Wait for deployment (PR only)
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request_target'
         run: |
           echo "Waiting for Netlify deployment to be ready..."
           # Wait up to 5 minutes for deployment
@@ -272,19 +264,11 @@ jobs:
   web-vitals-test:
     runs-on: ubuntu-latest
     name: Web Vitals Tests
-    if: github.repository == 'bdougie/contributor.info' && (github.event_name == 'pull_request' || github.event_name == 'push')
+    if: github.repository == 'bdougie/contributor.info' && (github.event_name == 'pull_request_target' || github.event_name == 'push')
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      # Generate GitHub App token for enhanced permissions
-      - name: Generate App Token
-        id: app-token
-        uses: actions/create-github-app-token@v2
-        with:
-          app-id: ${{ vars.CONTRIBUTOR_APP_ID }}
-          private-key: ${{ secrets.CONTRIBUTOR_APP_KEY }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -304,7 +288,7 @@ jobs:
             echo "Web Vitals comparison script not found, skipping..."
           fi
         env:
-          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BASE_URL: https://contributor.info
           PR_URL: ${{ env.DEPLOY_URL }}
 
@@ -330,7 +314,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Comment PR Results
     needs: [bundle-size-check, lighthouse-audit, performance-budget]
-    if: github.repository == 'bdougie/contributor.info' && github.event_name == 'pull_request' && !cancelled()
+    if: github.repository == 'bdougie/contributor.info' && github.event_name == 'pull_request_target' && !cancelled()
 
     steps:
       - name: Comment on PR
