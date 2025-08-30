@@ -12,10 +12,6 @@ function run(cmd, args, opts = {}) {
   return spawnSync(cmd, args, { stdio: 'pipe', encoding: 'utf8', ...opts });
 }
 
-function runShell(command, opts = {}) {
-  return spawnSync(command, { stdio: 'pipe', encoding: 'utf8', shell: true, ...opts });
-}
-
 function resolveSupabaseCmd() {
   const isWin = process.platform === 'win32';
   const directCmd = isWin ? 'supabase.cmd' : 'supabase';
@@ -23,24 +19,29 @@ function resolveSupabaseCmd() {
   if (probe.status === 0) {
     return { via: 'direct', cmd: directCmd };
   }
+  // Try local project binary
+  const localBin = path.resolve('node_modules', '.bin', isWin ? 'supabase.cmd' : 'supabase');
+  if (existsSync(localBin)) {
+    const localProbe = run(localBin, ['--version']);
+    if (localProbe.status === 0) return { via: 'local-bin', cmd: localBin };
+  }
   // Try npx presence (Windows may require shell or .cmd)
   const npxProbe = run('npx', ['--version']);
   if (npxProbe.status === 0) return { via: 'npx', cmd: 'npx' };
   const npxCmdProbe = run(isWin ? 'npx.cmd' : 'npx', ['--version']);
   if (npxCmdProbe.status === 0) return { via: 'npx', cmd: isWin ? 'npx.cmd' : 'npx' };
-  // Fallback to shell-based npx execution
-  return { via: 'npx-shell', cmd: 'npx' };
+  // No safe execution path found
+  return { via: 'unavailable', cmd: null };
 }
 
 function supabaseStatus(supabaseCmd) {
-  if (supabaseCmd.via === 'direct') {
+  if (supabaseCmd.via === 'direct' || supabaseCmd.via === 'local-bin') {
     return run(supabaseCmd.cmd, ['status']);
   }
   if (supabaseCmd.via === 'npx') {
     return run(supabaseCmd.cmd, ['supabase', 'status']);
   }
-  // npx via shell
-  return runShell('npx supabase status');
+  return { status: 1, stdout: '', stderr: 'Supabase CLI not available (direct, local-bin, or npx not found).', error: new Error('Supabase CLI unavailable') };
 }
 
 function ensureSupabaseRunning(statusStdout) {
@@ -74,7 +75,7 @@ function redactDbUrl(url) {
 }
 
 function pushMigrations(supabaseCmd, dbUrl, extraArgs = []) {
-  if (supabaseCmd.via === 'direct') {
+  if (supabaseCmd.via === 'direct' || supabaseCmd.via === 'local-bin') {
     const res = spawnSync(supabaseCmd.cmd, ['db', 'push', '--db-url', dbUrl, ...extraArgs], { stdio: 'inherit' });
     return res.status ?? 1;
   }
@@ -82,14 +83,11 @@ function pushMigrations(supabaseCmd, dbUrl, extraArgs = []) {
     const res = spawnSync(supabaseCmd.cmd, ['supabase', 'db', 'push', '--db-url', dbUrl, ...extraArgs], { stdio: 'inherit' });
     return res.status ?? 1;
   }
-  // shell variant
-  const cmd = `npx supabase db push --db-url "${dbUrl}" ${extraArgs.map(a => a.includes(' ') ? `"${a}"` : a).join(' ')}`.trim();
-  const res = spawnSync(cmd, { stdio: 'inherit', shell: true });
-  return res.status ?? 1;
+  return 1;
 }
 
 function executeSqlFile(supabaseCmd, dbUrl, filePath, extraArgs = []) {
-  if (supabaseCmd.via === 'direct') {
+  if (supabaseCmd.via === 'direct' || supabaseCmd.via === 'local-bin') {
     const res = spawnSync(supabaseCmd.cmd, ['db', 'execute', '--db-url', dbUrl, '--file', filePath, ...extraArgs], { stdio: 'inherit' });
     return res.status ?? 1;
   }
@@ -97,15 +95,19 @@ function executeSqlFile(supabaseCmd, dbUrl, filePath, extraArgs = []) {
     const res = spawnSync(supabaseCmd.cmd, ['supabase', 'db', 'execute', '--db-url', dbUrl, '--file', filePath, ...extraArgs], { stdio: 'inherit' });
     return res.status ?? 1;
   }
-  const cmd = `npx supabase db execute --db-url "${dbUrl}" --file "${filePath}" ${extraArgs.map(a => a.includes(' ') ? `"${a}"` : a).join(' ')}`.trim();
-  const res = spawnSync(cmd, { stdio: 'inherit', shell: true });
-  return res.status ?? 1;
+  return 1;
 }
 
 async function main() {
   console.log('🚀 Setting up local Supabase database (cross-platform)...');
 
   const supabaseCmd = resolveSupabaseCmd();
+  if (supabaseCmd.via === 'unavailable') {
+    console.error('❌ Supabase CLI not found. Install it or use npx:');
+    console.error('   - npm i -g supabase');
+    console.error('   - or: npx supabase --version');
+    process.exit(1);
+  }
 
   // 1) Status
   const statusRes = supabaseStatus(supabaseCmd);
