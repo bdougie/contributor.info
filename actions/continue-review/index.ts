@@ -137,25 +137,48 @@ async function generateReview(
   continueApiKey: string,
   githubToken: string
 ): Promise<string> {
-  // Build the review prompt
-  let prompt = `You are reviewing a pull request. Please provide constructive feedback.
+  // Build the review prompt with context awareness
+  let prompt = `You are reviewing a pull request. Please provide helpful, context-aware feedback.
 
-Pull Request Information
-- Title: ${context.pr.title}
-- Description: ${context.pr.body || 'No description provided'}
-- Files changed: ${context.pr.files.length}
+CONTEXT:
 - Repository: ${context.repository}
+- PR Title: ${context.pr.title}
+- Files Changed: ${context.pr.files.length}
+- Author: ${context.pr.author}
+
+REVIEW APPROACH:
+1. First, understand what this PR is trying to accomplish
+2. Check if similar patterns exist elsewhere in the codebase
+3. Focus on actual issues that affect functionality
+4. Be constructive and suggest solutions when possible
+
+FOCUS ON:
+- Bugs that will cause failures or incorrect behavior
+- Security vulnerabilities (exposed secrets, injection risks)
+- Breaking changes that affect other parts of the system
+- Performance issues with real impact (memory leaks, O(n²) algorithms)
+- Missing tests for new features or bug fixes
+- Missing documentation for APIs or complex logic
+
+SKIP COMMENTING ON:
+- Style and formatting (handled by linters)
+- Alternative approaches unless current is broken
+- Minor naming unless genuinely confusing
+- Trivial documentation for self-explanatory code
+
+Be specific with line numbers and explain why something is an issue.
+
+PR Description: ${context.pr.body || 'No description provided'}
 `;
 
   if (context.command) {
-    prompt = `You are reviewing a pull request. The user has provided a specific request: "${context.command}"
+    prompt = `Review with specific focus requested by user.
+
+User Request: "${context.command}"
 
 ${prompt}
 
-User Request
-${context.command}
-
-Please address the user's specific request while reviewing the code changes below.
+Please address the user's specific request while also checking for any significant issues in the code.
 `;
   }
 
@@ -187,7 +210,9 @@ Please address the user's specific request while reviewing the code changes belo
 
   prompt += diffContent;
   prompt += '\n\nYour Review\n';
-  prompt += 'Please provide your code review feedback below:';
+  prompt += 'Please provide constructive feedback on the code changes.\n';
+  prompt += 'Focus on issues that matter for functionality, security, and maintainability.\n';
+  prompt += 'If the code looks good overall, acknowledge that while noting any minor suggestions.';
 
   // Write prompt to temp file for headless mode
   const tempFile = path.join('/tmp', `continue-review-${Date.now()}.txt`);
