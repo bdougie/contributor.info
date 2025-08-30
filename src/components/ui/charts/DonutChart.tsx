@@ -1,10 +1,11 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 
 export interface DonutChartData {
-  id: string;
-  label: string;
+  id?: string;
+  label?: string;
+  name?: string; // Alternative to label
   value: number;
-  percentage: number;
+  percentage?: number; // Will be calculated if not provided
   color: string;
 }
 
@@ -89,10 +90,20 @@ const DonutChartComponent: React.FC<DonutChartProps> = ({
 
   // Calculate segments
   const calculateSegments = useCallback(() => {
-    const total = data.reduce((sum, item) => sum + item.value, 0);
+    // Filter out invalid data items and ensure values are numbers
+    const validData = data.filter((item) => 
+      item && 
+      typeof item.value === 'number' && 
+      !isNaN(item.value) && 
+      item.value >= 0
+    );
+    
+    if (validData.length === 0) return [];
+    
+    const total = validData.reduce((sum, item) => sum + item.value, 0);
     let currentAngle = -Math.PI / 2; // Start at top
 
-    return data.map((item) => {
+    return validData.map((item) => {
       const percentage = total > 0 ? item.value / total : 0;
       const angle = percentage * Math.PI * 2;
       const segment = {
@@ -174,7 +185,8 @@ const DonutChartComponent: React.FC<DonutChartProps> = ({
             ctx.font = `${Math.max(12, dimensions.width / 30)}px system-ui, -apple-system, sans-serif`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText(`${segment.percentage.toFixed(0)}%`, labelX, labelY);
+            const displayPercentage = segment.percentage ?? 0;
+            ctx.fillText(`${displayPercentage.toFixed(0)}%`, labelX, labelY);
           }
         });
 
@@ -298,8 +310,9 @@ const DonutChartComponent: React.FC<DonutChartProps> = ({
 
       if (segment) {
         canvas.style.cursor = 'pointer';
-        if (hoveredSegment !== segment.id) {
-          setHoveredSegment(segment.id);
+        const segmentId = segment.id || segment.label || segment.name || `segment-${segment.value}`;
+        if (hoveredSegment !== segmentId) {
+          setHoveredSegment(segmentId);
           onHover?.(segment, event.nativeEvent);
         }
       } else {
@@ -397,7 +410,8 @@ const DonutChartComponent: React.FC<DonutChartProps> = ({
         setFocusedSegmentIndex(newIndex);
         if (newIndex >= 0 && newIndex < segments.length) {
           const segment = segments[newIndex];
-          setHoveredSegment(segment.id);
+          const segmentId = segment.id || segment.label || segment.name || `segment-${segment.value}`;
+          setHoveredSegment(segmentId);
           onHover?.(segment, undefined);
         }
       }
@@ -409,7 +423,11 @@ const DonutChartComponent: React.FC<DonutChartProps> = ({
   const getAriaLabel = useCallback(() => {
     const total = data.reduce((sum, item) => sum + item.value, 0);
     const description = data
-      .map((item) => `${item.label}: ${item.value} (${item.percentage.toFixed(1)}%)`)
+      .map((item) => {
+        const percentage = total > 0 ? (item.value / total * 100) : 0;
+        const label = item.label || item.name || 'Unknown';
+        return `${label}: ${item.value} (${percentage.toFixed(1)}%)`;
+      })
       .join(', ');
     return `Donut chart showing distribution. Total: ${total}. ${description}`;
   }, [data]);
