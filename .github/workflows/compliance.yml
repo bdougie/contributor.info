@@ -49,11 +49,42 @@ jobs:
             );
 
             if (!botComment) {
+              const body = [
+                "## ⚠️ Conventional Commit Format",
+                "",
+                "Your commit messages don't follow the conventional commit format, but **this won't block your PR from being merged**.",
+                "",
+                "### Expected Format:",
+                "```",
+                "<type>[optional scope]: <description>",
+                "",
+                "[optional body]",
+                "",
+                "[optional footer(s)]",
+                "```",
+                "",
+                "### Examples:",
+                "- `feat: add changelog generation support`",
+                "- `fix: resolve login redirect issue`",
+                "- `docs: update README with new instructions`",
+                "- `chore: update dependencies`",
+                "",
+                "### Valid Types:",
+                "`feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`",
+                "",
+                "This helps with:",
+                "- 📝 Automatic changelog generation",
+                "- 🚀 Automated semantic versioning",
+                "- 📊 Better project history tracking",
+                "",
+                "*This is a non-blocking warning - your PR can still be merged without fixing this.*"
+              ].join('\n');
+              
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: context.issue.number,
-                body: "## ⚠️ Conventional Commit Format\n\nYour commit messages don't follow the conventional commit format, but **this won't block your PR from being merged**.\n\n### Expected Format:\n```\n<type>[optional scope]: <description>\n\n[optional body]\n\n[optional footer(s)]\n```\n\n### Examples:\n- `feat: add changelog generation support`\n- `fix: resolve login redirect issue`\n- `docs: update README with new instructions`\n- `chore: update dependencies`\n\n### Valid Types:\n`feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`\n\nThis helps with:\n- 📝 Automatic changelog generation\n- 🚀 Automated semantic versioning\n- 📊 Better project history tracking\n\n*This is a non-blocking warning - your PR can still be merged without fixing this.*"
+                body: body
               });
             }
 
