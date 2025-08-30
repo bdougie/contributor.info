@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { OrganizationAvatar } from '@/components/ui/organization-avatar';
 import {
   Star,
   GitPullRequest,
@@ -90,6 +90,12 @@ function formatDate(dateString: string) {
   return `${Math.floor(diffDays / 365)} years ago`;
 }
 
+function getSortIcon(sortDirection: false | 'asc' | 'desc') {
+  if (sortDirection === 'asc') return <ChevronUp className="h-3 w-3" />;
+  if (sortDirection === 'desc') return <ChevronDown className="h-3 w-3" />;
+  return <ChevronsUpDown className="h-3 w-3" />;
+}
+
 export function RepositoryList({
   repositories,
   loading = false,
@@ -107,8 +113,8 @@ export function RepositoryList({
     { id: 'last_activity', desc: true },
   ]);
 
-  const columns = useMemo<ColumnDef<Repository, any>[]>(() => {
-    const cols: ColumnDef<Repository, any>[] = [
+  const columns = useMemo<ColumnDef<Repository, unknown>[]>(() => {
+    const cols: ColumnDef<Repository, unknown>[] = [
       columnHelper.accessor('full_name', {
         header: ({ column }) => {
           return (
@@ -117,13 +123,7 @@ export function RepositoryList({
               onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
             >
               Repository
-              {column.getIsSorted() === 'asc' ? (
-                <ChevronUp className="h-3 w-3" />
-              ) : column.getIsSorted() === 'desc' ? (
-                <ChevronDown className="h-3 w-3" />
-              ) : (
-                <ChevronsUpDown className="h-3 w-3" />
-              )}
+              {getSortIcon(column.getIsSorted())}
             </button>
           );
         },
@@ -132,10 +132,12 @@ export function RepositoryList({
           return (
             <div className="flex items-center gap-3">
               <div className="relative flex-shrink-0">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={repo.avatar_url} alt={repo.owner} />
-                  <AvatarFallback>{repo.owner.substring(0, 2).toUpperCase()}</AvatarFallback>
-                </Avatar>
+                <OrganizationAvatar
+                  src={repo.avatar_url}
+                  alt={repo.owner}
+                  size={32}
+                  className="h-8 w-8"
+                />
                 {repo.is_pinned && (
                   <div className="absolute -bottom-1 -right-1 h-4 w-4 bg-muted rounded-full flex items-center justify-center border border-background">
                     <Target className="h-2.5 w-2.5 text-muted-foreground" />
@@ -172,13 +174,7 @@ export function RepositoryList({
             >
               <Star className="h-3 w-3" />
               Stars
-              {column.getIsSorted() === 'asc' ? (
-                <ChevronUp className="h-3 w-3" />
-              ) : column.getIsSorted() === 'desc' ? (
-                <ChevronDown className="h-3 w-3" />
-              ) : (
-                <ChevronsUpDown className="h-3 w-3" />
-              )}
+              {getSortIcon(column.getIsSorted())}
             </button>
           );
         },
@@ -197,13 +193,7 @@ export function RepositoryList({
             >
               <GitPullRequest className="h-3 w-3" />
               PRs
-              {column.getIsSorted() === 'asc' ? (
-                <ChevronUp className="h-3 w-3" />
-              ) : column.getIsSorted() === 'desc' ? (
-                <ChevronDown className="h-3 w-3" />
-              ) : (
-                <ChevronsUpDown className="h-3 w-3" />
-              )}
+              {getSortIcon(column.getIsSorted())}
             </button>
           );
         },
@@ -221,13 +211,7 @@ export function RepositoryList({
             >
               <Users className="h-3 w-3" />
               Contributors
-              {column.getIsSorted() === 'asc' ? (
-                <ChevronUp className="h-3 w-3" />
-              ) : column.getIsSorted() === 'desc' ? (
-                <ChevronDown className="h-3 w-3" />
-              ) : (
-                <ChevronsUpDown className="h-3 w-3" />
-              )}
+              {getSortIcon(column.getIsSorted())}
             </button>
           );
         },
@@ -244,13 +228,7 @@ export function RepositoryList({
               onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
             >
               Last Activity
-              {column.getIsSorted() === 'asc' ? (
-                <ChevronUp className="h-3 w-3" />
-              ) : column.getIsSorted() === 'desc' ? (
-                <ChevronDown className="h-3 w-3" />
-              ) : (
-                <ChevronsUpDown className="h-3 w-3" />
-              )}
+              {getSortIcon(column.getIsSorted())}
             </button>
           );
         },
@@ -304,7 +282,7 @@ export function RepositoryList({
     }
 
     return cols;
-  }, [showActions, onPinToggle, onRemove]);
+  }, [showActions, onPinToggle, onRemove, onRepositoryClick]);
 
   const table = useReactTable({
     data: repositories,

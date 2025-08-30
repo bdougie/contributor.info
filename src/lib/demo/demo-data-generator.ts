@@ -401,6 +401,7 @@ export function generateDemoRepositories(): Repository[] {
     open_issues: Math.floor(demoRandom() * 20) + 1,
     contributors: Math.floor(demoRandom() * 50) + 5,
     last_activity: new Date(Date.now() - demoRandom() * 30 * 24 * 60 * 60 * 1000).toISOString(),
+    avatar_url: '/org-placeholder.png', // Use plant placeholder for demo organizations
     html_url: `https://github.com/organization/${repo.name}`,
   }));
 }

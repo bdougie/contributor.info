@@ -2,10 +2,10 @@ import { useState, useMemo, lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { WorkspaceExportService } from '@/services/workspace-export.service';
 import { WorkspaceDashboard } from '@/components/features/workspace';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Info, Sparkles } from '@/components/ui/icon';
+import { Info, Sparkles, GitPullRequest, AlertCircle } from '@/components/ui/icon';
 
 // Lazy load the heavy analytics dashboard
 const AnalyticsDashboard = lazy(() =>
@@ -124,6 +124,8 @@ export function DemoWorkspacePage() {
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
             <TabsTrigger value="activity">Activity</TabsTrigger>
+            <TabsTrigger value="prs">Pull Requests</TabsTrigger>
+            <TabsTrigger value="issues">Issues</TabsTrigger>
             <TabsTrigger value="contributors">Contributors</TabsTrigger>
           </TabsList>
 
@@ -213,6 +215,90 @@ export function DemoWorkspacePage() {
                 <CardContent>
                   <ActivityTable
                     activities={demoAnalyticsData.activities.slice(0, 10)}
+                    loading={false}
+                  />
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="prs" className="space-y-6">
+            <div className="grid gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <GitPullRequest className="h-5 w-5" />
+                    Pull Requests Overview
+                  </CardTitle>
+                  <CardDescription>
+                    Recent pull request activity across all repositories
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div className="p-4 rounded-lg bg-muted">
+                      <div className="text-2xl font-bold">142</div>
+                      <div className="text-sm text-muted-foreground">Open PRs</div>
+                    </div>
+                    <div className="p-4 rounded-lg bg-muted">
+                      <div className="text-2xl font-bold">89</div>
+                      <div className="text-sm text-muted-foreground">Merged Today</div>
+                    </div>
+                    <div className="p-4 rounded-lg bg-muted">
+                      <div className="text-2xl font-bold">23</div>
+                      <div className="text-sm text-muted-foreground">Awaiting Review</div>
+                    </div>
+                    <div className="p-4 rounded-lg bg-muted">
+                      <div className="text-2xl font-bold">1.2h</div>
+                      <div className="text-sm text-muted-foreground">Avg. Time to Merge</div>
+                    </div>
+                  </div>
+                  <ActivityTable
+                    activities={demoAnalyticsData.activities
+                      .filter((a) => a.type === 'pr')
+                      .slice(0, 20)}
+                    loading={false}
+                  />
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="issues" className="space-y-6">
+            <div className="grid gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <AlertCircle className="h-5 w-5" />
+                    Issues Overview
+                  </CardTitle>
+                  <CardDescription>
+                    Track and manage issues across your repositories
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div className="p-4 rounded-lg bg-muted">
+                      <div className="text-2xl font-bold">287</div>
+                      <div className="text-sm text-muted-foreground">Open Issues</div>
+                    </div>
+                    <div className="p-4 rounded-lg bg-muted">
+                      <div className="text-2xl font-bold">45</div>
+                      <div className="text-sm text-muted-foreground">Closed Today</div>
+                    </div>
+                    <div className="p-4 rounded-lg bg-muted">
+                      <div className="text-2xl font-bold">62</div>
+                      <div className="text-sm text-muted-foreground">High Priority</div>
+                    </div>
+                    <div className="p-4 rounded-lg bg-muted">
+                      <div className="text-2xl font-bold">3.4d</div>
+                      <div className="text-sm text-muted-foreground">Avg. Resolution</div>
+                    </div>
+                  </div>
+                  <ActivityTable
+                    activities={demoAnalyticsData.activities
+                      .filter((a) => a.type === 'issue')
+                      .slice(0, 20)}
                     loading={false}
                   />
                 </CardContent>
