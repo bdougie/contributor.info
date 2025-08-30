@@ -41,7 +41,11 @@ export default function LoginPage() {
   useEffect(() => {
     if (isLoggedIn) {
       console.log('User is logged in, redirecting to:', redirectTo);
-      trackLoginSuccessful('github');
+      // Fire analytics event asynchronously without blocking navigation
+      // This prevents race conditions where navigation happens before analytics
+      Promise.resolve().then(() => {
+        trackLoginSuccessful('github');
+      });
       navigate(redirectTo, { replace: true });
     }
   }, [isLoggedIn, navigate, redirectTo, trackLoginSuccessful]);
@@ -50,7 +54,7 @@ export default function LoginPage() {
     try {
       setError(null);
       trackLoginInitiated('github', 'login_page');
-      
+
       // Store redirect destination
       if (redirectTo !== '/') {
         localStorage.setItem('redirectAfterLogin', redirectTo);
