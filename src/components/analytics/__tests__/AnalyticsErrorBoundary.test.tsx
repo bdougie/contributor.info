@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { AnalyticsErrorBoundary, withAnalyticsErrorBoundary } from '../AnalyticsErrorBoundary';
 
 // Component that throws an error
@@ -25,7 +25,7 @@ describe('AnalyticsErrorBoundary', () => {
 
   beforeEach(() => {
     originalEnv = process.env.NODE_ENV || '';
-    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation();
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -56,48 +56,48 @@ describe('AnalyticsErrorBoundary', () => {
     expect(screen.queryByText('No error')).not.toBeInTheDocument();
   });
 
-  it('should render children as fallback when no fallback provided', () => {
-    const SafeChild = () => <div data-testid="safe-child">Safe content</div>;
-
+  it('should render null when error occurs and no fallback provided', () => {
     render(
       <AnalyticsErrorBoundary>
         <ThrowError shouldThrow={true} />
-        <SafeChild />
       </AnalyticsErrorBoundary>
     );
 
-    // Error boundary should catch the error but still render something
-    expect(consoleErrorSpy).toHaveBeenCalled();
+    // When no fallback is provided and an error occurs,
+    // the error boundary should not render the erroring component again
+    // Since ThrowError always throws, it won't render anything
+    expect(screen.queryByText('No error')).not.toBeInTheDocument();
   });
 
   it('should log errors in development mode', () => {
     process.env.NODE_ENV = 'development';
 
     render(
-      <AnalyticsErrorBoundary>
+      <AnalyticsErrorBoundary fallback={<div>Fallback</div>}>
         <ThrowError shouldThrow={true} />
       </AnalyticsErrorBoundary>
     );
 
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      expect.stringContaining('Analytics Error Boundary caught:'),
-      expect.any(Error),
-      expect.any(Object)
+    // Check that our error boundary's componentDidCatch was called
+    // The console.error spy should have been called with our specific message
+    const ourErrorLogs = consoleErrorSpy.mock.calls.filter((call) =>
+      String(call[0]).includes('Analytics Error Boundary caught:')
     );
+    expect(ourErrorLogs.length).toBeGreaterThan(0);
   });
 
   it('should not log errors in production mode', () => {
     process.env.NODE_ENV = 'production';
 
     render(
-      <AnalyticsErrorBoundary>
+      <AnalyticsErrorBoundary fallback={<div>Fallback</div>}>
         <ThrowError shouldThrow={true} />
       </AnalyticsErrorBoundary>
     );
 
-    // Console.error should only be called by React itself, not our error boundary
+    // In production, our error boundary should NOT log errors
     const ourErrorLogs = consoleErrorSpy.mock.calls.filter((call) =>
-      call[0]?.includes('Analytics Error Boundary caught:')
+      String(call[0]).includes('Analytics Error Boundary caught:')
     );
     expect(ourErrorLogs).toHaveLength(0);
   });

@@ -36,8 +36,9 @@ export class AnalyticsErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
-      // Return fallback UI or just render children without analytics
-      return this.props.fallback || this.props.children;
+      // Return fallback UI or null if no fallback provided
+      // We can't render children again as they might throw the same error
+      return this.props.fallback || null;
     }
 
     return this.props.children;
