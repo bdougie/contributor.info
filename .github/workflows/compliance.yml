@@ -45,46 +45,44 @@ jobs:
 
             const botComment = comments.find(comment => 
               comment.user.type === 'Bot' && 
-              comment.body && comment.body.includes('Conventional Commit Format')
+              comment.body.includes('Conventional Commit Format')
             );
 
             if (!botComment) {
-              const body = [
-                "## ⚠️ Conventional Commit Format",
-                "",
-                "Your commit messages don't follow the conventional commit format, but **this won't block your PR from being merged**.",
-                "",
-                "### Expected Format:",
-                "```",
-                "<type>[optional scope]: <description>",
-                "",
-                "[optional body]",
-                "",
-                "[optional footer(s)]",
-                "```",
-                "",
-                "### Examples:",
-                "- `feat: add changelog generation support`",
-                "- `fix: resolve login redirect issue`",
-                "- `docs: update README with new instructions`",
-                "- `chore: update dependencies`",
-                "",
-                "### Valid Types:",
-                "`feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`",
-                "",
-                "This helps with:",
-                "- 📝 Automatic changelog generation",
-                "- 🚀 Automated semantic versioning",
-                "- 📊 Better project history tracking",
-                "",
-                "*This is a non-blocking warning - your PR can still be merged without fixing this.*"
-              ].join('\n');
-              
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: context.issue.number,
-                body: body
+                body: [
+                  "## ⚠️ Conventional Commit Format",
+                  "",
+                  "Your commit messages don't follow the conventional commit format, but **this won't block your PR from being merged**.",
+                  "",
+                  "### Expected Format:",
+                  "```",
+                  "<type>[optional scope]: <description>",
+                  "",
+                  "[optional body]",
+                  "",
+                  "[optional footer(s)]",
+                  "```",
+                  "",
+                  "### Examples:",
+                  "- `feat: add changelog generation support`",
+                  "- `fix: resolve login redirect issue`",
+                  "- `docs: update README with new instructions`",
+                  "- `chore: update dependencies`",
+                  "",
+                  "### Valid Types:",
+                  "`feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`",
+                  "",
+                  "This helps with:",
+                  "- 📝 Automatic changelog generation",
+                  "- 🚀 Automated semantic versioning", 
+                  "- 📊 Better project history tracking",
+                  "",
+                  "*This is a non-blocking warning - your PR can still be merged without fixing this.*"
+                ].join('\n')
               });
             }
 
@@ -113,7 +111,7 @@ jobs:
           echo "Node version: $(node --version)"
           echo "NPM version: $(npm --version)"
           echo "Current directory: $(pwd)"
-          echo "Package.json type: $(grep -o '"type":[^,]*' package.json | cut -d'"' -f4)"
+          echo "Package.json type: $(node -p 'JSON.parse(require("fs").readFileSync("package.json", "utf8")).type')"
           ls -la node_modules/@nivo/ || echo "@nivo not found"
           ls -la node_modules/d3-interpolate/ || echo "d3-interpolate not found"
 
@@ -121,6 +119,7 @@ jobs:
         run: npm test -- --coverage --passWithNoTests --reporter=verbose
         env:
           VITE_OPENAI_API_KEY: test-key-for-ci
+          NODE_OPTIONS: '--unhandled-rejections=strict'
 
       - name: Upload coverage reports
         uses: codecov/codecov-action@v4
@@ -180,7 +179,7 @@ jobs:
         run: npm ci
 
       - name: Build application
-        run: npm run build
+        run: npm run build:prod
 
       - name: Analyze bundle size
         run: |
