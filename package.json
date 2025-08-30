@@ -53,7 +53,7 @@
     "test-storybook-direct": "./.storybook/run-interaction-tests-direct.sh",
     "supabase:start": "node scripts/setup/start-local-supabase.js",
     "supabase:start:with-migrations": "npx supabase start",
-    "supabase:migrate:local": "bash supabase/migrations-local/setup-local.sh",
+    "supabase:migrate:local": "node supabase/migrations-local/setup-local.mjs",
     "supabase:stop": "npx supabase stop",
     "supabase:reset": "npx supabase db reset",
     "supabase:status": "npx supabase status",
