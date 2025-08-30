@@ -41,12 +41,20 @@ const webhookLimiter = rateLimit({
 
 // Environment validation
 const requiredEnvVars = [
-  'GITHUB_APP_ID',
-  'GITHUB_APP_PRIVATE_KEY',
-  'GITHUB_APP_WEBHOOK_SECRET',
   'SUPABASE_URL',
   'SUPABASE_ANON_KEY'
 ];
+
+// Check for GitHub App credentials - support both naming conventions
+const hasGitHubCreds = (process.env.CONTRIBUTOR_APP_ID || process.env.GITHUB_APP_ID) &&
+                       (process.env.CONTRIBUTOR_APP_KEY || process.env.GITHUB_APP_PRIVATE_KEY) &&
+                       process.env.GITHUB_APP_WEBHOOK_SECRET;
+
+if (!hasGitHubCreds) {
+  requiredEnvVars.push('CONTRIBUTOR_APP_ID or GITHUB_APP_ID');
+  requiredEnvVars.push('CONTRIBUTOR_APP_KEY or GITHUB_APP_PRIVATE_KEY');
+  requiredEnvVars.push('GITHUB_APP_WEBHOOK_SECRET');
+}
 
 const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
 if (missingEnvVars.length > 0) {
@@ -57,14 +65,17 @@ if (missingEnvVars.length > 0) {
 // Initialize GitHub App
 let githubApp;
 try {
+  const appId = process.env.CONTRIBUTOR_APP_ID || process.env.GITHUB_APP_ID;
+  const privateKey = process.env.CONTRIBUTOR_APP_KEY || process.env.GITHUB_APP_PRIVATE_KEY;
+  
   githubApp = new App({
-    appId: process.env.GITHUB_APP_ID,
-    privateKey: process.env.GITHUB_APP_PRIVATE_KEY.replace(/\\n/g, '\n'),
+    appId: appId,
+    privateKey: privateKey.replace(/\\n/g, '\n'),
     webhooks: {
       secret: process.env.GITHUB_APP_WEBHOOK_SECRET
     }
   });
-  logger.info('✅ GitHub App initialized successfully');
+  logger.info('✅ GitHub App initialized successfully with App ID: %s', appId);
 } catch (error) {
   logger.error('❌ Failed to initialize GitHub App: %s', error.message);
   process.exit(1);
@@ -80,6 +91,7 @@ const supabase = createClient(
 import { handlePullRequestEvent } from './handlers/pull-request.js';
 import { handlePROpenedDirect } from './handlers/pull-request-direct.js';
 import { handlePRWithReviewerSuggestions } from './handlers/pull-request-reviewer-suggestions.js';
+import { handlePRCheckRuns } from './handlers/pr-check-runs.js';
 import { handleIssuesEvent } from './handlers/issues.js';
 import { handleIssueOpenedDirect } from './handlers/issues-direct.js';
 import { handleIssueCommentEvent } from './handlers/issue-comment.js';
@@ -200,6 +212,15 @@ app.post('/webhook', webhookLimiter, async (req, res) => {
 
         case 'pull_request':
           logger.info('🔀 PR %s: #%d', payload.action, payload.pull_request?.number);
+          
+          // Run check runs for fork PRs (similarity & performance monitoring)
+          // This runs in parallel with other handlers and doesn't block
+          if (['opened', 'synchronize', 'ready_for_review'].includes(payload.action)) {
+            handlePRCheckRuns(payload, githubApp, supabase, logger)
+              .catch(err => logger.error('Check runs failed:', err));
+          }
+          
+          // Process other PR handlers
           if (payload.action === 'opened' || payload.action === 'ready_for_review') {
             // Use the new handler with reviewer suggestions
             await handlePRWithReviewerSuggestions(payload, githubApp, supabase, logger);
