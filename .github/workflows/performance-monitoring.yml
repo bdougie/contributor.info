@@ -93,15 +93,7 @@ jobs:
             const status = oversized ? 'Some chunks exceed size limits' : 'All chunks within limits';
 
             // Create the comment body with a unique identifier for sticky behavior
-            const commentBody = `<!-- bundle-size-analysis -->
-## ${emoji} Bundle Size Analysis
-
-${status}
-
-<!-- Last Updated: ${new Date().toISOString()} -->
-**Commit:** ${context.sha.substring(0, 7)}
-
-See the [workflow summary](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}) for detailed bundle sizes.`;
+            const commentBody = `<!-- bundle-size-analysis -->\n## ${emoji} Bundle Size Analysis\n\n${status}\n\n<!-- Last Updated: ${new Date().toISOString()} -->\n**Commit:** ${context.sha.substring(0, 7)}\n\nSee the [workflow summary](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}) for detailed bundle sizes.`;
 
             // Find existing bundle size comment using the HTML comment identifier
             const { data: comments } = await github.rest.issues.listComments({
@@ -355,33 +347,7 @@ See the [workflow summary](https://github.com/${context.repo.owner}/${context.re
           script: |
             const url = '${{ env.DEPLOY_URL }}';
 
-            const comment = `<!-- performance-report -->
-## 🚀 Performance Report
-
-### 📊 Lighthouse Audit
-✅ Lighthouse tests completed for:
-- [Homepage](${url})
-- [Vercel/Next.js](${url}/vercel/next.js)
-- [Continue Dev](${url}/continuedev/continue)
-
-### 📦 Bundle Analysis
-Performance budget checks completed. See workflow summary for details.
-
-### 🎯 Core Web Vitals Targets
-- **LCP:** < 2.5s (Largest Contentful Paint)
-- **INP:** < 200ms (Interaction to Next Paint)
-- **CLS:** < 0.1 (Cumulative Layout Shift)
-- **FCP:** < 1.8s (First Contentful Paint)
-
-### 📈 Next Steps
-- Review the Lighthouse reports in the workflow artifacts
-- Check the workflow summary for detailed metrics
-- Address any performance warnings or errors
-
-<!-- Last Updated: ${new Date().toISOString()} -->
-**Commit:** ${context.sha.substring(0, 7)}
-
-[View Full Workflow Results](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})`;
+            const comment = `<!-- performance-report -->\n## 🚀 Performance Report\n\n### 📊 Lighthouse Audit\n✅ Lighthouse tests completed for:\n- [Homepage](${url})\n- [Vercel/Next.js](${url}/vercel/next.js)\n- [Continue Dev](${url}/continuedev/continue)\n\n### 📦 Bundle Analysis\nPerformance budget checks completed. See workflow summary for details.\n\n### 🎯 Core Web Vitals Targets\n- **LCP:** < 2.5s (Largest Contentful Paint)\n- **INP:** < 200ms (Interaction to Next Paint)\n- **CLS:** < 0.1 (Cumulative Layout Shift)\n- **FCP:** < 1.8s (First Contentful Paint)\n\n### 📈 Next Steps\n- Review the Lighthouse reports in the workflow artifacts\n- Check the workflow summary for detailed metrics\n- Address any performance warnings or errors\n\n<!-- Last Updated: ${new Date().toISOString()} -->\n**Commit:** ${context.sha.substring(0, 7)}\n\n[View Full Workflow Results](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})`;
 
             // Find existing performance report comment using the HTML comment identifier
             const { data: comments } = await github.rest.issues.listComments({
