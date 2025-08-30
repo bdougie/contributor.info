@@ -1,5 +1,9 @@
 name: Performance Monitoring
 
+# SECURITY NOTE: This workflow uses 'pull_request_target' to allow PR comments
+# from forks. The workflow checks out PR code explicitly using the PR head SHA
+# to ensure we're testing the actual PR changes while maintaining security.
+
 on:
   pull_request_target:
     types: [opened, synchronize]
@@ -23,6 +27,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          # Explicitly checkout PR head for pull_request_target
+          ref: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.head.sha || github.sha }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -134,6 +141,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          # Explicitly checkout PR head for pull_request_target
+          ref: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.head.sha || github.sha }}
 
       - name: Wait for deployment (PR only)
         if: github.event_name == 'pull_request_target'
@@ -190,6 +200,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          # Explicitly checkout PR head for pull_request_target
+          ref: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.head.sha || github.sha }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -269,6 +282,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          # Explicitly checkout PR head for pull_request_target
+          ref: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.head.sha || github.sha }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
