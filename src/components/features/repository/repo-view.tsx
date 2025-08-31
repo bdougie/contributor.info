@@ -504,8 +504,14 @@ export function ContributionsRoute() {
       <ErrorBoundary
         context="Contributions Chart"
         fallback={
-          <div className="h-96 bg-muted rounded-lg flex items-center justify-center text-muted-foreground">
-            Failed to load chart
+          <div className="h-96 bg-muted rounded-lg flex flex-col items-center justify-center text-muted-foreground space-y-2">
+            <p>Failed to load chart</p>
+            {import.meta.env.DEV && (
+              <p className="text-sm text-muted-foreground/70 text-center max-w-md">
+                Note: This chart may not render in development due to a known Nivo/Vite bundling
+                issue. It works correctly in production.
+              </p>
+            )}
           </div>
         }
       >
