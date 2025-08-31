@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { UPlotChart, type UPlotChartProps } from './UPlotChart';
 import { getChartTheme, getSeriesColors } from './theme-config';
-import uPlot, { type AlignedData, type Options, type Series } from 'uplot';
+import type { AlignedData, Options, Series } from 'uplot';
 
 export interface BarChartProps extends Omit<UPlotChartProps, 'data' | 'options'> {
   data: {
@@ -39,13 +39,6 @@ export const BarChart: React.FC<BarChartProps> = ({
 }) => {
   const { chartData, chartOptions } = useMemo(() => {
     const theme = getChartTheme(isDark);
-    if (!theme || !theme.axis) {
-      console.error('Chart theme is not properly initialized');
-      return {
-        chartData: [[], []] as AlignedData,
-        chartOptions: { series: [] } as Omit<Options, 'width' | 'height'>,
-      };
-    }
     const seriesColors = getSeriesColors(data.datasets.length, isDark);
 
     // Convert data to uPlot format [x-axis, series1, series2, ...]
@@ -83,7 +76,7 @@ export const BarChart: React.FC<BarChartProps> = ({
           points: {
             show: false,
           },
-          paths: (u: uPlot, seriesIdx: number, idx0: number, idx1: number) => {
+          paths: (u, seriesIdx, idx0, idx1) => {
             const fill = new Path2D();
             const data = u.data[seriesIdx] as number[];
             const zeroY = u.valToPos(0, 'y', true);
@@ -135,7 +128,7 @@ export const BarChart: React.FC<BarChartProps> = ({
           ticks: {
             stroke: theme.axis,
           },
-          values: (_u: uPlot, vals: number[]) => {
+          values: (_u, vals) => {
             // Map numeric indices back to original labels
             return vals.map((v) => {
               const index = Math.round(v);
@@ -158,7 +151,7 @@ export const BarChart: React.FC<BarChartProps> = ({
         points: {
           show: false, // Don't show cursor points on bars
         },
-        dataIdx: (_u: uPlot, _seriesIdx: number, hoveredIdx: number) => {
+        dataIdx: (_u, _seriesIdx, hoveredIdx) => {
           // Custom data index for bar charts to handle grouped bars
           return hoveredIdx;
         },
