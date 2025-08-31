@@ -176,7 +176,7 @@ export function RisingStarsChart({
             <Suspense fallback={<Skeleton className="w-full h-full" />}>
               <ResponsiveScatterPlot
                 data={chartData}
-                margin={{ top: 20, right: 20, bottom: 70, left: 70 }}
+                margin={{ top: 40, right: 120, bottom: 80, left: 80 }}
                 xScale={{ type: 'linear', min: 0, max: 'auto' }}
                 yScale={{ type: 'linear', min: 0, max: 'auto' }}
                 blendMode="normal"
@@ -215,48 +215,68 @@ export function RisingStarsChart({
                   if (!contributor) return null;
 
                   return (
-                    <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200 text-sm">
-                      <div className="font-semibold mb-2">{contributor.login}</div>
+                    <div
+                      className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 text-sm z-50"
+                      style={{
+                        position: 'relative',
+                        zIndex: 1000,
+                        maxWidth: '280px',
+                        pointerEvents: 'none',
+                      }}
+                    >
+                      <div className="font-semibold mb-2 text-gray-900 dark:text-gray-100">
+                        {contributor.login}
+                      </div>
                       <div className="space-y-1 text-xs">
                         <div className="flex justify-between gap-4">
-                          <span className="text-gray-600">Activity Score:</span>
-                          <span className="font-medium">
+                          <span className="text-gray-600 dark:text-gray-400">Activity Score:</span>
+                          <span className="font-medium text-gray-900 dark:text-gray-100">
                             {contributor.totalActivity || contributor.totalGithubEvents}
                           </span>
                         </div>
                         <div className="flex justify-between gap-4">
-                          <span className="text-gray-600">Velocity:</span>
-                          <span className="font-medium">
+                          <span className="text-gray-600 dark:text-gray-400">Velocity:</span>
+                          <span className="font-medium text-gray-900 dark:text-gray-100">
                             {contributor.velocityScore?.toFixed(1)}/week
                           </span>
                         </div>
                         <div className="flex justify-between gap-4">
-                          <span className="text-gray-600">Growth Rate:</span>
-                          <span className="font-medium text-green-600">
+                          <span className="text-gray-600 dark:text-gray-400">Growth Rate:</span>
+                          <span className="font-medium text-green-600 dark:text-green-400">
                             +{contributor.growthRate?.toFixed(0)}%
                           </span>
                         </div>
-                        <div className="pt-1 mt-1 border-t border-gray-100">
+                        <div className="pt-1 mt-1 border-t border-gray-200 dark:border-gray-600">
                           <div className="flex justify-between gap-4">
-                            <span className="text-gray-600">Commits:</span>
-                            <span>{contributor.commits}</span>
+                            <span className="text-gray-600 dark:text-gray-400">Commits:</span>
+                            <span className="text-gray-900 dark:text-gray-100">
+                              {contributor.commits}
+                            </span>
                           </div>
                           <div className="flex justify-between gap-4">
-                            <span className="text-gray-600">PRs:</span>
-                            <span>{contributor.pullRequests}</span>
+                            <span className="text-gray-600 dark:text-gray-400">PRs:</span>
+                            <span className="text-gray-900 dark:text-gray-100">
+                              {contributor.pullRequests}
+                            </span>
                           </div>
                           <div className="flex justify-between gap-4">
-                            <span className="text-gray-600">Total Events:</span>
-                            <span>{contributor.totalGithubEvents}</span>
+                            <span className="text-gray-600 dark:text-gray-400">Total Events:</span>
+                            <span className="text-gray-900 dark:text-gray-100">
+                              {contributor.totalGithubEvents}
+                            </span>
                           </div>
                         </div>
                         {contributor.isRisingStar && (
-                          <div className="pt-1 mt-1 border-t border-gray-100">
-                            <span className="text-orange-600 font-medium">🌟 Rising Star</span>
+                          <div className="pt-1 mt-1 border-t border-gray-200 dark:border-gray-600">
+                            <span className="text-orange-600 dark:text-orange-400 font-medium">
+                              🌟 Rising Star
+                            </span>
                           </div>
                         )}
                         {contributor.isNewContributor && (
-                          <div className="text-green-600 font-medium">✨ New Contributor</div>
+                          <div className="text-green-600 dark:text-green-400 font-medium">
+                            ✨ New Contributor
+                          </div>
                         )}
                       </div>
                     </div>
