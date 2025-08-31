@@ -481,62 +481,6 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
                 tooltip={() => null}
                 colors={{ scheme: 'category10' }}
                 layers={['grid', 'axes', 'nodes', 'legends']}
-                theme={{
-                  background: 'transparent',
-                  axis: {
-                    domain: {
-                      line: {
-                        stroke: 'hsl(var(--border))',
-                        strokeWidth: 1,
-                      },
-                    },
-                    ticks: {
-                      line: {
-                        stroke: 'hsl(var(--border))',
-                        strokeWidth: 1,
-                      },
-                      text: {
-                        fill: 'hsl(var(--foreground))',
-                        fontSize: 11,
-                      },
-                    },
-                    legend: {
-                      text: {
-                        fill: 'hsl(var(--foreground))',
-                        fontSize: 12,
-                      },
-                    },
-                  },
-                  grid: {
-                    line: {
-                      stroke: 'hsl(var(--border))',
-                      strokeWidth: 0.5,
-                      strokeOpacity: 0.3,
-                    },
-                  },
-                  legends: {
-                    text: {
-                      fill: 'hsl(var(--foreground))',
-                      fontSize: 11,
-                    },
-                  },
-                  labels: {
-                    text: {
-                      fill: 'hsl(var(--foreground))',
-                      fontSize: 11,
-                    },
-                  },
-                  markers: {
-                    lineColor: 'hsl(var(--border))',
-                    textColor: 'hsl(var(--foreground))',
-                  },
-                  dots: {
-                    text: {
-                      fill: 'hsl(var(--foreground))',
-                      fontSize: 11,
-                    },
-                  },
-                }}
               />
             ) : (
               <div className="flex items-center justify-center h-full text-muted-foreground">
