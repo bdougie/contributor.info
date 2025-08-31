@@ -263,13 +263,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
       <animated.foreignObject width={size} height={size} style={nodeStyle}>
         <div style={{ width: '100%', height: '100%' }}>
           <PrHoverCard
-            pullRequest={{
-              ...props.node.data._pr,
-              id: String(props.node.data._pr.id),
-              repository_owner: owner || '',
-              repository_name: repo || '',
-              closed_at: props.node.data._pr.closed_at || undefined,
-            }}
+            pullRequest={props.node.data._pr}
             role={getUserRole(role, { type: props.node.data._pr.user.type })}
           >
             <Avatar
@@ -300,7 +294,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
                     target.dataset.retried = 'true';
                     // Use avatars.githubusercontent.com which provides CORS headers
                     // Using user ID if available, otherwise a default avatar
-                    const userId = props.node?.data?._pr?.user?.id || 0;
+                    const userId = props.node!.data!._pr?.user?.id || 0;
                     target.src = `https://avatars.githubusercontent.com/u/${userId}?v=4`;
                   }
                 }}
