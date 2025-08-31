@@ -34,7 +34,6 @@ import { ActivityChart } from '@/components/features/workspace/ActivityChart';
 import { TrendChart } from '@/components/features/workspace/TrendChart';
 import { ContributorLeaderboard } from '@/components/features/workspace/ContributorLeaderboard';
 import { RisingStarsChart } from '@/components/features/analytics/RisingStarsChart';
-import { calculateRisingStars } from '@/lib/analytics/rising-stars-data';
 
 // Time range mappings
 const TIME_RANGE_DAYS = {
@@ -102,83 +101,131 @@ export function DemoWorkspacePage() {
     };
   }, [timeRange]);
 
-  // Generate rising stars data with varied activity levels
+  // Generate rising stars data with varied activity levels and sizes
   const risingStarsData = useMemo(() => {
-    // Create a more diverse set of contributors with varied activity levels
-    const contributorMetrics = demoAnalyticsData.contributors.map((contributor, idx) => {
-      // Create different activity profiles
-      const activityProfile = idx % 5;
-      let commitCount, issueCount, commentCount, reviewCount, discussionCount;
+    // Directly create the RisingStarsData format for better control over avatar sizes
+    const contributors = demoAnalyticsData.contributors.map((contributor, idx) => {
+      // Create different activity profiles with clear size variations
+      const activityProfile = idx % 6;
+      let commits, pullRequests, issues, comments, reviews, discussions;
+      let velocityScore, growthRate;
 
       switch (activityProfile) {
-        case 0: // High activity rising star
-          commitCount = Math.floor(Math.random() * 100) + 50;
-          issueCount = Math.floor(Math.random() * 40) + 20;
-          commentCount = Math.floor(Math.random() * 60) + 30;
-          reviewCount = Math.floor(Math.random() * 30) + 15;
-          discussionCount = Math.floor(Math.random() * 20) + 10;
+        case 0: // Very high activity - large avatars
+          commits = Math.floor(Math.random() * 80) + 120;
+          pullRequests = Math.floor(Math.random() * 40) + 60;
+          issues = Math.floor(Math.random() * 30) + 40;
+          comments = Math.floor(Math.random() * 50) + 70;
+          reviews = Math.floor(Math.random() * 30) + 40;
+          discussions = Math.floor(Math.random() * 20) + 30;
+          velocityScore = Math.random() * 15 + 25; // 25-40 per week
+          growthRate = Math.random() * 150 + 100; // 100-250% growth
           break;
-        case 1: // Medium-high activity
-          commitCount = Math.floor(Math.random() * 50) + 25;
-          issueCount = Math.floor(Math.random() * 20) + 10;
-          commentCount = Math.floor(Math.random() * 30) + 15;
-          reviewCount = Math.floor(Math.random() * 15) + 8;
-          discussionCount = Math.floor(Math.random() * 10) + 5;
+        case 1: // High activity - large-medium avatars
+          commits = Math.floor(Math.random() * 60) + 60;
+          pullRequests = Math.floor(Math.random() * 30) + 30;
+          issues = Math.floor(Math.random() * 20) + 20;
+          comments = Math.floor(Math.random() * 40) + 40;
+          reviews = Math.floor(Math.random() * 20) + 20;
+          discussions = Math.floor(Math.random() * 15) + 15;
+          velocityScore = Math.random() * 10 + 15; // 15-25 per week
+          growthRate = Math.random() * 100 + 50; // 50-150% growth
           break;
-        case 2: // Medium activity
-          commitCount = Math.floor(Math.random() * 30) + 10;
-          issueCount = Math.floor(Math.random() * 15) + 5;
-          commentCount = Math.floor(Math.random() * 20) + 8;
-          reviewCount = Math.floor(Math.random() * 10) + 3;
-          discussionCount = Math.floor(Math.random() * 8) + 2;
+        case 2: // Medium-high activity - medium avatars
+          commits = Math.floor(Math.random() * 40) + 30;
+          pullRequests = Math.floor(Math.random() * 20) + 15;
+          issues = Math.floor(Math.random() * 15) + 10;
+          comments = Math.floor(Math.random() * 30) + 20;
+          reviews = Math.floor(Math.random() * 15) + 10;
+          discussions = Math.floor(Math.random() * 10) + 8;
+          velocityScore = Math.random() * 8 + 8; // 8-16 per week
+          growthRate = Math.random() * 80 + 20; // 20-100% growth
           break;
-        case 3: // Low-medium activity
-          commitCount = Math.floor(Math.random() * 15) + 5;
-          issueCount = Math.floor(Math.random() * 8) + 2;
-          commentCount = Math.floor(Math.random() * 10) + 3;
-          reviewCount = Math.floor(Math.random() * 5) + 1;
-          discussionCount = Math.floor(Math.random() * 5);
+        case 3: // Medium activity - medium-small avatars
+          commits = Math.floor(Math.random() * 25) + 15;
+          pullRequests = Math.floor(Math.random() * 15) + 8;
+          issues = Math.floor(Math.random() * 10) + 5;
+          comments = Math.floor(Math.random() * 20) + 10;
+          reviews = Math.floor(Math.random() * 10) + 5;
+          discussions = Math.floor(Math.random() * 8) + 4;
+          velocityScore = Math.random() * 5 + 5; // 5-10 per week
+          growthRate = Math.random() * 50 + 10; // 10-60% growth
           break;
-        default: // Low activity or new contributor
-          commitCount = Math.floor(Math.random() * 8) + 1;
-          issueCount = Math.floor(Math.random() * 5);
-          commentCount = Math.floor(Math.random() * 8) + 1;
-          reviewCount = Math.floor(Math.random() * 3);
-          discussionCount = Math.floor(Math.random() * 3);
+        case 4: // Low-medium activity - small avatars
+          commits = Math.floor(Math.random() * 15) + 5;
+          pullRequests = Math.floor(Math.random() * 10) + 3;
+          issues = Math.floor(Math.random() * 8) + 2;
+          comments = Math.floor(Math.random() * 15) + 5;
+          reviews = Math.floor(Math.random() * 8) + 2;
+          discussions = Math.floor(Math.random() * 5) + 2;
+          velocityScore = Math.random() * 3 + 2; // 2-5 per week
+          growthRate = Math.random() * 30; // 0-30% growth
+          break;
+        default: // Low activity - very small avatars
+          commits = Math.floor(Math.random() * 8) + 1;
+          pullRequests = Math.floor(Math.random() * 5) + 1;
+          issues = Math.floor(Math.random() * 5);
+          comments = Math.floor(Math.random() * 10) + 2;
+          reviews = Math.floor(Math.random() * 5);
+          discussions = Math.floor(Math.random() * 3);
+          velocityScore = Math.random() * 2 + 0.5; // 0.5-2.5 per week
+          growthRate = Math.random() * 20; // 0-20% growth
           break;
       }
 
-      // Vary the first seen date to create new vs established contributors
+      // Vary the contribution dates
       const daysAgo = idx < 5 ? Math.random() * 30 : Math.random() * 365;
+      const firstContributionDate = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000);
+      const lastContributionDate = new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000);
+
+      // Determine if new or rising star
+      const isNewContributor = daysAgo < 90;
+      const isRisingStar = velocityScore > 10 && daysAgo < 180 && Math.random() > 0.5;
+
+      const totalActivity = commits + pullRequests + issues + comments + reviews + discussions;
 
       return {
+        x: commits + pullRequests, // Code contributions
+        y: issues + comments + reviews + discussions, // Non-code contributions
+        size: Math.min(Math.max(velocityScore * 10, 10), 100), // Scale size based on velocity
         contributor: {
-          id: `contributor-${idx}`,
-          github_id: Math.floor(Math.random() * 100000),
-          username: contributor.username,
-          display_name: contributor.username,
+          login: contributor.username,
           avatar_url: contributor.avatar_url || '',
-          profile_url: `https://github.com/${contributor.username}`,
-          is_bot: false,
-          first_seen_at: new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000).toISOString(),
-          last_updated_at: new Date().toISOString(),
-          is_active: true,
+          github_id: Math.floor(Math.random() * 100000),
+          commits,
+          pullRequests,
+          issues,
+          comments,
+          reviews,
+          discussions,
+          totalGithubEvents: totalActivity,
+          totalActivity,
+          velocityScore,
+          growthRate,
+          firstContributionDate: firstContributionDate.toISOString(),
+          lastContributionDate: lastContributionDate.toISOString(),
+          contributionSpan: Math.ceil(
+            (lastContributionDate.getTime() - firstContributionDate.getTime()) /
+              (1000 * 60 * 60 * 24)
+          ),
+          isNewContributor,
+          isRisingStar,
         },
-        pullRequests: [], // Use empty array for demo data
-        commitCount,
-        issueCount,
-        commentCount,
-        reviewCount,
-        discussionCount,
       };
     });
 
-    return calculateRisingStars(contributorMetrics, {
-      timeWindowDays: TIME_RANGE_DAYS[timeRange],
-      minActivity: 3,
-      newContributorDays: 90,
-    });
-  }, [demoAnalyticsData.contributors, timeRange]);
+    // Sort by velocity score and return as RisingStarsData format
+    const sortedContributors = contributors.sort(
+      (a, b) => b.contributor.velocityScore - a.contributor.velocityScore
+    );
+
+    return [
+      {
+        id: 'rising-stars',
+        data: sortedContributors,
+      },
+    ];
+  }, [demoAnalyticsData.contributors]);
 
   const handleTabChange = (value: string) => {
     if (value === 'overview') {
