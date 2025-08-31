@@ -120,7 +120,10 @@ export async function fetchPRDataSmart(
             github_id,
             body,
             created_at,
+            updated_at,
             comment_type,
+            pull_request_id,
+            commenter_id,
             contributors:commenter_id(
               github_id,
               username,

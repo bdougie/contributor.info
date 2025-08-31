@@ -2,6 +2,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
+import { getFallbackAvatar } from '@/lib/utils/avatar';
 import { useWorkspaceContributors } from '@/hooks/useWorkspaceContributors';
 import { WorkspaceDashboard, WorkspaceDashboardSkeleton } from '@/components/features/workspace';
 import {
@@ -146,7 +147,7 @@ const filterRepositoriesBySelection = <T extends { id: string }>(
 const calculateRealMetrics = (repos: Repository[]): WorkspaceMetrics => {
   const totalStars = repos.reduce((sum, repo) => sum + (repo.stars || 0), 0);
   const totalContributors = repos.reduce((sum, repo) => sum + (repo.contributors || 0), 0);
-  
+
   // For now, set these to 0 until we have real data from the backend
   return {
     totalStars,
@@ -376,7 +377,9 @@ function WorkspacePRs({
             repository: {
               name: pr.repositories?.name || 'unknown',
               owner: pr.repositories?.owner || 'unknown',
-              avatar_url: `https://avatars.githubusercontent.com/${pr.repositories?.owner || 'unknown'}`,
+              avatar_url: pr.repositories?.owner
+                ? `https://avatars.githubusercontent.com/${pr.repositories.owner}`
+                : getFallbackAvatar(),
             },
             author: {
               username: pr.contributors?.username || 'unknown',
@@ -539,7 +542,9 @@ function WorkspaceIssues({
               repository: {
                 name: issue.repositories?.name || 'unknown',
                 owner: issue.repositories?.owner || 'unknown',
-                avatar_url: `https://avatars.githubusercontent.com/${issue.repositories?.owner || 'unknown'}`,
+                avatar_url: issue.repositories?.owner
+                  ? `https://avatars.githubusercontent.com/${issue.repositories.owner}`
+                  : getFallbackAvatar(),
               },
               author: {
                 username: issue.contributors?.username || 'unknown',
@@ -1273,7 +1278,6 @@ function WorkspaceContributors({
   );
 }
 
-
 function WorkspaceActivity() {
   // Generate activity data for the feed
   const activities: ActivityItem[] = [];
@@ -1865,7 +1869,9 @@ export default function WorkspacePage() {
             contributors: 0, // Will be populated from real data
             last_activity: new Date().toISOString(),
             is_pinned: r.is_pinned,
-            avatar_url: `https://avatars.githubusercontent.com/${r.repositories.owner}`,
+            avatar_url: r.repositories?.owner
+              ? `https://avatars.githubusercontent.com/${r.repositories.owner}`
+              : getFallbackAvatar(),
             html_url: `https://github.com/${r.repositories.full_name}`,
           }));
 
@@ -2056,7 +2062,9 @@ export default function WorkspacePage() {
             open_prs: 0, // Mock for now
             open_issues: item.repositories.open_issues_count || 0,
             contributors: 0, // Will be populated from real data
-            avatar_url: `https://avatars.githubusercontent.com/${item.repositories.owner}`,
+            avatar_url: item.repositories?.owner
+              ? `https://avatars.githubusercontent.com/${item.repositories.owner}`
+              : getFallbackAvatar(),
             last_activity: new Date().toISOString().split('T')[0],
             is_pinned: item.is_pinned || false,
             html_url: `https://github.com/${item.repositories.full_name}`,
