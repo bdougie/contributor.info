@@ -500,14 +500,14 @@ export function ContributionsRoute() {
 
   return (
     <div className="flex flex-col gap-8">
-      {/* Contributor of the Month - appears first on mobile with order-1 */}
-      <ErrorBoundary context="Contributor of the Month">
-        <div className="order-1 sm:order-3">
-          <ContributorOfMonthWrapper />
+      {/* Metrics and Trends - order-1 on mobile, order-2 on desktop */}
+      <ErrorBoundary context="Metrics and Trends">
+        <div className="order-1 sm:order-2">
+          <MetricsAndTrendsCard owner={owner} repo={repo} timeRange={timeRange} />
         </div>
       </ErrorBoundary>
 
-      {/* Progressive loading: Charts load independently - order-2 on all screens */}
+      {/* Scatterplot - order-2 on mobile, order-1 on desktop */}
       <ErrorBoundary
         context="Contributions Chart"
         fallback={
@@ -529,10 +529,10 @@ export function ContributionsRoute() {
         </div>
       </ErrorBoundary>
 
-      {/* Metrics and Trends - order-3 on mobile, order-2 on desktop */}
-      <ErrorBoundary context="Metrics and Trends">
-        <div className="order-3 sm:order-2">
-          <MetricsAndTrendsCard owner={owner} repo={repo} timeRange={timeRange} />
+      {/* Contributor of the Month - order-3 on both mobile and desktop */}
+      <ErrorBoundary context="Contributor of the Month">
+        <div className="order-3">
+          <ContributorOfMonthWrapper />
         </div>
       </ErrorBoundary>
     </div>
