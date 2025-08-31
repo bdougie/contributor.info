@@ -160,7 +160,7 @@ export default function RepoView() {
         const fallbackText = `Check out the analysis for ${owner}/${repo}\n${window.location.href}`;
         await navigator.clipboard.writeText(fallbackText);
         toast.success('Repository link copied to clipboard!');
-      } catch (fallbackErr) {
+      } catch {
         toast.error('Failed to copy link');
       }
     } finally {
@@ -348,7 +348,7 @@ export default function RepoView() {
                 onValueChange={(value) => {
                   const currentTab = getCurrentTab();
                   trackRepositoryTabSwitch(currentTab, value, 'public');
-                  
+
                   if (value === 'contributions') {
                     navigate(`/${owner}/${repo}`);
                   } else if (value === 'lottery') {
@@ -501,18 +501,10 @@ export function ContributionsRoute() {
   return (
     <div className="space-y-8">
       {/* Progressive loading: Charts load independently */}
-      <ErrorBoundary
-        context="Contributions Chart"
-        fallback={
-          <div className="h-96 bg-muted rounded-lg flex items-center justify-center text-muted-foreground">
-            Failed to load chart
-          </div>
-        }
-      >
-        <Suspense fallback={<div className="h-96 bg-muted animate-pulse rounded-lg" />}>
-          <LazyContributions />
-        </Suspense>
-      </ErrorBoundary>
+      {/* Temporarily removed ErrorBoundary to debug chart rendering */}
+      <Suspense fallback={<div className="h-96 bg-muted animate-pulse rounded-lg" />}>
+        <LazyContributions />
+      </Suspense>
 
       <ErrorBoundary context="Metrics and Trends">
         <MetricsAndTrendsCard owner={owner} repo={repo} timeRange={timeRange} />
