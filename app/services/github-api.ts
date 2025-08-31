@@ -59,7 +59,7 @@ export async function createIssueComment(
       body,
     });
     
-    console.log("Posted comment on issue #%s in ${owner}/${repo}", issueNumber);
+    console.log("Posted comment on issue #%s in %s/%s", issueNumber, owner, repo);
   } catch (error) {
     console.error('Error creating issue comment: %s', error);
     throw error;
@@ -84,7 +84,7 @@ export async function createPullRequestComment(
       body,
     });
     
-    console.log("Posted comment on PR #%s in ${owner}/${repo}", pullNumber);
+    console.log("Posted comment on PR #%s in %s/%s", pullNumber, owner, repo);
   } catch (error) {
     console.error('Error creating PR comment: %s', error);
     throw error;

@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { UPlotChart } from './UPlotChart';
 import type { AlignedData, Options } from 'uplot';
+import type uPlot from 'uplot';
 
 /**
  * Demo component showcasing UPlotChart usage
@@ -88,7 +89,7 @@ export const UPlotChartDemo: React.FC = () => {
     setData(generateData());
   }, []);
 
-  const handleChartReady = useCallback((chart: any) => {
+  const handleChartReady = useCallback((chart: uPlot) => {
     console.log('Chart is ready:', chart);
   }, []);
 
