@@ -192,6 +192,7 @@ export function RisingStarsChartSimple({
                     left: `${xPercent}%`,
                     top: `${yPercent}%`,
                     transform: 'translate(-50%, -50%)',
+                    zIndex: i, // Layer bubbles based on their order
                   }}
                 >
                   <HoverCard>
@@ -236,7 +237,7 @@ export function RisingStarsChartSimple({
                       </div>
                     </HoverCardTrigger>
 
-                    <HoverCardContent className="w-80" align="center">
+                    <HoverCardContent className="w-80 z-[100]" align="center" sideOffset={5}>
                       <ContributorDetails contributor={contributor} />
                     </HoverCardContent>
                   </HoverCard>
