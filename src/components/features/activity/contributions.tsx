@@ -440,12 +440,13 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
                   max: Math.max(Math.round(maxFilesModified * 1.5), 10),
                 }}
                 blendMode="normal"
-                useMesh={false}
                 annotations={[]}
                 nodeComponent={CustomNode}
-                animate={false}
+                animate={true}
+                motionConfig="gentle"
                 enableGridX={true}
                 enableGridY={true}
+                useMesh={true}
                 axisTop={null}
                 axisRight={null}
                 axisBottom={{
@@ -478,9 +479,79 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
                     return parseInt(`${value}`) >= 1000 ? humanizeNumber(value) : `${value}`;
                   },
                 }}
-                tooltip={() => null}
+                tooltip={({ node }) => (
+                  <div className="bg-background border rounded p-2 shadow-lg">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: node.color }}
+                      />
+                      <span className="font-medium">{node.data.contributor}</span>
+                    </div>
+                    <div className="text-sm text-muted-foreground mt-1">
+                      {node.data.x} days ago: {node.data.y} contribution
+                      {node.data.y !== 1 ? 's' : ''}
+                    </div>
+                  </div>
+                )}
                 colors={{ scheme: 'category10' }}
                 layers={['grid', 'axes', 'nodes', 'legends']}
+                theme={{
+                  background: 'transparent',
+                  axis: {
+                    domain: {
+                      line: {
+                        stroke: 'hsl(var(--border))',
+                        strokeWidth: 1,
+                      },
+                    },
+                    ticks: {
+                      line: {
+                        stroke: 'hsl(var(--border))',
+                        strokeWidth: 1,
+                      },
+                      text: {
+                        fill: 'hsl(var(--foreground))',
+                        fontSize: 11,
+                      },
+                    },
+                    legend: {
+                      text: {
+                        fill: 'hsl(var(--foreground))',
+                        fontSize: 12,
+                      },
+                    },
+                  },
+                  grid: {
+                    line: {
+                      stroke: 'hsl(var(--border))',
+                      strokeWidth: 0.5,
+                      strokeOpacity: 0.3,
+                    },
+                  },
+                  legends: {
+                    text: {
+                      fill: 'hsl(var(--foreground))',
+                      fontSize: 11,
+                    },
+                  },
+                  labels: {
+                    text: {
+                      fill: 'hsl(var(--foreground))',
+                      fontSize: 11,
+                    },
+                  },
+                  markers: {
+                    lineColor: 'hsl(var(--border))',
+                    textColor: 'hsl(var(--foreground))',
+                  },
+                  dots: {
+                    text: {
+                      fill: 'hsl(var(--foreground))',
+                      fontSize: 11,
+                    },
+                  },
+                }}
               />
             ) : (
               <div className="flex items-center justify-center h-full text-muted-foreground">
