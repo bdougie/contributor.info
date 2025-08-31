@@ -141,23 +141,6 @@ vi.mock('@/services/workspace-export.service', () => ({
   },
 }));
 
-// Mock the lazy-loaded AnalyticsDashboard
-vi.mock('@/components/features/workspace/AnalyticsDashboard', () => ({
-  AnalyticsDashboard: ({
-    data,
-    onExport,
-  }: {
-    data: { activities: unknown[]; contributors: unknown[] };
-    onExport?: (format: string) => void;
-  }) => (
-    <div data-testid="analytics-dashboard">
-      <div>Activities: {data.activities.length}</div>
-      <div>Contributors: {data.contributors.length}</div>
-      <button onClick={() => onExport('csv')}>Export CSV</button>
-    </div>
-  ),
-}));
-
 // Mock other workspace components
 vi.mock('@/components/features/workspace', () => ({
   WorkspaceDashboard: ({
@@ -245,7 +228,6 @@ describe('DemoWorkspacePage', () => {
     renderWithRouter(<DemoWorkspacePage />);
 
     expect(screen.getByRole('tab', { name: 'Overview' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Analytics' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Activity' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Contributors' })).toBeInTheDocument();
   });
