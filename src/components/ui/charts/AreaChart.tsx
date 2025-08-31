@@ -83,7 +83,7 @@ export const AreaChart: React.FC<AreaChartProps> = ({
           points: {
             show: false, // Areas typically don't show individual points
           },
-          paths: (u, seriesIdx, idx0, idx1) => {
+          paths: (u: any, seriesIdx: any, idx0: any, idx1: any) => {
             const stroke = new Path2D();
             const fill = new Path2D();
 

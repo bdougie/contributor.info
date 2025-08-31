@@ -29,7 +29,10 @@ import {
 } from '@/components/features/workspace/TimeRangeSelector';
 import { ActivityTable } from '@/components/features/workspace/ActivityTable';
 import { ActivityChart } from '@/components/features/workspace/ActivityChart';
+import { TrendChart } from '@/components/features/workspace/TrendChart';
 import { ContributorLeaderboard } from '@/components/features/workspace/ContributorLeaderboard';
+import { RisingStarsChart } from '@/components/features/analytics/RisingStarsChart';
+import { calculateRisingStars } from '@/lib/analytics/rising-stars-data';
 
 // Time range mappings
 const TIME_RANGE_DAYS = {
@@ -64,6 +67,70 @@ export function DemoWorkspacePage() {
     () => getCachedWorkspaceTrendData(TIME_RANGE_DAYS[timeRange], demoRepos),
     [demoRepos, timeRange]
   );
+
+  const demoTrendData = useMemo(() => {
+    // Generate trend data with proper structure
+    const days = TIME_RANGE_DAYS[timeRange];
+    const labels = Array.from({ length: days }, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() - (days - i - 1));
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    });
+
+    return {
+      labels,
+      datasets: [
+        {
+          label: 'Pull Requests',
+          data: Array.from({ length: days }, () => Math.floor(Math.random() * 20) + 5),
+          color: '#10B981',
+        },
+        {
+          label: 'Issues',
+          data: Array.from({ length: days }, () => Math.floor(Math.random() * 15) + 3),
+          color: '#3B82F6',
+        },
+        {
+          label: 'Commits',
+          data: Array.from({ length: days }, () => Math.floor(Math.random() * 30) + 10),
+          color: '#8B5CF6',
+        },
+      ],
+    };
+  }, [timeRange]);
+
+  // Generate rising stars data
+  const risingStarsData = useMemo(() => {
+    // Convert demo analytics data to the format expected by calculateRisingStars
+    const contributorMetrics = demoAnalyticsData.contributors.map((contributor, idx) => ({
+      contributor: {
+        id: `contributor-${idx}`,
+        github_id: Math.floor(Math.random() * 100000),
+        username: contributor.username,
+        display_name: contributor.username,
+        avatar_url: contributor.avatar_url || '',
+        profile_url: `https://github.com/${contributor.username}`,
+        is_bot: false,
+        first_seen_at: new Date(
+          Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000
+        ).toISOString(),
+        last_updated_at: new Date().toISOString(),
+        is_active: true,
+      },
+      pullRequests: [] as any, // Use empty array for demo data
+      commitCount: Math.floor(Math.random() * 50) + 5,
+      issueCount: Math.floor(Math.random() * 20) + 2,
+      commentCount: Math.floor(Math.random() * 30) + 3,
+      reviewCount: Math.floor(Math.random() * 15) + 1,
+      discussionCount: Math.floor(Math.random() * 10),
+    }));
+
+    return calculateRisingStars(contributorMetrics, {
+      timeWindowDays: TIME_RANGE_DAYS[timeRange],
+      minActivity: 3,
+      newContributorDays: 90,
+    });
+  }, [demoAnalyticsData.contributors, demoAnalyticsData.activities, timeRange]);
 
   const handleTabChange = (value: string) => {
     if (value === 'overview') {
@@ -140,7 +207,15 @@ export function DemoWorkspacePage() {
               loading={false}
               tier={tier}
               timeRange={timeRange}
-            />
+            >
+              {/* Rising Stars Chart */}
+              <RisingStarsChart
+                data={risingStarsData}
+                height={400}
+                maxBubbles={30}
+                className="mt-6"
+              />
+            </WorkspaceDashboard>
 
             <Card>
               <CardHeader>
@@ -201,25 +276,37 @@ export function DemoWorkspacePage() {
             <div className="grid gap-6 lg:grid-cols-2">
               <Card>
                 <CardHeader>
-                  <CardTitle>Recent Activity Trends</CardTitle>
+                  <CardTitle>Activity Trends</CardTitle>
+                  <CardDescription>Repository activity over time</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ActivityChart title="Activity Trends" data={demoActivityData} height={300} />
+                  <TrendChart title="" data={demoTrendData} height={300} showLegend={true} />
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Activity Timeline</CardTitle>
+                  <CardTitle>Code Activity</CardTitle>
+                  <CardDescription>Daily code changes (additions vs deletions)</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ActivityTable
-                    activities={demoAnalyticsData.activities.slice(0, 10)}
-                    loading={false}
-                  />
+                  <ActivityChart title="" data={demoActivityData} height={300} />
                 </CardContent>
               </Card>
             </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Activity Timeline</CardTitle>
+                <CardDescription>Recent activity across all repositories</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ActivityTable
+                  activities={demoAnalyticsData.activities.slice(0, 10)}
+                  loading={false}
+                />
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="prs" className="space-y-6">

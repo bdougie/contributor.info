@@ -76,7 +76,7 @@ export const BarChart: React.FC<BarChartProps> = ({
           points: {
             show: false,
           },
-          paths: (u, seriesIdx, idx0, idx1) => {
+          paths: (u: any, seriesIdx: any, idx0: any, idx1: any) => {
             const fill = new Path2D();
             const data = u.data[seriesIdx] as number[];
             const zeroY = u.valToPos(0, 'y', true);
@@ -128,9 +128,9 @@ export const BarChart: React.FC<BarChartProps> = ({
           ticks: {
             stroke: theme.axis,
           },
-          values: (_u, vals) => {
+          values: (_u: any, vals: any) => {
             // Map numeric indices back to original labels
-            return vals.map((v) => {
+            return vals.map((v: any) => {
               const index = Math.round(v);
               return index >= 0 && index < data.labels.length ? String(data.labels[index]) : '';
             });
@@ -151,7 +151,7 @@ export const BarChart: React.FC<BarChartProps> = ({
         points: {
           show: false, // Don't show cursor points on bars
         },
-        dataIdx: (_u, _seriesIdx, hoveredIdx) => {
+        dataIdx: (_u: any, _seriesIdx: any, hoveredIdx: any) => {
           // Custom data index for bar charts to handle grouped bars
           return hoveredIdx;
         },

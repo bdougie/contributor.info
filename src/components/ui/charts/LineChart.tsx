@@ -68,7 +68,7 @@ export const LineChart: React.FC<LineChartProps> = ({
           width: 1,
         },
         ...(dataset.fill && {
-          paths: (u, seriesIdx, idx0, idx1) => {
+          paths: (u: any, seriesIdx: any, idx0: any, idx1: any) => {
             const stroke = new Path2D();
             const fill = new Path2D();
 
