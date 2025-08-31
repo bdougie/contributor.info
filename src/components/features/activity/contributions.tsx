@@ -200,60 +200,57 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
         } => item !== null
       ); // Remove nulls with type guard
 
-    // Apply improved staggering within each day (mobile only)
+    // Apply improved staggering and unique contributor logic
     let uniqueAvatarCount = 0; // Track how many unique avatars we've shown
-    const staggeredData = prData.map((item) => {
-      if (isMobile) {
-        const dayGroup = prsByDay.get(item.daysAgo) || [];
-        const indexInDay = dayGroup.findIndex((pr) => pr.id === item._pr.id);
-        const dayGroupSize = dayGroup.length;
+    const maxUniqueAvatars = isMobile ? 25 : 50; // More avatars on desktop but still limited
 
+    const processedData = prData.map((item) => {
+      const dayGroup = prsByDay.get(item.daysAgo) || [];
+      const indexInDay = dayGroup.findIndex((pr) => pr.id === item._pr.id);
+      const dayGroupSize = dayGroup.length;
+
+      let xOffset = 0;
+      let yJitter = 0;
+
+      if (isMobile) {
         // Dynamic staggering: more positions for dense days
         const maxPositions = Math.min(dayGroupSize, 8); // Up to 8 positions per day
         const staggerRange = 0.8; // Use 80% of day width for staggering
 
-        let xOffset = 0;
         if (maxPositions > 1) {
           // Distribute evenly across the stagger range
           xOffset = (indexInDay / (maxPositions - 1)) * staggerRange;
         }
 
         // Add micro Y-jitter for very dense days (>4 PRs)
-        let yJitter = 0;
         if (dayGroupSize > 4) {
           const jitterAmount = Math.min(item.y * 0.03, 2); // Max 3% of y-value or 2 lines
           yJitter = ((indexInDay % 3) - 1) * jitterAmount; // -1, 0, 1 pattern
         }
-
-        // Show avatar only for first occurrence of each contributor (up to 25 unique)
-        let showAvatar = false;
-        if (item.isFirstOccurrence && uniqueAvatarCount < 25) {
-          showAvatar = true;
-          uniqueAvatarCount++;
-        }
-
-        return {
-          x: item.daysAgo + xOffset,
-          y: Math.max(1, item.y + yJitter), // Ensure y >= 1
-          contributor: item.contributor,
-          image: item.image,
-          _pr: item._pr,
-          // Mobile: First occurrence of each contributor (up to 25) shows avatar
-          showAvatar,
-        };
-      } else {
-        // Desktop: no staggering needed due to larger margins and space
-        return {
-          x: item.daysAgo,
-          y: item.y,
-          contributor: item.contributor,
-          image: item.image,
-          _pr: item._pr,
-          // Desktop: Always show avatars
-          showAvatar: true,
-        };
       }
+
+      // Show avatar only for first occurrence of each contributor (up to limit)
+      let showAvatar = false;
+      if (item.isFirstOccurrence && uniqueAvatarCount < maxUniqueAvatars) {
+        showAvatar = true;
+        uniqueAvatarCount++;
+      }
+
+      return {
+        x: item.daysAgo + xOffset,
+        y: Math.max(1, item.y + yJitter), // Ensure y >= 1
+        contributor: item.contributor,
+        image: item.image,
+        _pr: item._pr,
+        showAvatar,
+        // Add z-index hint for rendering order
+        zIndex: showAvatar ? 1 : 0,
+      };
     });
+
+    // Sort data so gray squares render first (z-index 0), then avatars (z-index 1)
+    // This ensures avatars always appear on top of gray squares
+    const staggeredData = processedData.sort((a, b) => a.zIndex - b.zIndex);
 
     return [
       {
@@ -342,9 +339,9 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
       // For Safari, use SVG elements directly without foreignObject
       const radius = size / 2;
 
-      // Gray square for contributions beyond the 25 avatar limit
+      // Gray square for contributions beyond the unique avatar limit
       if (!shouldShowAvatar) {
-        const squareSize = size * 0.7; // Slightly smaller square
+        const squareSize = size * 0.6; // Smaller square to be less prominent
         return (
           <animated.g style={nodeStyle}>
             <rect
@@ -352,11 +349,11 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
               y={(size - squareSize) / 2}
               width={squareSize}
               height={squareSize}
-              fill="hsl(var(--muted-foreground) / 0.3)"
-              stroke="hsl(var(--border))"
+              fill="hsl(var(--muted-foreground) / 0.2)"
+              stroke="hsl(var(--border) / 0.5)"
               strokeWidth="1"
               rx="2"
-              style={{ cursor: 'pointer' }}
+              style={{ cursor: 'pointer', opacity: 0.6 }}
               onClick={() => {
                 const prUrl =
                   props.node.data._pr.html_url ||
@@ -441,9 +438,9 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
 
     // Original implementation for non-Safari browsers
 
-    // Gray square for contributions beyond the 25 avatar limit
+    // Gray square for contributions beyond the unique avatar limit
     if (!shouldShowAvatar) {
-      const squareSize = size * 0.7; // Slightly smaller square
+      const squareSize = size * 0.6; // Smaller square to be less prominent
       return (
         <animated.foreignObject width={size} height={size} style={nodeStyle}>
           <div
@@ -459,10 +456,11 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
               style={{
                 width: squareSize,
                 height: squareSize,
-                backgroundColor: 'hsl(var(--muted-foreground) / 0.3)',
-                border: '1px solid hsl(var(--border))',
+                backgroundColor: 'hsl(var(--muted-foreground) / 0.2)',
+                border: '1px solid hsl(var(--border) / 0.5)',
                 borderRadius: '2px',
                 cursor: 'pointer',
+                opacity: 0.6,
               }}
               onClick={() => {
                 const prUrl =
