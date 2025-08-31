@@ -406,6 +406,13 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
                 backgroundColor: 'var(--muted)',
                 borderColor: 'hsl(var(--foreground))',
               }}
+              onClick={() => {
+                // Open PR in new tab on click
+                const prUrl =
+                  props.node.data._pr.html_url ||
+                  `https://github.com/${props.node.data._pr.repository_owner}/${props.node.data._pr.repository_name}/pull/${props.node.data._pr.number}`;
+                window.open(prUrl, '_blank', 'noopener,noreferrer');
+              }}
             >
               <AvatarImage
                 src={props.node.data.image}
