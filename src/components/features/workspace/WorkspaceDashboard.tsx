@@ -1,7 +1,5 @@
 import { useState } from 'react';
 import { MetricCard } from './MetricCard';
-import { TrendChart } from './TrendChart';
-import { ActivityChart, type ActivityDataPoint } from './ActivityChart';
 import { RepositoryList, type Repository } from './RepositoryList';
 import { TimeRange } from './TimeRangeSelector';
 import { Star, GitPullRequest, Users, GitCommit } from '@/components/ui/icon';
@@ -32,7 +30,7 @@ export interface WorkspaceDashboardProps {
   workspaceName: string;
   metrics: WorkspaceMetrics;
   trendData: WorkspaceTrendData;
-  activityData?: ActivityDataPoint[];
+  activityData?: any; // Made generic since we removed the import
   repositories: Repository[];
   loading?: boolean;
   tier?: 'free' | 'pro' | 'enterprise';
@@ -43,6 +41,7 @@ export interface WorkspaceDashboardProps {
   onSettingsClick?: () => void;
   onUpgradeClick?: () => void;
   className?: string;
+  children?: React.ReactNode; // Allow passing additional content like Rising Stars chart
 }
 
 // Time range labels for trend comparison
@@ -56,8 +55,6 @@ const timeRangeComparisonLabels: Record<TimeRange, string> = {
 
 export function WorkspaceDashboard({
   metrics,
-  trendData,
-  activityData = [],
   repositories,
   loading = false,
   timeRange = '30d',
@@ -65,11 +62,11 @@ export function WorkspaceDashboard({
   onRemoveRepository,
   onRepositoryClick,
   className,
+  children,
 }: WorkspaceDashboardProps) {
   const [pinnedRepos, setPinnedRepos] = useState<Set<string>>(
     new Set(repositories.filter((r) => r.is_pinned).map((r) => r.id))
   );
-  const [expandedChart, setExpandedChart] = useState<'trends' | 'activity' | null>(null);
 
   // Get the trend comparison label based on selected time range
   const trendLabel = timeRangeComparisonLabels[timeRange];
@@ -156,60 +153,8 @@ export function WorkspaceDashboard({
         />
       </div>
 
-      {/* Charts Row */}
-      <div
-        className={cn(
-          'grid gap-4 transition-all duration-500 ease-in-out',
-          expandedChart ? 'grid-cols-1' : 'lg:grid-cols-2'
-        )}
-      >
-        <div
-          className={cn(
-            'transition-all duration-500 ease-in-out transform-gpu',
-            expandedChart === 'activity'
-              ? 'opacity-0 scale-95 h-0 overflow-hidden'
-              : 'opacity-100 scale-100',
-            expandedChart === 'trends' ? 'col-span-full' : ''
-          )}
-        >
-          {(!expandedChart || expandedChart === 'trends') && (
-            <TrendChart
-              title="Activity Trends"
-              description="Repository activity over time"
-              data={trendData}
-              loading={loading}
-              height={expandedChart === 'trends' ? 400 : 300}
-              showLegend={true}
-              isExpanded={expandedChart === 'trends'}
-              onExpandToggle={() => setExpandedChart(expandedChart === 'trends' ? null : 'trends')}
-            />
-          )}
-        </div>
-
-        <div
-          className={cn(
-            'transition-all duration-500 ease-in-out transform-gpu',
-            expandedChart === 'trends'
-              ? 'opacity-0 scale-95 h-0 overflow-hidden'
-              : 'opacity-100 scale-100',
-            expandedChart === 'activity' ? 'col-span-full' : ''
-          )}
-        >
-          {(!expandedChart || expandedChart === 'activity') && (
-            <ActivityChart
-              title="Code Activity"
-              description="Daily code changes showing additions (green) vs deletions (red)"
-              data={activityData}
-              loading={loading}
-              height={expandedChart === 'activity' ? 400 : 300}
-              isExpanded={expandedChart === 'activity'}
-              onExpandToggle={() =>
-                setExpandedChart(expandedChart === 'activity' ? null : 'activity')
-              }
-            />
-          )}
-        </div>
-      </div>
+      {/* Additional Content (e.g., Rising Stars Chart) */}
+      {children}
 
       {/* Repository List */}
       <RepositoryList

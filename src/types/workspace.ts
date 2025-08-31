@@ -257,6 +257,7 @@ export interface WorkspaceMetrics {
     prs_trend?: number;
     contributors_trend?: number;
     commits_trend?: number;
+    issues_trend?: number;
   };
   calculated_at: string;
   expires_at: string;
@@ -420,7 +421,7 @@ export const canManageMembers = (role: WorkspaceRole): boolean => {
   return ['owner', 'admin'].includes(role);
 };
 
-export const canViewWorkspace = (_role: WorkspaceRole): boolean => {
+export const canViewWorkspace = (): boolean => {
   return true; // All roles can view
 };
 
