@@ -160,7 +160,7 @@ export default function RepoView() {
         const fallbackText = `Check out the analysis for ${owner}/${repo}\n${window.location.href}`;
         await navigator.clipboard.writeText(fallbackText);
         toast.success('Repository link copied to clipboard!');
-      } catch (fallbackErr) {
+      } catch {
         toast.error('Failed to copy link');
       }
     } finally {
@@ -348,7 +348,7 @@ export default function RepoView() {
                 onValueChange={(value) => {
                   const currentTab = getCurrentTab();
                   trackRepositoryTabSwitch(currentTab, value, 'public');
-                  
+
                   if (value === 'contributions') {
                     navigate(`/${owner}/${repo}`);
                   } else if (value === 'lottery') {
@@ -499,27 +499,41 @@ export function ContributionsRoute() {
   }
 
   return (
-    <div className="space-y-8">
-      {/* Progressive loading: Charts load independently */}
+    <div className="flex flex-col gap-8">
+      {/* Contributor of the Month - appears first on mobile with order-1 */}
+      <ErrorBoundary context="Contributor of the Month">
+        <div className="order-1 sm:order-3">
+          <ContributorOfMonthWrapper />
+        </div>
+      </ErrorBoundary>
+
+      {/* Progressive loading: Charts load independently - order-2 on all screens */}
       <ErrorBoundary
         context="Contributions Chart"
         fallback={
-          <div className="h-96 bg-muted rounded-lg flex items-center justify-center text-muted-foreground">
-            Failed to load chart
+          <div className="h-96 bg-muted rounded-lg flex flex-col items-center justify-center text-muted-foreground space-y-2">
+            <p>Failed to load chart</p>
+            {import.meta.env.DEV && (
+              <p className="text-sm text-muted-foreground/70 text-center max-w-md">
+                Note: This chart may not render in development due to a known Nivo/Vite bundling
+                issue. It works correctly in production.
+              </p>
+            )}
           </div>
         }
       >
-        <Suspense fallback={<div className="h-96 bg-muted animate-pulse rounded-lg" />}>
-          <LazyContributions />
-        </Suspense>
+        <div className="order-2 sm:order-1">
+          <Suspense fallback={<div className="h-96 bg-muted animate-pulse rounded-lg" />}>
+            <LazyContributions />
+          </Suspense>
+        </div>
       </ErrorBoundary>
 
+      {/* Metrics and Trends - order-3 on mobile, order-2 on desktop */}
       <ErrorBoundary context="Metrics and Trends">
-        <MetricsAndTrendsCard owner={owner} repo={repo} timeRange={timeRange} />
-      </ErrorBoundary>
-
-      <ErrorBoundary context="Contributor of the Month">
-        <ContributorOfMonthWrapper />
+        <div className="order-3 sm:order-2">
+          <MetricsAndTrendsCard owner={owner} repo={repo} timeRange={timeRange} />
+        </div>
       </ErrorBoundary>
     </div>
   );

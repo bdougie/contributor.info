@@ -5,6 +5,7 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import React from 'react';
 import { Plus, Minus } from '@/components/ui/icon';
+import type { PullRequest } from '@/lib/types';
 
 // Function to get status badge styling
 const getStatusBadgeStyle = (state: string, merged_at: string | null | undefined) => {
@@ -35,27 +36,6 @@ const formatRelativeTime = (dateString: string) => {
   if (diffInDays === 1) return '1 day ago';
   return `${diffInDays} days ago`;
 };
-
-interface PullRequest {
-  id: string;
-  number: number;
-  title: string;
-  state: string;
-  created_at: string;
-  updated_at: string;
-  merged_at?: string | null;
-  closed_at?: string;
-  additions: number;
-  deletions: number;
-  repository_owner: string;
-  repository_name: string;
-  user: {
-    login: string;
-    avatar_url: string;
-    type?: string;
-  };
-  html_url?: string;
-}
 
 interface PrHoverCardProps {
   pullRequest: PullRequest;
@@ -100,11 +80,15 @@ export function PrHoverCard({ pullRequest, role, children }: PrHoverCardProps) {
             <Badge
               className={cn(
                 'absolute top-4 right-4 border-0',
-                role.toLowerCase() === 'contributor'
-                  ? 'bg-blue-500 text-white hover:bg-blue-600'
-                  : role.toLowerCase() === 'bot'
-                    ? 'bg-gray-500 text-white hover:bg-gray-600'
-                    : 'bg-green-500 text-white hover:bg-green-600'
+                (() => {
+                  if (role.toLowerCase() === 'contributor') {
+                    return 'bg-blue-500 text-white hover:bg-blue-600';
+                  }
+                  if (role.toLowerCase() === 'bot') {
+                    return 'bg-gray-500 text-white hover:bg-gray-600';
+                  }
+                  return 'bg-green-500 text-white hover:bg-green-600';
+                })()
               )}
               variant="default"
             >

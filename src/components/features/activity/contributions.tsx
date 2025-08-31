@@ -1,4 +1,4 @@
-import { useState, useContext, useEffect, useRef, lazy } from 'react';
+import { useState, useContext, useEffect, useRef, lazy, Suspense } from 'react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -9,7 +9,7 @@ import { SkeletonChart } from '@/components/skeletons/base/skeleton-chart';
 import { getAvatarUrl } from '@/lib/utils/avatar';
 import { getUserRole } from '@/lib/utils/data-type-mapping';
 
-// Lazy load the heavy visualization component
+// Lazy load the ScatterPlot component to reduce initial bundle size
 const ResponsiveScatterPlot = lazy(() =>
   import('@nivo/scatterplot').then((module) => ({
     default: module.ResponsiveScatterPlot,
@@ -26,7 +26,6 @@ import type { PullRequest } from '@/lib/types';
 import { PrHoverCard } from '../contributor/pr-hover-card';
 import { useContributorRole } from '@/hooks/useContributorRoles';
 import { useParams } from 'react-router-dom';
-import { useTheme } from '@/components/common/theming/theme-provider';
 
 interface ContributionsChartProps {
   isRepositoryTracked?: boolean;
@@ -36,7 +35,6 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
   const { stats, includeBots: contextIncludeBots } = useContext(RepoStatsContext);
   const { effectiveTimeRange } = useTimeRange();
   const { owner, repo } = useParams<{ owner: string; repo: string }>();
-  const { theme } = useTheme();
   const [isLogarithmic, setIsLogarithmic] = useState(false);
   const [maxFilesModified, setMaxFilesModified] = useState(10);
   const [localIncludeBots, setLocalIncludeBots] = useState(contextIncludeBots);
@@ -50,73 +48,6 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
   const mobileMaxDays = 14; // Show 14 days of data for mobile
 
   const functionTimeout = useRef<NodeJS.Timeout | null>(null);
-
-  // Get the actual theme (resolves 'system' to 'light' or 'dark')
-  const getActualTheme = () => {
-    if (theme === 'system') {
-      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    }
-    return theme;
-  };
-
-  // Create Nivo theme object based on current theme
-  const getNivoTheme = () => {
-    const actualTheme = getActualTheme();
-    const isDark = actualTheme === 'dark';
-
-    return {
-      background: 'transparent',
-      text: {
-        fontSize: 12,
-        fill: isDark ? 'hsl(0 0% 98%)' : 'hsl(0 0% 3.9%)', // foreground colors
-        outlineWidth: 0,
-        outlineColor: 'transparent',
-      },
-      axis: {
-        domain: {
-          line: {
-            stroke: isDark ? 'hsl(0 0% 14.9%)' : 'hsl(0 0% 87%)', // border colors
-            strokeWidth: 1,
-          },
-        },
-        legend: {
-          text: {
-            fontSize: 13,
-            fill: isDark ? 'hsl(0 0% 64.9%)' : 'hsl(0 0% 45.1%)', // muted foreground
-            outlineWidth: 0,
-            outlineColor: 'transparent',
-          },
-        },
-        ticks: {
-          line: {
-            stroke: isDark ? 'hsl(0 0% 14.9%)' : 'hsl(0 0% 87%)', // border colors
-            strokeWidth: 1,
-          },
-          text: {
-            fontSize: 11,
-            fill: isDark ? 'hsl(0 0% 64.9%)' : 'hsl(0 0% 45.1%)', // muted foreground
-            outlineWidth: 0,
-            outlineColor: 'transparent',
-          },
-        },
-      },
-      grid: {
-        line: {
-          stroke: isDark ? 'hsl(0 0% 14.9%)' : 'hsl(0 0% 87%)', // border colors
-          strokeWidth: 1,
-          strokeOpacity: 0.7,
-          strokeDasharray: '4 4',
-        },
-      },
-      crosshair: {
-        line: {
-          stroke: isDark ? 'hsl(0 0% 98%)' : 'hsl(0 0% 3.9%)', // foreground colors
-          strokeWidth: 1,
-          strokeOpacity: 0.75,
-        },
-      },
-    };
-  };
 
   // Add resize listener to update isMobile state with throttling
   useEffect(() => {
@@ -181,7 +112,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
         });
 
         setCachedAvatars(avatarMap);
-      } catch (error) {
+      } catch {
         // Fallback to original URLs on error
         const fallbackMap = new Map<number, string>();
         contributors.forEach((c) => {
@@ -195,9 +126,6 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
 
     loadCachedAvatars();
   }, [safeStats.pullRequests]);
-
-  // Force re-render when theme changes to update Nivo theme
-  const nivoTheme = getNivoTheme();
 
   const getScatterData = () => {
     // Sort by created_at and filter based on preferences
@@ -214,7 +142,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
 
     // Group PRs by day to implement quarter-based staggering
     const prsByDay = new Map<number, PullRequest[]>();
-    
+
     const prData = filteredPRs
       .map((pr) => {
         const daysAgo = Math.floor(
@@ -234,13 +162,13 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
         const cachedUrl = cachedAvatars.get(pr.user.id) || pr.user.avatar_url;
         // Import will be added at the top of the file
         const avatarUrl = getAvatarUrl(pr.user.login, cachedUrl);
-        
+
         // Group PRs by day for staggering
         if (!prsByDay.has(daysAgo)) {
           prsByDay.set(daysAgo, []);
         }
         prsByDay.get(daysAgo)!.push(pr);
-        
+
         return {
           daysAgo,
           y: Math.max(linesTouched, 1), // Ensure minimum visibility of 1 line
@@ -265,26 +193,26 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
     const staggeredData = prData.map((item) => {
       if (isMobile) {
         const dayGroup = prsByDay.get(item.daysAgo) || [];
-        const indexInDay = dayGroup.findIndex(pr => pr.id === item._pr.id);
+        const indexInDay = dayGroup.findIndex((pr) => pr.id === item._pr.id);
         const dayGroupSize = dayGroup.length;
-        
+
         // Dynamic staggering: more positions for dense days
         const maxPositions = Math.min(dayGroupSize, 8); // Up to 8 positions per day
         const staggerRange = 0.8; // Use 80% of day width for staggering
-        
+
         let xOffset = 0;
         if (maxPositions > 1) {
           // Distribute evenly across the stagger range
           xOffset = (indexInDay / (maxPositions - 1)) * staggerRange;
         }
-        
+
         // Add micro Y-jitter for very dense days (>4 PRs)
         let yJitter = 0;
         if (dayGroupSize > 4) {
           const jitterAmount = Math.min(item.y * 0.03, 2); // Max 3% of y-value or 2 lines
           yJitter = ((indexInDay % 3) - 1) * jitterAmount; // -1, 0, 1 pattern
         }
-        
+
         return {
           x: item.daysAgo + xOffset,
           y: Math.max(1, item.y + yJitter), // Ensure y >= 1
@@ -313,43 +241,93 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
   };
 
   // Custom Node for scatter plot points
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const CustomNode = (props: any) => {
-    // Get the contributor's role
-    const { role } = useContributorRole(owner || '', repo || '', props.node.data.contributor);
+    // Get the contributor's role first (must be called unconditionally)
+    const { role } = useContributorRole(
+      owner || '',
+      repo || '',
+      props?.node?.data?.contributor || ''
+    );
+
+    // Defensive check for required props
+    if (!props || !props.node || !props.node.data) {
+      console.warn('CustomNode: Missing required props', props);
+      return null;
+    }
 
     const size = isMobile ? 28 : 35;
 
-    return (
-      <animated.foreignObject
-        width={size}
-        height={size}
-        r={props.style.size.to((size: number) => size / 2) as unknown as number}
-        y={props.style.y.to((yVal: number) => Math.max(size / 2, yVal - size / 2)) as unknown as number}
-        x={
-          props.style.x.to((xVal: number) =>
-            Math.max(size / 2, xVal - size / 2)
-          ) as unknown as number
-        }
-        style={{
+    // Handle different animation prop formats from Nivo
+    // Check if we have animated values or static values
+    const hasAnimatedStyle = props.style && typeof props.style === 'object';
+    const isSpringValue = (val: unknown): val is { to: (fn: (v: number) => number) => number } =>
+      val !== null &&
+      typeof val === 'object' &&
+      'to' in val &&
+      typeof (val as { to?: unknown }).to === 'function';
+
+    // Calculate x and y positions
+    let xPos = 0;
+    let yPos = 0;
+
+    if (hasAnimatedStyle && props.style) {
+      // Handle Spring animated values
+      const styleX = (props.style as Record<string, unknown>).x;
+      const styleY = (props.style as Record<string, unknown>).y;
+
+      if (isSpringValue(styleX)) {
+        xPos = styleX.to((xVal: number) => Math.max(size / 2, xVal - size / 2));
+      } else if (typeof styleX === 'number') {
+        xPos = Math.max(size / 2, styleX - size / 2);
+      }
+
+      if (isSpringValue(styleY)) {
+        yPos = styleY.to((yVal: number) => Math.max(0, yVal - size / 1));
+      } else if (typeof styleY === 'number') {
+        yPos = Math.max(0, styleY - size / 1);
+      }
+    }
+
+    // Build the style object based on what we have
+    // Using Record type for animated styles that may have Spring values
+    const nodeStyle: Record<string, unknown> = hasAnimatedStyle
+      ? {
+          ...props.style,
+          x: xPos,
+          y: yPos,
           pointerEvents: 'auto',
           overflow: 'visible',
-          // Ensure proper rendering in different contexts
           isolation: 'isolate',
-        }}
-      >
-        <div style={{ width: '100%', height: '100%' }}>
+        }
+      : {
+          x: xPos,
+          y: yPos,
+          pointerEvents: 'auto',
+          overflow: 'visible',
+          isolation: 'isolate',
+        };
+
+    return (
+      <animated.foreignObject width={size} height={size} style={nodeStyle}>
+        <div
+          style={{
+            width: '100%',
+            height: '100%',
+            color: 'hsl(var(--foreground))',
+            borderColor: 'hsl(var(--foreground))',
+          }}
+        >
           <PrHoverCard
             pullRequest={props.node.data._pr}
             role={getUserRole(role, { type: props.node.data._pr.user.type })}
           >
             <Avatar
-              className={`${
-                isMobile ? 'w-6 h-6' : 'w-8 h-8'
-              } border-2 border-background cursor-pointer`}
+              className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} border-2 cursor-pointer`}
               style={{
                 // Ensure the avatar renders properly in foreignObject
                 backgroundColor: 'var(--muted)',
-                borderColor: 'var(--background)',
+                borderColor: 'hsl(var(--foreground))',
               }}
             >
               <AvatarImage
@@ -370,7 +348,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
                     target.dataset.retried = 'true';
                     // Use avatars.githubusercontent.com which provides CORS headers
                     // Using user ID if available, otherwise a default avatar
-                    const userId = props.node.data._pr?.user?.id || 0;
+                    const userId = props.node!.data!._pr?.user?.id || 0;
                     target.src = `https://avatars.githubusercontent.com/u/${userId}?v=4`;
                   }
                 }}
@@ -494,63 +472,182 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
             <SkeletonChart variant="scatter" height={isMobile ? 'sm' : 'lg'} showAxes={true} />
           }
           highFidelity={
-            <ResponsiveScatterPlot
-              nodeSize={isMobile ? 20 : 35}
-              data={data}
-              margin={{
-                top: 20,
-                right: isMobile ? 30 : 60,
-                bottom: isMobile ? 45 : 70,
-                left: isMobile ? 35 : 90,
-              }}
-              xScale={{
-                type: 'linear',
-                min: 0,
-                max: isMobile ? mobileMaxDays : effectiveTimeRangeNumber,
-                reverse: true,
-              }}
-              yScale={{
-                type: isLogarithmic ? 'symlog' : 'linear',
-                min: 1,
-                max: Math.max(Math.round(maxFilesModified * 1.5), 10),
-              }}
-              blendMode="normal"
-              useMesh={false}
-              annotations={[]}
-              nodeComponent={CustomNode}
-              axisBottom={{
-                tickSize: 6,
-                tickPadding: 4,
-                tickRotation: 0,
-                tickValues: isMobile ? 3 : 7,
-                legend: isMobile ? 'Days Ago' : 'Date Created',
-                legendPosition: 'middle',
-                legendOffset: isMobile ? 35 : 50,
-                format: (value) =>
-                  value === 0
-                    ? 'Today'
-                    : value > effectiveTimeRangeNumber
-                      ? `${effectiveTimeRangeNumber}+`
-                      : `${value}${isMobile ? '' : ' days ago'}`,
-              }}
-              theme={nivoTheme}
-              isInteractive={true}
-              axisLeft={{
-                tickSize: 2,
-                tickPadding: 3,
-                tickRotation: 0,
-                tickValues: isMobile ? 3 : 5,
-                legend: isMobile ? 'Lines' : 'Lines Touched',
-                legendPosition: 'middle',
-                legendOffset: isMobile ? -20 : -60,
-                format: (value: number) => {
-                  if (isMobile) {
-                    return parseInt(`${value}`) >= 1000 ? humanizeNumber(value) : `${value}`;
-                  }
-                  return parseInt(`${value}`) >= 1000 ? humanizeNumber(value) : `${value}`;
-                },
-              }}
-            />
+            data.length > 0 ? (
+              <Suspense
+                fallback={
+                  <SkeletonChart
+                    variant="scatter"
+                    height={isMobile ? 'sm' : 'lg'}
+                    showAxes={true}
+                  />
+                }
+              >
+                <ResponsiveScatterPlot
+                  nodeSize={isMobile ? 20 : 35}
+                  data={data}
+                  margin={{
+                    top: 20,
+                    right: isMobile ? 30 : 60,
+                    bottom: isMobile ? 45 : 70,
+                    left: isMobile ? 35 : 90,
+                  }}
+                  xScale={{
+                    type: 'linear',
+                    min: 0,
+                    max: isMobile ? mobileMaxDays : effectiveTimeRangeNumber,
+                    reverse: true,
+                  }}
+                  yScale={{
+                    type: isLogarithmic ? 'symlog' : 'linear',
+                    min: 1,
+                    max: Math.max(Math.round(maxFilesModified * 1.5), 10),
+                  }}
+                  blendMode="normal"
+                  annotations={[]}
+                  nodeComponent={CustomNode}
+                  animate={true}
+                  motionConfig="gentle"
+                  enableGridX={true}
+                  enableGridY={true}
+                  useMesh={!isMobile}
+                  axisTop={null}
+                  axisRight={null}
+                  axisBottom={{
+                    tickSize: 6,
+                    tickPadding: 4,
+                    tickRotation: 0,
+                    tickValues: isMobile ? 3 : 7,
+                    legend: isMobile ? 'Days Ago' : 'Date Created',
+                    legendPosition: 'middle',
+                    legendOffset: isMobile ? 35 : 50,
+                    format: (value) => {
+                      if (value === 0) return 'Today';
+                      if (value > effectiveTimeRangeNumber) return `${effectiveTimeRangeNumber}+`;
+                      return isMobile ? `${value}` : `${value} days ago`;
+                    },
+                  }}
+                  isInteractive={true}
+                  axisLeft={{
+                    tickSize: 2,
+                    tickPadding: 3,
+                    tickRotation: 0,
+                    tickValues: isMobile ? 3 : 5,
+                    legend: isMobile ? 'Lines' : 'Lines Touched',
+                    legendPosition: 'middle',
+                    legendOffset: isMobile ? -20 : -60,
+                    format: (value: number) => {
+                      return parseInt(`${value}`) >= 1000 ? humanizeNumber(value) : `${value}`;
+                    },
+                  }}
+                  tooltip={({ node }) => {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const nodeData = node.data as any;
+                    return (
+                      <div className="bg-background border rounded p-2 shadow-lg">
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: node.color }}
+                          />
+                          <span className="font-medium">{nodeData.contributor}</span>
+                        </div>
+                        <div className="text-sm text-muted-foreground mt-1">
+                          {nodeData.x} days ago: {nodeData.y} contribution
+                          {nodeData.y !== 1 ? 's' : ''}
+                        </div>
+                      </div>
+                    );
+                  }}
+                  colors={{ scheme: 'category10' }}
+                  layers={['grid', 'axes', 'nodes', 'legends']}
+                  theme={{
+                    background: 'transparent',
+                    axis: {
+                      domain: {
+                        line: {
+                          stroke: 'hsl(var(--border))',
+                          strokeWidth: 1,
+                        },
+                      },
+                      ticks: {
+                        line: {
+                          stroke: 'hsl(var(--border))',
+                          strokeWidth: 1,
+                        },
+                        text: {
+                          fill: 'hsl(var(--foreground))',
+                          fontSize: 11,
+                        },
+                      },
+                      legend: {
+                        text: {
+                          fill: 'hsl(var(--foreground))',
+                          fontSize: 12,
+                        },
+                      },
+                    },
+                    grid: {
+                      line: {
+                        stroke: 'hsl(var(--border))',
+                        strokeWidth: 0.5,
+                        strokeOpacity: 0.3,
+                      },
+                    },
+                    legends: {
+                      text: {
+                        fill: 'hsl(var(--foreground))',
+                        fontSize: 11,
+                      },
+                    },
+                    labels: {
+                      text: {
+                        fill: 'hsl(var(--foreground))',
+                        fontSize: 11,
+                      },
+                    },
+                    markers: {
+                      lineColor: 'hsl(var(--foreground))',
+                      lineStrokeWidth: 2,
+                      textColor: 'hsl(var(--foreground))',
+                    },
+                    dots: {
+                      text: {
+                        fill: 'hsl(var(--foreground))',
+                        fontSize: 11,
+                      },
+                    },
+                    annotations: {
+                      text: {
+                        fill: 'hsl(var(--foreground))',
+                        outlineWidth: 2,
+                        outlineColor: 'hsl(var(--background))',
+                      },
+                      link: {
+                        stroke: 'hsl(var(--foreground))',
+                        strokeWidth: 1,
+                        outlineWidth: 2,
+                        outlineColor: 'hsl(var(--background))',
+                      },
+                      outline: {
+                        stroke: 'hsl(var(--foreground))',
+                        strokeWidth: 2,
+                        outlineWidth: 2,
+                        outlineColor: 'hsl(var(--background))',
+                      },
+                      symbol: {
+                        fill: 'hsl(var(--foreground))',
+                        outlineWidth: 2,
+                        outlineColor: 'hsl(var(--background))',
+                      },
+                    },
+                  }}
+                />
+              </Suspense>
+            ) : (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                No data to display
+              </div>
+            )
           }
           priority={false}
           highFiDelay={300}
