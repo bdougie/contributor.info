@@ -6,16 +6,16 @@ The Rising Stars Chart is a bubble visualization designed to identify and recogn
 
 ## Visual Design
 
-- **X-axis**: Number of commits (code velocity)
-- **Y-axis**: Pull Requests + Issues (engagement level)  
+- **X-axis**: Code Contributions (PRs + Commits)
+- **Y-axis**: Non-Code Contributions (Issues + Comments + Reviews + Discussions)  
 - **Bubble Size**: Velocity score (activity momentum over time)
 - **Avatar Display**: Contributors shown as profile pictures, not abstract dots
 
 ## Visual Indicators
 
-- **🟢 Green Bubbles**: New contributors (<90 days)
-- **🔵 Blue Bubbles**: Active contributors
-- **✨ Pulsing Orange Ring**: Rising stars (>50% growth rate)
+- **🟢 Green Border**: New contributors (<90 days)
+- **🔵 Blue Border**: Active contributors
+- **✨ Pulsing Orange Ring**: Rising stars (velocity >10/week AND contributor age <180 days)
 - **🔴 Red Dot**: High velocity indicator (>5 contributions/week)
 
 ## Usage
@@ -45,13 +45,21 @@ const chartData = calculateRisingStars(contributorMetrics, {
 interface RisingStarContributor {
   login: string;
   avatar_url: string;
-  commits: number;           // X-axis position
-  pullRequests: number;       // Y-axis component
+  github_id: number;
+  commits: number;           // X-axis component
+  pullRequests: number;       // X-axis component  
   issues: number;            // Y-axis component
-  velocityScore: number;     // Bubble size
-  growthRate: number;        // % increase
-  isNewContributor: boolean; // Green indicator
-  isRisingStar: boolean;     // Pulsing ring
+  comments?: number;         // Y-axis component
+  reviews?: number;          // Y-axis component
+  discussions?: number;      // Y-axis component
+  totalActivity: number;     // Activity score shown in hover
+  velocityScore: number;     // Bubble size & rising star criteria
+  growthRate: number;        // % increase shown in hover
+  isNewContributor: boolean; // Green border (<90 days)
+  isRisingStar: boolean;     // Orange pulsing ring
+  firstContributionDate: string;
+  lastContributionDate: string;
+  contributionSpan: number;
 }
 ```
 
@@ -61,10 +69,11 @@ interface RisingStarContributor {
 Hovering over a contributor bubble shows:
 - Username and avatar
 - Activity badges (Rising Star, New)
-- Growth rate percentage
+- Growth rate percentage (if positive)
 - Activity breakdown (PRs, Commits, Issues)
-- Velocity score (contributions/week)
-- Contributing duration
+- Activity Score (total GitHub events)
+- Velocity (contributions/week)
+- Contributing duration (in days)
 
 ## Integration Points
 
@@ -87,15 +96,16 @@ Can also be used at the repository level to identify rising stars within a singl
 - **Max Bubbles**: Limited to 50 by default to maintain performance
 - **Data Transformation**: Cached using `useMemo` 
 - **Avatar Loading**: Uses GitHub CDN for fast avatar delivery
+- **Z-index Management**: Uses Radix UI Portal for proper hover card layering
+- **No External Chart Library**: Custom implementation avoids heavy dependencies
 
 ## Storybook Stories
 
 View examples in Storybook:
 - **Default**: Standard view with mixed contributors
-- **ManyContributors**: High-density visualization
-- **HighActivity**: Power users with large velocity scores
-- **NewContributorsWave**: Emphasis on new contributors
-- **CompactView**: Smaller height for dashboards
+- **ManyContributors**: High-density visualization (50 contributors)
+- **FewContributors**: Low-density visualization (10 contributors)
+- **EmptyState**: Handles no data gracefully
 
 ## Use Cases
 
