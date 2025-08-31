@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { UPlotChart, type UPlotChartProps } from './UPlotChart';
 import { getChartTheme, getSeriesColors } from './theme-config';
 import { processLabelsForUPlot, createAxisValuesFormatter, colorWithAlpha } from './chart-utils';
-import uPlot, { type AlignedData, type Options, type Series } from 'uplot';
+import type { AlignedData, Options, Series } from 'uplot';
 
 export interface LineChartProps extends Omit<UPlotChartProps, 'data' | 'options'> {
   data: {
@@ -38,13 +38,6 @@ export const LineChart: React.FC<LineChartProps> = ({
 }) => {
   const { chartData, chartOptions } = useMemo(() => {
     const theme = getChartTheme(isDark);
-    if (!theme || !theme.axis) {
-      console.error('Chart theme is not properly initialized');
-      return {
-        chartData: [[], []] as AlignedData,
-        chartOptions: { series: [] } as Omit<Options, 'width' | 'height'>,
-      };
-    }
     const seriesColors = getSeriesColors(data.datasets.length, isDark);
 
     // Process labels for uPlot (requires numeric x-axis)
@@ -75,7 +68,7 @@ export const LineChart: React.FC<LineChartProps> = ({
           width: 1,
         },
         ...(dataset.fill && {
-          paths: (u: uPlot, seriesIdx: number, idx0: number, idx1: number) => {
+          paths: (u, seriesIdx, idx0, idx1) => {
             const stroke = new Path2D();
             const fill = new Path2D();
 

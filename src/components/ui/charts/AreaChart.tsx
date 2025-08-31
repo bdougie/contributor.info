@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { UPlotChart, type UPlotChartProps } from './UPlotChart';
 import { getChartTheme, getSeriesColors } from './theme-config';
 import { colorWithAlpha, processLabelsForUPlot, createAxisValuesFormatter } from './chart-utils';
-import uPlot, { type AlignedData, type Options, type Series } from 'uplot';
+import type { AlignedData, Options, Series } from 'uplot';
 
 export interface AreaChartProps extends Omit<UPlotChartProps, 'data' | 'options'> {
   data: {
@@ -40,13 +40,6 @@ export const AreaChart: React.FC<AreaChartProps> = ({
 }) => {
   const { chartData, chartOptions } = useMemo(() => {
     const theme = getChartTheme(isDark);
-    if (!theme || !theme.axis) {
-      console.error('Chart theme is not properly initialized');
-      return {
-        chartData: [[], []] as AlignedData,
-        chartOptions: { series: [] } as Omit<Options, 'width' | 'height'>,
-      };
-    }
     const seriesColors = getSeriesColors(data.datasets.length, isDark);
 
     const processedData = [...data.datasets.map((dataset) => [...dataset.data])];
@@ -90,7 +83,7 @@ export const AreaChart: React.FC<AreaChartProps> = ({
           points: {
             show: false, // Areas typically don't show individual points
           },
-          paths: (u: uPlot, seriesIdx: number, idx0: number, idx1: number) => {
+          paths: (u, seriesIdx, idx0, idx1) => {
             const stroke = new Path2D();
             const fill = new Path2D();
 
