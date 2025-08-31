@@ -212,6 +212,9 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
       })
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
+    // Group PRs by day to implement quarter-based staggering
+    const prsByDay = new Map<number, PullRequest[]>();
+    
     const prData = filteredPRs
       .map((pr) => {
         const daysAgo = Math.floor(
@@ -231,8 +234,15 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
         const cachedUrl = cachedAvatars.get(pr.user.id) || pr.user.avatar_url;
         // Import will be added at the top of the file
         const avatarUrl = getAvatarUrl(pr.user.login, cachedUrl);
+        
+        // Group PRs by day for staggering
+        if (!prsByDay.has(daysAgo)) {
+          prsByDay.set(daysAgo, []);
+        }
+        prsByDay.get(daysAgo)!.push(pr);
+        
         return {
-          x: daysAgo,
+          daysAgo,
           y: Math.max(linesTouched, 1), // Ensure minimum visibility of 1 line
           contributor: pr.user.login,
           image: avatarUrl,
@@ -243,7 +253,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
         (
           item
         ): item is {
-          x: number;
+          daysAgo: number;
           y: number;
           contributor: string;
           image: string;
@@ -251,10 +261,25 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
         } => item !== null
       ); // Remove nulls with type guard
 
+    // Apply quarter-based staggering within each day
+    const staggeredData = prData.map((item) => {
+      const dayGroup = prsByDay.get(item.daysAgo) || [];
+      const indexInDay = dayGroup.findIndex(pr => pr.id === item._pr.id);
+      const quarterOffset = (indexInDay % 4) * 0.25; // 0, 0.25, 0.5, 0.75
+      
+      return {
+        x: item.daysAgo + quarterOffset,
+        y: item.y,
+        contributor: item.contributor,
+        image: item.image,
+        _pr: item._pr,
+      };
+    });
+
     return [
       {
         id: 'pull-requests',
-        data: prData,
+        data: staggeredData,
       },
     ];
   };
@@ -271,7 +296,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
         width={size}
         height={size}
         r={props.style.size.to((size: number) => size / 2) as unknown as number}
-        y={props.style.y.to((yVal: number) => Math.max(0, yVal - size / 1)) as unknown as number}
+        y={props.style.y.to((yVal: number) => Math.max(size / 2, yVal - size / 2)) as unknown as number}
         x={
           props.style.x.to((xVal: number) =>
             Math.max(size / 2, xVal - size / 2)
@@ -446,7 +471,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
               data={data}
               margin={{
                 top: 20,
-                right: isMobile ? 10 : 60,
+                right: isMobile ? 30 : 60,
                 bottom: isMobile ? 45 : 70,
                 left: isMobile ? 35 : 90,
               }}
