@@ -3,6 +3,7 @@ import { UPlotChart, type UPlotChartProps } from './UPlotChart';
 import { getChartTheme, getSeriesColors } from './theme-config';
 import { processLabelsForUPlot, createAxisValuesFormatter, colorWithAlpha } from './chart-utils';
 import type { AlignedData, Options, Series } from 'uplot';
+import type uPlot from 'uplot';
 
 export interface LineChartProps extends Omit<UPlotChartProps, 'data' | 'options'> {
   data: {
@@ -68,7 +69,7 @@ export const LineChart: React.FC<LineChartProps> = ({
           width: 1,
         },
         ...(dataset.fill && {
-          paths: (u: any, seriesIdx: any, idx0: any, idx1: any) => {
+          paths: (u: uPlot, seriesIdx: number, idx0: number, idx1: number) => {
             const stroke = new Path2D();
             const fill = new Path2D();
 

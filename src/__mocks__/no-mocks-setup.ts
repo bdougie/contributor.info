@@ -6,6 +6,20 @@ import '@testing-library/jest-dom';
 import { cleanup } from '@testing-library/react';
 import { afterEach, vi } from 'vitest';
 
+// Mock Path2D for uPlot (not available in jsdom)
+global.Path2D = class Path2D {
+  closePath = vi.fn();
+  moveTo = vi.fn();
+  lineTo = vi.fn();
+  bezierCurveTo = vi.fn();
+  quadraticCurveTo = vi.fn();
+  arc = vi.fn();
+  arcTo = vi.fn();
+  ellipse = vi.fn();
+  rect = vi.fn();
+  addPath = vi.fn();
+};
+
 // Mock matchMedia for uPlot (required for chart components)
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
@@ -31,8 +45,8 @@ HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
   beginPath: vi.fn(),
   moveTo: vi.fn(),
   lineTo: vi.fn(),
-  stroke: vi.fn(),
-  fill: vi.fn(),
+  stroke: vi.fn(() => {}), // Support Path2D parameter
+  fill: vi.fn(() => {}), // Support Path2D parameter
   arc: vi.fn(),
   closePath: vi.fn(),
   save: vi.fn(),

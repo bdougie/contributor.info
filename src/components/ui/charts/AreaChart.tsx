@@ -3,6 +3,7 @@ import { UPlotChart, type UPlotChartProps } from './UPlotChart';
 import { getChartTheme, getSeriesColors } from './theme-config';
 import { colorWithAlpha, processLabelsForUPlot, createAxisValuesFormatter } from './chart-utils';
 import type { AlignedData, Options, Series } from 'uplot';
+import type uPlot from 'uplot';
 
 export interface AreaChartProps extends Omit<UPlotChartProps, 'data' | 'options'> {
   data: {
@@ -83,7 +84,7 @@ export const AreaChart: React.FC<AreaChartProps> = ({
           points: {
             show: false, // Areas typically don't show individual points
           },
-          paths: (u: any, seriesIdx: any, idx0: any, idx1: any) => {
+          paths: (u: uPlot, seriesIdx: number, idx0: number, idx1: number) => {
             const stroke = new Path2D();
             const fill = new Path2D();
 
