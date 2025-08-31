@@ -240,6 +240,9 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
     ];
   };
 
+  // Detect Safari browser
+  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
   // Custom Node for scatter plot points
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const CustomNode = (props: any) => {
@@ -308,6 +311,80 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
           isolation: 'isolate',
         };
 
+    // Safari has issues with foreignObject, so use a simpler approach
+    if (isSafari) {
+      // For Safari, use SVG elements directly without foreignObject
+      const radius = size / 2;
+
+      return (
+        <animated.g style={nodeStyle}>
+          {/* Background circle */}
+          <circle
+            cx={radius}
+            cy={radius}
+            r={radius - 1}
+            fill="hsl(var(--muted))"
+            stroke="hsl(var(--foreground))"
+            strokeWidth="2"
+            style={{ cursor: 'pointer' }}
+          />
+
+          {/* Clipping path for circular image */}
+          <defs>
+            <clipPath id={`avatar-clip-${props.node.data.contributor}-${props.node.index}`}>
+              <circle cx={radius} cy={radius} r={radius - 2} />
+            </clipPath>
+          </defs>
+
+          {/* Avatar image */}
+          <image
+            href={props.node.data.image}
+            x="2"
+            y="2"
+            width={size - 4}
+            height={size - 4}
+            clipPath={`url(#avatar-clip-${props.node.data.contributor}-${props.node.index})`}
+            preserveAspectRatio="xMidYMid slice"
+            style={{ pointerEvents: 'none' }}
+          />
+
+          {/* Fallback text if image fails to load */}
+          <text
+            x={radius}
+            y={radius}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fill="hsl(var(--foreground))"
+            fontSize={isMobile ? 10 : 12}
+            style={{ pointerEvents: 'none', userSelect: 'none' }}
+          >
+            {props.node.data.contributor ? props.node.data.contributor[0].toUpperCase() : '?'}
+          </text>
+
+          {/* Invisible overlay for hover interactions */}
+          <circle
+            cx={radius}
+            cy={radius}
+            r={radius}
+            fill="transparent"
+            style={{ cursor: 'pointer' }}
+            onClick={() => {
+              // Open PR in new tab on click for Safari
+              const prUrl =
+                props.node.data._pr.html_url ||
+                `https://github.com/${props.node.data._pr.repository_owner}/${props.node.data._pr.repository_name}/pull/${props.node.data._pr.number}`;
+              window.open(prUrl, '_blank', 'noopener,noreferrer');
+            }}
+          >
+            <title>
+              {props.node.data.contributor} - PR #{props.node.data._pr.number}
+            </title>
+          </circle>
+        </animated.g>
+      );
+    }
+
+    // Original implementation for non-Safari browsers
     return (
       <animated.foreignObject width={size} height={size} style={nodeStyle}>
         <div
