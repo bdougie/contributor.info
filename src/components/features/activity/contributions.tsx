@@ -261,16 +261,33 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
         } => item !== null
       ); // Remove nulls with type guard
 
-    // Apply quarter-based staggering within each day (mobile only)
+    // Apply improved staggering within each day (mobile only)
     const staggeredData = prData.map((item) => {
       if (isMobile) {
         const dayGroup = prsByDay.get(item.daysAgo) || [];
         const indexInDay = dayGroup.findIndex(pr => pr.id === item._pr.id);
-        const quarterOffset = (indexInDay % 4) * 0.25; // 0, 0.25, 0.5, 0.75
+        const dayGroupSize = dayGroup.length;
+        
+        // Dynamic staggering: more positions for dense days
+        const maxPositions = Math.min(dayGroupSize, 8); // Up to 8 positions per day
+        const staggerRange = 0.8; // Use 80% of day width for staggering
+        
+        let xOffset = 0;
+        if (maxPositions > 1) {
+          // Distribute evenly across the stagger range
+          xOffset = (indexInDay / (maxPositions - 1)) * staggerRange;
+        }
+        
+        // Add micro Y-jitter for very dense days (>4 PRs)
+        let yJitter = 0;
+        if (dayGroupSize > 4) {
+          const jitterAmount = Math.min(item.y * 0.03, 2); // Max 3% of y-value or 2 lines
+          yJitter = ((indexInDay % 3) - 1) * jitterAmount; // -1, 0, 1 pattern
+        }
         
         return {
-          x: item.daysAgo + quarterOffset,
-          y: item.y,
+          x: item.daysAgo + xOffset,
+          y: Math.max(1, item.y + yJitter), // Ensure y >= 1
           contributor: item.contributor,
           image: item.image,
           _pr: item._pr,
