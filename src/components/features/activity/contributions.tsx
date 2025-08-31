@@ -1,4 +1,4 @@
-import { useState, useContext, useEffect, useRef } from 'react';
+import { useState, useContext, useEffect, useRef, lazy, Suspense } from 'react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -9,8 +9,12 @@ import { SkeletonChart } from '@/components/skeletons/base/skeleton-chart';
 import { getAvatarUrl } from '@/lib/utils/avatar';
 import { getUserRole } from '@/lib/utils/data-type-mapping';
 
-// Import directly to debug the issue
-import { ResponsiveScatterPlot } from '@nivo/scatterplot';
+// Lazy load the ScatterPlot component to reduce initial bundle size
+const ResponsiveScatterPlot = lazy(() =>
+  import('@nivo/scatterplot').then((module) => ({
+    default: module.ResponsiveScatterPlot,
+  }))
+);
 
 // Import types separately since they don't affect bundle size
 // import type { ScatterPlotNodeProps } from "@nivo/scatterplot";
@@ -184,16 +188,8 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
   };
 
   // Custom Node for scatter plot points
-  const CustomNode = (props: {
-    node?: {
-      data?: {
-        contributor: string;
-        image: string;
-        _pr: PullRequest;
-      };
-    };
-    style?: Record<string, unknown>;
-  }) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const CustomNode = (props: any) => {
     // Get the contributor's role first (must be called unconditionally)
     const { role } = useContributorRole(
       owner || '',
@@ -413,156 +409,168 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
         </div>
       </div>
       <div className={`${isMobile ? 'h-[280px]' : 'h-[400px]'} w-full overflow-hidden relative`}>
-        <ProgressiveChart
-          skeleton={
-            <SkeletonChart variant="scatter" height={isMobile ? 'sm' : 'lg'} showAxes={true} />
-          }
-          highFidelity={
-            data.length > 0 ? (
-              <ResponsiveScatterPlot
-                nodeSize={isMobile ? 20 : 35}
-                data={data}
-                margin={{
-                  top: 20,
-                  right: isMobile ? 10 : 60,
-                  bottom: isMobile ? 45 : 70,
-                  left: isMobile ? 35 : 90,
-                }}
-                xScale={{
-                  type: 'linear',
-                  min: 0,
-                  max: isMobile ? mobileMaxDays : effectiveTimeRangeNumber,
-                  reverse: true,
-                }}
-                yScale={{
-                  type: isLogarithmic ? 'symlog' : 'linear',
-                  min: 1,
-                  max: Math.max(Math.round(maxFilesModified * 1.5), 10),
-                }}
-                blendMode="normal"
-                annotations={[]}
-                nodeComponent={CustomNode}
-                animate={true}
-                motionConfig="gentle"
-                enableGridX={true}
-                enableGridY={true}
-                useMesh={true}
-                axisTop={null}
-                axisRight={null}
-                axisBottom={{
-                  tickSize: 6,
-                  tickPadding: 4,
-                  tickRotation: 0,
-                  tickValues: isMobile ? 3 : 7,
-                  legend: isMobile ? 'Days Ago' : 'Date Created',
-                  legendPosition: 'middle',
-                  legendOffset: isMobile ? 35 : 50,
-                  format: (value) => {
-                    if (value === 0) return 'Today';
-                    if (value > effectiveTimeRangeNumber) return `${effectiveTimeRangeNumber}+`;
-                    return `${value}${isMobile ? '' : ' days ago'}`;
-                  },
-                }}
-                isInteractive={true}
-                axisLeft={{
-                  tickSize: 2,
-                  tickPadding: 3,
-                  tickRotation: 0,
-                  tickValues: isMobile ? 3 : 5,
-                  legend: isMobile ? 'Lines' : 'Lines Touched',
-                  legendPosition: 'middle',
-                  legendOffset: isMobile ? -20 : -60,
-                  format: (value: number) => {
-                    if (isMobile) {
-                      return parseInt(`${value}`) >= 1000 ? humanizeNumber(value) : `${value}`;
-                    }
-                    return parseInt(`${value}`) >= 1000 ? humanizeNumber(value) : `${value}`;
-                  },
-                }}
-                tooltip={({ node }) => (
-                  <div className="bg-background border rounded p-2 shadow-lg">
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: node.color }}
-                      />
-                      <span className="font-medium">{node.data.contributor}</span>
-                    </div>
-                    <div className="text-sm text-muted-foreground mt-1">
-                      {node.data.x} days ago: {node.data.y} contribution
-                      {node.data.y !== 1 ? 's' : ''}
-                    </div>
-                  </div>
-                )}
-                colors={{ scheme: 'category10' }}
-                layers={['grid', 'axes', 'nodes', 'legends']}
-                theme={{
-                  background: 'transparent',
-                  axis: {
-                    domain: {
-                      line: {
-                        stroke: 'hsl(var(--border))',
-                        strokeWidth: 1,
+        {isMobile ? (
+          <div className="h-full flex flex-col items-center justify-center text-muted-foreground p-4">
+            <p className="text-center">Contributions chart is not available on mobile devices</p>
+            <p className="text-sm text-center mt-2">
+              Please use a desktop browser for the full experience
+            </p>
+          </div>
+        ) : (
+          <ProgressiveChart
+            skeleton={<SkeletonChart variant="scatter" height={'lg'} showAxes={true} />}
+            highFidelity={
+              data.length > 0 ? (
+                <Suspense
+                  fallback={<SkeletonChart variant="scatter" height={'lg'} showAxes={true} />}
+                >
+                  <ResponsiveScatterPlot
+                    nodeSize={35}
+                    data={data}
+                    margin={{
+                      top: 20,
+                      right: 60,
+                      bottom: 70,
+                      left: 90,
+                    }}
+                    xScale={{
+                      type: 'linear',
+                      min: 0,
+                      max: effectiveTimeRangeNumber,
+                      reverse: true,
+                    }}
+                    yScale={{
+                      type: isLogarithmic ? 'symlog' : 'linear',
+                      min: 1,
+                      max: Math.max(Math.round(maxFilesModified * 1.5), 10),
+                    }}
+                    blendMode="normal"
+                    annotations={[]}
+                    nodeComponent={CustomNode}
+                    animate={true}
+                    motionConfig="gentle"
+                    enableGridX={true}
+                    enableGridY={true}
+                    useMesh={true}
+                    axisTop={null}
+                    axisRight={null}
+                    axisBottom={{
+                      tickSize: 6,
+                      tickPadding: 4,
+                      tickRotation: 0,
+                      tickValues: 7,
+                      legend: 'Date Created',
+                      legendPosition: 'middle',
+                      legendOffset: 50,
+                      format: (value) => {
+                        if (value === 0) return 'Today';
+                        if (value > effectiveTimeRangeNumber) return `${effectiveTimeRangeNumber}+`;
+                        return `${value} days ago`;
                       },
-                    },
-                    ticks: {
-                      line: {
-                        stroke: 'hsl(var(--border))',
-                        strokeWidth: 1,
+                    }}
+                    isInteractive={true}
+                    axisLeft={{
+                      tickSize: 2,
+                      tickPadding: 3,
+                      tickRotation: 0,
+                      tickValues: 5,
+                      legend: 'Lines Touched',
+                      legendPosition: 'middle',
+                      legendOffset: -60,
+                      format: (value: number) => {
+                        return parseInt(`${value}`) >= 1000 ? humanizeNumber(value) : `${value}`;
                       },
-                      text: {
-                        fill: 'hsl(var(--foreground))',
-                        fontSize: 11,
+                    }}
+                    tooltip={({ node }) => {
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      const nodeData = node.data as any;
+                      return (
+                        <div className="bg-background border rounded p-2 shadow-lg">
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-3 h-3 rounded-full"
+                              style={{ backgroundColor: node.color }}
+                            />
+                            <span className="font-medium">{nodeData.contributor}</span>
+                          </div>
+                          <div className="text-sm text-muted-foreground mt-1">
+                            {nodeData.x} days ago: {nodeData.y} contribution
+                            {nodeData.y !== 1 ? 's' : ''}
+                          </div>
+                        </div>
+                      );
+                    }}
+                    colors={{ scheme: 'category10' }}
+                    layers={['grid', 'axes', 'nodes', 'legends']}
+                    theme={{
+                      background: 'transparent',
+                      axis: {
+                        domain: {
+                          line: {
+                            stroke: 'hsl(var(--border))',
+                            strokeWidth: 1,
+                          },
+                        },
+                        ticks: {
+                          line: {
+                            stroke: 'hsl(var(--border))',
+                            strokeWidth: 1,
+                          },
+                          text: {
+                            fill: 'hsl(var(--foreground))',
+                            fontSize: 11,
+                          },
+                        },
+                        legend: {
+                          text: {
+                            fill: 'hsl(var(--foreground))',
+                            fontSize: 12,
+                          },
+                        },
                       },
-                    },
-                    legend: {
-                      text: {
-                        fill: 'hsl(var(--foreground))',
-                        fontSize: 12,
+                      grid: {
+                        line: {
+                          stroke: 'hsl(var(--border))',
+                          strokeWidth: 0.5,
+                          strokeOpacity: 0.3,
+                        },
                       },
-                    },
-                  },
-                  grid: {
-                    line: {
-                      stroke: 'hsl(var(--border))',
-                      strokeWidth: 0.5,
-                      strokeOpacity: 0.3,
-                    },
-                  },
-                  legends: {
-                    text: {
-                      fill: 'hsl(var(--foreground))',
-                      fontSize: 11,
-                    },
-                  },
-                  labels: {
-                    text: {
-                      fill: 'hsl(var(--foreground))',
-                      fontSize: 11,
-                    },
-                  },
-                  markers: {
-                    lineColor: 'hsl(var(--border))',
-                    textColor: 'hsl(var(--foreground))',
-                  },
-                  dots: {
-                    text: {
-                      fill: 'hsl(var(--foreground))',
-                      fontSize: 11,
-                    },
-                  },
-                }}
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full text-muted-foreground">
-                No data to display
-              </div>
-            )
-          }
-          priority={false}
-          highFiDelay={300}
-          className="h-full w-full"
-        />
+                      legends: {
+                        text: {
+                          fill: 'hsl(var(--foreground))',
+                          fontSize: 11,
+                        },
+                      },
+                      labels: {
+                        text: {
+                          fill: 'hsl(var(--foreground))',
+                          fontSize: 11,
+                        },
+                      },
+                      markers: {
+                        lineColor: 'hsl(var(--border))',
+                        textColor: 'hsl(var(--foreground))',
+                      },
+                      dots: {
+                        text: {
+                          fill: 'hsl(var(--foreground))',
+                          fontSize: 11,
+                        },
+                      },
+                    }}
+                  />
+                </Suspense>
+              ) : (
+                <div className="flex items-center justify-center h-full text-muted-foreground">
+                  No data to display
+                </div>
+              )
+            }
+            priority={false}
+            highFiDelay={300}
+            className="h-full w-full"
+          />
+        )}
       </div>
     </div>
   );
