@@ -41,6 +41,7 @@ HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
   scale: vi.fn(),
   rotate: vi.fn(),
   setTransform: vi.fn(),
+  setLineDash: vi.fn(), // Added for uPlot compatibility
   createLinearGradient: vi.fn(() => ({
     addColorStop: vi.fn(),
   })),
