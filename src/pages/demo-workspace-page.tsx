@@ -5,7 +5,9 @@ import { WorkspaceDashboard } from '@/components/features/workspace';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Info, Sparkles, GitPullRequest, AlertCircle } from '@/components/ui/icon';
+import { Button } from '@/components/ui/button';
+import { Info, Sparkles, GitPullRequest, AlertCircle, Layout, X } from '@/components/ui/icon';
+import { cn } from '@/lib/utils';
 
 // Lazy load the heavy analytics dashboard
 const AnalyticsDashboard = lazy(() =>
@@ -48,6 +50,7 @@ export function DemoWorkspacePage() {
   const navigate = useNavigate();
   const [timeRange, setTimeRange] = useState<TimeRange>('30d');
   const [tier] = useState<'free' | 'pro' | 'enterprise'>('pro');
+  const [expandedChart, setExpandedChart] = useState<'trends' | 'activity' | null>(null);
 
   // Generate demo data with caching
   const demoAnalyticsData = useMemo(() => getCachedAnalyticsData(), []);
@@ -117,7 +120,7 @@ export function DemoWorkspacePage() {
         last_updated_at: new Date().toISOString(),
         is_active: true,
       },
-      pullRequests: [] as any, // Use empty array for demo data
+      pullRequests: [], // Use empty array for demo data
       commitCount: Math.floor(Math.random() * 50) + 5,
       issueCount: Math.floor(Math.random() * 20) + 2,
       commentCount: Math.floor(Math.random() * 30) + 3,
@@ -130,7 +133,7 @@ export function DemoWorkspacePage() {
       minActivity: 3,
       newContributorDays: 90,
     });
-  }, [demoAnalyticsData.contributors, demoAnalyticsData.activities, timeRange]);
+  }, [demoAnalyticsData.contributors, timeRange]);
 
   const handleTabChange = (value: string) => {
     if (value === 'overview') {
@@ -138,6 +141,10 @@ export function DemoWorkspacePage() {
     } else {
       navigate(`/i/demo/${value}`);
     }
+  };
+
+  const toggleChartExpansion = (chart: 'trends' | 'activity') => {
+    setExpandedChart(expandedChart === chart ? null : chart);
   };
 
   const handleExport = async (format: 'csv' | 'json' | 'pdf') => {
@@ -273,26 +280,77 @@ export function DemoWorkspacePage() {
           </TabsContent>
 
           <TabsContent value="activity" className="space-y-6">
-            <div className="grid gap-6 lg:grid-cols-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Activity Trends</CardTitle>
-                  <CardDescription>Repository activity over time</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <TrendChart title="" data={demoTrendData} height={300} showLegend={true} />
-                </CardContent>
-              </Card>
+            <div className={cn('grid gap-6', expandedChart ? 'grid-cols-1' : 'lg:grid-cols-2')}>
+              {(!expandedChart || expandedChart === 'trends') && (
+                <Card
+                  className={cn(
+                    'transition-all duration-300',
+                    expandedChart === 'trends' && 'col-span-full'
+                  )}
+                >
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                      <CardTitle>Activity Trends</CardTitle>
+                      <CardDescription>Repository activity over time</CardDescription>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => toggleChartExpansion('trends')}
+                      className="h-8 w-8"
+                    >
+                      {expandedChart === 'trends' ? (
+                        <X className="h-4 w-4" />
+                      ) : (
+                        <Layout className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </CardHeader>
+                  <CardContent>
+                    <TrendChart
+                      title=""
+                      data={demoTrendData}
+                      height={expandedChart === 'trends' ? 500 : 300}
+                      showLegend={true}
+                    />
+                  </CardContent>
+                </Card>
+              )}
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Code Activity</CardTitle>
-                  <CardDescription>Daily code changes (additions vs deletions)</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ActivityChart title="" data={demoActivityData} height={300} />
-                </CardContent>
-              </Card>
+              {(!expandedChart || expandedChart === 'activity') && (
+                <Card
+                  className={cn(
+                    'transition-all duration-300',
+                    expandedChart === 'activity' && 'col-span-full'
+                  )}
+                >
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                      <CardTitle>Code Activity</CardTitle>
+                      <CardDescription>Daily code changes (additions vs deletions)</CardDescription>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => toggleChartExpansion('activity')}
+                      className="h-8 w-8"
+                    >
+                      {expandedChart === 'activity' ? (
+                        <X className="h-4 w-4" />
+                      ) : (
+                        <Layout className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </CardHeader>
+                  <CardContent>
+                    <ActivityChart
+                      title=""
+                      data={demoActivityData}
+                      height={expandedChart === 'activity' ? 500 : 300}
+                    />
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             <Card>
