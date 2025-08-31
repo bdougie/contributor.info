@@ -28,13 +28,13 @@ The application now uses a **manual, user-initiated repository tracking system**
 All components should match the existing design language.
 Storybook should be leverage to build and validate ui first
 
-## Project Planning with PRDs
+## Project Planning
 
 When working on larger features or multi-step implementations, use Product Requirements Documents (PRDs) to plan and track progress:
 
 ### PRD Best Practices
 
-1. **Location**: Store PRDs in the `/tasks/` folder with descriptive names (e.g., `prd-skeleton-loaders.md`)
+1. **Location**: Store PRDs in the `/tasks/` folder with descriptive names (e.g., `prd-skeleton-loaders.md`) and gh issues when neccessary
 
 2. **Structure**: Include these sections:
    - **Project Overview**: Objective, background, success metrics
@@ -69,12 +69,6 @@ Create a PRD when:
 - You need to coordinate multiple related changes
 - The user requests comprehensive planning before implementation
 
-### PRD vs Todo Lists
-
-- **PRDs**: For strategic planning and complex features
-- **Todo Lists**: For tactical execution and task tracking during implementation
-- Use both together: PRD for overall strategy, todos for daily execution
-
 ## Supabase Integration
 
 ### Environment Setup
@@ -101,19 +95,6 @@ VITE_SUPABASE_ANON_KEY=your-anon-key
 3. **Docker Issues**: Use Supabase Dashboard SQL Editor when Docker isn't running
 4. **Storage**: Each large repo uses ~400MB/year. Plan archival for old data.
 
-### Useful Debug Commands
-
-```bash
-# Test RLS policies
-node test-rls-access.js
-
-# Check Supabase status (requires Docker)
-npx supabase status
-
-# Apply migrations via Dashboard
-# Copy contents of migration file and run in SQL Editor
-```
-
 ## Development Memories
 
 - Replaced all require() calls with proper ES module patterns in storybook
@@ -131,46 +112,12 @@ npx supabase status
 
 ## Known Issues
 
-### Repository Not Found: undefined (Jan 2025)
-
-**Problem**: Inngest functions were throwing "Repository not found: undefined" errors in production.
-
-**Root Cause**: Failed jobs in the `progressive_capture_jobs` table had `repository_id` but were missing `repository_name` in their metadata. When the auto-retry service attempted to retry these jobs, it would fail because the hybrid queue manager requires both fields.
-
-**Solution Implemented**:
-1. **Defensive validation**: Added early validation in Inngest functions to catch undefined `repositoryId` and provide clear error messages
-2. **Auto-healing**: Modified auto-retry service to fetch missing `repository_name` from database when retrying jobs
-3. **Caching**: Added in-memory cache for repository metadata to reduce database queries during retries
-4. **Monitoring**: Added tracking flag (`repository_name_fetched: true`) to identify jobs that needed data recovery
-
-**Prevention**: 
-- Always ensure jobs are created with complete metadata
-- Use the validation pattern in Inngest functions for all required fields
-- Monitor for `repository_name_fetched` flag to identify data quality issues
-
 ### Repository Tracking Changes (Jan 2025)
 
 **Update**: The automatic repository tracking system has been replaced with manual, user-initiated tracking. 
 - Old auto-tracking hooks (`useAutoTrackRepository`) have been removed
 - Discovery now happens via explicit user action through UI buttons
 - This change improves transparency and user control over data collection
-
-### TypeScript Environment Variable Warnings
-
-**Problem**: TypeScript compilation shows errors like `Property 'env' does not exist on type 'ImportMeta'` for `import.meta.env` usage.
-
-**Root Cause**: Netlify Functions compile to CommonJS while Vite expects ESM. The `import.meta.env` pattern works at runtime but TypeScript struggles with mixed module contexts.
-
-**Solution**: Use the fallback pattern `import.meta.env?.VAR || process.env.VAR` in environment variable files:
-
-```typescript
-// ✅ Correct pattern - works in both ESM and CommonJS
-const VITE_GITHUB_TOKEN = import.meta.env?.VITE_GITHUB_TOKEN || process.env.VITE_GITHUB_TOKEN;
-```
-
-**Status**: These are build-time warnings that don't affect runtime functionality. The application works correctly despite these TypeScript errors.
-
-**Files affected**: `src/lib/github.ts`, `src/lib/supabase.ts`, `src/lib/inngest/client.ts`
 
 ## User Experience Standards
 
@@ -187,6 +134,7 @@ This project follows an **invisible, Netflix-like user experience** where data l
 - **New Features**: Follow `/docs/user-experience/feature-template.md` for consistent UX patterns
 - **Data Loading**: Use `/docs/user-experience/implementation-checklist.md` for proper auto-detection integration
 - **User Notifications**: Reference `/docs/user-experience/invisible-data-loading.md` for notification standards
+- **Bullet proof testing**: `/docs/testing/BULLETPROOF_TESTING_GUIDELINES.md` for keeping tests maintainable. e2e tests only when necessary
 
 ### Key Files for UX Consistency
 - `src/lib/progressive-capture/smart-notifications.ts` - Auto-detection on page load
