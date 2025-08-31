@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import React from 'react';
+import type { PullRequest } from '@/lib/types';
 import { Plus, Minus } from '@/components/ui/icon';
 
 // Function to get status badge styling
@@ -35,27 +36,6 @@ const formatRelativeTime = (dateString: string) => {
   if (diffInDays === 1) return '1 day ago';
   return `${diffInDays} days ago`;
 };
-
-interface PullRequest {
-  id: string;
-  number: number;
-  title: string;
-  state: string;
-  created_at: string;
-  updated_at: string;
-  merged_at?: string | null;
-  closed_at?: string;
-  additions: number;
-  deletions: number;
-  repository_owner: string;
-  repository_name: string;
-  user: {
-    login: string;
-    avatar_url: string;
-    type?: string;
-  };
-  html_url?: string;
-}
 
 interface PrHoverCardProps {
   pullRequest: PullRequest;
