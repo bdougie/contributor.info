@@ -129,7 +129,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
 
   const getScatterData = () => {
     // Sort by created_at and filter based on preferences
-    let filteredPRs = [...safeStats.pullRequests]
+    const filteredPRs = [...safeStats.pullRequests]
       .filter((pr) => localIncludeBots || pr.user.type !== 'Bot')
       .filter((pr) => {
         if (statusFilter === 'all') return pr.state === 'open' || pr.merged_at !== null;
@@ -140,10 +140,8 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
       })
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-    // Mobile optimization: limit to last 50 PRs for better performance
-    if (isMobile) {
-      filteredPRs = filteredPRs.slice(0, 50);
-    }
+    // Mobile optimization: track unique contributors
+    const uniqueContributors = new Set<string>();
 
     // Group PRs by day to implement quarter-based staggering
     const prsByDay = new Map<number, PullRequest[]>();
@@ -174,12 +172,19 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
         }
         prsByDay.get(daysAgo)!.push(pr);
 
+        // Track if this is the first occurrence of this contributor (for mobile)
+        const isFirstOccurrence = !uniqueContributors.has(pr.user.login);
+        if (isFirstOccurrence) {
+          uniqueContributors.add(pr.user.login);
+        }
+
         return {
           daysAgo,
           y: Math.max(linesTouched, 1), // Ensure minimum visibility of 1 line
           contributor: pr.user.login,
           image: avatarUrl,
           _pr: pr, // store full PR for hover card
+          isFirstOccurrence, // Track for mobile avatar display
         };
       })
       .filter(
@@ -191,11 +196,13 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
           contributor: string;
           image: string;
           _pr: PullRequest;
+          isFirstOccurrence: boolean;
         } => item !== null
       ); // Remove nulls with type guard
 
     // Apply improved staggering within each day (mobile only)
-    const staggeredData = prData.map((item, index) => {
+    let uniqueAvatarCount = 0; // Track how many unique avatars we've shown
+    const staggeredData = prData.map((item) => {
       if (isMobile) {
         const dayGroup = prsByDay.get(item.daysAgo) || [];
         const indexInDay = dayGroup.findIndex((pr) => pr.id === item._pr.id);
@@ -218,14 +225,21 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
           yJitter = ((indexInDay % 3) - 1) * jitterAmount; // -1, 0, 1 pattern
         }
 
+        // Show avatar only for first occurrence of each contributor (up to 25 unique)
+        let showAvatar = false;
+        if (item.isFirstOccurrence && uniqueAvatarCount < 25) {
+          showAvatar = true;
+          uniqueAvatarCount++;
+        }
+
         return {
           x: item.daysAgo + xOffset,
           y: Math.max(1, item.y + yJitter), // Ensure y >= 1
           contributor: item.contributor,
           image: item.image,
           _pr: item._pr,
-          // Mobile: First 25 show avatars, rest show as gray squares
-          showAvatar: index < 25,
+          // Mobile: First occurrence of each contributor (up to 25) shows avatar
+          showAvatar,
         };
       } else {
         // Desktop: no staggering needed due to larger margins and space
