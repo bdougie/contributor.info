@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import * as HoverCardPrimitive from '@radix-ui/react-hover-card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -237,9 +238,11 @@ export function RisingStarsChartSimple({
                       </div>
                     </HoverCardTrigger>
 
-                    <HoverCardContent className="w-80 z-[100]" align="center" sideOffset={5}>
-                      <ContributorDetails contributor={contributor} />
-                    </HoverCardContent>
+                    <HoverCardPrimitive.Portal>
+                      <HoverCardContent className="w-80 !z-[9999]" align="center" sideOffset={5}>
+                        <ContributorDetails contributor={contributor} />
+                      </HoverCardContent>
+                    </HoverCardPrimitive.Portal>
                   </HoverCard>
                 </div>
               );
