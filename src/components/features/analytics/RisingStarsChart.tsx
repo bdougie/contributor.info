@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useCallback, useRef, useState, useEffect } from 'react';
 import * as HoverCardPrimitive from '@radix-ui/react-hover-card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,6 +7,7 @@ import { TrendingUp, Sparkles, Users } from '@/components/ui/icon';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import type { RisingStarsData, RisingStarContributor } from '@/lib/analytics/rising-stars-data';
 import { cn } from '@/lib/utils';
+import { ChartErrorBoundary } from './ChartErrorBoundary';
 
 interface RisingStarsChartProps {
   data: RisingStarsData[];
@@ -94,6 +95,11 @@ export function RisingStarsChart({
   maxBubbles = 50,
   className,
 }: RisingStarsChartProps) {
+  const [focusedIndex, setFocusedIndex] = useState<number>(-1);
+  const [showHoverCard, setShowHoverCard] = useState<number | null>(null);
+  const chartRef = useRef<HTMLDivElement>(null);
+  const bubbleRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+
   const chartData = useMemo(() => {
     // Limit the number of bubbles displayed
     return data.map((series) => ({
@@ -110,6 +116,50 @@ export function RisingStarsChart({
   // Calculate bounds for the chart
   const xMax = Math.max(...(chartData[0]?.data.map((d) => d.x) || [100]));
   const yMax = Math.max(...(chartData[0]?.data.map((d) => d.y) || [100]));
+
+  // Keyboard navigation handlers
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      const dataPoints = chartData[0]?.data || [];
+      const currentIndex = focusedIndex;
+
+      switch (e.key) {
+        case 'ArrowRight':
+          e.preventDefault();
+          setFocusedIndex((prev) => (prev + 1) % dataPoints.length);
+          break;
+        case 'ArrowLeft':
+          e.preventDefault();
+          setFocusedIndex((prev) => (prev - 1 + dataPoints.length) % dataPoints.length);
+          break;
+        case 'Enter':
+        case ' ':
+          e.preventDefault();
+          if (currentIndex >= 0 && currentIndex < dataPoints.length) {
+            setShowHoverCard(showHoverCard === currentIndex ? null : currentIndex);
+          }
+          break;
+        case 'Escape':
+          e.preventDefault();
+          setShowHoverCard(null);
+          setFocusedIndex(-1);
+          break;
+        case 'Tab':
+          // Allow normal tab navigation but reset focus
+          setFocusedIndex(-1);
+          setShowHoverCard(null);
+          break;
+      }
+    },
+    [chartData, focusedIndex, showHoverCard]
+  );
+
+  // Focus management
+  useEffect(() => {
+    if (focusedIndex >= 0 && bubbleRefs.current.has(focusedIndex)) {
+      bubbleRefs.current.get(focusedIndex)?.focus();
+    }
+  }, [focusedIndex]);
 
   // Empty data fallback
   if (!chartData[0]?.data?.length) {
@@ -155,12 +205,26 @@ export function RisingStarsChart({
         </div>
       </CardHeader>
       <CardContent>
-        <div className="relative border rounded-lg bg-muted/10" style={{ height }}>
+        <div
+          ref={chartRef}
+          className="relative border rounded-lg bg-muted/10"
+          style={{ height }}
+          role="img"
+          aria-label="Rising Stars activity chart showing contributors plotted by code and non-code contributions"
+          onKeyDown={handleKeyDown}
+          tabIndex={0}
+        >
           {/* Axes labels */}
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs text-muted-foreground">
+          <div
+            className="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs text-muted-foreground"
+            aria-label="X axis: Code Contributions"
+          >
             Code Contributions (PRs + Commits) →
           </div>
-          <div className="absolute left-2 top-1/2 -translate-y-1/2 -rotate-90 text-xs text-muted-foreground">
+          <div
+            className="absolute left-2 top-1/2 -translate-y-1/2 -rotate-90 text-xs text-muted-foreground"
+            aria-label="Y axis: Non-Code Contributions"
+          >
             Non-Code Contributions →
           </div>
 
@@ -194,9 +258,21 @@ export function RisingStarsChart({
                     zIndex: i, // Layer bubbles based on their order
                   }}
                 >
-                  <HoverCard>
+                  <HoverCard open={showHoverCard === i}>
                     <HoverCardTrigger asChild>
-                      <div className="relative cursor-pointer group">
+                      <div
+                        ref={(el) => {
+                          if (el) bubbleRefs.current.set(i, el);
+                        }}
+                        className={cn(
+                          'relative cursor-pointer group focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-full',
+                          focusedIndex === i && 'ring-2 ring-primary ring-offset-2'
+                        )}
+                        role="button"
+                        aria-label={`Contributor ${contributor.login} with ${contributor.totalActivity} total activity`}
+                        tabIndex={focusedIndex === i ? 0 : -1}
+                        onClick={() => setShowHoverCard(showHoverCard === i ? null : i)}
+                      >
                         {/* Rising star indicator */}
                         {contributor.isRisingStar && (
                           <div
@@ -249,5 +325,19 @@ export function RisingStarsChart({
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+/**
+ * RisingStarsChart wrapped with error boundary for production use
+ */
+export function RisingStarsChartWithErrorBoundary(props: RisingStarsChartProps) {
+  return (
+    <ChartErrorBoundary
+      fallbackTitle="Rising Stars Chart Unavailable"
+      fallbackDescription="Unable to display the rising stars visualization at this time."
+    >
+      <RisingStarsChart {...props} />
+    </ChartErrorBoundary>
   );
 }

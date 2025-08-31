@@ -17,6 +17,22 @@ import type { Database } from '@/types/database';
 // Type definitions for aggregation
 type Repository = Database['public']['Tables']['repositories']['Row'];
 
+// Type for PR/Issue with contributor data
+interface ContributorJoin {
+  username: string;
+  avatar_url: string | null;
+}
+
+interface PRWithContributor {
+  author_id: string;
+  contributors: ContributorJoin | null;
+}
+
+interface IssueWithContributor {
+  author_id: string;
+  contributors: ContributorJoin | null;
+}
+
 interface AggregatedData {
   totalPRs: number;
   mergedPRs: number;
@@ -35,6 +51,43 @@ interface AggregatedData {
   contributors: Map<string, MetricsContributor>;
   activityByDate: Map<string, ActivityDataPoint>;
   repositoryStats: RepositoryStat[];
+}
+
+interface TrendsData {
+  starsTrend: number;
+  prsTrend: number;
+  contributorsTrend: number;
+  issuesTrend: number;
+}
+
+interface CachedMetrics {
+  workspace_id: string;
+  time_range: MetricsTimeRange;
+  period_start: string;
+  period_end: string;
+  total_prs: number;
+  merged_prs: number;
+  open_prs: number;
+  draft_prs: number;
+  total_issues: number;
+  closed_issues: number;
+  open_issues: number;
+  total_commits: number;
+  total_stars: number;
+  total_forks: number;
+  total_watchers: number;
+  avg_pr_merge_time_hours: number;
+  pr_velocity: number;
+  issue_closure_rate: number;
+  top_contributors: MetricsContributor[];
+  activity_timeline: ActivityDataPoint[];
+  languages: LanguageDistribution;
+  repository_stats: RepositoryStat[];
+  stars_trend: number;
+  prs_trend: number;
+  contributors_trend: number;
+  issues_trend: number;
+  cached_at: string;
 }
 
 export interface AggregationOptions {
@@ -160,7 +213,7 @@ export class WorkspaceAggregationService {
       .select('*')
       .eq('workspace_id', workspaceId)
       .eq('time_range', timeRange)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error('Error fetching cached metrics:', error);
@@ -463,7 +516,7 @@ export class WorkspaceAggregationService {
     // Aggregate contributor stats
     const contributorMap = new Map<string, MetricsContributor>();
 
-    prContributors?.forEach((pr: any) => {
+    prContributors?.forEach((pr: PRWithContributor) => {
       const contributor = pr.contributors;
       if (contributor && typeof contributor === 'object' && 'username' in contributor) {
         const existing = contributorMap.get(contributor.username) || {
@@ -479,7 +532,7 @@ export class WorkspaceAggregationService {
       }
     });
 
-    issueContributors?.forEach((issue: any) => {
+    issueContributors?.forEach((issue: IssueWithContributor) => {
       const contributor = issue.contributors;
       if (contributor && typeof contributor === 'object' && 'username' in contributor) {
         const existing = contributorMap.get(contributor.username) || {
@@ -504,7 +557,7 @@ export class WorkspaceAggregationService {
   private async calculateTrends(
     workspaceId: string,
     timeRange: MetricsTimeRange,
-    currentData: any,
+    currentData: AggregatedData,
     periodStart: Date
   ) {
     // Get previous period data for comparison
@@ -523,6 +576,10 @@ export class WorkspaceAggregationService {
       commitsTrend: this.calculateTrendPercentage(
         currentData.totalCommits,
         previousPeriod?.totalCommits || 0
+      ),
+      issuesTrend: this.calculateTrendPercentage(
+        currentData.totalIssues,
+        previousPeriod?.totalIssues || 0
       ),
     };
   }
@@ -600,8 +657,8 @@ export class WorkspaceAggregationService {
     timeRange: MetricsTimeRange,
     periodStart: Date,
     periodEnd: Date,
-    aggregatedData: any,
-    _trends: any
+    aggregatedData: AggregatedData,
+    trends: TrendsData
   ): WorkspaceMetrics {
     // Calculate averages
     const avgPRMergeTime =
@@ -675,6 +732,10 @@ export class WorkspaceAggregationService {
         top_contributors: topContributors as MetricsContributor[],
         activity_timeline: activityTimeline,
         repository_stats: aggregatedData.repositoryStats,
+        stars_trend: trends.starsTrend,
+        prs_trend: trends.prsTrend,
+        contributors_trend: trends.contributorsTrend,
+        issues_trend: trends.issuesTrend,
       },
       calculated_at: new Date().toISOString(),
       expires_at: this.calculateExpiryTime(timeRange).toISOString(),
@@ -763,7 +824,7 @@ export class WorkspaceAggregationService {
   /**
    * Flatten metrics object for database storage
    */
-  private flattenMetricsForCache(metrics: any) {
+  private flattenMetricsForCache(metrics: WorkspaceMetrics) {
     return {
       total_prs: metrics.total_prs,
       merged_prs: metrics.merged_prs,
@@ -793,7 +854,7 @@ export class WorkspaceAggregationService {
   /**
    * Transform cached data back to WorkspaceMetrics format
    */
-  private transformCacheToMetrics(cached: any): WorkspaceMetrics {
+  private transformCacheToMetrics(cached: CachedMetrics): WorkspaceMetrics {
     return {
       id: cached.id,
       workspace_id: cached.workspace_id,
@@ -841,7 +902,7 @@ export class WorkspaceAggregationService {
   /**
    * Queue history update for trend tracking
    */
-  private async queueHistoryUpdate(workspaceId: string, aggregatedData: any) {
+  private async queueHistoryUpdate(workspaceId: string, aggregatedData: AggregatedData) {
     const today = new Date().toISOString().split('T')[0];
 
     const historyData = {
