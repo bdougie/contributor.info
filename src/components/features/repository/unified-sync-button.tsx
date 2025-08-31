@@ -238,13 +238,40 @@ export function UnifiedSyncButton({
 
       // Check if at least one succeeded
       if (!ghDatapipeResult && !inngestResult) {
-        throw new Error('Both sync methods failed');
+        const errorDetails = [
+          'Sync methods failed:',
+          '• GitHub data pipeline: Unable to trigger backfill',
+          '• Inngest background jobs: Connection blocked by security policy',
+          '',
+          'This may be due to:',
+          '• Network connectivity issues',
+          '• Service maintenance',
+          '• Browser security restrictions',
+          '',
+          'Please try again in a few minutes or contact support if this persists.'
+        ].join('\n');
+        throw new Error(errorDetails);
       }
 
-      // Show success notification
+      // Show success notification with details about what worked
       if (!isAutomatic) {
+        const successMethods = [];
+        const failedMethods = [];
+        
+        if (ghDatapipeResult) successMethods.push('GitHub data pipeline');
+        else failedMethods.push('GitHub data pipeline');
+        
+        if (inngestResult) successMethods.push('Background processor');
+        else failedMethods.push('Background processor');
+        
+        let description = 'Data will be refreshed in 1-2 minutes. The page will update automatically.';
+        
+        if (failedMethods.length > 0) {
+          description = `${successMethods.join(' and ')} initiated successfully. ${failedMethods.join(' and ')} failed but sync will continue.`;
+        }
+        
         toast.success('Sync initiated!', {
-          description: 'Data will be refreshed in 1-2 minutes. The page will update automatically.',
+          description,
           duration: 8000,
         });
       }
