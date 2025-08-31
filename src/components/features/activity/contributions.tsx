@@ -1,4 +1,4 @@
-import { useState, useContext, useEffect, useRef, lazy } from 'react';
+import { useState, useContext, useEffect, useRef } from 'react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -9,12 +9,8 @@ import { SkeletonChart } from '@/components/skeletons/base/skeleton-chart';
 import { getAvatarUrl } from '@/lib/utils/avatar';
 import { getUserRole } from '@/lib/utils/data-type-mapping';
 
-// Lazy load the heavy visualization component
-const ResponsiveScatterPlot = lazy(() =>
-  import('@nivo/scatterplot').then((module) => ({
-    default: module.ResponsiveScatterPlot,
-  }))
-);
+// Import directly to debug the issue
+import { ResponsiveScatterPlot } from '@nivo/scatterplot';
 
 // Import types separately since they don't affect bundle size
 // import type { ScatterPlotNodeProps } from "@nivo/scatterplot";
@@ -26,7 +22,6 @@ import type { PullRequest } from '@/lib/types';
 import { PrHoverCard } from '../contributor/pr-hover-card';
 import { useContributorRole } from '@/hooks/useContributorRoles';
 import { useParams } from 'react-router-dom';
-import { useTheme } from '@/components/common/theming/theme-provider';
 
 interface ContributionsChartProps {
   isRepositoryTracked?: boolean;
@@ -36,7 +31,6 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
   const { stats, includeBots: contextIncludeBots } = useContext(RepoStatsContext);
   const { effectiveTimeRange } = useTimeRange();
   const { owner, repo } = useParams<{ owner: string; repo: string }>();
-  const { theme } = useTheme();
   const [isLogarithmic, setIsLogarithmic] = useState(false);
   const [maxFilesModified, setMaxFilesModified] = useState(10);
   const [localIncludeBots, setLocalIncludeBots] = useState(contextIncludeBots);
@@ -50,73 +44,6 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
   const mobileMaxDays = 7; // Aggressive filtering for mobile
 
   const functionTimeout = useRef<NodeJS.Timeout | null>(null);
-
-  // Get the actual theme (resolves 'system' to 'light' or 'dark')
-  const getActualTheme = () => {
-    if (theme === 'system') {
-      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    }
-    return theme;
-  };
-
-  // Create Nivo theme object based on current theme
-  const getNivoTheme = () => {
-    const actualTheme = getActualTheme();
-    const isDark = actualTheme === 'dark';
-
-    return {
-      background: 'transparent',
-      text: {
-        fontSize: 12,
-        fill: isDark ? 'hsl(0 0% 98%)' : 'hsl(0 0% 3.9%)', // foreground colors
-        outlineWidth: 0,
-        outlineColor: 'transparent',
-      },
-      axis: {
-        domain: {
-          line: {
-            stroke: isDark ? 'hsl(0 0% 14.9%)' : 'hsl(0 0% 87%)', // border colors
-            strokeWidth: 1,
-          },
-        },
-        legend: {
-          text: {
-            fontSize: 13,
-            fill: isDark ? 'hsl(0 0% 64.9%)' : 'hsl(0 0% 45.1%)', // muted foreground
-            outlineWidth: 0,
-            outlineColor: 'transparent',
-          },
-        },
-        ticks: {
-          line: {
-            stroke: isDark ? 'hsl(0 0% 14.9%)' : 'hsl(0 0% 87%)', // border colors
-            strokeWidth: 1,
-          },
-          text: {
-            fontSize: 11,
-            fill: isDark ? 'hsl(0 0% 64.9%)' : 'hsl(0 0% 45.1%)', // muted foreground
-            outlineWidth: 0,
-            outlineColor: 'transparent',
-          },
-        },
-      },
-      grid: {
-        line: {
-          stroke: isDark ? 'hsl(0 0% 14.9%)' : 'hsl(0 0% 87%)', // border colors
-          strokeWidth: 1,
-          strokeOpacity: 0.7,
-          strokeDasharray: '4 4',
-        },
-      },
-      crosshair: {
-        line: {
-          stroke: isDark ? 'hsl(0 0% 98%)' : 'hsl(0 0% 3.9%)', // foreground colors
-          strokeWidth: 1,
-          strokeOpacity: 0.75,
-        },
-      },
-    };
-  };
 
   // Add resize listener to update isMobile state with throttling
   useEffect(() => {
@@ -181,7 +108,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
         });
 
         setCachedAvatars(avatarMap);
-      } catch (error) {
+      } catch {
         // Fallback to original URLs on error
         const fallbackMap = new Map<number, string>();
         contributors.forEach((c) => {
@@ -195,9 +122,6 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
 
     loadCachedAvatars();
   }, [safeStats.pullRequests]);
-
-  // Force re-render when theme changes to update Nivo theme
-  const nivoTheme = getNivoTheme();
 
   const getScatterData = () => {
     // Sort by created_at and filter based on preferences
@@ -260,30 +184,82 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
   };
 
   // Custom Node for scatter plot points
-  const CustomNode = (props: any) => {
-    // Get the contributor's role
-    const { role } = useContributorRole(owner || '', repo || '', props.node.data.contributor);
+  const CustomNode = (props: {
+    node?: {
+      data?: {
+        contributor: string;
+        image: string;
+        _pr: PullRequest;
+      };
+    };
+    style?: Record<string, unknown>;
+  }) => {
+    // Get the contributor's role first (must be called unconditionally)
+    const { role } = useContributorRole(
+      owner || '',
+      repo || '',
+      props?.node?.data?.contributor || ''
+    );
+
+    // Defensive check for required props
+    if (!props || !props.node || !props.node.data) {
+      console.warn('CustomNode: Missing required props', props);
+      return null;
+    }
 
     const size = isMobile ? 28 : 35;
 
-    return (
-      <animated.foreignObject
-        width={size}
-        height={size}
-        r={props.style.size.to((size: number) => size / 2) as unknown as number}
-        y={props.style.y.to((yVal: number) => Math.max(0, yVal - size / 1)) as unknown as number}
-        x={
-          props.style.x.to((xVal: number) =>
-            Math.max(size / 2, xVal - size / 2)
-          ) as unknown as number
-        }
-        style={{
+    // Handle different animation prop formats from Nivo
+    // Check if we have animated values or static values
+    const hasAnimatedStyle = props.style && typeof props.style === 'object';
+    const isSpringValue = (val: unknown): val is { to: (fn: (v: number) => number) => number } =>
+      val !== null &&
+      typeof val === 'object' &&
+      'to' in val &&
+      typeof (val as { to?: unknown }).to === 'function';
+
+    // Calculate x and y positions
+    let xPos = 0;
+    let yPos = 0;
+
+    if (hasAnimatedStyle && props.style) {
+      // Handle Spring animated values
+      const styleX = (props.style as Record<string, unknown>).x;
+      const styleY = (props.style as Record<string, unknown>).y;
+
+      if (isSpringValue(styleX)) {
+        xPos = styleX.to((xVal: number) => Math.max(size / 2, xVal - size / 2));
+      } else if (typeof styleX === 'number') {
+        xPos = Math.max(size / 2, styleX - size / 2);
+      }
+
+      if (isSpringValue(styleY)) {
+        yPos = styleY.to((yVal: number) => Math.max(0, yVal - size / 1));
+      } else if (typeof styleY === 'number') {
+        yPos = Math.max(0, styleY - size / 1);
+      }
+    }
+
+    // Build the style object based on what we have
+    const nodeStyle: React.CSSProperties = hasAnimatedStyle
+      ? {
+          ...props.style,
+          x: xPos,
+          y: yPos,
           pointerEvents: 'auto',
           overflow: 'visible',
-          // Ensure proper rendering in different contexts
           isolation: 'isolate',
-        }}
-      >
+        }
+      : {
+          x: xPos,
+          y: yPos,
+          pointerEvents: 'auto',
+          overflow: 'visible',
+          isolation: 'isolate',
+        };
+
+    return (
+      <animated.foreignObject width={size} height={size} style={nodeStyle}>
         <div style={{ width: '100%', height: '100%' }}>
           <PrHoverCard
             pullRequest={props.node.data._pr}
@@ -441,63 +417,75 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
             <SkeletonChart variant="scatter" height={isMobile ? 'sm' : 'lg'} showAxes={true} />
           }
           highFidelity={
-            <ResponsiveScatterPlot
-              nodeSize={isMobile ? 20 : 35}
-              data={data}
-              margin={{
-                top: 20,
-                right: isMobile ? 10 : 60,
-                bottom: isMobile ? 45 : 70,
-                left: isMobile ? 35 : 90,
-              }}
-              xScale={{
-                type: 'linear',
-                min: 0,
-                max: isMobile ? mobileMaxDays : effectiveTimeRangeNumber,
-                reverse: true,
-              }}
-              yScale={{
-                type: isLogarithmic ? 'symlog' : 'linear',
-                min: 1,
-                max: Math.max(Math.round(maxFilesModified * 1.5), 10),
-              }}
-              blendMode="normal"
-              useMesh={false}
-              annotations={[]}
-              nodeComponent={CustomNode}
-              axisBottom={{
-                tickSize: 6,
-                tickPadding: 4,
-                tickRotation: 0,
-                tickValues: isMobile ? 3 : 7,
-                legend: isMobile ? 'Days Ago' : 'Date Created',
-                legendPosition: 'middle',
-                legendOffset: isMobile ? 35 : 50,
-                format: (value) =>
-                  value === 0
-                    ? 'Today'
-                    : value > effectiveTimeRangeNumber
-                      ? `${effectiveTimeRangeNumber}+`
-                      : `${value}${isMobile ? '' : ' days ago'}`,
-              }}
-              theme={nivoTheme}
-              isInteractive={true}
-              axisLeft={{
-                tickSize: 2,
-                tickPadding: 3,
-                tickRotation: 0,
-                tickValues: isMobile ? 3 : 5,
-                legend: isMobile ? 'Lines' : 'Lines Touched',
-                legendPosition: 'middle',
-                legendOffset: isMobile ? -20 : -60,
-                format: (value: number) => {
-                  if (isMobile) {
+            data.length > 0 ? (
+              <ResponsiveScatterPlot
+                nodeSize={isMobile ? 20 : 35}
+                data={data}
+                margin={{
+                  top: 20,
+                  right: isMobile ? 10 : 60,
+                  bottom: isMobile ? 45 : 70,
+                  left: isMobile ? 35 : 90,
+                }}
+                xScale={{
+                  type: 'linear',
+                  min: 0,
+                  max: isMobile ? mobileMaxDays : effectiveTimeRangeNumber,
+                  reverse: true,
+                }}
+                yScale={{
+                  type: isLogarithmic ? 'symlog' : 'linear',
+                  min: 1,
+                  max: Math.max(Math.round(maxFilesModified * 1.5), 10),
+                }}
+                blendMode="normal"
+                useMesh={false}
+                annotations={[]}
+                nodeComponent={CustomNode}
+                animate={false}
+                enableGridX={true}
+                enableGridY={true}
+                axisTop={null}
+                axisRight={null}
+                axisBottom={{
+                  tickSize: 6,
+                  tickPadding: 4,
+                  tickRotation: 0,
+                  tickValues: isMobile ? 3 : 7,
+                  legend: isMobile ? 'Days Ago' : 'Date Created',
+                  legendPosition: 'middle',
+                  legendOffset: isMobile ? 35 : 50,
+                  format: (value) => {
+                    if (value === 0) return 'Today';
+                    if (value > effectiveTimeRangeNumber) return `${effectiveTimeRangeNumber}+`;
+                    return `${value}${isMobile ? '' : ' days ago'}`;
+                  },
+                }}
+                isInteractive={true}
+                axisLeft={{
+                  tickSize: 2,
+                  tickPadding: 3,
+                  tickRotation: 0,
+                  tickValues: isMobile ? 3 : 5,
+                  legend: isMobile ? 'Lines' : 'Lines Touched',
+                  legendPosition: 'middle',
+                  legendOffset: isMobile ? -20 : -60,
+                  format: (value: number) => {
+                    if (isMobile) {
+                      return parseInt(`${value}`) >= 1000 ? humanizeNumber(value) : `${value}`;
+                    }
                     return parseInt(`${value}`) >= 1000 ? humanizeNumber(value) : `${value}`;
-                  }
-                  return parseInt(`${value}`) >= 1000 ? humanizeNumber(value) : `${value}`;
-                },
-              }}
-            />
+                  },
+                }}
+                tooltip={() => null}
+                colors={{ scheme: 'category10' }}
+                layers={['grid', 'axes', 'nodes', 'legends']}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                No data to display
+              </div>
+            )
           }
           priority={false}
           highFiDelay={300}

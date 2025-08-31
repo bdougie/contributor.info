@@ -79,9 +79,9 @@ export const supabasePullRequestWithRelationsSchema = z.object({
   deletions: z.number().nullable(),
   changed_files: z.number().nullable(),
   commits: z.number().nullable(),
-  html_url: z.string(),
+  html_url: z.string().nullable(),
   repository_id: z.string().uuid(),
-  author_id: z.string().uuid(),
+  author_id: z.string().uuid().nullable(),
   // Nested contributor from author_id join
   contributors: supabaseContributorNestedSchema,
   // Nested reviews array with contributors
@@ -102,13 +102,24 @@ export const supabasePullRequestArraySchema = z.array(supabasePullRequestWithRel
  * Handles missing data gracefully with fallback values
  */
 export function transformSupabasePRToAppFormat(
-  dbPR: z.infer<typeof supabasePullRequestWithRelationsSchema>
+  dbPR: z.infer<typeof supabasePullRequestWithRelationsSchema>,
+  owner?: string,
+  repo?: string
 ) {
   const contributor = dbPR.contributors || {
     username: 'unknown',
     github_id: 0,
     avatar_url: '',
     is_bot: false,
+  };
+
+  // Generate GitHub URL if missing and we have owner/repo/number
+  const generatePRUrl = () => {
+    if (dbPR.html_url) return dbPR.html_url;
+    if (owner && repo && dbPR.number) {
+      return `https://github.com/${owner}/${repo}/pull/${dbPR.number}`;
+    }
+    return '';
   };
 
   return {
@@ -130,9 +141,9 @@ export function transformSupabasePRToAppFormat(
     additions: dbPR.additions || 0,
     deletions: dbPR.deletions || 0,
     changed_files: dbPR.changed_files || 0,
-    html_url: dbPR.html_url,
-    repository_owner: '', // These need to be passed in separately
-    repository_name: '',
+    html_url: generatePRUrl(),
+    repository_owner: owner || '', // These need to be passed in separately
+    repository_name: repo || '',
     reviews: (dbPR.reviews || []).map((review) => ({
       id: review.github_id,
       state: review.state,
@@ -255,10 +266,7 @@ export function validateAndTransformPRData(data: unknown, owner: string, repo: s
   }
 
   return validation.data.map((pr) => {
-    const transformed = transformSupabasePRToAppFormat(pr);
-    transformed.repository_owner = owner;
-    transformed.repository_name = repo;
-    return transformed;
+    return transformSupabasePRToAppFormat(pr, owner, repo);
   });
 }
 
