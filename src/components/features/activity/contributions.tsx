@@ -129,7 +129,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
 
   const getScatterData = () => {
     // Sort by created_at and filter based on preferences
-    const filteredPRs = [...safeStats.pullRequests]
+    let filteredPRs = [...safeStats.pullRequests]
       .filter((pr) => localIncludeBots || pr.user.type !== 'Bot')
       .filter((pr) => {
         if (statusFilter === 'all') return pr.state === 'open' || pr.merged_at !== null;
@@ -139,6 +139,11 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
         return true;
       })
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    // Mobile optimization: limit to last 50 PRs for better performance
+    if (isMobile) {
+      filteredPRs = filteredPRs.slice(0, 50);
+    }
 
     // Group PRs by day to implement quarter-based staggering
     const prsByDay = new Map<number, PullRequest[]>();
@@ -190,7 +195,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
       ); // Remove nulls with type guard
 
     // Apply improved staggering within each day (mobile only)
-    const staggeredData = prData.map((item) => {
+    const staggeredData = prData.map((item, index) => {
       if (isMobile) {
         const dayGroup = prsByDay.get(item.daysAgo) || [];
         const indexInDay = dayGroup.findIndex((pr) => pr.id === item._pr.id);
@@ -219,6 +224,8 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
           contributor: item.contributor,
           image: item.image,
           _pr: item._pr,
+          // Mobile: First 25 show avatars, rest show as gray squares
+          showAvatar: index < 25,
         };
       } else {
         // Desktop: no staggering needed due to larger margins and space
@@ -228,6 +235,8 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
           contributor: item.contributor,
           image: item.image,
           _pr: item._pr,
+          // Desktop: Always show avatars
+          showAvatar: true,
         };
       }
     });
@@ -311,10 +320,42 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
           isolation: 'isolate',
         };
 
+    // Check if we should show avatar or gray square (mobile optimization)
+    const shouldShowAvatar = props.node.data.showAvatar !== false;
+
     // Safari has issues with foreignObject, so use a simpler approach
     if (isSafari) {
       // For Safari, use SVG elements directly without foreignObject
       const radius = size / 2;
+
+      // Gray square for contributions beyond the 25 avatar limit
+      if (!shouldShowAvatar) {
+        const squareSize = size * 0.7; // Slightly smaller square
+        return (
+          <animated.g style={nodeStyle}>
+            <rect
+              x={(size - squareSize) / 2}
+              y={(size - squareSize) / 2}
+              width={squareSize}
+              height={squareSize}
+              fill="hsl(var(--muted-foreground) / 0.3)"
+              stroke="hsl(var(--border))"
+              strokeWidth="1"
+              rx="2"
+              style={{ cursor: 'pointer' }}
+              onClick={() => {
+                const prUrl =
+                  props.node.data._pr.html_url ||
+                  `https://github.com/${props.node.data._pr.repository_owner}/${props.node.data._pr.repository_name}/pull/${props.node.data._pr.number}`;
+                window.open(prUrl, '_blank', 'noopener,noreferrer');
+              }}
+            />
+            <title>
+              {props.node.data.contributor} - PR #{props.node.data._pr.number}
+            </title>
+          </animated.g>
+        );
+      }
 
       return (
         <animated.g style={nodeStyle}>
@@ -385,6 +426,43 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
     }
 
     // Original implementation for non-Safari browsers
+
+    // Gray square for contributions beyond the 25 avatar limit
+    if (!shouldShowAvatar) {
+      const squareSize = size * 0.7; // Slightly smaller square
+      return (
+        <animated.foreignObject width={size} height={size} style={nodeStyle}>
+          <div
+            style={{
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <div
+              style={{
+                width: squareSize,
+                height: squareSize,
+                backgroundColor: 'hsl(var(--muted-foreground) / 0.3)',
+                border: '1px solid hsl(var(--border))',
+                borderRadius: '2px',
+                cursor: 'pointer',
+              }}
+              onClick={() => {
+                const prUrl =
+                  props.node.data._pr.html_url ||
+                  `https://github.com/${props.node.data._pr.repository_owner}/${props.node.data._pr.repository_name}/pull/${props.node.data._pr.number}`;
+                window.open(prUrl, '_blank', 'noopener,noreferrer');
+              }}
+              title={`${props.node.data.contributor} - PR #${props.node.data._pr.number}`}
+            />
+          </div>
+        </animated.foreignObject>
+      );
+    }
+
     return (
       <animated.foreignObject width={size} height={size} style={nodeStyle}>
         <div
