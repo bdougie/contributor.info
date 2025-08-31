@@ -261,19 +261,30 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
         } => item !== null
       ); // Remove nulls with type guard
 
-    // Apply quarter-based staggering within each day
+    // Apply quarter-based staggering within each day (mobile only)
     const staggeredData = prData.map((item) => {
-      const dayGroup = prsByDay.get(item.daysAgo) || [];
-      const indexInDay = dayGroup.findIndex(pr => pr.id === item._pr.id);
-      const quarterOffset = (indexInDay % 4) * 0.25; // 0, 0.25, 0.5, 0.75
-      
-      return {
-        x: item.daysAgo + quarterOffset,
-        y: item.y,
-        contributor: item.contributor,
-        image: item.image,
-        _pr: item._pr,
-      };
+      if (isMobile) {
+        const dayGroup = prsByDay.get(item.daysAgo) || [];
+        const indexInDay = dayGroup.findIndex(pr => pr.id === item._pr.id);
+        const quarterOffset = (indexInDay % 4) * 0.25; // 0, 0.25, 0.5, 0.75
+        
+        return {
+          x: item.daysAgo + quarterOffset,
+          y: item.y,
+          contributor: item.contributor,
+          image: item.image,
+          _pr: item._pr,
+        };
+      } else {
+        // Desktop: no staggering needed due to larger margins and space
+        return {
+          x: item.daysAgo,
+          y: item.y,
+          contributor: item.contributor,
+          image: item.image,
+          _pr: item._pr,
+        };
+      }
     });
 
     return [
