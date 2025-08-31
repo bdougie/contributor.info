@@ -71,7 +71,13 @@ function ContributorDetails({ contributor }: { contributor: RisingStarContributo
 
       <div className="pt-2 border-t">
         <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">Velocity Score</span>
+          <span className="text-muted-foreground">Activity Score</span>
+          <span className="font-medium">
+            {contributor.totalActivity || contributor.totalGithubEvents}
+          </span>
+        </div>
+        <div className="flex justify-between text-sm mt-1">
+          <span className="text-muted-foreground">Velocity</span>
           <span className="font-medium">{contributor.velocityScore.toFixed(1)}/week</span>
         </div>
         <div className="flex justify-between text-sm mt-1">
@@ -156,7 +162,7 @@ export function RisingStarsChartSimple({
             Commits →
           </div>
           <div className="absolute left-2 top-1/2 -translate-y-1/2 -rotate-90 text-xs text-muted-foreground">
-            PRs + Issues →
+            Total GitHub Events →
           </div>
 
           {/* Grid lines */}

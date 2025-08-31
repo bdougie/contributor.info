@@ -83,6 +83,24 @@ export function RisingStarsChart({
         strokeDasharray: '4 4',
       },
     },
+    legends: {
+      text: {
+        fontSize: 11,
+        fill: 'hsl(0 0% 45.1%)',
+      },
+    },
+    labels: {
+      text: {
+        fontSize: 11,
+        fill: 'hsl(0 0% 45.1%)',
+      },
+    },
+    dots: {
+      text: {
+        fontSize: 10,
+        fill: 'hsl(0 0% 45.1%)',
+      },
+    },
     tooltip: {
       container: {
         background: 'hsl(0 0% 100%)',
@@ -117,6 +135,14 @@ export function RisingStarsChart({
         outlineWidth: 2,
         outlineColor: 'hsl(0 0% 100%)',
         outlineOpacity: 1,
+      },
+    },
+    crosshair: {
+      line: {
+        stroke: 'hsl(0 0% 45.1%)',
+        strokeWidth: 1,
+        strokeOpacity: 0.75,
+        strokeDasharray: '6 6',
       },
     },
   };
