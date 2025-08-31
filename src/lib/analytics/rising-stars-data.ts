@@ -1,5 +1,13 @@
 import type { Database } from '@/types/database';
 
+// Constants for rising star calculations
+const RISING_STAR_VELOCITY_THRESHOLD = 10; // events per week
+const RISING_STAR_MAX_AGE_DAYS = 180;
+const VELOCITY_TO_SIZE_MULTIPLIER = 10;
+const MIN_BUBBLE_SIZE = 10;
+const MAX_BUBBLE_SIZE = 100;
+const DEFAULT_TOP_CONTRIBUTORS_LIMIT = 10;
+
 export interface RisingStarContributor {
   login: string;
   avatar_url: string;
@@ -10,8 +18,7 @@ export interface RisingStarContributor {
   comments: number;
   reviews: number;
   discussions: number;
-  totalGithubEvents: number; // Total of all GitHub events
-  totalActivity: number; // Legacy field for compatibility
+  totalActivity: number; // Total of all GitHub events
   velocityScore: number;
   growthRate: number;
   firstContributionDate: string;
@@ -52,6 +59,16 @@ export function calculateRisingStars(
     newContributorDays?: number;
   } = {}
 ): RisingStarsData[] {
+  // Guard clause for empty metrics
+  if (!metrics || metrics.length === 0) {
+    return [
+      {
+        id: 'rising-stars',
+        data: [],
+      },
+    ];
+  }
+
   const { timeWindowDays = 30, minActivity = 3, newContributorDays = 90 } = options;
 
   const now = new Date();
@@ -76,12 +93,11 @@ export function calculateRisingStars(
 
         // Calculate activity metrics
         const prCount = recentPRs.length;
-        const totalGithubEvents =
+        const totalActivity =
           prCount + commitCount + issueCount + commentCount + reviewCount + discussionCount;
-        const totalActivity = totalGithubEvents; // Keep for compatibility
 
         // Skip if below minimum activity threshold
-        if (totalGithubEvents < minActivity) {
+        if (totalActivity < minActivity) {
           return null;
         }
 
@@ -98,7 +114,7 @@ export function calculateRisingStars(
 
         // Calculate velocity (activity per week)
         const weeksActive = Math.max(contributionSpan / 7, 1);
-        const velocityScore = totalGithubEvents / weeksActive;
+        const velocityScore = totalActivity / weeksActive;
 
         // Calculate growth rate (compare recent vs earlier activity)
         const midPoint = new Date(
@@ -115,7 +131,9 @@ export function calculateRisingStars(
         const contributorAgeDays = Math.ceil(
           (now.getTime() - firstContribution.getTime()) / (1000 * 60 * 60 * 24)
         );
-        const isRisingStar = velocityScore > 10 && contributorAgeDays < 180;
+        const isRisingStar =
+          velocityScore > RISING_STAR_VELOCITY_THRESHOLD &&
+          contributorAgeDays < RISING_STAR_MAX_AGE_DAYS;
 
         return {
           login: contributor.username,
@@ -127,7 +145,6 @@ export function calculateRisingStars(
           comments: commentCount,
           reviews: reviewCount,
           discussions: discussionCount,
-          totalGithubEvents,
           totalActivity,
           velocityScore,
           growthRate,
@@ -154,7 +171,10 @@ export function calculateRisingStars(
         x: contributor.commits + contributor.pullRequests, // Code contributions (PRs + commits)
         y:
           contributor.issues + contributor.comments + contributor.reviews + contributor.discussions, // Non-code contributions
-        size: Math.min(Math.max(contributor.velocityScore * 10, 10), 100), // Scale size between 10-100
+        size: Math.min(
+          Math.max(contributor.velocityScore * VELOCITY_TO_SIZE_MULTIPLIER, MIN_BUBBLE_SIZE),
+          MAX_BUBBLE_SIZE
+        ), // Scale size between 10-100
         contributor,
       })),
     },
@@ -165,8 +185,12 @@ export function calculateRisingStars(
 
 export function getTopRisingStars(
   data: RisingStarsData[],
-  limit: number = 10
+  limit: number = DEFAULT_TOP_CONTRIBUTORS_LIMIT
 ): RisingStarContributor[] {
+  // Guard clause for empty data
+  if (!data || data.length === 0) {
+    return [];
+  }
   const allContributors = data.flatMap((series) => series.data.map((point) => point.contributor));
 
   return allContributors
@@ -177,8 +201,12 @@ export function getTopRisingStars(
 
 export function getNewContributors(
   data: RisingStarsData[],
-  limit: number = 10
+  limit: number = DEFAULT_TOP_CONTRIBUTORS_LIMIT
 ): RisingStarContributor[] {
+  // Guard clause for empty data
+  if (!data || data.length === 0) {
+    return [];
+  }
   const allContributors = data.flatMap((series) => series.data.map((point) => point.contributor));
 
   return allContributors

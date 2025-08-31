@@ -73,9 +73,7 @@ function ContributorDetails({ contributor }: { contributor: RisingStarContributo
       <div className="pt-2 border-t">
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">Activity Score</span>
-          <span className="font-medium">
-            {contributor.totalActivity || contributor.totalGithubEvents}
-          </span>
+          <span className="font-medium">{contributor.totalActivity}</span>
         </div>
         <div className="flex justify-between text-sm mt-1">
           <span className="text-muted-foreground">Velocity</span>
