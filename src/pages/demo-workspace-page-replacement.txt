@@ -1,0 +1,4 @@
+  // Generate rising stars data using extracted functions for better maintainability
+  const risingStarsData = useMemo(() => {
+    return generateRisingStarsData(demoAnalyticsData.contributors);
+  }, [demoAnalyticsData.contributors]);
