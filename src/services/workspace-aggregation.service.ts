@@ -25,12 +25,12 @@ interface ContributorJoin {
 
 interface PRWithContributor {
   author_id: string;
-  contributors: ContributorJoin | null;
+  contributors: ContributorJoin | ContributorJoin[] | null;
 }
 
 interface IssueWithContributor {
   author_id: string;
-  contributors: ContributorJoin | null;
+  contributors: ContributorJoin | ContributorJoin[] | null;
 }
 
 interface AggregatedData {
@@ -61,6 +61,7 @@ interface TrendsData {
 }
 
 interface CachedMetrics {
+  id?: string;
   workspace_id: string;
   time_range: MetricsTimeRange;
   period_start: string;
@@ -76,18 +77,26 @@ interface CachedMetrics {
   total_stars: number;
   total_forks: number;
   total_watchers: number;
+  total_contributors: number;
+  active_contributors: number;
+  new_contributors: number;
   avg_pr_merge_time_hours: number;
+  avg_issue_close_time_hours?: number;
   pr_velocity: number;
   issue_closure_rate: number;
   top_contributors: MetricsContributor[];
   activity_timeline: ActivityDataPoint[];
   languages: LanguageDistribution;
   repository_stats: RepositoryStat[];
-  stars_trend: number;
-  prs_trend: number;
-  contributors_trend: number;
-  issues_trend: number;
+  stars_trend?: number;
+  prs_trend?: number;
+  contributors_trend?: number;
+  issues_trend?: number;
+  commits_trend?: number;
   cached_at: string;
+  calculated_at?: string;
+  expires_at?: string;
+  is_stale?: boolean;
 }
 
 export interface AggregationOptions {
@@ -517,35 +526,51 @@ export class WorkspaceAggregationService {
     const contributorMap = new Map<string, MetricsContributor>();
 
     prContributors?.forEach((pr: PRWithContributor) => {
-      const contributor = pr.contributors;
-      if (contributor && typeof contributor === 'object' && 'username' in contributor) {
-        const existing = contributorMap.get(contributor.username) || {
-          username: contributor.username,
-          avatar_url: contributor.avatar_url || '',
-          prs: 0,
-          issues: 0,
-          commits: 0,
-          reviews: 0,
-        };
-        existing.prs++;
-        contributorMap.set(contributor.username, existing);
+      let contributors: ContributorJoin[] = [];
+      if (Array.isArray(pr.contributors)) {
+        contributors = pr.contributors;
+      } else if (pr.contributors) {
+        contributors = [pr.contributors];
       }
+      
+      contributors.forEach((contributor) => {
+        if (contributor && contributor.username) {
+          const existing = contributorMap.get(contributor.username) || {
+            username: contributor.username,
+            avatar_url: contributor.avatar_url || '',
+            prs: 0,
+            issues: 0,
+            commits: 0,
+            reviews: 0,
+          };
+          existing.prs++;
+          contributorMap.set(contributor.username, existing);
+        }
+      });
     });
 
     issueContributors?.forEach((issue: IssueWithContributor) => {
-      const contributor = issue.contributors;
-      if (contributor && typeof contributor === 'object' && 'username' in contributor) {
-        const existing = contributorMap.get(contributor.username) || {
-          username: contributor.username,
-          avatar_url: contributor.avatar_url || '',
-          prs: 0,
-          issues: 0,
-          commits: 0,
-          reviews: 0,
-        };
-        existing.issues++;
-        contributorMap.set(contributor.username, existing);
+      let contributors: ContributorJoin[] = [];
+      if (Array.isArray(issue.contributors)) {
+        contributors = issue.contributors;
+      } else if (issue.contributors) {
+        contributors = [issue.contributors];
       }
+      
+      contributors.forEach((contributor) => {
+        if (contributor && contributor.username) {
+          const existing = contributorMap.get(contributor.username) || {
+            username: contributor.username,
+            avatar_url: contributor.avatar_url || '',
+            prs: 0,
+            issues: 0,
+            commits: 0,
+            reviews: 0,
+          };
+          existing.issues++;
+          contributorMap.set(contributor.username, existing);
+        }
+      });
     });
 
     return Array.from(contributorMap.values());
@@ -803,7 +828,7 @@ export class WorkspaceAggregationService {
       time_range: timeRange,
       period_start: metrics.period_start,
       period_end: metrics.period_end,
-      ...this.flattenMetricsForCache(metrics.metrics),
+      ...this.flattenMetricsForCache(metrics),
       calculated_at: metrics.calculated_at,
       expires_at: metrics.expires_at,
       is_stale: false,
@@ -826,28 +851,33 @@ export class WorkspaceAggregationService {
    */
   private flattenMetricsForCache(metrics: WorkspaceMetrics) {
     return {
-      total_prs: metrics.total_prs,
-      merged_prs: metrics.merged_prs,
-      open_prs: metrics.open_prs,
-      draft_prs: metrics.draft_prs,
-      avg_pr_merge_time_hours: metrics.avg_pr_merge_time_hours,
-      pr_velocity: metrics.pr_velocity,
-      total_issues: metrics.total_issues,
-      closed_issues: metrics.closed_issues,
-      open_issues: metrics.open_issues,
-      avg_issue_close_time_hours: metrics.avg_issue_close_time_hours,
-      issue_closure_rate: metrics.issue_closure_rate,
-      total_contributors: metrics.total_contributors,
-      active_contributors: metrics.active_contributors,
-      new_contributors: metrics.new_contributors,
-      total_commits: metrics.total_commits,
-      total_stars: metrics.total_stars,
-      total_forks: metrics.total_forks,
-      total_watchers: metrics.total_watchers,
-      language_distribution: metrics.languages,
-      top_contributors: metrics.top_contributors,
-      activity_timeline: metrics.activity_timeline,
-      repository_stats: metrics.repository_stats,
+      total_prs: metrics.metrics.total_prs,
+      merged_prs: metrics.metrics.merged_prs,
+      open_prs: metrics.metrics.open_prs,
+      draft_prs: metrics.metrics.draft_prs,
+      avg_pr_merge_time_hours: metrics.metrics.avg_pr_merge_time_hours,
+      pr_velocity: metrics.metrics.pr_velocity,
+      total_issues: metrics.metrics.total_issues,
+      closed_issues: metrics.metrics.closed_issues,
+      open_issues: metrics.metrics.open_issues,
+      avg_issue_close_time_hours: 0, // Not in WorkspaceMetrics yet
+      issue_closure_rate: metrics.metrics.issue_closure_rate,
+      total_contributors: metrics.metrics.total_contributors,
+      active_contributors: metrics.metrics.active_contributors,
+      new_contributors: metrics.metrics.new_contributors,
+      total_commits: metrics.metrics.total_commits,
+      total_stars: metrics.metrics.total_stars,
+      total_forks: metrics.metrics.total_forks,
+      total_watchers: metrics.metrics.total_watchers,
+      languages: metrics.metrics.languages,
+      top_contributors: metrics.metrics.top_contributors,
+      activity_timeline: metrics.metrics.activity_timeline,
+      repository_stats: metrics.metrics.repository_stats || [],
+      stars_trend: metrics.metrics.stars_trend,
+      prs_trend: metrics.metrics.prs_trend,
+      contributors_trend: metrics.metrics.contributors_trend,
+      issues_trend: metrics.metrics.issues_trend,
+      commits_trend: metrics.metrics.commits_trend,
     };
   }
 
@@ -856,7 +886,7 @@ export class WorkspaceAggregationService {
    */
   private transformCacheToMetrics(cached: CachedMetrics): WorkspaceMetrics {
     return {
-      id: cached.id,
+      id: cached.id || `${cached.workspace_id}-${cached.time_range}-${Date.now()}`,
       workspace_id: cached.workspace_id,
       period_start: cached.period_start,
       period_end: cached.period_end,
@@ -879,14 +909,19 @@ export class WorkspaceAggregationService {
         avg_pr_merge_time_hours: cached.avg_pr_merge_time_hours,
         pr_velocity: cached.pr_velocity,
         issue_closure_rate: cached.issue_closure_rate,
-        languages: cached.language_distribution || {},
+        languages: cached.languages || {},
         top_contributors: cached.top_contributors || [],
         activity_timeline: cached.activity_timeline || [],
         repository_stats: cached.repository_stats,
+        stars_trend: cached.stars_trend,
+        prs_trend: cached.prs_trend,
+        contributors_trend: cached.contributors_trend,
+        issues_trend: cached.issues_trend,
+        commits_trend: cached.commits_trend,
       },
-      calculated_at: cached.calculated_at,
-      expires_at: cached.expires_at,
-      is_stale: cached.is_stale,
+      calculated_at: cached.calculated_at || cached.cached_at,
+      expires_at: cached.expires_at || new Date(Date.now() + 1000 * 60 * 60).toISOString(),
+      is_stale: cached.is_stale || false,
     };
   }
 
