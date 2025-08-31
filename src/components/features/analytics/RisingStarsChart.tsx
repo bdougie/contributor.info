@@ -1,11 +1,6 @@
 import { useMemo, lazy, Suspense } from 'react';
-import type { ScatterPlotNodeProps } from '@nivo/scatterplot';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { TrendingUp, Sparkles, Users } from '@/components/ui/icon';
-import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
-import type { RisingStarsData, RisingStarContributor } from '@/lib/analytics/rising-stars-data';
+import type { RisingStarsData } from '@/lib/analytics/rising-stars-data';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -21,152 +16,6 @@ interface RisingStarsChartProps {
   height?: number;
   maxBubbles?: number;
   className?: string;
-}
-
-type ChartDataPoint = {
-  x: number;
-  y: number;
-  size: number;
-  contributor: RisingStarContributor;
-};
-
-function CustomNode({ node, style }: ScatterPlotNodeProps<ChartDataPoint>) {
-  const { contributor } = node.data;
-  const x = typeof style.x === 'object' && 'get' in style.x ? style.x.get() : 0;
-  const y = typeof style.y === 'object' && 'get' in style.y ? style.y.get() : 0;
-  const size = node.size || 10;
-  const radius = Math.sqrt(size) * 2;
-
-  return (
-    <g transform={`translate(${x}, ${y})`}>
-      <HoverCard>
-        <HoverCardTrigger asChild>
-          <g className="cursor-pointer">
-            {/* Outer ring for rising stars */}
-            {contributor.isRisingStar && (
-              <circle
-                r={radius + 3}
-                fill="none"
-                stroke="url(#rising-star-gradient)"
-                strokeWidth="2"
-                className="animate-pulse"
-              />
-            )}
-
-            {/* Background circle */}
-            <circle
-              r={radius}
-              fill={contributor.isNewContributor ? '#10b981' : '#3b82f6'}
-              fillOpacity={0.15}
-              stroke={contributor.isNewContributor ? '#10b981' : '#3b82f6'}
-              strokeWidth="2"
-            />
-
-            {/* Avatar clip path */}
-            <defs>
-              <clipPath id={`avatar-clip-${contributor.github_id}`}>
-                <circle r={radius - 4} />
-              </clipPath>
-            </defs>
-
-            {/* Avatar image */}
-            <image
-              href={contributor.avatar_url}
-              x={-(radius - 4)}
-              y={-(radius - 4)}
-              width={(radius - 4) * 2}
-              height={(radius - 4) * 2}
-              clipPath={`url(#avatar-clip-${contributor.github_id})`}
-            />
-
-            {/* Activity indicator */}
-            {contributor.velocityScore > 5 && (
-              <circle
-                r={6}
-                fill="#ef4444"
-                stroke="#fff"
-                strokeWidth="2"
-                transform={`translate(${radius - 8}, ${-radius + 8})`}
-              />
-            )}
-          </g>
-        </HoverCardTrigger>
-
-        <HoverCardContent className="w-80" align="center">
-          <ContributorDetails contributor={contributor} />
-        </HoverCardContent>
-      </HoverCard>
-    </g>
-  );
-}
-
-function ContributorDetails({ contributor }: { contributor: RisingStarContributor }) {
-  const contributionDays = Math.ceil(
-    (new Date().getTime() - new Date(contributor.firstContributionDate).getTime()) /
-      (1000 * 60 * 60 * 24)
-  );
-
-  return (
-    <div className="space-y-3">
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-3">
-          <Avatar className="h-10 w-10">
-            <AvatarImage src={contributor.avatar_url} alt={contributor.login} />
-            <AvatarFallback>{contributor.login.slice(0, 2).toUpperCase()}</AvatarFallback>
-          </Avatar>
-          <div>
-            <h4 className="text-sm font-semibold">{contributor.login}</h4>
-            <div className="flex gap-1 mt-1">
-              {contributor.isRisingStar && (
-                <Badge variant="default" className="text-xs">
-                  <Sparkles className="h-3 w-3 mr-1" />
-                  Rising Star
-                </Badge>
-              )}
-              {contributor.isNewContributor && (
-                <Badge variant="secondary" className="text-xs">
-                  <Users className="h-3 w-3 mr-1" />
-                  New
-                </Badge>
-              )}
-            </div>
-          </div>
-        </div>
-        {contributor.growthRate > 0 && (
-          <div className="flex items-center gap-1 text-green-600">
-            <TrendingUp className="h-4 w-4" />
-            <span className="text-sm font-medium">+{contributor.growthRate.toFixed(0)}%</span>
-          </div>
-        )}
-      </div>
-
-      <div className="grid grid-cols-3 gap-2 text-sm">
-        <div className="text-center p-2 bg-muted rounded">
-          <div className="font-semibold">{contributor.pullRequests}</div>
-          <div className="text-xs text-muted-foreground">PRs</div>
-        </div>
-        <div className="text-center p-2 bg-muted rounded">
-          <div className="font-semibold">{contributor.commits}</div>
-          <div className="text-xs text-muted-foreground">Commits</div>
-        </div>
-        <div className="text-center p-2 bg-muted rounded">
-          <div className="font-semibold">{contributor.issues}</div>
-          <div className="text-xs text-muted-foreground">Issues</div>
-        </div>
-      </div>
-
-      <div className="pt-2 border-t">
-        <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">Velocity Score</span>
-          <span className="font-medium">{contributor.velocityScore.toFixed(1)}/week</span>
-        </div>
-        <div className="flex justify-between text-sm mt-1">
-          <span className="text-muted-foreground">Contributing for</span>
-          <span className="font-medium">{contributionDays} days</span>
-        </div>
-      </div>
-    </div>
-  );
 }
 
 export function RisingStarsChart({
@@ -302,7 +151,7 @@ export function RisingStarsChart({
           <div>
             <CardTitle>Rising Stars & Growing Contributors</CardTitle>
             <CardDescription>
-              Contributor velocity and engagement over the last 30 days
+              Contributor activity mapping: Commits (X-axis) vs Total GitHub Events (Y-axis)
             </CardDescription>
           </div>
           <div className="flex gap-4 text-sm">
@@ -345,7 +194,7 @@ export function RisingStarsChart({
                   tickSize: 5,
                   tickPadding: 5,
                   tickRotation: 0,
-                  legend: 'Pull Requests + Issues',
+                  legend: 'Total GitHub Events (PRs, Issues, Comments, Reviews, Discussions)',
                   legendPosition: 'middle',
                   legendOffset: -50,
                 }}
@@ -354,9 +203,6 @@ export function RisingStarsChart({
                   const datum = d as { data?: { size?: number } };
                   return datum.data?.size || 10;
                 }}
-                nodeComponent={
-                  CustomNode as React.ComponentType<ScatterPlotNodeProps<ChartDataPoint>>
-                }
                 useMesh={false}
                 gridXValues={5}
                 gridYValues={5}

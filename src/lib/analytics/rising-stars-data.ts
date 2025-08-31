@@ -7,7 +7,11 @@ export interface RisingStarContributor {
   commits: number;
   pullRequests: number;
   issues: number;
-  totalActivity: number;
+  comments: number;
+  reviews: number;
+  discussions: number;
+  totalGithubEvents: number; // Total of all GitHub events
+  totalActivity: number; // Legacy field for compatibility
   velocityScore: number;
   growthRate: number;
   firstContributionDate: string;
@@ -35,6 +39,9 @@ interface ContributorMetrics {
   pullRequests: DatabasePR[];
   commitCount: number;
   issueCount: number;
+  commentCount?: number;
+  reviewCount?: number;
+  discussionCount?: number;
 }
 
 export function calculateRisingStars(
@@ -54,62 +61,81 @@ export function calculateRisingStars(
   );
 
   const processedContributors: RisingStarContributor[] = metrics
-    .map(({ contributor, pullRequests, commitCount, issueCount }) => {
-      // Filter PRs within the time window
-      const recentPRs = pullRequests.filter((pr) => new Date(pr.created_at) >= windowStart);
+    .map(
+      ({
+        contributor,
+        pullRequests,
+        commitCount,
+        issueCount,
+        commentCount = 0,
+        reviewCount = 0,
+        discussionCount = 0,
+      }) => {
+        // Filter PRs within the time window
+        const recentPRs = pullRequests.filter((pr) => new Date(pr.created_at) >= windowStart);
 
-      // Calculate activity metrics
-      const prCount = recentPRs.length;
-      const totalActivity = prCount + commitCount + issueCount;
+        // Calculate activity metrics
+        const prCount = recentPRs.length;
+        const totalGithubEvents =
+          prCount + commitCount + issueCount + commentCount + reviewCount + discussionCount;
+        const totalActivity = totalGithubEvents; // Keep for compatibility
 
-      // Skip if below minimum activity threshold
-      if (totalActivity < minActivity) {
-        return null;
+        // Skip if below minimum activity threshold
+        if (totalGithubEvents < minActivity) {
+          return null;
+        }
+
+        // Calculate first and last contribution dates
+        const contributionDates = pullRequests
+          .map((pr) => new Date(pr.created_at))
+          .sort((a, b) => a.getTime() - b.getTime());
+
+        const firstContribution = contributionDates[0] || new Date();
+        const lastContribution = contributionDates[contributionDates.length - 1] || new Date();
+        const contributionSpan = Math.ceil(
+          (lastContribution.getTime() - firstContribution.getTime()) / (1000 * 60 * 60 * 24)
+        );
+
+        // Calculate velocity (activity per week)
+        const weeksActive = Math.max(contributionSpan / 7, 1);
+        const velocityScore = totalGithubEvents / weeksActive;
+
+        // Calculate growth rate (compare recent vs earlier activity)
+        const midPoint = new Date(
+          windowStart.getTime() + (timeWindowDays * 24 * 60 * 60 * 1000) / 2
+        );
+        const earlierPRs = recentPRs.filter((pr) => new Date(pr.created_at) < midPoint).length;
+        const laterPRs = recentPRs.filter((pr) => new Date(pr.created_at) >= midPoint).length;
+        const growthRate =
+          earlierPRs > 0 ? ((laterPRs - earlierPRs) / earlierPRs) * 100 : laterPRs * 100;
+
+        // Determine if new contributor or rising star
+        const isNewContributor = firstContribution >= newContributorThreshold;
+        const isRisingStar =
+          growthRate > 50 || (isNewContributor && totalGithubEvents > minActivity * 2);
+
+        return {
+          login: contributor.username,
+          avatar_url: contributor.avatar_url,
+          github_id: contributor.github_id,
+          commits: commitCount,
+          pullRequests: prCount,
+          issues: issueCount,
+          comments: commentCount,
+          reviews: reviewCount,
+          discussions: discussionCount,
+          totalGithubEvents,
+          totalActivity,
+          velocityScore,
+          growthRate,
+          firstContributionDate: firstContribution.toISOString(),
+          lastContributionDate: lastContribution.toISOString(),
+          contributionSpan,
+          isNewContributor,
+          isRisingStar,
+        };
       }
-
-      // Calculate first and last contribution dates
-      const contributionDates = pullRequests
-        .map((pr) => new Date(pr.created_at))
-        .sort((a, b) => a.getTime() - b.getTime());
-
-      const firstContribution = contributionDates[0] || new Date();
-      const lastContribution = contributionDates[contributionDates.length - 1] || new Date();
-      const contributionSpan = Math.ceil(
-        (lastContribution.getTime() - firstContribution.getTime()) / (1000 * 60 * 60 * 24)
-      );
-
-      // Calculate velocity (activity per week)
-      const weeksActive = Math.max(contributionSpan / 7, 1);
-      const velocityScore = totalActivity / weeksActive;
-
-      // Calculate growth rate (compare recent vs earlier activity)
-      const midPoint = new Date(windowStart.getTime() + (timeWindowDays * 24 * 60 * 60 * 1000) / 2);
-      const earlierPRs = recentPRs.filter((pr) => new Date(pr.created_at) < midPoint).length;
-      const laterPRs = recentPRs.filter((pr) => new Date(pr.created_at) >= midPoint).length;
-      const growthRate =
-        earlierPRs > 0 ? ((laterPRs - earlierPRs) / earlierPRs) * 100 : laterPRs * 100;
-
-      // Determine if new contributor or rising star
-      const isNewContributor = firstContribution >= newContributorThreshold;
-      const isRisingStar = growthRate > 50 || (isNewContributor && totalActivity > minActivity * 2);
-
-      return {
-        login: contributor.username,
-        avatar_url: contributor.avatar_url,
-        github_id: contributor.github_id,
-        commits: commitCount,
-        pullRequests: prCount,
-        issues: issueCount,
-        totalActivity,
-        velocityScore,
-        growthRate,
-        firstContributionDate: firstContribution.toISOString(),
-        lastContributionDate: lastContribution.toISOString(),
-        contributionSpan,
-        isNewContributor,
-        isRisingStar,
-      };
-    })
+    )
     .filter((c): c is RisingStarContributor => c !== null);
 
   // Sort by velocity score to identify top performers
@@ -123,7 +149,7 @@ export function calculateRisingStars(
       id: 'rising-stars',
       data: sortedContributors.map((contributor) => ({
         x: contributor.commits,
-        y: contributor.pullRequests + contributor.issues,
+        y: contributor.totalGithubEvents, // Changed to total GitHub events
         size: Math.min(Math.max(contributor.velocityScore * 10, 10), 100), // Scale size between 10-100
         contributor,
       })),

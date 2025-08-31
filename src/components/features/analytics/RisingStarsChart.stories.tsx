@@ -19,20 +19,31 @@ const generateMockData = (count: number = 30): RisingStarsData[] => {
   const contributors = Array.from({ length: count }, (_, i) => {
     const isNewContributor = Math.random() > 0.7;
     const isRisingStar = Math.random() > 0.8;
-    const baseActivity = Math.floor(Math.random() * 20) + 1;
+
+    const commits = Math.floor(Math.random() * 50) + 5;
+    const pullRequests = Math.floor(Math.random() * 20) + 2;
+    const issues = Math.floor(Math.random() * 10);
+    const comments = Math.floor(Math.random() * 40) + 5;
+    const reviews = Math.floor(Math.random() * 15);
+    const discussions = Math.floor(Math.random() * 8);
+    const totalGithubEvents = commits + pullRequests + issues + comments + reviews + discussions;
 
     return {
-      x: Math.floor(Math.random() * 50) + 5, // commits
-      y: Math.floor(Math.random() * 30) + 2, // PRs + issues
+      x: commits, // commits
+      y: totalGithubEvents, // total GitHub events
       size: Math.random() * 80 + 20, // velocity score scaled
       contributor: {
         login: `contributor-${i + 1}`,
         avatar_url: `https://avatars.githubusercontent.com/u/${Math.floor(Math.random() * 100000)}`,
         github_id: Math.floor(Math.random() * 100000),
-        commits: Math.floor(Math.random() * 50) + 5,
-        pullRequests: Math.floor(Math.random() * 20) + 2,
-        issues: Math.floor(Math.random() * 10),
-        totalActivity: baseActivity,
+        commits,
+        pullRequests,
+        issues,
+        comments,
+        reviews,
+        discussions,
+        totalGithubEvents,
+        totalActivity: totalGithubEvents, // for compatibility
         velocityScore: Math.random() * 10 + 1,
         growthRate: isRisingStar ? Math.random() * 200 + 50 : Math.random() * 50,
         firstContributionDate: new Date(
@@ -85,29 +96,44 @@ export const HighActivity: Story = {
     data: [
       {
         id: 'rising-stars',
-        data: Array.from({ length: 20 }, (_, i) => ({
-          x: Math.floor(Math.random() * 30) + 50, // higher commits
-          y: Math.floor(Math.random() * 20) + 30, // higher PRs
-          size: Math.random() * 50 + 50, // larger bubbles
-          contributor: {
-            login: `power-user-${i + 1}`,
-            avatar_url: `https://avatars.githubusercontent.com/u/${i + 1000}`,
-            github_id: i + 1000,
-            commits: Math.floor(Math.random() * 30) + 50,
-            pullRequests: Math.floor(Math.random() * 15) + 20,
-            issues: Math.floor(Math.random() * 10) + 10,
-            totalActivity: Math.floor(Math.random() * 50) + 80,
-            velocityScore: Math.random() * 5 + 15,
-            growthRate: Math.random() * 300 + 100,
-            firstContributionDate: new Date(
-              Date.now() - Math.random() * 180 * 24 * 60 * 60 * 1000
-            ).toISOString(),
-            lastContributionDate: new Date().toISOString(),
-            contributionSpan: Math.floor(Math.random() * 180) + 1,
-            isNewContributor: false,
-            isRisingStar: true,
-          },
-        })),
+        data: Array.from({ length: 20 }, (_, i) => {
+          const commits = Math.floor(Math.random() * 30) + 50;
+          const pullRequests = Math.floor(Math.random() * 15) + 20;
+          const issues = Math.floor(Math.random() * 10) + 10;
+          const comments = Math.floor(Math.random() * 60) + 40;
+          const reviews = Math.floor(Math.random() * 25) + 10;
+          const discussions = Math.floor(Math.random() * 15) + 5;
+          const totalGithubEvents =
+            commits + pullRequests + issues + comments + reviews + discussions;
+
+          return {
+            x: commits, // higher commits
+            y: totalGithubEvents, // total events
+            size: Math.random() * 50 + 50, // larger bubbles
+            contributor: {
+              login: `power-user-${i + 1}`,
+              avatar_url: `https://avatars.githubusercontent.com/u/${i + 1000}`,
+              github_id: i + 1000,
+              commits,
+              pullRequests,
+              issues,
+              comments,
+              reviews,
+              discussions,
+              totalGithubEvents,
+              totalActivity: totalGithubEvents,
+              velocityScore: Math.random() * 5 + 15,
+              growthRate: Math.random() * 300 + 100,
+              firstContributionDate: new Date(
+                Date.now() - Math.random() * 180 * 24 * 60 * 60 * 1000
+              ).toISOString(),
+              lastContributionDate: new Date().toISOString(),
+              contributionSpan: Math.floor(Math.random() * 180) + 1,
+              isNewContributor: false,
+              isRisingStar: true,
+            },
+          };
+        }),
       },
     ],
     height: 500,
@@ -121,18 +147,31 @@ export const NewContributorsWave: Story = {
         id: 'rising-stars',
         data: Array.from({ length: 25 }, (_, i) => {
           const isNew = i < 15;
+          const commits = Math.floor(Math.random() * 20) + (isNew ? 5 : 15);
+          const pullRequests = Math.floor(Math.random() * 10) + (isNew ? 2 : 8);
+          const issues = Math.floor(Math.random() * 5) + (isNew ? 1 : 3);
+          const comments = Math.floor(Math.random() * 30) + (isNew ? 5 : 20);
+          const reviews = Math.floor(Math.random() * 10) + (isNew ? 2 : 8);
+          const discussions = Math.floor(Math.random() * 5) + (isNew ? 1 : 3);
+          const totalGithubEvents =
+            commits + pullRequests + issues + comments + reviews + discussions;
+
           return {
-            x: Math.floor(Math.random() * 20) + (isNew ? 5 : 15),
-            y: Math.floor(Math.random() * 15) + (isNew ? 3 : 10),
+            x: commits,
+            y: totalGithubEvents,
             size: Math.random() * 60 + 30,
             contributor: {
               login: `${isNew ? 'new' : 'active'}-contributor-${i + 1}`,
               avatar_url: `https://avatars.githubusercontent.com/u/${i + 5000}`,
               github_id: i + 5000,
-              commits: Math.floor(Math.random() * 20) + (isNew ? 5 : 15),
-              pullRequests: Math.floor(Math.random() * 10) + (isNew ? 2 : 8),
-              issues: Math.floor(Math.random() * 5) + (isNew ? 1 : 3),
-              totalActivity: Math.floor(Math.random() * 30) + (isNew ? 8 : 25),
+              commits,
+              pullRequests,
+              issues,
+              comments,
+              reviews,
+              discussions,
+              totalGithubEvents,
+              totalActivity: totalGithubEvents,
               velocityScore: Math.random() * 8 + (isNew ? 2 : 5),
               growthRate: isNew ? Math.random() * 500 + 200 : Math.random() * 100,
               firstContributionDate: new Date(

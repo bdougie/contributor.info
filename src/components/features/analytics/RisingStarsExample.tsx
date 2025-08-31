@@ -10,7 +10,7 @@ export function RisingStarsExample() {
       data: [
         {
           x: 45, // commits
-          y: 28, // PRs + issues
+          y: 120, // total GitHub events
           size: 80, // velocity score
           contributor: {
             login: 'alice-dev',
@@ -19,7 +19,11 @@ export function RisingStarsExample() {
             commits: 45,
             pullRequests: 20,
             issues: 8,
-            totalActivity: 73,
+            comments: 35,
+            reviews: 10,
+            discussions: 2,
+            totalGithubEvents: 120,
+            totalActivity: 120,
             velocityScore: 12.5,
             growthRate: 150,
             firstContributionDate: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
@@ -31,7 +35,7 @@ export function RisingStarsExample() {
         },
         {
           x: 30,
-          y: 15,
+          y: 75,
           size: 50,
           contributor: {
             login: 'bob-contributor',
@@ -40,7 +44,11 @@ export function RisingStarsExample() {
             commits: 30,
             pullRequests: 12,
             issues: 3,
-            totalActivity: 45,
+            comments: 20,
+            reviews: 8,
+            discussions: 2,
+            totalGithubEvents: 75,
+            totalActivity: 75,
             velocityScore: 7.2,
             growthRate: 25,
             firstContributionDate: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString(),
@@ -52,7 +60,7 @@ export function RisingStarsExample() {
         },
         {
           x: 15,
-          y: 22,
+          y: 85,
           size: 65,
           contributor: {
             login: 'charlie-star',
@@ -61,7 +69,11 @@ export function RisingStarsExample() {
             commits: 15,
             pullRequests: 18,
             issues: 4,
-            totalActivity: 37,
+            comments: 40,
+            reviews: 6,
+            discussions: 2,
+            totalGithubEvents: 85,
+            totalActivity: 85,
             velocityScore: 9.8,
             growthRate: 200,
             firstContributionDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
