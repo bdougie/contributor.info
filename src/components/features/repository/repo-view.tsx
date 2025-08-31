@@ -499,8 +499,15 @@ export function ContributionsRoute() {
   }
 
   return (
-    <div className="space-y-8">
-      {/* Progressive loading: Charts load independently */}
+    <div className="flex flex-col gap-8">
+      {/* Contributor of the Month - appears first on mobile with order-1 */}
+      <ErrorBoundary context="Contributor of the Month">
+        <div className="order-1 sm:order-3">
+          <ContributorOfMonthWrapper />
+        </div>
+      </ErrorBoundary>
+
+      {/* Progressive loading: Charts load independently - order-2 on all screens */}
       <ErrorBoundary
         context="Contributions Chart"
         fallback={
@@ -515,17 +522,18 @@ export function ContributionsRoute() {
           </div>
         }
       >
-        <Suspense fallback={<div className="h-96 bg-muted animate-pulse rounded-lg" />}>
-          <LazyContributions />
-        </Suspense>
+        <div className="order-2 sm:order-1">
+          <Suspense fallback={<div className="h-96 bg-muted animate-pulse rounded-lg" />}>
+            <LazyContributions />
+          </Suspense>
+        </div>
       </ErrorBoundary>
 
+      {/* Metrics and Trends - order-3 on mobile, order-2 on desktop */}
       <ErrorBoundary context="Metrics and Trends">
-        <MetricsAndTrendsCard owner={owner} repo={repo} timeRange={timeRange} />
-      </ErrorBoundary>
-
-      <ErrorBoundary context="Contributor of the Month">
-        <ContributorOfMonthWrapper />
+        <div className="order-3 sm:order-2">
+          <MetricsAndTrendsCard owner={owner} repo={repo} timeRange={timeRange} />
+        </div>
       </ErrorBoundary>
     </div>
   );

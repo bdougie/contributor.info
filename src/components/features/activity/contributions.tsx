@@ -257,19 +257,24 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
 
     return (
       <animated.foreignObject width={size} height={size} style={nodeStyle}>
-        <div style={{ width: '100%', height: '100%' }}>
+        <div
+          style={{
+            width: '100%',
+            height: '100%',
+            color: 'hsl(var(--foreground))',
+            borderColor: 'hsl(var(--foreground))',
+          }}
+        >
           <PrHoverCard
             pullRequest={props.node.data._pr}
             role={getUserRole(role, { type: props.node.data._pr.user.type })}
           >
             <Avatar
-              className={`${
-                isMobile ? 'w-6 h-6' : 'w-8 h-8'
-              } border-2 border-background cursor-pointer`}
+              className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} border-2 cursor-pointer`}
               style={{
                 // Ensure the avatar renders properly in foreignObject
                 backgroundColor: 'var(--muted)',
-                borderColor: 'var(--background)',
+                borderColor: 'hsl(var(--foreground))',
               }}
             >
               <AvatarImage
@@ -548,13 +553,38 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
                         },
                       },
                       markers: {
-                        lineColor: 'hsl(var(--border))',
+                        lineColor: 'hsl(var(--foreground))',
+                        lineStrokeWidth: 2,
                         textColor: 'hsl(var(--foreground))',
                       },
                       dots: {
                         text: {
                           fill: 'hsl(var(--foreground))',
                           fontSize: 11,
+                        },
+                      },
+                      annotations: {
+                        text: {
+                          fill: 'hsl(var(--foreground))',
+                          outlineWidth: 2,
+                          outlineColor: 'hsl(var(--background))',
+                        },
+                        link: {
+                          stroke: 'hsl(var(--foreground))',
+                          strokeWidth: 1,
+                          outlineWidth: 2,
+                          outlineColor: 'hsl(var(--background))',
+                        },
+                        outline: {
+                          stroke: 'hsl(var(--foreground))',
+                          strokeWidth: 2,
+                          outlineWidth: 2,
+                          outlineColor: 'hsl(var(--background))',
+                        },
+                        symbol: {
+                          fill: 'hsl(var(--foreground))',
+                          outlineWidth: 2,
+                          outlineColor: 'hsl(var(--background))',
                         },
                       },
                     }}
