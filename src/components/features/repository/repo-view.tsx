@@ -501,10 +501,18 @@ export function ContributionsRoute() {
   return (
     <div className="space-y-8">
       {/* Progressive loading: Charts load independently */}
-      {/* Temporarily removed ErrorBoundary to debug chart rendering */}
-      <Suspense fallback={<div className="h-96 bg-muted animate-pulse rounded-lg" />}>
-        <LazyContributions />
-      </Suspense>
+      <ErrorBoundary
+        context="Contributions Chart"
+        fallback={
+          <div className="h-96 bg-muted rounded-lg flex items-center justify-center text-muted-foreground">
+            Failed to load chart
+          </div>
+        }
+      >
+        <Suspense fallback={<div className="h-96 bg-muted animate-pulse rounded-lg" />}>
+          <LazyContributions />
+        </Suspense>
+      </ErrorBoundary>
 
       <ErrorBoundary context="Metrics and Trends">
         <MetricsAndTrendsCard owner={owner} repo={repo} timeRange={timeRange} />
