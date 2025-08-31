@@ -241,7 +241,8 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
     }
 
     // Build the style object based on what we have
-    const nodeStyle: React.CSSProperties = hasAnimatedStyle
+    // Using Record type for animated styles that may have Spring values
+    const nodeStyle: Record<string, unknown> = hasAnimatedStyle
       ? {
           ...props.style,
           x: xPos,
@@ -262,7 +263,13 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
       <animated.foreignObject width={size} height={size} style={nodeStyle}>
         <div style={{ width: '100%', height: '100%' }}>
           <PrHoverCard
-            pullRequest={props.node.data._pr}
+            pullRequest={{
+              ...props.node.data._pr,
+              id: String(props.node.data._pr.id),
+              repository_owner: owner || '',
+              repository_name: repo || '',
+              closed_at: props.node.data._pr.closed_at || undefined,
+            }}
             role={getUserRole(role, { type: props.node.data._pr.user.type })}
           >
             <Avatar
@@ -293,7 +300,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
                     target.dataset.retried = 'true';
                     // Use avatars.githubusercontent.com which provides CORS headers
                     // Using user ID if available, otherwise a default avatar
-                    const userId = props.node.data._pr?.user?.id || 0;
+                    const userId = props.node?.data?._pr?.user?.id || 0;
                     target.src = `https://avatars.githubusercontent.com/u/${userId}?v=4`;
                   }
                 }}
@@ -480,6 +487,62 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
                 tooltip={() => null}
                 colors={{ scheme: 'category10' }}
                 layers={['grid', 'axes', 'nodes', 'legends']}
+                theme={{
+                  background: 'transparent',
+                  axis: {
+                    domain: {
+                      line: {
+                        stroke: 'hsl(var(--border))',
+                        strokeWidth: 1,
+                      },
+                    },
+                    ticks: {
+                      line: {
+                        stroke: 'hsl(var(--border))',
+                        strokeWidth: 1,
+                      },
+                      text: {
+                        fill: 'hsl(var(--foreground))',
+                        fontSize: 11,
+                      },
+                    },
+                    legend: {
+                      text: {
+                        fill: 'hsl(var(--foreground))',
+                        fontSize: 12,
+                      },
+                    },
+                  },
+                  grid: {
+                    line: {
+                      stroke: 'hsl(var(--border))',
+                      strokeWidth: 0.5,
+                      strokeOpacity: 0.3,
+                    },
+                  },
+                  legends: {
+                    text: {
+                      fill: 'hsl(var(--foreground))',
+                      fontSize: 11,
+                    },
+                  },
+                  labels: {
+                    text: {
+                      fill: 'hsl(var(--foreground))',
+                      fontSize: 11,
+                    },
+                  },
+                  markers: {
+                    lineColor: 'hsl(var(--border))',
+                    textColor: 'hsl(var(--foreground))',
+                  },
+                  dots: {
+                    text: {
+                      fill: 'hsl(var(--foreground))',
+                      fontSize: 11,
+                    },
+                  },
+                }}
               />
             ) : (
               <div className="flex items-center justify-center h-full text-muted-foreground">
