@@ -102,31 +102,76 @@ export function DemoWorkspacePage() {
     };
   }, [timeRange]);
 
-  // Generate rising stars data
+  // Generate rising stars data with varied activity levels
   const risingStarsData = useMemo(() => {
-    // Convert demo analytics data to the format expected by calculateRisingStars
-    const contributorMetrics = demoAnalyticsData.contributors.map((contributor, idx) => ({
-      contributor: {
-        id: `contributor-${idx}`,
-        github_id: Math.floor(Math.random() * 100000),
-        username: contributor.username,
-        display_name: contributor.username,
-        avatar_url: contributor.avatar_url || '',
-        profile_url: `https://github.com/${contributor.username}`,
-        is_bot: false,
-        first_seen_at: new Date(
-          Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000
-        ).toISOString(),
-        last_updated_at: new Date().toISOString(),
-        is_active: true,
-      },
-      pullRequests: [], // Use empty array for demo data
-      commitCount: Math.floor(Math.random() * 50) + 5,
-      issueCount: Math.floor(Math.random() * 20) + 2,
-      commentCount: Math.floor(Math.random() * 30) + 3,
-      reviewCount: Math.floor(Math.random() * 15) + 1,
-      discussionCount: Math.floor(Math.random() * 10),
-    }));
+    // Create a more diverse set of contributors with varied activity levels
+    const contributorMetrics = demoAnalyticsData.contributors.map((contributor, idx) => {
+      // Create different activity profiles
+      const activityProfile = idx % 5;
+      let commitCount, issueCount, commentCount, reviewCount, discussionCount;
+
+      switch (activityProfile) {
+        case 0: // High activity rising star
+          commitCount = Math.floor(Math.random() * 100) + 50;
+          issueCount = Math.floor(Math.random() * 40) + 20;
+          commentCount = Math.floor(Math.random() * 60) + 30;
+          reviewCount = Math.floor(Math.random() * 30) + 15;
+          discussionCount = Math.floor(Math.random() * 20) + 10;
+          break;
+        case 1: // Medium-high activity
+          commitCount = Math.floor(Math.random() * 50) + 25;
+          issueCount = Math.floor(Math.random() * 20) + 10;
+          commentCount = Math.floor(Math.random() * 30) + 15;
+          reviewCount = Math.floor(Math.random() * 15) + 8;
+          discussionCount = Math.floor(Math.random() * 10) + 5;
+          break;
+        case 2: // Medium activity
+          commitCount = Math.floor(Math.random() * 30) + 10;
+          issueCount = Math.floor(Math.random() * 15) + 5;
+          commentCount = Math.floor(Math.random() * 20) + 8;
+          reviewCount = Math.floor(Math.random() * 10) + 3;
+          discussionCount = Math.floor(Math.random() * 8) + 2;
+          break;
+        case 3: // Low-medium activity
+          commitCount = Math.floor(Math.random() * 15) + 5;
+          issueCount = Math.floor(Math.random() * 8) + 2;
+          commentCount = Math.floor(Math.random() * 10) + 3;
+          reviewCount = Math.floor(Math.random() * 5) + 1;
+          discussionCount = Math.floor(Math.random() * 5);
+          break;
+        default: // Low activity or new contributor
+          commitCount = Math.floor(Math.random() * 8) + 1;
+          issueCount = Math.floor(Math.random() * 5);
+          commentCount = Math.floor(Math.random() * 8) + 1;
+          reviewCount = Math.floor(Math.random() * 3);
+          discussionCount = Math.floor(Math.random() * 3);
+          break;
+      }
+
+      // Vary the first seen date to create new vs established contributors
+      const daysAgo = idx < 5 ? Math.random() * 30 : Math.random() * 365;
+
+      return {
+        contributor: {
+          id: `contributor-${idx}`,
+          github_id: Math.floor(Math.random() * 100000),
+          username: contributor.username,
+          display_name: contributor.username,
+          avatar_url: contributor.avatar_url || '',
+          profile_url: `https://github.com/${contributor.username}`,
+          is_bot: false,
+          first_seen_at: new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000).toISOString(),
+          last_updated_at: new Date().toISOString(),
+          is_active: true,
+        },
+        pullRequests: [], // Use empty array for demo data
+        commitCount,
+        issueCount,
+        commentCount,
+        reviewCount,
+        discussionCount,
+      };
+    });
 
     return calculateRisingStars(contributorMetrics, {
       timeWindowDays: TIME_RANGE_DAYS[timeRange],
