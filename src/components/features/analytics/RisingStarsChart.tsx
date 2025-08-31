@@ -1,6 +1,6 @@
 import { useMemo, lazy, Suspense } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import type { RisingStarsData } from '@/lib/analytics/rising-stars-data';
+import type { RisingStarsData, RisingStarContributor } from '@/lib/analytics/rising-stars-data';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -209,6 +209,59 @@ export function RisingStarsChart({
                 theme={nivoTheme}
                 animate={true}
                 motionConfig="gentle"
+                tooltip={({ node }) => {
+                  const data = node.data as { contributor?: RisingStarContributor };
+                  const contributor = data?.contributor;
+                  if (!contributor) return null;
+
+                  return (
+                    <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200 text-sm">
+                      <div className="font-semibold mb-2">{contributor.login}</div>
+                      <div className="space-y-1 text-xs">
+                        <div className="flex justify-between gap-4">
+                          <span className="text-gray-600">Activity Score:</span>
+                          <span className="font-medium">
+                            {contributor.totalActivity || contributor.totalGithubEvents}
+                          </span>
+                        </div>
+                        <div className="flex justify-between gap-4">
+                          <span className="text-gray-600">Velocity:</span>
+                          <span className="font-medium">
+                            {contributor.velocityScore?.toFixed(1)}/week
+                          </span>
+                        </div>
+                        <div className="flex justify-between gap-4">
+                          <span className="text-gray-600">Growth Rate:</span>
+                          <span className="font-medium text-green-600">
+                            +{contributor.growthRate?.toFixed(0)}%
+                          </span>
+                        </div>
+                        <div className="pt-1 mt-1 border-t border-gray-100">
+                          <div className="flex justify-between gap-4">
+                            <span className="text-gray-600">Commits:</span>
+                            <span>{contributor.commits}</span>
+                          </div>
+                          <div className="flex justify-between gap-4">
+                            <span className="text-gray-600">PRs:</span>
+                            <span>{contributor.pullRequests}</span>
+                          </div>
+                          <div className="flex justify-between gap-4">
+                            <span className="text-gray-600">Total Events:</span>
+                            <span>{contributor.totalGithubEvents}</span>
+                          </div>
+                        </div>
+                        {contributor.isRisingStar && (
+                          <div className="pt-1 mt-1 border-t border-gray-100">
+                            <span className="text-orange-600 font-medium">🌟 Rising Star</span>
+                          </div>
+                        )}
+                        {contributor.isNewContributor && (
+                          <div className="text-green-600 font-medium">✨ New Contributor</div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                }}
               />
             </Suspense>
           )}
