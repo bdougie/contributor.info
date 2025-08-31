@@ -159,10 +159,10 @@ export function RisingStarsChartSimple({
         <div className="relative border rounded-lg bg-muted/10" style={{ height }}>
           {/* Axes labels */}
           <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs text-muted-foreground">
-            Commits →
+            Code Contributions (PRs + Commits) →
           </div>
           <div className="absolute left-2 top-1/2 -translate-y-1/2 -rotate-90 text-xs text-muted-foreground">
-            Total GitHub Events →
+            Non-Code Contributions →
           </div>
 
           {/* Grid lines */}

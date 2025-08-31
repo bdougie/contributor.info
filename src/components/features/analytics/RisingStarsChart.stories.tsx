@@ -27,10 +27,12 @@ const generateMockData = (count: number = 30): RisingStarsData[] => {
     const reviews = Math.floor(Math.random() * 15);
     const discussions = Math.floor(Math.random() * 8);
     const totalGithubEvents = commits + pullRequests + issues + comments + reviews + discussions;
+    const codeContributions = commits + pullRequests;
+    const nonCodeContributions = issues + comments + reviews + discussions;
 
     return {
-      x: commits, // commits
-      y: totalGithubEvents, // total GitHub events
+      x: codeContributions, // Code contributions (PRs + commits)
+      y: nonCodeContributions, // Non-code contributions
       size: Math.random() * 80 + 20, // velocity score scaled
       contributor: {
         login: `contributor-${i + 1}`,
@@ -105,10 +107,12 @@ export const HighActivity: Story = {
           const discussions = Math.floor(Math.random() * 15) + 5;
           const totalGithubEvents =
             commits + pullRequests + issues + comments + reviews + discussions;
+          const codeContributions = commits + pullRequests;
+          const nonCodeContributions = issues + comments + reviews + discussions;
 
           return {
-            x: commits, // higher commits
-            y: totalGithubEvents, // total events
+            x: codeContributions, // Code contributions
+            y: nonCodeContributions, // Non-code contributions
             size: Math.random() * 50 + 50, // larger bubbles
             contributor: {
               login: `power-user-${i + 1}`,
@@ -155,10 +159,12 @@ export const NewContributorsWave: Story = {
           const discussions = Math.floor(Math.random() * 5) + (isNew ? 1 : 3);
           const totalGithubEvents =
             commits + pullRequests + issues + comments + reviews + discussions;
+          const codeContributions = commits + pullRequests;
+          const nonCodeContributions = issues + comments + reviews + discussions;
 
           return {
-            x: commits,
-            y: totalGithubEvents,
+            x: codeContributions,
+            y: nonCodeContributions,
             size: Math.random() * 60 + 30,
             contributor: {
               login: `${isNew ? 'new' : 'active'}-contributor-${i + 1}`,

@@ -111,8 +111,11 @@ export function calculateRisingStars(
 
         // Determine if new contributor or rising star
         const isNewContributor = firstContribution >= newContributorThreshold;
-        const isRisingStar =
-          growthRate > 50 || (isNewContributor && totalGithubEvents > minActivity * 2);
+        // Rising star: high velocity (>10/week) and relatively new (<180 days)
+        const contributorAgeDays = Math.ceil(
+          (now.getTime() - firstContribution.getTime()) / (1000 * 60 * 60 * 24)
+        );
+        const isRisingStar = velocityScore > 10 && contributorAgeDays < 180;
 
         return {
           login: contributor.username,
@@ -148,8 +151,9 @@ export function calculateRisingStars(
     {
       id: 'rising-stars',
       data: sortedContributors.map((contributor) => ({
-        x: contributor.commits,
-        y: contributor.totalGithubEvents, // Changed to total GitHub events
+        x: contributor.commits + contributor.pullRequests, // Code contributions (PRs + commits)
+        y:
+          contributor.issues + contributor.comments + contributor.reviews + contributor.discussions, // Non-code contributions
         size: Math.min(Math.max(contributor.velocityScore * 10, 10), 100), // Scale size between 10-100
         contributor,
       })),

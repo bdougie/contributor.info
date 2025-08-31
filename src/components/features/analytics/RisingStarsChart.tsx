@@ -177,7 +177,8 @@ export function RisingStarsChart({
           <div>
             <CardTitle>Rising Stars & Growing Contributors</CardTitle>
             <CardDescription>
-              Contributor activity mapping: Commits (X-axis) vs Total GitHub Events (Y-axis)
+              Code Contributions (PRs + Commits) vs Non-Code Contributions (Issues, Comments,
+              Reviews, Discussions)
             </CardDescription>
           </div>
           <div className="flex gap-4 text-sm">
@@ -212,7 +213,7 @@ export function RisingStarsChart({
                   tickSize: 5,
                   tickPadding: 5,
                   tickRotation: 0,
-                  legend: 'Commits',
+                  legend: 'Code Contributions (PRs + Commits)',
                   legendPosition: 'middle',
                   legendOffset: 46,
                 }}
@@ -220,7 +221,7 @@ export function RisingStarsChart({
                   tickSize: 5,
                   tickPadding: 5,
                   tickRotation: 0,
-                  legend: 'Total GitHub Events (PRs, Issues, Comments, Reviews, Discussions)',
+                  legend: 'Non-Code Contributions (Issues, Comments, Reviews, Discussions)',
                   legendPosition: 'middle',
                   legendOffset: -50,
                 }}
