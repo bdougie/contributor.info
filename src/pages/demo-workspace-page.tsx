@@ -1,6 +1,5 @@
-import { useState, useMemo, lazy, Suspense } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { WorkspaceExportService } from '@/services/workspace-export.service';
 import { WorkspaceDashboard } from '@/components/features/workspace';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -8,13 +7,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Info, Sparkles, GitPullRequest, AlertCircle, Layout, X } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
-
-// Lazy load the heavy analytics dashboard
-const AnalyticsDashboard = lazy(() =>
-  import('@/components/features/workspace/AnalyticsDashboard').then((m) => ({
-    default: m.AnalyticsDashboard,
-  }))
-);
 
 // Import demo data cache
 import {
@@ -239,20 +231,6 @@ export function DemoWorkspacePage() {
     setExpandedChart(expandedChart === chart ? null : chart);
   };
 
-  const handleExport = async (format: 'csv' | 'json' | 'pdf') => {
-    try {
-      await WorkspaceExportService.export(demoAnalyticsData, format, {
-        workspaceName: 'Demo Workspace',
-        dateRange: {
-          start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-          end: new Date(),
-        },
-      });
-    } catch (error) {
-      console.error('Export failed:', error);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto py-8">
@@ -288,7 +266,6 @@ export function DemoWorkspacePage() {
         <Tabs value={tab || 'overview'} onValueChange={handleTabChange} className="space-y-6">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
             <TabsTrigger value="activity">Activity</TabsTrigger>
             <TabsTrigger value="prs">Pull Requests</TabsTrigger>
             <TabsTrigger value="issues">Issues</TabsTrigger>
@@ -351,24 +328,6 @@ export function DemoWorkspacePage() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
-
-          <TabsContent value="analytics" className="space-y-6">
-            <Suspense
-              fallback={
-                <div className="flex items-center justify-center min-h-[400px]">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                </div>
-              }
-            >
-              <AnalyticsDashboard
-                data={demoAnalyticsData}
-                repositories={demoRepositories}
-                loading={false}
-                tier={tier}
-                onExport={handleExport}
-              />
-            </Suspense>
           </TabsContent>
 
           <TabsContent value="activity" className="space-y-6">
