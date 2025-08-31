@@ -52,7 +52,7 @@ interface RisingStarContributor {
   comments?: number;         // Y-axis component
   reviews?: number;          // Y-axis component
   discussions?: number;      // Y-axis component
-  totalActivity: number;     // Activity score shown in hover
+  totalActivity: number;     // Sum of all GitHub events (PRs + commits + issues + comments + reviews + discussions)
   velocityScore: number;     // Bubble size & rising star criteria
   growthRate: number;        // % increase shown in hover
   isNewContributor: boolean; // Green border (<90 days)
@@ -71,7 +71,7 @@ Hovering over a contributor bubble shows:
 - Activity badges (Rising Star, New)
 - Growth rate percentage (if positive)
 - Activity breakdown (PRs, Commits, Issues)
-- Activity Score (total GitHub events)
+- Activity Score (sum of all GitHub events: PRs + commits + issues + comments + reviews + discussions)
 - Velocity (contributions/week)
 - Contributing duration (in days)
 
