@@ -47,7 +47,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
   );
   const [cachedAvatars, setCachedAvatars] = useState<Map<number, string>>(new Map());
   const effectiveTimeRangeNumber = parseInt(effectiveTimeRange, 10);
-  const mobileMaxDays = 7; // Aggressive filtering for mobile
+  const mobileMaxDays = 14; // Show 14 days of data for mobile
 
   const functionTimeout = useRef<NodeJS.Timeout | null>(null);
 
