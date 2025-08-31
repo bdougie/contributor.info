@@ -1,21 +1,93 @@
-import { useMemo, lazy, Suspense } from 'react';
+import { useMemo } from 'react';
+import * as HoverCardPrimitive from '@radix-ui/react-hover-card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { TrendingUp, Sparkles, Users } from '@/components/ui/icon';
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import type { RisingStarsData, RisingStarContributor } from '@/lib/analytics/rising-stars-data';
 import { cn } from '@/lib/utils';
-import { Skeleton } from '@/components/ui/skeleton';
-
-// Lazy load the heavy visualization component
-const ResponsiveScatterPlot = lazy(() =>
-  import('@nivo/scatterplot').then((module) => ({
-    default: module.ResponsiveScatterPlot,
-  }))
-);
 
 interface RisingStarsChartProps {
   data: RisingStarsData[];
   height?: number;
   maxBubbles?: number;
   className?: string;
+}
+
+function ContributorDetails({ contributor }: { contributor: RisingStarContributor }) {
+  const contributionDays = Math.ceil(
+    (new Date().getTime() - new Date(contributor.firstContributionDate).getTime()) /
+      (1000 * 60 * 60 * 24)
+  );
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-3">
+          <Avatar className="h-10 w-10">
+            <AvatarImage src={contributor.avatar_url} alt={contributor.login} />
+            <AvatarFallback>{contributor.login.slice(0, 2).toUpperCase()}</AvatarFallback>
+          </Avatar>
+          <div>
+            <h4 className="text-sm font-semibold">{contributor.login}</h4>
+            <div className="flex gap-1 mt-1">
+              {contributor.isRisingStar && (
+                <Badge variant="default" className="text-xs">
+                  <Sparkles className="h-3 w-3 mr-1" />
+                  Rising Star
+                </Badge>
+              )}
+              {contributor.isNewContributor && (
+                <Badge variant="secondary" className="text-xs">
+                  <Users className="h-3 w-3 mr-1" />
+                  New
+                </Badge>
+              )}
+            </div>
+          </div>
+        </div>
+        {contributor.growthRate > 0 && (
+          <div className="flex items-center gap-1 text-green-600">
+            <TrendingUp className="h-4 w-4" />
+            <span className="text-sm font-medium">+{contributor.growthRate.toFixed(0)}%</span>
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-3 gap-2 text-sm">
+        <div className="text-center p-2 bg-muted rounded">
+          <div className="font-semibold">{contributor.pullRequests}</div>
+          <div className="text-xs text-muted-foreground">PRs</div>
+        </div>
+        <div className="text-center p-2 bg-muted rounded">
+          <div className="font-semibold">{contributor.commits}</div>
+          <div className="text-xs text-muted-foreground">Commits</div>
+        </div>
+        <div className="text-center p-2 bg-muted rounded">
+          <div className="font-semibold">{contributor.issues}</div>
+          <div className="text-xs text-muted-foreground">Issues</div>
+        </div>
+      </div>
+
+      <div className="pt-2 border-t">
+        <div className="flex justify-between text-sm">
+          <span className="text-muted-foreground">Activity Score</span>
+          <span className="font-medium">
+            {contributor.totalActivity || contributor.totalGithubEvents}
+          </span>
+        </div>
+        <div className="flex justify-between text-sm mt-1">
+          <span className="text-muted-foreground">Velocity</span>
+          <span className="font-medium">{contributor.velocityScore.toFixed(1)}/week</span>
+        </div>
+        <div className="flex justify-between text-sm mt-1">
+          <span className="text-muted-foreground">Contributing for</span>
+          <span className="font-medium">{contributionDays} days</span>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function RisingStarsChart({
@@ -37,115 +109,9 @@ export function RisingStarsChart({
   const newContributors =
     chartData[0]?.data.filter((d) => d.contributor.isNewContributor).length || 0;
 
-  // Define theme inline to ensure it's always available
-  const nivoTheme = {
-    background: 'transparent',
-    animate: true,
-    motionConfig: 'default',
-    text: {
-      fontSize: 12,
-      fill: 'hsl(0 0% 3.9%)',
-      outlineWidth: 0,
-      outlineColor: 'transparent',
-    },
-    axis: {
-      domain: {
-        line: {
-          stroke: 'hsl(0 0% 87%)',
-          strokeWidth: 1,
-        },
-      },
-      legend: {
-        text: {
-          fontSize: 13,
-          fill: 'hsl(0 0% 45.1%)',
-          outlineWidth: 0,
-          outlineColor: 'transparent',
-        },
-      },
-      ticks: {
-        line: {
-          stroke: 'hsl(0 0% 87%)',
-          strokeWidth: 1,
-        },
-        text: {
-          fontSize: 11,
-          fill: 'hsl(0 0% 45.1%)',
-          outlineWidth: 0,
-          outlineColor: 'transparent',
-        },
-      },
-    },
-    grid: {
-      line: {
-        stroke: 'hsl(0 0% 87%)',
-        strokeWidth: 1,
-        strokeDasharray: '4 4',
-      },
-    },
-    legends: {
-      text: {
-        fontSize: 11,
-        fill: 'hsl(0 0% 45.1%)',
-      },
-    },
-    labels: {
-      text: {
-        fontSize: 11,
-        fill: 'hsl(0 0% 45.1%)',
-      },
-    },
-    dots: {
-      text: {
-        fontSize: 10,
-        fill: 'hsl(0 0% 45.1%)',
-      },
-    },
-    tooltip: {
-      container: {
-        background: 'hsl(0 0% 100%)',
-        color: 'hsl(0 0% 3.9%)',
-        fontSize: 12,
-      },
-    },
-    annotations: {
-      text: {
-        fontSize: 13,
-        fill: 'hsl(0 0% 3.9%)',
-        outlineWidth: 2,
-        outlineColor: 'hsl(0 0% 100%)',
-        outlineOpacity: 1,
-      },
-      link: {
-        stroke: 'hsl(0 0% 3.9%)',
-        strokeWidth: 1,
-        outlineWidth: 2,
-        outlineColor: 'hsl(0 0% 100%)',
-        outlineOpacity: 1,
-      },
-      outline: {
-        stroke: 'hsl(0 0% 3.9%)',
-        strokeWidth: 2,
-        outlineWidth: 2,
-        outlineColor: 'hsl(0 0% 100%)',
-        outlineOpacity: 1,
-      },
-      symbol: {
-        fill: 'hsl(0 0% 3.9%)',
-        outlineWidth: 2,
-        outlineColor: 'hsl(0 0% 100%)',
-        outlineOpacity: 1,
-      },
-    },
-    crosshair: {
-      line: {
-        stroke: 'hsl(0 0% 45.1%)',
-        strokeWidth: 1,
-        strokeOpacity: 0.75,
-        strokeDasharray: '6 6',
-      },
-    },
-  };
+  // Calculate bounds for the chart
+  const xMax = Math.max(...(chartData[0]?.data.map((d) => d.x) || [100]));
+  const yMax = Math.max(...(chartData[0]?.data.map((d) => d.y) || [100]));
 
   // Empty data fallback
   if (!chartData[0]?.data?.length) {
@@ -164,12 +130,6 @@ export function RisingStarsChart({
     );
   }
 
-  // Ensure we have valid data and theme before rendering
-  if (!nivoTheme || !nivoTheme.axis) {
-    console.error('Theme not properly initialized');
-    return null;
-  }
-
   return (
     <Card className={cn('w-full', className)}>
       <CardHeader>
@@ -177,8 +137,7 @@ export function RisingStarsChart({
           <div>
             <CardTitle>Rising Stars & Growing Contributors</CardTitle>
             <CardDescription>
-              Code Contributions (PRs + Commits) vs Non-Code Contributions (Issues, Comments,
-              Reviews, Discussions)
+              Contributor velocity and engagement over the last 30 days
             </CardDescription>
           </div>
           <div className="flex gap-4 text-sm">
@@ -198,130 +157,97 @@ export function RisingStarsChart({
         </div>
       </CardHeader>
       <CardContent>
-        <div style={{ height }}>
-          {chartData && chartData.length > 0 && (
-            <Suspense fallback={<Skeleton className="w-full h-full" />}>
-              <ResponsiveScatterPlot
-                data={chartData}
-                margin={{ top: 40, right: 120, bottom: 80, left: 80 }}
-                xScale={{ type: 'linear', min: 0, max: 'auto' }}
-                yScale={{ type: 'linear', min: 0, max: 'auto' }}
-                blendMode="normal"
-                axisTop={null}
-                axisRight={null}
-                axisBottom={{
-                  tickSize: 5,
-                  tickPadding: 5,
-                  tickRotation: 0,
-                  legend: 'Code Contributions (PRs + Commits)',
-                  legendPosition: 'middle',
-                  legendOffset: 46,
-                }}
-                axisLeft={{
-                  tickSize: 5,
-                  tickPadding: 5,
-                  tickRotation: 0,
-                  legend: 'Non-Code Contributions (Issues, Comments, Reviews, Discussions)',
-                  legendPosition: 'middle',
-                  legendOffset: -50,
-                }}
-                colors={{ scheme: 'category10' }}
-                nodeSize={(d) => {
-                  const datum = d as { data?: { size?: number } };
-                  return datum.data?.size || 10;
-                }}
-                useMesh={false}
-                gridXValues={5}
-                gridYValues={5}
-                theme={nivoTheme}
-                animate={true}
-                motionConfig="gentle"
-                tooltip={({ node }) => {
-                  const data = node.data as { contributor?: RisingStarContributor };
-                  const contributor = data?.contributor;
-                  if (!contributor) return null;
+        <div className="relative border rounded-lg bg-muted/10" style={{ height }}>
+          {/* Axes labels */}
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs text-muted-foreground">
+            Code Contributions (PRs + Commits) →
+          </div>
+          <div className="absolute left-2 top-1/2 -translate-y-1/2 -rotate-90 text-xs text-muted-foreground">
+            Non-Code Contributions →
+          </div>
 
-                  return (
-                    <div
-                      className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 text-sm z-50"
-                      style={{
-                        position: 'relative',
-                        zIndex: 1000,
-                        maxWidth: '280px',
-                        pointerEvents: 'none',
-                      }}
-                    >
-                      <div className="font-semibold mb-2 text-gray-900 dark:text-gray-100">
-                        {contributor.login}
-                      </div>
-                      <div className="space-y-1 text-xs">
-                        <div className="flex justify-between gap-4">
-                          <span className="text-gray-600 dark:text-gray-400">Activity Score:</span>
-                          <span className="font-medium text-gray-900 dark:text-gray-100">
-                            {contributor.totalActivity || contributor.totalGithubEvents}
-                          </span>
-                        </div>
-                        <div className="flex justify-between gap-4">
-                          <span className="text-gray-600 dark:text-gray-400">Velocity:</span>
-                          <span className="font-medium text-gray-900 dark:text-gray-100">
-                            {contributor.velocityScore?.toFixed(1)}/week
-                          </span>
-                        </div>
-                        <div className="flex justify-between gap-4">
-                          <span className="text-gray-600 dark:text-gray-400">Growth Rate:</span>
-                          <span className="font-medium text-green-600 dark:text-green-400">
-                            +{contributor.growthRate?.toFixed(0)}%
-                          </span>
-                        </div>
-                        <div className="pt-1 mt-1 border-t border-gray-200 dark:border-gray-600">
-                          <div className="flex justify-between gap-4">
-                            <span className="text-gray-600 dark:text-gray-400">Commits:</span>
-                            <span className="text-gray-900 dark:text-gray-100">
-                              {contributor.commits}
-                            </span>
-                          </div>
-                          <div className="flex justify-between gap-4">
-                            <span className="text-gray-600 dark:text-gray-400">PRs:</span>
-                            <span className="text-gray-900 dark:text-gray-100">
-                              {contributor.pullRequests}
-                            </span>
-                          </div>
-                          <div className="flex justify-between gap-4">
-                            <span className="text-gray-600 dark:text-gray-400">Total Events:</span>
-                            <span className="text-gray-900 dark:text-gray-100">
-                              {contributor.totalGithubEvents}
-                            </span>
-                          </div>
-                        </div>
+          {/* Grid lines */}
+          <div className="absolute inset-0 opacity-20">
+            <div className="absolute left-1/4 top-0 bottom-0 border-l border-dashed border-muted" />
+            <div className="absolute left-1/2 top-0 bottom-0 border-l border-dashed border-muted" />
+            <div className="absolute left-3/4 top-0 bottom-0 border-l border-dashed border-muted" />
+            <div className="absolute top-1/4 left-0 right-0 border-t border-dashed border-muted" />
+            <div className="absolute top-1/2 left-0 right-0 border-t border-dashed border-muted" />
+            <div className="absolute top-3/4 left-0 right-0 border-t border-dashed border-muted" />
+          </div>
+
+          {/* Plot area */}
+          <div className="absolute inset-8">
+            {chartData[0].data.map((point, i) => {
+              const { contributor } = point;
+              // Calculate position as percentage
+              const xPercent = (point.x / xMax) * 100;
+              const yPercent = 100 - (point.y / yMax) * 100; // Invert Y axis
+              const size = Math.min(Math.max(point.size / 2, 20), 60); // Scale size
+
+              return (
+                <div
+                  key={`${contributor.github_id}-${i}`}
+                  className="absolute"
+                  style={{
+                    left: `${xPercent}%`,
+                    top: `${yPercent}%`,
+                    transform: 'translate(-50%, -50%)',
+                    zIndex: i, // Layer bubbles based on their order
+                  }}
+                >
+                  <HoverCard>
+                    <HoverCardTrigger asChild>
+                      <div className="relative cursor-pointer group">
+                        {/* Rising star indicator */}
                         {contributor.isRisingStar && (
-                          <div className="pt-1 mt-1 border-t border-gray-200 dark:border-gray-600">
-                            <span className="text-orange-600 dark:text-orange-400 font-medium">
-                              🌟 Rising Star
-                            </span>
-                          </div>
+                          <div
+                            className="absolute rounded-full border-2 border-orange-500 animate-pulse"
+                            style={{
+                              width: size + 6,
+                              height: size + 6,
+                              left: -3,
+                              top: -3,
+                            }}
+                          />
                         )}
-                        {contributor.isNewContributor && (
-                          <div className="text-green-600 dark:text-green-400 font-medium">
-                            ✨ New Contributor
-                          </div>
+
+                        {/* Avatar bubble */}
+                        <div
+                          className={cn(
+                            'rounded-full border-2 overflow-hidden transition-transform hover:scale-110',
+                            contributor.isNewContributor ? 'border-green-500' : 'border-blue-500'
+                          )}
+                          style={{
+                            width: size,
+                            height: size,
+                          }}
+                        >
+                          <Avatar className="w-full h-full">
+                            <AvatarImage src={contributor.avatar_url} alt={contributor.login} />
+                            <AvatarFallback className="text-xs">
+                              {contributor.login.slice(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                        </div>
+
+                        {/* Activity indicator */}
+                        {contributor.velocityScore > 5 && (
+                          <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-background" />
                         )}
                       </div>
-                    </div>
-                  );
-                }}
-              />
-            </Suspense>
-          )}
+                    </HoverCardTrigger>
 
-          {/* Gradient definition for rising stars */}
-          <svg width="0" height="0">
-            <defs>
-              <linearGradient id="rising-star-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#f97316" />
-                <stop offset="100%" stopColor="#eab308" />
-              </linearGradient>
-            </defs>
-          </svg>
+                    <HoverCardPrimitive.Portal>
+                      <HoverCardContent className="w-80 !z-[9999]" align="center" sideOffset={5}>
+                        <ContributorDetails contributor={contributor} />
+                      </HoverCardContent>
+                    </HoverCardPrimitive.Portal>
+                  </HoverCard>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </CardContent>
     </Card>
