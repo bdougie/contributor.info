@@ -50,7 +50,10 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
   const { stats, includeBots: contextIncludeBots } = useContext(RepoStatsContext);
   const { effectiveTimeRange } = useTimeRange();
   const { owner, repo } = useParams<{ owner: string; repo: string }>();
-  const [isLogarithmic, setIsLogarithmic] = useState(false);
+  // Default to enhanced mode on mobile devices
+  const [isLogarithmic, setIsLogarithmic] = useState(
+    typeof window !== 'undefined' && window.innerWidth < 768
+  );
   const [maxFilesModified, setMaxFilesModified] = useState(10);
   const [localIncludeBots, setLocalIncludeBots] = useState(contextIncludeBots);
   const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'merged' | 'closed'>('all');
@@ -64,6 +67,10 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
 
   const functionTimeout = useRef<NodeJS.Timeout | null>(null);
 
+  // Track if user has manually toggled the enhancement
+  const userHasManuallyToggled = useRef(false);
+  const wasMobileRef = useRef(isMobile);
+
   // Add resize listener to update isMobile state with throttling
   useEffect(() => {
     const handleResize = () => {
@@ -71,8 +78,17 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
         clearTimeout(functionTimeout.current);
       }
       functionTimeout.current = setTimeout(() => {
-        setIsMobile(window.innerWidth < 768);
-      }, 150); // Throttle resize events
+        const newIsMobile = window.innerWidth < 768;
+        const wasMobile = wasMobileRef.current;
+        setIsMobile(newIsMobile);
+        wasMobileRef.current = newIsMobile;
+
+        // Auto-enable enhanced mode when switching to mobile
+        // Only if user hasn't manually toggled the setting
+        if (newIsMobile && !wasMobile && !userHasManuallyToggled.current) {
+          setIsLogarithmic(true);
+        }
+      }, 250); // Increased throttle for better performance on low-end devices
     };
 
     window.addEventListener('resize', handleResize, { passive: true });
@@ -82,7 +98,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
         clearTimeout(functionTimeout.current);
       }
     };
-  }, []);
+  }, []); // Empty dependency array - resize handler doesn't need to re-register
 
   useEffect(() => {
     // Calculate max files modified for scale
@@ -584,6 +600,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
       clearTimeout(functionTimeout.current);
     }
     functionTimeout.current = setTimeout(() => {
+      userHasManuallyToggled.current = true; // Mark that user has manually toggled
       setIsLogarithmic(!isLogarithmic);
     }, 50);
   };
@@ -668,10 +685,16 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
                 id="logarithmic-scale"
                 checked={isLogarithmic}
                 onCheckedChange={handleSetLogarithmic}
+                aria-describedby="logarithmic-scale-description"
               />
               <Label htmlFor="logarithmic-scale" className="text-sm">
-                Enhance
+                {isLogarithmic ? 'Enhanced' : 'Enhance'}
               </Label>
+              <span id="logarithmic-scale-description" className="sr-only">
+                {isLogarithmic
+                  ? 'Enhanced view is enabled. Uses logarithmic scale for better visualization of data distribution.'
+                  : 'Enable enhanced view for logarithmic scale visualization.'}
+              </span>
             </div>
           </div>
         </div>
