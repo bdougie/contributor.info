@@ -66,6 +66,7 @@ trend-analysis-*.json
 /test-results/
 /playwright-report/
 /playwright/.cache/
+.playwright-mcp/
 
 *.pem
 # Images migrated to Supabase Storage
