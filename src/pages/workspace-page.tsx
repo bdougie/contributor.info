@@ -1,5 +1,5 @@
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect, lazy, Suspense, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import { getFallbackAvatar } from '@/lib/utils/avatar';
@@ -85,7 +85,7 @@ const ContributorLeaderboard = lazy(() =>
 // Temporary type definition for ActivityItem until analytics is properly implemented in issue #598
 interface ActivityItem {
   id: string;
-  type: 'pr' | 'issue' | 'commit' | 'review';
+  type: 'pr' | 'issue' | 'commit' | 'review' | 'comment' | 'star' | 'fork';
   title: string;
   author: {
     username: string;
@@ -93,8 +93,14 @@ interface ActivityItem {
   };
   repository: string;
   created_at: string;
-  status: 'open' | 'merged' | 'closed' | 'approved';
+  status: 'open' | 'merged' | 'closed' | 'approved' | 'changes_requested';
   url: string;
+  metadata?: {
+    additions?: number;
+    deletions?: number;
+    change_amount?: number;
+    current_value?: number;
+  };
 }
 
 interface WorkspaceRepository {
@@ -148,17 +154,20 @@ const filterRepositoriesBySelection = <T extends { id: string }>(
   return repos.filter((repo) => selectedRepoIds.includes(repo.id));
 };
 
-// Calculate real metrics from repository data
-const calculateRealMetrics = (repos: Repository[]): WorkspaceMetrics => {
+// Calculate real metrics from repository data and fetched stats
+const calculateRealMetrics = (
+  repos: Repository[],
+  prCount: number = 0,
+  contributorCount: number = 0,
+  commitCount: number = 0
+): WorkspaceMetrics => {
   const totalStars = repos.reduce((sum, repo) => sum + (repo.stars || 0), 0);
-  const totalContributors = repos.reduce((sum, repo) => sum + (repo.contributors || 0), 0);
 
-  // For now, set these to 0 until we have real data from the backend
   return {
     totalStars,
-    totalPRs: 0, // Will be populated from real data
-    totalContributors,
-    totalCommits: 0, // Will be populated from real data
+    totalPRs: prCount,
+    totalContributors: contributorCount,
+    totalCommits: commitCount,
     starsTrend: 0, // Will be calculated from historical data
     prsTrend: 0, // Will be calculated from historical data
     contributorsTrend: 0, // Will be calculated from historical data
@@ -166,16 +175,38 @@ const calculateRealMetrics = (repos: Repository[]): WorkspaceMetrics => {
   };
 };
 
-// Calculate real trend data from historical data
-const calculateRealTrendData = (days: number): WorkspaceTrendData => {
-  // Return empty data for now - will be populated with real historical data
+// Calculate real trend data from historical PR, issue, and commit data
+const calculateRealTrendData = (
+  days: number,
+  prData: Array<{ created_at: string; state: string; commits?: number }> = [],
+  issueData: Array<{ created_at: string; state: string }> = []
+): WorkspaceTrendData => {
   const labels = [];
+  const prCounts = [];
+  const issueCounts = [];
+  const commitCounts = [];
   const today = new Date();
 
+  // Create date buckets
   for (let i = days - 1; i >= 0; i--) {
     const date = new Date(today);
     date.setDate(date.getDate() - i);
+    const dateStr = date.toISOString().split('T')[0];
     labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+
+    // Count PRs and aggregate commits for this day
+    const dayPRs = prData.filter((pr) => pr.created_at.split('T')[0] === dateStr);
+    prCounts.push(dayPRs.length);
+
+    // Sum up commits from PRs for this day
+    const dayCommits = dayPRs.reduce((sum, pr) => sum + (pr.commits || 0), 0);
+    commitCounts.push(dayCommits);
+
+    // Count issues for this day
+    const dayIssues = issueData.filter(
+      (issue) => issue.created_at.split('T')[0] === dateStr
+    ).length;
+    issueCounts.push(dayIssues);
   }
 
   return {
@@ -183,17 +214,17 @@ const calculateRealTrendData = (days: number): WorkspaceTrendData => {
     datasets: [
       {
         label: 'Pull Requests',
-        data: Array(days).fill(0), // Will be populated from real data
+        data: prCounts,
         color: '#10b981',
       },
       {
         label: 'Issues',
-        data: Array(days).fill(0), // Will be populated from real data
+        data: issueCounts,
         color: '#f97316',
       },
       {
         label: 'Commits',
-        data: Array(days).fill(0), // Will be populated from real data
+        data: commitCounts,
         color: '#8b5cf6',
       },
     ],
@@ -1312,12 +1343,278 @@ function WorkspaceContributors({
   );
 }
 
-function WorkspaceActivity() {
-  // Generate activity data for the feed
-  const activities: ActivityItem[] = [];
+interface WorkspaceActivityProps {
+  prData: Array<{
+    id: string;
+    title: string;
+    number: number;
+    state: string;
+    created_at: string;
+    merged_at: string | null;
+    author_id: string;
+    author_login?: string;
+    repository_id: string;
+    repository_name?: string;
+    html_url?: string;
+    additions?: number;
+    deletions?: number;
+    commits?: number;
+  }>;
+  issueData: Array<{
+    id: string;
+    title: string;
+    number: number;
+    state: string;
+    created_at: string;
+    closed_at: string | null;
+    author_id: string;
+    author_login?: string;
+    repository_id: string;
+    repository_name?: string;
+    html_url?: string;
+  }>;
+  reviewData: Array<{
+    id: string;
+    pull_request_id: string;
+    reviewer_id: string;
+    reviewer_login?: string;
+    state: string;
+    body?: string;
+    submitted_at: string;
+    pr_title?: string;
+    pr_number?: number;
+    repository_id?: string;
+    repository_name?: string;
+  }>;
+  commentData: Array<{
+    id: string;
+    pull_request_id: string;
+    commenter_id: string;
+    commenter_login?: string;
+    body: string;
+    created_at: string;
+    comment_type: string;
+    pr_title?: string;
+    pr_number?: number;
+    repository_id?: string;
+    repository_name?: string;
+  }>;
+  starData: Array<{
+    id: string;
+    repository_id: string;
+    repository_name?: string;
+    previous_value: number;
+    current_value: number;
+    change_amount: number;
+    captured_at: string;
+  }>;
+  forkData: Array<{
+    id: string;
+    repository_id: string;
+    repository_name?: string;
+    previous_value: number;
+    current_value: number;
+    change_amount: number;
+    captured_at: string;
+  }>;
+  repositories: Repository[];
+  loading?: boolean;
+  error?: string | null;
+}
 
-  // TODO: Fetch real activity data from repositories
-  // For now, return empty activities until real implementation
+function WorkspaceActivity({
+  prData = [],
+  issueData = [],
+  reviewData = [],
+  commentData = [],
+  starData = [],
+  forkData = [],
+  repositories = [],
+  loading = false,
+  error = null,
+}: WorkspaceActivityProps) {
+  // Memoize the repository lookup map for better performance
+  const repositoryMap = useMemo(() => {
+    const map = new Map<string, Repository>();
+    repositories.forEach((repo) => {
+      if (repo?.id) {
+        map.set(repo.id, repo);
+      }
+    });
+    return map;
+  }, [repositories]);
+
+  // Memoize activities transformation for performance
+  const activities: ActivityItem[] = useMemo(() => {
+    // Helper function defined inside useMemo to avoid dependency issues
+    const getRepoName = (repoId: string | undefined): string => {
+      if (!repoId) return 'Unknown Repository';
+      const repo = repositoryMap.get(repoId);
+      return repo?.full_name || 'Unknown Repository';
+    };
+    try {
+      // Validate input data
+      const validPRData = Array.isArray(prData) ? prData : [];
+      const validIssueData = Array.isArray(issueData) ? issueData : [];
+      const validReviewData = Array.isArray(reviewData) ? reviewData : [];
+      const validCommentData = Array.isArray(commentData) ? commentData : [];
+      const validStarData = Array.isArray(starData) ? starData : [];
+      const validForkData = Array.isArray(forkData) ? forkData : [];
+
+      return [
+        // Convert PRs to activities with better error handling
+        ...validPRData.map((pr): ActivityItem => {
+          return {
+            id: `pr-${pr.id}`,
+            type: 'pr',
+            title: pr.title || `PR #${pr.number}`,
+            created_at: pr.created_at,
+            author: {
+              username: pr.author_login || 'Unknown',
+              avatar_url: pr.author_login
+                ? `https://avatars.githubusercontent.com/${pr.author_login}`
+                : '',
+            },
+            repository: getRepoName(pr.repository_id),
+            status: (() => {
+              // Handle all PR states including draft
+              if (pr.merged_at) return 'merged';
+              if (pr.state === 'open') return 'open';
+              if (pr.state === 'draft') return 'open'; // Treat draft as open with different styling later
+              return 'closed';
+            })() as ActivityItem['status'],
+            url: pr.html_url || '#',
+            metadata: {
+              additions: pr.additions || 0,
+              deletions: pr.deletions || 0,
+            },
+          };
+        }),
+        // Convert issues to activities with validation
+        ...validIssueData.map((issue): ActivityItem => {
+          return {
+            id: `issue-${issue.id}`,
+            type: 'issue',
+            title: issue.title || `Issue #${issue.number}`,
+            created_at: issue.created_at,
+            author: {
+              username: issue.author_login || 'Unknown',
+              avatar_url: issue.author_login
+                ? `https://avatars.githubusercontent.com/${issue.author_login}`
+                : '',
+            },
+            repository: getRepoName(issue.repository_id),
+            status: issue.closed_at ? 'closed' : 'open',
+            url: issue.html_url || '#',
+            metadata: {},
+          };
+        }),
+        // Convert reviews to activities with validation
+        ...validReviewData.map(
+          (review): ActivityItem => ({
+            id: `review-${review.id}`,
+            type: 'review',
+            title: review.pr_title ? `Review on: ${review.pr_title}` : `Review on PR`,
+            created_at: review.submitted_at,
+            author: {
+              username: review.reviewer_login || 'Unknown',
+              avatar_url: review.reviewer_login
+                ? `https://avatars.githubusercontent.com/${review.reviewer_login}`
+                : '',
+            },
+            repository: review.repository_name || 'Unknown Repository',
+            status: review.state.toLowerCase() as ActivityItem['status'],
+            url: '#',
+            metadata: {},
+          })
+        ),
+        // Convert comments to activities with validation
+        ...validCommentData.map(
+          (comment): ActivityItem => ({
+            id: `comment-${comment.id}`,
+            type: 'comment',
+            title: comment.pr_title ? `Comment on: ${comment.pr_title}` : `Comment on PR`,
+            created_at: comment.created_at,
+            author: {
+              username: comment.commenter_login || 'Unknown',
+              avatar_url: comment.commenter_login
+                ? `https://avatars.githubusercontent.com/${comment.commenter_login}`
+                : '',
+            },
+            repository: comment.repository_name || 'Unknown Repository',
+            status: 'open' as ActivityItem['status'],
+            url: '#',
+            metadata: {},
+          })
+        ),
+        // Convert star events to activities with data validation
+        ...validStarData.map((star): ActivityItem => {
+          const changeAmount =
+            typeof star.change_amount === 'number' && !isNaN(star.change_amount)
+              ? star.change_amount
+              : 0;
+          const currentValue =
+            typeof star.current_value === 'number' && !isNaN(star.current_value)
+              ? star.current_value
+              : 0;
+          return {
+            id: `star-${star.id}-${star.captured_at}`,
+            type: 'star',
+            title:
+              changeAmount > 0
+                ? `+${changeAmount} stars (${currentValue} total)`
+                : `${changeAmount} stars (${currentValue} total)`,
+            created_at: star.captured_at,
+            author: {
+              username: 'System',
+              avatar_url: '',
+            },
+            repository: star.repository_name || 'Unknown Repository',
+            status: 'open' as ActivityItem['status'],
+            url: '#',
+            metadata: {
+              change_amount: changeAmount,
+              current_value: currentValue,
+            },
+          };
+        }),
+        // Convert fork events to activities with data validation
+        ...validForkData.map((fork): ActivityItem => {
+          const changeAmount =
+            typeof fork.change_amount === 'number' && !isNaN(fork.change_amount)
+              ? fork.change_amount
+              : 0;
+          const currentValue =
+            typeof fork.current_value === 'number' && !isNaN(fork.current_value)
+              ? fork.current_value
+              : 0;
+          return {
+            id: `fork-${fork.id}-${fork.captured_at}`,
+            type: 'fork',
+            title:
+              changeAmount > 0
+                ? `+${changeAmount} forks (${currentValue} total)`
+                : `${changeAmount} forks (${currentValue} total)`,
+            created_at: fork.captured_at,
+            author: {
+              username: 'System',
+              avatar_url: '',
+            },
+            repository: fork.repository_name || 'Unknown Repository',
+            status: 'open' as ActivityItem['status'],
+            url: '#',
+            metadata: {
+              change_amount: changeAmount,
+              current_value: currentValue,
+            },
+          };
+        }),
+      ];
+    } catch (error) {
+      console.error('Error transforming activity data:', error);
+      return [];
+    }
+  }, [prData, issueData, reviewData, commentData, starData, forkData, repositoryMap]);
 
   // Sort by date, most recent first
   activities.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -1336,8 +1633,10 @@ function WorkspaceActivity() {
       total: dayActivities.length,
       prs: dayActivities.filter((a) => a.type === 'pr').length,
       issues: dayActivities.filter((a) => a.type === 'issue').length,
-      commits: dayActivities.filter((a) => a.type === 'commit').length,
       reviews: dayActivities.filter((a) => a.type === 'review').length,
+      comments: dayActivities.filter((a) => a.type === 'comment').length,
+      stars: dayActivities.filter((a) => a.type === 'star').length,
+      forks: dayActivities.filter((a) => a.type === 'fork').length,
     };
   });
 
@@ -1372,14 +1671,24 @@ function WorkspaceActivity() {
               color: '#f97316',
             },
             {
-              label: 'Commits',
-              data: activityByDay.map((d) => d.commits),
-              color: '#3b82f6',
-            },
-            {
               label: 'Reviews',
               data: activityByDay.map((d) => d.reviews),
               color: '#8b5cf6',
+            },
+            {
+              label: 'Comments',
+              data: activityByDay.map((d) => d.comments),
+              color: '#06b6d4',
+            },
+            {
+              label: 'Stars',
+              data: activityByDay.map((d) => d.stars),
+              color: '#fbbf24',
+            },
+            {
+              label: 'Forks',
+              data: activityByDay.map((d) => d.forks),
+              color: '#a855f7',
             },
           ],
         }}
@@ -1401,11 +1710,11 @@ function WorkspaceActivity() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Active Contributors</CardTitle>
+            <CardTitle className="text-sm font-medium">Active Actors</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{uniqueContributors}</div>
-            <p className="text-xs text-muted-foreground">Unique authors</p>
+            <p className="text-xs text-muted-foreground">Unique actors</p>
           </CardContent>
         </Card>
         <Card>
@@ -1437,7 +1746,14 @@ function WorkspaceActivity() {
           </p>
         </CardHeader>
         <CardContent>
-          <ActivityTable activities={activities} loading={false} pageSize={20} />
+          {error ? (
+            <div className="text-center py-8 text-red-500">
+              <p>Error loading activity data: {error}</p>
+              <p className="text-sm text-muted-foreground mt-2">Please try refreshing the page.</p>
+            </div>
+          ) : (
+            <ActivityTable activities={activities} loading={loading} pageSize={20} />
+          )}
         </CardContent>
       </Card>
     </div>
@@ -1801,6 +2117,12 @@ export default function WorkspacePage() {
   const [metrics, setMetrics] = useState<WorkspaceMetrics | null>(null);
   const [trendData, setTrendData] = useState<WorkspaceTrendData | null>(null);
   const [activityData, setActivityData] = useState<ActivityDataPoint[]>([]);
+  const [fullPRData, setFullPRData] = useState<WorkspaceActivityProps['prData']>([]);
+  const [fullIssueData, setFullIssueData] = useState<WorkspaceActivityProps['issueData']>([]);
+  const [fullReviewData, setFullReviewData] = useState<WorkspaceActivityProps['reviewData']>([]);
+  const [fullCommentData, setFullCommentData] = useState<WorkspaceActivityProps['commentData']>([]);
+  const [fullStarData, setFullStarData] = useState<WorkspaceActivityProps['starData']>([]);
+  const [fullForkData, setFullForkData] = useState<WorkspaceActivityProps['forkData']>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<TimeRange>('30d');
@@ -1909,8 +2231,14 @@ export default function WorkspacePage() {
             html_url: `https://github.com/${r.repositories.full_name}`,
           }));
 
-        // Fetch merged PRs for activity data - respect time range
+        // Fetch real data for metrics and trends
         let mergedPRs: MergedPR[] = [];
+        let prDataForTrends: Array<{ created_at: string; state: string; commits?: number }> = [];
+        let issueDataForTrends: Array<{ created_at: string; state: string }> = [];
+        let totalPRCount = 0;
+        let totalCommitCount = 0;
+        let uniqueContributorCount = 0;
+
         if (transformedRepos.length > 0) {
           // Use utility function to filter repositories
           const filteredRepos = filterRepositoriesBySelection(
@@ -1923,11 +2251,12 @@ export default function WorkspacePage() {
           const daysToFetch = TIME_RANGE_DAYS[timeRange];
           const startDate = new Date(Date.now() - daysToFetch * 24 * 60 * 60 * 1000);
 
-          // Fetch both merged PRs and all PR activity for better coverage
+          // Fetch PRs for activity data and metrics with more fields for activity tab
           const { data: prData, error: prError } = await supabase
             .from('pull_requests')
             .select(
-              'merged_at, created_at, updated_at, additions, deletions, changed_files, commits, state'
+              `id, title, number, merged_at, created_at, updated_at, additions, deletions, 
+               changed_files, commits, state, author_id, repository_id, html_url`
             )
             .in('repository_id', repoIds)
             .or(
@@ -1936,11 +2265,33 @@ export default function WorkspacePage() {
             .order('created_at', { ascending: true });
 
           if (prError) {
-            console.error('Error fetching PR data for activity chart:', prError);
+            console.error('Error fetching PR data:', prError);
           }
 
           if (prData) {
-            // Filter for merged PRs but handle null fields gracefully
+            // Format PR data for activity tab
+            const formattedPRs = prData.map((pr) => ({
+              ...pr,
+              author_login: pr.author_id ? `User-${pr.author_id.slice(0, 8)}` : 'Unknown', // Guard author ID
+              repository_name: transformedRepos.find((r) => r.id === pr.repository_id)?.full_name,
+            }));
+            setFullPRData(formattedPRs);
+
+            // Store for trend calculation with commits
+            prDataForTrends = prData.map((pr) => ({
+              created_at: pr.created_at,
+              state: pr.state,
+              commits: pr.commits || 0,
+            }));
+
+            // Count total PRs and aggregate commits
+            totalPRCount = prData.length;
+            totalCommitCount = prData.reduce((sum, pr) => sum + (pr.commits || 0), 0);
+
+            // Get unique contributors from PRs
+            const prContributors = new Set(prData.map((pr) => pr.author_id).filter(Boolean));
+
+            // Filter for merged PRs for activity chart
             mergedPRs = prData
               .filter((pr) => pr.merged_at !== null)
               .map((pr) => ({
@@ -1950,37 +2301,354 @@ export default function WorkspacePage() {
                 changed_files: pr.changed_files || 0,
                 commits: pr.commits || 0,
               }));
-          }
 
-          // If no merged PRs found, try to get any open PRs for activity indication
-          if (mergedPRs.length === 0 && prData) {
-            console.log(
-              `No merged PRs found for workspace in last ${daysToFetch} days, checking for any PR activity...`
-            );
-            // Use created_at for open PRs to show some activity
-            const openPRActivity = prData
-              .filter((pr) => pr.state === 'open' && pr.created_at)
-              .map((pr) => ({
-                merged_at: pr.created_at, // Use created_at as proxy for activity date
-                additions: pr.additions || 0,
-                deletions: pr.deletions || 0,
-                changed_files: pr.changed_files || 0,
-                commits: pr.commits || 0,
+            // If no merged PRs found, use open PRs for activity
+            if (mergedPRs.length === 0) {
+              const openPRActivity = prData
+                .filter((pr) => pr.state === 'open' && pr.created_at)
+                .map((pr) => ({
+                  merged_at: pr.created_at,
+                  additions: pr.additions || 0,
+                  deletions: pr.deletions || 0,
+                  changed_files: pr.changed_files || 0,
+                  commits: pr.commits || 0,
+                }));
+
+              if (openPRActivity.length > 0) {
+                mergedPRs = openPRActivity;
+              }
+            }
+
+            // Fetch issues for metrics and trends with more fields for activity tab
+            const { data: issueData, error: issueError } = await supabase
+              .from('issues')
+              .select(
+                `id, title, number, created_at, closed_at, state, author_id, repository_id, html_url`
+              )
+              .in('repository_id', repoIds)
+              .gte('created_at', startDate.toISOString())
+              .order('created_at', { ascending: true });
+
+            if (issueError) {
+              console.error('Error fetching issue data:', issueError);
+            }
+
+            if (issueData) {
+              // Format issue data for activity tab
+              const formattedIssues = issueData.map((issue) => ({
+                ...issue,
+                author_login: issue.author_id ? `User-${issue.author_id.slice(0, 8)}` : 'Unknown', // Guard author ID
+                repository_name: transformedRepos.find((r) => r.id === issue.repository_id)
+                  ?.full_name,
+              }));
+              setFullIssueData(formattedIssues);
+
+              // Store for trend calculation
+              issueDataForTrends = issueData.map((issue) => ({
+                created_at: issue.created_at,
+                state: issue.state,
               }));
 
-            if (openPRActivity.length > 0) {
-              console.log('Found %d open PRs to show activity', openPRActivity.length);
-              mergedPRs = openPRActivity;
+              // Add issue contributors to the set
+              const issueContributors = new Set(
+                issueData.map((issue) => issue.author_id).filter(Boolean)
+              );
+
+              // Merge contributor sets
+              const allContributors = new Set([...prContributors, ...issueContributors]);
+              uniqueContributorCount = allContributors.size;
             }
+
+            // Fetch reviews for activity tab
+            const { data: reviewData, error: reviewError } = await supabase
+              .from('reviews')
+              .select(
+                `id, pull_request_id, reviewer_id, state, body, submitted_at,
+                 pull_requests!inner(title, number, repository_id)`
+              )
+              .in('pull_requests.repository_id', repoIds)
+              .gte('submitted_at', startDate.toISOString())
+              .order('submitted_at', { ascending: false });
+
+            if (reviewError) {
+              console.error('Error fetching review data:', reviewError);
+            }
+
+            if (reviewData && Array.isArray(reviewData)) {
+              // Type guard for review data validation
+              const isValidReview = (
+                review: unknown
+              ): review is {
+                id: string;
+                pull_request_id: string;
+                reviewer_id: string;
+                state: string;
+                body?: string;
+                submitted_at: string;
+                pull_requests?:
+                  | {
+                      title: string;
+                      number: number;
+                      repository_id: string;
+                    }
+                  | Array<{
+                      title: string;
+                      number: number;
+                      repository_id: string;
+                    }>;
+              } => {
+                return (
+                  typeof review === 'object' &&
+                  review !== null &&
+                  'id' in review &&
+                  'pull_request_id' in review &&
+                  'reviewer_id' in review &&
+                  'state' in review &&
+                  'submitted_at' in review
+                );
+              };
+
+              const formattedReviews = reviewData.filter(isValidReview).map((r) => {
+                // Handle both single object and array cases
+                const pr = Array.isArray(r.pull_requests) ? r.pull_requests[0] : r.pull_requests;
+                return {
+                  id: r.id,
+                  pull_request_id: r.pull_request_id,
+                  reviewer_id: r.reviewer_id,
+                  state: r.state,
+                  body: r.body,
+                  submitted_at: r.submitted_at,
+                  reviewer_login: r.reviewer_id ? `User-${r.reviewer_id.slice(0, 8)}` : 'Unknown',
+                  pr_title: pr?.title,
+                  pr_number: pr?.number,
+                  repository_id: pr?.repository_id,
+                  repository_name: transformedRepos.find((repo) => repo.id === pr?.repository_id)
+                    ?.full_name,
+                };
+              });
+              setFullReviewData(formattedReviews);
+            }
+
+            // Fetch comments for activity tab
+            const { data: commentData, error: commentError } = await supabase
+              .from('comments')
+              .select(
+                `id, pull_request_id, commenter_id, body, created_at, comment_type,
+                 pull_requests!inner(title, number, repository_id)`
+              )
+              .in('pull_requests.repository_id', repoIds)
+              .gte('created_at', startDate.toISOString())
+              .order('created_at', { ascending: false });
+
+            if (commentError) {
+              console.error('Error fetching comment data:', commentError);
+            }
+
+            if (commentData && Array.isArray(commentData)) {
+              // Type guard for comment data validation
+              const isValidComment = (
+                comment: unknown
+              ): comment is {
+                id: string;
+                pull_request_id: string;
+                commenter_id: string;
+                body: string;
+                created_at: string;
+                comment_type: string;
+                pull_requests?:
+                  | {
+                      title: string;
+                      number: number;
+                      repository_id: string;
+                    }
+                  | Array<{
+                      title: string;
+                      number: number;
+                      repository_id: string;
+                    }>;
+              } => {
+                return (
+                  typeof comment === 'object' &&
+                  comment !== null &&
+                  'id' in comment &&
+                  'pull_request_id' in comment &&
+                  'commenter_id' in comment &&
+                  'created_at' in comment
+                );
+              };
+
+              const formattedComments = commentData.filter(isValidComment).map((c) => {
+                // Handle both single object and array cases
+                const pr = Array.isArray(c.pull_requests) ? c.pull_requests[0] : c.pull_requests;
+                return {
+                  id: c.id,
+                  pull_request_id: c.pull_request_id,
+                  commenter_id: c.commenter_id,
+                  body: c.body,
+                  created_at: c.created_at,
+                  comment_type: c.comment_type,
+                  commenter_login: c.commenter_id
+                    ? `User-${c.commenter_id.slice(0, 8)}`
+                    : 'Unknown',
+                  pr_title: pr?.title,
+                  pr_number: pr?.number,
+                  repository_id: pr?.repository_id,
+                  repository_name: transformedRepos.find((repo) => repo.id === pr?.repository_id)
+                    ?.full_name,
+                };
+              });
+              setFullCommentData(formattedComments);
+            }
+
+            // Fetch star and fork metrics history for activity feed
+            const { data: starHistory, error: starError } = await supabase
+              .from('repository_metrics_history')
+              .select(
+                'id, repository_id, previous_value, current_value, change_amount, captured_at'
+              )
+              .in('repository_id', repoIds)
+              .eq('metric_type', 'stars')
+              .gte('captured_at', startDate.toISOString())
+              .gt('change_amount', 0)
+              .order('captured_at', { ascending: false });
+
+            if (starError) {
+              console.error('Error fetching star history:', starError);
+              // Surface error to users
+              setError('Failed to load star metrics. Some data may be incomplete.');
+            }
+
+            if (starHistory) {
+              const formattedStars = (starHistory as unknown[]).map((star: unknown) => {
+                const s = star as {
+                  id: string;
+                  repository_id: string;
+                  change_amount: number;
+                  current_value: number;
+                  previous_value?: number;
+                  captured_at: string;
+                };
+                return {
+                  id: `star-${s.repository_id}-${s.captured_at}`,
+                  repository_id: s.repository_id,
+                  repository_name: transformedRepos.find((r) => r.id === s.repository_id)
+                    ?.full_name,
+                  previous_value: s.previous_value || 0,
+                  current_value: s.current_value,
+                  change_amount: s.change_amount,
+                  captured_at: s.captured_at,
+                };
+              });
+              setFullStarData(formattedStars);
+            }
+
+            const { data: forkHistory, error: forkError } = await supabase
+              .from('repository_metrics_history')
+              .select(
+                'id, repository_id, previous_value, current_value, change_amount, captured_at'
+              )
+              .in('repository_id', repoIds)
+              .eq('metric_type', 'forks')
+              .gte('captured_at', startDate.toISOString())
+              .gt('change_amount', 0)
+              .order('captured_at', { ascending: false });
+
+            if (forkError) {
+              console.error('Error fetching fork history:', forkError);
+              // Surface error to users
+              setError(
+                (prev) => prev || 'Failed to load fork metrics. Some data may be incomplete.'
+              );
+            }
+
+            if (forkHistory) {
+              const formattedForks = (forkHistory as unknown[]).map((fork: unknown) => {
+                const f = fork as {
+                  id: string;
+                  repository_id: string;
+                  change_amount: number;
+                  current_value: number;
+                  previous_value?: number;
+                  captured_at: string;
+                };
+                return {
+                  id: `fork-${f.repository_id}-${f.captured_at}`,
+                  repository_id: f.repository_id,
+                  repository_name: transformedRepos.find((r) => r.id === f.repository_id)
+                    ?.full_name,
+                  previous_value: f.previous_value || 0,
+                  current_value: f.current_value,
+                  change_amount: f.change_amount,
+                  captured_at: f.captured_at,
+                };
+              });
+              setFullForkData(formattedForks);
+            }
+          }
+        }
+
+        // Batch query to get open PR counts for all repos at once
+        if (transformedRepos.length > 0) {
+          const repoIds = transformedRepos.map((r) => r.id);
+
+          // Get all open PRs for these repositories in a single query
+          const { data: openPRData } = await supabase
+            .from('pull_requests')
+            .select('repository_id')
+            .in('repository_id', repoIds)
+            .eq('state', 'open');
+
+          // Count PRs per repository
+          const prCountMap = new Map<string, number>();
+          if (openPRData) {
+            openPRData.forEach((pr) => {
+              const count = prCountMap.get(pr.repository_id) || 0;
+              prCountMap.set(pr.repository_id, count + 1);
+            });
+          }
+
+          // Update repositories with their PR counts
+          transformedRepos.forEach((repo) => {
+            repo.open_prs = prCountMap.get(repo.id) || 0;
+          });
+        }
+
+        // Fetch contributor count from repository_contributors table
+        if (transformedRepos.length > 0) {
+          const repoIds = transformedRepos.map((r) => r.id);
+
+          // First get contributor IDs from repository_contributors
+          const { data: repoContributorData } = await supabase
+            .from('repository_contributors')
+            .select('contributor_id')
+            .in('repository_id', repoIds);
+
+          if (repoContributorData && repoContributorData.length > 0) {
+            // Get unique contributor IDs
+            const contributorIds = [...new Set(repoContributorData.map((rc) => rc.contributor_id))];
+            uniqueContributorCount = Math.max(uniqueContributorCount, contributorIds.length);
           }
         }
 
         setWorkspace(workspaceData);
         setRepositories(transformedRepos);
 
-        // Generate metrics, trend data, and activity data
-        const realMetrics = calculateRealMetrics(transformedRepos);
-        const realTrendData = calculateRealTrendData(TIME_RANGE_DAYS[timeRange]);
+        // Generate metrics with real counts including commits
+        const realMetrics = calculateRealMetrics(
+          transformedRepos,
+          totalPRCount,
+          uniqueContributorCount,
+          totalCommitCount
+        );
+
+        // Generate trend data with real PR/issue data
+        const realTrendData = calculateRealTrendData(
+          TIME_RANGE_DAYS[timeRange],
+          prDataForTrends,
+          issueDataForTrends
+        );
+
+        // Generate activity data from PRs
         const activityDataPoints = generateActivityDataFromPRs(
           mergedPRs,
           timeRange,
@@ -2393,7 +3061,17 @@ export default function WorkspacePage() {
 
           <TabsContent value="activity" className="mt-6">
             <div className="container max-w-7xl mx-auto">
-              <WorkspaceActivity />
+              <WorkspaceActivity
+                prData={fullPRData}
+                issueData={fullIssueData}
+                reviewData={fullReviewData}
+                commentData={fullCommentData}
+                starData={fullStarData}
+                forkData={fullForkData}
+                repositories={repositories}
+                loading={loading}
+                error={error}
+              />
             </div>
           </TabsContent>
 

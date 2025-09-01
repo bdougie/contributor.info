@@ -9,6 +9,8 @@ import {
   GitCommit,
   MessageSquare,
   AlertCircle,
+  Star,
+  GitFork,
 } from '@/components/ui/icon';
 import { format, parseISO, formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -24,6 +26,9 @@ export const TYPE_ICONS = {
   issue: AlertCircle,
   commit: GitCommit,
   review: MessageSquare,
+  comment: MessageSquare,
+  star: Star,
+  fork: GitFork,
 };
 
 export const TYPE_COLORS = {
@@ -31,6 +36,9 @@ export const TYPE_COLORS = {
   issue: 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400',
   commit: 'bg-green-500/10 text-green-700 dark:text-green-400',
   review: 'bg-purple-500/10 text-purple-700 dark:text-purple-400',
+  comment: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-400',
+  star: 'bg-amber-500/10 text-amber-700 dark:text-amber-400',
+  fork: 'bg-pink-500/10 text-pink-700 dark:text-pink-400',
 };
 
 type StatusType = 'open' | 'merged' | 'closed' | 'approved' | 'changes_requested';
@@ -56,6 +64,12 @@ export const ActivityTableRow = memo(({ activity, style }: ActivityTableRowProps
         return 'Commit';
       case 'review':
         return 'Review';
+      case 'comment':
+        return 'Comment';
+      case 'star':
+        return 'Star';
+      case 'fork':
+        return 'Fork';
       default:
         return type;
     }
