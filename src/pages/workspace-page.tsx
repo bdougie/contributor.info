@@ -1465,7 +1465,7 @@ function WorkspaceActivity({
         // Convert PRs to activities with better error handling
         ...validPRData.map((pr): ActivityItem => {
           return {
-            id: pr.id,
+            id: `pr-${pr.id}`,
             type: 'pr',
             title: pr.title || `PR #${pr.number}`,
             created_at: pr.created_at,
@@ -1493,7 +1493,7 @@ function WorkspaceActivity({
         // Convert issues to activities with validation
         ...validIssueData.map((issue): ActivityItem => {
           return {
-            id: issue.id,
+            id: `issue-${issue.id}`,
             type: 'issue',
             title: issue.title || `Issue #${issue.number}`,
             created_at: issue.created_at,
@@ -1512,7 +1512,7 @@ function WorkspaceActivity({
         // Convert reviews to activities with validation
         ...validReviewData.map(
           (review): ActivityItem => ({
-            id: review.id,
+            id: `review-${review.id}`,
             type: 'review',
             title: review.pr_title ? `Review on: ${review.pr_title}` : `Review on PR`,
             created_at: review.submitted_at,
@@ -1531,7 +1531,7 @@ function WorkspaceActivity({
         // Convert comments to activities with validation
         ...validCommentData.map(
           (comment): ActivityItem => ({
-            id: comment.id,
+            id: `comment-${comment.id}`,
             type: 'comment',
             title: comment.pr_title ? `Comment on: ${comment.pr_title}` : `Comment on PR`,
             created_at: comment.created_at,
@@ -1558,7 +1558,7 @@ function WorkspaceActivity({
               ? star.current_value
               : 0;
           return {
-            id: star.id,
+            id: `star-${star.id}-${star.captured_at}`,
             type: 'star',
             title:
               changeAmount > 0
@@ -1589,7 +1589,7 @@ function WorkspaceActivity({
               ? fork.current_value
               : 0;
           return {
-            id: fork.id,
+            id: `fork-${fork.id}-${fork.captured_at}`,
             type: 'fork',
             title:
               changeAmount > 0
@@ -2527,7 +2527,7 @@ export default function WorkspacePage() {
                   captured_at: string;
                 };
                 return {
-                  id: s.id,
+                  id: `star-${s.repository_id}-${s.captured_at}`,
                   repository_id: s.repository_id,
                   repository_name: transformedRepos.find((r) => r.id === s.repository_id)
                     ?.full_name,
@@ -2570,7 +2570,7 @@ export default function WorkspacePage() {
                   captured_at: string;
                 };
                 return {
-                  id: f.id,
+                  id: `fork-${f.repository_id}-${f.captured_at}`,
                   repository_id: f.repository_id,
                   repository_name: transformedRepos.find((r) => r.id === f.repository_id)
                     ?.full_name,

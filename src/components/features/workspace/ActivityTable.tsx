@@ -284,9 +284,12 @@ export function ActivityTable({
                   const activity = paginatedActivities[virtualItem.index];
                   const Icon = TYPE_ICONS[activity.type];
 
+                  // Create a unique key combining type, id, and index to avoid duplicates
+                  const uniqueKey = `${activity.type}-${activity.id}-${virtualItem.index}`;
+
                   return (
                     <div
-                      key={activity.id}
+                      key={uniqueKey}
                       style={{
                         position: 'absolute',
                         top: 0,
