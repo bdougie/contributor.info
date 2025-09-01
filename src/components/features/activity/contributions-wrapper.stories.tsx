@@ -9,7 +9,7 @@ const meta = {
     docs: {
       description: {
         component:
-          'A wrapper component that lazy loads the contributions chart to visualize pull request contributions size and frequency. Includes proper fallback loading states and test environment handling.',
+          'A wrapper component that lazy loads the contributions chart to visualize the distribution of pull request contributions. Includes proper fallback loading states and test environment handling.',
       },
     },
   },
@@ -37,7 +37,7 @@ export const Loading: Story = {
             <div className="p-6 border-b">
               <h3 className="text-lg font-semibold">Pull Request Contributions</h3>
               <p className="text-sm text-muted-foreground">
-                Visualize the size and frequency of contributions
+                Visualize the distribution of contributions
               </p>
             </div>
             <div className="p-6">
@@ -64,7 +64,7 @@ export const TestEnvironment: Story = {
             <div className="p-6 border-b">
               <h3 className="text-lg font-semibold">Pull Request Contributions</h3>
               <p className="text-sm text-muted-foreground">
-                Visualize the size and frequency of contributions
+                Visualize the distribution of contributions
               </p>
             </div>
             <div className="p-6">

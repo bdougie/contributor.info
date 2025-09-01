@@ -12,10 +12,15 @@ Contribution Analytics goes beyond simple commit counts to analyze the character
 ## Visual Analytics
 
 ### Scatter Plot Visualization
-The analytics display contributions as interactive scatter plots where position indicates quadrant membership and size reflects overall contribution magnitude.
+The analytics display contributions as an interactive scatter plot that visualizes the distribution of contributions over time. The chart shows:
+
+- **Unique Contributors**: Up to 50 unique contributor avatars on desktop (25 on mobile) are displayed as interactive elements
+- **Duplicate Contributions**: When the same contributor has multiple PRs, subsequent contributions appear as subtle gray squares
+- **Visual Hierarchy**: Contributor avatars always render on top of gray squares for better visibility
+- **Time Distribution**: Desktop displays contributions based on the configured time range (default 30 days), while mobile optimizes for performance with a fixed 14-day window
 
 ### Contributor Mapping
-Each contributor's work patterns become visible through their distribution across quadrants, revealing specializations and work preferences.
+Each contributor's work patterns become visible through their distribution across the timeline, revealing activity patterns and collaboration dynamics.
 
 ### Time Series Analysis
 

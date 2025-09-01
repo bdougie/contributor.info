@@ -31,7 +31,7 @@ export default function ContributionsWrapper() {
     <Card>
       <CardHeader>
         <CardTitle>Pull Request Contributions</CardTitle>
-        <CardDescription>Visualize the size and frequency of contributions</CardDescription>
+        <CardDescription>Visualize the distribution of contributions</CardDescription>
       </CardHeader>
       <CardContent className="p-6">
         <Suspense
