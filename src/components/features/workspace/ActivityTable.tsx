@@ -18,6 +18,8 @@ import {
   MessageSquare,
   AlertCircle,
   Search,
+  Star,
+  GitFork,
   ChevronUp,
   ChevronDown,
   ExternalLink,
@@ -41,6 +43,9 @@ const TYPE_ICONS = {
   issue: AlertCircle,
   commit: GitCommit,
   review: MessageSquare,
+  comment: MessageSquare,
+  star: Star,
+  fork: GitFork,
 };
 
 const TYPE_COLORS = {
@@ -48,6 +53,9 @@ const TYPE_COLORS = {
   issue: 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400',
   commit: 'bg-green-500/10 text-green-700 dark:text-green-400',
   review: 'bg-purple-500/10 text-purple-700 dark:text-purple-400',
+  comment: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-400',
+  star: 'bg-amber-500/10 text-amber-700 dark:text-amber-400',
+  fork: 'bg-pink-500/10 text-pink-700 dark:text-pink-400',
 };
 
 const STATUS_COLORS = {
@@ -189,6 +197,9 @@ export function ActivityTable({
             <SelectItem value="issue">Issues</SelectItem>
             <SelectItem value="commit">Commits</SelectItem>
             <SelectItem value="review">Reviews</SelectItem>
+            <SelectItem value="comment">Comments</SelectItem>
+            <SelectItem value="star">Stars</SelectItem>
+            <SelectItem value="fork">Forks</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -273,9 +284,12 @@ export function ActivityTable({
                   const activity = paginatedActivities[virtualItem.index];
                   const Icon = TYPE_ICONS[activity.type];
 
+                  // Create a unique key combining type, id, and index to avoid duplicates
+                  const uniqueKey = `${activity.type}-${activity.id}-${virtualItem.index}`;
+
                   return (
                     <div
-                      key={activity.id}
+                      key={uniqueKey}
                       style={{
                         position: 'absolute',
                         top: 0,

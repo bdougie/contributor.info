@@ -40,7 +40,7 @@ export interface AnalyticsData {
 
 export interface ActivityItem {
   id: string;
-  type: 'pr' | 'issue' | 'commit' | 'review';
+  type: 'pr' | 'issue' | 'commit' | 'review' | 'comment' | 'star' | 'fork';
   title: string;
   description?: string;
   author: {
@@ -49,8 +49,12 @@ export interface ActivityItem {
   };
   repository: string;
   created_at: string;
-  status: 'open' | 'merged' | 'closed' | 'approved' | 'changes_requested';
-  url: string;
+  status?: 'open' | 'merged' | 'closed' | 'approved' | 'changes_requested';
+  url?: string;
+  metadata?: {
+    change_amount?: number;
+    current_value?: number;
+  };
 }
 
 export interface ContributorStat {

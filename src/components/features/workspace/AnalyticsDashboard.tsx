@@ -22,7 +22,7 @@ export interface AnalyticsData {
 
 export interface ActivityItem {
   id: string;
-  type: 'pr' | 'issue' | 'commit' | 'review';
+  type: 'pr' | 'issue' | 'commit' | 'review' | 'comment' | 'star' | 'fork';
   title: string;
   author: {
     username: string;
@@ -32,6 +32,12 @@ export interface ActivityItem {
   created_at: string;
   status?: string;
   url?: string;
+  metadata?: {
+    change_amount?: number;
+    current_value?: number;
+    additions?: number;
+    deletions?: number;
+  };
 }
 
 export interface ContributorStat {
