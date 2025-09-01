@@ -148,17 +148,21 @@ const filterRepositoriesBySelection = <T extends { id: string }>(
   return repos.filter((repo) => selectedRepoIds.includes(repo.id));
 };
 
-// Calculate real metrics from repository data
-const calculateRealMetrics = (repos: Repository[]): WorkspaceMetrics => {
+// Calculate real metrics from repository data and fetched stats
+const calculateRealMetrics = (
+  repos: Repository[],
+  prCount: number = 0,
+  issueCount: number = 0,
+  contributorCount: number = 0
+): WorkspaceMetrics => {
   const totalStars = repos.reduce((sum, repo) => sum + (repo.stars || 0), 0);
-  const totalContributors = repos.reduce((sum, repo) => sum + (repo.contributors || 0), 0);
+  const totalIssues = repos.reduce((sum, repo) => sum + (repo.open_issues || 0), 0) + issueCount;
 
-  // For now, set these to 0 until we have real data from the backend
   return {
     totalStars,
-    totalPRs: 0, // Will be populated from real data
-    totalContributors,
-    totalCommits: 0, // Will be populated from real data
+    totalPRs: prCount,
+    totalContributors: contributorCount,
+    totalCommits: totalIssues, // Using issues count as proxy for activity since commits not tracked
     starsTrend: 0, // Will be calculated from historical data
     prsTrend: 0, // Will be calculated from historical data
     contributorsTrend: 0, // Will be calculated from historical data
@@ -166,16 +170,33 @@ const calculateRealMetrics = (repos: Repository[]): WorkspaceMetrics => {
   };
 };
 
-// Calculate real trend data from historical data
-const calculateRealTrendData = (days: number): WorkspaceTrendData => {
-  // Return empty data for now - will be populated with real historical data
+// Calculate real trend data from historical PR and issue data
+const calculateRealTrendData = (
+  days: number,
+  prData: Array<{ created_at: string; state: string }> = [],
+  issueData: Array<{ created_at: string; state: string }> = []
+): WorkspaceTrendData => {
   const labels = [];
+  const prCounts = [];
+  const issueCounts = [];
   const today = new Date();
 
+  // Create date buckets
   for (let i = days - 1; i >= 0; i--) {
     const date = new Date(today);
     date.setDate(date.getDate() - i);
+    const dateStr = date.toISOString().split('T')[0];
     labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+
+    // Count PRs for this day
+    const dayPRs = prData.filter((pr) => pr.created_at.split('T')[0] === dateStr).length;
+    prCounts.push(dayPRs);
+
+    // Count issues for this day
+    const dayIssues = issueData.filter(
+      (issue) => issue.created_at.split('T')[0] === dateStr
+    ).length;
+    issueCounts.push(dayIssues);
   }
 
   return {
@@ -183,17 +204,17 @@ const calculateRealTrendData = (days: number): WorkspaceTrendData => {
     datasets: [
       {
         label: 'Pull Requests',
-        data: Array(days).fill(0), // Will be populated from real data
+        data: prCounts,
         color: '#10b981',
       },
       {
         label: 'Issues',
-        data: Array(days).fill(0), // Will be populated from real data
+        data: issueCounts,
         color: '#f97316',
       },
       {
         label: 'Commits',
-        data: Array(days).fill(0), // Will be populated from real data
+        data: Array(days).fill(0), // Commits not tracked in current schema
         color: '#8b5cf6',
       },
     ],
@@ -1909,8 +1930,14 @@ export default function WorkspacePage() {
             html_url: `https://github.com/${r.repositories.full_name}`,
           }));
 
-        // Fetch merged PRs for activity data - respect time range
+        // Fetch real data for metrics and trends
         let mergedPRs: MergedPR[] = [];
+        let prDataForTrends: Array<{ created_at: string; state: string }> = [];
+        let issueDataForTrends: Array<{ created_at: string; state: string }> = [];
+        let totalPRCount = 0;
+        let totalIssueCount = 0;
+        let uniqueContributorCount = 0;
+
         if (transformedRepos.length > 0) {
           // Use utility function to filter repositories
           const filteredRepos = filterRepositoriesBySelection(
@@ -1923,11 +1950,11 @@ export default function WorkspacePage() {
           const daysToFetch = TIME_RANGE_DAYS[timeRange];
           const startDate = new Date(Date.now() - daysToFetch * 24 * 60 * 60 * 1000);
 
-          // Fetch both merged PRs and all PR activity for better coverage
+          // Fetch PRs for activity data and metrics
           const { data: prData, error: prError } = await supabase
             .from('pull_requests')
             .select(
-              'merged_at, created_at, updated_at, additions, deletions, changed_files, commits, state'
+              'id, merged_at, created_at, updated_at, additions, deletions, changed_files, commits, state, author_id'
             )
             .in('repository_id', repoIds)
             .or(
@@ -1936,11 +1963,23 @@ export default function WorkspacePage() {
             .order('created_at', { ascending: true });
 
           if (prError) {
-            console.error('Error fetching PR data for activity chart:', prError);
+            console.error('Error fetching PR data:', prError);
           }
 
           if (prData) {
-            // Filter for merged PRs but handle null fields gracefully
+            // Store for trend calculation
+            prDataForTrends = prData.map((pr) => ({
+              created_at: pr.created_at,
+              state: pr.state,
+            }));
+
+            // Count total PRs
+            totalPRCount = prData.length;
+
+            // Get unique contributors from PRs
+            const prContributors = new Set(prData.map((pr) => pr.author_id).filter(Boolean));
+
+            // Filter for merged PRs for activity chart
             mergedPRs = prData
               .filter((pr) => pr.merged_at !== null)
               .map((pr) => ({
@@ -1950,37 +1989,105 @@ export default function WorkspacePage() {
                 changed_files: pr.changed_files || 0,
                 commits: pr.commits || 0,
               }));
-          }
 
-          // If no merged PRs found, try to get any open PRs for activity indication
-          if (mergedPRs.length === 0 && prData) {
-            console.log(
-              `No merged PRs found for workspace in last ${daysToFetch} days, checking for any PR activity...`
-            );
-            // Use created_at for open PRs to show some activity
-            const openPRActivity = prData
-              .filter((pr) => pr.state === 'open' && pr.created_at)
-              .map((pr) => ({
-                merged_at: pr.created_at, // Use created_at as proxy for activity date
-                additions: pr.additions || 0,
-                deletions: pr.deletions || 0,
-                changed_files: pr.changed_files || 0,
-                commits: pr.commits || 0,
+            // If no merged PRs found, use open PRs for activity
+            if (mergedPRs.length === 0) {
+              const openPRActivity = prData
+                .filter((pr) => pr.state === 'open' && pr.created_at)
+                .map((pr) => ({
+                  merged_at: pr.created_at,
+                  additions: pr.additions || 0,
+                  deletions: pr.deletions || 0,
+                  changed_files: pr.changed_files || 0,
+                  commits: pr.commits || 0,
+                }));
+
+              if (openPRActivity.length > 0) {
+                mergedPRs = openPRActivity;
+              }
+            }
+
+            // Fetch issues for metrics and trends
+            const { data: issueData, error: issueError } = await supabase
+              .from('issues')
+              .select('id, created_at, state, author_id')
+              .in('repository_id', repoIds)
+              .gte('created_at', startDate.toISOString())
+              .order('created_at', { ascending: true });
+
+            if (issueError) {
+              console.error('Error fetching issue data:', issueError);
+            }
+
+            if (issueData) {
+              // Store for trend calculation
+              issueDataForTrends = issueData.map((issue) => ({
+                created_at: issue.created_at,
+                state: issue.state,
               }));
 
-            if (openPRActivity.length > 0) {
-              console.log('Found %d open PRs to show activity', openPRActivity.length);
-              mergedPRs = openPRActivity;
+              // Count total issues
+              totalIssueCount = issueData.length;
+
+              // Add issue contributors to the set
+              const issueContributors = new Set(
+                issueData.map((issue) => issue.author_id).filter(Boolean)
+              );
+
+              // Merge contributor sets
+              const allContributors = new Set([...prContributors, ...issueContributors]);
+              uniqueContributorCount = allContributors.size;
             }
+          }
+        }
+
+        // Update PR count in repos
+        for (const repo of transformedRepos) {
+          const { count } = await supabase
+            .from('pull_requests')
+            .select('*', { count: 'exact', head: true })
+            .eq('repository_id', repo.id)
+            .eq('state', 'open');
+
+          repo.open_prs = count || 0;
+        }
+
+        // Fetch contributor count from repository_contributors table
+        if (transformedRepos.length > 0) {
+          const repoIds = transformedRepos.map((r) => r.id);
+
+          // First get contributor IDs from repository_contributors
+          const { data: repoContributorData } = await supabase
+            .from('repository_contributors')
+            .select('contributor_id')
+            .in('repository_id', repoIds);
+
+          if (repoContributorData && repoContributorData.length > 0) {
+            // Get unique contributor IDs
+            const contributorIds = [...new Set(repoContributorData.map((rc) => rc.contributor_id))];
+            uniqueContributorCount = Math.max(uniqueContributorCount, contributorIds.length);
           }
         }
 
         setWorkspace(workspaceData);
         setRepositories(transformedRepos);
 
-        // Generate metrics, trend data, and activity data
-        const realMetrics = calculateRealMetrics(transformedRepos);
-        const realTrendData = calculateRealTrendData(TIME_RANGE_DAYS[timeRange]);
+        // Generate metrics with real counts
+        const realMetrics = calculateRealMetrics(
+          transformedRepos,
+          totalPRCount,
+          totalIssueCount,
+          uniqueContributorCount
+        );
+
+        // Generate trend data with real PR/issue data
+        const realTrendData = calculateRealTrendData(
+          TIME_RANGE_DAYS[timeRange],
+          prDataForTrends,
+          issueDataForTrends
+        );
+
+        // Generate activity data from PRs
         const activityDataPoints = generateActivityDataFromPRs(
           mergedPRs,
           timeRange,
