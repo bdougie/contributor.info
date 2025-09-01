@@ -50,7 +50,10 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
   const { stats, includeBots: contextIncludeBots } = useContext(RepoStatsContext);
   const { effectiveTimeRange } = useTimeRange();
   const { owner, repo } = useParams<{ owner: string; repo: string }>();
-  const [isLogarithmic, setIsLogarithmic] = useState(false);
+  // Default to enhanced mode on mobile devices
+  const [isLogarithmic, setIsLogarithmic] = useState(
+    typeof window !== 'undefined' && window.innerWidth < 768
+  );
   const [maxFilesModified, setMaxFilesModified] = useState(10);
   const [localIncludeBots, setLocalIncludeBots] = useState(contextIncludeBots);
   const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'merged' | 'closed'>('all');
@@ -71,7 +74,12 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
         clearTimeout(functionTimeout.current);
       }
       functionTimeout.current = setTimeout(() => {
-        setIsMobile(window.innerWidth < 768);
+        const newIsMobile = window.innerWidth < 768;
+        setIsMobile(newIsMobile);
+        // Auto-enable enhanced mode when switching to mobile
+        if (newIsMobile && !isLogarithmic) {
+          setIsLogarithmic(true);
+        }
       }, 150); // Throttle resize events
     };
 
@@ -82,7 +90,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
         clearTimeout(functionTimeout.current);
       }
     };
-  }, []);
+  }, [isLogarithmic]);
 
   useEffect(() => {
     // Calculate max files modified for scale
@@ -670,7 +678,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
                 onCheckedChange={handleSetLogarithmic}
               />
               <Label htmlFor="logarithmic-scale" className="text-sm">
-                Enhance
+                {isLogarithmic ? 'Enhanced' : 'Enhance'}
               </Label>
             </div>
           </div>
