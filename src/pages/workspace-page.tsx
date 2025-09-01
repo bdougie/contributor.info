@@ -1570,11 +1570,11 @@ function WorkspaceActivity({
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Active Contributors</CardTitle>
+            <CardTitle className="text-sm font-medium">Active Actors</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{uniqueContributors}</div>
-            <p className="text-xs text-muted-foreground">Unique authors</p>
+            <p className="text-xs text-muted-foreground">Unique actors</p>
           </CardContent>
         </Card>
         <Card>
@@ -2226,7 +2226,7 @@ export default function WorkspacePage() {
             }
 
             if (reviewData) {
-              const formattedReviews = reviewData.map((review) => ({
+              const formattedReviews = reviewData.map((review: any) => ({
                 id: review.id,
                 pull_request_id: review.pull_request_id,
                 reviewer_id: review.reviewer_id,
@@ -2258,7 +2258,7 @@ export default function WorkspacePage() {
             }
 
             if (commentData) {
-              const formattedComments = commentData.map((comment) => ({
+              const formattedComments = commentData.map((comment: any) => ({
                 id: comment.id,
                 pull_request_id: comment.pull_request_id,
                 commenter_id: comment.commenter_id,
