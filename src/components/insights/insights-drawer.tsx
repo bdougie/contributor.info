@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { Loader2, MessageSquare, AlertCircle } from '@/components/ui/icon';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import ReactMarkdown from 'react-markdown';
 import { analyzePullRequests } from '@/lib/insights/pullRequests';
 import { useParams } from 'react-router-dom';
+
+// Lazy load ReactMarkdown
+const ReactMarkdown = lazy(() => import('react-markdown'));
 
 export function InsightsDrawer() {
   const { owner, repo } = useParams<{ owner: string; repo: string }>();
@@ -121,24 +123,32 @@ ${getHealthAssessment(analysis)}
     const totalPRs = analysis.totalPRs;
 
     // Check merge time (below 24 hours is good)
-    const mergeTimeAssessment =
-      analysis.averageTimeToMerge <= 24
-        ? 'The average merge time is good, suggesting an efficient review process.'
-        : analysis.averageTimeToMerge <= 72
-          ? 'The average merge time is acceptable but could be improved.'
-          : 'The average merge time is quite long, which could indicate review bottlenecks.';
+    let mergeTimeAssessment: string;
+    if (analysis.averageTimeToMerge <= 24) {
+      mergeTimeAssessment =
+        'The average merge time is good, suggesting an efficient review process.';
+    } else if (analysis.averageTimeToMerge <= 72) {
+      mergeTimeAssessment = 'The average merge time is acceptable but could be improved.';
+    } else {
+      mergeTimeAssessment =
+        'The average merge time is quite long, which could indicate review bottlenecks.';
+    }
 
     // Check contribution distribution
     const topContributorCount = Object.values(analysis.prsByAuthor).reduce((count, prCount) => {
       return count + (prCount > totalPRs * 0.1 ? 1 : 0);
     }, 0);
 
-    const distributionAssessment =
-      totalAuthors === 1
-        ? 'This repository has only one contributor, which presents a high bus factor risk.'
-        : topContributorCount <= 3 && totalAuthors >= 5
-          ? 'The repository has a healthy distribution of contributors.'
-          : 'The repository has a concentration of contributions among a few developers.';
+    let distributionAssessment: string;
+    if (totalAuthors === 1) {
+      distributionAssessment =
+        'This repository has only one contributor, which presents a high bus factor risk.';
+    } else if (topContributorCount <= 3 && totalAuthors >= 5) {
+      distributionAssessment = 'The repository has a healthy distribution of contributors.';
+    } else {
+      distributionAssessment =
+        'The repository has a concentration of contributions among a few developers.';
+    }
 
     return `
 ### Observations
@@ -189,32 +199,53 @@ ${
           <SheetTitle>Pull Request Insights</SheetTitle>
         </SheetHeader>
         <ScrollArea className="h-[calc(100vh-5rem)] mt-6 pr-4">
-          {loading ? (
-            <div className="flex items-center justify-center h-40">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : error ? (
-            <div className="space-y-4">
-              <div className="flex items-start gap-3 text-destructive">
-                <AlertCircle className="h-5 w-5 mt-0.5" />
-                <div>
-                  <p className="font-medium">Error generating insights</p>
-                  <p className="text-sm text-muted-foreground mt-1">{error}</p>
+          {(() => {
+            if (loading) {
+              return (
+                <div className="flex items-center justify-center h-40">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                 </div>
+              );
+            }
+            if (error) {
+              return (
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3 text-destructive">
+                    <AlertCircle className="h-5 w-5 mt-0.5" />
+                    <div>
+                      <p className="font-medium">Error generating insights</p>
+                      <p className="text-sm text-muted-foreground mt-1">{error}</p>
+                    </div>
+                  </div>
+                  <Button variant="outline" onClick={generateInsights} className="w-full">
+                    Try Again
+                  </Button>
+                </div>
+              );
+            }
+            if (insights) {
+              return (
+                <div className="prose dark:prose-invert max-w-none">
+                  <Suspense
+                    fallback={
+                      <div className="animate-pulse space-y-3">
+                        <div className="h-4 bg-muted rounded w-3/4" />
+                        <div className="h-4 bg-muted rounded w-full" />
+                        <div className="h-4 bg-muted rounded w-5/6" />
+                      </div>
+                    }
+                  >
+                    <ReactMarkdown>{insights}</ReactMarkdown>
+                  </Suspense>
+                </div>
+              );
+            }
+            return (
+              <div className="text-muted-foreground">
+                No insights available. Click generate to analyze pull requests.
               </div>
-              <Button variant="outline" onClick={generateInsights} className="w-full">
-                Try Again
-              </Button>
-            </div>
-          ) : insights ? (
-            <div className="prose dark:prose-invert max-w-none">
-              <ReactMarkdown>{insights}</ReactMarkdown>
-            </div>
-          ) : (
-            <div className="text-muted-foreground">
-              No insights available. Click generate to analyze pull requests.
-            </div>
-          )}
+            );
+          })()}
         </ScrollArea>
       </SheetContent>
     </Sheet>
