@@ -152,17 +152,16 @@ const filterRepositoriesBySelection = <T extends { id: string }>(
 const calculateRealMetrics = (
   repos: Repository[],
   prCount: number = 0,
-  issueCount: number = 0,
-  contributorCount: number = 0
+  contributorCount: number = 0,
+  commitCount: number = 0
 ): WorkspaceMetrics => {
   const totalStars = repos.reduce((sum, repo) => sum + (repo.stars || 0), 0);
-  const totalIssues = repos.reduce((sum, repo) => sum + (repo.open_issues || 0), 0) + issueCount;
 
   return {
     totalStars,
     totalPRs: prCount,
     totalContributors: contributorCount,
-    totalCommits: totalIssues, // Using issues count as proxy for activity since commits not tracked
+    totalCommits: commitCount,
     starsTrend: 0, // Will be calculated from historical data
     prsTrend: 0, // Will be calculated from historical data
     contributorsTrend: 0, // Will be calculated from historical data
@@ -170,15 +169,16 @@ const calculateRealMetrics = (
   };
 };
 
-// Calculate real trend data from historical PR and issue data
+// Calculate real trend data from historical PR, issue, and commit data
 const calculateRealTrendData = (
   days: number,
-  prData: Array<{ created_at: string; state: string }> = [],
+  prData: Array<{ created_at: string; state: string; commits?: number }> = [],
   issueData: Array<{ created_at: string; state: string }> = []
 ): WorkspaceTrendData => {
   const labels = [];
   const prCounts = [];
   const issueCounts = [];
+  const commitCounts = [];
   const today = new Date();
 
   // Create date buckets
@@ -188,9 +188,13 @@ const calculateRealTrendData = (
     const dateStr = date.toISOString().split('T')[0];
     labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
 
-    // Count PRs for this day
-    const dayPRs = prData.filter((pr) => pr.created_at.split('T')[0] === dateStr).length;
-    prCounts.push(dayPRs);
+    // Count PRs and aggregate commits for this day
+    const dayPRs = prData.filter((pr) => pr.created_at.split('T')[0] === dateStr);
+    prCounts.push(dayPRs.length);
+
+    // Sum up commits from PRs for this day
+    const dayCommits = dayPRs.reduce((sum, pr) => sum + (pr.commits || 0), 0);
+    commitCounts.push(dayCommits);
 
     // Count issues for this day
     const dayIssues = issueData.filter(
@@ -214,7 +218,7 @@ const calculateRealTrendData = (
       },
       {
         label: 'Commits',
-        data: Array(days).fill(0), // Commits not tracked in current schema
+        data: commitCounts,
         color: '#8b5cf6',
       },
     ],
@@ -1932,10 +1936,10 @@ export default function WorkspacePage() {
 
         // Fetch real data for metrics and trends
         let mergedPRs: MergedPR[] = [];
-        let prDataForTrends: Array<{ created_at: string; state: string }> = [];
+        let prDataForTrends: Array<{ created_at: string; state: string; commits?: number }> = [];
         let issueDataForTrends: Array<{ created_at: string; state: string }> = [];
         let totalPRCount = 0;
-        let totalIssueCount = 0;
+        let totalCommitCount = 0;
         let uniqueContributorCount = 0;
 
         if (transformedRepos.length > 0) {
@@ -1967,14 +1971,16 @@ export default function WorkspacePage() {
           }
 
           if (prData) {
-            // Store for trend calculation
+            // Store for trend calculation with commits
             prDataForTrends = prData.map((pr) => ({
               created_at: pr.created_at,
               state: pr.state,
+              commits: pr.commits || 0,
             }));
 
-            // Count total PRs
+            // Count total PRs and aggregate commits
             totalPRCount = prData.length;
+            totalCommitCount = prData.reduce((sum, pr) => sum + (pr.commits || 0), 0);
 
             // Get unique contributors from PRs
             const prContributors = new Set(prData.map((pr) => pr.author_id).filter(Boolean));
@@ -2026,9 +2032,6 @@ export default function WorkspacePage() {
                 state: issue.state,
               }));
 
-              // Count total issues
-              totalIssueCount = issueData.length;
-
               // Add issue contributors to the set
               const issueContributors = new Set(
                 issueData.map((issue) => issue.author_id).filter(Boolean)
@@ -2072,12 +2075,12 @@ export default function WorkspacePage() {
         setWorkspace(workspaceData);
         setRepositories(transformedRepos);
 
-        // Generate metrics with real counts
+        // Generate metrics with real counts including commits
         const realMetrics = calculateRealMetrics(
           transformedRepos,
           totalPRCount,
-          totalIssueCount,
-          uniqueContributorCount
+          uniqueContributorCount,
+          totalCommitCount
         );
 
         // Generate trend data with real PR/issue data
