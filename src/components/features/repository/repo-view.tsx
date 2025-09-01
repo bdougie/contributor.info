@@ -501,40 +501,40 @@ export function ContributionsRoute() {
   return (
     <div className="flex flex-col gap-8">
       {/* Metrics and Trends - order-1 on mobile, order-2 on desktop */}
-      <ErrorBoundary context="Metrics and Trends">
-        <div className="order-1 sm:order-2">
+      <div className="order-1 sm:order-2">
+        <ErrorBoundary context="Metrics and Trends">
           <MetricsAndTrendsCard owner={owner} repo={repo} timeRange={timeRange} />
-        </div>
-      </ErrorBoundary>
+        </ErrorBoundary>
+      </div>
 
       {/* Scatterplot - order-2 on mobile, order-1 on desktop */}
-      <ErrorBoundary
-        context="Contributions Chart"
-        fallback={
-          <div className="h-96 bg-muted rounded-lg flex flex-col items-center justify-center text-muted-foreground space-y-2">
-            <p>Failed to load chart</p>
-            {import.meta.env.DEV && (
-              <p className="text-sm text-muted-foreground/70 text-center max-w-md">
-                Note: This chart may not render in development due to a known Nivo/Vite bundling
-                issue. It works correctly in production.
-              </p>
-            )}
-          </div>
-        }
-      >
-        <div className="order-2 sm:order-1">
+      <div className="order-2 sm:order-1">
+        <ErrorBoundary
+          context="Contributions Chart"
+          fallback={
+            <div className="h-96 bg-muted rounded-lg flex flex-col items-center justify-center text-muted-foreground space-y-2">
+              <p>Failed to load chart</p>
+              {import.meta.env.DEV && (
+                <p className="text-sm text-muted-foreground/70 text-center max-w-md">
+                  Note: This chart may not render in development due to a known Nivo/Vite bundling
+                  issue. It works correctly in production.
+                </p>
+              )}
+            </div>
+          }
+        >
           <Suspense fallback={<div className="h-96 bg-muted animate-pulse rounded-lg" />}>
             <LazyContributions />
           </Suspense>
-        </div>
-      </ErrorBoundary>
+        </ErrorBoundary>
+      </div>
 
       {/* Contributor of the Month - order-3 on both mobile and desktop */}
-      <ErrorBoundary context="Contributor of the Month">
-        <div className="order-3">
+      <div className="order-3">
+        <ErrorBoundary context="Contributor of the Month">
           <ContributorOfMonthWrapper />
-        </div>
-      </ErrorBoundary>
+        </ErrorBoundary>
+      </div>
     </div>
   );
 }

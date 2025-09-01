@@ -12,7 +12,7 @@ export interface ContributionDataPoint {
   prNumber: number;
   prTitle: string;
   zIndex: number;
-  showAsAvatar: boolean;
+  showAsAvatar?: boolean; // Optional since it's set by processContributionVisualization
   isFirstOccurrence?: boolean;
 }
 
@@ -59,8 +59,16 @@ export function processContributionVisualization(
     };
   });
 
-  // Sort by z-index to ensure proper rendering order
-  const sortedContributions = processedContributions.sort((a, b) => a.zIndex - b.zIndex);
+  // Sort to ensure proper rendering order: gray squares first, then avatars
+  // This guarantees avatars always render above gray squares regardless of zIndex
+  const sortedContributions = processedContributions.sort((a, b) => {
+    // First priority: showAsAvatar (avatars render on top)
+    if (a.showAsAvatar !== b.showAsAvatar) {
+      return a.showAsAvatar ? 1 : -1; // Avatars (true) come after gray squares (false)
+    }
+    // Second priority: z-index for items of the same type
+    return a.zIndex - b.zIndex;
+  });
 
   return {
     processedData: sortedContributions,

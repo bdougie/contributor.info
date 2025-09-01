@@ -17,7 +17,7 @@ The analytics display contributions as an interactive scatter plot that visualiz
 - **Unique Contributors**: Up to 50 unique contributor avatars on desktop (25 on mobile) are displayed as interactive elements
 - **Duplicate Contributions**: When the same contributor has multiple PRs, subsequent contributions appear as subtle gray squares
 - **Visual Hierarchy**: Contributor avatars always render on top of gray squares for better visibility
-- **Time Distribution**: Contributions are spread across a 30-day timeline showing contribution patterns
+- **Time Distribution**: Desktop displays contributions based on the configured time range (default 30 days), while mobile optimizes for performance with a fixed 14-day window
 
 ### Contributor Mapping
 Each contributor's work patterns become visible through their distribution across the timeline, revealing activity patterns and collaboration dynamics.

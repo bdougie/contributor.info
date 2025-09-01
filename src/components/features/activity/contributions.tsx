@@ -181,8 +181,8 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
           avatar: avatarUrl,
           prNumber: pr.number,
           prTitle: pr.title,
-          zIndex: 0, // Will be updated by hook
-          showAsAvatar: false, // Will be updated by hook
+          zIndex: 0, // Will be updated by processContributionVisualization
+          // showAsAvatar is optional and will be set by processContributionVisualization
           _pr: pr, // Store full PR for hover card (not in interface but preserved)
         } as ContributionDataPoint & { _pr: PullRequest };
       })
