@@ -93,8 +93,12 @@ interface ActivityItem {
   };
   repository: string;
   created_at: string;
-  status: 'open' | 'merged' | 'closed' | 'approved';
+  status: 'open' | 'merged' | 'closed' | 'approved' | 'changes_requested';
   url: string;
+  metadata?: {
+    additions?: number;
+    deletions?: number;
+  };
 }
 
 interface WorkspaceRepository {
@@ -1337,12 +1341,94 @@ function WorkspaceContributors({
   );
 }
 
-function WorkspaceActivity() {
-  // Generate activity data for the feed
-  const activities: ActivityItem[] = [];
+interface WorkspaceActivityProps {
+  prData: Array<{
+    id: string;
+    title: string;
+    number: number;
+    state: string;
+    created_at: string;
+    merged_at: string | null;
+    author_id: string;
+    author_login?: string;
+    repository_id: string;
+    repository_name?: string;
+    html_url?: string;
+    additions?: number;
+    deletions?: number;
+    commits?: number;
+  }>;
+  issueData: Array<{
+    id: string;
+    title: string;
+    number: number;
+    state: string;
+    created_at: string;
+    closed_at: string | null;
+    author_id: string;
+    author_login?: string;
+    repository_id: string;
+    repository_name?: string;
+    html_url?: string;
+  }>;
+  repositories: Repository[];
+}
 
-  // TODO: Fetch real activity data from repositories
-  // For now, return empty activities until real implementation
+function WorkspaceActivity({
+  prData = [],
+  issueData = [],
+  repositories = [],
+}: WorkspaceActivityProps) {
+  // Convert PR and issue data to ActivityItem format
+  const activities: ActivityItem[] = [
+    // Convert PRs to activities
+    ...prData.map((pr): ActivityItem => {
+      const repo = repositories.find((r) => r.id === pr.repository_id);
+      return {
+        id: pr.id,
+        type: 'pr',
+        title: pr.title || `PR #${pr.number}`,
+        created_at: pr.created_at,
+        author: {
+          username: pr.author_login || 'Unknown',
+          avatar_url: pr.author_login
+            ? `https://avatars.githubusercontent.com/${pr.author_login}`
+            : '',
+        },
+        repository: repo?.full_name || 'Unknown Repository',
+        status: (() => {
+          if (pr.merged_at) return 'merged';
+          if (pr.state === 'open') return 'open';
+          return 'closed';
+        })() as ActivityItem['status'],
+        url: pr.html_url || '#',
+        metadata: {
+          additions: pr.additions || 0,
+          deletions: pr.deletions || 0,
+        },
+      };
+    }),
+    // Convert issues to activities
+    ...issueData.map((issue): ActivityItem => {
+      const repo = repositories.find((r) => r.id === issue.repository_id);
+      return {
+        id: issue.id,
+        type: 'issue',
+        title: issue.title || `Issue #${issue.number}`,
+        created_at: issue.created_at,
+        author: {
+          username: issue.author_login || 'Unknown',
+          avatar_url: issue.author_login
+            ? `https://avatars.githubusercontent.com/${issue.author_login}`
+            : '',
+        },
+        repository: repo?.full_name || 'Unknown Repository',
+        status: issue.closed_at ? 'closed' : 'open',
+        url: issue.html_url || '#',
+        metadata: {},
+      };
+    }),
+  ];
 
   // Sort by date, most recent first
   activities.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -1361,8 +1447,6 @@ function WorkspaceActivity() {
       total: dayActivities.length,
       prs: dayActivities.filter((a) => a.type === 'pr').length,
       issues: dayActivities.filter((a) => a.type === 'issue').length,
-      commits: dayActivities.filter((a) => a.type === 'commit').length,
-      reviews: dayActivities.filter((a) => a.type === 'review').length,
     };
   });
 
@@ -1395,16 +1479,6 @@ function WorkspaceActivity() {
               label: 'Issues',
               data: activityByDay.map((d) => d.issues),
               color: '#f97316',
-            },
-            {
-              label: 'Commits',
-              data: activityByDay.map((d) => d.commits),
-              color: '#3b82f6',
-            },
-            {
-              label: 'Reviews',
-              data: activityByDay.map((d) => d.reviews),
-              color: '#8b5cf6',
             },
           ],
         }}
@@ -1826,6 +1900,8 @@ export default function WorkspacePage() {
   const [metrics, setMetrics] = useState<WorkspaceMetrics | null>(null);
   const [trendData, setTrendData] = useState<WorkspaceTrendData | null>(null);
   const [activityData, setActivityData] = useState<ActivityDataPoint[]>([]);
+  const [fullPRData, setFullPRData] = useState<WorkspaceActivityProps['prData']>([]);
+  const [fullIssueData, setFullIssueData] = useState<WorkspaceActivityProps['issueData']>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<TimeRange>('30d');
@@ -1954,11 +2030,12 @@ export default function WorkspacePage() {
           const daysToFetch = TIME_RANGE_DAYS[timeRange];
           const startDate = new Date(Date.now() - daysToFetch * 24 * 60 * 60 * 1000);
 
-          // Fetch PRs for activity data and metrics
+          // Fetch PRs for activity data and metrics with more fields for activity tab
           const { data: prData, error: prError } = await supabase
             .from('pull_requests')
             .select(
-              'id, merged_at, created_at, updated_at, additions, deletions, changed_files, commits, state, author_id'
+              `id, title, number, merged_at, created_at, updated_at, additions, deletions, 
+               changed_files, commits, state, author_id, repository_id, html_url`
             )
             .in('repository_id', repoIds)
             .or(
@@ -1971,6 +2048,14 @@ export default function WorkspacePage() {
           }
 
           if (prData) {
+            // Format PR data for activity tab
+            const formattedPRs = prData.map((pr) => ({
+              ...pr,
+              author_login: `User-${pr.author_id?.slice(0, 8)}`, // Use author ID as placeholder
+              repository_name: transformedRepos.find((r) => r.id === pr.repository_id)?.full_name,
+            }));
+            setFullPRData(formattedPRs);
+
             // Store for trend calculation with commits
             prDataForTrends = prData.map((pr) => ({
               created_at: pr.created_at,
@@ -2013,10 +2098,12 @@ export default function WorkspacePage() {
               }
             }
 
-            // Fetch issues for metrics and trends
+            // Fetch issues for metrics and trends with more fields for activity tab
             const { data: issueData, error: issueError } = await supabase
               .from('issues')
-              .select('id, created_at, state, author_id')
+              .select(
+                `id, title, number, created_at, closed_at, state, author_id, repository_id, html_url`
+              )
               .in('repository_id', repoIds)
               .gte('created_at', startDate.toISOString())
               .order('created_at', { ascending: true });
@@ -2026,6 +2113,15 @@ export default function WorkspacePage() {
             }
 
             if (issueData) {
+              // Format issue data for activity tab
+              const formattedIssues = issueData.map((issue) => ({
+                ...issue,
+                author_login: `User-${issue.author_id?.slice(0, 8)}`, // Use author ID as placeholder
+                repository_name: transformedRepos.find((r) => r.id === issue.repository_id)
+                  ?.full_name,
+              }));
+              setFullIssueData(formattedIssues);
+
               // Store for trend calculation
               issueDataForTrends = issueData.map((issue) => ({
                 created_at: issue.created_at,
@@ -2503,7 +2599,11 @@ export default function WorkspacePage() {
 
           <TabsContent value="activity" className="mt-6">
             <div className="container max-w-7xl mx-auto">
-              <WorkspaceActivity />
+              <WorkspaceActivity
+                prData={fullPRData}
+                issueData={fullIssueData}
+                repositories={repositories}
+              />
             </div>
           </TabsContent>
 
