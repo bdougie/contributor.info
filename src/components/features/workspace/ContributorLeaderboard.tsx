@@ -274,76 +274,103 @@ export function ContributorLeaderboard({
       </div>
 
       {/* Full Leaderboard */}
-      <Card>
+      <Card className="overflow-hidden">
         <CardHeader>
           <CardTitle className="text-base">All Contributors</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="px-3 sm:px-6 space-y-2 sm:space-y-4">
           {displayedContributors.slice(3).map((contributor) => (
-            <div
-              key={contributor.id}
-              className="flex items-center justify-between py-3 border-b last:border-0"
-            >
-              <div className="flex items-center gap-3">
-                {/* Rank */}
-                <div className="w-8 flex justify-center">
-                  <div
-                    className={cn(
-                      'h-6 w-6 rounded-full flex items-center justify-center text-xs font-semibold',
-                      contributor.rank === 1
-                        ? 'bg-gradient-to-r from-yellow-500 to-amber-500 text-white'
-                        : 'bg-muted text-muted-foreground'
-                    )}
-                  >
-                    {contributor.rank}
+            <div key={contributor.id} className="py-3 border-b last:border-0">
+              <div className="flex flex-col gap-2">
+                {/* Main row - Avatar, Name, and Stats */}
+                <div className="flex items-center gap-2 sm:gap-3">
+                  {/* Rank */}
+                  <div className="w-6 sm:w-8 flex-shrink-0 flex justify-center">
+                    <div
+                      className={cn(
+                        'h-5 w-5 sm:h-6 sm:w-6 rounded-full flex items-center justify-center text-xs font-semibold',
+                        contributor.rank === 1
+                          ? 'bg-gradient-to-r from-yellow-500 to-amber-500 text-white'
+                          : 'bg-muted text-muted-foreground'
+                      )}
+                    >
+                      {contributor.rank}
+                    </div>
+                  </div>
+
+                  {/* Avatar and Name */}
+                  <Avatar className="h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0">
+                    <AvatarImage src={contributor.avatar_url} />
+                    <AvatarFallback>
+                      {contributor.username.slice(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{contributor.username}</p>
+                    {/* Mobile: Show icons, Desktop: Show text */}
+                    <div className="flex items-center gap-2 sm:gap-3 text-xs text-muted-foreground">
+                      {/* Mobile view with icons */}
+                      <div className="flex items-center gap-2 sm:hidden">
+                        <span className="flex items-center gap-0.5">
+                          <GitPullRequest className="h-3 w-3" />
+                          {contributor.pull_requests}
+                        </span>
+                        <span className="flex items-center gap-0.5">
+                          <GitCommit className="h-3 w-3" />
+                          {contributor.commits}
+                        </span>
+                        <span className="flex items-center gap-0.5">
+                          <MessageSquare className="h-3 w-3" />
+                          {contributor.reviews}
+                        </span>
+                        <span className="flex items-center gap-0.5">
+                          <AlertCircle className="h-3 w-3" />
+                          {contributor.issues}
+                        </span>
+                      </div>
+                      {/* Desktop view with text */}
+                      <div className="hidden sm:flex sm:items-center sm:gap-4">
+                        <span>{contributor.pull_requests} PRs</span>
+                        <span>{contributor.commits} commits</span>
+                        <span>{contributor.reviews} reviews</span>
+                        <span>{contributor.issues} issues</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                {/* Avatar and Name */}
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={contributor.avatar_url} />
-                  <AvatarFallback>{contributor.username.slice(0, 2).toUpperCase()}</AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{contributor.username}</p>
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                    <span>{contributor.pull_requests} PRs</span>
-                    <span>{contributor.commits} commits</span>
-                    <span>{contributor.reviews} reviews</span>
-                    <span>{contributor.issues} issues</span>
+                {/* Second row on mobile - Progress bar and score */}
+                <div className="flex items-center gap-2 sm:gap-4 ml-8 sm:ml-11">
+                  <div className="flex-1 sm:w-32">
+                    <Progress
+                      value={(contributor.contributions / maxContributions) * 100}
+                      className="h-2"
+                    />
                   </div>
-                </div>
-              </div>
-
-              {/* Contribution Bar and Count */}
-              <div className="flex items-center gap-4">
-                <div className="w-32">
-                  <Progress
-                    value={(contributor.contributions / maxContributions) * 100}
-                    className="h-2"
-                  />
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="text-right">
-                    <span className="text-sm font-semibold">{contributor.contributions}</span>
-                    {contributor.trend !== undefined && contributor.trend !== 0 && (
-                      <Badge
-                        variant="secondary"
-                        className={cn(
-                          'ml-1 text-xs px-1 py-0',
-                          contributor.trend > 0
-                            ? 'bg-green-500/10 text-green-700 dark:text-green-400'
-                            : 'bg-red-500/10 text-red-700 dark:text-red-400'
-                        )}
-                      >
-                        {contributor.trend > 0 ? '+' : ''}
-                        {contributor.trend}%
-                      </Badge>
-                    )}
+                  <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs sm:text-sm font-semibold">
+                        {contributor.contributions}
+                      </span>
+                      {contributor.trend !== undefined && contributor.trend !== 0 && (
+                        <Badge
+                          variant="secondary"
+                          className={cn(
+                            'text-xs px-1 py-0 hidden sm:inline-flex',
+                            contributor.trend > 0
+                              ? 'bg-green-500/10 text-green-700 dark:text-green-400'
+                              : 'bg-red-500/10 text-red-700 dark:text-red-400'
+                          )}
+                        >
+                          {contributor.trend > 0 ? '+' : '-'}
+                          {Math.abs(contributor.trend)}%
+                        </Badge>
+                      )}
+                    </div>
+                    <Badge variant="secondary" className="text-xs px-1.5 py-0.5">
+                      Score: {contributor.score}
+                    </Badge>
                   </div>
-                  <Badge variant="secondary" className="text-xs ml-3">
-                    Score: {contributor.score}
-                  </Badge>
                 </div>
               </div>
             </div>
