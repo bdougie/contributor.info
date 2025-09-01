@@ -330,10 +330,12 @@ export function DemoWorkspacePage() {
                 <CardDescription>Recent activity across all repositories</CardDescription>
               </CardHeader>
               <CardContent>
-                <ActivityTable
-                  activities={demoAnalyticsData.activities.slice(0, 10)}
-                  loading={false}
-                />
+                <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+                  <ActivityTable
+                    activities={demoAnalyticsData.activities.slice(0, 10)}
+                    loading={false}
+                  />
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -369,12 +371,14 @@ export function DemoWorkspacePage() {
                       <div className="text-sm text-muted-foreground">Avg. Time to Merge</div>
                     </div>
                   </div>
-                  <ActivityTable
-                    activities={demoAnalyticsData.activities
-                      .filter((a) => a.type === 'pr')
-                      .slice(0, 20)}
-                    loading={false}
-                  />
+                  <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+                    <ActivityTable
+                      activities={demoAnalyticsData.activities
+                        .filter((a) => a.type === 'pr')
+                        .slice(0, 20)}
+                      loading={false}
+                    />
+                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -411,12 +415,14 @@ export function DemoWorkspacePage() {
                       <div className="text-sm text-muted-foreground">Avg. Resolution</div>
                     </div>
                   </div>
-                  <ActivityTable
-                    activities={demoAnalyticsData.activities
-                      .filter((a) => a.type === 'issue')
-                      .slice(0, 20)}
-                    loading={false}
-                  />
+                  <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+                    <ActivityTable
+                      activities={demoAnalyticsData.activities
+                        .filter((a) => a.type === 'issue')
+                        .slice(0, 20)}
+                      loading={false}
+                    />
+                  </div>
                 </CardContent>
               </Card>
             </div>
