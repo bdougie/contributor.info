@@ -6,6 +6,7 @@ import { ErrorBoundary } from '@/components/error-boundary';
 import { PWAInstallPrompt } from '@/components/ui/pwa-install-prompt';
 import { OfflineNotification } from '@/components/common/OfflineNotification';
 import { WorkspaceProvider } from '@/contexts/WorkspaceContext';
+import { FeatureFlagsProvider } from '@/lib/feature-flags';
 // Lazy load core components to reduce initial bundle
 const Layout = lazy(() =>
   import('@/components/common/layout').then((m) => ({ default: m.Layout }))
@@ -370,10 +371,11 @@ function App() {
   return (
     <ErrorBoundary context="Application Root">
       <ThemeProvider defaultTheme="dark" storageKey="contributor-info-theme">
-        <SVGSpriteInliner />
-        <Router>
-          <WorkspaceProvider>
-            <OfflineNotification />
+        <FeatureFlagsProvider>
+          <SVGSpriteInliner />
+          <Router>
+            <WorkspaceProvider>
+              <OfflineNotification />
             <Suspense fallback={<PageSkeleton />}>
               <Routes>
                 <Route path="/login" element={<LoginPage />} />
@@ -591,6 +593,7 @@ function App() {
             />
           </WorkspaceProvider>
         </Router>
+        </FeatureFlagsProvider>
       </ThemeProvider>
     </ErrorBoundary>
   );
