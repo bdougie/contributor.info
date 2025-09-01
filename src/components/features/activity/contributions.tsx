@@ -20,6 +20,17 @@ const ResponsiveScatterPlot = lazy(() =>
   }))
 );
 
+// Type definition for CustomNode data
+interface CustomNodeData {
+  contributor: string;
+  image: string;
+  showAvatar?: boolean;
+  _pr: PullRequest;
+  x: number;
+  y: number;
+  [key: string]: unknown; // Allow additional properties from ScatterPlot
+}
+
 // Import types separately since they don't affect bundle size
 // import type { ScatterPlotNodeProps } from "@nivo/scatterplot";
 import { humanizeNumber } from '@/lib/utils';
@@ -255,10 +266,13 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
     ];
   };
 
-  // Detect Safari browser
-  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  // Detect Safari browser (SSR-safe)
+  const isSafari =
+    typeof navigator !== 'undefined' && /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
   // Custom Node for scatter plot points
+  // Using 'any' for props type due to Nivo's complex internal types
+  // The data structure is validated at runtime with defensive checks
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const CustomNode = (props: any) => {
     // Get the contributor's role first (must be called unconditionally)
@@ -301,9 +315,9 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
       }
 
       if (isSpringValue(styleY)) {
-        yPos = styleY.to((yVal: number) => Math.max(0, yVal - size / 1));
+        yPos = styleY.to((yVal: number) => Math.max(0, yVal - size / 2));
       } else if (typeof styleY === 'number') {
-        yPos = Math.max(0, styleY - size / 1);
+        yPos = Math.max(0, styleY - size / 2);
       }
     }
 
@@ -348,6 +362,9 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
               stroke="hsl(var(--border) / 0.5)"
               strokeWidth="1"
               rx="2"
+              role="button"
+              tabIndex={0}
+              aria-label={`Additional pull request #${props.node.data._pr.number} by ${props.node.data.contributor}`}
               style={{ cursor: 'pointer', opacity: 0.6 }}
               onClick={() => {
                 const prUrl =
@@ -448,6 +465,9 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
             }}
           >
             <div
+              role="button"
+              tabIndex={0}
+              aria-label={`Additional pull request #${props.node.data._pr.number} by ${props.node.data.contributor}`}
               style={{
                 width: squareSize,
                 height: squareSize,
@@ -462,6 +482,15 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
                   props.node.data._pr.html_url ||
                   `https://github.com/${props.node.data._pr.repository_owner}/${props.node.data._pr.repository_name}/pull/${props.node.data._pr.number}`;
                 window.open(prUrl, '_blank', 'noopener,noreferrer');
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  const prUrl =
+                    props.node.data._pr.html_url ||
+                    `https://github.com/${props.node.data._pr.repository_owner}/${props.node.data._pr.repository_name}/pull/${props.node.data._pr.number}`;
+                  window.open(prUrl, '_blank', 'noopener,noreferrer');
+                }
               }}
               title={`${props.node.data.contributor} - PR #${props.node.data._pr.number}`}
             />
@@ -491,6 +520,9 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
                 backgroundColor: 'var(--muted)',
                 borderColor: 'hsl(var(--foreground))',
               }}
+              role="button"
+              tabIndex={0}
+              aria-label={`Pull request #${props.node.data._pr.number} by ${props.node.data.contributor}`}
               onClick={() => {
                 // Open PR in new tab on click
                 const prUrl =
@@ -498,10 +530,19 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
                   `https://github.com/${props.node.data._pr.repository_owner}/${props.node.data._pr.repository_name}/pull/${props.node.data._pr.number}`;
                 window.open(prUrl, '_blank', 'noopener,noreferrer');
               }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  const prUrl =
+                    props.node.data._pr.html_url ||
+                    `https://github.com/${props.node.data._pr.repository_owner}/${props.node.data._pr.repository_name}/pull/${props.node.data._pr.number}`;
+                  window.open(prUrl, '_blank', 'noopener,noreferrer');
+                }
+              }}
             >
               <AvatarImage
                 src={props.node.data.image}
-                alt={props.node.data.contributor}
+                alt={`${props.node.data.contributor}'s avatar`}
                 loading="lazy"
                 style={{
                   // Ensure images load properly in SVG context
@@ -709,8 +750,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
                     },
                   }}
                   tooltip={({ node }) => {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const nodeData = node.data as any;
+                    const nodeData = node.data as CustomNodeData;
                     return (
                       <div className="bg-background border rounded p-2 shadow-lg">
                         <div className="flex items-center gap-2">
