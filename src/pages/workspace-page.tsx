@@ -85,7 +85,7 @@ const ContributorLeaderboard = lazy(() =>
 // Temporary type definition for ActivityItem until analytics is properly implemented in issue #598
 interface ActivityItem {
   id: string;
-  type: 'pr' | 'issue' | 'commit' | 'review' | 'comment';
+  type: 'pr' | 'issue' | 'commit' | 'review' | 'comment' | 'star' | 'fork';
   title: string;
   author: {
     username: string;
@@ -98,6 +98,8 @@ interface ActivityItem {
   metadata?: {
     additions?: number;
     deletions?: number;
+    change_amount?: number;
+    current_value?: number;
   };
 }
 
@@ -1397,6 +1399,24 @@ interface WorkspaceActivityProps {
     repository_id?: string;
     repository_name?: string;
   }>;
+  starData: Array<{
+    id: string;
+    repository_id: string;
+    repository_name?: string;
+    previous_value: number;
+    current_value: number;
+    change_amount: number;
+    captured_at: string;
+  }>;
+  forkData: Array<{
+    id: string;
+    repository_id: string;
+    repository_name?: string;
+    previous_value: number;
+    current_value: number;
+    change_amount: number;
+    captured_at: string;
+  }>;
   repositories: Repository[];
 }
 
@@ -1405,6 +1425,8 @@ function WorkspaceActivity({
   issueData = [],
   reviewData = [],
   commentData = [],
+  starData = [],
+  forkData = [],
   repositories = [],
 }: WorkspaceActivityProps) {
   // Convert PR and issue data to ActivityItem format
@@ -1486,6 +1508,46 @@ function WorkspaceActivity({
       url: '#',
       metadata: {},
     })),
+    // Convert star events to activities
+    ...starData.map((star): ActivityItem => ({
+      id: star.id,
+      type: 'star',
+      title: star.change_amount > 0 
+        ? `+${star.change_amount} stars (${star.current_value} total)` 
+        : `${star.change_amount} stars (${star.current_value} total)`,
+      created_at: star.captured_at,
+      author: {
+        username: 'System',
+        avatar_url: '',
+      },
+      repository: star.repository_name || 'Unknown Repository',
+      status: 'open' as ActivityItem['status'],
+      url: '#',
+      metadata: {
+        change_amount: star.change_amount,
+        current_value: star.current_value,
+      },
+    })),
+    // Convert fork events to activities
+    ...forkData.map((fork): ActivityItem => ({
+      id: fork.id,
+      type: 'fork',
+      title: fork.change_amount > 0 
+        ? `+${fork.change_amount} forks (${fork.current_value} total)` 
+        : `${fork.change_amount} forks (${fork.current_value} total)`,
+      created_at: fork.captured_at,
+      author: {
+        username: 'System',
+        avatar_url: '',
+      },
+      repository: fork.repository_name || 'Unknown Repository',
+      status: 'open' as ActivityItem['status'],
+      url: '#',
+      metadata: {
+        change_amount: fork.change_amount,
+        current_value: fork.current_value,
+      },
+    })),
   ];
 
   // Sort by date, most recent first
@@ -1507,6 +1569,8 @@ function WorkspaceActivity({
       issues: dayActivities.filter((a) => a.type === 'issue').length,
       reviews: dayActivities.filter((a) => a.type === 'review').length,
       comments: dayActivities.filter((a) => a.type === 'comment').length,
+      stars: dayActivities.filter((a) => a.type === 'star').length,
+      forks: dayActivities.filter((a) => a.type === 'fork').length,
     };
   });
 
@@ -1549,6 +1613,16 @@ function WorkspaceActivity({
               label: 'Comments',
               data: activityByDay.map((d) => d.comments),
               color: '#06b6d4',
+            },
+            {
+              label: 'Stars',
+              data: activityByDay.map((d) => d.stars),
+              color: '#fbbf24',
+            },
+            {
+              label: 'Forks',
+              data: activityByDay.map((d) => d.forks),
+              color: '#a855f7',
             },
           ],
         }}
@@ -1974,6 +2048,8 @@ export default function WorkspacePage() {
   const [fullIssueData, setFullIssueData] = useState<WorkspaceActivityProps['issueData']>([]);
   const [fullReviewData, setFullReviewData] = useState<WorkspaceActivityProps['reviewData']>([]);
   const [fullCommentData, setFullCommentData] = useState<WorkspaceActivityProps['commentData']>([]);
+  const [fullStarData, setFullStarData] = useState<WorkspaceActivityProps['starData']>([]);
+  const [fullForkData, setFullForkData] = useState<WorkspaceActivityProps['forkData']>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<TimeRange>('30d');
@@ -2272,6 +2348,59 @@ export default function WorkspacePage() {
                 repository_name: transformedRepos.find(r => r.id === comment.pull_requests?.repository_id)?.full_name,
               }));
               setFullCommentData(formattedComments);
+            }
+            
+            // Fetch star and fork metrics history for activity feed
+            const { data: starHistory, error: starError } = await supabase
+              .from('repository_metrics_history')
+              .select('id, repository_id, previous_value, current_value, change_amount, captured_at')
+              .in('repository_id', repoIds)
+              .eq('metric_type', 'stars')
+              .gte('captured_at', startDate.toISOString())
+              .gt('change_amount', 0)
+              .order('captured_at', { ascending: false });
+            
+            if (starError) {
+              console.error('Error fetching star history:', starError);
+            }
+            
+            if (starHistory) {
+              const formattedStars = starHistory.map((star: any) => ({
+                id: star.id,
+                repository_id: star.repository_id,
+                repository_name: transformedRepos.find(r => r.id === star.repository_id)?.full_name,
+                previous_value: star.previous_value,
+                current_value: star.current_value,
+                change_amount: star.change_amount,
+                captured_at: star.captured_at,
+              }));
+              setFullStarData(formattedStars);
+            }
+            
+            const { data: forkHistory, error: forkError } = await supabase
+              .from('repository_metrics_history')
+              .select('id, repository_id, previous_value, current_value, change_amount, captured_at')
+              .in('repository_id', repoIds)
+              .eq('metric_type', 'forks')
+              .gte('captured_at', startDate.toISOString())
+              .gt('change_amount', 0)
+              .order('captured_at', { ascending: false });
+            
+            if (forkError) {
+              console.error('Error fetching fork history:', forkError);
+            }
+            
+            if (forkHistory) {
+              const formattedForks = forkHistory.map((fork: any) => ({
+                id: fork.id,
+                repository_id: fork.repository_id,
+                repository_name: transformedRepos.find(r => r.id === fork.repository_id)?.full_name,
+                previous_value: fork.previous_value,
+                current_value: fork.current_value,
+                change_amount: fork.change_amount,
+                captured_at: fork.captured_at,
+              }));
+              setFullForkData(formattedForks);
             }
           }
         }
@@ -2740,6 +2869,8 @@ export default function WorkspacePage() {
                 issueData={fullIssueData}
                 reviewData={fullReviewData}
                 commentData={fullCommentData}
+                starData={fullStarData}
+                forkData={fullForkData}
                 repositories={repositories}
               />
             </div>
