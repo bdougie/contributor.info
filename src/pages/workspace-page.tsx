@@ -1,5 +1,5 @@
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import { getFallbackAvatar } from '@/lib/utils/avatar';
@@ -67,7 +67,12 @@ import { WorkspaceService } from '@/services/workspace.service';
 // import { AnalyticsDashboard } from '@/components/features/workspace/AnalyticsDashboard';
 import { ActivityTable } from '@/components/features/workspace/ActivityTable';
 import { TrendChart } from '@/components/features/workspace/TrendChart';
-import { ContributorLeaderboard } from '@/components/features/workspace/ContributorLeaderboard';
+// Lazy load heavy components
+const ContributorLeaderboard = lazy(() =>
+  import('@/components/features/workspace/ContributorLeaderboard').then((m) => ({
+    default: m.ContributorLeaderboard,
+  }))
+);
 // import { WorkspaceExportService } from '@/services/workspace-export.service';
 // import type {
 //   AnalyticsData,
@@ -1109,22 +1114,51 @@ function WorkspaceContributors({
       ) : (
         <div className="space-y-6">
           {/* Contributor Leaderboard */}
-          <ContributorLeaderboard
-            contributors={contributors.map((contributor) => ({
-              id: contributor.id,
-              username: contributor.username,
-              avatar_url: contributor.avatar_url,
-              contributions: contributor.stats.total_contributions,
-              pull_requests: contributor.contributions.pull_requests,
-              issues: contributor.contributions.issues,
-              reviews: contributor.contributions.reviews,
-              commits: contributor.contributions.commits,
-              trend: contributor.stats.contribution_trend,
-            }))}
-            loading={loading}
-            timeRange="30d"
-            maxDisplay={10}
-          />
+          <Suspense
+            fallback={
+              <Card>
+                <CardHeader>
+                  <CardTitle>Top Contributors</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center justify-between p-3 border rounded-lg"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-muted animate-pulse rounded-full" />
+                          <div className="space-y-1">
+                            <div className="h-4 w-24 bg-muted animate-pulse rounded" />
+                            <div className="h-3 w-32 bg-muted animate-pulse rounded" />
+                          </div>
+                        </div>
+                        <div className="h-5 w-12 bg-muted animate-pulse rounded" />
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            }
+          >
+            <ContributorLeaderboard
+              contributors={contributors.map((contributor) => ({
+                id: contributor.id,
+                username: contributor.username,
+                avatar_url: contributor.avatar_url,
+                contributions: contributor.stats.total_contributions,
+                pull_requests: contributor.contributions.pull_requests,
+                issues: contributor.contributions.issues,
+                reviews: contributor.contributions.reviews,
+                commits: contributor.contributions.commits,
+                trend: contributor.stats.contribution_trend,
+              }))}
+              loading={loading}
+              timeRange="30d"
+              maxDisplay={10}
+            />
+          </Suspense>
 
           {/* View Toggle */}
           <div className="flex items-center justify-between">
