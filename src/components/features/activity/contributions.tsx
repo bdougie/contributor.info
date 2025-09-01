@@ -8,6 +8,10 @@ import { ProgressiveChart } from '@/components/ui/charts/ProgressiveChart';
 import { SkeletonChart } from '@/components/skeletons/base/skeleton-chart';
 import { getAvatarUrl } from '@/lib/utils/avatar';
 import { getUserRole } from '@/lib/utils/data-type-mapping';
+import {
+  processContributionVisualization,
+  type ContributionDataPoint,
+} from '@/lib/utils/contribution-visualization';
 
 // Lazy load the ScatterPlot component to reduce initial bundle size
 const ResponsiveScatterPlot = lazy(() =>
@@ -15,6 +19,17 @@ const ResponsiveScatterPlot = lazy(() =>
     default: module.ResponsiveScatterPlot,
   }))
 );
+
+// Type definition for CustomNode data
+interface CustomNodeData {
+  contributor: string;
+  image: string;
+  showAvatar?: boolean;
+  _pr: PullRequest;
+  x: number;
+  y: number;
+  [key: string]: unknown; // Allow additional properties from ScatterPlot
+}
 
 // Import types separately since they don't affect bundle size
 // import type { ScatterPlotNodeProps } from "@nivo/scatterplot";
@@ -45,7 +60,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
   );
   const [cachedAvatars, setCachedAvatars] = useState<Map<number, string>>(new Map());
   const effectiveTimeRangeNumber = parseInt(effectiveTimeRange, 10);
-  const mobileMaxDays = 7; // Aggressive filtering for mobile
+  const mobileMaxDays = 14; // Show 14 days of data for mobile
 
   const functionTimeout = useRef<NodeJS.Timeout | null>(null);
 
@@ -140,7 +155,11 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
       })
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-    const prData = filteredPRs
+    // Group PRs by day to implement quarter-based staggering
+    const prsByDay = new Map<number, PullRequest[]>();
+
+    // First pass: create base contribution data
+    const baseContributions: ContributionDataPoint[] = filteredPRs
       .map((pr) => {
         const daysAgo = Math.floor(
           (new Date().getTime() - new Date(pr.created_at).getTime()) / (1000 * 60 * 60 * 24)
@@ -157,37 +176,103 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
         const linesTouched = pr.additions + pr.deletions;
         // Use cached avatar URL with fallback to original
         const cachedUrl = cachedAvatars.get(pr.user.id) || pr.user.avatar_url;
-        // Import will be added at the top of the file
         const avatarUrl = getAvatarUrl(pr.user.login, cachedUrl);
+
+        // Group PRs by day for staggering
+        if (!prsByDay.has(daysAgo)) {
+          prsByDay.set(daysAgo, []);
+        }
+        prsByDay.get(daysAgo)!.push(pr);
+
         return {
           x: daysAgo,
           y: Math.max(linesTouched, 1), // Ensure minimum visibility of 1 line
-          contributor: pr.user.login,
-          image: avatarUrl,
-          _pr: pr, // store full PR for hover card
-        };
+          id: `pr-${pr.id}`,
+          author: pr.user.login,
+          avatar: avatarUrl,
+          prNumber: pr.number,
+          prTitle: pr.title,
+          zIndex: 0, // Will be updated by processContributionVisualization
+          // showAsAvatar is optional and will be set by processContributionVisualization
+          _pr: pr, // Store full PR for hover card (not in interface but preserved)
+        } as ContributionDataPoint & { _pr: PullRequest };
       })
-      .filter(
-        (
-          item
-        ): item is {
-          x: number;
-          y: number;
-          contributor: string;
-          image: string;
+      .filter((item): item is ContributionDataPoint & { _pr: PullRequest } => item !== null);
+
+    // Apply staggering to x positions
+    const staggeredContributions = baseContributions.map((item) => {
+      const dayGroup = prsByDay.get(Math.floor(item.x)) || [];
+      const indexInDay = dayGroup.findIndex((pr) => `pr-${pr.id}` === item.id);
+      const dayGroupSize = dayGroup.length;
+
+      let xOffset = 0;
+      let yJitter = 0;
+
+      if (isMobile) {
+        // Dynamic staggering: more positions for dense days
+        const maxPositions = Math.min(dayGroupSize, 8); // Up to 8 positions per day
+        const staggerRange = 0.8; // Use 80% of day width for staggering
+
+        if (maxPositions > 1) {
+          // Distribute evenly across the stagger range
+          xOffset = (indexInDay / (maxPositions - 1)) * staggerRange;
+        }
+
+        // Add micro Y-jitter for very dense days (>4 PRs)
+        if (dayGroupSize > 4) {
+          const jitterAmount = Math.min(item.y * 0.03, 2); // Max 3% of y-value or 2 lines
+          yJitter = ((indexInDay % 3) - 1) * jitterAmount; // -1, 0, 1 pattern
+        }
+      }
+
+      return {
+        ...item,
+        x: item.x + xOffset,
+        y: Math.max(1, item.y + yJitter), // Ensure y >= 1
+      };
+    });
+
+    // Process unique contributors using the utility function
+    const visualizationOptions = {
+      maxUniqueAvatars: isMobile ? 25 : 50,
+      avatarSize: isMobile ? 28 : 35,
+      graySquareSize: isMobile ? 17 : 21,
+      graySquareOpacity: 0.6,
+    };
+
+    const { processedData: sortedContributions } = processContributionVisualization(
+      staggeredContributions,
+      visualizationOptions
+    );
+
+    // Preserve the _pr property for hover cards
+    const staggeredData = sortedContributions.map((item) => ({
+      ...item,
+      contributor: item.author,
+      image: item.avatar,
+      showAvatar: item.showAsAvatar,
+      _pr: (
+        baseContributions.find((c) => c.id === item.id) as ContributionDataPoint & {
           _pr: PullRequest;
-        } => item !== null
-      ); // Remove nulls with type guard
+        }
+      )?._pr,
+    }));
 
     return [
       {
         id: 'pull-requests',
-        data: prData,
+        data: staggeredData,
       },
     ];
   };
 
+  // Detect Safari browser (SSR-safe)
+  const isSafari =
+    typeof navigator !== 'undefined' && /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
   // Custom Node for scatter plot points
+  // Using 'any' for props type due to Nivo's complex internal types
+  // The data structure is validated at runtime with defensive checks
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const CustomNode = (props: any) => {
     // Get the contributor's role first (must be called unconditionally)
@@ -230,9 +315,9 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
       }
 
       if (isSpringValue(styleY)) {
-        yPos = styleY.to((yVal: number) => Math.max(0, yVal - size / 1));
+        yPos = styleY.to((yVal: number) => Math.max(0, yVal - size / 2));
       } else if (typeof styleY === 'number') {
-        yPos = Math.max(0, styleY - size / 1);
+        yPos = Math.max(0, styleY - size / 2);
       }
     }
 
@@ -255,6 +340,165 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
           isolation: 'isolate',
         };
 
+    // Check if we should show avatar or gray square (mobile optimization)
+    const shouldShowAvatar = props.node.data.showAvatar !== false;
+
+    // Safari has issues with foreignObject, so use a simpler approach
+    if (isSafari) {
+      // For Safari, use SVG elements directly without foreignObject
+      const radius = size / 2;
+
+      // Gray square for contributions beyond the unique avatar limit
+      if (!shouldShowAvatar) {
+        const squareSize = size * 0.6; // Smaller square to be less prominent
+        return (
+          <animated.g style={nodeStyle}>
+            <rect
+              x={(size - squareSize) / 2}
+              y={(size - squareSize) / 2}
+              width={squareSize}
+              height={squareSize}
+              fill="hsl(var(--muted-foreground) / 0.2)"
+              stroke="hsl(var(--border) / 0.5)"
+              strokeWidth="1"
+              rx="2"
+              role="button"
+              tabIndex={0}
+              aria-label={`Additional pull request #${props.node.data._pr.number} by ${props.node.data.contributor}`}
+              style={{ cursor: 'pointer', opacity: 0.6 }}
+              onClick={() => {
+                const prUrl =
+                  props.node.data._pr.html_url ||
+                  `https://github.com/${props.node.data._pr.repository_owner}/${props.node.data._pr.repository_name}/pull/${props.node.data._pr.number}`;
+                window.open(prUrl, '_blank', 'noopener,noreferrer');
+              }}
+            />
+            <title>
+              {props.node.data.contributor} - PR #{props.node.data._pr.number}
+            </title>
+          </animated.g>
+        );
+      }
+
+      return (
+        <animated.g style={nodeStyle}>
+          {/* Background circle */}
+          <circle
+            cx={radius}
+            cy={radius}
+            r={radius - 1}
+            fill="hsl(var(--muted))"
+            stroke="hsl(var(--foreground))"
+            strokeWidth="2"
+            style={{ cursor: 'pointer' }}
+          />
+
+          {/* Clipping path for circular image */}
+          <defs>
+            <clipPath id={`avatar-clip-${props.node.data.contributor}-${props.node.index}`}>
+              <circle cx={radius} cy={radius} r={radius - 2} />
+            </clipPath>
+          </defs>
+
+          {/* Avatar image */}
+          <image
+            href={props.node.data.image}
+            x="2"
+            y="2"
+            width={size - 4}
+            height={size - 4}
+            clipPath={`url(#avatar-clip-${props.node.data.contributor}-${props.node.index})`}
+            preserveAspectRatio="xMidYMid slice"
+            style={{ pointerEvents: 'none' }}
+          />
+
+          {/* Fallback text if image fails to load */}
+          <text
+            x={radius}
+            y={radius}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fill="hsl(var(--foreground))"
+            fontSize={isMobile ? 10 : 12}
+            style={{ pointerEvents: 'none', userSelect: 'none' }}
+          >
+            {props.node.data.contributor ? props.node.data.contributor[0].toUpperCase() : '?'}
+          </text>
+
+          {/* Invisible overlay for hover interactions */}
+          <circle
+            cx={radius}
+            cy={radius}
+            r={radius}
+            fill="transparent"
+            style={{ cursor: 'pointer' }}
+            onClick={() => {
+              // Open PR in new tab on click for Safari
+              const prUrl =
+                props.node.data._pr.html_url ||
+                `https://github.com/${props.node.data._pr.repository_owner}/${props.node.data._pr.repository_name}/pull/${props.node.data._pr.number}`;
+              window.open(prUrl, '_blank', 'noopener,noreferrer');
+            }}
+          >
+            <title>
+              {props.node.data.contributor} - PR #{props.node.data._pr.number}
+            </title>
+          </circle>
+        </animated.g>
+      );
+    }
+
+    // Original implementation for non-Safari browsers
+
+    // Gray square for contributions beyond the unique avatar limit
+    if (!shouldShowAvatar) {
+      const squareSize = size * 0.6; // Smaller square to be less prominent
+      return (
+        <animated.foreignObject width={size} height={size} style={nodeStyle}>
+          <div
+            style={{
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <div
+              role="button"
+              tabIndex={0}
+              aria-label={`Additional pull request #${props.node.data._pr.number} by ${props.node.data.contributor}`}
+              style={{
+                width: squareSize,
+                height: squareSize,
+                backgroundColor: 'hsl(var(--muted-foreground) / 0.2)',
+                border: '1px solid hsl(var(--border) / 0.5)',
+                borderRadius: '2px',
+                cursor: 'pointer',
+                opacity: 0.6,
+              }}
+              onClick={() => {
+                const prUrl =
+                  props.node.data._pr.html_url ||
+                  `https://github.com/${props.node.data._pr.repository_owner}/${props.node.data._pr.repository_name}/pull/${props.node.data._pr.number}`;
+                window.open(prUrl, '_blank', 'noopener,noreferrer');
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  const prUrl =
+                    props.node.data._pr.html_url ||
+                    `https://github.com/${props.node.data._pr.repository_owner}/${props.node.data._pr.repository_name}/pull/${props.node.data._pr.number}`;
+                  window.open(prUrl, '_blank', 'noopener,noreferrer');
+                }
+              }}
+              title={`${props.node.data.contributor} - PR #${props.node.data._pr.number}`}
+            />
+          </div>
+        </animated.foreignObject>
+      );
+    }
+
     return (
       <animated.foreignObject width={size} height={size} style={nodeStyle}>
         <div
@@ -276,10 +520,29 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
                 backgroundColor: 'var(--muted)',
                 borderColor: 'hsl(var(--foreground))',
               }}
+              role="button"
+              tabIndex={0}
+              aria-label={`Pull request #${props.node.data._pr.number} by ${props.node.data.contributor}`}
+              onClick={() => {
+                // Open PR in new tab on click
+                const prUrl =
+                  props.node.data._pr.html_url ||
+                  `https://github.com/${props.node.data._pr.repository_owner}/${props.node.data._pr.repository_name}/pull/${props.node.data._pr.number}`;
+                window.open(prUrl, '_blank', 'noopener,noreferrer');
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  const prUrl =
+                    props.node.data._pr.html_url ||
+                    `https://github.com/${props.node.data._pr.repository_owner}/${props.node.data._pr.repository_name}/pull/${props.node.data._pr.number}`;
+                  window.open(prUrl, '_blank', 'noopener,noreferrer');
+                }
+              }}
             >
               <AvatarImage
                 src={props.node.data.image}
-                alt={props.node.data.contributor}
+                alt={`${props.node.data.contributor}'s avatar`}
                 loading="lazy"
                 style={{
                   // Ensure images load properly in SVG context
@@ -414,193 +677,191 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
         </div>
       </div>
       <div className={`${isMobile ? 'h-[280px]' : 'h-[400px]'} w-full overflow-hidden relative`}>
-        {isMobile ? (
-          <div className="h-full flex flex-col items-center justify-center text-muted-foreground p-4">
-            <p className="text-center">Contributions chart is not available on mobile devices</p>
-            <p className="text-sm text-center mt-2">
-              Please use a desktop browser for the full experience
-            </p>
-          </div>
-        ) : (
-          <ProgressiveChart
-            skeleton={<SkeletonChart variant="scatter" height={'lg'} showAxes={true} />}
-            highFidelity={
-              data.length > 0 ? (
-                <Suspense
-                  fallback={<SkeletonChart variant="scatter" height={'lg'} showAxes={true} />}
-                >
-                  <ResponsiveScatterPlot
-                    nodeSize={35}
-                    data={data}
-                    margin={{
-                      top: 20,
-                      right: 60,
-                      bottom: 70,
-                      left: 90,
-                    }}
-                    xScale={{
-                      type: 'linear',
-                      min: 0,
-                      max: effectiveTimeRangeNumber,
-                      reverse: true,
-                    }}
-                    yScale={{
-                      type: isLogarithmic ? 'symlog' : 'linear',
-                      min: 1,
-                      max: Math.max(Math.round(maxFilesModified * 1.5), 10),
-                    }}
-                    blendMode="normal"
-                    annotations={[]}
-                    nodeComponent={CustomNode}
-                    animate={true}
-                    motionConfig="gentle"
-                    enableGridX={true}
-                    enableGridY={true}
-                    useMesh={true}
-                    axisTop={null}
-                    axisRight={null}
-                    axisBottom={{
-                      tickSize: 6,
-                      tickPadding: 4,
-                      tickRotation: 0,
-                      tickValues: 7,
-                      legend: 'Date Created',
-                      legendPosition: 'middle',
-                      legendOffset: 50,
-                      format: (value) => {
-                        if (value === 0) return 'Today';
-                        if (value > effectiveTimeRangeNumber) return `${effectiveTimeRangeNumber}+`;
-                        return `${value} days ago`;
-                      },
-                    }}
-                    isInteractive={true}
-                    axisLeft={{
-                      tickSize: 2,
-                      tickPadding: 3,
-                      tickRotation: 0,
-                      tickValues: 5,
-                      legend: 'Lines Touched',
-                      legendPosition: 'middle',
-                      legendOffset: -60,
-                      format: (value: number) => {
-                        return parseInt(`${value}`) >= 1000 ? humanizeNumber(value) : `${value}`;
-                      },
-                    }}
-                    tooltip={({ node }) => {
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      const nodeData = node.data as any;
-                      return (
-                        <div className="bg-background border rounded p-2 shadow-lg">
-                          <div className="flex items-center gap-2">
-                            <div
-                              className="w-3 h-3 rounded-full"
-                              style={{ backgroundColor: node.color }}
-                            />
-                            <span className="font-medium">{nodeData.contributor}</span>
-                          </div>
-                          <div className="text-sm text-muted-foreground mt-1">
-                            {nodeData.x} days ago: {nodeData.y} contribution
-                            {nodeData.y !== 1 ? 's' : ''}
-                          </div>
+        <ProgressiveChart
+          skeleton={
+            <SkeletonChart variant="scatter" height={isMobile ? 'sm' : 'lg'} showAxes={true} />
+          }
+          highFidelity={
+            data.length > 0 ? (
+              <Suspense
+                fallback={
+                  <SkeletonChart
+                    variant="scatter"
+                    height={isMobile ? 'sm' : 'lg'}
+                    showAxes={true}
+                  />
+                }
+              >
+                <ResponsiveScatterPlot
+                  nodeSize={isMobile ? 20 : 35}
+                  data={data}
+                  margin={{
+                    top: 20,
+                    right: isMobile ? 30 : 60,
+                    bottom: isMobile ? 45 : 70,
+                    left: isMobile ? 35 : 90,
+                  }}
+                  xScale={{
+                    type: 'linear',
+                    min: 0,
+                    max: isMobile ? mobileMaxDays : effectiveTimeRangeNumber,
+                    reverse: true,
+                  }}
+                  yScale={{
+                    type: isLogarithmic ? 'symlog' : 'linear',
+                    min: 1,
+                    max: Math.max(Math.round(maxFilesModified * 1.5), 10),
+                  }}
+                  blendMode="normal"
+                  annotations={[]}
+                  nodeComponent={CustomNode}
+                  animate={true}
+                  motionConfig="gentle"
+                  enableGridX={true}
+                  enableGridY={true}
+                  useMesh={!isMobile}
+                  axisTop={null}
+                  axisRight={null}
+                  axisBottom={{
+                    tickSize: 6,
+                    tickPadding: 4,
+                    tickRotation: 0,
+                    tickValues: isMobile ? 3 : 7,
+                    legend: isMobile ? 'Days Ago' : 'Date Created',
+                    legendPosition: 'middle',
+                    legendOffset: isMobile ? 35 : 50,
+                    format: (value) => {
+                      if (value === 0) return 'Today';
+                      if (value > effectiveTimeRangeNumber) return `${effectiveTimeRangeNumber}+`;
+                      return isMobile ? `${value}` : `${value} days ago`;
+                    },
+                  }}
+                  isInteractive={true}
+                  axisLeft={{
+                    tickSize: 2,
+                    tickPadding: 3,
+                    tickRotation: 0,
+                    tickValues: isMobile ? 3 : 5,
+                    legend: isMobile ? 'Lines' : 'Lines Touched',
+                    legendPosition: 'middle',
+                    legendOffset: isMobile ? -20 : -60,
+                    format: (value: number) => {
+                      return parseInt(`${value}`) >= 1000 ? humanizeNumber(value) : `${value}`;
+                    },
+                  }}
+                  tooltip={({ node }) => {
+                    const nodeData = node.data as CustomNodeData;
+                    return (
+                      <div className="bg-background border rounded p-2 shadow-lg">
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: node.color }}
+                          />
+                          <span className="font-medium">{nodeData.contributor}</span>
                         </div>
-                      );
-                    }}
-                    colors={{ scheme: 'category10' }}
-                    layers={['grid', 'axes', 'nodes', 'legends']}
-                    theme={{
-                      background: 'transparent',
-                      axis: {
-                        domain: {
-                          line: {
-                            stroke: 'hsl(var(--border))',
-                            strokeWidth: 1,
-                          },
-                        },
-                        ticks: {
-                          line: {
-                            stroke: 'hsl(var(--border))',
-                            strokeWidth: 1,
-                          },
-                          text: {
-                            fill: 'hsl(var(--foreground))',
-                            fontSize: 11,
-                          },
-                        },
-                        legend: {
-                          text: {
-                            fill: 'hsl(var(--foreground))',
-                            fontSize: 12,
-                          },
-                        },
-                      },
-                      grid: {
+                        <div className="text-sm text-muted-foreground mt-1">
+                          {nodeData.x} days ago: {nodeData.y} contribution
+                          {nodeData.y !== 1 ? 's' : ''}
+                        </div>
+                      </div>
+                    );
+                  }}
+                  colors={{ scheme: 'category10' }}
+                  layers={['grid', 'axes', 'nodes', 'legends']}
+                  theme={{
+                    background: 'transparent',
+                    axis: {
+                      domain: {
                         line: {
                           stroke: 'hsl(var(--border))',
-                          strokeWidth: 0.5,
-                          strokeOpacity: 0.3,
-                        },
-                      },
-                      legends: {
-                        text: {
-                          fill: 'hsl(var(--foreground))',
-                          fontSize: 11,
-                        },
-                      },
-                      labels: {
-                        text: {
-                          fill: 'hsl(var(--foreground))',
-                          fontSize: 11,
-                        },
-                      },
-                      markers: {
-                        lineColor: 'hsl(var(--foreground))',
-                        lineStrokeWidth: 2,
-                        textColor: 'hsl(var(--foreground))',
-                      },
-                      dots: {
-                        text: {
-                          fill: 'hsl(var(--foreground))',
-                          fontSize: 11,
-                        },
-                      },
-                      annotations: {
-                        text: {
-                          fill: 'hsl(var(--foreground))',
-                          outlineWidth: 2,
-                          outlineColor: 'hsl(var(--background))',
-                        },
-                        link: {
-                          stroke: 'hsl(var(--foreground))',
                           strokeWidth: 1,
-                          outlineWidth: 2,
-                          outlineColor: 'hsl(var(--background))',
-                        },
-                        outline: {
-                          stroke: 'hsl(var(--foreground))',
-                          strokeWidth: 2,
-                          outlineWidth: 2,
-                          outlineColor: 'hsl(var(--background))',
-                        },
-                        symbol: {
-                          fill: 'hsl(var(--foreground))',
-                          outlineWidth: 2,
-                          outlineColor: 'hsl(var(--background))',
                         },
                       },
-                    }}
-                  />
-                </Suspense>
-              ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground">
-                  No data to display
-                </div>
-              )
-            }
-            priority={false}
-            highFiDelay={300}
-            className="h-full w-full"
-          />
-        )}
+                      ticks: {
+                        line: {
+                          stroke: 'hsl(var(--border))',
+                          strokeWidth: 1,
+                        },
+                        text: {
+                          fill: 'hsl(var(--foreground))',
+                          fontSize: 11,
+                        },
+                      },
+                      legend: {
+                        text: {
+                          fill: 'hsl(var(--foreground))',
+                          fontSize: 12,
+                        },
+                      },
+                    },
+                    grid: {
+                      line: {
+                        stroke: 'hsl(var(--border))',
+                        strokeWidth: 0.5,
+                        strokeOpacity: 0.3,
+                      },
+                    },
+                    legends: {
+                      text: {
+                        fill: 'hsl(var(--foreground))',
+                        fontSize: 11,
+                      },
+                    },
+                    labels: {
+                      text: {
+                        fill: 'hsl(var(--foreground))',
+                        fontSize: 11,
+                      },
+                    },
+                    markers: {
+                      lineColor: 'hsl(var(--foreground))',
+                      lineStrokeWidth: 2,
+                      textColor: 'hsl(var(--foreground))',
+                    },
+                    dots: {
+                      text: {
+                        fill: 'hsl(var(--foreground))',
+                        fontSize: 11,
+                      },
+                    },
+                    annotations: {
+                      text: {
+                        fill: 'hsl(var(--foreground))',
+                        outlineWidth: 2,
+                        outlineColor: 'hsl(var(--background))',
+                      },
+                      link: {
+                        stroke: 'hsl(var(--foreground))',
+                        strokeWidth: 1,
+                        outlineWidth: 2,
+                        outlineColor: 'hsl(var(--background))',
+                      },
+                      outline: {
+                        stroke: 'hsl(var(--foreground))',
+                        strokeWidth: 2,
+                        outlineWidth: 2,
+                        outlineColor: 'hsl(var(--background))',
+                      },
+                      symbol: {
+                        fill: 'hsl(var(--foreground))',
+                        outlineWidth: 2,
+                        outlineColor: 'hsl(var(--background))',
+                      },
+                    },
+                  }}
+                />
+              </Suspense>
+            ) : (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                No data to display
+              </div>
+            )
+          }
+          priority={false}
+          highFiDelay={300}
+          className="h-full w-full"
+        />
       </div>
     </div>
   );
