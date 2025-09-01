@@ -142,51 +142,72 @@ export default defineConfig(() => ({
         },
         // Allow hoisting for proper module loading
         hoistTransitiveImports: true,
-        // Safer chunking strategy - bundle React ecosystem together
+        // Optimized chunking strategy for better code splitting
         manualChunks: (id) => {
           if (id.includes('node_modules')) {
-            // Bundle React and all React-dependent libraries together
-            // This prevents initialization order issues
-            if (id.includes('react') || 
-                id.includes('react-dom') || 
-                id.includes('react-router') ||
-                id.includes('@radix-ui') ||
-                id.includes('@nivo') ||
-                id.includes('recharts') ||
-                id.includes('d3-') ||
-                id.includes('uplot')) {
-              return 'vendor-react';
+            // Core React libraries - loaded immediately
+            if (id.includes('react/') || 
+                id.includes('react-dom/') || 
+                id.includes('react-router')) {
+              return 'vendor-react-core';
             }
-            if (id.includes('@supabase')) {
-              return 'vendor-supabase';
+            // UI components that are used everywhere
+            if (id.includes('@radix-ui')) {
+              return 'vendor-ui';
             }
-            if (id.includes('clsx') || id.includes('tailwind-merge') || id.includes('class-variance-authority')) {
-              return 'vendor-utils';
-            }
-            if (id.includes('date-fns')) {
-              return 'vendor-utils';
-            }
-            if (id.includes('markdown') || id.includes('remark') || id.includes('rehype')) {
-              return 'vendor-markdown';
-            }
-            if (id.includes('@sentry')) {
-              return 'vendor-monitoring';
-            }
-            if (id.includes('@xenova/transformers') || id.includes('onnxruntime')) {
-              return 'embeddings-excluded';
-            }
-            // Further split chart libraries for better code splitting
-            if (id.includes('uplot')) {
-              return 'vendor-uplot';
-            }
+            // Chart libraries - can be split for lazy loading
             if (id.includes('@nivo')) {
               return 'vendor-nivo';
             }
+            if (id.includes('recharts')) {
+              return 'vendor-recharts';
+            }
+            if (id.includes('d3-')) {
+              return 'vendor-d3';
+            }
+            if (id.includes('uplot')) {
+              return 'vendor-uplot';
+            }
+            // Supabase SDK
+            if (id.includes('@supabase')) {
+              return 'vendor-supabase';
+            }
+            // Small utilities bundled together
+            if (id.includes('clsx') || 
+                id.includes('tailwind-merge') || 
+                id.includes('class-variance-authority') ||
+                id.includes('date-fns')) {
+              return 'vendor-utils';
+            }
+            // Markdown - now lazy loaded, keep in separate chunk
+            if (id.includes('react-markdown') || 
+                id.includes('markdown') || 
+                id.includes('remark') || 
+                id.includes('rehype') ||
+                id.includes('mdast') ||
+                id.includes('unist') ||
+                id.includes('micromark') ||
+                id.includes('hast')) {
+              return 'vendor-markdown';
+            }
+            // Analytics - lazy loaded
             if (id.includes('posthog-js')) {
               return 'vendor-analytics';
             }
+            // Web vitals - small, keep separate
+            if (id.includes('web-vitals')) {
+              return 'vendor-vitals';
+            }
+            // Monitoring
+            if (id.includes('@sentry')) {
+              return 'vendor-monitoring';
+            }
+            // Exclude heavy ML libraries
+            if (id.includes('@xenova/transformers') || id.includes('onnxruntime')) {
+              return 'embeddings-excluded';
+            }
           }
-          // Don't split app code - let it stay in main bundle to avoid issues
+          // Don't split app code - let it stay in main bundle
         },
       },
     },
@@ -206,22 +227,26 @@ export default defineConfig(() => ({
       polyfill: true, // Enable polyfill for proper module loading
       resolveDependencies: (_, deps) => {
         // Preload only the absolute minimum for initial render
-        // Note: These names must match the keys in manualChunks above
         const sorted = deps.sort((a, b) => {
-          // Prioritize vendor-react chunk (contains React, Radix UI, and Nivo)
-          if (a.includes('vendor-react')) return -1;
-          if (b.includes('vendor-react')) return 1;
-          // Then load vendor-utils for classnames
+          // First priority: Core React libraries
+          if (a.includes('vendor-react-core')) return -1;
+          if (b.includes('vendor-react-core')) return 1;
+          // Second priority: UI components (Radix UI)
+          if (a.includes('vendor-ui')) return -1;
+          if (b.includes('vendor-ui')) return 1;
+          // Third priority: Utils for classnames
           if (a.includes('vendor-utils')) return -1;
           if (b.includes('vendor-utils')) return 1;
-          // Then load main app chunk
+          // Fourth priority: Main app chunk
           if (a.includes('index-')) return -1;
           if (b.includes('index-')) return 1;
           return 0;
         });
-        // Preload critical chunks in order
+        // Preload only critical chunks for initial render
+        // Markdown, charts, and analytics will load on demand
         return sorted.filter(dep => 
-          dep.includes('vendor-react') || 
+          dep.includes('vendor-react-core') || 
+          dep.includes('vendor-ui') ||
           dep.includes('vendor-utils') ||
           dep.includes('index-')
         );
