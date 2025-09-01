@@ -2272,7 +2272,7 @@ export default function WorkspacePage() {
             // Format PR data for activity tab
             const formattedPRs = prData.map((pr) => ({
               ...pr,
-              author_login: `User-${pr.author_id?.slice(0, 8)}`, // Use author ID as placeholder
+              author_login: pr.author_id ? `User-${pr.author_id.slice(0, 8)}` : 'Unknown', // Guard author ID
               repository_name: transformedRepos.find((r) => r.id === pr.repository_id)?.full_name,
             }));
             setFullPRData(formattedPRs);
@@ -2337,7 +2337,7 @@ export default function WorkspacePage() {
               // Format issue data for activity tab
               const formattedIssues = issueData.map((issue) => ({
                 ...issue,
-                author_login: `User-${issue.author_id?.slice(0, 8)}`, // Use author ID as placeholder
+                author_login: issue.author_id ? `User-${issue.author_id.slice(0, 8)}` : 'Unknown', // Guard author ID
                 repository_name: transformedRepos.find((r) => r.id === issue.repository_id)
                   ?.full_name,
               }));
@@ -2418,7 +2418,7 @@ export default function WorkspacePage() {
                   state: r.state,
                   body: r.body,
                   submitted_at: r.submitted_at,
-                  reviewer_login: `User-${r.reviewer_id?.slice(0, 8)}`,
+                  reviewer_login: r.reviewer_id ? `User-${r.reviewer_id.slice(0, 8)}` : 'Unknown',
                   pr_title: pr?.title,
                   pr_number: pr?.number,
                   repository_id: pr?.repository_id,
@@ -2487,7 +2487,9 @@ export default function WorkspacePage() {
                   body: c.body,
                   created_at: c.created_at,
                   comment_type: c.comment_type,
-                  commenter_login: `User-${c.commenter_id?.slice(0, 8)}`,
+                  commenter_login: c.commenter_id
+                    ? `User-${c.commenter_id.slice(0, 8)}`
+                    : 'Unknown',
                   pr_title: pr?.title,
                   pr_number: pr?.number,
                   repository_id: pr?.repository_id,
@@ -2585,15 +2587,30 @@ export default function WorkspacePage() {
           }
         }
 
-        // Update PR count in repos
-        for (const repo of transformedRepos) {
-          const { count } = await supabase
+        // Batch query to get open PR counts for all repos at once
+        if (transformedRepos.length > 0) {
+          const repoIds = transformedRepos.map((r) => r.id);
+
+          // Get all open PRs for these repositories in a single query
+          const { data: openPRData } = await supabase
             .from('pull_requests')
-            .select('*', { count: 'exact', head: true })
-            .eq('repository_id', repo.id)
+            .select('repository_id')
+            .in('repository_id', repoIds)
             .eq('state', 'open');
 
-          repo.open_prs = count || 0;
+          // Count PRs per repository
+          const prCountMap = new Map<string, number>();
+          if (openPRData) {
+            openPRData.forEach((pr) => {
+              const count = prCountMap.get(pr.repository_id) || 0;
+              prCountMap.set(pr.repository_id, count + 1);
+            });
+          }
+
+          // Update repositories with their PR counts
+          transformedRepos.forEach((repo) => {
+            repo.open_prs = prCountMap.get(repo.id) || 0;
+          });
         }
 
         // Fetch contributor count from repository_contributors table

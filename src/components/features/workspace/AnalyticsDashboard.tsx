@@ -32,6 +32,12 @@ export interface ActivityItem {
   created_at: string;
   status?: string;
   url?: string;
+  metadata?: {
+    change_amount?: number;
+    current_value?: number;
+    additions?: number;
+    deletions?: number;
+  };
 }
 
 export interface ContributorStat {
