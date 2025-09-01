@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { WorkspaceDashboard } from '@/components/features/workspace';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -24,7 +24,12 @@ import {
 import { ActivityTable } from '@/components/features/workspace/ActivityTable';
 import { ActivityChart } from '@/components/features/workspace/ActivityChart';
 import { TrendChart } from '@/components/features/workspace/TrendChart';
-import { ContributorLeaderboard } from '@/components/features/workspace/ContributorLeaderboard';
+// Lazy load heavy components
+const ContributorLeaderboard = lazy(() =>
+  import('@/components/features/workspace/ContributorLeaderboard').then((m) => ({
+    default: m.ContributorLeaderboard,
+  }))
+);
 import { RisingStarsChart } from '@/components/features/analytics/RisingStarsChart';
 import { generateRisingStarsData } from '@/lib/demo/rising-stars-generator';
 
@@ -383,7 +388,39 @@ export function DemoWorkspacePage() {
           </TabsContent>
 
           <TabsContent value="contributors" className="space-y-6">
-            <ContributorLeaderboard contributors={demoAnalyticsData.contributors} loading={false} />
+            <Suspense
+              fallback={
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Top Contributors</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <div
+                          key={i}
+                          className="flex items-center justify-between p-3 border rounded-lg"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-muted animate-pulse rounded-full" />
+                            <div className="space-y-1">
+                              <div className="h-4 w-24 bg-muted animate-pulse rounded" />
+                              <div className="h-3 w-32 bg-muted animate-pulse rounded" />
+                            </div>
+                          </div>
+                          <div className="h-5 w-12 bg-muted animate-pulse rounded" />
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              }
+            >
+              <ContributorLeaderboard
+                contributors={demoAnalyticsData.contributors}
+                loading={false}
+              />
+            </Suspense>
           </TabsContent>
         </Tabs>
       </div>

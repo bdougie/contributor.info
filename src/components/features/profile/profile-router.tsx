@@ -1,13 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { useParams } from 'react-router-dom';
 import { Octokit } from '@octokit/rest';
 import { env } from '@/lib/env';
-import UserView from '@/pages/user-view';
-import OrgView from '@/pages/org-view';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
+
+// Lazy load views to reduce bundle size
+const UserView = lazy(() => import('@/pages/user-view'));
+const OrgView = lazy(() => import('@/pages/org-view'));
 
 interface ProfileRouterState {
   profileType: 'user' | 'org' | null;
@@ -70,10 +72,10 @@ export function ProfileRouter() {
             error: null,
           });
           return;
-        } catch (userError: any) {
+        } catch (userError: unknown) {
           // If user API fails with 404, try org API
           if (
-            userError?.status === 404 ||
+            (userError as { status?: number })?.status === 404 ||
             (userError instanceof Error && userError.message.includes('404'))
           ) {
             try {
@@ -87,7 +89,7 @@ export function ProfileRouter() {
                 error: null,
               });
               return;
-            } catch (orgError) {
+            } catch {
               // Both APIs failed
               setState({
                 profileType: null,
@@ -98,12 +100,15 @@ export function ProfileRouter() {
             }
           } else {
             // Non-404 error from user API
-            throw userError;
+            throw userError as Error;
           }
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         let errorMessage = 'Failed to determine profile type';
-        if (error?.status === 403 || (error instanceof Error && error.message.includes('403'))) {
+        if (
+          (error as { status?: number })?.status === 403 ||
+          (error instanceof Error && error.message.includes('403'))
+        ) {
           errorMessage = 'Rate limit exceeded. Please try again later.';
         } else if (error instanceof Error) {
           errorMessage = error.message;
@@ -183,11 +188,52 @@ export function ProfileRouter() {
     );
   }
 
+  // Profile loading skeleton component
+  const ProfileLoadingSkeleton = () => (
+    <div className="max-w-6xl mx-auto space-y-6 p-6">
+      {/* Profile header skeleton */}
+      <div className="flex items-center gap-4">
+        <Skeleton className="w-20 h-20 rounded-full" />
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-4 w-64" />
+        </div>
+      </div>
+      {/* Stats skeleton */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Card key={i}>
+            <CardContent className="p-4">
+              <Skeleton className="h-4 w-24 mb-2" />
+              <Skeleton className="h-6 w-16" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      {/* Content skeleton */}
+      <Card>
+        <CardContent className="p-6 space-y-4">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-16 w-full" />
+          ))}
+        </CardContent>
+      </Card>
+    </div>
+  );
+
   // Render the appropriate component based on profile type
   if (state.profileType === 'user') {
-    return <UserView />;
+    return (
+      <Suspense fallback={<ProfileLoadingSkeleton />}>
+        <UserView />
+      </Suspense>
+    );
   } else if (state.profileType === 'org') {
-    return <OrgView />;
+    return (
+      <Suspense fallback={<ProfileLoadingSkeleton />}>
+        <OrgView />
+      </Suspense>
+    );
   }
 
   // This shouldn't happen, but provide fallback
