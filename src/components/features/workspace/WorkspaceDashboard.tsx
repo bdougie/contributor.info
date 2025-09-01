@@ -30,7 +30,7 @@ export interface WorkspaceDashboardProps {
   workspaceName: string;
   metrics: WorkspaceMetrics;
   trendData: WorkspaceTrendData;
-  activityData?: any; // Made generic since we removed the import
+  activityData?: unknown; // Made generic since we removed the import
   repositories: Repository[];
   loading?: boolean;
   tier?: 'free' | 'pro' | 'enterprise';
@@ -91,7 +91,7 @@ export function WorkspaceDashboard({
   return (
     <div className={cn('space-y-6', className)} data-testid="workspace-dashboard">
       {/* Metrics Grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <MetricCard
           title="Total Stars"
           subtitle="Across all repositories"

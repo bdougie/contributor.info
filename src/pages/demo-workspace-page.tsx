@@ -1,4 +1,4 @@
-import { useState, useMemo, lazy, Suspense } from 'react';
+import { useState, useMemo, lazy, Suspense, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { WorkspaceDashboard } from '@/components/features/workspace';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -48,6 +48,17 @@ export function DemoWorkspacePage() {
   const [timeRange, setTimeRange] = useState<TimeRange>('30d');
   const [tier] = useState<'free' | 'pro' | 'enterprise'>('pro');
   const [expandedChart, setExpandedChart] = useState<'trends' | 'activity' | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Generate demo data with caching
   const demoAnalyticsData = useMemo(() => getCachedAnalyticsData(), []);
@@ -116,13 +127,27 @@ export function DemoWorkspacePage() {
     setExpandedChart(expandedChart === chart ? null : chart);
   };
 
+  const getTrendChartHeight = () => {
+    if (expandedChart === 'trends') {
+      return isMobile ? 300 : 500;
+    }
+    return isMobile ? 250 : 300;
+  };
+
+  const getActivityChartHeight = () => {
+    if (expandedChart === 'activity') {
+      return isMobile ? 300 : 500;
+    }
+    return isMobile ? 250 : 300;
+  };
+
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto py-8">
+      <div className="container px-4 py-6">
         {/* Demo workspace banner */}
         <Alert className="mb-6 border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950">
           <Sparkles className="h-4 w-4 text-amber-600" />
-          <AlertDescription className="text-amber-800 dark:text-amber-200">
+          <AlertDescription className="text-sm text-amber-800 dark:text-amber-200">
             <strong>Demo Workspace</strong> - This workspace uses sample data to showcase
             contributor.info's features. All data shown here is generated for demonstration
             purposes.
@@ -130,10 +155,10 @@ export function DemoWorkspacePage() {
         </Alert>
 
         <div className="mb-8">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold flex items-center gap-2">
-                <Sparkles className="h-8 w-8 text-primary" />
+              <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
                 Demo Workspace
               </h1>
               <p className="text-muted-foreground mt-2">
@@ -149,12 +174,22 @@ export function DemoWorkspacePage() {
         </div>
 
         <Tabs value={tab || 'overview'} onValueChange={handleTabChange} className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="activity">Activity</TabsTrigger>
-            <TabsTrigger value="prs">Pull Requests</TabsTrigger>
-            <TabsTrigger value="issues">Issues</TabsTrigger>
-            <TabsTrigger value="contributors">Contributors</TabsTrigger>
+          <TabsList className="grid grid-cols-5 w-full sm:w-auto">
+            <TabsTrigger value="overview" className="text-xs sm:text-sm">
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="activity" className="text-xs sm:text-sm">
+              Activity
+            </TabsTrigger>
+            <TabsTrigger value="prs" className="text-xs sm:text-sm">
+              PRs
+            </TabsTrigger>
+            <TabsTrigger value="issues" className="text-xs sm:text-sm">
+              Issues
+            </TabsTrigger>
+            <TabsTrigger value="contributors" className="text-xs sm:text-sm">
+              Contributors
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
@@ -246,7 +281,7 @@ export function DemoWorkspacePage() {
                     <TrendChart
                       title=""
                       data={demoTrendData}
-                      height={expandedChart === 'trends' ? 500 : 300}
+                      height={getTrendChartHeight()}
                       showLegend={true}
                     />
                   </CardContent>
@@ -282,7 +317,7 @@ export function DemoWorkspacePage() {
                     <ActivityChart
                       title=""
                       data={demoActivityData}
-                      height={expandedChart === 'activity' ? 500 : 300}
+                      height={getActivityChartHeight()}
                     />
                   </CardContent>
                 </Card>
@@ -316,7 +351,7 @@ export function DemoWorkspacePage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                     <div className="p-4 rounded-lg bg-muted">
                       <div className="text-2xl font-bold">142</div>
                       <div className="text-sm text-muted-foreground">Open PRs</div>
@@ -358,7 +393,7 @@ export function DemoWorkspacePage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                     <div className="p-4 rounded-lg bg-muted">
                       <div className="text-2xl font-bold">287</div>
                       <div className="text-sm text-muted-foreground">Open Issues</div>
