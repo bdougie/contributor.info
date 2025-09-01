@@ -1,5 +1,5 @@
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect, lazy, Suspense, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import { getFallbackAvatar } from '@/lib/utils/avatar';
@@ -1418,6 +1418,8 @@ interface WorkspaceActivityProps {
     captured_at: string;
   }>;
   repositories: Repository[];
+  loading?: boolean;
+  error?: string | null;
 }
 
 function WorkspaceActivity({
@@ -1428,127 +1430,191 @@ function WorkspaceActivity({
   starData = [],
   forkData = [],
   repositories = [],
+  loading = false,
+  error = null,
 }: WorkspaceActivityProps) {
-  // Convert PR and issue data to ActivityItem format
-  const activities: ActivityItem[] = [
-    // Convert PRs to activities
-    ...prData.map((pr): ActivityItem => {
-      const repo = repositories.find((r) => r.id === pr.repository_id);
-      return {
-        id: pr.id,
-        type: 'pr',
-        title: pr.title || `PR #${pr.number}`,
-        created_at: pr.created_at,
-        author: {
-          username: pr.author_login || 'Unknown',
-          avatar_url: pr.author_login
-            ? `https://avatars.githubusercontent.com/${pr.author_login}`
-            : '',
-        },
-        repository: repo?.full_name || 'Unknown Repository',
-        status: (() => {
-          if (pr.merged_at) return 'merged';
-          if (pr.state === 'open') return 'open';
-          return 'closed';
-        })() as ActivityItem['status'],
-        url: pr.html_url || '#',
-        metadata: {
-          additions: pr.additions || 0,
-          deletions: pr.deletions || 0,
-        },
-      };
-    }),
-    // Convert issues to activities
-    ...issueData.map((issue): ActivityItem => {
-      const repo = repositories.find((r) => r.id === issue.repository_id);
-      return {
-        id: issue.id,
-        type: 'issue',
-        title: issue.title || `Issue #${issue.number}`,
-        created_at: issue.created_at,
-        author: {
-          username: issue.author_login || 'Unknown',
-          avatar_url: issue.author_login
-            ? `https://avatars.githubusercontent.com/${issue.author_login}`
-            : '',
-        },
-        repository: repo?.full_name || 'Unknown Repository',
-        status: issue.closed_at ? 'closed' : 'open',
-        url: issue.html_url || '#',
-        metadata: {},
-      };
-    }),
-    // Convert reviews to activities
-    ...reviewData.map((review): ActivityItem => ({
-      id: review.id,
-      type: 'review',
-      title: review.pr_title ? `Review on: ${review.pr_title}` : `Review on PR`,
-      created_at: review.submitted_at,
-      author: {
-        username: review.reviewer_login || 'Unknown',
-        avatar_url: review.reviewer_login ? `https://avatars.githubusercontent.com/${review.reviewer_login}` : '',
-      },
-      repository: review.repository_name || 'Unknown Repository',
-      status: review.state.toLowerCase() as ActivityItem['status'],
-      url: '#',
-      metadata: {},
-    })),
-    // Convert comments to activities
-    ...commentData.map((comment): ActivityItem => ({
-      id: comment.id,
-      type: 'comment',
-      title: comment.pr_title ? `Comment on: ${comment.pr_title}` : `Comment on PR`,
-      created_at: comment.created_at,
-      author: {
-        username: comment.commenter_login || 'Unknown',
-        avatar_url: comment.commenter_login ? `https://avatars.githubusercontent.com/${comment.commenter_login}` : '',
-      },
-      repository: comment.repository_name || 'Unknown Repository',
-      status: 'open' as ActivityItem['status'],
-      url: '#',
-      metadata: {},
-    })),
-    // Convert star events to activities
-    ...starData.map((star): ActivityItem => ({
-      id: star.id,
-      type: 'star',
-      title: star.change_amount > 0 
-        ? `+${star.change_amount} stars (${star.current_value} total)` 
-        : `${star.change_amount} stars (${star.current_value} total)`,
-      created_at: star.captured_at,
-      author: {
-        username: 'System',
-        avatar_url: '',
-      },
-      repository: star.repository_name || 'Unknown Repository',
-      status: 'open' as ActivityItem['status'],
-      url: '#',
-      metadata: {
-        change_amount: star.change_amount,
-        current_value: star.current_value,
-      },
-    })),
-    // Convert fork events to activities
-    ...forkData.map((fork): ActivityItem => ({
-      id: fork.id,
-      type: 'fork',
-      title: fork.change_amount > 0 
-        ? `+${fork.change_amount} forks (${fork.current_value} total)` 
-        : `${fork.change_amount} forks (${fork.current_value} total)`,
-      created_at: fork.captured_at,
-      author: {
-        username: 'System',
-        avatar_url: '',
-      },
-      repository: fork.repository_name || 'Unknown Repository',
-      status: 'open' as ActivityItem['status'],
-      url: '#',
-      metadata: {
-        change_amount: fork.change_amount,
-        current_value: fork.current_value,
-      },
-    })),
-  ];
+  // Memoize the repository lookup map for better performance
+  const repositoryMap = useMemo(() => {
+    const map = new Map<string, Repository>();
+    repositories.forEach((repo) => {
+      if (repo?.id) {
+        map.set(repo.id, repo);
+      }
+    });
+    return map;
+  }, [repositories]);
+
+  // Memoize activities transformation for performance
+  const activities: ActivityItem[] = useMemo(() => {
+    // Helper function defined inside useMemo to avoid dependency issues
+    const getRepoName = (repoId: string | undefined): string => {
+      if (!repoId) return 'Unknown Repository';
+      const repo = repositoryMap.get(repoId);
+      return repo?.full_name || 'Unknown Repository';
+    };
+    try {
+      // Validate input data
+      const validPRData = Array.isArray(prData) ? prData : [];
+      const validIssueData = Array.isArray(issueData) ? issueData : [];
+      const validReviewData = Array.isArray(reviewData) ? reviewData : [];
+      const validCommentData = Array.isArray(commentData) ? commentData : [];
+      const validStarData = Array.isArray(starData) ? starData : [];
+      const validForkData = Array.isArray(forkData) ? forkData : [];
+
+      return [
+        // Convert PRs to activities with better error handling
+        ...validPRData.map((pr): ActivityItem => {
+          return {
+            id: pr.id,
+            type: 'pr',
+            title: pr.title || `PR #${pr.number}`,
+            created_at: pr.created_at,
+            author: {
+              username: pr.author_login || 'Unknown',
+              avatar_url: pr.author_login
+                ? `https://avatars.githubusercontent.com/${pr.author_login}`
+                : '',
+            },
+            repository: getRepoName(pr.repository_id),
+            status: (() => {
+              // Handle all PR states including draft
+              if (pr.merged_at) return 'merged';
+              if (pr.state === 'open') return 'open';
+              if (pr.state === 'draft') return 'open'; // Treat draft as open with different styling later
+              return 'closed';
+            })() as ActivityItem['status'],
+            url: pr.html_url || '#',
+            metadata: {
+              additions: pr.additions || 0,
+              deletions: pr.deletions || 0,
+            },
+          };
+        }),
+        // Convert issues to activities with validation
+        ...validIssueData.map((issue): ActivityItem => {
+          return {
+            id: issue.id,
+            type: 'issue',
+            title: issue.title || `Issue #${issue.number}`,
+            created_at: issue.created_at,
+            author: {
+              username: issue.author_login || 'Unknown',
+              avatar_url: issue.author_login
+                ? `https://avatars.githubusercontent.com/${issue.author_login}`
+                : '',
+            },
+            repository: getRepoName(issue.repository_id),
+            status: issue.closed_at ? 'closed' : 'open',
+            url: issue.html_url || '#',
+            metadata: {},
+          };
+        }),
+        // Convert reviews to activities with validation
+        ...validReviewData.map(
+          (review): ActivityItem => ({
+            id: review.id,
+            type: 'review',
+            title: review.pr_title ? `Review on: ${review.pr_title}` : `Review on PR`,
+            created_at: review.submitted_at,
+            author: {
+              username: review.reviewer_login || 'Unknown',
+              avatar_url: review.reviewer_login
+                ? `https://avatars.githubusercontent.com/${review.reviewer_login}`
+                : '',
+            },
+            repository: review.repository_name || 'Unknown Repository',
+            status: review.state.toLowerCase() as ActivityItem['status'],
+            url: '#',
+            metadata: {},
+          })
+        ),
+        // Convert comments to activities with validation
+        ...validCommentData.map(
+          (comment): ActivityItem => ({
+            id: comment.id,
+            type: 'comment',
+            title: comment.pr_title ? `Comment on: ${comment.pr_title}` : `Comment on PR`,
+            created_at: comment.created_at,
+            author: {
+              username: comment.commenter_login || 'Unknown',
+              avatar_url: comment.commenter_login
+                ? `https://avatars.githubusercontent.com/${comment.commenter_login}`
+                : '',
+            },
+            repository: comment.repository_name || 'Unknown Repository',
+            status: 'open' as ActivityItem['status'],
+            url: '#',
+            metadata: {},
+          })
+        ),
+        // Convert star events to activities with data validation
+        ...validStarData.map((star): ActivityItem => {
+          const changeAmount =
+            typeof star.change_amount === 'number' && !isNaN(star.change_amount)
+              ? star.change_amount
+              : 0;
+          const currentValue =
+            typeof star.current_value === 'number' && !isNaN(star.current_value)
+              ? star.current_value
+              : 0;
+          return {
+            id: star.id,
+            type: 'star',
+            title:
+              changeAmount > 0
+                ? `+${changeAmount} stars (${currentValue} total)`
+                : `${changeAmount} stars (${currentValue} total)`,
+            created_at: star.captured_at,
+            author: {
+              username: 'System',
+              avatar_url: '',
+            },
+            repository: star.repository_name || 'Unknown Repository',
+            status: 'open' as ActivityItem['status'],
+            url: '#',
+            metadata: {
+              change_amount: changeAmount,
+              current_value: currentValue,
+            },
+          };
+        }),
+        // Convert fork events to activities with data validation
+        ...validForkData.map((fork): ActivityItem => {
+          const changeAmount =
+            typeof fork.change_amount === 'number' && !isNaN(fork.change_amount)
+              ? fork.change_amount
+              : 0;
+          const currentValue =
+            typeof fork.current_value === 'number' && !isNaN(fork.current_value)
+              ? fork.current_value
+              : 0;
+          return {
+            id: fork.id,
+            type: 'fork',
+            title:
+              changeAmount > 0
+                ? `+${changeAmount} forks (${currentValue} total)`
+                : `${changeAmount} forks (${currentValue} total)`,
+            created_at: fork.captured_at,
+            author: {
+              username: 'System',
+              avatar_url: '',
+            },
+            repository: fork.repository_name || 'Unknown Repository',
+            status: 'open' as ActivityItem['status'],
+            url: '#',
+            metadata: {
+              change_amount: changeAmount,
+              current_value: currentValue,
+            },
+          };
+        }),
+      ];
+    } catch (error) {
+      console.error('Error transforming activity data:', error);
+      return [];
+    }
+  }, [prData, issueData, reviewData, commentData, starData, forkData, repositoryMap]);
 
   // Sort by date, most recent first
   activities.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -1680,7 +1746,14 @@ function WorkspaceActivity({
           </p>
         </CardHeader>
         <CardContent>
-          <ActivityTable activities={activities} loading={false} pageSize={20} />
+          {error ? (
+            <div className="text-center py-8 text-red-500">
+              <p>Error loading activity data: {error}</p>
+              <p className="text-sm text-muted-foreground mt-2">Please try refreshing the page.</p>
+            </div>
+          ) : (
+            <ActivityTable activities={activities} loading={loading} pageSize={20} />
+          )}
         </CardContent>
       </Card>
     </div>
@@ -2302,19 +2375,36 @@ export default function WorkspacePage() {
             }
 
             if (reviewData) {
-              const formattedReviews = reviewData.map((review: any) => ({
-                id: review.id,
-                pull_request_id: review.pull_request_id,
-                reviewer_id: review.reviewer_id,
-                state: review.state,
-                body: review.body,
-                submitted_at: review.submitted_at,
-                reviewer_login: `User-${review.reviewer_id?.slice(0, 8)}`,
-                pr_title: review.pull_requests?.title,
-                pr_number: review.pull_requests?.number,
-                repository_id: review.pull_requests?.repository_id,
-                repository_name: transformedRepos.find(r => r.id === review.pull_requests?.repository_id)?.full_name,
-              }));
+              const formattedReviews = (reviewData as unknown[]).map((review: unknown) => {
+                const r = review as {
+                  id: string;
+                  pull_request_id: string;
+                  reviewer_id: string;
+                  state: string;
+                  body?: string;
+                  submitted_at: string;
+                  pull_requests?: {
+                    title: string;
+                    number: number;
+                    repository_id: string;
+                  };
+                };
+                return {
+                  id: r.id,
+                  pull_request_id: r.pull_request_id,
+                  reviewer_id: r.reviewer_id,
+                  state: r.state,
+                  body: r.body,
+                  submitted_at: r.submitted_at,
+                  reviewer_login: `User-${r.reviewer_id?.slice(0, 8)}`,
+                  pr_title: r.pull_requests?.title,
+                  pr_number: r.pull_requests?.number,
+                  repository_id: r.pull_requests?.repository_id,
+                  repository_name: transformedRepos.find(
+                    (repo) => repo.id === r.pull_requests?.repository_id
+                  )?.full_name,
+                };
+              });
               setFullReviewData(formattedReviews);
             }
 
@@ -2334,72 +2424,115 @@ export default function WorkspacePage() {
             }
 
             if (commentData) {
-              const formattedComments = commentData.map((comment: any) => ({
-                id: comment.id,
-                pull_request_id: comment.pull_request_id,
-                commenter_id: comment.commenter_id,
-                body: comment.body,
-                created_at: comment.created_at,
-                comment_type: comment.comment_type,
-                commenter_login: `User-${comment.commenter_id?.slice(0, 8)}`,
-                pr_title: comment.pull_requests?.title,
-                pr_number: comment.pull_requests?.number,
-                repository_id: comment.pull_requests?.repository_id,
-                repository_name: transformedRepos.find(r => r.id === comment.pull_requests?.repository_id)?.full_name,
-              }));
+              const formattedComments = (commentData as unknown[]).map((comment: unknown) => {
+                const c = comment as {
+                  id: string;
+                  pull_request_id: string;
+                  commenter_id: string;
+                  body: string;
+                  created_at: string;
+                  comment_type: string;
+                  pull_requests?: {
+                    title: string;
+                    number: number;
+                    repository_id: string;
+                  };
+                };
+                return {
+                  id: c.id,
+                  pull_request_id: c.pull_request_id,
+                  commenter_id: c.commenter_id,
+                  body: c.body,
+                  created_at: c.created_at,
+                  comment_type: c.comment_type,
+                  commenter_login: `User-${c.commenter_id?.slice(0, 8)}`,
+                  pr_title: c.pull_requests?.title,
+                  pr_number: c.pull_requests?.number,
+                  repository_id: c.pull_requests?.repository_id,
+                  repository_name: transformedRepos.find(
+                    (repo) => repo.id === c.pull_requests?.repository_id
+                  )?.full_name,
+                };
+              });
               setFullCommentData(formattedComments);
             }
-            
+
             // Fetch star and fork metrics history for activity feed
             const { data: starHistory, error: starError } = await supabase
               .from('repository_metrics_history')
-              .select('id, repository_id, previous_value, current_value, change_amount, captured_at')
+              .select(
+                'id, repository_id, previous_value, current_value, change_amount, captured_at'
+              )
               .in('repository_id', repoIds)
               .eq('metric_type', 'stars')
               .gte('captured_at', startDate.toISOString())
               .gt('change_amount', 0)
               .order('captured_at', { ascending: false });
-            
+
             if (starError) {
               console.error('Error fetching star history:', starError);
             }
-            
+
             if (starHistory) {
-              const formattedStars = starHistory.map((star: any) => ({
-                id: star.id,
-                repository_id: star.repository_id,
-                repository_name: transformedRepos.find(r => r.id === star.repository_id)?.full_name,
-                previous_value: star.previous_value,
-                current_value: star.current_value,
-                change_amount: star.change_amount,
-                captured_at: star.captured_at,
-              }));
+              const formattedStars = (starHistory as unknown[]).map((star: unknown) => {
+                const s = star as {
+                  id: string;
+                  repository_id: string;
+                  change_amount: number;
+                  current_value: number;
+                  previous_value?: number;
+                  captured_at: string;
+                };
+                return {
+                  id: s.id,
+                  repository_id: s.repository_id,
+                  repository_name: transformedRepos.find((r) => r.id === s.repository_id)
+                    ?.full_name,
+                  previous_value: s.previous_value || 0,
+                  current_value: s.current_value,
+                  change_amount: s.change_amount,
+                  captured_at: s.captured_at,
+                };
+              });
               setFullStarData(formattedStars);
             }
-            
+
             const { data: forkHistory, error: forkError } = await supabase
               .from('repository_metrics_history')
-              .select('id, repository_id, previous_value, current_value, change_amount, captured_at')
+              .select(
+                'id, repository_id, previous_value, current_value, change_amount, captured_at'
+              )
               .in('repository_id', repoIds)
               .eq('metric_type', 'forks')
               .gte('captured_at', startDate.toISOString())
               .gt('change_amount', 0)
               .order('captured_at', { ascending: false });
-            
+
             if (forkError) {
               console.error('Error fetching fork history:', forkError);
             }
-            
+
             if (forkHistory) {
-              const formattedForks = forkHistory.map((fork: any) => ({
-                id: fork.id,
-                repository_id: fork.repository_id,
-                repository_name: transformedRepos.find(r => r.id === fork.repository_id)?.full_name,
-                previous_value: fork.previous_value,
-                current_value: fork.current_value,
-                change_amount: fork.change_amount,
-                captured_at: fork.captured_at,
-              }));
+              const formattedForks = (forkHistory as unknown[]).map((fork: unknown) => {
+                const f = fork as {
+                  id: string;
+                  repository_id: string;
+                  change_amount: number;
+                  current_value: number;
+                  previous_value?: number;
+                  captured_at: string;
+                };
+                return {
+                  id: f.id,
+                  repository_id: f.repository_id,
+                  repository_name: transformedRepos.find((r) => r.id === f.repository_id)
+                    ?.full_name,
+                  previous_value: f.previous_value || 0,
+                  current_value: f.current_value,
+                  change_amount: f.change_amount,
+                  captured_at: f.captured_at,
+                };
+              });
               setFullForkData(formattedForks);
             }
           }
@@ -2872,6 +3005,8 @@ export default function WorkspacePage() {
                 starData={fullStarData}
                 forkData={fullForkData}
                 repositories={repositories}
+                loading={loading}
+                error={error}
               />
             </div>
           </TabsContent>
