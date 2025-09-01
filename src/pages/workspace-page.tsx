@@ -85,7 +85,7 @@ const ContributorLeaderboard = lazy(() =>
 // Temporary type definition for ActivityItem until analytics is properly implemented in issue #598
 interface ActivityItem {
   id: string;
-  type: 'pr' | 'issue' | 'commit' | 'review';
+  type: 'pr' | 'issue' | 'commit' | 'review' | 'comment';
   title: string;
   author: {
     username: string;
@@ -1371,12 +1371,40 @@ interface WorkspaceActivityProps {
     repository_name?: string;
     html_url?: string;
   }>;
+  reviewData: Array<{
+    id: string;
+    pull_request_id: string;
+    reviewer_id: string;
+    reviewer_login?: string;
+    state: string;
+    body?: string;
+    submitted_at: string;
+    pr_title?: string;
+    pr_number?: number;
+    repository_id?: string;
+    repository_name?: string;
+  }>;
+  commentData: Array<{
+    id: string;
+    pull_request_id: string;
+    commenter_id: string;
+    commenter_login?: string;
+    body: string;
+    created_at: string;
+    comment_type: string;
+    pr_title?: string;
+    pr_number?: number;
+    repository_id?: string;
+    repository_name?: string;
+  }>;
   repositories: Repository[];
 }
 
 function WorkspaceActivity({
   prData = [],
   issueData = [],
+  reviewData = [],
+  commentData = [],
   repositories = [],
 }: WorkspaceActivityProps) {
   // Convert PR and issue data to ActivityItem format
@@ -1428,6 +1456,36 @@ function WorkspaceActivity({
         metadata: {},
       };
     }),
+    // Convert reviews to activities
+    ...reviewData.map((review): ActivityItem => ({
+      id: review.id,
+      type: 'review',
+      title: review.pr_title ? `Review on: ${review.pr_title}` : `Review on PR`,
+      created_at: review.submitted_at,
+      author: {
+        username: review.reviewer_login || 'Unknown',
+        avatar_url: review.reviewer_login ? `https://avatars.githubusercontent.com/${review.reviewer_login}` : '',
+      },
+      repository: review.repository_name || 'Unknown Repository',
+      status: review.state.toLowerCase() as ActivityItem['status'],
+      url: '#',
+      metadata: {},
+    })),
+    // Convert comments to activities
+    ...commentData.map((comment): ActivityItem => ({
+      id: comment.id,
+      type: 'comment',
+      title: comment.pr_title ? `Comment on: ${comment.pr_title}` : `Comment on PR`,
+      created_at: comment.created_at,
+      author: {
+        username: comment.commenter_login || 'Unknown',
+        avatar_url: comment.commenter_login ? `https://avatars.githubusercontent.com/${comment.commenter_login}` : '',
+      },
+      repository: comment.repository_name || 'Unknown Repository',
+      status: 'open' as ActivityItem['status'],
+      url: '#',
+      metadata: {},
+    })),
   ];
 
   // Sort by date, most recent first
@@ -1447,6 +1505,8 @@ function WorkspaceActivity({
       total: dayActivities.length,
       prs: dayActivities.filter((a) => a.type === 'pr').length,
       issues: dayActivities.filter((a) => a.type === 'issue').length,
+      reviews: dayActivities.filter((a) => a.type === 'review').length,
+      comments: dayActivities.filter((a) => a.type === 'comment').length,
     };
   });
 
@@ -1479,6 +1539,16 @@ function WorkspaceActivity({
               label: 'Issues',
               data: activityByDay.map((d) => d.issues),
               color: '#f97316',
+            },
+            {
+              label: 'Reviews',
+              data: activityByDay.map((d) => d.reviews),
+              color: '#8b5cf6',
+            },
+            {
+              label: 'Comments',
+              data: activityByDay.map((d) => d.comments),
+              color: '#06b6d4',
             },
           ],
         }}
@@ -1902,6 +1972,8 @@ export default function WorkspacePage() {
   const [activityData, setActivityData] = useState<ActivityDataPoint[]>([]);
   const [fullPRData, setFullPRData] = useState<WorkspaceActivityProps['prData']>([]);
   const [fullIssueData, setFullIssueData] = useState<WorkspaceActivityProps['issueData']>([]);
+  const [fullReviewData, setFullReviewData] = useState<WorkspaceActivityProps['reviewData']>([]);
+  const [fullCommentData, setFullCommentData] = useState<WorkspaceActivityProps['commentData']>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<TimeRange>('30d');
@@ -2136,6 +2208,70 @@ export default function WorkspacePage() {
               // Merge contributor sets
               const allContributors = new Set([...prContributors, ...issueContributors]);
               uniqueContributorCount = allContributors.size;
+            }
+
+            // Fetch reviews for activity tab
+            const { data: reviewData, error: reviewError } = await supabase
+              .from('reviews')
+              .select(
+                `id, pull_request_id, reviewer_id, state, body, submitted_at,
+                 pull_requests!inner(title, number, repository_id)`
+              )
+              .in('pull_requests.repository_id', repoIds)
+              .gte('submitted_at', startDate.toISOString())
+              .order('submitted_at', { ascending: false });
+
+            if (reviewError) {
+              console.error('Error fetching review data:', reviewError);
+            }
+
+            if (reviewData) {
+              const formattedReviews = reviewData.map((review) => ({
+                id: review.id,
+                pull_request_id: review.pull_request_id,
+                reviewer_id: review.reviewer_id,
+                state: review.state,
+                body: review.body,
+                submitted_at: review.submitted_at,
+                reviewer_login: `User-${review.reviewer_id?.slice(0, 8)}`,
+                pr_title: review.pull_requests?.title,
+                pr_number: review.pull_requests?.number,
+                repository_id: review.pull_requests?.repository_id,
+                repository_name: transformedRepos.find(r => r.id === review.pull_requests?.repository_id)?.full_name,
+              }));
+              setFullReviewData(formattedReviews);
+            }
+
+            // Fetch comments for activity tab
+            const { data: commentData, error: commentError } = await supabase
+              .from('comments')
+              .select(
+                `id, pull_request_id, commenter_id, body, created_at, comment_type,
+                 pull_requests!inner(title, number, repository_id)`
+              )
+              .in('pull_requests.repository_id', repoIds)
+              .gte('created_at', startDate.toISOString())
+              .order('created_at', { ascending: false });
+
+            if (commentError) {
+              console.error('Error fetching comment data:', commentError);
+            }
+
+            if (commentData) {
+              const formattedComments = commentData.map((comment) => ({
+                id: comment.id,
+                pull_request_id: comment.pull_request_id,
+                commenter_id: comment.commenter_id,
+                body: comment.body,
+                created_at: comment.created_at,
+                comment_type: comment.comment_type,
+                commenter_login: `User-${comment.commenter_id?.slice(0, 8)}`,
+                pr_title: comment.pull_requests?.title,
+                pr_number: comment.pull_requests?.number,
+                repository_id: comment.pull_requests?.repository_id,
+                repository_name: transformedRepos.find(r => r.id === comment.pull_requests?.repository_id)?.full_name,
+              }));
+              setFullCommentData(formattedComments);
             }
           }
         }
@@ -2602,6 +2738,8 @@ export default function WorkspacePage() {
               <WorkspaceActivity
                 prData={fullPRData}
                 issueData={fullIssueData}
+                reviewData={fullReviewData}
+                commentData={fullCommentData}
                 repositories={repositories}
               />
             </div>

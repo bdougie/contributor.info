@@ -24,6 +24,7 @@ export const TYPE_ICONS = {
   issue: AlertCircle,
   commit: GitCommit,
   review: MessageSquare,
+  comment: MessageSquare,
 };
 
 export const TYPE_COLORS = {
@@ -31,6 +32,7 @@ export const TYPE_COLORS = {
   issue: 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400',
   commit: 'bg-green-500/10 text-green-700 dark:text-green-400',
   review: 'bg-purple-500/10 text-purple-700 dark:text-purple-400',
+  comment: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-400',
 };
 
 type StatusType = 'open' | 'merged' | 'closed' | 'approved' | 'changes_requested';
@@ -56,6 +58,8 @@ export const ActivityTableRow = memo(({ activity, style }: ActivityTableRowProps
         return 'Commit';
       case 'review':
         return 'Review';
+      case 'comment':
+        return 'Comment';
       default:
         return type;
     }

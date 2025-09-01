@@ -22,7 +22,7 @@ export interface AnalyticsData {
 
 export interface ActivityItem {
   id: string;
-  type: 'pr' | 'issue' | 'commit' | 'review';
+  type: 'pr' | 'issue' | 'commit' | 'review' | 'comment';
   title: string;
   author: {
     username: string;
