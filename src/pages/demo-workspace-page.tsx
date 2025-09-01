@@ -353,7 +353,7 @@ export function DemoWorkspacePage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                     <div className="p-4 rounded-lg bg-muted">
                       <div className="text-2xl font-bold">142</div>
                       <div className="text-sm text-muted-foreground">Open PRs</div>
@@ -397,7 +397,7 @@ export function DemoWorkspacePage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                     <div className="p-4 rounded-lg bg-muted">
                       <div className="text-2xl font-bold">287</div>
                       <div className="text-sm text-muted-foreground">Open Issues</div>
