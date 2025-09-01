@@ -42,6 +42,15 @@ const TIME_RANGE_DAYS = {
   all: 730,
 } as const;
 
+// Constants for responsive behavior
+const MOBILE_BREAKPOINT = 640;
+const RESIZE_DEBOUNCE_DELAY = 150;
+const CHART_HEIGHTS = {
+  mobile: { normal: 250, expanded: 300 },
+  desktop: { normal: 300, expanded: 500 },
+} as const;
+const RISING_STARS_CHART_HEIGHT = 400;
+
 export function DemoWorkspacePage() {
   const { workspaceId = 'demo', tab } = useParams<{ workspaceId: string; tab?: string }>();
   const navigate = useNavigate();
@@ -50,14 +59,24 @@ export function DemoWorkspacePage() {
   const [expandedChart, setExpandedChart] = useState<'trends' | 'activity' | null>(null);
   const [isMobile, setIsMobile] = useState(false);
 
-  // Detect mobile screen size
+  // Detect mobile screen size with debouncing
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 640);
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+      }, RESIZE_DEBOUNCE_DELAY);
     };
-    checkMobile();
+
+    // Initial check without debounce
+    setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+
     window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener('resize', checkMobile);
+    };
   }, []);
 
   // Generate demo data with caching
@@ -129,16 +148,16 @@ export function DemoWorkspacePage() {
 
   const getTrendChartHeight = () => {
     if (expandedChart === 'trends') {
-      return isMobile ? 300 : 500;
+      return isMobile ? CHART_HEIGHTS.mobile.expanded : CHART_HEIGHTS.desktop.expanded;
     }
-    return isMobile ? 250 : 300;
+    return isMobile ? CHART_HEIGHTS.mobile.normal : CHART_HEIGHTS.desktop.normal;
   };
 
   const getActivityChartHeight = () => {
     if (expandedChart === 'activity') {
-      return isMobile ? 300 : 500;
+      return isMobile ? CHART_HEIGHTS.mobile.expanded : CHART_HEIGHTS.desktop.expanded;
     }
-    return isMobile ? 250 : 300;
+    return isMobile ? CHART_HEIGHTS.mobile.normal : CHART_HEIGHTS.desktop.normal;
   };
 
   return (
@@ -207,7 +226,7 @@ export function DemoWorkspacePage() {
               {/* Rising Stars Chart */}
               <RisingStarsChart
                 data={risingStarsData}
-                height={400}
+                height={RISING_STARS_CHART_HEIGHT}
                 maxBubbles={30}
                 className="mt-6"
               />
