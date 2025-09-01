@@ -119,12 +119,16 @@ export function MetricCard({
                     : `${Math.round(Math.abs(trend.value))}%`}
                 </span>
                 {trend.label && (
-                  <span className="text-xs text-muted-foreground">{trend.label}</span>
+                  <span className="text-xs text-muted-foreground hidden lg:inline">
+                    {trend.label}
+                  </span>
                 )}
               </div>
             )}
           </div>
-          {description && <p className="text-xs text-muted-foreground">{description}</p>}
+          {description && (
+            <p className="text-xs text-muted-foreground hidden md:block">{description}</p>
+          )}
         </div>
       </CardContent>
     </Card>
