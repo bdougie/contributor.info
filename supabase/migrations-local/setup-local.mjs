@@ -134,6 +134,12 @@ async function main() {
   const extraArgs = process.argv.slice(2);
 
   // 5) Optional consolidated SQL route
+  // USE_CONSOLIDATED_SQL=1 runs a single pre-generated SQL file containing all migrations
+  // This is useful for:
+  // - Fresh local setups where migration history doesn't matter
+  // - CI/CD environments that need faster setup
+  // - Avoiding potential migration ordering issues
+  // Default behavior (without this flag) runs individual migrations in sequence
   const consolidatedSql = path.resolve('supabase/migrations-local/000_consolidated_local_safe.sql');
   if (process.env.USE_CONSOLIDATED_SQL === '1' && existsSync(consolidatedSql)) {
     console.log('ℹ️ USE_CONSOLIDATED_SQL=1 detected. Executing consolidated SQL file...');
