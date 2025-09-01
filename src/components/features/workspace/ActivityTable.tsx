@@ -197,6 +197,9 @@ export function ActivityTable({
             <SelectItem value="issue">Issues</SelectItem>
             <SelectItem value="commit">Commits</SelectItem>
             <SelectItem value="review">Reviews</SelectItem>
+            <SelectItem value="comment">Comments</SelectItem>
+            <SelectItem value="star">Stars</SelectItem>
+            <SelectItem value="fork">Forks</SelectItem>
           </SelectContent>
         </Select>
       </div>

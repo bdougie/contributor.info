@@ -2374,21 +2374,43 @@ export default function WorkspacePage() {
               console.error('Error fetching review data:', reviewError);
             }
 
-            if (reviewData) {
-              const formattedReviews = (reviewData as unknown[]).map((review: unknown) => {
-                const r = review as {
-                  id: string;
-                  pull_request_id: string;
-                  reviewer_id: string;
-                  state: string;
-                  body?: string;
-                  submitted_at: string;
-                  pull_requests?: {
-                    title: string;
-                    number: number;
-                    repository_id: string;
-                  };
-                };
+            if (reviewData && Array.isArray(reviewData)) {
+              // Type guard for review data validation
+              const isValidReview = (
+                review: unknown
+              ): review is {
+                id: string;
+                pull_request_id: string;
+                reviewer_id: string;
+                state: string;
+                body?: string;
+                submitted_at: string;
+                pull_requests?:
+                  | {
+                      title: string;
+                      number: number;
+                      repository_id: string;
+                    }
+                  | Array<{
+                      title: string;
+                      number: number;
+                      repository_id: string;
+                    }>;
+              } => {
+                return (
+                  typeof review === 'object' &&
+                  review !== null &&
+                  'id' in review &&
+                  'pull_request_id' in review &&
+                  'reviewer_id' in review &&
+                  'state' in review &&
+                  'submitted_at' in review
+                );
+              };
+
+              const formattedReviews = reviewData.filter(isValidReview).map((r) => {
+                // Handle both single object and array cases
+                const pr = Array.isArray(r.pull_requests) ? r.pull_requests[0] : r.pull_requests;
                 return {
                   id: r.id,
                   pull_request_id: r.pull_request_id,
@@ -2397,12 +2419,11 @@ export default function WorkspacePage() {
                   body: r.body,
                   submitted_at: r.submitted_at,
                   reviewer_login: `User-${r.reviewer_id?.slice(0, 8)}`,
-                  pr_title: r.pull_requests?.title,
-                  pr_number: r.pull_requests?.number,
-                  repository_id: r.pull_requests?.repository_id,
-                  repository_name: transformedRepos.find(
-                    (repo) => repo.id === r.pull_requests?.repository_id
-                  )?.full_name,
+                  pr_title: pr?.title,
+                  pr_number: pr?.number,
+                  repository_id: pr?.repository_id,
+                  repository_name: transformedRepos.find((repo) => repo.id === pr?.repository_id)
+                    ?.full_name,
                 };
               });
               setFullReviewData(formattedReviews);
@@ -2423,21 +2444,42 @@ export default function WorkspacePage() {
               console.error('Error fetching comment data:', commentError);
             }
 
-            if (commentData) {
-              const formattedComments = (commentData as unknown[]).map((comment: unknown) => {
-                const c = comment as {
-                  id: string;
-                  pull_request_id: string;
-                  commenter_id: string;
-                  body: string;
-                  created_at: string;
-                  comment_type: string;
-                  pull_requests?: {
-                    title: string;
-                    number: number;
-                    repository_id: string;
-                  };
-                };
+            if (commentData && Array.isArray(commentData)) {
+              // Type guard for comment data validation
+              const isValidComment = (
+                comment: unknown
+              ): comment is {
+                id: string;
+                pull_request_id: string;
+                commenter_id: string;
+                body: string;
+                created_at: string;
+                comment_type: string;
+                pull_requests?:
+                  | {
+                      title: string;
+                      number: number;
+                      repository_id: string;
+                    }
+                  | Array<{
+                      title: string;
+                      number: number;
+                      repository_id: string;
+                    }>;
+              } => {
+                return (
+                  typeof comment === 'object' &&
+                  comment !== null &&
+                  'id' in comment &&
+                  'pull_request_id' in comment &&
+                  'commenter_id' in comment &&
+                  'created_at' in comment
+                );
+              };
+
+              const formattedComments = commentData.filter(isValidComment).map((c) => {
+                // Handle both single object and array cases
+                const pr = Array.isArray(c.pull_requests) ? c.pull_requests[0] : c.pull_requests;
                 return {
                   id: c.id,
                   pull_request_id: c.pull_request_id,
@@ -2446,12 +2488,11 @@ export default function WorkspacePage() {
                   created_at: c.created_at,
                   comment_type: c.comment_type,
                   commenter_login: `User-${c.commenter_id?.slice(0, 8)}`,
-                  pr_title: c.pull_requests?.title,
-                  pr_number: c.pull_requests?.number,
-                  repository_id: c.pull_requests?.repository_id,
-                  repository_name: transformedRepos.find(
-                    (repo) => repo.id === c.pull_requests?.repository_id
-                  )?.full_name,
+                  pr_title: pr?.title,
+                  pr_number: pr?.number,
+                  repository_id: pr?.repository_id,
+                  repository_name: transformedRepos.find((repo) => repo.id === pr?.repository_id)
+                    ?.full_name,
                 };
               });
               setFullCommentData(formattedComments);
@@ -2471,6 +2512,8 @@ export default function WorkspacePage() {
 
             if (starError) {
               console.error('Error fetching star history:', starError);
+              // Surface error to users
+              setError('Failed to load star metrics. Some data may be incomplete.');
             }
 
             if (starHistory) {
@@ -2510,6 +2553,10 @@ export default function WorkspacePage() {
 
             if (forkError) {
               console.error('Error fetching fork history:', forkError);
+              // Surface error to users
+              setError(
+                (prev) => prev || 'Failed to load fork metrics. Some data may be incomplete.'
+              );
             }
 
             if (forkHistory) {
