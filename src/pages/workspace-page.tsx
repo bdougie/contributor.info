@@ -2280,7 +2280,8 @@ export default function WorkspacePage() {
             .from('pull_requests')
             .select(
               `id, title, number, merged_at, created_at, updated_at, additions, deletions, 
-               changed_files, commits, state, author_id, repository_id, html_url`
+               changed_files, commits, state, author_id, repository_id, html_url,
+               contributors!pull_requests_contributor_id_fkey(username, avatar_url)`
             )
             .in('repository_id', repoIds)
             .or(
@@ -2296,7 +2297,16 @@ export default function WorkspacePage() {
             // Format PR data for activity tab
             const formattedPRs = prData.map((pr) => ({
               ...pr,
-              author_login: pr.author_id ? `User-${pr.author_id.slice(0, 8)}` : 'Unknown', // Guard author ID
+              author_login: (() => {
+                const contrib = pr.contributors as
+                  | { username?: string; avatar_url?: string }
+                  | { username?: string; avatar_url?: string }[]
+                  | undefined;
+                if (Array.isArray(contrib)) {
+                  return contrib[0]?.username || 'Unknown';
+                }
+                return contrib?.username || 'Unknown';
+              })(), // Use actual GitHub username
               repository_name: transformedRepos.find((r) => r.id === pr.repository_id)?.full_name,
             }));
             setFullPRData(formattedPRs);
@@ -2346,7 +2356,10 @@ export default function WorkspacePage() {
             // Fetch issues for metrics and trends with more fields for activity tab
             const { data: issueData, error: issueError } = await supabase
               .from('issues')
-              .select(`id, title, number, created_at, closed_at, state, author_id, repository_id`)
+              .select(
+                `id, title, number, created_at, closed_at, state, author_id, repository_id,
+                       contributors!issues_author_id_fkey(username, avatar_url)`
+              )
               .in('repository_id', repoIds)
               .gte('created_at', startDate.toISOString().split('T')[0]) // Use date only format (YYYY-MM-DD)
               .order('created_at', { ascending: true });
@@ -2359,7 +2372,16 @@ export default function WorkspacePage() {
               // Format issue data for activity tab
               const formattedIssues = issueData.map((issue) => ({
                 ...issue,
-                author_login: issue.author_id ? `User-${issue.author_id.slice(0, 8)}` : 'Unknown', // Guard author ID
+                author_login: (() => {
+                  const contrib = issue.contributors as
+                    | { username?: string; avatar_url?: string }
+                    | { username?: string; avatar_url?: string }[]
+                    | undefined;
+                  if (Array.isArray(contrib)) {
+                    return contrib[0]?.username || 'Unknown';
+                  }
+                  return contrib?.username || 'Unknown';
+                })(), // Use actual GitHub username
                 repository_name: transformedRepos.find((r) => r.id === issue.repository_id)
                   ?.full_name,
               }));
@@ -2386,7 +2408,8 @@ export default function WorkspacePage() {
               .from('reviews')
               .select(
                 `id, pull_request_id, reviewer_id, state, body, submitted_at,
-                 pull_requests!inner(title, number, repository_id)`
+                 pull_requests!inner(title, number, repository_id),
+                 contributors!fk_reviews_reviewer(username, avatar_url)`
               )
               .in('pull_requests.repository_id', repoIds)
               .gte('submitted_at', startDate.toISOString())
@@ -2440,7 +2463,16 @@ export default function WorkspacePage() {
                   state: r.state,
                   body: r.body,
                   submitted_at: r.submitted_at,
-                  reviewer_login: r.reviewer_id ? `User-${r.reviewer_id.slice(0, 8)}` : 'Unknown',
+                  reviewer_login: (() => {
+                    const contrib = r.contributors as
+                      | { username?: string; avatar_url?: string }
+                      | { username?: string; avatar_url?: string }[]
+                      | undefined;
+                    if (Array.isArray(contrib)) {
+                      return contrib[0]?.username || 'Unknown';
+                    }
+                    return contrib?.username || 'Unknown';
+                  })(), // Use actual GitHub username
                   pr_title: pr?.title,
                   pr_number: pr?.number,
                   repository_id: pr?.repository_id,
@@ -2456,7 +2488,8 @@ export default function WorkspacePage() {
               .from('comments')
               .select(
                 `id, pull_request_id, commenter_id, body, created_at, comment_type,
-                 pull_requests!inner(title, number, repository_id)`
+                 pull_requests!inner(title, number, repository_id),
+                 contributors!fk_comments_commenter(username, avatar_url)`
               )
               .in('pull_requests.repository_id', repoIds)
               .gte('created_at', startDate.toISOString())
@@ -2509,9 +2542,16 @@ export default function WorkspacePage() {
                   body: c.body,
                   created_at: c.created_at,
                   comment_type: c.comment_type,
-                  commenter_login: c.commenter_id
-                    ? `User-${c.commenter_id.slice(0, 8)}`
-                    : 'Unknown',
+                  commenter_login: (() => {
+                    const contrib = c.contributors as
+                      | { username?: string; avatar_url?: string }
+                      | { username?: string; avatar_url?: string }[]
+                      | undefined;
+                    if (Array.isArray(contrib)) {
+                      return contrib[0]?.username || 'Unknown';
+                    }
+                    return contrib?.username || 'Unknown';
+                  })(), // Use actual GitHub username
                   pr_title: pr?.title,
                   pr_number: pr?.number,
                   repository_id: pr?.repository_id,
