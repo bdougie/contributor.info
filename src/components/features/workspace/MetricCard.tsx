@@ -1,7 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { TrendingUp, TrendingDown, Minus } from '@/components/ui/icon';
+import { TrendingUp, TrendingDown, Minus, Info } from '@/components/ui/icon';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export interface MetricCardProps {
   title: string;
@@ -101,7 +102,25 @@ export function MetricCard({
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div className="flex-1">
-            <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+            {description ? (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="inline-flex items-center gap-1 cursor-default">
+                      <CardTitle className="text-sm font-medium text-muted-foreground">
+                        {title}
+                      </CardTitle>
+                      <Info className="h-3 w-3 text-muted-foreground/60" />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs">{description}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ) : (
+              <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+            )}
             {subtitle && <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>}
           </div>
           {icon && <div className={cn('p-2 rounded', colorMap[color])}>{icon}</div>}
@@ -127,9 +146,6 @@ export function MetricCard({
               </div>
             )}
           </div>
-          {description && (
-            <p className="text-xs text-muted-foreground hidden md:block">{description}</p>
-          )}
         </div>
       </CardContent>
     </Card>

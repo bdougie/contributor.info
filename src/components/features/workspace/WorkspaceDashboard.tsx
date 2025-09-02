@@ -48,11 +48,11 @@ export interface WorkspaceDashboardProps {
 
 // Time range labels for trend comparison
 const timeRangeComparisonLabels: Record<TimeRange, string> = {
-  '7d': 'vs previous 7 days',
-  '30d': 'vs previous 30 days',
-  '90d': 'vs previous 90 days',
-  '1y': 'vs previous year',
-  all: 'vs previous period',
+  '7d': 'vs previous',
+  '30d': 'vs previous',
+  '90d': 'vs previous',
+  '1y': 'vs previous',
+  all: 'vs previous',
 };
 
 export function WorkspaceDashboard({
