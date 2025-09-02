@@ -306,10 +306,12 @@ export function generateDemoWorkspaceMetrics(
   return {
     totalStars,
     totalPRs: Math.floor(demoRandom() * 500) + 100,
+    totalIssues: Math.floor(demoRandom() * 300) + 50,
     totalContributors,
     totalCommits: Math.floor(demoRandom() * 10000) + 1000,
     starsTrend: (demoRandom() - 0.5) * 20 * multiplier,
     prsTrend: (demoRandom() - 0.5) * 15 * multiplier,
+    issuesTrend: (demoRandom() - 0.5) * 12 * multiplier,
     contributorsTrend: (demoRandom() - 0.5) * 10 * multiplier,
     commitsTrend: (demoRandom() - 0.5) * 25 * multiplier,
   };

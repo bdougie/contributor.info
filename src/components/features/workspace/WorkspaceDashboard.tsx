@@ -2,16 +2,18 @@ import { useState } from 'react';
 import { MetricCard } from './MetricCard';
 import { RepositoryList, type Repository } from './RepositoryList';
 import { TimeRange } from './TimeRangeSelector';
-import { Star, GitPullRequest, Users, GitCommit } from '@/components/ui/icon';
+import { Star, GitPullRequest, Users, AlertCircle } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 
 export interface WorkspaceMetrics {
   totalStars: number;
   totalPRs: number;
+  totalIssues: number;
   totalContributors: number;
   totalCommits: number;
   starsTrend: number;
   prsTrend: number;
+  issuesTrend: number;
   contributorsTrend: number;
   commitsTrend: number;
 }
@@ -46,11 +48,11 @@ export interface WorkspaceDashboardProps {
 
 // Time range labels for trend comparison
 const timeRangeComparisonLabels: Record<TimeRange, string> = {
-  '7d': 'vs previous 7 days',
-  '30d': 'vs previous 30 days',
-  '90d': 'vs previous 90 days',
-  '1y': 'vs previous year',
-  all: 'vs previous period',
+  '7d': 'vs previous',
+  '30d': 'vs previous',
+  '90d': 'vs previous',
+  '1y': 'vs previous',
+  all: 'vs previous',
 };
 
 export function WorkspaceDashboard({
@@ -103,12 +105,12 @@ export function WorkspaceDashboard({
             label: trendLabel,
           }}
           format="compact"
-          color="gray"
+          color="yellow"
           loading={loading}
         />
 
         <MetricCard
-          title="Pull Requests"
+          title="Open PRs"
           subtitle="Currently open"
           value={metrics.totalPRs}
           description="Active development and contributions"
@@ -119,6 +121,21 @@ export function WorkspaceDashboard({
           }}
           format="number"
           color="green"
+          loading={loading}
+        />
+
+        <MetricCard
+          title="Open Issues"
+          subtitle="Currently open"
+          value={metrics.totalIssues || 0}
+          description="Tasks and feature requests"
+          icon={<AlertCircle className="h-4 w-4" />}
+          trend={{
+            value: metrics.issuesTrend || 0,
+            label: trendLabel,
+          }}
+          format="number"
+          color="orange"
           loading={loading}
         />
 
@@ -134,21 +151,6 @@ export function WorkspaceDashboard({
           }}
           format="number"
           color="blue"
-          loading={loading}
-        />
-
-        <MetricCard
-          title="Commits"
-          subtitle="Total commits"
-          value={metrics.totalCommits}
-          description="Development velocity indicator"
-          icon={<GitCommit className="h-4 w-4" />}
-          trend={{
-            value: metrics.commitsTrend,
-            label: trendLabel,
-          }}
-          format="compact"
-          color="purple"
           loading={loading}
         />
       </div>
@@ -183,10 +185,12 @@ export function WorkspaceDashboardSkeleton({ className }: { className?: string }
       metrics={{
         totalStars: 0,
         totalPRs: 0,
+        totalIssues: 0,
         totalContributors: 0,
         totalCommits: 0,
         starsTrend: 0,
         prsTrend: 0,
+        issuesTrend: 0,
         contributorsTrend: 0,
         commitsTrend: 0,
       }}
