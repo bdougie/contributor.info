@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook } from '@testing-library/react';
 import { supabase } from '@/lib/supabase';
 
 // Mock Supabase
@@ -71,7 +70,9 @@ describe('Workspace Page API Fixes', () => {
       // Make the query like workspace-page.tsx does
       await supabase
         .from('issues')
-        .select('id, title, number, created_at, closed_at, state, author_id, repository_id, html_url')
+        .select(
+          'id, title, number, created_at, closed_at, state, author_id, repository_id, html_url'
+        )
         .in('repository_id', ['repo-1', 'repo-2'])
         .gte('created_at', startDate.toISOString().split('T')[0]) // Use date only format
         .order('created_at', { ascending: true });
@@ -82,7 +83,7 @@ describe('Workspace Page API Fixes', () => {
         'id, title, number, created_at, closed_at, state, author_id, repository_id, html_url'
       );
       expect(mockIn).toHaveBeenCalledWith('repository_id', ['repo-1', 'repo-2']);
-      
+
       // Verify date format is YYYY-MM-DD (fixed format)
       const capturedDateArg = mockGte.mock.calls[0][1];
       expect(capturedDateArg).toMatch(/^\d{4}-\d{2}-\d{2}$/);
@@ -102,7 +103,7 @@ describe('Workspace Page API Fixes', () => {
 
       // Verify the date is now in the past
       expect(startDate.getTime()).toBeLessThan(Date.now());
-      
+
       // Verify it's approximately 30 days ago (within 1 hour tolerance)
       const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
       const tolerance = 60 * 60 * 1000; // 1 hour
@@ -207,7 +208,9 @@ describe('Workspace Page API Fixes', () => {
         console.error('Error fetching PR contributors:', prContributorError);
       }
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith('Error fetching PR contributors:', { message: 'Database error' });
+      expect(consoleErrorSpy).toHaveBeenCalledWith('Error fetching PR contributors:', {
+        message: 'Database error',
+      });
 
       consoleErrorSpy.mockRestore();
     });
@@ -231,7 +234,7 @@ describe('Workspace Page API Fixes', () => {
       }));
 
       // Verify all IDs are unique
-      const ids = activities.map(a => a.id);
+      const ids = activities.map((a) => a.id);
       const uniqueIds = [...new Set(ids)];
       expect(uniqueIds).toHaveLength(ids.length);
       expect(ids).toEqual(['pr-pr-1-0', 'pr-pr-1-1', 'pr-pr-2-2']);
@@ -244,8 +247,14 @@ describe('Workspace Page API Fixes', () => {
         issues: [{ id: 'issue-1' }, { id: 'issue-1' }],
         reviews: [{ id: 'review-1' }, { id: 'review-1' }],
         comments: [{ id: 'comment-1' }, { id: 'comment-1' }],
-        stars: [{ id: 'star-1', captured_at: '2024-01-01' }, { id: 'star-1', captured_at: '2024-01-01' }],
-        forks: [{ id: 'fork-1', captured_at: '2024-01-01' }, { id: 'fork-1', captured_at: '2024-01-01' }],
+        stars: [
+          { id: 'star-1', captured_at: '2024-01-01' },
+          { id: 'star-1', captured_at: '2024-01-01' },
+        ],
+        forks: [
+          { id: 'fork-1', captured_at: '2024-01-01' },
+          { id: 'fork-1', captured_at: '2024-01-01' },
+        ],
       };
 
       const activities = [
@@ -253,12 +262,16 @@ describe('Workspace Page API Fixes', () => {
         ...mockData.issues.map((issue, index) => ({ id: `issue-${issue.id}-${index}` })),
         ...mockData.reviews.map((review, index) => ({ id: `review-${review.id}-${index}` })),
         ...mockData.comments.map((comment, index) => ({ id: `comment-${comment.id}-${index}` })),
-        ...mockData.stars.map((star, index) => ({ id: `star-${star.id}-${star.captured_at}-${index}` })),
-        ...mockData.forks.map((fork, index) => ({ id: `fork-${fork.id}-${fork.captured_at}-${index}` })),
+        ...mockData.stars.map((star, index) => ({
+          id: `star-${star.id}-${star.captured_at}-${index}`,
+        })),
+        ...mockData.forks.map((fork, index) => ({
+          id: `fork-${fork.id}-${fork.captured_at}-${index}`,
+        })),
       ];
 
       // Verify all IDs are unique
-      const ids = activities.map(a => a.id);
+      const ids = activities.map((a) => a.id);
       const uniqueIds = [...new Set(ids)];
       expect(uniqueIds).toHaveLength(ids.length);
       expect(uniqueIds).toHaveLength(12); // 2 of each type * 6 types

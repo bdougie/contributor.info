@@ -140,6 +140,12 @@ export function ActivityTable({
     getScrollElement: () => parentRef.current,
     estimateSize: () => 60,
     overscan: 5,
+    // Add getItemKey to ensure proper key management
+    getItemKey: (index) => {
+      const activity = paginatedActivities[index];
+      if (!activity) return `empty-${index}`;
+      return `${activity.type}-${activity.id}-${index}-${activity.created_at}`;
+    },
   });
 
   const handleSort = useCallback(
@@ -280,12 +286,16 @@ export function ActivityTable({
                   position: 'relative',
                 }}
               >
-                {virtualizer.getVirtualItems().map((virtualItem) => {
+                {virtualizer.getVirtualItems().map((virtualItem, arrayIndex) => {
                   const activity = paginatedActivities[virtualItem.index];
+                  if (!activity) {
+                    return null; // Skip if activity doesn't exist
+                  }
                   const Icon = TYPE_ICONS[activity.type];
 
-                  // Create a unique key combining type, id, and index to avoid duplicates
-                  const uniqueKey = `${activity.type}-${activity.id}-${virtualItem.index}`;
+                  // Generate unique key using multiple identifiers to ensure uniqueness
+                  // Use arrayIndex as a fallback to guarantee uniqueness
+                  const uniqueKey = `activity-${virtualItem.index}-${arrayIndex}-${activity.type}-${activity.id}`;
 
                   return (
                     <div
@@ -488,11 +498,24 @@ export function ActivityTable({
               Previous
             </Button>
             <div className="flex items-center gap-1">
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                const pageNum = Math.max(0, Math.min(page - 2 + i, totalPages - 1));
-                return (
+              {(() => {
+                // Calculate the range of pages to show
+                let startPage = Math.max(0, page - 2);
+                const endPage = Math.min(totalPages - 1, startPage + 4);
+
+                // Adjust startPage if we're near the end
+                if (endPage - startPage < 4) {
+                  startPage = Math.max(0, endPage - 4);
+                }
+
+                const pageNumbers = [];
+                for (let i = startPage; i <= endPage; i++) {
+                  pageNumbers.push(i);
+                }
+
+                return pageNumbers.map((pageNum) => (
                   <Button
-                    key={pageNum}
+                    key={`page-${pageNum}`}
                     variant={pageNum === page ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setPage(pageNum)}
@@ -500,8 +523,8 @@ export function ActivityTable({
                   >
                     {pageNum + 1}
                   </Button>
-                );
-              })}
+                ));
+              })()}
             </div>
             <Button
               variant="outline"

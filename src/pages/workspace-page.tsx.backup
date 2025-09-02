@@ -5,7 +5,6 @@ import type { User } from '@supabase/supabase-js';
 import { getFallbackAvatar } from '@/lib/utils/avatar';
 import { useWorkspaceContributors } from '@/hooks/useWorkspaceContributors';
 import { WorkspaceDashboard, WorkspaceDashboardSkeleton } from '@/components/features/workspace';
-import { WorkspaceErrorBoundary } from '@/components/error-boundaries/workspace-error-boundary';
 import {
   WorkspacePullRequestsTable,
   type PullRequest,
@@ -68,7 +67,6 @@ import { WorkspaceService } from '@/services/workspace.service';
 // import { AnalyticsDashboard } from '@/components/features/workspace/AnalyticsDashboard';
 import { ActivityTable } from '@/components/features/workspace/ActivityTable';
 import { TrendChart } from '@/components/features/workspace/TrendChart';
-import { WorkspaceActivitySkeleton } from '@/components/features/workspace/skeletons/WorkspaceActivitySkeleton';
 // Lazy load heavy components
 const ContributorLeaderboard = lazy(() =>
   import('@/components/features/workspace/ContributorLeaderboard').then((m) => ({
@@ -1465,9 +1463,15 @@ function WorkspaceActivity({
 
       return [
         // Convert PRs to activities with better error handling
+<<<<<<< HEAD
+        ...validPRData.map((pr): ActivityItem => {
+          return {
+            id: `pr-${pr.id}`,
+=======
         ...validPRData.map((pr, index): ActivityItem => {
           return {
             id: `pr-${pr.id}-${index}`, // Add index to ensure uniqueness
+>>>>>>> origin/main
             type: 'pr',
             title: pr.title || `PR #${pr.number}`,
             created_at: pr.created_at,
@@ -1493,9 +1497,15 @@ function WorkspaceActivity({
           };
         }),
         // Convert issues to activities with validation
+<<<<<<< HEAD
+        ...validIssueData.map((issue): ActivityItem => {
+          return {
+            id: `issue-${issue.id}`,
+=======
         ...validIssueData.map((issue, index): ActivityItem => {
           return {
             id: `issue-${issue.id}-${index}`, // Add index to ensure uniqueness
+>>>>>>> origin/main
             type: 'issue',
             title: issue.title || `Issue #${issue.number}`,
             created_at: issue.created_at,
@@ -1507,17 +1517,26 @@ function WorkspaceActivity({
             },
             repository: getRepoName(issue.repository_id),
             status: issue.closed_at ? 'closed' : 'open',
+<<<<<<< HEAD
+            url: issue.html_url || '#',
+=======
             url:
               issue.repository_name && issue.number
                 ? `https://github.com/${issue.repository_name}/issues/${issue.number}`
                 : '#',
+>>>>>>> origin/main
             metadata: {},
           };
         }),
         // Convert reviews to activities with validation
         ...validReviewData.map(
+<<<<<<< HEAD
+          (review): ActivityItem => ({
+            id: `review-${review.id}`,
+=======
           (review, index): ActivityItem => ({
             id: `review-${review.id}-${index}`, // Add index to ensure uniqueness
+>>>>>>> origin/main
             type: 'review',
             title: review.pr_title ? `Review on: ${review.pr_title}` : `Review on PR`,
             created_at: review.submitted_at,
@@ -1535,8 +1554,13 @@ function WorkspaceActivity({
         ),
         // Convert comments to activities with validation
         ...validCommentData.map(
+<<<<<<< HEAD
+          (comment): ActivityItem => ({
+            id: `comment-${comment.id}`,
+=======
           (comment, index): ActivityItem => ({
             id: `comment-${comment.id}-${index}`, // Add index to ensure uniqueness
+>>>>>>> origin/main
             type: 'comment',
             title: comment.pr_title ? `Comment on: ${comment.pr_title}` : `Comment on PR`,
             created_at: comment.created_at,
@@ -1553,7 +1577,11 @@ function WorkspaceActivity({
           })
         ),
         // Convert star events to activities with data validation
+<<<<<<< HEAD
+        ...validStarData.map((star): ActivityItem => {
+=======
         ...validStarData.map((star, index): ActivityItem => {
+>>>>>>> origin/main
           const changeAmount =
             typeof star.change_amount === 'number' && !isNaN(star.change_amount)
               ? star.change_amount
@@ -1563,7 +1591,11 @@ function WorkspaceActivity({
               ? star.current_value
               : 0;
           return {
+<<<<<<< HEAD
+            id: `star-${star.id}-${star.captured_at}`,
+=======
             id: `star-${star.id}-${star.captured_at}-${index}`, // Add index to ensure uniqueness
+>>>>>>> origin/main
             type: 'star',
             title:
               changeAmount > 0
@@ -1584,7 +1616,11 @@ function WorkspaceActivity({
           };
         }),
         // Convert fork events to activities with data validation
+<<<<<<< HEAD
+        ...validForkData.map((fork): ActivityItem => {
+=======
         ...validForkData.map((fork, index): ActivityItem => {
+>>>>>>> origin/main
           const changeAmount =
             typeof fork.change_amount === 'number' && !isNaN(fork.change_amount)
               ? fork.change_amount
@@ -1594,7 +1630,11 @@ function WorkspaceActivity({
               ? fork.current_value
               : 0;
           return {
+<<<<<<< HEAD
+            id: `fork-${fork.id}-${fork.captured_at}`,
+=======
             id: `fork-${fork.id}-${fork.captured_at}-${index}`, // Add index to ensure uniqueness
+>>>>>>> origin/main
             type: 'fork',
             title:
               changeAmount > 0
@@ -1621,88 +1661,37 @@ function WorkspaceActivity({
     }
   }, [prData, issueData, reviewData, commentData, starData, forkData, repositoryMap]);
 
-  // Memoize sorted activities to avoid unnecessary re-sorts
-  const sortedActivities = useMemo(() => {
-    return [...activities].sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
-  }, [activities]);
+  // Sort by date, most recent first
+  activities.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-  // Memoize trend data calculation for performance
-  const activityByDay = useMemo(() => {
-    const last30Days = Array.from({ length: 30 }, (_, i) => {
-      const date = new Date();
-      date.setDate(date.getDate() - (29 - i));
-      return date.toISOString().split('T')[0];
-    });
+  // Generate trend data for the chart
+  const last30Days = Array.from({ length: 30 }, (_, i) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (29 - i));
+    return date.toISOString().split('T')[0];
+  });
 
-    return last30Days.map((date) => {
-      const dayActivities = sortedActivities.filter((a) => a.created_at.split('T')[0] === date);
-      return {
-        date,
-        total: dayActivities.length,
-        prs: dayActivities.filter((a) => a.type === 'pr').length,
-        issues: dayActivities.filter((a) => a.type === 'issue').length,
-        reviews: dayActivities.filter((a) => a.type === 'review').length,
-        comments: dayActivities.filter((a) => a.type === 'comment').length,
-        stars: dayActivities.filter((a) => a.type === 'star').length,
-        forks: dayActivities.filter((a) => a.type === 'fork').length,
-      };
-    });
-  }, [sortedActivities]);
-
-  // Memoize stats calculations for performance
-  const { totalActivities, uniqueContributors, activeRepos, activityScore } = useMemo(() => {
-    const total = activities.length;
-    const contributors = new Set(activities.map((a) => a.author.username)).size;
-    const repos = new Set(activities.map((a) => a.repository)).size;
-    const score = Math.round((total + contributors * 2 + repos * 3) / 3);
-
+  const activityByDay = last30Days.map((date) => {
+    const dayActivities = activities.filter((a) => a.created_at.split('T')[0] === date);
     return {
-      totalActivities: total,
-      uniqueContributors: contributors,
-      activeRepos: repos,
-      activityScore: score,
+      date,
+      total: dayActivities.length,
+      prs: dayActivities.filter((a) => a.type === 'pr').length,
+      issues: dayActivities.filter((a) => a.type === 'issue').length,
+      reviews: dayActivities.filter((a) => a.type === 'review').length,
+      comments: dayActivities.filter((a) => a.type === 'comment').length,
+      stars: dayActivities.filter((a) => a.type === 'star').length,
+      forks: dayActivities.filter((a) => a.type === 'fork').length,
     };
-  }, [activities]);
+  });
 
-  // Show loading skeleton while data is being fetched
-  if (loading) {
-    return <WorkspaceActivitySkeleton />;
-  }
-
-  // Show error state if there's an error
-  if (error) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-center space-y-4">
-          <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto" />
-          <div>
-            <h3 className="font-semibold">Failed to load activity data</h3>
-            <p className="text-sm text-muted-foreground mt-1">{error}</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Show empty state if no activities
-  if (activities.length === 0) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-center space-y-4">
-          <Activity className="h-12 w-12 text-muted-foreground mx-auto" />
-          <div>
-            <h3 className="font-semibold">No activity yet</h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              Activity will appear here once repositories have pull requests, issues, or other
-              interactions.
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Calculate stats
+  const totalActivities = activities.length;
+  const uniqueContributors = new Set(activities.map((a) => a.author.username)).size;
+  const activeRepos = new Set(activities.map((a) => a.repository)).size;
+  const activityScore = Math.round(
+    (totalActivities + uniqueContributors * 2 + activeRepos * 3) / 3
+  );
 
   return (
     <div className="space-y-4">
@@ -1808,7 +1797,7 @@ function WorkspaceActivity({
               <p className="text-sm text-muted-foreground mt-2">Please try refreshing the page.</p>
             </div>
           ) : (
-            <ActivityTable activities={sortedActivities} loading={loading} pageSize={20} />
+            <ActivityTable activities={activities} loading={loading} pageSize={20} />
           )}
         </CardContent>
       </Card>
@@ -2164,7 +2153,7 @@ function WorkspaceSettings({ workspace }: { workspace: Workspace }) {
   );
 }
 
-function WorkspacePage() {
+export default function WorkspacePage() {
   const { workspaceId } = useParams<{ workspaceId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -2307,19 +2296,21 @@ function WorkspacePage() {
           const daysToFetch = TIME_RANGE_DAYS[timeRange];
           const startDate = new Date(Date.now() - daysToFetch * 24 * 60 * 60 * 1000);
 
+<<<<<<< HEAD
+=======
           // Ensure startDate is valid and not in the future
           if (startDate.getTime() > Date.now()) {
             console.warn('Start date is in the future, using 30 days ago as fallback');
             startDate.setTime(Date.now() - 30 * 24 * 60 * 60 * 1000);
           }
 
+>>>>>>> origin/main
           // Fetch PRs for activity data and metrics with more fields for activity tab
           const { data: prData, error: prError } = await supabase
             .from('pull_requests')
             .select(
               `id, title, number, merged_at, created_at, updated_at, additions, deletions, 
-               changed_files, commits, state, author_id, repository_id, html_url,
-               contributors!pull_requests_contributor_id_fkey(username, avatar_url)`
+               changed_files, commits, state, author_id, repository_id, html_url`
             )
             .in('repository_id', repoIds)
             .or(
@@ -2335,16 +2326,7 @@ function WorkspacePage() {
             // Format PR data for activity tab
             const formattedPRs = prData.map((pr) => ({
               ...pr,
-              author_login: (() => {
-                const contrib = pr.contributors as
-                  | { username?: string; avatar_url?: string }
-                  | { username?: string; avatar_url?: string }[]
-                  | undefined;
-                if (Array.isArray(contrib)) {
-                  return contrib[0]?.username || 'Unknown';
-                }
-                return contrib?.username || 'Unknown';
-              })(), // Use actual GitHub username
+              author_login: pr.author_id ? `User-${pr.author_id.slice(0, 8)}` : 'Unknown', // Guard author ID
               repository_name: transformedRepos.find((r) => r.id === pr.repository_id)?.full_name,
             }));
             setFullPRData(formattedPRs);
@@ -2394,12 +2376,17 @@ function WorkspacePage() {
             // Fetch issues for metrics and trends with more fields for activity tab
             const { data: issueData, error: issueError } = await supabase
               .from('issues')
+<<<<<<< HEAD
               .select(
-                `id, title, number, created_at, closed_at, state, author_id, repository_id,
-                       contributors!issues_author_id_fkey(username, avatar_url)`
+                `id, title, number, created_at, closed_at, state, author_id, repository_id, html_url`
               )
               .in('repository_id', repoIds)
+              .gte('created_at', startDate.toISOString())
+=======
+              .select(`id, title, number, created_at, closed_at, state, author_id, repository_id`)
+              .in('repository_id', repoIds)
               .gte('created_at', startDate.toISOString().split('T')[0]) // Use date only format (YYYY-MM-DD)
+>>>>>>> origin/main
               .order('created_at', { ascending: true });
 
             if (issueError) {
@@ -2410,16 +2397,7 @@ function WorkspacePage() {
               // Format issue data for activity tab
               const formattedIssues = issueData.map((issue) => ({
                 ...issue,
-                author_login: (() => {
-                  const contrib = issue.contributors as
-                    | { username?: string; avatar_url?: string }
-                    | { username?: string; avatar_url?: string }[]
-                    | undefined;
-                  if (Array.isArray(contrib)) {
-                    return contrib[0]?.username || 'Unknown';
-                  }
-                  return contrib?.username || 'Unknown';
-                })(), // Use actual GitHub username
+                author_login: issue.author_id ? `User-${issue.author_id.slice(0, 8)}` : 'Unknown', // Guard author ID
                 repository_name: transformedRepos.find((r) => r.id === issue.repository_id)
                   ?.full_name,
               }));
@@ -2446,8 +2424,7 @@ function WorkspacePage() {
               .from('reviews')
               .select(
                 `id, pull_request_id, reviewer_id, state, body, submitted_at,
-                 pull_requests!inner(title, number, repository_id),
-                 contributors!fk_reviews_reviewer(username, avatar_url)`
+                 pull_requests!inner(title, number, repository_id)`
               )
               .in('pull_requests.repository_id', repoIds)
               .gte('submitted_at', startDate.toISOString())
@@ -2491,9 +2468,6 @@ function WorkspacePage() {
                 );
               };
 
-              // Create a Map for O(1) repository lookups instead of O(n) find operations
-              const repoMap = new Map(transformedRepos.map((repo) => [repo.id, repo.full_name]));
-
               const formattedReviews = reviewData.filter(isValidReview).map((r) => {
                 // Handle both single object and array cases
                 const pr = Array.isArray(r.pull_requests) ? r.pull_requests[0] : r.pull_requests;
@@ -2504,20 +2478,12 @@ function WorkspacePage() {
                   state: r.state,
                   body: r.body,
                   submitted_at: r.submitted_at,
-                  reviewer_login: (() => {
-                    const contrib = r.contributors as
-                      | { username?: string; avatar_url?: string }
-                      | { username?: string; avatar_url?: string }[]
-                      | undefined;
-                    if (Array.isArray(contrib)) {
-                      return contrib[0]?.username || 'Unknown';
-                    }
-                    return contrib?.username || 'Unknown';
-                  })(), // Use actual GitHub username
+                  reviewer_login: r.reviewer_id ? `User-${r.reviewer_id.slice(0, 8)}` : 'Unknown',
                   pr_title: pr?.title,
                   pr_number: pr?.number,
                   repository_id: pr?.repository_id,
-                  repository_name: pr?.repository_id ? repoMap.get(pr.repository_id) : undefined,
+                  repository_name: transformedRepos.find((repo) => repo.id === pr?.repository_id)
+                    ?.full_name,
                 };
               });
               setFullReviewData(formattedReviews);
@@ -2528,8 +2494,7 @@ function WorkspacePage() {
               .from('comments')
               .select(
                 `id, pull_request_id, commenter_id, body, created_at, comment_type,
-                 pull_requests!inner(title, number, repository_id),
-                 contributors!fk_comments_commenter(username, avatar_url)`
+                 pull_requests!inner(title, number, repository_id)`
               )
               .in('pull_requests.repository_id', repoIds)
               .gte('created_at', startDate.toISOString())
@@ -2572,9 +2537,6 @@ function WorkspacePage() {
                 );
               };
 
-              // Create a Map for O(1) repository lookups instead of O(n) find operations
-              const repoMap = new Map(transformedRepos.map((repo) => [repo.id, repo.full_name]));
-
               const formattedComments = commentData.filter(isValidComment).map((c) => {
                 // Handle both single object and array cases
                 const pr = Array.isArray(c.pull_requests) ? c.pull_requests[0] : c.pull_requests;
@@ -2585,20 +2547,14 @@ function WorkspacePage() {
                   body: c.body,
                   created_at: c.created_at,
                   comment_type: c.comment_type,
-                  commenter_login: (() => {
-                    const contrib = c.contributors as
-                      | { username?: string; avatar_url?: string }
-                      | { username?: string; avatar_url?: string }[]
-                      | undefined;
-                    if (Array.isArray(contrib)) {
-                      return contrib[0]?.username || 'Unknown';
-                    }
-                    return contrib?.username || 'Unknown';
-                  })(), // Use actual GitHub username
+                  commenter_login: c.commenter_id
+                    ? `User-${c.commenter_id.slice(0, 8)}`
+                    : 'Unknown',
                   pr_title: pr?.title,
                   pr_number: pr?.number,
                   repository_id: pr?.repository_id,
-                  repository_name: pr?.repository_id ? repoMap.get(pr.repository_id) : undefined,
+                  repository_name: transformedRepos.find((repo) => repo.id === pr?.repository_id)
+                    ?.full_name,
                 };
               });
               setFullCommentData(formattedComments);
@@ -2623,9 +2579,6 @@ function WorkspacePage() {
             }
 
             if (starHistory) {
-              // Create a Map for O(1) repository lookups instead of O(n) find operations
-              const repoMap = new Map(transformedRepos.map((repo) => [repo.id, repo.full_name]));
-
               const formattedStars = (starHistory as unknown[]).map((star: unknown) => {
                 const s = star as {
                   id: string;
@@ -2638,7 +2591,8 @@ function WorkspacePage() {
                 return {
                   id: `star-${s.repository_id}-${s.captured_at}`,
                   repository_id: s.repository_id,
-                  repository_name: repoMap.get(s.repository_id),
+                  repository_name: transformedRepos.find((r) => r.id === s.repository_id)
+                    ?.full_name,
                   previous_value: s.previous_value || 0,
                   current_value: s.current_value,
                   change_amount: s.change_amount,
@@ -2668,9 +2622,6 @@ function WorkspacePage() {
             }
 
             if (forkHistory) {
-              // Create a Map for O(1) repository lookups instead of O(n) find operations
-              const repoMap = new Map(transformedRepos.map((repo) => [repo.id, repo.full_name]));
-
               const formattedForks = (forkHistory as unknown[]).map((fork: unknown) => {
                 const f = fork as {
                   id: string;
@@ -2683,7 +2634,8 @@ function WorkspacePage() {
                 return {
                   id: `fork-${f.repository_id}-${f.captured_at}`,
                   repository_id: f.repository_id,
-                  repository_name: repoMap.get(f.repository_id),
+                  repository_name: transformedRepos.find((r) => r.id === f.repository_id)
+                    ?.full_name,
                   previous_value: f.previous_value || 0,
                   current_value: f.current_value,
                   change_amount: f.change_amount,
@@ -2721,6 +2673,21 @@ function WorkspacePage() {
           });
         }
 
+<<<<<<< HEAD
+        // Fetch contributor count from repository_contributors table
+        if (transformedRepos.length > 0) {
+          const repoIds = transformedRepos.map((r) => r.id);
+
+          // First get contributor IDs from repository_contributors
+          const { data: repoContributorData } = await supabase
+            .from('repository_contributors')
+            .select('contributor_id')
+            .in('repository_id', repoIds);
+
+          if (repoContributorData && repoContributorData.length > 0) {
+            // Get unique contributor IDs
+            const contributorIds = [...new Set(repoContributorData.map((rc) => rc.contributor_id))];
+=======
         // Fetch contributor count from pull_requests table (repository_contributors table doesn't exist)
         if (transformedRepos.length > 0) {
           const repoIds = transformedRepos.map((r) => r.id);
@@ -2737,6 +2704,7 @@ function WorkspacePage() {
           } else if (prContributorData && prContributorData.length > 0) {
             // Get unique contributor IDs
             const contributorIds = [...new Set(prContributorData.map((pr) => pr.author_id))];
+>>>>>>> origin/main
             uniqueContributorCount = Math.max(uniqueContributorCount, contributorIds.length);
           }
         }
@@ -3229,14 +3197,3 @@ function WorkspacePage() {
     </div>
   );
 }
-
-// Export wrapper with error boundary
-function WorkspacePageWithErrorBoundary() {
-  return (
-    <WorkspaceErrorBoundary>
-      <WorkspacePage />
-    </WorkspaceErrorBoundary>
-  );
-}
-
-export default WorkspacePageWithErrorBoundary;
