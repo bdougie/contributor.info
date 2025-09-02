@@ -2699,7 +2699,10 @@ function WorkspacePage() {
                 event_type: 'star' as const,
                 actor_login: event.actor_login,
                 actor_avatar:
-                  payload?.actor?.avatar_url || `https://github.com/${event.actor_login}.png`,
+                  payload?.actor?.avatar_url ||
+                  (event.actor_login
+                    ? `https://avatars.githubusercontent.com/${event.actor_login}`
+                    : getFallbackAvatar()),
                 repository_name: `${event.repository_owner}/${event.repository_name}`,
                 captured_at: event.created_at,
               };
@@ -2714,7 +2717,10 @@ function WorkspacePage() {
                 event_type: 'fork' as const,
                 actor_login: event.actor_login,
                 actor_avatar:
-                  payload?.actor?.avatar_url || `https://github.com/${event.actor_login}.png`,
+                  payload?.actor?.avatar_url ||
+                  (event.actor_login
+                    ? `https://avatars.githubusercontent.com/${event.actor_login}`
+                    : getFallbackAvatar()),
                 repository_name: `${event.repository_owner}/${event.repository_name}`,
                 captured_at: event.created_at,
               };
