@@ -1,4 +1,4 @@
-import { HelpCircle, Star, MessageSquare, RotateCcw, CheckCircle } from '@/components/ui/icon';
+import { Star, MessageSquare, RotateCcw, CheckCircle } from '@/components/ui/icon';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Progress } from '@/components/ui/progress';
 
@@ -105,10 +105,7 @@ export function ConfidenceBreakdownTooltip({
         <TooltipTrigger asChild>{children}</TooltipTrigger>
         <TooltipContent side="top" className="max-w-md">
           <div className="p-3">
-            <div className="flex items-center gap-2 mb-3">
-              <HelpCircle className="h-4 w-4" />
-              <p className="text-sm font-medium">Confidence Breakdown</p>
-            </div>
+            <p className="text-sm font-medium mb-3">Confidence Breakdown</p>
 
             <div className="space-y-3">
               {factors.map((factor) => {
