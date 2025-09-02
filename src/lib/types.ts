@@ -115,7 +115,14 @@ export interface DirectCommitsData {
 }
 
 // PR Activity types (moved from src/types/pr-activity.ts)
-export type ActivityType = 'opened' | 'closed' | 'merged' | 'reviewed' | 'commented';
+export type ActivityType =
+  | 'opened'
+  | 'closed'
+  | 'merged'
+  | 'reviewed'
+  | 'commented'
+  | 'starred'
+  | 'forked';
 
 export interface User {
   id: string;

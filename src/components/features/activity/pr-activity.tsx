@@ -10,6 +10,7 @@ import { useCachedPRActivity } from '@/hooks/use-cached-pr-activity';
 import { useFastPRData } from '@/hooks/use-fast-pr-data';
 import { usePRActivityStore } from '@/lib/pr-activity-store';
 import { useTimeRange } from '@/lib/time-range-store';
+import { useCombinedActivity } from '@/hooks/use-combined-activity';
 
 export default function PRActivity() {
   const { owner, repo } = useParams<{ owner: string; repo: string }>();
@@ -32,14 +33,27 @@ export default function PRActivity() {
   const effectiveError = fastError || stats.error;
 
   const {
-    activities: allActivities,
+    activities: prActivities,
     loading: activityLoading,
     error: activityError,
   } = useCachedPRActivity(effectivePRs);
 
+  // Use combined activity hook to merge PR activities with star/fork events
+  const {
+    activities: allActivities,
+    loading: eventsLoading,
+    error: eventsError,
+  } = useCombinedActivity({
+    pullRequestActivities: prActivities,
+    owner,
+    repo,
+    includeStars: selectedTypes.includes('starred'),
+    includeForks: selectedTypes.includes('forked'),
+  });
+
   // Combined loading state and error
-  const loading = effectiveLoading || activityLoading;
-  const error = activityError || (effectiveError ? new Error(effectiveError) : null);
+  const loading = effectiveLoading || activityLoading || eventsLoading;
+  const error = activityError || eventsError || (effectiveError ? new Error(effectiveError) : null);
 
   // Check if there are any bot activities
   useEffect(() => {
@@ -118,6 +132,26 @@ export default function PRActivity() {
             />
             <Label htmlFor="filter-commented" className="text-sm">
               Commented
+            </Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="filter-starred"
+              checked={selectedTypes.includes('starred')}
+              onCheckedChange={() => toggleActivityType('starred')}
+            />
+            <Label htmlFor="filter-starred" className="text-sm">
+              ⭐ Starred
+            </Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="filter-forked"
+              checked={selectedTypes.includes('forked')}
+              onCheckedChange={() => toggleActivityType('forked')}
+            />
+            <Label htmlFor="filter-forked" className="text-sm">
+              🔱 Forked
             </Label>
           </div>
           {hasBots && (
