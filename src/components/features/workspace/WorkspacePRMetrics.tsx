@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   TrendingUp,
@@ -405,73 +404,6 @@ export function WorkspacePRMetrics({
           loading={loading}
         />
       </div>
-
-      {/* Status Breakdown */}
-      <Card>
-        <CardHeader>
-          <CardTitle>PR Status Distribution</CardTitle>
-          <CardDescription>Current status of all pull requests</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="space-y-2">
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-3/4" />
-              <Skeleton className="h-4 w-1/2" />
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="h-3 w-3 rounded-full bg-green-500" />
-                  <span className="text-sm">Open</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl font-bold">{metrics?.openPRs || 0}</span>
-                  <Badge variant="secondary" className="text-xs">
-                    {metrics?.totalPRs
-                      ? ((metrics.openPRs / metrics.totalPRs) * 100).toFixed(0)
-                      : 0}
-                    %
-                  </Badge>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="h-3 w-3 rounded-full bg-purple-500" />
-                  <span className="text-sm">Merged</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl font-bold">{metrics?.mergedPRs || 0}</span>
-                  <Badge variant="secondary" className="text-xs">
-                    {metrics?.totalPRs
-                      ? ((metrics.mergedPRs / metrics.totalPRs) * 100).toFixed(0)
-                      : 0}
-                    %
-                  </Badge>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="h-3 w-3 rounded-full bg-red-500" />
-                  <span className="text-sm">Closed</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl font-bold">{metrics?.closedPRs || 0}</span>
-                  <Badge variant="secondary" className="text-xs">
-                    {metrics?.totalPRs
-                      ? ((metrics.closedPRs / metrics.totalPRs) * 100).toFixed(0)
-                      : 0}
-                    %
-                  </Badge>
-                </div>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
       {/* Code Changes Summary */}
       <Card>
