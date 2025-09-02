@@ -15,8 +15,7 @@ import {
   type Issue,
 } from '@/components/features/workspace/WorkspaceIssuesTable';
 import { RepositoryFilter } from '@/components/features/workspace/RepositoryFilter';
-import { WorkspacePRMetrics } from '@/components/features/workspace/WorkspacePRMetrics';
-import { WorkspacePRTrends } from '@/components/features/workspace/WorkspacePRTrends';
+import { WorkspaceMetricsAndTrends } from '@/components/features/workspace/WorkspaceMetricsAndTrends';
 import {
   ContributorsList,
   type Contributor,
@@ -463,15 +462,8 @@ function WorkspacePRs({
 
   return (
     <div className="space-y-6">
-      {/* PR Metrics */}
-      <WorkspacePRMetrics
-        repositories={repositories}
-        selectedRepositories={selectedRepositories}
-        timeRange={timeRange}
-      />
-
-      {/* PR Trends Chart */}
-      <WorkspacePRTrends
+      {/* Metrics and Trends */}
+      <WorkspaceMetricsAndTrends
         repositories={repositories}
         selectedRepositories={selectedRepositories}
         timeRange={timeRange}
