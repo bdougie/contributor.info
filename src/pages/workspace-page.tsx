@@ -1773,7 +1773,7 @@ function WorkspaceActivity({
             {
               label: 'Forks',
               data: activityByDay.map((d) => d.forks),
-              color: '#a855f7',
+              color: '#ffffff',
             },
           ],
         }}
@@ -2660,19 +2660,18 @@ function WorkspacePage() {
               const [owner, name] = repo.full_name.split('/');
 
               // Fetch star events for this specific repository
+              // Note: Removing date filter temporarily as events might have incorrect timestamps
               const { data: starEvents, error: starError } = await supabase
                 .from('github_events_cache')
                 .select('*')
                 .eq('event_type', 'WatchEvent')
                 .eq('repository_owner', owner)
                 .eq('repository_name', name)
-                .gte('created_at', startDate.toISOString())
+                // .gte('created_at', startDate.toISOString()) // Commented out for debugging
                 .order('created_at', { ascending: false })
                 .limit(50); // Limit per repository
 
-              if (starError) {
-                console.error(`Error fetching star events for ${repo.full_name}:`, starError);
-              } else if (starEvents) {
+              if (!starError && starEvents) {
                 allStarEvents.push(...starEvents);
               }
 
@@ -2683,50 +2682,44 @@ function WorkspacePage() {
                 .eq('event_type', 'ForkEvent')
                 .eq('repository_owner', owner)
                 .eq('repository_name', name)
-                .gte('created_at', startDate.toISOString())
+                // .gte('created_at', startDate.toISOString()) // Commented out for debugging
                 .order('created_at', { ascending: false })
                 .limit(50); // Limit per repository
 
-              if (forkError) {
-                console.error(`Error fetching fork events for ${repo.full_name}:`, forkError);
-              } else if (forkEvents) {
+              if (!forkError && forkEvents) {
                 allForkEvents.push(...forkEvents);
               }
             }
 
             // Format star events
-            if (allStarEvents.length > 0) {
-              const formattedStars = allStarEvents.map((event) => {
-                const payload = event.payload as { actor?: { login: string; avatar_url: string } };
-                return {
-                  id: event.event_id,
-                  event_type: 'star' as const,
-                  actor_login: event.actor_login,
-                  actor_avatar:
-                    payload?.actor?.avatar_url || `https://github.com/${event.actor_login}.png`,
-                  repository_name: `${event.repository_owner}/${event.repository_name}`,
-                  captured_at: event.created_at,
-                };
-              });
-              setFullStarData(formattedStars);
-            }
+            const formattedStars = allStarEvents.map((event) => {
+              const payload = event.payload as { actor?: { login: string; avatar_url: string } };
+              return {
+                id: event.event_id,
+                event_type: 'star' as const,
+                actor_login: event.actor_login,
+                actor_avatar:
+                  payload?.actor?.avatar_url || `https://github.com/${event.actor_login}.png`,
+                repository_name: `${event.repository_owner}/${event.repository_name}`,
+                captured_at: event.created_at,
+              };
+            });
+            setFullStarData(formattedStars);
 
             // Format fork events
-            if (allForkEvents.length > 0) {
-              const formattedForks = allForkEvents.map((event) => {
-                const payload = event.payload as { actor?: { login: string; avatar_url: string } };
-                return {
-                  id: event.event_id,
-                  event_type: 'fork' as const,
-                  actor_login: event.actor_login,
-                  actor_avatar:
-                    payload?.actor?.avatar_url || `https://github.com/${event.actor_login}.png`,
-                  repository_name: `${event.repository_owner}/${event.repository_name}`,
-                  captured_at: event.created_at,
-                };
-              });
-              setFullForkData(formattedForks);
-            }
+            const formattedForks = allForkEvents.map((event) => {
+              const payload = event.payload as { actor?: { login: string; avatar_url: string } };
+              return {
+                id: event.event_id,
+                event_type: 'fork' as const,
+                actor_login: event.actor_login,
+                actor_avatar:
+                  payload?.actor?.avatar_url || `https://github.com/${event.actor_login}.png`,
+                repository_name: `${event.repository_owner}/${event.repository_name}`,
+                captured_at: event.created_at,
+              };
+            });
+            setFullForkData(formattedForks);
           }
         }
 
