@@ -313,10 +313,19 @@ export const captureRepositorySync = inngest.createFunction(
       commentsQueued++;
     }
 
+    // Step 6.5: Trigger repository events capture (stars/forks)
+    await step.sendEvent('repository-events', {
+      name: 'capture/repository.events',
+      data: {
+        repositoryId,
+      },
+    });
+
     const queuedJobs = {
       reviews: reviewsQueued,
       comments: commentsQueued,
       details: detailsQueued,
+      events: 1,
     };
 
     // Step 7: Update repository sync timestamp
