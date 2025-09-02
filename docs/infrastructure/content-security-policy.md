@@ -18,7 +18,6 @@ Our CSP is configured in `/public/_headers` and defines allowed sources for vari
 - **Allowed Sources**:
   - `'self'` - Scripts from our own domain
   - `'unsafe-inline'` - Required for React and inline scripts (see security notes)
-  - `'unsafe-eval'` - Required for some build tools and libraries (see security notes)
   - `https://us.i.posthog.com` - PostHog US region analytics
   - `https://us-assets.i.posthog.com` - PostHog static assets
   - `https://vercel.live` - Vercel preview comments
@@ -250,17 +249,15 @@ Our CSP configuration follows these security principles:
    - Specific PostHog endpoints
    - Vercel for preview features
 
-### Why We Use 'unsafe-inline' and 'unsafe-eval'
+### Why We Use 'unsafe-inline'
 
-While these directives reduce CSP security, they're currently necessary for:
+While this directive reduces CSP security, it's currently necessary for:
 - **'unsafe-inline'**: 
   - React's style prop for dynamic styling
   - Styled-components and CSS-in-JS libraries
   - Tailwind's dynamic class generation
-- **'unsafe-eval'**: 
-  - Development tools and hot module replacement
-  - Some bundler optimizations
-  - Certain library requirements
+
+Note: We have successfully removed 'unsafe-eval' from our CSP as it was not required for production builds.
 
 ### Mitigation Strategies
 

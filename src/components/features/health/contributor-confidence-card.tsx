@@ -284,13 +284,19 @@ export const ContributorConfidenceCard = memo(function ContributorConfidenceCard
         <div className="flex items-center gap-2 w-full">
           <div className="flex items-center gap-2 py-1 flex-1">
             <UserPlus className="w-[18px] h-[18px]" />
-            <div className="font-semibold text-foreground text-sm whitespace-nowrap">
-              Contributor Confidence
-            </div>
-            {breakdown && (
+            {breakdown ? (
               <ConfidenceBreakdownTooltip breakdown={breakdown}>
-                <HelpCircle className="w-3 h-3 text-muted-foreground cursor-help hover:text-foreground transition-colors" />
+                <div className="inline-flex items-center gap-1 cursor-default">
+                  <div className="font-semibold text-foreground text-sm whitespace-nowrap">
+                    Contributor Confidence
+                  </div>
+                  <HelpCircle className="w-3 h-3 text-muted-foreground/60" />
+                </div>
               </ConfidenceBreakdownTooltip>
+            ) : (
+              <div className="font-semibold text-foreground text-sm whitespace-nowrap">
+                Contributor Confidence
+              </div>
             )}
             <div className="ml-auto flex items-center gap-2">
               <button

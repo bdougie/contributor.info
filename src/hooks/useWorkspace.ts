@@ -37,10 +37,12 @@ export interface UseWorkspaceReturn {
 const generateMockMetrics = (): WorkspaceMetrics => ({
   totalStars: Math.floor(Math.random() * 100000) + 10000,
   totalPRs: Math.floor(Math.random() * 1000) + 100,
+  totalIssues: Math.floor(Math.random() * 800) + 50,
   totalContributors: Math.floor(Math.random() * 500) + 50,
   totalCommits: Math.floor(Math.random() * 50000) + 5000,
   starsTrend: (Math.random() - 0.5) * 50,
   prsTrend: (Math.random() - 0.5) * 30,
+  issuesTrend: (Math.random() - 0.5) * 25,
   contributorsTrend: (Math.random() - 0.5) * 20,
   commitsTrend: (Math.random() - 0.5) * 40,
 });
@@ -148,23 +150,25 @@ export function useWorkspace({
       setWorkspace(transformedWorkspace);
 
       // Fetch metrics with the real API
-      const metricsData = await getWorkspaceMetrics(workspaceId, timeRange as any);
+      const metricsData = await getWorkspaceMetrics(workspaceId, timeRange as TimeRange);
       if (metricsData) {
         // Transform metrics to component format
         const transformedMetrics: WorkspaceMetrics = {
           totalStars: metricsData.metrics.total_stars,
           totalPRs: metricsData.metrics.total_prs,
+          totalIssues: metricsData.metrics.total_issues || 0,
           totalContributors: metricsData.metrics.total_contributors,
           totalCommits: metricsData.metrics.total_commits,
           starsTrend: metricsData.metrics.stars_trend || 0,
           prsTrend: metricsData.metrics.prs_trend || 0,
+          issuesTrend: metricsData.metrics.issues_trend || 0,
           contributorsTrend: metricsData.metrics.contributors_trend || 0,
           commitsTrend: metricsData.metrics.commits_trend || 0,
         };
         setMetrics(transformedMetrics);
 
         // Get trend data
-        const trend = await getWorkspaceTrendData(workspaceId, timeRange as any);
+        const trend = await getWorkspaceTrendData(workspaceId, timeRange as TimeRange);
         setTrendData(trend);
       } else {
         // If no metrics, trigger aggregation and show loading state
@@ -204,6 +208,7 @@ export function useWorkspace({
 
   useEffect(() => {
     fetchWorkspaceData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workspaceId, timeRange]);
 
   return {
@@ -229,15 +234,17 @@ export function useWorkspaceMetrics(workspaceId: string, timeRange: TimeRange = 
         setLoading(true);
         setError(null);
 
-        const metricsData = await getWorkspaceMetrics(workspaceId, timeRange as any);
+        const metricsData = await getWorkspaceMetrics(workspaceId, timeRange as TimeRange);
         if (metricsData) {
           const transformedMetrics: WorkspaceMetrics = {
             totalStars: metricsData.metrics.total_stars,
             totalPRs: metricsData.metrics.total_prs,
+            totalIssues: metricsData.metrics.total_issues || 0,
             totalContributors: metricsData.metrics.total_contributors,
             totalCommits: metricsData.metrics.total_commits,
             starsTrend: metricsData.metrics.stars_trend || 0,
             prsTrend: metricsData.metrics.prs_trend || 0,
+            issuesTrend: metricsData.metrics.issues_trend || 0,
             contributorsTrend: metricsData.metrics.contributors_trend || 0,
             commitsTrend: metricsData.metrics.commits_trend || 0,
           };
