@@ -1,10 +1,6 @@
 import { fetchPRDataWithFallback } from '../supabase-pr-data';
 import type { PullRequest } from '../types';
-import {
-  getTrendDirection,
-  getTrendDirectionReverse,
-  getPeriodPrefix,
-} from '@/lib/utils/performance-helpers';
+import { getTrendDirection, getTrendDirectionReverse } from '@/lib/utils/performance-helpers';
 
 export interface TrendData {
   metric: string;
@@ -66,12 +62,7 @@ export async function calculateTrendMetrics(
 
     // Handle case where no data is available or special status
     if (!allPRs || allPRs.length === 0) {
-      return getEmptyTrends(
-        periodLabel,
-        prDataResult.status,
-        prDataResult.message,
-        prDataResult.repositoryName
-      );
+      return getEmptyTrends(prDataResult.status, prDataResult.message, prDataResult.repositoryName);
     }
 
     // Calculate PR Volume
@@ -84,11 +75,6 @@ export async function calculateTrendMetrics(
       const createdAt = new Date(pr.created_at);
       return createdAt >= previousPeriodStart && createdAt < currentPeriodStart;
     });
-
-    const prVolumeChange =
-      previousPRs.length > 0
-        ? Math.round(((currentPRs.length - previousPRs.length) / previousPRs.length) * 100)
-        : 0;
 
     // Calculate Active Contributors
     const currentContributors = new Set<string>();
@@ -178,22 +164,31 @@ export async function calculateTrendMetrics(
         ? Math.round(((currentComments - previousComments) / previousComments) * 100)
         : 0;
 
+    // Calculate daily PR volume (average PRs per day for the period)
+    const dailyPRVolumeCurrent = currentPRs.length / currentPeriodDays;
+    const dailyPRVolumePrevious = previousPRs.length / currentPeriodDays;
+    const dailyVolumeChange =
+      dailyPRVolumePrevious > 0
+        ? Math.round(((dailyPRVolumeCurrent - dailyPRVolumePrevious) / dailyPRVolumePrevious) * 100)
+        : 0;
+
     // Build trends array
     const trends: TrendData[] = [
       {
-        metric: `${getPeriodPrefix(periodLabel)} PR Volume`,
-        current: currentPRs.length,
-        previous: previousPRs.length,
-        change: prVolumeChange,
-        trend: getTrendDirection(prVolumeChange),
+        metric: `Daily PR Volume`,
+        current: Math.round(dailyPRVolumeCurrent * 10) / 10, // Round to 1 decimal
+        previous: Math.round(dailyPRVolumePrevious * 10) / 10,
+        change: dailyVolumeChange,
+        trend: getTrendDirection(dailyVolumeChange),
         icon: 'GitPullRequest',
-        unit: 'PRs',
-        insight:
-          prVolumeChange > 0
-            ? `${Math.abs(prVolumeChange)}% increase in PR submissions`
-            : prVolumeChange < 0
-              ? `${Math.abs(prVolumeChange)}% decrease in PR submissions`
-              : 'PR volume remains stable',
+        unit: 'PRs/day',
+        insight: (() => {
+          if (dailyVolumeChange > 0)
+            return `${Math.abs(dailyVolumeChange)}% increase in daily PR submissions`;
+          if (dailyVolumeChange < 0)
+            return `${Math.abs(dailyVolumeChange)}% decrease in daily PR submissions`;
+          return 'Daily PR volume remains stable';
+        })(),
       },
       {
         metric: 'Active Contributors',
@@ -203,12 +198,12 @@ export async function calculateTrendMetrics(
         trend: getTrendDirection(contributorChange),
         icon: 'Users',
         unit: 'people',
-        insight:
-          currentContributors.size - previousContributors.size > 0
-            ? `${currentContributors.size - previousContributors.size} new contributors joined`
-            : contributorChange < 0
-              ? `${Math.abs(currentContributors.size - previousContributors.size)} contributors less active`
-              : 'Contributor count stable',
+        insight: (() => {
+          const diff = currentContributors.size - previousContributors.size;
+          if (diff > 0) return `${diff} new contributors joined`;
+          if (contributorChange < 0) return `${Math.abs(diff)} contributors less active`;
+          return 'Contributor count stable';
+        })(),
       },
       {
         metric: 'Avg Review Time',
@@ -218,12 +213,13 @@ export async function calculateTrendMetrics(
         trend: getTrendDirectionReverse(reviewTimeChange),
         icon: 'Calendar',
         unit: 'hours',
-        insight:
-          reviewTimeChange < 0
-            ? `Review time improved by ${Math.abs(Math.round(currentAvgReview - previousAvgReview))} hours`
-            : reviewTimeChange > 0
-              ? `Review time increased by ${Math.round(currentAvgReview - previousAvgReview)} hours`
-              : 'Review time remains consistent',
+        insight: (() => {
+          if (reviewTimeChange < 0)
+            return `Review time improved by ${Math.abs(Math.round(currentAvgReview - previousAvgReview))} hours`;
+          if (reviewTimeChange > 0)
+            return `Review time increased by ${Math.round(currentAvgReview - previousAvgReview)} hours`;
+          return 'Review time remains consistent';
+        })(),
       },
       {
         metric: 'PR Completion Rate',
@@ -233,12 +229,11 @@ export async function calculateTrendMetrics(
         trend: getTrendDirection(completionChange),
         icon: 'Activity',
         unit: '%',
-        insight:
-          completionChange > 0
-            ? 'More PRs are being merged successfully'
-            : completionChange < 0
-              ? 'PR completion rate has decreased'
-              : 'PR completion rate stable',
+        insight: (() => {
+          if (completionChange > 0) return 'More PRs are being merged successfully';
+          if (completionChange < 0) return 'PR completion rate has decreased';
+          return 'PR completion rate stable';
+        })(),
       },
       {
         metric: 'Review Activity',
@@ -248,12 +243,13 @@ export async function calculateTrendMetrics(
         trend: getTrendDirection(reviewChange),
         icon: 'GitPullRequestDraft',
         unit: 'reviews',
-        insight:
-          reviewChange > 0
-            ? `${Math.abs(currentReviews - previousReviews)} more reviews this ${periodLabel}`
-            : reviewChange < 0
-              ? `${Math.abs(currentReviews - previousReviews)} fewer reviews this ${periodLabel}`
-              : 'Review activity stable',
+        insight: (() => {
+          if (reviewChange > 0)
+            return `${Math.abs(currentReviews - previousReviews)} more reviews this ${periodLabel}`;
+          if (reviewChange < 0)
+            return `${Math.abs(currentReviews - previousReviews)} fewer reviews this ${periodLabel}`;
+          return 'Review activity stable';
+        })(),
       },
       {
         metric: 'Comment Activity',
@@ -263,12 +259,13 @@ export async function calculateTrendMetrics(
         trend: getTrendDirection(commentChange),
         icon: 'MessageSquare',
         unit: 'comments',
-        insight:
-          commentChange > 0
-            ? `${Math.abs(currentComments - previousComments)} more comments this ${periodLabel}`
-            : commentChange < 0
-              ? `${Math.abs(currentComments - previousComments)} fewer comments this ${periodLabel}`
-              : 'Comment activity stable',
+        insight: (() => {
+          if (commentChange > 0)
+            return `${Math.abs(currentComments - previousComments)} more comments this ${periodLabel}`;
+          if (commentChange < 0)
+            return `${Math.abs(currentComments - previousComments)} fewer comments this ${periodLabel}`;
+          return 'Comment activity stable';
+        })(),
       },
     ];
 
@@ -277,7 +274,6 @@ export async function calculateTrendMetrics(
     console.error('Error calculating trend metrics:', error);
     // Return empty trends on error to prevent component crashes
     return getEmptyTrends(
-      'period',
       'error',
       error instanceof Error ? error.message : 'An unexpected error occurred',
       `${owner}/${repo}`
@@ -290,7 +286,6 @@ export async function calculateTrendMetrics(
  * This prevents component crashes and provides graceful degradation
  */
 function getEmptyTrends(
-  periodLabel: string,
   status:
     | 'success'
     | 'large_repository_protected'
@@ -301,17 +296,15 @@ function getEmptyTrends(
   message?: string,
   repositoryName?: string
 ): TrendData[] {
-  const period = getPeriodPrefix(periodLabel);
-
   return [
     {
-      metric: `${period} PR Volume`,
+      metric: `Daily PR Volume`,
       current: 0,
       previous: 0,
       change: 0,
       trend: 'stable',
       icon: 'GitPullRequest',
-      unit: 'PRs',
+      unit: 'PRs/day',
       insight: message || 'No recent PR data available',
       status,
       message,
