@@ -74,11 +74,12 @@ export const captureRepositoryEvents = inngest.createFunction(
     // Step 2: Fetch events from GitHub
     const events = await step.run('fetch-events', async () => {
       try {
-        console.log(
-          'Fetching events for repository %s/%s',
-          repository.owner,
-          repository.name
-        );
+        // Validate GITHUB_TOKEN exists
+        if (!process.env.GITHUB_TOKEN) {
+          throw new NonRetriableError('GITHUB_TOKEN environment variable is not set');
+        }
+
+        console.log('Fetching events for repository %s/%s', repository.owner, repository.name);
         apiCallsUsed++;
 
         // Fetch events from GitHub Events API
@@ -87,15 +88,17 @@ export const captureRepositoryEvents = inngest.createFunction(
           `https://api.github.com/repos/${repository.owner}/${repository.name}/events`,
           {
             headers: {
-              'Accept': 'application/vnd.github.v3+json',
-              'Authorization': `token ${process.env.GITHUB_TOKEN}`,
+              Accept: 'application/vnd.github.v3+json',
+              Authorization: `token ${process.env.GITHUB_TOKEN}`,
             },
           }
         );
 
         if (!response.ok) {
           if (response.status === 404) {
-            console.warn(`Repository ${repository.owner}/${repository.name} not found, skipping events`);
+            console.warn(
+              `Repository ${repository.owner}/${repository.name} not found, skipping events`
+            );
             return { events: [], failedContributorCreations: 0 };
           }
           if (response.status === 403) {
@@ -106,50 +109,67 @@ export const captureRepositoryEvents = inngest.createFunction(
           throw new Error(`GitHub API error: ${response.status}`);
         }
 
-        const eventsData = await response.json() as GitHubEvent[];
+        const eventsData = (await response.json()) as GitHubEvent[];
 
         // Filter for WatchEvent and ForkEvent only
-        const relevantEvents = eventsData.filter(event => 
-          event.type === 'WatchEvent' || event.type === 'ForkEvent'
+        const relevantEvents = eventsData.filter(
+          (event) => event.type === 'WatchEvent' || event.type === 'ForkEvent'
         );
 
         // Process each event and ensure actors exist in contributors table
         const processedEvents = [];
         let failedContributorCreations = 0;
 
+        // Collect unique actors to batch process
+        const uniqueActors = new Map<number, { id: number; login: string; avatar_url: string }>();
         for (const event of relevantEvents) {
-          if (!event.actor) continue; // Skip events without actor data
+          if (event.actor && !uniqueActors.has(event.actor.id)) {
+            uniqueActors.set(event.actor.id, event.actor);
+          }
+        }
 
-          // Find or create the actor in contributors table
-          const { data: existingContributor } = await supabase
+        // Batch check for existing contributors
+        const actorIds = Array.from(uniqueActors.keys());
+        if (actorIds.length > 0) {
+          const { data: existingContributors } = await supabase
             .from('contributors')
-            .select('id')
-            .eq('github_id', event.actor.id)
-            .maybeSingle();
+            .select('github_id')
+            .in('github_id', actorIds);
 
-          if (!existingContributor) {
-            // Create new contributor
-            const { data: newContributor, error: contributorError } = await supabase
-              .from('contributors')
-              .insert({
-                github_id: event.actor.id,
-                username: event.actor.login,
-                avatar_url: event.actor.avatar_url,
-                is_bot: event.actor.login.includes('[bot]'),
-              })
-              .select('id')
-              .maybeSingle();
+          const existingIds = new Set(existingContributors?.map((c) => c.github_id) || []);
 
-            if (contributorError || !newContributor) {
-              console.warn(
-                'Failed to create actor %s: %s',
-                event.actor.login,
-                contributorError?.message || 'Unknown error'
-              );
-              failedContributorCreations++;
-              continue;
+          // Batch create missing contributors
+          const newContributors = Array.from(uniqueActors.values())
+            .filter((actor) => !existingIds.has(actor.id))
+            .map((actor) => ({
+              github_id: actor.id,
+              username: actor.login,
+              avatar_url: actor.avatar_url,
+              is_bot: actor.login.includes('[bot]'),
+            }));
+
+          if (newContributors.length > 0) {
+            // Insert in batches of 10 to avoid rate limits
+            const batchSize = 10;
+            for (let i = 0; i < newContributors.length; i += batchSize) {
+              const batch = newContributors.slice(i, i + batchSize);
+              const { error: contributorError } = await supabase.from('contributors').insert(batch);
+
+              if (contributorError) {
+                console.warn(
+                  'Failed to create batch of %s contributors: %s',
+                  batch.length,
+                  contributorError.message
+                );
+                failedContributorCreations += batch.length;
+              }
             }
           }
+        }
+
+        // Now process events
+        for (const event of relevantEvents) {
+          if (!event.actor) continue; // Skip events without actor data
 
           // Prepare event data for storage
           processedEvents.push({
@@ -184,7 +204,12 @@ export const captureRepositoryEvents = inngest.createFunction(
 
         return { events: processedEvents, failedContributorCreations };
       } catch (error: unknown) {
-        console.error('Error fetching events for repository %s/%s:', repository.owner, repository.name, error);
+        console.error(
+          'Error fetching events for repository %s/%s:',
+          repository.owner,
+          repository.name,
+          error
+        );
         throw error;
       }
     });
@@ -196,12 +221,10 @@ export const captureRepositoryEvents = inngest.createFunction(
       }
 
       // Batch insert events with upsert to handle duplicates
-      const { error } = await supabase
-        .from('github_events_cache')
-        .upsert(events.events, {
-          onConflict: 'event_id',
-          ignoreDuplicates: false,
-        });
+      const { error } = await supabase.from('github_events_cache').upsert(events.events, {
+        onConflict: 'event_id',
+        ignoreDuplicates: false,
+      });
 
       if (error) {
         await syncLogger.fail(`Failed to store events: ${error.message}`, {
@@ -224,8 +247,8 @@ export const captureRepositoryEvents = inngest.createFunction(
         metadata: {
           eventsCount: storedCount,
           failedContributorCreations: events.failedContributorCreations,
-          watchEvents: events.events.filter(e => e.event_type === 'WatchEvent').length,
-          forkEvents: events.events.filter(e => e.event_type === 'ForkEvent').length,
+          watchEvents: events.events.filter((e) => e.event_type === 'WatchEvent').length,
+          forkEvents: events.events.filter((e) => e.event_type === 'ForkEvent').length,
         },
       });
     });
@@ -235,8 +258,8 @@ export const captureRepositoryEvents = inngest.createFunction(
       repositoryId,
       repository: `${repository.owner}/${repository.name}`,
       eventsCount: storedCount,
-      watchEvents: events.events.filter(e => e.event_type === 'WatchEvent').length,
-      forkEvents: events.events.filter(e => e.event_type === 'ForkEvent').length,
+      watchEvents: events.events.filter((e) => e.event_type === 'WatchEvent').length,
+      forkEvents: events.events.filter((e) => e.event_type === 'ForkEvent').length,
     };
   }
 );
