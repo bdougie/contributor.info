@@ -1619,52 +1619,50 @@ function WorkspaceActivity({
     }
   }, [prData, issueData, reviewData, commentData, starData, forkData, repositoryMap]);
 
-  // Sort activities by date, most recent first (create a new sorted array)
-  const sortedActivities = [...activities].sort(
-    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  );
+  // Memoize sorted activities to avoid unnecessary re-sorts
+  const sortedActivities = useMemo(() => {
+    return [...activities].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+  }, [activities]);
 
-  // Debug: Check for duplicate IDs
-  if (sortedActivities.length > 0) {
-    const ids = sortedActivities.map((a) => a.id);
-    const uniqueIds = new Set(ids);
-    if (ids.length !== uniqueIds.size) {
-      console.warn('Duplicate activity IDs detected:', {
-        total: ids.length,
-        unique: uniqueIds.size,
-        duplicates: ids.filter((id, index) => ids.indexOf(id) !== index),
-      });
-    }
-  }
+  // Memoize trend data calculation for performance
+  const activityByDay = useMemo(() => {
+    const last30Days = Array.from({ length: 30 }, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() - (29 - i));
+      return date.toISOString().split('T')[0];
+    });
 
-  // Generate trend data for the chart
-  const last30Days = Array.from({ length: 30 }, (_, i) => {
-    const date = new Date();
-    date.setDate(date.getDate() - (29 - i));
-    return date.toISOString().split('T')[0];
-  });
+    return last30Days.map((date) => {
+      const dayActivities = sortedActivities.filter((a) => a.created_at.split('T')[0] === date);
+      return {
+        date,
+        total: dayActivities.length,
+        prs: dayActivities.filter((a) => a.type === 'pr').length,
+        issues: dayActivities.filter((a) => a.type === 'issue').length,
+        reviews: dayActivities.filter((a) => a.type === 'review').length,
+        comments: dayActivities.filter((a) => a.type === 'comment').length,
+        stars: dayActivities.filter((a) => a.type === 'star').length,
+        forks: dayActivities.filter((a) => a.type === 'fork').length,
+      };
+    });
+  }, [sortedActivities]);
 
-  const activityByDay = last30Days.map((date) => {
-    const dayActivities = sortedActivities.filter((a) => a.created_at.split('T')[0] === date);
+  // Memoize stats calculations for performance
+  const { totalActivities, uniqueContributors, activeRepos, activityScore } = useMemo(() => {
+    const total = activities.length;
+    const contributors = new Set(activities.map((a) => a.author.username)).size;
+    const repos = new Set(activities.map((a) => a.repository)).size;
+    const score = Math.round((total + contributors * 2 + repos * 3) / 3);
+
     return {
-      date,
-      total: dayActivities.length,
-      prs: dayActivities.filter((a) => a.type === 'pr').length,
-      issues: dayActivities.filter((a) => a.type === 'issue').length,
-      reviews: dayActivities.filter((a) => a.type === 'review').length,
-      comments: dayActivities.filter((a) => a.type === 'comment').length,
-      stars: dayActivities.filter((a) => a.type === 'star').length,
-      forks: dayActivities.filter((a) => a.type === 'fork').length,
+      totalActivities: total,
+      uniqueContributors: contributors,
+      activeRepos: repos,
+      activityScore: score,
     };
-  });
-
-  // Calculate stats
-  const totalActivities = activities.length;
-  const uniqueContributors = new Set(activities.map((a) => a.author.username)).size;
-  const activeRepos = new Set(activities.map((a) => a.repository)).size;
-  const activityScore = Math.round(
-    (totalActivities + uniqueContributors * 2 + activeRepos * 3) / 3
-  );
+  }, [activities]);
 
   return (
     <div className="space-y-4">
