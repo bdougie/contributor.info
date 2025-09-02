@@ -62,12 +62,7 @@ export async function calculateTrendMetrics(
 
     // Handle case where no data is available or special status
     if (!allPRs || allPRs.length === 0) {
-      return getEmptyTrends(
-        periodLabel,
-        prDataResult.status,
-        prDataResult.message,
-        prDataResult.repositoryName
-      );
+      return getEmptyTrends(prDataResult.status, prDataResult.message, prDataResult.repositoryName);
     }
 
     // Calculate PR Volume
@@ -279,7 +274,6 @@ export async function calculateTrendMetrics(
     console.error('Error calculating trend metrics:', error);
     // Return empty trends on error to prevent component crashes
     return getEmptyTrends(
-      'period',
       'error',
       error instanceof Error ? error.message : 'An unexpected error occurred',
       `${owner}/${repo}`
@@ -292,7 +286,6 @@ export async function calculateTrendMetrics(
  * This prevents component crashes and provides graceful degradation
  */
 function getEmptyTrends(
-  periodLabel: string,
   status:
     | 'success'
     | 'large_repository_protected'
