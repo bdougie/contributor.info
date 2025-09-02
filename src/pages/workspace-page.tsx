@@ -202,13 +202,22 @@ const calculateRealMetrics = (
         : 0;
   }
 
+  // Calculate issue trend
+  let issuesTrend = 0;
+  if (previousMetrics && 'issueCount' in previousMetrics) {
+    const prevIssues = (previousMetrics as { issueCount?: number }).issueCount || 0;
+    issuesTrend = prevIssues > 0 ? ((totalOpenIssues - prevIssues) / prevIssues) * 100 : 0;
+  }
+
   return {
     totalStars,
     totalPRs: totalOpenPRs || prCount, // Use aggregated open PRs or fallback to passed count
+    totalIssues: totalOpenIssues || issueCount || 0, // Open issues count
     totalContributors: contributorCount,
-    totalCommits: totalOpenIssues || issueCount || commitCount, // Display open issues as activity metric
+    totalCommits: commitCount, // Keep commits for interface compatibility
     starsTrend,
     prsTrend,
+    issuesTrend,
     contributorsTrend,
     commitsTrend,
   };
@@ -2341,7 +2350,8 @@ function WorkspacePage() {
           const repoIds = filteredRepos.map((r) => r.id);
 
           // Calculate date range based on selected time range
-          const daysToFetch = TIME_RANGE_DAYS[timeRange];
+          // Fetch 2x the time range to calculate trends (current + previous period)
+          const daysToFetch = TIME_RANGE_DAYS[timeRange] * 2;
           const startDate = new Date(Date.now() - daysToFetch * 24 * 60 * 60 * 1000);
 
           // Ensure startDate is valid and not in the future
@@ -2393,9 +2403,17 @@ function WorkspacePage() {
               commits: pr.commits || 0,
             }));
 
-            // Count total PRs and aggregate commits
-            totalPRCount = prData.length;
-            totalCommitCount = prData.reduce((sum, pr) => sum + (pr.commits || 0), 0);
+            // Count total PRs and aggregate commits for current period only
+            const currentPeriodStart = new Date();
+            currentPeriodStart.setDate(currentPeriodStart.getDate() - TIME_RANGE_DAYS[timeRange]);
+
+            const currentPeriodPRs = prData.filter((pr) => {
+              const prDate = new Date(pr.created_at);
+              return prDate >= currentPeriodStart;
+            });
+
+            totalPRCount = currentPeriodPRs.length;
+            totalCommitCount = currentPeriodPRs.reduce((sum, pr) => sum + (pr.commits || 0), 0);
 
             // Get unique contributors from PRs
             const prContributors = new Set(prData.map((pr) => pr.author_id).filter(Boolean));
@@ -2798,8 +2816,47 @@ function WorkspacePage() {
         setWorkspace(workspaceData);
         setRepositories(transformedRepos);
 
-        // Count total issues from the fetched data
-        const totalIssueCount = issueDataForTrends ? issueDataForTrends.length : 0;
+        // Count total issues from the current period only
+        const currentPeriodStart = new Date();
+        currentPeriodStart.setDate(currentPeriodStart.getDate() - TIME_RANGE_DAYS[timeRange]);
+
+        const currentPeriodIssues =
+          issueDataForTrends?.filter((issue) => {
+            const issueDate = new Date(issue.created_at);
+            return issueDate >= currentPeriodStart;
+          }) || [];
+
+        const totalIssueCount = currentPeriodIssues.length;
+
+        // Calculate metrics for the previous period for trend comparison
+        const daysInRange = TIME_RANGE_DAYS[timeRange];
+        const today = new Date();
+        const periodStart = new Date(today);
+        periodStart.setDate(today.getDate() - daysInRange);
+        const previousPeriodStart = new Date(periodStart);
+        previousPeriodStart.setDate(previousPeriodStart.getDate() - daysInRange);
+
+        // Filter data for previous period
+        const previousPRs =
+          prDataForTrends?.filter((pr) => {
+            const prDate = new Date(pr.created_at);
+            return prDate >= previousPeriodStart && prDate < periodStart;
+          }) || [];
+
+        const previousIssues =
+          issueDataForTrends?.filter((issue) => {
+            const issueDate = new Date(issue.created_at);
+            return issueDate >= previousPeriodStart && issueDate < periodStart;
+          }) || [];
+
+        // Calculate previous period metrics
+        const previousMetrics = {
+          starCount: transformedRepos.reduce((sum, repo) => sum + (repo.stars || 0), 0), // Stars don't change much, use current
+          prCount: previousPRs.length,
+          issueCount: previousIssues.length,
+          contributorCount: uniqueContributorCount, // Contributors are cumulative, trend will be 0
+          commitCount: previousPRs.reduce((sum, pr) => sum + (pr.commits || 0), 0),
+        };
 
         // Generate metrics with real counts including commits and issues
         const realMetrics = calculateRealMetrics(
@@ -2807,7 +2864,8 @@ function WorkspacePage() {
           totalPRCount,
           uniqueContributorCount,
           totalCommitCount,
-          totalIssueCount
+          totalIssueCount,
+          previousMetrics
         );
 
         // Generate trend data with real PR/issue data
