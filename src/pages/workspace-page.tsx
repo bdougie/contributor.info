@@ -5,6 +5,7 @@ import type { User } from '@supabase/supabase-js';
 import { getFallbackAvatar } from '@/lib/utils/avatar';
 import { useWorkspaceContributors } from '@/hooks/useWorkspaceContributors';
 import { WorkspaceDashboard, WorkspaceDashboardSkeleton } from '@/components/features/workspace';
+import { WorkspaceErrorBoundary } from '@/components/error-boundaries/workspace-error-boundary';
 import {
   WorkspacePullRequestsTable,
   type PullRequest,
@@ -67,6 +68,7 @@ import { WorkspaceService } from '@/services/workspace.service';
 // import { AnalyticsDashboard } from '@/components/features/workspace/AnalyticsDashboard';
 import { ActivityTable } from '@/components/features/workspace/ActivityTable';
 import { TrendChart } from '@/components/features/workspace/TrendChart';
+import { WorkspaceActivitySkeleton } from '@/components/features/workspace/skeletons/WorkspaceActivitySkeleton';
 // Lazy load heavy components
 const ContributorLeaderboard = lazy(() =>
   import('@/components/features/workspace/ContributorLeaderboard').then((m) => ({
@@ -1664,6 +1666,44 @@ function WorkspaceActivity({
     };
   }, [activities]);
 
+  // Show loading skeleton while data is being fetched
+  if (loading) {
+    return <WorkspaceActivitySkeleton />;
+  }
+
+  // Show error state if there's an error
+  if (error) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center space-y-4">
+          <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto" />
+          <div>
+            <h3 className="font-semibold">Failed to load activity data</h3>
+            <p className="text-sm text-muted-foreground mt-1">{error}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show empty state if no activities
+  if (activities.length === 0) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center space-y-4">
+          <Activity className="h-12 w-12 text-muted-foreground mx-auto" />
+          <div>
+            <h3 className="font-semibold">No activity yet</h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              Activity will appear here once repositories have pull requests, issues, or other
+              interactions.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {/* Activity Trend Chart */}
@@ -2124,7 +2164,7 @@ function WorkspaceSettings({ workspace }: { workspace: Workspace }) {
   );
 }
 
-export default function WorkspacePage() {
+function WorkspacePage() {
   const { workspaceId } = useParams<{ workspaceId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -3181,3 +3221,14 @@ export default function WorkspacePage() {
     </div>
   );
 }
+
+// Export wrapper with error boundary
+function WorkspacePageWithErrorBoundary() {
+  return (
+    <WorkspaceErrorBoundary>
+      <WorkspacePage />
+    </WorkspaceErrorBoundary>
+  );
+}
+
+export default WorkspacePageWithErrorBoundary;
