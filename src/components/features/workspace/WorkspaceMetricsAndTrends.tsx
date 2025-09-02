@@ -229,7 +229,7 @@ export function WorkspaceMetricsAndTrends({
 
         // Sort trends to match repo-view order
         const trendOrder = [
-          'Weekly PR Volume',
+          'Daily PR Volume',
           'Active Contributors',
           'Avg Review Time',
           'PR Completion Rate',
