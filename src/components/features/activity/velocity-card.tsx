@@ -31,7 +31,7 @@ export function VelocityCard({ velocity, loading }: VelocityCardProps) {
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground truncate">This week</span>
-          <span className="text-sm font-medium truncate">{velocity.current} PRs</span>
+          <span className="text-sm font-medium truncate">{velocity.current.toFixed(1)} PRs</span>
         </div>
         <Progress
           value={(velocity.current / Math.max(velocity.current, velocity.previous)) * 100}
@@ -39,7 +39,7 @@ export function VelocityCard({ velocity, loading }: VelocityCardProps) {
         />
         <div className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground truncate">Last week</span>
-          <span className="text-sm truncate">{velocity.previous} PRs</span>
+          <span className="text-sm truncate">{velocity.previous.toFixed(1)} PRs</span>
         </div>
         {velocity.change !== 0 && (
           <p
@@ -49,7 +49,7 @@ export function VelocityCard({ velocity, loading }: VelocityCardProps) {
             )}
           >
             {velocity.change > 0 ? '+' : ''}
-            {velocity.change}% change
+            {Math.round(velocity.change)}% change
           </p>
         )}
       </div>

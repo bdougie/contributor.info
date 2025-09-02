@@ -15,6 +15,7 @@ import {
   type Issue,
 } from '@/components/features/workspace/WorkspaceIssuesTable';
 import { RepositoryFilter } from '@/components/features/workspace/RepositoryFilter';
+import { WorkspaceMetricsAndTrends } from '@/components/features/workspace/WorkspaceMetricsAndTrends';
 import {
   ContributorsList,
   type Contributor,
@@ -313,9 +314,11 @@ const generateActivityDataFromPRs = (
 function WorkspacePRs({
   repositories,
   selectedRepositories,
+  timeRange,
 }: {
   repositories: Repository[];
   selectedRepositories: string[];
+  timeRange: TimeRange;
 }) {
   const [pullRequests, setPullRequests] = useState<PullRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -458,12 +461,22 @@ function WorkspacePRs({
   };
 
   return (
-    <WorkspacePullRequestsTable
-      pullRequests={pullRequests}
-      loading={loading}
-      onPullRequestClick={handlePullRequestClick}
-      onRepositoryClick={handleRepositoryClick}
-    />
+    <div className="space-y-6">
+      {/* Metrics and Trends */}
+      <WorkspaceMetricsAndTrends
+        repositories={repositories}
+        selectedRepositories={selectedRepositories}
+        timeRange={timeRange}
+      />
+
+      {/* PR Table */}
+      <WorkspacePullRequestsTable
+        pullRequests={pullRequests}
+        loading={loading}
+        onPullRequestClick={handlePullRequestClick}
+        onRepositoryClick={handleRepositoryClick}
+      />
+    </div>
   );
 }
 
@@ -3111,7 +3124,11 @@ function WorkspacePage() {
           </TabsContent>
 
           <TabsContent value="prs" className="mt-6">
-            <WorkspacePRs repositories={repositories} selectedRepositories={selectedRepositories} />
+            <WorkspacePRs
+              repositories={repositories}
+              selectedRepositories={selectedRepositories}
+              timeRange={timeRange}
+            />
           </TabsContent>
 
           <TabsContent value="issues" className="mt-6">
