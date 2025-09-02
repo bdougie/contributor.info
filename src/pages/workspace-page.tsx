@@ -1463,9 +1463,9 @@ function WorkspaceActivity({
 
       return [
         // Convert PRs to activities with better error handling
-        ...validPRData.map((pr): ActivityItem => {
+        ...validPRData.map((pr, index): ActivityItem => {
           return {
-            id: `pr-${pr.id}`,
+            id: `pr-${pr.id}-${index}`, // Add index to ensure uniqueness
             type: 'pr',
             title: pr.title || `PR #${pr.number}`,
             created_at: pr.created_at,
@@ -1491,9 +1491,9 @@ function WorkspaceActivity({
           };
         }),
         // Convert issues to activities with validation
-        ...validIssueData.map((issue): ActivityItem => {
+        ...validIssueData.map((issue, index): ActivityItem => {
           return {
-            id: `issue-${issue.id}`,
+            id: `issue-${issue.id}-${index}`, // Add index to ensure uniqueness
             type: 'issue',
             title: issue.title || `Issue #${issue.number}`,
             created_at: issue.created_at,
@@ -1505,14 +1505,17 @@ function WorkspaceActivity({
             },
             repository: getRepoName(issue.repository_id),
             status: issue.closed_at ? 'closed' : 'open',
-            url: issue.html_url || '#',
+            url:
+              issue.repository_name && issue.number
+                ? `https://github.com/${issue.repository_name}/issues/${issue.number}`
+                : '#',
             metadata: {},
           };
         }),
         // Convert reviews to activities with validation
         ...validReviewData.map(
-          (review): ActivityItem => ({
-            id: `review-${review.id}`,
+          (review, index): ActivityItem => ({
+            id: `review-${review.id}-${index}`, // Add index to ensure uniqueness
             type: 'review',
             title: review.pr_title ? `Review on: ${review.pr_title}` : `Review on PR`,
             created_at: review.submitted_at,
@@ -1530,8 +1533,8 @@ function WorkspaceActivity({
         ),
         // Convert comments to activities with validation
         ...validCommentData.map(
-          (comment): ActivityItem => ({
-            id: `comment-${comment.id}`,
+          (comment, index): ActivityItem => ({
+            id: `comment-${comment.id}-${index}`, // Add index to ensure uniqueness
             type: 'comment',
             title: comment.pr_title ? `Comment on: ${comment.pr_title}` : `Comment on PR`,
             created_at: comment.created_at,
@@ -1548,7 +1551,7 @@ function WorkspaceActivity({
           })
         ),
         // Convert star events to activities with data validation
-        ...validStarData.map((star): ActivityItem => {
+        ...validStarData.map((star, index): ActivityItem => {
           const changeAmount =
             typeof star.change_amount === 'number' && !isNaN(star.change_amount)
               ? star.change_amount
@@ -1558,7 +1561,7 @@ function WorkspaceActivity({
               ? star.current_value
               : 0;
           return {
-            id: `star-${star.id}-${star.captured_at}`,
+            id: `star-${star.id}-${star.captured_at}-${index}`, // Add index to ensure uniqueness
             type: 'star',
             title:
               changeAmount > 0
@@ -1579,7 +1582,7 @@ function WorkspaceActivity({
           };
         }),
         // Convert fork events to activities with data validation
-        ...validForkData.map((fork): ActivityItem => {
+        ...validForkData.map((fork, index): ActivityItem => {
           const changeAmount =
             typeof fork.change_amount === 'number' && !isNaN(fork.change_amount)
               ? fork.change_amount
@@ -1589,7 +1592,7 @@ function WorkspaceActivity({
               ? fork.current_value
               : 0;
           return {
-            id: `fork-${fork.id}-${fork.captured_at}`,
+            id: `fork-${fork.id}-${fork.captured_at}-${index}`, // Add index to ensure uniqueness
             type: 'fork',
             title:
               changeAmount > 0
@@ -2251,6 +2254,12 @@ export default function WorkspacePage() {
           const daysToFetch = TIME_RANGE_DAYS[timeRange];
           const startDate = new Date(Date.now() - daysToFetch * 24 * 60 * 60 * 1000);
 
+          // Ensure startDate is valid and not in the future
+          if (startDate.getTime() > Date.now()) {
+            console.warn('Start date is in the future, using 30 days ago as fallback');
+            startDate.setTime(Date.now() - 30 * 24 * 60 * 60 * 1000);
+          }
+
           // Fetch PRs for activity data and metrics with more fields for activity tab
           const { data: prData, error: prError } = await supabase
             .from('pull_requests')
@@ -2326,7 +2335,7 @@ export default function WorkspacePage() {
                 `id, title, number, created_at, closed_at, state, author_id, repository_id, html_url`
               )
               .in('repository_id', repoIds)
-              .gte('created_at', startDate.toISOString())
+              .gte('created_at', startDate.toISOString().split('T')[0]) // Use date only format (YYYY-MM-DD)
               .order('created_at', { ascending: true });
 
             if (issueError) {
@@ -2613,19 +2622,22 @@ export default function WorkspacePage() {
           });
         }
 
-        // Fetch contributor count from repository_contributors table
+        // Fetch contributor count from pull_requests table (repository_contributors table doesn't exist)
         if (transformedRepos.length > 0) {
           const repoIds = transformedRepos.map((r) => r.id);
 
-          // First get contributor IDs from repository_contributors
-          const { data: repoContributorData } = await supabase
-            .from('repository_contributors')
-            .select('contributor_id')
-            .in('repository_id', repoIds);
+          // Get unique contributors from pull requests
+          const { data: prContributorData, error: prContributorError } = await supabase
+            .from('pull_requests')
+            .select('author_id')
+            .in('repository_id', repoIds)
+            .not('author_id', 'is', null);
 
-          if (repoContributorData && repoContributorData.length > 0) {
+          if (prContributorError) {
+            console.error('Error fetching PR contributors:', prContributorError);
+          } else if (prContributorData && prContributorData.length > 0) {
             // Get unique contributor IDs
-            const contributorIds = [...new Set(repoContributorData.map((rc) => rc.contributor_id))];
+            const contributorIds = [...new Set(prContributorData.map((pr) => pr.author_id))];
             uniqueContributorCount = Math.max(uniqueContributorCount, contributorIds.length);
           }
         }
