@@ -286,15 +286,16 @@ export function ActivityTable({
                   position: 'relative',
                 }}
               >
-                {virtualizer.getVirtualItems().map((virtualItem) => {
+                {virtualizer.getVirtualItems().map((virtualItem, arrayIndex) => {
                   const activity = paginatedActivities[virtualItem.index];
                   if (!activity) {
                     return null; // Skip if activity doesn't exist
                   }
                   const Icon = TYPE_ICONS[activity.type];
 
-                  // Use virtualItem.key which comes from getItemKey for consistency
-                  const uniqueKey = virtualItem.key;
+                  // Generate unique key using multiple identifiers to ensure uniqueness
+                  // Use arrayIndex as a fallback to guarantee uniqueness
+                  const uniqueKey = `activity-${virtualItem.index}-${arrayIndex}-${activity.type}-${activity.id}`;
 
                   return (
                     <div
