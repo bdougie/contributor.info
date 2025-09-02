@@ -2491,6 +2491,9 @@ function WorkspacePage() {
                 );
               };
 
+              // Create a Map for O(1) repository lookups instead of O(n) find operations
+              const repoMap = new Map(transformedRepos.map((repo) => [repo.id, repo.full_name]));
+
               const formattedReviews = reviewData.filter(isValidReview).map((r) => {
                 // Handle both single object and array cases
                 const pr = Array.isArray(r.pull_requests) ? r.pull_requests[0] : r.pull_requests;
@@ -2514,8 +2517,7 @@ function WorkspacePage() {
                   pr_title: pr?.title,
                   pr_number: pr?.number,
                   repository_id: pr?.repository_id,
-                  repository_name: transformedRepos.find((repo) => repo.id === pr?.repository_id)
-                    ?.full_name,
+                  repository_name: pr?.repository_id ? repoMap.get(pr.repository_id) : undefined,
                 };
               });
               setFullReviewData(formattedReviews);
@@ -2570,6 +2572,9 @@ function WorkspacePage() {
                 );
               };
 
+              // Create a Map for O(1) repository lookups instead of O(n) find operations
+              const repoMap = new Map(transformedRepos.map((repo) => [repo.id, repo.full_name]));
+
               const formattedComments = commentData.filter(isValidComment).map((c) => {
                 // Handle both single object and array cases
                 const pr = Array.isArray(c.pull_requests) ? c.pull_requests[0] : c.pull_requests;
@@ -2593,8 +2598,7 @@ function WorkspacePage() {
                   pr_title: pr?.title,
                   pr_number: pr?.number,
                   repository_id: pr?.repository_id,
-                  repository_name: transformedRepos.find((repo) => repo.id === pr?.repository_id)
-                    ?.full_name,
+                  repository_name: pr?.repository_id ? repoMap.get(pr.repository_id) : undefined,
                 };
               });
               setFullCommentData(formattedComments);
@@ -2619,6 +2623,9 @@ function WorkspacePage() {
             }
 
             if (starHistory) {
+              // Create a Map for O(1) repository lookups instead of O(n) find operations
+              const repoMap = new Map(transformedRepos.map((repo) => [repo.id, repo.full_name]));
+
               const formattedStars = (starHistory as unknown[]).map((star: unknown) => {
                 const s = star as {
                   id: string;
@@ -2631,8 +2638,7 @@ function WorkspacePage() {
                 return {
                   id: `star-${s.repository_id}-${s.captured_at}`,
                   repository_id: s.repository_id,
-                  repository_name: transformedRepos.find((r) => r.id === s.repository_id)
-                    ?.full_name,
+                  repository_name: repoMap.get(s.repository_id),
                   previous_value: s.previous_value || 0,
                   current_value: s.current_value,
                   change_amount: s.change_amount,
@@ -2662,6 +2668,9 @@ function WorkspacePage() {
             }
 
             if (forkHistory) {
+              // Create a Map for O(1) repository lookups instead of O(n) find operations
+              const repoMap = new Map(transformedRepos.map((repo) => [repo.id, repo.full_name]));
+
               const formattedForks = (forkHistory as unknown[]).map((fork: unknown) => {
                 const f = fork as {
                   id: string;
@@ -2674,8 +2683,7 @@ function WorkspacePage() {
                 return {
                   id: `fork-${f.repository_id}-${f.captured_at}`,
                   repository_id: f.repository_id,
-                  repository_name: transformedRepos.find((r) => r.id === f.repository_id)
-                    ?.full_name,
+                  repository_name: repoMap.get(f.repository_id),
                   previous_value: f.previous_value || 0,
                   current_value: f.current_value,
                   change_amount: f.change_amount,
