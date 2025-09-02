@@ -140,6 +140,12 @@ export function ActivityTable({
     getScrollElement: () => parentRef.current,
     estimateSize: () => 60,
     overscan: 5,
+    // Add getItemKey to ensure proper key management
+    getItemKey: (index) => {
+      const activity = paginatedActivities[index];
+      if (!activity) return `empty-${index}`;
+      return `${activity.type}-${activity.id}-${index}-${activity.created_at}`;
+    },
   });
 
   const handleSort = useCallback(
@@ -282,10 +288,13 @@ export function ActivityTable({
               >
                 {virtualizer.getVirtualItems().map((virtualItem) => {
                   const activity = paginatedActivities[virtualItem.index];
+                  if (!activity) {
+                    return null; // Skip if activity doesn't exist
+                  }
                   const Icon = TYPE_ICONS[activity.type];
 
-                  // Create a unique key combining type, id, and index to avoid duplicates
-                  const uniqueKey = `${activity.type}-${activity.id}-${virtualItem.index}`;
+                  // Use virtualItem.key which comes from getItemKey for consistency
+                  const uniqueKey = virtualItem.key;
 
                   return (
                     <div

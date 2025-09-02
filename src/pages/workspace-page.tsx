@@ -1624,6 +1624,19 @@ function WorkspaceActivity({
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   );
 
+  // Debug: Check for duplicate IDs
+  if (sortedActivities.length > 0) {
+    const ids = sortedActivities.map((a) => a.id);
+    const uniqueIds = new Set(ids);
+    if (ids.length !== uniqueIds.size) {
+      console.warn('Duplicate activity IDs detected:', {
+        total: ids.length,
+        unique: uniqueIds.size,
+        duplicates: ids.filter((id, index) => ids.indexOf(id) !== index),
+      });
+    }
+  }
+
   // Generate trend data for the chart
   const last30Days = Array.from({ length: 30 }, (_, i) => {
     const date = new Date();
