@@ -2643,35 +2643,60 @@ function WorkspacePage() {
             }
 
             // Fetch individual star and fork events from github_events_cache
-            // Build list of repository owner/name pairs for the query
-            const repoFilters = transformedRepos.map((repo) => {
+            // For each repository, fetch its events
+            interface GitHubEvent {
+              event_id: string;
+              event_type: string;
+              actor_login: string;
+              repository_owner: string;
+              repository_name: string;
+              created_at: string;
+              payload: unknown;
+            }
+            const allStarEvents: GitHubEvent[] = [];
+            const allForkEvents: GitHubEvent[] = [];
+
+            for (const repo of transformedRepos) {
               const [owner, name] = repo.full_name.split('/');
-              return { owner, name };
-            });
 
-            // Fetch star events (WatchEvent)
-            const { data: starEvents, error: starError } = await supabase
-              .from('github_events_cache')
-              .select('*')
-              .eq('event_type', 'WatchEvent')
-              .gte('created_at', startDate.toISOString())
-              .order('created_at', { ascending: false })
-              .limit(100);
+              // Fetch star events for this specific repository
+              const { data: starEvents, error: starError } = await supabase
+                .from('github_events_cache')
+                .select('*')
+                .eq('event_type', 'WatchEvent')
+                .eq('repository_owner', owner)
+                .eq('repository_name', name)
+                .gte('created_at', startDate.toISOString())
+                .order('created_at', { ascending: false })
+                .limit(50); // Limit per repository
 
-            if (starError) {
-              console.error('Error fetching star events:', starError);
-              setError('Failed to load star events. Some data may be incomplete.');
+              if (starError) {
+                console.error(`Error fetching star events for ${repo.full_name}:`, starError);
+              } else if (starEvents) {
+                allStarEvents.push(...starEvents);
+              }
+
+              // Fetch fork events for this specific repository
+              const { data: forkEvents, error: forkError } = await supabase
+                .from('github_events_cache')
+                .select('*')
+                .eq('event_type', 'ForkEvent')
+                .eq('repository_owner', owner)
+                .eq('repository_name', name)
+                .gte('created_at', startDate.toISOString())
+                .order('created_at', { ascending: false })
+                .limit(50); // Limit per repository
+
+              if (forkError) {
+                console.error(`Error fetching fork events for ${repo.full_name}:`, forkError);
+              } else if (forkEvents) {
+                allForkEvents.push(...forkEvents);
+              }
             }
 
-            if (starEvents) {
-              // Filter events for our workspace repositories
-              const filteredStarEvents = starEvents.filter((event) => {
-                return repoFilters.some(
-                  (r) => r.owner === event.repository_owner && r.name === event.repository_name
-                );
-              });
-
-              const formattedStars = filteredStarEvents.map((event) => {
+            // Format star events
+            if (allStarEvents.length > 0) {
+              const formattedStars = allStarEvents.map((event) => {
                 const payload = event.payload as { actor?: { login: string; avatar_url: string } };
                 return {
                   id: event.event_id,
@@ -2686,31 +2711,9 @@ function WorkspacePage() {
               setFullStarData(formattedStars);
             }
 
-            // Fetch fork events
-            const { data: forkEvents, error: forkError } = await supabase
-              .from('github_events_cache')
-              .select('*')
-              .eq('event_type', 'ForkEvent')
-              .gte('created_at', startDate.toISOString())
-              .order('created_at', { ascending: false })
-              .limit(100);
-
-            if (forkError) {
-              console.error('Error fetching fork events:', forkError);
-              setError(
-                (prev) => prev || 'Failed to load fork events. Some data may be incomplete.'
-              );
-            }
-
-            if (forkEvents) {
-              // Filter events for our workspace repositories
-              const filteredForkEvents = forkEvents.filter((event) => {
-                return repoFilters.some(
-                  (r) => r.owner === event.repository_owner && r.name === event.repository_name
-                );
-              });
-
-              const formattedForks = filteredForkEvents.map((event) => {
+            // Format fork events
+            if (allForkEvents.length > 0) {
+              const formattedForks = allForkEvents.map((event) => {
                 const payload = event.payload as { actor?: { login: string; avatar_url: string } };
                 return {
                   id: event.event_id,
