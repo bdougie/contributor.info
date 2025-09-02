@@ -161,19 +161,56 @@ const calculateRealMetrics = (
   repos: Repository[],
   prCount: number = 0,
   contributorCount: number = 0,
-  commitCount: number = 0
+  commitCount: number = 0,
+  issueCount: number = 0,
+  previousMetrics?: {
+    prCount: number;
+    contributorCount: number;
+    starCount: number;
+    commitCount: number;
+  }
 ): WorkspaceMetrics => {
   const totalStars = repos.reduce((sum, repo) => sum + (repo.stars || 0), 0);
+  const totalOpenPRs = repos.reduce((sum, repo) => sum + (repo.open_prs || 0), 0);
+  const totalOpenIssues = repos.reduce((sum, repo) => sum + (repo.open_issues || 0), 0);
+
+  // Calculate trends if we have previous metrics
+  let starsTrend = 0;
+  let prsTrend = 0;
+  let contributorsTrend = 0;
+  let commitsTrend = 0;
+
+  if (previousMetrics) {
+    // Calculate percentage changes
+    starsTrend =
+      previousMetrics.starCount > 0
+        ? ((totalStars - previousMetrics.starCount) / previousMetrics.starCount) * 100
+        : 0;
+    prsTrend =
+      previousMetrics.prCount > 0
+        ? ((totalOpenPRs - previousMetrics.prCount) / previousMetrics.prCount) * 100
+        : 0;
+    contributorsTrend =
+      previousMetrics.contributorCount > 0
+        ? ((contributorCount - previousMetrics.contributorCount) /
+            previousMetrics.contributorCount) *
+          100
+        : 0;
+    commitsTrend =
+      previousMetrics.commitCount > 0
+        ? ((commitCount - previousMetrics.commitCount) / previousMetrics.commitCount) * 100
+        : 0;
+  }
 
   return {
     totalStars,
-    totalPRs: prCount,
+    totalPRs: totalOpenPRs || prCount, // Use aggregated open PRs or fallback to passed count
     totalContributors: contributorCount,
-    totalCommits: commitCount,
-    starsTrend: 0, // Will be calculated from historical data
-    prsTrend: 0, // Will be calculated from historical data
-    contributorsTrend: 0, // Will be calculated from historical data
-    commitsTrend: 0, // Will be calculated from historical data
+    totalCommits: totalOpenIssues || issueCount || commitCount, // Display open issues as activity metric
+    starsTrend,
+    prsTrend,
+    contributorsTrend,
+    commitsTrend,
   };
 };
 
@@ -2695,7 +2732,7 @@ function WorkspacePage() {
           }
         }
 
-        // Batch query to get open PR counts for all repos at once
+        // Batch query to get open PR and issue counts for all repos at once
         if (transformedRepos.length > 0) {
           const repoIds = transformedRepos.map((r) => r.id);
 
@@ -2715,9 +2752,26 @@ function WorkspacePage() {
             });
           }
 
-          // Update repositories with their PR counts
+          // Get all open issues for these repositories in a single query
+          const { data: openIssueData } = await supabase
+            .from('issues')
+            .select('repository_id')
+            .in('repository_id', repoIds)
+            .eq('state', 'open');
+
+          // Count issues per repository
+          const issueCountMap = new Map<string, number>();
+          if (openIssueData) {
+            openIssueData.forEach((issue) => {
+              const count = issueCountMap.get(issue.repository_id) || 0;
+              issueCountMap.set(issue.repository_id, count + 1);
+            });
+          }
+
+          // Update repositories with their PR and issue counts
           transformedRepos.forEach((repo) => {
             repo.open_prs = prCountMap.get(repo.id) || 0;
+            repo.open_issues = issueCountMap.get(repo.id) || 0;
           });
         }
 
@@ -2744,12 +2798,16 @@ function WorkspacePage() {
         setWorkspace(workspaceData);
         setRepositories(transformedRepos);
 
-        // Generate metrics with real counts including commits
+        // Count total issues from the fetched data
+        const totalIssueCount = issueDataForTrends ? issueDataForTrends.length : 0;
+
+        // Generate metrics with real counts including commits and issues
         const realMetrics = calculateRealMetrics(
           transformedRepos,
           totalPRCount,
           uniqueContributorCount,
-          totalCommitCount
+          totalCommitCount,
+          totalIssueCount
         );
 
         // Generate trend data with real PR/issue data

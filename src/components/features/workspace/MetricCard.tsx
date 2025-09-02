@@ -16,7 +16,7 @@ export interface MetricCardProps {
   loading?: boolean;
   className?: string;
   format?: 'number' | 'percentage' | 'compact';
-  color?: 'blue' | 'green' | 'orange' | 'purple' | 'gray';
+  color?: 'blue' | 'green' | 'orange' | 'purple' | 'gray' | 'yellow';
 }
 
 const colorMap = {
@@ -25,6 +25,7 @@ const colorMap = {
   orange: 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950',
   purple: 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950',
   gray: 'text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-950',
+  yellow: 'text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-950',
 };
 
 export function MetricCard({

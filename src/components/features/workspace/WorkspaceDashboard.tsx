@@ -103,7 +103,7 @@ export function WorkspaceDashboard({
             label: trendLabel,
           }}
           format="compact"
-          color="gray"
+          color="yellow"
           loading={loading}
         />
 
