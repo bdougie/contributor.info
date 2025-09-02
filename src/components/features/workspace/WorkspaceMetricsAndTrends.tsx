@@ -216,38 +216,44 @@ export function WorkspaceMetricsAndTrends({
         previousVelocity > 0 ? ((currentVelocity - previousVelocity) / previousVelocity) * 100 : 0;
 
       // Fetch review and comment data for trends
-      const [reviewData, commentData] = await Promise.all([
-        supabase
-          .from('pull_request_reviews')
-          .select('*')
-          .in('repository_id', repoIds)
-          .gte('submitted_at', startDate.toISOString()),
-        supabase
-          .from('pull_request_comments')
-          .select('*')
-          .in('repository_id', repoIds)
-          .gte('created_at', startDate.toISOString()),
-      ]);
+      // First, get all PR IDs for the repositories in the full time range
+      const allPRsQuery = await supabase
+        .from('pull_requests')
+        .select('id')
+        .in('repository_id', repoIds)
+        .gte('created_at', previousStartDate.toISOString());
 
-      const [prevReviewData, prevCommentData] = await Promise.all([
-        supabase
-          .from('pull_request_reviews')
-          .select('*')
-          .in('repository_id', repoIds)
-          .gte('submitted_at', previousStartDate.toISOString())
-          .lt('submitted_at', startDate.toISOString()),
-        supabase
-          .from('pull_request_comments')
-          .select('*')
-          .in('repository_id', repoIds)
-          .gte('created_at', previousStartDate.toISOString())
-          .lt('created_at', startDate.toISOString()),
-      ]);
+      const allPRIds = allPRsQuery.data?.map((pr) => pr.id) || [];
 
-      const reviews = reviewData.data?.length || 0;
-      const prevReviews = prevReviewData.data?.length || 0;
-      const comments = commentData.data?.length || 0;
-      const prevComments = prevCommentData.data?.length || 0;
+      let reviews = 0;
+      let prevReviews = 0;
+      let comments = 0;
+      let prevComments = 0;
+
+      if (allPRIds.length > 0) {
+        const [reviewData, commentData] = await Promise.all([
+          supabase
+            .from('reviews')
+            .select('submitted_at')
+            .in('pull_request_id', allPRIds)
+            .gte('submitted_at', previousStartDate.toISOString()),
+          supabase
+            .from('comments')
+            .select('created_at')
+            .in('pull_request_id', allPRIds)
+            .gte('created_at', previousStartDate.toISOString()),
+        ]);
+
+        // Count reviews and comments by period
+        const reviewsArray = reviewData.data || [];
+        const commentsArray = commentData.data || [];
+
+        reviews = reviewsArray.filter((r) => new Date(r.submitted_at) >= startDate).length;
+        prevReviews = reviewsArray.filter((r) => new Date(r.submitted_at) < startDate).length;
+
+        comments = commentsArray.filter((c) => new Date(c.created_at) >= startDate).length;
+        prevComments = commentsArray.filter((c) => new Date(c.created_at) < startDate).length;
+      }
 
       // Calculate unique contributors
       const currentContributors = new Set(currentData.map((pr) => pr.author_id).filter(Boolean));
