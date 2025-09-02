@@ -498,11 +498,24 @@ export function ActivityTable({
               Previous
             </Button>
             <div className="flex items-center gap-1">
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                const pageNum = Math.max(0, Math.min(page - 2 + i, totalPages - 1));
-                return (
+              {(() => {
+                // Calculate the range of pages to show
+                let startPage = Math.max(0, page - 2);
+                const endPage = Math.min(totalPages - 1, startPage + 4);
+
+                // Adjust startPage if we're near the end
+                if (endPage - startPage < 4) {
+                  startPage = Math.max(0, endPage - 4);
+                }
+
+                const pageNumbers = [];
+                for (let i = startPage; i <= endPage; i++) {
+                  pageNumbers.push(i);
+                }
+
+                return pageNumbers.map((pageNum) => (
                   <Button
-                    key={pageNum}
+                    key={`page-${pageNum}`}
                     variant={pageNum === page ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setPage(pageNum)}
@@ -510,8 +523,8 @@ export function ActivityTable({
                   >
                     {pageNum + 1}
                   </Button>
-                );
-              })}
+                ));
+              })()}
             </div>
             <Button
               variant="outline"
