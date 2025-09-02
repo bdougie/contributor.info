@@ -1505,7 +1505,10 @@ function WorkspaceActivity({
             },
             repository: getRepoName(issue.repository_id),
             status: issue.closed_at ? 'closed' : 'open',
-            url: issue.html_url || '#',
+            url:
+              issue.repository_name && issue.number
+                ? `https://github.com/${issue.repository_name}/issues/${issue.number}`
+                : '#',
             metadata: {},
           };
         }),
@@ -2250,7 +2253,7 @@ export default function WorkspacePage() {
           // Calculate date range based on selected time range
           const daysToFetch = TIME_RANGE_DAYS[timeRange];
           const startDate = new Date(Date.now() - daysToFetch * 24 * 60 * 60 * 1000);
-          
+
           // Ensure startDate is valid and not in the future
           if (startDate.getTime() > Date.now()) {
             console.warn('Start date is in the future, using 30 days ago as fallback');
@@ -2328,9 +2331,7 @@ export default function WorkspacePage() {
             // Fetch issues for metrics and trends with more fields for activity tab
             const { data: issueData, error: issueError } = await supabase
               .from('issues')
-              .select(
-                `id, title, number, created_at, closed_at, state, author_id, repository_id, html_url`
-              )
+              .select(`id, title, number, created_at, closed_at, state, author_id, repository_id`)
               .in('repository_id', repoIds)
               .gte('created_at', startDate.toISOString().split('T')[0]) // Use date only format (YYYY-MM-DD)
               .order('created_at', { ascending: true });
