@@ -229,8 +229,8 @@ export function WorkspaceIssueMetricsAndTrends({
 
         allData.forEach(({ trends }) => {
           trends.forEach((trend) => {
-            // Skip Time to Resolution as it can't be meaningfully aggregated across repos
-            if (trend.metric === 'Time to Resolution') {
+            // Skip Time to Resolution only for multi-repo aggregation (can't be meaningfully aggregated)
+            if (trend.metric === 'Time to Resolution' && filteredRepos.length > 1) {
               return;
             }
 
@@ -390,12 +390,23 @@ export function WorkspaceIssueMetricsAndTrends({
                 reporters={metrics.activityPatterns.repeatReporters}
                 loading={loading}
               />
-              {trends
-                .filter((trend) => trend.metric !== 'Issue Volume')
-                .slice(0, 1)
-                .map((trend, index) => (
-                  <IssueTrendCard key={index} trend={trend} loading={loading} />
-                ))}
+              {(() => {
+                // Show Time to Resolution trend if available
+                const timeToResolutionTrend = trends.find(
+                  (trend) => trend.metric === 'Time to Resolution'
+                );
+                return timeToResolutionTrend ? (
+                  <IssueTrendCard trend={timeToResolutionTrend} loading={loading} />
+                ) : (
+                  // Fallback to any non-Issue Volume trend
+                  trends
+                    .filter((trend) => trend.metric !== 'Issue Volume')
+                    .slice(0, 1)
+                    .map((trend, index) => (
+                      <IssueTrendCard key={index} trend={trend} loading={loading} />
+                    ))
+                );
+              })()}
             </div>
           )}
         </section>

@@ -46,31 +46,6 @@ export interface IssueTrendData {
   insight?: string;
 }
 
-interface CommentRecord {
-  id: string;
-  author_login: string;
-  created_at: string;
-  pull_requests?: {
-    repository_id: string;
-  };
-  pull_request_id?: string;
-  contributors?: ContributorRecord;
-}
-
-interface ContributorRecord {
-  id: string;
-  github_login: string;
-  username: string;
-  avatar_url: string;
-  is_bot: boolean;
-}
-
-interface IssueRecord {
-  id: string;
-  created_at: string;
-  contributors?: ContributorRecord;
-}
-
 /**
  * Calculate issue health metrics for a repository
  */
@@ -245,40 +220,34 @@ export async function calculateIssueActivityPatterns(
         .eq('repository_id', repoData.id)
         .gte('created_at', since.toISOString()),
 
-      // Get all comments for PRs in this repository (treating as triage activity)
+      // Get issue comments for this repository (treating as triage activity)
       supabase
         .from('comments')
         .select(
           `
           id,
           commenter_id,
-          pull_request_id,
           created_at,
+          comment_type,
           contributors!comments_commenter_id_fkey (
             username,
             avatar_url
-          ),
-          pull_requests!comments_pull_request_id_fkey (
-            id,
-            repository_id,
-            created_at
           )
         `
         )
+        .eq('repository_id', repoData.id)
+        .eq('comment_type', 'issue_comment')
         .gte('created_at', since.toISOString()),
     ]);
 
-    // Filter comments for this repository
-    const repoComments =
-      comments?.filter(
-        (comment: CommentRecord) => comment.pull_requests?.repository_id === repoData.id
-      ) || [];
+    // Use comments directly (already filtered for this repository and issue comments)
+    const repoComments = comments || [];
 
     // Calculate most active triager (most comments across PRs/issues)
     const triagerStats = new Map<string, { username: string; avatar_url: string; count: number }>();
 
     repoComments.forEach((comment) => {
-      const contributor = comment.contributors;
+      const contributor = comment.contributors?.[0];
       if (contributor) {
         const key = contributor.username;
         const existing = triagerStats.get(key);
@@ -297,47 +266,31 @@ export async function calculateIssueActivityPatterns(
     const mostActiveTriager =
       Array.from(triagerStats.values()).sort((a, b) => b.count - a.count)[0] || null;
 
-    // Calculate first responders (first comment on PRs - treating as first response activity)
+    // For issue comments, we'll use a simplified approach for first responders
+    // This would need more sophisticated logic to match comments to specific issues
     const firstResponderStats = new Map<
       string,
       { username: string; avatar_url: string; count: number }
     >();
 
-    // Group comments by PR and find first responder for each
-    const commentsByPR = new Map<string, CommentRecord[]>();
+    // For now, treat frequent commenters as potential first responders
+    // This is a simplified approach - proper implementation would need issue comment threading
     repoComments.forEach((comment) => {
-      const prId = comment.pull_request_id;
-      if (prId) {
-        if (!commentsByPR.has(prId)) {
-          commentsByPR.set(prId, []);
-        }
-        commentsByPR.get(prId)!.push(comment);
-      }
-    });
-
-    // For each PR, find who commented first (excluding the PR author)
-    for (const [, prComments] of commentsByPR) {
-      const sortedComments = prComments.sort(
-        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-      );
-
-      const firstComment = sortedComments[0];
-      const firstContributor = firstComment?.contributors;
-
-      if (firstContributor) {
-        const key = firstContributor.username;
-        const existing = firstResponderStats.get(key);
+      const contributor = comment.contributors?.[0];
+      if (contributor?.username) {
+        const username = contributor.username;
+        const existing = firstResponderStats.get(username);
         if (existing) {
-          existing.count++;
+          existing.count += 1;
         } else {
-          firstResponderStats.set(key, {
-            username: firstContributor.username,
-            avatar_url: firstContributor.avatar_url || '',
+          firstResponderStats.set(username, {
+            username: contributor.username,
+            avatar_url: contributor.avatar_url || '',
             count: 1,
           });
         }
       }
-    }
+    });
 
     const firstResponders = Array.from(firstResponderStats.values())
       .sort((a, b) => b.count - a.count)
@@ -355,7 +308,7 @@ export async function calculateIssueActivityPatterns(
     >();
 
     issues?.forEach((issue) => {
-      const contributor = (issue as IssueRecord).contributors;
+      const contributor = issue.contributors?.[0];
       if (contributor) {
         const key = contributor.username;
         const existing = reporterStats.get(key);
