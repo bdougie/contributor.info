@@ -74,6 +74,10 @@ export function ActivityItem({ activity }: ActivityItemProps) {
         return 'bg-blue-500';
       case 'commented':
         return 'bg-gray-500';
+      case 'starred':
+        return 'bg-yellow-500';
+      case 'forked':
+        return 'bg-indigo-500';
       default:
         return 'bg-gray-400';
     }
@@ -91,6 +95,10 @@ export function ActivityItem({ activity }: ActivityItemProps) {
         return 'reviewed';
       case 'commented':
         return 'commented on';
+      case 'starred':
+        return 'starred';
+      case 'forked':
+        return 'forked';
       default:
         return 'updated';
     }
@@ -143,17 +151,27 @@ export function ActivityItem({ activity }: ActivityItemProps) {
                   </Tooltip>
                 </TooltipProvider>
               )}
-              <span className="text-muted-foreground">{getActivityText()}</span>
-              <a
-                href={pullRequest.url}
-                className="text-orange-500 hover:underline"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={`Pull request #${pullRequest.number}`}
-              >
-                #{pullRequest.number}
-              </a>
-              <span className="text-muted-foreground hidden sm:inline">in</span>
+              <span className="text-muted-foreground">
+                {type === 'starred' && '⭐ '}
+                {type === 'forked' && '🔱 '}
+                {getActivityText()}
+              </span>
+              {pullRequest.number > 0 ? (
+                <>
+                  <a
+                    href={pullRequest.url}
+                    className="text-orange-500 hover:underline"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`Pull request #${pullRequest.number}`}
+                  >
+                    #{pullRequest.number}
+                  </a>
+                  <span className="text-muted-foreground hidden sm:inline">in</span>
+                </>
+              ) : (
+                <span className="text-muted-foreground hidden sm:inline"></span>
+              )}
               <a
                 href={repository.url}
                 className="text-orange-500 hover:underline truncate max-w-xs sm:max-w-none hidden sm:inline"

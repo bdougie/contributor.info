@@ -1,7 +1,14 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type ActivityType = 'opened' | 'closed' | 'merged' | 'reviewed' | 'commented';
+export type ActivityType =
+  | 'opened'
+  | 'closed'
+  | 'merged'
+  | 'reviewed'
+  | 'commented'
+  | 'starred'
+  | 'forked';
 
 interface PRActivityState {
   selectedTypes: ActivityType[];
