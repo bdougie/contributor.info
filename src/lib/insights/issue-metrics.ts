@@ -142,7 +142,7 @@ export async function calculateIssueHealthMetrics(
           // Even length: average the two middle elements
           const mid1 = resolutionTimes[resolutionTimes.length / 2 - 1];
           const mid2 = resolutionTimes[resolutionTimes.length / 2];
-          halfLife = Math.round((mid1 + mid2) / 2);
+          halfLife = Math.round(((mid1 || 0) + (mid2 || 0)) / 2);
         } else {
           // Odd length: take the middle element
           const medianIndex = Math.floor(resolutionTimes.length / 2);
