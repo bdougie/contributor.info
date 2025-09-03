@@ -96,7 +96,8 @@ interface ActivityItem {
   };
   repository: string;
   created_at: string;
-  status: 'open' | 'merged' | 'closed' | 'approved' | 'changes_requested';
+  // Status is only relevant for PRs, issues, and reviews
+  status?: 'open' | 'merged' | 'closed' | 'approved' | 'changes_requested';
   url: string;
   metadata?: {
     additions?: number;
@@ -1462,20 +1463,18 @@ interface WorkspaceActivityProps {
   }>;
   starData: Array<{
     id: string;
-    repository_id: string;
+    event_type: 'star';
+    actor_login: string;
+    actor_avatar?: string;
     repository_name?: string;
-    previous_value: number;
-    current_value: number;
-    change_amount: number;
     captured_at: string;
   }>;
   forkData: Array<{
     id: string;
-    repository_id: string;
+    event_type: 'fork';
+    actor_login: string;
+    actor_avatar?: string;
     repository_name?: string;
-    previous_value: number;
-    current_value: number;
-    change_amount: number;
     captured_at: string;
   }>;
   repositories: Repository[];
@@ -1606,71 +1605,43 @@ function WorkspaceActivity({
                 : '',
             },
             repository: comment.repository_name || 'Unknown Repository',
-            status: 'open' as ActivityItem['status'],
+            status: 'open',
             url: '#',
             metadata: {},
           })
         ),
-        // Convert star events to activities with data validation
+        // Convert star events to activities - now individual events
         ...validStarData.map((star, index): ActivityItem => {
-          const changeAmount =
-            typeof star.change_amount === 'number' && !isNaN(star.change_amount)
-              ? star.change_amount
-              : 0;
-          const currentValue =
-            typeof star.current_value === 'number' && !isNaN(star.current_value)
-              ? star.current_value
-              : 0;
           return {
-            id: `star-${star.id}-${star.captured_at}-${index}`, // Add index to ensure uniqueness
+            id: star.id || `star-${index}`,
             type: 'star',
-            title:
-              changeAmount > 0
-                ? `+${changeAmount} stars (${currentValue} total)`
-                : `${changeAmount} stars (${currentValue} total)`,
+            title: `starred the repository`,
             created_at: star.captured_at,
             author: {
-              username: 'System',
-              avatar_url: '',
+              username: star.actor_login || 'Unknown',
+              avatar_url: star.actor_avatar || `https://github.com/${star.actor_login}.png`,
             },
             repository: star.repository_name || 'Unknown Repository',
-            status: 'open' as ActivityItem['status'],
-            url: '#',
-            metadata: {
-              change_amount: changeAmount,
-              current_value: currentValue,
-            },
+            // No status for star events
+            url: star.repository_name ? `https://github.com/${star.repository_name}` : '#',
+            metadata: {},
           };
         }),
-        // Convert fork events to activities with data validation
+        // Convert fork events to activities - now individual events
         ...validForkData.map((fork, index): ActivityItem => {
-          const changeAmount =
-            typeof fork.change_amount === 'number' && !isNaN(fork.change_amount)
-              ? fork.change_amount
-              : 0;
-          const currentValue =
-            typeof fork.current_value === 'number' && !isNaN(fork.current_value)
-              ? fork.current_value
-              : 0;
           return {
-            id: `fork-${fork.id}-${fork.captured_at}-${index}`, // Add index to ensure uniqueness
+            id: fork.id || `fork-${index}`,
             type: 'fork',
-            title:
-              changeAmount > 0
-                ? `+${changeAmount} forks (${currentValue} total)`
-                : `${changeAmount} forks (${currentValue} total)`,
+            title: `forked the repository`,
             created_at: fork.captured_at,
             author: {
-              username: 'System',
-              avatar_url: '',
+              username: fork.actor_login || 'Unknown',
+              avatar_url: fork.actor_avatar || `https://github.com/${fork.actor_login}.png`,
             },
             repository: fork.repository_name || 'Unknown Repository',
-            status: 'open' as ActivityItem['status'],
-            url: '#',
-            metadata: {
-              change_amount: changeAmount,
-              current_value: currentValue,
-            },
+            // No status for fork events
+            url: fork.repository_name ? `https://github.com/${fork.repository_name}` : '#',
+            metadata: {},
           };
         }),
       ];
@@ -1803,7 +1774,7 @@ function WorkspaceActivity({
             {
               label: 'Forks',
               data: activityByDay.map((d) => d.forks),
-              color: '#a855f7',
+              color: '#ffffff',
             },
           ],
         }}
@@ -2672,94 +2643,90 @@ function WorkspacePage() {
               setFullCommentData(formattedComments);
             }
 
-            // Fetch star and fork metrics history for activity feed
-            const { data: starHistory, error: starError } = await supabase
-              .from('repository_metrics_history')
-              .select(
-                'id, repository_id, previous_value, current_value, change_amount, captured_at'
-              )
-              .in('repository_id', repoIds)
-              .eq('metric_type', 'stars')
-              .gte('captured_at', startDate.toISOString())
-              .gt('change_amount', 0)
-              .order('captured_at', { ascending: false });
+            // Fetch individual star and fork events from github_events_cache
+            // For each repository, fetch its events
+            interface GitHubEvent {
+              event_id: string;
+              event_type: string;
+              actor_login: string;
+              repository_owner: string;
+              repository_name: string;
+              created_at: string;
+              payload: unknown;
+            }
+            const allStarEvents: GitHubEvent[] = [];
+            const allForkEvents: GitHubEvent[] = [];
 
-            if (starError) {
-              console.error('Error fetching star history:', starError);
-              // Surface error to users
-              setError('Failed to load star metrics. Some data may be incomplete.');
+            for (const repo of transformedRepos) {
+              const [owner, name] = repo.full_name.split('/');
+
+              // Fetch star events for this specific repository
+              // Note: Removing date filter temporarily as events might have incorrect timestamps
+              const { data: starEvents, error: starError } = await supabase
+                .from('github_events_cache')
+                .select('*')
+                .eq('event_type', 'WatchEvent')
+                .eq('repository_owner', owner)
+                .eq('repository_name', name)
+                // .gte('created_at', startDate.toISOString()) // Commented out for debugging
+                .order('created_at', { ascending: false })
+                .limit(50); // Limit per repository
+
+              if (!starError && starEvents) {
+                allStarEvents.push(...starEvents);
+              }
+
+              // Fetch fork events for this specific repository
+              const { data: forkEvents, error: forkError } = await supabase
+                .from('github_events_cache')
+                .select('*')
+                .eq('event_type', 'ForkEvent')
+                .eq('repository_owner', owner)
+                .eq('repository_name', name)
+                // .gte('created_at', startDate.toISOString()) // Commented out for debugging
+                .order('created_at', { ascending: false })
+                .limit(50); // Limit per repository
+
+              if (!forkError && forkEvents) {
+                allForkEvents.push(...forkEvents);
+              }
             }
 
-            if (starHistory) {
-              // Create a Map for O(1) repository lookups instead of O(n) find operations
-              const repoMap = new Map(transformedRepos.map((repo) => [repo.id, repo.full_name]));
+            // Format star events
+            const formattedStars = allStarEvents.map((event) => {
+              const payload = event.payload as { actor?: { login: string; avatar_url: string } };
+              return {
+                id: event.event_id,
+                event_type: 'star' as const,
+                actor_login: event.actor_login,
+                actor_avatar:
+                  payload?.actor?.avatar_url ||
+                  (event.actor_login
+                    ? `https://avatars.githubusercontent.com/${event.actor_login}`
+                    : getFallbackAvatar()),
+                repository_name: `${event.repository_owner}/${event.repository_name}`,
+                captured_at: event.created_at,
+              };
+            });
+            setFullStarData(formattedStars);
 
-              const formattedStars = (starHistory as unknown[]).map((star: unknown) => {
-                const s = star as {
-                  id: string;
-                  repository_id: string;
-                  change_amount: number;
-                  current_value: number;
-                  previous_value?: number;
-                  captured_at: string;
-                };
-                return {
-                  id: `star-${s.repository_id}-${s.captured_at}`,
-                  repository_id: s.repository_id,
-                  repository_name: repoMap.get(s.repository_id),
-                  previous_value: s.previous_value || 0,
-                  current_value: s.current_value,
-                  change_amount: s.change_amount,
-                  captured_at: s.captured_at,
-                };
-              });
-              setFullStarData(formattedStars);
-            }
-
-            const { data: forkHistory, error: forkError } = await supabase
-              .from('repository_metrics_history')
-              .select(
-                'id, repository_id, previous_value, current_value, change_amount, captured_at'
-              )
-              .in('repository_id', repoIds)
-              .eq('metric_type', 'forks')
-              .gte('captured_at', startDate.toISOString())
-              .gt('change_amount', 0)
-              .order('captured_at', { ascending: false });
-
-            if (forkError) {
-              console.error('Error fetching fork history:', forkError);
-              // Surface error to users
-              setError(
-                (prev) => prev || 'Failed to load fork metrics. Some data may be incomplete.'
-              );
-            }
-
-            if (forkHistory) {
-              // Create a Map for O(1) repository lookups instead of O(n) find operations
-              const repoMap = new Map(transformedRepos.map((repo) => [repo.id, repo.full_name]));
-
-              const formattedForks = (forkHistory as unknown[]).map((fork: unknown) => {
-                const f = fork as {
-                  id: string;
-                  repository_id: string;
-                  change_amount: number;
-                  current_value: number;
-                  previous_value?: number;
-                  captured_at: string;
-                };
-                return {
-                  id: `fork-${f.repository_id}-${f.captured_at}`,
-                  repository_id: f.repository_id,
-                  repository_name: repoMap.get(f.repository_id),
-                  previous_value: f.previous_value || 0,
-                  current_value: f.current_value,
-                  change_amount: f.change_amount,
-                  captured_at: f.captured_at,
-                };
-              });
-              setFullForkData(formattedForks);
-            }
+            // Format fork events
+            const formattedForks = allForkEvents.map((event) => {
+              const payload = event.payload as { actor?: { login: string; avatar_url: string } };
+              return {
+                id: event.event_id,
+                event_type: 'fork' as const,
+                actor_login: event.actor_login,
+                actor_avatar:
+                  payload?.actor?.avatar_url ||
+                  (event.actor_login
+                    ? `https://avatars.githubusercontent.com/${event.actor_login}`
+                    : getFallbackAvatar()),
+                repository_name: `${event.repository_owner}/${event.repository_name}`,
+                captured_at: event.created_at,
+              };
+            });
+            setFullForkData(formattedForks);
           }
         }
 
