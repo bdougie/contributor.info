@@ -10,7 +10,7 @@ import { WorkspaceOnboarding } from '@/components/features/workspace/WorkspaceOn
 import { WorkspaceCreateModal } from '@/components/features/workspace/WorkspaceCreateModal';
 import { WorkspaceListFallback } from '@/components/ui/workspace-list-fallback';
 import { useAuth } from '@/hooks/use-auth';
-import { useUserWorkspaces } from '@/hooks/use-user-workspaces';
+import { useWorkspaceContext } from '@/contexts/WorkspaceContext';
 import { useAnalytics } from '@/hooks/use-analytics';
 import type { GitHubRepository } from '@/lib/github';
 
@@ -21,10 +21,10 @@ export default function Home() {
   const { isLoggedIn, loading: authLoading } = useAuth();
   const {
     workspaces,
-    loading: workspaceLoading,
+    isLoading: workspaceLoading,
     error: workspaceError,
-    refetch: refetchWorkspace,
-  } = useUserWorkspaces();
+    retry: refetchWorkspace,
+  } = useWorkspaceContext();
   const hasWorkspaces = workspaces.length > 0;
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const {
@@ -56,7 +56,7 @@ export default function Home() {
   const handleCreateWorkspaceSuccess = async () => {
     trackWorkspaceCreated('home');
     // Refetch workspace data after creation
-    await refetchWorkspace();
+    refetchWorkspace();
   };
 
   return (

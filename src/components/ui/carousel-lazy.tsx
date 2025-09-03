@@ -22,11 +22,16 @@ export default function CarouselLazy({ workspaces }: CarouselLazyProps) {
   useEffect(() => {
     if (!carouselApi) return;
 
-    setCurrent(carouselApi.selectedScrollSnap() + 1);
-
-    carouselApi.on('select', () => {
+    const handleSelect = () => {
       setCurrent(carouselApi.selectedScrollSnap() + 1);
-    });
+    };
+
+    setCurrent(carouselApi.selectedScrollSnap() + 1);
+    carouselApi.on('select', handleSelect);
+
+    return () => {
+      carouselApi.off('select', handleSelect);
+    };
   }, [carouselApi]);
 
   const scrollTo = useCallback(
