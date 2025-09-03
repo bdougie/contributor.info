@@ -1846,11 +1846,19 @@ function WorkspaceActivity({
   );
 }
 
-function WorkspaceSettings({ workspace }: { workspace: Workspace }) {
+function WorkspaceSettings({
+  workspace,
+  onWorkspaceUpdate,
+}: {
+  workspace: Workspace;
+  onWorkspaceUpdate: (updates: Partial<Workspace>) => void;
+}) {
   const [isEditingName, setIsEditingName] = useState(false);
   const [isEditingSlug, setIsEditingSlug] = useState(false);
+  const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [workspaceName, setWorkspaceName] = useState(workspace.name);
   const [workspaceSlug, setWorkspaceSlug] = useState(workspace.slug);
+  const [workspaceDescription, setWorkspaceDescription] = useState(workspace.description || '');
   const [isSaving, setIsSaving] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [slugError, setSlugError] = useState<string | null>(null);
@@ -1893,10 +1901,11 @@ function WorkspaceSettings({ workspace }: { workspace: Workspace }) {
 
       if (error) throw error;
 
+      // Update the workspace state immediately
+      onWorkspaceUpdate({ name: workspaceName.trim() });
+
       toast.success('Workspace name updated successfully');
       setIsEditingName(false);
-      // Reload the page to reflect the changes
-      window.location.reload();
     } catch (error) {
       console.error('Failed to update workspace name:', error);
       toast.error('Failed to update workspace name');
@@ -1963,6 +1972,9 @@ function WorkspaceSettings({ workspace }: { workspace: Workspace }) {
         return;
       }
 
+      // Update the workspace state immediately
+      onWorkspaceUpdate({ slug: formattedSlug });
+
       toast.success('Workspace slug updated successfully. Redirecting to new URL...');
       setIsEditingSlug(false);
 
@@ -1987,6 +1999,41 @@ function WorkspaceSettings({ workspace }: { workspace: Workspace }) {
     setWorkspaceSlug(workspace.slug);
     setIsEditingSlug(false);
     setSlugError(null);
+  };
+
+  const handleSaveDescription = async () => {
+    const trimmedDescription = workspaceDescription.trim();
+
+    if (trimmedDescription.length > 500) {
+      toast.error('Description cannot exceed 500 characters');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('workspaces')
+        .update({ description: trimmedDescription || null })
+        .eq('id', workspace.id);
+
+      if (error) throw error;
+
+      // Update the workspace state immediately
+      onWorkspaceUpdate({ description: trimmedDescription || null });
+
+      toast.success('Workspace description updated successfully');
+      setIsEditingDescription(false);
+    } catch (error) {
+      console.error('Failed to update workspace description:', error);
+      toast.error('Failed to update workspace description');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancelDescription = () => {
+    setWorkspaceDescription(workspace.description || '');
+    setIsEditingDescription(false);
   };
 
   const handleCopy = async (value: string, field: string) => {
@@ -2128,6 +2175,75 @@ function WorkspaceSettings({ workspace }: { workspace: Workspace }) {
                 Preview: /i/{formatSlug(workspaceSlug) || 'workspace-slug'}
               </p>
             )}
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-foreground">Description</label>
+            <div className="mt-2">
+              {isEditingDescription ? (
+                <div className="space-y-2">
+                  <textarea
+                    value={workspaceDescription}
+                    onChange={(e) => setWorkspaceDescription(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-input bg-background rounded-md focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                    placeholder="Add a description to help others understand what this workspace is for"
+                    rows={3}
+                    maxLength={500}
+                    disabled={isSaving}
+                  />
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">
+                      {workspaceDescription.length}/500 characters
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Button onClick={handleSaveDescription} size="sm" disabled={isSaving}>
+                        {isSaving ? 'Saving...' : 'Save'}
+                      </Button>
+                      <Button
+                        onClick={handleCancelDescription}
+                        size="sm"
+                        variant="outline"
+                        disabled={isSaving}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  className="min-h-[60px] flex items-start gap-2 cursor-pointer hover:bg-muted/50 rounded px-2 py-2 transition-colors"
+                  onClick={() => setIsEditingDescription(true)}
+                  title="Click to edit"
+                >
+                  <div className="flex-1">
+                    {workspace.description ? (
+                      <p className="text-sm text-foreground leading-relaxed">
+                        {workspace.description}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic">
+                        Add a description to help others understand what this workspace is for
+                      </p>
+                    )}
+                  </div>
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="text-muted-foreground mt-0.5 flex-shrink-0"
+                  >
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  </svg>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="pt-4 border-t">
@@ -3036,6 +3152,12 @@ function WorkspacePage() {
     toast.info('Upgrade to Pro coming soon!');
   };
 
+  const handleWorkspaceUpdate = (updates: Partial<Workspace>) => {
+    if (workspace) {
+      setWorkspace((prev) => (prev ? { ...prev, ...updates } : prev));
+    }
+  };
+
   // Analytics functions disabled - will be implemented in issue #598
   /*
   // Generate analytics data from existing workspace data
@@ -3288,7 +3410,7 @@ function WorkspacePage() {
 
           <TabsContent value="settings" className="mt-6">
             <div className="container max-w-7xl mx-auto">
-              <WorkspaceSettings workspace={workspace} />
+              <WorkspaceSettings workspace={workspace} onWorkspaceUpdate={handleWorkspaceUpdate} />
             </div>
           </TabsContent>
         </Tabs>
