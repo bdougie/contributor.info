@@ -61,7 +61,7 @@ export const handler: Handler = async (event) => {
     console.error('[trigger-inngest-sync] Error:', error);
 
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    
+
     return {
       statusCode: 500,
       headers,

@@ -61,7 +61,7 @@ function getEnvVar(viteKey: string, serverKey?: string): string {
     }
 
     // 2. Try window.env (for runtime injection) - VITE_* keys only
-    const windowEnv = (window as any).env || {};
+    const windowEnv = (window as Window & { env?: Record<string, string> }).env || {};
     const windowValue = windowEnv[viteKey];
     if (typeof windowValue === 'string' && windowValue) {
       return windowValue;
