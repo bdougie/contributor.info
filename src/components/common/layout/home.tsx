@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ExampleRepos } from '../../features/repository';
@@ -8,23 +8,30 @@ import { GitHubSearchInput } from '@/components/ui/github-search-input';
 import { WorkspacePreviewCard } from '@/components/features/workspace/WorkspacePreviewCard';
 import { WorkspaceOnboarding } from '@/components/features/workspace/WorkspaceOnboarding';
 import { WorkspaceCreateModal } from '@/components/features/workspace/WorkspaceCreateModal';
+import { WorkspaceListFallback } from '@/components/ui/workspace-list-fallback';
 import { useAuth } from '@/hooks/use-auth';
-import { usePrimaryWorkspace } from '@/hooks/use-user-workspaces';
+import { useWorkspaceContext } from '@/contexts/WorkspaceContext';
 import { useAnalytics } from '@/hooks/use-analytics';
 import type { GitHubRepository } from '@/lib/github';
+
+const CarouselLazy = lazy(() => import('@/components/ui/carousel-lazy'));
 
 export default function Home() {
   const navigate = useNavigate();
   const { isLoggedIn, loading: authLoading } = useAuth();
   const {
-    workspace,
-    hasWorkspace,
-    loading: workspaceLoading,
+    workspaces,
+    isLoading: workspaceLoading,
     error: workspaceError,
-    refetch: refetchWorkspace,
-  } = usePrimaryWorkspace();
+    retry: refetchWorkspace,
+  } = useWorkspaceContext();
+  const hasWorkspaces = workspaces.length > 0;
   const [createModalOpen, setCreateModalOpen] = useState(false);
-  const { trackRepositorySearchInitiated, trackRepositorySelectedFromSearch, trackWorkspaceCreated } = useAnalytics();
+  const {
+    trackRepositorySearchInitiated,
+    trackRepositorySelectedFromSearch,
+    trackWorkspaceCreated,
+  } = useAnalytics();
 
   const handleSearch = (repositoryPath: string) => {
     trackRepositorySearchInitiated('homepage', repositoryPath.length);
@@ -49,7 +56,7 @@ export default function Home() {
   const handleCreateWorkspaceSuccess = async () => {
     trackWorkspaceCreated('home');
     // Refetch workspace data after creation
-    await refetchWorkspace();
+    refetchWorkspace();
   };
 
   return (
@@ -88,34 +95,54 @@ export default function Home() {
 
         {isLoggedIn && !authLoading && (
           <>
-            {workspaceLoading ? (
-              <WorkspacePreviewCard
-                workspace={{
-                  id: '',
-                  name: '',
-                  slug: '',
-                  owner: { id: '', avatar_url: '', display_name: '' },
-                  repository_count: 0,
-                  member_count: 0,
-                  repositories: [],
-                  created_at: '',
-                }}
-                loading={true}
-              />
-            ) : workspaceError ? (
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center py-8 space-y-4">
-                  <p className="text-sm text-muted-foreground">Failed to load workspace</p>
-                  <Button onClick={refetchWorkspace} variant="outline" size="sm">
-                    Retry
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : hasWorkspace && workspace ? (
-              <WorkspacePreviewCard workspace={workspace} />
-            ) : (
-              <WorkspaceOnboarding onCreateClick={() => setCreateModalOpen(true)} />
-            )}
+            {(() => {
+              if (workspaceLoading) {
+                return (
+                  <div className="flex gap-4 overflow-x-auto pb-2">
+                    <WorkspacePreviewCard
+                      workspace={{
+                        id: '',
+                        name: '',
+                        slug: '',
+                        owner: { id: '', avatar_url: '', display_name: '' },
+                        repository_count: 0,
+                        member_count: 0,
+                        repositories: [],
+                        created_at: '',
+                      }}
+                      loading={true}
+                    />
+                  </div>
+                );
+              }
+
+              if (workspaceError) {
+                return (
+                  <Card>
+                    <CardContent className="flex flex-col items-center justify-center py-8 space-y-4">
+                      <p className="text-sm text-muted-foreground">Failed to load workspaces</p>
+                      <Button onClick={refetchWorkspace} variant="outline" size="sm">
+                        Retry
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              }
+
+              if (!hasWorkspaces) {
+                return <WorkspaceOnboarding onCreateClick={() => setCreateModalOpen(true)} />;
+              }
+
+              if (workspaces.length === 1) {
+                return <WorkspacePreviewCard workspace={workspaces[0]} />;
+              }
+
+              return (
+                <Suspense fallback={<WorkspaceListFallback workspaces={workspaces} />}>
+                  <CarouselLazy workspaces={workspaces} />
+                </Suspense>
+              );
+            })()}
           </>
         )}
       </div>
