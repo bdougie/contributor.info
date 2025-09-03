@@ -68,7 +68,7 @@ export function UnifiedSyncButton({
         }, 3000);
       }
     }
-  }, [autoTriggerOnLoad, isLoggedIn, lastUpdated]);
+  }, [autoTriggerOnLoad, isLoggedIn, lastUpdated]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Calculate if manual sync is allowed based on last update time
   const canSync = () => {
@@ -141,9 +141,12 @@ export function UnifiedSyncButton({
           .select('id')
           .eq('owner', owner)
           .eq('name', repo)
-          .single();
+          .maybeSingle();
 
         if (repoError || !repoData) {
+          console.log(
+            `Repository ${owner}/${repo} not found in database, attempting to track it first`
+          );
           // Repository not in database, need to track it first
           const trackResponse = await fetch('/api/track-repository', {
             method: 'POST',
@@ -153,7 +156,11 @@ export function UnifiedSyncButton({
           });
 
           if (!trackResponse.ok) {
-            throw new Error('Failed to track repository');
+            const trackError = await trackResponse.text();
+            console.error('Failed to track repository:', trackError);
+            throw new Error(
+              `Failed to track repository: ${trackResponse.status} ${trackResponse.statusText}`
+            );
           }
 
           // Wait a moment for tracking to initialize
@@ -165,7 +172,7 @@ export function UnifiedSyncButton({
             .select('id')
             .eq('owner', owner)
             .eq('name', repo)
-            .single();
+            .maybeSingle();
 
           if (newRepoData) {
             repoId = newRepoData.id;
@@ -193,8 +200,13 @@ export function UnifiedSyncButton({
       })
         .then(async (response) => {
           if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-            console.error('gh-datapipe trigger failed:', errorData.message);
+            const errorText = await response.text().catch(() => 'Unknown error');
+            console.error(
+              'gh-datapipe trigger failed:',
+              response.status,
+              response.statusText,
+              errorText
+            );
             // Don't throw - we want to continue even if gh-datapipe fails
             return null;
           }
@@ -213,6 +225,7 @@ export function UnifiedSyncButton({
       syncPromises.push(ghDatapipePromise);
 
       // 2. Trigger Inngest sync for immediate processing
+      // Try client-side first, then fallback to server-side if that fails
       const inngestPromise = inngest
         .send({
           name: 'capture/repository.sync.graphql',
@@ -225,10 +238,40 @@ export function UnifiedSyncButton({
             triggeredBy: isAutomatic ? 'auto_page_load' : 'user_manual_sync',
           },
         })
-        .catch((err) => {
-          console.error('Inngest trigger error:', err);
-          // Don't throw - we want to continue even if Inngest fails
-          return null;
+        .then((result) => {
+          console.log('Inngest direct client job started:', result);
+          return result;
+        })
+        .catch(async (err) => {
+          console.warn('Inngest direct client failed, trying server-side fallback:', err.message);
+
+          // Fallback to server-side Inngest trigger
+          try {
+            const serverResponse = await fetch('/api/trigger-inngest-sync', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                repositoryId: repoId,
+                repositoryName: `${owner}/${repo}`,
+                days: 7,
+                priority: 'critical',
+                reason: isAutomatic ? 'auto' : 'manual',
+                triggeredBy: isAutomatic ? 'auto_page_load' : 'user_manual_sync',
+              }),
+            });
+
+            if (serverResponse.ok) {
+              const result = await serverResponse.json();
+              console.log('Inngest server-side fallback job started:', result);
+              return result;
+            } else {
+              console.error('Server-side Inngest fallback also failed:', serverResponse.status);
+              return null;
+            }
+          } catch (serverErr) {
+            console.error('Server-side Inngest fallback error:', serverErr);
+            return null;
+          }
         });
 
       syncPromises.push(inngestPromise);
@@ -248,7 +291,7 @@ export function UnifiedSyncButton({
           '• Service maintenance',
           '• Browser security restrictions',
           '',
-          'Please try again in a few minutes or contact support if this persists.'
+          'Please try again in a few minutes or contact support if this persists.',
         ].join('\n');
         throw new Error(errorDetails);
       }
@@ -257,19 +300,20 @@ export function UnifiedSyncButton({
       if (!isAutomatic) {
         const successMethods = [];
         const failedMethods = [];
-        
+
         if (ghDatapipeResult) successMethods.push('GitHub data pipeline');
         else failedMethods.push('GitHub data pipeline');
-        
+
         if (inngestResult) successMethods.push('Background processor');
         else failedMethods.push('Background processor');
-        
-        let description = 'Data will be refreshed in 1-2 minutes. The page will update automatically.';
-        
+
+        let description =
+          'Data will be refreshed in 1-2 minutes. The page will update automatically.';
+
         if (failedMethods.length > 0) {
           description = `${successMethods.join(' and ')} initiated successfully. ${failedMethods.join(' and ')} failed but sync will continue.`;
         }
-        
+
         toast.success('Sync initiated!', {
           description,
           duration: 8000,
@@ -318,7 +362,7 @@ export function UnifiedSyncButton({
           .from('repositories')
           .select('last_updated_at')
           .eq('id', repoId)
-          .single();
+          .maybeSingle();
 
         if (repoData) {
           const updateTime = new Date(repoData.last_updated_at);
@@ -366,15 +410,21 @@ export function UnifiedSyncButton({
     }, POLLING_CONFIG.interval);
   };
 
+  const getButtonIcon = () => {
+    const iconClass = showLabel ? 'mr-2 h-4 w-4' : 'h-4 w-4';
+
+    if (isSyncing) {
+      return <Loader2 className={`${iconClass} animate-spin`} />;
+    }
+    if (isLoggedIn) {
+      return <RefreshCw className={iconClass} />;
+    }
+    return <Lock className={iconClass} />;
+  };
+
   const buttonContent = (
     <>
-      {isSyncing ? (
-        <Loader2 className={showLabel ? 'mr-2 h-4 w-4 animate-spin' : 'h-4 w-4 animate-spin'} />
-      ) : isLoggedIn ? (
-        <RefreshCw className={showLabel ? 'mr-2 h-4 w-4' : 'h-4 w-4'} />
-      ) : (
-        <Lock className={showLabel ? 'mr-2 h-4 w-4' : 'h-4 w-4'} />
-      )}
+      {getButtonIcon()}
       {showLabel && <span>{getSyncButtonText(isSyncing, isLoggedIn)}</span>}
     </>
   );

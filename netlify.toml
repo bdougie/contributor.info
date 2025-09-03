@@ -178,6 +178,12 @@
   status = 200
   force = true
 
+[[redirects]]
+  from = "/api/trigger-inngest-sync"
+  to = "/.netlify/functions/trigger-inngest-sync"
+  status = 200
+  force = true
+
 # Headers for proper MIME types and caching
 # Note: Some headers are also in public/_headers, but these are kept for compatibility
 

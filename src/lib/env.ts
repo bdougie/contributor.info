@@ -61,7 +61,7 @@ function getEnvVar(viteKey: string, serverKey?: string): string {
     }
 
     // 2. Try window.env (for runtime injection) - VITE_* keys only
-    const windowEnv = (window as any).env || {};
+    const windowEnv = (window as Window & { env?: Record<string, string> }).env || {};
     const windowValue = windowEnv[viteKey];
     if (typeof windowValue === 'string' && windowValue) {
       return windowValue;
@@ -108,6 +108,7 @@ export const env = {
 
   // Inngest configuration
   INNGEST_APP_ID: getEnvVar('VITE_INNGEST_APP_ID') || 'contributor-info',
+  VITE_INNGEST_EVENT_KEY: getEnvVar('VITE_INNGEST_EVENT_KEY'),
 
   // Other public configuration
   OPENAI_API_KEY: getEnvVar('VITE_OPENAI_API_KEY', 'OPENAI_API_KEY'),
