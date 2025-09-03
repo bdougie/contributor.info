@@ -72,6 +72,16 @@ export interface WorkspaceIssuesTableProps {
 
 const columnHelper = createColumnHelper<Issue>();
 
+function getSortIcon(sortDirection: false | 'asc' | 'desc', marginClass = 'ml-2') {
+  if (sortDirection === 'asc') {
+    return <ChevronUp className={`${marginClass} h-4 w-4`} />;
+  }
+  if (sortDirection === 'desc') {
+    return <ChevronDown className={`${marginClass} h-4 w-4`} />;
+  }
+  return <ChevronsUpDown className={`${marginClass} h-4 w-4`} />;
+}
+
 function getRelativeTime(date: string) {
   const now = new Date();
   const past = new Date(date);
@@ -109,13 +119,7 @@ export function WorkspaceIssuesTable({
               onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
             >
               State
-              {column.getIsSorted() === 'asc' ? (
-                <ChevronUp className="ml-2 h-4 w-4" />
-              ) : column.getIsSorted() === 'desc' ? (
-                <ChevronDown className="ml-2 h-4 w-4" />
-              ) : (
-                <ChevronsUpDown className="ml-2 h-4 w-4" />
-              )}
+              {getSortIcon(column.getIsSorted())}
             </Button>
           ),
           cell: ({ row }) => {
@@ -177,23 +181,20 @@ export function WorkspaceIssuesTable({
                 </TooltipProvider>
                 {issue.labels.length > 0 && (
                   <div className="flex gap-1 flex-wrap">
-                    {issue.labels.slice(0, 3).map((label) => (
-                      <Badge
-                        key={label.name}
-                        variant="secondary"
-                        className="text-xs"
-                        style={{
-                          backgroundColor: `#${label.color}20`,
-                          color: `#${label.color}`,
-                          borderColor: `#${label.color}40`,
-                        }}
-                      >
-                        {label.name}
-                      </Badge>
-                    ))}
-                    {issue.labels.length > 3 && (
+                    <Badge
+                      variant="secondary"
+                      className="text-xs"
+                      style={{
+                        backgroundColor: `#${issue.labels[0].color}20`,
+                        color: `#${issue.labels[0].color}`,
+                        borderColor: `#${issue.labels[0].color}40`,
+                      }}
+                    >
+                      {issue.labels[0].name}
+                    </Badge>
+                    {issue.labels.length > 1 && (
                       <Badge variant="secondary" className="text-xs">
-                        +{issue.labels.length - 3}
+                        +{issue.labels.length - 1}
                       </Badge>
                     )}
                   </div>
@@ -295,13 +296,7 @@ export function WorkspaceIssuesTable({
               onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
             >
               <MessageSquare className="h-4 w-4" />
-              {column.getIsSorted() === 'asc' ? (
-                <ChevronUp className="ml-1 h-4 w-4" />
-              ) : column.getIsSorted() === 'desc' ? (
-                <ChevronDown className="ml-1 h-4 w-4" />
-              ) : (
-                <ChevronsUpDown className="ml-1 h-4 w-4" />
-              )}
+              {getSortIcon(column.getIsSorted(), 'ml-1')}
             </Button>
           ),
           cell: ({ row }) => (
@@ -322,13 +317,7 @@ export function WorkspaceIssuesTable({
               onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
             >
               Created
-              {column.getIsSorted() === 'asc' ? (
-                <ChevronUp className="ml-2 h-4 w-4" />
-              ) : column.getIsSorted() === 'desc' ? (
-                <ChevronDown className="ml-2 h-4 w-4" />
-              ) : (
-                <ChevronsUpDown className="ml-2 h-4 w-4" />
-              )}
+              {getSortIcon(column.getIsSorted())}
             </Button>
           ),
           cell: ({ row }) => (
@@ -347,13 +336,7 @@ export function WorkspaceIssuesTable({
               onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
             >
               Updated
-              {column.getIsSorted() === 'asc' ? (
-                <ChevronUp className="ml-2 h-4 w-4" />
-              ) : column.getIsSorted() === 'desc' ? (
-                <ChevronDown className="ml-2 h-4 w-4" />
-              ) : (
-                <ChevronsUpDown className="ml-2 h-4 w-4" />
-              )}
+              {getSortIcon(column.getIsSorted())}
             </Button>
           ),
           cell: ({ row }) => (
