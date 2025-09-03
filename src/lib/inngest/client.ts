@@ -23,10 +23,17 @@ const isDevelopment = () => {
 
 // Get event key safely based on context
 const getEventKey = () => {
-  // In browser context, Inngest client only needs basic functionality
-  // Event key is only needed for sending events, which happens server-side
+  // In browser context, we need the production event key for sending events
   if (typeof window !== 'undefined') {
-    return 'browser-client'; // Placeholder for browser client
+    // Try to get a production event key from environment
+    const prodKey = env.VITE_INNGEST_EVENT_KEY;
+    if (prodKey) {
+      return prodKey;
+    }
+    
+    // Fall back to a placeholder, but warn that events won't work
+    console.warn('[Inngest] No production event key found for browser client. Event sending will fail.');
+    return 'browser-client-no-key';
   }
 
   // Server context - prefer production keys to match production endpoint
