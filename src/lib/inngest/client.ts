@@ -30,9 +30,11 @@ const getEventKey = () => {
     if (prodKey) {
       return prodKey;
     }
-    
+
     // Fall back to a placeholder, but warn that events won't work
-    console.warn('[Inngest] No production event key found for browser client. Event sending will fail.');
+    console.warn(
+      '[Inngest] No production event key found for browser client. Event sending will fail.'
+    );
     return 'browser-client-no-key';
   }
 
