@@ -138,8 +138,16 @@ export async function calculateIssueHealthMetrics(
         .sort((a, b) => a! - b!);
 
       if (resolutionTimes.length > 0) {
-        const medianIndex = Math.floor(resolutionTimes.length / 2);
-        halfLife = Math.round(resolutionTimes[medianIndex] || 0);
+        if (resolutionTimes.length % 2 === 0) {
+          // Even length: average the two middle elements
+          const mid1 = resolutionTimes[resolutionTimes.length / 2 - 1];
+          const mid2 = resolutionTimes[resolutionTimes.length / 2];
+          halfLife = Math.round((mid1 + mid2) / 2);
+        } else {
+          // Odd length: take the middle element
+          const medianIndex = Math.floor(resolutionTimes.length / 2);
+          halfLife = Math.round(resolutionTimes[medianIndex] || 0);
+        }
       }
     }
 
@@ -229,7 +237,7 @@ export async function calculateIssueActivityPatterns(
           commenter_id,
           created_at,
           comment_type,
-          contributors!comments_commenter_id_fkey (
+          contributors!fk_comments_commenter (
             username,
             avatar_url
           )
@@ -549,7 +557,6 @@ export async function calculateIssueTrendMetrics(
 
     const previousWeekStart = new Date();
     previousWeekStart.setDate(previousWeekStart.getDate() - 14);
-    previousWeekStart.setDate(previousWeekStart.getDate() - 7);
 
     // Get issue counts for current and previous weeks
     const [currentWeekIssues, previousWeekIssues] = await Promise.all([
