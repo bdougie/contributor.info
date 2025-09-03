@@ -32,6 +32,7 @@
     "lint": "eslint . --cache",
     "lint:fix": "eslint . --fix --cache",
     "lint:build": "eslint src/ --ext .ts,.tsx --ignore-pattern '**/__mocks__/**' --ignore-pattern '**/*.stories.*' --ignore-pattern '**/*.test.*' --ignore-pattern '**/stories/**' --max-warnings 10 --cache",
+    "verify:csp": "node scripts/verify-csp-hash.js",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "preview": "vite preview",
