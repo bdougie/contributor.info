@@ -18,6 +18,33 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
+// Mock the workspace context
+vi.mock('@/contexts/WorkspaceContext', () => ({
+  useWorkspaceContext: () => ({
+    workspaces: [],
+    isLoading: false,
+    error: null,
+    retry: vi.fn(),
+  }),
+}));
+
+// Mock auth hook
+vi.mock('@/hooks/use-auth', () => ({
+  useAuth: () => ({
+    isLoggedIn: false,
+    loading: false,
+  }),
+}));
+
+// Mock analytics hook
+vi.mock('@/hooks/use-analytics', () => ({
+  useAnalytics: () => ({
+    trackRepositorySearchInitiated: vi.fn(),
+    trackRepositorySelectedFromSearch: vi.fn(),
+    trackWorkspaceCreated: vi.fn(),
+  }),
+}));
+
 // Mock child components to isolate testing
 // Note: paths are relative to this test file, and must resolve to the same
 // module IDs Home imports ("../../features/repository" from home.tsx).
@@ -43,7 +70,7 @@ vi.mock('@/components/ui/github-search-input', () => ({
     buttonText,
   }: {
     onSearch: (path: string) => void;
-    onSelect: (repo: any) => void;
+    onSelect: (repo: { full_name: string }) => void;
     placeholder: string;
     buttonText: string;
   }) => (
@@ -61,6 +88,27 @@ vi.mock('@/components/ui/github-search-input', () => ({
       </button>
     </div>
   ),
+}));
+
+// Mock workspace components
+vi.mock('@/components/features/workspace/WorkspacePreviewCard', () => ({
+  WorkspacePreviewCard: () => <div data-testid="workspace-preview-card" />,
+}));
+
+vi.mock('@/components/features/workspace/WorkspaceOnboarding', () => ({
+  WorkspaceOnboarding: ({ onCreateClick }: { onCreateClick: () => void }) => (
+    <button onClick={onCreateClick} data-testid="workspace-onboarding">
+      Create Workspace
+    </button>
+  ),
+}));
+
+vi.mock('@/components/features/workspace/WorkspaceCreateModal', () => ({
+  WorkspaceCreateModal: () => <div data-testid="workspace-create-modal" />,
+}));
+
+vi.mock('@/components/ui/workspace-list-fallback', () => ({
+  WorkspaceListFallback: () => <div data-testid="workspace-list-fallback" />,
 }));
 
 function renderWithRouter(component: JSX.Element) {

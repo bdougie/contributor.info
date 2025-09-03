@@ -86,25 +86,32 @@ export function WorkspaceSwitcher({
     };
   }, []);
 
-  // Separate recent and other workspaces
+  // Separate recent and other workspaces, excluding the current workspace
   const { recentWorkspacesList, otherWorkspaces } = useMemo(() => {
     const recent = recentWorkspaces
       .map((id) => workspaces.find((w) => w.id === id))
-      .filter((w): w is Workspace => w !== undefined && w !== null)
+      .filter((w): w is Workspace => w !== undefined && w !== null && w.id !== activeWorkspace?.id)
       .slice(0, 5);
 
     const recentIds = new Set(recent.map((w) => w.id));
-    const others = workspaces.filter((w) => !recentIds.has(w.id));
+    const others = workspaces.filter((w) => !recentIds.has(w.id) && w.id !== activeWorkspace?.id);
 
     return {
       recentWorkspacesList: recent,
       otherWorkspaces: others,
     };
-  }, [workspaces, recentWorkspaces]);
+  }, [workspaces, recentWorkspaces, activeWorkspace]);
 
   const handleWorkspaceSelect = async (workspaceId: string): Promise<void> => {
     setOpen(false);
     await switchWorkspace(workspaceId);
+  };
+
+  const handleViewCurrentWorkspace = (): void => {
+    setOpen(false);
+    if (activeWorkspace) {
+      navigate(`/workspaces/${activeWorkspace.id}`);
+    }
   };
 
   const handleCreateWorkspace = (): void => {
@@ -182,14 +189,13 @@ export function WorkspaceSwitcher({
               <Package className="h-4 w-4" />
               {showFullName && (
                 <span className="truncate max-w-[200px]">
-                  {isLoading && !loadingTimeout
-                    ? 'Loading...'
-                    : error
-                      ? 'Error loading'
-                      : loadingTimeout
-                        ? 'Taking longer than usual...'
-                        : activeWorkspace?.name ||
-                          (workspaces.length > 0 ? 'Select Workspace' : 'No Workspaces')}
+                  {(() => {
+                    if (isLoading && !loadingTimeout) return 'Loading...';
+                    if (error) return 'Error loading';
+                    if (loadingTimeout) return 'Taking longer than usual...';
+                    if (activeWorkspace?.name) return activeWorkspace.name;
+                    return workspaces.length > 0 ? 'Select Workspace' : 'No Workspaces';
+                  })()}
                 </span>
               )}
             </div>
@@ -230,11 +236,25 @@ export function WorkspaceSwitcher({
           {activeWorkspace && (
             <>
               <DropdownMenuLabel className="font-normal">
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">Current Workspace</p>
-                  <p className="text-xs leading-none text-muted-foreground">
-                    {activeWorkspace.description || 'No description'}
-                  </p>
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">Current Workspace</p>
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {activeWorkspace.description || 'No description'}
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleViewCurrentWorkspace();
+                    }}
+                    className="h-7 px-2 text-xs"
+                  >
+                    View
+                  </Button>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
@@ -252,10 +272,7 @@ export function WorkspaceSwitcher({
                   <DropdownMenuItem
                     key={workspace.id}
                     onClick={() => handleWorkspaceSelect(workspace.id)}
-                    className={cn(
-                      'cursor-pointer',
-                      workspace.id === activeWorkspace?.id && 'bg-accent'
-                    )}
+                    className="cursor-pointer"
                   >
                     <div className="flex items-center justify-between w-full">
                       <div className="flex items-center gap-2 flex-1 min-w-0">
