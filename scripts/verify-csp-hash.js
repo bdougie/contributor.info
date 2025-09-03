@@ -18,7 +18,7 @@ const htmlPath = path.join(__dirname, '..', 'index.html');
 const html = fs.readFileSync(htmlPath, 'utf8');
 
 // Extract the theme detection script content
-const scriptMatch = html.match(/<script>([\s\S]*?)<\/script>/);
+const scriptMatch = html.match(/<script>([\s\S]*?)<\/script>/i);
 if (!scriptMatch) {
   console.error('❌ ERROR: Could not find inline script in index.html');
   process.exit(1);
