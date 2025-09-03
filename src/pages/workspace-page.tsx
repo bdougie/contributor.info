@@ -16,6 +16,7 @@ import {
 } from '@/components/features/workspace/WorkspaceIssuesTable';
 import { RepositoryFilter } from '@/components/features/workspace/RepositoryFilter';
 import { WorkspaceMetricsAndTrends } from '@/components/features/workspace/WorkspaceMetricsAndTrends';
+import { WorkspaceIssueMetricsAndTrends } from '@/components/features/workspace/WorkspaceIssueMetricsAndTrends';
 import {
   ContributorsList,
   type Contributor,
@@ -509,7 +510,7 @@ function WorkspacePRs({
 
   return (
     <div className="space-y-6">
-      {/* Metrics and Trends */}
+      {/* PR Metrics and Trends */}
       <WorkspaceMetricsAndTrends
         repositories={repositories}
         selectedRepositories={selectedRepositories}
@@ -538,9 +539,11 @@ interface IssueLabel {
 function WorkspaceIssues({
   repositories,
   selectedRepositories,
+  timeRange,
 }: {
   repositories: Repository[];
   selectedRepositories: string[];
+  timeRange: TimeRange;
 }) {
   const [issues, setIssues] = useState<Issue[]>([]);
   const [loading, setLoading] = useState(true);
@@ -708,12 +711,22 @@ function WorkspaceIssues({
   }
 
   return (
-    <WorkspaceIssuesTable
-      issues={issues}
-      loading={loading}
-      onIssueClick={handleIssueClick}
-      onRepositoryClick={handleRepositoryClick}
-    />
+    <div className="space-y-6">
+      {/* Issue Metrics and Trends */}
+      <WorkspaceIssueMetricsAndTrends
+        repositories={repositories}
+        selectedRepositories={selectedRepositories}
+        timeRange={timeRange}
+      />
+
+      {/* Issues Table */}
+      <WorkspaceIssuesTable
+        issues={issues}
+        loading={loading}
+        onIssueClick={handleIssueClick}
+        onRepositoryClick={handleRepositoryClick}
+      />
+    </div>
   );
 }
 
@@ -3340,6 +3353,7 @@ function WorkspacePage() {
             <WorkspaceIssues
               repositories={repositories}
               selectedRepositories={selectedRepositories}
+              timeRange={timeRange}
             />
           </TabsContent>
 
