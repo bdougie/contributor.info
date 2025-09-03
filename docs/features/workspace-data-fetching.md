@@ -12,6 +12,7 @@ The workspace data fetching feature enables automatic, tier-based data collectio
    - `workspace_tracked_repositories` - Join table linking workspaces to tracked repositories
    - `daily_activity_metrics` - Stores daily aggregated metrics for activity charts
    - `workspace_issues_cache` - Performance cache for workspace-level issue queries
+   - `github_events_cache` - Stores star and fork events for activity feeds
    - Tier management system with automatic limit enforcement
 
 2. **Data Fetching Layer**
@@ -53,6 +54,8 @@ CREATE TABLE workspace_tracked_repositories (
     fetch_commits BOOLEAN,
     fetch_reviews BOOLEAN,
     fetch_comments BOOLEAN,
+    fetch_stars BOOLEAN,
+    fetch_forks BOOLEAN,
     
     -- Tracking
     last_sync_at TIMESTAMPTZ,
@@ -90,6 +93,10 @@ CREATE TABLE daily_activity_metrics (
     -- Issue metrics
     issues_opened INTEGER,
     issues_closed INTEGER,
+    
+    -- Event metrics
+    stars_count INTEGER,
+    forks_count INTEGER,
     
     UNIQUE(repository_id, date)
 );
@@ -384,7 +391,9 @@ LIMIT 10;
 
 ## Related Documentation
 
+- [Workspace Events Activity Feed](/docs/features/workspace-events-activity-feed.md)
 - [PRD: Workspace Data Fetching](/tasks/prd-workspace-data-fetching.md)
 - [Migration README](/supabase/migrations/README_workspace_data_fetching.md)
 - [Issue #508: Workspace Data Requirements](https://github.com/bdougie/contributor.info/issues/508)
 - [Issue #457: Supabase Edge Functions Migration](https://github.com/bdougie/contributor.info/issues/457)
+- [Issue #657: Display star/fork events](https://github.com/bdougie/contributor.info/issues/657)
