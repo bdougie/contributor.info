@@ -3154,7 +3154,7 @@ function WorkspacePage() {
 
   const handleWorkspaceUpdate = (updates: Partial<Workspace>) => {
     if (workspace) {
-      setWorkspace({ ...workspace, ...updates });
+      setWorkspace((prev) => (prev ? { ...prev, ...updates } : prev));
     }
   };
 
