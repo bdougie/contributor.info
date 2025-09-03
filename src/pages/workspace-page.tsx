@@ -96,7 +96,8 @@ interface ActivityItem {
   };
   repository: string;
   created_at: string;
-  status: 'open' | 'merged' | 'closed' | 'approved' | 'changes_requested';
+  // Status is only relevant for PRs, issues, and reviews
+  status?: 'open' | 'merged' | 'closed' | 'approved' | 'changes_requested';
   url: string;
   metadata?: {
     additions?: number;
@@ -1604,7 +1605,7 @@ function WorkspaceActivity({
                 : '',
             },
             repository: comment.repository_name || 'Unknown Repository',
-            status: 'open' as ActivityItem['status'],
+            status: 'open',
             url: '#',
             metadata: {},
           })
@@ -1621,7 +1622,7 @@ function WorkspaceActivity({
               avatar_url: star.actor_avatar || `https://github.com/${star.actor_login}.png`,
             },
             repository: star.repository_name || 'Unknown Repository',
-            status: 'open' as ActivityItem['status'],
+            // No status for star events
             url: star.repository_name ? `https://github.com/${star.repository_name}` : '#',
             metadata: {},
           };
@@ -1638,7 +1639,7 @@ function WorkspaceActivity({
               avatar_url: fork.actor_avatar || `https://github.com/${fork.actor_login}.png`,
             },
             repository: fork.repository_name || 'Unknown Repository',
-            status: 'open' as ActivityItem['status'],
+            // No status for fork events
             url: fork.repository_name ? `https://github.com/${fork.repository_name}` : '#',
             metadata: {},
           };
