@@ -108,6 +108,7 @@ export const env = {
 
   // Inngest configuration
   INNGEST_APP_ID: getEnvVar('VITE_INNGEST_APP_ID') || 'contributor-info',
+  VITE_INNGEST_EVENT_KEY: getEnvVar('VITE_INNGEST_EVENT_KEY'),
 
   // Other public configuration
   OPENAI_API_KEY: getEnvVar('VITE_OPENAI_API_KEY', 'OPENAI_API_KEY'),
