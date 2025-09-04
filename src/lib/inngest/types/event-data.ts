@@ -35,6 +35,14 @@ export interface PRCommentsEventData {
   jobId?: string;
 }
 
+export interface IssueCommentsEventData {
+  repositoryId: string;
+  issueNumber: number;
+  issueId: string;
+  priority: 'critical' | 'high' | 'medium' | 'low';
+  jobId?: string;
+}
+
 /**
  * Helper function to validate repository sync event data
  */

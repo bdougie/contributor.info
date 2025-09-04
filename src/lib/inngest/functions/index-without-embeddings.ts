@@ -2,6 +2,8 @@
 export { capturePrDetails } from './capture-pr-details';
 export { capturePrReviews } from './capture-pr-reviews';
 export { capturePrComments } from './capture-pr-comments';
+export { captureIssueComments } from './capture-issue-comments';
+export { captureRepositoryIssues } from './capture-repository-issues';
 export { captureRepositorySync } from './capture-repository-sync';
 
 // GraphQL versions for improved efficiency

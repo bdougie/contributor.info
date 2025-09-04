@@ -1,5 +1,8 @@
 {
-  "*.{js,jsx,ts,tsx}": ["eslint --fix --cache --max-warnings=0", "prettier --write"],
+  "*.{js,jsx,ts,tsx}": [
+    "eslint --fix --cache --max-warnings=0 --no-warn-ignored",
+    "prettier --write"
+  ],
   "*.{json,yml,yaml}": ["prettier --write"],
   "*.{css,scss}": ["prettier --write"],
   "index.html": ["npm run verify:csp"],

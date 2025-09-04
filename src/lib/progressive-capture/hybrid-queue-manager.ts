@@ -19,7 +19,7 @@ export interface JobData {
   prNumbers?: number[];
   maxItems?: number;
   triggerSource?: 'manual' | 'scheduled' | 'automatic' | 'auto-fix';
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface HybridJob {
@@ -187,7 +187,7 @@ export class HybridQueueManager {
         .from('repositories')
         .select('first_tracked_at')
         .eq('id', repositoryId)
-        .single();
+        .maybeSingle();
 
       if (error || !repo?.first_tracked_at) {
         return false;
@@ -289,6 +289,46 @@ export class HybridQueueManager {
   }
 
   /**
+   * Helper method to send a single Inngest event
+   */
+  private async sendInngestEvent(
+    eventName: string,
+    eventData: unknown,
+    jobTracker: unknown
+  ): Promise<void> {
+    try {
+      // If we're in the browser, use the client-safe sendInngestEvent function
+      if (typeof window !== 'undefined') {
+        const { sendInngestEvent } = await import('../inngest/client-safe');
+        await sendInngestEvent({
+          name: eventName,
+          data: eventData,
+        });
+        console.log(
+          `[HybridQueue] Event ${eventName} queued successfully via client-safe API for`,
+          (eventData as { repositoryId?: string }).repositoryId
+        );
+      } else {
+        // Server-side: send directly to Inngest
+        await inngest.send({
+          name: eventName,
+          data: eventData,
+        });
+        console.log(
+          `[HybridQueue] Event ${eventName} sent successfully for`,
+          (eventData as { repositoryId?: string }).repositoryId
+        );
+      }
+    } catch (error) {
+      console.error(`[HybridQueue] Failed to send event ${eventName}:`, error);
+      (jobTracker as { failure?: (msg: string) => void })?.failure?.(
+        `Failed to send ${eventName}: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+      throw error;
+    }
+  }
+
+  /**
    * Queue job with Inngest for real-time processing
    */
   private async queueWithInngest(jobId: string, jobType: string, data: JobData): Promise<void> {
@@ -364,35 +404,24 @@ export class HybridQueueManager {
       throw new Error(`Event data missing repositoryId for job ${jobId}`);
     }
 
-    // If we're in the browser, use the client-safe sendInngestEvent function
-    if (typeof window !== 'undefined') {
-      // Import dynamically to avoid server-side issues
-      const { sendInngestEvent } = await import('../inngest/client-safe');
+    // Special handling for comments job - trigger both PR and issue comment capture
+    if (jobType === 'comments') {
+      // Send PR comments event with existing data
+      await this.sendInngestEvent('capture/pr.comments', eventData, jobTracker);
 
-      try {
-        await sendInngestEvent({
-          name: eventName,
-          data: eventData,
-        });
-
-        console.log(
-          '[HybridQueue] Event queued successfully via client-safe API for',
-          eventData.repositoryId
-        );
-      } catch (error) {
-        console.error('[HybridQueue] Failed to queue event via client-safe API:', error);
-        throw new Error(
-          `Failed to queue event: ${error instanceof Error ? error.message : 'Unknown error'}`
-        );
-      }
+      // Send repository issues discovery event to capture all issue comments
+      const issueEventData = {
+        repositoryId: eventData.repositoryId,
+        timeRange: 30, // Capture issues from last 30 days
+        priority: eventData.priority,
+        jobId: eventData.jobId,
+      };
+      await this.sendInngestEvent('capture/repository.issues', issueEventData, jobTracker);
       return;
     }
 
-    // Server-side: send directly to Inngest
-    await inngest.send({
-      name: eventName,
-      data: eventData,
-    });
+    // Send single event using helper method
+    await this.sendInngestEvent(eventName, eventData, jobTracker);
   }
 
   /**
@@ -453,7 +482,7 @@ export class HybridQueueManager {
    * Update job status in database
    */
   private async updateJobStatus(jobId: string, status: string, error?: string): Promise<void> {
-    const updates: any = { status };
+    const updates: Record<string, unknown> = { status };
 
     if (status === 'processing' && !updates.started_at) {
       updates.started_at = new Date().toISOString();

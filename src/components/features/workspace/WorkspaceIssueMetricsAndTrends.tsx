@@ -17,6 +17,7 @@ import { StaleIssuesCard } from '../activity/stale-issues-card';
 import { ActiveTriagerCard } from '../activity/active-triager-card';
 import { FirstRespondersCard } from '../activity/first-responders-card';
 import { RepeatReportersCard } from '../activity/repeat-reporters-card';
+import { IssueVolumeCalendarCard } from '../activity/issue-volume-calendar-card';
 
 interface WorkspaceIssueMetricsAndTrendsProps {
   repositories: Repository[];
@@ -339,9 +340,16 @@ export function WorkspaceIssueMetricsAndTrends({
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
               <IssueHalfLifeCard halfLife={0} loading={true} />
               <StaleIssuesCard staleCount={0} totalCount={0} loading={true} />
-              <div className="md:col-span-2">
-                <IssueTrendCard loading={true} />
-              </div>
+              <IssueVolumeCalendarCard
+                volumeData={{
+                  current: 0,
+                  previous: 0,
+                  change: 0,
+                  dailyIssues: [],
+                }}
+                loading={true}
+              />
+              <div></div> {/* Empty slot to maintain grid alignment */}
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
@@ -356,12 +364,38 @@ export function WorkspaceIssueMetricsAndTrends({
               />
               {(() => {
                 const issueVolumeTrend = trends.find((trend) => trend.metric === 'Issue Volume');
+                if (issueVolumeTrend) {
+                  return (
+                    <IssueVolumeCalendarCard
+                      volumeData={{
+                        current:
+                          typeof issueVolumeTrend.current === 'number'
+                            ? issueVolumeTrend.current
+                            : 0,
+                        previous:
+                          typeof issueVolumeTrend.previous === 'number'
+                            ? issueVolumeTrend.previous
+                            : 0,
+                        change: issueVolumeTrend.change,
+                        dailyIssues: issueVolumeTrend.dailyIssues || [],
+                      }}
+                      loading={loading}
+                    />
+                  );
+                }
                 return (
-                  <div className="md:col-span-2">
-                    <IssueTrendCard trend={issueVolumeTrend} loading={loading} />
-                  </div>
+                  <IssueVolumeCalendarCard
+                    volumeData={{
+                      current: 0,
+                      previous: 0,
+                      change: 0,
+                      dailyIssues: [],
+                    }}
+                    loading={loading}
+                  />
                 );
               })()}
+              <div></div> {/* Empty slot to maintain grid alignment */}
             </div>
           )}
         </section>

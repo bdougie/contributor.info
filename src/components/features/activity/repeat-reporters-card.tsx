@@ -32,7 +32,7 @@ export function RepeatReportersCard({ reporters, loading }: RepeatReportersCardP
           <h3 className="text-xs text-muted-foreground truncate">Repeat Reporters</h3>
         </div>
         <div className="mt-2">
-          <dd className="text-sm text-muted-foreground">Limited data</dd>
+          <p className="text-sm text-muted-foreground">Limited data</p>
           <a
             href="https://github.com/bdougie/contributor.info/issues/670"
             target="_blank"
