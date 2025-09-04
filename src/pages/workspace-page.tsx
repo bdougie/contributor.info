@@ -3285,41 +3285,39 @@ function WorkspacePage() {
       </div>
 
       {/* Tab Navigation */}
-      <div className="px-6 mt-6">
+      <div className="container max-w-7xl mx-auto px-6 mt-6">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-          <div className="container max-w-7xl mx-auto">
-            <TabsList className="grid w-full grid-cols-7 mb-6">
-              <TabsTrigger value="overview" className="flex items-center gap-2">
-                <Layout className="h-4 w-4" />
-                <span className="hidden sm:inline">Overview</span>
-              </TabsTrigger>
-              <TabsTrigger value="prs" className="flex items-center gap-2">
-                <GitPullRequest className="h-4 w-4" />
-                <span className="hidden sm:inline">PRs</span>
-              </TabsTrigger>
-              <TabsTrigger value="issues" className="flex items-center gap-2">
-                <AlertCircle className="h-4 w-4" />
-                <span className="hidden sm:inline">Issues</span>
-              </TabsTrigger>
-              <TabsTrigger value="contributors" className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                <span className="hidden sm:inline">Contributors</span>
-              </TabsTrigger>
-              {/* Analytics tab disabled - will be implemented in issue #598
+          <TabsList className="grid w-full grid-cols-7 mb-6">
+            <TabsTrigger value="overview" className="flex items-center gap-2">
+              <Layout className="h-4 w-4" />
+              <span className="hidden sm:inline">Overview</span>
+            </TabsTrigger>
+            <TabsTrigger value="prs" className="flex items-center gap-2">
+              <GitPullRequest className="h-4 w-4" />
+              <span className="hidden sm:inline">PRs</span>
+            </TabsTrigger>
+            <TabsTrigger value="issues" className="flex items-center gap-2">
+              <AlertCircle className="h-4 w-4" />
+              <span className="hidden sm:inline">Issues</span>
+            </TabsTrigger>
+            <TabsTrigger value="contributors" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              <span className="hidden sm:inline">Contributors</span>
+            </TabsTrigger>
+            {/* Analytics tab disabled - will be implemented in issue #598
               <TabsTrigger value="analytics" className="flex items-center gap-2">
                 <TrendingUp className="h-4 w-4" />
                 <span className="hidden sm:inline">Analytics</span>
               </TabsTrigger> */}
-              <TabsTrigger value="activity" className="flex items-center gap-2">
-                <Activity className="h-4 w-4" />
-                <span className="hidden sm:inline">Activity</span>
-              </TabsTrigger>
-              <TabsTrigger value="settings" className="flex items-center gap-2">
-                <Settings className="h-4 w-4" />
-                <span className="hidden sm:inline">Settings</span>
-              </TabsTrigger>
-            </TabsList>
-          </div>
+            <TabsTrigger value="activity" className="flex items-center gap-2">
+              <Activity className="h-4 w-4" />
+              <span className="hidden sm:inline">Activity</span>
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              <span className="hidden sm:inline">Settings</span>
+            </TabsTrigger>
+          </TabsList>
 
           <TabsContent value="overview" className="mt-6 space-y-4">
             <div className="container max-w-7xl mx-auto">
@@ -3342,27 +3340,33 @@ function WorkspacePage() {
           </TabsContent>
 
           <TabsContent value="prs" className="mt-6">
-            <WorkspacePRs
-              repositories={repositories}
-              selectedRepositories={selectedRepositories}
-              timeRange={timeRange}
-            />
+            <div className="container max-w-7xl mx-auto">
+              <WorkspacePRs
+                repositories={repositories}
+                selectedRepositories={selectedRepositories}
+                timeRange={timeRange}
+              />
+            </div>
           </TabsContent>
 
           <TabsContent value="issues" className="mt-6">
-            <WorkspaceIssues
-              repositories={repositories}
-              selectedRepositories={selectedRepositories}
-              timeRange={timeRange}
-            />
+            <div className="container max-w-7xl mx-auto">
+              <WorkspaceIssues
+                repositories={repositories}
+                selectedRepositories={selectedRepositories}
+                timeRange={timeRange}
+              />
+            </div>
           </TabsContent>
 
           <TabsContent value="contributors" className="mt-6">
-            <WorkspaceContributors
-              repositories={repositories}
-              selectedRepositories={selectedRepositories}
-              workspaceId={workspace.id}
-            />
+            <div className="container max-w-7xl mx-auto">
+              <WorkspaceContributors
+                repositories={repositories}
+                selectedRepositories={selectedRepositories}
+                workspaceId={workspace.id}
+              />
+            </div>
           </TabsContent>
 
           {/* Analytics tab content disabled - will be implemented in issue #598
