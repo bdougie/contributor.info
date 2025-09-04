@@ -356,7 +356,7 @@ export async function calculateIssueActivityPatterns(
     >();
 
     // Group issue comments by issue to find first responders
-    const commentsByIssue = new Map<string, unknown[]>();
+    const commentsByIssue = new Map<string, Record<string, unknown>[]>();
     (issueComments || []).forEach((comment) => {
       if (comment.issue_id) {
         if (!commentsByIssue.has(comment.issue_id)) {
@@ -370,7 +370,11 @@ export async function calculateIssueActivityPatterns(
     commentsByIssue.forEach((comments, issueId) => {
       // Sort comments by creation time to find first response
       const sortedComments = comments.sort(
-        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        (a: Record<string, unknown>, b: Record<string, unknown>) => {
+          const aTime = new Date(a.created_at as string).getTime();
+          const bTime = new Date(b.created_at as string).getTime();
+          return aTime - bTime;
+        }
       );
 
       // Find the issue to get its author
@@ -378,7 +382,7 @@ export async function calculateIssueActivityPatterns(
       if (!issue) return;
 
       // Find first comment from someone other than the issue author
-      const firstResponse = sortedComments.find((comment) => {
+      const firstResponse = sortedComments.find((comment: Record<string, unknown>) => {
         const contributor = comment.contributors as unknown as {
           id: string;
           username: string;

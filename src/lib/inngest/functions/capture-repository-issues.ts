@@ -110,11 +110,13 @@ export const captureRepositoryIssues = inngest.createFunction(
 
           // Filter out PRs (GitHub API returns both issues and PRs from issues endpoint)
           // Only include issues that have comments
-          const actualIssues = typedIssues.filter(
-            (issue: unknown) =>
-              !issue.pull_request && // Not a PR
-              issue.comments > 0 // Has comments to capture
-          ) as GitHubIssue[];
+          const actualIssues = typedIssues.filter((issue: unknown) => {
+            const typedIssue = issue as GitHubIssue;
+            return (
+              !typedIssue.pull_request && // Not a PR
+              typedIssue.comments > 0
+            ); // Has comments to capture
+          }) as GitHubIssue[];
 
           issues.push(...actualIssues);
 
@@ -210,8 +212,11 @@ export const captureRepositoryIssues = inngest.createFunction(
           .select('id')
           .maybeSingle();
 
-        if (error) {
-          console.warn(`Failed to upsert issue #${issue.number}:`, error.message);
+        if (error || !upsertedIssue) {
+          console.warn(
+            `Failed to upsert issue #${issue.number}:`,
+            error?.message || 'No data returned'
+          );
           continue;
         }
 

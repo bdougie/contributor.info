@@ -306,7 +306,7 @@ export class HybridQueueManager {
         });
         console.log(
           `[HybridQueue] Event ${eventName} queued successfully via client-safe API for`,
-          eventData.repositoryId
+          (eventData as { repositoryId?: string }).repositoryId
         );
       } else {
         // Server-side: send directly to Inngest
@@ -316,12 +316,12 @@ export class HybridQueueManager {
         });
         console.log(
           `[HybridQueue] Event ${eventName} sent successfully for`,
-          eventData.repositoryId
+          (eventData as { repositoryId?: string }).repositoryId
         );
       }
     } catch (error) {
       console.error(`[HybridQueue] Failed to send event ${eventName}:`, error);
-      jobTracker.failure(
+      (jobTracker as { failure?: (msg: string) => void })?.failure?.(
         `Failed to send ${eventName}: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
       throw error;
@@ -407,7 +407,7 @@ export class HybridQueueManager {
     // Special handling for comments job - trigger both PR and issue comment capture
     if (jobType === 'comments') {
       // Send PR comments event with existing data
-      await this.sendInngestEvent('capture/pr.comments', eventData, jobTracker, jobId);
+      await this.sendInngestEvent('capture/pr.comments', eventData, jobTracker);
 
       // Send repository issues discovery event to capture all issue comments
       const issueEventData = {
@@ -416,12 +416,12 @@ export class HybridQueueManager {
         priority: eventData.priority,
         jobId: eventData.jobId,
       };
-      await this.sendInngestEvent('capture/repository.issues', issueEventData, jobTracker, jobId);
+      await this.sendInngestEvent('capture/repository.issues', issueEventData, jobTracker);
       return;
     }
 
     // Send single event using helper method
-    await this.sendInngestEvent(eventName, eventData, jobTracker, jobId);
+    await this.sendInngestEvent(eventName, eventData, jobTracker);
   }
 
   /**
