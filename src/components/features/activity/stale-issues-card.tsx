@@ -1,4 +1,4 @@
-import { Clock, ExternalLink } from '@/components/ui/icon';
+import { Clock } from '@/components/ui/icon';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -27,15 +27,9 @@ export function StaleIssuesCard({ staleCount, totalCount, loading }: StaleIssues
         </div>
         <div className="mt-2">
           <p className="text-sm text-muted-foreground">Limited data</p>
-          <a
-            href="https://github.com/bdougie/contributor.info/issues/670"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600 mt-1"
-          >
-            <span>Enhance metrics</span>
-            <ExternalLink className="h-3 w-3" />
-          </a>
+          <p className="text-xs text-muted-foreground mt-1">
+            Issue comment data is being collected
+          </p>
         </div>
       </Card>
     );
@@ -49,15 +43,6 @@ export function StaleIssuesCard({ staleCount, totalCount, loading }: StaleIssues
       </div>
       <p className="text-2xl font-bold mt-2 truncate">{staleCount}</p>
       <p className="text-xs text-muted-foreground truncate">of {totalCount} total</p>
-      <a
-        href="https://github.com/bdougie/contributor.info/issues/670"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600 mt-1"
-      >
-        <span>Enhance accuracy</span>
-        <ExternalLink className="h-3 w-3" />
-      </a>
     </Card>
   );
 }

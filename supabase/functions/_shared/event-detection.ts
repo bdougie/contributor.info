@@ -197,6 +197,9 @@ export function detectPrivilegedEvent(event: GitHubEvent): PrivilegedEventDetect
       signals.push('commented_on_issue')
       if (detectionMethod === 'none') detectionMethod = 'user_engagement'
       // Note: Not setting totalConfidence as this is NOT a privileged action
+      
+      // Store issue comment for triager/first responder analysis
+      // This is handled in the webhook processing, not here in privilege detection
     }
   }
 

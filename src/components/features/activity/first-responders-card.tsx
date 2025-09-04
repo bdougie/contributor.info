@@ -1,4 +1,4 @@
-import { MessageCircle, Users, ExternalLink } from '@/components/ui/icon';
+import { MessageCircle, Users } from '@/components/ui/icon';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -32,16 +32,10 @@ export function FirstRespondersCard({ responders, loading }: FirstRespondersCard
           <h3 className="text-xs text-muted-foreground truncate">First Responders</h3>
         </div>
         <div className="mt-2">
-          <dd className="text-sm text-muted-foreground">Coming soon</dd>
-          <a
-            href="https://github.com/bdougie/contributor.info/issues/670"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600 mt-1"
-          >
-            <span>Add issue data</span>
-            <ExternalLink className="h-3 w-3" />
-          </a>
+          <p className="text-sm text-muted-foreground">No first responders found</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Issue responses will appear here when available
+          </p>
         </div>
       </Card>
     );

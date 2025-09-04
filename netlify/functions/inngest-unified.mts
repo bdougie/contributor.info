@@ -8,6 +8,8 @@ import {
   capturePrDetails,
   capturePrReviews,
   capturePrComments,
+  captureIssueComments,
+  captureRepositoryIssues,
   captureRepositorySync,
   capturePrDetailsGraphQL,
   captureRepositorySyncGraphQL,
@@ -122,6 +124,8 @@ const inngestHandler = serve({
     capturePrDetails,
     capturePrReviews,
     capturePrComments,
+    captureIssueComments,
+    captureRepositoryIssues,
     captureRepositorySync,
     // Classification functions
     classifySingleRepository,
@@ -149,6 +153,8 @@ const handler = async (req: Request, context: Context) => {
         { id: "capture-pr-details", event: "capture/pr.details" },
         { id: "capture-pr-reviews", event: "capture/pr.reviews" },
         { id: "capture-pr-comments", event: "capture/pr.comments" },
+        { id: "capture-issue-comments", event: "capture/issue.comments" },
+        { id: "capture-repository-issues", event: "capture/repository.issues" },
         { id: "capture-repository-sync", event: "capture/repository.sync" },
         { id: "classify-single-repository", event: "classify/repository.single" },
         { id: "classify-repository-size", event: "classify/repository.size" }
