@@ -176,8 +176,8 @@ export async function calculateTrendMetrics(
     const trends: TrendData[] = [
       {
         metric: `Daily PR Volume`,
-        current: Math.round(dailyPRVolumeCurrent * 10) / 10, // Round to 1 decimal
-        previous: Math.round(dailyPRVolumePrevious * 10) / 10,
+        current: Math.round(dailyPRVolumeCurrent), // Round to whole number
+        previous: Math.round(dailyPRVolumePrevious), // Round to whole number
         change: dailyVolumeChange,
         trend: getTrendDirection(dailyVolumeChange),
         icon: 'GitPullRequest',
