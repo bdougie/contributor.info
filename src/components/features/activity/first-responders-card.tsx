@@ -32,10 +32,10 @@ export function FirstRespondersCard({ responders, loading }: FirstRespondersCard
           <h3 className="text-xs text-muted-foreground truncate">First Responders</h3>
         </div>
         <div className="mt-2">
-          <dd className="text-sm text-muted-foreground">No first responders found</dd>
-          <dd className="text-xs text-muted-foreground mt-1">
+          <p className="text-sm text-muted-foreground">No first responders found</p>
+          <p className="text-xs text-muted-foreground mt-1">
             Issue responses will appear here when available
-          </dd>
+          </p>
         </div>
       </Card>
     );

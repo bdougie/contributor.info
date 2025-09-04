@@ -47,6 +47,17 @@ export const captureIssueComments = inngest.createFunction(
     const syncLogger = new SyncLogger();
     let apiCallsUsed = 0;
 
+    // Validate required parameters
+    if (!repositoryId) {
+      throw new NonRetriableError('Missing repositoryId parameter');
+    }
+    if (!issueNumber) {
+      throw new NonRetriableError('Missing issueNumber parameter');
+    }
+    if (!issueId) {
+      throw new NonRetriableError('Missing issueId parameter');
+    }
+
     // Step 0: Initialize sync log
     await step.run('init-sync-log', async () => {
       return await syncLogger.start('issue_comments', repositoryId, {
@@ -97,39 +108,34 @@ export const captureIssueComments = inngest.createFunction(
         for (const comment of issueCommentsData as GitHubIssueComment[]) {
           if (!comment.user) continue;
 
-          // Find or create the commenter in contributors table
-          const { data: existingContributor } = await supabase
+          // Find or create the commenter in contributors table using upsert for race condition safety
+          const { data: contributor, error: contributorError } = await supabase
             .from('contributors')
-            .select('id')
-            .eq('github_id', comment.user.id)
-            .maybeSingle();
-
-          let commenterId = existingContributor?.id;
-
-          if (!commenterId) {
-            // Create new contributor
-            const { data: newContributor, error: contributorError } = await supabase
-              .from('contributors')
-              .insert({
+            .upsert(
+              {
                 github_id: comment.user.id,
                 username: comment.user.login,
                 avatar_url: comment.user.avatar_url,
                 is_bot: comment.user.type === 'Bot' || comment.user.login.includes('[bot]'),
-              })
-              .select('id')
-              .maybeSingle();
+              },
+              {
+                onConflict: 'github_id',
+                ignoreDuplicates: false,
+              }
+            )
+            .select('id')
+            .maybeSingle();
 
-            if (contributorError || !newContributor) {
-              console.warn(
-                `Failed to create commenter ${comment.user.login}:`,
-                contributorError?.message || 'Unknown error'
-              );
-              failedContributorCreations++;
-              continue;
-            }
-
-            commenterId = newContributor.id;
+          if (contributorError || !contributor) {
+            console.warn(
+              `Failed to upsert commenter ${comment.user.login}:`,
+              contributorError?.message || 'Unknown error'
+            );
+            failedContributorCreations++;
+            continue;
           }
+
+          const commenterId = contributor.id;
 
           processedComments.push({
             github_id: comment.id.toString(),

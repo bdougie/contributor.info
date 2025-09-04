@@ -29,10 +29,10 @@ export function ActiveTriagerCard({ triager, loading }: ActiveTriagerCardProps) 
           <h3 className="text-xs text-muted-foreground truncate">Top Triager</h3>
         </div>
         <div className="mt-2">
-          <dd className="text-sm text-muted-foreground">No triager found</dd>
-          <dd className="text-xs text-muted-foreground mt-1">
+          <p className="text-sm text-muted-foreground">No triager found</p>
+          <p className="text-xs text-muted-foreground mt-1">
             PR and issue activity will appear here when available
-          </dd>
+          </p>
         </div>
       </Card>
     );
@@ -58,9 +58,7 @@ export function ActiveTriagerCard({ triager, loading }: ActiveTriagerCardProps) 
         <div className="flex items-center gap-1 mt-1">
           <Star className="h-3 w-3 text-yellow-500" aria-hidden="true" />
           <dt className="sr-only">Triage Count</dt>
-          <dd className="text-xs text-muted-foreground truncate">
-            {triager.triages} triaged issues
-          </dd>
+          <dd className="text-xs text-muted-foreground truncate">{triager.triages} triages</dd>
         </div>
       </dl>
     </Card>

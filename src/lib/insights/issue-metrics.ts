@@ -44,6 +44,7 @@ export interface IssueTrendData {
   trend: 'up' | 'down' | 'stable';
   unit?: string;
   insight?: string;
+  dailyIssues?: { date: string; count: number }[];
 }
 
 /**
@@ -602,6 +603,68 @@ async function calculateTimeToCloseBacklog(
 }
 
 /**
+ * Get daily issue counts for calendar visualization
+ */
+export async function getDailyIssueVolume(
+  owner: string,
+  repo: string,
+  days: number = 14
+): Promise<{ date: string; count: number }[]> {
+  return trackDatabaseOperation('getDailyIssueVolume', async () => {
+    // Get repository ID
+    const { data: repoData } = await supabase
+      .from('repositories')
+      .select('id')
+      .eq('owner', owner)
+      .eq('name', repo)
+      .maybeSingle();
+
+    if (!repoData) {
+      return [];
+    }
+
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    // Get issues created in the last N days
+    const { data: issues } = await supabase
+      .from('issues')
+      .select('created_at')
+      .eq('repository_id', repoData.id)
+      .gte('created_at', startDate.toISOString())
+      .order('created_at', { ascending: true });
+
+    if (!issues) {
+      return [];
+    }
+
+    // Group by date
+    const dailyCounts = new Map<string, number>();
+
+    // Initialize all days with 0
+    for (let i = 0; i < days; i++) {
+      const date = new Date();
+      date.setDate(date.getDate() - (days - 1 - i));
+      const dateStr = date.toISOString().split('T')[0];
+      dailyCounts.set(dateStr, 0);
+    }
+
+    // Count issues per day
+    issues.forEach((issue) => {
+      const dateStr = issue.created_at.split('T')[0];
+      const currentCount = dailyCounts.get(dateStr) || 0;
+      dailyCounts.set(dateStr, currentCount + 1);
+    });
+
+    // Convert to array format
+    return Array.from(dailyCounts.entries()).map(([date, count]) => ({
+      date,
+      count,
+    }));
+  });
+}
+
+/**
  * Calculate issue trend data for comparison across time periods
  */
 export async function calculateIssueTrendMetrics(
@@ -697,31 +760,27 @@ export async function calculateIssueTrendMetrics(
       insight,
     });
 
-    // Issue Volume Trend - Calculate new issues per week
+    // Issue Volume Trend - Calculate new issues per week with daily breakdown
     const currentWeekStart = new Date();
     currentWeekStart.setDate(currentWeekStart.getDate() - 7);
 
     const previousWeekStart = new Date();
     previousWeekStart.setDate(previousWeekStart.getDate() - 14);
 
-    // Get issue counts for current and previous weeks
-    const [currentWeekIssues, previousWeekIssues] = await Promise.all([
-      supabase
-        .from('issues')
-        .select('id')
-        .eq('repository_id', repoData.id)
-        .gte('created_at', currentWeekStart.toISOString()),
+    // Get daily issue counts for calendar visualization
+    const dailyIssues = await getDailyIssueVolume(owner, repo, 14);
 
-      supabase
-        .from('issues')
-        .select('id')
-        .eq('repository_id', repoData.id)
-        .gte('created_at', previousWeekStart.toISOString())
-        .lt('created_at', currentWeekStart.toISOString()),
-    ]);
+    // Calculate current and previous week totals from daily data
+    const currentWeekCount = dailyIssues
+      .filter((d) => new Date(d.date) >= currentWeekStart)
+      .reduce((sum, d) => sum + d.count, 0);
 
-    const currentWeekCount = currentWeekIssues?.data?.length || 0;
-    const previousWeekCount = previousWeekIssues?.data?.length || 0;
+    const previousWeekCount = dailyIssues
+      .filter((d) => {
+        const date = new Date(d.date);
+        return date >= previousWeekStart && date < currentWeekStart;
+      })
+      .reduce((sum, d) => sum + d.count, 0);
 
     const calculateVolumeChange = () => {
       if (previousWeekCount > 0) {
@@ -751,6 +810,8 @@ export async function calculateIssueTrendMetrics(
         }
         return 'Issue volume stable';
       })(),
+      // Add daily data for calendar visualization
+      dailyIssues: dailyIssues,
     });
 
     return trends;
