@@ -67,7 +67,8 @@ export interface GitHubComment {
 export interface DatabaseComment {
   github_id: string;
   repository_id: string;
-  pull_request_id: string;
+  pull_request_id?: string; // Now optional - null for issue comments
+  issue_id?: string; // New field for issue comments
   commenter_id?: string;
   body: string;
   created_at: string;

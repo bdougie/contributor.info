@@ -109,6 +109,30 @@ export function getOctokit() {
           );
           return { data };
         },
+        listForRepo: async (params: {
+          owner: string;
+          repo: string;
+          state?: 'open' | 'closed' | 'all';
+          since?: string;
+          per_page?: number;
+          page?: number;
+          sort?: 'created' | 'updated' | 'comments';
+          direction?: 'asc' | 'desc';
+        }) => {
+          const queryParams = new URLSearchParams();
+          if (params.state) queryParams.append('state', params.state);
+          if (params.since) queryParams.append('since', params.since);
+          if (params.per_page) queryParams.append('per_page', params.per_page.toString());
+          if (params.page) queryParams.append('page', params.page.toString());
+          if (params.sort) queryParams.append('sort', params.sort);
+          if (params.direction) queryParams.append('direction', params.direction);
+
+          const query = queryParams.toString();
+          const data = await makeGitHubRequest(
+            `/repos/${params.owner}/${params.repo}/issues${query ? `?${query}` : ''}`
+          );
+          return { data };
+        },
       },
     },
   };
