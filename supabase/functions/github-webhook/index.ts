@@ -17,6 +17,92 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-hub-signature-256',
 }
 
+// Process issue comment events for triager/first responder metrics
+async function processIssueCommentEvent(supabase: any, event: GitHubEvent, owner: string, name: string) {
+  try {
+    // Get repository and issue from database
+    const { data: repository } = await supabase
+      .from('repositories')
+      .select('id')
+      .eq('owner', owner)
+      .eq('name', name)
+      .maybeSingle()
+
+    if (!repository) {
+      console.log(`Repository ${owner}/${name} not found in database, skipping comment processing`)
+      return
+    }
+
+    const { data: issue } = await supabase
+      .from('issues')
+      .select('id')
+      .eq('github_id', event.payload.issue.id)
+      .eq('repository_id', repository.id)
+      .maybeSingle()
+
+    if (!issue) {
+      console.log(`Issue #${event.payload.issue.number} not found in database, skipping comment processing`)
+      return
+    }
+
+    // Get or create commenter
+    const commenter = event.payload.comment.user
+    if (!commenter) return
+
+    let commenterId: string | null = null
+    const { data: existingContributor } = await supabase
+      .from('contributors')
+      .select('id')
+      .eq('github_id', commenter.id)
+      .maybeSingle()
+
+    if (existingContributor) {
+      commenterId = existingContributor.id
+    } else {
+      // Create new contributor
+      const { data: newContributor } = await supabase
+        .from('contributors')
+        .insert({
+          github_id: commenter.id,
+          username: commenter.login,
+          avatar_url: commenter.avatar_url,
+          is_bot: commenter.type === 'Bot' || commenter.login.includes('[bot]'),
+        })
+        .select('id')
+        .maybeSingle()
+
+      commenterId = newContributor?.id || null
+    }
+
+    if (!commenterId) {
+      console.error(`Failed to get or create commenter ${commenter.login}`)
+      return
+    }
+
+    // Store the issue comment
+    const { error } = await supabase
+      .from('comments')
+      .insert({
+        github_id: event.payload.comment.id.toString(),
+        repository_id: repository.id,
+        issue_id: issue.id,
+        commenter_id: commenterId,
+        body: event.payload.comment.body,
+        created_at: event.payload.comment.created_at,
+        updated_at: event.payload.comment.updated_at,
+        comment_type: 'issue_comment',
+      })
+
+    if (error && !error.message.includes('duplicate')) {
+      console.error('Error storing issue comment:', error)
+    } else {
+      console.log(`Stored comment ${event.payload.comment.id} on issue #${event.payload.issue.number}`)
+    }
+  } catch (error) {
+    console.error('Error processing issue comment event:', error)
+  }
+}
+
 
 // Verify GitHub webhook signature
 async function verifyWebhookSignature(
@@ -102,6 +188,18 @@ serve(async (req) => {
     if (cacheError && !cacheError.message.includes('duplicate')) {
       console.error('Error caching event:', cacheError)
     }
+
+    // TODO: Process issue comment events for triager/first responder metrics
+    // Currently commented out as this webhook only works for contributor.info repo
+    // For tracked repositories, issue comments should be captured via progressive capture system
+    // See: https://github.com/bdougie/contributor.info/issues/263
+    /*
+    if (event.type === 'IssueCommentEvent' && 
+        event.payload.action === 'created' &&
+        !event.payload.issue?.pull_request) { // Only for actual issues, not PRs
+      await processIssueCommentEvent(supabase, event, owner, name)
+    }
+    */
 
     // Update contributor role if privileged event
     if (privilegedCheck.isPrivileged && !isBotAccount(event.actor.login)) {

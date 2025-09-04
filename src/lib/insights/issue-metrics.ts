@@ -107,23 +107,28 @@ export async function calculateIssueHealthMetrics(
     // Get all open issues with creation dates for age-based staleness
     const { data: allIssuesForStaleCheck } = await supabase
       .from('issues')
-      .select('id, state, created_at')
+      .select('id, github_id, number, state, created_at')
       .eq('repository_id', repoData.id)
       .eq('state', 'open');
 
-    // Check for issue comments (when available)
+    // Check for issue comments using the correct github_issue_comments table
     const { data: allIssueComments } = await supabase
-      .from('comments')
-      .select('issue_id, contributors (is_bot)')
-      .eq('repository_id', repoData.id)
-      .not('issue_id', 'is', null);
+      .from('github_issue_comments')
+      .select('issue_github_id, author_username, author_association')
+      .eq('repository_full_name', `${owner}/${repo}`);
 
-    // Create a set of issue IDs that have any non-bot comments
-    const issuesWithAnyComments = new Set<string>();
+    // Create a set of issue numbers that have any non-bot comments
+    // Note: issue_github_id in comments table actually refers to issue number, not github_id
+    const issuesWithAnyComments = new Set<number>();
     (allIssueComments || []).forEach((comment) => {
-      const contributor = comment.contributors as unknown as { is_bot: boolean };
-      if (comment.issue_id && contributor && !contributor.is_bot) {
-        issuesWithAnyComments.add(comment.issue_id);
+      if (
+        comment.issue_github_id &&
+        comment.author_username &&
+        !comment.author_username.includes('[bot]') &&
+        comment.author_association !== 'OWNER' &&
+        comment.author_association !== 'MEMBER'
+      ) {
+        issuesWithAnyComments.add(comment.issue_github_id);
       }
     });
 
@@ -137,7 +142,7 @@ export async function calculateIssueHealthMetrics(
     if (allIssuesForStaleCheck && allIssuesForStaleCheck.length > 0) {
       allIssuesForStaleCheck.forEach((issue) => {
         const issueAge = new Date(issue.created_at).getTime();
-        const hasComments = issuesWithAnyComments.has(issue.id);
+        const hasComments = issuesWithAnyComments.has(issue.number);
 
         // If issue is older than 7 days and has no comments, it's stale
         if (issueAge < sevenDaysAgo.getTime() && !hasComments) {
@@ -259,27 +264,20 @@ export async function calculateIssueActivityPatterns(
         .eq('repository_id', repoData.id)
         .gte('created_at', since.toISOString()),
 
-      // Get actual issue comments (not PR issue comments)
+      // Get actual issue comments using the correct github_issue_comments table
       supabase
-        .from('comments')
+        .from('github_issue_comments')
         .select(
           `
-          id,
-          issue_id,
-          commenter_id,
+          github_id,
+          issue_github_id,
+          author_username,
+          author_avatar_url,
           created_at,
-          comment_type,
-          contributors (
-            id,
-            username,
-            avatar_url,
-            is_bot
-          )
+          author_association
         `
         )
-        .eq('repository_id', repoData.id)
-        .not('issue_id', 'is', null)
-        .eq('comment_type', 'issue_comment')
+        .eq('repository_full_name', `${owner}/${repo}`)
         .gte('created_at', since.toISOString()),
 
       // Also get PR comments for comprehensive triager rankings
@@ -308,17 +306,38 @@ export async function calculateIssueActivityPatterns(
     // Debug logging
     console.log(`[DEBUG] Issue comments found: ${issueComments?.length || 0}`);
     console.log(`[DEBUG] PR comments found: ${prComments?.length || 0}`);
-    if (prComments && prComments.length > 0) {
-      console.log(`[DEBUG] Sample PR comment:`, prComments[0]);
+    if (issueComments && issueComments.length > 0) {
+      console.log(`[DEBUG] Sample issue comment:`, issueComments[0]);
     }
-
-    // Combine all comments for comprehensive triager analysis
-    const allComments = [...(issueComments || []), ...(prComments || [])];
 
     // Calculate most active triager (most comments across both PRs and issues)
     const triagerStats = new Map<string, { username: string; avatar_url: string; count: number }>();
 
-    allComments.forEach((comment) => {
+    // Process issue comments from github_issue_comments table
+    (issueComments || []).forEach((comment) => {
+      // Filter out Bot authors based on author_association
+      if (
+        comment.author_association !== 'OWNER' &&
+        comment.author_association !== 'MEMBER' &&
+        comment.author_username &&
+        !comment.author_username.includes('[bot]')
+      ) {
+        const key = comment.author_username;
+        const existing = triagerStats.get(key);
+        if (existing) {
+          existing.count++;
+        } else {
+          triagerStats.set(key, {
+            username: comment.author_username,
+            avatar_url: comment.author_avatar_url || '',
+            count: 1,
+          });
+        }
+      }
+    });
+
+    // Process PR comments from comments table
+    (prComments || []).forEach((comment) => {
       const contributor = comment.contributors as unknown as {
         id: string;
         username: string;
@@ -355,63 +374,73 @@ export async function calculateIssueActivityPatterns(
       { username: string; avatar_url: string; count: number }
     >();
 
-    // Group issue comments by issue to find first responders
-    const commentsByIssue = new Map<string, Record<string, unknown>[]>();
+    // Group issue comments by issue number to find first responders
+    // Note: issue_github_id in comments table actually refers to issue number, not github_id
+    const commentsByIssue = new Map<
+      number,
+      Array<{
+        github_id: number;
+        issue_github_id: number;
+        author_username: string;
+        author_avatar_url: string;
+        created_at: string;
+        author_association: string;
+      }>
+    >();
+
     (issueComments || []).forEach((comment) => {
-      if (comment.issue_id) {
-        if (!commentsByIssue.has(comment.issue_id)) {
-          commentsByIssue.set(comment.issue_id, []);
+      if (comment.issue_github_id) {
+        if (!commentsByIssue.has(comment.issue_github_id)) {
+          commentsByIssue.set(comment.issue_github_id, []);
         }
-        commentsByIssue.get(comment.issue_id)!.push(comment);
+        commentsByIssue.get(comment.issue_github_id)!.push(comment);
       }
     });
 
+    console.log(`[DEBUG] Comments grouped by ${commentsByIssue.size} issues`);
+
     // Find first responder for each issue
-    commentsByIssue.forEach((comments, issueId) => {
+    commentsByIssue.forEach((comments, issueNumber) => {
       // Sort comments by creation time to find first response
-      const sortedComments = comments.sort(
-        (a: Record<string, unknown>, b: Record<string, unknown>) => {
-          const aTime = new Date(a.created_at as string).getTime();
-          const bTime = new Date(b.created_at as string).getTime();
-          return aTime - bTime;
-        }
-      );
-
-      // Find the issue to get its author
-      const issue = issues?.find((i) => i.id === issueId);
-      if (!issue) return;
-
-      // Find first comment from someone other than the issue author
-      const firstResponse = sortedComments.find((comment: Record<string, unknown>) => {
-        const contributor = comment.contributors as unknown as {
-          id: string;
-          username: string;
-          avatar_url: string;
-          is_bot: boolean;
-        };
-        return contributor && !contributor.is_bot && contributor.id !== issue.author_id;
+      const sortedComments = comments.sort((a, b) => {
+        const aTime = new Date(a.created_at).getTime();
+        const bTime = new Date(b.created_at).getTime();
+        return aTime - bTime;
       });
 
-      if (firstResponse) {
-        const contributor = firstResponse.contributors as unknown as {
-          id: string;
-          username: string;
-          avatar_url: string;
-          is_bot: boolean;
-        };
-        const username = contributor.username;
+      // Find the issue to get its author by matching issue number
+      const issue = issues?.find((i) => i.number === issueNumber);
+      if (!issue) return;
+
+      const issueAuthor = issue.contributors as unknown as { username: string };
+
+      // Find first comment from someone other than the issue author (exclude bots too)
+      const firstResponse = sortedComments.find((comment) => {
+        return (
+          comment.author_username &&
+          !comment.author_username.includes('[bot]') &&
+          comment.author_association !== 'OWNER' &&
+          comment.author_association !== 'MEMBER' &&
+          comment.author_username !== issueAuthor?.username
+        );
+      });
+
+      if (firstResponse && firstResponse.author_username) {
+        const username = firstResponse.author_username;
         const existing = firstResponderStats.get(username);
         if (existing) {
           existing.count++;
         } else {
           firstResponderStats.set(username, {
-            username: contributor.username,
-            avatar_url: contributor.avatar_url || '',
+            username: firstResponse.author_username,
+            avatar_url: firstResponse.author_avatar_url || '',
             count: 1,
           });
         }
       }
     });
+
+    console.log(`[DEBUG] First responder stats size: ${firstResponderStats.size}`);
 
     const firstResponders = Array.from(firstResponderStats.values())
       .sort((a, b) => b.count - a.count)
