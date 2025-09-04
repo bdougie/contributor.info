@@ -159,127 +159,137 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
   }, [safeStats.pullRequests]);
 
   const getScatterData = () => {
-    // Sort by created_at and filter based on preferences
-    const filteredPRs = [...safeStats.pullRequests]
-      .filter((pr) => localIncludeBots || pr.user.type !== 'Bot')
-      .filter((pr) => {
-        if (statusFilter === 'all') return pr.state === 'open' || pr.merged_at !== null;
-        if (statusFilter === 'open') return pr.state === 'open';
-        if (statusFilter === 'closed') return pr.state === 'closed' && !pr.merged_at;
-        if (statusFilter === 'merged') return pr.merged_at !== null;
-        return true;
-      })
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    // Guard against undefined or null pullRequests
+    if (!safeStats?.pullRequests || !Array.isArray(safeStats.pullRequests)) {
+      return [];
+    }
 
-    // Group PRs by day to implement quarter-based staggering
-    const prsByDay = new Map<number, PullRequest[]>();
+    try {
+      // Sort by created_at and filter based on preferences
+      const filteredPRs = [...safeStats.pullRequests]
+        .filter((pr) => localIncludeBots || pr.user.type !== 'Bot')
+        .filter((pr) => {
+          if (statusFilter === 'all') return pr.state === 'open' || pr.merged_at !== null;
+          if (statusFilter === 'open') return pr.state === 'open';
+          if (statusFilter === 'closed') return pr.state === 'closed' && !pr.merged_at;
+          if (statusFilter === 'merged') return pr.merged_at !== null;
+          return true;
+        })
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-    // First pass: create base contribution data
-    const baseContributions: ContributionDataPoint[] = filteredPRs
-      .map((pr) => {
-        const daysAgo = Math.floor(
-          (new Date().getTime() - new Date(pr.created_at).getTime()) / (1000 * 60 * 60 * 24)
-        );
+      // Group PRs by day to implement quarter-based staggering
+      const prsByDay = new Map<number, PullRequest[]>();
 
-        // Skip PRs older than our limit
-        if (
-          (isMobile && daysAgo > mobileMaxDays) ||
-          (!isMobile && daysAgo > effectiveTimeRangeNumber)
-        ) {
-          return null;
+      // First pass: create base contribution data
+      const baseContributions: ContributionDataPoint[] = filteredPRs
+        .map((pr) => {
+          const daysAgo = Math.floor(
+            (new Date().getTime() - new Date(pr.created_at).getTime()) / (1000 * 60 * 60 * 24)
+          );
+
+          // Skip PRs older than our limit
+          if (
+            (isMobile && daysAgo > mobileMaxDays) ||
+            (!isMobile && daysAgo > effectiveTimeRangeNumber)
+          ) {
+            return null;
+          }
+
+          const linesTouched = pr.additions + pr.deletions;
+          // Use cached avatar URL with fallback to original
+          const cachedUrl = cachedAvatars.get(pr.user.id) || pr.user.avatar_url;
+          const avatarUrl = getAvatarUrl(pr.user.login, cachedUrl);
+
+          // Group PRs by day for staggering
+          if (!prsByDay.has(daysAgo)) {
+            prsByDay.set(daysAgo, []);
+          }
+          prsByDay.get(daysAgo)!.push(pr);
+
+          return {
+            x: daysAgo,
+            y: Math.max(linesTouched, 1), // Ensure minimum visibility of 1 line
+            id: `pr-${pr.id}`,
+            author: pr.user.login,
+            avatar: avatarUrl,
+            prNumber: pr.number,
+            prTitle: pr.title,
+            zIndex: 0, // Will be updated by processContributionVisualization
+            // showAsAvatar is optional and will be set by processContributionVisualization
+            _pr: pr, // Store full PR for hover card (not in interface but preserved)
+          } as ContributionDataPoint & { _pr: PullRequest };
+        })
+        .filter((item): item is ContributionDataPoint & { _pr: PullRequest } => item !== null);
+
+      // Apply staggering to x positions
+      const staggeredContributions = baseContributions.map((item) => {
+        const dayGroup = prsByDay.get(Math.floor(item.x)) || [];
+        const indexInDay = dayGroup.findIndex((pr) => `pr-${pr.id}` === item.id);
+        const dayGroupSize = dayGroup.length;
+
+        let xOffset = 0;
+        let yJitter = 0;
+
+        if (isMobile) {
+          // Dynamic staggering: more positions for dense days
+          const maxPositions = Math.min(dayGroupSize, 8); // Up to 8 positions per day
+          const staggerRange = 0.8; // Use 80% of day width for staggering
+
+          if (maxPositions > 1) {
+            // Distribute evenly across the stagger range
+            xOffset = (indexInDay / (maxPositions - 1)) * staggerRange;
+          }
+
+          // Add micro Y-jitter for very dense days (>4 PRs)
+          if (dayGroupSize > 4) {
+            const jitterAmount = Math.min(item.y * 0.03, 2); // Max 3% of y-value or 2 lines
+            yJitter = ((indexInDay % 3) - 1) * jitterAmount; // -1, 0, 1 pattern
+          }
         }
-
-        const linesTouched = pr.additions + pr.deletions;
-        // Use cached avatar URL with fallback to original
-        const cachedUrl = cachedAvatars.get(pr.user.id) || pr.user.avatar_url;
-        const avatarUrl = getAvatarUrl(pr.user.login, cachedUrl);
-
-        // Group PRs by day for staggering
-        if (!prsByDay.has(daysAgo)) {
-          prsByDay.set(daysAgo, []);
-        }
-        prsByDay.get(daysAgo)!.push(pr);
 
         return {
-          x: daysAgo,
-          y: Math.max(linesTouched, 1), // Ensure minimum visibility of 1 line
-          id: `pr-${pr.id}`,
-          author: pr.user.login,
-          avatar: avatarUrl,
-          prNumber: pr.number,
-          prTitle: pr.title,
-          zIndex: 0, // Will be updated by processContributionVisualization
-          // showAsAvatar is optional and will be set by processContributionVisualization
-          _pr: pr, // Store full PR for hover card (not in interface but preserved)
-        } as ContributionDataPoint & { _pr: PullRequest };
-      })
-      .filter((item): item is ContributionDataPoint & { _pr: PullRequest } => item !== null);
+          ...item,
+          x: item.x + xOffset,
+          y: Math.max(1, item.y + yJitter), // Ensure y >= 1
+        };
+      });
 
-    // Apply staggering to x positions
-    const staggeredContributions = baseContributions.map((item) => {
-      const dayGroup = prsByDay.get(Math.floor(item.x)) || [];
-      const indexInDay = dayGroup.findIndex((pr) => `pr-${pr.id}` === item.id);
-      const dayGroupSize = dayGroup.length;
-
-      let xOffset = 0;
-      let yJitter = 0;
-
-      if (isMobile) {
-        // Dynamic staggering: more positions for dense days
-        const maxPositions = Math.min(dayGroupSize, 8); // Up to 8 positions per day
-        const staggerRange = 0.8; // Use 80% of day width for staggering
-
-        if (maxPositions > 1) {
-          // Distribute evenly across the stagger range
-          xOffset = (indexInDay / (maxPositions - 1)) * staggerRange;
-        }
-
-        // Add micro Y-jitter for very dense days (>4 PRs)
-        if (dayGroupSize > 4) {
-          const jitterAmount = Math.min(item.y * 0.03, 2); // Max 3% of y-value or 2 lines
-          yJitter = ((indexInDay % 3) - 1) * jitterAmount; // -1, 0, 1 pattern
-        }
-      }
-
-      return {
-        ...item,
-        x: item.x + xOffset,
-        y: Math.max(1, item.y + yJitter), // Ensure y >= 1
+      // Process unique contributors using the utility function
+      const visualizationOptions = {
+        maxUniqueAvatars: isMobile ? 25 : 50,
+        avatarSize: isMobile ? 28 : 35,
+        graySquareSize: isMobile ? 17 : 21,
+        graySquareOpacity: 0.6,
       };
-    });
 
-    // Process unique contributors using the utility function
-    const visualizationOptions = {
-      maxUniqueAvatars: isMobile ? 25 : 50,
-      avatarSize: isMobile ? 28 : 35,
-      graySquareSize: isMobile ? 17 : 21,
-      graySquareOpacity: 0.6,
-    };
+      const { processedData: sortedContributions } = processContributionVisualization(
+        staggeredContributions,
+        visualizationOptions
+      );
 
-    const { processedData: sortedContributions } = processContributionVisualization(
-      staggeredContributions,
-      visualizationOptions
-    );
+      // Preserve the _pr property for hover cards
+      const staggeredData = sortedContributions.map((item) => ({
+        ...item,
+        contributor: item.author,
+        image: item.avatar,
+        showAvatar: item.showAsAvatar,
+        _pr: (
+          baseContributions.find((c) => c.id === item.id) as ContributionDataPoint & {
+            _pr: PullRequest;
+          }
+        )?._pr,
+      }));
 
-    // Preserve the _pr property for hover cards
-    const staggeredData = sortedContributions.map((item) => ({
-      ...item,
-      contributor: item.author,
-      image: item.avatar,
-      showAvatar: item.showAsAvatar,
-      _pr: (
-        baseContributions.find((c) => c.id === item.id) as ContributionDataPoint & {
-          _pr: PullRequest;
-        }
-      )?._pr,
-    }));
-
-    return [
-      {
-        id: 'pull-requests',
-        data: staggeredData,
-      },
-    ];
+      return [
+        {
+          id: 'pull-requests',
+          data: staggeredData,
+        },
+      ];
+    } catch (error) {
+      console.error('Error generating scatter plot data:', error);
+      return [];
+    }
   };
 
   // Detect Safari browser (SSR-safe)
@@ -717,7 +727,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
               >
                 <ResponsiveScatterPlot
                   nodeSize={isMobile ? 20 : 35}
-                  data={data}
+                  data={data || []}
                   margin={{
                     top: 20,
                     right: isMobile ? 30 : 60,
@@ -727,7 +737,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
                   xScale={{
                     type: 'linear',
                     min: 0,
-                    max: isMobile ? mobileMaxDays : effectiveTimeRangeNumber,
+                    max: Math.max(isMobile ? mobileMaxDays : effectiveTimeRangeNumber, 1),
                     reverse: true,
                   }}
                   yScale={{
@@ -745,33 +755,44 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
                   useMesh={!isMobile}
                   axisTop={null}
                   axisRight={null}
-                  axisBottom={{
-                    tickSize: 6,
-                    tickPadding: 4,
-                    tickRotation: 0,
-                    tickValues: isMobile ? 3 : 7,
-                    legend: isMobile ? 'Days Ago' : 'Date Created',
-                    legendPosition: 'middle',
-                    legendOffset: isMobile ? 35 : 50,
-                    format: (value) => {
-                      if (value === 0) return 'Today';
-                      if (value > effectiveTimeRangeNumber) return `${effectiveTimeRangeNumber}+`;
-                      return isMobile ? `${value}` : `${value} days ago`;
-                    },
-                  }}
+                  axisBottom={
+                    effectiveTimeRangeNumber > 0
+                      ? {
+                          tickSize: 6,
+                          tickPadding: 4,
+                          tickRotation: 0,
+                          tickValues: isMobile ? 3 : 7,
+                          legend: isMobile ? 'Days Ago' : 'Date Created',
+                          legendPosition: 'middle',
+                          legendOffset: isMobile ? 35 : 50,
+                          format: (value) => {
+                            if (value === 0) return 'Today';
+                            if (value > effectiveTimeRangeNumber)
+                              return `${effectiveTimeRangeNumber}+`;
+                            return isMobile ? `${value}` : `${value} days ago`;
+                          },
+                        }
+                      : null
+                  }
                   isInteractive={true}
-                  axisLeft={{
-                    tickSize: 2,
-                    tickPadding: 3,
-                    tickRotation: 0,
-                    tickValues: isMobile ? 3 : 5,
-                    legend: isMobile ? 'Lines' : 'Lines Touched',
-                    legendPosition: 'middle',
-                    legendOffset: isMobile ? -20 : -60,
-                    format: (value: number) => {
-                      return parseInt(`${value}`) >= 1000 ? humanizeNumber(value) : `${value}`;
-                    },
-                  }}
+                  axisLeft={
+                    maxFilesModified > 0
+                      ? {
+                          tickSize: 2,
+                          tickPadding: 3,
+                          tickRotation: 0,
+                          tickValues: isMobile ? 3 : 5,
+                          legend: isMobile ? 'Lines' : 'Lines Touched',
+                          legendPosition: 'middle',
+                          legendOffset: isMobile ? -20 : -60,
+                          format: (value: number) => {
+                            return parseInt(`${value}`) >= 1000
+                              ? humanizeNumber(value)
+                              : `${value}`;
+                          },
+                        }
+                      : null
+                  }
                   tooltip={({ node }) => {
                     const nodeData = node.data as CustomNodeData;
                     return (
