@@ -38,7 +38,7 @@ export default function PRActivity() {
     error: activityError,
   } = useCachedPRActivity(effectivePRs);
 
-  // Use combined activity hook to merge PR activities with star/fork events
+  // Use combined activity hook to merge PR activities (stars/forks disabled for repo view)
   const {
     activities: allActivities,
     loading: eventsLoading,
@@ -47,8 +47,8 @@ export default function PRActivity() {
     pullRequestActivities: prActivities,
     owner,
     repo,
-    includeStars: selectedTypes.includes('starred'),
-    includeForks: selectedTypes.includes('forked'),
+    includeStars: false, // Stars disabled for repo view - premium workspace feature only
+    includeForks: false, // Forks disabled for repo view - premium workspace feature only
   });
 
   // Combined loading state and error
@@ -132,26 +132,6 @@ export default function PRActivity() {
             />
             <Label htmlFor="filter-commented" className="text-sm">
               Commented
-            </Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="filter-starred"
-              checked={selectedTypes.includes('starred')}
-              onCheckedChange={() => toggleActivityType('starred')}
-            />
-            <Label htmlFor="filter-starred" className="text-sm">
-              ⭐ Starred
-            </Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="filter-forked"
-              checked={selectedTypes.includes('forked')}
-              onCheckedChange={() => toggleActivityType('forked')}
-            />
-            <Label htmlFor="filter-forked" className="text-sm">
-              🔱 Forked
             </Label>
           </div>
           {hasBots && (
