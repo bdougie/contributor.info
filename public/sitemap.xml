@@ -458,16 +458,16 @@
     <lastmod>2025-08-07T17:46:04.172Z</lastmod>
   </url>
   <url>
-    <loc>https://contributor.info/dlt-hub/dlt</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.7</priority>
-    <lastmod>2025-08-13T20:56:48.000Z</lastmod>
-  </url>
-  <url>
     <loc>https://contributor.info/analogjs/analog</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
     <lastmod>2025-07-06T00:26:40.340Z</lastmod>
+  </url>
+  <url>
+    <loc>https://contributor.info/dlt-hub/dlt</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+    <lastmod>2025-09-04T02:28:24.248Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/zulip/zulip</loc>
