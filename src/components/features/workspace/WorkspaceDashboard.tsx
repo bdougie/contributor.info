@@ -111,7 +111,7 @@ export function WorkspaceDashboard({
 
         <MetricCard
           title="Open PRs"
-          subtitle="Currently open"
+          subtitle="Last 30 days"
           value={metrics.totalPRs}
           description="Active development and contributions"
           icon={<GitPullRequest className="h-4 w-4" />}
@@ -126,7 +126,7 @@ export function WorkspaceDashboard({
 
         <MetricCard
           title="Open Issues"
-          subtitle="Currently open"
+          subtitle="Last 30 days"
           value={metrics.totalIssues || 0}
           description="Tasks and feature requests"
           icon={<AlertCircle className="h-4 w-4" />}
