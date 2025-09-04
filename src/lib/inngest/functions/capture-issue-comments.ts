@@ -23,6 +23,9 @@ interface GitHubIssueComment {
  * Captures issue comments using GitHub REST API
  * This is specifically for GitHub issues (not PRs), extending
  * triager and first responder metrics to include issue activity
+ *
+ * Note: Processes individual issues only. Repository-wide fetching
+ * was removed due to memory/performance concerns for large repos.
  */
 export const captureIssueComments = inngest.createFunction(
   {
@@ -40,16 +43,15 @@ export const captureIssueComments = inngest.createFunction(
   },
   { event: 'capture/issue.comments' },
   async ({ event, step }) => {
-    const { repositoryId, issueNumber, issueId, repositoryWide } = event.data;
+    const { repositoryId, issueNumber, issueId } = event.data;
     const syncLogger = new SyncLogger();
     let apiCallsUsed = 0;
 
     // Step 0: Initialize sync log
     await step.run('init-sync-log', async () => {
       return await syncLogger.start('issue_comments', repositoryId, {
-        issueNumber: repositoryWide ? 'all' : issueNumber,
-        issueId: repositoryWide ? 'all' : issueId,
-        repositoryWide: repositoryWide || false,
+        issueNumber: issueNumber,
+        issueId: issueId,
         source: 'inngest',
       });
     });
