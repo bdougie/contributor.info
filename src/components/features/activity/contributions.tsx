@@ -729,12 +729,15 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
                   : 'Enable enhanced view for logarithmic scale visualization.'}
               </span>
             </div>
+            {/* Visible helper copy specifically for the enhanced toggle */}
+            <div className="basis-full text-xs text-muted-foreground">
+              Enhanced mode uses a log scale for readability.
+            </div>
           </div>
         </div>
         {/* Interpretive helper text for first-time clarity */}
         <div className="text-xs text-muted-foreground w-full md:text-right">
-          Each dot is a pull request. X-axis: days ago. Y-axis: lines touched
-          {isLogarithmic ? ' (log scale enabled for readability).' : '.'}
+          Each dot is a pull request. X-axis: days ago. Y-axis: lines touched.
         </div>
       </div>
       <div className={`${isMobile ? 'h-[280px]' : 'h-[400px]'} w-full overflow-hidden relative`}>

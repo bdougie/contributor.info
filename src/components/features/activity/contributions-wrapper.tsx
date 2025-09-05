@@ -30,10 +30,10 @@ export default function ContributionsWrapper() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Pull Request Contributions</CardTitle>
+        <CardTitle>Contributor Distribution</CardTitle>
         <CardDescription>
-          Each dot is a PR. X-axis shows days ago; Y-axis shows lines touched. Enhanced mode uses a
-          log scale for readability.
+          This chart is a representation of 30 days of PR contributions based on size (Y axis) and
+          date (X axis).
         </CardDescription>
       </CardHeader>
       <CardContent className="p-6">
