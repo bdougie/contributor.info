@@ -11,6 +11,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TrendingRepositoryCard } from './TrendingRepositoryCard';
 import type { TrendingRepositoryData } from './TrendingRepositoryCard';
+import { TrendingEventsInsights } from './TrendingEventsInsights';
 import { TrendingUp, Zap, Sparkles, Calendar } from '@/components/ui/icon';
 
 export interface TrendingPageProps {
@@ -199,6 +200,19 @@ export function TrendingPage({ repositories, loading = false, className }: Trend
             </div>
 
             <TabsContent value={timePeriod} className="space-y-0">
+              {/* Trending Events Insights */}
+              {filteredRepos.length > 0 && (
+                <TrendingEventsInsights
+                  repositories={filteredRepos.map((repo) => ({
+                    full_name: `${repo.owner}/${repo.name}`,
+                    owner: repo.owner,
+                    name: repo.name,
+                    language: repo.language,
+                  }))}
+                  timeRange={timePeriod}
+                />
+              )}
+
               {filteredRepos.length === 0 ? (
                 <Card>
                   <CardContent className="flex items-center justify-center py-12">
