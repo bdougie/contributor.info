@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Link, TrendingUp } from '@/components/ui/icon';
+import { Link, TrendingUp, TrendingDown } from '@/components/ui/icon';
 import { toast } from 'sonner';
 import { PrCountCard } from '../activity/pr-count-card';
 import { AvgTimeCard } from '../activity/avg-time-card';
@@ -35,20 +35,35 @@ function TrendCard({ trend, loading = false }: { trend?: TrendData; loading?: bo
     );
   }
 
-  const getTrendIcon = (trendType: TrendData['trend'], change: number) => {
+  const getTrendIcon = (trendType: TrendData['trend'], change: number, metric: string) => {
     if (trendType === 'stable' || change === 0) return null;
 
     const isPositive = change > 0;
-    const Icon = TrendingUp;
-    const color = isPositive ? 'text-green-500' : 'text-red-500';
+    const Icon = isPositive ? TrendingUp : TrendingDown;
+    
+    // For metrics where lower is better (like review time), reverse the color logic
+    const isLowerBetter = metric === 'Avg Review Time';
+    let color;
+    if (isLowerBetter) {
+      color = isPositive ? 'text-red-500' : 'text-green-500';
+    } else {
+      color = isPositive ? 'text-green-500' : 'text-red-500';
+    }
 
-    return <Icon className={`h-4 w-4 ${color} ${!isPositive ? 'rotate-180' : ''}`} />;
+    return <Icon className={`h-4 w-4 ${color}`} />;
   };
 
-  const getTrendColor = (change: number) => {
-    if (change > 0) return 'text-green-500';
-    if (change < 0) return 'text-red-500';
-    return 'text-muted-foreground';
+  const getTrendColor = (change: number, metric: string) => {
+    if (change === 0) return 'text-muted-foreground';
+    
+    // For metrics where lower is better (like review time), reverse the color logic
+    const isLowerBetter = metric === 'Avg Review Time';
+    
+    if (change > 0) {
+      return isLowerBetter ? 'text-red-500' : 'text-green-500';
+    } else {
+      return isLowerBetter ? 'text-green-500' : 'text-red-500';
+    }
   };
 
   return (
@@ -63,9 +78,9 @@ function TrendCard({ trend, loading = false }: { trend?: TrendData; loading?: bo
             {trend.unit && <dd className="text-sm text-muted-foreground">{trend.unit}</dd>}
 
             <div className="flex items-center gap-1 ml-2">
-              {getTrendIcon(trend.trend, trend.change)}
+              {getTrendIcon(trend.trend, trend.change, trend.metric)}
               <dt className="sr-only">Change from previous period</dt>
-              <dd className={`text-sm font-medium ${getTrendColor(trend.change)}`}>
+              <dd className={`text-sm font-medium ${getTrendColor(trend.change, trend.metric)}`}>
                 {trend.change > 0 ? '+' : ''}
                 {trend.change}%
               </dd>
@@ -232,7 +247,7 @@ export function WorkspaceMetricsAndTrends({
           'Daily PR Volume',
           'Active Contributors',
           'Avg Review Time',
-          'PR Completion Rate',
+          'PRs Merged',
           'Review Activity',
           'Comment Activity',
         ];
