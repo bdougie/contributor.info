@@ -736,10 +736,6 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
             </div>
           </div>
         </div>
-        {/* Interpretive helper text for first-time clarity */}
-        <div className="text-xs text-muted-foreground w-full md:text-right">
-          Each dot is a pull request. X-axis: days ago. Y-axis: lines touched.
-        </div>
       </div>
       <div className={`${isMobile ? 'h-[280px]' : 'h-[400px]'} w-full overflow-hidden relative`}>
         <ProgressiveChart
