@@ -606,6 +606,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
                     <span
                       title="Maintainer"
                       aria-label="Maintainer"
+                      className="bg-green-500"
                       style={{
                         position: 'absolute',
                         top: -2,
@@ -613,7 +614,6 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
                         width: isMobile ? 10 : 12,
                         height: isMobile ? 10 : 12,
                         borderRadius: '9999px',
-                        backgroundColor: 'hsl(var(--primary))',
                         border: '1px solid hsl(var(--background))',
                         boxShadow: '0 0 0 1px hsl(var(--foreground) / 0.3)',
                       }}
