@@ -122,7 +122,7 @@ export async function calculateTrendMetrics(
         ? Math.round(((currentAvgReview - previousAvgReview) / previousAvgReview) * 100)
         : 0;
 
-    // Calculate PR Completion Rate
+    // Calculate PRs Merged
     const calculateCompletionRate = (prs: PullRequest[]) => {
       const merged = prs.filter((pr) => pr.merged_at).length;
       return prs.length > 0 ? (merged / prs.length) * 100 : 0;
