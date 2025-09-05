@@ -605,7 +605,8 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
                   {isMaintainer && (
                     <span
                       title="Maintainer"
-                      aria-label="Maintainer"
+                      aria-label={`${props.node.data.contributor} is a maintainer`}
+                      role="img"
                       className="bg-green-500"
                       style={{
                         position: 'absolute',
@@ -836,7 +837,8 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
                           <span className="font-medium">{nodeData.contributor}</span>
                         </div>
                         <div className="text-sm text-muted-foreground mt-1">
-                          {nodeData.x} days ago • {nodeData.y} lines touched
+                          {nodeData.x === 0 ? 'Today' : `${nodeData.x} days ago`} • {nodeData.y}{' '}
+                          lines touched
                         </div>
                       </div>
                     );
