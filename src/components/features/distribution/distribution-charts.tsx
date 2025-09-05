@@ -536,7 +536,7 @@ function DistributionCharts({
                       #{pr.number} - {pr.title}
                     </p>
                     <p className="text-xs text-muted-foreground truncate mb-1">
-                      {pr.user.login} · +{pr.additions} -{pr.deletions}
+                      {pr.user.login} · +{pr.additions} {pr.deletions * -1}
                     </p>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <div
@@ -596,7 +596,7 @@ function DistributionCharts({
                     #{pr.number} - {pr.title}
                   </p>
                   <p className="text-xs text-muted-foreground mb-1">
-                    {pr.user.login} · +{pr.additions} -{pr.deletions}
+                    {pr.user.login} · +{pr.additions} {pr.deletions * -1}
                   </p>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <div

@@ -202,7 +202,10 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
           if (!prsByDay.has(daysAgo)) {
             prsByDay.set(daysAgo, []);
           }
-          prsByDay.get(daysAgo)!.push(pr);
+          const dayGroup = prsByDay.get(daysAgo);
+          if (dayGroup) {
+            dayGroup.push(pr);
+          }
 
           return {
             x: daysAgo,
@@ -550,6 +553,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
                     role="button"
                     tabIndex={0}
                     aria-label={`Pull request #${props.node.data._pr.number} by ${props.node.data.contributor}`}
+                    aria-describedby={isMaintainer ? `maintainer-badge-${props.node.data._pr.id}` : undefined}
                     onClick={() => {
                       // Open PR in new tab on click
                       const prUrl =
@@ -585,7 +589,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
                           target.dataset.retried = 'true';
                           // Use avatars.githubusercontent.com which provides CORS headers
                           // Using user ID if available, otherwise a default avatar
-                          const userId = props.node!.data!._pr?.user?.id || 0;
+                          const userId = props.node?.data?._pr?.user?.id || 0;
                           target.src = `https://avatars.githubusercontent.com/u/${userId}?v=4`;
                         }
                       }}
@@ -604,6 +608,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
                   </Avatar>
                   {isMaintainer && (
                     <span
+                      id={`maintainer-badge-${props.node.data._pr.id}`}
                       title="Maintainer"
                       aria-label={`${props.node.data.contributor} is a maintainer`}
                       role="img"
