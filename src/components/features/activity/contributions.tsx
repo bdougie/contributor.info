@@ -39,8 +39,8 @@ import { useTimeRange } from '@/lib/time-range-store';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import type { PullRequest } from '@/lib/types';
 import { PrHoverCard } from '../contributor/pr-hover-card';
-import { useContributorRole } from '@/hooks/useContributorRoles';
 import { useParams } from 'react-router-dom';
+import { maintainerRolesCache } from '@/lib/maintainer-roles-cache';
 
 interface ContributionsChartProps {
   isRepositoryTracked?: boolean;
@@ -110,6 +110,15 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
   useEffect(() => {
     setLocalIncludeBots(contextIncludeBots);
   }, [contextIncludeBots]);
+
+  // Preload maintainer roles for performance
+  useEffect(() => {
+    if (owner && repo) {
+      maintainerRolesCache.getRoles(owner, repo).catch((error) => {
+        console.warn('Failed to preload maintainer roles:', error);
+      });
+    }
+  }, [owner, repo]);
 
   // Load cached avatars when PR data changes
   useEffect(() => {
@@ -302,18 +311,17 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
   // The data structure is validated at runtime with defensive checks
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const CustomNode = (props: any) => {
-    // Get the contributor's role first (must be called unconditionally)
-    const { role } = useContributorRole(
-      owner || '',
-      repo || '',
-      props?.node?.data?.contributor || ''
-    );
-
     // Defensive check for required props
     if (!props || !props.node || !props.node.data) {
       console.warn('CustomNode: Missing required props', props);
       return null;
     }
+
+    // Get maintainer status from cache (fast lookup)
+    const isMaintainer =
+      owner && repo && props.node.data.contributor
+        ? maintainerRolesCache.isMaintainer(owner, repo, props.node.data.contributor)
+        : false;
 
     const size = isMobile ? 28 : 35;
 
@@ -537,9 +545,15 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
           }}
         >
           {(() => {
-            const displayRole = getUserRole(role, { type: props.node.data._pr.user.type });
-            const isMaintainer =
-              typeof displayRole === 'string' && displayRole.toLowerCase() === 'maintainer';
+            // Get role from cache for display (fallback to user type if not cached)
+            const cachedRole =
+              owner && repo && props.node.data.contributor
+                ? maintainerRolesCache.getContributorRole(owner, repo, props.node.data.contributor)
+                : null;
+            const displayRole = cachedRole
+              ? getUserRole({ role: cachedRole.role }, { type: props.node.data._pr.user.type })
+              : getUserRole(undefined, { type: props.node.data._pr.user.type });
+
             return (
               <PrHoverCard pullRequest={props.node.data._pr} role={displayRole}>
                 <div style={{ position: 'relative', display: 'inline-block' }}>
@@ -553,7 +567,9 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
                     role="button"
                     tabIndex={0}
                     aria-label={`Pull request #${props.node.data._pr.number} by ${props.node.data.contributor}`}
-                    aria-describedby={isMaintainer ? `maintainer-badge-${props.node.data._pr.id}` : undefined}
+                    aria-describedby={
+                      isMaintainer ? `maintainer-badge-${props.node.data._pr.id}` : undefined
+                    }
                     onClick={() => {
                       // Open PR in new tab on click
                       const prUrl =
