@@ -8,7 +8,9 @@
 CREATE OR REPLACE FUNCTION get_workspace_repository_event_summaries(
   p_workspace_id UUID,
   p_start_date TIMESTAMP WITH TIME ZONE,
-  p_end_date TIMESTAMP WITH TIME ZONE
+  p_end_date TIMESTAMP WITH TIME ZONE,
+  p_limit INTEGER DEFAULT 100,
+  p_offset INTEGER DEFAULT 0
 )
 RETURNS TABLE (
   repository_owner TEXT,
@@ -20,6 +22,15 @@ RETURNS TABLE (
   unique_actors BIGINT
 ) AS $$
 BEGIN
+  -- Validate input parameters
+  IF p_limit <= 0 OR p_limit > 1000 THEN
+    RAISE EXCEPTION 'Limit must be between 1 and 1000, got %', p_limit;
+  END IF;
+  
+  IF p_offset < 0 THEN
+    RAISE EXCEPTION 'Offset cannot be negative, got %', p_offset;
+  END IF;
+
   RETURN QUERY
   WITH workspace_repos AS (
     SELECT 
@@ -58,7 +69,8 @@ BEGIN
     es.last_activity,
     COALESCE(es.unique_actors, 0)::BIGINT
   FROM event_summaries es
-  ORDER BY es.total_events DESC, es.last_activity DESC;
+  ORDER BY es.total_events DESC, es.last_activity DESC
+  LIMIT p_limit OFFSET p_offset;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 

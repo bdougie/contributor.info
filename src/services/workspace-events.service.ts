@@ -5,7 +5,26 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database';
-import { createSupabaseAdmin } from '@/lib/supabase-admin';
+import { supabase } from '@/lib/supabase';
+
+// Constants for configuration values
+const WORKSPACE_CONFIG = {
+  MAX_ACTIVITY_FEED_LIMIT: 1000,
+  DEFAULT_ACTIVITY_FEED_LIMIT: 50,
+  MAX_REPOSITORY_SUMMARIES_LIMIT: 1000,
+  DEFAULT_REPOSITORY_SUMMARIES_LIMIT: 100,
+  ACTIVITY_SCORE_MULTIPLIER: 10, // Converts daily average to activity score (0-100)
+  MAX_ACTIVITY_SCORE: 100,
+} as const;
+
+// Types for Supabase query responses
+interface WorkspaceRepositoryWithRepo {
+  repositories: {
+    owner: string;
+    name: string;
+    full_name: string;
+  };
+}
 
 // Types for event-based metrics
 export interface EventMetrics {
@@ -58,7 +77,7 @@ class WorkspaceEventsService {
   private supabase: SupabaseClient<Database>;
 
   constructor() {
-    this.supabase = createSupabaseAdmin();
+    this.supabase = supabase;
   }
 
   /**
@@ -69,58 +88,118 @@ class WorkspaceEventsService {
     timeRange: string = '30d'
   ): Promise<EventMetrics | null> {
     try {
-      // Get repositories in the workspace
-      const { data: workspaceRepos, error: repoError } = await this.supabase
-        .from('workspace_repositories')
-        .select(
-          `
-          repositories!inner (
-            owner,
-            name,
-            full_name
-          )
-        `
-        )
-        .eq('workspace_id', workspaceId);
+      // Validate inputs
+      if (!workspaceId || typeof workspaceId !== 'string') {
+        throw new Error('Invalid workspace ID provided');
+      }
 
-      if (repoError) throw repoError;
-      if (!workspaceRepos?.length) return null;
-
-      const repositories = workspaceRepos.map((wr) => wr.repositories);
-      const repoConditions = repositories.flat().map((repo) => ({
-        repository_owner: repo.owner,
-        repository_name: repo.name,
-      }));
+      if (!timeRange || typeof timeRange !== 'string') {
+        throw new Error('Invalid time range provided');
+      }
 
       // Calculate date ranges
       const now = new Date();
       const ranges = this.getDateRanges(timeRange, now);
 
-      // Get event data for all repositories
-      const [currentPeriodEvents, previousPeriodEvents, timelineData] = await Promise.all([
-        this.getEventsForPeriod(repoConditions, ranges.currentStart, ranges.currentEnd),
-        this.getEventsForPeriod(repoConditions, ranges.previousStart, ranges.previousEnd),
-        this.getTimelineData(repoConditions, ranges.currentStart, ranges.currentEnd),
-      ]);
+      // Use the new database function to get velocity data
+      const { data: velocityData, error: velocityError } = await this.supabase.rpc(
+        'get_workspace_activity_velocity',
+        {
+          p_workspace_id: workspaceId,
+          p_days: this.getTimeRangeDays(timeRange),
+        }
+      );
 
-      // Process metrics
-      const currentStars = currentPeriodEvents.filter((e) => e.event_type === 'WatchEvent');
-      const currentForks = currentPeriodEvents.filter((e) => e.event_type === 'ForkEvent');
-      const previousStars = previousPeriodEvents.filter((e) => e.event_type === 'WatchEvent');
-      const previousForks = previousPeriodEvents.filter((e) => e.event_type === 'ForkEvent');
+      if (velocityError) {
+        throw new Error(
+          `Failed to fetch workspace velocity data: ${velocityError.message || velocityError.code || 'Unknown database error'}`
+        );
+      }
 
-      // Calculate metrics
-      const starMetrics = this.calculateTrendMetrics(currentStars, previousStars, ranges);
-      const forkMetrics = this.calculateTrendMetrics(currentForks, previousForks, ranges);
-      const activityMetrics = this.calculateActivityMetrics(currentPeriodEvents);
-      const timeline = this.processTimelineData(timelineData);
+      // Get aggregated metrics
+      const { data: metricsData, error: metricsError } = await this.supabase.rpc(
+        'get_workspace_event_metrics_aggregated',
+        {
+          p_workspace_id: workspaceId,
+          p_start_date: ranges.currentStart.toISOString(),
+          p_end_date: ranges.currentEnd.toISOString(),
+        }
+      );
 
-      return {
-        stars: starMetrics,
-        forks: forkMetrics,
-        activity: activityMetrics,
-        timeline,
+      if (metricsError) {
+        throw new Error(
+          `Failed to fetch workspace metrics data: ${metricsError.message || metricsError.code || 'Unknown database error'}`
+        );
+      }
+
+      const velocity = velocityData?.[0];
+      const metrics = metricsData?.[0];
+
+      if (!velocity || !metrics) {
+        console.log('[WorkspaceEvents] No event data found for workspace:', workspaceId);
+        return null;
+      }
+
+      // Process timeline data from the metrics
+      let timeline: TimelineDataPoint[] = [];
+      if (metrics.daily_timeline) {
+        timeline = Array.isArray(metrics.daily_timeline)
+          ? metrics.daily_timeline
+          : [metrics.daily_timeline];
+      }
+
+      // Calculate trend for stars based on recent activity
+      const trend = velocity.growth_trend as 'up' | 'down' | 'stable';
+
+      const result: EventMetrics = {
+        stars: {
+          total: Number(metrics.total_star_events || 0),
+          thisWeek: 0, // Could be calculated from timeline if needed
+          lastWeek: 0,
+          thisMonth: Number(metrics.total_star_events || 0),
+          lastMonth: 0,
+          velocity: Number(velocity.star_velocity || 0),
+          trend,
+          percentChange: 0, // Could be calculated with previous period comparison
+        },
+        forks: {
+          total: Number(metrics.total_fork_events || 0),
+          thisWeek: 0,
+          lastWeek: 0,
+          thisMonth: Number(metrics.total_fork_events || 0),
+          lastMonth: 0,
+          velocity: Number(velocity.fork_velocity || 0),
+          trend,
+          percentChange: 0,
+        },
+        activity: {
+          totalEvents: Number(velocity.total_events || 0),
+          uniqueActors: Number(metrics.unique_actors || 0),
+          mostActiveRepo:
+            metrics.most_active_repo_owner && metrics.most_active_repo_name
+              ? {
+                  owner: metrics.most_active_repo_owner,
+                  name: metrics.most_active_repo_name,
+                  eventCount: Number(metrics.most_active_repo_events || 0),
+                }
+              : null,
+          activityScore: Math.min(
+            WORKSPACE_CONFIG.MAX_ACTIVITY_SCORE,
+            Math.round(
+              Number(velocity.daily_average || 0) * WORKSPACE_CONFIG.ACTIVITY_SCORE_MULTIPLIER
+            )
+          ),
+        },
+        timeline: timeline.map((item) => ({
+          date: String((item as Record<string, unknown>).date || ''),
+          stars: Number((item as Record<string, unknown>).stars || 0),
+          forks: Number((item as Record<string, unknown>).forks || 0),
+          totalActivity: Number((item as Record<string, unknown>).total || 0),
+        })),
       };
+
+      console.log('[WorkspaceEvents] Final metrics result:', result);
+      return result;
     } catch (error) {
       console.error('Error fetching workspace event metrics:', error);
       return null;
@@ -132,22 +211,56 @@ class WorkspaceEventsService {
    */
   async getWorkspaceRepositoryEventSummaries(
     workspaceId: string,
-    timeRange: string = '30d'
+    timeRange: string = '30d',
+    options: { limit?: number; offset?: number } = {}
   ): Promise<RepositoryEventSummary[]> {
     try {
+      // Validate inputs
+      if (!workspaceId || typeof workspaceId !== 'string') {
+        throw new Error('Invalid workspace ID provided');
+      }
+
+      if (!timeRange || typeof timeRange !== 'string') {
+        throw new Error('Invalid time range provided');
+      }
+
+      const { limit = WORKSPACE_CONFIG.DEFAULT_REPOSITORY_SUMMARIES_LIMIT, offset = 0 } = options;
+
+      // Validate pagination parameters
+      if (
+        typeof limit !== 'number' ||
+        limit <= 0 ||
+        limit > WORKSPACE_CONFIG.MAX_REPOSITORY_SUMMARIES_LIMIT
+      ) {
+        throw new Error(
+          `Invalid limit: must be a positive number between 1 and ${WORKSPACE_CONFIG.MAX_REPOSITORY_SUMMARIES_LIMIT}`
+        );
+      }
+
+      if (typeof offset !== 'number' || offset < 0) {
+        throw new Error('Invalid offset: must be a non-negative number');
+      }
+
       const ranges = this.getDateRanges(timeRange, new Date());
 
       const { data, error } = await this.supabase.rpc('get_workspace_repository_event_summaries', {
         p_workspace_id: workspaceId,
         p_start_date: ranges.currentStart.toISOString(),
         p_end_date: ranges.currentEnd.toISOString(),
+        p_limit: limit,
+        p_offset: offset,
       });
 
-      if (error) throw error;
+      if (error) {
+        throw new Error(
+          `Failed to fetch repository event summaries: ${error.message || error.code || 'Unknown database error'}`
+        );
+      }
+
       return data || [];
     } catch (error) {
       console.error('Error fetching repository event summaries:', error);
-      return [];
+      throw error; // Re-throw to allow caller to handle the error
     }
   }
 
@@ -156,7 +269,7 @@ class WorkspaceEventsService {
    */
   async getWorkspaceActivityFeed(
     workspaceId: string,
-    limit: number = 50
+    limit: number = WORKSPACE_CONFIG.DEFAULT_ACTIVITY_FEED_LIMIT
   ): Promise<
     Array<{
       id: string;
@@ -170,8 +283,22 @@ class WorkspaceEventsService {
     }>
   > {
     try {
+      // Validate inputs
+      if (!workspaceId || typeof workspaceId !== 'string') {
+        throw new Error('Invalid workspace ID provided');
+      }
+
+      if (
+        typeof limit !== 'number' ||
+        limit <= 0 ||
+        limit > WORKSPACE_CONFIG.MAX_ACTIVITY_FEED_LIMIT
+      ) {
+        throw new Error(
+          `Invalid limit: must be a positive number between 1 and ${WORKSPACE_CONFIG.MAX_ACTIVITY_FEED_LIMIT}`
+        );
+      }
       // Get repositories in workspace
-      const { data: workspaceRepos } = await this.supabase
+      const { data: workspaceRepos, error: reposError } = await this.supabase
         .from('workspace_repositories')
         .select(
           `
@@ -180,26 +307,69 @@ class WorkspaceEventsService {
         )
         .eq('workspace_id', workspaceId);
 
-      if (!workspaceRepos?.length) return [];
+      if (reposError) {
+        throw new Error(
+          `Failed to fetch workspace repositories: ${reposError.message || reposError.code || 'Unknown database error'}`
+        );
+      }
 
-      const repoConditions = workspaceRepos.map((wr) => wr.repositories);
+      if (!workspaceRepos?.length) {
+        console.log(`[WorkspaceEvents] No repositories found for workspace: ${workspaceId}`);
+        return [];
+      }
 
-      // Build OR conditions for repositories
-      const orConditions = repoConditions
-        .flat()
-        .map((repo) => `and(repository_owner.eq.${repo.owner},repository_name.eq.${repo.name})`)
-        .join(',');
+      // Extract repository information - each workspace repo has a single repositories object
+      const repoConditions = (workspaceRepos as unknown as WorkspaceRepositoryWithRepo[]).map(
+        (wr) => wr.repositories
+      );
 
-      const { data: events, error } = await this.supabase
-        .from('github_events_cache')
-        .select('*')
-        .or(orConditions)
-        .in('event_type', ['WatchEvent', 'ForkEvent', 'PullRequestEvent', 'IssuesEvent'])
-        .order('created_at', { ascending: false })
-        .limit(limit);
+      // Get all events for workspace repositories using multiple queries to avoid SQL injection
+      // This is safer than string interpolation in OR conditions
+      const eventPromises = repoConditions.map(async (repo) => {
+        try {
+          const { data, error } = await this.supabase
+            .from('github_events_cache')
+            .select('*')
+            .eq('repository_owner', repo.owner)
+            .eq('repository_name', repo.name)
+            .in('event_type', ['WatchEvent', 'ForkEvent', 'PullRequestEvent', 'IssuesEvent'])
+            .order('created_at', { ascending: false })
+            .limit(Math.ceil(limit / repoConditions.length)); // Distribute limit across repos
 
-      if (error) throw error;
-      return events || [];
+          if (error) {
+            console.warn(
+              `Failed to fetch events for repository ${repo.owner}/${repo.name}:`,
+              error
+            );
+            return [];
+          }
+
+          return data || [];
+        } catch (err) {
+          console.warn(`Error querying events for repository ${repo.owner}/${repo.name}:`, err);
+          return [];
+        }
+      });
+
+      const eventArrays = await Promise.allSettled(eventPromises);
+      const successfulResults = eventArrays
+        .filter(
+          (result): result is PromiseFulfilledResult<unknown[]> => result.status === 'fulfilled'
+        )
+        .map((result) => result.value);
+
+      if (eventArrays.some((result) => result.status === 'rejected')) {
+        console.warn('[WorkspaceEvents] Some repository queries failed, returning partial results');
+      }
+
+      const allEvents = successfulResults.flat();
+
+      // Sort and limit the combined results
+      const events = allEvents
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, limit);
+
+      return events;
     } catch (error) {
       console.error('Error fetching workspace activity feed:', error);
       return [];
@@ -242,205 +412,6 @@ class WorkspaceEventsService {
       default:
         return 30;
     }
-  }
-
-  private async getEventsForPeriod(
-    repoConditions: Array<{ repository_owner: string; repository_name: string }>,
-    startDate: Date,
-    endDate: Date
-  ) {
-    if (repoConditions.length === 0) return [];
-
-    const orConditions = repoConditions
-      .map(
-        (repo) =>
-          `and(repository_owner.eq.${repo.repository_owner},repository_name.eq.${repo.repository_name})`
-      )
-      .join(',');
-
-    const { data, error } = await this.supabase
-      .from('github_events_cache')
-      .select('*')
-      .or(orConditions)
-      .in('event_type', ['WatchEvent', 'ForkEvent'])
-      .gte('created_at', startDate.toISOString())
-      .lte('created_at', endDate.toISOString())
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    return data || [];
-  }
-
-  private async getTimelineData(
-    repoConditions: Array<{ repository_owner: string; repository_name: string }>,
-    startDate: Date,
-    endDate: Date
-  ) {
-    if (repoConditions.length === 0) return [];
-
-    const orConditions = repoConditions
-      .map(
-        (repo) =>
-          `and(repository_owner.eq.${repo.repository_owner},repository_name.eq.${repo.repository_name})`
-      )
-      .join(',');
-
-    const { data, error } = await this.supabase
-      .from('github_events_cache')
-      .select('event_type, created_at, repository_owner, repository_name')
-      .or(orConditions)
-      .gte('created_at', startDate.toISOString())
-      .lte('created_at', endDate.toISOString())
-      .order('created_at', { ascending: true });
-
-    if (error) throw error;
-    return data || [];
-  }
-
-  private calculateTrendMetrics(
-    currentEvents: Array<{ created_at: string }>,
-    previousEvents: Array<{ created_at: string }>,
-    ranges: {
-      currentStart: Date;
-      currentEnd: Date;
-      previousStart: Date;
-      previousEnd: Date;
-    }
-  ): EventTrendMetrics {
-    const currentCount = currentEvents.length;
-    const previousCount = previousEvents.length;
-
-    // Calculate velocity (events per day)
-    const periodDays = Math.ceil(
-      (ranges.currentEnd.getTime() - ranges.currentStart.getTime()) / (1000 * 60 * 60 * 24)
-    );
-    const velocity = currentCount / periodDays;
-
-    // Calculate percent change
-    let percentChange = 0;
-    if (previousCount > 0) {
-      percentChange = Math.round(((currentCount - previousCount) / previousCount) * 100);
-    } else if (currentCount > 0) {
-      percentChange = 100;
-    }
-
-    // Determine trend
-    let trend: 'up' | 'down' | 'stable';
-    if (percentChange > 5) {
-      trend = 'up';
-    } else if (percentChange < -5) {
-      trend = 'down';
-    } else {
-      trend = 'stable';
-    }
-
-    // Calculate week/month breakdowns
-    const now = new Date();
-    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-    const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    const twoMonthsAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
-
-    const thisWeek = currentEvents.filter((e) => new Date(e.created_at) >= oneWeekAgo).length;
-    const lastWeek = currentEvents.filter((e) => {
-      const date = new Date(e.created_at);
-      return date >= twoWeeksAgo && date < oneWeekAgo;
-    }).length;
-
-    const thisMonth = currentEvents.filter((e) => new Date(e.created_at) >= oneMonthAgo).length;
-    const lastMonth = currentEvents.filter((e) => {
-      const date = new Date(e.created_at);
-      return date >= twoMonthsAgo && date < oneMonthAgo;
-    }).length;
-
-    return {
-      total: currentCount,
-      thisWeek,
-      lastWeek,
-      thisMonth,
-      lastMonth,
-      velocity: Math.round(velocity * 100) / 100,
-      trend,
-      percentChange,
-    };
-  }
-
-  private calculateActivityMetrics(
-    events: Array<{
-      actor_login: string;
-      repository_owner: string;
-      repository_name: string;
-      created_at: string;
-    }>
-  ): ActivityMetrics {
-    const uniqueActors = new Set(events.map((e) => e.actor_login)).size;
-
-    // Find most active repository
-    const repoActivity = events.reduce(
-      (acc, event) => {
-        const repoKey = `${event.repository_owner}/${event.repository_name}`;
-        acc[repoKey] = (acc[repoKey] || 0) + 1;
-        return acc;
-      },
-      {} as Record<string, number>
-    );
-
-    const mostActiveRepo = Object.entries(repoActivity).sort(([, a], [, b]) => b - a)[0];
-
-    let mostActiveRepoData = null;
-    if (mostActiveRepo) {
-      const [fullName, eventCount] = mostActiveRepo;
-      const [owner, name] = fullName.split('/');
-      mostActiveRepoData = { owner, name, eventCount };
-    }
-
-    // Calculate activity score (0-100) based on recent activity
-    const now = new Date();
-    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    const recentEvents = events.filter((e) => new Date(e.created_at) >= oneDayAgo).length;
-    const activityScore = Math.min(
-      100,
-      Math.round((recentEvents / Math.max(1, events.length)) * 100)
-    );
-
-    return {
-      totalEvents: events.length,
-      uniqueActors,
-      mostActiveRepo: mostActiveRepoData,
-      activityScore,
-    };
-  }
-
-  private processTimelineData(
-    events: Array<{
-      created_at: string;
-      event_type: string;
-    }>
-  ): TimelineDataPoint[] {
-    // Group events by date
-    const dailyData = events.reduce(
-      (acc, event) => {
-        const date = new Date(event.created_at).toISOString().split('T')[0];
-        if (!acc[date]) {
-          acc[date] = { stars: 0, forks: 0, totalActivity: 0 };
-        }
-
-        acc[date].totalActivity++;
-        if (event.event_type === 'WatchEvent') acc[date].stars++;
-        if (event.event_type === 'ForkEvent') acc[date].forks++;
-
-        return acc;
-      },
-      {} as Record<string, { stars: number; forks: number; totalActivity: number }>
-    );
-
-    // Convert to timeline array
-    return Object.entries(dailyData)
-      .map(([date, data]) => ({
-        date,
-        ...data,
-      }))
-      .sort((a, b) => a.date.localeCompare(b.date));
   }
 }
 

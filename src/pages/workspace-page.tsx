@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import { getFallbackAvatar } from '@/lib/utils/avatar';
 import { useWorkspaceContributors } from '@/hooks/useWorkspaceContributors';
+import { useWorkspaceEvents } from '@/hooks/use-workspace-events';
 import { WorkspaceDashboard, WorkspaceDashboardSkeleton } from '@/components/features/workspace';
 import { WorkspaceErrorBoundary } from '@/components/error-boundaries/workspace-error-boundary';
 import {
@@ -171,9 +172,15 @@ const calculateRealMetrics = (
     contributorCount: number;
     starCount: number;
     commitCount: number;
-  }
+  },
+  eventMetrics?: {
+    stars: { total: number; percentChange: number; velocity: number };
+    activity: { uniqueActors: number };
+  } | null
 ): WorkspaceMetrics => {
-  const totalStars = repos.reduce((sum, repo) => sum + (repo.stars || 0), 0);
+  // Prefer event-based star count if available, otherwise fallback to repository data
+  const totalStars =
+    eventMetrics?.stars?.total || repos.reduce((sum, repo) => sum + (repo.stars || 0), 0);
   const totalOpenPRs = repos.reduce((sum, repo) => sum + (repo.open_prs || 0), 0);
   const totalOpenIssues = repos.reduce((sum, repo) => sum + (repo.open_issues || 0), 0);
 
@@ -184,11 +191,12 @@ const calculateRealMetrics = (
   let commitsTrend = 0;
 
   if (previousMetrics) {
-    // Calculate percentage changes
+    // Use event-based trend for stars if available, otherwise calculate from previous metrics
     starsTrend =
-      previousMetrics.starCount > 0
+      eventMetrics?.stars?.percentChange ||
+      (previousMetrics.starCount > 0
         ? ((totalStars - previousMetrics.starCount) / previousMetrics.starCount) * 100
-        : 0;
+        : 0);
     prsTrend =
       previousMetrics.prCount > 0
         ? ((totalOpenPRs - previousMetrics.prCount) / previousMetrics.prCount) * 100
@@ -216,7 +224,7 @@ const calculateRealMetrics = (
     totalStars,
     totalPRs: totalOpenPRs || prCount, // Use aggregated open PRs or fallback to passed count
     totalIssues: totalOpenIssues || issueCount || 0, // Open issues count
-    totalContributors: contributorCount,
+    totalContributors: eventMetrics?.activity?.uniqueActors || contributorCount,
     totalCommits: commitCount, // Keep commits for interface compatibility
     starsTrend,
     prsTrend,
@@ -2346,6 +2354,13 @@ function WorkspacePage() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isWorkspaceOwner, setIsWorkspaceOwner] = useState(false);
 
+  // Fetch workspace events data
+  const { metrics: eventMetrics } = useWorkspaceEvents({
+    workspaceId: workspace?.id || '',
+    timeRange,
+    enabled: !!workspace?.id,
+  });
+
   // Determine active tab from URL
   const pathSegments = location.pathname.split('/');
   const activeTab = pathSegments[3] || 'overview';
@@ -2974,7 +2989,8 @@ function WorkspacePage() {
           uniqueContributorCount,
           totalCommitCount,
           totalIssueCount,
-          previousMetrics
+          previousMetrics,
+          eventMetrics
         );
 
         // Generate trend data with real PR/issue data
@@ -3004,7 +3020,7 @@ function WorkspacePage() {
     }
 
     fetchWorkspace();
-  }, [workspaceId, timeRange, selectedRepositories]);
+  }, [workspaceId, timeRange, selectedRepositories, eventMetrics]);
 
   const handleTabChange = (value: string) => {
     if (value === 'overview') {
@@ -3112,7 +3128,15 @@ function WorkspacePage() {
         setSelectedRepositories(formattedRepos.map((r) => r.id));
 
         // Update metrics with new repository data
-        const newMetrics = calculateRealMetrics(formattedRepos);
+        const newMetrics = calculateRealMetrics(
+          formattedRepos,
+          0,
+          0,
+          0,
+          0,
+          undefined,
+          eventMetrics
+        );
         setMetrics(newMetrics);
       }
     } catch (error) {
@@ -3140,7 +3164,7 @@ function WorkspacePage() {
 
         // Update metrics after removing repository
         const updatedRepos = repositories.filter((r) => r.id !== repo.id);
-        const newMetrics = calculateRealMetrics(updatedRepos);
+        const newMetrics = calculateRealMetrics(updatedRepos, 0, 0, 0, 0, undefined, eventMetrics);
         setMetrics(newMetrics);
 
         toast.success('Repository removed from workspace');
@@ -3328,6 +3352,7 @@ function WorkspacePage() {
                 trendData={trendData}
                 activityData={activityData}
                 repositories={repositories}
+                eventMetrics={eventMetrics}
                 tier={workspace.tier as 'free' | 'pro' | 'enterprise'}
                 timeRange={timeRange}
                 onAddRepository={isWorkspaceOwner ? handleAddRepository : undefined}

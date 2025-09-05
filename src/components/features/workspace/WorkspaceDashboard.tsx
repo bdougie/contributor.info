@@ -34,6 +34,17 @@ export interface WorkspaceDashboardProps {
   trendData: WorkspaceTrendData;
   activityData?: unknown; // Made generic since we removed the import
   repositories: Repository[];
+  eventMetrics?: {
+    stars: {
+      velocity: number;
+      total: number;
+      trend: 'up' | 'down' | 'stable';
+      percentChange: number;
+    };
+    activity: {
+      uniqueActors: number;
+    };
+  } | null;
   loading?: boolean;
   tier?: 'free' | 'pro' | 'enterprise';
   timeRange?: TimeRange;
@@ -58,6 +69,7 @@ const timeRangeComparisonLabels: Record<TimeRange, string> = {
 export function WorkspaceDashboard({
   metrics,
   repositories,
+  eventMetrics,
   loading = false,
   timeRange = '30d',
   onAddRepository,
@@ -96,7 +108,11 @@ export function WorkspaceDashboard({
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <MetricCard
           title="Total Stars"
-          subtitle="Across all repositories"
+          subtitle={
+            eventMetrics?.stars?.velocity && eventMetrics.stars.velocity > 0
+              ? `${eventMetrics.stars.velocity.toFixed(1)} stars/day`
+              : 'Across all repositories'
+          }
           value={metrics.totalStars}
           description="Community interest and popularity"
           icon={<Star className="h-4 w-4" />}

@@ -21,7 +21,7 @@ interface UseWorkspaceEventsResult {
 export function useWorkspaceEvents({
   workspaceId,
   timeRange = '30d',
-  enabled = true
+  enabled = true,
 }: UseWorkspaceEventsProps): UseWorkspaceEventsResult {
   const [metrics, setMetrics] = useState<EventMetrics | null>(null);
   const [loading, setLoading] = useState(false);
@@ -37,14 +37,12 @@ export function useWorkspaceEvents({
       setLoading(true);
       setError(null);
 
-      const data = await workspaceEventsService.getWorkspaceEventMetrics(
-        workspaceId,
-        timeRange
-      );
+      const data = await workspaceEventsService.getWorkspaceEventMetrics(workspaceId, timeRange);
 
       setMetrics(data);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err : new Error('Failed to fetch workspace events');
+      const errorMessage =
+        err instanceof Error ? err : new Error('Failed to fetch workspace events');
       setError(errorMessage);
       setMetrics(null);
     } finally {
@@ -60,7 +58,7 @@ export function useWorkspaceEvents({
     metrics,
     loading,
     error,
-    refetch: fetchMetrics
+    refetch: fetchMetrics,
   };
 }
 
@@ -69,18 +67,20 @@ export function useWorkspaceEvents({
  */
 export function useWorkspaceActivityFeed(
   workspaceId?: string,
-  limit: number = 50
+  limit: number = 50 // Using 50 as default to match service, could be configurable
 ) {
-  const [activities, setActivities] = useState<Array<{
-    id: string;
-    event_id: string;
-    event_type: string;
-    actor_login: string;
-    repository_owner: string;
-    repository_name: string;
-    created_at: string;
-    payload: Record<string, unknown>;
-  }>>([]);
+  const [activities, setActivities] = useState<
+    Array<{
+      id: string;
+      event_id: string;
+      event_type: string;
+      actor_login: string;
+      repository_owner: string;
+      repository_name: string;
+      created_at: string;
+      payload: Record<string, unknown>;
+    }>
+  >([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
@@ -94,10 +94,7 @@ export function useWorkspaceActivityFeed(
       setLoading(true);
       setError(null);
 
-      const data = await workspaceEventsService.getWorkspaceActivityFeed(
-        workspaceId,
-        limit
-      );
+      const data = await workspaceEventsService.getWorkspaceActivityFeed(workspaceId, limit);
 
       setActivities(data);
     } catch (err) {
@@ -117,6 +114,6 @@ export function useWorkspaceActivityFeed(
     activities,
     loading,
     error,
-    refetch: fetchActivityFeed
+    refetch: fetchActivityFeed,
   };
 }
