@@ -30,8 +30,11 @@ export default function ContributionsWrapper() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Pull Request Contributions</CardTitle>
-        <CardDescription>Visualize the distribution of contributions</CardDescription>
+        <CardTitle>Contributor Distribution</CardTitle>
+        <CardDescription>
+          This chart is a representation of 30 days of PR contributions based on size (Y axis) and
+          date (X axis).
+        </CardDescription>
       </CardHeader>
       <CardContent className="p-6">
         <Suspense

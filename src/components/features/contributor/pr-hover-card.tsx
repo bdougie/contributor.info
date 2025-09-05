@@ -48,6 +48,7 @@ export function PrHoverCard({ pullRequest, role, children }: PrHoverCardProps) {
   const prUrl =
     pullRequest.html_url ||
     `https://github.com/${pullRequest.repository_owner}/${pullRequest.repository_name}/pull/${pullRequest.number}`;
+  const statusLabel = getStatusLabel(pullRequest.state, pullRequest.merged_at);
 
   return (
     <HoverCardPrimitive.Root openDelay={0} closeDelay={100}>
@@ -175,7 +176,7 @@ export function PrHoverCard({ pullRequest, role, children }: PrHoverCardProps) {
                 <div className="flex items-center gap-1">
                   <Minus className="h-3 w-3 text-red-600" />
                   <span className="text-red-600 font-medium">
-                    -{formatNumber(pullRequest.deletions)}
+                    {formatNumber(pullRequest.deletions * -1)}
                   </span>
                 </div>
                 <div className="flex items-center gap-1">
@@ -201,6 +202,14 @@ export function PrHoverCard({ pullRequest, role, children }: PrHoverCardProps) {
                   />
                 </div>
               )}
+
+              {/* Concise explainer sentence for clarity */}
+              <div className="text-xs text-muted-foreground mt-2">
+                PR #{pullRequest.number} {statusLabel}
+                {pullRequest.merged_at ? '' : ''} with {formatNumber(totalLines)} total lines
+                touched (+{formatNumber(pullRequest.additions)}/-
+                {formatNumber(pullRequest.deletions)}).
+              </div>
             </div>
 
             {/* Repository Link */}
