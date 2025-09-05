@@ -31,7 +31,10 @@ export default function ContributionsWrapper() {
     <Card>
       <CardHeader>
         <CardTitle>Pull Request Contributions</CardTitle>
-        <CardDescription>Visualize the distribution of contributions</CardDescription>
+        <CardDescription>
+          Each dot is a PR. X-axis shows days ago; Y-axis shows lines touched. Enhanced mode uses a
+          log scale for readability.
+        </CardDescription>
       </CardHeader>
       <CardContent className="p-6">
         <Suspense
