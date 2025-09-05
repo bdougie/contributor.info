@@ -39,8 +39,8 @@ import { useTimeRange } from '@/lib/time-range-store';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import type { PullRequest } from '@/lib/types';
 import { PrHoverCard } from '../contributor/pr-hover-card';
-import { useContributorRole } from '@/hooks/useContributorRoles';
 import { useParams } from 'react-router-dom';
+import { maintainerRolesCache } from '@/lib/maintainer-roles-cache';
 
 interface ContributionsChartProps {
   isRepositoryTracked?: boolean;
@@ -50,10 +50,8 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
   const { stats, includeBots: contextIncludeBots } = useContext(RepoStatsContext);
   const { effectiveTimeRange } = useTimeRange();
   const { owner, repo } = useParams<{ owner: string; repo: string }>();
-  // Default to enhanced mode on mobile devices
-  const [isLogarithmic, setIsLogarithmic] = useState(
-    typeof window !== 'undefined' && window.innerWidth < 768
-  );
+  // Enhanced mode (logarithmic scale) defaults to on for clarity
+  const [isLogarithmic, setIsLogarithmic] = useState(true);
   const [maxFilesModified, setMaxFilesModified] = useState(10);
   const [localIncludeBots, setLocalIncludeBots] = useState(contextIncludeBots);
   const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'merged' | 'closed'>('all');
@@ -112,6 +110,15 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
   useEffect(() => {
     setLocalIncludeBots(contextIncludeBots);
   }, [contextIncludeBots]);
+
+  // Preload maintainer roles for performance
+  useEffect(() => {
+    if (owner && repo) {
+      maintainerRolesCache.getRoles(owner, repo).catch((error) => {
+        console.warn('Failed to preload maintainer roles:', error);
+      });
+    }
+  }, [owner, repo]);
 
   // Load cached avatars when PR data changes
   useEffect(() => {
@@ -204,7 +211,10 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
           if (!prsByDay.has(daysAgo)) {
             prsByDay.set(daysAgo, []);
           }
-          prsByDay.get(daysAgo)!.push(pr);
+          const dayGroup = prsByDay.get(daysAgo);
+          if (dayGroup) {
+            dayGroup.push(pr);
+          }
 
           return {
             x: daysAgo,
@@ -301,18 +311,17 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
   // The data structure is validated at runtime with defensive checks
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const CustomNode = (props: any) => {
-    // Get the contributor's role first (must be called unconditionally)
-    const { role } = useContributorRole(
-      owner || '',
-      repo || '',
-      props?.node?.data?.contributor || ''
-    );
-
     // Defensive check for required props
     if (!props || !props.node || !props.node.data) {
       console.warn('CustomNode: Missing required props', props);
       return null;
     }
+
+    // Get maintainer status from cache (fast lookup)
+    const isMaintainer =
+      owner && repo && props.node.data.contributor
+        ? maintainerRolesCache.isMaintainer(owner, repo, props.node.data.contributor)
+        : false;
 
     const size = isMobile ? 28 : 35;
 
@@ -535,71 +544,107 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
             borderColor: 'hsl(var(--foreground))',
           }}
         >
-          <PrHoverCard
-            pullRequest={props.node.data._pr}
-            role={getUserRole(role, { type: props.node.data._pr.user.type })}
-          >
-            <Avatar
-              className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} border-2 cursor-pointer`}
-              style={{
-                // Ensure the avatar renders properly in foreignObject
-                backgroundColor: 'var(--muted)',
-                borderColor: 'hsl(var(--foreground))',
-              }}
-              role="button"
-              tabIndex={0}
-              aria-label={`Pull request #${props.node.data._pr.number} by ${props.node.data.contributor}`}
-              onClick={() => {
-                // Open PR in new tab on click
-                const prUrl =
-                  props.node.data._pr.html_url ||
-                  `https://github.com/${props.node.data._pr.repository_owner}/${props.node.data._pr.repository_name}/pull/${props.node.data._pr.number}`;
-                window.open(prUrl, '_blank', 'noopener,noreferrer');
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  const prUrl =
-                    props.node.data._pr.html_url ||
-                    `https://github.com/${props.node.data._pr.repository_owner}/${props.node.data._pr.repository_name}/pull/${props.node.data._pr.number}`;
-                  window.open(prUrl, '_blank', 'noopener,noreferrer');
-                }
-              }}
-            >
-              <AvatarImage
-                src={props.node.data.image}
-                alt={`${props.node.data.contributor}'s avatar`}
-                loading="lazy"
-                style={{
-                  // Ensure images load properly in SVG context
-                  objectFit: 'cover',
-                  width: '100%',
-                  height: '100%',
-                }}
-                crossOrigin="anonymous"
-                onError={(e) => {
-                  // Fallback to GitHub avatar API on error, but only once
-                  const target = e.target as HTMLImageElement;
-                  if (!target.dataset.retried) {
-                    target.dataset.retried = 'true';
-                    // Use avatars.githubusercontent.com which provides CORS headers
-                    // Using user ID if available, otherwise a default avatar
-                    const userId = props.node!.data!._pr?.user?.id || 0;
-                    target.src = `https://avatars.githubusercontent.com/u/${userId}?v=4`;
-                  }
-                }}
-              />
-              <AvatarFallback
-                style={{
-                  backgroundColor: 'var(--muted)',
-                  color: 'var(--muted-foreground)',
-                  fontSize: isMobile ? '10px' : '12px',
-                }}
-              >
-                {props.node.data.contributor ? props.node.data.contributor[0].toUpperCase() : '?'}
-              </AvatarFallback>
-            </Avatar>
-          </PrHoverCard>
+          {(() => {
+            // Get role from cache for display (fallback to user type if not cached)
+            const cachedRole =
+              owner && repo && props.node.data.contributor
+                ? maintainerRolesCache.getContributorRole(owner, repo, props.node.data.contributor)
+                : null;
+            const displayRole = cachedRole
+              ? getUserRole({ role: cachedRole.role }, { type: props.node.data._pr.user.type })
+              : getUserRole(undefined, { type: props.node.data._pr.user.type });
+
+            return (
+              <PrHoverCard pullRequest={props.node.data._pr} role={displayRole}>
+                <div style={{ position: 'relative', display: 'inline-block' }}>
+                  <Avatar
+                    className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} border-2 cursor-pointer`}
+                    style={{
+                      // Ensure the avatar renders properly in foreignObject
+                      backgroundColor: 'var(--muted)',
+                      borderColor: 'hsl(var(--foreground))',
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Pull request #${props.node.data._pr.number} by ${props.node.data.contributor}`}
+                    aria-describedby={
+                      isMaintainer ? `maintainer-badge-${props.node.data._pr.id}` : undefined
+                    }
+                    onClick={() => {
+                      // Open PR in new tab on click
+                      const prUrl =
+                        props.node.data._pr.html_url ||
+                        `https://github.com/${props.node.data._pr.repository_owner}/${props.node.data._pr.repository_name}/pull/${props.node.data._pr.number}`;
+                      window.open(prUrl, '_blank', 'noopener,noreferrer');
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        const prUrl =
+                          props.node.data._pr.html_url ||
+                          `https://github.com/${props.node.data._pr.repository_owner}/${props.node.data._pr.repository_name}/pull/${props.node.data._pr.number}`;
+                        window.open(prUrl, '_blank', 'noopener,noreferrer');
+                      }
+                    }}
+                  >
+                    <AvatarImage
+                      src={props.node.data.image}
+                      alt={`${props.node.data.contributor}'s avatar`}
+                      loading="lazy"
+                      style={{
+                        // Ensure images load properly in SVG context
+                        objectFit: 'cover',
+                        width: '100%',
+                        height: '100%',
+                      }}
+                      crossOrigin="anonymous"
+                      onError={(e) => {
+                        // Fallback to GitHub avatar API on error, but only once
+                        const target = e.target as HTMLImageElement;
+                        if (!target.dataset.retried) {
+                          target.dataset.retried = 'true';
+                          // Use avatars.githubusercontent.com which provides CORS headers
+                          // Using user ID if available, otherwise a default avatar
+                          const userId = props.node?.data?._pr?.user?.id || 0;
+                          target.src = `https://avatars.githubusercontent.com/u/${userId}?v=4`;
+                        }
+                      }}
+                    />
+                    <AvatarFallback
+                      style={{
+                        backgroundColor: 'var(--muted)',
+                        color: 'var(--muted-foreground)',
+                        fontSize: isMobile ? '10px' : '12px',
+                      }}
+                    >
+                      {props.node.data.contributor
+                        ? props.node.data.contributor[0].toUpperCase()
+                        : '?'}
+                    </AvatarFallback>
+                  </Avatar>
+                  {isMaintainer && (
+                    <span
+                      id={`maintainer-badge-${props.node.data._pr.id}`}
+                      title="Maintainer"
+                      aria-label={`${props.node.data.contributor} is a maintainer`}
+                      role="img"
+                      className="bg-green-500"
+                      style={{
+                        position: 'absolute',
+                        top: -2,
+                        right: -2,
+                        width: isMobile ? 10 : 12,
+                        height: isMobile ? 10 : 12,
+                        borderRadius: '9999px',
+                        border: '1px solid hsl(var(--background))',
+                        boxShadow: '0 0 0 1px hsl(var(--foreground) / 0.3)',
+                      }}
+                    />
+                  )}
+                </div>
+              </PrHoverCard>
+            );
+          })()}
         </div>
       </animated.foreignObject>
     );
@@ -706,6 +751,10 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
                   : 'Enable enhanced view for logarithmic scale visualization.'}
               </span>
             </div>
+            {/* Visible helper copy specifically for the enhanced toggle */}
+            <div className="basis-full text-xs text-muted-foreground">
+              Enhanced mode uses a log scale for readability.
+            </div>
           </div>
         </div>
       </div>
@@ -762,14 +811,14 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
                           tickPadding: 4,
                           tickRotation: 0,
                           tickValues: isMobile ? 3 : 7,
-                          legend: isMobile ? 'Days Ago' : 'Date Created',
+                          legend: 'Days Ago',
                           legendPosition: 'middle',
                           legendOffset: isMobile ? 35 : 50,
                           format: (value) => {
                             if (value === 0) return 'Today';
                             if (value > effectiveTimeRangeNumber)
                               return `${effectiveTimeRangeNumber}+`;
-                            return isMobile ? `${value}` : `${value} days ago`;
+                            return `${value}`;
                           },
                         }
                       : null
@@ -782,7 +831,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
                           tickPadding: 3,
                           tickRotation: 0,
                           tickValues: isMobile ? 3 : 5,
-                          legend: isMobile ? 'Lines' : 'Lines Touched',
+                          legend: 'Lines Touched',
                           legendPosition: 'middle',
                           legendOffset: isMobile ? -20 : -60,
                           format: (value: number) => {
@@ -805,8 +854,8 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
                           <span className="font-medium">{nodeData.contributor}</span>
                         </div>
                         <div className="text-sm text-muted-foreground mt-1">
-                          {nodeData.x} days ago: {nodeData.y} contribution
-                          {nodeData.y !== 1 ? 's' : ''}
+                          {nodeData.x === 0 ? 'Today' : `${nodeData.x} days ago`} • {nodeData.y}{' '}
+                          lines touched
                         </div>
                       </div>
                     );

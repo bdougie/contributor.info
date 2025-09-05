@@ -55,6 +55,9 @@ function DistributionCharts({
     'overview'
   );
 
+  // State for bar chart hover interactions
+  const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
+
   // Sync contributor view with the hierarchical distribution view
   useEffect(() => {
     setContributorView(currentView);
@@ -252,7 +255,6 @@ function DistributionCharts({
     // Use a safer theme detection method
     const isDark =
       typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches;
-    const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
 
     // Create a custom bar chart that colors each bar individually with selection state
     const barData = {
@@ -262,11 +264,14 @@ function DistributionCharts({
         const baseColor = COLORS[item.id as keyof typeof COLORS];
 
         // Adjust color brightness/opacity based on selection state - less aggressive
-        const color = isActive
-          ? baseColor
-          : activeSegment
-            ? `${baseColor}80` // Make non-selected bars slightly transparent (50% opacity)
-            : baseColor;
+        let color;
+        if (isActive) {
+          color = baseColor;
+        } else if (activeSegment) {
+          color = `${baseColor}80`; // Make non-selected bars slightly transparent (50% opacity)
+        } else {
+          color = baseColor;
+        }
 
         return {
           label: item.label,
@@ -484,8 +489,14 @@ function DistributionCharts({
 
     // For treemap, always check the state. For others, only show on mobile
     const shouldShowDrawer = chartType === 'treemap' || isMobile;
-    const isDrawerCollapsed =
-      chartType === 'treemap' ? isPRListCollapsed : isMobile ? isPRListCollapsed : true;
+    let isDrawerCollapsed;
+    if (chartType === 'treemap') {
+      isDrawerCollapsed = isPRListCollapsed;
+    } else if (isMobile) {
+      isDrawerCollapsed = isPRListCollapsed;
+    } else {
+      isDrawerCollapsed = true;
+    }
 
     if (!shouldShowDrawer) return null;
 
@@ -536,7 +547,7 @@ function DistributionCharts({
                       #{pr.number} - {pr.title}
                     </p>
                     <p className="text-xs text-muted-foreground truncate mb-1">
-                      {pr.user.login} · +{pr.additions} -{pr.deletions}
+                      {pr.user.login} · +{pr.additions} {pr.deletions * -1}
                     </p>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <div
@@ -596,7 +607,7 @@ function DistributionCharts({
                     #{pr.number} - {pr.title}
                   </p>
                   <p className="text-xs text-muted-foreground mb-1">
-                    {pr.user.login} · +{pr.additions} -{pr.deletions}
+                    {pr.user.login} · +{pr.additions} {pr.deletions * -1}
                   </p>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <div
