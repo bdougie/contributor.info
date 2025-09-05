@@ -202,12 +202,12 @@ export function TrendingPage({ repositories, loading = false, className }: Trend
             <TabsContent value={timePeriod} className="space-y-0">
               {/* Trending Events Insights */}
               {filteredRepos.length > 0 && (
-                <TrendingEventsInsights 
-                  repositories={filteredRepos.map(repo => ({
-                    full_name: repo.full_name,
+                <TrendingEventsInsights
+                  repositories={filteredRepos.map((repo) => ({
+                    full_name: `${repo.owner}/${repo.name}`,
                     owner: repo.owner,
                     name: repo.name,
-                    language: repo.language
+                    language: repo.language,
                   }))}
                   timeRange={timePeriod}
                 />
