@@ -1,4 +1,4 @@
-import { Clock, TrendingUp, TrendingDown } from '@/components/ui/icon';
+import { Clock, TrendingUp, TrendingDown, Minus } from '@/components/ui/icon';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -33,7 +33,7 @@ export function AvgTimeCard({
     <Card className="p-3 min-w-0">
       <div className="flex items-center justify-between">
         <Clock className="h-4 w-4 text-muted-foreground" />
-        <span className="text-xs text-muted-foreground truncate">Avg Time</span>
+        <span className="text-xs text-muted-foreground truncate">Avg Time to Merge</span>
       </div>
       <p className={cn('text-2xl font-bold mt-2 truncate', mergeTimeColor)}>
         {averageMergeTime < 24
@@ -41,12 +41,27 @@ export function AvgTimeCard({
           : `${(averageMergeTime / 24).toFixed(1)}d`}
       </p>
       <div className="flex items-center gap-1">
-        {averageMergeTimeTrend === 'down' ? (
-          <TrendingDown className="h-3 w-3 text-green-500" />
-        ) : averageMergeTimeTrend === 'up' ? (
-          <TrendingUp className="h-3 w-3 text-red-500" />
-        ) : null}
-        <p className="text-xs text-muted-foreground truncate">to merge</p>
+        {averageMergeTime <= 24 ? (
+          averageMergeTimeTrend === 'down' ? (
+            <TrendingDown className="h-3 w-3 text-green-500" />
+          ) : averageMergeTimeTrend === 'up' ? (
+            <TrendingUp className="h-3 w-3 text-red-500" />
+          ) : null
+        ) : averageMergeTime <= 72 ? (
+          <Minus className="h-3 w-3 text-muted-foreground" />
+        ) : (
+          averageMergeTimeTrend === 'down' ? (
+            <TrendingDown className="h-3 w-3 text-green-500" />
+          ) : averageMergeTimeTrend === 'up' ? (
+            <TrendingUp className="h-3 w-3 text-red-500" />
+          ) : null
+        )}
+        <span className={cn('text-xs font-medium', 
+          averageMergeTime <= 24 ? 'text-green-500' : 
+          averageMergeTime <= 72 ? 'text-muted-foreground' : 'text-red-500'
+        )}>
+          {averageMergeTime <= 24 ? 'Fast' : averageMergeTime <= 72 ? 'Normal' : 'Slow'}
+        </span>
       </div>
     </Card>
   );
