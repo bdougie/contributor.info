@@ -222,7 +222,7 @@ export async function calculateTrendMetrics(
         })(),
       },
       {
-        metric: 'PRs Merged',
+        metric: 'PR Completion Rate',
         current: Math.round(currentCompletionRate),
         previous: Math.round(previousCompletionRate),
         change: completionChange,

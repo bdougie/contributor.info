@@ -40,7 +40,7 @@ function TrendCard({ trend, loading = false }: { trend?: TrendData; loading?: bo
 
     const isPositive = change > 0;
     const Icon = isPositive ? TrendingUp : TrendingDown;
-    
+
     // For metrics where lower is better (like review time), reverse the color logic
     const isLowerBetter = metric === 'Avg Review Time';
     let color;
@@ -55,10 +55,10 @@ function TrendCard({ trend, loading = false }: { trend?: TrendData; loading?: bo
 
   const getTrendColor = (change: number, metric: string) => {
     if (change === 0) return 'text-muted-foreground';
-    
+
     // For metrics where lower is better (like review time), reverse the color logic
     const isLowerBetter = metric === 'Avg Review Time';
-    
+
     if (change > 0) {
       return isLowerBetter ? 'text-red-500' : 'text-green-500';
     } else {
@@ -247,7 +247,7 @@ export function WorkspaceMetricsAndTrends({
           'Daily PR Volume',
           'Active Contributors',
           'Avg Review Time',
-          'PRs Merged',
+          'PR Completion Rate',
           'Review Activity',
           'Comment Activity',
         ];
