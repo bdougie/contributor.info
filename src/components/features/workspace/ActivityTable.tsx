@@ -190,11 +190,11 @@ export function ActivityTable({
             placeholder="Search activities..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
+            className="pl-9 min-h-[44px]"
           />
         </div>
         <Select value={typeFilter} onValueChange={setTypeFilter}>
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-full sm:w-40 min-h-[44px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -215,8 +215,8 @@ export function ActivityTable({
         {/* Table Header */}
         <div className="border-b bg-muted/50">
           <div className="flex items-center px-4 py-3">
-            <div className="flex items-center gap-4 w-full">
-              <div className="flex-shrink-0 w-24">
+            <div className="flex items-center gap-2 sm:gap-4 w-full overflow-x-auto">
+              <div className="flex-shrink-0 w-16 sm:w-24">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -227,8 +227,10 @@ export function ActivityTable({
                   <SortIcon field="type" />
                 </Button>
               </div>
-              <div className="flex-1 min-w-0">Activity</div>
-              <div className="flex-shrink-0 w-32">
+              <div className="flex-1 min-w-[120px]">
+                <span className="font-medium text-sm">Activity</span>
+              </div>
+              <div className="hidden sm:block flex-shrink-0 w-24 sm:w-32">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -239,19 +241,19 @@ export function ActivityTable({
                   <SortIcon field="author" />
                 </Button>
               </div>
-              <div className="flex-shrink-0 min-w-[10rem]">
+              <div className="hidden md:block flex-shrink-0 min-w-[8rem]">
                 <Button
                   variant="ghost"
                   size="sm"
                   className="-ml-2 h-8 data-[state=open]:bg-accent"
                   onClick={() => handleSort('repository')}
                 >
-                  Repository
+                  Repo
                   <SortIcon field="repository" />
                 </Button>
               </div>
-              <div className="flex-shrink-0 w-24">Status</div>
-              <div className="flex-shrink-0 w-32">
+              <div className="hidden sm:block flex-shrink-0 w-20">Status</div>
+              <div className="flex-shrink-0 w-20 sm:w-32">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -262,7 +264,7 @@ export function ActivityTable({
                   <SortIcon field="created_at" />
                 </Button>
               </div>
-              <div className="w-12"></div>
+              <div className="w-8 sm:w-12"></div>
             </div>
           </div>
         </div>
@@ -309,10 +311,10 @@ export function ActivityTable({
                         transform: `translateY(${virtualItem.start}px)`,
                       }}
                     >
-                      <div className="flex items-center px-4 py-2 border-b">
-                        <div className="flex items-center gap-4 w-full">
+                      <div className="flex items-center px-2 sm:px-4 py-2 border-b">
+                        <div className="flex items-center gap-2 sm:gap-4 w-full overflow-x-auto">
                           {/* Type */}
-                          <div className="flex-shrink-0 w-24">
+                          <div className="flex-shrink-0 w-16 sm:w-24">
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
@@ -340,7 +342,7 @@ export function ActivityTable({
                           </div>
 
                           {/* Activity */}
-                          <div className="flex-1 min-w-0">
+                          <div className="flex-1 min-w-[120px]">
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
@@ -361,7 +363,7 @@ export function ActivityTable({
                           </div>
 
                           {/* Author */}
-                          <div className="flex-shrink-0 w-32 flex items-center gap-2">
+                          <div className="hidden sm:flex flex-shrink-0 w-24 sm:w-32 items-center gap-2">
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
@@ -386,7 +388,7 @@ export function ActivityTable({
                           </div>
 
                           {/* Repository */}
-                          <div className="flex-shrink-0 min-w-[10rem]">
+                          <div className="hidden md:block flex-shrink-0 min-w-[8rem]">
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
@@ -403,7 +405,7 @@ export function ActivityTable({
                           </div>
 
                           {/* Status */}
-                          <div className="flex-shrink-0 w-24">
+                          <div className="hidden sm:block flex-shrink-0 w-20">
                             {activity.status && (
                               <TooltipProvider>
                                 <Tooltip>
@@ -439,7 +441,7 @@ export function ActivityTable({
                           </div>
 
                           {/* Date */}
-                          <div className="flex-shrink-0 w-32">
+                          <div className="flex-shrink-0 w-20 sm:w-32">
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
@@ -460,7 +462,7 @@ export function ActivityTable({
                           </div>
 
                           {/* Link */}
-                          <div className="w-12">
+                          <div className="w-8 sm:w-12">
                             {activity.url && (
                               <Button variant="ghost" size="sm" asChild>
                                 <a href={activity.url} target="_blank" rel="noopener noreferrer">

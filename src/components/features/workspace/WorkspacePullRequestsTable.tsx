@@ -381,8 +381,8 @@ export function WorkspacePullRequestsTable({
   return (
     <Card className={cn('w-full', className)}>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="sr-only sm:not-sr-only">Pull Requests</CardTitle>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <CardTitle className="text-lg font-semibold">Pull Requests</CardTitle>
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <div className="relative flex-1 sm:flex-initial">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -390,7 +390,7 @@ export function WorkspacePullRequestsTable({
                 placeholder="Search pull requests..."
                 value={globalFilter ?? ''}
                 onChange={(e) => setGlobalFilter(e.target.value)}
-                className="pl-10 w-full sm:w-[300px]"
+                className="pl-10 w-full sm:w-[300px] min-h-[44px]"
               />
             </div>
           </div>
@@ -409,7 +409,7 @@ export function WorkspacePullRequestsTable({
           <>
             <div className="rounded-md border">
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[1400px]">
+                <table className="w-full min-w-[800px] md:min-w-[1400px]">
                   <thead>
                     {table.getHeaderGroups().map((headerGroup) => (
                       <tr key={headerGroup.id} className="border-b">
@@ -451,29 +451,31 @@ export function WorkspacePullRequestsTable({
             </div>
 
             {/* Pagination */}
-            <div className="flex items-center justify-between mt-4">
-              <div className="text-sm text-muted-foreground">
+            <div className="flex flex-col sm:flex-row items-center justify-between mt-4 gap-4">
+              <div className="text-sm text-muted-foreground order-2 sm:order-1">
                 Showing {table.getState().pagination.pageIndex * 10 + 1} to{' '}
                 {Math.min((table.getState().pagination.pageIndex + 1) * 10, pullRequests.length)} of{' '}
                 {pullRequests.length} pull requests
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 order-1 sm:order-2">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => table.previousPage()}
                   disabled={!table.getCanPreviousPage()}
+                  className="min-h-[44px] px-3"
                 >
                   <ChevronLeft className="h-4 w-4" />
-                  Previous
+                  <span className="hidden sm:inline ml-2">Previous</span>
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => table.nextPage()}
                   disabled={!table.getCanNextPage()}
+                  className="min-h-[44px] px-3"
                 >
-                  Next
+                  <span className="hidden sm:inline mr-2">Next</span>
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>

@@ -103,16 +103,17 @@ export function WorkspaceTabNavigation({
       onValueChange={(value) => onTabChange(value as TabValue)}
       className={cn('w-full', className)}
     >
-      <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-grid">
+      <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 lg:w-auto lg:inline-grid min-h-[44px]">
         {tabsWithCounts.map((tab) => (
           <TabsTrigger
             key={tab.value}
             value={tab.value}
             disabled={tab.disabled}
-            className="flex items-center gap-2 data-[state=active]:bg-background"
+            className="flex items-center gap-1 sm:gap-2 data-[state=active]:bg-background min-h-[44px] px-2 sm:px-3 text-xs sm:text-sm"
           >
             {tab.icon}
-            <span className="hidden sm:inline">{tab.label}</span>
+            <span className="hidden sm:inline truncate">{tab.label}</span>
+            <span className="sm:hidden text-[10px] truncate max-w-[60px]">{tab.label.split(' ')[0]}</span>
             {tab.badge !== undefined && (
               <Badge variant="secondary" className="ml-1.5 h-5 px-1.5 text-xs">
                 {typeof tab.badge === 'number' && tab.badge > 99 ? '99+' : tab.badge}
@@ -192,7 +193,7 @@ export function WorkspaceTabNavigationMobile({
           key={tab.value}
           onClick={() => onTabChange(tab.value)}
           className={cn(
-            'flex flex-col items-center gap-1 px-3 py-2 text-sm transition-colors relative',
+            'flex flex-col items-center gap-1 px-3 py-2 text-sm transition-colors relative min-h-[44px] min-w-[44px] justify-center',
             activeTab === tab.value
               ? 'text-primary border-b-2 border-primary'
               : 'text-muted-foreground hover:text-foreground'
@@ -248,16 +249,17 @@ export function WorkspaceTabWithContent({
       onValueChange={(value) => onTabChange(value as TabValue)}
       className={cn('w-full', className)}
     >
-      <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-grid">
+      <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 lg:w-auto lg:inline-grid min-h-[44px]">
         {tabsWithCounts.map((tab) => (
           <TabsTrigger
             key={tab.value}
             value={tab.value}
             disabled={tab.disabled}
-            className="flex items-center gap-2"
+            className="flex items-center gap-1 sm:gap-2 min-h-[44px] px-2 sm:px-3 text-xs sm:text-sm"
           >
             {tab.icon}
-            <span className="hidden sm:inline">{tab.label}</span>
+            <span className="hidden sm:inline truncate">{tab.label}</span>
+            <span className="sm:hidden text-[10px] truncate max-w-[60px]">{tab.label.split(' ')[0]}</span>
             {tab.badge !== undefined && (
               <Badge variant="secondary" className="ml-1.5 h-5 px-1.5 text-xs">
                 {typeof tab.badge === 'number' && tab.badge > 99 ? '99+' : tab.badge}
