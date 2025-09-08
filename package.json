@@ -181,7 +181,7 @@
     "is-arrayish": "0.3.2",
     "@opentelemetry/instrumentation": "0.52.1",
     "debug": "4.3.4",
-    "ansi-regex": "6.1.0",
+    "ansi-regex": "5.0.1",
     "supports-color": "9.4.0",
     "safer-buffer": "2.1.2"
   },
