@@ -1,11 +1,21 @@
-import { useState, useEffect } from 'react';
-import { AlertTriangle, CheckCircle, RefreshCw, Database, Clock, TrendingUp } from '@/components/ui/icon';
+import { useState, useEffect, useCallback } from 'react';
+import {
+  AlertTriangle,
+  CheckCircle,
+  RefreshCw,
+  Database,
+  Clock,
+  TrendingUp,
+  Shield,
+} from '@/components/ui/icon';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/lib/supabase';
+import { useAdminAuth } from '@/hooks/use-admin-auth';
+import { DataIntegrityMonitorErrorBoundary } from './data-integrity-monitor-error-boundary';
 
 interface ConsistencyIssue {
   repository_name: string;
@@ -16,11 +26,20 @@ interface ConsistencyIssue {
   consistency_status: string;
 }
 
+interface ConsistencyCheckDetails {
+  repository_name?: string;
+  stored_pull_request_count?: number;
+  stored_total_pull_requests?: number;
+  actual_pr_count?: number;
+  count_difference?: number;
+  consistency_status?: string;
+}
+
 interface ConsistencyCheck {
   id: string;
   check_type: string;
-  status: string;
-  details: any;
+  status: 'consistent' | 'inconsistent' | 'fixed' | 'failed';
+  details: ConsistencyCheckDetails;
   checked_at: string;
   fixed_at?: string;
 }
@@ -36,96 +55,141 @@ interface SyncMetrics {
   netlify_usage: number;
 }
 
-export function DataIntegrityMonitor() {
+function DataIntegrityMonitorCore() {
   const [loading, setLoading] = useState(true);
   const [consistencyIssues, setConsistencyIssues] = useState<ConsistencyIssue[]>([]);
   const [recentChecks, setRecentChecks] = useState<ConsistencyCheck[]>([]);
   const [syncMetrics, setSyncMetrics] = useState<SyncMetrics | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [lastCheckTime, setLastCheckTime] = useState<Date | null>(null);
+  const [lastFixTime, setLastFixTime] = useState<Date | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchData = async () => {
+  // Authentication check
+  const { isAdmin, loading: authLoading } = useAdminAuth();
+
+  const fetchData = useCallback(async () => {
+    if (!isAdmin) {
+      setError('Admin access required to view monitoring data');
+      setLoading(false);
+      return;
+    }
+
     try {
       setRefreshing(true);
+      setError(null);
 
-      // Fetch consistency issues
-      const { data: issues, error: issuesError } = await supabase
-        .rpc('check_repository_pr_count_consistency');
+      // Parallel API calls for better performance
+      const [issuesResponse, checksResponse, metricsResponse] = await Promise.all([
+        supabase.rpc('check_repository_pr_count_consistency'),
+        supabase
+          .from('data_consistency_checks')
+          .select('*')
+          .order('checked_at', { ascending: false })
+          .limit(10),
+        supabase.rpc('get_sync_statistics', { days_back: 7 }),
+      ]);
 
-      if (issuesError) throw issuesError;
-      setConsistencyIssues(issues || []);
+      if (issuesResponse.error) throw issuesResponse.error;
+      if (checksResponse.error) throw checksResponse.error;
+      if (metricsResponse.error) throw metricsResponse.error;
 
-      // Fetch recent consistency checks
-      const { data: checks, error: checksError } = await supabase
-        .from('data_consistency_checks')
-        .select('*')
-        .order('checked_at', { ascending: false })
-        .limit(10);
-
-      if (checksError) throw checksError;
-      setRecentChecks(checks || []);
-
-      // Fetch sync metrics for the last 7 days
-      const { data: metrics, error: metricsError } = await supabase
-        .rpc('get_sync_statistics', { days_back: 7 });
-
-      if (metricsError) throw metricsError;
-      setSyncMetrics(metrics?.[0] || null);
+      setConsistencyIssues(issuesResponse.data || []);
+      setRecentChecks(checksResponse.data || []);
+      setSyncMetrics(metricsResponse.data?.[0] || null);
 
       setLastRefresh(new Date());
     } catch (error) {
       console.error('Failed to fetch monitoring data:', error);
+      setError(error instanceof Error ? error.message : 'Failed to fetch monitoring data');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [isAdmin]);
 
   const runConsistencyCheck = async () => {
+    if (!isAdmin) {
+      setError('Admin access required to run consistency checks');
+      return;
+    }
+
+    // Rate limiting: Only allow one check per minute
+    const now = new Date();
+    if (lastCheckTime && now.getTime() - lastCheckTime.getTime() < 60000) {
+      setError('Please wait at least 1 minute between consistency checks');
+      return;
+    }
+
     try {
       setRefreshing(true);
-      
+      setError(null);
+
       // Trigger a new consistency check
       const { error } = await supabase.rpc('run_data_consistency_checks');
-      
+
       if (error) throw error;
-      
+
+      setLastCheckTime(now);
+
       // Refresh the data
       await fetchData();
     } catch (error) {
       console.error('Failed to run consistency check:', error);
+      setError(error instanceof Error ? error.message : 'Failed to run consistency check');
     } finally {
       setRefreshing(false);
     }
   };
 
   const fixConsistencyIssues = async () => {
+    if (!isAdmin) {
+      setError('Admin access required to fix consistency issues');
+      return;
+    }
+
+    // Rate limiting: Only allow one fix per 5 minutes
+    const now = new Date();
+    if (lastFixTime && now.getTime() - lastFixTime.getTime() < 300000) {
+      setError('Please wait at least 5 minutes between auto-fix operations');
+      return;
+    }
+
     try {
       setRefreshing(true);
-      
+      setError(null);
+
       // Trigger automatic fix
       const { error } = await supabase.rpc('fix_repository_pr_count_inconsistencies');
-      
+
       if (error) throw error;
-      
+
+      setLastFixTime(now);
+
       // Refresh the data
       await fetchData();
     } catch (error) {
       console.error('Failed to fix consistency issues:', error);
+      setError(error instanceof Error ? error.message : 'Failed to fix consistency issues');
     } finally {
       setRefreshing(false);
     }
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (!authLoading) {
+      fetchData();
+    }
+  }, [authLoading, fetchData]);
 
-  // Auto-refresh every 5 minutes
+  // Auto-refresh every 5 minutes (only if admin)
   useEffect(() => {
-    const interval = setInterval(fetchData, 5 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, []);
+    if (isAdmin) {
+      const interval = setInterval(fetchData, 5 * 60 * 1000);
+      return () => clearInterval(interval);
+    }
+  }, [isAdmin, fetchData]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -155,7 +219,8 @@ export function DataIntegrityMonitor() {
     }
   };
 
-  if (loading) {
+  // Show loading while checking authentication
+  if (authLoading || loading) {
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -166,6 +231,25 @@ export function DataIntegrityMonitor() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Skeleton className="h-64" />
           <Skeleton className="h-64" />
+        </div>
+      </div>
+    );
+  }
+
+  // Show access denied if not admin
+  if (!isAdmin) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Card className="max-w-md">
+            <CardContent className="p-6 text-center">
+              <Shield className="h-12 w-12 text-red-500 mx-auto mb-4" />
+              <h2 className="text-lg font-semibold mb-2">Access Denied</h2>
+              <p className="text-muted-foreground">
+                Admin privileges required to access the Data Integrity Monitor.
+              </p>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
@@ -182,17 +266,38 @@ export function DataIntegrityMonitor() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {lastRefresh && (
-            <span className="text-sm text-muted-foreground">
-              Last updated: {lastRefresh.toLocaleTimeString()}
-            </span>
-          )}
+          <div className="flex items-center gap-4">
+            {lastRefresh && (
+              <span className="text-sm text-muted-foreground">
+                Last updated: {lastRefresh.toLocaleTimeString()}
+              </span>
+            )}
+            {lastCheckTime && (
+              <span className="text-xs text-muted-foreground">
+                Next check available:{' '}
+                {new Date(lastCheckTime.getTime() + 60000).toLocaleTimeString()}
+              </span>
+            )}
+            {lastFixTime && (
+              <span className="text-xs text-muted-foreground">
+                Next fix available: {new Date(lastFixTime.getTime() + 300000).toLocaleTimeString()}
+              </span>
+            )}
+          </div>
           <Button onClick={fetchData} disabled={refreshing} variant="outline" size="sm">
             <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
         </div>
       </div>
+
+      {/* Error Alert */}
+      {error && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -220,10 +325,9 @@ export function DataIntegrityMonitor() {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Sync Success Rate</p>
                 <p className="text-2xl font-bold">
-                  {syncMetrics 
+                  {syncMetrics
                     ? `${Math.round((syncMetrics.successful_syncs / syncMetrics.total_syncs) * 100)}%`
-                    : 'N/A'
-                  }
+                    : 'N/A'}
                 </p>
               </div>
               <TrendingUp className="h-8 w-8 text-blue-600" />
@@ -237,10 +341,7 @@ export function DataIntegrityMonitor() {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Avg Sync Time</p>
                 <p className="text-2xl font-bold">
-                  {syncMetrics 
-                    ? `${syncMetrics.avg_execution_time.toFixed(1)}s`
-                    : 'N/A'
-                  }
+                  {syncMetrics ? `${syncMetrics.avg_execution_time.toFixed(1)}s` : 'N/A'}
                 </p>
               </div>
               <Clock className="h-8 w-8 text-orange-600" />
@@ -263,14 +364,19 @@ export function DataIntegrityMonitor() {
               </CardDescription>
             </div>
             <div className="flex gap-2">
-              <Button onClick={runConsistencyCheck} disabled={refreshing} variant="outline" size="sm">
+              <Button
+                onClick={runConsistencyCheck}
+                disabled={refreshing}
+                variant="outline"
+                size="sm"
+              >
                 <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-                Check Now
+                {refreshing ? 'Checking...' : 'Check Now'}
               </Button>
               {consistencyIssues.length > 0 && (
                 <Button onClick={fixConsistencyIssues} disabled={refreshing} size="sm">
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Auto-Fix Issues
+                  <CheckCircle className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                  {refreshing ? 'Fixing...' : 'Auto-Fix Issues'}
                 </Button>
               )}
             </div>
@@ -289,18 +395,21 @@ export function DataIntegrityMonitor() {
               <Alert>
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
-                  Found {consistencyIssues.length} repositories with inconsistent PR counts. 
-                  This can cause charts to display incorrect data.
+                  Found {consistencyIssues.length} repositories with inconsistent PR counts. This
+                  can cause charts to display incorrect data.
                 </AlertDescription>
               </Alert>
               <div className="space-y-2">
                 {consistencyIssues.slice(0, 10).map((issue, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-3 bg-muted rounded-lg"
+                  >
                     <div className="flex-1">
                       <div className="font-medium">{issue.repository_name}</div>
                       <div className="text-sm text-muted-foreground">
-                        Stored: {issue.stored_pull_request_count} / {issue.stored_total_pull_requests} | 
-                        Actual: {issue.actual_pr_count} | 
+                        Stored: {issue.stored_pull_request_count} /{' '}
+                        {issue.stored_total_pull_requests} | Actual: {issue.actual_pr_count} |
                         Difference: {Math.abs(issue.count_difference)}
                       </div>
                     </div>
@@ -335,7 +444,10 @@ export function DataIntegrityMonitor() {
                 <p className="text-sm text-muted-foreground">No recent checks recorded</p>
               ) : (
                 recentChecks.map((check) => (
-                  <div key={check.id} className="flex items-center justify-between p-2 rounded border">
+                  <div
+                    key={check.id}
+                    className="flex items-center justify-between p-2 rounded border"
+                  >
                     <div>
                       <div className="text-sm font-medium">{check.check_type}</div>
                       <div className="text-xs text-muted-foreground">
@@ -348,9 +460,7 @@ export function DataIntegrityMonitor() {
                           Fixed: {new Date(check.fixed_at).toLocaleTimeString()}
                         </Badge>
                       )}
-                      <Badge className={getStatusColor(check.status)}>
-                        {check.status}
-                      </Badge>
+                      <Badge className={getStatusColor(check.status)}>{check.status}</Badge>
                     </div>
                   </div>
                 ))
@@ -363,9 +473,7 @@ export function DataIntegrityMonitor() {
         <Card>
           <CardHeader>
             <CardTitle>Sync Performance (Last 7 Days)</CardTitle>
-            <CardDescription>
-              Performance metrics for GitHub data synchronization
-            </CardDescription>
+            <CardDescription>Performance metrics for GitHub data synchronization</CardDescription>
           </CardHeader>
           <CardContent>
             {syncMetrics ? (
@@ -383,7 +491,9 @@ export function DataIntegrityMonitor() {
                   </div>
                   <div>
                     <div className="text-sm text-muted-foreground">Failed</div>
-                    <div className="text-2xl font-bold text-red-600">{syncMetrics.failed_syncs}</div>
+                    <div className="text-2xl font-bold text-red-600">
+                      {syncMetrics.failed_syncs}
+                    </div>
                   </div>
                   <div>
                     <div className="text-sm text-muted-foreground">Timeouts</div>
@@ -414,5 +524,13 @@ export function DataIntegrityMonitor() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export function DataIntegrityMonitor() {
+  return (
+    <DataIntegrityMonitorErrorBoundary>
+      <DataIntegrityMonitorCore />
+    </DataIntegrityMonitorErrorBoundary>
   );
 }

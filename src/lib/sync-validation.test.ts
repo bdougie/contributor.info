@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { supabase } from '@/lib/supabase';
 
 describe('Sync Process Validation', () => {
@@ -11,14 +11,14 @@ describe('Sync Process Validation', () => {
         .not('last_synced_at', 'is', null)
         .not('pull_request_count', 'is', null)
         .limit(1)
-        .single();
+        .maybeSingle();
 
       expect(repoError).toBeNull();
-      
+
       if (sampleRepo) {
         // Verify counts are consistent
         expect(sampleRepo.pull_request_count).toBe(sampleRepo.total_pull_requests);
-        
+
         // Verify actual count matches stored count
         const { data: actualCount, error: countError } = await supabase
           .from('pull_requests')
@@ -26,7 +26,7 @@ describe('Sync Process Validation', () => {
           .eq('repository_id', sampleRepo.id);
 
         expect(countError).toBeNull();
-        
+
         if (actualCount) {
           expect(actualCount.count).toBe(sampleRepo.pull_request_count);
         }
@@ -44,14 +44,14 @@ describe('Sync Process Validation', () => {
 
       expect(logsError).toBeNull();
       expect(recentLogs).toBeDefined();
-      
+
       if (recentLogs && recentLogs.length > 0) {
         for (const log of recentLogs) {
           // Validate log structure
           expect(log).toHaveProperty('sync_type');
           expect(log).toHaveProperty('status');
           expect(log).toHaveProperty('started_at');
-          
+
           // Status should be valid
           expect(['started', 'completed', 'failed', 'cancelled']).toContain(log.status);
         }
@@ -68,17 +68,17 @@ describe('Sync Process Validation', () => {
 
       expect(progressError).toBeNull();
       expect(progressRecords).toBeDefined();
-      
+
       if (progressRecords && progressRecords.length > 0) {
         for (const progress of progressRecords) {
           // Validate progress record structure
           expect(progress).toHaveProperty('repository_id');
           expect(progress).toHaveProperty('status');
           expect(progress).toHaveProperty('prs_processed');
-          
+
           // Status should be valid
           expect(['partial', 'in_progress', 'completed', 'failed']).toContain(progress.status);
-          
+
           // Processed count should be reasonable
           if (progress.prs_processed !== null) {
             expect(progress.prs_processed).toBeGreaterThanOrEqual(0);
@@ -97,13 +97,13 @@ describe('Sync Process Validation', () => {
         .limit(5);
 
       expect(failedError).toBeNull();
-      
+
       if (failedSyncs && failedSyncs.length > 0) {
         for (const failedSync of failedSyncs) {
           // Failed syncs should have error messages
           expect(failedSync.error_message).toBeDefined();
           expect(failedSync.error_message).not.toBe('');
-          
+
           // Should have proper metadata for debugging
           expect(failedSync.metadata).toBeDefined();
         }
@@ -114,9 +114,7 @@ describe('Sync Process Validation', () => {
   describe('Trigger Function Validation', () => {
     it('should have working PR count monitoring functions', async () => {
       // Test that our monitoring functions are properly installed and accessible
-      const { error } = await supabase
-        .rpc('check_repository_pr_count_consistency')
-        .limit(0);
+      const { error } = await supabase.rpc('check_repository_pr_count_consistency').limit(0);
 
       expect(error).toBeNull();
     });
@@ -125,8 +123,8 @@ describe('Sync Process Validation', () => {
       // Verify that the necessary triggers exist
       const triggerNames = [
         'update_repository_pr_count_on_insert',
-        'update_repository_pr_count_on_delete', 
-        'update_repository_pr_count_on_update'
+        'update_repository_pr_count_on_delete',
+        'update_repository_pr_count_on_update',
       ];
 
       for (const triggerName of triggerNames) {
@@ -135,7 +133,7 @@ describe('Sync Process Validation', () => {
           .select('trigger_name')
           .eq('trigger_name', triggerName)
           .eq('event_object_table', 'pull_requests')
-          .single();
+          .maybeSingle();
 
         expect(triggerError).toBeNull();
         expect(triggerExists).toBeDefined();
@@ -164,7 +162,7 @@ describe('Sync Process Validation', () => {
         .limit(5);
 
       expect(error).toBeNull();
-      
+
       // Should not have PRs without repository references
       if (prWithoutRepos) {
         expect(prWithoutRepos).toHaveLength(0);
@@ -180,7 +178,7 @@ describe('Sync Process Validation', () => {
         .limit(5);
 
       expect(error).toBeNull();
-      
+
       // Should not have PRs without valid authors
       if (invalidAuthors) {
         expect(invalidAuthors).toHaveLength(0);
@@ -195,7 +193,7 @@ describe('Sync Process Validation', () => {
         'idx_pull_requests_repository',
         'idx_pull_requests_author',
         'idx_pull_requests_created',
-        'idx_repositories_pull_request_count'
+        'idx_repositories_pull_request_count',
       ];
 
       for (const indexName of criticalIndexes) {
@@ -203,7 +201,7 @@ describe('Sync Process Validation', () => {
           .from('pg_indexes')
           .select('indexname')
           .eq('indexname', indexName)
-          .single();
+          .maybeSingle();
 
         expect(error).toBeNull();
         expect(indexExists).toBeDefined();
@@ -213,10 +211,8 @@ describe('Sync Process Validation', () => {
 
     it('should complete consistency checks in reasonable time', async () => {
       const startTime = Date.now();
-      
-      const { data, error } = await supabase
-        .rpc('check_repository_pr_count_consistency')
-        .limit(10);
+
+      const { error } = await supabase.rpc('check_repository_pr_count_consistency').limit(10);
 
       const endTime = Date.now();
       const executionTime = endTime - startTime;
@@ -238,7 +234,7 @@ describe('Sync Process Validation', () => {
 
       expect(error).toBeNull();
       expect(consistencyChecks).toBeDefined();
-      
+
       if (consistencyChecks && consistencyChecks.length > 0) {
         for (const check of consistencyChecks) {
           expect(check).toHaveProperty('check_type');
@@ -252,12 +248,12 @@ describe('Sync Process Validation', () => {
       const monitoringFunctions = [
         'check_repository_pr_count_consistency',
         'fix_repository_pr_count_inconsistencies',
-        'run_data_consistency_checks'
+        'run_data_consistency_checks',
       ];
 
       for (const funcName of monitoringFunctions) {
         const { error } = await supabase.rpc(funcName).limit(0);
-        
+
         // Functions should exist and be callable (even if they return no data)
         expect(error).toBeNull();
       }
@@ -275,15 +271,14 @@ describe('Sync Process Validation', () => {
         .limit(3);
 
       expect(reposError).toBeNull();
-      
+
       if (testRepos && testRepos.length > 0) {
         for (const repo of testRepos) {
-          const { error: calcError } = await supabase
-            .rpc('calculate_self_selection_rate', {
-              p_repository_owner: repo.owner,
-              p_repository_name: repo.name,
-              p_days_back: 30
-            });
+          const { error: calcError } = await supabase.rpc('calculate_self_selection_rate', {
+            p_repository_owner: repo.owner,
+            p_repository_name: repo.name,
+            p_days_back: 30,
+          });
 
           // Should not error for valid repositories
           expect(calcError).toBeNull();
@@ -301,7 +296,7 @@ describe('Sync Process Validation', () => {
         .limit(2);
 
       expect(reposError).toBeNull();
-      
+
       if (testRepos && testRepos.length > 0) {
         for (const repo of testRepos) {
           const { error: confidenceError } = await supabase
