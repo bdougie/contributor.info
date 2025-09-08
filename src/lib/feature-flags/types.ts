@@ -10,19 +10,20 @@ export const FEATURE_FLAGS = {
   ENABLE_NEW_SEARCH: 'enable_new_search',
   ENABLE_WORKSPACE_ANALYTICS: 'enable_workspace_analytics',
   ENABLE_PERFORMANCE_OPTIMIZATIONS: 'enable_performance_optimizations',
-  
+
   // UI/UX Experiments
   NEW_ONBOARDING_FLOW: 'new_onboarding_flow',
   REPOSITORY_CARD_REDESIGN: 'repository_card_redesign',
   DARK_MODE_DEFAULT: 'dark_mode_default',
-  
+
   // Feature Gates
   ENABLE_BULK_OPERATIONS: 'enable_bulk_operations',
   ENABLE_ADVANCED_FILTERS: 'enable_advanced_filters',
   ENABLE_EXPORT_FEATURES: 'enable_export_features',
+  ENABLE_WORKSPACE_CREATION: 'enable_workspace_creation',
 } as const;
 
-export type FeatureFlagName = typeof FEATURE_FLAGS[keyof typeof FEATURE_FLAGS];
+export type FeatureFlagName = (typeof FEATURE_FLAGS)[keyof typeof FEATURE_FLAGS];
 
 /**
  * Feature flag value types

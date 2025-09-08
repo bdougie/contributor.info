@@ -1,6 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Users, Package, Plus, Sparkles, BarChart3, Share2 } from '@/components/ui/icon';
+import { useFeatureFlags } from '@/lib/feature-flags/context';
+import { FEATURE_FLAGS } from '@/lib/feature-flags/types';
+import { WorkspaceCreationDisabled } from './WorkspaceCreationDisabled';
 
 export interface WorkspaceOnboardingProps {
   onCreateClick: () => void;
@@ -8,6 +11,31 @@ export interface WorkspaceOnboardingProps {
 }
 
 export function WorkspaceOnboarding({ onCreateClick, className }: WorkspaceOnboardingProps) {
+  const { checkFlag } = useFeatureFlags();
+  const canCreateWorkspaces = checkFlag(FEATURE_FLAGS.ENABLE_WORKSPACE_CREATION);
+
+  if (!canCreateWorkspaces) {
+    return (
+      <Card className={className}>
+        <CardHeader className="text-center pb-4">
+          <div className="flex justify-center mb-3">
+            <div className="p-3 bg-muted rounded-full">
+              <Sparkles className="h-6 w-6 text-muted-foreground" />
+            </div>
+          </div>
+          <CardTitle className="text-2xl">Workspaces</CardTitle>
+          <p className="text-muted-foreground mt-2">
+            Organize repositories, track contributors, and collaborate with your team
+          </p>
+        </CardHeader>
+
+        <CardContent>
+          <WorkspaceCreationDisabled variant="card" />
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className={className}>
       <CardHeader className="text-center pb-4">
@@ -85,6 +113,19 @@ export function WorkspaceOnboarding({ onCreateClick, className }: WorkspaceOnboa
 
 // Compact version for when user already has workspaces
 export function WorkspaceOnboardingCompact({ onCreateClick }: WorkspaceOnboardingProps) {
+  const { checkFlag } = useFeatureFlags();
+  const canCreateWorkspaces = checkFlag(FEATURE_FLAGS.ENABLE_WORKSPACE_CREATION);
+
+  if (!canCreateWorkspaces) {
+    return (
+      <Card>
+        <CardContent className="py-6 px-6">
+          <WorkspaceCreationDisabled variant="card" />
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardContent className="py-6 px-6">

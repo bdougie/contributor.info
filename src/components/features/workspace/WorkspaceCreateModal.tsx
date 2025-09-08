@@ -8,10 +8,13 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { WorkspaceCreateForm } from './WorkspaceCreateForm';
+import { WorkspaceCreationDisabled } from './WorkspaceCreationDisabled';
 import { WorkspaceService } from '@/services/workspace.service';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useAnalytics } from '@/hooks/use-analytics';
+import { useFeatureFlags } from '@/lib/feature-flags/context';
+import { FEATURE_FLAGS } from '@/lib/feature-flags/types';
 import type { CreateWorkspaceRequest } from '@/types/workspace';
 import type { User } from '@supabase/supabase-js';
 
@@ -39,6 +42,10 @@ export function WorkspaceCreateModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { trackWorkspaceCreated, trackWorkspaceSettingsModified } = useAnalytics();
+  const { checkFlag } = useFeatureFlags();
+
+  // Check if workspace creation is enabled
+  const canCreateWorkspaces = checkFlag(FEATURE_FLAGS.ENABLE_WORKSPACE_CREATION);
 
   useEffect(() => {
     // Get the current user when the modal opens
@@ -54,8 +61,22 @@ export function WorkspaceCreateModal({
     }
   }, [open]);
 
+  const handleRequestAccess = useCallback(() => {
+    // Track request for early access
+    toast.success(
+      "Thanks for your interest! We'll notify you when workspace creation is available."
+    );
+    onOpenChange(false);
+  }, [onOpenChange]);
+
   const handleWorkspaceSubmit = useCallback(
     async (data: CreateWorkspaceRequest) => {
+      // Additional feature flag check during submission
+      if (mode === 'create' && !canCreateWorkspaces) {
+        setError('Workspace creation is currently disabled');
+        return;
+      }
+
       if (!user?.id) {
         setError(`You must be logged in to ${mode === 'create' ? 'create' : 'edit'} a workspace`);
         return;
@@ -126,6 +147,7 @@ export function WorkspaceCreateModal({
       source,
       trackWorkspaceCreated,
       trackWorkspaceSettingsModified,
+      canCreateWorkspaces,
     ]
   );
 
@@ -139,23 +161,38 @@ export function WorkspaceCreateModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>{mode === 'create' ? 'Create New Workspace' : 'Edit Workspace'}</DialogTitle>
-          <DialogDescription>
-            {mode === 'create'
-              ? 'Organize your favorite repositories and collaborate with your team. You can add repositories and invite members after creating your workspace.'
-              : 'Update your workspace settings. Changes will be applied immediately.'}
-          </DialogDescription>
-        </DialogHeader>
+        {mode === 'create' && !canCreateWorkspaces ? (
+          <>
+            <DialogHeader>
+              <DialogTitle>Workspace Creation</DialogTitle>
+              <DialogDescription>Workspace creation is currently unavailable</DialogDescription>
+            </DialogHeader>
 
-        <WorkspaceCreateForm
-          onSubmit={handleWorkspaceSubmit}
-          onCancel={handleCancel}
-          loading={loading}
-          error={error}
-          mode={mode}
-          initialValues={initialValues}
-        />
+            <WorkspaceCreationDisabled variant="modal" onRequestAccess={handleRequestAccess} />
+          </>
+        ) : (
+          <>
+            <DialogHeader>
+              <DialogTitle>
+                {mode === 'create' ? 'Create New Workspace' : 'Edit Workspace'}
+              </DialogTitle>
+              <DialogDescription>
+                {mode === 'create'
+                  ? 'Organize your favorite repositories and collaborate with your team. You can add repositories and invite members after creating your workspace.'
+                  : 'Update your workspace settings. Changes will be applied immediately.'}
+              </DialogDescription>
+            </DialogHeader>
+
+            <WorkspaceCreateForm
+              onSubmit={handleWorkspaceSubmit}
+              onCancel={handleCancel}
+              loading={loading}
+              error={error}
+              mode={mode}
+              initialValues={initialValues}
+            />
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );
