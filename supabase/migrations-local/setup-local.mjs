@@ -1,12 +1,16 @@
 #!/usr/bin/env node
-// Cross-platform local migration runner
+// Cross-platform local migration runner with consolidated migration support
 // - Checks Supabase local status
-// - Derives local DB URL
-// - Executes: supabase db push --db-url <url> (bypasses access token)
+// - Optionally applies production-based consolidated migration by temporarily managing migration files
+// - Falls back to standard migration push
 
 import { spawnSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync, mkdirSync, copyFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+
+// Track what we moved for cleanup
+let migrationsMoved = false;
+const processId = process.pid;
 
 function run(cmd, args, opts = {}) {
   return spawnSync(cmd, args, { stdio: 'pipe', encoding: 'utf8', ...opts });
@@ -36,20 +40,28 @@ function resolveSupabaseCmd() {
 
 function supabaseStatus(supabaseCmd) {
   if (supabaseCmd.via === 'direct' || supabaseCmd.via === 'local-bin') {
-    return run(supabaseCmd.cmd, ['status']);
+    const result = run(supabaseCmd.cmd, ['status']);
+    // Combine stdout and stderr for full output
+    result.combinedOutput = (result.stdout || '') + (result.stderr || '');
+    return result;
   }
   if (supabaseCmd.via === 'npx') {
-    return run(supabaseCmd.cmd, ['supabase', 'status']);
+    const result = run(supabaseCmd.cmd, ['supabase', 'status']);
+    // Combine stdout and stderr for full output
+    result.combinedOutput = (result.stdout || '') + (result.stderr || '');
+    return result;
   }
   return { status: 1, stdout: '', stderr: 'Supabase CLI not available (direct, local-bin, or npx not found).', error: new Error('Supabase CLI unavailable') };
 }
 
 function ensureSupabaseRunning(statusStdout) {
   const out = (statusStdout || '').toLowerCase();
-  if (!out.includes('is running')) {
+  // Look for the specific phrase or running indicators
+  if (!out.includes('supabase local development setup is running') && !out.includes('is running')) {
     console.error('❌ Supabase is not running. Start it first:');
     console.error('   - npm run supabase:start   (project helper)');
     console.error('   - or: npx supabase start');
+    console.error('Debug: status output was:', statusStdout?.substring(0, 200));
     process.exit(1);
   }
 }
@@ -86,16 +98,113 @@ function pushMigrations(supabaseCmd, dbUrl, extraArgs = []) {
   return 1;
 }
 
-function executeSqlFile(supabaseCmd, dbUrl, filePath, extraArgs = []) {
-  if (supabaseCmd.via === 'direct' || supabaseCmd.via === 'local-bin') {
-    const res = spawnSync(supabaseCmd.cmd, ['db', 'execute', '--db-url', dbUrl, '--file', filePath, ...extraArgs], { stdio: 'inherit' });
-    return res.status ?? 1;
+function temporarilyMoveExistingMigrations() {
+  const migrationsDir = path.resolve('supabase/migrations');
+  const tempDir = path.resolve('supabase/migrations.temp');
+  const consolidatedFile = '20240101000000_production_based_consolidated.sql';
+  const consolidatedPath = path.join(migrationsDir, consolidatedFile);
+
+  if (!existsSync(migrationsDir)) {
+    console.log('📂 No migrations directory found, creating...');
+    mkdirSync(migrationsDir, { recursive: true });
+    return false;
   }
-  if (supabaseCmd.via === 'npx') {
-    const res = spawnSync(supabaseCmd.cmd, ['supabase', 'db', 'execute', '--db-url', dbUrl, '--file', filePath, ...extraArgs], { stdio: 'inherit' });
-    return res.status ?? 1;
+
+  const files = readdirSync(migrationsDir).filter(f => f.endsWith('.sql'));
+  if (files.length === 0) {
+    console.log('📂 No migration files to move');
+    return false;
   }
-  return 1;
+
+  console.log('📦 Temporarily moving %d existing migrations...', files.length);
+
+  try {
+    // Move entire directory to temp
+    if (existsSync(tempDir)) {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+    renameSync(migrationsDir, tempDir);
+
+    // Create fresh migrations directory
+    mkdirSync(migrationsDir, { recursive: true });
+    writeFileSync(path.join(migrationsDir, '.gitkeep'), '');
+
+    // Copy the corrected consolidated migration from migrations-local
+    const consolidatedSourcePath = path.resolve('supabase/migrations-local/001_production_based_consolidated.sql');
+    if (existsSync(consolidatedSourcePath)) {
+      copyFileSync(consolidatedSourcePath, consolidatedPath);
+      console.log('✅ Copied corrected consolidated migration from migrations-local');
+    } else {
+      console.error('❌ Corrected consolidated migration not found: %s', consolidatedSourcePath);
+      console.error('   Please ensure 001_production_based_consolidated.sql exists in migrations-local/');
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('❌ Failed to move migrations:', error.message);
+    return false;
+  }
+}
+
+function restoreExistingMigrations() {
+  const migrationsDir = path.resolve('supabase/migrations');
+  const tempDir = path.resolve('supabase/migrations.temp');
+
+  if (!existsSync(tempDir) || !migrationsMoved) {
+    return;
+  }
+
+  console.log('📦 Restoring original migrations...');
+
+  try {
+    // Remove our temporary directory (should only contain .gitkeep and our temp file)
+    if (existsSync(migrationsDir)) {
+      rmSync(migrationsDir, { recursive: true, force: true });
+    }
+
+    // Restore original migrations
+    renameSync(tempDir, migrationsDir);
+    console.log('✅ Original migrations restored');
+  } catch (error) {
+    console.error('❌ Failed to restore migrations:', error.message);
+  }
+}
+
+function applyConsolidatedMigration(supabaseCmd) {
+  const consolidatedTarget = path.resolve('supabase/migrations/20240101000000_production_based_consolidated.sql');
+
+  if (!existsSync(consolidatedTarget)) {
+    console.error('❌ Consolidated migration not found: %s', consolidatedTarget);
+    console.error('   This should have been restored during the migration move process');
+    return 1;
+  }
+
+  console.log('📄 Applying consolidated migration: %s', path.basename(consolidatedTarget));
+
+  try {
+    // Run database reset to apply only our migration
+    console.log('🔄 Running supabase db reset...');
+    let resetResult;
+    if (supabaseCmd.via === 'direct' || supabaseCmd.via === 'local-bin') {
+      resetResult = spawnSync(supabaseCmd.cmd, ['db', 'reset'], { stdio: 'inherit' });
+    } else if (supabaseCmd.via === 'npx') {
+      resetResult = spawnSync(supabaseCmd.cmd, ['supabase', 'db', 'reset'], { stdio: 'inherit' });
+    }
+
+    const exitCode = resetResult?.status ?? 1;
+
+    if (exitCode === 0) {
+      console.log('✅ Consolidated migration applied successfully!');
+    } else {
+      console.error('❌ Consolidated migration failed with exit code:', exitCode);
+    }
+
+    return exitCode;
+  } catch (error) {
+    console.error('❌ Failed to apply consolidated migration:', error.message);
+    return 1;
+  }
 }
 
 async function main() {
@@ -109,7 +218,7 @@ async function main() {
     process.exit(1);
   }
 
-  // 1) Status
+  // 1) Status check
   const statusRes = supabaseStatus(supabaseCmd);
   if (statusRes.error) {
     console.error('❌ Failed to run "supabase status":', statusRes.error.message);
@@ -124,31 +233,38 @@ async function main() {
   }
 
   // 2) Running check
-  ensureSupabaseRunning(statusRes.stdout);
+  ensureSupabaseRunning(statusRes.combinedOutput || statusRes.stdout);
 
-  // 3) DB URL
-  const dbUrl = extractDbUrl(statusRes.stdout);
-  console.log('📌 Using DB URL: %s', redactDbUrl(dbUrl));
+  // 3) Check for consolidated migration flag
+  const args = process.argv.slice(2);
+  const useConsolidated = args.includes('--consolidated') || process.env.USE_CONSOLIDATED_SQL === '1';
 
-  // 4) Extra flags passthrough (e.g., --dry-run)
-  const extraArgs = process.argv.slice(2);
+  if (useConsolidated) {
+    console.log('🎯 Consolidated migration mode enabled');
+    
+    // Move existing migrations out of the way
+    const moved = temporarilyMoveExistingMigrations();
+    migrationsMoved = moved;
 
-  // 5) Optional consolidated SQL route
-  // USE_CONSOLIDATED_SQL=1 runs a single pre-generated SQL file containing all migrations
-  // This is useful for:
-  // - Fresh local setups where migration history doesn't matter
-  // - CI/CD environments that need faster setup
-  // - Avoiding potential migration ordering issues
-  // Default behavior (without this flag) runs individual migrations in sequence
-  const consolidatedSql = path.resolve('supabase/migrations-local/000_consolidated_local_safe.sql');
-  if (process.env.USE_CONSOLIDATED_SQL === '1' && existsSync(consolidatedSql)) {
-    console.log('ℹ️ USE_CONSOLIDATED_SQL=1 detected. Executing consolidated SQL file...');
-    const code = executeSqlFile(supabaseCmd, dbUrl, consolidatedSql, extraArgs);
-    process.exit(code);
+    try {
+      // Apply our consolidated migration
+      const code = applyConsolidatedMigration(supabaseCmd);
+      process.exit(code);
+    } finally {
+      // Always restore migrations
+      if (moved) {
+        restoreExistingMigrations();
+      }
+    }
   }
 
-  // 6) Default to migrations push
-  console.log('📦 Running migrations with "supabase db push" against local DB...');
+  // 4) Standard migration mode
+  console.log('📦 Running standard migrations with "supabase db push"...');
+  
+  const dbUrl = extractDbUrl(statusRes.combinedOutput || statusRes.stdout);
+  console.log('📌 Using DB URL: %s', redactDbUrl(dbUrl));
+
+  const extraArgs = args.filter(arg => arg !== '--consolidated');
   const code = pushMigrations(supabaseCmd, dbUrl, extraArgs);
 
   if (code === 0) {
@@ -158,6 +274,23 @@ async function main() {
   }
   process.exit(code);
 }
+
+// Signal handlers for cleanup
+process.on('SIGINT', () => {
+  console.log('\n⚠️ Interrupted, cleaning up...');
+  if (migrationsMoved) {
+    restoreExistingMigrations();
+  }
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  console.log('\n⚠️ Terminated, cleaning up...');
+  if (migrationsMoved) {
+    restoreExistingMigrations();
+  }
+  process.exit(0);
+});
 
 main().catch((err) => {
   console.error('❌ Unexpected error:', err);
