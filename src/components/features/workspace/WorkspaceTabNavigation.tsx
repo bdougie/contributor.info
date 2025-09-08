@@ -103,17 +103,21 @@ export function WorkspaceTabNavigation({
       onValueChange={(value) => onTabChange(value as TabValue)}
       className={cn('w-full', className)}
     >
-      <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 lg:w-auto lg:inline-grid min-h-[44px]">
-        {tabsWithCounts.map((tab) => (
+      <TabsList className="grid w-full grid-cols-3 grid-rows-2 sm:flex sm:w-full sm:justify-between sm:grid-rows-1 lg:w-full min-h-[88px] sm:min-h-[44px]">
+        {tabsWithCounts.map((tab, index) => (
           <TabsTrigger
             key={tab.value}
             value={tab.value}
             disabled={tab.disabled}
-            className="flex items-center gap-1 sm:gap-2 data-[state=active]:bg-background min-h-[44px] px-2 sm:px-3 text-xs sm:text-sm"
+            className={`flex items-center gap-1 sm:gap-2 data-[state=active]:bg-background min-h-[44px] px-2 sm:px-3 text-xs sm:text-sm ${
+              index === 0 ? 'sm:pl-4' : ''
+            } ${index === tabsWithCounts.length - 1 ? 'sm:pr-4' : ''}`}
           >
             {tab.icon}
             <span className="hidden sm:inline truncate">{tab.label}</span>
-            <span className="sm:hidden text-[10px] truncate max-w-[60px]">{tab.label.split(' ')[0]}</span>
+            <span className="sm:hidden text-[10px] truncate max-w-[60px]">
+              {tab.label.split(' ')[0]}
+            </span>
             {tab.badge !== undefined && (
               <Badge variant="secondary" className="ml-1.5 h-5 px-1.5 text-xs">
                 {typeof tab.badge === 'number' && tab.badge > 99 ? '99+' : tab.badge}
@@ -249,17 +253,21 @@ export function WorkspaceTabWithContent({
       onValueChange={(value) => onTabChange(value as TabValue)}
       className={cn('w-full', className)}
     >
-      <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 lg:w-auto lg:inline-grid min-h-[44px]">
-        {tabsWithCounts.map((tab) => (
+      <TabsList className="grid w-full grid-cols-3 grid-rows-2 sm:flex sm:w-full sm:justify-between sm:grid-rows-1 lg:w-full min-h-[88px] sm:min-h-[44px]">
+        {tabsWithCounts.map((tab, index) => (
           <TabsTrigger
             key={tab.value}
             value={tab.value}
             disabled={tab.disabled}
-            className="flex items-center gap-1 sm:gap-2 min-h-[44px] px-2 sm:px-3 text-xs sm:text-sm"
+            className={`flex items-center gap-1 sm:gap-2 min-h-[44px] px-2 sm:px-3 text-xs sm:text-sm ${
+              index === 0 ? 'sm:pl-4' : ''
+            } ${index === tabsWithCounts.length - 1 ? 'sm:pr-4' : ''}`}
           >
             {tab.icon}
             <span className="hidden sm:inline truncate">{tab.label}</span>
-            <span className="sm:hidden text-[10px] truncate max-w-[60px]">{tab.label.split(' ')[0]}</span>
+            <span className="sm:hidden text-[10px] truncate max-w-[60px]">
+              {tab.label.split(' ')[0]}
+            </span>
             {tab.badge !== undefined && (
               <Badge variant="secondary" className="ml-1.5 h-5 px-1.5 text-xs">
                 {typeof tab.badge === 'number' && tab.badge > 99 ? '99+' : tab.badge}
