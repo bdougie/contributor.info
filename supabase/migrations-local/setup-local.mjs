@@ -10,6 +10,7 @@ import path from 'node:path';
 
 // Track what we moved for cleanup
 let migrationsMoved = false;
+let seedWasMoved = false;
 const processId = process.pid;
 
 function run(cmd, args, opts = {}) {
@@ -171,6 +172,61 @@ function restoreExistingMigrations() {
   }
 }
 
+function temporarilyMoveSeed() {
+  const seedPath = path.resolve('supabase/seed.sql');
+  const tempSeedPath = path.resolve('supabase/seed.sql.temp');
+  
+  if (!existsSync(seedPath)) {
+    console.log('📦 No seed.sql file found, skipping seed management');
+    return false;
+  }
+  
+  console.log('📦 Temporarily moving seed.sql to prevent seeding errors...');
+  
+  try {
+    // Move original seed file to temp
+    copyFileSync(seedPath, tempSeedPath);
+    
+    // Create a minimal no-op seed file for the consolidated migration
+    const noOpSeed = `-- Temporary no-op seed for consolidated migration
+-- This prevents seeding errors with tables that don't exist in the consolidated schema
+-- Original seed.sql is preserved in seed.sql.temp and will be restored after migration
+
+SELECT 'Consolidated migration seed - no data inserted' as seed_status;
+`;
+    writeFileSync(seedPath, noOpSeed);
+    console.log('✅ seed.sql temporarily replaced with no-op version');
+    return true;
+  } catch (error) {
+    console.error('❌ Failed to move seed.sql:', error.message);
+    return false;
+  }
+}
+
+function restoreSeed() {
+  const seedPath = path.resolve('supabase/seed.sql');
+  const tempSeedPath = path.resolve('supabase/seed.sql.temp');
+  
+  if (!existsSync(tempSeedPath) || !seedWasMoved) {
+    return;
+  }
+  
+  console.log('📦 Restoring original seed.sql...');
+  
+  try {
+    // Remove the no-op seed file
+    if (existsSync(seedPath)) {
+      rmSync(seedPath, { force: true });
+    }
+    
+    // Restore original seed file
+    renameSync(tempSeedPath, seedPath);
+    console.log('✅ Original seed.sql restored successfully');
+  } catch (error) {
+    console.error('❌ Failed to restore seed.sql:', error.message);
+  }
+}
+
 function applyConsolidatedMigration(supabaseCmd) {
   const consolidatedTarget = path.resolve('supabase/migrations/20240101000000_production_based_consolidated.sql');
 
@@ -245,13 +301,20 @@ async function main() {
     // Move existing migrations out of the way
     const moved = temporarilyMoveExistingMigrations();
     migrationsMoved = moved;
+    
+    // Move seed file to prevent seeding errors
+    const seedMoved = temporarilyMoveSeed();
+    seedWasMoved = seedMoved;
 
     let exitCode = 1;
     try {
       // Apply our consolidated migration
       exitCode = applyConsolidatedMigration(supabaseCmd);
     } finally {
-      // Always restore migrations before exiting
+      // Always restore files before exiting (restore seed first, then migrations)
+      if (seedMoved) {
+        restoreSeed();
+      }
       if (moved) {
         restoreExistingMigrations();
       }
@@ -280,6 +343,9 @@ async function main() {
 // Signal handlers for cleanup
 process.on('SIGINT', () => {
   console.log('\n⚠️ Interrupted, cleaning up...');
+  if (seedWasMoved) {
+    restoreSeed();
+  }
   if (migrationsMoved) {
     restoreExistingMigrations();
   }
@@ -288,6 +354,9 @@ process.on('SIGINT', () => {
 
 process.on('SIGTERM', () => {
   console.log('\n⚠️ Terminated, cleaning up...');
+  if (seedWasMoved) {
+    restoreSeed();
+  }
   if (migrationsMoved) {
     restoreExistingMigrations();
   }
