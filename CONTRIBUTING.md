@@ -2,7 +2,7 @@
 
 Thank you for your interest in contributing to Contributor.info! This guide will help you get started with development, testing, and submitting contributions.
 
-_If you would like to work an issue, please read the [TRIAGE.md](/TRIAGE_GUIDE.md)_
+_If you would like to work an issue, please read the [TRIAGE.md](/TRIAGE.md)_
 
 ## 🚀 Quick Start
 
