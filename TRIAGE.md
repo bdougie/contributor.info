@@ -2,7 +2,7 @@
 
 ## How do I Join the Triage Team?
 1. Sign up for [opensauced.pizza](https://opensauced.pizza)
-2. Leave a comment in the [discord](https://discord.com/channels/714698561081704529/928693344358514698) channel `open-sauced-contributors-chat`.
+2. Leave a comment in the [discord](https://discord.com/channels/714698561081704529/928693344358514698) channel `🌱contributor-chat`.
 
 ## Issue Triage Process
 
