@@ -158,14 +158,14 @@ function restoreExistingMigrations() {
   console.log('📦 Restoring original migrations...');
 
   try {
-    // Remove our temporary directory (should only contain .gitkeep and our temp file)
+    // Remove ALL files from the current migrations directory (including .gitkeep and our consolidated migration)
     if (existsSync(migrationsDir)) {
       rmSync(migrationsDir, { recursive: true, force: true });
     }
 
-    // Restore original migrations
+    // Restore original migrations by moving temp directory back
     renameSync(tempDir, migrationsDir);
-    console.log('✅ Original migrations restored');
+    console.log('✅ Original migrations restored (all temporary files removed)');
   } catch (error) {
     console.error('❌ Failed to restore migrations:', error.message);
   }
@@ -246,16 +246,18 @@ async function main() {
     const moved = temporarilyMoveExistingMigrations();
     migrationsMoved = moved;
 
+    let exitCode = 1;
     try {
       // Apply our consolidated migration
-      const code = applyConsolidatedMigration(supabaseCmd);
-      process.exit(code);
+      exitCode = applyConsolidatedMigration(supabaseCmd);
     } finally {
-      // Always restore migrations
+      // Always restore migrations before exiting
       if (moved) {
         restoreExistingMigrations();
       }
     }
+    
+    process.exit(exitCode);
   }
 
   // 4) Standard migration mode
