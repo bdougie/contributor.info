@@ -77,6 +77,12 @@ export const FEATURE_FLAG_CONFIGS: Record<FeatureFlagName, FeatureFlagConfig> = 
     rolloutPercentage: 0,
     enabledForOrganizations: [], // Can add specific org IDs
   },
+  [FEATURE_FLAGS.ENABLE_WORKSPACE_CREATION]: {
+    name: FEATURE_FLAGS.ENABLE_WORKSPACE_CREATION,
+    defaultValue: false,
+    description: 'Enable workspace creation functionality',
+    rolloutPercentage: 0,
+  },
 };
 
 /**
@@ -97,7 +103,7 @@ export class PostHogFeatureFlagClient {
     // Dynamically import PostHog to keep bundle size small
     try {
       const { default: posthog } = await import('posthog-js');
-      
+
       // Initialize PostHog with feature flags enabled
       posthog.init(env.POSTHOG_KEY!, {
         api_host: env.POSTHOG_HOST || 'https://us.i.posthog.com',
@@ -252,7 +258,7 @@ export class PostHogFeatureFlagClient {
    */
   async reloadFlags(): Promise<void> {
     this.clearCache();
-    
+
     if (this.posthog) {
       try {
         await this.posthog.reloadFeatureFlags();
@@ -310,7 +316,7 @@ export class PostHogFeatureFlagClient {
   private isInRollout(key: string, percentage: number): boolean {
     const identifier = this.userId || this.getAnonymousId();
     const hash = this.hashString(`${key}-${identifier}`);
-    return (hash % 100) < percentage;
+    return hash % 100 < percentage;
   }
 
   private hashString(str: string): number {

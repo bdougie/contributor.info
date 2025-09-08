@@ -131,13 +131,13 @@ export function RepositoryList({
         cell: ({ row }) => {
           const repo = row.original;
           return (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <div className="relative flex-shrink-0">
                 <OrganizationAvatar
                   src={repo.avatar_url}
                   alt={repo.owner}
                   size={32}
-                  className="h-8 w-8"
+                  className="h-6 w-6 sm:h-8 sm:w-8"
                 />
                 {repo.is_pinned && (
                   <div className="absolute -bottom-1 -right-1 h-4 w-4 bg-muted rounded-full flex items-center justify-center border border-background">
@@ -147,15 +147,20 @@ export function RepositoryList({
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="font-medium truncate">{repo.full_name}</span>
+                  <span className="font-medium truncate text-sm sm:text-base">
+                    {repo.full_name}
+                  </span>
                   {repo.language && (
-                    <Badge variant="outline" className="text-xs flex-shrink-0">
+                    <Badge
+                      variant="outline"
+                      className="text-xs flex-shrink-0 hidden sm:inline-flex"
+                    >
                       {repo.language}
                     </Badge>
                   )}
                 </div>
                 {repo.description && (
-                  <p className="text-xs text-muted-foreground truncate max-w-md">
+                  <p className="text-xs text-muted-foreground truncate max-w-md hidden sm:block">
                     {repo.description}
                   </p>
                 )}
@@ -385,7 +390,7 @@ export function RepositoryList({
         ) : (
           <div className="rounded-lg border overflow-hidden">
             <div className="overflow-x-auto">
-              <Table className="min-w-[800px]">
+              <Table className="min-w-[600px] sm:min-w-[800px]">
                 <TableHeader>
                   {table.getHeaderGroups().map((headerGroup) => (
                     <TableRow key={headerGroup.id}>
@@ -397,13 +402,18 @@ export function RepositoryList({
                           <TableHead
                             key={header.id}
                             className={cn(
-                              header.column.id === 'full_name' && 'w-[40%] min-w-[250px]',
-                              header.column.id === 'stars' && 'w-[15%] min-w-[100px] text-right',
-                              header.column.id === 'open_prs' && 'w-[10%] min-w-[80px] text-right',
+                              header.column.id === 'full_name' &&
+                                'w-[40%] min-w-[180px] sm:min-w-[250px]',
+                              header.column.id === 'stars' &&
+                                'w-[15%] min-w-[60px] sm:min-w-[100px] text-right',
+                              header.column.id === 'open_prs' &&
+                                'w-[10%] min-w-[50px] sm:min-w-[80px] text-right',
                               header.column.id === 'contributors' &&
-                                'w-[15%] min-w-[120px] text-right',
-                              header.column.id === 'last_activity' && 'w-[15%] min-w-[120px]',
-                              header.column.id === 'actions' && 'w-[5%] min-w-[50px]'
+                                'w-[15%] min-w-[80px] sm:min-w-[120px] text-right',
+                              header.column.id === 'last_activity' &&
+                                'w-[15%] min-w-[80px] sm:min-w-[120px]',
+                              header.column.id === 'actions' &&
+                                'w-[5%] min-w-[40px] sm:min-w-[50px]'
                             )}
                           >
                             {header.isPlaceholder
