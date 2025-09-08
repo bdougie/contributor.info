@@ -1,4 +1,4 @@
--- Sync total_pull_requests with pull_request_count to fix chart failures
+-- Fix chart failures by syncing PR count columns and clearing stuck sync statuses
 -- Addresses GitHub issue #694
 
 -- Step 1: Refresh repository PR counts to ensure accuracy
@@ -9,3 +9,11 @@ UPDATE repositories
 SET total_pull_requests = pull_request_count 
 WHERE total_pull_requests != pull_request_count 
    OR total_pull_requests IS NULL;
+
+-- Step 3: Clear any stuck sync statuses that prevent frontend from showing charts
+UPDATE github_sync_status 
+SET sync_status = 'completed',
+    last_sync_at = NOW(),
+    updated_at = NOW()
+WHERE sync_status = 'in_progress' 
+  AND last_sync_at < NOW() - INTERVAL '1 hour';
