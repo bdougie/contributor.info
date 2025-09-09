@@ -33,6 +33,15 @@ These migrations have been reorganized from 62 original files into 4 consolidate
 
 ### For Local Development
 ```bash
+# Run consolidated migrations using the setup script
+npm run supabase:migrate:consolidated
+
+# Or run manually with the setup script
+node supabase/migrations-local/setup-local.mjs --consolidated
+```
+
+### Alternative: Manual Migration Steps
+```bash
 # Run core migrations (required)
 supabase db reset --db-url "postgresql://postgres:postgres@localhost:54322/postgres" \
   --migrations-path supabase/migrations-consolidated/core
