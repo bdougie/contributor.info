@@ -62,7 +62,6 @@ function ensureSupabaseRunning(statusStdout) {
     console.error('❌ Supabase is not running. Start it first:');
     console.error('   - npm run supabase:start   (project helper)');
     console.error('   - or: npx supabase start');
-    console.error('Debug: status output was:', statusStdout?.substring(0, 200));
     process.exit(1);
   }
 }
