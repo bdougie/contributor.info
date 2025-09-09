@@ -14,45 +14,79 @@ let seedWasMoved = false;
 const processId = process.pid;
 
 function run(cmd, args, opts = {}) {
-  return spawnSync(cmd, args, { stdio: 'pipe', encoding: 'utf8', ...opts });
+  return spawnSync(cmd, args, { stdio: 'pipe', encoding: 'utf8', shell: false, ...opts });
+}
+
+function runShell(cmd, args, opts = {}) {
+  return spawnSync(cmd, args, { stdio: 'pipe', encoding: 'utf8', shell: true, ...opts });
 }
 
 function resolveSupabaseCmd() {
   const isWin = process.platform === 'win32';
+  
+  // Try direct command first
   const directCmd = isWin ? 'supabase.cmd' : 'supabase';
   const probe = run(directCmd, ['--version']);
   if (probe.status === 0) {
     return { via: 'direct', cmd: directCmd };
   }
+  
   // Try local project binary
   const localBin = path.resolve('node_modules', '.bin', isWin ? 'supabase.cmd' : 'supabase');
   if (existsSync(localBin)) {
     const localProbe = run(localBin, ['--version']);
     if (localProbe.status === 0) return { via: 'local-bin', cmd: localBin };
   }
-  // Try npx presence (Windows may require shell or .cmd)
+  
+  // Try npx via shell (more reliable on Windows with newer Node versions)
+  console.log('🔍 Trying npx via shell...');
+  const npxShellProbe = runShell('npx', ['supabase', '--version']);
+  if (npxShellProbe.status === 0) {
+    return { via: 'npx-shell', cmd: 'npx' };
+  }
+  
+  // Try npx directly
   const npxProbe = run('npx', ['--version']);
-  if (npxProbe.status === 0) return { via: 'npx', cmd: 'npx' };
-  const npxCmdProbe = run(isWin ? 'npx.cmd' : 'npx', ['--version']);
-  if (npxCmdProbe.status === 0) return { via: 'npx', cmd: isWin ? 'npx.cmd' : 'npx' };
+  if (npxProbe.status === 0) {
+    const supabaseViaProbe = run('npx', ['supabase', '--version']);
+    if (supabaseViaProbe.status === 0) {
+      return { via: 'npx', cmd: 'npx' };
+    }
+  }
+  
+  // Try npx.cmd on Windows
+  if (isWin) {
+    const npxCmdProbe = run('npx.cmd', ['--version']);
+    if (npxCmdProbe.status === 0) {
+      const supabaseViaCmdProbe = run('npx.cmd', ['supabase', '--version']);
+      if (supabaseViaCmdProbe.status === 0) {
+        return { via: 'npx-cmd', cmd: 'npx.cmd' };
+      }
+    }
+  }
+  
   // No safe execution path found
   return { via: 'unavailable', cmd: null };
 }
 
 function supabaseStatus(supabaseCmd) {
+  let result;
+  
   if (supabaseCmd.via === 'direct' || supabaseCmd.via === 'local-bin') {
-    const result = run(supabaseCmd.cmd, ['status']);
-    // Combine stdout and stderr for full output
-    result.combinedOutput = (result.stdout || '') + (result.stderr || '');
-    return result;
+    result = run(supabaseCmd.cmd, ['status']);
+  } else if (supabaseCmd.via === 'npx') {
+    result = run(supabaseCmd.cmd, ['supabase', 'status']);
+  } else if (supabaseCmd.via === 'npx-cmd') {
+    result = run(supabaseCmd.cmd, ['supabase', 'status']);
+  } else if (supabaseCmd.via === 'npx-shell') {
+    result = runShell(supabaseCmd.cmd, ['supabase', 'status']);
+  } else {
+    return { status: 1, stdout: '', stderr: 'Supabase CLI not available.', error: new Error('Supabase CLI unavailable') };
   }
-  if (supabaseCmd.via === 'npx') {
-    const result = run(supabaseCmd.cmd, ['supabase', 'status']);
-    // Combine stdout and stderr for full output
-    result.combinedOutput = (result.stdout || '') + (result.stderr || '');
-    return result;
-  }
-  return { status: 1, stdout: '', stderr: 'Supabase CLI not available (direct, local-bin, or npx not found).', error: new Error('Supabase CLI unavailable') };
+  
+  // Combine stdout and stderr for full output
+  result.combinedOutput = (result.stdout || '') + (result.stderr || '');
+  return result;
 }
 
 function ensureSupabaseRunning(statusStdout) {
@@ -91,8 +125,13 @@ function pushMigrations(supabaseCmd, dbUrl, extraArgs = []) {
     const res = spawnSync(supabaseCmd.cmd, ['db', 'push', '--db-url', dbUrl, ...extraArgs], { stdio: 'inherit' });
     return res.status ?? 1;
   }
-  if (supabaseCmd.via === 'npx') {
+  if (supabaseCmd.via === 'npx' || supabaseCmd.via === 'npx-cmd') {
     const res = spawnSync(supabaseCmd.cmd, ['supabase', 'db', 'push', '--db-url', dbUrl, ...extraArgs], { stdio: 'inherit' });
+    return res.status ?? 1;
+  }
+  if (supabaseCmd.via === 'npx-shell') {
+    const args = ['supabase', 'db', 'push', '--db-url', dbUrl, ...extraArgs];
+    const res = spawnSync(supabaseCmd.cmd, args, { stdio: 'inherit', shell: true });
     return res.status ?? 1;
   }
   return 1;
@@ -243,8 +282,10 @@ function applyConsolidatedMigration(supabaseCmd) {
     let resetResult;
     if (supabaseCmd.via === 'direct' || supabaseCmd.via === 'local-bin') {
       resetResult = spawnSync(supabaseCmd.cmd, ['db', 'reset'], { stdio: 'inherit' });
-    } else if (supabaseCmd.via === 'npx') {
+    } else if (supabaseCmd.via === 'npx' || supabaseCmd.via === 'npx-cmd') {
       resetResult = spawnSync(supabaseCmd.cmd, ['supabase', 'db', 'reset'], { stdio: 'inherit' });
+    } else if (supabaseCmd.via === 'npx-shell') {
+      resetResult = spawnSync(supabaseCmd.cmd, ['supabase', 'db', 'reset'], { stdio: 'inherit', shell: true });
     }
 
     const exitCode = resetResult?.status ?? 1;
