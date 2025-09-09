@@ -348,7 +348,7 @@ process.on('SIGINT', () => {
   if (migrationsMoved) {
     restoreExistingMigrations();
   }
-  process.exit(0);
+  process.exit(130);
 });
 
 process.on('SIGTERM', () => {
@@ -359,7 +359,7 @@ process.on('SIGTERM', () => {
   if (migrationsMoved) {
     restoreExistingMigrations();
   }
-  process.exit(0);
+  process.exit(143);
 });
 
 main().catch((err) => {
