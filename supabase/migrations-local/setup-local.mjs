@@ -151,7 +151,7 @@ function restoreExistingMigrations() {
   const migrationsDir = path.resolve('supabase/migrations');
   const tempDir = path.resolve('supabase/migrations.temp');
 
-  if (!existsSync(tempDir) || !migrationsMoved) {
+  if (!existsSync(tempDir)) {
     return;
   }
 
