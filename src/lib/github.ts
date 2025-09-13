@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
-import type { PullRequest } from './types';
+import { PullRequest } from './types';
+import { isBot } from '@/lib/utils/bot-detection';
 import { env } from './env';
 import { githubApiRequest } from './github-rate-limit';
 import { trackRateLimit, startSpan } from './simple-logging';
@@ -484,8 +485,8 @@ export async function fetchPullRequests(
               fetchPRComments(owner, repo, pr.number, headers),
             ]);
 
-            // Check if user is a bot by their type or by checking if name contains [bot]
-            const isBot = pr.user.type === 'Bot' || pr.user.login.includes('[bot]');
+            // Use comprehensive bot detection instead of basic pattern matching
+            const userIsBot = isBot({ githubUser: pr.user });
 
             return {
               id: pr.id,
@@ -506,7 +507,7 @@ export async function fetchPullRequests(
                 id: pr.user.id,
                 login: pr.user.login,
                 avatar_url: pr.user.avatar_url,
-                type: isBot ? 'Bot' : 'User',
+                type: userIsBot ? 'Bot' : 'User',
               },
               organizations,
               reviews,

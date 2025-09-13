@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '../supabase';
+import { detectBot } from '@/lib/utils/bot-detection';
 import {
   validateGitHubPullRequest,
   validateGitHubRepository,
@@ -282,9 +283,8 @@ export async function fetchPullRequestsWithValidation(
             }
           }
 
-          // Check if user is a bot by their type or by checking if name contains [bot]
-          const isBot =
-            validatedDetails.user.type === 'Bot' || validatedDetails.user.login.includes('[bot]');
+          // Use comprehensive bot detection instead of basic pattern matching
+          const isBot = detectBot({ githubUser: validatedDetails.user }).isBot;
 
           return {
             id: validatedDetails.id,

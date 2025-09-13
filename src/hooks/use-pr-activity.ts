@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { PullRequestActivity, PullRequest } from '@/lib/types';
+import { isBot } from '@/lib/utils/bot-detection';
 
 function formatTimestamp(date: string): string {
   const now = new Date();
@@ -30,8 +31,8 @@ export function usePRActivity(pullRequests: PullRequest[]) {
         const owner = pr.repository_owner || repoUrl.split('github.com/')[1]?.split('/')[0] || '';
         const repo = pr.repository_name || repoUrl.split('github.com/')[1]?.split('/')[1] || '';
 
-        // Check if user is a bot
-        const isBot = pr.user.type === 'Bot' || pr.user.login.includes('[bot]');
+        // Use comprehensive bot detection instead of basic pattern matching
+        const userIsBot = isBot({ githubUser: pr.user });
 
         // Add PR creation activity
         processedActivities.push({
@@ -41,7 +42,7 @@ export function usePRActivity(pullRequests: PullRequest[]) {
             id: pr.user.login,
             name: pr.user.login,
             avatar: pr.user.avatar_url,
-            isBot: isBot,
+            isBot: userIsBot,
           },
           pullRequest: {
             id: pr.id.toString(),
@@ -68,7 +69,7 @@ export function usePRActivity(pullRequests: PullRequest[]) {
               id: pr.user.login,
               name: pr.user.login,
               avatar: pr.user.avatar_url,
-              isBot: isBot,
+              isBot: userIsBot,
             },
             pullRequest: {
               id: pr.id.toString(),
@@ -93,7 +94,7 @@ export function usePRActivity(pullRequests: PullRequest[]) {
               id: pr.user.login,
               name: pr.user.login,
               avatar: pr.user.avatar_url,
-              isBot: isBot,
+              isBot: userIsBot,
             },
             pullRequest: {
               id: pr.id.toString(),
@@ -116,8 +117,8 @@ export function usePRActivity(pullRequests: PullRequest[]) {
         if (pr.reviews && pr.reviews.length > 0) {
           pr.reviews.forEach((review, index) => {
             if (review.state === 'APPROVED' || review.state === 'CHANGES_REQUESTED') {
-              // Check if reviewer is a bot
-              const reviewerIsBot = review.user.login.includes('[bot]');
+              // Use comprehensive bot detection instead of basic pattern matching
+              const reviewerIsBot = isBot({ githubUser: review.user });
 
               processedActivities.push({
                 id: `review-${pr.id}-${index}`,
@@ -150,8 +151,8 @@ export function usePRActivity(pullRequests: PullRequest[]) {
         // Add comments if available
         if (pr.comments && pr.comments.length > 0) {
           pr.comments.forEach((comment, index) => {
-            // Check if commenter is a bot
-            const commenterIsBot = comment.user.login.includes('[bot]');
+            // Use comprehensive bot detection instead of basic pattern matching
+            const commenterIsBot = isBot({ githubUser: comment.user });
 
             processedActivities.push({
               id: `comment-${pr.id}-${index}`,
