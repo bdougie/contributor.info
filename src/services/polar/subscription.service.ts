@@ -7,16 +7,21 @@ export interface SubscriptionTier {
   price: number;
   interval: 'month' | 'year';
   features: {
-    maxWorkspaces: number | 'unlimited';
+    maxWorkspaces: number;
     maxReposPerWorkspace: number;
-    maxMembersPerWorkspace: number | 'unlimited';
-    dataRetentionDays: number | 'unlimited';
+    maxMembersPerWorkspace: number;
+    dataRetentionDays: number;
     analyticsLevel: 'basic' | 'advanced' | 'enterprise';
     privateWorkspaces: boolean;
     exportsEnabled: boolean;
     githubRepoAccess?: string[];
     ssoEnabled?: boolean;
     auditLogs?: boolean;
+  };
+  addons?: {
+    additionalWorkspace?: number; // Price per additional workspace
+    additionalMember?: number; // Price per additional member
+    extendedDataRetention?: number; // Price for extended data retention
   };
 }
 
@@ -27,10 +32,10 @@ export const SUBSCRIPTION_TIERS: Record<string, SubscriptionTier> = {
     price: 0,
     interval: 'month',
     features: {
-      maxWorkspaces: 1,
-      maxReposPerWorkspace: 2,
-      maxMembersPerWorkspace: 3,
-      dataRetentionDays: 30,
+      maxWorkspaces: 0, // No workspaces on free tier
+      maxReposPerWorkspace: 0,
+      maxMembersPerWorkspace: 0,
+      dataRetentionDays: 7, // Minimal retention for free
       analyticsLevel: 'basic',
       privateWorkspaces: false,
       exportsEnabled: false,
@@ -39,17 +44,21 @@ export const SUBSCRIPTION_TIERS: Record<string, SubscriptionTier> = {
   pro: {
     id: 'pro',
     name: 'Pro',
-    price: 29,
+    price: 19,
     interval: 'month',
     features: {
-      maxWorkspaces: 'unlimited',
-      maxReposPerWorkspace: 20,
-      maxMembersPerWorkspace: 'unlimited',
-      dataRetentionDays: 365,
+      maxWorkspaces: 1, // 1 workspace included
+      maxReposPerWorkspace: 3,
+      maxMembersPerWorkspace: 1, // No member invites (solo plan)
+      dataRetentionDays: 30,
       analyticsLevel: 'advanced',
       privateWorkspaces: true,
       exportsEnabled: true,
-      githubRepoAccess: ['premium-analytics', 'advanced-insights'],
+      githubRepoAccess: ['premium-analytics'],
+    },
+    addons: {
+      additionalWorkspace: 12, // $12 per additional workspace
+      extendedDataRetention: 10, // TBD pricing for extended retention
     },
   },
   team: {
@@ -58,16 +67,21 @@ export const SUBSCRIPTION_TIERS: Record<string, SubscriptionTier> = {
     price: 99,
     interval: 'month',
     features: {
-      maxWorkspaces: 'unlimited',
-      maxReposPerWorkspace: 100,
-      maxMembersPerWorkspace: 'unlimited',
-      dataRetentionDays: 'unlimited',
+      maxWorkspaces: 3, // Start with 3 workspaces
+      maxReposPerWorkspace: 3,
+      maxMembersPerWorkspace: 5, // 5 member invites included
+      dataRetentionDays: 30,
       analyticsLevel: 'enterprise',
       privateWorkspaces: true,
       exportsEnabled: true,
-      githubRepoAccess: ['premium-analytics', 'advanced-insights', 'enterprise-tools'],
+      githubRepoAccess: ['premium-analytics', 'advanced-insights'],
       ssoEnabled: true,
       auditLogs: true,
+    },
+    addons: {
+      additionalWorkspace: 12, // $12 per additional workspace
+      additionalMember: 20, // $20 per additional member after 5
+      extendedDataRetention: 25, // TBD pricing for extended retention
     },
   },
 };

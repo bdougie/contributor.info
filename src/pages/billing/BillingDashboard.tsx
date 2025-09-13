@@ -227,29 +227,59 @@ export function BillingDashboard() {
               </CardHeader>
               <CardContent>
                 <ul className="space-y-2 mb-6">
-                  <FeatureItem
-                    label={`${tier.features.maxWorkspaces === 'unlimited' ? 'Unlimited' : tier.features.maxWorkspaces} workspace${tier.features.maxWorkspaces !== 1 ? 's' : ''}`}
-                    included
-                  />
-                  <FeatureItem
-                    label={`${tier.features.maxReposPerWorkspace} repos per workspace`}
-                    included
-                  />
-                  <FeatureItem
-                    label={`${tier.features.maxMembersPerWorkspace === 'unlimited' ? 'Unlimited' : tier.features.maxMembersPerWorkspace} members`}
-                    included
-                  />
-                  <FeatureItem
-                    label={`${tier.features.dataRetentionDays === 'unlimited' ? 'Unlimited' : tier.features.dataRetentionDays + ' days'} data retention`}
-                    included
-                  />
-                  <FeatureItem
-                    label="Private workspaces"
-                    included={tier.features.privateWorkspaces}
-                  />
-                  <FeatureItem label="Data exports" included={tier.features.exportsEnabled} />
-                  {tier.features.ssoEnabled && <FeatureItem label="SSO authentication" included />}
-                  {tier.features.auditLogs && <FeatureItem label="Audit logs" included />}
+                  {tier.id === 'free' ? (
+                    <>
+                      <FeatureItem label="No workspaces included" included={false} />
+                      <FeatureItem label="7 days data retention" included />
+                      <FeatureItem label="Basic analytics" included />
+                    </>
+                  ) : (
+                    <>
+                      <FeatureItem
+                        label={`${tier.features.maxWorkspaces} workspace${tier.features.maxWorkspaces !== 1 ? 's' : ''} included`}
+                        included
+                      />
+                      {tier.addons?.additionalWorkspace && (
+                        <FeatureItem
+                          label={`+$${tier.addons.additionalWorkspace}/mo per additional workspace`}
+                          included
+                        />
+                      )}
+                      <FeatureItem
+                        label={`${tier.features.maxReposPerWorkspace} repos per workspace`}
+                        included
+                      />
+                      {tier.id === 'pro' ? (
+                        <FeatureItem label="Solo plan (no team members)" included />
+                      ) : (
+                        <>
+                          <FeatureItem
+                            label={`${tier.features.maxMembersPerWorkspace} team members included`}
+                            included
+                          />
+                          {tier.addons?.additionalMember && (
+                            <FeatureItem
+                              label={`+$${tier.addons.additionalMember}/mo per additional member`}
+                              included
+                            />
+                          )}
+                        </>
+                      )}
+                      <FeatureItem
+                        label={`${tier.features.dataRetentionDays} days data retention`}
+                        included
+                      />
+                      <FeatureItem
+                        label="Private workspaces"
+                        included={tier.features.privateWorkspaces}
+                      />
+                      <FeatureItem label="Data exports" included={tier.features.exportsEnabled} />
+                      {tier.features.ssoEnabled && (
+                        <FeatureItem label="SSO authentication" included />
+                      )}
+                      {tier.features.auditLogs && <FeatureItem label="Audit logs" included />}
+                    </>
+                  )}
                 </ul>
 
                 {tier.id !== currentTier && tier.id !== 'free' && (

@@ -121,15 +121,29 @@ export function UpgradeModal({
 
               <ul className="space-y-2">
                 <FeatureItem
-                  label={`${tier.features.maxWorkspaces === 'unlimited' ? 'Unlimited' : tier.features.maxWorkspaces} workspace${tier.features.maxWorkspaces !== 1 ? 's' : ''}`}
+                  label={`${tier.features.maxWorkspaces} workspace${tier.features.maxWorkspaces !== 1 ? 's' : ''} included`}
                 />
+                {tier.addons?.additionalWorkspace && (
+                  <FeatureItem
+                    label={`+$${tier.addons.additionalWorkspace}/mo per additional workspace`}
+                  />
+                )}
                 <FeatureItem label={`${tier.features.maxReposPerWorkspace} repos per workspace`} />
-                <FeatureItem
-                  label={`${tier.features.maxMembersPerWorkspace === 'unlimited' ? 'Unlimited' : tier.features.maxMembersPerWorkspace} members`}
-                />
-                <FeatureItem
-                  label={`${tier.features.dataRetentionDays === 'unlimited' ? 'Unlimited' : tier.features.dataRetentionDays + ' days'} data retention`}
-                />
+                {tier.id === 'pro' ? (
+                  <FeatureItem label="Solo plan (no team members)" />
+                ) : (
+                  <>
+                    <FeatureItem
+                      label={`${tier.features.maxMembersPerWorkspace} team members included`}
+                    />
+                    {tier.addons?.additionalMember && (
+                      <FeatureItem
+                        label={`+$${tier.addons.additionalMember}/mo per additional member`}
+                      />
+                    )}
+                  </>
+                )}
+                <FeatureItem label={`${tier.features.dataRetentionDays} days data retention`} />
                 {tier.features.privateWorkspaces && <FeatureItem label="Private workspaces" />}
                 {tier.features.exportsEnabled && <FeatureItem label="Data exports" />}
                 {tier.features.ssoEnabled && <FeatureItem label="SSO authentication" />}

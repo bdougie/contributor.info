@@ -15,9 +15,10 @@ This guide walks through setting up the Polar.sh subscription system for contrib
 ## Overview
 
 The Polar subscription system provides:
-- **Three tiers**: Free, Pro ($29/month), Team ($99/month)
-- **Workspace limits**: Control workspace, repository, and member counts
-- **Feature gating**: Private workspaces, data exports, extended retention
+- **Three tiers**: Free (no workspaces), Pro ($19/month), Team ($99/month)
+- **Workspace limits**: Paid plans required for workspace creation
+- **Add-on pricing**: Additional workspaces ($12/mo), team members ($20/mo)
+- **Feature gating**: Private workspaces, data exports, team collaboration
 - **Simple integration**: 4-line checkout integration
 - **Tax compliance**: Polar handles global tax as Merchant of Record
 
@@ -59,16 +60,16 @@ The Polar subscription system provides:
 3. Configure:
    ```
    Name: Pro Plan
-   Description: Unlimited workspaces, 20 repos per workspace, advanced analytics
-   Price: $29
+   Description: Solo workspace plan with 1 workspace, 3 repos per workspace
+   Price: $19
    Billing: Monthly recurring
    Product ID: (auto-generated, e.g., prod_xxxxx_pro)
    ```
 4. Add benefits:
-   - Unlimited workspaces
-   - 20 repositories per workspace
-   - Unlimited team members
-   - 365-day data retention
+   - 1 workspace included
+   - 3 repositories per workspace
+   - Solo plan (no team members)
+   - 30-day data retention
    - Private workspaces
    - Data exports
 
@@ -78,20 +79,39 @@ The Polar subscription system provides:
 2. Configure:
    ```
    Name: Team Plan
-   Description: Everything in Pro + 100 repos, SSO, audit logs
+   Description: Team collaboration with 3 workspaces, 5 team members
    Price: $99
    Billing: Monthly recurring
    Product ID: (auto-generated, e.g., prod_xxxxx_team)
    ```
 3. Add benefits:
-   - Everything in Pro
-   - 100 repositories per workspace
-   - Unlimited data retention
+   - 3 workspaces included
+   - 3 repositories per workspace
+   - 5 team members included
+   - 30-day data retention
    - SSO authentication
    - Audit logs
    - Priority support
 
-### 2.3 Configure GitHub Repository Benefits (Optional)
+### 2.3 Create Add-on Products
+
+1. Create additional workspace add-on:
+   ```
+   Name: Additional Workspace
+   Description: Add an extra workspace to your plan
+   Price: $12
+   Billing: Monthly recurring
+   ```
+
+2. Create additional member add-on (Team plan only):
+   ```
+   Name: Additional Team Member
+   Description: Add an extra team member beyond the included 5
+   Price: $20
+   Billing: Monthly recurring
+   ```
+
+### 2.4 Configure GitHub Repository Benefits (Optional)
 
 If you have premium documentation or tools in separate repos:
 
@@ -219,17 +239,27 @@ netlify functions:log polar-webhook --tail
 
 ## Subscription Tiers Reference
 
-| Feature | Free | Pro ($29/mo) | Team ($99/mo) |
+| Feature | Free | Pro ($19/mo) | Team ($99/mo) |
 |---------|------|--------------|---------------|
-| Workspaces | 1 (public only) | Unlimited | Unlimited |
-| Repos per workspace | 2 | 20 | 100 |
-| Members per workspace | 3 | Unlimited | Unlimited |
-| Data retention | 30 days | 365 days | Unlimited |
+| Workspaces included | 0 | 1 | 3 |
+| Additional workspaces | N/A | +$12/mo each | +$12/mo each |
+| Repos per workspace | 0 | 3 | 3 |
+| Members per workspace | 0 | 1 (solo) | 5 included |
+| Additional members | N/A | N/A | +$20/mo each after 5 |
+| Data retention | 7 days | 30 days | 30 days |
+| Extended retention | N/A | Additional fee | Additional fee |
 | Private workspaces | ❌ | ✅ | ✅ |
 | Data exports | ❌ | ✅ | ✅ |
 | Advanced analytics | ❌ | ✅ | ✅ |
 | SSO authentication | ❌ | ❌ | ✅ |
 | Audit logs | ❌ | ❌ | ✅ |
+
+### Pricing Notes
+- **Free tier**: No workspace creation allowed
+- **Pro tier**: Solo plan - no team member invites
+- **Team tier**: Starts with 5 team members, $20/mo for each additional
+- **Workspaces**: Both Pro and Team can add additional workspaces at $12/mo each
+- **Data retention**: Extended retention beyond 30 days available for additional fee
 
 ## Troubleshooting
 
