@@ -12,6 +12,8 @@ import { WorkspaceListFallback } from '@/components/ui/workspace-list-fallback';
 import { useAuth } from '@/hooks/use-auth';
 import { useWorkspaceContext } from '@/contexts/WorkspaceContext';
 import { useAnalytics } from '@/hooks/use-analytics';
+import { useFeatureFlags } from '@/lib/feature-flags';
+import { FEATURE_FLAGS } from '@/lib/feature-flags/types';
 import type { GitHubRepository } from '@/lib/github';
 
 const CarouselLazy = lazy(() => import('@/components/ui/carousel-lazy'));
@@ -19,6 +21,9 @@ const CarouselLazy = lazy(() => import('@/components/ui/carousel-lazy'));
 export default function Home() {
   const navigate = useNavigate();
   const { isLoggedIn, loading: authLoading } = useAuth();
+  const { checkFlag } = useFeatureFlags();
+  const isWorkspacesEnabled = checkFlag(FEATURE_FLAGS.ENABLE_WORKSPACES);
+
   const {
     workspaces,
     isLoading: workspaceLoading,
@@ -93,7 +98,7 @@ export default function Home() {
           </CardContent>
         </Card>
 
-        {isLoggedIn && !authLoading && (
+        {isLoggedIn && !authLoading && isWorkspacesEnabled && (
           <>
             {(() => {
               if (workspaceLoading) {
@@ -147,12 +152,14 @@ export default function Home() {
         )}
       </div>
 
-      {/* Workspace Creation Modal */}
-      <WorkspaceCreateModal
-        open={createModalOpen}
-        onOpenChange={setCreateModalOpen}
-        onSuccess={handleCreateWorkspaceSuccess}
-      />
+      {/* Workspace Creation Modal - only render if workspaces are enabled */}
+      {isWorkspacesEnabled && (
+        <WorkspaceCreateModal
+          open={createModalOpen}
+          onOpenChange={setCreateModalOpen}
+          onSuccess={handleCreateWorkspaceSuccess}
+        />
+      )}
     </article>
   );
 }

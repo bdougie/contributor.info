@@ -129,13 +129,15 @@ export function WorkspacePullRequestsTable({
               onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
             >
               State
-              {column.getIsSorted() === 'asc' ? (
-                <ChevronUp className="ml-2 h-4 w-4" />
-              ) : column.getIsSorted() === 'desc' ? (
-                <ChevronDown className="ml-2 h-4 w-4" />
-              ) : (
-                <ChevronsUpDown className="ml-2 h-4 w-4" />
-              )}
+              {(() => {
+                if (column.getIsSorted() === 'asc') {
+                  return <ChevronUp className="ml-2 h-4 w-4" />;
+                }
+                if (column.getIsSorted() === 'desc') {
+                  return <ChevronDown className="ml-2 h-4 w-4" />;
+                }
+                return <ChevronsUpDown className="ml-2 h-4 w-4" />;
+              })()}
             </Button>
           ),
           cell: ({ row }) => {
@@ -281,13 +283,15 @@ export function WorkspacePullRequestsTable({
               onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
             >
               Created
-              {column.getIsSorted() === 'asc' ? (
-                <ChevronUp className="ml-2 h-4 w-4" />
-              ) : column.getIsSorted() === 'desc' ? (
-                <ChevronDown className="ml-2 h-4 w-4" />
-              ) : (
-                <ChevronsUpDown className="ml-2 h-4 w-4" />
-              )}
+              {(() => {
+                if (column.getIsSorted() === 'asc') {
+                  return <ChevronUp className="ml-2 h-4 w-4" />;
+                }
+                if (column.getIsSorted() === 'desc') {
+                  return <ChevronDown className="ml-2 h-4 w-4" />;
+                }
+                return <ChevronsUpDown className="ml-2 h-4 w-4" />;
+              })()}
             </Button>
           ),
           cell: ({ row }) => (
@@ -307,13 +311,15 @@ export function WorkspacePullRequestsTable({
               onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
             >
               Updated
-              {column.getIsSorted() === 'asc' ? (
-                <ChevronUp className="ml-2 h-4 w-4" />
-              ) : column.getIsSorted() === 'desc' ? (
-                <ChevronDown className="ml-2 h-4 w-4" />
-              ) : (
-                <ChevronsUpDown className="ml-2 h-4 w-4" />
-              )}
+              {(() => {
+                if (column.getIsSorted() === 'asc') {
+                  return <ChevronUp className="ml-2 h-4 w-4" />;
+                }
+                if (column.getIsSorted() === 'desc') {
+                  return <ChevronDown className="ml-2 h-4 w-4" />;
+                }
+                return <ChevronsUpDown className="ml-2 h-4 w-4" />;
+              })()}
             </Button>
           ),
           cell: ({ row }) => (
