@@ -26,6 +26,7 @@ if (!POSTHOG_API_KEY) {
 const INTERNAL_USERS = [
   'bdougie', // Brian Douglas
   'brian@opensauced.pizza', // Email as backup identifier
+  'babbley', // Team member
   // Add more team members here as needed
 ];
 
