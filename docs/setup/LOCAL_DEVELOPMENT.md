@@ -18,21 +18,17 @@ cp .env.example .env.local
 # 4. Choose your database:
 # Option A: Local Supabase (recommended for new contributors)
 npm run env:local
-npm run supabase:start
+npm run db:setup  # Automated setup with consolidated migration
 
 # Option B: Production Supabase (for maintainers)
 npm run env:production
 # Add your production keys to .env.local
 
-# 5. Run migrations (local development)
-bash supabase/migrations-local/setup-local.sh
-# See docs/setup/DATABASE_MIGRATIONS.md for details
-
-# 6. Generate seed data (optional but recommended)
+# 5. Generate seed data (optional but recommended)
 npm run db:seed
 # See docs/setup/SEED_DATA.md for details
 
-# 7. Start development server (includes Inngest)
+# 6. Start development server (includes Inngest)
 npm run start
 # Or just the dev server:
 npm run dev
@@ -123,27 +119,30 @@ See [SEED_DATA.md](./SEED_DATA.md) for complete documentation.
 
 ### Database Migrations
 
+> **🚀 Recommended**: Use our automated consolidated migration system to avoid migration ordering issues.
+
 When working with local Supabase:
 
 ```bash
-# IMPORTANT: Use local-safe migrations for local development
-# Original migrations have auth/extension dependencies that fail locally
+# Recommended: Automated consolidated migration (solves ordering issues)
+npm run db:setup  # Complete setup: start + migrate + restore
 
-# Quick setup with local-safe migrations (recommended)
-bash supabase/migrations-local/setup-local.sh
+# Alternative: Just the migration part
+npm run supabase:migrate:consolidated
 
-# Or manually apply consolidated migration
-psql "postgresql://postgres:postgres@localhost:54322/postgres" \
-  -f supabase/migrations-local/000_consolidated_local_safe.sql
+# Manual approach (advanced users)
+node supabase/migrations-local/setup-local.mjs --consolidated
 
-# Reset database (be careful - may fail with original migrations)
+# Reset database (works reliably with consolidated approach)
 npm run supabase:reset
 
 # Create a new migration (after making schema changes)
 npx supabase migration new your_migration_name
 ```
 
-**Note**: The original migrations contain environment-specific dependencies (auth, roles, extensions) that prevent them from running on fresh local Supabase. Use the local-safe versions in `supabase/migrations-local/` instead. See [Database Migrations Guide](./DATABASE_MIGRATIONS.md) for details.
+**How it works**: Our automation temporarily moves existing migrations, applies a production-based consolidated migration, then restores all files. This eliminates dependency ordering issues while keeping your development environment clean.
+
+**Note**: Our consolidated migration approach eliminates the environment-specific dependencies (auth, roles, extensions) that prevent original migrations from running on fresh local Supabase. For detailed troubleshooting, see [`supabase/migrations-local/README.md`](../../supabase/migrations-local/README.md).
 
 ### Seed Data
 
@@ -162,6 +161,11 @@ npx supabase db seed
 ### Available Scripts
 
 ```bash
+# Quick Start (Recommended)
+npm run env:local        # Switch to local environment
+npm run db:setup         # Complete database setup with consolidated migration
+npm run dev              # Start development server
+
 # Development
 npm run dev              # Start Vite dev server (port 5174)
 npm start               # Start with Netlify Dev + Inngest
@@ -169,10 +173,13 @@ npm run build           # Production build
 npm run preview         # Preview production build
 
 # Database Management
-npm run supabase:start   # Start local Supabase
-npm run supabase:stop    # Stop local Supabase
-npm run supabase:reset   # Reset database with migrations
-npm run supabase:status  # Check Supabase status
+npm run db:setup                    # Complete setup (start + consolidated migration)
+npm run supabase:migrate:consolidated  # Use consolidated migration (recommended)
+npm run supabase:migrate:local      # Basic local migration
+npm run supabase:start              # Start local Supabase
+npm run supabase:stop               # Stop local Supabase
+npm run supabase:reset              # Reset database with migrations
+npm run supabase:status             # Check Supabase status
 
 # Environment Management
 npm run env:local        # Switch to local database
@@ -226,7 +233,7 @@ Best for:
 
 ```bash
 npm run env:local
-npm run supabase:start
+npm run db:setup  # Automated setup with consolidated migration
 npm run dev
 ```
 
@@ -280,6 +287,28 @@ The app shows your current environment:
 - Ensure your user is in the `docker` group
 
 ## Troubleshooting
+
+### Migration Issues
+
+```bash
+# Most common fix: Use consolidated migration approach
+npm run db:setup
+
+# If you see "relation does not exist" errors
+npm run supabase:migrate:consolidated
+
+# Manual recovery if automation fails
+node supabase/migrations-local/setup-local.mjs --consolidated
+
+# Check for temp files (shouldn't exist after completion)
+ls supabase/migrations.temp/  # Should not exist
+ls supabase/seed.temp/        # Should not exist
+```
+
+**Common Error Messages**:
+- `ERROR: relation 'pull_requests' does not exist` → Use consolidated migration
+- `ERROR: role "service_role" does not exist` → Use consolidated migration  
+- Migration ordering issues → Use consolidated migration
 
 ### Docker Issues
 
