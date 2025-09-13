@@ -132,6 +132,14 @@ export const env = {
   HYBRID_AUTO_ROLLBACK: getEnvVar('VITE_HYBRID_AUTO_ROLLBACK', 'HYBRID_AUTO_ROLLBACK'),
   HYBRID_MAX_ERROR_RATE: getEnvVar('VITE_HYBRID_MAX_ERROR_RATE', 'HYBRID_MAX_ERROR_RATE'),
 
+  // Netlify deployment context variables
+  DEPLOY_PRIME_URL: getEnvVar('VITE_DEPLOY_PRIME_URL', 'DEPLOY_PRIME_URL'),
+  DEPLOY_URL: getEnvVar('VITE_DEPLOY_URL', 'DEPLOY_URL'),
+  URL: getEnvVar('VITE_URL', 'URL'),
+  CONTEXT: getEnvVar('VITE_CONTEXT', 'CONTEXT'),
+  DEPLOY_ID: getEnvVar('VITE_DEPLOY_ID', 'DEPLOY_ID'),
+  BUILD_ID: getEnvVar('VITE_BUILD_ID', 'BUILD_ID'),
+
   // Development mode detection
   get DEV() {
     if (isBrowser) {
