@@ -60,18 +60,18 @@ The Polar subscription system provides:
 3. Configure:
    ```
    Name: Pro Plan
-   Description: Solo workspace plan with 1 workspace, 3 repos per workspace
+   Description: Solo workspace plan with 1 public workspace, 3 repos per workspace
    Price: $19
    Billing: Monthly recurring
    Product ID: (auto-generated, e.g., prod_xxxxx_pro)
    ```
 4. Add benefits:
-   - 1 workspace included
+   - 1 workspace included (public only)
    - 3 repositories per workspace
    - Solo plan (no team members)
    - 30-day data retention
-   - Private workspaces
    - Data exports
+   - Advanced analytics
 
 ### 2.2 Create Team Tier Product
 
@@ -79,13 +79,14 @@ The Polar subscription system provides:
 2. Configure:
    ```
    Name: Team Plan
-   Description: Team collaboration with 3 workspaces, 5 team members
+   Description: Team collaboration with private workspaces, 3 workspaces, 5 team members
    Price: $99
    Billing: Monthly recurring
    Product ID: (auto-generated, e.g., prod_xxxxx_team)
    ```
 3. Add benefits:
-   - 3 workspaces included
+   - 3 workspaces included (private or public)
+   - Private workspace support
    - 3 repositories per workspace
    - 5 team members included
    - 30-day data retention
@@ -248,7 +249,7 @@ netlify functions:log polar-webhook --tail
 | Additional members | N/A | N/A | +$20/mo each after 5 |
 | Data retention | 7 days | 30 days | 30 days |
 | Extended retention | N/A | Additional fee | Additional fee |
-| Private workspaces | ❌ | ✅ | ✅ |
+| Private workspaces | ❌ | ❌ | ✅ |
 | Data exports | ❌ | ✅ | ✅ |
 | Advanced analytics | ❌ | ✅ | ✅ |
 | SSO authentication | ❌ | ❌ | ✅ |
@@ -256,10 +257,11 @@ netlify functions:log polar-webhook --tail
 
 ### Pricing Notes
 - **Free tier**: No workspace creation allowed
-- **Pro tier**: Solo plan - no team member invites
-- **Team tier**: Starts with 5 team members, $20/mo for each additional
+- **Pro tier**: Solo plan - public workspaces only, no team member invites
+- **Team tier**: Private workspaces, starts with 5 team members, $20/mo for each additional
 - **Workspaces**: Both Pro and Team can add additional workspaces at $12/mo each
 - **Data retention**: Extended retention beyond 30 days available for additional fee
+- **Privacy**: Private workspaces require Team tier
 
 ## Troubleshooting
 

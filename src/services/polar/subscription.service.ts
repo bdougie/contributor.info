@@ -52,7 +52,7 @@ export const SUBSCRIPTION_TIERS: Record<string, SubscriptionTier> = {
       maxMembersPerWorkspace: 1, // No member invites (solo plan)
       dataRetentionDays: 30,
       analyticsLevel: 'advanced',
-      privateWorkspaces: true,
+      privateWorkspaces: false, // Public workspaces only for Pro
       exportsEnabled: true,
       githubRepoAccess: ['premium-analytics'],
     },
