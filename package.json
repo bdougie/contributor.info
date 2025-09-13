@@ -28,6 +28,7 @@
     "test:lighthouse:mobile": "npm run build && npm run preview & sleep 3 && npm run lighthouse:mobile && npm run lighthouse:mobile-fast && npm run lighthouse:mobile-slow && kill %1",
     "test:lighthouse:comprehensive": "npm run build && npm run preview & sleep 3 && npm run lighthouse && npm run lighthouse:desktop && npm run lighthouse:mobile && npm run lighthouse:mobile-fast && npm run lighthouse:mobile-slow && kill %1",
     "analyze:mobile-performance": "node scripts/performance/analyze-mobile-performance.js",
+    "setup-cohorts": "tsx scripts/setup-posthog-cohorts.ts",
     "test:mobile-performance": "npm run test:lighthouse:mobile && npm run analyze:mobile-performance",
     "lint": "eslint . --cache",
     "lint:fix": "eslint . --fix --cache",
