@@ -37,8 +37,8 @@ export function UpgradeModal({
       // Get the product ID for the selected tier
       const productId =
         selectedTier === 'pro'
-          ? import.meta.env.POLAR_PRODUCT_ID_PRO
-          : import.meta.env.POLAR_PRODUCT_ID_TEAM;
+          ? import.meta.env.VITE_POLAR_PRODUCT_ID_PRO
+          : import.meta.env.VITE_POLAR_PRODUCT_ID_TEAM;
 
       if (!productId) {
         throw new Error('Product ID not configured');

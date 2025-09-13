@@ -199,7 +199,7 @@ export class SubscriptionService {
         {
           method: 'POST',
           headers: {
-            Authorization: `Bearer ${import.meta.env.POLAR_ACCESS_TOKEN}`,
+            Authorization: `Bearer ${import.meta.env.VITE_POLAR_ACCESS_TOKEN}`,
             'Content-Type': 'application/json',
           },
         }

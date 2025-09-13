@@ -65,7 +65,9 @@ export function BillingDashboard() {
 
       // Get the product ID for the selected tier
       const productId =
-        tierId === 'pro' ? process.env.POLAR_PRODUCT_ID_PRO : process.env.POLAR_PRODUCT_ID_TEAM;
+        tierId === 'pro'
+          ? import.meta.env.VITE_POLAR_PRODUCT_ID_PRO
+          : import.meta.env.VITE_POLAR_PRODUCT_ID_TEAM;
 
       if (!productId) {
         throw new Error('Product ID not configured');
