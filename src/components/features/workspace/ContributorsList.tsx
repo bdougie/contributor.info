@@ -70,7 +70,12 @@ function ContributorCard({
   onClick?: () => void;
 }) {
   const trend = contributor.stats.contribution_trend;
-  const TrendIcon = trend > 0 ? TrendingUp : trend < 0 ? TrendingDown : Minus;
+  let TrendIcon = Minus;
+  if (trend > 0) {
+    TrendIcon = TrendingUp;
+  } else if (trend < 0) {
+    TrendIcon = TrendingDown;
+  }
   const trendColor = getTrendColor(trend);
 
   return (
@@ -94,7 +99,7 @@ function ContributorCard({
           <Button
             variant={isTracked ? 'ghost' : 'outline'}
             size="icon"
-            className="h-8 w-8"
+            className="h-10 w-10 min-h-[44px] min-w-[44px] p-0"
             onClick={isTracked ? onUntrack : onTrack}
           >
             {isTracked ? <X className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
@@ -167,7 +172,12 @@ function ContributorListItem({
   onClick?: () => void;
 }) {
   const trend = contributor.stats.contribution_trend;
-  const TrendIcon = trend > 0 ? TrendingUp : trend < 0 ? TrendingDown : Minus;
+  let TrendIcon = Minus;
+  if (trend > 0) {
+    TrendIcon = TrendingUp;
+  } else if (trend < 0) {
+    TrendIcon = TrendingDown;
+  }
   const trendColor = getTrendColor(trend);
 
   return (
@@ -220,10 +230,14 @@ function ContributorListItem({
         <Button
           variant={isTracked ? 'ghost' : 'outline'}
           size="icon"
-          className="h-8 w-8"
+          className="h-10 w-10 min-h-[44px] min-w-[44px] p-0"
           onClick={(e) => {
             e.stopPropagation();
-            isTracked ? onUntrack?.() : onTrack?.();
+            if (isTracked) {
+              onUntrack?.();
+            } else {
+              onTrack?.();
+            }
           }}
         >
           {isTracked ? <X className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
@@ -266,7 +280,9 @@ export function ContributorsList({
         </CardHeader>
         <CardContent>
           <div
-            className={view === 'grid' ? 'grid gap-4 md:grid-cols-2 lg:grid-cols-3' : 'space-y-3'}
+            className={
+              view === 'grid' ? 'grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'space-y-3'
+            }
           >
             {[...Array(6)].map((_, i) => (
               <Skeleton key={i} className="h-32 w-full" />
@@ -294,6 +310,7 @@ export function ContributorsList({
               <Button
                 variant={showOnlyTracked ? 'default' : 'outline'}
                 size="sm"
+                className="min-h-[44px] px-4"
                 onClick={() => setShowOnlyTracked(!showOnlyTracked)}
               >
                 {showOnlyTracked ? 'Show All Available' : 'Show Workspace Only'}
@@ -305,7 +322,7 @@ export function ContributorsList({
               </Button>
             )}
             {onAddContributor && (
-              <Button onClick={onAddContributor} size="sm">
+              <Button onClick={onAddContributor} size="sm" className="min-h-[44px] px-4">
                 <Plus className="h-4 w-4 mr-1" />
                 Add Contributors
               </Button>
@@ -321,7 +338,7 @@ export function ContributorsList({
               placeholder="Search contributors..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-8"
+              className="pl-8 min-h-[44px]"
             />
           </div>
         </div>
@@ -330,11 +347,15 @@ export function ContributorsList({
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <UserPlus className="h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-muted-foreground mb-2">
-              {searchTerm
-                ? 'No contributors match your search'
-                : showOnlyTracked && trackedContributors.length === 0
-                  ? 'No contributors added to workspace yet'
-                  : 'No contributors found in selected repositories'}
+              {(() => {
+                if (searchTerm) {
+                  return 'No contributors match your search';
+                }
+                if (showOnlyTracked && trackedContributors.length === 0) {
+                  return 'No contributors added to workspace yet';
+                }
+                return 'No contributors found in selected repositories';
+              })()}
             </p>
             {searchTerm && (
               <p className="text-sm text-muted-foreground mb-4">
@@ -342,7 +363,7 @@ export function ContributorsList({
               </p>
             )}
             {showOnlyTracked && trackedContributors.length === 0 && onAddContributor && (
-              <Button onClick={onAddContributor} className="mt-4">
+              <Button onClick={onAddContributor} className="mt-4 min-h-[44px] px-4">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Contributors from Repositories
               </Button>
@@ -350,7 +371,9 @@ export function ContributorsList({
           </div>
         ) : (
           <div
-            className={view === 'grid' ? 'grid gap-4 md:grid-cols-2 lg:grid-cols-3' : 'space-y-3'}
+            className={
+              view === 'grid' ? 'grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'space-y-3'
+            }
           >
             {filteredContributors.map((contributor) => {
               const isTracked = trackedContributors.includes(contributor.id);

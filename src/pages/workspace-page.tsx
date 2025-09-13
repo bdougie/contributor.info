@@ -1100,19 +1100,25 @@ function WorkspaceContributors({
       {showAddContributors ? (
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <CardTitle>Add Contributors to Workspace</CardTitle>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
                 <span className="text-sm text-muted-foreground">
                   {selectedContributorsToAdd.length} selected
                 </span>
-                <Button variant="outline" size="sm" onClick={handleCancelAdd}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCancelAdd}
+                  className="min-h-[44px]"
+                >
                   Cancel
                 </Button>
                 <Button
                   size="sm"
                   onClick={handleSubmitContributors}
                   disabled={selectedContributorsToAdd.length === 0}
+                  className="min-h-[44px]"
                 >
                   Add Selected
                 </Button>
@@ -1128,7 +1134,7 @@ function WorkspaceContributors({
                   placeholder="Search contributors..."
                   value={globalFilter ?? ''}
                   onChange={(e) => setGlobalFilter(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 min-h-[44px]"
                 />
               </div>
             </div>
@@ -1187,8 +1193,8 @@ function WorkspaceContributors({
             </div>
 
             {/* Pagination */}
-            <div className="flex items-center justify-between mt-4">
-              <div className="text-sm text-muted-foreground">
+            <div className="flex flex-col sm:flex-row items-center justify-between mt-4 gap-4">
+              <div className="text-sm text-muted-foreground order-2 sm:order-1">
                 Showing {addTable.getState().pagination.pageIndex * 10 + 1} to{' '}
                 {Math.min(
                   (addTable.getState().pagination.pageIndex + 1) * 10,
@@ -1196,22 +1202,26 @@ function WorkspaceContributors({
                 )}{' '}
                 of {allAvailableContributors.length} contributors
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 order-1 sm:order-2">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => addTable.previousPage()}
                   disabled={!addTable.getCanPreviousPage()}
+                  className="min-h-[44px] px-3"
                 >
-                  Previous
+                  <span className="hidden sm:inline">Previous</span>
+                  <span className="sm:hidden">‹</span>
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => addTable.nextPage()}
                   disabled={!addTable.getCanNextPage()}
+                  className="min-h-[44px] px-3"
                 >
-                  Next
+                  <span className="hidden sm:inline">Next</span>
+                  <span className="sm:hidden">›</span>
                 </Button>
               </div>
             </div>
@@ -1267,15 +1277,15 @@ function WorkspaceContributors({
           </Suspense>
 
           {/* View Toggle */}
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <h2 className="text-lg font-semibold">All Contributors</h2>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
               <div className="flex items-center rounded-lg border bg-muted/50 p-1">
                 <Button
                   variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
                   size="sm"
                   onClick={() => setViewMode('grid')}
-                  className="px-3"
+                  className="px-3 min-h-[44px] min-w-[44px]"
                   title="Grid view"
                 >
                   <Package className="h-4 w-4" />
@@ -1284,15 +1294,16 @@ function WorkspaceContributors({
                   variant={viewMode === 'list' ? 'secondary' : 'ghost'}
                   size="sm"
                   onClick={() => setViewMode('list')}
-                  className="px-3"
+                  className="px-3 min-h-[44px] min-w-[44px]"
                   title="List view"
                 >
                   <Menu className="h-4 w-4" />
                 </Button>
               </div>
-              <Button onClick={handleAddContributor} size="sm">
+              <Button onClick={handleAddContributor} size="sm" className="min-h-[44px] px-4">
                 <Plus className="h-4 w-4 mr-1" />
-                Add Contributors
+                <span className="hidden sm:inline">Add Contributors</span>
+                <span className="sm:hidden">Add</span>
               </Button>
             </div>
           </div>
@@ -1381,8 +1392,8 @@ function WorkspaceContributors({
                 </div>
 
                 {/* Pagination */}
-                <div className="flex items-center justify-between mt-4">
-                  <div className="text-sm text-muted-foreground">
+                <div className="flex flex-col sm:flex-row items-center justify-between mt-4 gap-4">
+                  <div className="text-sm text-muted-foreground order-2 sm:order-1">
                     Showing {viewTable.getState().pagination.pageIndex * 10 + 1} to{' '}
                     {Math.min(
                       (viewTable.getState().pagination.pageIndex + 1) * 10,
@@ -1390,22 +1401,26 @@ function WorkspaceContributors({
                     )}{' '}
                     of {contributors.length} contributors
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 order-1 sm:order-2">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => viewTable.previousPage()}
                       disabled={!viewTable.getCanPreviousPage()}
+                      className="min-h-[44px] px-3"
                     >
-                      Previous
+                      <span className="hidden sm:inline">Previous</span>
+                      <span className="sm:hidden">‹</span>
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => viewTable.nextPage()}
                       disabled={!viewTable.getCanNextPage()}
+                      className="min-h-[44px] px-3"
                     >
-                      Next
+                      <span className="hidden sm:inline">Next</span>
+                      <span className="sm:hidden">›</span>
                     </Button>
                   </div>
                 </div>
@@ -3287,8 +3302,8 @@ function WorkspacePage() {
       {/* Tab Navigation */}
       <div className="container max-w-7xl mx-auto px-6 mt-6">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 mb-6">
-            <TabsTrigger value="overview" className="flex items-center gap-2">
+          <TabsList className="grid w-full grid-cols-3 grid-rows-2 sm:flex sm:w-full sm:justify-between sm:grid-rows-1 mb-6 min-h-[88px] sm:min-h-[44px]">
+            <TabsTrigger value="overview" className="flex items-center gap-2 sm:pl-4">
               <Layout className="h-4 w-4" />
               <span className="hidden sm:inline">Overview</span>
             </TabsTrigger>
@@ -3313,7 +3328,7 @@ function WorkspacePage() {
               <Activity className="h-4 w-4" />
               <span className="hidden sm:inline">Activity</span>
             </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-2">
+            <TabsTrigger value="settings" className="flex items-center gap-2 sm:pr-4">
               <Settings className="h-4 w-4" />
               <span className="hidden sm:inline">Settings</span>
             </TabsTrigger>
