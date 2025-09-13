@@ -36,10 +36,25 @@
 # Deploy contexts
 [context.production.environment]
   # Production-specific env vars can go here
+  VITE_CONTEXT = "production"
 
 [context.deploy-preview.environment]
   # Deploy preview specific env vars
   CONTEXT = "deploy-preview"
+  VITE_CONTEXT = "deploy-preview"
+  # Pass Netlify deployment URLs to Vite
+  VITE_DEPLOY_PRIME_URL = "$DEPLOY_PRIME_URL"
+  VITE_DEPLOY_URL = "$DEPLOY_URL"
+  VITE_URL = "$URL"
+
+[context.branch-deploy.environment]
+  # Branch deploy specific env vars
+  CONTEXT = "branch-deploy"
+  VITE_CONTEXT = "branch-deploy"
+  # Pass Netlify deployment URLs to Vite
+  VITE_DEPLOY_PRIME_URL = "$DEPLOY_PRIME_URL"
+  VITE_DEPLOY_URL = "$DEPLOY_URL"
+  VITE_URL = "$URL"
 
 [functions]
   directory = "netlify/functions"

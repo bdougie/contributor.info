@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { getAuthRedirectURL } from '@/lib/auth/auth-utils';
 
 /**
  * Hook for managing GitHub authentication state and actions
@@ -35,7 +36,7 @@ export function useGitHubAuth() {
               // Silently handle session setting errors
             }
           }
-        } catch (err) {
+        } catch {
           // Silently handle auth token processing errors
         }
 
@@ -113,7 +114,7 @@ export function useGitHubAuth() {
           authSubscription.data.subscription.unsubscribe();
         }
       };
-    } catch (error) {
+    } catch {
       return () => {}; // Empty cleanup function
     }
   }, [showLoginDialog, navigate]);
@@ -129,11 +130,12 @@ export function useGitHubAuth() {
         localStorage.setItem('redirectAfterLogin', currentPath);
       }
       // Start the login flow with the correct redirect URL
-      // Redirect back to the current page after login
+      // Use dynamic redirect URL based on deployment context
+      const redirectUrl = getAuthRedirectURL(true); // Preserve current path
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'github',
         options: {
-          redirectTo: window.location.href, // Redirect back to current page
+          redirectTo: redirectUrl, // Dynamic redirect based on context
           scopes: 'repo read:user user:email', // 'repo' scope needed to check repository permissions
         },
       });
@@ -141,7 +143,7 @@ export function useGitHubAuth() {
       if (error) {
         throw error;
       }
-    } catch (err) {
+    } catch {
       // Silently handle login errors
     }
   };
