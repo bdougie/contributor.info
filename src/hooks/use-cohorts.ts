@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useGitHubAuth } from './use-github-auth';
+import { supabase } from '@/lib/supabase';
 import {
   cohortManager,
   type CohortDefinition,
@@ -20,23 +21,57 @@ interface UseCohortReturn {
  * Hook to manage user cohorts and cohort-based features
  */
 export function useCohorts(): UseCohortReturn {
-  const { user } = useGitHubAuth();
+  const { isLoggedIn } = useGitHubAuth();
   const [userCohorts, setUserCohorts] = useState<string[]>([]);
   const [primaryCohort, setPrimaryCohort] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  /**
+   * Determine the primary cohort based on priority
+   */
+  const determinePrimaryCohort = useCallback((cohortIds: string[]): string | null => {
+    if (cohortIds.length === 0) return null;
+
+    let primaryCohort: CohortDefinition | null = null;
+    let highestPriority = Infinity;
+
+    for (const cohortId of cohortIds) {
+      const cohortDef = COHORT_DEFINITIONS.find((c) => c.id === cohortId);
+      if (cohortDef && cohortDef.priority < highestPriority) {
+        highestPriority = cohortDef.priority;
+        primaryCohort = cohortDef;
+      }
+    }
+
+    return primaryCohort?.id || cohortIds[0];
+  }, []);
 
   // Initialize cohorts when user logs in
   useEffect(() => {
     const initializeCohorts = async () => {
-      if (!user?.id) {
+      if (!isLoggedIn) {
         setUserCohorts([]);
         setPrimaryCohort(null);
+        setUserId(null);
         setIsLoading(false);
         return;
       }
 
       setIsLoading(true);
       try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user?.id) {
+          setUserCohorts([]);
+          setPrimaryCohort(null);
+          setUserId(null);
+          setIsLoading(false);
+          return;
+        }
+
+        setUserId(user.id);
         await cohortManager.initializeUser(user.id);
         const cohorts = cohortManager.getUserCohorts(user.id);
         setUserCohorts(cohorts);
@@ -59,27 +94,7 @@ export function useCohorts(): UseCohortReturn {
     };
 
     initializeCohorts();
-  }, [user?.id, determinePrimaryCohort]);
-
-  /**
-   * Determine the primary cohort based on priority
-   */
-  const determinePrimaryCohort = useCallback((cohortIds: string[]): string | null => {
-    if (cohortIds.length === 0) return null;
-
-    let primaryCohort: CohortDefinition | null = null;
-    let highestPriority = Infinity;
-
-    for (const cohortId of cohortIds) {
-      const cohortDef = COHORT_DEFINITIONS.find((c) => c.id === cohortId);
-      if (cohortDef && cohortDef.priority < highestPriority) {
-        highestPriority = cohortDef.priority;
-        primaryCohort = cohortDef;
-      }
-    }
-
-    return primaryCohort?.id || cohortIds[0];
-  }, []);
+  }, [isLoggedIn, determinePrimaryCohort]);
 
   /**
    * Check if user is in a specific cohort
@@ -95,18 +110,18 @@ export function useCohorts(): UseCohortReturn {
    * Manually refresh cohorts
    */
   const refreshCohorts = useCallback(async () => {
-    if (!user?.id) return;
+    if (!userId) return;
 
     setIsLoading(true);
     try {
-      const newCohorts = await cohortManager.calculateUserCohorts(user.id);
+      const newCohorts = await cohortManager.calculateUserCohorts(userId);
       setUserCohorts(Array.from(newCohorts));
 
       const primary = determinePrimaryCohort(Array.from(newCohorts));
       setPrimaryCohort(primary);
 
       trackEvent('cohorts_refreshed', {
-        user_id: user.id,
+        user_id: userId,
         cohorts: Array.from(newCohorts),
         primary_cohort: primary,
       });
@@ -115,7 +130,7 @@ export function useCohorts(): UseCohortReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, determinePrimaryCohort]);
+  }, [userId, determinePrimaryCohort]);
 
   return {
     userCohorts,
@@ -131,25 +146,40 @@ export function useCohorts(): UseCohortReturn {
  * Hook to track events with cohort information
  */
 export function useCohortTracking() {
-  const { user } = useGitHubAuth();
+  const { isLoggedIn } = useGitHubAuth();
   const { userCohorts, primaryCohort } = useCohorts();
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUserId = async () => {
+      if (isLoggedIn) {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        setUserId(user?.id || null);
+      } else {
+        setUserId(null);
+      }
+    };
+    fetchUserId();
+  }, [isLoggedIn]);
 
   const trackWithCohorts = useCallback(
     (eventName: string, properties?: Record<string, unknown>) => {
-      if (!user?.id) {
+      if (!userId) {
         // Still track for anonymous users
         trackEvent(eventName, properties);
         return;
       }
 
       // Add cohort information to all tracked events
-      cohortManager.trackEventAndUpdateCohorts(user.id, eventName, {
+      cohortManager.trackEventAndUpdateCohorts(userId, eventName, {
         ...properties,
         user_cohorts: userCohorts,
         primary_cohort: primaryCohort,
       });
     },
-    [user?.id, userCohorts, primaryCohort]
+    [userId, userCohorts, primaryCohort]
   );
 
   return { trackWithCohorts };
