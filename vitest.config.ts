@@ -22,9 +22,12 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
 
-    // Complete isolation
+    // Complete isolation with React 18 compatibility
     isolate: true,
     fileParallelism: false,
+    sequence: {
+      shuffle: false,
+    },
 
     // Increased timeouts for complex async tests
     testTimeout: 15000,
@@ -37,6 +40,8 @@ export default defineConfig({
       forks: {
         singleFork: true,
         isolate: true,
+        // Ensure each test file runs in its own fork to avoid React conflicts
+        single: true,
       },
     },
 
@@ -95,6 +100,7 @@ export default defineConfig({
     threads: false,
     maxWorkers: 1,
     minWorkers: 1,
+    maxConcurrency: 1,
   },
 
   resolve: {

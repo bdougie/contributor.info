@@ -52,7 +52,7 @@ describe('WorkspaceCreationDisabled', () => {
       expect(screen.getByText('Request Early Access')).toBeInTheDocument();
     });
 
-    it('should show request access button for modal variant', () => {
+    it('should verify request access button exists for modal variant', () => {
       render(<WorkspaceCreationDisabled variant="modal" onRequestAccess={mockOnRequestAccess} />);
 
       const requestButton = screen.getByText('Request Early Access');
