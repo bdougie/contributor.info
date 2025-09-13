@@ -1,0 +1,11 @@
+# Socket Security Configuration
+# Ignore known false positives and development dependencies
+
+ignore:
+  - npm/safer-buffer@2.1.2 # False positive - obfuscated code warning
+  - npm/color-convert # Known compromised package on npm registry
+  - npm/color-name # Known compromised package on npm registry
+  - npm/error-ex # Known compromised package on npm registry
+  - npm/is-arrayish # Known compromised package on npm registry
+  - npm/ansi-regex # Known compromised package on npm registry
+  - npm/supports-color # Known compromised package on npm registry
