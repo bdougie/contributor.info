@@ -22,6 +22,19 @@ if (!POSTHOG_API_KEY) {
   process.exit(1);
 }
 
+// Get cohort ID from environment or use a placeholder
+const INTERNAL_TEAM_COHORT_ID =
+  process.env.POSTHOG_INTERNAL_TEAM_COHORT_ID || 'REPLACE_WITH_COHORT_ID';
+
+if (INTERNAL_TEAM_COHORT_ID === 'REPLACE_WITH_COHORT_ID') {
+  console.warn('⚠️  Warning: POSTHOG_INTERNAL_TEAM_COHORT_ID not set in environment');
+  console.log('   You need to:');
+  console.log('   1. Run scripts/create-internal-users-cohort.js first to create the cohort');
+  console.log('   2. Note the cohort ID from the output');
+  console.log('   3. Set POSTHOG_INTERNAL_TEAM_COHORT_ID in your .env file');
+  console.log('');
+}
+
 // Feature flag configuration
 const FEATURE_FLAG = {
   key: 'enable_workspace_creation',
@@ -38,7 +51,7 @@ const FEATURE_FLAG = {
           {
             key: 'id',
             type: 'cohort',
-            value: 180246, // Internal Team cohort ID
+            value: parseInt(INTERNAL_TEAM_COHORT_ID) || 0, // Internal Team cohort ID from env
             operator: null,
           },
         ],
@@ -114,7 +127,7 @@ async function main() {
   console.log('🎛️  Feature Flag Configuration:');
   console.log(`   Key: ${FEATURE_FLAG.key}`);
   console.log(`   Name: ${FEATURE_FLAG.name}`);
-  console.log(`   Target: Internal Team cohort (ID: 180246)`);
+  console.log(`   Target: Internal Team cohort (ID: ${INTERNAL_TEAM_COHORT_ID})`);
   console.log('');
 
   // Get existing feature flags

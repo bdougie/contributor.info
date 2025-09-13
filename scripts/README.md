@@ -1,235 +1,99 @@
-# Scripts Directory
+# PostHog Management Scripts
 
-Automation tools and utilities for managing the contributor.info platform. These scripts help with performance optimization, data processing, monitoring, and maintenance tasks.
+This directory contains scripts for managing PostHog cohorts and feature flags.
 
-## Quick Start
+## ⚠️ Security Note
 
-Most scripts run independently and require minimal setup:
+**NEVER commit API keys or secrets to the repository!** All sensitive values must be stored in environment variables.
 
-```bash
-# Install dependencies if needed
-npm install
+## Setup
 
-# Run any script
-node scripts/[folder]/script-name.js
-```
-
-## Categories
-
-### 📊 **[Data Sync](./data-sync/)** 
-Sync and manage GitHub data.
-
-| Script | Purpose | When to Use |
-|--------|---------|-------------|
-| `backfill-pr-stats.js` | Backfill missing PR statistics | Data recovery |
-| `backfill-reviews-comments.mjs` | Backfill missing PR reviews and comments | Fill gaps in review/comment data |
-| `sync-historical-prs.js` | Sync historical pull request data | Initial setup or data recovery |
-| `sync-historical-comments.js` | Sync historical PR comments | Complete data backfills |
-| `sync-historical-reviews.js` | Sync historical PR reviews | Review data backfills |
-| `refresh-stale-repos.js` | Refresh outdated repository data | Monthly maintenance |
-| `trigger-refresh.js` | Manually trigger data refresh | Force data updates |
-| `manual-trigger.mjs` | Manually trigger data refresh for specific repos | Target specific repository updates |
-| `get-pytorch-stats.js` | Get accurate GitHub repository statistics | Verify repository data |
-| `initialize-pytorch-backfill.js` | Initialize large repository backfill | Start progressive backfill |
-| `manual-sync-repository.js` | Manually sync individual repositories | Force sync specific repo |
-| `sync-bdougie-repos.js` | Direct GitHub API sync for specific repos | Sync bdougie repositories |
-| `sync-all-tracked-repos.js` | Bulk sync all tracked repositories | Sync all repos with rate limiting |
-| `test-406-fix-and-sync.js` | Test 406 error fix and sync functionality | Verify 406 fix works |
-
-### ⚡ **[Performance](./performance/)**
-Improve application speed and reduce resource usage.
-
-| Script | Purpose | When to Use |
-|--------|---------|-------------|
-| `analyze-bundle.js` | Analyze build bundle sizes | Before releases |
-| `analyze-mobile-performance.js` | Check mobile performance metrics | Mobile optimization |
-| `lighthouse-check.js` | Run Lighthouse performance audits | Performance validation |
-| `performance-check.js` | Comprehensive performance analysis | Regular performance reviews |
-| `monitor-cdn-performance.js` | Monitor CDN and asset performance | Performance troubleshooting |
-| `monitor-database-performance.js` | Check database query performance | Database optimization |
-| `test-core-web-vitals.js` | Test Core Web Vitals (LCP, CLS, INP) | Measure UX performance metrics |
-| `compare-web-vitals.js` | Compare Web Vitals between branches | PR performance validation |
-
-### 🗺️ **[Sitemap](./sitemap/)**
-Generate and submit XML sitemaps for SEO.
-
-| Script | Purpose | When to Use |
-|--------|---------|-------------|
-| `generate-sitemap.js` | Generate XML sitemaps from database | Automatic during build |
-| `submit-sitemap.js` | Submit sitemaps to search engines | Automatic after release |
-
-### 🎨 **[Assets](./assets/)**
-Create and manage visual assets.
-
-| Script | Purpose | When to Use |
-|--------|---------|-------------|
-| `generate-social-cards.js` | Generate repository social cards | Marketing assets |
-| `generate-pwa-icons.js` | Create PWA app icons | Mobile app updates |
-| `generate-pwa-screenshots.js` | Generate app store screenshots | App store submissions |
-| `convert-images.js` | Convert and optimize images | Image preprocessing |
-| `build-with-social-cards.js` | Build with social card generation | Integrated build process |
-
-### 🛠️ **[Setup](./setup/)**
-Initialize and configure system components.
-
-| Script | Purpose | When to Use |
-|--------|---------|-------------|
-| `setup-supabase-storage.js` | Configure Supabase storage buckets | Initial deployment |
-| `setup-card-regeneration.js` | Setup social card regeneration | Social features setup |
-| `setup-chromatic-baselines.sh` | Setup visual testing baselines | CI/CD configuration |
-| `encode-private-key.js` | Encode GitHub private keys | Security configuration |
-| `prepare-private-key.sh` | Prepare GitHub App private keys | Deployment setup |
-
-### 🔍 **[Debugging](./debugging/)**
-Support development and debugging workflows.
-
-| Script | Purpose | When to Use |
-|--------|---------|-------------|
-| `debug-github-actions-errors.js` | Debug GitHub Actions failures | CI/CD troubleshooting |
-| `debug-ui-events.js` | Debug frontend user interactions | UI issue investigation |
-| `debug-capture-pr.mjs` | Debug PR capture functionality | Troubleshoot PR data capture |
-| `check-build-clean.js` | Verify clean build output | Pre-release validation |
-| `check-commits.cjs` | Analyze commit patterns | Git history debugging |
-| `fix-inngest-local.sh` | Fix local Inngest development | Local development setup |
-
-### 🏥 **[Health Checks](./health-checks/)**
-Monitor system performance and detect issues.
-
-| Script | Purpose | When to Use |
-|--------|---------|-------------|
-| `check-rollout-health.js` | Monitor progressive rollout health | During feature rollouts |
-| `check-rollout-percentage.js` | Check current rollout status | Verify rollout configuration |
-| `check-repos.mjs` | Validate tracked repositories | Weekly repository audits |
-| `check-tracked-repos.mjs` | Check repository tracking status | Troubleshoot tracking issues |
-| `check-bucket-status.js` | Verify storage bucket health | Storage troubleshooting |
-| `check-inngest-registration.js` | Check Inngest queue registration | Queue system validation |
-
-### 🧪 **[Testing Tools](./testing-tools/)**
-Ensure system reliability and data integrity. See [README](./testing-tools/README.md) for detailed documentation.
-
-| Script | Purpose | When to Use |
-|--------|---------|-------------|
-| `test-api-fallback-prevention.mjs` | Verify API fallback prevention works | Ensure efficient data fetching |
-| `test-ci-environment.js` | Test CI/CD environment configuration | Validate CI setup |
-| `test-console-warn.js` | Test console warning detection | Debug console output |
-| `test-event-flow.js` | Test event processing flow | Validate event handling |
-| `test-github-auth.mjs` | Test GitHub API authentication | Debug auth issues |
-| `test-inngest.js` | Test Inngest queue functionality | Queue troubleshooting |
-| `test-inngest-direct.mjs` | Test direct Inngest event sending | Test event queue directly |
-| `test-last-updated-logic.js` | Test last updated timestamp logic | Verify timestamp calculations |
-| `test-new-repo-tracking.mjs` | Test new repository tracking flow | Validate repo onboarding |
-| `test-production-inngest.js` | Test production Inngest connection | Production queue validation |
-| `test-review-sync.mjs` | Test PR review syncing functionality | Debug review data issues |
-| `test-sanitize.js` | Test HTML sanitization | Security validation |
-| `test-social-cards.js` | Validate social card generation | Social media debugging |
-| `test-storybook-interactions.sh` | Test Storybook interaction tests | UI component testing |
-| `test-sync-logger.js` | Test sync logging functionality | Debug sync operations |
-| `test-sync-logging.mjs` | Test sync logging with ES modules | Modern sync debugging |
-| `test-update-activity.mjs` | Test activity update functionality | Validate activity tracking |
-| `test-visual-regression.sh` | Run visual regression tests | UI change validation |
-| `test-visual-workflow.sh` | Test visual workflow automation | Visual testing pipeline |
-
-### 🔧 **[Utilities](./utilities/)**
-General-purpose tools and maintenance scripts.
-
-| Script | Purpose | When to Use |
-|--------|---------|-------------|
-| `classify-repositories.ts` | Categorize repositories by type/language | Data analysis |
-| `regenerate-embeddings.ts` | Rebuild AI embeddings | Search optimization |
-| `verify-embeddings.ts` | Verify AI embedding accuracy | AI feature validation |
-| `search-user-reviews.mjs` | Search and analyze user PR reviews | Find specific user contributions |
-| `optimize-icon-imports.js` | Optimize icon import statements | Reduce bundle size |
-| `verify-social-card-system.js` | Test complete social card system | End-to-end validation |
-| `update-rollout.js` | Update feature rollout configuration | Feature flag management |
-
-## Subfolders
-
-### 🚀 **[/github-actions/](./github-actions/)**
-Scripts designed to run in GitHub Actions workflows for automated processing.
-
-| Script | Purpose | When to Use |
-|--------|---------|-------------|
-| `check-rate-limit.js` | Check GitHub API rate limits | Before API-intensive operations |
-| `progressive-backfill.js` | Process large repository backfills | Scheduled backfill workflows |
-| `capture-pr-details-graphql.js` | Capture PR details via GraphQL | GitHub Actions PR processing |
-| `report-failure.js` | Report workflow failures as GitHub issues | Automated failure notifications |
-
-### 📊 **[/monitoring/](./monitoring/)**
-Advanced monitoring and cost analysis tools. See [README](./monitoring/README.md) for details.
-
-### ⚡ **[/optimization/](./optimization/)**
-Performance optimization utilities for GitHub Actions and Inngest. See [README](./optimization/README.md) for details.
-
-### 🔄 **[/progressive-capture/](./progressive-capture/)**
-Progressive data capture system for efficient GitHub data processing. See [README](./progressive-capture/README.md) for details.
-
-### 🧪 **[/testing/](./testing/)**
-Comprehensive testing utilities for edge cases and system validation. See [README](./testing/README.md) for details.
-
-### ✅ **[/validation/](./validation/)**
-Data integrity and gap validation tools. See [README](./validation/README.md) for details.
-
-### 📈 **[/rollout/](./rollout/)**
-Rollout management and monitoring system. See [README](./rollout/README.md) for detailed documentation.
-
-## Usage Guidelines
-
-### Environment Setup
-
-Most scripts require environment variables:
+1. **Create a `.env` file** in the project root (if it doesn't exist)
+2. **Add required environment variables**:
 
 ```bash
-# Required for most scripts
-VITE_SUPABASE_URL=your-supabase-url
-SUPABASE_TOKEN=your-service-role-key
-VITE_GITHUB_TOKEN=your-github-token
+# Required for all PostHog scripts
+POSTHOG_PROJECT_ID=your-project-id
+POSTHOG_PERSONAL_API_KEY=phx_your-personal-api-key
 
-# Optional for specific scripts
-INNGEST_EVENT_KEY=your-inngest-key
+# Required for feature flag scripts that target cohorts
+POSTHOG_INTERNAL_TEAM_COHORT_ID=cohort-id-from-script-output
 ```
 
-### Running Scripts Safely
+3. **Get your values**:
+   - **Project ID**: Found in PostHog settings
+   - **Personal API Key**: Generate from PostHog > Account > Personal API Keys
+   - **Cohort IDs**: Run cohort creation scripts first, note the IDs from output
 
-1. **Start with monitoring scripts** to understand current system state
-2. **Use validation scripts** before making changes
-3. **Run test scripts** in development first
-4. **Monitor health checks** after running data processing scripts
+## Available Scripts
 
-### Common Workflows
+### Cohort Management
 
-#### System Health Check
+#### `create-internal-users-cohort.js`
+Creates or updates the Internal Team cohort for testing and development.
+
 ```bash
-node scripts/health-checks/check-rollout-health.js
-node scripts/performance/monitor-database-performance.js
-node scripts/health-checks/check-repos.mjs
+node scripts/create-internal-users-cohort.js
 ```
 
-#### Performance Analysis
+To add team members, edit the `INTERNAL_USERS` array in the script.
+
+#### `create-posthog-cohorts-simple.js`
+Creates property-based cohorts (e.g., users with workspaces, active users).
+
 ```bash
-node scripts/performance/analyze-bundle.js
-node scripts/performance/lighthouse-check.js
-node scripts/performance/performance-check.js
+node scripts/create-posthog-cohorts-simple.js
 ```
 
-#### Data Refresh
+### Feature Flag Management
+
+#### `create-workspace-feature-flag.js`
+Creates or updates the workspace creation feature flag.
+
 ```bash
-node scripts/health-checks/check-tracked-repos.mjs
-node scripts/data-sync/refresh-stale-repos.js
-node scripts/data-sync/trigger-refresh.js
+# First, ensure POSTHOG_INTERNAL_TEAM_COHORT_ID is set in .env
+node scripts/create-workspace-feature-flag.js
 ```
 
-## Support
+## Workflow
 
-- **For specific script documentation**: Check the README in each subfolder
-- **For rollout management**: See [/scripts/rollout/README.md](./rollout/README.md)
-- **For progressive capture**: See [/scripts/progressive-capture/README.md](./progressive-capture/README.md)
-- **For monitoring**: See [/scripts/monitoring/README.md](./monitoring/README.md)
+1. **Create cohorts first**:
+   ```bash
+   node scripts/create-internal-users-cohort.js
+   # Note the cohort ID from output (e.g., 180246)
+   ```
 
-## Safety Notes
+2. **Add cohort ID to .env**:
+   ```bash
+   POSTHOG_INTERNAL_TEAM_COHORT_ID=180246
+   ```
 
-- **Always backup data** before running processing scripts
-- **Test in development** before running in production
-- **Monitor system health** after script execution
-- **Check rollout status** before making system changes
+3. **Create feature flags**:
+   ```bash
+   node scripts/create-workspace-feature-flag.js
+   ```
 
-Scripts follow the project's user-friendly, action-oriented approach—focusing on what you can do rather than technical implementation details.
+## Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| "POSTHOG_PERSONAL_API_KEY not found" | Add the key to your `.env` file |
+| "Failed to create cohort: Forbidden" | Check API key permissions in PostHog |
+| "POSTHOG_INTERNAL_TEAM_COHORT_ID not set" | Run cohort script first, add ID to `.env` |
+| "Invalid project ID" | Verify POSTHOG_PROJECT_ID matches your PostHog project |
+
+## Best Practices
+
+1. **Never hardcode IDs or keys** - Always use environment variables
+2. **Run cohort scripts before feature flags** - Feature flags need cohort IDs
+3. **Document cohort IDs** - Keep track of cohort IDs for your environment
+4. **Use descriptive names** - Make cohort and flag names self-documenting
+5. **Test locally first** - Verify scripts work before deploying
+
+## Security Checklist
+
+- [ ] No API keys in code
+- [ ] No hardcoded cohort IDs
+- [ ] `.env` file is in `.gitignore`
+- [ ] Environment variables documented in `.env.example`
+- [ ] Sensitive values never logged to console
