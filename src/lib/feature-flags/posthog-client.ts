@@ -77,6 +77,13 @@ export const FEATURE_FLAG_CONFIGS: Record<FeatureFlagName, FeatureFlagConfig> = 
     rolloutPercentage: 0,
     enabledForOrganizations: [], // Can add specific org IDs
   },
+  [FEATURE_FLAGS.ENABLE_WORKSPACES]: {
+    name: FEATURE_FLAGS.ENABLE_WORKSPACES,
+    defaultValue: false,
+    description: 'Control entire workspace feature visibility',
+    rolloutPercentage: 0,
+    enabledForUsers: [], // Can add specific user IDs for early access
+  },
   [FEATURE_FLAGS.ENABLE_WORKSPACE_CREATION]: {
     name: FEATURE_FLAGS.ENABLE_WORKSPACE_CREATION,
     defaultValue: false,

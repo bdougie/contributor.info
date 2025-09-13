@@ -67,6 +67,19 @@ export default async (req: Request, _context: Context) => {
     });
   }
 
+  // Check if workspaces feature is enabled
+  const isWorkspacesEnabled = process.env.FEATURE_FLAG_ENABLE_WORKSPACES === 'true';
+  
+  if (!isWorkspacesEnabled) {
+    return new Response(JSON.stringify({ 
+      error: 'Workspaces feature is currently disabled',
+      code: 'WORKSPACES_DISABLED'
+    }), {
+      status: 503, // Service Unavailable
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+
   const url = new URL(req.url);
   const pathParts = url.pathname.split('/').filter(Boolean);
   const workspaceId = pathParts[pathParts.length - 1] !== 'api-workspaces' ? pathParts[pathParts.length - 1] : null;
