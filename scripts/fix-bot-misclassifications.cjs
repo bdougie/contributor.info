@@ -83,22 +83,55 @@ async function fixMisclassifications() {
   console.log('=====================================\n');
 
   const supabaseUrl = process.env.VITE_SUPABASE_URL;
-  const supabaseServiceKey = process.env.SUPABASE_TOKEN;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_TOKEN;
+  const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
 
   console.log('🔍 Environment check:');
   console.log('   URL:', supabaseUrl);
   console.log('   Service Key loaded:', !!supabaseServiceKey);
-  console.log('   Service Key starts with:', supabaseServiceKey?.substring(0, 20));
+  console.log('   Anon Key loaded:', !!supabaseAnonKey);
 
-  if (!supabaseUrl || !supabaseServiceKey) {
-    console.error('❌ Missing required environment variables:');
-    console.error('   VITE_SUPABASE_URL:', !!supabaseUrl);
-    console.error('   SUPABASE_TOKEN:', !!supabaseServiceKey);
-    console.log('\n💡 Note: This script requires service role key (SUPABASE_TOKEN) for write operations');
+  if (!supabaseUrl) {
+    console.error('❌ Missing VITE_SUPABASE_URL');
     process.exit(1);
   }
 
-  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  // Try service role key first, fallback to anon key
+  let supabase;
+  let useServiceRole = false;
+  
+  if (supabaseServiceKey) {
+    console.log('🔑 Attempting connection with service role key...');
+    supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    // Test the connection
+    try {
+      const { data: testData, error: testError } = await supabase
+        .from('contributors')
+        .select('count')
+        .limit(1);
+      
+      if (testError) {
+        console.log('⚠️  Service role key failed, trying anon key...');
+        console.log('   Error:', testError.message);
+      } else {
+        useServiceRole = true;
+        console.log('✅ Service role key working');
+      }
+    } catch (err) {
+      console.log('⚠️  Service role key failed, trying anon key...');
+      console.log('   Error:', err.message);
+    }
+  }
+
+  if (!useServiceRole) {
+    if (!supabaseAnonKey) {
+      console.error('❌ No working authentication keys available');
+      process.exit(1);
+    }
+    console.log('🔑 Using anon key (read-only operations)...');
+    supabase = createClient(supabaseUrl, supabaseAnonKey);
+  }
 
   try {
     console.log(`📋 Planning to fix ${MISCLASSIFIED_BOTS.length} misclassified bot accounts`);
@@ -152,6 +185,26 @@ async function fixMisclassifications() {
     console.log(`   Updating ${usernamesToFix.length} accounts to is_bot = true`);
     console.log(`   Accounts: ${usernamesToFix.join(', ')}`);
 
+    if (!useServiceRole) {
+      console.log('\n⚠️  Read-only access detected. Cannot perform automatic updates.');
+      console.log('   Please run the following SQL command in your Supabase Dashboard:');
+      console.log('\n📋 SQL Command to fix bot misclassifications:');
+      console.log('```sql');
+      const sqlUsernames = usernamesToFix.map(u => `'${u}'`).join(', ');
+      console.log(`UPDATE contributors SET is_bot = true WHERE username IN (${sqlUsernames});`);
+      console.log('```');
+      console.log('\n🔗 Supabase Dashboard SQL Editor:');
+      console.log('   https://app.supabase.com/project/egcxzonpmmcirmgqdrla/sql');
+      
+      return { 
+        success: true, 
+        updatedCount: 0,
+        requiresManualFix: true,
+        sqlCommand: `UPDATE contributors SET is_bot = true WHERE username IN (${sqlUsernames});`,
+        accountsToFix: usernamesToFix
+      };
+    }
+
     const { data: updateResults, error: updateError } = await supabase
       .from('contributors')
       .update({ is_bot: true })
@@ -160,6 +213,11 @@ async function fixMisclassifications() {
 
     if (updateError) {
       console.error('❌ Error updating accounts:', updateError.message);
+      console.log('\n📋 Fallback SQL Command:');
+      console.log('```sql');
+      const sqlUsernames = usernamesToFix.map(u => `'${u}'`).join(', ');
+      console.log(`UPDATE contributors SET is_bot = true WHERE username IN (${sqlUsernames});`);
+      console.log('```');
       throw updateError;
     }
 
