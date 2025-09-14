@@ -1,26 +1,58 @@
 #!/usr/bin/env node
 
 const { createClient } = require('@supabase/supabase-js');
+const path = require('path');
+const fs = require('fs');
 
-const supabase = createClient(
-  'https://egcxzonpmmcirmgqdrla.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVnY3h6b25wbW1jaXJtZ3FkcmxhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTcyNzEzNzksImV4cCI6MjAzMjg0NzM3OX0.w7F1XKj5kOx4UvqR_3XYQs5a_xBV3D8EWJZvnwE88h0'
-);
+// Load environment variables from .env file
+function loadEnvFile() {
+  const envPath = path.join(__dirname, '..', '.env');
+  if (fs.existsSync(envPath)) {
+    const envContent = fs.readFileSync(envPath, 'utf8');
+    envContent.split('\n').forEach(line => {
+      if (line.trim() && !line.startsWith('#')) {
+        const [key, ...valueParts] = line.split('=');
+        const value = valueParts.join('=').trim().replace(/^["']|["']$/g, '');
+        if (key && value) {
+          process.env[key.trim()] = value;
+        }
+      }
+    });
+  }
+}
+
+loadEnvFile();
+
+const supabaseUrl = process.env.VITE_SUPABASE_URL;
+const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+  console.error('❌ Missing required environment variables:');
+  console.error('   VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY must be set');
+  process.exit(1);
+}
+
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function checkUnknownContributors() {
   console.log('🔍 Checking for unknown contributors in pull requests...\n');
 
   // Get all repositories
-  const { data: repos } = await supabase
+  const { data: repos, error: repoError } = await supabase
     .from('repositories')
     .select('id, owner, name')
     .limit(10);
+
+  if (repoError) {
+    console.error('❌ Failed to fetch repositories:', repoError.message);
+    throw repoError;
+  }
 
   for (const repo of repos || []) {
     console.log(`\n📁 Repository: ${repo.owner}/${repo.name}`);
     
     // Get pull requests with their contributors using the same query as the app
-    const { data: dbPRs } = await supabase
+    const { data: dbPRs, error: prError } = await supabase
       .from('pull_requests')
       .select(`
         id,
@@ -38,6 +70,11 @@ async function checkUnknownContributors() {
       .eq('repository_id', repo.id)
       .limit(5);
 
+    if (prError) {
+      console.error(`❌ Failed to fetch pull requests for ${repo.owner}/${repo.name}:`, prError.message);
+      throw prError;
+    }
+
     if (!dbPRs || dbPRs.length === 0) {
       console.log('   No pull requests found');
       continue;
@@ -51,7 +88,9 @@ async function checkUnknownContributors() {
     if (orphanedPRs.length > 0) {
       console.log(`   ❌ Found ${orphanedPRs.length} PRs with missing contributors:`);
       orphanedPRs.forEach(pr => {
-        console.log(`      - PR #${pr.number}: "${pr.title.substring(0, 40)}..." (author_id: ${pr.author_id})`);
+        const title = pr.title || 'No title';
+        const truncatedTitle = title.length > 40 ? title.substring(0, 40) + '...' : title;
+        console.log(`      - PR #${pr.number}: "${truncatedTitle}" (author_id: ${pr.author_id})`);
       });
     } else {
       console.log('   ✅ All PRs have valid contributor data');

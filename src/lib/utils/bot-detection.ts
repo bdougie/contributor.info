@@ -12,14 +12,15 @@
 
 // Known bot patterns beyond [bot] suffix
 const KNOWN_BOT_PATTERNS = [
+  /-bot$/i, // Standard -bot suffix
   /\[bot\]$/i, // Standard [bot] suffix
   /^dependabot/i, // Dependabot variations (dependabot, dependabot-test, etc.)
   /^renovate/i, // Renovate variations (renovate, renovate-bot, etc.)
   /^github-actions/i, // GitHub Actions variations
-  /^codecov/i, // Codecov variations
-  /^greenkeeper/i, // Greenkeeper (legacy)
+  /^codecov\[?bot\]?$/i, // Codecov bot with optional [bot] suffix
+  /^greenkeeper\[?bot\]?$/i, // Greenkeeper (legacy) with optional [bot] suffix
   /^snyk-bot$/i, // Snyk security bot (exact match)
-  /^allcontributors/i, // All Contributors bot
+  /^allcontributors\[?bot\]?$/i, // All Contributors bot with optional [bot] suffix
 ] as const;
 
 /**

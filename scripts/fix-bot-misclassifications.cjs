@@ -17,7 +17,12 @@ if (fs.existsSync(envPath)) {
       const equalIndex = trimmedLine.indexOf('=');
       if (equalIndex > 0) {
         const key = trimmedLine.substring(0, equalIndex).trim();
-        const value = trimmedLine.substring(equalIndex + 1).trim();
+        let value = trimmedLine.substring(equalIndex + 1).trim();
+        // Remove surrounding quotes if present
+        if ((value.startsWith('"') && value.endsWith('"')) || 
+            (value.startsWith("'") && value.endsWith("'"))) {
+          value = value.slice(1, -1);
+        }
         if (key && value) {
           process.env[key] = value;
         }
@@ -108,7 +113,7 @@ async function fixMisclassifications() {
     try {
       const { data: testData, error: testError } = await supabase
         .from('contributors')
-        .select('count')
+        .select('id')
         .limit(1);
       
       if (testError) {
@@ -190,11 +195,14 @@ async function fixMisclassifications() {
       console.log('   Please run the following SQL command in your Supabase Dashboard:');
       console.log('\n📋 SQL Command to fix bot misclassifications:');
       console.log('```sql');
-      const sqlUsernames = usernamesToFix.map(u => `'${u}'`).join(', ');
+      // Properly escape usernames to prevent SQL injection
+      const sqlUsernames = usernamesToFix.map(u => `'${u.replace(/'/g, "''")}'`).join(', ');
       console.log(`UPDATE contributors SET is_bot = true WHERE username IN (${sqlUsernames});`);
       console.log('```');
+      const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://egcxzonpmmcirmgqdrla.supabase.co';
+      const projectId = supabaseUrl.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1] || 'egcxzonpmmcirmgqdrla';
       console.log('\n🔗 Supabase Dashboard SQL Editor:');
-      console.log('   https://app.supabase.com/project/egcxzonpmmcirmgqdrla/sql');
+      console.log(`   https://app.supabase.com/project/${projectId}/sql`);
       
       return { 
         success: true, 
@@ -215,7 +223,8 @@ async function fixMisclassifications() {
       console.error('❌ Error updating accounts:', updateError.message);
       console.log('\n📋 Fallback SQL Command:');
       console.log('```sql');
-      const sqlUsernames = usernamesToFix.map(u => `'${u}'`).join(', ');
+      // Properly escape usernames to prevent SQL injection
+      const sqlUsernames = usernamesToFix.map(u => `'${u.replace(/'/g, "''")}'`).join(', ');
       console.log(`UPDATE contributors SET is_bot = true WHERE username IN (${sqlUsernames});`);
       console.log('```');
       throw updateError;
