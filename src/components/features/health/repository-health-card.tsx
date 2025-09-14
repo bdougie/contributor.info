@@ -67,18 +67,30 @@ export function RepositoryHealthCard() {
 
         if (error) throw error;
 
-        if (data && data.avg_confidence_score !== null) {
-          setConfidenceScore(Number(data.avg_confidence_score));
+        // Type the data properly since RPC functions need explicit typing
+        const typedData = data as {
+          repository_owner: string;
+          repository_name: string;
+          contributor_count: number;
+          avg_confidence_score: number;
+          maintainer_count: number;
+          external_contributor_count: number;
+          self_selection_rate: number;
+          last_analysis: string;
+        } | null;
+
+        if (typedData && typedData.avg_confidence_score !== null) {
+          setConfidenceScore(Number(typedData.avg_confidence_score));
           // Create a basic breakdown for tooltip compatibility
           setConfidenceBreakdown({
-            starForkConfidence: Number(data.avg_confidence_score) * 0.35,
-            engagementConfidence: Number(data.avg_confidence_score) * 0.25,
-            retentionConfidence: Number(data.avg_confidence_score) * 0.25,
-            qualityConfidence: Number(data.avg_confidence_score) * 0.15,
+            starForkConfidence: Number(typedData.avg_confidence_score) * 0.35,
+            engagementConfidence: Number(typedData.avg_confidence_score) * 0.25,
+            retentionConfidence: Number(typedData.avg_confidence_score) * 0.25,
+            qualityConfidence: Number(typedData.avg_confidence_score) * 0.15,
             totalStargazers: 0,
             totalForkers: 0,
-            contributorCount: data.contributor_count || 0,
-            conversionRate: Number(data.avg_confidence_score),
+            contributorCount: typedData.contributor_count || 0,
+            conversionRate: Number(typedData.avg_confidence_score),
           });
         } else {
           // Fallback to the original algorithm if no data in the new system

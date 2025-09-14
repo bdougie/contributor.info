@@ -108,7 +108,7 @@ export function transformSupabasePRToAppFormat(
 ) {
   const contributor = dbPR.contributors || {
     username: 'unknown',
-    github_id: dbPR.author_id || 0,
+    github_id: 0, // Use 0 as fallback since author_id is UUID, not github_id
     avatar_url: '',
     is_bot: false,
   };
