@@ -23,7 +23,7 @@ export class ReviewCommentProcessor {
     const userToken = session?.provider_token;
 
     // Use user's token if available, otherwise fall back to env token
-    const token = userToken || import.meta.env.VITE_GITHUB_TOKEN;
+    const token = userToken || import.meta.env?.VITE_GITHUB_TOKEN || process.env.VITE_GITHUB_TOKEN;
     if (token) {
       headers.Authorization = `token ${token}`;
     }
@@ -177,7 +177,20 @@ export class ReviewCommentProcessor {
         ),
       ]);
 
-      const allComments: any[] = [];
+      const allComments: Array<{
+        id: number;
+        user: { id: number; login: string; avatar_url: string; html_url: string };
+        body: string;
+        created_at: string;
+        updated_at?: string;
+        comment_type: string;
+        in_reply_to_id?: number;
+        position?: number;
+        original_position?: number;
+        diff_hunk?: string;
+        path?: string;
+        commit_id?: string;
+      }> = [];
 
       // Process review comments
       if (reviewCommentsResponse.ok) {
@@ -216,6 +229,8 @@ export class ReviewCommentProcessor {
       if (allComments.length === 0) {
         return { success: true };
       }
+
+      let processed = 0;
 
       // Process each comment
       for (const comment of allComments) {
@@ -291,6 +306,7 @@ export class ReviewCommentProcessor {
         }
       }
 
+      console.log(`[Comments Processor] Successfully processed ${processed} comments`);
       return { success: true };
     } catch (error) {
       console.error(`[Comments Processor] Error processing comments for PR #${prNumber}:`, error);
