@@ -112,8 +112,8 @@ export function LotteryFactorContent({
           contributors: rawLotteryFactor.contributors.filter((contributor) => {
             // Use centralized bot detection instead of relying on PR user type
             // Also filter out any contributor with invalid/missing data
-            if (!contributor.login || contributor.login.startsWith('deleted-user-')) {
-              console.warn('Filtering out invalid contributor:', contributor.login);
+            if (!contributor.login || contributor.login.startsWith('unknown')) {
+              console.warn('Filtering out non-contributor:', contributor.login);
               return false;
             }
             return !detectBot({ username: contributor.login }).isBot;

@@ -107,7 +107,7 @@ export function transformSupabasePRToAppFormat(
   repo?: string
 ) {
   const contributor = dbPR.contributors || {
-    username: `deleted-user-${dbPR.author_id || 'unknown'}`,
+    username: 'unknown',
     github_id: dbPR.author_id || 0,
     avatar_url: '',
     is_bot: false,
