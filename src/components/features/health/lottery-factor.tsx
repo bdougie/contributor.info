@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/icon';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { detectBot } from '@/lib/utils/bot-detection';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -100,7 +101,7 @@ export function LotteryFactorContent({
     ...rawStats,
     pullRequests: includeBots
       ? rawStats.pullRequests
-      : rawStats.pullRequests.filter((pr) => pr.user.type !== 'Bot'),
+      : rawStats.pullRequests.filter((pr) => !detectBot({ username: pr.user.login }).isBot),
   };
 
   // Filter lottery factor contributors based on includeBots
@@ -109,11 +110,8 @@ export function LotteryFactorContent({
       ? {
           ...rawLotteryFactor,
           contributors: rawLotteryFactor.contributors.filter((contributor) => {
-            // Find the corresponding PR to check if user is a bot
-            const userPRs = rawStats.pullRequests.filter(
-              (pr) => pr.user.login === contributor.login
-            );
-            return userPRs.length === 0 || userPRs[0].user.type !== 'Bot';
+            // Use centralized bot detection instead of relying on PR user type
+            return !detectBot({ username: contributor.login }).isBot;
           }),
         }
       : rawLotteryFactor;
@@ -574,7 +572,9 @@ export default function LotteryFactor() {
     setLocalIncludeBots(includeBots);
   }, [includeBots]);
 
-  const botCount = stats.pullRequests.filter((pr) => pr.user.type === 'Bot').length;
+  const botCount = stats.pullRequests.filter(
+    (pr) => detectBot({ username: pr.user.login }).isBot
+  ).length;
   const hasBots = botCount > 0;
   // YOLO Coders button should only be visible if there are YOLO pushes
   const showYoloButton = directCommitsData?.hasYoloCoders === true;

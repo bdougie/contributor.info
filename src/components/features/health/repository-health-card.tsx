@@ -1,6 +1,7 @@
 import { useParams } from 'react-router-dom';
-import { useContext, useState, useEffect, useRef } from 'react';
+import { useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { Bot } from '@/components/ui/icon';
+import { detectBot } from '@/lib/utils/bot-detection';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
@@ -46,68 +47,71 @@ export function RepositoryHealthCard() {
   }, [includeBots]);
 
   // Calculate contributor confidence using the same algorithm as admin dashboard
-  const calculateConfidence = async (forceRecalculate: boolean = false) => {
-    if (!owner || !repo) return;
+  const calculateConfidence = useCallback(
+    async (forceRecalculate: boolean = false) => {
+      if (!owner || !repo) return;
 
-    setConfidenceLoading(true);
-    setConfidenceError(null);
+      setConfidenceLoading(true);
+      setConfidenceError(null);
 
-    try {
-      // Import supabase here to avoid circular dependencies
-      const { supabase } = await import('@/lib/supabase');
+      try {
+        // Import supabase here to avoid circular dependencies
+        const { supabase } = await import('@/lib/supabase');
 
-      // Use the same function as the admin dashboard
-      const { data, error } = await supabase
-        .rpc('get_repository_confidence_summary_simple')
-        .eq('repository_owner', owner)
-        .eq('repository_name', repo)
-        .single();
+        // Use the same function as the admin dashboard
+        const { data, error } = await supabase
+          .rpc('get_repository_confidence_summary_simple')
+          .eq('repository_owner', owner)
+          .eq('repository_name', repo)
+          .maybeSingle();
 
-      if (error) throw error;
+        if (error) throw error;
 
-      if (data && (data as any).avg_confidence_score !== null) {
-        setConfidenceScore(Number((data as any).avg_confidence_score));
-        // Create a basic breakdown for tooltip compatibility
-        setConfidenceBreakdown({
-          starForkConfidence: Number((data as any).avg_confidence_score) * 0.35,
-          engagementConfidence: Number((data as any).avg_confidence_score) * 0.25,
-          retentionConfidence: Number((data as any).avg_confidence_score) * 0.25,
-          qualityConfidence: Number((data as any).avg_confidence_score) * 0.15,
-          totalStargazers: 0,
-          totalForkers: 0,
-          contributorCount: (data as any).contributor_count || 0,
-          conversionRate: Number((data as any).avg_confidence_score),
-        });
-      } else {
-        // Fallback to the original algorithm if no data in the new system
-        const result = (await calculateRepositoryConfidence(
-          owner,
-          repo,
-          timeRange,
-          forceRecalculate,
-          false, // returnMetadata
-          true // returnBreakdown
-        )) as ConfidenceBreakdown;
+        if (data && data.avg_confidence_score !== null) {
+          setConfidenceScore(Number(data.avg_confidence_score));
+          // Create a basic breakdown for tooltip compatibility
+          setConfidenceBreakdown({
+            starForkConfidence: Number(data.avg_confidence_score) * 0.35,
+            engagementConfidence: Number(data.avg_confidence_score) * 0.25,
+            retentionConfidence: Number(data.avg_confidence_score) * 0.25,
+            qualityConfidence: Number(data.avg_confidence_score) * 0.15,
+            totalStargazers: 0,
+            totalForkers: 0,
+            contributorCount: data.contributor_count || 0,
+            conversionRate: Number(data.avg_confidence_score),
+          });
+        } else {
+          // Fallback to the original algorithm if no data in the new system
+          const result = (await calculateRepositoryConfidence(
+            owner,
+            repo,
+            timeRange,
+            forceRecalculate,
+            false, // returnMetadata
+            true // returnBreakdown
+          )) as ConfidenceBreakdown;
 
-        setConfidenceScore(result.score);
-        setConfidenceBreakdown(result.breakdown);
+          setConfidenceScore(result.score);
+          setConfidenceBreakdown(result.breakdown);
+        }
+      } catch (error) {
+        console.error('Failed to calculate contributor confidence:', error);
+        setConfidenceError(
+          'Repository data not available. This repository may need to be synced first.'
+        );
+        setConfidenceScore(null);
+        setConfidenceBreakdown(undefined);
+      } finally {
+        setConfidenceLoading(false);
       }
-    } catch (error) {
-      console.error('Failed to calculate contributor confidence:', error);
-      setConfidenceError(
-        'Repository data not available. This repository may need to be synced first.'
-      );
-      setConfidenceScore(null);
-      setConfidenceBreakdown(undefined);
-    } finally {
-      setConfidenceLoading(false);
-    }
-  };
+    },
+    [owner, repo, timeRange]
+  );
 
   // Calculate confidence when component mounts or params change
   useEffect(() => {
     calculateConfidence();
-  }, [owner, repo, timeRange]);
+  }, [calculateConfidence]);
 
   // Reset confidence score when sync starts, recalculate when sync completes
   useEffect(() => {
@@ -123,9 +127,12 @@ export function RepositoryHealthCard() {
     confidenceSyncStatus.isTriggering,
     confidenceSyncStatus.isInProgress,
     confidenceSyncStatus.isComplete,
+    calculateConfidence,
   ]);
 
-  const botCount = stats.pullRequests.filter((pr) => pr.user.type === 'Bot').length;
+  const botCount = stats.pullRequests.filter(
+    (pr) => detectBot({ username: pr.user.login }).isBot
+  ).length;
   const hasBots = botCount > 0;
   // YOLO Coders button should only be visible if there are YOLO pushes
   const showYoloButton = directCommitsData?.hasYoloCoders === true;
