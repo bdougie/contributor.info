@@ -117,6 +117,7 @@ npx supabase status
 - no premmature optimizations without testing
 - use the supabase mcp server for migrations
 - `console.log(\`${owner}\`)` is a security vulnerability. We need to do `console.log(%s, owner)`
+- **CRITICAL SECURITY**: Never inline credentials (API keys, tokens, URLs) in source code. Always use environment variables with proper `.env` loading patterns. Scripts must validate required env vars and fail fast if missing.
 - optimized for user experience with modern tooling and excellent dependency management. prioritize immediate value delivery over pure performance metrics.
 - never use "any" types in typescript
 - script need to be documented and organized into folders/readmes
