@@ -1239,4 +1239,99 @@ export class WorkspaceService {
       };
     }
   }
+
+  /**
+   * Validate an invitation token
+   */
+  static async validateInvitation(token: string): Promise<ServiceResponse<unknown>> {
+    try {
+      // In a real implementation, you would validate the token against a database
+      // For now, we'll return a mock response
+      // This would typically involve:
+      // 1. Checking if the token exists in an invitations table
+      // 2. Checking if it's expired
+      // 3. Checking if it's already been used
+
+      // Mock validation - in production, replace with actual database query
+      const mockInvitation = {
+        id: 'inv_' + token,
+        workspace: {
+          id: 'ws_example',
+          name: 'Example Workspace',
+          description: 'A workspace for collaboration',
+          created_at: new Date().toISOString(),
+          repository_count: 5,
+          member_count: 3,
+          status: 'active',
+        },
+        role: 'contributor',
+        inviterName: 'John Doe',
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        status: 'pending',
+      };
+
+      return {
+        success: true,
+        data: mockInvitation,
+        statusCode: 200,
+      };
+    } catch (error) {
+      console.error('Validate invitation error:', error);
+      return {
+        success: false,
+        error: 'Failed to validate invitation',
+        statusCode: 500,
+      };
+    }
+  }
+
+  /**
+   * Accept an invitation
+   */
+  static async acceptInvitation(): Promise<ServiceResponse<void>> {
+    try {
+      // In a real implementation, this would:
+      // 1. Validate the token again
+      // 2. Add the user to the workspace_members table
+      // 3. Mark the invitation as accepted
+      // 4. Send a notification to the inviter
+
+      // For now, we'll return success
+      return {
+        success: true,
+        statusCode: 200,
+      };
+    } catch (error) {
+      console.error('Accept invitation error:', error);
+      return {
+        success: false,
+        error: 'Failed to accept invitation',
+        statusCode: 500,
+      };
+    }
+  }
+
+  /**
+   * Decline an invitation
+   */
+  static async declineInvitation(): Promise<ServiceResponse<void>> {
+    try {
+      // In a real implementation, this would:
+      // 1. Validate the token
+      // 2. Mark the invitation as declined
+      // 3. Optionally notify the inviter
+
+      return {
+        success: true,
+        statusCode: 200,
+      };
+    } catch (error) {
+      console.error('Decline invitation error:', error);
+      return {
+        success: false,
+        error: 'Failed to decline invitation',
+        statusCode: 500,
+      };
+    }
+  }
 }

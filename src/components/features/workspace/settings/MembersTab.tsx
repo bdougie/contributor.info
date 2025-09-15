@@ -9,27 +9,18 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { UserPlus, Crown, Shield, Users, MoreVertical, Mail } from 'lucide-react';
+import {
+  UserPlus,
+  Crown,
+  Shield,
+  Users,
+  MoreVertical,
+  Mail,
+  AlertCircle,
+  Sparkles,
+} from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,6 +31,9 @@ import {
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { WorkspaceService } from '@/services/workspace.service';
+import { useSubscriptionLimits } from '@/hooks/use-subscription-limits';
+import { InviteMemberModal } from './InviteMemberModal';
+import { UpgradeModal } from '../../../billing/UpgradeModal';
 import type { WorkspaceRole, WorkspaceTier, WorkspaceMemberWithUser } from '@/types/workspace';
 
 interface MembersTabProps {
@@ -49,15 +43,19 @@ interface MembersTabProps {
   memberCount: number;
 }
 
-export function MembersTab({ workspaceId, currentUserRole, tier }: MembersTabProps) {
-  const [members, setMembers] = useState<WorkspaceMemberWithUser[]>([]);
+export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
+  // FOR TESTING: Add mock members
+  const [members, setMembers] = useState<WorkspaceMemberWithUser[]>([
+    // Uncomment to test with mock members:
+    // { id: '1', user_id: '1', workspace_id: workspaceId, role: 'owner', accepted_at: new Date().toISOString(), user: { id: '1', email: 'owner@example.com', display_name: 'John Owner' } },
+    // { id: '2', user_id: '2', workspace_id: workspaceId, role: 'maintainer', accepted_at: new Date().toISOString(), user: { id: '2', email: 'maintainer@example.com', display_name: 'Jane Maintainer' } },
+  ]);
   const [loading, setLoading] = useState(true);
-  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState<WorkspaceRole>('contributor');
-  const [inviting, setInviting] = useState(false);
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const { toast } = useToast();
+  const limits = useSubscriptionLimits();
 
   // Get current user ID
   useEffect(() => {
@@ -112,42 +110,12 @@ export function MembersTab({ workspaceId, currentUserRole, tier }: MembersTabPro
     }
   };
 
-  const handleInviteMember = async () => {
-    if (!inviteEmail) return;
-
-    try {
-      setInviting(true);
-      const { data: user } = await supabase.auth.getUser();
-      if (!user.user) throw new Error('Not authenticated');
-
-      const result = await WorkspaceService.inviteMember(
-        workspaceId,
-        user.user.id,
-        inviteEmail,
-        inviteRole
-      );
-
-      if (result.success) {
-        toast({
-          title: 'Invitation sent',
-          description: `Invited ${inviteEmail} as ${inviteRole}`,
-        });
-        setInviteDialogOpen(false);
-        setInviteEmail('');
-        setInviteRole('contributor');
-        await fetchMembers();
-      } else {
-        throw new Error(result.error);
-      }
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to send invitation',
-        variant: 'destructive',
-      });
-    } finally {
-      setInviting(false);
-    }
+  const handleInviteSent = async () => {
+    toast({
+      title: 'Invitation sent',
+      description: 'Your team member will receive an email invitation',
+    });
+    await fetchMembers();
   };
 
   const handleUpdateRole = async (_memberId: string, userId: string, newRole: WorkspaceRole) => {
@@ -229,15 +197,15 @@ export function MembersTab({ workspaceId, currentUserRole, tier }: MembersTabPro
 
   const canManageMembers = currentUserRole === 'owner' || currentUserRole === 'maintainer';
   const canChangeRoles = currentUserRole === 'owner';
-  let maxMembers = 0;
-  if (tier === 'free') {
-    maxMembers = 0; // No workspaces on free
-  } else if (tier === 'pro') {
-    maxMembers = 1; // Solo only
-  } else if (tier === 'team') {
-    maxMembers = 5; // 5 members included
+
+  // Use subscription limits for member count
+  let maxMembers = 50;
+  if (limits.tier === 'free') {
+    maxMembers = 1;
+  } else if (limits.tier === 'pro') {
+    maxMembers = 5;
   }
-  const canInvite = canManageMembers && members.length < maxMembers;
+  const canInviteMore = members.length < maxMembers;
 
   return (
     <div className="space-y-6">
@@ -248,60 +216,28 @@ export function MembersTab({ workspaceId, currentUserRole, tier }: MembersTabPro
               <CardTitle>Team Members</CardTitle>
               <CardDescription>Manage your workspace team and their permissions</CardDescription>
             </div>
-            {canInvite && (
-              <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button>
+            {canManageMembers && (
+              <div className="flex items-center gap-2">
+                {!limits.loading && (
+                  <div className="text-sm text-muted-foreground">
+                    {members.length} / {maxMembers} members
+                  </div>
+                )}
+                {canInviteMore ? (
+                  <Button onClick={() => setInviteModalOpen(true)}>
                     <UserPlus className="h-4 w-4 mr-2" />
                     Invite Member
                   </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Invite Team Member</DialogTitle>
-                    <DialogDescription>
-                      Invite a new member to collaborate in this workspace
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email address</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="colleague@example.com"
-                        value={inviteEmail}
-                        onChange={(e) => setInviteEmail(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="role">Role</Label>
-                      <Select
-                        value={inviteRole}
-                        onValueChange={(v) => setInviteRole(v as WorkspaceRole)}
-                      >
-                        <SelectTrigger id="role">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="contributor">Contributor</SelectItem>
-                          {currentUserRole === 'owner' && (
-                            <SelectItem value="maintainer">Maintainer</SelectItem>
-                          )}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setInviteDialogOpen(false)}>
-                      Cancel
-                    </Button>
-                    <Button onClick={handleInviteMember} disabled={inviting || !inviteEmail}>
-                      {inviting ? 'Sending...' : 'Send Invitation'}
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+                ) : (
+                  <Button
+                    onClick={() => setUpgradeModalOpen(true)}
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                  >
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Upgrade to Invite More
+                  </Button>
+                )}
+              </div>
             )}
           </div>
         </CardHeader>
@@ -314,18 +250,75 @@ export function MembersTab({ workspaceId, currentUserRole, tier }: MembersTabPro
             }
             if (members.length === 0) {
               return (
-                <div className="text-center py-8 text-muted-foreground">
+                <div className="text-center py-8">
                   <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-                  <p className="font-medium">No team members yet</p>
-                  <p className="text-sm mt-1">Invite your first team member to get started</p>
+                  <p className="font-medium text-gray-900 dark:text-white">No team members yet</p>
+                  {(() => {
+                    if (canManageMembers && canInviteMore) {
+                      return (
+                        <>
+                          <p className="text-sm mt-1 text-muted-foreground">
+                            Invite your first team member to get started
+                          </p>
+                          <Button
+                            onClick={() => setInviteModalOpen(true)}
+                            className="mt-4"
+                            variant="outline"
+                          >
+                            <UserPlus className="h-4 w-4 mr-2" />
+                            Invite Your First Member
+                          </Button>
+                        </>
+                      );
+                    }
+                    if (canManageMembers && !canInviteMore) {
+                      return (
+                        <>
+                          <p className="text-sm mt-1 text-muted-foreground">
+                            Upgrade your plan to invite team members
+                          </p>
+                          <Button
+                            onClick={() => setUpgradeModalOpen(true)}
+                            className="mt-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                          >
+                            <Sparkles className="h-4 w-4 mr-2" />
+                            Upgrade to Enable Invites
+                          </Button>
+                        </>
+                      );
+                    }
+                    return (
+                      <p className="text-sm mt-1 text-muted-foreground">
+                        Contact the workspace owner to invite members
+                      </p>
+                    );
+                  })()}
                 </div>
               );
             }
             return (
               <div className="space-y-4">
-                <div className="text-sm text-muted-foreground">
-                  {members.length} of {maxMembers} members
-                </div>
+                {/* Member limit alert */}
+                {!canInviteMore && canManageMembers && (
+                  <div className="flex items-start p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                    <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 mr-2 flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                        Team member limit reached
+                      </p>
+                      <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                        You've reached the maximum of {maxMembers} team members for your current
+                        plan.
+                      </p>
+                      <button
+                        onClick={() => setUpgradeModalOpen(true)}
+                        className="text-sm text-amber-600 dark:text-amber-400 hover:underline mt-1 font-medium"
+                      >
+                        Upgrade to add more members →
+                      </button>
+                    </div>
+                  </div>
+                )}
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -433,35 +426,21 @@ export function MembersTab({ workspaceId, currentUserRole, tier }: MembersTabPro
         </CardContent>
       </Card>
 
-      {tier === 'free' && members.length >= 1 && (
-        <Card className="border-blue-200 bg-blue-50/50">
-          <CardHeader>
-            <CardTitle className="text-lg">Upgrade to Pro</CardTitle>
-            <CardDescription>
-              You've reached the member limit for the free tier. Upgrade to Pro to invite up to 5
-              team members.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button variant="default">Upgrade to Pro</Button>
-          </CardContent>
-        </Card>
-      )}
+      {/* Invite Modal */}
+      <InviteMemberModal
+        isOpen={inviteModalOpen}
+        onClose={() => setInviteModalOpen(false)}
+        workspaceId={workspaceId}
+        currentMemberCount={members.length}
+        onInviteSent={handleInviteSent}
+      />
 
-      {tier === 'pro' && members.length >= 5 && (
-        <Card className="border-purple-200 bg-purple-50/50">
-          <CardHeader>
-            <CardTitle className="text-lg">Need more seats?</CardTitle>
-            <CardDescription>
-              You've reached the member limit for Pro. Upgrade to Enterprise for up to 100 team
-              members.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button variant="default">Contact Sales</Button>
-          </CardContent>
-        </Card>
-      )}
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        isOpen={upgradeModalOpen}
+        onClose={() => setUpgradeModalOpen(false)}
+        feature="team-members"
+      />
     </div>
   );
 }
