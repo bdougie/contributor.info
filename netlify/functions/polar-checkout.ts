@@ -47,10 +47,17 @@ export const handler: Handler = async (event) => {
       };
     }
 
+    // Determine the base URL from environment or request headers
+    const baseUrl =
+      process.env.URL ||
+      process.env.BASE_URL ||
+      (event.headers?.origin ? event.headers.origin : 'https://contributor.info');
+
     // Create checkout session - Polar expects 'products' array with price IDs as strings
     const checkout = await polar.checkouts.create({
       products: [productPriceId],
-      successUrl: `${process.env.BASE_URL || process.env.URL || 'http://localhost:8888'}/billing?success=true`,
+      successUrl: `${baseUrl}/billing?success=true`,
+      cancelUrl: `${baseUrl}/billing?canceled=true`,
       customerEmail,
       metadata,
     });

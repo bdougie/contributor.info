@@ -1,10 +1,7 @@
-import { Polar } from '@polar-sh/sdk';
+// DEPRECATED: This file is no longer used
+// Polar operations are now handled server-side through Netlify functions
+// See: netlify/functions/polar-checkout.ts
 
-// Initialize Polar client
-export const polarClient = new Polar({
-  accessToken: import.meta.env.VITE_POLAR_ACCESS_TOKEN || '',
-  server: (import.meta.env.VITE_POLAR_ENVIRONMENT as 'sandbox' | 'production') || 'sandbox',
-});
-
-// Export the client and SDK types
-export type PolarClient = typeof polarClient;
+// Placeholder exports to maintain type compatibility during migration
+export const polarClient = null as unknown;
+export type PolarClient = unknown;

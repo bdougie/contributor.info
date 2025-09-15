@@ -1,4 +1,3 @@
-import { polarClient } from './polar.client';
 import { supabase } from '@/lib/supabase';
 
 export interface SubscriptionTier {
@@ -115,21 +114,33 @@ export class SubscriptionService {
     userId: string,
     userEmail: string,
     productId: string,
-    successUrl: string,
-    cancelUrl?: string
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _successUrl?: string,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _cancelUrl?: string
   ) {
     try {
-      const checkoutCreate = {
-        products: [productId],
-        successUrl,
-        cancelUrl: cancelUrl || successUrl,
-        customerEmail: userEmail,
-        metadata: {
-          user_id: userId,
+      // Call server-side function to create checkout session
+      const response = await fetch('/.netlify/functions/polar-checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-      };
+        body: JSON.stringify({
+          productPriceId: productId,
+          customerEmail: userEmail,
+          metadata: {
+            user_id: userId,
+          },
+        }),
+      });
 
-      const session = await polarClient.checkouts.create(checkoutCreate);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create checkout session');
+      }
+
+      const session = await response.json();
       return session;
     } catch (error) {
       console.error('Error creating checkout session:', error);
@@ -139,9 +150,10 @@ export class SubscriptionService {
 
   /**
    * Get or create a Polar customer for a user
+   * Note: Customer creation is now handled server-side in the checkout function
    */
   static async getOrCreateCustomer(userId: string, email: string) {
-    // First check if customer exists in our database
+    // Check if customer exists in our database
     const { data: subscription } = await supabase
       .from('subscriptions')
       .select('polar_customer_id')
@@ -151,38 +163,11 @@ export class SubscriptionService {
       .maybeSingle();
 
     if (subscription?.polar_customer_id) {
-      try {
-        const customer = await polarClient.customers.get({ id: subscription.polar_customer_id });
-        return customer;
-      } catch (error) {
-        console.error('Error fetching customer from Polar:', error);
-      }
+      return { id: subscription.polar_customer_id, email };
     }
 
-    // Create new customer
-    const customer = await polarClient.customers.create({
-      email,
-      metadata: {
-        user_id: userId,
-      },
-    });
-
-    // Store customer ID in database
-    await supabase.from('subscriptions').upsert(
-      {
-        user_id: userId,
-        polar_customer_id: customer.id,
-        tier: 'free',
-        status: 'inactive',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-      {
-        onConflict: 'user_id',
-      }
-    );
-
-    return customer;
+    // Customer will be created server-side during checkout
+    return null;
   }
 
   /**

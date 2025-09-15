@@ -5,7 +5,7 @@ import type { Database } from '../../src/types/supabase';
 
 // Initialize Supabase client with service role for webhook operations
 const supabase = createClient<Database>(
-  process.env.VITE_SUPABASE_URL!,
+  process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
