@@ -120,7 +120,7 @@ export class SubscriptionService {
   ) {
     try {
       const checkoutCreate = {
-        productPriceId: productId,
+        products: [productId],
         successUrl,
         cancelUrl: cancelUrl || successUrl,
         customerEmail: userEmail,
@@ -129,9 +129,7 @@ export class SubscriptionService {
         },
       };
 
-      const session = await polarClient.checkouts.create(
-        checkoutCreate as Parameters<typeof polarClient.checkouts.create>[0]
-      );
+      const session = await polarClient.checkouts.create(checkoutCreate);
       return session;
     } catch (error) {
       console.error('Error creating checkout session:', error);
@@ -241,7 +239,11 @@ export class SubscriptionService {
     }
 
     const featureValue = (tierConfig.features as Record<string, unknown>)[featureName];
-    return featureValue === true || featureValue === 'unlimited' || featureValue > 0;
+    return (
+      featureValue === true ||
+      featureValue === 'unlimited' ||
+      (typeof featureValue === 'number' && featureValue > 0)
+    );
   }
 
   /**

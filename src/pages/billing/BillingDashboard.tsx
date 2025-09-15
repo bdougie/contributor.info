@@ -205,7 +205,7 @@ export function BillingDashboard() {
             <UsageMetric
               label="Workspaces"
               current={usageStats?.usage.workspaces || 0}
-              limit={usageStats?.limits.maxWorkspaces}
+              limit={usageStats?.limits.maxWorkspaces ?? null}
             />
             <UsageMetric
               label="Data Retention"
