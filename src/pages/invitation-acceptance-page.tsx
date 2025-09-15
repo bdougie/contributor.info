@@ -80,20 +80,41 @@ export const InvitationAcceptancePage: React.FC = () => {
   };
 
   const handleAccept = async () => {
-    if (!token || !invitation) return;
+    if (!token || !invitation) {
+      toast({
+        title: 'Error',
+        description: 'Invalid invitation data',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     try {
       setProcessing(true);
 
+      // Get current user with timeout
+      const userPromise = supabase.auth.getUser();
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Authentication timeout')), 5000)
+      );
+
       const {
         data: { user },
-      } = await supabase.auth.getUser();
+      } = (await Promise.race([userPromise, timeoutPromise])) as Awaited<
+        ReturnType<typeof supabase.auth.getUser>
+      >;
+
       if (!user) {
-        navigate('/login');
+        toast({
+          title: 'Authentication Required',
+          description: 'Please log in to accept this invitation',
+          variant: 'destructive',
+        });
+        navigate(`/login?redirect=/invitation/${token}`);
         return;
       }
 
-      const result = await WorkspaceService.acceptInvitation();
+      const result = await WorkspaceService.acceptInvitation(token, user.id);
 
       if (result.success) {
         toast({
@@ -104,16 +125,41 @@ export const InvitationAcceptancePage: React.FC = () => {
         // Redirect to the workspace dashboard
         navigate(`/workspace/${invitation.workspace.id}`);
       } else {
+        // Provide specific error messages based on status code
+        const errorMessage = (() => {
+          switch (result.statusCode) {
+            case 400:
+              return 'Invalid invitation data. Please check the invitation link.';
+            case 404:
+              return 'Invitation not found. It may have been deleted.';
+            case 409:
+              return result.error || 'This invitation has already been processed.';
+            case 410:
+              return 'This invitation has expired. Please request a new one.';
+            default:
+              return result.error || 'Failed to accept invitation';
+          }
+        })();
+
         toast({
           title: 'Error',
-          description: result.error || 'Failed to accept invitation',
+          description: errorMessage,
           variant: 'destructive',
         });
       }
-    } catch {
+    } catch (error) {
+      console.error('Error accepting invitation:', error);
+      let errorMessage = 'An unexpected error occurred';
+      if (error instanceof Error) {
+        errorMessage =
+          error.message === 'Authentication timeout'
+            ? 'Authentication timeout. Please try again.'
+            : 'An unexpected error occurred';
+      }
+
       toast({
         title: 'Error',
-        description: 'An unexpected error occurred',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
@@ -122,12 +168,27 @@ export const InvitationAcceptancePage: React.FC = () => {
   };
 
   const handleDecline = async () => {
-    if (!token) return;
+    if (!token) {
+      toast({
+        title: 'Error',
+        description: 'Invalid invitation token',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     try {
       setProcessing(true);
 
-      const result = await WorkspaceService.declineInvitation();
+      // Add timeout to prevent hanging
+      const declinePromise = WorkspaceService.declineInvitation(token);
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Request timeout')), 10000)
+      );
+
+      const result = (await Promise.race([declinePromise, timeoutPromise])) as Awaited<
+        ReturnType<typeof WorkspaceService.declineInvitation>
+      >;
 
       if (result.success) {
         toast({
@@ -136,16 +197,39 @@ export const InvitationAcceptancePage: React.FC = () => {
         });
         navigate('/');
       } else {
+        // Provide specific error messages
+        const errorMessage = (() => {
+          switch (result.statusCode) {
+            case 400:
+              return 'Invalid invitation format.';
+            case 404:
+              return 'Invitation not found.';
+            case 409:
+              return 'This invitation has already been processed.';
+            default:
+              return result.error || 'Failed to decline invitation';
+          }
+        })();
+
         toast({
           title: 'Error',
-          description: result.error || 'Failed to decline invitation',
+          description: errorMessage,
           variant: 'destructive',
         });
       }
-    } catch {
+    } catch (error) {
+      console.error('Error declining invitation:', error);
+      let errorMessage = 'An unexpected error occurred';
+      if (error instanceof Error) {
+        errorMessage =
+          error.message === 'Request timeout'
+            ? 'Request timeout. Please try again.'
+            : 'An unexpected error occurred';
+      }
+
       toast({
         title: 'Error',
-        description: 'An unexpected error occurred',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
