@@ -15,7 +15,7 @@ export interface Workspace {
   created_at: string;
   updated_at: string;
   owner_id: string;
-  tier: 'free' | 'pro' | 'enterprise';
+  tier: 'free' | 'pro' | 'team';
 }
 
 export interface UseWorkspaceOptions {

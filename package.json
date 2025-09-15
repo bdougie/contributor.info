@@ -152,6 +152,7 @@
     "inngest": "^3.40.1",
     "input-otp": "^1.2.4",
     "js-yaml": "^4.1.0",
+    "lucide-react": "^0.544.0",
     "marked": "^16.1.2",
     "minimatch": "^10.0.3",
     "next-themes": "^0.3.0",

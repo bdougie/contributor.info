@@ -9,6 +9,7 @@ import {
   validateUpdateWorkspace,
   formatValidationErrors,
 } from '@/lib/validations/workspace';
+import { WorkspacePermissionService } from './workspace-permissions.service';
 import type {
   Workspace,
   WorkspaceWithStats,
@@ -16,10 +17,12 @@ import type {
   UpdateWorkspaceRequest,
   WorkspaceFilters,
   WorkspaceRole,
+  WorkspaceTier,
   AddRepositoryRequest,
   WorkspaceRepository,
   WorkspaceRepositoryWithDetails,
   WorkspaceRepositoryFilters,
+  WorkspaceMemberWithUser,
 } from '@/types/workspace';
 
 /**
@@ -97,9 +100,9 @@ export class WorkspaceService {
 
       // Define tier limits mapping for clarity
       const tierRetentionDays = {
-        enterprise: 365,
-        pro: 90,
-        free: 30,
+        team: 30,
+        pro: 30,
+        free: 7,
       };
       const dataRetentionDays = tierRetentionDays[tier as keyof typeof tierRetentionDays] || 30;
 
@@ -209,7 +212,7 @@ export class WorkspaceService {
         .eq('user_id', userId)
         .maybeSingle();
 
-      if (!member || !['owner', 'admin'].includes(member.role)) {
+      if (!member || !['owner', 'maintainer'].includes(member.role)) {
         return {
           success: false,
           error: 'Insufficient permissions to update workspace',
@@ -514,11 +517,7 @@ export class WorkspaceService {
   ): Promise<ServiceResponse<WorkspaceRepository>> {
     try {
       // Check permissions
-      const permission = await this.checkPermission(workspaceId, userId, [
-        'owner',
-        'admin',
-        'editor',
-      ]);
+      const permission = await this.checkPermission(workspaceId, userId, ['owner', 'maintainer']);
       if (!permission.hasPermission) {
         return {
           success: false,
@@ -618,11 +617,7 @@ export class WorkspaceService {
   ): Promise<ServiceResponse<void>> {
     try {
       // Check permissions
-      const permission = await this.checkPermission(workspaceId, userId, [
-        'owner',
-        'admin',
-        'editor',
-      ]);
+      const permission = await this.checkPermission(workspaceId, userId, ['owner', 'maintainer']);
       if (!permission.hasPermission) {
         return {
           success: false,
@@ -688,11 +683,7 @@ export class WorkspaceService {
   ): Promise<ServiceResponse<WorkspaceRepository>> {
     try {
       // Check permissions
-      const permission = await this.checkPermission(workspaceId, userId, [
-        'owner',
-        'admin',
-        'editor',
-      ]);
+      const permission = await this.checkPermission(workspaceId, userId, ['owner', 'maintainer']);
       if (!permission.hasPermission) {
         return {
           success: false,
@@ -754,9 +745,8 @@ export class WorkspaceService {
       // Check permissions
       const permission = await this.checkPermission(workspaceId, userId, [
         'owner',
-        'admin',
-        'editor',
-        'viewer',
+        'maintainer',
+        'contributor',
       ]);
       if (!permission.hasPermission) {
         return {
@@ -852,6 +842,399 @@ export class WorkspaceService {
       return {
         success: false,
         error: 'Failed to list workspace repositories',
+        statusCode: 500,
+      };
+    }
+  }
+
+  /**
+   * Invite a member to a workspace (with transaction support)
+   */
+  static async inviteMember(
+    workspaceId: string,
+    invitedBy: string,
+    email: string,
+    role: WorkspaceRole
+  ): Promise<ServiceResponse<WorkspaceMemberWithUser>> {
+    try {
+      // Start a transaction to prevent race conditions
+      const { data: workspace, error: workspaceError } = await supabase
+        .from('workspaces')
+        .select(
+          `
+          id,
+          owner_id,
+          subscription_tier,
+          workspace_members (
+            id,
+            user_id,
+            role,
+            accepted_at
+          )
+        `
+        )
+        .eq('id', workspaceId)
+        .maybeSingle();
+
+      if (workspaceError || !workspace) {
+        return {
+          success: false,
+          error: 'Workspace not found',
+          statusCode: 404,
+        };
+      }
+
+      // Get current user's role
+      const currentUserMember = workspace.workspace_members?.find(
+        (m) => m.user_id === invitedBy && m.accepted_at
+      );
+
+      const isOwner = workspace.owner_id === invitedBy;
+      const userRole = isOwner ? 'owner' : (currentUserMember?.role as WorkspaceRole);
+
+      if (!userRole) {
+        return {
+          success: false,
+          error: 'You are not a member of this workspace',
+          statusCode: 403,
+        };
+      }
+
+      // Get current member count (only accepted members)
+      const currentMemberCount =
+        workspace.workspace_members?.filter((m) => m.accepted_at).length || 0;
+
+      // Handle missing subscription data gracefully
+      const tier = (workspace.subscription_tier as WorkspaceTier) || 'free';
+
+      // Check permissions with fallback for missing subscription data
+      const permissionCheck = WorkspacePermissionService.canInviteMembers(
+        userRole,
+        tier,
+        currentMemberCount,
+        role
+      );
+
+      if (!permissionCheck.allowed) {
+        return {
+          success: false,
+          error: permissionCheck.reason || 'Permission denied',
+          statusCode: 403,
+        };
+      }
+
+      // Check tier limits
+      const tierLimits = WorkspacePermissionService.getTierLimits(tier);
+      if (currentMemberCount >= tierLimits.maxMembers) {
+        return {
+          success: false,
+          error: (() => {
+            if (tier === 'free') return 'Member limit reached. Upgrade to Pro to add more members.';
+            if (tier === 'pro') return 'Member limit reached. Upgrade to Team to add more members.';
+            return 'Member limit reached. Contact support for assistance.';
+          })(),
+          statusCode: 403,
+        };
+      }
+
+      // Find user by email
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (userError || !userData) {
+        return {
+          success: false,
+          error: 'User not found. They must have an account first.',
+          statusCode: 404,
+        };
+      }
+
+      // Check if user is already a member
+      const existingMember = workspace.workspace_members?.find((m) => m.user_id === userData.id);
+
+      if (existingMember) {
+        return {
+          success: false,
+          error: 'User is already a member of this workspace',
+          statusCode: 409,
+        };
+      }
+
+      // Create member invitation (using transaction via RLS)
+      const { data: newMember, error: inviteError } = await supabase
+        .from('workspace_members')
+        .insert({
+          workspace_id: workspaceId,
+          user_id: userData.id,
+          role,
+          invited_by: invitedBy,
+          invited_at: new Date().toISOString(),
+        })
+        .select(
+          `
+          *,
+          user:users!workspace_members_user_id_fkey(
+            id,
+            email,
+            display_name,
+            avatar_url
+          )
+        `
+        )
+        .maybeSingle();
+
+      if (inviteError) {
+        console.error('Invite member error:', inviteError);
+        // Check for race condition
+        if (inviteError.code === '23505') {
+          // Unique constraint violation
+          return {
+            success: false,
+            error: 'User was already invited by another admin',
+            statusCode: 409,
+          };
+        }
+        return {
+          success: false,
+          error: 'Failed to invite member',
+          statusCode: 500,
+        };
+      }
+
+      return {
+        success: true,
+        data: newMember as WorkspaceMemberWithUser,
+        statusCode: 201,
+      };
+    } catch (error) {
+      console.error('Invite member error:', error);
+      return {
+        success: false,
+        error: 'Failed to invite member',
+        statusCode: 500,
+      };
+    }
+  }
+
+  /**
+   * Update member role (with transaction support)
+   */
+  static async updateMemberRole(
+    workspaceId: string,
+    requestingUserId: string,
+    targetUserId: string,
+    newRole: WorkspaceRole
+  ): Promise<ServiceResponse<WorkspaceMemberWithUser>> {
+    try {
+      // Prevent changing to owner role through this method
+      if (newRole === 'owner') {
+        return {
+          success: false,
+          error: 'Ownership transfer requires a separate process',
+          statusCode: 400,
+        };
+      }
+
+      // Get workspace and member data in a single query
+      const { data: workspace, error: workspaceError } = await supabase
+        .from('workspaces')
+        .select(
+          `
+          id,
+          owner_id,
+          workspace_members!inner (
+            id,
+            user_id,
+            role,
+            accepted_at
+          )
+        `
+        )
+        .eq('id', workspaceId)
+        .maybeSingle();
+
+      if (workspaceError || !workspace) {
+        return {
+          success: false,
+          error: 'Workspace not found',
+          statusCode: 404,
+        };
+      }
+
+      // Find requesting user's role
+      const requestingMember = workspace.workspace_members?.find(
+        (m) => m.user_id === requestingUserId && m.accepted_at
+      );
+      const isOwner = workspace.owner_id === requestingUserId;
+      const requestingRole = isOwner ? 'owner' : requestingMember?.role;
+
+      if (!requestingRole) {
+        return {
+          success: false,
+          error: 'You are not a member of this workspace',
+          statusCode: 403,
+        };
+      }
+
+      // Find target member
+      const targetMember = workspace.workspace_members?.find((m) => m.user_id === targetUserId);
+
+      if (!targetMember) {
+        return {
+          success: false,
+          error: 'Target user is not a member of this workspace',
+          statusCode: 404,
+        };
+      }
+
+      // Prevent self-demotion from owner
+      if (requestingUserId === targetUserId && targetMember.role === 'owner') {
+        return {
+          success: false,
+          error: 'Cannot demote yourself from owner role',
+          statusCode: 400,
+        };
+      }
+
+      // Check permissions
+      if (
+        !WorkspacePermissionService.hasPermission(
+          requestingRole as WorkspaceRole,
+          'change_member_role',
+          {
+            targetRole: targetMember.role as WorkspaceRole,
+          }
+        )
+      ) {
+        return {
+          success: false,
+          error: "You do not have permission to change this member's role",
+          statusCode: 403,
+        };
+      }
+
+      // Update member role
+      const { data: updatedMember, error: updateError } = await supabase
+        .from('workspace_members')
+        .update({ role: newRole })
+        .eq('id', targetMember.id)
+        .select(
+          `
+          *,
+          user:users!workspace_members_user_id_fkey(
+            id,
+            email,
+            display_name,
+            avatar_url
+          )
+        `
+        )
+        .maybeSingle();
+
+      if (updateError) {
+        console.error('Update member role error:', updateError);
+        return {
+          success: false,
+          error: 'Failed to update member role',
+          statusCode: 500,
+        };
+      }
+
+      return {
+        success: true,
+        data: updatedMember as WorkspaceMemberWithUser,
+        statusCode: 200,
+      };
+    } catch (error) {
+      console.error('Update member role error:', error);
+      return {
+        success: false,
+        error: 'Failed to update member role',
+        statusCode: 500,
+      };
+    }
+  }
+
+  /**
+   * Remove member from workspace
+   */
+  static async removeMember(
+    workspaceId: string,
+    _requestingUserId: string, // Prefixed with _ to indicate intentionally unused but required for API consistency
+    targetUserId: string
+  ): Promise<ServiceResponse<void>> {
+    try {
+      // Get workspace and check last owner
+      const { data: workspace, error: workspaceError } = await supabase
+        .from('workspaces')
+        .select(
+          `
+          id,
+          owner_id,
+          workspace_members (
+            id,
+            user_id,
+            role,
+            accepted_at
+          )
+        `
+        )
+        .eq('id', workspaceId)
+        .maybeSingle();
+
+      if (workspaceError || !workspace) {
+        return {
+          success: false,
+          error: 'Workspace not found',
+          statusCode: 404,
+        };
+      }
+
+      // Check if target is the last owner
+      const targetMember = workspace.workspace_members?.find((m) => m.user_id === targetUserId);
+      if (targetMember?.role === 'owner' || workspace.owner_id === targetUserId) {
+        const ownerCount =
+          workspace.workspace_members?.filter((m) => m.role === 'owner' && m.accepted_at).length ||
+          0;
+        const hasOriginalOwner = workspace.owner_id !== null;
+
+        if (ownerCount <= 1 && !hasOriginalOwner) {
+          return {
+            success: false,
+            error: 'Cannot remove the last owner from workspace',
+            statusCode: 400,
+          };
+        }
+      }
+
+      // Delete member
+      const { error: deleteError } = await supabase
+        .from('workspace_members')
+        .delete()
+        .eq('workspace_id', workspaceId)
+        .eq('user_id', targetUserId);
+
+      if (deleteError) {
+        console.error('Remove member error:', deleteError);
+        return {
+          success: false,
+          error: 'Failed to remove member',
+          statusCode: 500,
+        };
+      }
+
+      return {
+        success: true,
+        statusCode: 200,
+      };
+    } catch (error) {
+      console.error('Remove member error:', error);
+      return {
+        success: false,
+        error: 'Failed to remove member',
         statusCode: 500,
       };
     }
