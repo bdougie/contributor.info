@@ -226,8 +226,8 @@ describe('Bot Detection Utility', () => {
     });
 
     it('should detect inconsistent classification and recommend GitHub value', () => {
-      const githubUser: GitHubUser = { type: 'Bot', login: 'confirmed-bot' };
-      const contributor: DatabaseContributor = { is_bot: false, username: 'confirmed-bot' };
+      const githubUser: GitHubUser = { type: 'Bot', login: 'some-service' };
+      const contributor: DatabaseContributor = { is_bot: false, username: 'some-service' };
 
       const result = validateBotClassification(githubUser, contributor);
 
