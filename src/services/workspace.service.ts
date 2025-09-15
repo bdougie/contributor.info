@@ -209,7 +209,7 @@ export class WorkspaceService {
         .eq('user_id', userId)
         .maybeSingle();
 
-      if (!member || !['owner', 'admin'].includes(member.role)) {
+      if (!member || !['owner', 'maintainer'].includes(member.role)) {
         return {
           success: false,
           error: 'Insufficient permissions to update workspace',
@@ -514,11 +514,7 @@ export class WorkspaceService {
   ): Promise<ServiceResponse<WorkspaceRepository>> {
     try {
       // Check permissions
-      const permission = await this.checkPermission(workspaceId, userId, [
-        'owner',
-        'admin',
-        'editor',
-      ]);
+      const permission = await this.checkPermission(workspaceId, userId, ['owner', 'maintainer']);
       if (!permission.hasPermission) {
         return {
           success: false,
@@ -618,11 +614,7 @@ export class WorkspaceService {
   ): Promise<ServiceResponse<void>> {
     try {
       // Check permissions
-      const permission = await this.checkPermission(workspaceId, userId, [
-        'owner',
-        'admin',
-        'editor',
-      ]);
+      const permission = await this.checkPermission(workspaceId, userId, ['owner', 'maintainer']);
       if (!permission.hasPermission) {
         return {
           success: false,
@@ -688,11 +680,7 @@ export class WorkspaceService {
   ): Promise<ServiceResponse<WorkspaceRepository>> {
     try {
       // Check permissions
-      const permission = await this.checkPermission(workspaceId, userId, [
-        'owner',
-        'admin',
-        'editor',
-      ]);
+      const permission = await this.checkPermission(workspaceId, userId, ['owner', 'maintainer']);
       if (!permission.hasPermission) {
         return {
           success: false,
@@ -754,9 +742,8 @@ export class WorkspaceService {
       // Check permissions
       const permission = await this.checkPermission(workspaceId, userId, [
         'owner',
-        'admin',
-        'editor',
-        'viewer',
+        'maintainer',
+        'contributor',
       ]);
       if (!permission.hasPermission) {
         return {

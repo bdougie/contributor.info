@@ -239,8 +239,8 @@ export function validateEmail(email: string): ValidationResult {
 export function validateWorkspaceRole(role: string, allowOwner = false): ValidationResult {
   const errors: ValidationError[] = [];
   const validRoles: WorkspaceRole[] = allowOwner
-    ? ['owner', 'admin', 'editor', 'viewer']
-    : ['admin', 'editor', 'viewer'];
+    ? ['owner', 'maintainer', 'contributor']
+    : ['maintainer', 'contributor'];
 
   if (!role || !validRoles.includes(role as WorkspaceRole)) {
     errors.push({

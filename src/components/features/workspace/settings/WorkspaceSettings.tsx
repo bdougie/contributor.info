@@ -16,7 +16,7 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { Settings, Users, Activity, Trash2, Save } from '@/components/ui/icon';
+import { Settings, Users, Activity, Trash2, Check } from '@/components/ui/icon';
 import { MembersTab } from './MembersTab';
 import { ActivityFeed } from './ActivityFeed';
 import { supabase } from '@/lib/supabase';
@@ -261,7 +261,7 @@ export function WorkspaceSettings({
 
               {permissions.canEditSettings && (
                 <Button onClick={handleSaveGeneralSettings} disabled={isSaving}>
-                  <Save className="h-4 w-4 mr-2" />
+                  <Check className="h-4 w-4 mr-2" />
                   {isSaving ? 'Saving...' : 'Save Changes'}
                 </Button>
               )}
