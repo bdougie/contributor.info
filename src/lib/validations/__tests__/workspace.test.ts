@@ -28,8 +28,8 @@ describe('Workspace Validation', () => {
     it('should reject invalid workspace names', () => {
       const invalidCases = [
         { name: '', error: 'Name is required' },
-        { name: null as any, error: 'Name is required' },
-        { name: undefined as any, error: 'Name is required' },
+        { name: null as unknown, error: 'Name is required' },
+        { name: undefined as unknown, error: 'Name is required' },
         { name: 'a'.repeat(101), error: 'Name must be between 1 and 100 characters' },
         { name: 'workspace@#$%', error: 'Name contains invalid characters' },
         { name: 'workspace!', error: 'Name contains invalid characters' },
@@ -61,7 +61,7 @@ describe('Workspace Validation', () => {
       expect(result1.valid).toBe(false);
       expect(result1.errors[0].message).toContain('500 characters');
 
-      const result2 = validateWorkspaceDescription(123 as any);
+      const result2 = validateWorkspaceDescription(123 as unknown);
       expect(result2.valid).toBe(false);
       expect(result2.errors[0].message).toContain('must be a string');
     });
@@ -75,7 +75,7 @@ describe('Workspace Validation', () => {
     });
 
     it('should reject invalid visibility values', () => {
-      const result = validateWorkspaceVisibility('internal' as any);
+      const result = validateWorkspaceVisibility('internal' as unknown);
       expect(result.valid).toBe(false);
       expect(result.errors[0].message).toContain('public" or "private');
     });
@@ -104,7 +104,7 @@ describe('Workspace Validation', () => {
       ];
 
       validSettings.forEach((settings) => {
-        const result = validateWorkspaceSettings(settings as any);
+        const result = validateWorkspaceSettings(settings as unknown);
         expect(result.valid).toBe(true);
         expect(result.errors).toHaveLength(0);
       });
@@ -133,7 +133,7 @@ describe('Workspace Validation', () => {
           error: 'Logo URL must be a string',
         },
         {
-          settings: 'not an object' as any,
+          settings: 'not an object' as unknown,
           error: 'Settings must be an object',
         },
       ];
@@ -166,9 +166,9 @@ describe('Workspace Validation', () => {
       const invalidRequest = {
         name: '',
         description: 'a'.repeat(501),
-        visibility: 'invalid' as any,
+        visibility: 'invalid' as unknown,
         settings: {
-          theme: 'invalid' as any,
+          theme: 'invalid' as unknown,
         },
       };
 
@@ -208,7 +208,7 @@ describe('Workspace Validation', () => {
     it('should reject invalid update workspace request', () => {
       const invalidRequest = {
         name: 'a'.repeat(101),
-        visibility: 'internal' as any,
+        visibility: 'internal' as unknown,
       };
 
       const result = validateUpdateWorkspace(invalidRequest);
@@ -236,8 +236,8 @@ describe('Workspace Validation', () => {
         '@example.com',
         'user@',
         'user @example.com',
-        null as any,
-        undefined as any,
+        null as unknown,
+        undefined as unknown,
       ];
 
       invalidEmails.forEach((email) => {
@@ -250,7 +250,7 @@ describe('Workspace Validation', () => {
 
   describe('validateWorkspaceRole', () => {
     it('should accept valid roles', () => {
-      const validRoles = ['admin', 'editor', 'viewer'];
+      const validRoles = ['maintainer', 'contributor'];
 
       validRoles.forEach((role) => {
         const result = validateWorkspaceRole(role);
@@ -268,14 +268,14 @@ describe('Workspace Validation', () => {
     it('should reject owner role when not allowed', () => {
       const result = validateWorkspaceRole('owner', false);
       expect(result.valid).toBe(false);
-      expect(result.errors[0].message).toContain('admin, editor, viewer');
+      expect(result.errors[0].message).toContain('maintainer, contributor');
     });
 
     it('should reject invalid roles', () => {
       const invalidRoles = ['', 'superadmin', 'guest', null, undefined];
 
       invalidRoles.forEach((role) => {
-        const result = validateWorkspaceRole(role as any);
+        const result = validateWorkspaceRole(role as unknown);
         expect(result.valid).toBe(false);
         expect(result.errors.length).toBeGreaterThan(0);
       });
@@ -311,7 +311,7 @@ describe('Workspace Validation', () => {
           error: 'Repository ID is required',
         },
         {
-          request: { repository_id: null as any },
+          request: { repository_id: null as unknown },
           error: 'Repository ID is required',
         },
         {
@@ -319,7 +319,7 @@ describe('Workspace Validation', () => {
           error: '500 characters',
         },
         {
-          request: { repository_id: 'repo', tags: 'not-array' as any },
+          request: { repository_id: 'repo', tags: 'not-array' as unknown },
           error: 'Tags must be an array',
         },
         {
@@ -327,7 +327,7 @@ describe('Workspace Validation', () => {
           error: '50 characters',
         },
         {
-          request: { repository_id: 'repo', is_pinned: 'true' as any },
+          request: { repository_id: 'repo', is_pinned: 'true' as unknown },
           error: 'must be a boolean',
         },
       ];
@@ -343,11 +343,11 @@ describe('Workspace Validation', () => {
   describe('validateInviteMember', () => {
     it('should accept valid invite member request', () => {
       const validRequests = [
-        { email: 'user@example.com', role: 'viewer' as const },
-        { email: 'admin@company.org', role: 'admin' as const },
+        { email: 'user@example.com', role: 'contributor' as const },
+        { email: 'admin@company.org', role: 'maintainer' as const },
         {
           email: 'user@example.com',
-          role: 'editor' as const,
+          role: 'contributor' as const,
           message: 'Welcome to the team!',
         },
       ];
@@ -362,17 +362,17 @@ describe('Workspace Validation', () => {
     it('should reject invalid invite member request', () => {
       const invalidCases = [
         {
-          request: { email: 'invalid', role: 'viewer' as const },
+          request: { email: 'invalid', role: 'contributor' as const },
           error: 'Invalid email',
         },
         {
           request: { email: 'user@example.com', role: 'owner' as const },
-          error: 'admin, editor, viewer',
+          error: 'maintainer, contributor',
         },
         {
           request: {
             email: 'user@example.com',
-            role: 'viewer' as const,
+            role: 'contributor' as const,
             message: 'a'.repeat(501),
           },
           error: '500 characters',
