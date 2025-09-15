@@ -13,6 +13,7 @@ import { WorkspacePermissionService } from './workspace-permissions.service';
 import type {
   Workspace,
   WorkspaceWithStats,
+  WorkspaceWithDetails,
   CreateWorkspaceRequest,
   UpdateWorkspaceRequest,
   WorkspaceFilters,
@@ -1243,7 +1244,16 @@ export class WorkspaceService {
   /**
    * Validate an invitation token
    */
-  static async validateInvitation(token: string): Promise<ServiceResponse<unknown>> {
+  static async validateInvitation(token: string): Promise<
+    ServiceResponse<{
+      id: string;
+      workspace: WorkspaceWithDetails;
+      role: string;
+      inviterName?: string;
+      expiresAt: string;
+      status: string;
+    }>
+  > {
     try {
       // In a real implementation, you would validate the token against a database
       // For now, we'll return a mock response
@@ -1263,7 +1273,7 @@ export class WorkspaceService {
           repository_count: 5,
           member_count: 3,
           status: 'active',
-        },
+        } as WorkspaceWithDetails,
         role: 'contributor',
         inviterName: 'John Doe',
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),

@@ -56,7 +56,7 @@ export const InvitationAcceptancePage: React.FC = () => {
       // Validate the invitation token
       const result = await WorkspaceService.validateInvitation(token!);
 
-      if (!result.success) {
+      if (!result.success || !result.data) {
         // Determine error type based on the error message
         if (result.error?.includes('expired')) {
           setError('expired');
