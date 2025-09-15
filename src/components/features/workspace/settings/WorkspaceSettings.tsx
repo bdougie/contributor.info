@@ -21,7 +21,7 @@ import { MembersTab } from './MembersTab';
 import { ActivityFeed } from './ActivityFeed';
 import { supabase } from '@/lib/supabase';
 import { WorkspaceService } from '@/services/workspace.service';
-import { getUIPermissions } from '@/services/workspace-permissions.service';
+import { WorkspacePermissionService } from '@/services/workspace-permissions.service';
 import { getTierInfo } from '@/types/workspace';
 import type { Workspace, WorkspaceMember, WorkspaceVisibility } from '@/types/workspace';
 
@@ -55,7 +55,11 @@ export function WorkspaceSettings({
   });
 
   // Get UI permissions based on role and tier
-  const permissions = getUIPermissions(currentMember.role, workspace, memberCount);
+  const permissions = WorkspacePermissionService.getUIPermissions(
+    currentMember.role,
+    workspace,
+    memberCount
+  );
   const tierInfo = getTierInfo(workspace.tier);
 
   // Handle form changes

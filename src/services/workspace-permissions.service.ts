@@ -431,14 +431,25 @@ export class WorkspacePermissionService {
     workspace: Pick<Workspace, 'tier' | 'current_repository_count' | 'max_repositories'>,
     memberCount: number
   ) {
+    // Ensure workspace has required properties with defaults
+    const workspaceWithDefaults = {
+      current_repository_count: workspace.current_repository_count ?? 0,
+      max_repositories: workspace.max_repositories ?? 4,
+      tier: workspace.tier ?? 'free',
+    };
+
     return {
       // Repository management
-      canAddRepository: this.canAddRepositories(userRole, workspace).allowed,
+      canAddRepository: this.canAddRepositories(userRole, workspaceWithDefaults).allowed,
       canRemoveRepository: this.canRemoveRepositories(userRole),
 
       // Member management
-      canInviteMember: this.canInviteMembers(userRole, workspace.tier, memberCount, 'contributor')
-        .allowed,
+      canInviteMember: this.canInviteMembers(
+        userRole,
+        workspaceWithDefaults.tier,
+        memberCount,
+        'contributor'
+      ).allowed,
       canRemoveMember: this.hasPermission(userRole, 'remove_member'),
       canChangeMemberRole: this.hasPermission(userRole, 'change_member_role'),
 
@@ -449,13 +460,14 @@ export class WorkspacePermissionService {
 
       // Data access
       canViewAnalytics: this.canViewAnalytics(userRole),
-      canExportData: this.canExportData(userRole, workspace.tier),
+      canExportData: this.canExportData(userRole, workspaceWithDefaults.tier),
 
       // Display states
-      showUpgradePrompt: workspace.tier === 'free' && userRole === 'owner',
-      showMemberLimitWarning: workspace.tier === 'pro' && memberCount >= 4,
+      showUpgradePrompt: workspaceWithDefaults.tier === 'free' && userRole === 'owner',
+      showMemberLimitWarning: workspaceWithDefaults.tier === 'pro' && memberCount >= 4,
       showRepositoryLimitWarning:
-        workspace.current_repository_count >= workspace.max_repositories - 1,
+        workspaceWithDefaults.current_repository_count >=
+        workspaceWithDefaults.max_repositories - 1,
       isViewOnly: userRole === 'contributor',
     };
   }
@@ -495,21 +507,6 @@ export class WorkspacePermissionService {
   }
 }
 
-// Export convenience functions
-export const {
-  hasPermission,
-  canPerformAction,
-  canInviteMembers,
-  canRemoveMember,
-  canChangeMemberRole,
-  canAddRepositories,
-  canRemoveRepositories,
-  canEditWorkspace,
-  canDeleteWorkspace,
-  canViewAnalytics,
-  canExportData,
-  canManageBilling,
-  getRolePermissions,
-  getUIPermissions,
-  getPermissionDenialMessage,
-} = WorkspacePermissionService;
+// Note: Static methods should be called directly on the class
+// e.g., WorkspacePermissionService.hasPermission()
+// Destructuring loses the class context and causes 'this' to be undefined
