@@ -56,7 +56,19 @@ export function MembersTab({ workspaceId, currentUserRole, tier }: MembersTabPro
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<WorkspaceRole>('contributor');
   const [inviting, setInviting] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const { toast } = useToast();
+
+  // Get current user ID
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      const { data: user } = await supabase.auth.getUser();
+      if (user.user) {
+        setCurrentUserId(user.user.id);
+      }
+    };
+    getCurrentUser();
+  }, []);
 
   // Fetch workspace members
   useEffect(() => {
@@ -138,7 +150,7 @@ export function MembersTab({ workspaceId, currentUserRole, tier }: MembersTabPro
     }
   };
 
-  const handleUpdateRole = async (memberId: string, userId: string, newRole: WorkspaceRole) => {
+  const handleUpdateRole = async (_memberId: string, userId: string, newRole: WorkspaceRole) => {
     try {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) throw new Error('Not authenticated');
@@ -324,8 +336,7 @@ export function MembersTab({ workspaceId, currentUserRole, tier }: MembersTabPro
                   </TableHeader>
                   <TableBody>
                     {members.map((member) => {
-                      const isCurrentUser =
-                        member.user_id === supabase.auth.getUser().then((u) => u.data.user?.id);
+                      const isCurrentUser = member.user_id === currentUserId;
                       return (
                         <TableRow key={member.id}>
                           <TableCell>

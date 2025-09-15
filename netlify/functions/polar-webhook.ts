@@ -11,7 +11,6 @@ if (!process.env.POLAR_WEBHOOK_SECRET) {
 if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
   throw new Error('SUPABASE_SERVICE_ROLE_KEY is not configured');
 }
-
 // Initialize Supabase client with service role for webhook operations
 const supabase = createClient<Database>(
   process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL!,
@@ -34,7 +33,6 @@ export const handler: Handler = Webhooks({
       body: JSON.stringify({ error: 'Webhook processing failed' }),
     };
   },
-
   onSubscriptionCreated: async (subscription) => {
     console.log('Subscription created:', subscription.id);
 
