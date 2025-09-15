@@ -1,5 +1,10 @@
 # Claude Development Guidelines
 
+<critical>
+    Never write env variables inline into scripts. Especially SUPABASE tokens keys and urls.
+    Delete scripts when they are not reference anywhere and one time use.
+</critical>
+
 ## Build Commands
 
 When making changes to the codebase, please run the following commands to ensure code quality:
@@ -43,7 +48,7 @@ When working on larger features or multi-step implementations, use Product Requi
    - **Technical Guidelines**: Architecture decisions, patterns to follow
    - **Acceptance Criteria**: Specific, measurable outcomes for each phase
 
-3. **Phase-Based Implementation**: 
+3. **Phase-Based Implementation**:
    - Break large features into 2-4 phases based on priority and dependencies
    - Each phase should be completable in 1-3 days
    - Mark phases as completed with ✅ as work progresses
@@ -114,7 +119,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key
 
 ### Repository Tracking Changes (Jan 2025)
 
-**Update**: The automatic repository tracking system has been replaced with manual, user-initiated tracking. 
+**Update**: The automatic repository tracking system has been replaced with manual, user-initiated tracking.
 - Old auto-tracking hooks (`useAutoTrackRepository`) have been removed
 - Discovery now happens via explicit user action through UI buttons
 - This change improves transparency and user control over data collection

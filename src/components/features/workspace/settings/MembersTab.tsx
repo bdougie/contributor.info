@@ -221,7 +221,7 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
       } else {
         throw new Error(result.error);
       }
-    } catch {
+    } catch (error) {
       toast({
         title: 'Error',
         description: error instanceof Error ? error.message : 'Failed to update role',
@@ -246,7 +246,7 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
       } else {
         throw new Error(result.error);
       }
-    } catch {
+    } catch (error) {
       toast({
         title: 'Error',
         description: error instanceof Error ? error.message : 'Failed to remove member',

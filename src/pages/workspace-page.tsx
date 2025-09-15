@@ -64,7 +64,7 @@ import type {
   Repository,
   ActivityDataPoint,
 } from '@/components/features/workspace';
-import type { Workspace } from '@/types/workspace';
+import type { Workspace, WorkspaceMemberWithUser } from '@/types/workspace';
 import { WorkspaceService } from '@/services/workspace.service';
 import { WorkspaceSettings as WorkspaceSettingsComponent } from '@/components/features/workspace/settings/WorkspaceSettings';
 // Analytics imports disabled - will be implemented in issue #598
