@@ -3208,7 +3208,7 @@ function WorkspacePage() {
   };
 
   const handleUpgradeClick = () => {
-    toast.info('Upgrade to Pro coming soon!');
+    navigate('/billing');
   };
 
   const handleWorkspaceUpdate = (updates: Partial<Workspace>) => {
