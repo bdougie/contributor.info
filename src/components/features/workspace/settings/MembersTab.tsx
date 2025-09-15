@@ -161,14 +161,29 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
     await Promise.all([fetchMembers(), fetchPendingInvitations()]);
   };
 
-  const handleResendInvitation = async (_invitationId: string, email: string) => {
+  const handleResendInvitation = async (invitationId: string, email: string) => {
     try {
-      // In a real implementation, this would call an API to resend the invitation
+      // Update the invitation's expires_at to extend it by 7 days
+      const { error } = await supabase
+        .from('workspace_invitations')
+        .update({
+          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          invited_at: new Date().toISOString(),
+        })
+        .eq('id', invitationId);
+
+      if (error) throw error;
+
+      // TODO: Send actual email notification via Edge Function
+      // For now, just show success message
       toast({
         title: 'Invitation resent',
-        description: `A new invitation has been sent to ${email}`,
+        description: `The invitation for ${email} has been extended by 7 days`,
       });
-    } catch {
+
+      await fetchPendingInvitations();
+    } catch (error) {
+      console.error('Error resending invitation:', error);
       toast({
         title: 'Error',
         description: 'Failed to resend invitation',
