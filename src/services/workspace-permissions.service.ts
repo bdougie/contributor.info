@@ -114,18 +114,16 @@ export class WorkspacePermissionService {
             'export_data',
           ],
         };
-      case 'enterprise':
+      case 'team':
         return {
-          maxMembers: 100,
-          maxRepositories: 500,
+          maxMembers: 5, // 5 members included
+          maxRepositories: 3, // 3 repos per workspace
           features: [
             'basic_analytics',
             'advanced_analytics',
             'private_workspaces',
             'team_collaboration',
             'export_data',
-            'custom_branding',
-            'priority_support',
             'audit_logs',
             'sso',
           ],
@@ -211,11 +209,12 @@ export class WorkspacePermissionService {
       tier = 'free';
     }
 
-    // Free tier cannot invite members
+    // Free tier has no workspaces
     if (tier === 'free') {
       return {
         allowed: false,
-        reason: 'Upgrade to Pro to invite team members',
+        reason:
+          'Free tier does not include workspaces. Upgrade to Pro or Team to create workspaces.',
       };
     }
 
@@ -235,11 +234,11 @@ export class WorkspacePermissionService {
       };
     }
 
-    // Check member limits
+    // Check member limits based on subscription tier
     const memberLimits: Record<WorkspaceTier, number> = {
-      free: 1, // Owner only
-      pro: 5,
-      enterprise: -1, // Unlimited
+      free: 0, // No workspaces on free tier
+      pro: 1, // Solo only (no invites)
+      team: 5, // 5 members included
     };
 
     const limit = memberLimits[tier];
@@ -487,7 +486,7 @@ export class WorkspacePermissionService {
       view_analytics: 'You do not have permission to view analytics',
       export_data:
         context?.tier === 'free'
-          ? 'Data export is available in Pro and Enterprise plans'
+          ? 'Data export is available in Pro and Team plans'
           : 'You do not have permission to export data',
       manage_billing: 'Only workspace owners can manage billing',
     };

@@ -229,11 +229,13 @@ export function MembersTab({ workspaceId, currentUserRole, tier }: MembersTabPro
 
   const canManageMembers = currentUserRole === 'owner' || currentUserRole === 'maintainer';
   const canChangeRoles = currentUserRole === 'owner';
-  let maxMembers = 1;
-  if (tier === 'pro') {
-    maxMembers = 5;
-  } else if (tier === 'enterprise') {
-    maxMembers = 100;
+  let maxMembers = 0;
+  if (tier === 'free') {
+    maxMembers = 0; // No workspaces on free
+  } else if (tier === 'pro') {
+    maxMembers = 1; // Solo only
+  } else if (tier === 'team') {
+    maxMembers = 5; // 5 members included
   }
   const canInvite = canManageMembers && members.length < maxMembers;
 

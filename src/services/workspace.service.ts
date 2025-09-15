@@ -100,9 +100,9 @@ export class WorkspaceService {
 
       // Define tier limits mapping for clarity
       const tierRetentionDays = {
-        enterprise: 365,
-        pro: 90,
-        free: 30,
+        team: 30,
+        pro: 30,
+        free: 7,
       };
       const dataRetentionDays = tierRetentionDays[tier as keyof typeof tierRetentionDays] || 30;
 
@@ -928,7 +928,11 @@ export class WorkspaceService {
       if (currentMemberCount >= tierLimits.maxMembers) {
         return {
           success: false,
-          error: `Member limit reached. ${tier === 'free' ? 'Upgrade to Pro' : 'Upgrade to Enterprise'} to add more members.`,
+          error: (() => {
+            if (tier === 'free') return 'Member limit reached. Upgrade to Pro to add more members.';
+            if (tier === 'pro') return 'Member limit reached. Upgrade to Team to add more members.';
+            return 'Member limit reached. Contact support for assistance.';
+          })(),
           statusCode: 403,
         };
       }
