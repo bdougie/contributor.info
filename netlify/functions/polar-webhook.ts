@@ -3,15 +3,37 @@ import { Webhooks } from '@polar-sh/nextjs';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../../src/types/supabase';
 
+// Verify environment variables are present
+if (!process.env.POLAR_WEBHOOK_SECRET) {
+  throw new Error('POLAR_WEBHOOK_SECRET is not configured');
+}
+
+if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  throw new Error('SUPABASE_SERVICE_ROLE_KEY is not configured');
+}
+
 // Initialize Supabase client with service role for webhook operations
 const supabase = createClient<Database>(
   process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-// Define webhook handler
+// Define webhook handler with signature verification
 export const handler: Handler = Webhooks({
   webhookSecret: process.env.POLAR_WEBHOOK_SECRET!,
+
+  // Add signature verification error handler
+  onError: async (error) => {
+    console.error('Webhook error:', error);
+    // Log potential signature verification failures
+    if (error.message?.includes('signature') || error.message?.includes('verification')) {
+      console.error('Webhook signature verification failed - potential security issue');
+    }
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ error: 'Webhook processing failed' }),
+    };
+  },
 
   onSubscriptionCreated: async (subscription) => {
     console.log('Subscription created:', subscription.id);

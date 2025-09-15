@@ -60,10 +60,15 @@ export class WorkspacePermissionService {
    * Check if a role has a specific permission
    */
   static hasPermission(
-    role: WorkspaceRole,
-    permission: WorkspacePermission,
+    role: WorkspaceRole | null | undefined,
+    permission: WorkspacePermission | null | undefined,
     context?: { targetRole?: WorkspaceRole }
   ): boolean {
+    // Null checks
+    if (!role || !permission) {
+      return false;
+    }
+
     // Base permission check
     const hasBase = ROLE_PERMISSIONS[role]?.includes(permission) ?? false;
 
@@ -99,7 +104,7 @@ export class WorkspacePermissionService {
         };
       case 'pro':
         return {
-          maxMembers: 10,
+          maxMembers: 5, // Aligned with documentation: Pro tier supports up to 5 members
           maxRepositories: 50,
           features: [
             'basic_analytics',
