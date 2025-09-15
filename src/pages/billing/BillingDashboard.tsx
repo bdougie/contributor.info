@@ -74,7 +74,10 @@ export function BillingDashboard() {
       }
 
       // Create checkout session via API
-      const response = await fetch('/.netlify/functions/polar-checkout', {
+      const functionsUrl = import.meta.env.DEV
+        ? 'http://localhost:9999/.netlify/functions/polar-checkout'
+        : '/.netlify/functions/polar-checkout';
+      const response = await fetch(functionsUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -87,6 +90,12 @@ export function BillingDashboard() {
           },
         }),
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Checkout error details:', errorData);
+        throw new Error(errorData.error || 'Failed to create checkout');
+      }
 
       const session = await response.json();
 
