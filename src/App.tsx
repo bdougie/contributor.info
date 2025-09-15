@@ -160,6 +160,11 @@ const ProfileRouter = lazy(() =>
 );
 const WidgetsPage = lazy(() => import('@/pages/widgets'));
 
+// Billing components
+const BillingDashboard = lazy(() =>
+  import('@/pages/billing/BillingDashboard').then((m) => ({ default: m.BillingDashboard }))
+);
+
 // Loading fallback component matching actual app structure
 const PageSkeleton = () => {
   const isOrgPage = window.location.pathname.startsWith('/orgs/');
@@ -446,6 +451,14 @@ function App() {
                       element={
                         <ProtectedRoute>
                           <SettingsPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/billing"
+                      element={
+                        <ProtectedRoute>
+                          <BillingDashboard />
                         </ProtectedRoute>
                       }
                     />
