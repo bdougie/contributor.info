@@ -165,6 +165,13 @@ const BillingDashboard = lazy(() =>
   import('@/pages/billing/BillingDashboard').then((m) => ({ default: m.BillingDashboard }))
 );
 
+// Invitation components
+const InvitationAcceptancePage = lazy(() =>
+  import('@/pages/invitation-acceptance-page').then((m) => ({
+    default: m.InvitationAcceptancePage,
+  }))
+);
+
 // Loading fallback component matching actual app structure
 const PageSkeleton = () => {
   const isOrgPage = window.location.pathname.startsWith('/orgs/');
@@ -441,6 +448,9 @@ function App() {
                     <Route path="/changelog" element={<ChangelogPage />} />
                     <Route path="/docs" element={<DocsList />} />
                     <Route path="/docs/:slug" element={<DocDetail />} />
+
+                    {/* Invitation acceptance route */}
+                    <Route path="/invitation/:token" element={<InvitationAcceptancePage />} />
 
                     {/* Legacy Route Redirect - Old feedback page moved to docs */}
                     <Route path="/search/feedback" element={<Navigate to="/docs" replace />} />

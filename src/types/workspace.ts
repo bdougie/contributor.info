@@ -79,6 +79,15 @@ export interface WorkspaceWithStats extends Workspace {
   };
 }
 
+/**
+ * Workspace with details for invitation preview
+ */
+export interface WorkspaceWithDetails extends Workspace {
+  repository_count?: number;
+  member_count?: number;
+  status?: string;
+}
+
 // =====================================================
 // WORKSPACE REPOSITORY TYPES
 // =====================================================

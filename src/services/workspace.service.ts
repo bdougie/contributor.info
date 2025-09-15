@@ -13,6 +13,7 @@ import { WorkspacePermissionService } from './workspace-permissions.service';
 import type {
   Workspace,
   WorkspaceWithStats,
+  WorkspaceWithDetails,
   CreateWorkspaceRequest,
   UpdateWorkspaceRequest,
   WorkspaceFilters,
@@ -46,6 +47,32 @@ export interface PaginatedResponse<T> {
     total: number;
     totalPages: number;
   };
+}
+
+/**
+ * Helper function to validate email format
+ */
+function isValidEmail(email: string): boolean {
+  // RFC 5322 compliant email regex
+  const emailRegex =
+    /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+  return emailRegex.test(email);
+}
+
+/**
+ * Helper function to sanitize string input
+ */
+function sanitizeInput(input: string): string {
+  // Remove any potential SQL injection or XSS attempts
+  return input.trim().replace(/[<>"']/g, '');
+}
+
+/**
+ * Helper function to validate UUID v4 format
+ */
+function isValidUUID(uuid: string): boolean {
+  const uuidV4Regex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidV4Regex.test(uuid);
 }
 
 /**
@@ -857,6 +884,37 @@ export class WorkspaceService {
     role: WorkspaceRole
   ): Promise<ServiceResponse<WorkspaceMemberWithUser>> {
     try {
+      // Validate UUIDs
+      if (!isValidUUID(workspaceId) || !isValidUUID(invitedBy)) {
+        return {
+          success: false,
+          error: 'Invalid workspace or user ID format',
+          statusCode: 400,
+        };
+      }
+
+      // Validate email format
+      if (!isValidEmail(email)) {
+        return {
+          success: false,
+          error: 'Invalid email address format',
+          statusCode: 400,
+        };
+      }
+
+      // Sanitize email
+      const sanitizedEmail = sanitizeInput(email).toLowerCase();
+
+      // Validate role
+      const validRoles: WorkspaceRole[] = ['owner', 'maintainer', 'contributor'];
+      if (!validRoles.includes(role)) {
+        return {
+          success: false,
+          error: 'Invalid role specified',
+          statusCode: 400,
+        };
+      }
+
       // Start a transaction to prevent race conditions
       const { data: workspace, error: workspaceError } = await supabase
         .from('workspaces')
@@ -937,11 +995,11 @@ export class WorkspaceService {
         };
       }
 
-      // Find user by email
+      // Find user by sanitized email
       const { data: userData, error: userError } = await supabase
         .from('users')
         .select('id')
-        .eq('email', email)
+        .eq('email', sanitizedEmail)
         .maybeSingle();
 
       if (userError || !userData) {
@@ -1235,6 +1293,327 @@ export class WorkspaceService {
       return {
         success: false,
         error: 'Failed to remove member',
+        statusCode: 500,
+      };
+    }
+  }
+
+  /**
+   * Validate an invitation token
+   */
+  static async validateInvitation(token: string): Promise<
+    ServiceResponse<{
+      id: string;
+      workspace: WorkspaceWithDetails;
+      role: string;
+      inviterName?: string;
+      expiresAt: string;
+      status: string;
+    }>
+  > {
+    try {
+      // Validate token format (UUID v4)
+      if (!isValidUUID(token)) {
+        return {
+          success: false,
+          error: 'Invalid invitation token format',
+          statusCode: 400,
+        };
+      }
+
+      // Query the invitation from the database
+      const { data: invitation, error: invitationError } = await supabase
+        .from('workspace_invitations')
+        .select(
+          `
+          id,
+          workspace_id,
+          email,
+          role,
+          invited_by,
+          invited_at,
+          expires_at,
+          status,
+          workspaces!inner (
+            id,
+            name,
+            description,
+            created_at,
+            status,
+            member_count,
+            repository_count,
+            owner_id
+          )
+        `
+        )
+        .eq('invitation_token', token)
+        .maybeSingle();
+
+      if (invitationError || !invitation) {
+        console.error('Invitation lookup error:', invitationError);
+        return {
+          success: false,
+          error: 'Invitation not found',
+          statusCode: 404,
+        };
+      }
+
+      // Check if invitation has expired
+      const now = new Date();
+      const expiresAt = new Date(invitation.expires_at);
+      if (now > expiresAt) {
+        // Update invitation status to expired
+        await supabase
+          .from('workspace_invitations')
+          .update({ status: 'expired' })
+          .eq('id', invitation.id);
+
+        return {
+          success: false,
+          error: 'Invitation has expired',
+          statusCode: 410,
+        };
+      }
+
+      // Check if invitation has already been accepted or rejected
+      if (invitation.status === 'accepted') {
+        return {
+          success: false,
+          error: 'Invitation has already been accepted',
+          statusCode: 409,
+        };
+      }
+
+      if (invitation.status === 'rejected' || invitation.status === 'declined') {
+        return {
+          success: false,
+          error: 'Invitation has been declined',
+          statusCode: 409,
+        };
+      }
+
+      // Get inviter's name
+      const { data: inviterData } = await supabase
+        .from('profiles')
+        .select('name')
+        .eq('id', invitation.invited_by)
+        .maybeSingle();
+
+      // Format the response
+      const invitationDetails = {
+        id: invitation.id,
+        workspace: (Array.isArray(invitation.workspaces)
+          ? invitation.workspaces[0]
+          : invitation.workspaces) as WorkspaceWithDetails,
+        role: invitation.role,
+        inviterName: inviterData?.name,
+        expiresAt: invitation.expires_at,
+        status: invitation.status,
+      };
+
+      return {
+        success: true,
+        data: invitationDetails,
+        statusCode: 200,
+      };
+    } catch (error) {
+      console.error('Validate invitation error:', error);
+      return {
+        success: false,
+        error: 'Failed to validate invitation',
+        statusCode: 500,
+      };
+    }
+  }
+
+  /**
+   * Accept an invitation
+   */
+  static async acceptInvitation(token: string, userId: string): Promise<ServiceResponse<void>> {
+    try {
+      // Validate token and user ID format
+      if (!isValidUUID(token) || !isValidUUID(userId)) {
+        return {
+          success: false,
+          error: 'Invalid token or user ID format',
+          statusCode: 400,
+        };
+      }
+
+      // Start a transaction
+      const { data: invitation, error: invitationError } = await supabase
+        .from('workspace_invitations')
+        .select(
+          `
+          id,
+          workspace_id,
+          email,
+          role,
+          status,
+          expires_at
+        `
+        )
+        .eq('invitation_token', token)
+        .maybeSingle();
+
+      if (invitationError || !invitation) {
+        return {
+          success: false,
+          error: 'Invalid invitation',
+          statusCode: 404,
+        };
+      }
+
+      // Check expiration
+      if (new Date() > new Date(invitation.expires_at)) {
+        return {
+          success: false,
+          error: 'Invitation has expired',
+          statusCode: 410,
+        };
+      }
+
+      // Check status
+      if (invitation.status !== 'pending') {
+        return {
+          success: false,
+          error: `Invitation has already been ${invitation.status}`,
+          statusCode: 409,
+        };
+      }
+
+      // Check if user is already a member
+      const { data: existingMember } = await supabase
+        .from('workspace_members')
+        .select('id')
+        .eq('workspace_id', invitation.workspace_id)
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (existingMember) {
+        return {
+          success: false,
+          error: 'You are already a member of this workspace',
+          statusCode: 409,
+        };
+      }
+
+      // Add user to workspace_members
+      const { error: memberError } = await supabase.from('workspace_members').insert({
+        workspace_id: invitation.workspace_id,
+        user_id: userId,
+        role: invitation.role,
+        joined_at: new Date().toISOString(),
+        accepted_at: new Date().toISOString(),
+      });
+
+      if (memberError) {
+        throw memberError;
+      }
+
+      // Update invitation status
+      const { error: updateError } = await supabase
+        .from('workspace_invitations')
+        .update({
+          status: 'accepted',
+          accepted_at: new Date().toISOString(),
+        })
+        .eq('id', invitation.id);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      // Log activity
+      await supabase.from('workspace_activity_log').insert({
+        workspace_id: invitation.workspace_id,
+        user_id: userId,
+        action: 'invitation_accepted',
+        details: { invitation_id: invitation.id },
+      });
+
+      return {
+        success: true,
+        statusCode: 200,
+      };
+    } catch (error) {
+      console.error('Accept invitation error:', error);
+      return {
+        success: false,
+        error: 'Failed to accept invitation',
+        statusCode: 500,
+      };
+    }
+  }
+
+  /**
+   * Decline an invitation
+   */
+  static async declineInvitation(token: string): Promise<ServiceResponse<void>> {
+    try {
+      // Validate token format
+      if (!isValidUUID(token)) {
+        return {
+          success: false,
+          error: 'Invalid invitation token format',
+          statusCode: 400,
+        };
+      }
+
+      // Get the invitation
+      const { data: invitation, error: invitationError } = await supabase
+        .from('workspace_invitations')
+        .select('id, workspace_id, status')
+        .eq('invitation_token', token)
+        .maybeSingle();
+
+      if (invitationError || !invitation) {
+        return {
+          success: false,
+          error: 'Invalid invitation',
+          statusCode: 404,
+        };
+      }
+
+      // Check if already processed
+      if (invitation.status !== 'pending') {
+        return {
+          success: false,
+          error: `Invitation has already been ${invitation.status}`,
+          statusCode: 409,
+        };
+      }
+
+      // Update invitation status
+      const { error: updateError } = await supabase
+        .from('workspace_invitations')
+        .update({
+          status: 'declined',
+          rejected_at: new Date().toISOString(),
+        })
+        .eq('id', invitation.id);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      // Log activity (anonymous since user may not be authenticated)
+      await supabase.from('workspace_activity_log').insert({
+        workspace_id: invitation.workspace_id,
+        user_id: null,
+        action: 'invitation_declined',
+        details: { invitation_id: invitation.id },
+      });
+
+      return {
+        success: true,
+        statusCode: 200,
+      };
+    } catch (error) {
+      console.error('Decline invitation error:', error);
+      return {
+        success: false,
+        error: 'Failed to decline invitation',
         statusCode: 500,
       };
     }
