@@ -59,8 +59,80 @@ export class WorkspacePermissionService {
   /**
    * Check if a role has a specific permission
    */
-  static hasPermission(role: WorkspaceRole, permission: WorkspacePermission): boolean {
-    return ROLE_PERMISSIONS[role]?.includes(permission) ?? false;
+  static hasPermission(
+    role: WorkspaceRole,
+    permission: WorkspacePermission,
+    context?: { targetRole?: WorkspaceRole }
+  ): boolean {
+    // Base permission check
+    const hasBase = ROLE_PERMISSIONS[role]?.includes(permission) ?? false;
+
+    // Additional context-based checks
+    if (context?.targetRole && permission === 'change_member_role') {
+      // Maintainers can only change contributor roles
+      if (role === 'maintainer' && context.targetRole !== 'contributor') {
+        return false;
+      }
+      // Cannot change owner role
+      if (context.targetRole === 'owner') {
+        return false;
+      }
+    }
+
+    return hasBase;
+  }
+
+  /**
+   * Get tier limits
+   */
+  static getTierLimits(tier: WorkspaceTier): {
+    maxMembers: number;
+    maxRepositories: number;
+    features: string[];
+  } {
+    switch (tier) {
+      case 'free':
+        return {
+          maxMembers: 1,
+          maxRepositories: 3,
+          features: ['basic_analytics', 'public_workspaces'],
+        };
+      case 'pro':
+        return {
+          maxMembers: 10,
+          maxRepositories: 50,
+          features: [
+            'basic_analytics',
+            'advanced_analytics',
+            'private_workspaces',
+            'team_collaboration',
+            'export_data',
+          ],
+        };
+      case 'enterprise':
+        return {
+          maxMembers: 100,
+          maxRepositories: 500,
+          features: [
+            'basic_analytics',
+            'advanced_analytics',
+            'private_workspaces',
+            'team_collaboration',
+            'export_data',
+            'custom_branding',
+            'priority_support',
+            'audit_logs',
+            'sso',
+          ],
+        };
+      default:
+        // Default to free tier limits for safety
+        return {
+          maxMembers: 1,
+          maxRepositories: 3,
+          features: ['basic_analytics', 'public_workspaces'],
+        };
+    }
   }
 
   /**
@@ -120,13 +192,20 @@ export class WorkspacePermissionService {
 
   /**
    * Check if user can invite members
+   * Note: This should be called within a database transaction to prevent race conditions
    */
   static canInviteMembers(
     userRole: WorkspaceRole,
-    tier: WorkspaceTier,
+    tier: WorkspaceTier | undefined,
     currentMemberCount: number,
     targetRole?: WorkspaceRole
   ): { allowed: boolean; reason?: string } {
+    // Handle missing subscription data gracefully
+    if (!tier) {
+      console.warn('Subscription tier data unavailable, defaulting to free tier limits');
+      tier = 'free';
+    }
+
     // Free tier cannot invite members
     if (tier === 'free') {
       return {

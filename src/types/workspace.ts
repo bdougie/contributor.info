@@ -161,6 +161,18 @@ export interface WorkspaceMemberWithDetails extends WorkspaceMember {
   };
 }
 
+/**
+ * Member with basic user info (for API responses)
+ */
+export interface WorkspaceMemberWithUser extends WorkspaceMember {
+  user: {
+    id: string;
+    email: string;
+    display_name?: string;
+    avatar_url?: string;
+  };
+}
+
 // =====================================================
 // WORKSPACE METRICS TYPES
 // =====================================================
