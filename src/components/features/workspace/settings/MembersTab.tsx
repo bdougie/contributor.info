@@ -78,7 +78,14 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
   // Fetch workspace members and pending invitations
   useEffect(() => {
     const fetchData = async () => {
-      await Promise.all([fetchMembers(), fetchPendingInvitations()]);
+      // Use Promise.allSettled to handle partial failures
+      const results = await Promise.allSettled([fetchMembers(), fetchPendingInvitations()]);
+
+      // Log any failures for debugging
+      const failures = results.filter((r) => r.status === 'rejected');
+      if (failures.length > 0) {
+        console.error('Failed to load some data:', failures);
+      }
     };
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -125,6 +132,7 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
       });
 
       setMembers(transformedMembers as WorkspaceMemberWithUser[]);
+      return true; // Return success status
     } catch (error) {
       console.error('Error fetching members:', error);
       toast({
@@ -132,6 +140,8 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
         description: 'Failed to load team members',
         variant: 'destructive',
       });
+      setMembers([]); // Set to empty array on error
+      return false; // Return failure status
     } finally {
       setLoading(false);
     }
@@ -148,8 +158,16 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
 
       if (error) throw error;
       setPendingInvitations(data || []);
+      return true; // Return success status
     } catch (error) {
       console.error('Error fetching invitations:', error);
+      toast({
+        title: 'Error loading invitations',
+        description: 'Failed to load pending invitations. Please refresh the page.',
+        variant: 'destructive',
+      });
+      setPendingInvitations([]); // Set to empty array on error
+      return false; // Return failure status
     }
   };
 
@@ -158,7 +176,16 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
       title: 'Invitation sent',
       description: 'Your team member will receive an email invitation',
     });
-    await Promise.all([fetchMembers(), fetchPendingInvitations()]);
+
+    // Handle partial failures gracefully
+    const results = await Promise.allSettled([fetchMembers(), fetchPendingInvitations()]);
+
+    // Check if any failed
+    const failedOperations = results.filter((result) => result.status === 'rejected');
+    if (failedOperations.length > 0) {
+      console.error('Some operations failed during refresh:', failedOperations);
+      // The individual functions already show error toasts, so no need for additional notification
+    }
   };
 
   const handleResendInvitation = async (invitationId: string, email: string) => {
