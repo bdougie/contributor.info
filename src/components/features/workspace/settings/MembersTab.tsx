@@ -322,14 +322,24 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
   const canManageMembers = currentUserRole === 'owner' || currentUserRole === 'maintainer';
   const canChangeRoles = currentUserRole === 'owner';
 
-  // Use subscription limits for member count
-  let maxMembers = 50;
-  if (limits.tier === 'free') {
-    maxMembers = 1;
-  } else if (limits.tier === 'pro') {
-    maxMembers = 1; // Pro plan is solo, no team members
-  } else if (limits.tier === 'team') {
-    maxMembers = 5; // Team plan allows 5 members
+  // Use subscription limits for member count with error handling for unknown tiers
+  let maxMembers = 1; // Safe default for unknown tiers
+  switch (limits.tier) {
+    case 'free':
+      maxMembers = 1;
+      break;
+    case 'pro':
+      maxMembers = 1; // Pro plan is solo, no team members
+      break;
+    case 'team':
+      maxMembers = 5; // Team plan allows 5 members
+      break;
+    case 'enterprise':
+      maxMembers = 50; // Enterprise plan allows more members
+      break;
+    default:
+      console.warn(`Unknown subscription tier: ${limits.tier}. Using default member limit of 1.`);
+      maxMembers = 1; // Safe default for unknown tiers
   }
   const canInviteMore = members.length < maxMembers;
 
