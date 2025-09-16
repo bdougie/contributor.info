@@ -76,11 +76,20 @@ export class EdgeFunctionConcurrencyManager {
   private lastThrottleTime: Date | null = null;
   private metricsBuffer: ConcurrencyMetrics[] = [];
   private metricsFlushInterval: NodeJS.Timeout | null = null;
+  private readonly MAX_METRICS_BUFFER_SIZE = 100; // Maximum buffer size to prevent memory leaks
+  private readonly MAX_EXECUTION_TIMES = 100; // Maximum execution times to keep
+
+  private persistenceAvailable = true;
 
   private constructor() {
     const limits = getConcurrencyLimits();
     this.limits = limits[this.tier];
-    this.startMetricsCollection();
+    // Check table availability before starting metrics collection
+    this.checkPersistenceAvailability().then(() => {
+      if (this.persistenceAvailable) {
+        this.startMetricsCollection();
+      }
+    });
   }
 
   static getInstance(): EdgeFunctionConcurrencyManager {
@@ -140,7 +149,10 @@ export class EdgeFunctionConcurrencyManager {
   ): Promise<{ acquired: boolean; queuePosition?: number; estimatedWaitTime?: number }> {
     this.totalRequests++;
 
-    if (!this.canProcessImmediately()) {
+    // Atomic check and increment to prevent race conditions
+    const canProcess = this.atomicAcquire();
+
+    if (!canProcess) {
       // Add to queue if capacity allows
       if (this.requestQueue.length < this.limits.queueCapacity) {
         const queuedRequest: QueuedRequest = {
@@ -181,7 +193,42 @@ export class EdgeFunctionConcurrencyManager {
       return { acquired: false };
     }
 
-    // Acquire slot
+    // Slot already acquired in atomicAcquire()
+    return { acquired: true };
+  }
+
+  /**
+   * Atomically check and acquire a slot to prevent race conditions
+   */
+  private atomicAcquire(): boolean {
+    // Check if we're in cooldown period
+    if (this.isThrottling && this.lastThrottleTime) {
+      const cooldownElapsed = Date.now() - this.lastThrottleTime.getTime();
+      if (cooldownElapsed < this.limits.cooldownPeriod) {
+        return false;
+      }
+      this.isThrottling = false;
+    }
+
+    // Atomic check and increment - prevent race condition
+    if (this.currentConcurrent >= this.limits.maxConcurrent) {
+      // Check if we can use burst capacity
+      if (this.currentConcurrent < this.limits.burstCapacity) {
+        // Atomically increment before logging
+        this.currentConcurrent++;
+        this.peakConcurrent = Math.max(this.peakConcurrent, this.currentConcurrent);
+
+        console.warn(
+          'Using burst capacity: %d/%d concurrent requests',
+          this.currentConcurrent,
+          this.limits.burstCapacity
+        );
+        return true;
+      }
+      return false;
+    }
+
+    // Atomically acquire the slot
     this.currentConcurrent++;
     this.peakConcurrent = Math.max(this.peakConcurrent, this.currentConcurrent);
 
@@ -191,7 +238,7 @@ export class EdgeFunctionConcurrencyManager {
       this.lastThrottleTime = new Date();
     }
 
-    return { acquired: true };
+    return true;
   }
 
   /**
@@ -201,8 +248,8 @@ export class EdgeFunctionConcurrencyManager {
     this.currentConcurrent = Math.max(0, this.currentConcurrent - 1);
     this.executionTimes.push(executionTime);
 
-    // Keep only last 100 execution times for average calculation
-    if (this.executionTimes.length > 100) {
+    // Keep only last MAX_EXECUTION_TIMES for average calculation
+    if (this.executionTimes.length > this.MAX_EXECUTION_TIMES) {
       this.executionTimes.shift();
     }
 
@@ -315,22 +362,54 @@ export class EdgeFunctionConcurrencyManager {
       const metrics = this.getMetrics();
       this.metricsBuffer.push(metrics);
 
-      // Flush to database every minute or when buffer is large
-      if (this.metricsBuffer.length >= 6) {
+      // Prevent unbounded buffer growth - force flush if buffer is getting large
+      if (this.metricsBuffer.length >= this.MAX_METRICS_BUFFER_SIZE) {
+        console.warn('Metrics buffer at maximum size, forcing flush');
+        this.flushMetrics();
+      }
+      // Normal flush every minute (6 metrics at 10-second intervals)
+      else if (this.metricsBuffer.length >= 6) {
         this.flushMetrics();
       }
     }, 10000);
   }
 
   /**
+   * Check if persistence table is available
+   */
+  private async checkPersistenceAvailability(): Promise<void> {
+    try {
+      const { error } = await supabase.from('edge_function_metrics').select('metric_key').limit(1);
+
+      if (error) {
+        if (error.code === '42P01') {
+          // Table doesn't exist
+          console.log('Metrics table does not exist, disabling persistence');
+          this.persistenceAvailable = false;
+        } else {
+          console.error('Error checking table availability:', error);
+          this.persistenceAvailable = false;
+        }
+      }
+    } catch (error) {
+      console.error('Failed to check persistence availability:', error);
+      this.persistenceAvailable = false;
+    }
+  }
+
+  /**
    * Flush metrics to database
    */
   private async flushMetrics(): Promise<void> {
-    if (this.metricsBuffer.length === 0) return;
+    if (this.metricsBuffer.length === 0 || !this.persistenceAvailable) return;
+
+    // Copy buffer and clear immediately to prevent further growth
+    const metricsToFlush = [...this.metricsBuffer];
+    this.metricsBuffer = [];
 
     try {
       const { error } = await supabase.from('edge_function_metrics').insert(
-        this.metricsBuffer.map((m) => ({
+        metricsToFlush.map((m) => ({
           current_concurrent: m.currentConcurrent,
           peak_concurrent: m.peakConcurrent,
           total_requests: m.totalRequests,
@@ -341,10 +420,19 @@ export class EdgeFunctionConcurrencyManager {
       );
 
       if (error) {
-        console.error('Failed to persist metrics:', error);
+        if (error.code === '42P01') {
+          // Table doesn't exist
+          this.persistenceAvailable = false;
+          console.warn('Metrics table not available, disabling persistence');
+        } else {
+          console.error('Failed to persist metrics:', error);
+          // If flush failed and buffer is still reasonable size, restore some metrics
+          if (this.metricsBuffer.length < this.MAX_METRICS_BUFFER_SIZE / 2) {
+            this.metricsBuffer = [...this.metricsBuffer, ...metricsToFlush.slice(-10)];
+          }
+        }
       } else {
-        console.log('Flushed %d metrics to database', this.metricsBuffer.length);
-        this.metricsBuffer = [];
+        console.log('Flushed %d metrics to database', metricsToFlush.length);
       }
     } catch (error) {
       console.error('Error flushing metrics:', error);
