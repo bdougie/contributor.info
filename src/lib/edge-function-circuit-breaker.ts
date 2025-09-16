@@ -7,6 +7,7 @@
 
 import { concurrencyManager } from './edge-function-concurrency-manager';
 import { DEFAULT_CONFIG } from './edge-function-config';
+import { supabase } from './supabase';
 
 export type CircuitState = 'closed' | 'open' | 'half-open';
 
@@ -46,9 +47,11 @@ export class EdgeFunctionCircuitBreaker {
   private lastFailureTime: Date | null = null;
   private lastSuccessTime: Date | null = null;
   private nextRetryTime: Date | null = null;
-  private requestWindow: number[] = []; // Sliding window for error rate
+  private requestWindow: { timestamp: number; success: boolean }[] = []; // Sliding window for error rate
   private windowDuration: number = 60000; // 1 minute window
   private config: CircuitBreakerConfig;
+  private persistenceTimer: NodeJS.Timeout | null = null;
+  private readonly circuitBreakerKey = 'edge-function-circuit-breaker';
 
   constructor(config?: Partial<CircuitBreakerConfig>) {
     this.config = {
@@ -60,6 +63,12 @@ export class EdgeFunctionCircuitBreaker {
       concurrencyThreshold: DEFAULT_CONFIG.concurrency.tiers.pro.maxConcurrent * 0.75, // 75% of pro tier
       ...config,
     };
+
+    // Restore state from persistence
+    this.restoreState();
+
+    // Start auto-persistence
+    this.startStatePersistence();
   }
 
   /**
@@ -301,11 +310,11 @@ export class EdgeFunctionCircuitBreaker {
    */
   private updateRequestWindow(success: boolean): void {
     const now = Date.now();
-    this.requestWindow.push(success ? 1 : 0);
+    this.requestWindow.push({ timestamp: now, success });
 
     // Remove old entries outside the window
     const cutoff = now - this.windowDuration;
-    while (this.requestWindow.length > 0 && this.requestWindow[0] < cutoff) {
+    while (this.requestWindow.length > 0 && this.requestWindow[0].timestamp < cutoff) {
       this.requestWindow.shift();
     }
   }
@@ -316,7 +325,7 @@ export class EdgeFunctionCircuitBreaker {
   private calculateErrorRate(): number {
     if (this.requestWindow.length === 0) return 0;
 
-    const failures = this.requestWindow.filter((r) => r === 0).length;
+    const failures = this.requestWindow.filter((r) => !r.success).length;
     return (failures / this.requestWindow.length) * 100;
   }
 
@@ -414,6 +423,122 @@ export class EdgeFunctionCircuitBreaker {
       overallStatus,
       recommendations: [...new Set(recommendations)], // Remove duplicates
     };
+  }
+
+  /**
+   * Start automatic state persistence
+   */
+  private startStatePersistence(): void {
+    // Persist state every 30 seconds
+    this.persistenceTimer = setInterval(() => {
+      this.persistState();
+    }, 30000);
+
+    // Also persist on state transitions
+    const originalTransitionTo = this.transitionTo.bind(this);
+    this.transitionTo = (newState: CircuitState) => {
+      originalTransitionTo(newState);
+      this.persistState();
+    };
+  }
+
+  /**
+   * Persist circuit breaker state to database
+   */
+  private async persistState(): Promise<void> {
+    try {
+      const stateData = {
+        state: this.state,
+        failures: this.failures,
+        successes: this.successes,
+        totalRequests: this.totalRequests,
+        lastFailureTime: this.lastFailureTime?.toISOString(),
+        lastSuccessTime: this.lastSuccessTime?.toISOString(),
+        nextRetryTime: this.nextRetryTime?.toISOString(),
+        requestWindow: this.requestWindow,
+        timestamp: new Date().toISOString(),
+      };
+
+      const { error } = await supabase.from('edge_function_metrics').upsert(
+        {
+          metric_key: this.circuitBreakerKey,
+          metric_value: stateData,
+          updated_at: new Date().toISOString(),
+        },
+        {
+          onConflict: 'metric_key',
+        }
+      );
+
+      if (error) {
+        console.error('Failed to persist circuit breaker state:', error);
+      }
+    } catch (error) {
+      console.error('Error persisting circuit breaker state:', error);
+    }
+  }
+
+  /**
+   * Restore circuit breaker state from database
+   */
+  private async restoreState(): Promise<void> {
+    try {
+      const { data, error } = await supabase
+        .from('edge_function_metrics')
+        .select('metric_value')
+        .eq('metric_key', this.circuitBreakerKey)
+        .maybeSingle();
+
+      if (error || !data) {
+        console.log('No persisted circuit breaker state found');
+        return;
+      }
+
+      const stateData = data.metric_value as {
+        state: CircuitState;
+        failures: number;
+        successes: number;
+        totalRequests: number;
+        lastFailureTime?: string;
+        lastSuccessTime?: string;
+        nextRetryTime?: string;
+        requestWindow: { timestamp: number; success: boolean }[];
+        timestamp: string;
+      };
+
+      // Only restore if state is recent (within last 5 minutes)
+      const stateAge = Date.now() - new Date(stateData.timestamp).getTime();
+      if (stateAge > 5 * 60 * 1000) {
+        console.log('Persisted state is too old, starting fresh');
+        return;
+      }
+
+      // Restore state
+      this.state = stateData.state;
+      this.failures = stateData.failures;
+      this.successes = stateData.successes;
+      this.totalRequests = stateData.totalRequests;
+      this.lastFailureTime = stateData.lastFailureTime ? new Date(stateData.lastFailureTime) : null;
+      this.lastSuccessTime = stateData.lastSuccessTime ? new Date(stateData.lastSuccessTime) : null;
+      this.nextRetryTime = stateData.nextRetryTime ? new Date(stateData.nextRetryTime) : null;
+      this.requestWindow = stateData.requestWindow || [];
+
+      console.log('Circuit breaker state restored: %s', this.state);
+    } catch (error) {
+      console.error('Error restoring circuit breaker state:', error);
+    }
+  }
+
+  /**
+   * Cleanup persistence timer
+   */
+  destroy(): void {
+    if (this.persistenceTimer) {
+      clearInterval(this.persistenceTimer);
+      this.persistenceTimer = null;
+    }
+    // Final persistence before cleanup
+    this.persistState();
   }
 }
 
