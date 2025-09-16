@@ -6,7 +6,7 @@
  */
 
 import { supabase } from './supabase';
-import { getEnv } from './env';
+import { env } from './env';
 import { DEFAULT_CONFIG, type QueuePayload } from './edge-function-config';
 
 export interface ConcurrencyMetrics {
@@ -223,11 +223,11 @@ export class EdgeFunctionConcurrencyManager {
 
     // Send to Edge Function
     try {
-      const response = await fetch(`${getEnv('SUPABASE_URL')}/functions/v1/queue-event`, {
+      const response = await fetch(`${env.SUPABASE_URL}/functions/v1/queue-event`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${getEnv('SUPABASE_ANON_KEY')}`,
+          Authorization: `Bearer ${env.SUPABASE_ANON_KEY}`,
         },
         body: JSON.stringify({
           eventName: request.eventName,
