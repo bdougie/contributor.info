@@ -233,6 +233,7 @@ export class WorkspacePermissionService {
       free: 0, // No workspaces on free tier
       pro: 1, // Solo only (no invites)
       team: 5, // 5 members included
+      enterprise: 999, // Effectively unlimited
     };
 
     const limit = memberLimits[tier];

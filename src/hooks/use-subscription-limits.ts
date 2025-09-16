@@ -27,7 +27,10 @@ export function useSubscriptionLimits(): SubscriptionLimits {
 
   useEffect(() => {
     const loadLimits = async () => {
-      if (!user?.id) return;
+      if (!user?.id) {
+        setLoading(false);
+        return;
+      }
 
       try {
         setLoading(true);
@@ -63,9 +66,7 @@ export function useSubscriptionLimits(): SubscriptionLimits {
       }
     };
 
-    if (user?.id) {
-      loadLimits();
-    }
+    loadLimits();
   }, [user]);
 
   const canAddRepository = async (workspaceId: string): Promise<boolean> => {
@@ -80,11 +81,8 @@ export function useSubscriptionLimits(): SubscriptionLimits {
     return check.allowed;
   };
 
-  // FOR TESTING: Change 'free' to 'pro' or 'team' to test different tiers
-  const testTier = 'free'; // Change this to test: 'free' | 'pro' | 'team'
-
   return {
-    tier: testTier,
+    tier: loading ? 'free' : (limits.tier || 'free'),
     canCreateWorkspace: limits.canCreateWorkspace || false,
     workspaceLimit: limits.workspaceLimit || 1,
     currentWorkspaceCount: limits.currentWorkspaceCount || 0,

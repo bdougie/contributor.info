@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
-import { Suspense, lazy, useEffect } from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 import { ThemeProvider } from '@/components/common/theming';
 import { Toaster } from '@/components/ui/sonner';
 import { ErrorBoundary } from '@/components/error-boundary';
@@ -405,38 +405,43 @@ function App() {
                     <Route index element={<Home />} />
                     <Route path="/trending" element={<TrendingPageRoute />} />
                     {/* Workspace routes - protected by feature flag */}
-                    <Route
-                      path="/i/demo"
-                      element={
-                        <WorkspaceRoutesWrapper>
-                          <DemoWorkspacePage />
-                        </WorkspaceRoutesWrapper>
-                      }
-                    />
-                    <Route
-                      path="/i/demo/:tab"
-                      element={
-                        <WorkspaceRoutesWrapper>
-                          <DemoWorkspacePage />
-                        </WorkspaceRoutesWrapper>
-                      }
-                    />
-                    <Route
-                      path="/i/:workspaceId"
-                      element={
-                        <WorkspaceRoutesWrapper>
-                          <WorkspacePage />
-                        </WorkspaceRoutesWrapper>
-                      }
-                    />
-                    <Route
-                      path="/i/:workspaceId/:tab"
-                      element={
-                        <WorkspaceRoutesWrapper>
-                          <WorkspacePage />
-                        </WorkspaceRoutesWrapper>
-                      }
-                    />
+                    {/* Dynamic configuration to support both /i/ and /workspaces/ paths */}
+                    {['/i', '/workspaces'].map((basePath) => (
+                      <React.Fragment key={basePath}>
+                        <Route
+                          path={`${basePath}/demo`}
+                          element={
+                            <WorkspaceRoutesWrapper>
+                              <DemoWorkspacePage />
+                            </WorkspaceRoutesWrapper>
+                          }
+                        />
+                        <Route
+                          path={`${basePath}/demo/:tab`}
+                          element={
+                            <WorkspaceRoutesWrapper>
+                              <DemoWorkspacePage />
+                            </WorkspaceRoutesWrapper>
+                          }
+                        />
+                        <Route
+                          path={`${basePath}/:workspaceId`}
+                          element={
+                            <WorkspaceRoutesWrapper>
+                              <WorkspacePage />
+                            </WorkspaceRoutesWrapper>
+                          }
+                        />
+                        <Route
+                          path={`${basePath}/:workspaceId/:tab`}
+                          element={
+                            <WorkspaceRoutesWrapper>
+                              <WorkspacePage />
+                            </WorkspaceRoutesWrapper>
+                          }
+                        />
+                      </React.Fragment>
+                    ))}
                     <Route
                       path="/workspaces/new"
                       element={
