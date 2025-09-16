@@ -437,6 +437,39 @@ function App() {
                         </WorkspaceRoutesWrapper>
                       }
                     />
+                    {/* Duplicate routes for /workspaces path */}
+                    <Route
+                      path="/workspaces/demo"
+                      element={
+                        <WorkspaceRoutesWrapper>
+                          <DemoWorkspacePage />
+                        </WorkspaceRoutesWrapper>
+                      }
+                    />
+                    <Route
+                      path="/workspaces/demo/:tab"
+                      element={
+                        <WorkspaceRoutesWrapper>
+                          <DemoWorkspacePage />
+                        </WorkspaceRoutesWrapper>
+                      }
+                    />
+                    <Route
+                      path="/workspaces/:workspaceId"
+                      element={
+                        <WorkspaceRoutesWrapper>
+                          <WorkspacePage />
+                        </WorkspaceRoutesWrapper>
+                      }
+                    />
+                    <Route
+                      path="/workspaces/:workspaceId/:tab"
+                      element={
+                        <WorkspaceRoutesWrapper>
+                          <WorkspacePage />
+                        </WorkspaceRoutesWrapper>
+                      }
+                    />
                     <Route
                       path="/workspaces/new"
                       element={
