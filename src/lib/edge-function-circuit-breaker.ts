@@ -39,6 +39,12 @@ export interface RequestOptions {
   metadata?: Record<string, unknown>;
 }
 
+export interface CircuitBreakerPersistenceConfig {
+  enabled?: boolean;
+  intervalMs?: number;
+  tableName?: string;
+}
+
 export class EdgeFunctionCircuitBreaker {
   private state: CircuitState = 'closed';
   private failures: number = 0;
@@ -50,10 +56,16 @@ export class EdgeFunctionCircuitBreaker {
   private requestWindow: { timestamp: number; success: boolean }[] = []; // Sliding window for error rate
   private windowDuration: number = 60000; // 1 minute window
   private config: CircuitBreakerConfig;
+  private persistenceConfig: CircuitBreakerPersistenceConfig;
   private persistenceTimer: NodeJS.Timeout | null = null;
   private readonly circuitBreakerKey = 'edge-function-circuit-breaker';
+  private persistenceAvailable = false;
+  private persistenceCheckComplete = false;
 
-  constructor(config?: Partial<CircuitBreakerConfig>) {
+  constructor(
+    config?: Partial<CircuitBreakerConfig>,
+    persistenceConfig?: CircuitBreakerPersistenceConfig
+  ) {
     this.config = {
       failureThreshold: DEFAULT_CONFIG.circuitBreaker.failureThreshold,
       successThreshold: DEFAULT_CONFIG.circuitBreaker.successThreshold,
@@ -64,11 +76,20 @@ export class EdgeFunctionCircuitBreaker {
       ...config,
     };
 
-    // Restore state from persistence
-    this.restoreState();
+    this.persistenceConfig = {
+      enabled: true,
+      intervalMs: 30000,
+      tableName: 'edge_function_metrics',
+      ...persistenceConfig,
+    };
 
-    // Start auto-persistence
-    this.startStatePersistence();
+    // Initialize persistence if enabled
+    if (this.persistenceConfig.enabled) {
+      this.initializePersistence();
+    }
+
+    // Register graceful shutdown handler
+    this.registerShutdownHandler();
   }
 
   /**
@@ -426,19 +447,97 @@ export class EdgeFunctionCircuitBreaker {
   }
 
   /**
+   * Initialize persistence checking table availability
+   */
+  private async initializePersistence(): Promise<void> {
+    try {
+      // Check if table exists by attempting a query
+      await this.checkTableExists();
+
+      if (this.persistenceAvailable) {
+        // Restore state from persistence
+        await this.restoreState();
+        // Start auto-persistence
+        this.startStatePersistence();
+      } else {
+        console.warn('Circuit breaker persistence unavailable - operating in memory-only mode');
+      }
+    } catch (error) {
+      console.error('Failed to initialize persistence:', error);
+      this.persistenceAvailable = false;
+    } finally {
+      this.persistenceCheckComplete = true;
+    }
+  }
+
+  /**
+   * Check if persistence table exists
+   */
+  private async checkTableExists(): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from(this.persistenceConfig.tableName!)
+        .select('metric_key')
+        .limit(1);
+
+      if (error) {
+        if (error.code === '42P01') {
+          // Table doesn't exist
+          console.log('Persistence table does not exist yet');
+          this.persistenceAvailable = false;
+        } else {
+          // Other error
+          throw error;
+        }
+      } else {
+        this.persistenceAvailable = true;
+      }
+    } catch (error) {
+      console.error('Error checking table existence:', error);
+      this.persistenceAvailable = false;
+    }
+  }
+
+  /**
+   * Register graceful shutdown handler
+   */
+  private registerShutdownHandler(): void {
+    const shutdownHandler = () => {
+      console.log('Circuit breaker shutting down gracefully...');
+      this.destroy();
+      process.exit(0);
+    };
+
+    // Register handlers for various shutdown signals
+    if (typeof process !== 'undefined' && process.on) {
+      process.on('SIGTERM', shutdownHandler);
+      process.on('SIGINT', shutdownHandler);
+      process.on('beforeExit', () => {
+        if (this.persistenceAvailable) {
+          this.persistState();
+        }
+      });
+    }
+  }
+
+  /**
    * Start automatic state persistence
    */
   private startStatePersistence(): void {
-    // Persist state every 30 seconds
+    if (!this.persistenceAvailable) return;
+
+    // Persist state at configured interval
     this.persistenceTimer = setInterval(() => {
       this.persistState();
-    }, 30000);
+    }, this.persistenceConfig.intervalMs!);
 
     // Also persist on state transitions
     const originalTransitionTo = this.transitionTo.bind(this);
     this.transitionTo = (newState: CircuitState) => {
       originalTransitionTo(newState);
-      this.persistState();
+      if (this.persistenceAvailable) {
+        this.persistState();
+      }
     };
   }
 
@@ -446,6 +545,8 @@ export class EdgeFunctionCircuitBreaker {
    * Persist circuit breaker state to database
    */
   private async persistState(): Promise<void> {
+    if (!this.persistenceAvailable || !this.persistenceCheckComplete) return;
+
     try {
       const stateData = {
         state: this.state,
@@ -459,7 +560,7 @@ export class EdgeFunctionCircuitBreaker {
         timestamp: new Date().toISOString(),
       };
 
-      const { error } = await supabase.from('edge_function_metrics').upsert(
+      const { error } = await supabase.from(this.persistenceConfig.tableName!).upsert(
         {
           metric_key: this.circuitBreakerKey,
           metric_value: stateData,
@@ -471,40 +572,99 @@ export class EdgeFunctionCircuitBreaker {
       );
 
       if (error) {
-        console.error('Failed to persist circuit breaker state:', error);
+        // Check if table doesn't exist
+        if (error.code === '42P01') {
+          this.persistenceAvailable = false;
+          console.warn('Persistence table not available, disabling persistence');
+        } else {
+          console.error('Failed to persist circuit breaker state:', error);
+        }
       }
     } catch (error) {
       console.error('Error persisting circuit breaker state:', error);
+      // Continue operating without persistence
     }
+  }
+
+  /**
+   * Validate restored state data
+   */
+  private validateStateData(data: unknown): data is {
+    state: CircuitState;
+    failures: number;
+    successes: number;
+    totalRequests: number;
+    lastFailureTime?: string;
+    lastSuccessTime?: string;
+    nextRetryTime?: string;
+    requestWindow: { timestamp: number; success: boolean }[];
+    timestamp: string;
+  } {
+    if (!data || typeof data !== 'object') return false;
+
+    const stateData = data as Record<string, unknown>;
+
+    // Validate required fields
+    if (!['closed', 'open', 'half-open'].includes(stateData.state as string)) return false;
+    if (typeof stateData.failures !== 'number' || stateData.failures < 0) return false;
+    if (typeof stateData.successes !== 'number' || stateData.successes < 0) return false;
+    if (typeof stateData.totalRequests !== 'number' || stateData.totalRequests < 0) return false;
+    if (typeof stateData.timestamp !== 'string') return false;
+
+    // Validate optional fields
+    if (stateData.lastFailureTime && typeof stateData.lastFailureTime !== 'string') return false;
+    if (stateData.lastSuccessTime && typeof stateData.lastSuccessTime !== 'string') return false;
+    if (stateData.nextRetryTime && typeof stateData.nextRetryTime !== 'string') return false;
+
+    // Validate request window
+    if (!Array.isArray(stateData.requestWindow)) return false;
+    for (const item of stateData.requestWindow) {
+      if (
+        typeof item !== 'object' ||
+        typeof item.timestamp !== 'number' ||
+        typeof item.success !== 'boolean'
+      ) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   /**
    * Restore circuit breaker state from database
    */
   private async restoreState(): Promise<void> {
+    if (!this.persistenceAvailable) return;
+
     try {
       const { data, error } = await supabase
-        .from('edge_function_metrics')
+        .from(this.persistenceConfig.tableName!)
         .select('metric_value')
         .eq('metric_key', this.circuitBreakerKey)
         .maybeSingle();
 
-      if (error || !data) {
+      if (error) {
+        if (error.code === '42P01') {
+          // Table doesn't exist
+          this.persistenceAvailable = false;
+          return;
+        }
+        throw error;
+      }
+
+      if (!data) {
         console.log('No persisted circuit breaker state found');
         return;
       }
 
-      const stateData = data.metric_value as {
-        state: CircuitState;
-        failures: number;
-        successes: number;
-        totalRequests: number;
-        lastFailureTime?: string;
-        lastSuccessTime?: string;
-        nextRetryTime?: string;
-        requestWindow: { timestamp: number; success: boolean }[];
-        timestamp: string;
-      };
+      // Validate data structure
+      if (!this.validateStateData(data.metric_value)) {
+        console.error('Invalid persisted state data, starting fresh');
+        return;
+      }
+
+      const stateData = data.metric_value;
 
       // Only restore if state is recent (within last 5 minutes)
       const stateAge = Date.now() - new Date(stateData.timestamp).getTime();
@@ -526,19 +686,27 @@ export class EdgeFunctionCircuitBreaker {
       console.log('Circuit breaker state restored: %s', this.state);
     } catch (error) {
       console.error('Error restoring circuit breaker state:', error);
+      // Continue with default state if restore fails
+      this.persistenceAvailable = false;
     }
   }
 
   /**
-   * Cleanup persistence timer
+   * Cleanup persistence timer and save final state
    */
   destroy(): void {
     if (this.persistenceTimer) {
       clearInterval(this.persistenceTimer);
       this.persistenceTimer = null;
     }
+
     // Final persistence before cleanup
-    this.persistState();
+    if (this.persistenceAvailable && this.persistenceCheckComplete) {
+      // Use sync version for shutdown to ensure it completes
+      this.persistState().catch((error) => {
+        console.error('Failed to persist final state:', error);
+      });
+    }
   }
 }
 

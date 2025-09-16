@@ -79,10 +79,17 @@ export class EdgeFunctionConcurrencyManager {
   private readonly MAX_METRICS_BUFFER_SIZE = 100; // Maximum buffer size to prevent memory leaks
   private readonly MAX_EXECUTION_TIMES = 100; // Maximum execution times to keep
 
+  private persistenceAvailable = true;
+
   private constructor() {
     const limits = getConcurrencyLimits();
     this.limits = limits[this.tier];
-    this.startMetricsCollection();
+    // Check table availability before starting metrics collection
+    this.checkPersistenceAvailability().then(() => {
+      if (this.persistenceAvailable) {
+        this.startMetricsCollection();
+      }
+    });
   }
 
   static getInstance(): EdgeFunctionConcurrencyManager {
@@ -368,10 +375,33 @@ export class EdgeFunctionConcurrencyManager {
   }
 
   /**
+   * Check if persistence table is available
+   */
+  private async checkPersistenceAvailability(): Promise<void> {
+    try {
+      const { error } = await supabase.from('edge_function_metrics').select('metric_key').limit(1);
+
+      if (error) {
+        if (error.code === '42P01') {
+          // Table doesn't exist
+          console.log('Metrics table does not exist, disabling persistence');
+          this.persistenceAvailable = false;
+        } else {
+          console.error('Error checking table availability:', error);
+          this.persistenceAvailable = false;
+        }
+      }
+    } catch (error) {
+      console.error('Failed to check persistence availability:', error);
+      this.persistenceAvailable = false;
+    }
+  }
+
+  /**
    * Flush metrics to database
    */
   private async flushMetrics(): Promise<void> {
-    if (this.metricsBuffer.length === 0) return;
+    if (this.metricsBuffer.length === 0 || !this.persistenceAvailable) return;
 
     // Copy buffer and clear immediately to prevent further growth
     const metricsToFlush = [...this.metricsBuffer];
@@ -390,10 +420,16 @@ export class EdgeFunctionConcurrencyManager {
       );
 
       if (error) {
-        console.error('Failed to persist metrics:', error);
-        // If flush failed and buffer is still reasonable size, restore some metrics
-        if (this.metricsBuffer.length < this.MAX_METRICS_BUFFER_SIZE / 2) {
-          this.metricsBuffer = [...this.metricsBuffer, ...metricsToFlush.slice(-10)];
+        if (error.code === '42P01') {
+          // Table doesn't exist
+          this.persistenceAvailable = false;
+          console.warn('Metrics table not available, disabling persistence');
+        } else {
+          console.error('Failed to persist metrics:', error);
+          // If flush failed and buffer is still reasonable size, restore some metrics
+          if (this.metricsBuffer.length < this.MAX_METRICS_BUFFER_SIZE / 2) {
+            this.metricsBuffer = [...this.metricsBuffer, ...metricsToFlush.slice(-10)];
+          }
         }
       } else {
         console.log('Flushed %d metrics to database', metricsToFlush.length);
