@@ -104,15 +104,9 @@ export class WorkspacePermissionService {
         };
       case 'pro':
         return {
-          maxMembers: 5, // Aligned with documentation: Pro tier supports up to 5 members
+          maxMembers: 1, // Pro tier is solo only
           maxRepositories: 50,
-          features: [
-            'basic_analytics',
-            'advanced_analytics',
-            'private_workspaces',
-            'team_collaboration',
-            'export_data',
-          ],
+          features: ['basic_analytics', 'advanced_analytics', 'private_workspaces', 'export_data'],
         };
       case 'team':
         return {
@@ -464,7 +458,9 @@ export class WorkspacePermissionService {
 
       // Display states
       showUpgradePrompt: workspaceWithDefaults.tier === 'free' && userRole === 'owner',
-      showMemberLimitWarning: workspaceWithDefaults.tier === 'pro' && memberCount >= 4,
+      showMemberLimitWarning:
+        (workspaceWithDefaults.tier === 'team' && memberCount >= 4) ||
+        (workspaceWithDefaults.tier === 'pro' && memberCount >= 1),
       showRepositoryLimitWarning:
         workspaceWithDefaults.current_repository_count >=
         workspaceWithDefaults.max_repositories - 1,

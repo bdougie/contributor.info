@@ -27,8 +27,12 @@ import type {
  */
 export async function createWorkspace(data: CreateWorkspaceRequest) {
   const { data: user, error: userError } = await supabase.auth.getUser();
-  if (userError || !user?.user) {
-    throw new Error('User not authenticated');
+  if (userError) {
+    console.error('Failed to fetch user session:', userError);
+    throw new Error('Failed to authenticate. Please try logging in again.');
+  }
+  if (!user?.user) {
+    throw new Error('User not authenticated. Please log in to create a workspace.');
   }
 
   // Generate slug from name
@@ -51,10 +55,10 @@ export async function createWorkspace(data: CreateWorkspaceRequest) {
       settings: data.settings || {},
     })
     .select()
-    .single();
+    .maybeSingle();
 
-  if (error) {
-    throw new Error(`Failed to create workspace: ${error.message}`);
+  if (error || !workspace) {
+    throw new Error(`Failed to create workspace: ${error?.message || 'No workspace returned'}`);
   }
 
   // Automatically add owner as a member
@@ -100,7 +104,7 @@ export async function getWorkspace(idOrSlug: string): Promise<WorkspaceWithStats
     query.eq('slug', idOrSlug);
   }
 
-  const { data, error } = await query.single();
+  const { data, error } = await query.maybeSingle();
 
   if (error || !data) {
     return null;
@@ -120,23 +124,41 @@ export async function getWorkspace(idOrSlug: string): Promise<WorkspaceWithStats
     .eq('workspace_id', data.id);
 
   const total_stars =
-    stats?.reduce((sum, item: any) => sum + (item.repository?.stargazers_count || 0), 0) || 0;
+    stats?.reduce((sum, item: unknown) => {
+      const typedItem = item as { repository?: { stargazers_count?: number } };
+      return sum + (typedItem.repository?.stargazers_count || 0);
+    }, 0) || 0;
 
   const total_contributors =
-    stats?.reduce((sum, item: any) => sum + (item.repository?.contributors?.[0]?.count || 0), 0) ||
-    0;
+    stats?.reduce((sum, item: unknown) => {
+      const typedItem = item as { repository?: { contributors?: Array<{ count?: number }> } };
+      return sum + (typedItem.repository?.contributors?.[0]?.count || 0);
+    }, 0) || 0;
+
+  const typedData = data as {
+    workspace_repositories: Array<{ count: number }>;
+    workspace_members: Array<{ count: number }>;
+    owner: {
+      id: string;
+      email: string;
+      raw_user_meta_data?: {
+        avatar_url?: string;
+        full_name?: string;
+      };
+    };
+  } & typeof data;
 
   return {
     ...data,
-    repository_count: (data as any).workspace_repositories[0]?.count || 0,
-    member_count: (data as any).workspace_members[0]?.count || 0,
+    repository_count: typedData.workspace_repositories[0]?.count || 0,
+    member_count: typedData.workspace_members[0]?.count || 0,
     total_stars,
     total_contributors,
     owner: {
-      id: (data as any).owner.id,
-      email: (data as any).owner.email,
-      avatar_url: (data as any).owner.raw_user_meta_data?.avatar_url,
-      display_name: (data as any).owner.raw_user_meta_data?.full_name,
+      id: typedData.owner.id,
+      email: typedData.owner.email,
+      avatar_url: typedData.owner.raw_user_meta_data?.avatar_url,
+      display_name: typedData.owner.raw_user_meta_data?.full_name,
     },
   } as WorkspaceWithStats;
 }
@@ -156,10 +178,10 @@ export async function updateWorkspace(id: string, data: UpdateWorkspaceRequest) 
     })
     .eq('id', id)
     .select()
-    .single();
+    .maybeSingle();
 
-  if (error) {
-    throw new Error(`Failed to update workspace: ${error.message}`);
+  if (error || !workspace) {
+    throw new Error(`Failed to update workspace: ${error?.message || 'No workspace returned'}`);
   }
 
   return workspace;
@@ -248,7 +270,7 @@ export async function addRepositoryToWorkspace(workspaceId: string, data: AddRep
       is_pinned: data.is_pinned || false,
     })
     .select()
-    .single();
+    .maybeSingle();
 
   if (error) {
     if (error.code === '23505') {
@@ -357,7 +379,7 @@ export async function inviteMemberToWorkspace(workspaceId: string, data: InviteM
       invited_by: user.user.id,
     })
     .select()
-    .single();
+    .maybeSingle();
 
   if (error) {
     if (error.code === '23505') {
@@ -380,6 +402,7 @@ export async function acceptInvitation(invitationToken: string) {
   }
 
   // Get invitation
+  // eslint-disable-next-line no-restricted-syntax -- We need exactly one invitation
   const { data: invitation, error: invError } = await supabase
     .from('workspace_invitations')
     .select('*')
@@ -416,7 +439,7 @@ export async function acceptInvitation(invitationToken: string) {
       accepted_at: new Date().toISOString(),
     })
     .select()
-    .single();
+    .maybeSingle();
 
   if (memberError) {
     throw new Error('Failed to add member to workspace');
@@ -491,11 +514,16 @@ export async function removeMemberFromWorkspace(workspaceId: string, userId: str
  */
 export async function getUserWorkspaceRole(workspaceId: string): Promise<WorkspaceRole | null> {
   const { data: user, error: userError } = await supabase.auth.getUser();
-  if (userError || !user?.user) {
+  if (userError) {
+    console.error('Failed to fetch user session:', userError);
+    return null;
+  }
+  if (!user?.user) {
     return null;
   }
 
   // Check if owner
+  // eslint-disable-next-line no-restricted-syntax -- We need exactly one workspace
   const { data: workspace } = await supabase
     .from('workspaces')
     .select('owner_id')
@@ -507,6 +535,7 @@ export async function getUserWorkspaceRole(workspaceId: string): Promise<Workspa
   }
 
   // Check member role
+  // eslint-disable-next-line no-restricted-syntax -- We need exactly one member record
   const { data: member } = await supabase
     .from('workspace_members')
     .select('role')
@@ -521,6 +550,7 @@ export async function getUserWorkspaceRole(workspaceId: string): Promise<Workspa
  * Check if user can access workspace
  */
 export async function canAccessWorkspace(workspaceId: string): Promise<boolean> {
+  // eslint-disable-next-line no-restricted-syntax -- We need exactly one workspace
   const { data: workspace } = await supabase
     .from('workspaces')
     .select('visibility')
@@ -557,6 +587,7 @@ export async function getWorkspaceMetrics(
     }
 
     // Query database cache
+    // eslint-disable-next-line no-restricted-syntax -- We need exactly one metrics record
     const { data, error } = await supabase
       .from('workspace_metrics_cache')
       .select('*')
