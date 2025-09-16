@@ -273,11 +273,25 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
   };
 
   const handleRemoveMember = async (userId: string) => {
+    console.log('Removing member:', userId);
+
+    // Add confirmation dialog
+    const confirmed = window.confirm(
+      'Are you sure you want to remove this member from the workspace?'
+    );
+    if (!confirmed) return;
+
     try {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) throw new Error('Not authenticated');
 
+      console.log('Calling removeMember with:', {
+        workspaceId,
+        userId,
+        requestingUserId: user.user.id,
+      });
       const result = await WorkspaceService.removeMember(workspaceId, user.user.id, userId);
+      console.log('Remove member result:', result);
 
       if (result.success) {
         toast({
@@ -286,9 +300,10 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
         });
         await fetchMembers();
       } else {
-        throw new Error(result.error);
+        throw new Error(result.error || 'Failed to remove member');
       }
     } catch (error) {
+      console.error('Error removing member:', error);
       toast({
         title: 'Error',
         description: error instanceof Error ? error.message : 'Failed to remove member',
