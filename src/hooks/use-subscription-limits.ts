@@ -27,7 +27,10 @@ export function useSubscriptionLimits(): SubscriptionLimits {
 
   useEffect(() => {
     const loadLimits = async () => {
-      if (!user?.id) return;
+      if (!user?.id) {
+        setLoading(false);
+        return;
+      }
 
       try {
         setLoading(true);
@@ -63,9 +66,7 @@ export function useSubscriptionLimits(): SubscriptionLimits {
       }
     };
 
-    if (user?.id) {
-      loadLimits();
-    }
+    loadLimits();
   }, [user]);
 
   const canAddRepository = async (workspaceId: string): Promise<boolean> => {
