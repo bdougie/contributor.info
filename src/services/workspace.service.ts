@@ -1272,11 +1272,15 @@ export class WorkspaceService {
       }
 
       // Delete member
-      const { error: deleteError } = await supabase
+      console.log('Attempting to delete member:', { workspaceId, targetUserId });
+      const { error: deleteError, count } = await supabase
         .from('workspace_members')
         .delete()
         .eq('workspace_id', workspaceId)
-        .eq('user_id', targetUserId);
+        .eq('user_id', targetUserId)
+        .select(); // Add select to get count of deleted rows
+
+      console.log('Delete result:', { deleteError, count });
 
       if (deleteError) {
         console.error('Remove member error:', deleteError);
@@ -1285,6 +1289,11 @@ export class WorkspaceService {
           error: 'Failed to remove member',
           statusCode: 500,
         };
+      }
+
+      // Check if any rows were actually deleted
+      if (count === 0) {
+        console.warn('No rows deleted - member may not exist');
       }
 
       return {
