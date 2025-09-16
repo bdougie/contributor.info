@@ -216,11 +216,12 @@ export class EdgeFunctionConcurrencyManager {
 
     // Send to Edge Function
     try {
-      const response = await fetch(`${process.env.VITE_SUPABASE_URL}/functions/v1/queue-event`, {
+      const { getEnv } = await import('./env');
+      const response = await fetch(`${getEnv('SUPABASE_URL')}/functions/v1/queue-event`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${process.env.VITE_SUPABASE_ANON_KEY}`,
+          Authorization: `Bearer ${getEnv('SUPABASE_ANON_KEY')}`,
         },
         body: JSON.stringify({
           eventName: request.eventName,
