@@ -7,6 +7,7 @@ import { PWAInstallPrompt } from '@/components/ui/pwa-install-prompt';
 import { OfflineNotification } from '@/components/common/OfflineNotification';
 import { WorkspaceProvider } from '@/contexts/WorkspaceContext';
 import { FeatureFlagsProvider } from '@/lib/feature-flags';
+import { useSubscriptionSync } from '@/hooks/use-subscription-sync';
 // Lazy load core components to reduce initial bundle
 const Layout = lazy(() =>
   import('@/components/common/layout').then((m) => ({ default: m.Layout }))
@@ -310,6 +311,9 @@ const PageSkeleton = () => {
 };
 
 function App() {
+  // Sync subscription status on app load
+  useSubscriptionSync();
+
   // Initialize Web Vitals monitoring with PostHog
   useEffect(() => {
     const vitalsMonitor = initializeWebVitalsMonitoring({
