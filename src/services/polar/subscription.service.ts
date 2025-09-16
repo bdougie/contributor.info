@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabase';
 
 export interface SubscriptionTier {
-  id: 'free' | 'pro' | 'team';
+  id: 'free' | 'pro' | 'team' | 'enterprise';
   name: string;
   price: number;
   interval: 'month' | 'year';
@@ -16,6 +16,8 @@ export interface SubscriptionTier {
     githubRepoAccess?: string[];
     ssoEnabled?: boolean;
     auditLogs?: boolean;
+    customIntegrations?: boolean;
+    dedicatedSupport?: boolean;
   };
   addons?: {
     additionalWorkspace?: number; // Price per additional workspace
@@ -81,6 +83,27 @@ export const SUBSCRIPTION_TIERS: Record<string, SubscriptionTier> = {
       additionalWorkspace: 12, // $12 per additional workspace
       additionalMember: 20, // $20 per additional member after 5
       extendedDataRetention: 25, // TBD pricing for extended retention
+    },
+  },
+  // Enterprise tier for future expansion
+  enterprise: {
+    id: 'enterprise',
+    name: 'Enterprise',
+    price: 499, // Custom pricing
+    interval: 'month',
+    features: {
+      maxWorkspaces: 999, // Effectively unlimited
+      maxReposPerWorkspace: 999,
+      maxMembersPerWorkspace: 999, // Effectively unlimited
+      dataRetentionDays: 365, // 1 year retention
+      analyticsLevel: 'enterprise',
+      privateWorkspaces: true,
+      exportsEnabled: true,
+      githubRepoAccess: ['all'],
+      ssoEnabled: true,
+      auditLogs: true,
+      customIntegrations: true,
+      dedicatedSupport: true,
     },
   },
 };

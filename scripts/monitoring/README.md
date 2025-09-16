@@ -160,12 +160,12 @@ If corruption is detected:
 
 1. **Immediate action**: Run the recovery script
 ```bash
-node scripts/fix-corrupted-pr-data.js
+# Fix script removed - use Supabase direct queries
 ```
 
 2. **Check specific PRs**: Use the targeted fix script
 ```bash
-node scripts/fix-pr-7273.js
+# Fix script removed - use Supabase direct queries
 ```
 
 3. **Verify fix**: Re-run the monitor

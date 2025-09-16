@@ -9,7 +9,18 @@
 
 export type WorkspaceVisibility = 'public' | 'private';
 export type WorkspaceRole = 'owner' | 'maintainer' | 'contributor';
-export type WorkspaceTier = 'free' | 'pro' | 'team';
+
+// Subscription tier enum for type safety
+export enum SubscriptionTier {
+  FREE = 'free',
+  PRO = 'pro',
+  TEAM = 'team',
+  ENTERPRISE = 'enterprise',
+}
+
+// Legacy type alias for backward compatibility
+export type WorkspaceTier = 'free' | 'pro' | 'team' | 'enterprise';
+
 export type InvitationStatus = 'pending' | 'accepted' | 'rejected' | 'expired';
 export type SubscriptionStatus = 'active' | 'canceled' | 'past_due' | 'trialing' | 'incomplete';
 export type BillingCycle = 'monthly' | 'yearly';
@@ -684,7 +695,7 @@ export const getTierInfo = (
   badge: string;
   color: string;
 } => {
-  const tierInfo = {
+  const tierInfo: Record<WorkspaceTier, { name: string; badge: string; color: string }> = {
     free: {
       name: 'Free',
       badge: '🆓',
@@ -700,6 +711,11 @@ export const getTierInfo = (
       badge: '👥',
       color: 'purple',
     },
+    enterprise: {
+      name: 'Enterprise',
+      badge: '🏢',
+      color: 'gold',
+    },
   };
-  return tierInfo[tier];
+  return tierInfo[tier] || tierInfo.free; // Default to free tier if unknown
 };
