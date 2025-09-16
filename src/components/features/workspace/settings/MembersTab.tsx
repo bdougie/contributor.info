@@ -94,12 +94,14 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
   const fetchMembers = async () => {
     try {
       setLoading(true);
+      console.log('Fetching members for workspace:', workspaceId);
       const { data, error } = await supabase
         .from('workspace_members')
         .select('*')
         .eq('workspace_id', workspaceId)
         .order('created_at', { ascending: false });
 
+      console.log('Members query result:', { data, error });
       if (error) throw error;
 
       // Fetch user details separately for each member
@@ -131,6 +133,7 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
         };
       });
 
+      console.log('Setting members state with:', transformedMembers);
       setMembers(transformedMembers as WorkspaceMemberWithUser[]);
       return true; // Return success status
     } catch (error) {
@@ -298,6 +301,10 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
           title: 'Member removed',
           description: 'Team member has been removed from the workspace',
         });
+        // Force refresh by clearing members first
+        setMembers([]);
+        // Add small delay to ensure database consistency
+        await new Promise((resolve) => setTimeout(resolve, 500));
         await fetchMembers();
       } else {
         throw new Error(result.error || 'Failed to remove member');
