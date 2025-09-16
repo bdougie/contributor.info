@@ -54,8 +54,10 @@ export const SUBSCRIPTION_TIERS: Record<string, SubscriptionTier> = {
       dataRetentionDays: 30,
       analyticsLevel: 'advanced',
       privateWorkspaces: false, // Public workspaces only for Pro
-      exportsEnabled: true,
+      exportsEnabled: false, // No data exports in Pro tier
       githubRepoAccess: ['premium-analytics'],
+      ssoEnabled: false, // No SSO in Pro tier
+      auditLogs: false, // No audit logs in Pro tier
     },
     addons: {
       additionalWorkspace: 12, // $12 per additional workspace
