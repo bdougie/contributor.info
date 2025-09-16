@@ -1,12 +1,68 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, MockedFunction } from 'vitest';
 import { WorkspaceService } from '../workspace.service';
 import { supabase } from '@/lib/supabase';
+import { WorkspacePermissionService } from '../workspace-permissions.service';
 import type {
   CreateWorkspaceRequest,
   UpdateWorkspaceRequest,
   AddRepositoryRequest,
+  WorkspaceRole,
 } from '@/types/workspace';
+
+// Type definitions for Supabase mock responses
+interface SupabaseQueryBuilder<T = unknown> {
+  select: MockedFunction<(query?: string) => SupabaseQueryBuilder<T>>;
+  insert: MockedFunction<(data: unknown) => SupabaseQueryBuilder<T>>;
+  update: MockedFunction<(data: unknown) => SupabaseQueryBuilder<T>>;
+  delete: MockedFunction<() => SupabaseQueryBuilder<T>>;
+  eq: MockedFunction<
+    (column: string, value: unknown) => SupabaseQueryBuilder<T> | Promise<SupabaseResponse<T>>
+  >;
+  maybeSingle: MockedFunction<() => Promise<SupabaseResponse<T>>>;
+  single: MockedFunction<() => Promise<SupabaseResponse<T>>>;
+  order: MockedFunction<
+    (column: string, options?: { ascending?: boolean }) => SupabaseQueryBuilder<T>
+  >;
+  range: MockedFunction<(from: number, to: number) => SupabaseQueryBuilder<T>>;
+  or: MockedFunction<(filters: string) => SupabaseQueryBuilder<T>>;
+}
+
+interface SupabaseResponse<T = unknown> {
+  data: T | null;
+  error: { message?: string; code?: string } | null;
+  count?: number | null;
+}
+
+interface WorkspaceData {
+  id: string;
+  name: string;
+  tier: string;
+  max_repositories: number;
+  current_repository_count: number;
+  data_retention_days?: number;
+  owner_id?: string;
+  subscription_tier?: string;
+  workspace_members?: Array<{
+    id?: string;
+    user_id: string;
+    role: string;
+    accepted_at: Date;
+  }>;
+}
+
+interface MemberData {
+  id: string;
+  workspace_id: string;
+  user_id: string;
+  role: WorkspaceRole;
+  user?: { email: string };
+}
+
+interface RepositoryData {
+  id: string;
+  workspace_id: string;
+  repository_id: string;
+}
 
 // Mock Supabase
 vi.mock('@/lib/supabase', () => ({
@@ -15,6 +71,45 @@ vi.mock('@/lib/supabase', () => ({
     rpc: vi.fn(),
   },
 }));
+
+// Mock WorkspacePermissionService
+vi.mock('../workspace-permissions.service', () => ({
+  WorkspacePermissionService: {
+    getTierLimits: vi.fn(),
+    canInviteMembers: vi.fn(),
+    hasPermission: vi.fn(),
+  },
+}));
+
+// Helper function to create a mock query builder
+function createMockQueryBuilder<T = unknown>(
+  response: SupabaseResponse<T>
+): SupabaseQueryBuilder<T> {
+  const mockBuilder: Partial<SupabaseQueryBuilder<T>> = {
+    select: vi.fn().mockReturnThis(),
+    insert: vi.fn().mockReturnThis(),
+    update: vi.fn().mockReturnThis(),
+    delete: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    maybeSingle: vi.fn().mockResolvedValue(response),
+    single: vi.fn().mockResolvedValue(response),
+    order: vi.fn().mockReturnThis(),
+    range: vi.fn().mockReturnThis(),
+    or: vi.fn().mockReturnThis(),
+  };
+
+  // Set up method chaining
+  Object.keys(mockBuilder).forEach((key) => {
+    const method = mockBuilder[key as keyof SupabaseQueryBuilder<T>];
+    if (method && key !== 'maybeSingle' && key !== 'single') {
+      (method as MockedFunction<() => SupabaseQueryBuilder<T>>).mockReturnValue(
+        mockBuilder as SupabaseQueryBuilder<T>
+      );
+    }
+  });
+
+  return mockBuilder as SupabaseQueryBuilder<T>;
+}
 
 describe('WorkspaceService', () => {
   beforeEach(() => {
@@ -36,71 +131,68 @@ describe('WorkspaceService', () => {
     it('should create a workspace successfully with free tier limits', async () => {
       let callCount = 0;
 
+      // Mock getTierLimits
+      vi.mocked(WorkspacePermissionService.getTierLimits).mockReturnValue({
+        maxMembers: 1,
+        maxRepositories: 3,
+        features: ['basic_analytics'],
+      });
+
       // Setup mocks
       vi.mocked(supabase.from).mockImplementation((table: string) => {
         if (table === 'workspaces' && callCount === 0) {
           callCount++;
           // Mock workspace count check
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockResolvedValue({
-                count: 0,
-                error: null,
-              }),
-            }),
-          } as any;
+          const response: SupabaseResponse<null> = {
+            data: null,
+            error: null,
+            count: 0,
+          };
+          const mockBuilder = createMockQueryBuilder(response);
+          mockBuilder.eq = vi.fn().mockResolvedValue(response);
+          return mockBuilder as unknown as ReturnType<typeof supabase.from>;
         }
         if (table === 'subscriptions') {
           // Mock subscription check (no subscription = free tier)
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                eq: vi.fn().mockReturnValue({
-                  maybeSingle: vi.fn().mockResolvedValue({
-                    data: null,
-                    error: null,
-                  }),
-                }),
-              }),
-            }),
-          } as any;
+          const response: SupabaseResponse<null> = {
+            data: null,
+            error: null,
+          };
+          return createMockQueryBuilder(response) as unknown as ReturnType<typeof supabase.from>;
         }
         if (table === 'workspaces' && callCount === 1) {
           callCount++;
           // Mock workspace creation
-          return {
-            insert: vi.fn().mockReturnValue({
-              select: vi.fn().mockReturnValue({
-                maybeSingle: vi.fn().mockResolvedValue({
-                  data: {
-                    id: 'workspace-123',
-                    name: 'Test Workspace',
-                    tier: 'free',
-                    max_repositories: 3,
-                    current_repository_count: 0,
-                  },
-                  error: null,
-                }),
-              }),
-            }),
-          } as any;
+          const response: SupabaseResponse<WorkspaceData> = {
+            data: {
+              id: 'workspace-123',
+              name: 'Test Workspace',
+              tier: 'free',
+              max_repositories: 3,
+              current_repository_count: 0,
+            },
+            error: null,
+          };
+          return createMockQueryBuilder(response) as unknown as ReturnType<typeof supabase.from>;
         }
         if (table === 'workspace_members') {
           // Mock member creation
-          return {
-            insert: vi.fn().mockResolvedValue({
-              error: null,
-            }),
-          } as any;
+          const response: SupabaseResponse<null> = {
+            data: null,
+            error: null,
+          };
+          const mockBuilder = createMockQueryBuilder(response);
+          mockBuilder.insert = vi.fn().mockResolvedValue(response);
+          return mockBuilder as unknown as ReturnType<typeof supabase.from>;
         }
-        return {} as any;
+        return {} as ReturnType<typeof supabase.from>;
       });
 
       // Mock slug generation
       vi.mocked(supabase.rpc).mockResolvedValue({
         data: 'test-workspace',
         error: null,
-      } as any);
+      } as SupabaseResponse<string>);
 
       // Execute
       const result = await WorkspaceService.createWorkspace(mockUserId, mockWorkspaceData);
@@ -113,132 +205,309 @@ describe('WorkspaceService', () => {
       expect(result.statusCode).toBe(201);
     });
 
-    it('should create workspace with pro tier limits for pro users', async () => {
-      // Mock workspace count check
-      const fromMock = vi.fn().mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockResolvedValue({
-            count: 0,
+    it('should create workspace with team tier limits', async () => {
+      let callCount = 0;
+
+      // Mock getTierLimits for team tier
+      vi.mocked(WorkspacePermissionService.getTierLimits).mockReturnValue({
+        maxMembers: 5,
+        maxRepositories: 3,
+        features: ['advanced_analytics', 'team_collaboration'],
+      });
+
+      vi.mocked(supabase.from).mockImplementation((table: string) => {
+        if (table === 'workspaces' && callCount === 0) {
+          callCount++;
+          const response: SupabaseResponse<null> = {
+            data: null,
             error: null,
-          }),
-        }),
+            count: 0,
+          };
+          const mockBuilder = createMockQueryBuilder(response);
+          mockBuilder.eq = vi.fn().mockResolvedValue(response);
+          return mockBuilder as unknown as ReturnType<typeof supabase.from>;
+        }
+        if (table === 'subscriptions') {
+          const response: SupabaseResponse<{
+            tier: string;
+            max_workspaces: number;
+            max_repos_per_workspace: number;
+          }> = {
+            data: {
+              tier: 'team',
+              max_workspaces: 3,
+              max_repos_per_workspace: 3,
+            },
+            error: null,
+          };
+          return createMockQueryBuilder(response) as unknown as ReturnType<typeof supabase.from>;
+        }
+        if (table === 'workspaces' && callCount === 1) {
+          callCount++;
+          const response: SupabaseResponse<WorkspaceData> = {
+            data: {
+              id: 'workspace-456',
+              name: 'Test Workspace',
+              tier: 'team',
+              max_repositories: 3,
+              current_repository_count: 0,
+              data_retention_days: 30,
+            },
+            error: null,
+          };
+          return createMockQueryBuilder(response) as unknown as ReturnType<typeof supabase.from>;
+        }
+        if (table === 'workspace_members') {
+          const response: SupabaseResponse<null> = {
+            data: null,
+            error: null,
+          };
+          const mockBuilder = createMockQueryBuilder(response);
+          mockBuilder.insert = vi.fn().mockResolvedValue(response);
+          return mockBuilder as unknown as ReturnType<typeof supabase.from>;
+        }
+        return {} as ReturnType<typeof supabase.from>;
       });
 
-      // Mock pro subscription
-      const subscriptionMock = vi.fn().mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              maybeSingle: vi.fn().mockResolvedValue({
-                data: {
-                  tier: 'pro',
-                  max_workspaces: 5,
-                  max_repos_per_workspace: 10,
-                },
-                error: null,
-              }),
-            }),
-          }),
-        }),
-      });
-
-      // Mock slug generation
       vi.mocked(supabase.rpc).mockResolvedValue({
         data: 'test-workspace',
         error: null,
-      } as any);
+      } as SupabaseResponse<string>);
 
-      // Mock workspace creation with pro tier
-      const createMock = vi.fn().mockReturnValue({
-        insert: vi.fn().mockReturnValue({
-          select: vi.fn().mockReturnValue({
-            maybeSingle: vi.fn().mockResolvedValue({
-              data: {
-                id: 'workspace-123',
-                name: 'Test Workspace',
-                tier: 'pro',
-                max_repositories: 10,
-                current_repository_count: 0,
-                data_retention_days: 90,
-              },
-              error: null,
-            }),
-          }),
-        }),
+      const result = await WorkspaceService.createWorkspace(mockUserId, mockWorkspaceData);
+
+      expect(result.success).toBe(true);
+      expect(result.data?.tier).toBe('team');
+      expect(result.data?.max_repositories).toBe(3);
+      expect(result.data?.data_retention_days).toBe(30);
+    });
+
+    it('should handle slug generation failure', async () => {
+      // Mock for getTierLimits
+      vi.mocked(WorkspacePermissionService.getTierLimits).mockReturnValue({
+        maxMembers: 1,
+        maxRepositories: 3,
+        features: [],
       });
 
-      // Setup mocks
+      // Mock for workspaces count check
+      vi.mocked(supabase.from).mockImplementation((table: string) => {
+        if (table === 'workspaces') {
+          const response: SupabaseResponse<null> = {
+            data: null,
+            error: null,
+            count: 0,
+          };
+          const mockBuilder = createMockQueryBuilder(response);
+          // Chain eq methods properly
+          mockBuilder.eq = vi.fn().mockReturnValue({
+            ...mockBuilder,
+            eq: vi.fn().mockResolvedValue(response),
+          });
+          return mockBuilder as unknown as ReturnType<typeof supabase.from>;
+        }
+        if (table === 'subscriptions') {
+          const response: SupabaseResponse<null> = {
+            data: null,
+            error: null,
+          };
+          return createMockQueryBuilder(response) as unknown as ReturnType<typeof supabase.from>;
+        }
+        return {} as ReturnType<typeof supabase.from>;
+      });
+
+      vi.mocked(supabase.rpc).mockResolvedValue({
+        data: null,
+        error: { message: 'Failed to generate slug' },
+      } as SupabaseResponse<null>);
+
+      const result = await WorkspaceService.createWorkspace(mockUserId, mockWorkspaceData);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Failed to generate workspace slug');
+      expect(result.statusCode).toBe(500);
+    });
+
+    it('should rollback workspace creation if member creation fails', async () => {
       let callCount = 0;
+      const deleteWorkspaceMock = vi.fn().mockResolvedValue({ error: null });
+
+      vi.mocked(WorkspacePermissionService.getTierLimits).mockReturnValue({
+        maxMembers: 1,
+        maxRepositories: 3,
+        features: [],
+      });
+
       vi.mocked(supabase.from).mockImplementation((table: string) => {
         if (table === 'workspaces' && callCount === 0) {
           callCount++;
-          return fromMock() as any;
+          const response: SupabaseResponse<null> = {
+            data: null,
+            error: null,
+            count: 0,
+          };
+          const mockBuilder = createMockQueryBuilder(response);
+          mockBuilder.eq = vi.fn().mockReturnValue({
+            ...mockBuilder,
+            eq: vi.fn().mockResolvedValue(response),
+          });
+          return mockBuilder as unknown as ReturnType<typeof supabase.from>;
         }
         if (table === 'subscriptions') {
-          return subscriptionMock() as any;
+          const response: SupabaseResponse<null> = {
+            data: null,
+            error: null,
+          };
+          return createMockQueryBuilder(response) as unknown as ReturnType<typeof supabase.from>;
         }
-        if (table === 'workspaces') {
-          return createMock() as any;
+        if (table === 'workspaces' && callCount === 1) {
+          callCount++;
+          const response: SupabaseResponse<WorkspaceData> = {
+            data: {
+              id: 'workspace-123',
+              name: 'Test Workspace',
+              tier: 'free',
+              max_repositories: 3,
+              current_repository_count: 0,
+            },
+            error: null,
+          };
+          return createMockQueryBuilder(response) as unknown as ReturnType<typeof supabase.from>;
+        }
+        if (table === 'workspaces' && callCount === 2) {
+          // Rollback delete
+          return {
+            delete: vi.fn().mockReturnValue({
+              eq: deleteWorkspaceMock.mockReturnValue({
+                single: vi.fn().mockResolvedValue({ error: null }),
+              }),
+            }),
+          } as unknown as ReturnType<typeof supabase.from>;
         }
         if (table === 'workspace_members') {
           return {
-            insert: vi.fn().mockResolvedValue({ error: null }),
-          } as any;
+            insert: vi.fn().mockResolvedValue({
+              error: { message: 'Member creation failed' },
+            }),
+          } as unknown as ReturnType<typeof supabase.from>;
         }
-        return {} as any;
+        return {} as ReturnType<typeof supabase.from>;
       });
 
-      // Execute
+      vi.mocked(supabase.rpc).mockResolvedValue({
+        data: 'test-workspace',
+        error: null,
+      } as SupabaseResponse<string>);
+
       const result = await WorkspaceService.createWorkspace(mockUserId, mockWorkspaceData);
 
-      // Assert
-      expect(result.success).toBe(true);
-      expect(result.data?.tier).toBe('pro');
-      expect(result.data?.max_repositories).toBe(10);
-      expect(result.data?.data_retention_days).toBe(90);
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Failed to create workspace');
+      expect(deleteWorkspaceMock).toHaveBeenCalledWith('id', 'workspace-123');
     });
 
-    it('should reject workspace creation when limit is reached', async () => {
+    it('should handle duplicate workspace name error', async () => {
       let callCount = 0;
 
-      // Setup mocks
+      vi.mocked(WorkspacePermissionService.getTierLimits).mockReturnValue({
+        maxMembers: 1,
+        maxRepositories: 3,
+        features: [],
+      });
+
       vi.mocked(supabase.from).mockImplementation((table: string) => {
         if (table === 'workspaces' && callCount === 0) {
           callCount++;
-          // Mock workspace count at limit
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockResolvedValue({
-                count: 1, // At free tier limit
-                error: null,
-              }),
-            }),
-          } as any;
+          const response: SupabaseResponse<null> = {
+            data: null,
+            error: null,
+            count: 0,
+          };
+          const mockBuilder = createMockQueryBuilder(response);
+          mockBuilder.eq = vi.fn().mockResolvedValue(response);
+          return mockBuilder as unknown as ReturnType<typeof supabase.from>;
         }
         if (table === 'subscriptions') {
-          // Mock no subscription (free tier)
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                eq: vi.fn().mockReturnValue({
-                  maybeSingle: vi.fn().mockResolvedValue({
-                    data: null,
-                    error: null,
-                  }),
-                }),
-              }),
-            }),
-          } as any;
+          const response: SupabaseResponse<null> = {
+            data: null,
+            error: null,
+          };
+          return createMockQueryBuilder(response) as unknown as ReturnType<typeof supabase.from>;
         }
-        return {} as any;
+        if (table === 'workspaces' && callCount === 1) {
+          callCount++;
+          const response: SupabaseResponse<null> = {
+            data: null,
+            error: { code: '23505' },
+          };
+          return createMockQueryBuilder(response) as unknown as ReturnType<typeof supabase.from>;
+        }
+        return {} as ReturnType<typeof supabase.from>;
       });
 
-      // Execute
+      vi.mocked(supabase.rpc).mockResolvedValue({
+        data: 'test-workspace',
+        error: null,
+      } as SupabaseResponse<string>);
+
       const result = await WorkspaceService.createWorkspace(mockUserId, mockWorkspaceData);
 
-      // Assert
       expect(result.success).toBe(false);
-      expect(result.error).toContain('reached the limit');
+      expect(result.error).toContain('workspace with this name already exists');
+      expect(result.statusCode).toBe(409);
+    });
+
+    it('should reject workspace creation when limit is reached', async () => {
+      let workspaceCallCount = 0;
+
+      vi.mocked(WorkspacePermissionService.getTierLimits).mockReturnValue({
+        maxMembers: 1,
+        maxRepositories: 3,
+        features: [],
+      });
+
+      vi.mocked(supabase.from).mockImplementation((table: string) => {
+        if (table === 'workspaces') {
+          workspaceCallCount++;
+          if (workspaceCallCount === 1) {
+            // First call for count check
+            const response: SupabaseResponse<null> = {
+              data: null,
+              error: null,
+              count: 1, // At limit
+            };
+            const mockBuilder = createMockQueryBuilder(response);
+            // The service only calls eq once for owner_id
+            mockBuilder.eq = vi.fn().mockResolvedValue(response);
+            return mockBuilder as unknown as ReturnType<typeof supabase.from>;
+          }
+          // Should never get here if limit check works
+          const response: SupabaseResponse<null> = {
+            data: null,
+            error: null,
+          };
+          return createMockQueryBuilder(response) as unknown as ReturnType<typeof supabase.from>;
+        }
+        if (table === 'subscriptions') {
+          const response: SupabaseResponse<null> = {
+            data: null,
+            error: null,
+          };
+          return createMockQueryBuilder(response) as unknown as ReturnType<typeof supabase.from>;
+        }
+        return {} as ReturnType<typeof supabase.from>;
+      });
+
+      // Mock rpc call - should not be reached due to limit
+      vi.mocked(supabase.rpc).mockResolvedValue({
+        data: 'test-workspace',
+        error: null,
+      } as SupabaseResponse<string>);
+
+      const result = await WorkspaceService.createWorkspace(mockUserId, mockWorkspaceData);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('You have reached the limit of 1 workspaces for your current plan');
       expect(result.statusCode).toBe(403);
     });
 
@@ -249,12 +518,171 @@ describe('WorkspaceService', () => {
         visibility: 'public',
       };
 
-      // Execute
       const result = await WorkspaceService.createWorkspace(mockUserId, invalidData);
 
-      // Assert
       expect(result.success).toBe(false);
       expect(result.error).toContain('Name is required');
+      expect(result.statusCode).toBe(400);
+    });
+  });
+
+  describe('deleteWorkspace', () => {
+    const mockWorkspaceId = 'workspace-123';
+    const mockUserId = 'user-123';
+
+    it('should delete workspace successfully when user is owner', async () => {
+      vi.mocked(supabase.from).mockReturnValueOnce(
+        createMockQueryBuilder({
+          data: { owner_id: mockUserId },
+          error: null,
+        }) as unknown as ReturnType<typeof supabase.from>
+      );
+
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        delete: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({
+            error: null,
+          }),
+        }),
+      } as unknown as ReturnType<typeof supabase.from>);
+
+      const result = await WorkspaceService.deleteWorkspace(mockWorkspaceId, mockUserId);
+
+      expect(result.success).toBe(true);
+      expect(result.statusCode).toBe(200);
+    });
+
+    it('should reject deletion when user is not owner', async () => {
+      vi.mocked(supabase.from).mockReturnValue(
+        createMockQueryBuilder({
+          data: { owner_id: 'different-user' },
+          error: null,
+        }) as unknown as ReturnType<typeof supabase.from>
+      );
+
+      const result = await WorkspaceService.deleteWorkspace(mockWorkspaceId, mockUserId);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Only workspace owner can delete workspace');
+      expect(result.statusCode).toBe(403);
+    });
+
+    it('should return 404 when workspace not found', async () => {
+      vi.mocked(supabase.from).mockReturnValue(
+        createMockQueryBuilder({
+          data: null,
+          error: null,
+        }) as unknown as ReturnType<typeof supabase.from>
+      );
+
+      const result = await WorkspaceService.deleteWorkspace(mockWorkspaceId, mockUserId);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Workspace not found');
+      expect(result.statusCode).toBe(404);
+    });
+  });
+
+  describe('updateMemberRole', () => {
+    const mockWorkspaceId = 'workspace-123';
+    const mockRequestingUserId = 'user-123';
+    const mockTargetUserId = 'user-456';
+    const mockNewRole: WorkspaceRole = 'maintainer';
+
+    it('should update member role successfully', async () => {
+      vi.mocked(WorkspacePermissionService.hasPermission).mockReturnValue(true);
+
+      vi.mocked(supabase.from).mockReturnValueOnce(
+        createMockQueryBuilder<WorkspaceData>({
+          data: {
+            id: mockWorkspaceId,
+            name: 'Test Workspace',
+            tier: 'team',
+            max_repositories: 10,
+            current_repository_count: 0,
+            owner_id: mockRequestingUserId,
+            workspace_members: [
+              { id: '1', user_id: mockRequestingUserId, role: 'owner', accepted_at: new Date() },
+              { id: '2', user_id: mockTargetUserId, role: 'contributor', accepted_at: new Date() },
+            ],
+          },
+          error: null,
+        }) as unknown as ReturnType<typeof supabase.from>
+      );
+
+      const updateResponse: SupabaseResponse<MemberData> = {
+        data: {
+          id: '2',
+          workspace_id: mockWorkspaceId,
+          user_id: mockTargetUserId,
+          role: mockNewRole,
+          user: { email: 'target@test.com' },
+        },
+        error: null,
+      };
+
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        update: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            select: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue(updateResponse),
+            }),
+          }),
+        }),
+      } as unknown as ReturnType<typeof supabase.from>);
+
+      const result = await WorkspaceService.updateMemberRole(
+        mockWorkspaceId,
+        mockRequestingUserId,
+        mockTargetUserId,
+        mockNewRole
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data?.role).toBe(mockNewRole);
+      expect(result.statusCode).toBe(200);
+    });
+
+    it('should prevent changing to owner role', async () => {
+      const result = await WorkspaceService.updateMemberRole(
+        mockWorkspaceId,
+        mockRequestingUserId,
+        mockTargetUserId,
+        'owner'
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Ownership transfer requires a separate process');
+      expect(result.statusCode).toBe(400);
+    });
+
+    it('should prevent self-demotion from owner', async () => {
+      vi.mocked(supabase.from).mockReturnValue(
+        createMockQueryBuilder<WorkspaceData>({
+          data: {
+            id: mockWorkspaceId,
+            name: 'Test Workspace',
+            tier: 'team',
+            max_repositories: 10,
+            current_repository_count: 0,
+            owner_id: mockRequestingUserId,
+            workspace_members: [
+              { id: '1', user_id: mockRequestingUserId, role: 'owner', accepted_at: new Date() },
+            ],
+          },
+          error: null,
+        }) as unknown as ReturnType<typeof supabase.from>
+      );
+
+      const result = await WorkspaceService.updateMemberRole(
+        mockWorkspaceId,
+        mockRequestingUserId,
+        mockRequestingUserId,
+        'maintainer'
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Cannot demote yourself from owner role');
       expect(result.statusCode).toBe(400);
     });
   });
@@ -270,200 +698,131 @@ describe('WorkspaceService', () => {
     };
 
     it('should add repository when under limit', async () => {
-      // Mock permission check
       const permissionCheckSpy = vi.spyOn(WorkspaceService, 'checkPermission');
       permissionCheckSpy.mockResolvedValue({
         hasPermission: true,
         role: 'owner',
       });
 
-      // Mock existing repo check
-      const existingRepoMock = {
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              maybeSingle: vi.fn().mockResolvedValue({
-                data: null, // No existing repo
-                error: null,
-              }),
-            }),
-          }),
-        }),
-      };
+      vi.mocked(supabase.from).mockReturnValueOnce(
+        createMockQueryBuilder({
+          data: null, // No existing repo
+          error: null,
+        }) as unknown as ReturnType<typeof supabase.from>
+      );
 
-      // Mock workspace limit check
-      const workspaceMock = {
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            maybeSingle: vi.fn().mockResolvedValue({
-              data: {
-                max_repositories: 4,
-                current_repository_count: 2, // Under limit
-              },
-              error: null,
-            }),
-          }),
-        }),
-      };
+      vi.mocked(supabase.from).mockReturnValueOnce(
+        createMockQueryBuilder({
+          data: {
+            max_repositories: 4,
+            current_repository_count: 2, // Under limit
+          },
+          error: null,
+        }) as unknown as ReturnType<typeof supabase.from>
+      );
 
-      // Mock add repository
-      const addRepoMock = {
-        insert: vi.fn().mockReturnValue({
-          select: vi.fn().mockReturnValue({
-            maybeSingle: vi.fn().mockResolvedValue({
-              data: {
-                id: 'workspace-repo-123',
-                workspace_id: mockWorkspaceId,
-                repository_id: mockRepoData.repository_id,
-              },
-              error: null,
-            }),
-          }),
-        }),
-      };
+      vi.mocked(supabase.from).mockReturnValueOnce(
+        createMockQueryBuilder<RepositoryData>({
+          data: {
+            id: 'workspace-repo-123',
+            workspace_id: mockWorkspaceId,
+            repository_id: mockRepoData.repository_id,
+          },
+          error: null,
+        }) as unknown as ReturnType<typeof supabase.from>
+      );
 
-      // Mock update workspace count
-      const updateMock = {
+      vi.mocked(supabase.from).mockReturnValueOnce({
         update: vi.fn().mockReturnValue({
           eq: vi.fn().mockResolvedValue({
             error: null,
           }),
         }),
-      };
+      } as unknown as ReturnType<typeof supabase.from>);
 
-      // Setup mocks
-      let callCount = 0;
-      vi.mocked(supabase.from).mockImplementation((table: string) => {
-        if (table === 'workspace_repositories' && callCount === 0) {
-          callCount++;
-          return existingRepoMock as any;
-        }
-        if (table === 'workspaces' && callCount === 1) {
-          callCount++;
-          return workspaceMock as any;
-        }
-        if (table === 'workspace_repositories') {
-          return addRepoMock as any;
-        }
-        if (table === 'workspaces') {
-          return updateMock as any;
-        }
-        return {} as any;
-      });
-
-      // Execute
       const result = await WorkspaceService.addRepositoryToWorkspace(
         mockWorkspaceId,
         mockUserId,
         mockRepoData
       );
 
-      // Assert
       expect(result.success).toBe(true);
       expect(result.data?.repository_id).toBe(mockRepoData.repository_id);
       expect(result.statusCode).toBe(201);
     });
 
     it('should reject when repository limit is reached', async () => {
-      // Mock permission check
       const permissionCheckSpy = vi.spyOn(WorkspaceService, 'checkPermission');
       permissionCheckSpy.mockResolvedValue({
         hasPermission: true,
         role: 'owner',
       });
 
-      // Mock existing repo check
-      vi.mocked(supabase.from).mockReturnValueOnce({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              maybeSingle: vi.fn().mockResolvedValue({
-                data: null,
-                error: null,
-              }),
-            }),
-          }),
-        }),
-      } as any);
+      vi.mocked(supabase.from).mockReturnValueOnce(
+        createMockQueryBuilder({
+          data: null,
+          error: null,
+        }) as unknown as ReturnType<typeof supabase.from>
+      );
 
-      // Mock workspace at limit
-      vi.mocked(supabase.from).mockReturnValueOnce({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            maybeSingle: vi.fn().mockResolvedValue({
-              data: {
-                max_repositories: 4,
-                current_repository_count: 4, // At limit
-              },
-              error: null,
-            }),
-          }),
-        }),
-      } as any);
+      vi.mocked(supabase.from).mockReturnValueOnce(
+        createMockQueryBuilder({
+          data: {
+            max_repositories: 4,
+            current_repository_count: 4, // At limit
+          },
+          error: null,
+        }) as unknown as ReturnType<typeof supabase.from>
+      );
 
-      // Execute
       const result = await WorkspaceService.addRepositoryToWorkspace(
         mockWorkspaceId,
         mockUserId,
         mockRepoData
       );
 
-      // Assert
       expect(result.success).toBe(false);
       expect(result.error).toContain('Repository limit reached');
       expect(result.statusCode).toBe(403);
     });
 
     it('should reject duplicate repository', async () => {
-      // Mock permission check
       const permissionCheckSpy = vi.spyOn(WorkspaceService, 'checkPermission');
       permissionCheckSpy.mockResolvedValue({
         hasPermission: true,
         role: 'owner',
       });
 
-      // Mock existing repo found
-      vi.mocked(supabase.from).mockReturnValueOnce({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              maybeSingle: vi.fn().mockResolvedValue({
-                data: { id: 'existing-repo' }, // Repository exists
-                error: null,
-              }),
-            }),
-          }),
-        }),
-      } as any);
+      vi.mocked(supabase.from).mockReturnValueOnce(
+        createMockQueryBuilder({
+          data: { id: 'existing-repo' }, // Repository exists
+          error: null,
+        }) as unknown as ReturnType<typeof supabase.from>
+      );
 
-      // Execute
       const result = await WorkspaceService.addRepositoryToWorkspace(
         mockWorkspaceId,
         mockUserId,
         mockRepoData
       );
 
-      // Assert
       expect(result.success).toBe(false);
       expect(result.error).toContain('already exists');
       expect(result.statusCode).toBe(409);
     });
 
     it('should reject when user lacks permissions', async () => {
-      // Mock permission check - no permission
       const permissionCheckSpy = vi.spyOn(WorkspaceService, 'checkPermission');
       permissionCheckSpy.mockResolvedValue({
         hasPermission: false,
       });
 
-      // Execute
       const result = await WorkspaceService.addRepositoryToWorkspace(
         mockWorkspaceId,
         mockUserId,
         mockRepoData
       );
 
-      // Assert
       expect(result.success).toBe(false);
       expect(result.error).toContain('Insufficient permissions');
       expect(result.statusCode).toBe(403);
@@ -479,77 +838,94 @@ describe('WorkspaceService', () => {
     };
 
     it('should update workspace successfully', async () => {
-      // Mock permission check
-      vi.mocked(supabase.from).mockReturnValueOnce({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              maybeSingle: vi.fn().mockResolvedValue({
-                data: { role: 'owner' },
-                error: null,
-              }),
-            }),
-          }),
-        }),
-      } as any);
+      vi.mocked(supabase.from).mockReturnValueOnce(
+        createMockQueryBuilder({
+          data: { role: 'owner' },
+          error: null,
+        }) as unknown as ReturnType<typeof supabase.from>
+      );
 
-      // Mock update
+      const updateResponse: SupabaseResponse<WorkspaceData> = {
+        data: {
+          id: mockWorkspaceId,
+          name: 'Updated Name',
+          tier: 'free',
+          max_repositories: 3,
+          current_repository_count: 0,
+        },
+        error: null,
+      };
+
       vi.mocked(supabase.from).mockReturnValueOnce({
         update: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
             select: vi.fn().mockReturnValue({
-              maybeSingle: vi.fn().mockResolvedValue({
-                data: {
-                  id: mockWorkspaceId,
-                  name: 'Updated Name',
-                  description: 'Updated Description',
-                },
-                error: null,
-              }),
+              maybeSingle: vi.fn().mockResolvedValue(updateResponse),
             }),
           }),
         }),
-      } as any);
+      } as unknown as ReturnType<typeof supabase.from>);
 
-      // Execute
       const result = await WorkspaceService.updateWorkspace(
         mockWorkspaceId,
         mockUserId,
         updateData
       );
 
-      // Assert
       expect(result.success).toBe(true);
       expect(result.data?.name).toBe('Updated Name');
       expect(result.statusCode).toBe(200);
     });
 
     it('should reject update without proper permissions', async () => {
-      // Mock permission check - viewer role
-      vi.mocked(supabase.from).mockReturnValueOnce({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              maybeSingle: vi.fn().mockResolvedValue({
-                data: { role: 'viewer' },
-                error: null,
-              }),
-            }),
-          }),
-        }),
-      } as any);
+      vi.mocked(supabase.from).mockReturnValueOnce(
+        createMockQueryBuilder({
+          data: { role: 'contributor' },
+          error: null,
+        }) as unknown as ReturnType<typeof supabase.from>
+      );
 
-      // Execute
       const result = await WorkspaceService.updateWorkspace(
         mockWorkspaceId,
         mockUserId,
         updateData
       );
 
-      // Assert
       expect(result.success).toBe(false);
       expect(result.error).toContain('Insufficient permissions');
       expect(result.statusCode).toBe(403);
+    });
+
+    it('should handle workspace not found error', async () => {
+      vi.mocked(supabase.from).mockReturnValueOnce(
+        createMockQueryBuilder({
+          data: { role: 'owner' },
+          error: null,
+        }) as unknown as ReturnType<typeof supabase.from>
+      );
+
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        update: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            select: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: null,
+                error: { code: 'PGRST116' },
+              }),
+            }),
+          }),
+        }),
+      } as unknown as ReturnType<typeof supabase.from>);
+
+      const result = await WorkspaceService.updateWorkspace(
+        mockWorkspaceId,
+        mockUserId,
+        updateData
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Workspace not found');
+      expect(result.statusCode).toBe(404);
     });
   });
 
@@ -559,14 +935,12 @@ describe('WorkspaceService', () => {
     const mockUserId = 'user-123';
 
     it('should remove repository and update count', async () => {
-      // Mock permission check
       const permissionCheckSpy = vi.spyOn(WorkspaceService, 'checkPermission');
       permissionCheckSpy.mockResolvedValue({
         hasPermission: true,
         role: 'owner',
       });
 
-      // Mock delete repository
       vi.mocked(supabase.from).mockReturnValueOnce({
         delete: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
@@ -575,37 +949,29 @@ describe('WorkspaceService', () => {
             }),
           }),
         }),
-      } as any);
+      } as unknown as ReturnType<typeof supabase.from>);
 
-      // Mock get current count
-      vi.mocked(supabase.from).mockReturnValueOnce({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            maybeSingle: vi.fn().mockResolvedValue({
-              data: { current_repository_count: 3 },
-              error: null,
-            }),
-          }),
-        }),
-      } as any);
+      vi.mocked(supabase.from).mockReturnValueOnce(
+        createMockQueryBuilder({
+          data: { current_repository_count: 3 },
+          error: null,
+        }) as unknown as ReturnType<typeof supabase.from>
+      );
 
-      // Mock update count
       vi.mocked(supabase.from).mockReturnValueOnce({
         update: vi.fn().mockReturnValue({
           eq: vi.fn().mockResolvedValue({
             error: null,
           }),
         }),
-      } as any);
+      } as unknown as ReturnType<typeof supabase.from>);
 
-      // Execute
       const result = await WorkspaceService.removeRepositoryFromWorkspace(
         mockWorkspaceId,
         mockRepositoryId,
         mockUserId
       );
 
-      // Assert
       expect(result.success).toBe(true);
       expect(result.statusCode).toBe(200);
     });
