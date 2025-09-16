@@ -2,7 +2,7 @@
 
 <critical>
     Never write env variables inline into scripts. Especially SUPABASE tokens keys and urls.
-    Delete scripts when they are not reference anywhere and one time use.
+    Delete scripts that are not referenced anywhere and are one-time use.
 </critical>
 
 ## Build Commands
