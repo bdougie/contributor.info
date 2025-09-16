@@ -16,15 +16,17 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Configuration
-const SUPABASE_URL =
-  process.env.VITE_SUPABASE_URL ||
-  process.env.SUPABASE_URL ||
-  'https://egcxzonpmmcirmgqdrla.supabase.co';
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
 
-if (!SUPABASE_ANON_KEY) {
-  console.error('❌ SUPABASE_ANON_KEY not set!');
-  console.error('Please set VITE_SUPABASE_ANON_KEY or SUPABASE_ANON_KEY environment variable');
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  console.error('❌ Required environment variables not set!');
+  if (!SUPABASE_URL) {
+    console.error('Please set VITE_SUPABASE_URL or SUPABASE_URL environment variable');
+  }
+  if (!SUPABASE_ANON_KEY) {
+    console.error('Please set VITE_SUPABASE_ANON_KEY or SUPABASE_ANON_KEY environment variable');
+  }
   process.exit(1);
 }
 

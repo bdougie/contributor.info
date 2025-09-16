@@ -7,8 +7,7 @@
 // Environment configuration
 export const ENV = {
   // Supabase Edge Function configuration
-  SUPABASE_URL:
-    __ENV.SUPABASE_URL || __ENV.VITE_SUPABASE_URL || 'https://egcxzonpmmcirmgqdrla.supabase.co',
+  SUPABASE_URL: __ENV.SUPABASE_URL || __ENV.VITE_SUPABASE_URL || '',
   SUPABASE_ANON_KEY: __ENV.SUPABASE_ANON_KEY || __ENV.VITE_SUPABASE_ANON_KEY || '',
 
   // Netlify Function configuration (fallback)
@@ -19,6 +18,15 @@ export const ENV = {
   ENABLE_CIRCUIT_BREAKER_TEST: __ENV.ENABLE_CIRCUIT_BREAKER_TEST === 'true',
   VERBOSE: __ENV.VERBOSE === 'true',
 };
+
+// Validate required environment variables
+if (!ENV.SUPABASE_URL || !ENV.SUPABASE_ANON_KEY) {
+  console.error('❌ Required environment variables not set!');
+  console.error('Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY');
+  console.error(
+    'Example: k6 run -e VITE_SUPABASE_URL=your-url -e VITE_SUPABASE_ANON_KEY=your-key test.js'
+  );
+}
 
 // Endpoint configurations
 export const ENDPOINTS = {
