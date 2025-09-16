@@ -125,7 +125,7 @@ export class WorkspaceService {
       const tierLimits = WorkspacePermissionService.getTierLimits(tier);
 
       // Use subscription overrides if available, otherwise use tier defaults
-      const workspaceLimit = subscription?.max_workspaces || (tier === 'free' ? 0 : 1);
+      const workspaceLimit = subscription?.max_workspaces || 1; // Default to 1 workspace for all tiers
       const maxRepositories = subscription?.max_repos_per_workspace || tierLimits.maxRepositories;
 
       // Define tier limits mapping for clarity

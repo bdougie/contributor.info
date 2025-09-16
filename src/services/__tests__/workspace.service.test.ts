@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { WorkspaceService } from '../workspace.service';
 import { supabase } from '@/lib/supabase';
@@ -5,7 +6,6 @@ import type {
   CreateWorkspaceRequest,
   UpdateWorkspaceRequest,
   AddRepositoryRequest,
-  Workspace,
 } from '@/types/workspace';
 
 // Mock Supabase
@@ -76,7 +76,7 @@ describe('WorkspaceService', () => {
                     id: 'workspace-123',
                     name: 'Test Workspace',
                     tier: 'free',
-                    max_repositories: 4,
+                    max_repositories: 3,
                     current_repository_count: 0,
                   },
                   error: null,
@@ -108,7 +108,7 @@ describe('WorkspaceService', () => {
       // Assert
       expect(result.success).toBe(true);
       expect(result.data?.tier).toBe('free');
-      expect(result.data?.max_repositories).toBe(4);
+      expect(result.data?.max_repositories).toBe(3);
       expect(result.data?.current_repository_count).toBe(0);
       expect(result.statusCode).toBe(201);
     });
