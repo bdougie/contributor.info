@@ -20,7 +20,6 @@ export const FEATURE_FLAGS = {
   ENABLE_BULK_OPERATIONS: 'enable_bulk_operations',
   ENABLE_ADVANCED_FILTERS: 'enable_advanced_filters',
   ENABLE_EXPORT_FEATURES: 'enable_export_features',
-  ENABLE_WORKSPACES: 'enable_workspaces', // Controls entire workspace feature visibility
   ENABLE_WORKSPACE_CREATION: 'enable_workspace_creation', // Controls workspace creation only
 } as const;
 

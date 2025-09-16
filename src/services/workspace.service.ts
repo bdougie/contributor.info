@@ -120,10 +120,13 @@ export class WorkspaceService {
         .eq('status', 'active')
         .maybeSingle();
 
-      // Determine workspace limit and repository limit based on subscription
-      const workspaceLimit = subscription?.max_workspaces || 1; // Default to free tier
-      const maxRepositories = subscription?.max_repos_per_workspace || 4; // Default to free tier (4 repos)
-      const tier = subscription?.tier || 'free';
+      // Determine tier and get limits from central source
+      const tier = (subscription?.tier || 'free') as WorkspaceTier;
+      const tierLimits = WorkspacePermissionService.getTierLimits(tier);
+
+      // Use subscription overrides if available, otherwise use tier defaults
+      const workspaceLimit = subscription?.max_workspaces || 1; // Default to 1 workspace for all tiers
+      const maxRepositories = subscription?.max_repos_per_workspace || tierLimits.maxRepositories;
 
       // Define tier limits mapping for clarity
       const tierRetentionDays = {

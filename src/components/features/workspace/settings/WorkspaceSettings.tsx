@@ -16,12 +16,11 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { Settings, Users, Activity, Trash2, Check } from '@/components/ui/icon';
+import { Settings, Users, Trash2, Check } from '@/components/ui/icon';
 import { MembersTab } from './MembersTab';
-import { ActivityFeed } from './ActivityFeed';
 import { supabase } from '@/lib/supabase';
 import { WorkspaceService } from '@/services/workspace.service';
-import { getUIPermissions } from '@/services/workspace-permissions.service';
+import { WorkspacePermissionService } from '@/services/workspace-permissions.service';
 import { getTierInfo } from '@/types/workspace';
 import type { Workspace, WorkspaceMember, WorkspaceVisibility } from '@/types/workspace';
 
@@ -55,7 +54,11 @@ export function WorkspaceSettings({
   });
 
   // Get UI permissions based on role and tier
-  const permissions = getUIPermissions(currentMember.role, workspace, memberCount);
+  const permissions = WorkspacePermissionService.getUIPermissions(
+    currentMember.role,
+    workspace,
+    memberCount
+  );
   const tierInfo = getTierInfo(workspace.tier);
 
   // Handle form changes
@@ -182,7 +185,7 @@ export function WorkspaceSettings({
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="general" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
             General
@@ -195,10 +198,6 @@ export function WorkspaceSettings({
                 {memberCount}
               </Badge>
             )}
-          </TabsTrigger>
-          <TabsTrigger value="activity" className="flex items-center gap-2">
-            <Activity className="h-4 w-4" />
-            Activity
           </TabsTrigger>
         </TabsList>
 
@@ -345,11 +344,6 @@ export function WorkspaceSettings({
             tier={workspace.tier}
             memberCount={memberCount}
           />
-        </TabsContent>
-
-        {/* Activity Tab */}
-        <TabsContent value="activity">
-          <ActivityFeed workspaceId={workspace.id} />
         </TabsContent>
       </Tabs>
     </div>

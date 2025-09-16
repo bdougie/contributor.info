@@ -64,8 +64,9 @@ import type {
   Repository,
   ActivityDataPoint,
 } from '@/components/features/workspace';
-import type { Workspace } from '@/types/workspace';
+import type { Workspace, WorkspaceMemberWithUser } from '@/types/workspace';
 import { WorkspaceService } from '@/services/workspace.service';
+import { WorkspaceSettings as WorkspaceSettingsComponent } from '@/components/features/workspace/settings/WorkspaceSettings';
 // Analytics imports disabled - will be implemented in issue #598
 // import { AnalyticsDashboard } from '@/components/features/workspace/AnalyticsDashboard';
 import { ActivityTable } from '@/components/features/workspace/ActivityTable';
@@ -2359,6 +2360,8 @@ function WorkspacePage() {
   const [selectedRepositories, setSelectedRepositories] = useState<string[]>([]);
   const [addRepositoryModalOpen, setAddRepositoryModalOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentMember, setCurrentMember] = useState<WorkspaceMemberWithUser | null>(null);
+  const [memberCount, setMemberCount] = useState(0);
   const [isWorkspaceOwner, setIsWorkspaceOwner] = useState(false);
 
   // Determine active tab from URL
@@ -2400,7 +2403,14 @@ function WorkspacePage() {
               .eq('slug', workspaceId)
               .maybeSingle();
 
-        if (wsError || !workspaceData) {
+        if (wsError) {
+          console.error('Error fetching workspace:', wsError);
+          setError(`Failed to load workspace: ${wsError.message}`);
+          setLoading(false);
+          return;
+        }
+
+        if (!workspaceData) {
           setError('Workspace not found');
           setLoading(false);
           return;
@@ -2411,6 +2421,27 @@ function WorkspacePage() {
           setIsWorkspaceOwner(true);
         } else {
           setIsWorkspaceOwner(false);
+        }
+
+        // Fetch current member info and member count
+        if (user) {
+          const { data: memberData } = await supabase
+            .from('workspace_members')
+            .select('*')
+            .eq('workspace_id', workspaceData.id)
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+          if (memberData) {
+            setCurrentMember(memberData);
+          }
+
+          const { count } = await supabase
+            .from('workspace_members')
+            .select('*', { count: 'exact', head: true })
+            .eq('workspace_id', workspaceData.id);
+
+          setMemberCount(count || 0);
         }
 
         // Fetch repositories with their details (use the actual workspace ID)
@@ -3177,7 +3208,7 @@ function WorkspacePage() {
   };
 
   const handleUpgradeClick = () => {
-    toast.info('Upgrade to Pro coming soon!');
+    navigate('/billing');
   };
 
   const handleWorkspaceUpdate = (updates: Partial<Workspace>) => {
@@ -3443,7 +3474,19 @@ function WorkspacePage() {
 
           <TabsContent value="settings" className="mt-6">
             <div className="container max-w-7xl mx-auto">
-              <WorkspaceSettings workspace={workspace} onWorkspaceUpdate={handleWorkspaceUpdate} />
+              {currentMember ? (
+                <WorkspaceSettingsComponent
+                  workspace={workspace}
+                  currentMember={currentMember}
+                  memberCount={memberCount}
+                  onWorkspaceUpdate={handleWorkspaceUpdate}
+                />
+              ) : (
+                <WorkspaceSettings
+                  workspace={workspace}
+                  onWorkspaceUpdate={handleWorkspaceUpdate}
+                />
+              )}
             </div>
           </TabsContent>
         </Tabs>

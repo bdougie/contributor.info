@@ -10,8 +10,6 @@ import {
 } from '@/components/ui/icon';
 import { useWorkspaceContext, type Workspace } from '@/contexts/WorkspaceContext';
 import { Button } from '@/components/ui/button';
-import { useFeatureFlags } from '@/lib/feature-flags';
-import { FEATURE_FLAGS } from '@/lib/feature-flags/types';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,8 +41,6 @@ export function WorkspaceSwitcher({
   onOpenCommandPalette,
 }: WorkspaceSwitcherProps) {
   const navigate = useNavigate();
-  const { checkFlag } = useFeatureFlags();
-  const isWorkspacesEnabled = checkFlag(FEATURE_FLAGS.ENABLE_WORKSPACES);
 
   const {
     activeWorkspace,
@@ -106,11 +102,6 @@ export function WorkspaceSwitcher({
       otherWorkspaces: others,
     };
   }, [workspaces, recentWorkspaces, activeWorkspace]);
-
-  // Don't render if workspaces feature is disabled
-  if (!isWorkspacesEnabled) {
-    return null;
-  }
 
   const handleWorkspaceSelect = async (workspaceId: string): Promise<void> => {
     setOpen(false);
