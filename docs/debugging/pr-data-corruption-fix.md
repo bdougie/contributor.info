@@ -30,20 +30,15 @@ else if (reason === 'auto-fix') {
 'auto-fix': getEnvNumber('VITE_THROTTLE_AUTO_FIX_HOURS', 1),
 ```
 
-### 2. Data Recovery Scripts
+### 2. Data Recovery Scripts (Historical Reference)
 
-#### `scripts/fix-corrupted-pr-data.js`
-Bulk recovery script that:
-- Identifies PRs with all zero values
-- Fetches fresh data from GitHub API
-- Updates database with correct metrics
-- Processes up to 100 PRs at once with rate limiting protection
+**Note: These scripts have been removed after successful data recovery.**
 
-#### `scripts/fix-pr-7273.js`
-Targeted fix for specific PR that:
-- Fetches PR data directly from GitHub
-- Updates all PR metrics in database
-- Provides detailed logging of changes
+#### Previous Scripts (Now Removed)
+- `scripts/fix-corrupted-pr-data.js` - Bulk recovery script that identified PRs with zero values and fixed them
+- `scripts/fix-pr-7273.js` - Targeted fix for specific PR #7273
+
+The data corruption has been resolved and these one-time fix scripts are no longer needed.
 
 ## Verification
 
@@ -127,10 +122,7 @@ If corruption occurs again:
    WHERE owner = 'affected_owner' AND name = 'affected_repo';
    ```
 
-3. **Run recovery script**:
-   ```bash
-   node scripts/fix-corrupted-pr-data.js
-   ```
+3. **Run recovery**: Use Supabase direct queries or create a new recovery script if needed
 
 4. **Verify fix**:
    ```bash
@@ -150,8 +142,6 @@ If corruption occurs again:
 - `/netlify/functions/inngest-prod-functions.mts` - Production Inngest function with rate limiting
 - `/src/lib/progressive-capture/throttle-config.ts` - Centralized throttle configuration
 - `/src/lib/inngest/functions/capture-repository-sync-graphql.ts` - GraphQL sync function
-- `/scripts/fix-corrupted-pr-data.js` - Bulk data recovery script
-- `/scripts/fix-pr-7273.js` - Targeted PR fix script
 
 ## Testing
 

@@ -32,7 +32,7 @@ Since there were no issues in the database for the repository, `findSimilarIssue
 ### Fix 1: Correct GitHub ID
 Run the fix script to update the GitHub ID in the database:
 ```bash
-node scripts/fix-repository-github-id.js
+# Script removed - use Supabase direct update instead
 ```
 
 ### Fix 2: Improve Webhook Handler
@@ -76,5 +76,5 @@ Key improvements:
 - `/app/webhooks/pull-request.ts` - Original webhook handler
 - `/app/webhooks/pull-request-improved.ts` - Improved handler with fixes
 - `/scripts/debug-webhook-issue.js` - Debug script to diagnose issues
-- `/scripts/fix-repository-github-id.js` - Fix script for GitHub ID mismatch
+- Previous fix script has been removed after issue resolution
 - `/.contributor` - Configuration file for webhook features
