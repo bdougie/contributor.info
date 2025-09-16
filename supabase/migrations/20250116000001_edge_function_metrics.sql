@@ -118,13 +118,14 @@ TO service_role
 USING (true)
 WITH CHECK (true);
 
--- Function to process webhook queue
+-- Function to process webhook queue with advisory lock
 CREATE OR REPLACE FUNCTION process_webhook_queue()
 RETURNS SETOF public.webhook_queue AS $$
 DECLARE
   queue_record public.webhook_queue;
+  lock_key bigint;
 BEGIN
-  -- Select next item to process with priority ordering
+  -- Select next item to process with priority ordering and advisory lock
   SELECT * INTO queue_record
   FROM public.webhook_queue
   WHERE status = 'pending'

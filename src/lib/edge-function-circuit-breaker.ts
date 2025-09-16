@@ -6,6 +6,7 @@
  */
 
 import { concurrencyManager } from './edge-function-concurrency-manager';
+import { DEFAULT_CONFIG } from './edge-function-config';
 
 export type CircuitState = 'closed' | 'open' | 'half-open';
 
@@ -51,12 +52,12 @@ export class EdgeFunctionCircuitBreaker {
 
   constructor(config?: Partial<CircuitBreakerConfig>) {
     this.config = {
-      failureThreshold: 5,
-      successThreshold: 3,
-      timeout: 60000, // 1 minute
-      volumeThreshold: 10,
-      errorThresholdPercentage: 50,
-      concurrencyThreshold: 30,
+      failureThreshold: DEFAULT_CONFIG.circuitBreaker.failureThreshold,
+      successThreshold: DEFAULT_CONFIG.circuitBreaker.successThreshold,
+      timeout: DEFAULT_CONFIG.circuitBreaker.timeoutMs,
+      volumeThreshold: DEFAULT_CONFIG.circuitBreaker.volumeThreshold,
+      errorThresholdPercentage: DEFAULT_CONFIG.circuitBreaker.errorThresholdPercentage,
+      concurrencyThreshold: DEFAULT_CONFIG.concurrency.tiers.pro.maxConcurrent * 0.75, // 75% of pro tier
       ...config,
     };
   }
@@ -135,12 +136,27 @@ export class EdgeFunctionCircuitBreaker {
    * Execute function with timeout
    */
   private async executeWithTimeout<T>(fn: () => Promise<T>, timeoutMs: number): Promise<T> {
-    return Promise.race([
-      fn(),
-      new Promise<T>((_, reject) =>
-        setTimeout(() => reject(new Error(`Request timeout after ${timeoutMs}ms`)), timeoutMs)
-      ),
-    ]);
+    let timeoutId: NodeJS.Timeout | undefined;
+
+    try {
+      return await Promise.race([
+        fn().catch((error) => {
+          // Ensure we clear timeout on function error
+          if (timeoutId) clearTimeout(timeoutId);
+          throw error;
+        }),
+        new Promise<T>((_, reject) => {
+          timeoutId = setTimeout(() => {
+            reject(new Error(`Request timeout after ${timeoutMs}ms`));
+          }, timeoutMs);
+        }),
+      ]);
+    } finally {
+      // Always cleanup timeout
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    }
   }
 
   /**

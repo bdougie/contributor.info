@@ -6,6 +6,8 @@
  */
 
 import { supabase } from './supabase';
+import { getEnv } from './env';
+import { DEFAULT_CONFIG, type QueuePayload } from './edge-function-config';
 
 export interface ConcurrencyMetrics {
   currentConcurrent: number;
@@ -26,7 +28,7 @@ export interface ConcurrencyLimits {
 export interface QueuedRequest {
   id: string;
   eventName: string;
-  data: Record<string, unknown>;
+  data: QueuePayload['data'];
   priority: 'high' | 'medium' | 'low';
   timestamp: Date;
   retryCount: number;
@@ -34,28 +36,31 @@ export interface QueuedRequest {
 }
 
 /**
- * Default concurrency limits based on Supabase tier
+ * Get concurrency limits from configuration
  */
-export const CONCURRENCY_LIMITS: Record<'free' | 'pro' | 'enterprise', ConcurrencyLimits> = {
-  free: {
-    maxConcurrent: 10,
-    burstCapacity: 15,
-    cooldownPeriod: 5000,
-    queueCapacity: 100,
-  },
-  pro: {
-    maxConcurrent: 40, // Based on research findings
-    burstCapacity: 50,
-    cooldownPeriod: 2000,
-    queueCapacity: 500,
-  },
-  enterprise: {
-    maxConcurrent: 100,
-    burstCapacity: 150,
-    cooldownPeriod: 1000,
-    queueCapacity: 1000,
-  },
-};
+function getConcurrencyLimits(): Record<'free' | 'pro' | 'enterprise', ConcurrencyLimits> {
+  const config = DEFAULT_CONFIG.concurrency.tiers;
+  return {
+    free: {
+      maxConcurrent: config.free.maxConcurrent,
+      burstCapacity: config.free.burstCapacity,
+      cooldownPeriod: config.free.cooldownPeriodMs,
+      queueCapacity: config.free.queueCapacity,
+    },
+    pro: {
+      maxConcurrent: config.pro.maxConcurrent,
+      burstCapacity: config.pro.burstCapacity,
+      cooldownPeriod: config.pro.cooldownPeriodMs,
+      queueCapacity: config.pro.queueCapacity,
+    },
+    enterprise: {
+      maxConcurrent: config.enterprise.maxConcurrent,
+      burstCapacity: config.enterprise.burstCapacity,
+      cooldownPeriod: config.enterprise.cooldownPeriodMs,
+      queueCapacity: config.enterprise.queueCapacity,
+    },
+  };
+}
 
 export class EdgeFunctionConcurrencyManager {
   private static instance: EdgeFunctionConcurrencyManager;
@@ -73,7 +78,8 @@ export class EdgeFunctionConcurrencyManager {
   private metricsFlushInterval: NodeJS.Timeout | null = null;
 
   private constructor() {
-    this.limits = CONCURRENCY_LIMITS[this.tier];
+    const limits = getConcurrencyLimits();
+    this.limits = limits[this.tier];
     this.startMetricsCollection();
   }
 
@@ -89,7 +95,8 @@ export class EdgeFunctionConcurrencyManager {
    */
   setTier(tier: 'free' | 'pro' | 'enterprise'): void {
     this.tier = tier;
-    this.limits = CONCURRENCY_LIMITS[tier];
+    const limits = getConcurrencyLimits();
+    this.limits = limits[tier];
     console.log('Concurrency limits updated for tier: %s', tier, this.limits);
   }
 
@@ -216,11 +223,11 @@ export class EdgeFunctionConcurrencyManager {
 
     // Send to Edge Function
     try {
-      const response = await fetch(`${process.env.VITE_SUPABASE_URL}/functions/v1/queue-event`, {
+      const response = await fetch(`${getEnv('SUPABASE_URL')}/functions/v1/queue-event`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${process.env.VITE_SUPABASE_ANON_KEY}`,
+          Authorization: `Bearer ${getEnv('SUPABASE_ANON_KEY')}`,
         },
         body: JSON.stringify({
           eventName: request.eventName,
@@ -411,8 +418,12 @@ export class EdgeFunctionConcurrencyManager {
   destroy(): void {
     if (this.metricsFlushInterval) {
       clearInterval(this.metricsFlushInterval);
+      this.metricsFlushInterval = null;
     }
-    this.flushMetrics();
+    // Flush any remaining metrics
+    this.flushMetrics().catch((error) => {
+      console.error('Error flushing metrics during cleanup:', error);
+    });
   }
 }
 
