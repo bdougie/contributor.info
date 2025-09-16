@@ -344,8 +344,8 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
   const canInviteMore = members.length < maxMembers;
 
   return (
-    <div className="space-y-6 w-full">
-      <Card className="w-full overflow-hidden">
+    <>
+      <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="min-w-0">
@@ -681,6 +681,6 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
         onClose={() => setUpgradeModalOpen(false)}
         feature="team-members"
       />
-    </div>
+    </>
   );
 }

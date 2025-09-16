@@ -13,7 +13,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Settings, Users, Trash2, Check } from '@/components/ui/icon';
@@ -21,7 +20,6 @@ import { MembersTab } from './MembersTab';
 import { supabase } from '@/lib/supabase';
 import { WorkspaceService } from '@/services/workspace.service';
 import { WorkspacePermissionService } from '@/services/workspace-permissions.service';
-import { getTierInfo } from '@/types/workspace';
 import type { Workspace, WorkspaceMember, WorkspaceVisibility } from '@/types/workspace';
 
 interface WorkspaceSettingsProps {
@@ -59,7 +57,6 @@ export function WorkspaceSettings({
     workspace,
     memberCount
   );
-  const tierInfo = getTierInfo(workspace.tier);
 
   // Handle form changes
   const handleInputChange = (field: string, value: string | boolean) => {
@@ -171,19 +168,7 @@ export function WorkspaceSettings({
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-bold">Workspace Settings</h2>
-          <p className="text-muted-foreground mt-1">
-            Manage your workspace configuration and team members
-          </p>
-        </div>
-        <Badge variant={workspace.tier === 'free' ? 'secondary' : 'default'}>
-          {tierInfo.badge} {tierInfo.name}
-        </Badge>
-      </div>
-
+    <div className="w-full">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="general" className="flex items-center gap-2">
@@ -337,7 +322,7 @@ export function WorkspaceSettings({
         </TabsContent>
 
         {/* Members Tab */}
-        <TabsContent value="members">
+        <TabsContent value="members" className="space-y-6">
           <MembersTab
             workspaceId={workspace.id}
             currentUserRole={currentMember.role}
