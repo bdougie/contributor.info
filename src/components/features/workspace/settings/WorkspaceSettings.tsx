@@ -179,9 +179,9 @@ export function WorkspaceSettings({
             <Users className="h-4 w-4" />
             Members
             {memberCount > 0 && (
-              <Badge variant="secondary" className="ml-1">
+              <span className="ml-1 px-1.5 py-0.5 text-xs font-medium rounded-full bg-secondary text-secondary-foreground">
                 {memberCount}
-              </Badge>
+              </span>
             )}
           </TabsTrigger>
         </TabsList>
