@@ -82,7 +82,7 @@ export function useSubscriptionLimits(): SubscriptionLimits {
   };
 
   return {
-    tier: limits.tier || 'free',
+    tier: loading ? 'free' : (limits.tier || 'free'),
     canCreateWorkspace: limits.canCreateWorkspace || false,
     workspaceLimit: limits.workspaceLimit || 1,
     currentWorkspaceCount: limits.currentWorkspaceCount || 0,
