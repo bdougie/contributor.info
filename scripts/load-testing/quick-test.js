@@ -7,8 +7,13 @@
  * Useful for quick validation and simple scenarios
  */
 
-const https = require('https');
-const http = require('http');
+import https from 'https';
+import http from 'http';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Configuration
 const SUPABASE_URL =
@@ -288,8 +293,6 @@ async function main() {
 }
 
 // Run if executed directly
-if (require.main === module) {
-  main().catch(console.error);
-}
+main().catch(console.error);
 
-module.exports = { sendRequest, runTest, Metrics };
+export { sendRequest, runTest, Metrics };
