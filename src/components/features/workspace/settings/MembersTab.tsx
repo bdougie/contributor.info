@@ -327,7 +327,9 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
   if (limits.tier === 'free') {
     maxMembers = 1;
   } else if (limits.tier === 'pro') {
-    maxMembers = 5;
+    maxMembers = 1; // Pro plan is solo, no team members
+  } else if (limits.tier === 'team') {
+    maxMembers = 5; // Team plan allows 5 members
   }
   const canInviteMore = members.length < maxMembers;
 

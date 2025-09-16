@@ -80,11 +80,8 @@ export function useSubscriptionLimits(): SubscriptionLimits {
     return check.allowed;
   };
 
-  // FOR TESTING: Change 'free' to 'pro' or 'team' to test different tiers
-  const testTier = 'free'; // Change this to test: 'free' | 'pro' | 'team'
-
   return {
-    tier: testTier,
+    tier: limits.tier || 'free',
     canCreateWorkspace: limits.canCreateWorkspace || false,
     workspaceLimit: limits.workspaceLimit || 1,
     currentWorkspaceCount: limits.currentWorkspaceCount || 0,
