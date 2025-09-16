@@ -888,6 +888,10 @@ export class WorkspaceService {
   ): Promise<ServiceResponse<WorkspaceMemberWithUser>> {
     try {
       // Validate UUIDs
+      console.log('Validating UUIDs:', { workspaceId, invitedBy });
+      console.log('isValidUUID(workspaceId):', isValidUUID(workspaceId));
+      console.log('isValidUUID(invitedBy):', isValidUUID(invitedBy));
+
       if (!isValidUUID(workspaceId) || !isValidUUID(invitedBy)) {
         return {
           success: false,
