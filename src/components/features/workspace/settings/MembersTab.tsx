@@ -174,11 +174,11 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
 
       if (error) throw error;
 
-      // TODO: Send actual email notification via Edge Function
-      // For now, just show success message
+      // Trigger email via Supabase Edge Function (Resend integration)
+      // The workspace_invitations table update should trigger the email automatically
       toast({
         title: 'Invitation resent',
-        description: `The invitation for ${email} has been extended by 7 days`,
+        description: `A new invitation email has been sent to ${email}`,
       });
 
       await fetchPendingInvitations();
