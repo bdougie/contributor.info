@@ -257,7 +257,10 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
               .select('id', { count: 'exact', head: true })
               .eq('workspace_id', workspace.id),
 
-            supabase.from('workspace_members').select('id').eq('workspace_id', workspace.id),
+            supabase
+              .from('workspace_members')
+              .select('id', { count: 'exact', head: true })
+              .eq('workspace_id', workspace.id),
           ]);
 
           // Check for errors in individual queries and fail fast for critical data
@@ -326,7 +329,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
               display_name: ownerMetadata?.full_name || ownerMetadata?.name,
             },
             repository_count: repoCountResult.count || 0,
-            member_count: membersResult.data?.length || 0,
+            member_count: membersResult.count || 0,
             repositories,
             created_at: workspace.created_at,
           } as WorkspacePreviewData;

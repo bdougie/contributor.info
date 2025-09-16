@@ -2433,7 +2433,30 @@ function WorkspacePage() {
             .maybeSingle();
 
           if (memberData) {
-            setCurrentMember(memberData);
+            // Fetch user details for the current member
+            const { data: userData } = await supabase
+              .from('app_users')
+              .select('auth_user_id, email, display_name, avatar_url')
+              .eq('auth_user_id', user.id)
+              .maybeSingle();
+
+            const memberWithUser: WorkspaceMemberWithUser = {
+              ...memberData,
+              user: userData
+                ? {
+                    id: userData.auth_user_id,
+                    email: userData.email,
+                    display_name: userData.display_name || userData.email?.split('@')[0],
+                    avatar_url: userData.avatar_url,
+                  }
+                : {
+                    id: user.id,
+                    email: user.email || '',
+                    display_name: user.email?.split('@')[0] || 'User',
+                    avatar_url: null,
+                  },
+            };
+            setCurrentMember(memberWithUser);
           }
 
           const { count } = await supabase
