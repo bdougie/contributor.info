@@ -13,27 +13,40 @@ const INNGEST_EVENT_KEY = Deno.env.get('INNGEST_EVENT_KEY');
 
 interface QueueEventRequest {
   eventName: string;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
+}
+
+interface IdempotencyResponse {
+  eventId?: string;
+  success?: boolean;
+  error?: string;
+  duplicate?: boolean;
+  cached?: boolean;
 }
 
 interface IdempotencyRecord {
   key: string;
   request_hash: string;
-  response: any;
+  response: IdempotencyResponse | null;
   status: 'processing' | 'completed' | 'failed';
   created_at: string;
   expires_at: string;
   endpoint: string;
   user_id?: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 /**
- * Generate a hash of the request for comparison
+ * Generate a secure SHA-256 hash of the request for comparison
  */
-function generateRequestHash(eventName: string, data: Record<string, any>): string {
+async function generateRequestHash(eventName: string, data: Record<string, unknown>): Promise<string> {
   const content = JSON.stringify({ eventName, data });
-  return content; // In production, you'd use a proper hash function
+  const encoder = new TextEncoder();
+  const dataBuffer = encoder.encode(content);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map((byte) => byte.toString(16).padStart(2, '0')).join('');
+  return hashHex;
 }
 
 /**
@@ -42,9 +55,9 @@ function generateRequestHash(eventName: string, data: Record<string, any>): stri
 async function handleIdempotency(
   key: string,
   eventName: string,
-  data: Record<string, any>,
+  data: Record<string, unknown>,
   userId?: string
-): Promise<{ isDuplicate: boolean; response?: any }> {
+): Promise<{ isDuplicate: boolean; response?: IdempotencyResponse }> {
   try {
     // First, check if this idempotency key already exists
     const { data: existing, error: fetchError } = await supabase
@@ -63,7 +76,7 @@ async function handleIdempotency(
       // Key exists, check the status
       if (existing.status === 'completed') {
         // Return cached response
-        console.log(`Returning cached response for idempotency key: ${key}`);
+        console.log('Returning cached response for idempotency key: %s', key);
         return { isDuplicate: true, response: existing.response };
       } else if (existing.status === 'processing') {
         // Request is still being processed
@@ -82,7 +95,7 @@ async function handleIdempotency(
     }
 
     // Create new idempotency record with processing status
-    const requestHash = generateRequestHash(eventName, data);
+    const requestHash = await generateRequestHash(eventName, data);
     const { error: insertError } = await supabase
       .from('idempotency_keys')
       .insert({
@@ -127,7 +140,7 @@ async function handleIdempotency(
 async function updateIdempotencyRecord(
   key: string,
   status: 'completed' | 'failed',
-  response?: any
+  response?: IdempotencyResponse
 ): Promise<void> {
   try {
     const { error } = await supabase
@@ -149,7 +162,7 @@ async function updateIdempotencyRecord(
 /**
  * Send event to Inngest
  */
-async function sendToInngest(eventName: string, data: Record<string, any>): Promise<any> {
+async function sendToInngest(eventName: string, data: Record<string, unknown>): Promise<Record<string, unknown>> {
   if (!INNGEST_EVENT_KEY) {
     throw new Error('INNGEST_EVENT_KEY is not configured');
   }
@@ -225,7 +238,7 @@ serve(async (req: Request) => {
       if (isDuplicate && response) {
         // Return cached response for duplicate request
         isDuplicateRequest = true;
-        console.log(`Duplicate request detected for key: ${idempotencyKey}`);
+        console.log('Duplicate request detected for key: %s', idempotencyKey);
 
         return new Response(
           JSON.stringify({
@@ -246,7 +259,8 @@ serve(async (req: Request) => {
     let eventId;
     try {
       result = await sendToInngest(eventName, data);
-      eventId = result.ids?.[0] || result.id || result.eventId;
+      const resultTyped = result as { ids?: string[]; id?: string; eventId?: string };
+      eventId = resultTyped.ids?.[0] || resultTyped.id || resultTyped.eventId;
 
       // Update idempotency record with success
       if (idempotencyKey) {
@@ -275,7 +289,7 @@ serve(async (req: Request) => {
     }
 
     // Log successful queueing (for monitoring)
-    console.log(`Event queued successfully: ${eventName}`, {
+    console.log('Event queued successfully: %s', eventName, {
       eventId,
       idempotencyKey,
       isDuplicate: isDuplicateRequest,
