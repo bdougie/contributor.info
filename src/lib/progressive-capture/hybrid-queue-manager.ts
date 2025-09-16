@@ -302,7 +302,7 @@ export class HybridQueueManager {
         const { sendInngestEvent } = await import('../inngest/client-safe');
         await sendInngestEvent({
           name: eventName,
-          data: eventData,
+          data: eventData as Record<string, unknown>,
         });
         console.log(
           `[HybridQueue] Event ${eventName} queued successfully via client-safe API for`,
