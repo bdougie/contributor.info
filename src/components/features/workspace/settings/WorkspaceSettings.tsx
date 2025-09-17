@@ -87,6 +87,34 @@ export function WorkspaceSettings({
       return;
     }
 
+    // Validate slug format
+    const slugPattern = /^[a-z0-9-]+$/;
+    if (!slugPattern.test(formData.slug)) {
+      toast({
+        title: 'Invalid Slug',
+        description: 'Slug can only contain lowercase letters, numbers, and hyphens',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Check if slug is being changed and show warning
+    if (formData.slug !== workspace.slug) {
+      const confirmed = window.confirm(
+        '⚠️ WARNING: Changing your workspace slug will break all existing external links!\n\n' +
+          `Current URL: /i/${workspace.slug}\n` +
+          `New URL: /i/${formData.slug}\n\n` +
+          'All bookmarks, shared links, and external references will stop working.\n\n' +
+          'Are you sure you want to continue?'
+      );
+
+      if (!confirmed) {
+        // Reset slug to original value
+        setFormData((prev) => ({ ...prev, slug: workspace.slug }));
+        return;
+      }
+    }
+
     setIsSaving(true);
     try {
       const response = await WorkspaceService.updateWorkspace(workspace.id, currentMember.user_id, {
@@ -195,12 +223,17 @@ export function WorkspaceSettings({
             <Input
               id="slug"
               value={formData.slug}
-              onChange={(e) => handleInputChange('slug', e.target.value)}
+              onChange={(e) => handleInputChange('slug', e.target.value.toLowerCase())}
               disabled={!permissions.canEditSettings || isSaving}
               placeholder="workspace-url-slug"
               className="mt-1"
               pattern="^[a-z0-9-]+$"
             />
+            {formData.slug !== workspace.slug && (
+              <p className="text-sm text-amber-600 dark:text-amber-500 mt-1 font-medium">
+                ⚠️ Warning: Changing the slug will break all existing links to this workspace
+              </p>
+            )}
             <p className="text-sm text-muted-foreground mt-1">
               URL-friendly identifier for your workspace (lowercase letters, numbers, and hyphens
               only)
