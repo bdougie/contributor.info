@@ -1016,7 +1016,7 @@ export class WorkspaceService {
       }
 
       // Check if there's already a pending invitation for this email
-      const { data: existingInvitation } = await supabase
+      const { data: existingInvitation, error: checkError } = await supabase
         .from('workspace_invitations')
         .select('id, status')
         .eq('workspace_id', workspaceId)
@@ -1024,10 +1024,16 @@ export class WorkspaceService {
         .eq('status', 'pending')
         .maybeSingle();
 
+      if (checkError && checkError.code !== 'PGRST116') {
+        // PGRST116 is "no rows found", which is fine
+        console.error('Error checking existing invitation:', checkError);
+      }
+
       if (existingInvitation) {
         return {
           success: false,
-          error: 'An invitation has already been sent to this email address',
+          error:
+            'An invitation has already been sent to this email address. The invitation is still pending acceptance.',
           statusCode: 409,
         };
       }
@@ -1068,9 +1074,23 @@ export class WorkspaceService {
 
       if (inviteError) {
         console.error('Create invitation error:', inviteError);
+
+        // Handle duplicate invitation error
+        if (
+          inviteError.code === '23505' &&
+          inviteError.message?.includes('unique_pending_invitation')
+        ) {
+          return {
+            success: false,
+            error:
+              'An invitation has already been sent to this email address. Please wait for them to accept or decline the existing invitation.',
+            statusCode: 409,
+          };
+        }
+
         return {
           success: false,
-          error: 'Failed to create invitation',
+          error: 'Failed to create invitation. Please try again.',
           statusCode: 500,
         };
       }
