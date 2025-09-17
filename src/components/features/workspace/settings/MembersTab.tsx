@@ -176,8 +176,8 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
 
   const handleInviteSent = async () => {
     toast({
-      title: 'Invitation sent',
-      description: 'Your team member will receive an email invitation',
+      title: 'Invitation sent successfully',
+      description: 'An email has been sent. They have 7 days to accept the invitation.',
     });
 
     // Handle partial failures gracefully
@@ -495,7 +495,9 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
                   <div className="space-y-3">
                     <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                       <Clock className="h-4 w-4" />
-                      <span>Pending Invitations ({pendingInvitations.length})</span>
+                      <span>
+                        Pending Invitations ({pendingInvitations.length}) - Awaiting Acceptance
+                      </span>
                     </div>
                     <div className="space-y-2">
                       {pendingInvitations.map((invitation) => (
@@ -510,6 +512,10 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
                             <div className="min-w-0 flex-1">
                               <p className="text-sm font-medium truncate">{invitation.email}</p>
                               <div className="flex items-center gap-3 mt-1 flex-wrap">
+                                <Badge variant="secondary" className="text-xs flex-shrink-0">
+                                  <Clock className="h-3 w-3 mr-1" />
+                                  Waiting for acceptance
+                                </Badge>
                                 <Badge variant="outline" className="text-xs flex-shrink-0">
                                   {invitation.role}
                                 </Badge>

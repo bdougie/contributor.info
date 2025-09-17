@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, Mail, Github, Sparkles } from 'lucide-react';
+import { Users, Mail, Sparkles } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -19,7 +19,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { WorkspaceRole } from '@/types/workspace';
 import { useSubscriptionLimits } from '@/hooks/use-subscription-limits';
 import { WorkspaceService } from '@/services/workspace.service';
@@ -42,8 +41,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
   currentMemberCount,
   onInviteSent,
 }) => {
-  const [inviteMethod, setInviteMethod] = useState<'email' | 'github'>('email');
-  const [inviteValue, setInviteValue] = useState('');
+  const [email, setEmail] = useState('');
   const [selectedRole, setSelectedRole] = useState<WorkspaceRole>('contributor');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -84,24 +82,12 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
         return;
       }
 
-      // For GitHub invites, we need to resolve the email first
-      let emailToInvite = inviteValue;
-      if (inviteMethod === 'github') {
-        // In a real implementation, you would call GitHub API to get user email
-        // For now, we'll construct a placeholder email
-        emailToInvite = `${inviteValue}@users.noreply.github.com`;
-      }
-
-      const result = await WorkspaceService.inviteMember(
-        workspaceId,
-        user.id,
-        emailToInvite,
-        selectedRole
-      );
+      const result = await WorkspaceService.inviteMember(workspaceId, user.id, email, selectedRole);
 
       if (result.success) {
         onInviteSent();
-        setInviteValue('');
+        setEmail('');
+        setError(null);
         onClose();
       } else {
         setError(result.error || 'Failed to send invitation');
@@ -120,7 +106,8 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
           <DialogHeader>
             <DialogTitle>Invite Team Member</DialogTitle>
             <DialogDescription>
-              Invite a new member to collaborate in this workspace
+              Send an email invitation to add a new member to your workspace. They'll need to accept
+              the invitation to join.
             </DialogDescription>
           </DialogHeader>
 
@@ -158,37 +145,25 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
               </Alert>
             )}
 
-            {/* Invite method tabs */}
-            <Tabs
-              value={inviteMethod}
-              onValueChange={(v) => setInviteMethod(v as 'email' | 'github')}
-            >
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="email" className="flex items-center gap-2">
-                  <Mail className="h-4 w-4" />
-                  Email
-                </TabsTrigger>
-                <TabsTrigger value="github" className="flex items-center gap-2">
-                  <Github className="h-4 w-4" />
-                  GitHub
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-
-            {/* Input field */}
+            {/* Email input field */}
             <div className="space-y-2">
-              <Label htmlFor="invite-value">
-                {inviteMethod === 'email' ? 'Email Address' : 'GitHub Username'}
+              <Label htmlFor="email">
+                <Mail className="h-4 w-4 inline-block mr-2" />
+                Email Address
               </Label>
               <Input
-                id="invite-value"
-                type={inviteMethod === 'email' ? 'email' : 'text'}
-                value={inviteValue}
-                onChange={(e) => setInviteValue(e.target.value)}
-                placeholder={inviteMethod === 'email' ? 'colleague@example.com' : 'username'}
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="colleague@example.com"
                 required
                 disabled={!canInviteMore}
               />
+              <p className="text-xs text-muted-foreground">
+                We'll send an invitation email to this address. The invitation will expire in 7 days
+                if not accepted.
+              </p>
             </div>
 
             {/* Role selection */}
@@ -236,7 +211,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
                 Cancel
               </Button>
               {canInviteMore ? (
-                <Button type="submit" disabled={isSubmitting || !inviteValue}>
+                <Button type="submit" disabled={isSubmitting || !email}>
                   {isSubmitting ? 'Sending...' : 'Send Invitation'}
                 </Button>
               ) : (
