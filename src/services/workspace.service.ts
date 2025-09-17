@@ -1032,24 +1032,8 @@ export class WorkspaceService {
         };
       }
 
-      // Check if user exists and is already a member (optional check)
-      const { data: userData } = await supabase
-        .from('users')
-        .select('id')
-        .eq('email', sanitizedEmail)
-        .maybeSingle();
-
-      if (userData) {
-        // Check if existing user is already a member
-        const existingMember = workspace.workspace_members?.find((m) => m.user_id === userData.id);
-        if (existingMember) {
-          return {
-            success: false,
-            error: 'User is already a member of this workspace',
-            statusCode: 409,
-          };
-        }
-      }
+      // Note: We don't check if the user exists since we're using an invitation system
+      // Users will create accounts when accepting invitations if they don't have one
 
       // Create invitation (works for both existing and new users)
       const invitationToken = generateUUID();
