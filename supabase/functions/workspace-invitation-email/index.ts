@@ -398,14 +398,26 @@ Privacy policy: https://contributor.info/privacy
 GitHub: https://github.com/bdougie/contributor.info
 `;
 
+// CORS headers for development
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
+
 // Main function
 Deno.serve(async (req: Request) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: corsHeaders });
+  }
+
   try {
     // Only allow POST requests
     if (req.method !== 'POST') {
       return new Response(
         JSON.stringify({ error: 'Method not allowed' }),
-        { status: 405, headers: { 'Content-Type': 'application/json' } }
+        { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -418,7 +430,7 @@ Deno.serve(async (req: Request) => {
       console.error('RESEND_API_KEY not configured');
       return new Response(
         JSON.stringify({ error: 'Email service not configured' }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -430,7 +442,7 @@ Deno.serve(async (req: Request) => {
       console.error('Invalid payload: missing invitationId');
       return new Response(
         JSON.stringify({ error: 'Invalid payload: invitationId required' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -456,7 +468,7 @@ Deno.serve(async (req: Request) => {
       console.error('Failed to fetch invitation:', invitationError);
       return new Response(
         JSON.stringify({ error: 'Invitation not found or already processed' }),
-        { status: 404, headers: { 'Content-Type': 'application/json' } }
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -471,7 +483,7 @@ Deno.serve(async (req: Request) => {
       console.error('Failed to fetch inviter details:', inviterError);
       return new Response(
         JSON.stringify({ error: 'Inviter information not found' }),
-        { status: 404, headers: { 'Content-Type': 'application/json' } }
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -487,7 +499,7 @@ Deno.serve(async (req: Request) => {
       console.error('Invitation has expired');
       return new Response(
         JSON.stringify({ error: 'Invitation has expired' }),
-        { status: 410, headers: { 'Content-Type': 'application/json' } }
+        { status: 410, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -614,23 +626,23 @@ Deno.serve(async (req: Request) => {
     }
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         message: 'Workspace invitation email sent successfully',
-        email_id: emailResult.id 
+        email_id: emailResult.id
       }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
     console.error('Error sending workspace invitation email:', error);
     
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         error: 'Failed to send workspace invitation email',
-        details: error.message 
+        details: error.message
       }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });

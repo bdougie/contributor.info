@@ -61,6 +61,7 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [operationInProgress, setOperationInProgress] = useState<string | null>(null);
   const { toast } = useToast();
   const limits = useSubscriptionLimits();
 
@@ -94,12 +95,14 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
   const fetchMembers = async () => {
     try {
       setLoading(true);
+      console.log('Fetching members for workspace:', workspaceId);
       const { data, error } = await supabase
         .from('workspace_members')
         .select('*')
         .eq('workspace_id', workspaceId)
         .order('created_at', { ascending: false });
 
+      console.log('Members query result:', { data, error });
       if (error) throw error;
 
       // Fetch user details separately for each member
@@ -131,6 +134,7 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
         };
       });
 
+      console.log('Setting members state with:', transformedMembers);
       setMembers(transformedMembers as WorkspaceMemberWithUser[]);
       return true; // Return success status
     } catch (error) {
@@ -173,8 +177,8 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
 
   const handleInviteSent = async () => {
     toast({
-      title: 'Invitation sent',
-      description: 'Your team member will receive an email invitation',
+      title: 'Invitation sent successfully',
+      description: 'An email has been sent. They have 7 days to accept the invitation.',
     });
 
     // Handle partial failures gracefully
@@ -189,6 +193,8 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
   };
 
   const handleResendInvitation = async (invitationId: string, email: string) => {
+    setOperationInProgress(`resend-${invitationId}`);
+
     try {
       // Update the invitation's expires_at to extend it by 7 days
       const { error } = await supabase
@@ -201,25 +207,55 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
 
       if (error) throw error;
 
-      // Trigger email via Supabase Edge Function (Resend integration)
-      // The workspace_invitations table update should trigger the email automatically
-      toast({
-        title: 'Invitation resent',
-        description: `A new invitation email has been sent to ${email}`,
-      });
+      // Trigger email via Supabase Edge Function
+      try {
+        const { error: emailError } = await supabase.functions.invoke(
+          'workspace-invitation-email',
+          {
+            body: {
+              invitationId,
+            },
+          }
+        );
+
+        if (emailError) {
+          console.error('Failed to send invitation email:', emailError);
+          toast({
+            title: 'Warning',
+            description: 'Invitation updated but email could not be sent. Please try again.',
+            variant: 'destructive',
+          });
+        } else {
+          toast({
+            title: 'Invitation resent',
+            description: `A new invitation email has been sent to ${email}`,
+          });
+        }
+      } catch (emailErr) {
+        console.error('Error sending invitation email:', emailErr);
+        toast({
+          title: 'Warning',
+          description: 'Invitation updated but email could not be sent.',
+          variant: 'destructive',
+        });
+      }
 
       await fetchPendingInvitations();
     } catch (error) {
       console.error('Error resending invitation:', error);
       toast({
         title: 'Error',
-        description: 'Failed to resend invitation',
+        description: 'Unable to resend the invitation. Please try again.',
         variant: 'destructive',
       });
+    } finally {
+      setOperationInProgress(null);
     }
   };
 
   const handleCancelInvitation = async (invitationId: string) => {
+    setOperationInProgress(`cancel-${invitationId}`);
+
     try {
       const { error } = await supabase
         .from('workspace_invitations')
@@ -236,13 +272,17 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
     } catch {
       toast({
         title: 'Error',
-        description: 'Failed to cancel invitation',
+        description: 'Unable to cancel the invitation. Please try again.',
         variant: 'destructive',
       });
+    } finally {
+      setOperationInProgress(null);
     }
   };
 
   const handleUpdateRole = async (_memberId: string, userId: string, newRole: WorkspaceRole) => {
+    setOperationInProgress(`role-${userId}`);
+
     try {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) throw new Error('Not authenticated');
@@ -265,33 +305,79 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
       }
     } catch (error) {
       toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to update role',
+        title: 'Failed to update role',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'Unable to update the member role. Please try again.',
         variant: 'destructive',
       });
+    } finally {
+      setOperationInProgress(null);
     }
   };
 
   const handleRemoveMember = async (userId: string) => {
+    console.log('Removing member:', userId);
+
+    // Add confirmation dialog
+    const confirmed = window.confirm(
+      'Are you sure you want to remove this member from the workspace?'
+    );
+    if (!confirmed) return;
+
+    // Optimistic update - immediately remove from UI
+    const previousMembers = members;
+    setMembers(members.filter((m) => m.user_id !== userId));
+
+    // Show loading toast
+    const loadingToast = toast({
+      title: 'Removing member...',
+      description: 'Please wait while we update the workspace',
+      duration: 30000, // Long duration, will dismiss manually
+    });
+
     try {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) throw new Error('Not authenticated');
 
+      console.log('Calling removeMember with:', {
+        workspaceId,
+        userId,
+        requestingUserId: user.user.id,
+      });
       const result = await WorkspaceService.removeMember(workspaceId, user.user.id, userId);
+      console.log('Remove member result:', result);
 
       if (result.success) {
+        // Dismiss loading toast
+        loadingToast.dismiss();
+
         toast({
           title: 'Member removed',
           description: 'Team member has been removed from the workspace',
         });
+
+        // Fetch fresh data to ensure consistency
         await fetchMembers();
       } else {
-        throw new Error(result.error);
+        throw new Error(result.error || 'Failed to remove member');
       }
     } catch (error) {
+      console.error('Error removing member:', error);
+
+      // Revert optimistic update on error
+      setMembers(previousMembers);
+
+      // Dismiss loading toast
+      loadingToast.dismiss();
+
       toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to remove member',
+        title: 'Failed to remove member',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'Unable to remove the team member. Please try again.',
         variant: 'destructive',
       });
     }
@@ -344,8 +430,8 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
   const canInviteMore = members.length < maxMembers;
 
   return (
-    <div className="space-y-6 w-full">
-      <Card className="w-full overflow-hidden">
+    <>
+      <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="min-w-0">
@@ -473,7 +559,9 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
                   <div className="space-y-3">
                     <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                       <Clock className="h-4 w-4" />
-                      <span>Pending Invitations ({pendingInvitations.length})</span>
+                      <span>
+                        Pending Invitations ({pendingInvitations.length}) - Awaiting Acceptance
+                      </span>
                     </div>
                     <div className="space-y-2">
                       {pendingInvitations.map((invitation) => (
@@ -488,6 +576,10 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
                             <div className="min-w-0 flex-1">
                               <p className="text-sm font-medium truncate">{invitation.email}</p>
                               <div className="flex items-center gap-3 mt-1 flex-wrap">
+                                <Badge variant="secondary" className="text-xs flex-shrink-0">
+                                  <Clock className="h-3 w-3 mr-1" />
+                                  Waiting for acceptance
+                                </Badge>
                                 <Badge variant="outline" className="text-xs flex-shrink-0">
                                   {invitation.role}
                                 </Badge>
@@ -505,15 +597,23 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
                                 onClick={() =>
                                   handleResendInvitation(invitation.id, invitation.email)
                                 }
+                                disabled={operationInProgress === `resend-${invitation.id}`}
                               >
-                                <Send className="h-3 w-3 mr-1" />
-                                Resend
+                                {operationInProgress === `resend-${invitation.id}` ? (
+                                  <>Sending...</>
+                                ) : (
+                                  <>
+                                    <Send className="h-3 w-3 mr-1" />
+                                    Resend
+                                  </>
+                                )}
                               </Button>
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleCancelInvitation(invitation.id)}
                                 className="text-destructive hover:text-destructive"
+                                disabled={operationInProgress === `cancel-${invitation.id}`}
                               >
                                 <UserX className="h-3 w-3" />
                               </Button>
@@ -609,6 +709,9 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
                                           variant="ghost"
                                           size="sm"
                                           className="opacity-0 group-hover:opacity-100 transition-opacity"
+                                          disabled={
+                                            operationInProgress === `role-${member.user_id}`
+                                          }
                                         >
                                           <MoreVertical className="h-4 w-4" />
                                         </Button>
@@ -681,6 +784,6 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
         onClose={() => setUpgradeModalOpen(false)}
         feature="team-members"
       />
-    </div>
+    </>
   );
 }

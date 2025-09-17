@@ -353,6 +353,7 @@ export interface CreateWorkspaceRequest {
  */
 export interface UpdateWorkspaceRequest {
   name?: string;
+  slug?: string;
   description?: string;
   visibility?: WorkspaceVisibility;
   settings?: Partial<WorkspaceSettings>;

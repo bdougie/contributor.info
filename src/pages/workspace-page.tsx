@@ -41,8 +41,6 @@ import {
   Search,
   Menu,
   Package,
-  Copy,
-  Check,
 } from '@/components/ui/icon';
 import {
   useReactTable,
@@ -1875,470 +1873,6 @@ function WorkspaceActivity({
   );
 }
 
-function WorkspaceSettings({
-  workspace,
-  onWorkspaceUpdate,
-}: {
-  workspace: Workspace;
-  onWorkspaceUpdate: (updates: Partial<Workspace>) => void;
-}) {
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [isEditingSlug, setIsEditingSlug] = useState(false);
-  const [isEditingDescription, setIsEditingDescription] = useState(false);
-  const [workspaceName, setWorkspaceName] = useState(workspace.name);
-  const [workspaceSlug, setWorkspaceSlug] = useState(workspace.slug);
-  const [workspaceDescription, setWorkspaceDescription] = useState(workspace.description || '');
-  const [isSaving, setIsSaving] = useState(false);
-  const [copiedField, setCopiedField] = useState<string | null>(null);
-  const [slugError, setSlugError] = useState<string | null>(null);
-
-  const formatSlug = (value: string) => {
-    // Convert to lowercase, replace spaces with hyphens, remove special characters
-    return value
-      .toLowerCase()
-      .replace(/\s+/g, '-')
-      .replace(/[^a-z0-9-]/g, '')
-      .replace(/-+/g, '-')
-      .replace(/^-|-$/g, '');
-  };
-
-  const checkSlugUniqueness = async (slug: string) => {
-    if (!slug) return false;
-
-    const { data, error } = await supabase
-      .from('workspaces')
-      .select('id')
-      .eq('slug', slug)
-      .neq('id', workspace.id)
-      .maybeSingle();
-
-    return !data && !error;
-  };
-
-  const handleSaveName = async () => {
-    if (!workspaceName.trim()) {
-      toast.error('Workspace name cannot be empty');
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      const { error } = await supabase
-        .from('workspaces')
-        .update({ name: workspaceName.trim() })
-        .eq('id', workspace.id);
-
-      if (error) throw error;
-
-      // Update the workspace state immediately
-      onWorkspaceUpdate({ name: workspaceName.trim() });
-
-      toast.success('Workspace name updated successfully');
-      setIsEditingName(false);
-    } catch (error) {
-      console.error('Failed to update workspace name:', error);
-      toast.error('Failed to update workspace name');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleSaveSlug = async () => {
-    const formattedSlug = formatSlug(workspaceSlug);
-
-    if (!formattedSlug) {
-      toast.error('Slug cannot be empty');
-      return;
-    }
-
-    // Check if slug has actually changed
-    if (formattedSlug === workspace.slug) {
-      // No change, just exit edit mode
-      setIsEditingSlug(false);
-      return;
-    }
-
-    // Show warning about breaking links only if slug is different
-    const confirmed = window.confirm(
-      '⚠️ WARNING: Changing your workspace slug will break all existing external links!\n\n' +
-        `Current URL: /i/${workspace.slug}\n` +
-        `New URL: /i/${formattedSlug}\n\n` +
-        'All bookmarks, shared links, and external references will stop working.\n\n' +
-        'Are you sure you want to continue?'
-    );
-
-    if (!confirmed) {
-      setWorkspaceSlug(workspace.slug);
-      setIsEditingSlug(false);
-      return;
-    }
-
-    setIsSaving(true);
-    setSlugError(null);
-
-    try {
-      // Check if slug is unique
-      const isUnique = await checkSlugUniqueness(formattedSlug);
-
-      if (!isUnique) {
-        setSlugError('This slug is already taken. Please choose another.');
-        setIsSaving(false);
-        return;
-      }
-
-      const { error } = await supabase
-        .from('workspaces')
-        .update({ slug: formattedSlug })
-        .eq('id', workspace.id);
-
-      if (error) {
-        if (error.code === '23505') {
-          // Unique constraint violation
-          setSlugError('This slug is already taken. Please choose another.');
-        } else {
-          throw error;
-        }
-        return;
-      }
-
-      // Update the workspace state immediately
-      onWorkspaceUpdate({ slug: formattedSlug });
-
-      toast.success('Workspace slug updated successfully. Redirecting to new URL...');
-      setIsEditingSlug(false);
-
-      // Redirect to the new slug URL
-      setTimeout(() => {
-        window.location.href = `/i/${formattedSlug}/settings`;
-      }, 1500);
-    } catch (error) {
-      console.error('Failed to update workspace slug:', error);
-      toast.error('Failed to update workspace slug');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleCancelName = () => {
-    setWorkspaceName(workspace.name);
-    setIsEditingName(false);
-  };
-
-  const handleCancelSlug = () => {
-    setWorkspaceSlug(workspace.slug);
-    setIsEditingSlug(false);
-    setSlugError(null);
-  };
-
-  const handleSaveDescription = async () => {
-    const trimmedDescription = workspaceDescription.trim();
-
-    if (trimmedDescription.length > 500) {
-      toast.error('Description cannot exceed 500 characters');
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      const { error } = await supabase
-        .from('workspaces')
-        .update({ description: trimmedDescription || null })
-        .eq('id', workspace.id);
-
-      if (error) throw error;
-
-      // Update the workspace state immediately
-      onWorkspaceUpdate({ description: trimmedDescription || null });
-
-      toast.success('Workspace description updated successfully');
-      setIsEditingDescription(false);
-    } catch (error) {
-      console.error('Failed to update workspace description:', error);
-      toast.error('Failed to update workspace description');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleCancelDescription = () => {
-    setWorkspaceDescription(workspace.description || '');
-    setIsEditingDescription(false);
-  };
-
-  const handleCopy = async (value: string, field: string) => {
-    try {
-      await navigator.clipboard.writeText(value);
-      setCopiedField(field);
-      toast.success(`${field} copied to clipboard`);
-
-      // Reset the copied state after 2 seconds
-      setTimeout(() => {
-        setCopiedField(null);
-      }, 2000);
-    } catch (error) {
-      console.error('Failed to copy:', error);
-      toast.error('Failed to copy to clipboard');
-    }
-  };
-
-  return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>General Settings</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <label className="text-sm font-medium text-foreground">Workspace Name</label>
-            <div className="mt-2 flex items-center gap-2">
-              {isEditingName ? (
-                <>
-                  <input
-                    type="text"
-                    value={workspaceName}
-                    onChange={(e) => setWorkspaceName(e.target.value)}
-                    className="flex-1 px-3 py-2 text-sm border border-input bg-background rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                    placeholder="Enter workspace name"
-                    disabled={isSaving}
-                  />
-                  <Button onClick={handleSaveName} size="sm" disabled={isSaving}>
-                    {isSaving ? 'Saving...' : 'Save'}
-                  </Button>
-                  <Button
-                    onClick={handleCancelName}
-                    size="sm"
-                    variant="outline"
-                    disabled={isSaving}
-                  >
-                    Cancel
-                  </Button>
-                </>
-              ) : (
-                <div
-                  className="flex-1 flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded px-2 py-1 transition-colors"
-                  onClick={() => setIsEditingName(true)}
-                  title="Click to edit"
-                >
-                  <p className="text-sm">{workspace.name}</p>
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="text-muted-foreground"
-                  >
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                  </svg>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-foreground">Workspace Slug</label>
-            {isEditingSlug && (
-              <p className="text-xs text-muted-foreground mt-1">
-                ⚠️ Changing the slug will break all existing external links to this workspace
-              </p>
-            )}
-            <div className="mt-2 flex items-center gap-2">
-              {isEditingSlug ? (
-                <>
-                  <input
-                    type="text"
-                    value={workspaceSlug}
-                    onChange={(e) => {
-                      setWorkspaceSlug(e.target.value);
-                      setSlugError(null);
-                    }}
-                    className="flex-1 px-3 py-2 text-sm border border-input bg-background rounded-md focus:outline-none focus:ring-2 focus:ring-primary font-mono"
-                    placeholder="workspace-slug"
-                    disabled={isSaving}
-                  />
-                  <Button onClick={handleSaveSlug} size="sm" disabled={isSaving}>
-                    {isSaving ? 'Saving...' : 'Save'}
-                  </Button>
-                  <Button
-                    onClick={handleCancelSlug}
-                    size="sm"
-                    variant="outline"
-                    disabled={isSaving}
-                  >
-                    Cancel
-                  </Button>
-                </>
-              ) : (
-                <div className="flex-1 flex items-center gap-2">
-                  <div
-                    className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded px-2 py-1 transition-colors flex-1"
-                    onClick={() => setIsEditingSlug(true)}
-                    title="Click to edit"
-                  >
-                    <p className="text-sm font-mono">{workspace.slug}</p>
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="text-muted-foreground"
-                    >
-                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                    </svg>
-                  </div>
-                </div>
-              )}
-            </div>
-            {slugError && <p className="text-xs text-red-500 mt-2">{slugError}</p>}
-            {isEditingSlug && (
-              <p className="text-xs text-muted-foreground mt-2">
-                Preview: /i/{formatSlug(workspaceSlug) || 'workspace-slug'}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-foreground">Description</label>
-            <div className="mt-2">
-              {isEditingDescription ? (
-                <div className="space-y-2">
-                  <textarea
-                    value={workspaceDescription}
-                    onChange={(e) => setWorkspaceDescription(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-input bg-background rounded-md focus:outline-none focus:ring-2 focus:ring-primary resize-none"
-                    placeholder="Add a description to help others understand what this workspace is for"
-                    rows={3}
-                    maxLength={500}
-                    disabled={isSaving}
-                  />
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs text-muted-foreground">
-                      {workspaceDescription.length}/500 characters
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <Button onClick={handleSaveDescription} size="sm" disabled={isSaving}>
-                        {isSaving ? 'Saving...' : 'Save'}
-                      </Button>
-                      <Button
-                        onClick={handleCancelDescription}
-                        size="sm"
-                        variant="outline"
-                        disabled={isSaving}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div
-                  className="min-h-[60px] flex items-start gap-2 cursor-pointer hover:bg-muted/50 rounded px-2 py-2 transition-colors"
-                  onClick={() => setIsEditingDescription(true)}
-                  title="Click to edit"
-                >
-                  <div className="flex-1">
-                    {workspace.description ? (
-                      <p className="text-sm text-foreground leading-relaxed">
-                        {workspace.description}
-                      </p>
-                    ) : (
-                      <p className="text-sm text-muted-foreground italic">
-                        Add a description to help others understand what this workspace is for
-                      </p>
-                    )}
-                  </div>
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="text-muted-foreground mt-0.5 flex-shrink-0"
-                  >
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                  </svg>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="pt-4 border-t">
-            <p className="text-sm text-muted-foreground">
-              More settings coming soon: member management, repository settings, permissions, and
-              integrations.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Workspace Information</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Workspace ID</span>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-mono">{workspace.id}</span>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-6 w-6 p-0"
-                onClick={() => handleCopy(workspace.id, 'Workspace ID')}
-              >
-                {copiedField === 'Workspace ID' ? (
-                  <Check className="h-3 w-3" />
-                ) : (
-                  <Copy className="h-3 w-3" />
-                )}
-              </Button>
-            </div>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Workspace Slug</span>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-mono">{workspace.slug}</span>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-6 w-6 p-0"
-                onClick={() => handleCopy(workspace.slug, 'Workspace Slug')}
-              >
-                {copiedField === 'Workspace Slug' ? (
-                  <Check className="h-3 w-3" />
-                ) : (
-                  <Copy className="h-3 w-3" />
-                )}
-              </Button>
-            </div>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-sm text-muted-foreground">Tier</span>
-            <span className="text-sm capitalize">{workspace.tier}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-sm text-muted-foreground">Created</span>
-            <span className="text-sm">{new Date(workspace.created_at).toLocaleDateString()}</span>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
 function WorkspacePage() {
   const { workspaceId } = useParams<{ workspaceId: string }>();
   const navigate = useNavigate();
@@ -2433,7 +1967,30 @@ function WorkspacePage() {
             .maybeSingle();
 
           if (memberData) {
-            setCurrentMember(memberData);
+            // Fetch user details for the current member
+            const { data: userData } = await supabase
+              .from('app_users')
+              .select('auth_user_id, email, display_name, avatar_url')
+              .eq('auth_user_id', user.id)
+              .maybeSingle();
+
+            const memberWithUser: WorkspaceMemberWithUser = {
+              ...memberData,
+              user: userData
+                ? {
+                    id: userData.auth_user_id,
+                    email: userData.email,
+                    display_name: userData.display_name || userData.email?.split('@')[0],
+                    avatar_url: userData.avatar_url,
+                  }
+                : {
+                    id: user.id,
+                    email: user.email || '',
+                    display_name: user.email?.split('@')[0] || 'User',
+                    avatar_url: null,
+                  },
+            };
+            setCurrentMember(memberWithUser);
           }
 
           const { count } = await supabase
@@ -3474,19 +3031,26 @@ function WorkspacePage() {
 
           <TabsContent value="settings" className="mt-6">
             <div className="container max-w-7xl mx-auto">
-              {currentMember ? (
-                <WorkspaceSettingsComponent
-                  workspace={workspace}
-                  currentMember={currentMember}
-                  memberCount={memberCount}
-                  onWorkspaceUpdate={handleWorkspaceUpdate}
-                />
-              ) : (
-                <WorkspaceSettings
-                  workspace={workspace}
-                  onWorkspaceUpdate={handleWorkspaceUpdate}
-                />
-              )}
+              <WorkspaceSettingsComponent
+                workspace={workspace}
+                currentMember={
+                  currentMember || {
+                    id: '',
+                    workspace_id: workspace.id,
+                    user_id: '',
+                    role: 'contributor',
+                    accepted_at: null,
+                    invited_at: null,
+                    invited_by: null,
+                    notifications_enabled: true,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                    last_active_at: new Date().toISOString(),
+                  }
+                }
+                memberCount={memberCount}
+                onWorkspaceUpdate={handleWorkspaceUpdate}
+              />
             </div>
           </TabsContent>
         </Tabs>
