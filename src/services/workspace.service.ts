@@ -60,6 +60,22 @@ function isValidEmail(email: string): boolean {
 }
 
 /**
+ * Helper function to generate a UUID v4
+ */
+function generateUUID(): string {
+  // Use crypto API if available (browser/Node 16+)
+  if (typeof globalThis !== 'undefined' && globalThis.crypto && globalThis.crypto.randomUUID) {
+    return globalThis.crypto.randomUUID();
+  }
+  // Fallback UUID v4 generation
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+/**
  * Helper function to sanitize string input
  */
 function sanitizeInput(input: string): string {
@@ -999,76 +1015,101 @@ export class WorkspaceService {
         };
       }
 
-      // Find user by sanitized email
-      const { data: userData, error: userError } = await supabase
+      // Check if there's already a pending invitation for this email
+      const { data: existingInvitation } = await supabase
+        .from('workspace_invitations')
+        .select('id, status')
+        .eq('workspace_id', workspaceId)
+        .eq('email', sanitizedEmail)
+        .eq('status', 'pending')
+        .maybeSingle();
+
+      if (existingInvitation) {
+        return {
+          success: false,
+          error: 'An invitation has already been sent to this email address',
+          statusCode: 409,
+        };
+      }
+
+      // Check if user exists and is already a member (optional check)
+      const { data: userData } = await supabase
         .from('users')
         .select('id')
         .eq('email', sanitizedEmail)
         .maybeSingle();
 
-      if (userError || !userData) {
-        return {
-          success: false,
-          error: 'User not found. They must have an account first.',
-          statusCode: 404,
-        };
-      }
-
-      // Check if user is already a member
-      const existingMember = workspace.workspace_members?.find((m) => m.user_id === userData.id);
-
-      if (existingMember) {
-        return {
-          success: false,
-          error: 'User is already a member of this workspace',
-          statusCode: 409,
-        };
-      }
-
-      // Create member invitation (using transaction via RLS)
-      const { data: newMember, error: inviteError } = await supabase
-        .from('workspace_members')
-        .insert({
-          workspace_id: workspaceId,
-          user_id: userData.id,
-          role,
-          invited_by: invitedBy,
-          invited_at: new Date().toISOString(),
-        })
-        .select(
-          `
-          *,
-          user:users!workspace_members_user_id_fkey(
-            id,
-            email,
-            display_name,
-            avatar_url
-          )
-        `
-        )
-        .maybeSingle();
-
-      if (inviteError) {
-        console.error('Invite member error:', inviteError);
-        // Check for race condition
-        if (inviteError.code === '23505') {
-          // Unique constraint violation
+      if (userData) {
+        // Check if existing user is already a member
+        const existingMember = workspace.workspace_members?.find((m) => m.user_id === userData.id);
+        if (existingMember) {
           return {
             success: false,
-            error: 'User was already invited by another admin',
+            error: 'User is already a member of this workspace',
             statusCode: 409,
           };
         }
+      }
+
+      // Create invitation (works for both existing and new users)
+      const invitationToken = generateUUID();
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiration
+
+      const { data: invitation, error: inviteError } = await supabase
+        .from('workspace_invitations')
+        .insert({
+          workspace_id: workspaceId,
+          email: sanitizedEmail,
+          role,
+          invitation_token: invitationToken,
+          invited_by: invitedBy,
+          invited_at: new Date().toISOString(),
+          expires_at: expiresAt.toISOString(),
+          status: 'pending',
+        })
+        .select('*')
+        .maybeSingle();
+
+      if (inviteError) {
+        console.error('Create invitation error:', inviteError);
         return {
           success: false,
-          error: 'Failed to invite member',
+          error: 'Failed to create invitation',
           statusCode: 500,
         };
       }
 
+      // TODO: Send invitation email with invitation link
+      // The email should contain a link like:
+      // ${APP_URL}/invite/accept/${invitationToken}
+
+      // Return a success response with invitation details
+      // We'll return a simplified object since this is an invitation, not a full member
+      // Using 'as unknown as' to bypass strict type checking for pending invitations
       return {
         success: true,
-        data: newMember as WorkspaceMemberWithUser,
+        data: {
+          id: invitation.id,
+          workspace_id: workspaceId,
+          user_id: generateUUID(), // Use a temporary ID instead of null for type compatibility
+          role,
+          invited_by: invitedBy,
+          invited_at: invitation.invited_at,
+          accepted_at: null,
+          notifications_enabled: false,
+          created_at: invitation.invited_at,
+          updated_at: invitation.invited_at,
+          last_active_at: null,
+          user: {
+            id: generateUUID(), // Temporary ID for UI
+            email: sanitizedEmail,
+            display_name: sanitizedEmail.split('@')[0],
+            avatar_url: undefined,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+        } as unknown as WorkspaceMemberWithUser,
         statusCode: 201,
       };
     } catch (error) {
