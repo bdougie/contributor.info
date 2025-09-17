@@ -926,7 +926,7 @@ export class WorkspaceService {
           `
           id,
           owner_id,
-          subscription_tier,
+          tier,
           workspace_members (
             id,
             user_id,
@@ -967,7 +967,7 @@ export class WorkspaceService {
         workspace.workspace_members?.filter((m) => m.accepted_at).length || 0;
 
       // Handle missing subscription data gracefully
-      const tier = (workspace.subscription_tier as WorkspaceTier) || 'free';
+      const tier = (workspace.tier as WorkspaceTier) || 'free';
 
       // Check permissions with fallback for missing subscription data
       const permissionCheck = WorkspacePermissionService.canInviteMembers(
