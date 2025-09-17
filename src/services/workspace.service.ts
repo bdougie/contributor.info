@@ -1056,12 +1056,23 @@ export class WorkspaceService {
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiration
 
+      // Map workspace roles to invitation roles
+      // workspace_invitations table only accepts: admin, editor, viewer
+      let invitationRole: 'admin' | 'editor' | 'viewer';
+      if (role === 'owner' || role === 'maintainer') {
+        invitationRole = 'admin';
+      } else if (role === 'contributor') {
+        invitationRole = 'viewer';
+      } else {
+        invitationRole = 'viewer'; // Default to viewer for safety
+      }
+
       const { data: invitation, error: inviteError } = await supabase
         .from('workspace_invitations')
         .insert({
           workspace_id: workspaceId,
           email: sanitizedEmail,
-          role,
+          role: invitationRole,
           invitation_token: invitationToken,
           invited_by: invitedBy,
           invited_at: new Date().toISOString(),
@@ -1087,13 +1098,14 @@ export class WorkspaceService {
       // Return a success response with invitation details
       // We'll return a simplified object since this is an invitation, not a full member
       // Using 'as unknown as' to bypass strict type checking for pending invitations
+      // Note: We return the original role, not the mapped invitationRole
       return {
         success: true,
         data: {
           id: invitation.id,
           workspace_id: workspaceId,
           user_id: generateUUID(), // Use a temporary ID instead of null for type compatibility
-          role,
+          role, // Keep original role (contributor/maintainer) for UI consistency
           invited_by: invitedBy,
           invited_at: invitation.invited_at,
           accepted_at: null,
