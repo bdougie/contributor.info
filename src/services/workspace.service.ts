@@ -269,12 +269,13 @@ export class WorkspaceService {
 
       // Prepare update data
       const updateData: Partial<
-        Pick<Workspace, 'name' | 'description' | 'visibility' | 'settings' | 'updated_at'>
+        Pick<Workspace, 'name' | 'slug' | 'description' | 'visibility' | 'settings' | 'updated_at'>
       > = {
         updated_at: new Date().toISOString(),
       };
 
       if (data.name !== undefined) updateData.name = data.name;
+      if (data.slug !== undefined) updateData.slug = data.slug;
       if (data.description !== undefined) updateData.description = data.description;
       if (data.visibility !== undefined) updateData.visibility = data.visibility;
       if (data.settings !== undefined) updateData.settings = data.settings;

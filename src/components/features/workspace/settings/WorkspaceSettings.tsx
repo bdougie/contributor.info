@@ -41,6 +41,7 @@ export function WorkspaceSettings({
   // Form state for general settings
   const [formData, setFormData] = useState({
     name: workspace.name,
+    slug: workspace.slug,
     description: workspace.description || '',
     visibility: workspace.visibility,
     notifications: {
@@ -90,6 +91,7 @@ export function WorkspaceSettings({
     try {
       const response = await WorkspaceService.updateWorkspace(workspace.id, currentMember.user_id, {
         name: formData.name,
+        slug: formData.slug,
         description: formData.description || undefined,
         visibility: formData.visibility as WorkspaceVisibility,
         settings: {
@@ -186,6 +188,23 @@ export function WorkspaceSettings({
               placeholder="Enter workspace name"
               className="mt-1"
             />
+          </div>
+
+          <div>
+            <Label htmlFor="slug">Workspace Slug</Label>
+            <Input
+              id="slug"
+              value={formData.slug}
+              onChange={(e) => handleInputChange('slug', e.target.value)}
+              disabled={!permissions.canEditSettings || isSaving}
+              placeholder="workspace-url-slug"
+              className="mt-1"
+              pattern="^[a-z0-9-]+$"
+            />
+            <p className="text-sm text-muted-foreground mt-1">
+              URL-friendly identifier for your workspace (lowercase letters, numbers, and hyphens
+              only)
+            </p>
           </div>
 
           <div>
