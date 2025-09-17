@@ -61,11 +61,24 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
   const canInviteMore = maxMembers > currentMemberCount;
   const remainingInvites = Math.max(0, maxMembers - currentMemberCount);
 
+  const validateEmail = (email: string): boolean => {
+    // RFC 5322 compliant email regex
+    const emailRegex =
+      /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+    return emailRegex.test(email);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!canInviteMore) {
       setShowUpgradeModal(true);
+      return;
+    }
+
+    // Validate email format
+    if (!validateEmail(email)) {
+      setError('Please enter a valid email address');
       return;
     }
 
@@ -79,6 +92,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
       } = await supabase.auth.getUser();
       if (!user) {
         setError('You must be logged in to invite members');
+        setIsSubmitting(false);
         return;
       }
 
@@ -90,10 +104,18 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
         setError(null);
         onClose();
       } else {
-        setError(result.error || 'Failed to send invitation');
+        // Provide more user-friendly error messages
+        if (result.error?.includes('already')) {
+          setError('This person is already a member or has a pending invitation');
+        } else if (result.error?.includes('limit')) {
+          setError('You have reached the maximum number of team members for your plan');
+        } else {
+          setError('Unable to send invitation. Please try again later.');
+        }
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to send invitation');
+      console.error('Invitation error:', err);
+      setError('An unexpected error occurred. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

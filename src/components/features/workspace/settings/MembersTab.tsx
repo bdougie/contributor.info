@@ -61,6 +61,7 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [operationInProgress, setOperationInProgress] = useState<string | null>(null);
   const { toast } = useToast();
   const limits = useSubscriptionLimits();
 
@@ -192,6 +193,8 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
   };
 
   const handleResendInvitation = async (invitationId: string, email: string) => {
+    setOperationInProgress(`resend-${invitationId}`);
+
     try {
       // Update the invitation's expires_at to extend it by 7 days
       const { error } = await supabase
@@ -242,13 +245,17 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
       console.error('Error resending invitation:', error);
       toast({
         title: 'Error',
-        description: 'Failed to resend invitation',
+        description: 'Unable to resend the invitation. Please try again.',
         variant: 'destructive',
       });
+    } finally {
+      setOperationInProgress(null);
     }
   };
 
   const handleCancelInvitation = async (invitationId: string) => {
+    setOperationInProgress(`cancel-${invitationId}`);
+
     try {
       const { error } = await supabase
         .from('workspace_invitations')
@@ -265,13 +272,17 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
     } catch {
       toast({
         title: 'Error',
-        description: 'Failed to cancel invitation',
+        description: 'Unable to cancel the invitation. Please try again.',
         variant: 'destructive',
       });
+    } finally {
+      setOperationInProgress(null);
     }
   };
 
   const handleUpdateRole = async (_memberId: string, userId: string, newRole: WorkspaceRole) => {
+    setOperationInProgress(`role-${userId}`);
+
     try {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) throw new Error('Not authenticated');
@@ -294,10 +305,15 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
       }
     } catch (error) {
       toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to update role',
+        title: 'Failed to update role',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'Unable to update the member role. Please try again.',
         variant: 'destructive',
       });
+    } finally {
+      setOperationInProgress(null);
     }
   };
 
@@ -309,6 +325,17 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
       'Are you sure you want to remove this member from the workspace?'
     );
     if (!confirmed) return;
+
+    // Optimistic update - immediately remove from UI
+    const previousMembers = members;
+    setMembers(members.filter((m) => m.user_id !== userId));
+
+    // Show loading toast
+    const loadingToast = toast({
+      title: 'Removing member...',
+      description: 'Please wait while we update the workspace',
+      duration: 30000, // Long duration, will dismiss manually
+    });
 
     try {
       const { data: user } = await supabase.auth.getUser();
@@ -323,23 +350,34 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
       console.log('Remove member result:', result);
 
       if (result.success) {
+        // Dismiss loading toast
+        loadingToast.dismiss();
+
         toast({
           title: 'Member removed',
           description: 'Team member has been removed from the workspace',
         });
-        // Force refresh by clearing members first
-        setMembers([]);
-        // Add small delay to ensure database consistency
-        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        // Fetch fresh data to ensure consistency
         await fetchMembers();
       } else {
         throw new Error(result.error || 'Failed to remove member');
       }
     } catch (error) {
       console.error('Error removing member:', error);
+
+      // Revert optimistic update on error
+      setMembers(previousMembers);
+
+      // Dismiss loading toast
+      loadingToast.dismiss();
+
       toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to remove member',
+        title: 'Failed to remove member',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'Unable to remove the team member. Please try again.',
         variant: 'destructive',
       });
     }
@@ -559,15 +597,23 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
                                 onClick={() =>
                                   handleResendInvitation(invitation.id, invitation.email)
                                 }
+                                disabled={operationInProgress === `resend-${invitation.id}`}
                               >
-                                <Send className="h-3 w-3 mr-1" />
-                                Resend
+                                {operationInProgress === `resend-${invitation.id}` ? (
+                                  <>Sending...</>
+                                ) : (
+                                  <>
+                                    <Send className="h-3 w-3 mr-1" />
+                                    Resend
+                                  </>
+                                )}
                               </Button>
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleCancelInvitation(invitation.id)}
                                 className="text-destructive hover:text-destructive"
+                                disabled={operationInProgress === `cancel-${invitation.id}`}
                               >
                                 <UserX className="h-3 w-3" />
                               </Button>
@@ -663,6 +709,9 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
                                           variant="ghost"
                                           size="sm"
                                           className="opacity-0 group-hover:opacity-100 transition-opacity"
+                                          disabled={
+                                            operationInProgress === `role-${member.user_id}`
+                                          }
                                         >
                                           <MoreVertical className="h-4 w-4" />
                                         </Button>
