@@ -14,7 +14,7 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { Trash2, Check } from '@/components/ui/icon';
+import { Trash2, Check, Copy } from '@/components/ui/icon';
 import { MembersTab } from './MembersTab';
 import { supabase } from '@/lib/supabase';
 import { WorkspaceService } from '@/services/workspace.service';
@@ -229,6 +229,94 @@ export function WorkspaceSettings({
               {isSaving ? 'Saving...' : 'Save Changes'}
             </Button>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Debug Information */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Debug Information</CardTitle>
+          <CardDescription>
+            Technical details for debugging and integration purposes
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <Label className="text-muted-foreground">Workspace ID</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <code className="text-sm bg-muted px-2 py-1 rounded font-mono">{workspace.id}</code>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    navigator.clipboard.writeText(workspace.id);
+                    toast({
+                      title: 'Copied',
+                      description: 'Workspace ID copied to clipboard',
+                    });
+                  }}
+                >
+                  <Copy className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-muted-foreground">Workspace Slug</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <code className="text-sm bg-muted px-2 py-1 rounded font-mono">
+                  {workspace.slug}
+                </code>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    navigator.clipboard.writeText(workspace.slug);
+                    toast({
+                      title: 'Copied',
+                      description: 'Workspace slug copied to clipboard',
+                    });
+                  }}
+                >
+                  <Copy className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-muted-foreground">Owner ID</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <code className="text-sm bg-muted px-2 py-1 rounded font-mono text-xs">
+                  {workspace.owner_id}
+                </code>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    navigator.clipboard.writeText(workspace.owner_id);
+                    toast({
+                      title: 'Copied',
+                      description: 'Owner ID copied to clipboard',
+                    });
+                  }}
+                >
+                  <Copy className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-muted-foreground">Created</Label>
+              <p className="text-sm mt-1">
+                {new Date(workspace.created_at).toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                })}
+              </p>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
