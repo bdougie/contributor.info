@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,7 +14,7 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { Settings, Users, Trash2, Check } from '@/components/ui/icon';
+import { Trash2, Check } from '@/components/ui/icon';
 import { MembersTab } from './MembersTab';
 import { supabase } from '@/lib/supabase';
 import { WorkspaceService } from '@/services/workspace.service';
@@ -35,7 +34,6 @@ export function WorkspaceSettings({
   memberCount,
   onWorkspaceUpdate,
 }: WorkspaceSettingsProps) {
-  const [activeTab, setActiveTab] = useState('general');
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
@@ -168,169 +166,144 @@ export function WorkspaceSettings({
   };
 
   return (
-    <div className="w-full">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="general" className="flex items-center gap-2">
-            <Settings className="h-4 w-4" />
-            General
-          </TabsTrigger>
-          <TabsTrigger value="members" className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            Members
-            {memberCount > 0 && (
-              <span className="ml-1 px-1.5 py-0.5 text-xs font-medium rounded-full bg-secondary text-secondary-foreground">
-                {memberCount}
-              </span>
-            )}
-          </TabsTrigger>
-        </TabsList>
+    <div className="w-full space-y-6">
+      {/* General Information */}
+      <Card>
+        <CardHeader>
+          <CardTitle>General Information</CardTitle>
+          <CardDescription>
+            Update your workspace name, description, and visibility settings
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label htmlFor="name">Workspace Name</Label>
+            <Input
+              id="name"
+              value={formData.name}
+              onChange={(e) => handleInputChange('name', e.target.value)}
+              disabled={!permissions.canEditSettings || isSaving}
+              placeholder="Enter workspace name"
+              className="mt-1"
+            />
+          </div>
 
-        {/* General Settings Tab */}
-        <TabsContent value="general" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>General Information</CardTitle>
-              <CardDescription>
-                Update your workspace name, description, and visibility settings
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="name">Workspace Name</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
-                  disabled={!permissions.canEditSettings || isSaving}
-                  placeholder="Enter workspace name"
-                  className="mt-1"
-                />
-              </div>
+          <div>
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              value={formData.description}
+              onChange={(e) => handleInputChange('description', e.target.value)}
+              disabled={!permissions.canEditSettings || isSaving}
+              placeholder="Describe your workspace..."
+              className="mt-1"
+              rows={3}
+            />
+          </div>
 
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => handleInputChange('description', e.target.value)}
-                  disabled={!permissions.canEditSettings || isSaving}
-                  placeholder="Describe your workspace..."
-                  className="mt-1"
-                  rows={3}
-                />
-              </div>
+          <div>
+            <Label htmlFor="visibility">Visibility</Label>
+            <Select
+              value={formData.visibility}
+              onValueChange={(value) => handleInputChange('visibility', value)}
+              disabled={!permissions.canEditSettings || isSaving}
+            >
+              <SelectTrigger id="visibility" className="mt-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="public">Public</SelectItem>
+                <SelectItem value="private">Private</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-sm text-muted-foreground mt-1">
+              {formData.visibility === 'public'
+                ? 'Anyone can view this workspace'
+                : 'Only members can view this workspace'}
+            </p>
+          </div>
 
+          {permissions.canEditSettings && (
+            <Button onClick={handleSaveGeneralSettings} disabled={isSaving}>
+              <Check className="h-4 w-4 mr-2" />
+              {isSaving ? 'Saving...' : 'Save Changes'}
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Notification Preferences */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Notification Preferences</CardTitle>
+          <CardDescription>
+            Configure how you receive notifications for this workspace
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <Label htmlFor="email-notifications">Email Notifications</Label>
+              <p className="text-sm text-muted-foreground">
+                Receive email updates about workspace activity
+              </p>
+            </div>
+            <Switch
+              id="email-notifications"
+              checked={formData.notifications.email}
+              onCheckedChange={(checked) => handleInputChange('notifications.email', checked)}
+              disabled={isSaving}
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <Label htmlFor="in-app-notifications">In-App Notifications</Label>
+              <p className="text-sm text-muted-foreground">
+                Show notifications within the application
+              </p>
+            </div>
+            <Switch
+              id="in-app-notifications"
+              checked={formData.notifications.in_app}
+              onCheckedChange={(checked) => handleInputChange('notifications.in_app', checked)}
+              disabled={isSaving}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Team Members Section */}
+      <MembersTab
+        workspaceId={workspace.id}
+        currentUserRole={currentMember.role}
+        tier={workspace.tier}
+        memberCount={memberCount}
+      />
+
+      {/* Danger Zone */}
+      {permissions.canDeleteWorkspace && (
+        <Card className="border-destructive">
+          <CardHeader>
+            <CardTitle className="text-destructive">Danger Zone</CardTitle>
+            <CardDescription>Permanent actions that cannot be undone</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
               <div>
-                <Label htmlFor="visibility">Visibility</Label>
-                <Select
-                  value={formData.visibility}
-                  onValueChange={(value) => handleInputChange('visibility', value)}
-                  disabled={!permissions.canEditSettings || isSaving}
-                >
-                  <SelectTrigger id="visibility" className="mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="public">Public</SelectItem>
-                    <SelectItem value="private">Private</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {formData.visibility === 'public'
-                    ? 'Anyone can view this workspace'
-                    : 'Only members can view this workspace'}
+                <p className="font-medium">Delete Workspace</p>
+                <p className="text-sm text-muted-foreground">
+                  Permanently delete this workspace and all associated data
                 </p>
               </div>
-
-              {permissions.canEditSettings && (
-                <Button onClick={handleSaveGeneralSettings} disabled={isSaving}>
-                  <Check className="h-4 w-4 mr-2" />
-                  {isSaving ? 'Saving...' : 'Save Changes'}
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Notification Preferences</CardTitle>
-              <CardDescription>
-                Configure how you receive notifications for this workspace
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label htmlFor="email-notifications">Email Notifications</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Receive email updates about workspace activity
-                  </p>
-                </div>
-                <Switch
-                  id="email-notifications"
-                  checked={formData.notifications.email}
-                  onCheckedChange={(checked) => handleInputChange('notifications.email', checked)}
-                  disabled={isSaving}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label htmlFor="in-app-notifications">In-App Notifications</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Show notifications within the application
-                  </p>
-                </div>
-                <Switch
-                  id="in-app-notifications"
-                  checked={formData.notifications.in_app}
-                  onCheckedChange={(checked) => handleInputChange('notifications.in_app', checked)}
-                  disabled={isSaving}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Danger Zone */}
-          {permissions.canDeleteWorkspace && (
-            <Card className="border-destructive">
-              <CardHeader>
-                <CardTitle className="text-destructive">Danger Zone</CardTitle>
-                <CardDescription>Permanent actions that cannot be undone</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">Delete Workspace</p>
-                    <p className="text-sm text-muted-foreground">
-                      Permanently delete this workspace and all associated data
-                    </p>
-                  </div>
-                  <Button
-                    variant="destructive"
-                    onClick={handleDeleteWorkspace}
-                    disabled={isLoading}
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete Workspace
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-
-        {/* Members Tab */}
-        <TabsContent value="members" className="space-y-6">
-          <MembersTab
-            workspaceId={workspace.id}
-            currentUserRole={currentMember.role}
-            tier={workspace.tier}
-            memberCount={memberCount}
-          />
-        </TabsContent>
-      </Tabs>
+              <Button variant="destructive" onClick={handleDeleteWorkspace} disabled={isLoading}>
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Workspace
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
