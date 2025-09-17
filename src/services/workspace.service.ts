@@ -68,11 +68,12 @@ function sanitizeInput(input: string): string {
 }
 
 /**
- * Helper function to validate UUID v4 format
+ * Helper function to validate UUID format (any version)
  */
 function isValidUUID(uuid: string): boolean {
-  const uuidV4Regex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  return uuidV4Regex.test(uuid);
+  // More permissive UUID regex that accepts any valid UUID format
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(uuid);
 }
 
 /**
@@ -888,10 +889,6 @@ export class WorkspaceService {
   ): Promise<ServiceResponse<WorkspaceMemberWithUser>> {
     try {
       // Validate UUIDs
-      console.log('Validating UUIDs:', { workspaceId, invitedBy });
-      console.log('isValidUUID(workspaceId):', isValidUUID(workspaceId));
-      console.log('isValidUUID(invitedBy):', isValidUUID(invitedBy));
-
       if (!isValidUUID(workspaceId) || !isValidUUID(invitedBy)) {
         return {
           success: false,

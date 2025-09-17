@@ -92,13 +92,6 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
         emailToInvite = `${inviteValue}@users.noreply.github.com`;
       }
 
-      console.log('Inviting member with:', {
-        workspaceId,
-        invitedBy: user.id,
-        email: emailToInvite,
-        role: selectedRole,
-      });
-
       const result = await WorkspaceService.inviteMember(
         workspaceId,
         user.id,
