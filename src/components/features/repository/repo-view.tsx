@@ -40,7 +40,7 @@ export default function RepoView() {
   const navigate = useNavigate();
   const location = useLocation();
   const timeRange = useTimeRangeStore((state) => state.timeRange);
-  const [includeBots, setIncludeBots]: string = useState(false);
+  const [includeBots, setIncludeBots] = useState<boolean>(false);
   const [isGeneratingUrl, setIsGeneratingUrl] = useState(false);
   const [hasSearchedOnce, setHasSearchedOnce] = useState(false);
   const [showSkeleton, setShowSkeleton] = useState(true);
