@@ -204,12 +204,38 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
 
       if (error) throw error;
 
-      // Trigger email via Supabase Edge Function (Resend integration)
-      // The workspace_invitations table update should trigger the email automatically
-      toast({
-        title: 'Invitation resent',
-        description: `A new invitation email has been sent to ${email}`,
-      });
+      // Trigger email via Supabase Edge Function
+      try {
+        const { error: emailError } = await supabase.functions.invoke(
+          'workspace-invitation-email',
+          {
+            body: {
+              invitationId,
+            },
+          }
+        );
+
+        if (emailError) {
+          console.error('Failed to send invitation email:', emailError);
+          toast({
+            title: 'Warning',
+            description: 'Invitation updated but email could not be sent. Please try again.',
+            variant: 'destructive',
+          });
+        } else {
+          toast({
+            title: 'Invitation resent',
+            description: `A new invitation email has been sent to ${email}`,
+          });
+        }
+      } catch (emailErr) {
+        console.error('Error sending invitation email:', emailErr);
+        toast({
+          title: 'Warning',
+          description: 'Invitation updated but email could not be sent.',
+          variant: 'destructive',
+        });
+      }
 
       await fetchPendingInvitations();
     } catch (error) {

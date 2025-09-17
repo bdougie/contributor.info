@@ -1095,9 +1095,28 @@ export class WorkspaceService {
         };
       }
 
-      // TODO: Send invitation email with invitation link
-      // The email should contain a link like:
-      // ${APP_URL}/invite/accept/${invitationToken}
+      // Send invitation email via Edge Function
+      try {
+        const { error: emailError } = await supabase.functions.invoke(
+          'workspace-invitation-email',
+          {
+            body: {
+              invitationId: invitation.id,
+            },
+          }
+        );
+
+        if (emailError) {
+          console.error('Failed to send invitation email:', emailError);
+          // Don't fail the invitation creation if email fails
+          // The invitation is still valid and can be resent
+        } else {
+          console.log('Invitation email sent successfully');
+        }
+      } catch (emailErr) {
+        console.error('Error sending invitation email:', emailErr);
+        // Don't fail the invitation creation if email fails
+      }
 
       // Return a success response with invitation details
       // We'll return a simplified object since this is an invitation, not a full member
