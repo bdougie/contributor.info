@@ -242,10 +242,10 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
       if (!authorId) {
         console.warn(`PR #${prNumber} has no valid author, skipping PR storage`);
         return {
+          totalItems: 0,
           prStored: false,
           reviewsStored: 0,
           commentsStored: 0,
-          message: 'PR has no valid author (possibly deleted user)',
         };
       }
 
