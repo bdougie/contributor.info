@@ -92,11 +92,22 @@ const POSTHOG_CONFIG = {
   api_host: env.POSTHOG_HOST || 'https://us.i.posthog.com',
   // Privacy-first configuration
   person_profiles: 'identified_only' as const, // Only create profiles for identified users (4x cheaper)
-  autocapture: !env.DEV, // Enable autocapture in production for baseline tracking
+  autocapture: true, // Enable autocapture for better tracking
   capture_pageview: true, // Track page views
   capture_pageleave: true, // Track page leaves
-  disable_session_recording: true, // No session recording for performance
-  advanced_disable_decide: true, // Disable feature flag evaluation
+  disable_session_recording: false, // Enable session recording
+  enable_recording_console_log: false, // Don't record console logs
+  session_recording: {
+    // Session recording configuration - explicitly enable
+    maskAllInputs: true, // Mask sensitive input fields
+    maskTextSelector: '.sensitive', // CSS selector for sensitive text to mask
+    blockSelector: '.no-record', // CSS selector for elements to completely block
+    recordCanvas: false, // Don't record canvas elements for performance
+    recordCrossOriginIframes: false,
+    // Simplified network capture config
+    captureNetworkTelemetry: false, // Disable network capture for now
+  },
+  advanced_disable_decide: false, // Keep enabled to allow session recording to work
   disable_surveys: true, // No surveys
   disable_compression: false, // Keep compression for smaller payloads
   bootstrap: {
@@ -166,6 +177,19 @@ async function loadPostHog(): Promise<PostHogInstance | null> {
     .then(({ default: posthog }) => {
       // Initialize PostHog with privacy-first configuration
       posthog.init(env.POSTHOG_KEY!, POSTHOG_CONFIG);
+
+      // In production, ensure session recording is started
+      if (!env.DEV && posthog.sessionRecording) {
+        // Try to explicitly start session recording
+        if (typeof posthog.sessionRecording.startRecording === 'function') {
+          posthog.sessionRecording.startRecording();
+        }
+
+        // Check if we need to opt in to session recording via main API
+        if (typeof posthog.startSessionRecording === 'function') {
+          posthog.startSessionRecording();
+        }
+      }
 
       // Don't identify users automatically - only after login
       // This uses anonymous events which are 4x cheaper

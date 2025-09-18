@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { BarChart3, Lock, Loader2, AlertCircle } from '@/components/ui/icon';
 import { useGitHubAuth } from '@/hooks/use-github-auth';
 import { toast } from 'sonner';
+import { trackEvent } from '@/lib/posthog-lazy';
 
 interface RepositoryTrackingCardProps {
   owner: string;
@@ -23,7 +24,28 @@ export function RepositoryTrackingCard({
   const [error, setError] = useState<string | null>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Track when users view the "Track This Repository" prompt
+  useEffect(() => {
+    trackEvent('viewed_track_repository_prompt', {
+      repository: `${owner}/${repo}`,
+      owner,
+      repo,
+      isLoggedIn,
+      timestamp: new Date().toISOString(),
+      page_url: window.location.href,
+      page_path: window.location.pathname,
+    });
+  }, [owner, repo, isLoggedIn]);
+
   const handleLogin = async () => {
+    // Track login button click
+    trackEvent('clicked_login_to_track_repository', {
+      repository: `${owner}/${repo}`,
+      owner,
+      repo,
+      timestamp: new Date().toISOString(),
+    });
+
     // Store the repository path so we can auto-track after login
     localStorage.setItem('pendingTrackRepo', `${owner}/${repo}`);
     localStorage.setItem('redirectAfterLogin', `/${owner}/${repo}`);
@@ -35,6 +57,14 @@ export function RepositoryTrackingCard({
     if (isTracking) {
       return;
     }
+
+    // Track button click
+    trackEvent('clicked_track_repository', {
+      repository: `${owner}/${repo}`,
+      owner,
+      repo,
+      timestamp: new Date().toISOString(),
+    });
 
     // Validate props before sending
     if (!owner || !repo) {
@@ -67,7 +97,7 @@ export function RepositoryTrackingCard({
       let result;
       try {
         result = JSON.parse(responseText);
-      } catch (parseError) {
+      } catch {
         console.error('Failed to parse response: %s', responseText);
         throw new Error('Invalid response from server');
       }
@@ -81,6 +111,15 @@ export function RepositoryTrackingCard({
       // Check if tracking was successful
       if (result.success) {
         console.log('Tracking initiated successfully, eventId: %s', result.eventId);
+
+        // Track successful tracking initiation
+        trackEvent('repository_tracking_initiated', {
+          repository: `${owner}/${repo}`,
+          owner,
+          repo,
+          eventId: result.eventId,
+          timestamp: new Date().toISOString(),
+        });
 
         // Show success message
         toast.success('Repository tracking initiated!', {
@@ -97,6 +136,16 @@ export function RepositoryTrackingCard({
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to track repository';
       setError(errorMessage);
+
+      // Track tracking failure
+      trackEvent('repository_tracking_failed', {
+        repository: `${owner}/${repo}`,
+        owner,
+        repo,
+        error: errorMessage,
+        timestamp: new Date().toISOString(),
+      });
+
       toast.error('Tracking failed', {
         description: errorMessage,
         duration: 6000,
@@ -138,6 +187,16 @@ export function RepositoryTrackingCard({
             clearInterval(pollIntervalRef.current);
             pollIntervalRef.current = null;
           }
+
+          // Track when data becomes available
+          trackEvent('repository_data_ready', {
+            repository: `${owner}/${repo}`,
+            owner,
+            repo,
+            pollAttempts: pollCount,
+            timestamp: new Date().toISOString(),
+          });
+
           toast.success('Repository data is ready!', {
             description: 'Refreshing page...',
             duration: 2000,
