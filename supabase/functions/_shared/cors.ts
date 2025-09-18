@@ -2,7 +2,7 @@
 // case-insensitive comparison. However, Supabase Edge Functions (running on Deno)
 // appear to have a bug with case-sensitive header comparison in CORS preflight.
 // Including both cases is a workaround until this is fixed upstream.
-// See: https://github.com/supabase/supabase/issues (TODO: file issue)
+// See: https://github.com/bdougie/contributor.info/issues/732
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-idempotency-key, X-Idempotency-Key',

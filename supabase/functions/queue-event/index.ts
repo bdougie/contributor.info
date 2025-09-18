@@ -64,7 +64,7 @@ async function handleIdempotency(
       .from('idempotency_keys')
       .select('*')
       .eq('key', key)
-      .single();
+      .maybeSingle();
 
     if (fetchError && fetchError.code !== 'PGRST116') {
       // PGRST116 means no rows found, which is expected for new requests
@@ -116,7 +116,7 @@ async function handleIdempotency(
           .from('idempotency_keys')
           .select('*')
           .eq('key', key)
-          .single();
+          .maybeSingle();
 
         if (raceRecord && raceRecord.status === 'completed') {
           return { isDuplicate: true, response: raceRecord.response };
