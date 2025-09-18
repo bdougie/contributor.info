@@ -240,7 +240,13 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
       // First ensure the author exists and get their UUID
       const authorId = await ensureContributorExists(pullRequest.author);
       if (!authorId) {
-        throw new Error(`Failed to create/find author for PR #${prNumber}`) as NonRetriableError;
+        console.warn(`PR #${prNumber} has no valid author, skipping PR storage`);
+        return {
+          totalItems: 0,
+          prStored: false,
+          reviewsStored: 0,
+          commentsStored: 0,
+        };
       }
 
       // Ensure merged_by contributor exists if present
