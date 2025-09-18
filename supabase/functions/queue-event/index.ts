@@ -8,7 +8,7 @@ const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 // Get Inngest configuration from environment
-const INNGEST_API_URL = Deno.env.get('INNGEST_API_URL') || 'https://api.inngest.com';
+// Use the correct Inngest endpoint: https://inn.gs/e/{EVENT_KEY}
 const INNGEST_EVENT_KEY = Deno.env.get('INNGEST_EVENT_KEY');
 
 interface QueueEventRequest {
@@ -64,7 +64,7 @@ async function handleIdempotency(
       .from('idempotency_keys')
       .select('*')
       .eq('key', key)
-      .single();
+      .maybeSingle();
 
     if (fetchError && fetchError.code !== 'PGRST116') {
       // PGRST116 means no rows found, which is expected for new requests
@@ -116,7 +116,7 @@ async function handleIdempotency(
           .from('idempotency_keys')
           .select('*')
           .eq('key', key)
-          .single();
+          .maybeSingle();
 
         if (raceRecord && raceRecord.status === 'completed') {
           return { isDuplicate: true, response: raceRecord.response };
@@ -167,7 +167,7 @@ async function sendToInngest(eventName: string, data: Record<string, unknown>): 
     throw new Error('INNGEST_EVENT_KEY is not configured');
   }
 
-  const response = await fetch(`${INNGEST_API_URL}/e/${INNGEST_EVENT_KEY}`, {
+  const response = await fetch(`https://inn.gs/e/${INNGEST_EVENT_KEY}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
