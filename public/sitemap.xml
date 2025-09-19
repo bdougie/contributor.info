@@ -209,19 +209,19 @@
     <loc>https://contributor.info/continuedev/continue</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-09-08T16:30:48.974Z</lastmod>
+    <lastmod>2025-09-18T03:56:49.873Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/continuedev/continue/health</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-09-08T16:30:48.974Z</lastmod>
+    <lastmod>2025-09-18T03:56:49.873Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/continuedev/continue/distribution</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-09-08T16:30:48.974Z</lastmod>
+    <lastmod>2025-09-18T03:56:49.873Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/argoproj/argo-cd</loc>
@@ -311,6 +311,12 @@
     <loc>https://contributor.info/github/docs/distribution</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
+    <lastmod>2025-09-08T16:30:48.974Z</lastmod>
+  </url>
+  <url>
+    <loc>https://contributor.info/topoteretes/cognee</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
     <lastmod>2025-09-08T16:30:48.974Z</lastmod>
   </url>
   <url>
@@ -560,12 +566,6 @@
     <lastmod>2025-09-08T16:30:48.974Z</lastmod>
   </url>
   <url>
-    <loc>https://contributor.info/Ad-Astra-Innovia/frontend</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.7</priority>
-    <lastmod>2025-08-07T17:46:04.172Z</lastmod>
-  </url>
-  <url>
     <loc>https://contributor.info/terraform-providers/terraform-provider-aws</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
@@ -608,6 +608,12 @@
     <lastmod>2025-09-08T16:30:48.974Z</lastmod>
   </url>
   <url>
+    <loc>https://contributor.info/Ad-Astra-Innovia/frontend</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+    <lastmod>2025-09-18T03:35:31.060Z</lastmod>
+  </url>
+  <url>
     <loc>https://contributor.info/fastapi/fastapi</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
@@ -627,12 +633,6 @@
   </url>
   <url>
     <loc>https://contributor.info/nestjs/nest</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.7</priority>
-    <lastmod>2025-09-08T16:30:48.974Z</lastmod>
-  </url>
-  <url>
-    <loc>https://contributor.info/topoteretes/cognee</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
     <lastmod>2025-09-08T16:30:48.974Z</lastmod>
