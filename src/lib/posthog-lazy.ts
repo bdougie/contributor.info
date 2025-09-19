@@ -179,16 +179,8 @@ async function loadPostHog(): Promise<PostHogInstance | null> {
       posthog.init(env.POSTHOG_KEY!, POSTHOG_CONFIG);
 
       // In production, ensure session recording is started
-      if (!env.DEV && posthog.sessionRecording) {
-        // Try to explicitly start session recording
-        if (typeof posthog.sessionRecording.startRecording === 'function') {
-          posthog.sessionRecording.startRecording();
-        }
-
-        // Check if we need to opt in to session recording via main API
-        if (typeof posthog.startSessionRecording === 'function') {
-          posthog.startSessionRecording();
-        }
+      if (!env.DEV && typeof posthog.startSessionRecording === 'function') {
+        posthog.startSessionRecording();
       }
 
       // Don't identify users automatically - only after login
