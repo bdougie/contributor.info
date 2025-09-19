@@ -532,7 +532,7 @@ export class WorkspaceAggregationService {
       } else if (pr.contributors) {
         contributors = [pr.contributors];
       }
-      
+
       contributors.forEach((contributor) => {
         if (contributor && contributor.username) {
           const existing = contributorMap.get(contributor.username) || {
@@ -556,7 +556,7 @@ export class WorkspaceAggregationService {
       } else if (issue.contributors) {
         contributors = [issue.contributors];
       }
-      
+
       contributors.forEach((contributor) => {
         if (contributor && contributor.username) {
           const existing = contributorMap.get(contributor.username) || {

@@ -140,7 +140,7 @@ export function BillingDashboard() {
 
   // Show success message if redirecting
   const success = searchParams.get('success');
-  
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -148,7 +148,7 @@ export function BillingDashboard() {
       </div>
     );
   }
-  
+
   if (success === 'true' && primaryWorkspace) {
     return (
       <div className="container mx-auto py-8 px-4">
@@ -159,9 +159,7 @@ export function BillingDashboard() {
                 <Check className="h-6 w-6 text-green-600" />
               </div>
             </div>
-            <h2 className="text-xl font-semibold text-green-900 mb-2">
-              Payment Successful!
-            </h2>
+            <h2 className="text-xl font-semibold text-green-900 mb-2">Payment Successful!</h2>
             <p className="text-green-700 mb-4">
               Your subscription has been activated. Redirecting you to your workspace...
             </p>
@@ -282,97 +280,96 @@ export function BillingDashboard() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                <ul className="space-y-2 mb-6">
-                  {tier.id === 'free' ? (
-                    <>
-                      <FeatureItem label="No workspaces included" included={false} />
-                      <FeatureItem label="7 days data retention" included />
-                      <FeatureItem label="Basic analytics" included />
-                    </>
-                  ) : (
-                    <>
-                      <FeatureItem
-                        label={`${tier.features.maxWorkspaces} workspace${tier.features.maxWorkspaces !== 1 ? 's' : ''} included`}
-                        included
-                      />
-                      {tier.addons?.additionalWorkspace && (
-                        <FeatureItem
-                          label={`+$${tier.addons.additionalWorkspace}/mo per additional workspace`}
-                          included
-                        />
-                      )}
-                      <FeatureItem
-                        label={`${tier.features.maxReposPerWorkspace} repos per workspace`}
-                        included
-                      />
-                      {tier.id === 'pro' ? (
-                        <>
-                          <FeatureItem label="Solo plan (no team members)" included />
-                          <FeatureItem label="No SSO authentication" included={false} />
-                          <FeatureItem label="No data exports" included={false} />
-                          <FeatureItem label="No audit logs" included={false} />
-                        </>
-                      ) : (
-                        <>
-                          <FeatureItem
-                            label={`${tier.features.maxMembersPerWorkspace} team members included`}
-                            included
-                          />
-                          {tier.addons?.additionalMember && (
-                            <FeatureItem
-                              label={`+$${tier.addons.additionalMember}/mo per additional member`}
-                              included
-                            />
-                          )}
-                        </>
-                      )}
-                      <FeatureItem
-                        label={`${tier.features.dataRetentionDays} days data retention`}
-                        included
-                      />
-                      <FeatureItem
-                        label="Private workspaces"
-                        included={tier.features.privateWorkspaces}
-                      />
-                      <FeatureItem 
-                        label="Data exports" 
-                        included={tier.id === 'pro' ? false : tier.features.exportsEnabled} 
-                      />
-                      {tier.features.ssoEnabled && (
-                        <FeatureItem label="SSO authentication" included />
-                      )}
-                      {tier.features.auditLogs && <FeatureItem label="Audit logs" included />}
-                    </>
-                  )}
-                </ul>
-
-                {tier.id !== currentTier && tier.id !== 'free' && (
-                  <Button
-                    className="w-full"
-                    onClick={() => handleUpgrade(tier.id as 'pro' | 'team')}
-                    disabled={creatingCheckout}
-                  >
-                    {creatingCheckout ? (
+                  <ul className="space-y-2 mb-6">
+                    {tier.id === 'free' ? (
                       <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Processing...
+                        <FeatureItem label="No workspaces included" included={false} />
+                        <FeatureItem label="7 days data retention" included />
+                        <FeatureItem label="Basic analytics" included />
                       </>
                     ) : (
-                      `Upgrade to ${tier.name}`
+                      <>
+                        <FeatureItem
+                          label={`${tier.features.maxWorkspaces} workspace${tier.features.maxWorkspaces !== 1 ? 's' : ''} included`}
+                          included
+                        />
+                        {tier.addons?.additionalWorkspace && (
+                          <FeatureItem
+                            label={`+$${tier.addons.additionalWorkspace}/mo per additional workspace`}
+                            included
+                          />
+                        )}
+                        <FeatureItem
+                          label={`${tier.features.maxReposPerWorkspace} repos per workspace`}
+                          included
+                        />
+                        {tier.id === 'pro' ? (
+                          <>
+                            <FeatureItem label="Solo plan (no team members)" included />
+                            <FeatureItem label="No SSO authentication" included={false} />
+                            <FeatureItem label="No data exports" included={false} />
+                            <FeatureItem label="No audit logs" included={false} />
+                          </>
+                        ) : (
+                          <>
+                            <FeatureItem
+                              label={`${tier.features.maxMembersPerWorkspace} team members included`}
+                              included
+                            />
+                            {tier.addons?.additionalMember && (
+                              <FeatureItem
+                                label={`+$${tier.addons.additionalMember}/mo per additional member`}
+                                included
+                              />
+                            )}
+                          </>
+                        )}
+                        <FeatureItem
+                          label={`${tier.features.dataRetentionDays} days data retention`}
+                          included
+                        />
+                        <FeatureItem
+                          label="Private workspaces"
+                          included={tier.features.privateWorkspaces}
+                        />
+                        <FeatureItem
+                          label="Data exports"
+                          included={tier.id === 'pro' ? false : tier.features.exportsEnabled}
+                        />
+                        {tier.features.ssoEnabled && (
+                          <FeatureItem label="SSO authentication" included />
+                        )}
+                        {tier.features.auditLogs && <FeatureItem label="Audit logs" included />}
+                      </>
                     )}
-                  </Button>
-                )}
-                {tier.id === currentTier && (
-                  <Button className="w-full" disabled variant="outline">
-                    Current Plan
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-            ))
-          }
+                  </ul>
+
+                  {tier.id !== currentTier && tier.id !== 'free' && (
+                    <Button
+                      className="w-full"
+                      onClick={() => handleUpgrade(tier.id as 'pro' | 'team')}
+                      disabled={creatingCheckout}
+                    >
+                      {creatingCheckout ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        `Upgrade to ${tier.name}`
+                      )}
+                    </Button>
+                  )}
+                  {tier.id === currentTier && (
+                    <Button className="w-full" disabled variant="outline">
+                      Current Plan
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
         </div>
-        
+
         {/* Enterprise Contact Card */}
         <div className="mt-8 text-center">
           <div className="bg-muted/50 border border-muted rounded-lg p-6 inline-block">

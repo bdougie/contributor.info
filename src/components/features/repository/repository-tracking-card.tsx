@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BarChart3, Lock, Loader2, AlertCircle } from '@/components/ui/icon';
@@ -23,23 +23,54 @@ export function RepositoryTrackingCard({
   const [isTracking, setIsTracking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isMountedRef = useRef(true);
+  const viewEventTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Track when users view the "Track This Repository" prompt
+  // Safe trackEvent wrapper with error handling
+  const safeTrackEvent = useCallback(
+    async (eventName: string, properties?: Record<string, unknown>) => {
+      try {
+        await trackEvent(eventName, properties);
+      } catch (error) {
+        console.warn('Failed to track event:', eventName, error);
+      }
+    },
+    []
+  );
+
+  // Track when users view the "Track This Repository" prompt (debounced)
   useEffect(() => {
-    trackEvent('viewed_track_repository_prompt', {
-      repository: `${owner}/${repo}`,
-      owner,
-      repo,
-      isLoggedIn,
-      page_url: window.location.href,
-      page_path: window.location.pathname,
-    });
+    // Clear any existing timeout
+    if (viewEventTimeoutRef.current) {
+      clearTimeout(viewEventTimeoutRef.current);
+    }
+
+    // Debounce the view event to prevent spam
+    viewEventTimeoutRef.current = setTimeout(() => {
+      if (isMountedRef.current) {
+        safeTrackEvent('viewed_track_repository_prompt', {
+          repository: `${owner}/${repo}`,
+          owner,
+          repo,
+          isLoggedIn,
+          page_url: window.location.href,
+          page_path: window.location.pathname,
+        });
+      }
+    }, 500);
+
+    return () => {
+      if (viewEventTimeoutRef.current) {
+        clearTimeout(viewEventTimeoutRef.current);
+        viewEventTimeoutRef.current = null;
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [owner, repo]); // Intentionally exclude isLoggedIn to avoid duplicate events on auth changes
+  }, [owner, repo, safeTrackEvent]); // Intentionally exclude isLoggedIn to avoid duplicate events on auth changes
 
   const handleLogin = async () => {
     // Track login button click
-    trackEvent('clicked_login_to_track_repository', {
+    safeTrackEvent('clicked_login_to_track_repository', {
       repository: `${owner}/${repo}`,
       owner,
       repo,
@@ -58,7 +89,7 @@ export function RepositoryTrackingCard({
     }
 
     // Track button click
-    trackEvent('clicked_track_repository', {
+    safeTrackEvent('clicked_track_repository', {
       repository: `${owner}/${repo}`,
       owner,
       repo,
@@ -111,7 +142,7 @@ export function RepositoryTrackingCard({
         console.log('Tracking initiated successfully, eventId: %s', result.eventId);
 
         // Track successful tracking initiation
-        trackEvent('repository_tracking_initiated', {
+        safeTrackEvent('repository_tracking_initiated', {
           repository: `${owner}/${repo}`,
           owner,
           repo,
@@ -146,7 +177,7 @@ export function RepositoryTrackingCard({
         }
       }
 
-      trackEvent('repository_tracking_failed', {
+      safeTrackEvent('repository_tracking_failed', {
         repository: `${owner}/${repo}`,
         owner,
         repo,
@@ -162,12 +193,17 @@ export function RepositoryTrackingCard({
     }
   };
 
-  // Cleanup polling on unmount
+  // Cleanup polling and timeouts on unmount
   useEffect(() => {
     return () => {
+      isMountedRef.current = false;
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current);
         pollIntervalRef.current = null;
+      }
+      if (viewEventTimeoutRef.current) {
+        clearTimeout(viewEventTimeoutRef.current);
+        viewEventTimeoutRef.current = null;
       }
     };
   }, []);
@@ -195,8 +231,13 @@ export function RepositoryTrackingCard({
             pollIntervalRef.current = null;
           }
 
+          // Only proceed if component is still mounted
+          if (!isMountedRef.current) {
+            return;
+          }
+
           // Track when data becomes available
-          trackEvent('repository_data_ready', {
+          safeTrackEvent('repository_data_ready', {
             repository: `${owner}/${repo}`,
             owner,
             repo,
@@ -214,7 +255,9 @@ export function RepositoryTrackingCard({
           } else {
             // Refresh the page after a short delay
             setTimeout(() => {
-              window.location.reload();
+              if (isMountedRef.current) {
+                window.location.reload();
+              }
             }, 1500);
           }
         }
@@ -224,10 +267,14 @@ export function RepositoryTrackingCard({
             clearInterval(pollIntervalRef.current);
             pollIntervalRef.current = null;
           }
-          toast.info('Data sync is taking longer than expected', {
-            description: 'Please refresh the page in a few minutes.',
-            duration: 10000,
-          });
+
+          // Only show toast if component is still mounted
+          if (isMountedRef.current) {
+            toast.info('Data sync is taking longer than expected', {
+              description: 'Please refresh the page in a few minutes.',
+              duration: 10000,
+            });
+          }
         }
       } catch (err) {
         // Silently continue polling

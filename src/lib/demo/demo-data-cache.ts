@@ -3,9 +3,7 @@
  * Provides persistent caching for expensive demo data calculations
  */
 
-import type {
-  AnalyticsData,
-} from '@/components/features/workspace/AnalyticsDashboard';
+import type { AnalyticsData } from '@/components/features/workspace/AnalyticsDashboard';
 import type {
   ActivityDataPoint,
   Repository,
@@ -77,14 +75,16 @@ export function getCachedAnalyticsData(): AnalyticsData {
   console.log('🔄 Generating fresh analytics data for demo workspace');
   cache.analyticsData = generateDemoAnalyticsData();
   cache.lastGenerated = Date.now();
-  
+
   return cache.analyticsData;
 }
 
 /**
  * Get cached workspace repositories or generate if not available
  */
-export function getCachedWorkspaceRepositories(workspaceId: string = 'demo'): WorkspaceRepositoryWithDetails[] {
+export function getCachedWorkspaceRepositories(
+  workspaceId: string = 'demo'
+): WorkspaceRepositoryWithDetails[] {
   if (cache.workspaceRepositories && isCacheValid()) {
     return cache.workspaceRepositories;
   }
@@ -92,7 +92,7 @@ export function getCachedWorkspaceRepositories(workspaceId: string = 'demo'): Wo
   console.log('🔄 Generating fresh workspace repositories for demo workspace');
   cache.workspaceRepositories = generateDemoWorkspaceRepositories(workspaceId);
   cache.lastGenerated = Date.now();
-  
+
   return cache.workspaceRepositories;
 }
 
@@ -107,7 +107,7 @@ export function getCachedRepositories(): Repository[] {
   console.log('🔄 Generating fresh repositories list for demo workspace');
   cache.repositories = generateDemoRepositories();
   cache.lastGenerated = Date.now();
-  
+
   return cache.repositories;
 }
 
@@ -120,7 +120,7 @@ export function getCachedWorkspaceMetrics(
   selectedRepoIds?: string[]
 ): WorkspaceMetrics {
   const cacheKey = getMetricsCacheKey(timeRange, selectedRepoIds);
-  
+
   if (cache.metricsCache.has(cacheKey) && isCacheValid()) {
     return cache.metricsCache.get(cacheKey)!;
   }
@@ -129,7 +129,7 @@ export function getCachedWorkspaceMetrics(
   const metrics = generateDemoWorkspaceMetrics(repos, timeRange, selectedRepoIds);
   cache.metricsCache.set(cacheKey, metrics);
   cache.lastGenerated = Date.now();
-  
+
   return metrics;
 }
 
@@ -142,7 +142,7 @@ export function getCachedWorkspaceTrendData(
   selectedRepoIds?: string[]
 ): ActivityDataPoint[] {
   const cacheKey = getTrendCacheKey(days, selectedRepoIds);
-  
+
   if (cache.trendCache.has(cacheKey) && isCacheValid()) {
     return cache.trendCache.get(cacheKey)!;
   }
@@ -151,7 +151,7 @@ export function getCachedWorkspaceTrendData(
   const trendData = generateDemoWorkspaceTrendData(days, repos, selectedRepoIds);
   cache.trendCache.set(cacheKey, trendData);
   cache.lastGenerated = Date.now();
-  
+
   return trendData;
 }
 

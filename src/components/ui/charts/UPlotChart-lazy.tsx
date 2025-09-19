@@ -3,9 +3,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import type { UPlotChartProps } from './UPlotChart';
 
 // Lazy load the heavy UPlot chart component
-const UPlotChartInner = lazy(() => 
-  import('./UPlotChart').then(module => ({
-    default: module.UPlotChart
+const UPlotChartInner = lazy(() =>
+  import('./UPlotChart').then((module) => ({
+    default: module.UPlotChart,
   }))
 );
 

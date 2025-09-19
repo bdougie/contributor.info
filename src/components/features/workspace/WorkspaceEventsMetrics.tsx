@@ -1,17 +1,17 @@
-import { } from 'react';
+import {} from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { 
-  Star, 
-  GitFork, 
-  TrendingUp, 
-  TrendingDown, 
-  Activity, 
-  Users, 
+import {
+  Star,
+  GitFork,
+  TrendingUp,
+  TrendingDown,
+  Activity,
+  Users,
   Calendar,
-  BarChart3
+  BarChart3,
 } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 import { useWorkspaceEvents } from '@/hooks/use-workspace-events';
@@ -73,7 +73,7 @@ function EventMetricCard({ title, icon, metrics, loading = false }: EventMetricC
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-bold">{metrics.total}</span>
               <span className="text-sm text-muted-foreground">total</span>
-              
+
               <div className="flex items-center gap-1 ml-auto">
                 {getTrendIcon(metrics.trend, metrics.percentChange)}
                 <span className={cn('text-sm font-medium', getTrendColor(metrics.percentChange))}>
@@ -113,14 +113,17 @@ function EventMetricCard({ title, icon, metrics, loading = false }: EventMetricC
   );
 }
 
-function ActivitySummaryCard({ metrics, loading = false }: { 
+function ActivitySummaryCard({
+  metrics,
+  loading = false,
+}: {
   metrics: {
     totalEvents: number;
     uniqueActors: number;
     mostActiveRepo: { owner: string; name: string; eventCount: number } | null;
     activityScore: number;
-  }; 
-  loading?: boolean; 
+  };
+  loading?: boolean;
 }) {
   if (loading) {
     return (
@@ -150,7 +153,7 @@ function ActivitySummaryCard({ metrics, loading = false }: {
               <span className="text-sm text-muted-foreground">Total Events</span>
               <span className="text-lg font-bold">{metrics.totalEvents}</span>
             </div>
-            
+
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Contributors</span>
               <div className="flex items-center gap-1">
@@ -173,14 +176,16 @@ function ActivitySummaryCard({ metrics, loading = false }: {
 
             <div className="pt-1">
               <div className="flex items-center gap-2">
-                <div className={cn(
-                  'w-2 h-2 rounded-full',
-                  (() => {
-                    if (metrics.activityScore > 70) return 'bg-green-500';
-                    if (metrics.activityScore > 40) return 'bg-yellow-500';
-                    return 'bg-red-500';
-                  })()
-                )} />
+                <div
+                  className={cn(
+                    'w-2 h-2 rounded-full',
+                    (() => {
+                      if (metrics.activityScore > 70) return 'bg-green-500';
+                      if (metrics.activityScore > 40) return 'bg-yellow-500';
+                      return 'bg-red-500';
+                    })()
+                  )}
+                />
                 <span className="text-xs text-muted-foreground">
                   Activity Score: {metrics.activityScore}/100
                 </span>
@@ -193,14 +198,14 @@ function ActivitySummaryCard({ metrics, loading = false }: {
   );
 }
 
-export function WorkspaceEventsMetrics({ 
-  workspaceId, 
-  timeRange = '30d' 
+export function WorkspaceEventsMetrics({
+  workspaceId,
+  timeRange = '30d',
 }: WorkspaceEventsMetricsProps) {
   const { metrics, loading, error, refetch } = useWorkspaceEvents({
     workspaceId,
     timeRange,
-    enabled: !!workspaceId
+    enabled: !!workspaceId,
   });
 
   if (error) {
@@ -208,15 +213,11 @@ export function WorkspaceEventsMetrics({
       <Card>
         <CardHeader>
           <CardTitle>Events Analytics</CardTitle>
-          <CardDescription>
-            Real-time insights from GitHub activity events
-          </CardDescription>
+          <CardDescription>Real-time insights from GitHub activity events</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-            <p className="text-sm text-muted-foreground mb-4">
-              Failed to load events data
-            </p>
+            <p className="text-sm text-muted-foreground mb-4">Failed to load events data</p>
             <Button variant="outline" onClick={refetch} size="sm">
               Retry
             </Button>
@@ -231,9 +232,7 @@ export function WorkspaceEventsMetrics({
       <Card>
         <CardHeader>
           <CardTitle>Events Analytics</CardTitle>
-          <CardDescription>
-            No event data available for this time period
-          </CardDescription>
+          <CardDescription>No event data available for this time period</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
@@ -270,43 +269,49 @@ export function WorkspaceEventsMetrics({
             <EventMetricCard
               title="Stars"
               icon={<Star className="h-4 w-4 text-yellow-500" />}
-              metrics={metrics?.stars || {
-                total: 0,
-                thisWeek: 0,
-                lastWeek: 0,
-                thisMonth: 0,
-                lastMonth: 0,
-                velocity: 0,
-                trend: 'stable' as const,
-                percentChange: 0
-              }}
-              loading={loading}
-            />
-            
-            <EventMetricCard
-              title="Forks"
-              icon={<GitFork className="h-4 w-4 text-blue-500" />}
-              metrics={metrics?.forks || {
-                total: 0,
-                thisWeek: 0,
-                lastWeek: 0,
-                thisMonth: 0,
-                lastMonth: 0,
-                velocity: 0,
-                trend: 'stable' as const,
-                percentChange: 0
-              }}
+              metrics={
+                metrics?.stars || {
+                  total: 0,
+                  thisWeek: 0,
+                  lastWeek: 0,
+                  thisMonth: 0,
+                  lastMonth: 0,
+                  velocity: 0,
+                  trend: 'stable' as const,
+                  percentChange: 0,
+                }
+              }
               loading={loading}
             />
 
-            <ActivitySummaryCard 
-              metrics={metrics?.activity || {
-                totalEvents: 0,
-                uniqueActors: 0,
-                mostActiveRepo: null,
-                activityScore: 0
-              }}
-              loading={loading} 
+            <EventMetricCard
+              title="Forks"
+              icon={<GitFork className="h-4 w-4 text-blue-500" />}
+              metrics={
+                metrics?.forks || {
+                  total: 0,
+                  thisWeek: 0,
+                  lastWeek: 0,
+                  thisMonth: 0,
+                  lastMonth: 0,
+                  velocity: 0,
+                  trend: 'stable' as const,
+                  percentChange: 0,
+                }
+              }
+              loading={loading}
+            />
+
+            <ActivitySummaryCard
+              metrics={
+                metrics?.activity || {
+                  totalEvents: 0,
+                  uniqueActors: 0,
+                  mostActiveRepo: null,
+                  activityScore: 0,
+                }
+              }
+              loading={loading}
             />
           </div>
         </section>

@@ -2,18 +2,18 @@ import { lazy, Suspense } from 'react';
 import { CommandPaletteSkeleton } from './CommandPaletteSkeleton';
 
 // Lazy load the heavy command palette with all its dependencies
-const CommandPaletteInner = lazy(() => 
-  import('./CommandPalette').then(module => ({
-    default: module.CommandPalette
+const CommandPaletteInner = lazy(() =>
+  import('./CommandPalette').then((module) => ({
+    default: module.CommandPalette,
   }))
 );
 
 interface CommandPaletteProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
-  workspaces?: any[];
-  repositories?: any[];
-  recentItems?: any[];
+  workspaces?: unknown[];
+  repositories?: unknown[];
+  recentItems?: unknown[];
   defaultSearchQuery?: string;
 }
 
