@@ -107,8 +107,10 @@ Fired when repository data becomes available after tracking.
 
 PostHog is disabled by default in development. To enable for testing:
 
+**Note:** Events from localhost (127.0.0.1) are always filtered out by PostHog. To test locally, you'll need to use a tunnel service like ngrok or deploy to a staging environment.
+
 ```javascript
-// In browser console
+// In browser console (for non-localhost testing)
 localStorage.setItem('enablePostHogDev', 'true');
 location.reload();
 ```
@@ -186,5 +188,4 @@ Use the Events tab to analyze:
 ## Related Documentation
 
 - [PostHog Strategy](./posthog-strategy.md)
-- [Analytics Overview](../analytics/README.md)
 - [Manual Repository Tracking](../data-fetching/manual-repository-tracking.md)

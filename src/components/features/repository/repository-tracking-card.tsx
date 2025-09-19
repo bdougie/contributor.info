@@ -31,11 +31,11 @@ export function RepositoryTrackingCard({
       owner,
       repo,
       isLoggedIn,
-      timestamp: new Date().toISOString(),
       page_url: window.location.href,
       page_path: window.location.pathname,
     });
-  }, [owner, repo, isLoggedIn]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [owner, repo]); // Intentionally exclude isLoggedIn to avoid duplicate events on auth changes
 
   const handleLogin = async () => {
     // Track login button click
@@ -43,7 +43,6 @@ export function RepositoryTrackingCard({
       repository: `${owner}/${repo}`,
       owner,
       repo,
-      timestamp: new Date().toISOString(),
     });
 
     // Store the repository path so we can auto-track after login
@@ -63,7 +62,6 @@ export function RepositoryTrackingCard({
       repository: `${owner}/${repo}`,
       owner,
       repo,
-      timestamp: new Date().toISOString(),
     });
 
     // Validate props before sending
@@ -118,7 +116,6 @@ export function RepositoryTrackingCard({
           owner,
           repo,
           eventId: result.eventId,
-          timestamp: new Date().toISOString(),
         });
 
         // Show success message
@@ -137,13 +134,23 @@ export function RepositoryTrackingCard({
       const errorMessage = err instanceof Error ? err.message : 'Failed to track repository';
       setError(errorMessage);
 
-      // Track tracking failure
+      // Track tracking failure with error type instead of raw message
+      let errorType = 'UNKNOWN_ERROR';
+      if (err instanceof Error) {
+        if (err.message.includes('network')) {
+          errorType = 'NETWORK_ERROR';
+        } else if (err.message.includes('auth')) {
+          errorType = 'AUTH_ERROR';
+        } else if (err.message.includes('permission')) {
+          errorType = 'PERMISSION_ERROR';
+        }
+      }
+
       trackEvent('repository_tracking_failed', {
         repository: `${owner}/${repo}`,
         owner,
         repo,
-        error: errorMessage,
-        timestamp: new Date().toISOString(),
+        errorType,
       });
 
       toast.error('Tracking failed', {
@@ -194,7 +201,6 @@ export function RepositoryTrackingCard({
             owner,
             repo,
             pollAttempts: pollCount,
-            timestamp: new Date().toISOString(),
           });
 
           toast.success('Repository data is ready!', {
