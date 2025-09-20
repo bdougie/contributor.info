@@ -325,8 +325,10 @@ export async function calculateIssueActivityPatterns(
     ]);
 
     // Debug logging
+    console.log(`[DEBUG] Repository: ${owner}/${repo}`);
     console.log(`[DEBUG] Issue comments found: ${issueComments?.length || 0}`);
     console.log(`[DEBUG] PR comments found: ${prComments?.length || 0}`);
+    console.log(`[DEBUG] Issues found: ${issues?.length || 0}`);
     if (issueComments && issueComments.length > 0) {
       console.log(`[DEBUG] Sample issue comment:`, issueComments[0]);
     }
@@ -384,74 +386,73 @@ export async function calculateIssueActivityPatterns(
 
     console.log(`[DEBUG] Most active triager:`, mostActiveTriager);
 
-    // Calculate first responders - users who are first to comment on issues (excluding issue authors)
-    const firstResponderStats = new Map<
+    // Calculate most active issue commenters (non-bot users who comment most on issues)
+    // Using O(1) Map for efficient counting
+    const issueCommenterStats = new Map<
       string,
       { username: string; avatar_url: string; count: number }
     >();
 
-    // Group issue comments by issue ID to find first responders
-    const commentsByIssue = new Map<string, Array<CommentWithCommenter>>();
-
-    ((issueComments as unknown as CommentWithCommenter[]) || []).forEach((comment) => {
-      if (comment.issue_id) {
-        if (!commentsByIssue.has(comment.issue_id)) {
-          commentsByIssue.set(comment.issue_id, []);
-        }
-        commentsByIssue.get(comment.issue_id)!.push(comment);
+    // Create a Map to track issue authors for O(1) lookup
+    const issueAuthors = new Map<string, string>();
+    issues?.forEach((issue) => {
+      const contributor = issue.contributors as unknown as { username: string };
+      if (contributor?.username && issue.id) {
+        issueAuthors.set(issue.id, contributor.username);
       }
     });
 
-    console.log(`[DEBUG] Comments grouped by ${commentsByIssue.size} issues`);
+    // Count all issue comments from non-bot users (excluding issue authors)
+    // Single pass through comments - O(n) where n is number of comments
+    ((issueComments as unknown as CommentWithCommenter[]) || []).forEach((comment) => {
+      if (
+        comment.commenter?.username &&
+        !comment.commenter.username.includes('[bot]') &&
+        comment.issue_id
+      ) {
+        // O(1) lookup to check if commenter is the issue author
+        const issueAuthor = issueAuthors.get(comment.issue_id);
 
-    // Find first responder for each issue
-    commentsByIssue.forEach((comments, issueId) => {
-      // Sort comments by creation time to find first response
-      const sortedComments = comments.sort((a, b) => {
-        const aTime = new Date(a.created_at).getTime();
-        const bTime = new Date(b.created_at).getTime();
-        return aTime - bTime;
-      });
+        // Skip if the commenter is the issue author
+        // Guard against missing author mapping for older issues
+        if (issueAuthor && comment.commenter.username === issueAuthor) {
+          return;
+        }
 
-      // Find the issue to get its author by matching issue ID
-      const issue = issues?.find((i) => i.id === issueId);
-      if (!issue) return;
-
-      const issueAuthor = issue.contributors as unknown as { username: string };
-
-      // Find first comment from someone other than the issue author (exclude bots too)
-      const firstResponse = sortedComments.find((comment) => {
-        return (
-          comment.commenter?.username &&
-          !comment.commenter.username.includes('[bot]') &&
-          comment.commenter.username !== issueAuthor?.username
-        );
-      });
-
-      if (firstResponse && firstResponse.commenter?.username) {
-        const username = firstResponse.commenter.username;
-        const existing = firstResponderStats.get(username);
+        const username = comment.commenter.username;
+        // O(1) Map operations
+        const existing = issueCommenterStats.get(username);
         if (existing) {
           existing.count++;
         } else {
-          firstResponderStats.set(username, {
-            username: firstResponse.commenter.username,
-            avatar_url: firstResponse.commenter.avatar_url || '',
+          issueCommenterStats.set(username, {
+            username: comment.commenter.username,
+            avatar_url: comment.commenter.avatar_url || '',
             count: 1,
           });
         }
       }
     });
 
-    console.log(`[DEBUG] First responder stats size: ${firstResponderStats.size}`);
+    console.log(`[DEBUG] Issue commenter stats size: ${issueCommenterStats.size}`);
+    console.log(`[DEBUG] Issue authors map size: ${issueAuthors.size}`);
+    if (issueCommenterStats.size === 0) {
+      console.log(
+        `[DEBUG] No commenters found. Total issue comments: ${issueComments?.length || 0}`
+      );
+      console.log(`[DEBUG] First 3 comments (if any):`, issueComments?.slice(0, 3));
+    } else {
+      console.log(`[DEBUG] Top commenters:`, Array.from(issueCommenterStats.values()).slice(0, 3));
+    }
 
-    const firstResponders = Array.from(firstResponderStats.values())
+    // Get top 3 most active commenters (likely to be first responders)
+    const firstResponders = Array.from(issueCommenterStats.values())
       .sort((a, b) => b.count - a.count)
       .slice(0, 3)
       .map((responder) => ({
         username: responder.username,
         avatar_url: responder.avatar_url,
-        responses: responder.count,
+        responses: responder.count, // Total comments, not just first responses
       }));
 
     // Calculate repeat reporters (users who create the most issues)
