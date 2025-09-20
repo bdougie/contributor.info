@@ -249,7 +249,7 @@ export function WorkspaceIssuesTable({
           cell: ({ row }) => {
             const author = row.original.author;
             const repo = row.original.repository;
-            const authorFilterUrl = `https://github.com/${repo.owner}/${repo.name}/issues?q=is%3Aissue+author%3A${author.username}`;
+            const authorFilterUrl = `https://github.com/${repo.owner}/${repo.name}/issues?q=is%3Aissue+author%3A${encodeURIComponent(author.username)}`;
 
             return (
               <TooltipProvider>

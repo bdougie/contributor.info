@@ -238,7 +238,7 @@ export function WorkspacePullRequestsTable({
           cell: ({ row }) => {
             const author = row.original.author;
             const repo = row.original.repository;
-            const authorFilterUrl = `https://github.com/${repo.owner}/${repo.name}/pulls?q=is%3Apr+author%3A${author.username}`;
+            const authorFilterUrl = `https://github.com/${repo.owner}/${repo.name}/pulls?q=is%3Apr+author%3A${encodeURIComponent(author.username)}`;
 
             return (
               <a
