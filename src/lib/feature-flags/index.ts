@@ -1,13 +1,13 @@
 /**
  * Feature flags module
- * 
+ *
  * This module provides a comprehensive feature flag system integrated with PostHog
  * for controlled feature rollouts, A/B testing, and experimentation.
- * 
+ *
  * @example Basic usage:
  * ```tsx
  * import { FeatureFlag, FEATURE_FLAGS } from '@/lib/feature-flags';
- * 
+ *
  * function MyComponent() {
  *   return (
  *     <FeatureFlag flag={FEATURE_FLAGS.ENABLE_NEW_SEARCH}>
@@ -16,11 +16,11 @@
  *   );
  * }
  * ```
- * 
+ *
  * @example A/B testing:
  * ```tsx
  * import { Experiment } from '@/lib/feature-flags';
- * 
+ *
  * function HomePage() {
  *   return (
  *     <Experiment

@@ -198,11 +198,11 @@ describe('ActivityTableRow', () => {
 
     // Test that title is rendered
     expect(screen.getByText('Fix authentication bug')).toBeInTheDocument();
-    
+
     // Test that username is rendered (may be hidden on mobile)
     const usernameElement = screen.getByText('johndoe');
     expect(usernameElement).toBeInTheDocument();
-    
+
     // Test that repository is rendered
     expect(screen.getByText('company/app')).toBeInTheDocument();
   });

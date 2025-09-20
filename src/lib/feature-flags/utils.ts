@@ -39,7 +39,7 @@ export async function waitForFeatureFlag(
     if (enabled) {
       return true;
     }
-    await new Promise(resolve => setTimeout(resolve, checkInterval));
+    await new Promise((resolve) => setTimeout(resolve, checkInterval));
   }
 
   return false;
@@ -52,14 +52,14 @@ export async function checkFeatureFlags(
   flagNames: FeatureFlagName[]
 ): Promise<Map<FeatureFlagName, boolean>> {
   const results = new Map<FeatureFlagName, boolean>();
-  
+
   await Promise.all(
     flagNames.map(async (flagName) => {
       const enabled = await isFeatureFlagEnabled(flagName);
       results.set(flagName, enabled);
     })
   );
-  
+
   return results;
 }
 
@@ -70,14 +70,14 @@ export async function getAllFeatureFlags(): Promise<Map<FeatureFlagName, Feature
   const { FEATURE_FLAGS } = await import('./types');
   const flags = Object.values(FEATURE_FLAGS) as FeatureFlagName[];
   const results = new Map<FeatureFlagName, FeatureFlagValue>();
-  
+
   await Promise.all(
     flags.map(async (flagName) => {
       const value = await getFeatureFlagValue(flagName);
       results.set(flagName, value);
     })
   );
-  
+
   return results;
 }
 
@@ -85,9 +85,7 @@ export async function getAllFeatureFlags(): Promise<Map<FeatureFlagName, Feature
  * Format feature flag name for display
  */
 export function formatFeatureFlagName(flagName: FeatureFlagName): string {
-  return flagName
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+  return flagName.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 /**
@@ -96,14 +94,14 @@ export function formatFeatureFlagName(flagName: FeatureFlagName): string {
 export function parseFeatureFlagsFromUrl(): Map<FeatureFlagName, boolean> {
   const params = new URLSearchParams(window.location.search);
   const flags = new Map<FeatureFlagName, boolean>();
-  
+
   params.forEach((value, key) => {
     if (key.startsWith('ff_')) {
       const flagName = key.substring(3) as FeatureFlagName;
       flags.set(flagName, value === 'true' || value === '1');
     }
   });
-  
+
   return flags;
 }
 
@@ -115,27 +113,25 @@ export function buildUrlWithFeatureFlags(
   flags: Partial<Record<FeatureFlagName, boolean>>
 ): string {
   const url = new URL(baseUrl);
-  
+
   Object.entries(flags).forEach(([flagName, enabled]) => {
     if (enabled !== undefined) {
       url.searchParams.set(`ff_${flagName}`, enabled.toString());
     }
   });
-  
+
   return url.toString();
 }
 
 /**
  * Create a feature flag override for testing
  */
-export function createFeatureFlagOverride(
-  flags: Partial<Record<FeatureFlagName, boolean>>
-): void {
+export function createFeatureFlagOverride(flags: Partial<Record<FeatureFlagName, boolean>>): void {
   if (process.env.NODE_ENV !== 'development') {
     console.warn('[FeatureFlags] Overrides only work in development mode');
     return;
   }
-  
+
   localStorage.setItem('feature_flag_overrides', JSON.stringify(flags));
   console.log('[FeatureFlags] Overrides set:', flags);
 }
@@ -156,7 +152,7 @@ export function getFeatureFlagOverrides(): Partial<Record<FeatureFlagName, boole
   if (!stored) {
     return {};
   }
-  
+
   try {
     return JSON.parse(stored);
   } catch {

@@ -55,21 +55,21 @@ class FeatureFlagErrorMonitor {
 
   recordError(source: string, error: Error) {
     const now = Date.now();
-    
+
     // Check each monitored flag
     for (const flagName of this.config.rollbackFlags) {
       if (!this.errorCounts.has(flagName)) {
         this.errorCounts.set(flagName, []);
       }
-      
+
       const errors = this.errorCounts.get(flagName)!;
       errors.push(now);
-      
+
       // Remove old errors outside the window
       const cutoff = now - this.config.windowMs;
-      const recentErrors = errors.filter(time => time > cutoff);
+      const recentErrors = errors.filter((time) => time > cutoff);
       this.errorCounts.set(flagName, recentErrors);
-      
+
       // Check if we've exceeded the threshold
       if (recentErrors.length >= this.config.threshold) {
         this.triggerRollback(flagName, source, error);
@@ -83,7 +83,7 @@ class FeatureFlagErrorMonitor {
       error,
       errorCount: this.errorCounts.get(flagName)?.length,
     });
-    
+
     // Track rollback event
     trackEvent('feature_flag_rollback', {
       flag_name: flagName,
@@ -91,10 +91,10 @@ class FeatureFlagErrorMonitor {
       error_message: error.message,
       error_stack: error.stack,
     });
-    
+
     // Notify callbacks
-    this.rollbackCallbacks.forEach(callback => callback());
-    
+    this.rollbackCallbacks.forEach((callback) => callback());
+
     // Clear error counts for this flag
     this.errorCounts.set(flagName, []);
   }
@@ -108,14 +108,15 @@ class FeatureFlagErrorMonitor {
     const errors = this.errorCounts.get(flagName) || [];
     const now = Date.now();
     const cutoff = now - this.config.windowMs;
-    const recentErrors = errors.filter(time => time > cutoff);
-    
+    const recentErrors = errors.filter((time) => time > cutoff);
+
     return {
       flagName,
       errorCount: recentErrors.length,
       successCount: 0, // Would need to track successful operations
       errorRate: recentErrors.length / (this.config.windowMs / 1000), // Errors per second
-      lastErrorTime: recentErrors.length > 0 ? new Date(recentErrors[recentErrors.length - 1]) : undefined,
+      lastErrorTime:
+        recentErrors.length > 0 ? new Date(recentErrors[recentErrors.length - 1]) : undefined,
     };
   }
 }
@@ -165,17 +166,17 @@ export function FeatureFlagMonitor({
     const unsubscribe = monitor.onRollback(() => {
       // Reload flags to get updated values after rollback
       reload();
-      
+
       // Notify parent component
       if (onRollback) {
-        rollbackFlags.forEach(flag => onRollback(flag));
+        rollbackFlags.forEach((flag) => onRollback(flag));
       }
     });
 
     // Update health metrics periodically
     const interval = setInterval(() => {
       const newHealth = new Map<FeatureFlagName, FeatureFlagHealth>();
-      rollbackFlags.forEach(flag => {
+      rollbackFlags.forEach((flag) => {
         newHealth.set(flag, monitor.getHealth(flag));
       });
       setHealth(newHealth);
@@ -194,7 +195,7 @@ export function FeatureFlagMonitor({
         <div className="fixed bottom-4 right-4 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg z-50 max-w-sm">
           <h3 className="text-sm font-semibold mb-2">Feature Flag Health</h3>
           <div className="space-y-2">
-            {Array.from(health.values()).map(metric => (
+            {Array.from(health.values()).map((metric) => (
               <div key={metric.flagName} className="text-xs">
                 <div className="flex justify-between">
                   <span className="font-mono">{metric.flagName}</span>
@@ -223,18 +224,21 @@ export function FeatureFlagMonitor({
  * Hook to manually record errors for a specific feature flag
  */
 export function useFeatureFlagError(flagName: FeatureFlagName) {
-  return useCallback((error: Error) => {
-    if (globalMonitor) {
-      globalMonitor.recordError('manual', error);
-    }
-    
-    // Also track in PostHog
-    trackEvent('feature_flag_error', {
-      flag_name: flagName,
-      error_message: error.message,
-      error_stack: error.stack,
-    });
-  }, [flagName]);
+  return useCallback(
+    (error: Error) => {
+      if (globalMonitor) {
+        globalMonitor.recordError('manual', error);
+      }
+
+      // Also track in PostHog
+      trackEvent('feature_flag_error', {
+        flag_name: flagName,
+        error_message: error.message,
+        error_stack: error.stack,
+      });
+    },
+    [flagName]
+  );
 }
 
 /**
@@ -247,15 +251,15 @@ export class FeatureFlagPerformanceMonitor {
     if (!this.metrics.has(flagName)) {
       this.metrics.set(flagName, []);
     }
-    
+
     const values = this.metrics.get(flagName)!;
     values.push(value);
-    
+
     // Keep only last 100 values
     if (values.length > 100) {
       values.shift();
     }
-    
+
     // Track in PostHog if significant change
     const avg = values.reduce((a, b) => a + b, 0) / values.length;
     if (Math.abs(value - avg) > avg * 0.5) {
@@ -273,14 +277,14 @@ export class FeatureFlagPerformanceMonitor {
     if (values.length === 0) {
       return null;
     }
-    
+
     const sum = values.reduce((a, b) => a + b, 0);
     const avg = sum / values.length;
     const sorted = [...values].sort((a, b) => a - b);
     const p50 = sorted[Math.floor(sorted.length * 0.5)];
     const p95 = sorted[Math.floor(sorted.length * 0.95)];
     const p99 = sorted[Math.floor(sorted.length * 0.99)];
-    
+
     return {
       count: values.length,
       average: avg,
@@ -295,4 +299,3 @@ export class FeatureFlagPerformanceMonitor {
 
 // Global performance monitor
 export const performanceMonitor = new FeatureFlagPerformanceMonitor();
-
