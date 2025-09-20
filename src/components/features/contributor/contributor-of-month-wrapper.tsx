@@ -91,8 +91,9 @@ export default function ContributorOfTheMonthWrapper() {
   const dayOfMonth = now.getDate();
   const isWinnerPhase = dayOfMonth >= 1 && dayOfMonth <= 7;
 
-  // Transform the data to match the expected format
-  const monthlyContributors: MonthlyContributor[] = rankings.map((ranking) => ({
+  // Transform the data to match the expected format - only take top 3
+  const top3Rankings = rankings.slice(0, 3);
+  const monthlyContributors: MonthlyContributor[] = top3Rankings.map((ranking) => ({
     login: ranking.username,
     avatar_url: ranking.avatarUrl,
     activity: {
@@ -122,7 +123,11 @@ export default function ContributorOfTheMonthWrapper() {
           Showing {displayMonth} {displayYear} rankings (most recent available)
         </div>
       )}
-      <ContributorOfTheMonth ranking={contributorRanking} />
+      <ContributorOfTheMonth
+        ranking={contributorRanking}
+        showBlurredFirst={true}
+        totalContributors={rankings.length}
+      />
     </div>
   );
 }
