@@ -76,43 +76,60 @@ export function useMonthlyContributorRankings(owner: string, repo: string): Mont
         if (!data || data.length === 0) {
           console.log('No data for current month, trying fallback to most recent month...');
 
-          // Get the most recent month with data
-          const { data: recentData, error: recentError } = await supabase
+          // First, find the most recent month with data for this repository
+          const { data: recentMonthData, error: recentMonthError } = await supabase
             .from('monthly_rankings')
-            .select(
-              `
-              *,
-              contributors!inner (
-                id,
-                username,
-                display_name,
-                avatar_url,
-                github_id
-              ),
-              repositories!inner (
-                owner,
-                name
-              )
-            `
-            )
+            .select('year, month')
             .eq('repositories.owner', owner)
             .eq('repositories.name', repo)
             .order('year', { ascending: false })
             .order('month', { ascending: false })
-            .order('weighted_score', { ascending: false })
-            .limit(10);
+            .limit(1);
 
-          if (recentError) throw recentError;
+          if (recentMonthError) throw recentMonthError;
 
-          if (recentData && recentData.length > 0) {
-            data = recentData;
-            setIsUsingFallback(true);
-            setDisplayMonth(
-              new Date(recentData[0].year, recentData[0].month - 1).toLocaleString('default', {
-                month: 'long',
-              })
-            );
-            setDisplayYear(recentData[0].year);
+          if (recentMonthData && recentMonthData.length > 0) {
+            const mostRecentMonth = recentMonthData[0].month;
+            const mostRecentYear = recentMonthData[0].year;
+
+            // Now get all rankings for that specific month
+            const { data: recentData, error: recentError } = await supabase
+              .from('monthly_rankings')
+              .select(
+                `
+                *,
+                contributors!inner (
+                  id,
+                  username,
+                  display_name,
+                  avatar_url,
+                  github_id
+                ),
+                repositories!inner (
+                  owner,
+                  name
+                )
+              `
+              )
+              .eq('month', mostRecentMonth)
+              .eq('year', mostRecentYear)
+              .eq('repositories.owner', owner)
+              .eq('repositories.name', repo)
+              .order('weighted_score', { ascending: false })
+              .limit(10);
+
+            if (recentError) throw recentError;
+
+            if (recentData && recentData.length > 0) {
+              data = recentData;
+              setIsUsingFallback(true);
+              setDisplayMonth(
+                new Date(mostRecentYear, mostRecentMonth - 1).toLocaleString('default', {
+                  month: 'long',
+                })
+              );
+              setDisplayYear(mostRecentYear);
+            }
           }
         } else {
           setDisplayMonth(now.toLocaleString('default', { month: 'long' }));
