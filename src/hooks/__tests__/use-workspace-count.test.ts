@@ -3,12 +3,6 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { useWorkspaceCount, useNeedsWorkspaceOnboarding } from '../use-workspace-count';
 import { supabase } from '@/lib/supabase';
 
-// Type for mock Supabase queries
-type MockSupabaseQuery = {
-  select: ReturnType<typeof vi.fn>;
-  eq: ReturnType<typeof vi.fn>;
-};
-
 // Type for mock user
 type MockUser = {
   id: string;
@@ -16,6 +10,17 @@ type MockUser = {
   created_at: string;
   user_metadata?: Record<string, unknown>;
   last_sign_in_at?: string;
+};
+
+// Types for mock Supabase query chains
+type MockEqChain = {
+  eq: ReturnType<typeof vi.fn>;
+};
+
+type MockQueryBuilder = {
+  select: ReturnType<typeof vi.fn>;
+  eq: ReturnType<typeof vi.fn>;
+  not?: ReturnType<typeof vi.fn>;
 };
 
 // Mock Supabase
@@ -108,20 +113,21 @@ describe('useWorkspaceCount', () => {
       error: new Error('Function not found'),
     });
 
-    // Mock fallback queries
-    vi.mocked(supabase.from).mockImplementation((table: string) => {
+    // Mock fallback queries with proper chaining
+    vi.mocked(supabase.from).mockImplementation((table: string): MockQueryBuilder => {
       if (table === 'workspaces') {
+        const mockEq1 = vi.fn().mockImplementation(
+          (): MockEqChain => ({
+            eq: vi.fn().mockResolvedValue({
+              data: [{ id: 'ws-1' }, { id: 'ws-2' }],
+              error: null,
+            }),
+          })
+        );
         return {
           select: vi.fn().mockReturnThis(),
-          eq: vi.fn().mockImplementation(() => {
-            return {
-              eq: vi.fn().mockResolvedValue({
-                data: [{ id: 'ws-1' }, { id: 'ws-2' }],
-                error: null,
-              }),
-            };
-          }),
-        } as MockSupabaseQuery;
+          eq: mockEq1,
+        };
       } else if (table === 'workspace_members') {
         return {
           select: vi.fn().mockReturnThis(),
@@ -130,9 +136,12 @@ describe('useWorkspaceCount', () => {
             data: [{ workspace_id: 'ws-3' }],
             error: null,
           }),
-        } as MockSupabaseQuery;
+        };
       }
-      return {} as MockSupabaseQuery;
+      return {
+        select: vi.fn(),
+        eq: vi.fn(),
+      };
     });
 
     const { result } = renderHook(() => useWorkspaceCount());
@@ -165,18 +174,19 @@ describe('useWorkspaceCount', () => {
     });
 
     // Mock fallback also failing
-    vi.mocked(supabase.from).mockImplementation(() => {
+    vi.mocked(supabase.from).mockImplementation((): MockQueryBuilder => {
+      const mockEq1 = vi.fn().mockImplementation(
+        (): MockEqChain => ({
+          eq: vi.fn().mockResolvedValue({
+            data: null,
+            error: new Error('Database connection error'),
+          }),
+        })
+      );
       return {
         select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockImplementation(() => {
-          return {
-            eq: vi.fn().mockResolvedValue({
-              data: null,
-              error: new Error('Database connection error'),
-            }),
-          };
-        }),
-      } as MockSupabaseQuery;
+        eq: mockEq1,
+      };
     });
 
     const { result } = renderHook(() => useWorkspaceCount());
