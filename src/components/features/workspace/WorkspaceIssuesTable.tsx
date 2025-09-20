@@ -33,6 +33,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useWorkspaceFiltersStore, type IssueState } from '@/lib/workspace-filters-store';
 import { IssueFilters } from './filters/TableFilters';
+import { isBot, hasBotAuthors } from '@/lib/utils/bot-detection';
 
 export interface Issue {
   id: string;
@@ -126,9 +127,7 @@ export function WorkspaceIssuesTable({
 
   // Check if there are any bot issues - using useMemo for performance
   const hasBots = useMemo(() => {
-    return issues.some(
-      (issue) => issue.author.isBot === true || issue.author.username.toLowerCase().includes('bot')
-    );
+    return hasBotAuthors(issues);
   }, [issues]);
 
   // Filter issues based on state, bot settings, and assignment
@@ -138,9 +137,7 @@ export function WorkspaceIssuesTable({
       const stateMatch = issueStates.includes(issue.state as IssueState);
 
       // Filter by bot status
-      const isBot =
-        issue.author.isBot === true || issue.author.username.toLowerCase().includes('bot');
-      const botMatch = issueIncludeBots || !isBot;
+      const botMatch = issueIncludeBots || !isBot(issue.author);
 
       // Filter by assignment
       const hasAssignees = issue.assignees && issue.assignees.length > 0;
@@ -564,11 +561,31 @@ export function WorkspaceIssuesTable({
             {/* Pagination */}
             <div className="flex items-center justify-between mt-4">
               <div className="text-sm text-muted-foreground">
-                Showing {table.getState().pagination.pageIndex * 10 + 1} to{' '}
-                {Math.min((table.getState().pagination.pageIndex + 1) * 10, filteredIssues.length)}{' '}
-                of {filteredIssues.length} issues
-                {filteredIssues.length < issues.length && (
-                  <span className="text-muted-foreground"> (filtered from {issues.length})</span>
+                {filteredIssues.length > 0 ? (
+                  <>
+                    Showing {table.getState().pagination.pageIndex * 10 + 1} to{' '}
+                    {Math.min(
+                      (table.getState().pagination.pageIndex + 1) * 10,
+                      filteredIssues.length
+                    )}{' '}
+                    of {filteredIssues.length} issues
+                    {filteredIssues.length < issues.length && (
+                      <span className="text-muted-foreground">
+                        {' '}
+                        (filtered from {issues.length})
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    No issues found
+                    {issues.length > 0 && (
+                      <span className="text-muted-foreground">
+                        {' '}
+                        (filtered from {issues.length})
+                      </span>
+                    )}
+                  </>
                 )}
               </div>
               <div className="flex items-center gap-2">

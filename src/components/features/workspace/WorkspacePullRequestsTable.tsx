@@ -33,6 +33,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useWorkspaceFiltersStore, type PRState } from '@/lib/workspace-filters-store';
 import { PRFilters } from './filters/TableFilters';
+import { isBot, hasBotAuthors } from '@/lib/utils/bot-detection';
 
 export interface PullRequest {
   id: string;
@@ -124,9 +125,7 @@ export function WorkspacePullRequestsTable({
 
   // Check if there are any bot PRs - using useMemo for performance
   const hasBots = useMemo(() => {
-    return pullRequests.some(
-      (pr) => pr.author.isBot === true || pr.author.username.toLowerCase().includes('bot')
-    );
+    return hasBotAuthors(pullRequests);
   }, [pullRequests]);
 
   // Filter pull requests based on state and bot settings
@@ -136,8 +135,7 @@ export function WorkspacePullRequestsTable({
       const stateMatch = prStates.includes(pr.state as PRState);
 
       // Filter by bot status
-      const isBot = pr.author.isBot === true || pr.author.username.toLowerCase().includes('bot');
-      const botMatch = prIncludeBots || !isBot;
+      const botMatch = prIncludeBots || !isBot(pr.author);
 
       return stateMatch && botMatch;
     });
@@ -520,17 +518,31 @@ export function WorkspacePullRequestsTable({
             {/* Pagination */}
             <div className="flex flex-col sm:flex-row items-center justify-between mt-4 gap-4">
               <div className="text-sm text-muted-foreground order-2 sm:order-1">
-                Showing {table.getState().pagination.pageIndex * 10 + 1} to{' '}
-                {Math.min(
-                  (table.getState().pagination.pageIndex + 1) * 10,
-                  filteredPullRequests.length
-                )}{' '}
-                of {filteredPullRequests.length} pull requests
-                {filteredPullRequests.length < pullRequests.length && (
-                  <span className="text-muted-foreground">
-                    {' '}
-                    (filtered from {pullRequests.length})
-                  </span>
+                {filteredPullRequests.length > 0 ? (
+                  <>
+                    Showing {table.getState().pagination.pageIndex * 10 + 1} to{' '}
+                    {Math.min(
+                      (table.getState().pagination.pageIndex + 1) * 10,
+                      filteredPullRequests.length
+                    )}{' '}
+                    of {filteredPullRequests.length} pull requests
+                    {filteredPullRequests.length < pullRequests.length && (
+                      <span className="text-muted-foreground">
+                        {' '}
+                        (filtered from {pullRequests.length})
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    No pull requests found
+                    {pullRequests.length > 0 && (
+                      <span className="text-muted-foreground">
+                        {' '}
+                        (filtered from {pullRequests.length})
+                      </span>
+                    )}
+                  </>
                 )}
               </div>
               <div className="flex items-center gap-2 order-1 sm:order-2">
