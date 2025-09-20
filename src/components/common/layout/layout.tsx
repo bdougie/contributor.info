@@ -230,8 +230,13 @@ export default function Layout() {
           <div className="ml-auto flex items-center gap-2">
             {isLoggedIn && (
               <>
-                {/* Show CTA for users with no workspaces */}
-                {needsOnboarding && !onboardingLoading && (
+                {/* Prevent flickering by handling loading state */}
+                {onboardingLoading && (
+                  // Show placeholder during loading to prevent layout shift
+                  <div className="h-8 w-[150px] bg-muted animate-pulse rounded-md" />
+                )}
+                {!onboardingLoading && needsOnboarding && (
+                  // Show CTA for users with no workspaces
                   <Button
                     variant="default"
                     size="sm"
@@ -242,9 +247,8 @@ export default function Layout() {
                     Create Workspace
                   </Button>
                 )}
-
-                {/* Show workspace switcher for users with workspaces */}
-                {!needsOnboarding && (
+                {!onboardingLoading && !needsOnboarding && (
+                  // Show workspace switcher for users with workspaces
                   <div onMouseEnter={handlePreloadCommandPalette}>
                     <WorkspaceSwitcher
                       className="min-w-[150px]"

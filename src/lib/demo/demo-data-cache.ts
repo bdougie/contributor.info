@@ -125,7 +125,7 @@ export function getCachedWorkspaceMetrics(
     return cache.metricsCache.get(cacheKey)!;
   }
 
-  console.log(`🔄 Generating fresh metrics for demo workspace (${timeRange})`);
+  console.log('%s', `🔄 Generating fresh metrics for demo workspace (${timeRange})`);
   const metrics = generateDemoWorkspaceMetrics(repos, timeRange, selectedRepoIds);
   cache.metricsCache.set(cacheKey, metrics);
   cache.lastGenerated = Date.now();
@@ -147,7 +147,7 @@ export function getCachedWorkspaceTrendData(
     return cache.trendCache.get(cacheKey)!;
   }
 
-  console.log(`🔄 Generating fresh trend data for demo workspace (${days} days)`);
+  console.log('%s', `🔄 Generating fresh trend data for demo workspace (${days} days)`);
   const trendData = generateDemoWorkspaceTrendData(days, repos, selectedRepoIds);
   cache.trendCache.set(cacheKey, trendData);
   cache.lastGenerated = Date.now();

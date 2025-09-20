@@ -142,23 +142,28 @@ export function AuthButton() {
 
       // Track authentication events
       if (event === 'SIGNED_IN' && user) {
-        // Track successful login
+        // Identify user in PostHog BEFORE tracking events
+        const githubId = user.user_metadata?.provider_id || user.user_metadata?.sub;
+        if (githubId) {
+          try {
+            await identifyUser(githubId, {
+              github_username: user.user_metadata?.user_name,
+              email: user.email,
+              created_at: user.created_at,
+              auth_provider: 'github',
+            });
+          } catch (identifyError) {
+            console.warn('Failed to identify user in PostHog:', identifyError);
+            // Continue with event tracking even if identification fails
+          }
+        }
+
+        // Track successful login after user identification
         trackEvent('auth_completed', {
           auth_provider: 'github',
           user_id: user.id,
           is_new_user: !user.last_sign_in_at || user.created_at === user.last_sign_in_at,
         });
-
-        // Identify user in PostHog for future events
-        const githubId = user.user_metadata?.provider_id || user.user_metadata?.sub;
-        if (githubId) {
-          await identifyUser(githubId, {
-            github_username: user.user_metadata?.user_name,
-            email: user.email,
-            created_at: user.created_at,
-            auth_provider: 'github',
-          });
-        }
       } else if (event === 'SIGNED_OUT') {
         // Track logout
         trackEvent('user_logout', {
