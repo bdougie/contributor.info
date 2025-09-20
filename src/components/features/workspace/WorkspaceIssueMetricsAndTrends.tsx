@@ -25,56 +25,6 @@ interface WorkspaceIssueMetricsAndTrendsProps {
   timeRange: string;
 }
 
-function IssueTrendCard({ trend, loading = false }: { trend?: IssueTrendData; loading?: boolean }) {
-  if (loading || !trend) {
-    return (
-      <Card>
-        <CardContent className="pt-6">
-          <div className="space-y-2">
-            <div className="h-4 w-20 bg-muted animate-pulse rounded" />
-            <div className="h-8 w-16 bg-muted animate-pulse rounded" />
-            <div className="h-3 w-24 bg-muted animate-pulse rounded" />
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const getTrendIcon = () => {
-    return null; // Remove all trend icons
-  };
-
-  const getTrendColor = (change: number) => {
-    if (change > 0) return 'text-green-500';
-    if (change < 0) return 'text-red-500';
-    return 'text-muted-foreground';
-  };
-
-  return (
-    <Card>
-      <CardContent className="pt-6">
-        <div className="space-y-3">
-          <h4 className="text-sm font-medium">{trend.metric}</h4>
-          <dl className="flex items-baseline gap-2">
-            <dt className="sr-only">Current {trend.metric}</dt>
-            <dd className="text-2xl font-bold">{trend.current}</dd>
-            {trend.unit && <dd className="text-sm text-muted-foreground">{trend.unit}</dd>}
-            <div className="flex items-center gap-1 ml-2">
-              {getTrendIcon()}
-              <dt className="sr-only">Change from previous period</dt>
-              <dd className={`text-sm font-medium ${getTrendColor(trend.change)}`}>
-                {trend.change > 0 ? '+' : ''}
-                {trend.change}%
-              </dd>
-            </div>
-          </dl>
-          {trend.insight && <p className="text-xs text-muted-foreground">{trend.insight}</p>}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
 export function WorkspaceIssueMetricsAndTrends({
   repositories,
   selectedRepositories,
@@ -230,8 +180,8 @@ export function WorkspaceIssueMetricsAndTrends({
 
         allData.forEach(({ trends }) => {
           trends.forEach((trend) => {
-            // Skip Time to Resolution only for multi-repo aggregation (can't be meaningfully aggregated)
-            if (trend.metric === 'Time to Resolution' && filteredRepos.length > 1) {
+            // Skip Time to Resolution - removed from display
+            if (trend.metric === 'Time to Resolution') {
               return;
             }
 
@@ -337,7 +287,7 @@ export function WorkspaceIssueMetricsAndTrends({
         <section>
           <h3 className="text-sm font-medium mb-3">Metrics</h3>
           {loading || !metrics ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <IssueHalfLifeCard halfLife={0} loading={true} />
               <StaleIssuesCard staleCount={0} totalCount={0} loading={true} />
               <IssueVolumeCalendarCard
@@ -349,10 +299,9 @@ export function WorkspaceIssueMetricsAndTrends({
                 }}
                 loading={true}
               />
-              <div></div> {/* Empty slot to maintain grid alignment */}
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <IssueHalfLifeCard halfLife={metrics.healthMetrics.issueHalfLife} loading={loading} />
               <StaleIssuesCard
                 staleCount={metrics.healthMetrics.staleVsActiveRatio.stale}
@@ -395,7 +344,6 @@ export function WorkspaceIssueMetricsAndTrends({
                   />
                 );
               })()}
-              <div></div> {/* Empty slot to maintain grid alignment */}
             </div>
           )}
         </section>
@@ -404,14 +352,13 @@ export function WorkspaceIssueMetricsAndTrends({
         <section>
           <h3 className="text-sm font-medium mb-3">Trends</h3>
           {loading || !metrics ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <ActiveTriagerCard triager={null} loading={true} />
               <FirstRespondersCard responders={[]} loading={true} />
               <RepeatReportersCard reporters={[]} loading={true} />
-              <IssueTrendCard key={1} loading={true} />
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <ActiveTriagerCard
                 triager={metrics.activityPatterns.mostActiveTriager}
                 loading={loading}
@@ -424,23 +371,6 @@ export function WorkspaceIssueMetricsAndTrends({
                 reporters={metrics.activityPatterns.repeatReporters}
                 loading={loading}
               />
-              {(() => {
-                // Show Time to Resolution trend if available
-                const timeToResolutionTrend = trends.find(
-                  (trend) => trend.metric === 'Time to Resolution'
-                );
-                return timeToResolutionTrend ? (
-                  <IssueTrendCard trend={timeToResolutionTrend} loading={loading} />
-                ) : (
-                  // Fallback to any non-Issue Volume trend
-                  trends
-                    .filter((trend) => trend.metric !== 'Issue Volume')
-                    .slice(0, 1)
-                    .map((trend, index) => (
-                      <IssueTrendCard key={index} trend={trend} loading={loading} />
-                    ))
-                );
-              })()}
             </div>
           )}
         </section>

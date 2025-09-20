@@ -320,6 +320,73 @@ export function WorkspaceIssuesTable({
           },
           size: 60,
         }),
+        columnHelper.accessor('assignees', {
+          header: 'Assignees',
+          cell: ({ row }) => {
+            const assignees = row.original.assignees || [];
+            const repo = row.original.repository;
+
+            if (assignees.length === 0) {
+              return <span className="text-sm text-muted-foreground">Unassigned</span>;
+            }
+
+            const maxVisible = 3;
+            const visibleAssignees = assignees.slice(0, maxVisible);
+            const remainingCount = assignees.length - maxVisible;
+
+            return (
+              <div className="flex items-center -space-x-2">
+                {visibleAssignees.map((assignee, index) => {
+                  const assigneeFilterUrl = `https://github.com/${repo.owner}/${repo.name}/issues?q=is%3Aissue+assignee%3A${encodeURIComponent(assignee.login)}`;
+
+                  return (
+                    <TooltipProvider key={assignee.login}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <a
+                            href={assigneeFilterUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-block"
+                            style={{ zIndex: maxVisible - index }}
+                          >
+                            <img
+                              src={assignee.avatar_url}
+                              alt={assignee.login}
+                              className="h-6 w-6 rounded-full border-2 border-background hover:ring-2 hover:ring-primary transition-all"
+                            />
+                          </a>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{assignee.login}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  );
+                })}
+                {remainingCount > 0 && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="h-6 w-6 rounded-full bg-muted border-2 border-background flex items-center justify-center">
+                          <span className="text-xs font-medium">+{remainingCount}</span>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <div className="space-y-1">
+                          {assignees.slice(maxVisible).map((assignee) => (
+                            <p key={assignee.login}>{assignee.login}</p>
+                          ))}
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+              </div>
+            );
+          },
+          size: 120,
+        }),
         columnHelper.accessor('linked_pull_requests', {
           header: 'Linked PRs',
           cell: ({ row }) => {
