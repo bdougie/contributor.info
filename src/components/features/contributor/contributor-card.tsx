@@ -5,16 +5,21 @@ import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 
 import { ContributorHoverCard } from './contributor-hover-card';
-import { useMemo, useContext } from 'react';
+import { useMemo, useContext, useRef, useCallback } from 'react';
 import { GitPullRequest, MessageSquare, GitPullRequestDraft, Trophy } from '@/components/ui/icon';
 import { RepoStatsContext } from '@/lib/repo-stats-context';
 import { createContributorStats } from '@/lib/contributor-utils';
+import { trackEvent } from '@/lib/posthog-lazy';
 
 interface ContributorCardProps {
   contributor: MonthlyContributor;
   showRank?: boolean;
   isWinner?: boolean;
   className?: string;
+  repositoryOwner?: string;
+  repositoryName?: string;
+  month?: string;
+  year?: number;
 }
 
 export function ContributorCard({
@@ -22,9 +27,14 @@ export function ContributorCard({
   showRank = true,
   isWinner = false,
   className,
+  repositoryOwner,
+  repositoryName,
+  month,
+  year,
 }: ContributorCardProps) {
   const { login, avatar_url, activity, rank } = contributor;
   const { stats } = useContext(RepoStatsContext);
+  const hasTrackedHover = useRef(false);
 
   // Create contributor data for hover card
   const contributorData = useMemo(() => {
@@ -35,6 +45,43 @@ export function ContributorCard({
       login // using login as ID since we don't have the actual ID
     );
   }, [login, avatar_url, stats.pullRequests]);
+
+  // Track hover event (only once per session)
+  const handleMouseEnter = useCallback(() => {
+    if (!hasTrackedHover.current) {
+      hasTrackedHover.current = true;
+      trackEvent('repo_leaderboard_card_hover', {
+        repository_owner: repositoryOwner,
+        repository_name: repositoryName,
+        contributor_username: login,
+        contributor_rank: rank,
+        month,
+        year,
+        is_winner: isWinner,
+        pull_requests_count: activity.pullRequests,
+        reviews_count: activity.reviews,
+        comments_count: activity.comments,
+        total_score: activity.totalScore,
+      });
+    }
+  }, [repositoryOwner, repositoryName, login, rank, month, year, isWinner, activity]);
+
+  // Track click event
+  const handleClick = useCallback(() => {
+    trackEvent('repo_leaderboard_card_clicked', {
+      repository_owner: repositoryOwner,
+      repository_name: repositoryName,
+      contributor_username: login,
+      contributor_rank: rank,
+      month,
+      year,
+      is_winner: isWinner,
+      pull_requests_count: activity.pullRequests,
+      reviews_count: activity.reviews,
+      comments_count: activity.comments,
+      total_score: activity.totalScore,
+    });
+  }, [repositoryOwner, repositoryName, login, rank, month, year, isWinner, activity]);
 
   // Create tooltip content with activity breakdown
   const tooltipContent = (
@@ -71,6 +118,8 @@ export function ContributorCard({
             role={isWinner ? 'article' : 'listitem'}
             aria-label={`${login}${isWinner ? ' - Winner' : ''}, ${activity.totalScore} points`}
             tabIndex={0}
+            onMouseEnter={handleMouseEnter}
+            onClick={handleClick}
           >
             {/* Rank Badge */}
             {showRank && (

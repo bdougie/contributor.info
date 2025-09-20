@@ -8,9 +8,10 @@ import { cn } from '@/lib/utils';
 import { ContributorOfMonthSkeleton } from '@/components/skeletons';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { WorkspaceCreateModal } from '../workspace/WorkspaceCreateModal';
 import { useHasPaidWorkspace } from '@/hooks/use-has-paid-workspace';
+import { trackEvent } from '@/lib/posthog-lazy';
 
 interface ContributorOfTheMonthProps {
   ranking: ContributorRanking | null;
@@ -19,6 +20,8 @@ interface ContributorOfTheMonthProps {
   className?: string;
   showBlurredFirst?: boolean;
   totalContributors?: number;
+  repositoryOwner?: string;
+  repositoryName?: string;
 }
 
 export function ContributorOfTheMonth({
@@ -28,10 +31,29 @@ export function ContributorOfTheMonth({
   className,
   showBlurredFirst = false,
   totalContributors = 0,
+  repositoryOwner,
+  repositoryName,
 }: ContributorOfTheMonthProps) {
   const navigate = useNavigate();
   const [showWorkspaceModal, setShowWorkspaceModal] = useState(false);
   const { hasPaidWorkspace } = useHasPaidWorkspace();
+  const hasTrackedView = useRef(false);
+
+  // Track leaderboard view event (only once per mount)
+  useEffect(() => {
+    if (ranking && !hasTrackedView.current && repositoryOwner && repositoryName) {
+      hasTrackedView.current = true;
+      trackEvent('repo_leaderboard_viewed', {
+        repository_owner: repositoryOwner,
+        repository_name: repositoryName,
+        month: ranking.month,
+        year: ranking.year,
+        is_winner_phase: ranking.phase === 'winner_announcement',
+        total_contributors: ranking.contributors.length,
+        has_winner: !!ranking.winner,
+      });
+    }
+  }, [ranking, repositoryOwner, repositoryName]);
   if (loading) {
     return (
       <ContributorOfMonthSkeleton className={className} phase="leaderboard" contributorCount={5} />
@@ -98,7 +120,15 @@ export function ContributorOfTheMonth({
                   </h3>
                 </div>
                 <div className="max-w-sm mx-auto">
-                  <ContributorCard contributor={ranking.winner} isWinner={true} showRank={false} />
+                  <ContributorCard
+                    contributor={ranking.winner}
+                    isWinner={true}
+                    showRank={false}
+                    repositoryOwner={repositoryOwner}
+                    repositoryName={repositoryName}
+                    month={ranking.month}
+                    year={ranking.year}
+                  />
                 </div>
               </div>
 
@@ -117,6 +147,10 @@ export function ContributorOfTheMonth({
                         key={contributor.login}
                         contributor={contributor}
                         showRank={true}
+                        repositoryOwner={repositoryOwner}
+                        repositoryName={repositoryName}
+                        month={ranking.month}
+                        year={ranking.year}
                       />
                     ))}
                   </div>
@@ -157,6 +191,10 @@ export function ContributorOfTheMonth({
                         contributor={contributor}
                         showRank={true}
                         className={isFirstPlace ? 'blur-sm' : ''}
+                        repositoryOwner={repositoryOwner}
+                        repositoryName={repositoryName}
+                        month={ranking.month}
+                        year={ranking.year}
                       />
                     </div>
                   );

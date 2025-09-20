@@ -127,6 +127,8 @@ export default function ContributorOfTheMonthWrapper() {
         ranking={contributorRanking}
         showBlurredFirst={true}
         totalContributors={rankings.length}
+        repositoryOwner={owner}
+        repositoryName={repo}
       />
     </div>
   );
