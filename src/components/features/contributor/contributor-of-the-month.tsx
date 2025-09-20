@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { WorkspaceCreateModal } from '../workspace/WorkspaceCreateModal';
+import { useHasPaidWorkspace } from '@/hooks/use-has-paid-workspace';
 
 interface ContributorOfTheMonthProps {
   ranking: ContributorRanking | null;
@@ -30,6 +31,7 @@ export function ContributorOfTheMonth({
 }: ContributorOfTheMonthProps) {
   const navigate = useNavigate();
   const [showWorkspaceModal, setShowWorkspaceModal] = useState(false);
+  const { hasPaidWorkspace } = useHasPaidWorkspace();
   if (loading) {
     return (
       <ContributorOfMonthSkeleton className={className} phase="leaderboard" contributorCount={5} />
@@ -135,7 +137,7 @@ export function ContributorOfTheMonth({
 
               <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
                 {topContributors.map((contributor, index) => {
-                  const isFirstPlace = index === 0 && showBlurredFirst;
+                  const isFirstPlace = index === 0 && showBlurredFirst && !hasPaidWorkspace;
 
                   return (
                     <div key={contributor.login} className="relative">
