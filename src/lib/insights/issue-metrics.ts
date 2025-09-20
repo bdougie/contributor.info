@@ -1,6 +1,17 @@
 import { supabase } from '../supabase';
 import { trackDatabaseOperation } from '../simple-logging';
 
+// Type for comments with commenter relationship
+type CommentWithCommenter = {
+  id: string;
+  issue_id: string;
+  created_at: string;
+  commenter: {
+    username: string;
+    avatar_url: string;
+  };
+};
+
 export interface IssueHealthMetrics {
   staleVsActiveRatio: {
     stale: number;
@@ -118,7 +129,7 @@ export async function calculateIssueHealthMetrics(
       .select(
         `
         issue_id,
-        commenter:commenter_id(
+        commenter:commenter_id!inner(
           username,
           avatar_url
         )
@@ -127,18 +138,16 @@ export async function calculateIssueHealthMetrics(
       .not('issue_id', 'is', null)
       .eq('repository_id', repoData.id);
 
-    // Create a set of issue numbers that have any non-bot comments
-    // Note: issue_github_id in comments table actually refers to issue number, not github_id
-    const issuesWithAnyComments = new Set<number>();
-    (allIssueComments || []).forEach((comment) => {
+    // Create a set of issue IDs that have any non-bot comments
+    const issuesWithAnyComments = new Set<string>();
+
+    ((allIssueComments as unknown as CommentWithCommenter[]) || []).forEach((comment) => {
       if (
-        comment.issue_github_id &&
-        comment.author_username &&
-        !comment.author_username.includes('[bot]') &&
-        comment.author_association !== 'OWNER' &&
-        comment.author_association !== 'MEMBER'
+        comment.issue_id &&
+        comment.commenter?.username &&
+        !comment.commenter.username.includes('[bot]')
       ) {
-        issuesWithAnyComments.add(comment.issue_github_id);
+        issuesWithAnyComments.add(comment.issue_id);
       }
     });
 
@@ -282,7 +291,7 @@ export async function calculateIssueActivityPatterns(
           id,
           issue_id,
           created_at,
-          commenter:commenter_id(
+          commenter:commenter_id!inner(
             username,
             avatar_url
           )
@@ -326,7 +335,7 @@ export async function calculateIssueActivityPatterns(
     const triagerStats = new Map<string, { username: string; avatar_url: string; count: number }>();
 
     // Process issue comments from comments table
-    (issueComments || []).forEach((comment) => {
+    ((issueComments as unknown as CommentWithCommenter[]) || []).forEach((comment) => {
       // Filter out Bot authors
       if (comment.commenter?.username && !comment.commenter.username.includes('[bot]')) {
         const key = comment.commenter.username;
@@ -382,20 +391,9 @@ export async function calculateIssueActivityPatterns(
     >();
 
     // Group issue comments by issue ID to find first responders
-    const commentsByIssue = new Map<
-      string,
-      Array<{
-        id: string;
-        issue_id: string;
-        created_at: string;
-        commenter: {
-          username: string;
-          avatar_url: string;
-        };
-      }>
-    >();
+    const commentsByIssue = new Map<string, Array<CommentWithCommenter>>();
 
-    (issueComments || []).forEach((comment) => {
+    ((issueComments as unknown as CommentWithCommenter[]) || []).forEach((comment) => {
       if (comment.issue_id) {
         if (!commentsByIssue.has(comment.issue_id)) {
           commentsByIssue.set(comment.issue_id, []);
