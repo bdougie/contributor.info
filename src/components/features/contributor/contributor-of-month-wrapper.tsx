@@ -66,7 +66,7 @@ export default function ContributorOfTheMonthWrapper() {
                 <Users className="h-4 w-4" />
                 Create Workspace
               </Button>
-              <Button variant="outline" onClick={() => navigate('/workspaces')}>
+              <Button variant="outline" onClick={() => navigate('/workspaces/new')}>
                 Learn More
               </Button>
             </div>
