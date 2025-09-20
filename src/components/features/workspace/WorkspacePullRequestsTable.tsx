@@ -150,14 +150,32 @@ export function WorkspacePullRequestsTable({
             );
           },
         }),
+        columnHelper.accessor('number', {
+          size: 80,
+          minSize: 70,
+          header: 'Number',
+          cell: ({ row }) => {
+            const pr = row.original;
+            return (
+              <a
+                href={pr.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium hover:text-primary transition-colors"
+              >
+                #{pr.number}
+              </a>
+            );
+          },
+        }),
         columnHelper.accessor('title', {
           size: 350,
           minSize: 250,
-          header: 'Pull Request',
+          header: 'Title',
           cell: ({ row }) => {
             const pr = row.original;
             const truncatedTitle =
-              pr.title.length > 50 ? pr.title.substring(0, 50) + '...' : pr.title;
+              pr.title.length > 60 ? pr.title.substring(0, 60) + '...' : pr.title;
 
             return (
               <TooltipProvider>
@@ -173,16 +191,13 @@ export function WorkspacePullRequestsTable({
                           onPullRequestClick(pr);
                         }
                       }}
-                      className="font-medium hover:text-primary transition-colors text-left inline-flex items-center gap-1"
+                      className="font-medium hover:text-primary transition-colors text-left block"
                     >
                       <span className="line-clamp-1">{truncatedTitle}</span>
-                      <span className="text-muted-foreground">#{pr.number}</span>
                     </a>
                   </TooltipTrigger>
                   <TooltipContent className="max-w-md">
-                    <p>
-                      {pr.title} #{pr.number}
-                    </p>
+                    <p>{pr.title}</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -222,15 +237,23 @@ export function WorkspacePullRequestsTable({
           header: 'Author',
           cell: ({ row }) => {
             const author = row.original.author;
+            const repo = row.original.repository;
+            const authorFilterUrl = `https://github.com/${repo.owner}/${repo.name}/pulls?q=is%3Apr+author%3A${encodeURIComponent(author.username)}`;
+
             return (
-              <div className="flex items-center gap-2">
+              <a
+                href={authorFilterUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 hover:text-primary transition-colors"
+              >
                 <img
                   src={author.avatar_url}
                   alt={author.username}
                   className="h-6 w-6 rounded-full"
                 />
                 <span className="text-sm truncate">{author.username}</span>
-              </div>
+              </a>
             );
           },
         }),
