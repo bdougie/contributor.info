@@ -28,23 +28,24 @@ The contributor ranking system has been redesigned to calculate rankings on-dema
 
 1. User navigates to a repository page
 2. `useMonthlyContributorRankings` hook is triggered
-3. Hook attempts to call the Edge Function
-4. Edge Function checks for cached data (< 1 hour old)
+3. Hook retrieves user session (if authenticated) and calls the Edge Function
+4. Edge Function validates authentication and checks for cached data (< 1 hour old)
 5. If no cache, calculates fresh rankings from:
    - `pull_requests` table (PRs created)
-   - `reviews` table (PR reviews)
-   - `pr_comments` table (PR comments)
+   - `reviews` table (PR reviews) - continues on error
+   - `pr_comments` table (PR comments) - continues on error
 6. Applies weighted scoring formula: `(PRs × 10) + (Reviews × 3) + (Comments × 1)`
-7. Returns top 10 contributors with their stats
-8. Results are cached in `monthly_rankings` table
+7. Returns top contributors with their stats (limit: 1-100, default: 10)
+8. Results are cached in `monthly_rankings` table with error handling
 
 ### Fallback Strategy
 
-If the Edge Function is unavailable:
-1. Hook falls back to direct database query
-2. Checks `monthly_rankings` table for existing data
-3. If current month has no data, finds most recent month with data
-4. Displays fallback indicator to user
+If the Edge Function is unavailable or returns an error:
+1. State is properly reset (`isCalculating` set to false)
+2. Hook falls back to direct database query
+3. Checks `monthly_rankings` table for existing data
+4. If current month has no data, finds most recent month with data
+5. Displays fallback indicator to user
 
 ## Analytics Events
 
@@ -63,7 +64,7 @@ Fired when the leaderboard component is rendered.
 - `has_winner`: Boolean
 
 ### `repo_leaderboard_card_hover`
-Fired once per session when a user hovers over a contributor card.
+Fired when a user hovers over a contributor card (limited to once per contributor per session).
 
 **Properties:**
 - `repository_owner`: Repository owner username
@@ -89,11 +90,15 @@ Fired when a user clicks on a contributor card.
 - No dependency on scheduled workflows
 - No failures from GitHub API rate limits
 - Automatic fallback mechanisms
+- Graceful error handling for partial data failures
+- Query limits prevent performance issues
 
 ### Performance
 - On-demand calculation reduces unnecessary processing
 - 1-hour cache balances freshness with efficiency
 - Only calculates for viewed repositories
+- UTC-based date calculations avoid timezone boundary issues
+- Query result limits (max 100) prevent heavy database loads
 
 ### Insights
 - PostHog tracking validates feature usage
@@ -123,7 +128,8 @@ supabase functions deploy calculate-monthly-rankings
 
 The Edge Function requires:
 - `SUPABASE_URL`: Automatically provided
-- `SUPABASE_SERVICE_ROLE_KEY`: Automatically provided
+- `SUPABASE_ANON_KEY`: Automatically provided
+- Authentication: Requires valid user session token passed in Authorization header
 
 ### Database Requirements
 
@@ -144,20 +150,28 @@ Required tables:
 
 ### Common Issues
 
+**Authentication errors:**
+- Ensure user is logged in for write operations
+- Verify session token is being passed correctly
+- Check Edge Function authentication configuration
+
 **Edge Function not responding:**
 - Check deployment status
 - Verify CORS configuration
 - Review function logs for errors
+- Confirm authentication headers are present
 
 **Stale data showing:**
 - Check `calculated_at` timestamp in response
 - Verify cache invalidation logic
 - Ensure database tables are being updated
+- Confirm UTC date calculations are correct
 
 **Missing contributors:**
 - Verify `pull_requests` table has recent data
 - Check contributor linking in database
 - Review date range filters in function
+- Note: Reviews/comments errors are non-fatal
 
 ## Future Enhancements
 

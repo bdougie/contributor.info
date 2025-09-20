@@ -44,19 +44,38 @@ serve(async (req) => {
       )
     }
 
-    // Get current month/year if not provided
+    // Validate and clamp limit to prevent heavy queries
+    const clampedLimit = Math.min(Math.max(1, limit), 100)
+
+    // Get current month/year if not provided (use UTC to avoid timezone issues)
     const now = new Date()
-    const targetMonth = month || now.getMonth() + 1
-    const targetYear = year || now.getFullYear()
+    const targetMonth = month || (now.getUTCMonth() + 1)
+    const targetYear = year || now.getUTCFullYear()
 
-    // Calculate date range for the month
-    const startDate = new Date(targetYear, targetMonth - 1, 1)
-    const endDate = new Date(targetYear, targetMonth, 0, 23, 59, 59, 999)
+    // Calculate date range for the month in UTC
+    const startDate = new Date(Date.UTC(targetYear, targetMonth - 1, 1, 0, 0, 0, 0))
+    const endDate = new Date(Date.UTC(targetYear, targetMonth, 0, 23, 59, 59, 999))
 
-    // Create Supabase client
+    // Create Supabase client with proper authentication
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const supabase = createClient(supabaseUrl, supabaseKey)
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!
+
+    // Get the authorization header from the request
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Authentication required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: {
+          Authorization: authHeader,
+        },
+      },
+    })
 
     // First, get the repository ID
     const { data: repoData, error: repoError } = await supabase
@@ -94,7 +113,7 @@ serve(async (req) => {
       .eq('repository_id', repositoryId)
       .gte('calculated_at', oneHourAgo.toISOString())
       .order('weighted_score', { ascending: false })
-      .limit(limit)
+      .limit(clampedLimit)
 
     // If we have fresh cached data, return it
     if (!cacheError && cachedRankings && cachedRankings.length > 0) {
@@ -147,7 +166,8 @@ serve(async (req) => {
       .not('author_id', 'is', null)
 
     if (prError) {
-      throw prError
+      console.error('Error fetching pull requests:', prError)
+      throw new Error('Failed to fetch pull request data')
     }
 
     // Get PR reviews
@@ -163,6 +183,11 @@ serve(async (req) => {
       .gte('created_at', startDate.toISOString())
       .lte('created_at', endDate.toISOString())
 
+    if (reviewsError) {
+      console.error('Error fetching reviews:', reviewsError)
+      // Continue without reviews rather than failing completely
+    }
+
     // Get PR comments
     const { data: prComments, error: commentsError } = await supabase
       .from('pr_comments')
@@ -175,6 +200,11 @@ serve(async (req) => {
       .in('pull_request_id', pullRequests?.map(pr => pr.id) || [])
       .gte('created_at', startDate.toISOString())
       .lte('created_at', endDate.toISOString())
+
+    if (commentsError) {
+      console.error('Error fetching comments:', commentsError)
+      // Continue without comments rather than failing completely
+    }
 
     // Aggregate stats per contributor
     const contributorMap = new Map<string, ContributorStats>()
@@ -245,12 +275,12 @@ serve(async (req) => {
     })
 
     // Take only top N contributors
-    const topRankings = rankings.slice(0, limit)
+    const topRankings = rankings.slice(0, clampedLimit)
 
     // Store the calculated rankings in the database for caching
     const now_timestamp = new Date().toISOString()
     for (const ranking of topRankings) {
-      await supabase
+      const { error: upsertError } = await supabase
         .from('monthly_rankings')
         .upsert({
           month: targetMonth,
@@ -269,6 +299,11 @@ serve(async (req) => {
         }, {
           onConflict: 'month,year,contributor_id,repository_id',
         })
+
+      if (upsertError) {
+        console.error('Error upserting ranking:', upsertError)
+        // Continue with other rankings rather than failing
+      }
     }
 
     return new Response(
@@ -284,9 +319,15 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error calculating rankings:', error)
+    // Sanitize error message to prevent internal details from leaking
+    const sanitizedMessage = error instanceof Error && error.message.includes('Authentication')
+      ? 'Authentication required'
+      : 'Failed to calculate rankings. Please try again later.'
+
     return new Response(
-      JSON.stringify({ error: 'Internal server error', details: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ error: sanitizedMessage }),
+      { status: error instanceof Error && error.message.includes('Authentication') ? 401 : 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
 })

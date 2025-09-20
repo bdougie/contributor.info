@@ -40,14 +40,19 @@ export function useMonthlyContributorRankings(owner: string, repo: string): Mont
         setIsUsingFallback(false);
         setIsCalculating(false);
 
-        // Get current month and year
+        // Get current month and year using UTC to match Edge Function
         const now = new Date();
-        const currentMonth = now.getMonth() + 1;
-        const currentYear = now.getFullYear();
+        const currentMonth = now.getUTCMonth() + 1;
+        const currentYear = now.getUTCFullYear();
 
         // First, try to call the Edge Function for on-demand calculation
         try {
           setIsCalculating(true);
+
+          // Get current session for authentication
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
 
           const { data: functionData, error: functionError } = await supabase.functions.invoke(
             'calculate-monthly-rankings',
@@ -59,6 +64,11 @@ export function useMonthlyContributorRankings(owner: string, repo: string): Mont
                 year: currentYear,
                 limit: 10,
               },
+              headers: session
+                ? {
+                    Authorization: `Bearer ${session.access_token}`,
+                  }
+                : undefined,
             }
           );
 
@@ -96,8 +106,11 @@ export function useMonthlyContributorRankings(owner: string, repo: string): Mont
             setIsCalculating(false);
             return; // Successfully got rankings from Edge Function
           }
-        } catch {
-          console.log('Edge function not available, falling back to database query');
+          // Edge function failed, reset state before falling back
+          setIsCalculating(false);
+        } catch (err) {
+          console.log('Edge function error:', err, 'Falling back to database query');
+          // Reset state before fallback
           setIsCalculating(false);
         }
 
