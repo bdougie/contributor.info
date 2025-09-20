@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -117,18 +117,16 @@ export function WorkspacePullRequestsTable({
   const [sorting, setSorting] = useState<SortingState>([{ id: 'updated_at', desc: true }]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
-  const [hasBots, setHasBots] = useState(false);
 
   // Get filter state from store
   const { prStates, prIncludeBots, togglePRState, setPRIncludeBots, resetPRFilters } =
     useWorkspaceFiltersStore();
 
-  // Check if there are any bot PRs
-  useEffect(() => {
-    const hasAnyBots = pullRequests.some(
+  // Check if there are any bot PRs - using useMemo for performance
+  const hasBots = useMemo(() => {
+    return pullRequests.some(
       (pr) => pr.author.isBot === true || pr.author.username.toLowerCase().includes('bot')
     );
-    setHasBots(hasAnyBots);
   }, [pullRequests]);
 
   // Filter pull requests based on state and bot settings

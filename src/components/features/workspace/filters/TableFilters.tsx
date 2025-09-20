@@ -50,6 +50,7 @@ export function PRFilters({
             id={`filter-pr-${state}`}
             checked={selectedStates.includes(state)}
             onCheckedChange={() => onToggleState(state)}
+            aria-label={`Filter pull requests by ${prStateLabels[state]} state`}
           />
           <Label htmlFor={`filter-pr-${state}`} className="text-sm">
             {prStateLabels[state]}
@@ -59,7 +60,12 @@ export function PRFilters({
 
       {hasBots && (
         <div className="flex items-center space-x-2">
-          <Switch id="filter-pr-bots" checked={includeBots} onCheckedChange={onIncludeBotsChange} />
+          <Switch
+            id="filter-pr-bots"
+            checked={includeBots}
+            onCheckedChange={onIncludeBotsChange}
+            aria-label="Show or hide pull requests from bots"
+          />
           <Label htmlFor="filter-pr-bots" className="text-sm">
             Show Bots
           </Label>
@@ -67,7 +73,13 @@ export function PRFilters({
       )}
 
       {onReset && (
-        <Button variant="ghost" size="sm" onClick={onReset} className="ml-auto">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onReset}
+          className="ml-auto"
+          aria-label="Reset all pull request filters to default"
+        >
           Reset Filters
         </Button>
       )}
@@ -98,6 +110,7 @@ export function IssueFilters({
             id={`filter-issue-${state}`}
             checked={selectedStates.includes(state)}
             onCheckedChange={() => onToggleState(state)}
+            aria-label={`Filter issues by ${issueStateLabels[state]} state`}
           />
           <Label htmlFor={`filter-issue-${state}`} className="text-sm">
             {issueStateLabels[state]}
@@ -116,6 +129,7 @@ export function IssueFilters({
               onAssignmentFilterChange('all');
             }
           }}
+          aria-label="Show only assigned issues"
         />
         <Label htmlFor="filter-issue-assigned" className="text-sm">
           Assigned
@@ -133,6 +147,7 @@ export function IssueFilters({
               onAssignmentFilterChange('all');
             }
           }}
+          aria-label="Show only unassigned issues"
         />
         <Label htmlFor="filter-issue-unassigned" className="text-sm">
           Unassigned
@@ -145,6 +160,7 @@ export function IssueFilters({
             id="filter-issue-bots"
             checked={includeBots}
             onCheckedChange={onIncludeBotsChange}
+            aria-label="Show or hide issues from bots"
           />
           <Label htmlFor="filter-issue-bots" className="text-sm">
             Show Bots
@@ -153,7 +169,13 @@ export function IssueFilters({
       )}
 
       {onReset && (
-        <Button variant="ghost" size="sm" onClick={onReset} className="ml-auto">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onReset}
+          className="ml-auto"
+          aria-label="Reset all issue filters to default"
+        >
           Reset Filters
         </Button>
       )}

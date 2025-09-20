@@ -74,6 +74,34 @@ export const useWorkspaceFiltersStore = create<WorkspaceFiltersState>()(
     }),
     {
       name: 'workspace-filters',
+      // Add storage error handling
+      storage: {
+        getItem: (name) => {
+          try {
+            const str = localStorage.getItem(name);
+            return str ? JSON.parse(str) : null;
+          } catch (err) {
+            console.warn('Failed to load workspace filters from localStorage:', err);
+            return null; // Return null to use default values
+          }
+        },
+        setItem: (name, value) => {
+          try {
+            localStorage.setItem(name, JSON.stringify(value));
+          } catch (err) {
+            console.warn('Failed to save workspace filters to localStorage:', err);
+            // Silently fail - the app will continue to work without persistence
+          }
+        },
+        removeItem: (name) => {
+          try {
+            localStorage.removeItem(name);
+          } catch (err) {
+            console.warn('Failed to remove workspace filters from localStorage:', err);
+            // Silently fail
+          }
+        },
+      },
     }
   )
 );

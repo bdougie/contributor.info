@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -113,8 +113,6 @@ export function WorkspaceIssuesTable({
   const [sorting, setSorting] = useState<SortingState>([{ id: 'updated_at', desc: true }]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
-  const [hasBots, setHasBots] = useState(false);
-
   // Get filter state from store
   const {
     issueStates,
@@ -126,12 +124,11 @@ export function WorkspaceIssuesTable({
     resetIssueFilters,
   } = useWorkspaceFiltersStore();
 
-  // Check if there are any bot issues
-  useEffect(() => {
-    const hasAnyBots = issues.some(
+  // Check if there are any bot issues - using useMemo for performance
+  const hasBots = useMemo(() => {
+    return issues.some(
       (issue) => issue.author.isBot === true || issue.author.username.toLowerCase().includes('bot')
     );
-    setHasBots(hasAnyBots);
   }, [issues]);
 
   // Filter issues based on state, bot settings, and assignment
