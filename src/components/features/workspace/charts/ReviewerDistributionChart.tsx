@@ -4,16 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import {
-  ChevronDown,
-  ChevronUp,
-  UserCheck,
-  TrendingUp,
-  TrendingDown,
-  CheckCircle2,
-  Clock,
-} from '@/components/ui/icon';
+import { ChevronDown, ChevronUp, UserCheck, CheckCircle2, Clock } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 import { isBot } from '@/lib/utils/bot-detection';
 import type { PullRequest } from '../WorkspacePullRequestsTable';
@@ -25,9 +16,6 @@ interface ReviewerData {
   approvedReviews: number;
   pendingReviews: number;
   percentage: number;
-  previousCount?: number;
-  change?: number;
-  changePercentage?: number;
   isBot?: boolean;
 }
 
@@ -118,18 +106,7 @@ export function ReviewerDistributionChart({
     const reviewerArray = Array.from(reviewerMap.values()).map((reviewer) => ({
       ...reviewer,
       percentage: totalReviews > 0 ? (reviewer.totalReviews / totalReviews) * 100 : 0,
-      // Mock previous data for demo purposes - in production this would come from historical data
-      previousCount: Math.max(1, reviewer.totalReviews - Math.floor(Math.random() * 3) + 1),
     }));
-
-    // Calculate change
-    reviewerArray.forEach((reviewer) => {
-      if (reviewer.previousCount !== undefined) {
-        reviewer.change = reviewer.totalReviews - reviewer.previousCount;
-        reviewer.changePercentage =
-          reviewer.previousCount > 0 ? (reviewer.change / reviewer.previousCount) * 100 : 100;
-      }
-    });
 
     // Sort by count descending based on view mode
     reviewerArray.sort((a, b) => {
@@ -307,35 +284,6 @@ export function ReviewerDistributionChart({
                         <span>{reviewer.pendingReviews}</span>
                       </div>
                     )}
-                    {reviewer.change !== undefined &&
-                      reviewer.change !== 0 &&
-                      viewMode === 'total' && (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div
-                                className={cn(
-                                  'flex items-center gap-0.5 text-xs',
-                                  reviewer.change > 0 ? 'text-green-600' : 'text-red-600'
-                                )}
-                              >
-                                {reviewer.change > 0 ? (
-                                  <TrendingUp className="h-3 w-3" />
-                                ) : (
-                                  <TrendingDown className="h-3 w-3" />
-                                )}
-                                <span>{Math.abs(reviewer.changePercentage || 0).toFixed(0)}%</span>
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>
-                                {reviewer.change > 0 ? '+' : ''}
-                                {reviewer.change} from previous period
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      )}
                   </div>
 
                   {/* Progress bar */}

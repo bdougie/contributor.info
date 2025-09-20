@@ -4,8 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ChevronDown, ChevronUp, Users, TrendingUp, TrendingDown } from '@/components/ui/icon';
+import { ChevronDown, ChevronUp, Users } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 import { isBot } from '@/lib/utils/bot-detection';
 import type { Issue } from '../WorkspaceIssuesTable';
@@ -16,9 +15,6 @@ interface AssigneeData {
   count: number;
   percentage: number;
   repositories: Set<{ owner: string; name: string }>;
-  previousCount?: number;
-  change?: number;
-  changePercentage?: number;
   isBot?: boolean;
 }
 
@@ -112,18 +108,7 @@ export function AssigneeDistributionChart({
     const assigneeArray = Array.from(assigneeMap.values()).map((assignee) => ({
       ...assignee,
       percentage: totalAssignments > 0 ? (assignee.count / totalAssignments) * 100 : 0,
-      // Mock previous data for demo purposes - in production this would come from historical data
-      previousCount: Math.max(1, assignee.count - Math.floor(Math.random() * 3) + 1),
     }));
-
-    // Calculate change
-    assigneeArray.forEach((assignee) => {
-      if (assignee.previousCount !== undefined) {
-        assignee.change = assignee.count - assignee.previousCount;
-        assignee.changePercentage =
-          assignee.previousCount > 0 ? (assignee.change / assignee.previousCount) * 100 : 100;
-      }
-    });
 
     // Sort by count descending
     assigneeArray.sort((a, b) => b.count - a.count);
@@ -266,33 +251,6 @@ export function AssigneeDistributionChart({
                       <Badge variant="secondary" className="text-xs">
                         Bot
                       </Badge>
-                    )}
-                    {assignee.change !== undefined && assignee.change !== 0 && (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div
-                              className={cn(
-                                'flex items-center gap-0.5 text-xs',
-                                assignee.change > 0 ? 'text-green-600' : 'text-red-600'
-                              )}
-                            >
-                              {assignee.change > 0 ? (
-                                <TrendingUp className="h-3 w-3" />
-                              ) : (
-                                <TrendingDown className="h-3 w-3" />
-                              )}
-                              <span>{Math.abs(assignee.changePercentage || 0).toFixed(0)}%</span>
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>
-                              {assignee.change > 0 ? '+' : ''}
-                              {assignee.change} from previous period
-                            </p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
                     )}
                   </div>
 
