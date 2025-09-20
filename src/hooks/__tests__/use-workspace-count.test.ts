@@ -32,6 +32,7 @@ vi.mock('@/lib/supabase', () => ({
       })),
     },
     from: vi.fn(),
+    rpc: vi.fn(),
   },
 }));
 
@@ -57,7 +58,7 @@ describe('useWorkspaceCount', () => {
     expect(result.current.error).toBe(null);
   });
 
-  it('should return workspace count for authenticated user', async () => {
+  it('should return workspace count for authenticated user using RPC', async () => {
     const mockUser = {
       id: 'user-123',
       email: 'test@example.com',
@@ -69,26 +70,64 @@ describe('useWorkspaceCount', () => {
       error: null,
     });
 
+    // Mock successful RPC call
+    vi.mocked(supabase.rpc).mockResolvedValue({
+      data: 3,
+      error: null,
+    });
+
+    const { result } = renderHook(() => useWorkspaceCount());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.workspaceCount).toBe(3);
+    expect(result.current.hasWorkspaces).toBe(true);
+    expect(result.current.error).toBe(null);
+    expect(supabase.rpc).toHaveBeenCalledWith('get_user_workspace_count', {
+      p_user_id: 'user-123',
+    });
+  });
+
+  it('should fallback to separate queries when RPC function fails', async () => {
+    const mockUser = {
+      id: 'user-123',
+      email: 'test@example.com',
+      created_at: new Date().toISOString(),
+    };
+
+    vi.mocked(supabase.auth.getUser).mockResolvedValue({
+      data: { user: mockUser as MockUser },
+      error: null,
+    });
+
+    // Mock RPC function failure
+    vi.mocked(supabase.rpc).mockResolvedValue({
+      data: null,
+      error: new Error('Function not found'),
+    });
+
+    // Mock fallback queries
     vi.mocked(supabase.from).mockImplementation((table: string) => {
       if (table === 'workspaces') {
-        const mock = {
+        return {
           select: vi.fn().mockReturnThis(),
           eq: vi.fn().mockImplementation(() => {
-            // Chain for second eq call
             return {
               eq: vi.fn().mockResolvedValue({
-                count: 2,
+                data: [{ id: 'ws-1' }, { id: 'ws-2' }],
                 error: null,
               }),
             };
           }),
-        };
-        return mock as MockSupabaseQuery;
+        } as MockSupabaseQuery;
       } else if (table === 'workspace_members') {
         return {
           select: vi.fn().mockReturnThis(),
-          eq: vi.fn().mockResolvedValue({
-            count: 1,
+          eq: vi.fn().mockReturnThis(),
+          not: vi.fn().mockResolvedValue({
+            data: [{ workspace_id: 'ws-3' }],
             error: null,
           }),
         } as MockSupabaseQuery;
@@ -107,7 +146,7 @@ describe('useWorkspaceCount', () => {
     expect(result.current.error).toBe(null);
   });
 
-  it('should handle errors gracefully', async () => {
+  it('should handle RPC errors gracefully', async () => {
     const mockUser = {
       id: 'user-123',
       email: 'test@example.com',
@@ -119,23 +158,25 @@ describe('useWorkspaceCount', () => {
       error: null,
     });
 
-    vi.mocked(supabase.from).mockImplementation((table: string) => {
-      if (table === 'workspaces') {
-        const mock = {
-          select: vi.fn().mockReturnThis(),
-          eq: vi.fn().mockImplementation(() => {
-            // Chain for second eq call
-            return {
-              eq: vi.fn().mockResolvedValue({
-                count: null,
-                error: new Error('Database error'),
-              }),
-            };
-          }),
-        };
-        return mock as MockSupabaseQuery;
-      }
-      return {} as MockSupabaseQuery;
+    // Mock RPC function failure that can't fallback
+    vi.mocked(supabase.rpc).mockResolvedValue({
+      data: null,
+      error: new Error('Database connection error'),
+    });
+
+    // Mock fallback also failing
+    vi.mocked(supabase.from).mockImplementation(() => {
+      return {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockImplementation(() => {
+          return {
+            eq: vi.fn().mockResolvedValue({
+              data: null,
+              error: new Error('Database connection error'),
+            }),
+          };
+        }),
+      } as MockSupabaseQuery;
     });
 
     const { result } = renderHook(() => useWorkspaceCount());
@@ -146,7 +187,7 @@ describe('useWorkspaceCount', () => {
 
     expect(result.current.workspaceCount).toBe(0);
     expect(result.current.hasWorkspaces).toBe(false);
-    expect(result.current.error).toBe('Database error');
+    expect(result.current.error).toBe('Database connection error');
   });
 });
 
@@ -182,31 +223,10 @@ describe('useNeedsWorkspaceOnboarding', () => {
       error: null,
     });
 
-    vi.mocked(supabase.from).mockImplementation((table: string) => {
-      if (table === 'workspaces') {
-        const mock = {
-          select: vi.fn().mockReturnThis(),
-          eq: vi.fn().mockImplementation(() => {
-            // Chain for second eq call
-            return {
-              eq: vi.fn().mockResolvedValue({
-                count: 0,
-                error: null,
-              }),
-            };
-          }),
-        };
-        return mock as MockSupabaseQuery;
-      } else if (table === 'workspace_members') {
-        return {
-          select: vi.fn().mockReturnThis(),
-          eq: vi.fn().mockResolvedValue({
-            count: 0,
-            error: null,
-          }),
-        } as MockSupabaseQuery;
-      }
-      return {} as MockSupabaseQuery;
+    // Mock RPC returning 0 workspaces
+    vi.mocked(supabase.rpc).mockResolvedValue({
+      data: 0,
+      error: null,
     });
 
     const { result } = renderHook(() => useNeedsWorkspaceOnboarding());
@@ -230,31 +250,10 @@ describe('useNeedsWorkspaceOnboarding', () => {
       error: null,
     });
 
-    vi.mocked(supabase.from).mockImplementation((table: string) => {
-      if (table === 'workspaces') {
-        const mock = {
-          select: vi.fn().mockReturnThis(),
-          eq: vi.fn().mockImplementation(() => {
-            // Chain for second eq call
-            return {
-              eq: vi.fn().mockResolvedValue({
-                count: 1,
-                error: null,
-              }),
-            };
-          }),
-        };
-        return mock as MockSupabaseQuery;
-      } else if (table === 'workspace_members') {
-        return {
-          select: vi.fn().mockReturnThis(),
-          eq: vi.fn().mockResolvedValue({
-            count: 0,
-            error: null,
-          }),
-        } as MockSupabaseQuery;
-      }
-      return {} as MockSupabaseQuery;
+    // Mock RPC returning 1 or more workspaces
+    vi.mocked(supabase.rpc).mockResolvedValue({
+      data: 1,
+      error: null,
     });
 
     const { result } = renderHook(() => useNeedsWorkspaceOnboarding());
@@ -306,31 +305,10 @@ describe('useNeedsWorkspaceOnboarding', () => {
       error: null,
     });
 
-    vi.mocked(supabase.from).mockImplementation((table: string) => {
-      if (table === 'workspaces') {
-        const mock = {
-          select: vi.fn().mockReturnThis(),
-          eq: vi.fn().mockImplementation(() => {
-            // Chain for second eq call
-            return {
-              eq: vi.fn().mockResolvedValue({
-                count: 0,
-                error: null,
-              }),
-            };
-          }),
-        };
-        return mock as MockSupabaseQuery;
-      } else if (table === 'workspace_members') {
-        return {
-          select: vi.fn().mockReturnThis(),
-          eq: vi.fn().mockResolvedValue({
-            count: 0,
-            error: null,
-          }),
-        } as MockSupabaseQuery;
-      }
-      return {} as MockSupabaseQuery;
+    // Mock RPC returning 0 workspaces for signed-in user
+    vi.mocked(supabase.rpc).mockResolvedValue({
+      data: 0,
+      error: null,
     });
 
     // Trigger auth state change

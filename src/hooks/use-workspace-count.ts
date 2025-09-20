@@ -35,31 +35,51 @@ export function useWorkspaceCount(): WorkspaceCountResult {
           return;
         }
 
-        // Count workspaces user owns
-        const { count: ownedCount, error: ownedError } = await supabase
-          .from('workspaces')
-          .select('*', { count: 'exact', head: true })
-          .eq('owner_id', currentUser.id)
-          .eq('is_active', true);
+        // Count distinct workspaces user has access to (either as owner or member)
+        // Use a query that gets all workspaces where user is either owner or member, avoiding duplicates
+        const { data: distinctWorkspaces, error: workspaceError } = await supabase.rpc(
+          'get_user_workspace_count',
+          {
+            p_user_id: currentUser.id,
+          }
+        );
 
-        if (ownedError) {
-          throw ownedError;
+        if (workspaceError) {
+          // Fallback: Use separate queries if RPC function doesn't exist yet
+          console.warn('RPC function not available, using fallback method:', workspaceError);
+
+          // Get workspaces where user is owner
+          const { data: ownedWorkspaces, error: ownedError } = await supabase
+            .from('workspaces')
+            .select('id')
+            .eq('owner_id', currentUser.id)
+            .eq('is_active', true);
+
+          if (ownedError) throw ownedError;
+
+          // Get workspaces where user is a member (excluding where they're also owner)
+          const { data: memberWorkspaces, error: memberError } = await supabase
+            .from('workspace_members')
+            .select('workspace_id')
+            .eq('user_id', currentUser.id)
+            .not(
+              'workspace_id',
+              'in',
+              `(${(ownedWorkspaces || []).map((w) => `'${w.id}'`).join(',') || 'null'})`
+            );
+
+          if (memberError) throw memberError;
+
+          const totalCount = (ownedWorkspaces?.length || 0) + (memberWorkspaces?.length || 0);
+
+          if (mounted) {
+            setWorkspaceCount(totalCount);
+            setError(null);
+          }
+          return;
         }
 
-        // Count workspaces user is a member of
-        const { count: memberCount, error: memberError } = await supabase
-          .from('workspace_members')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', currentUser.id);
-
-        if (memberError) {
-          throw memberError;
-        }
-
-        // Total count (owned + member, avoiding duplicates)
-        // Note: This is a simplified count. In production, you might want to
-        // do a more sophisticated query to avoid counting owned workspaces twice
-        const totalCount = (ownedCount || 0) + (memberCount || 0);
+        const totalCount = distinctWorkspaces || 0;
 
         if (mounted) {
           setWorkspaceCount(totalCount);
