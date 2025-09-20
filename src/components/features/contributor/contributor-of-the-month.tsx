@@ -142,9 +142,14 @@ export function ContributorOfTheMonth({
                       {isFirstPlace && (
                         <div className="absolute inset-0 z-10 rounded-lg bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center gap-2">
                           <Lock className="h-6 w-6 text-muted-foreground" />
-                          <span className="text-sm font-medium text-muted-foreground">
-                            #1 Hidden
-                          </span>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => setShowWorkspaceModal(true)}
+                            className="text-xs"
+                          >
+                            Upgrade to view
+                          </Button>
                         </div>
                       )}
                       <ContributorCard
@@ -158,27 +163,18 @@ export function ContributorOfTheMonth({
               </div>
 
               {/* Workspace CTA */}
-              <div className="border-t pt-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium flex items-center gap-2">
-                      <Users className="h-4 w-4" />
-                      {totalContributors > 3
-                        ? `See all ${totalContributors} contributors`
-                        : 'Get full contributor insights'}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Create a workspace to unlock complete rankings, detailed analytics, and team
-                      insights
-                    </p>
-                  </div>
-                  <Button
-                    size="sm"
-                    onClick={() => setShowWorkspaceModal(true)}
-                    className="whitespace-nowrap"
-                  >
-                    Create Workspace
-                  </Button>
+              <div className="border-t pt-4">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    {totalContributors > 3
+                      ? `See all ${totalContributors} contributors`
+                      : 'Get full contributor insights'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Create a workspace to unlock complete rankings, detailed analytics, and team
+                    insights
+                  </p>
                 </div>
               </div>
             </div>
