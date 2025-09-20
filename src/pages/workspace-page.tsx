@@ -579,6 +579,7 @@ function WorkspaceIssues({
             updated_at,
             closed_at,
             labels,
+            assignees,
             comments_count,
             repository_id,
             repositories(
@@ -619,6 +620,11 @@ function WorkspaceIssues({
             updated_at: string;
             closed_at: string | null;
             labels: IssueLabel[] | null;
+            assignees: Array<{
+              login?: string;
+              username?: string;
+              avatar_url?: string;
+            }> | null;
             comments_count: number | null;
             repository_id: string;
             repositories?: {
@@ -661,6 +667,12 @@ function WorkspaceIssues({
                       color: label.color || '000000',
                     }))
                     .filter((l) => l.name) // Filter out labels without names
+                : [],
+              assignees: Array.isArray(issue.assignees)
+                ? issue.assignees.map((assignee) => ({
+                    login: assignee.login || assignee.username || 'unknown',
+                    avatar_url: assignee.avatar_url || '',
+                  }))
                 : [],
               // Improved URL construction with validation
               url:

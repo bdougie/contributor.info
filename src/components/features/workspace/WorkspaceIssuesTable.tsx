@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -31,6 +31,8 @@ import {
   MessageSquare,
 } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
+import { useWorkspaceFiltersStore, type IssueState } from '@/lib/workspace-filters-store';
+import { IssueFilters } from './filters/TableFilters';
 
 export interface Issue {
   id: string;
@@ -45,6 +47,7 @@ export interface Issue {
   author: {
     username: string;
     avatar_url: string;
+    isBot?: boolean;
   };
   created_at: string;
   updated_at: string;
@@ -53,6 +56,10 @@ export interface Issue {
   labels: Array<{
     name: string;
     color: string;
+  }>;
+  assignees?: Array<{
+    login: string;
+    avatar_url: string;
   }>;
   linked_pull_requests?: Array<{
     number: number;
@@ -106,6 +113,48 @@ export function WorkspaceIssuesTable({
   const [sorting, setSorting] = useState<SortingState>([{ id: 'updated_at', desc: true }]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
+  const [hasBots, setHasBots] = useState(false);
+
+  // Get filter state from store
+  const {
+    issueStates,
+    issueIncludeBots,
+    issueAssignmentFilter,
+    toggleIssueState,
+    setIssueIncludeBots,
+    setIssueAssignmentFilter,
+    resetIssueFilters,
+  } = useWorkspaceFiltersStore();
+
+  // Check if there are any bot issues
+  useEffect(() => {
+    const hasAnyBots = issues.some(
+      (issue) => issue.author.isBot === true || issue.author.username.toLowerCase().includes('bot')
+    );
+    setHasBots(hasAnyBots);
+  }, [issues]);
+
+  // Filter issues based on state, bot settings, and assignment
+  const filteredIssues = useMemo(() => {
+    return issues.filter((issue) => {
+      // Filter by state
+      const stateMatch = issueStates.includes(issue.state as IssueState);
+
+      // Filter by bot status
+      const isBot =
+        issue.author.isBot === true || issue.author.username.toLowerCase().includes('bot');
+      const botMatch = issueIncludeBots || !isBot;
+
+      // Filter by assignment
+      const hasAssignees = issue.assignees && issue.assignees.length > 0;
+      const assignmentMatch =
+        issueAssignmentFilter === 'all' ||
+        (issueAssignmentFilter === 'assigned' && hasAssignees) ||
+        (issueAssignmentFilter === 'unassigned' && !hasAssignees);
+
+      return stateMatch && botMatch && assignmentMatch;
+    });
+  }, [issues, issueStates, issueIncludeBots, issueAssignmentFilter]);
 
   const columns = useMemo<ColumnDef<Issue>[]>(
     () =>
@@ -371,7 +420,7 @@ export function WorkspaceIssuesTable({
   );
 
   const table = useReactTable({
-    data: issues,
+    data: filteredIssues,
     columns,
     state: {
       sorting,
@@ -412,19 +461,31 @@ export function WorkspaceIssuesTable({
   return (
     <Card className={cn('w-full', className)}>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="hidden sm:block">Issues</CardTitle>
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <div className="relative flex-1 sm:flex-initial">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search issues..."
-                value={globalFilter ?? ''}
-                onChange={(e) => setGlobalFilter(e.target.value)}
-                className="pl-10 w-full sm:w-[300px]"
-              />
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <CardTitle className="hidden sm:block">Issues</CardTitle>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="relative flex-1 sm:flex-initial">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search issues..."
+                  value={globalFilter ?? ''}
+                  onChange={(e) => setGlobalFilter(e.target.value)}
+                  className="pl-10 w-full sm:w-[300px]"
+                />
+              </div>
             </div>
           </div>
+          <IssueFilters
+            selectedStates={issueStates}
+            includeBots={issueIncludeBots}
+            assignmentFilter={issueAssignmentFilter}
+            onToggleState={toggleIssueState}
+            onIncludeBotsChange={setIssueIncludeBots}
+            onAssignmentFilterChange={setIssueAssignmentFilter}
+            onReset={resetIssueFilters}
+            hasBots={hasBots}
+          />
         </div>
       </CardHeader>
       <CardContent>
@@ -482,8 +543,11 @@ export function WorkspaceIssuesTable({
             <div className="flex items-center justify-between mt-4">
               <div className="text-sm text-muted-foreground">
                 Showing {table.getState().pagination.pageIndex * 10 + 1} to{' '}
-                {Math.min((table.getState().pagination.pageIndex + 1) * 10, issues.length)} of{' '}
-                {issues.length} issues
+                {Math.min((table.getState().pagination.pageIndex + 1) * 10, filteredIssues.length)}{' '}
+                of {filteredIssues.length} issues
+                {filteredIssues.length < issues.length && (
+                  <span className="text-muted-foreground"> (filtered from {issues.length})</span>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 <Button

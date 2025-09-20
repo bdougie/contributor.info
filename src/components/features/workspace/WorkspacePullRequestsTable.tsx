@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -31,6 +31,8 @@ import {
   ExternalLink,
 } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
+import { useWorkspaceFiltersStore, type PRState } from '@/lib/workspace-filters-store';
+import { PRFilters } from './filters/TableFilters';
 
 export interface PullRequest {
   id: string;
@@ -45,6 +47,7 @@ export interface PullRequest {
   author: {
     username: string;
     avatar_url: string;
+    isBot?: boolean;
   };
   created_at: string;
   updated_at: string;
@@ -114,6 +117,33 @@ export function WorkspacePullRequestsTable({
   const [sorting, setSorting] = useState<SortingState>([{ id: 'updated_at', desc: true }]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
+  const [hasBots, setHasBots] = useState(false);
+
+  // Get filter state from store
+  const { prStates, prIncludeBots, togglePRState, setPRIncludeBots, resetPRFilters } =
+    useWorkspaceFiltersStore();
+
+  // Check if there are any bot PRs
+  useEffect(() => {
+    const hasAnyBots = pullRequests.some(
+      (pr) => pr.author.isBot === true || pr.author.username.toLowerCase().includes('bot')
+    );
+    setHasBots(hasAnyBots);
+  }, [pullRequests]);
+
+  // Filter pull requests based on state and bot settings
+  const filteredPullRequests = useMemo(() => {
+    return pullRequests.filter((pr) => {
+      // Filter by state
+      const stateMatch = prStates.includes(pr.state as PRState);
+
+      // Filter by bot status
+      const isBot = pr.author.isBot === true || pr.author.username.toLowerCase().includes('bot');
+      const botMatch = prIncludeBots || !isBot;
+
+      return stateMatch && botMatch;
+    });
+  }, [pullRequests, prStates, prIncludeBots]);
 
   const columns = useMemo<ColumnDef<PullRequest>[]>(
     () =>
@@ -346,7 +376,7 @@ export function WorkspacePullRequestsTable({
   );
 
   const table = useReactTable({
-    data: pullRequests,
+    data: filteredPullRequests,
     columns,
     state: {
       sorting,
@@ -387,19 +417,29 @@ export function WorkspacePullRequestsTable({
   return (
     <Card className={cn('w-full', className)}>
       <CardHeader>
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <CardTitle className="text-lg font-semibold">Pull Requests</CardTitle>
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <div className="relative flex-1 sm:flex-initial">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search pull requests..."
-                value={globalFilter ?? ''}
-                onChange={(e) => setGlobalFilter(e.target.value)}
-                className="pl-10 w-full sm:w-[300px] min-h-[44px]"
-              />
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <CardTitle className="text-lg font-semibold">Pull Requests</CardTitle>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="relative flex-1 sm:flex-initial">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search pull requests..."
+                  value={globalFilter ?? ''}
+                  onChange={(e) => setGlobalFilter(e.target.value)}
+                  className="pl-10 w-full sm:w-[300px] min-h-[44px]"
+                />
+              </div>
             </div>
           </div>
+          <PRFilters
+            selectedStates={prStates}
+            includeBots={prIncludeBots}
+            onToggleState={togglePRState}
+            onIncludeBotsChange={setPRIncludeBots}
+            onReset={resetPRFilters}
+            hasBots={hasBots}
+          />
         </div>
       </CardHeader>
       <CardContent>
@@ -460,8 +500,17 @@ export function WorkspacePullRequestsTable({
             <div className="flex flex-col sm:flex-row items-center justify-between mt-4 gap-4">
               <div className="text-sm text-muted-foreground order-2 sm:order-1">
                 Showing {table.getState().pagination.pageIndex * 10 + 1} to{' '}
-                {Math.min((table.getState().pagination.pageIndex + 1) * 10, pullRequests.length)} of{' '}
-                {pullRequests.length} pull requests
+                {Math.min(
+                  (table.getState().pagination.pageIndex + 1) * 10,
+                  filteredPullRequests.length
+                )}{' '}
+                of {filteredPullRequests.length} pull requests
+                {filteredPullRequests.length < pullRequests.length && (
+                  <span className="text-muted-foreground">
+                    {' '}
+                    (filtered from {pullRequests.length})
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-2 order-1 sm:order-2">
                 <Button
