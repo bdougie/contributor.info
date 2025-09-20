@@ -629,15 +629,29 @@ export class HybridQueueManager {
 
   /**
    * Queue recent data capture (routes to Inngest)
+   * Now also captures issue comments along with PR data
    */
   async queueRecentDataCapture(repositoryId: string, repositoryName: string): Promise<HybridJob> {
-    return this.queueJob('recent-prs', {
+    // Queue recent PRs
+    const prJob = await this.queueJob('recent-prs', {
       repositoryId,
       repositoryName,
       timeRange: 1, // Last 24 hours
       triggerSource: 'automatic',
       maxItems: 50,
     });
+
+    // Also queue comments (PR and issue comments)
+    // This will trigger both capture/pr.comments and capture/repository.issues.discovery
+    await this.queueJob('comments', {
+      repositoryId,
+      repositoryName,
+      timeRange: 7, // Get more comment history for better first responder data
+      triggerSource: 'automatic',
+      maxItems: 100,
+    });
+
+    return prJob;
   }
 
   /**
