@@ -31,6 +31,9 @@ import {
   ExternalLink,
 } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
+import { useWorkspaceFiltersStore, type PRState } from '@/lib/workspace-filters-store';
+import { PRFilters } from './filters/TableFilters';
+import { isBot, hasBotAuthors } from '@/lib/utils/bot-detection';
 
 export interface PullRequest {
   id: string;
@@ -45,6 +48,7 @@ export interface PullRequest {
   author: {
     username: string;
     avatar_url: string;
+    isBot?: boolean;
   };
   created_at: string;
   updated_at: string;
@@ -114,6 +118,28 @@ export function WorkspacePullRequestsTable({
   const [sorting, setSorting] = useState<SortingState>([{ id: 'updated_at', desc: true }]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
+
+  // Get filter state from store
+  const { prStates, prIncludeBots, togglePRState, setPRIncludeBots, resetPRFilters } =
+    useWorkspaceFiltersStore();
+
+  // Check if there are any bot PRs - using useMemo for performance
+  const hasBots = useMemo(() => {
+    return hasBotAuthors(pullRequests);
+  }, [pullRequests]);
+
+  // Filter pull requests based on state and bot settings
+  const filteredPullRequests = useMemo(() => {
+    return pullRequests.filter((pr) => {
+      // Filter by state
+      const stateMatch = prStates.includes(pr.state as PRState);
+
+      // Filter by bot status
+      const botMatch = prIncludeBots || !isBot(pr.author);
+
+      return stateMatch && botMatch;
+    });
+  }, [pullRequests, prStates, prIncludeBots]);
 
   const columns = useMemo<ColumnDef<PullRequest>[]>(
     () =>
@@ -369,7 +395,7 @@ export function WorkspacePullRequestsTable({
   );
 
   const table = useReactTable({
-    data: pullRequests,
+    data: filteredPullRequests,
     columns,
     state: {
       sorting,
@@ -410,19 +436,29 @@ export function WorkspacePullRequestsTable({
   return (
     <Card className={cn('w-full', className)}>
       <CardHeader>
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <CardTitle className="text-lg font-semibold">Pull Requests</CardTitle>
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <div className="relative flex-1 sm:flex-initial">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search pull requests..."
-                value={globalFilter ?? ''}
-                onChange={(e) => setGlobalFilter(e.target.value)}
-                className="pl-10 w-full sm:w-[300px] min-h-[44px]"
-              />
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <CardTitle className="text-lg font-semibold">Pull Requests</CardTitle>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="relative flex-1 sm:flex-initial">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search pull requests..."
+                  value={globalFilter ?? ''}
+                  onChange={(e) => setGlobalFilter(e.target.value)}
+                  className="pl-10 w-full sm:w-[300px] min-h-[44px]"
+                />
+              </div>
             </div>
           </div>
+          <PRFilters
+            selectedStates={prStates}
+            includeBots={prIncludeBots}
+            onToggleState={togglePRState}
+            onIncludeBotsChange={setPRIncludeBots}
+            onReset={resetPRFilters}
+            hasBots={hasBots}
+          />
         </div>
       </CardHeader>
       <CardContent>
@@ -436,79 +472,116 @@ export function WorkspacePullRequestsTable({
           </div>
         ) : (
           <>
-            <div className="rounded-md border">
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[800px] md:min-w-[1400px]">
-                  <thead>
-                    {table.getHeaderGroups().map((headerGroup) => (
-                      <tr key={headerGroup.id} className="border-b">
-                        {headerGroup.headers.map((header) => (
-                          <th
-                            key={header.id}
-                            className="px-4 py-3 text-left font-medium text-sm whitespace-nowrap"
-                            style={{
-                              width: header.column.columnDef.size,
-                              minWidth: header.column.columnDef.minSize,
-                            }}
-                          >
-                            {flexRender(header.column.columnDef.header, header.getContext())}
-                          </th>
-                        ))}
-                      </tr>
-                    ))}
-                  </thead>
-                  <tbody>
-                    {table.getRowModel().rows.map((row) => (
-                      <tr key={row.id} className="border-b hover:bg-muted/50 transition-colors">
-                        {row.getVisibleCells().map((cell) => (
-                          <td
-                            key={cell.id}
-                            className="px-4 py-4"
-                            style={{
-                              width: cell.column.columnDef.size,
-                              minWidth: cell.column.columnDef.minSize,
-                            }}
-                          >
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            {filteredPullRequests.length === 0 && globalFilter === '' ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <GitPullRequest className="h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-lg font-medium text-muted-foreground mb-2">
+                  No pull requests match your filters
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Try adjusting your filter settings or reset filters to see all pull requests
+                </p>
               </div>
-            </div>
+            ) : (
+              <div className="rounded-md border">
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[800px] md:min-w-[1400px]">
+                    <thead>
+                      {table.getHeaderGroups().map((headerGroup) => (
+                        <tr key={headerGroup.id} className="border-b">
+                          {headerGroup.headers.map((header) => (
+                            <th
+                              key={header.id}
+                              className="px-4 py-3 text-left font-medium text-sm whitespace-nowrap"
+                              style={{
+                                width: header.column.columnDef.size,
+                                minWidth: header.column.columnDef.minSize,
+                              }}
+                            >
+                              {flexRender(header.column.columnDef.header, header.getContext())}
+                            </th>
+                          ))}
+                        </tr>
+                      ))}
+                    </thead>
+                    <tbody>
+                      {table.getRowModel().rows.map((row) => (
+                        <tr key={row.id} className="border-b hover:bg-muted/50 transition-colors">
+                          {row.getVisibleCells().map((cell) => (
+                            <td
+                              key={cell.id}
+                              className="px-4 py-4"
+                              style={{
+                                width: cell.column.columnDef.size,
+                                minWidth: cell.column.columnDef.minSize,
+                              }}
+                            >
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
 
             {/* Pagination */}
-            <div className="flex flex-col sm:flex-row items-center justify-between mt-4 gap-4">
-              <div className="text-sm text-muted-foreground order-2 sm:order-1">
-                Showing {table.getState().pagination.pageIndex * 10 + 1} to{' '}
-                {Math.min((table.getState().pagination.pageIndex + 1) * 10, pullRequests.length)} of{' '}
-                {pullRequests.length} pull requests
+            {filteredPullRequests.length > 0 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between mt-4 gap-4">
+                <div className="text-sm text-muted-foreground order-2 sm:order-1">
+                  {filteredPullRequests.length > 0 ? (
+                    <>
+                      Showing {table.getState().pagination.pageIndex * 10 + 1} to{' '}
+                      {Math.min(
+                        (table.getState().pagination.pageIndex + 1) * 10,
+                        filteredPullRequests.length
+                      )}{' '}
+                      of {filteredPullRequests.length} pull requests
+                      {filteredPullRequests.length < pullRequests.length && (
+                        <span className="text-muted-foreground">
+                          {' '}
+                          (filtered from {pullRequests.length})
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      No pull requests found
+                      {pullRequests.length > 0 && (
+                        <span className="text-muted-foreground">
+                          {' '}
+                          (filtered from {pullRequests.length})
+                        </span>
+                      )}
+                    </>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 order-1 sm:order-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => table.previousPage()}
+                    disabled={!table.getCanPreviousPage()}
+                    className="min-h-[44px] px-3"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    <span className="hidden sm:inline ml-2">Previous</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => table.nextPage()}
+                    disabled={!table.getCanNextPage()}
+                    className="min-h-[44px] px-3"
+                  >
+                    <span className="hidden sm:inline mr-2">Next</span>
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
-              <div className="flex items-center gap-2 order-1 sm:order-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => table.previousPage()}
-                  disabled={!table.getCanPreviousPage()}
-                  className="min-h-[44px] px-3"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  <span className="hidden sm:inline ml-2">Previous</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => table.nextPage()}
-                  disabled={!table.getCanNextPage()}
-                  className="min-h-[44px] px-3"
-                >
-                  <span className="hidden sm:inline mr-2">Next</span>
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
+            )}
           </>
         )}
       </CardContent>
