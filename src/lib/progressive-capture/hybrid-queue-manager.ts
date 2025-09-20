@@ -642,7 +642,7 @@ export class HybridQueueManager {
     });
 
     // Also queue comments (PR and issue comments)
-    // This will trigger both capture/pr.comments and capture/repository.issues.discovery
+    // This will trigger capture/pr.comments event for both PR and issue comments
     await this.queueJob('comments', {
       repositoryId,
       repositoryName,

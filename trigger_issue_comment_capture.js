@@ -1,5 +1,5 @@
-// Script to trigger issue comment capture for a repository
-// This will queue the capture of issue comments for continuedev/continue
+// Script to log instructions for triggering issue comment capture
+// This script provides instructions on how to manually trigger data capture
 
 async function triggerIssueCommentCapture() {
   const owner = 'continuedev';

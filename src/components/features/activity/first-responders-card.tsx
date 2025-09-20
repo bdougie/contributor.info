@@ -62,7 +62,7 @@ export function FirstRespondersCard({ responders, loading }: FirstRespondersCard
           <Users className="h-3 w-3 text-blue-500" aria-hidden="true" />
           <dt className="sr-only">Response Count</dt>
           <dd className="text-xs text-muted-foreground truncate">
-            {topResponder.responses} issue comments
+            {topResponder.responses} issue {topResponder.responses === 1 ? 'comment' : 'comments'}
           </dd>
         </div>
         {responders.length > 1 && (

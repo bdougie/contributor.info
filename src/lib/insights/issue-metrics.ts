@@ -414,7 +414,8 @@ export async function calculateIssueActivityPatterns(
         const issueAuthor = issueAuthors.get(comment.issue_id);
 
         // Skip if the commenter is the issue author
-        if (comment.commenter.username === issueAuthor) {
+        // Guard against missing author mapping for older issues
+        if (issueAuthor && comment.commenter.username === issueAuthor) {
           return;
         }
 

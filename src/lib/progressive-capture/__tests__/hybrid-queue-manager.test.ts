@@ -141,7 +141,7 @@ describe('HybridQueueManager', () => {
         repositoryName: 'owner/repo',
         days: 7, // Comments use 7 day timeRange for better first responder data
         reason: 'automatic',
-        maxItems: 50, // Capped at INNGEST_MAX_ITEMS
+        maxItems: 100, // Higher limit for comments to get better first responder data
       });
     });
 
