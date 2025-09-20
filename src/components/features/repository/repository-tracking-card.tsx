@@ -268,8 +268,17 @@ export function RepositoryTrackingCard({
             pollIntervalRef.current = null;
           }
 
-          // Only show toast if component is still mounted
+          // Only proceed if component is still mounted
           if (isMountedRef.current) {
+            // Track the polling timeout as a failure event
+            safeTrackEvent('repository_tracking_failed', {
+              repository: `${owner}/${repo}`,
+              owner,
+              repo,
+              errorType: 'POLLING_TIMEOUT',
+              pollAttempts: pollCount,
+            });
+
             toast.info('Data sync is taking longer than expected', {
               description: 'Please refresh the page in a few minutes.',
               duration: 10000,
