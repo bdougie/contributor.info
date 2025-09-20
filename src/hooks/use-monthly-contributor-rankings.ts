@@ -14,23 +14,36 @@ export interface MonthlyContributorRanking {
   rank: number;
 }
 
-export function useMonthlyContributorRankings(owner: string, repo: string) {
+export interface MonthlyRankingsResult {
+  rankings: MonthlyContributorRanking[] | null;
+  loading: boolean;
+  error: Error | null;
+  isUsingFallback: boolean;
+  displayMonth?: string;
+  displayYear?: number;
+}
+
+export function useMonthlyContributorRankings(owner: string, repo: string): MonthlyRankingsResult {
   const [rankings, setRankings] = useState<MonthlyContributorRanking[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [isUsingFallback, setIsUsingFallback] = useState(false);
+  const [displayMonth, setDisplayMonth] = useState<string>();
+  const [displayYear, setDisplayYear] = useState<number>();
 
   useEffect(() => {
     async function fetchRankings() {
       try {
         setLoading(true);
+        setIsUsingFallback(false);
 
         // Get current month and year
         const now = new Date();
         const currentMonth = now.getMonth() + 1;
         const currentYear = now.getFullYear();
 
-        // Query monthly rankings with contributor details
-        const { data, error: queryError } = await supabase
+        // Query monthly rankings with contributor details for current month
+        const { data: currentData, error: queryError } = await supabase
           .from('monthly_rankings')
           .select(
             `
@@ -56,6 +69,81 @@ export function useMonthlyContributorRankings(owner: string, repo: string) {
           .limit(10);
 
         if (queryError) throw queryError;
+
+        let data = currentData;
+
+        // If no data for current month, try to get the most recent month with data
+        if (!data || data.length === 0) {
+          console.log('No data for current month, trying fallback to most recent month...');
+
+          // First, find the most recent month that has data
+          const { data: monthCheck, error: monthCheckError } = await supabase
+            .from('monthly_rankings')
+            .select(
+              `
+              year,
+              month,
+              repositories!inner (
+                owner,
+                name
+              )
+            `
+            )
+            .eq('repositories.owner', owner)
+            .eq('repositories.name', repo)
+            .order('year', { ascending: false })
+            .order('month', { ascending: false })
+            .limit(1);
+
+          if (monthCheckError) throw monthCheckError;
+
+          if (monthCheck && monthCheck.length > 0) {
+            const recentYear = monthCheck[0].year;
+            const recentMonth = monthCheck[0].month;
+
+            // Now get all data for that specific month
+            const { data: recentData, error: recentError } = await supabase
+              .from('monthly_rankings')
+              .select(
+                `
+                *,
+                contributors!inner (
+                  id,
+                  username,
+                  display_name,
+                  avatar_url,
+                  github_id
+                ),
+                repositories!inner (
+                  owner,
+                  name
+                )
+              `
+              )
+              .eq('repositories.owner', owner)
+              .eq('repositories.name', repo)
+              .eq('year', recentYear)
+              .eq('month', recentMonth)
+              .order('weighted_score', { ascending: false })
+              .limit(10);
+
+            if (recentError) throw recentError;
+
+            if (recentData && recentData.length > 0) {
+              data = recentData;
+              setIsUsingFallback(true);
+              setDisplayMonth(
+                new Date(recentYear, recentMonth - 1).toLocaleString('default', {
+                  month: 'long',
+                })
+              );
+              setDisplayYear(recentYear);
+            }
+          }
+        } else {
+          setDisplayMonth(now.toLocaleString('default', { month: 'long' }));
+          setDisplayYear(currentYear);
+        }
 
         if (data && data.length > 0) {
           // Transform the data into the expected format
@@ -91,5 +179,5 @@ export function useMonthlyContributorRankings(owner: string, repo: string) {
     }
   }, [owner, repo]);
 
-  return { rankings, loading, error };
+  return { rankings, loading, error, isUsingFallback, displayMonth, displayYear };
 }
