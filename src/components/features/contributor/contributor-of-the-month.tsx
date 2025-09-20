@@ -173,8 +173,8 @@ export function ContributorOfTheMonth({
                       : 'Get full contributor insights'}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Create a workspace to unlock complete rankings, detailed analytics, and team
-                    insights
+                    Add this repo to a workspace to unlock complete rankings, detailed analytics,
+                    and team insights
                   </p>
                 </div>
               </div>
