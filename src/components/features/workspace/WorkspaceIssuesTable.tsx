@@ -335,7 +335,7 @@ export function WorkspaceIssuesTable({
             const remainingCount = assignees.length - maxVisible;
 
             return (
-              <div className="flex items-center -space-x-2">
+              <>
                 {visibleAssignees.map((assignee, index) => {
                   const assigneeFilterUrl = `https://github.com/${repo.owner}/${repo.name}/issues?q=is%3Aissue+assignee%3A${encodeURIComponent(assignee.login)}`;
 
@@ -347,7 +347,7 @@ export function WorkspaceIssuesTable({
                             href={assigneeFilterUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-block"
+                            className="inline-block -ml-2 first:ml-0"
                             style={{ zIndex: maxVisible - index }}
                           >
                             <img
@@ -368,9 +368,9 @@ export function WorkspaceIssuesTable({
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <div className="h-6 w-6 rounded-full bg-muted border-2 border-background flex items-center justify-center">
+                        <span className="inline-flex h-6 w-6 -ml-2 rounded-full bg-muted border-2 border-background items-center justify-center cursor-default">
                           <span className="text-xs font-medium">+{remainingCount}</span>
-                        </div>
+                        </span>
                       </TooltipTrigger>
                       <TooltipContent>
                         <div className="space-y-1">
@@ -382,7 +382,7 @@ export function WorkspaceIssuesTable({
                     </Tooltip>
                   </TooltipProvider>
                 )}
-              </div>
+              </>
             );
           },
           size: 120,
