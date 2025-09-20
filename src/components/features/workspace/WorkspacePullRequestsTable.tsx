@@ -472,102 +472,116 @@ export function WorkspacePullRequestsTable({
           </div>
         ) : (
           <>
-            <div className="rounded-md border">
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[800px] md:min-w-[1400px]">
-                  <thead>
-                    {table.getHeaderGroups().map((headerGroup) => (
-                      <tr key={headerGroup.id} className="border-b">
-                        {headerGroup.headers.map((header) => (
-                          <th
-                            key={header.id}
-                            className="px-4 py-3 text-left font-medium text-sm whitespace-nowrap"
-                            style={{
-                              width: header.column.columnDef.size,
-                              minWidth: header.column.columnDef.minSize,
-                            }}
-                          >
-                            {flexRender(header.column.columnDef.header, header.getContext())}
-                          </th>
-                        ))}
-                      </tr>
-                    ))}
-                  </thead>
-                  <tbody>
-                    {table.getRowModel().rows.map((row) => (
-                      <tr key={row.id} className="border-b hover:bg-muted/50 transition-colors">
-                        {row.getVisibleCells().map((cell) => (
-                          <td
-                            key={cell.id}
-                            className="px-4 py-4"
-                            style={{
-                              width: cell.column.columnDef.size,
-                              minWidth: cell.column.columnDef.minSize,
-                            }}
-                          >
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            {filteredPullRequests.length === 0 && globalFilter === '' ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <GitPullRequest className="h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-lg font-medium text-muted-foreground mb-2">
+                  No pull requests match your filters
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Try adjusting your filter settings or reset filters to see all pull requests
+                </p>
               </div>
-            </div>
+            ) : (
+              <div className="rounded-md border">
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[800px] md:min-w-[1400px]">
+                    <thead>
+                      {table.getHeaderGroups().map((headerGroup) => (
+                        <tr key={headerGroup.id} className="border-b">
+                          {headerGroup.headers.map((header) => (
+                            <th
+                              key={header.id}
+                              className="px-4 py-3 text-left font-medium text-sm whitespace-nowrap"
+                              style={{
+                                width: header.column.columnDef.size,
+                                minWidth: header.column.columnDef.minSize,
+                              }}
+                            >
+                              {flexRender(header.column.columnDef.header, header.getContext())}
+                            </th>
+                          ))}
+                        </tr>
+                      ))}
+                    </thead>
+                    <tbody>
+                      {table.getRowModel().rows.map((row) => (
+                        <tr key={row.id} className="border-b hover:bg-muted/50 transition-colors">
+                          {row.getVisibleCells().map((cell) => (
+                            <td
+                              key={cell.id}
+                              className="px-4 py-4"
+                              style={{
+                                width: cell.column.columnDef.size,
+                                minWidth: cell.column.columnDef.minSize,
+                              }}
+                            >
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
 
             {/* Pagination */}
-            <div className="flex flex-col sm:flex-row items-center justify-between mt-4 gap-4">
-              <div className="text-sm text-muted-foreground order-2 sm:order-1">
-                {filteredPullRequests.length > 0 ? (
-                  <>
-                    Showing {table.getState().pagination.pageIndex * 10 + 1} to{' '}
-                    {Math.min(
-                      (table.getState().pagination.pageIndex + 1) * 10,
-                      filteredPullRequests.length
-                    )}{' '}
-                    of {filteredPullRequests.length} pull requests
-                    {filteredPullRequests.length < pullRequests.length && (
-                      <span className="text-muted-foreground">
-                        {' '}
-                        (filtered from {pullRequests.length})
-                      </span>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    No pull requests found
-                    {pullRequests.length > 0 && (
-                      <span className="text-muted-foreground">
-                        {' '}
-                        (filtered from {pullRequests.length})
-                      </span>
-                    )}
-                  </>
-                )}
+            {filteredPullRequests.length > 0 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between mt-4 gap-4">
+                <div className="text-sm text-muted-foreground order-2 sm:order-1">
+                  {filteredPullRequests.length > 0 ? (
+                    <>
+                      Showing {table.getState().pagination.pageIndex * 10 + 1} to{' '}
+                      {Math.min(
+                        (table.getState().pagination.pageIndex + 1) * 10,
+                        filteredPullRequests.length
+                      )}{' '}
+                      of {filteredPullRequests.length} pull requests
+                      {filteredPullRequests.length < pullRequests.length && (
+                        <span className="text-muted-foreground">
+                          {' '}
+                          (filtered from {pullRequests.length})
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      No pull requests found
+                      {pullRequests.length > 0 && (
+                        <span className="text-muted-foreground">
+                          {' '}
+                          (filtered from {pullRequests.length})
+                        </span>
+                      )}
+                    </>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 order-1 sm:order-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => table.previousPage()}
+                    disabled={!table.getCanPreviousPage()}
+                    className="min-h-[44px] px-3"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    <span className="hidden sm:inline ml-2">Previous</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => table.nextPage()}
+                    disabled={!table.getCanNextPage()}
+                    className="min-h-[44px] px-3"
+                  >
+                    <span className="hidden sm:inline mr-2">Next</span>
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
-              <div className="flex items-center gap-2 order-1 sm:order-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => table.previousPage()}
-                  disabled={!table.getCanPreviousPage()}
-                  className="min-h-[44px] px-3"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  <span className="hidden sm:inline ml-2">Previous</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => table.nextPage()}
-                  disabled={!table.getCanNextPage()}
-                  className="min-h-[44px] px-3"
-                >
-                  <span className="hidden sm:inline mr-2">Next</span>
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
+            )}
           </>
         )}
       </CardContent>

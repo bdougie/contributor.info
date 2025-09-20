@@ -518,97 +518,111 @@ export function WorkspaceIssuesTable({
           </div>
         ) : (
           <>
-            <div className="rounded-md border">
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[800px]">
-                  <thead>
-                    {table.getHeaderGroups().map((headerGroup) => (
-                      <tr key={headerGroup.id} className="border-b">
-                        {headerGroup.headers.map((header) => (
-                          <th
-                            key={header.id}
-                            className={cn(
-                              'px-4 py-3 font-medium text-sm whitespace-nowrap',
-                              header.column.id === 'comments_count' ? 'text-center' : 'text-left'
-                            )}
-                            style={{
-                              width: header.column.columnDef.size,
-                              minWidth: header.column.columnDef.minSize,
-                              maxWidth: header.column.columnDef.maxSize,
-                            }}
-                          >
-                            {flexRender(header.column.columnDef.header, header.getContext())}
-                          </th>
-                        ))}
-                      </tr>
-                    ))}
-                  </thead>
-                  <tbody>
-                    {table.getRowModel().rows.map((row) => (
-                      <tr key={row.id} className="border-b hover:bg-muted/50 transition-colors">
-                        {row.getVisibleCells().map((cell) => (
-                          <td key={cell.id} className="px-4 py-4">
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            {filteredIssues.length === 0 && globalFilter === '' ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <XCircle className="h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-lg font-medium text-muted-foreground mb-2">
+                  No issues match your filters
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Try adjusting your filter settings or reset filters to see all issues
+                </p>
               </div>
-            </div>
+            ) : (
+              <div className="rounded-md border">
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[800px]">
+                    <thead>
+                      {table.getHeaderGroups().map((headerGroup) => (
+                        <tr key={headerGroup.id} className="border-b">
+                          {headerGroup.headers.map((header) => (
+                            <th
+                              key={header.id}
+                              className={cn(
+                                'px-4 py-3 font-medium text-sm whitespace-nowrap',
+                                header.column.id === 'comments_count' ? 'text-center' : 'text-left'
+                              )}
+                              style={{
+                                width: header.column.columnDef.size,
+                                minWidth: header.column.columnDef.minSize,
+                                maxWidth: header.column.columnDef.maxSize,
+                              }}
+                            >
+                              {flexRender(header.column.columnDef.header, header.getContext())}
+                            </th>
+                          ))}
+                        </tr>
+                      ))}
+                    </thead>
+                    <tbody>
+                      {table.getRowModel().rows.map((row) => (
+                        <tr key={row.id} className="border-b hover:bg-muted/50 transition-colors">
+                          {row.getVisibleCells().map((cell) => (
+                            <td key={cell.id} className="px-4 py-4">
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
 
             {/* Pagination */}
-            <div className="flex items-center justify-between mt-4">
-              <div className="text-sm text-muted-foreground">
-                {filteredIssues.length > 0 ? (
-                  <>
-                    Showing {table.getState().pagination.pageIndex * 10 + 1} to{' '}
-                    {Math.min(
-                      (table.getState().pagination.pageIndex + 1) * 10,
-                      filteredIssues.length
-                    )}{' '}
-                    of {filteredIssues.length} issues
-                    {filteredIssues.length < issues.length && (
-                      <span className="text-muted-foreground">
-                        {' '}
-                        (filtered from {issues.length})
-                      </span>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    No issues found
-                    {issues.length > 0 && (
-                      <span className="text-muted-foreground">
-                        {' '}
-                        (filtered from {issues.length})
-                      </span>
-                    )}
-                  </>
-                )}
+            {filteredIssues.length > 0 && (
+              <div className="flex items-center justify-between mt-4">
+                <div className="text-sm text-muted-foreground">
+                  {filteredIssues.length > 0 ? (
+                    <>
+                      Showing {table.getState().pagination.pageIndex * 10 + 1} to{' '}
+                      {Math.min(
+                        (table.getState().pagination.pageIndex + 1) * 10,
+                        filteredIssues.length
+                      )}{' '}
+                      of {filteredIssues.length} issues
+                      {filteredIssues.length < issues.length && (
+                        <span className="text-muted-foreground">
+                          {' '}
+                          (filtered from {issues.length})
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      No issues found
+                      {issues.length > 0 && (
+                        <span className="text-muted-foreground">
+                          {' '}
+                          (filtered from {issues.length})
+                        </span>
+                      )}
+                    </>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => table.previousPage()}
+                    disabled={!table.getCanPreviousPage()}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => table.nextPage()}
+                    disabled={!table.getCanNextPage()}
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => table.previousPage()}
-                  disabled={!table.getCanPreviousPage()}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => table.nextPage()}
-                  disabled={!table.getCanNextPage()}
-                >
-                  Next
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
+            )}
           </>
         )}
       </CardContent>

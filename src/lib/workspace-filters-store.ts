@@ -39,11 +39,17 @@ export const useWorkspaceFiltersStore = create<WorkspaceFiltersState>()(
       setPRStates: (states) => set({ prStates: states }),
       setPRIncludeBots: (include) => set({ prIncludeBots: include }),
       togglePRState: (state) =>
-        set((current) => ({
-          prStates: current.prStates.includes(state)
+        set((current) => {
+          const isCurrentlySelected = current.prStates.includes(state);
+          const newStates = isCurrentlySelected
             ? current.prStates.filter((s) => s !== state)
-            : [...current.prStates, state],
-        })),
+            : [...current.prStates, state];
+
+          // Prevent empty state selection - keep at least one state selected
+          return {
+            prStates: newStates.length > 0 ? newStates : [state],
+          };
+        }),
 
       // Issue Filter State
       issueStates: DEFAULT_ISSUE_STATES,
@@ -53,11 +59,17 @@ export const useWorkspaceFiltersStore = create<WorkspaceFiltersState>()(
       setIssueIncludeBots: (include) => set({ issueIncludeBots: include }),
       setIssueAssignmentFilter: (filter) => set({ issueAssignmentFilter: filter }),
       toggleIssueState: (state) =>
-        set((current) => ({
-          issueStates: current.issueStates.includes(state)
+        set((current) => {
+          const isCurrentlySelected = current.issueStates.includes(state);
+          const newStates = isCurrentlySelected
             ? current.issueStates.filter((s) => s !== state)
-            : [...current.issueStates, state],
-        })),
+            : [...current.issueStates, state];
+
+          // Prevent empty state selection - keep at least one state selected
+          return {
+            issueStates: newStates.length > 0 ? newStates : [state],
+          };
+        }),
 
       // Reset methods
       resetPRFilters: () =>
