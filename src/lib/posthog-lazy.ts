@@ -5,6 +5,10 @@
 
 import { env } from './env';
 
+// Constants for localStorage keys
+const POSTHOG_DEV_ENABLED_KEY = 'enablePostHogDev';
+const POSTHOG_OPT_OUT_KEY = 'posthog_opt_out';
+
 // Type definition for PostHog instance methods we use
 interface PostHogInstance {
   capture: (eventName: string, properties?: Record<string, unknown>) => void;
@@ -137,12 +141,12 @@ function shouldEnablePostHog(): boolean {
   }
 
   // Disable in development unless explicitly enabled
-  if (env.DEV && !localStorage.getItem('enablePostHogDev')) {
+  if (env.DEV && !localStorage.getItem(POSTHOG_DEV_ENABLED_KEY)) {
     return false;
   }
 
   // Check if user has opted out
-  if (localStorage.getItem('posthog_opt_out') === 'true') {
+  if (localStorage.getItem(POSTHOG_OPT_OUT_KEY) === 'true') {
     return false;
   }
 
@@ -356,7 +360,7 @@ export async function batchTrackWebVitals(
  * Enable PostHog in development (for testing)
  */
 export function enablePostHogInDev(): void {
-  localStorage.setItem('enablePostHogDev', 'true');
+  localStorage.setItem(POSTHOG_DEV_ENABLED_KEY, 'true');
   console.log('PostHog enabled in development mode');
 }
 
@@ -364,7 +368,7 @@ export function enablePostHogInDev(): void {
  * Disable PostHog in development
  */
 export function disablePostHogInDev(): void {
-  localStorage.removeItem('enablePostHogDev');
+  localStorage.removeItem(POSTHOG_DEV_ENABLED_KEY);
   console.log('PostHog disabled in development mode');
 }
 
@@ -372,7 +376,7 @@ export function disablePostHogInDev(): void {
  * Opt out of PostHog tracking
  */
 export async function optOutOfPostHog(): Promise<void> {
-  localStorage.setItem('posthog_opt_out', 'true');
+  localStorage.setItem(POSTHOG_OPT_OUT_KEY, 'true');
 
   // If PostHog is loaded, call its opt out method
   if (posthogInstance) {
@@ -384,7 +388,7 @@ export async function optOutOfPostHog(): Promise<void> {
  * Opt back into PostHog tracking
  */
 export async function optInToPostHog(): Promise<void> {
-  localStorage.removeItem('posthog_opt_out');
+  localStorage.removeItem(POSTHOG_OPT_OUT_KEY);
 
   // If PostHog is loaded, call its opt in method
   if (posthogInstance) {
