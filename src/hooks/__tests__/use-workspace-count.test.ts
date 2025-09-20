@@ -3,6 +3,21 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { useWorkspaceCount, useNeedsWorkspaceOnboarding } from '../use-workspace-count';
 import { supabase } from '@/lib/supabase';
 
+// Type for mock Supabase queries
+type MockSupabaseQuery = {
+  select: ReturnType<typeof vi.fn>;
+  eq: ReturnType<typeof vi.fn>;
+};
+
+// Type for mock user
+type MockUser = {
+  id: string;
+  email: string;
+  created_at: string;
+  user_metadata?: Record<string, unknown>;
+  last_sign_in_at?: string;
+};
+
 // Mock Supabase
 vi.mock('@/lib/supabase', () => ({
   supabase: {
@@ -50,27 +65,35 @@ describe('useWorkspaceCount', () => {
     };
 
     vi.mocked(supabase.auth.getUser).mockResolvedValue({
-      data: { user: mockUser as never },
+      data: { user: mockUser as MockUser },
       error: null,
     });
 
-    const fromMock = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-    };
-
-    vi.mocked(supabase.from).mockReturnValue(fromMock as never);
-
-    // Mock owned workspaces count
-    fromMock.eq.mockResolvedValueOnce({
-      count: 2,
-      error: null,
-    });
-
-    // Mock member workspaces count
-    fromMock.eq.mockResolvedValueOnce({
-      count: 1,
-      error: null,
+    vi.mocked(supabase.from).mockImplementation((table: string) => {
+      if (table === 'workspaces') {
+        const mock = {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockImplementation(() => {
+            // Chain for second eq call
+            return {
+              eq: vi.fn().mockResolvedValue({
+                count: 2,
+                error: null,
+              }),
+            };
+          }),
+        };
+        return mock as MockSupabaseQuery;
+      } else if (table === 'workspace_members') {
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockResolvedValue({
+            count: 1,
+            error: null,
+          }),
+        } as MockSupabaseQuery;
+      }
+      return {} as MockSupabaseQuery;
     });
 
     const { result } = renderHook(() => useWorkspaceCount());
@@ -92,19 +115,28 @@ describe('useWorkspaceCount', () => {
     };
 
     vi.mocked(supabase.auth.getUser).mockResolvedValue({
-      data: { user: mockUser as never },
+      data: { user: mockUser as MockUser },
       error: null,
     });
 
-    const fromMock = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-    };
-
-    vi.mocked(supabase.from).mockReturnValue(fromMock as never);
-
-    // Mock error for owned workspaces
-    fromMock.eq.mockRejectedValueOnce(new Error('Database error'));
+    vi.mocked(supabase.from).mockImplementation((table: string) => {
+      if (table === 'workspaces') {
+        const mock = {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockImplementation(() => {
+            // Chain for second eq call
+            return {
+              eq: vi.fn().mockResolvedValue({
+                count: null,
+                error: new Error('Database error'),
+              }),
+            };
+          }),
+        };
+        return mock as MockSupabaseQuery;
+      }
+      return {} as MockSupabaseQuery;
+    });
 
     const { result } = renderHook(() => useWorkspaceCount());
 
@@ -146,27 +178,35 @@ describe('useNeedsWorkspaceOnboarding', () => {
     };
 
     vi.mocked(supabase.auth.getUser).mockResolvedValue({
-      data: { user: mockUser as never },
+      data: { user: mockUser as MockUser },
       error: null,
     });
 
-    const fromMock = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-    };
-
-    vi.mocked(supabase.from).mockReturnValue(fromMock as never);
-
-    // Mock 0 owned workspaces
-    fromMock.eq.mockResolvedValueOnce({
-      count: 0,
-      error: null,
-    });
-
-    // Mock 0 member workspaces
-    fromMock.eq.mockResolvedValueOnce({
-      count: 0,
-      error: null,
+    vi.mocked(supabase.from).mockImplementation((table: string) => {
+      if (table === 'workspaces') {
+        const mock = {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockImplementation(() => {
+            // Chain for second eq call
+            return {
+              eq: vi.fn().mockResolvedValue({
+                count: 0,
+                error: null,
+              }),
+            };
+          }),
+        };
+        return mock as MockSupabaseQuery;
+      } else if (table === 'workspace_members') {
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockResolvedValue({
+            count: 0,
+            error: null,
+          }),
+        } as MockSupabaseQuery;
+      }
+      return {} as MockSupabaseQuery;
     });
 
     const { result } = renderHook(() => useNeedsWorkspaceOnboarding());
@@ -186,27 +226,35 @@ describe('useNeedsWorkspaceOnboarding', () => {
     };
 
     vi.mocked(supabase.auth.getUser).mockResolvedValue({
-      data: { user: mockUser as never },
+      data: { user: mockUser as MockUser },
       error: null,
     });
 
-    const fromMock = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-    };
-
-    vi.mocked(supabase.from).mockReturnValue(fromMock as never);
-
-    // Mock 1 owned workspace
-    fromMock.eq.mockResolvedValueOnce({
-      count: 1,
-      error: null,
-    });
-
-    // Mock 0 member workspaces
-    fromMock.eq.mockResolvedValueOnce({
-      count: 0,
-      error: null,
+    vi.mocked(supabase.from).mockImplementation((table: string) => {
+      if (table === 'workspaces') {
+        const mock = {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockImplementation(() => {
+            // Chain for second eq call
+            return {
+              eq: vi.fn().mockResolvedValue({
+                count: 1,
+                error: null,
+              }),
+            };
+          }),
+        };
+        return mock as MockSupabaseQuery;
+      } else if (table === 'workspace_members') {
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockResolvedValue({
+            count: 0,
+            error: null,
+          }),
+        } as MockSupabaseQuery;
+      }
+      return {} as MockSupabaseQuery;
     });
 
     const { result } = renderHook(() => useNeedsWorkspaceOnboarding());
@@ -254,21 +302,35 @@ describe('useNeedsWorkspaceOnboarding', () => {
     };
 
     vi.mocked(supabase.auth.getUser).mockResolvedValue({
-      data: { user: mockUser as never },
+      data: { user: mockUser as MockUser },
       error: null,
     });
 
-    const fromMock = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-    };
-
-    vi.mocked(supabase.from).mockReturnValue(fromMock as never);
-
-    // Mock 0 workspaces
-    fromMock.eq.mockResolvedValue({
-      count: 0,
-      error: null,
+    vi.mocked(supabase.from).mockImplementation((table: string) => {
+      if (table === 'workspaces') {
+        const mock = {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockImplementation(() => {
+            // Chain for second eq call
+            return {
+              eq: vi.fn().mockResolvedValue({
+                count: 0,
+                error: null,
+              }),
+            };
+          }),
+        };
+        return mock as MockSupabaseQuery;
+      } else if (table === 'workspace_members') {
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockResolvedValue({
+            count: 0,
+            error: null,
+          }),
+        } as MockSupabaseQuery;
+      }
+      return {} as MockSupabaseQuery;
     });
 
     // Trigger auth state change
