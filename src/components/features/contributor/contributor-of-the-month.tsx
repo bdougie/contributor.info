@@ -144,9 +144,8 @@ export function ContributorOfTheMonth({
                           <Lock className="h-6 w-6 text-muted-foreground" />
                           <Button
                             size="sm"
-                            variant="secondary"
                             onClick={() => setShowWorkspaceModal(true)}
-                            className="text-xs"
+                            className="text-xs bg-orange-500 hover:bg-orange-600 text-white"
                           >
                             Upgrade to view
                           </Button>
