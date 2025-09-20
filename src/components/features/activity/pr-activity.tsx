@@ -1,5 +1,6 @@
 import { useState, useEffect, useContext } from 'react';
 import { useParams } from 'react-router-dom';
+import { detectBot } from '@/lib/utils/bot-detection';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { RepoStatsContext } from '@/lib/repo-stats-context';
 import { Switch } from '@/components/ui/switch';
@@ -57,14 +58,17 @@ export default function PRActivity() {
 
   // Check if there are any bot activities
   useEffect(() => {
-    const botActivities = allActivities.some((activity) => activity.user.isBot === true);
+    const botActivities = allActivities.some(
+      (activity) => detectBot({ username: activity.user.name }).isBot
+    );
     setHasBots(botActivities);
   }, [allActivities]);
 
   // Filter activities based on type and bot settings
   const filteredActivities = allActivities.filter(
     (activity) =>
-      selectedTypes.includes(activity.type) && (includeBots || activity.user.isBot !== true)
+      selectedTypes.includes(activity.type) &&
+      (includeBots || !detectBot({ username: activity.user.name }).isBot)
   );
 
   const visibleActivities = filteredActivities.slice(0, visibleCount);

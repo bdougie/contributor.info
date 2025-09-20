@@ -108,10 +108,15 @@ export function transformSupabasePRToAppFormat(
 ) {
   const contributor = dbPR.contributors || {
     username: 'unknown',
-    github_id: 0,
+    github_id: 0, // Use 0 as fallback since author_id is UUID, not github_id
     avatar_url: '',
     is_bot: false,
   };
+
+  // Log when we encounter missing contributor data for debugging
+  if (!dbPR.contributors && dbPR.author_id) {
+    console.warn(`Missing contributor data for PR #${dbPR.number}, author_id: ${dbPR.author_id}`);
+  }
 
   // Generate GitHub URL if missing and we have owner/repo/number
   const generatePRUrl = () => {

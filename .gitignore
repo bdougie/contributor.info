@@ -87,3 +87,6 @@ supabase/seed.sql.temp
 /check-*.js
 /manual-*.js
 /get-*.js
+
+# Environment backup files
+.env.local.backup.*

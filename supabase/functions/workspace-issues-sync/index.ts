@@ -5,6 +5,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
+import { detectBot } from '../_shared/bot-detection.ts'
 
 interface WorkspaceIssuesSyncRequest {
   workspaceId?: string
@@ -370,6 +371,9 @@ async function ensureContributorExists(supabase: any, githubUser: any): Promise<
     return null
   }
 
+  // Use comprehensive bot detection instead of just GitHub API type
+  const botDetection = detectBot({ githubUser });
+  
   const { data, error } = await supabase
     .from('contributors')
     .upsert({
@@ -377,7 +381,7 @@ async function ensureContributorExists(supabase: any, githubUser: any): Promise<
       username: githubUser.login,
       avatar_url: githubUser.avatar_url,
       profile_url: `https://github.com/${githubUser.login}`,
-      is_bot: githubUser.type === 'Bot',
+      is_bot: botDetection.isBot,
       is_active: true,
       first_seen_at: new Date().toISOString(),
       last_updated_at: new Date().toISOString()

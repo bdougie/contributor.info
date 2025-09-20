@@ -1,7 +1,7 @@
 import { useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { fetchPRDataSmart } from '@/lib/supabase-pr-data-smart';
-import { calculateTrendMetrics } from '@/lib/insights/trends-metrics';
+import { detectBot } from '@/lib/utils/bot-detection';
 import RepoSocialCard from './repo-card';
 import type { PullRequest, TimeRange } from '@/lib/types';
 
@@ -30,13 +30,10 @@ export default function RepoCardWithData() {
 
         // Fetch both pull requests data and trend metrics
         const timeRange: TimeRange = '30'; // 30 days for trends
-        const [prDataResult, trends] = await Promise.all([
-          fetchPRDataSmart(owner, repo, { timeRange }),
-          calculateTrendMetrics(owner, repo, timeRange),
-        ]);
+        const [prDataResult] = await Promise.all([fetchPRDataSmart(owner, repo, { timeRange })]);
 
         // Process the data to get stats
-        const processedStats = processPullRequestData(prDataResult.data, trends);
+        const processedStats = processPullRequestData(prDataResult.data);
         setStats(processedStats);
       } catch (err) {
         console.error('Error fetching repo data:', err);
@@ -67,11 +64,9 @@ export default function RepoCardWithData() {
   );
 }
 
-function processPullRequestData(pullRequests: PullRequest[], _trends: any[]) {
-  // Filter out bots
-  const filteredPRs = pullRequests.filter(
-    (pr) => pr.user.type !== 'Bot' && !pr.user.login.includes('[bot]')
-  );
+function processPullRequestData(pullRequests: PullRequest[]) {
+  // Filter out bots using centralized detection
+  const filteredPRs = pullRequests.filter((pr) => !detectBot({ username: pr.user.login }).isBot);
 
   // Get unique contributors
   const contributorMap = new Map<
@@ -125,8 +120,21 @@ function processPullRequestData(pullRequests: PullRequest[], _trends: any[]) {
 }
 
 function getMockDataForRepo(owner: string, repo: string) {
+  type MockDataType = {
+    totalContributors: number;
+    totalPRs: number;
+    mergedPRs: number;
+    weeklyPRVolume: number;
+    activeContributors: number;
+    topContributors: Array<{
+      login: string;
+      avatar_url: string;
+      contributions: number;
+    }>;
+  };
+
   // Mock data for popular repositories to make the preview look good
-  const mockData: Record<string, any> = {
+  const mockData: Record<string, MockDataType> = {
     'facebook/react': {
       totalContributors: 1247,
       totalPRs: 8934,

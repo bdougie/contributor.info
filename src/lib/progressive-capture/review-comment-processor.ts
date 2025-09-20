@@ -1,4 +1,5 @@
-import { supabase } from '../supabase';
+import { supabase } from '@/lib/supabase';
+import { detectBot } from '@/lib/utils/bot-detection';
 
 /**
  * Processor for fetching and storing PR reviews and comments
@@ -22,7 +23,7 @@ export class ReviewCommentProcessor {
     const userToken = session?.provider_token;
 
     // Use user's token if available, otherwise fall back to env token
-    const token = userToken || import.meta.env.VITE_GITHUB_TOKEN;
+    const token = userToken || import.meta.env?.VITE_GITHUB_TOKEN || process.env.VITE_GITHUB_TOKEN;
     if (token) {
       headers.Authorization = `token ${token}`;
     }
@@ -36,7 +37,7 @@ export class ReviewCommentProcessor {
   static async processReviewsJob(
     repositoryId: string,
     prNumber: string,
-    metadata: any
+    metadata: Record<string, unknown>
   ): Promise<{ success: boolean; error?: string }> {
     try {
       // Get repository info to construct GitHub API URL
@@ -74,7 +75,6 @@ export class ReviewCommentProcessor {
       }
 
       // Process each review
-      let processed = 0;
       for (const review of reviews) {
         try {
           // Find or create reviewer
@@ -87,7 +87,7 @@ export class ReviewCommentProcessor {
                 display_name: review.user.login,
                 avatar_url: review.user.avatar_url,
                 profile_url: review.user.html_url,
-                is_bot: review.user.type === 'Bot',
+                is_bot: detectBot({ githubUser: review.user }).isBot,
                 first_seen_at: new Date().toISOString(),
                 last_updated_at: new Date().toISOString(),
                 is_active: true,
@@ -130,8 +130,6 @@ export class ReviewCommentProcessor {
               `[Reviews Processor] Error inserting review ${review.id}:`,
               reviewInsertError
             );
-          } else {
-            processed++;
           }
         } catch (reviewError) {
           console.warn(`[Reviews Processor] Error processing review ${review.id}:`, reviewError);
@@ -151,7 +149,7 @@ export class ReviewCommentProcessor {
   static async processCommentsJob(
     repositoryId: string,
     prNumber: string,
-    metadata: any
+    metadata: Record<string, unknown>
   ): Promise<{ success: boolean; error?: string }> {
     try {
       // Get repository info to construct GitHub API URL
@@ -179,7 +177,20 @@ export class ReviewCommentProcessor {
         ),
       ]);
 
-      const allComments: any[] = [];
+      const allComments: Array<{
+        id: number;
+        user: { id: number; login: string; avatar_url: string; html_url: string };
+        body: string;
+        created_at: string;
+        updated_at?: string;
+        comment_type: string;
+        in_reply_to_id?: number;
+        position?: number;
+        original_position?: number;
+        diff_hunk?: string;
+        path?: string;
+        commit_id?: string;
+      }> = [];
 
       // Process review comments
       if (reviewCommentsResponse.ok) {
@@ -219,8 +230,9 @@ export class ReviewCommentProcessor {
         return { success: true };
       }
 
-      // Process each comment
       let processed = 0;
+
+      // Process each comment
       for (const comment of allComments) {
         try {
           // Find or create commenter
@@ -233,7 +245,7 @@ export class ReviewCommentProcessor {
                 display_name: comment.user.login,
                 avatar_url: comment.user.avatar_url,
                 profile_url: comment.user.html_url,
-                is_bot: comment.user.type === 'Bot',
+                is_bot: detectBot({ githubUser: comment.user }).isBot,
                 first_seen_at: new Date().toISOString(),
                 last_updated_at: new Date().toISOString(),
                 is_active: true,
@@ -294,6 +306,7 @@ export class ReviewCommentProcessor {
         }
       }
 
+      console.log(`[Comments Processor] Successfully processed ${processed} comments`);
       return { success: true };
     } catch (error) {
       console.error(`[Comments Processor] Error processing comments for PR #${prNumber}:`, error);

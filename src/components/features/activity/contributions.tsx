@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { animated } from '@react-spring/web';
 import { supabaseAvatarCache } from '@/lib/supabase-avatar-cache';
+import { detectBot } from '@/lib/utils/bot-detection';
 import { ProgressiveChart } from '@/components/ui/charts/ProgressiveChart';
 import { SkeletonChart } from '@/components/skeletons/base/skeleton-chart';
 import { getAvatarUrl } from '@/lib/utils/avatar';
@@ -174,7 +175,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
     try {
       // Sort by created_at and filter based on preferences
       const filteredPRs = [...safeStats.pullRequests]
-        .filter((pr) => localIncludeBots || pr.user.type !== 'Bot')
+        .filter((pr) => localIncludeBots || !detectBot({ username: pr.user.login }).isBot)
         .filter((pr) => {
           if (statusFilter === 'all') return pr.state === 'open' || pr.merged_at !== null;
           if (statusFilter === 'open') return pr.state === 'open';
@@ -671,7 +672,9 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
   };
 
   const data = getScatterData();
-  const botCount = safeStats.pullRequests.filter((pr) => pr.user.type === 'Bot').length;
+  const botCount = safeStats.pullRequests.filter(
+    (pr) => detectBot({ username: pr.user.login }).isBot
+  ).length;
   const hasBots = botCount > 0;
 
   // Show placeholder when repository is not tracked
