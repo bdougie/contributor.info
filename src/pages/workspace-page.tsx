@@ -76,6 +76,10 @@ const ContributorLeaderboard = lazy(() =>
     default: m.ContributorLeaderboard,
   }))
 );
+
+// Lazy load distribution charts
+import { LazyAssigneeDistributionChart } from '@/components/features/workspace/charts/AssigneeDistributionChart-lazy';
+import { LazyReviewerDistributionChart } from '@/components/features/workspace/charts/ReviewerDistributionChart-lazy';
 // import { WorkspaceExportService } from '@/services/workspace-export.service';
 // import type {
 //   AnalyticsData,
@@ -373,7 +377,10 @@ function WorkspacePRs({
 
   useEffect(() => {
     async function fetchPullRequests() {
+      console.log('fetchPullRequests - repositories:', repositories.length, repositories);
+
       if (repositories.length === 0) {
+        console.log('No repositories, skipping PR fetch');
         setPullRequests([]);
         setLoading(false);
         return;
@@ -382,8 +389,11 @@ function WorkspacePRs({
       try {
         // Use utility function to filter repositories
         const filteredRepos = filterRepositoriesBySelection(repositories, selectedRepositories);
+        console.log('Filtered repos:', filteredRepos.length, filteredRepos);
 
         const repoIds = filteredRepos.map((r) => r.id);
+        console.log('Repository IDs for PR query:', repoIds);
+
         const { data, error } = await supabase
           .from('pull_requests')
           .select(
@@ -418,6 +428,8 @@ function WorkspacePRs({
           .in('repository_id', repoIds)
           .order('updated_at', { ascending: false })
           .limit(100);
+
+        console.log('PR Query result - error:', error, 'data:', data);
 
         if (error) {
           console.error('Error fetching pull requests:', error);
@@ -486,6 +498,7 @@ function WorkspacePRs({
             reviewers: [], // We don't have this data yet
             url: pr.html_url,
           }));
+          console.log('Transformed PRs:', transformedPRs.length, transformedPRs);
           setPullRequests(transformedPRs);
         }
       } catch (err) {
@@ -507,18 +520,57 @@ function WorkspacePRs({
     navigate(`/${owner}/${name}`);
   };
 
+  const [selectedReviewer, setSelectedReviewer] = useState<string | null>(null);
+
+  const handleReviewerClick = (reviewer: string) => {
+    setSelectedReviewer(selectedReviewer === reviewer ? null : reviewer);
+  };
+
+  // Filter PRs by selected reviewer
+  const filteredPullRequests = useMemo(() => {
+    if (!selectedReviewer) return pullRequests;
+
+    if (selectedReviewer === '__unreviewed__') {
+      return pullRequests.filter((pr) => !pr.reviewers || pr.reviewers.length === 0);
+    }
+
+    return pullRequests.filter((pr) => pr.reviewers?.some((r) => r.username === selectedReviewer));
+  }, [pullRequests, selectedReviewer]);
+
+  // Check if there are any PRs with reviewers
+  const hasReviewers = pullRequests.some((pr) => pr.reviewers && pr.reviewers.length > 0);
+
   return (
     <div className="space-y-6">
-      {/* PR Metrics and Trends */}
-      <WorkspaceMetricsAndTrends
-        repositories={repositories}
-        selectedRepositories={selectedRepositories}
-        timeRange={timeRange}
-      />
+      {/* Conditionally render side-by-side or full width based on reviewer data */}
+      {hasReviewers ? (
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* PR Metrics and Trends */}
+          <WorkspaceMetricsAndTrends
+            repositories={repositories}
+            selectedRepositories={selectedRepositories}
+            timeRange={timeRange}
+          />
+
+          {/* Reviewer Distribution Chart */}
+          <LazyReviewerDistributionChart
+            pullRequests={pullRequests}
+            onReviewerClick={handleReviewerClick}
+            maxVisible={8}
+          />
+        </div>
+      ) : (
+        /* Full width Metrics and Trends when no reviewers */
+        <WorkspaceMetricsAndTrends
+          repositories={repositories}
+          selectedRepositories={selectedRepositories}
+          timeRange={timeRange}
+        />
+      )}
 
       {/* PR Table */}
       <WorkspacePullRequestsTable
-        pullRequests={pullRequests}
+        pullRequests={filteredPullRequests}
         loading={loading}
         onPullRequestClick={handlePullRequestClick}
         onRepositoryClick={handleRepositoryClick}
@@ -694,6 +746,8 @@ function WorkspaceIssues({
     fetchIssues();
   }, [repositories, selectedRepositories]);
 
+  const [selectedAssignee, setSelectedAssignee] = useState<string | null>(null);
+
   const handleIssueClick = (issue: Issue) => {
     // Only open if URL exists
     if (issue.url) {
@@ -704,6 +758,24 @@ function WorkspaceIssues({
   const handleRepositoryClick = (owner: string, name: string) => {
     navigate(`/${owner}/${name}`);
   };
+
+  const handleAssigneeClick = (assignee: string) => {
+    setSelectedAssignee(selectedAssignee === assignee ? null : assignee);
+  };
+
+  // Filter issues by selected assignee
+  const filteredIssues = useMemo(() => {
+    if (!selectedAssignee) return issues;
+
+    if (selectedAssignee === '__unassigned__') {
+      return issues.filter((issue) => !issue.assignees || issue.assignees.length === 0);
+    }
+
+    return issues.filter((issue) => issue.assignees?.some((a) => a.login === selectedAssignee));
+  }, [issues, selectedAssignee]);
+
+  // Check if there are any issues with assignees
+  const hasAssignees = issues.some((issue) => issue.assignees && issue.assignees.length > 0);
 
   // Display error message if there's an error
   if (error) {
@@ -723,16 +795,35 @@ function WorkspaceIssues({
 
   return (
     <div className="space-y-6">
-      {/* Issue Metrics and Trends */}
-      <WorkspaceIssueMetricsAndTrends
-        repositories={repositories}
-        selectedRepositories={selectedRepositories}
-        timeRange={timeRange}
-      />
+      {/* Conditionally render side-by-side or full width based on assignee data */}
+      {hasAssignees ? (
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Issue Metrics and Trends */}
+          <WorkspaceIssueMetricsAndTrends
+            repositories={repositories}
+            selectedRepositories={selectedRepositories}
+            timeRange={timeRange}
+          />
+
+          {/* Assignee Distribution Chart */}
+          <LazyAssigneeDistributionChart
+            issues={issues}
+            onAssigneeClick={handleAssigneeClick}
+            maxVisible={8}
+          />
+        </div>
+      ) : (
+        /* Full width Metrics and Trends when no assignees */
+        <WorkspaceIssueMetricsAndTrends
+          repositories={repositories}
+          selectedRepositories={selectedRepositories}
+          timeRange={timeRange}
+        />
+      )}
 
       {/* Issues Table */}
       <WorkspaceIssuesTable
-        issues={issues}
+        issues={filteredIssues}
         loading={loading}
         onIssueClick={handleIssueClick}
         onRepositoryClick={handleRepositoryClick}
@@ -2039,6 +2130,7 @@ function WorkspacePage() {
         }
 
         // Transform repository data to match the Repository interface
+        console.log('Fetched workspace repositories:', repoData?.length, repoData);
         const transformedRepos: Repository[] = (repoData || [])
           .filter((r) => r.repositories)
           .map((r: WorkspaceRepository) => ({
@@ -2060,6 +2152,7 @@ function WorkspacePage() {
               : getFallbackAvatar(),
             html_url: `https://github.com/${r.repositories.full_name}`,
           }));
+        console.log('Transformed repositories:', transformedRepos.length, transformedRepos);
 
         // Fetch real data for metrics and trends
         let mergedPRs: MergedPR[] = [];
