@@ -137,12 +137,31 @@ export function WorkspaceIssuesTable({
           },
           size: 100,
         }),
+        columnHelper.accessor('number', {
+          header: 'Number',
+          cell: ({ row }) => {
+            const issue = row.original;
+            return issue.url ? (
+              <a
+                href={issue.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium hover:text-primary transition-colors"
+              >
+                #{issue.number}
+              </a>
+            ) : (
+              <span className="font-medium text-muted-foreground">#{issue.number}</span>
+            );
+          },
+          size: 80,
+        }),
         columnHelper.accessor('title', {
-          header: 'Issue',
+          header: 'Title',
           cell: ({ row }) => {
             const issue = row.original;
             const truncatedTitle =
-              issue.title.length > 50 ? issue.title.substring(0, 50) + '...' : issue.title;
+              issue.title.length > 60 ? issue.title.substring(0, 60) + '...' : issue.title;
 
             return (
               <div className="flex flex-col gap-1">
@@ -160,22 +179,18 @@ export function WorkspaceIssuesTable({
                               onIssueClick(issue);
                             }
                           }}
-                          className="font-medium hover:text-primary transition-colors text-left inline-flex items-center gap-1"
+                          className="font-medium hover:text-primary transition-colors text-left block"
                         >
                           <span className="line-clamp-1">{truncatedTitle}</span>
-                          <span className="text-muted-foreground">#{issue.number}</span>
                         </a>
                       ) : (
-                        <span className="font-medium text-muted-foreground text-left inline-flex items-center gap-1">
+                        <span className="font-medium text-muted-foreground text-left block">
                           <span className="line-clamp-1">{truncatedTitle}</span>
-                          <span className="text-muted-foreground">#{issue.number}</span>
                         </span>
                       )}
                     </TooltipTrigger>
                     <TooltipContent className="max-w-md">
-                      <p>
-                        {issue.title} #{issue.number}
-                      </p>
+                      <p>{issue.title}</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -233,15 +248,25 @@ export function WorkspaceIssuesTable({
           header: 'Author',
           cell: ({ row }) => {
             const author = row.original.author;
+            const repo = row.original.repository;
+            const authorFilterUrl = `https://github.com/${repo.owner}/${repo.name}/issues?q=is%3Aissue+author%3A${author.username}`;
+
             return (
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <img
-                      src={author.avatar_url}
-                      alt={author.username}
-                      className="h-6 w-6 rounded-full cursor-pointer hover:ring-2 hover:ring-primary transition-all"
-                    />
+                    <a
+                      href={authorFilterUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-block"
+                    >
+                      <img
+                        src={author.avatar_url}
+                        alt={author.username}
+                        className="h-6 w-6 rounded-full cursor-pointer hover:ring-2 hover:ring-primary transition-all"
+                      />
+                    </a>
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>{author.username}</p>
