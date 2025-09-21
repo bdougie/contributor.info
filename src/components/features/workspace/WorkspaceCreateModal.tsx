@@ -65,7 +65,7 @@ export function WorkspaceCreateModal({
     if (!user) {
       // For logged-out users, trigger GitHub OAuth sign-in
       try {
-        const redirectTo = window.location.origin + window.location.pathname;
+        const redirectTo = window.location.href;
         const { error } = await supabase.auth.signInWithOAuth({
           provider: 'github',
           options: {
