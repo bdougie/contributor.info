@@ -112,6 +112,12 @@
   force = true
 
 [[redirects]]
+  from = "/api/inngest-sync"
+  to = "/.netlify/functions/inngest-sync"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/api/hello"
   to = "/.netlify/functions/hello"
   status = 200
