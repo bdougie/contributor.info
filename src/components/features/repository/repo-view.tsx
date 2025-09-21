@@ -33,6 +33,7 @@ import { useDataTimestamp } from '@/hooks/use-data-timestamp';
 import { RepositoryTrackingCard } from './repository-tracking-card';
 import { GitHubAppInstallButton } from './github-app-install-button';
 import { UnifiedSyncButton } from './unified-sync-button';
+import { AddToWorkspaceButton } from '../workspace/AddToWorkspaceButton';
 import { useAnalytics } from '@/hooks/use-analytics';
 
 export default function RepoView() {
@@ -316,8 +317,9 @@ export default function RepoView() {
                   )}
                 </div>
               </div>
-              <div className="flex gap-2 flex-shrink-0">
+              <div className="flex gap-2 flex-shrink-0 items-center">
                 <GitHubAppInstallButton owner={owner || ''} repo={repo || ''} size="sm" />
+                <AddToWorkspaceButton owner={owner || ''} repo={repo || ''} />
                 <UnifiedSyncButton
                   owner={owner || ''}
                   repo={repo || ''}
@@ -330,9 +332,9 @@ export default function RepoView() {
                 <Button
                   variant="outline"
                   size="icon"
+                  className="stable-button"
                   onClick={handleShare}
                   disabled={isGeneratingUrl}
-                  className="h-8 w-8 stable-button"
                   title={isGeneratingUrl ? 'Generating short link...' : 'Copy repository link'}
                   aria-label={isGeneratingUrl ? 'Generating short link...' : 'Copy repository link'}
                 >
