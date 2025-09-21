@@ -117,6 +117,17 @@ serve(async (req: Request) => {
     });
   }
 
+  // Handle HEAD requests (Inngest health checks)
+  if (req.method === 'HEAD') {
+    return new Response(null, {
+      status: 200,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json',
+      }
+    });
+  }
+
   try {
     // Handle GET requests with a status page
     if (req.method === 'GET' && !url.searchParams.has('fnId')) {
