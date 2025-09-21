@@ -26,6 +26,17 @@ interface GitHubUser {
   login?: string;
   avatarUrl?: string;
   __typename?: string;
+  name?: string;
+  email?: string;
+  bio?: string;
+  company?: string;
+  location?: string;
+  blog?: string;
+  public_repos?: number;
+  public_gists?: number;
+  followers?: number;
+  following?: number;
+  createdAt?: string;
 }
 
 async function ensureContributorExists(githubUser: GitHubUser): Promise<string | null> {
@@ -37,7 +48,7 @@ async function ensureContributorExists(githubUser: GitHubUser): Promise<string |
     .from('contributors')
     .upsert(
       {
-        github_id: githubUser.databaseId,
+        github_id: githubUser.databaseId.toString(),
         username: githubUser.login,
         display_name: githubUser.name || null,
         email: githubUser.email || null,
@@ -286,7 +297,7 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
 
       // Then create PRs with proper UUIDs
       const prsToStore = recentPRs.map((pr, index) => ({
-        github_id: pr.databaseId.toString(),
+        github_id: pr.databaseId?.toString() || '0',
         repository_id: repositoryId,
         number: pr.number,
         title: pr.title,

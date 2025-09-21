@@ -270,7 +270,7 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
 
       // Then create PRs with proper UUIDs
       const prsToStore = recentPRs.map((pr, index) => ({
-        github_id: pr.databaseId.toString(),
+        github_id: pr.databaseId?.toString() || '0',
         repository_id: repositoryId,
         number: pr.number,
         title: pr.title,
