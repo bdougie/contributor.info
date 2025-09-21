@@ -27,9 +27,9 @@ function isLongRunningJob(eventName: string): boolean {
 // Verify Inngest webhook signature
 function verifyInngestSignature(body: string, signature: string | null): boolean {
   if (!INNGEST_SIGNING_KEY) {
-    console.warn('No Inngest signing key configured - skipping verification in development');
-    // In production, this should return false
-    return process.env.NODE_ENV === 'development';
+    console.error('No Inngest signing key configured - rejecting webhook');
+    // Always require signature verification for security
+    return false;
   }
 
   if (!signature) {

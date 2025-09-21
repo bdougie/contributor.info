@@ -25,6 +25,8 @@ const corsHeaders = {
 // Thresholds for routing decisions
 const WORKSPACE_THRESHOLD = 10; // Route to background if > 10 workspaces affected
 const QUICK_EVENTS = ['ping', 'repository']; // Events that are always quick
+const MAX_CONCURRENT_JOBS_PER_REPO = 5; // Maximum concurrent jobs per repository
+const RATE_LIMIT_WINDOW_MS = 60000; // 1 minute window for rate limiting
 
 /**
  * Verify GitHub webhook signature
@@ -127,6 +129,42 @@ async function routeToBackground(
 }
 
 /**
+ * Validate webhook payload structure
+ */
+function validateWebhookPayload(
+  githubEvent: string,
+  payload: Record<string, unknown>
+): { valid: boolean; error?: string } {
+  // Check for required repository field for most events
+  const eventsRequiringRepo = ['pull_request', 'issues', 'push'];
+  if (eventsRequiringRepo.includes(githubEvent)) {
+    if (!payload.repository || typeof payload.repository !== 'object') {
+      return { valid: false, error: 'Missing required repository field' };
+    }
+    const repo = payload.repository as Record<string, unknown>;
+    if (!repo.id || !repo.full_name) {
+      return { valid: false, error: 'Invalid repository structure' };
+    }
+  }
+
+  // Validate pull_request events
+  if (githubEvent === 'pull_request') {
+    if (!payload.action || !payload.pull_request) {
+      return { valid: false, error: 'Invalid pull_request payload' };
+    }
+  }
+
+  // Validate issues events
+  if (githubEvent === 'issues') {
+    if (!payload.action || !payload.issue) {
+      return { valid: false, error: 'Invalid issues payload' };
+    }
+  }
+
+  return { valid: true };
+}
+
+/**
  * Process simple webhook inline (for quick operations)
  */
 async function processQuickWebhook(
@@ -197,6 +235,17 @@ export const handler: Handler = async (event: HandlerEvent) => {
 
     console.log(`Received GitHub webhook: ${githubEvent} (${action})`);
 
+    // Validate payload structure
+    const validation = validateWebhookPayload(githubEvent, payload);
+    if (!validation.valid) {
+      console.error(`Invalid webhook payload: ${validation.error}`);
+      return {
+        statusCode: 400,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: validation.error })
+      };
+    }
+
     // Quick events are always processed inline
     if (QUICK_EVENTS.includes(githubEvent)) {
       const result = await processQuickWebhook(githubEvent, payload);
@@ -214,6 +263,32 @@ export const handler: Handler = async (event: HandlerEvent) => {
       const workspaceCount = await countAffectedWorkspaces(repository.id);
 
       console.log(`Event affects ${workspaceCount} workspaces`);
+
+      // Check rate limiting for high-volume repositories
+      const repoId = repository.id;
+      const { data: recentJobs } = await supabase
+        .from('background_jobs')
+        .select('id')
+        .eq('payload->>repository_id', repoId)
+        .in('status', ['queued', 'processing'])
+        .gte('created_at', new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString());
+
+      if (recentJobs && recentJobs.length >= MAX_CONCURRENT_JOBS_PER_REPO) {
+        console.log(`Rate limiting: Repository ${repoId} has ${recentJobs.length} active jobs`);
+        return {
+          statusCode: 429,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+            'Retry-After': '60'
+          },
+          body: JSON.stringify({
+            error: 'Rate limit exceeded',
+            message: 'Too many concurrent webhook events for this repository',
+            retryAfter: 60
+          })
+        };
+      }
 
       // Route to background if many workspaces are affected
       if (workspaceCount > WORKSPACE_THRESHOLD) {

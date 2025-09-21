@@ -64,6 +64,23 @@ serve(async (req: Request) => {
     return new Response(null, { status: 200, headers: corsHeaders });
   }
 
+  // Verify authorization
+  const authHeader = req.headers.get('Authorization');
+  const apiKey = req.headers.get('x-api-key');
+
+  // Check for service role key in Authorization header or API key
+  if (!authHeader?.includes(supabaseServiceKey) && apiKey !== supabaseServiceKey) {
+    // Also allow internal Supabase calls (from other Edge Functions or database)
+    const isInternalCall = req.headers.get('x-forwarded-host')?.includes('supabase.co');
+    if (!isInternalCall) {
+      console.error('Unauthorized request to process-job function');
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+  }
+
   try {
     const { jobId, immediate } = await req.json();
 
@@ -402,7 +419,7 @@ async function fetchPullRequestDetails(
 
   for (const prNumber of prNumbers) {
     try {
-      const pr = await client.getPullRequestDetails(owner, repo, prNumber);
+      const pr = await client.getPRDetails(owner, repo, prNumber);
       details.push(pr);
     } catch (error) {
       console.error(`Failed to fetch PR #${prNumber}:`, error);
