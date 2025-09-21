@@ -41,7 +41,7 @@ serve(async (req: Request) => {
       return new Response(
         JSON.stringify({
           framework: 'deno',
-          appId: 'contributor-info',
+          app: 'contributor-info',
           functions: [
             {
               id: 'prod-test-function',

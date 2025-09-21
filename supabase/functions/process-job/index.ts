@@ -56,7 +56,16 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 // GitHub token
 const GITHUB_TOKEN = Deno.env.get('GITHUB_TOKEN') || Deno.env.get('VITE_GITHUB_TOKEN') || '';
 
-console.log('Job processor starting...');
+// Circuit breaker configuration
+const CIRCUIT_BREAKER_THRESHOLD = 5; // Number of consecutive failures to open circuit
+const CIRCUIT_BREAKER_TIMEOUT_MS = 60000; // 1 minute cooldown
+const circuitBreakers = new Map<string, {
+  failures: number;
+  lastFailure: number;
+  isOpen: boolean;
+}>();
+
+console.log('Job processor starting with circuit breaker protection...');
 
 serve(async (req: Request) => {
   // Handle CORS
@@ -154,9 +163,77 @@ async function processJob(jobId: string, type: string, payload: JobPayload) {
   }
 }
 
+// Check circuit breaker status
+function checkCircuitBreaker(jobType: string): { isOpen: boolean; reason?: string } {
+  const breaker = circuitBreakers.get(jobType);
+  if (!breaker) return { isOpen: false };
+
+  // Check if circuit is open and if timeout has passed
+  if (breaker.isOpen) {
+    const timeSinceLastFailure = Date.now() - breaker.lastFailure;
+    if (timeSinceLastFailure > CIRCUIT_BREAKER_TIMEOUT_MS) {
+      // Reset circuit breaker
+      breaker.isOpen = false;
+      breaker.failures = 0;
+      console.log(`Circuit breaker for ${jobType} reset after cooldown`);
+      return { isOpen: false };
+    }
+    return {
+      isOpen: true,
+      reason: `Circuit breaker open for ${jobType}: ${breaker.failures} consecutive failures`
+    };
+  }
+
+  return { isOpen: false };
+}
+
+// Update circuit breaker on failure
+function recordCircuitBreakerFailure(jobType: string) {
+  let breaker = circuitBreakers.get(jobType);
+  if (!breaker) {
+    breaker = { failures: 0, lastFailure: 0, isOpen: false };
+    circuitBreakers.set(jobType, breaker);
+  }
+
+  breaker.failures++;
+  breaker.lastFailure = Date.now();
+
+  if (breaker.failures >= CIRCUIT_BREAKER_THRESHOLD) {
+    breaker.isOpen = true;
+    console.error(`Circuit breaker opened for ${jobType} after ${breaker.failures} failures`);
+  }
+}
+
+// Reset circuit breaker on success
+function recordCircuitBreakerSuccess(jobType: string) {
+  const breaker = circuitBreakers.get(jobType);
+  if (breaker) {
+    breaker.failures = 0;
+    breaker.isOpen = false;
+  }
+}
+
 // Synchronous job processing
 async function processJobSync(jobId: string, type: string, payload: JobPayload): Promise<JobResult> {
   const startTime = Date.now();
+
+  // Check circuit breaker before processing
+  const circuitStatus = checkCircuitBreaker(type);
+  if (circuitStatus.isOpen) {
+    console.error(`Circuit breaker preventing job ${jobId} execution: ${circuitStatus.reason}`);
+
+    // Mark job as failed due to circuit breaker
+    await supabase
+      .from('background_jobs')
+      .update({
+        status: 'failed',
+        error: circuitStatus.reason,
+        failed_at: new Date().toISOString()
+      })
+      .eq('id', jobId);
+
+    throw new Error(circuitStatus.reason);
+  }
 
   // Update job status to processing
   await supabase
@@ -272,12 +349,19 @@ async function processJobSync(jobId: string, type: string, payload: JobPayload):
       .eq('id', jobId);
 
     console.log(`Job ${jobId} completed in ${duration}ms`);
+
+    // Record success for circuit breaker
+    recordCircuitBreakerSuccess(type);
+
     return { success: true, result, duration };
 
   } catch (error) {
     const duration = Date.now() - startTime;
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error(`Job ${jobId} failed after ${duration}ms:`, error);
+
+    // Record failure for circuit breaker
+    recordCircuitBreakerFailure(type);
 
     // Update job as failed
     await supabase
