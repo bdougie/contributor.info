@@ -72,7 +72,7 @@ export function getCachedAnalyticsData(): AnalyticsData {
     return cache.analyticsData;
   }
 
-  console.log('🔄 Generating fresh analytics data for demo workspace');
+  console.log('%s', '🔄 Generating fresh analytics data for demo workspace');
   cache.analyticsData = generateDemoAnalyticsData();
   cache.lastGenerated = Date.now();
 
@@ -89,7 +89,7 @@ export function getCachedWorkspaceRepositories(
     return cache.workspaceRepositories;
   }
 
-  console.log('🔄 Generating fresh workspace repositories for demo workspace');
+  console.log('%s', '🔄 Generating fresh workspace repositories for demo workspace');
   cache.workspaceRepositories = generateDemoWorkspaceRepositories(workspaceId);
   cache.lastGenerated = Date.now();
 
@@ -104,7 +104,7 @@ export function getCachedRepositories(): Repository[] {
     return cache.repositories;
   }
 
-  console.log('🔄 Generating fresh repositories list for demo workspace');
+  console.log('%s', '🔄 Generating fresh repositories list for demo workspace');
   cache.repositories = generateDemoRepositories();
   cache.lastGenerated = Date.now();
 
@@ -125,7 +125,7 @@ export function getCachedWorkspaceMetrics(
     return cache.metricsCache.get(cacheKey)!;
   }
 
-  console.log(`🔄 Generating fresh metrics for demo workspace (${timeRange})`);
+  console.log('%s', `🔄 Generating fresh metrics for demo workspace (${timeRange})`);
   const metrics = generateDemoWorkspaceMetrics(repos, timeRange, selectedRepoIds);
   cache.metricsCache.set(cacheKey, metrics);
   cache.lastGenerated = Date.now();
@@ -147,7 +147,7 @@ export function getCachedWorkspaceTrendData(
     return cache.trendCache.get(cacheKey)!;
   }
 
-  console.log(`🔄 Generating fresh trend data for demo workspace (${days} days)`);
+  console.log('%s', `🔄 Generating fresh trend data for demo workspace (${days} days)`);
   const trendData = generateDemoWorkspaceTrendData(days, repos, selectedRepoIds);
   cache.trendCache.set(cacheKey, trendData);
   cache.lastGenerated = Date.now();
@@ -159,7 +159,7 @@ export function getCachedWorkspaceTrendData(
  * Clear all cached data (useful for testing or manual refresh)
  */
 export function clearDemoDataCache(): void {
-  console.log('🗑️ Clearing demo data cache');
+  console.log('%s', '🗑️ Clearing demo data cache');
   cache.analyticsData = null;
   cache.workspaceRepositories = null;
   cache.repositories = null;

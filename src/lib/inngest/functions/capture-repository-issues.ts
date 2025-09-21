@@ -241,7 +241,7 @@ export const captureRepositoryIssues = inngest.createFunction(
         });
       }
 
-      console.log(`Queued ${issueCommentJobs.length} issue comment capture jobs`);
+      console.log('%s', `Queued ${issueCommentJobs.length} issue comment capture jobs`);
       return issueCommentJobs.length;
     });
 

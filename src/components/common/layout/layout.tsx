@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense, useCallback } from 'react';
+import { useState, useEffect, lazy, Suspense, useCallback, useRef } from 'react';
 import { Outlet, useNavigate, Link, useLocation } from 'react-router-dom';
 import { ModeToggle } from '../theming';
 import { AuthButton } from '../../features/auth';
@@ -9,6 +9,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Plus } from '@/components/ui/icon';
 import { LazyNavigationSheet } from './lazy-navigation-sheet';
 import { WorkspaceSwitcher } from '@/components/navigation/WorkspaceSwitcher';
 import { supabase } from '@/lib/supabase';
@@ -16,6 +18,8 @@ import { useTimeRangeStore } from '@/lib/time-range-store';
 import { usePrefetchOnIntent, prefetchCriticalRoutes } from '@/lib/route-prefetch';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useWorkspaceContext } from '@/contexts/WorkspaceContext';
+import { useNeedsWorkspaceOnboarding } from '@/hooks/use-workspace-count';
+import { trackEvent } from '@/lib/posthog-lazy';
 
 // Lazy load the command palette
 const CommandPalette = lazy(() =>
@@ -36,6 +40,8 @@ export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { workspaces, switchWorkspace } = useWorkspaceContext();
+  const { needsOnboarding, loading: onboardingLoading } = useNeedsWorkspaceOnboarding();
+  const hasTrackedCTA = useRef(false);
 
   // Prefetch handlers for navigation links
   const trendingPrefetch = usePrefetchOnIntent('/trending');
@@ -75,6 +81,26 @@ export default function Layout() {
       preventDefault: true,
     })),
   ]);
+
+  // Track workspace CTA visibility
+  useEffect(() => {
+    if (needsOnboarding && !onboardingLoading && !hasTrackedCTA.current) {
+      hasTrackedCTA.current = true;
+      trackEvent('workspace_cta_viewed', {
+        page_path: window.location.pathname,
+        workspace_count: 0,
+      });
+    }
+  }, [needsOnboarding, onboardingLoading]);
+
+  // Handle workspace CTA click
+  const handleCreateWorkspace = useCallback(() => {
+    trackEvent('workspace_cta_clicked', {
+      source: 'header_cta',
+      page_path: window.location.pathname,
+    });
+    navigate('/workspaces/new');
+  }, [navigate]);
 
   useEffect(() => {
     // Check login status
@@ -203,12 +229,34 @@ export default function Layout() {
           {/* Workspace and Auth Buttons */}
           <div className="ml-auto flex items-center gap-2">
             {isLoggedIn && (
-              <div onMouseEnter={handlePreloadCommandPalette}>
-                <WorkspaceSwitcher
-                  className="min-w-[150px]"
-                  onOpenCommandPalette={() => setCommandPaletteOpen(true)}
-                />
-              </div>
+              <>
+                {/* Prevent flickering by handling loading state */}
+                {onboardingLoading && (
+                  // Show placeholder during loading to prevent layout shift
+                  <div className="h-8 w-[150px] bg-muted animate-pulse rounded-md" />
+                )}
+                {!onboardingLoading && needsOnboarding && (
+                  // Show CTA for users with no workspaces
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={handleCreateWorkspace}
+                    className="gap-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Create Workspace
+                  </Button>
+                )}
+                {!onboardingLoading && !needsOnboarding && (
+                  // Show workspace switcher for users with workspaces
+                  <div onMouseEnter={handlePreloadCommandPalette}>
+                    <WorkspaceSwitcher
+                      className="min-w-[150px]"
+                      onOpenCommandPalette={() => setCommandPaletteOpen(true)}
+                    />
+                  </div>
+                )}
+              </>
             )}
             <AuthButton />
           </div>

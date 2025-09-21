@@ -325,10 +325,10 @@ export async function calculateIssueActivityPatterns(
     ]);
 
     // Debug logging
-    console.log(`[DEBUG] Repository: ${owner}/${repo}`);
-    console.log(`[DEBUG] Issue comments found: ${issueComments?.length || 0}`);
-    console.log(`[DEBUG] PR comments found: ${prComments?.length || 0}`);
-    console.log(`[DEBUG] Issues found: ${issues?.length || 0}`);
+    console.log('%s', `[DEBUG] Repository: ${owner}/${repo}`);
+    console.log('%s', `[DEBUG] Issue comments found: ${issueComments?.length || 0}`);
+    console.log('%s', `[DEBUG] PR comments found: ${prComments?.length || 0}`);
+    console.log('%s', `[DEBUG] Issues found: ${issues?.length || 0}`);
     if (issueComments && issueComments.length > 0) {
       console.log(`[DEBUG] Sample issue comment:`, issueComments[0]);
     }
@@ -378,7 +378,7 @@ export async function calculateIssueActivityPatterns(
       }
     });
 
-    console.log(`[DEBUG] Triager stats size: ${triagerStats.size}`);
+    console.log('%s', `[DEBUG] Triager stats size: ${triagerStats.size}`);
     console.log(`[DEBUG] Triager stats:`, Array.from(triagerStats.entries()).slice(0, 3));
 
     const mostActiveTriager =
@@ -434,8 +434,8 @@ export async function calculateIssueActivityPatterns(
       }
     });
 
-    console.log(`[DEBUG] Issue commenter stats size: ${issueCommenterStats.size}`);
-    console.log(`[DEBUG] Issue authors map size: ${issueAuthors.size}`);
+    console.log('%s', `[DEBUG] Issue commenter stats size: ${issueCommenterStats.size}`);
+    console.log('%s', `[DEBUG] Issue authors map size: ${issueAuthors.size}`);
     if (issueCommenterStats.size === 0) {
       console.log(
         `[DEBUG] No commenters found. Total issue comments: ${issueComments?.length || 0}`
