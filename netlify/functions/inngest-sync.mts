@@ -87,47 +87,5 @@ const inngestHandler = serve({
   servePath: "/.netlify/functions/inngest-sync"
 });
 
-// Main handler with status page
-const mainHandler = async (req: Request, context: Context) => {
-  const url = new URL(req.url);
-
-  // Handle GET requests with status page
-  if (req.method === "GET" && !url.searchParams.has("fnId")) {
-    return new Response(JSON.stringify({
-      message: "Inngest Sync endpoint",
-      status: "active",
-      endpoint: "/.netlify/functions/inngest-sync",
-      environment: {
-        context: process.env.CONTEXT || "unknown",
-        nodeEnv: process.env.NODE_ENV || "unknown",
-        isProduction: isProduction(),
-        hasEventKey: !!getProductionEnvVar('EVENT_KEY', 'INNGEST_EVENT_KEY'),
-        hasSigningKey: !!getProductionEnvVar('SIGNING_KEY', 'INNGEST_SIGNING_KEY'),
-      },
-      functions: [
-        { id: "capture-repository-sync-graphql", event: "capture/repository.sync.graphql" },
-        { id: "capture-pr-details-graphql", event: "capture/pr.details.graphql" },
-        { id: "capture-pr-details", event: "capture/pr.details" },
-        { id: "capture-pr-reviews", event: "capture/pr.reviews" },
-        { id: "capture-pr-comments", event: "capture/pr.comments" },
-        { id: "capture-issue-comments", event: "capture/issue.comments" },
-        { id: "capture-repository-issues", event: "capture/repository.issues" },
-        { id: "capture-repository-sync", event: "capture/repository.sync" },
-        { id: "classify-single-repository", event: "classify/repository.single" },
-        { id: "classify-repository-size", event: "classify/repository.size" },
-        { id: "discover-new-repository", event: "discover/repository.new" }
-      ]
-    }, null, 2), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        "Cache-Control": "no-cache"
-      }
-    });
-  }
-
-  // Pass all other requests to Inngest
-  return inngestHandler(req, context);
-};
-
-export default mainHandler;
+// Export the handler directly - let Inngest SDK handle everything
+export default inngestHandler;
