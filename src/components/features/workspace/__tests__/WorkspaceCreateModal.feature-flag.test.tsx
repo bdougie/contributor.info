@@ -71,16 +71,16 @@ describe('WorkspaceCreateModal - Feature Flag Tests', () => {
     it('should show the workspace creation form', () => {
       render(<WorkspaceCreateModal {...defaultProps} />);
 
-      expect(screen.getByText('Create New Workspace')).toBeInTheDocument();
+      expect(screen.getByTestId('modal-title-enabled')).toHaveTextContent('Create New Workspace');
       expect(screen.getByLabelText(/workspace name/i)).toBeInTheDocument();
-      expect(screen.getByText('Create Workspace')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /create workspace/i })).toBeInTheDocument();
     });
 
     it('should show form elements when feature is enabled', () => {
       render(<WorkspaceCreateModal {...defaultProps} />);
 
       const nameInput = screen.getByLabelText(/workspace name/i);
-      const submitButton = screen.getByText('Create Workspace');
+      const submitButton = screen.getByRole('button', { name: /create workspace/i });
 
       // Just verify elements exist
       expect(nameInput).toBeInTheDocument();
@@ -106,25 +106,28 @@ describe('WorkspaceCreateModal - Feature Flag Tests', () => {
     it('should show the disabled state for creation mode', () => {
       render(<WorkspaceCreateModal {...defaultProps} />);
 
-      expect(screen.getByText('Workspace Creation')).toBeInTheDocument();
-      expect(screen.getByText('Workspace creation is currently unavailable')).toBeInTheDocument();
-      expect(screen.queryByText('Create Workspace')).not.toBeInTheDocument();
+      expect(screen.getByTestId('modal-title-disabled')).toHaveTextContent('Workspace Creation');
+      expect(screen.getByTestId('modal-description-disabled')).toHaveTextContent(
+        /workspace creation.*unavailable/i
+      );
+      expect(screen.queryByRole('button', { name: /create workspace/i })).not.toBeInTheDocument();
     });
 
     it('should show normal edit form for edit mode even when creation is disabled', () => {
       render(<WorkspaceCreateModal {...defaultProps} mode="edit" workspaceId="test-id" />);
 
-      expect(screen.getByText('Edit Workspace')).toBeInTheDocument();
+      expect(screen.getByTestId('modal-title-enabled')).toHaveTextContent('Edit Workspace');
       expect(screen.getByLabelText(/workspace name/i)).toBeInTheDocument();
-      expect(screen.getByText('Save Changes')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /save changes/i })).toBeInTheDocument();
     });
 
     it('should render disabled component when creation is disabled', () => {
       render(<WorkspaceCreateModal {...defaultProps} />);
 
       // Test only what's immediately available without async behavior
-      expect(screen.getByText('Workspace Creation')).toBeInTheDocument();
-      expect(screen.getByText('Workspace creation is currently unavailable')).toBeInTheDocument();
+      expect(screen.getByTestId('modal-title-disabled')).toBeInTheDocument();
+      expect(screen.getByTestId('modal-description-disabled')).toBeInTheDocument();
+      expect(screen.getByTestId('workspace-creation-disabled')).toBeInTheDocument();
     });
   });
 });

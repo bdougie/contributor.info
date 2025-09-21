@@ -19,7 +19,7 @@ export function WorkspaceCreationDisabled({
     const isLoggedIn = !!user;
 
     return (
-      <div className="p-6 space-y-4">
+      <div className="p-6 space-y-4" data-testid="workspace-creation-disabled">
         <div className="flex items-center justify-center w-12 h-12 mx-auto rounded-full bg-muted">
           {isLoggedIn ? (
             <Crown className="w-6 h-6 text-muted-foreground" />
@@ -28,10 +28,13 @@ export function WorkspaceCreationDisabled({
           )}
         </div>
         <div className="text-center space-y-2">
-          <h3 className="text-lg font-semibold">
+          <h3 className="text-lg font-semibold" data-testid="disabled-heading">
             {isLoggedIn ? 'Pro Account Required' : 'Login Required'}
           </h3>
-          <p className="text-muted-foreground text-sm max-w-sm mx-auto">
+          <p
+            className="text-muted-foreground text-sm max-w-sm mx-auto"
+            data-testid="disabled-description"
+          >
             {isLoggedIn ? (
               <>
                 Workspace creation requires a Pro subscription. Upgrade your account to create and
