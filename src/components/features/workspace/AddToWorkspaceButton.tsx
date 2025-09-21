@@ -23,7 +23,7 @@ export function AddToWorkspaceButton({ owner, repo, className = '' }: AddToWorks
               variant="outline"
               size="icon"
               onClick={() => setModalOpen(true)}
-              className={`h-8 w-8 ${className}`}
+              className={className}
               aria-label="Add to workspace"
             >
               <Plus className="h-4 w-4" />
