@@ -61,13 +61,36 @@ export function WorkspaceCreateModal({
     }
   }, [open]);
 
-  const handleRequestAccess = useCallback(() => {
-    // Track request for early access
-    toast.success(
-      "Thanks for your interest! We'll notify you when workspace creation is available."
-    );
-    onOpenChange(false);
-  }, [onOpenChange]);
+  const handleRequestAccess = useCallback(async () => {
+    if (!user) {
+      // For logged-out users, trigger GitHub OAuth sign-in
+      try {
+        const redirectTo = window.location.href;
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'github',
+          options: {
+            redirectTo,
+            scopes: 'public_repo read:user user:email',
+          },
+        });
+
+        if (error) {
+          console.error('Authentication error:', error);
+          toast.error('Failed to start authentication. Please try again.');
+        }
+      } catch (err) {
+        console.error('Unexpected authentication error:', err);
+        toast.error('Failed to start authentication. Please try again.');
+      }
+      onOpenChange(false);
+    } else {
+      // For logged-in users without pro access, show generic message
+      toast.success(
+        "Thanks for your interest! We'll notify you when workspace creation is available."
+      );
+      onOpenChange(false);
+    }
+  }, [user, onOpenChange]);
 
   const handleWorkspaceSubmit = useCallback(
     async (data: CreateWorkspaceRequest) => {
@@ -164,19 +187,25 @@ export function WorkspaceCreateModal({
         {mode === 'create' && !canCreateWorkspaces ? (
           <>
             <DialogHeader>
-              <DialogTitle>Workspace Creation</DialogTitle>
-              <DialogDescription>Workspace creation is currently unavailable</DialogDescription>
+              <DialogTitle data-testid="modal-title-disabled">Workspace Creation</DialogTitle>
+              <DialogDescription data-testid="modal-description-disabled">
+                Workspace creation is currently unavailable
+              </DialogDescription>
             </DialogHeader>
 
-            <WorkspaceCreationDisabled variant="modal" onRequestAccess={handleRequestAccess} />
+            <WorkspaceCreationDisabled
+              variant="modal"
+              onRequestAccess={handleRequestAccess}
+              user={user}
+            />
           </>
         ) : (
           <>
             <DialogHeader>
-              <DialogTitle>
+              <DialogTitle data-testid="modal-title-enabled">
                 {mode === 'create' ? 'Create New Workspace' : 'Edit Workspace'}
               </DialogTitle>
-              <DialogDescription>
+              <DialogDescription data-testid="modal-description-enabled">
                 {mode === 'create'
                   ? 'Organize your favorite repositories and collaborate with your team. You can add repositories and invite members after creating your workspace.'
                   : 'Update your workspace settings. Changes will be applied immediately.'}
