@@ -17,6 +17,7 @@ vi.mock('@/lib/supabase', () => ({
         data: { user: null },
         error: null,
       }),
+      signInWithOAuth: vi.fn(),
     },
   },
 }));
@@ -107,7 +108,8 @@ describe('WorkspaceCreateModal - Feature Flag Tests', () => {
 
       expect(screen.getByText('Workspace Creation')).toBeInTheDocument();
       expect(screen.getByText('Workspace creation is currently unavailable')).toBeInTheDocument();
-      expect(screen.getByText('Request Early Access')).toBeInTheDocument();
+      expect(screen.getByText('Login Required')).toBeInTheDocument();
+      expect(screen.getByText('Login to Continue')).toBeInTheDocument();
       expect(screen.queryByText('Create Workspace')).not.toBeInTheDocument();
     });
 
@@ -119,12 +121,12 @@ describe('WorkspaceCreateModal - Feature Flag Tests', () => {
       expect(screen.getByText('Save Changes')).toBeInTheDocument();
     });
 
-    it('should handle request access button click', () => {
+    it('should handle request access button click for logged out users', () => {
       const onOpenChange = vi.fn();
 
       render(<WorkspaceCreateModal {...defaultProps} onOpenChange={onOpenChange} />);
 
-      const requestButton = screen.getByText('Request Early Access');
+      const requestButton = screen.getByText('Login to Continue');
       // Just verify button exists, actual click testing is forbidden
       expect(requestButton).toBeInTheDocument();
     });
