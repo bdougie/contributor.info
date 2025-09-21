@@ -145,15 +145,15 @@ export class RepositorySizeClassifier {
    */
   private meetsThreshold(metrics: RepoMetrics, threshold: RepoMetrics): boolean {
     // Repository meets threshold if it exceeds at least 2 of the 5 criteria
-    let criteriaM et = 0;
+    let criteriaMet = 0;
 
-    if (metrics.stars >= threshold.stars) criteriaM et++;
-    if (metrics.forks >= threshold.forks) criteriaM et++;
-    if (metrics.monthlyPRs >= threshold.monthlyPRs) criteriaM et++;
-    if (metrics.monthlyCommits >= threshold.monthlyCommits) criteriaM et++;
-    if (metrics.activeContributors >= threshold.activeContributors) criteriaM et++;
+    if (metrics.stars >= threshold.stars) criteriaMet++;
+    if (metrics.forks >= threshold.forks) criteriaMet++;
+    if (metrics.monthlyPRs >= threshold.monthlyPRs) criteriaMet++;
+    if (metrics.monthlyCommits >= threshold.monthlyCommits) criteriaMet++;
+    if (metrics.activeContributors >= threshold.activeContributors) criteriaMet++;
 
-    return criteriaM et >= 2;
+    return criteriaMet >= 2;
   }
 
   /**
