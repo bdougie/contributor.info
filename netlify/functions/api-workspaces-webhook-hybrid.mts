@@ -93,7 +93,10 @@ async function routeToBackground(
         timestamp: new Date().toISOString()
       },
       status: 'queued',
-      max_retries: 2 // Webhooks get fewer retries
+      max_retries: 2, // Webhooks get fewer retries
+      webhook_source: 'github',
+      webhook_event_type: githubEvent,
+      processing_mode: 'background'
     })
     .select()
     .single();

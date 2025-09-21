@@ -1,11 +1,6 @@
 import { Handler } from '@netlify/functions';
-import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
-
-// Initialize Supabase client
-const supabaseUrl = process.env.VITE_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+import { executeWithRetry } from './_shared/supabase-client';
 
 // Inngest signing key for webhook verification
 const INNGEST_SIGNING_KEY = process.env.INNGEST_SIGNING_KEY || '';
@@ -170,19 +165,21 @@ export const handler: Handler = async (event) => {
       if (isLongRunningJob(eventName)) {
         console.log(`Delegating long-running job ${eventName} to Supabase`);
 
-        // Create job record in Supabase
-        const { data: job, error: createError } = await supabase
-          .from('background_jobs')
-          .insert({
-            type: eventName,
-            payload: data,
-            status: 'queued',
-            inngest_event_id: eventId,
-            repository_id: data?.repositoryId || null,
-            created_at: new Date(ts || Date.now()).toISOString(),
-          })
-          .select()
-          .maybeSingle();
+        // Create job record in Supabase with connection retry
+        const { data: job, error: createError } = await executeWithRetry((client) =>
+          client
+            .from('background_jobs')
+            .insert({
+              type: eventName,
+              payload: data,
+              status: 'queued',
+              inngest_event_id: eventId,
+              repository_id: data?.repositoryId || null,
+              created_at: new Date(ts || Date.now()).toISOString(),
+            })
+            .select()
+            .maybeSingle()
+        );
 
         if (createError || !job) {
           console.error('Error creating job:', createError);
@@ -194,6 +191,8 @@ export const handler: Handler = async (event) => {
         }
 
         // Trigger Supabase Edge Function asynchronously
+        const supabaseUrl = process.env.VITE_SUPABASE_URL!;
+        const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
         const supabaseFunctionUrl = `${supabaseUrl}/functions/v1/process-job`;
 
         // Fire and forget - don't await
