@@ -6,6 +6,48 @@ import { corsHeaders } from '../_shared/cors.ts';
 import { GraphQLClient } from '../inngest-prod/graphql-client.ts';
 import { RepositorySizeClassifier } from '../inngest-prod/repository-classifier.ts';
 
+// Type definitions for job payloads
+interface RepositorySyncPayload {
+  repositoryId?: string;
+  owner: string;
+  repo?: string;
+  name?: string;
+  repository?: string;
+  days?: number;
+  daysLimit?: number;
+  fullSync?: boolean;
+}
+
+interface PRDetailsPayload {
+  owner?: string;
+  repo?: string;
+  name?: string;
+  repository?: string;
+  prNumbers: number[];
+}
+
+interface WebhookPayload {
+  action?: string;
+  repository?: {
+    full_name: string;
+    owner: { login: string };
+    name: string;
+  };
+  pull_request?: Record<string, unknown>;
+  issue?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+type JobPayload = RepositorySyncPayload | PRDetailsPayload | WebhookPayload;
+
+interface JobResult {
+  success?: boolean;
+  message?: string;
+  data?: Record<string, unknown>;
+  error?: string;
+  [key: string]: unknown;
+}
+
 // Initialize Supabase client
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -76,17 +118,18 @@ serve(async (req: Request) => {
       JSON.stringify({ jobId: job.id, status: 'processing' }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('Error in job processor:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: errorMessage }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
 
 // Async job processing (fire and forget)
-async function processJob(jobId: string, type: string, payload: any) {
+async function processJob(jobId: string, type: string, payload: JobPayload) {
   try {
     await processJobSync(jobId, type, payload);
   } catch (error) {
@@ -95,7 +138,7 @@ async function processJob(jobId: string, type: string, payload: any) {
 }
 
 // Synchronous job processing
-async function processJobSync(jobId: string, type: string, payload: any): Promise<any> {
+async function processJobSync(jobId: string, type: string, payload: JobPayload): Promise<JobResult> {
   const startTime = Date.now();
 
   // Update job status to processing
@@ -110,7 +153,7 @@ async function processJobSync(jobId: string, type: string, payload: any): Promis
   try {
     console.log(`Processing job ${jobId} of type ${type}`);
 
-    let result: any = {};
+    let result: JobResult = {};
 
     // Route to appropriate processor based on job type
     switch (type) {
@@ -214,8 +257,9 @@ async function processJobSync(jobId: string, type: string, payload: any): Promis
     console.log(`Job ${jobId} completed in ${duration}ms`);
     return { success: true, result, duration };
 
-  } catch (error: any) {
+  } catch (error) {
     const duration = Date.now() - startTime;
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error(`Job ${jobId} failed after ${duration}ms:`, error);
 
     // Update job as failed
@@ -223,7 +267,7 @@ async function processJobSync(jobId: string, type: string, payload: any): Promis
       .from('background_jobs')
       .update({
         status: 'failed',
-        error: error.message,
+        error: errorMessage,
         failed_at: new Date().toISOString()
       })
       .eq('id', jobId);
@@ -251,7 +295,7 @@ async function syncRepositoryWithGraphQL(
   owner: string,
   repo: string,
   days: number
-): Promise<any> {
+): Promise<JobResult> {
   console.log(`Syncing repository ${owner}/${repo} for last ${days} days`);
 
   if (!GITHUB_TOKEN) {
@@ -325,7 +369,7 @@ async function classifyRepositorySize(
   repositoryId: string,
   owner: string,
   repo: string
-): Promise<any> {
+): Promise<JobResult> {
   console.log(`Classifying repository size for ${owner}/${repo}`);
 
   if (!GITHUB_TOKEN) {
@@ -346,7 +390,7 @@ async function fetchPullRequestDetails(
   owner: string,
   repo: string,
   prNumbers: number[]
-): Promise<any> {
+): Promise<JobResult> {
   console.log(`Fetching details for ${prNumbers.length} PRs from ${owner}/${repo}`);
 
   if (!GITHUB_TOKEN) {
@@ -380,7 +424,7 @@ async function syncRepositoryBasic(
   repo: string,
   fullSync: boolean,
   daysLimit: number
-): Promise<any> {
+): Promise<JobResult> {
   console.log(`Basic sync for ${owner}/${repo} (${fullSync ? 'full' : 'partial'}, ${daysLimit} days)`);
 
   if (!GITHUB_TOKEN) {
@@ -460,8 +504,8 @@ async function syncRepositoryBasic(
 // Fallback webhook processor (simplified version)
 async function processWebhookFallback(
   type: string,
-  payload: any
-): Promise<any> {
+  payload: WebhookPayload
+): Promise<JobResult> {
   const { event: githubEvent, data } = payload;
   console.log(`Processing webhook fallback: ${githubEvent}`);
 
