@@ -57,7 +57,12 @@ export function WorkspaceCreationDisabled({
               </Link>
             </Button>
           ) : (
-            <Button onClick={onRequestAccess} variant="outline" size="sm">
+            <Button
+              onClick={onRequestAccess}
+              disabled={!onRequestAccess}
+              variant="outline"
+              size="sm"
+            >
               <LogIn className="w-4 h-4 mr-2" />
               Login to Continue
             </Button>
