@@ -95,7 +95,7 @@ const testFunction = inngest.createFunction(
 const captureRepositorySyncGraphQL = createCaptureRepositorySyncGraphQL(inngest);
 const classifySingleRepository = createClassifySingleRepository(inngest);
 
-// Create the serve handler
+// Create the serve handler with signature verification
 const inngestHandler = serve({
   client: inngest,
   functions: [
@@ -116,56 +116,70 @@ const inngestHandler = serve({
     // Discovery function
     discoverNewRepository
   ],
-  servePath: "/.netlify/functions/inngest-prod"
+  servePath: "/.netlify/functions/inngest-prod",
+  signingKey: getProductionEnvVar('SIGNING_KEY', 'INNGEST_SIGNING_KEY'), // Ensure signature verification
 });
 
 // Create the main handler function
 const mainHandler = async (req: Request, context: Context) => {
-  const url = new URL(req.url);
-  
-  // Handle GET requests with a detailed status page
-  if (req.method === "GET" && !url.searchParams.has("fnId")) {
+  try {
+    const url = new URL(req.url);
+
+    // Handle GET requests with a detailed status page
+    if (req.method === "GET" && !url.searchParams.has("fnId")) {
+      return new Response(JSON.stringify({
+        message: "Inngest Production endpoint",
+        status: "active",
+        endpoint: "/.netlify/functions/inngest-prod",
+        environment: {
+          context: process.env.CONTEXT || "unknown",
+          nodeEnv: process.env.NODE_ENV || "unknown",
+          isProduction: isProduction(),
+          hasEventKey: !!getProductionEnvVar('EVENT_KEY', 'INNGEST_EVENT_KEY'),
+          hasSigningKey: !!getProductionEnvVar('SIGNING_KEY', 'INNGEST_SIGNING_KEY'),
+        },
+        functions: [
+          { id: "prod-test-function", event: "test/prod.hello" },
+          { id: "capture-repository-sync-graphql", event: "capture/repository.sync.graphql" },
+          { id: "capture-pr-details-graphql", event: "capture/pr.details.graphql" },
+          { id: "capture-pr-details", event: "capture/pr.details" },
+          { id: "capture-pr-reviews", event: "capture/pr.reviews" },
+          { id: "capture-pr-comments", event: "capture/pr.comments" },
+          { id: "capture-issue-comments", event: "capture/issue.comments" },
+          { id: "capture-repository-issues", event: "capture/repository.issues" },
+          { id: "capture-repository-sync", event: "capture/repository.sync" },
+          { id: "classify-single-repository", event: "classify/repository.single" },
+          { id: "classify-repository-size", event: "classify/repository.size" },
+          { id: "discover-new-repository", event: "discover/repository.new" }
+        ],
+        usage: {
+          testEvent: 'Send: { "name": "test/prod.hello", "data": { "message": "Hello!" } }',
+          syncEvent: 'Send: { "name": "capture/repository.sync.graphql", "data": { "repositoryId": "123", "days": 30 } }',
+          classifyEvent: 'Send: { "name": "classify/repository.single", "data": { "repositoryId": "123", "owner": "owner", "repo": "repo" } }'
+        }
+      }, null, 2), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-cache"
+        }
+      });
+    }
+
+    // Pass all other requests to Inngest handler (which handles its own signature verification)
+    return inngestHandler(req, context);
+  } catch (error) {
+    console.error('Error in inngest-prod handler:', error);
     return new Response(JSON.stringify({
-      message: "Inngest Production endpoint",
-      status: "active",
-      endpoint: "/.netlify/functions/inngest-prod",
-      environment: {
-        context: process.env.CONTEXT || "unknown",
-        nodeEnv: process.env.NODE_ENV || "unknown",
-        isProduction: isProduction(),
-        hasEventKey: !!getProductionEnvVar('EVENT_KEY', 'INNGEST_EVENT_KEY'),
-        hasSigningKey: !!getProductionEnvVar('SIGNING_KEY', 'INNGEST_SIGNING_KEY'),
-      },
-      functions: [
-        { id: "prod-test-function", event: "test/prod.hello" },
-        { id: "capture-repository-sync-graphql", event: "capture/repository.sync.graphql" },
-        { id: "capture-pr-details-graphql", event: "capture/pr.details.graphql" },
-        { id: "capture-pr-details", event: "capture/pr.details" },
-        { id: "capture-pr-reviews", event: "capture/pr.reviews" },
-        { id: "capture-pr-comments", event: "capture/pr.comments" },
-        { id: "capture-issue-comments", event: "capture/issue.comments" },
-        { id: "capture-repository-issues", event: "capture/repository.issues" },
-        { id: "capture-repository-sync", event: "capture/repository.sync" },
-        { id: "classify-single-repository", event: "classify/repository.single" },
-        { id: "classify-repository-size", event: "classify/repository.size" },
-        { id: "discover-new-repository", event: "discover/repository.new" }
-      ],
-      usage: {
-        testEvent: 'Send: { "name": "test/prod.hello", "data": { "message": "Hello!" } }',
-        syncEvent: 'Send: { "name": "capture/repository.sync.graphql", "data": { "repositoryId": "123", "days": 30 } }',
-        classifyEvent: 'Send: { "name": "classify/repository.single", "data": { "repositoryId": "123", "owner": "owner", "repo": "repo" } }'
-      }
-    }, null, 2), {
-      status: 200,
-      headers: { 
-        "Content-Type": "application/json",
-        "Cache-Control": "no-cache"
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    }), {
+      status: 500,
+      headers: {
+        "Content-Type": "application/json"
       }
     });
   }
-
-  // Pass all other requests to Inngest
-  return inngestHandler(req, context);
 };
 
 // Export default as the wrapper and handler as the raw inngest handler
