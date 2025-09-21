@@ -7,7 +7,7 @@ import { getPRState } from '../../utils/data-type-mapping';
 
 // Type definitions for GitHub user data
 interface GitHubUser {
-  databaseId: number;
+  databaseId?: number;
   login: string;
   name?: string | null;
   email?: string | null;
@@ -52,14 +52,15 @@ interface GraphQLReviewComment {
   author: GitHubUser | null;
   body: string;
   path: string;
-  position: number | null;
-  originalPosition: number | null;
+  position: number;
+  originalPosition?: number | null;
   commit?: { oid: string };
-  originalCommit?: { oid: string };
+  originalCommit?: { oid: string } | null;
   diffHunk: string;
   createdAt: string;
   updatedAt: string;
-  replyTo?: { databaseId: number };
+  replyTo?: { databaseId: number } | null;
+  outdated?: boolean;
 }
 
 interface GraphQLComment {

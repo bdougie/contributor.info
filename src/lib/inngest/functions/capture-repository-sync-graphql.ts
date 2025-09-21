@@ -21,7 +21,14 @@ function getGraphQLClient(): GraphQLClient {
 }
 
 // Helper function to ensure contributors exist and return their UUIDs
-async function ensureContributorExists(githubUser: any): Promise<string | null> {
+interface GitHubUser {
+  databaseId?: number;
+  login?: string;
+  avatarUrl?: string;
+  __typename?: string;
+}
+
+async function ensureContributorExists(githubUser: GitHubUser): Promise<string | null> {
   if (!githubUser || !githubUser.databaseId) {
     return null;
   }
@@ -245,13 +252,14 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
         }
 
         return prs.slice(0, MAX_PRS_PER_SYNC); // Ensure we don't exceed our limit
-      } catch (error: any) {
-        if (error.message?.includes('NOT_FOUND')) {
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : '';
+        if (errorMessage.includes('NOT_FOUND')) {
           throw new Error(
             `Repository ${repository.owner}/${repository.name} not found`
           ) as NonRetriableError;
         }
-        if (error.message?.includes('rate limit')) {
+        if (errorMessage.includes('rate limit')) {
           throw new Error(
             `GraphQL rate limit hit for ${repository.owner}/${repository.name}. Please try again later.`
           );
@@ -271,11 +279,13 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
       }
 
       // First, ensure all contributors exist and get their UUIDs
-      const contributorPromises = recentPRs.map((pr: any) => ensureContributorExists(pr.author));
+      const contributorPromises = recentPRs.map((pr) =>
+        ensureContributorExists(pr.author as GitHubUser)
+      );
       const contributorIds = await Promise.all(contributorPromises);
 
       // Then create PRs with proper UUIDs
-      const prsToStore = recentPRs.map((pr: any, index: number) => ({
+      const prsToStore = recentPRs.map((pr, index) => ({
         github_id: pr.databaseId.toString(),
         repository_id: repositoryId,
         number: pr.number,
@@ -314,7 +324,16 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
 
     // Step 5: Prepare GraphQL job queue data (no nested steps)
     const jobsToQueue = await step.run('prepare-graphql-job-queue', async () => {
-      const jobs = [] as any[];
+      interface JobData {
+        name: string;
+        data: {
+          repositoryId: string;
+          prNumber: string;
+          prId: string;
+          priority: string;
+        };
+      }
+      const jobs: JobData[] = [];
 
       // Higher limit for GraphQL detail jobs due to efficiency
       const MAX_DETAIL_JOBS = 50; // Higher than REST due to single-query efficiency
@@ -323,7 +342,7 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
 
       for (const pr of storedPRs) {
         // Queue comprehensive GraphQL jobs for PRs that likely need more data
-        const prData = recentPRs.find((p: any) => p.number === pr.number);
+        const prData = recentPRs.find((p) => p.number === pr.number);
 
         if (!prData) continue;
 
@@ -343,7 +362,7 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
         const hasNoComments = (existingComments || 0) === 0;
         const hasNoReviews = (existingReviews || 0) === 0;
         const isRecent =
-          new Date(prData.updatedAt).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000;
+          new Date(prData.updatedAt || '').getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000;
 
         if (
           detailJobsQueued < MAX_DETAIL_JOBS &&

@@ -196,13 +196,116 @@ export interface RateLimitInfo {
   resetAt: string;
 }
 
+// GraphQL Actor type (can be User or Bot)
+interface GitHubActor {
+  login: string;
+  avatarUrl: string;
+  databaseId?: number;
+  name?: string;
+  email?: string;
+}
+
+// Comment types
+interface ReviewComment {
+  databaseId: number;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+  position: number;
+  outdated: boolean;
+  diffHunk: string;
+  path: string;
+  author: GitHubActor | null;
+  replyTo: {
+    databaseId: number;
+  } | null;
+  commit: {
+    oid: string;
+  };
+  originalCommit: {
+    oid: string;
+  } | null;
+}
+
+interface IssueComment {
+  databaseId: number;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+  author: GitHubActor | null;
+}
+
+// Review type
+interface PullRequestReview {
+  databaseId: number;
+  state: string;
+  body: string;
+  submittedAt: string;
+  author: GitHubActor | null;
+  commit: {
+    oid: string;
+  };
+  comments: {
+    nodes: ReviewComment[];
+  };
+}
+
+// Pull Request type
+interface PullRequestDetails {
+  id: string;
+  databaseId: number;
+  number: number;
+  title: string;
+  body: string;
+  state: string;
+  isDraft: boolean;
+  createdAt: string;
+  updatedAt: string;
+  closedAt: string | null;
+  mergedAt: string | null;
+  merged: boolean;
+  mergeable: 'CONFLICTING' | 'MERGEABLE' | 'UNKNOWN';
+  author: GitHubActor | null;
+  mergedBy: GitHubActor | null;
+  additions: number;
+  deletions: number;
+  changedFiles: number;
+  commits: {
+    totalCount: number;
+  };
+  baseRefName: string;
+  headRefName: string;
+  headRef: {
+    target: {
+      oid: string;
+    };
+  } | null;
+  reviews: {
+    totalCount: number;
+    nodes: PullRequestReview[];
+  };
+  comments: {
+    totalCount: number;
+    nodes: IssueComment[];
+  };
+}
+
 export interface GraphQLResponse {
-  repository: unknown;
+  repository: {
+    pullRequest?: PullRequestDetails;
+    pullRequests?: {
+      pageInfo: {
+        hasNextPage: boolean;
+        endCursor: string | null;
+      };
+      nodes: Array<Partial<PullRequestDetails> & { cursor?: string }>;
+    };
+  } | null;
   rateLimit?: RateLimitInfo;
 }
 
 export interface PRDetailsResponse extends GraphQLResponse {
-  pullRequest: unknown;
+  pullRequest: PullRequestDetails | undefined;
 }
 
 export interface PaginatedPRsResponse {
@@ -338,7 +441,7 @@ export class GraphQLClient {
 
       // Store error in time-windowed collection (bounded memory)
       this.errorHistory.add({
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         query: `getPRDetails(${owner}/${repo}#${prNumber})`,
         timestamp: Date.now(),
       });
@@ -367,7 +470,7 @@ export class GraphQLClient {
     repo: string,
     since: string,
     limit: number = 100
-  ): Promise<unknown[]> {
+  ): Promise<Array<Partial<PullRequestDetails>>> {
     try {
       const result = (await this.client(GET_RECENT_PRS_QUERY, {
         owner,
@@ -394,13 +497,12 @@ export class GraphQLClient {
         result.rateLimit?.cost
       );
 
-      const allPRs =
-        (result.repository as { pullRequests?: { nodes?: unknown[] } })?.pullRequests?.nodes || [];
+      const allPRs = result.repository?.pullRequests?.nodes || [];
 
       // Filter PRs updated since the given date (client-side filtering)
       const sinceDate = new Date(since);
-      const filteredPRs = allPRs.filter((pr: unknown) => {
-        const updatedAt = new Date((pr as { updatedAt: string }).updatedAt);
+      const filteredPRs = allPRs.filter((pr) => {
+        const updatedAt = new Date(pr.updatedAt || '');
         return updatedAt >= sinceDate;
       });
 
@@ -410,7 +512,7 @@ export class GraphQLClient {
 
       // Store error in time-windowed collection (bounded memory)
       this.errorHistory.add({
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         query: `getRecentPRs(${owner}/${repo})`,
         timestamp: Date.now(),
       });
@@ -433,7 +535,7 @@ export class GraphQLClient {
     pageSize: number = 25,
     cursor: string | null = null,
     direction: 'ASC' | 'DESC' = 'DESC'
-  ): Promise<unknown[]> {
+  ): Promise<Array<Partial<PullRequestDetails>>> {
     const PAGINATED_PRS_QUERY = `
       query GetPaginatedPRs($owner: String!, $repo: String!, $first: Int!, $after: String, $orderBy: IssueOrder!) {
         repository(owner: $owner, name: $repo) {
@@ -531,7 +633,7 @@ export class GraphQLClient {
 
       // Store error in time-windowed collection (bounded memory)
       this.errorHistory.add({
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         query: `getRepositoryPRsPage(${owner}/${repo})`,
         timestamp: Date.now(),
       });
