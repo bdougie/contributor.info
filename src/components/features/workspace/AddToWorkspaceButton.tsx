@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Plus } from '@/components/ui/icon';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AddToWorkspaceModal } from './AddToWorkspaceModal';
+import { ModalErrorBoundary } from '@/components/ui/modal-error-boundary';
 
 interface AddToWorkspaceButtonProps {
   owner: string;
@@ -34,7 +35,14 @@ export function AddToWorkspaceButton({ owner, repo, className = '' }: AddToWorks
         </Tooltip>
       </TooltipProvider>
 
-      <AddToWorkspaceModal open={modalOpen} onOpenChange={setModalOpen} owner={owner} repo={repo} />
+      <ModalErrorBoundary onReset={() => setModalOpen(false)}>
+        <AddToWorkspaceModal
+          open={modalOpen}
+          onOpenChange={setModalOpen}
+          owner={owner}
+          repo={repo}
+        />
+      </ModalErrorBoundary>
     </>
   );
 }

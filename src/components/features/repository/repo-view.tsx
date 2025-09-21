@@ -332,6 +332,7 @@ export default function RepoView() {
                 <Button
                   variant="outline"
                   size="icon"
+                  className="stable-button"
                   onClick={handleShare}
                   disabled={isGeneratingUrl}
                   title={isGeneratingUrl ? 'Generating short link...' : 'Copy repository link'}

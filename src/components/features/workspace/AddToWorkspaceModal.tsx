@@ -330,15 +330,29 @@ export function AddToWorkspaceModal({ open, onOpenChange, owner, repo }: AddToWo
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleAddToWorkspace} disabled={!selectedWorkspaceId || isSubmitting}>
-            {isSubmitting ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Adding...
-              </>
-            ) : (
-              'Add to Workspace'
-            )}
+          <Button
+            onClick={handleAddToWorkspace}
+            disabled={!selectedWorkspaceId || isSubmitting || lookingUpRepo || !repoId}
+          >
+            {(() => {
+              if (isSubmitting) {
+                return (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Adding...
+                  </>
+                );
+              }
+              if (lookingUpRepo) {
+                return (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Looking up repository...
+                  </>
+                );
+              }
+              return 'Add to Workspace';
+            })()}
           </Button>
         </DialogFooter>
       </DialogContent>
