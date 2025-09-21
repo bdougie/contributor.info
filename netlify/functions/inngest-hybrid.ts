@@ -1,10 +1,14 @@
 import { Handler } from '@netlify/functions';
 import { createClient } from '@supabase/supabase-js';
+import crypto from 'crypto';
 
 // Initialize Supabase client
 const supabaseUrl = process.env.VITE_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+// Inngest signing key for webhook verification
+const INNGEST_SIGNING_KEY = process.env.INNGEST_SIGNING_KEY || '';
 
 // List of long-running job types that should be delegated to Supabase
 const LONG_RUNNING_JOBS = [
@@ -23,6 +27,53 @@ const LONG_RUNNING_JOBS = [
 // Function to determine if a job is long-running
 function isLongRunningJob(eventName: string): boolean {
   return LONG_RUNNING_JOBS.includes(eventName);
+}
+
+// Verify Inngest webhook signature
+function verifyInngestSignature(body: string, signature: string | null): boolean {
+  if (!INNGEST_SIGNING_KEY) {
+    console.warn('No Inngest signing key configured - skipping verification in development');
+    // In production, this should return false
+    return process.env.NODE_ENV === 'development';
+  }
+
+  if (!signature) {
+    console.error('No signature provided in webhook request');
+    return false;
+  }
+
+  try {
+    // Inngest uses HMAC-SHA256 for webhook signatures
+    // Format: "t=timestamp s=signature"
+    const parts = signature.split(' ');
+    const timestamp = parts.find((p) => p.startsWith('t='))?.substring(2);
+    const sig = parts.find((p) => p.startsWith('s='))?.substring(2);
+
+    if (!timestamp || !sig) {
+      console.error('Invalid signature format');
+      return false;
+    }
+
+    // Check timestamp to prevent replay attacks (5 minute window)
+    const currentTime = Math.floor(Date.now() / 1000);
+    const signatureTime = parseInt(timestamp, 10);
+    if (Math.abs(currentTime - signatureTime) > 300) {
+      console.error('Signature timestamp too old or too far in future');
+      return false;
+    }
+
+    // Verify signature
+    const signedPayload = `${timestamp}.${body}`;
+    const expectedSig = crypto
+      .createHmac('sha256', INNGEST_SIGNING_KEY)
+      .update(signedPayload)
+      .digest('hex');
+
+    return crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expectedSig));
+  } catch (error) {
+    console.error('Error verifying signature:', error);
+    return false;
+  }
 }
 
 // Process quick jobs directly
@@ -54,7 +105,7 @@ export const handler: Handler = async (event) => {
       statusCode: 200,
       headers: {
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type, x-inngest-signature',
+        'Access-Control-Allow-Headers': 'Content-Type, x-inngest-signature, x-inngest-sdk',
         'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
       },
       body: '',
@@ -98,6 +149,18 @@ export const handler: Handler = async (event) => {
   // Handle POST requests (Inngest webhooks)
   if (event.httpMethod === 'POST') {
     try {
+      // Verify webhook signature
+      const signature = event.headers['x-inngest-signature'] || null;
+
+      if (!verifyInngestSignature(event.body || '', signature)) {
+        console.error('Invalid webhook signature');
+        return {
+          statusCode: 401,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ error: 'Unauthorized: Invalid signature' }),
+        };
+      }
+
       const body = JSON.parse(event.body || '{}');
       const { name: eventName, data, ts, id: eventId } = body;
 
