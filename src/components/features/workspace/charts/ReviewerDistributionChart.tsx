@@ -26,6 +26,7 @@ interface ReviewerDistributionChartProps {
   maxVisible?: number;
   showPercentage?: boolean;
   title?: string;
+  repositories?: Array<{ owner: string; name: string }>;
 }
 
 export function ReviewerDistributionChart({
@@ -35,6 +36,7 @@ export function ReviewerDistributionChart({
   maxVisible = 10,
   showPercentage: initialShowPercentage = false,
   title = 'Pull Request Reviewer Distribution',
+  repositories,
 }: ReviewerDistributionChartProps) {
   const [excludeBots, setExcludeBots] = useState(true);
   const [showPercentage, setShowPercentage] = useState(initialShowPercentage);
@@ -175,6 +177,22 @@ export function ReviewerDistributionChart({
     }
   };
 
+  // Generate GitHub URL for all PRs from this reviewer
+  const getGitHubPRsUrl = (reviewer: ReviewerData) => {
+    if (reviewer.username === 'Unreviewed') {
+      return null;
+    }
+
+    // If we have repositories info, create a more specific search
+    if (repositories && repositories.length === 1) {
+      const repo = repositories[0];
+      return `https://github.com/${repo.owner}/${repo.name}/pulls?q=is%3Apr+author%3A${reviewer.username}`;
+    }
+
+    // For multiple repos or no repo info, search all PRs from this user
+    return `https://github.com/pulls?q=is%3Apr+author%3A${reviewer.username}`;
+  };
+
   if (reviewerData.length === 0) {
     return null;
   }
@@ -187,64 +205,23 @@ export function ReviewerDistributionChart({
             <UserCheck className="h-5 w-5 text-muted-foreground" />
             <CardTitle>{title}</CardTitle>
           </div>
-          <div className="flex items-center gap-4">
-            {/* View mode selector */}
-            <div className="flex items-center gap-1">
-              <Button
-                size="sm"
-                variant={viewMode === 'total' ? 'default' : 'ghost'}
-                onClick={() => setViewMode('total')}
-                className="h-7"
-              >
-                All
-              </Button>
-              <Button
-                size="sm"
-                variant={viewMode === 'approved' ? 'default' : 'ghost'}
-                onClick={() => setViewMode('approved')}
-                className="h-7"
-              >
-                <CheckCircle2 className="h-3 w-3 mr-1" />
-                Approved
-              </Button>
-              <Button
-                size="sm"
-                variant={viewMode === 'pending' ? 'default' : 'ghost'}
-                onClick={() => setViewMode('pending')}
-                className="h-7"
-              >
-                <Clock className="h-3 w-3 mr-1" />
-                Pending
-              </Button>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Switch
-                id="show-percentage-reviewer"
-                checked={showPercentage}
-                onCheckedChange={setShowPercentage}
-              />
-              <Label htmlFor="show-percentage-reviewer" className="text-sm">
-                Show %
-              </Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <Switch
-                id="exclude-bots-reviewer"
-                checked={excludeBots}
-                onCheckedChange={setExcludeBots}
-              />
-              <Label htmlFor="exclude-bots-reviewer" className="text-sm">
-                Exclude Bots
-              </Label>
-            </div>
-          </div>
+          {/* View mode selector dropdown */}
+          <select
+            value={viewMode}
+            onChange={(e) => setViewMode(e.target.value as typeof viewMode)}
+            className="h-7 px-2 text-sm border rounded-md bg-background"
+          >
+            <option value="total">All Reviews</option>
+            <option value="approved">Approved</option>
+            <option value="pending">Pending</option>
+          </select>
         </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
           {visibleReviewers.map((reviewer) => {
             const count = getCount(reviewer);
+            const githubUrl = getGitHubPRsUrl(reviewer);
 
             return (
               <div
@@ -253,17 +230,40 @@ export function ReviewerDistributionChart({
                 onClick={() => handleReviewerClick(reviewer)}
               >
                 {/* Avatar */}
-                {reviewer.username === 'Unreviewed' ? (
-                  <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                ) : (
-                  <img
-                    src={reviewer.avatar_url}
-                    alt={reviewer.username}
-                    className="h-8 w-8 rounded-full"
-                  />
-                )}
+                {(() => {
+                  if (reviewer.username === 'Unreviewed') {
+                    return (
+                      <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                    );
+                  }
+                  if (githubUrl) {
+                    return (
+                      <a
+                        href={githubUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-shrink-0"
+                        onClick={(e) => e.stopPropagation()}
+                        title={`View all PRs created by ${reviewer.username}`}
+                      >
+                        <img
+                          src={reviewer.avatar_url}
+                          alt={reviewer.username}
+                          className="h-8 w-8 rounded-full hover:ring-2 hover:ring-primary transition-all"
+                        />
+                      </a>
+                    );
+                  }
+                  return (
+                    <img
+                      src={reviewer.avatar_url}
+                      alt={reviewer.username}
+                      className="h-8 w-8 rounded-full"
+                    />
+                  );
+                })()}
 
                 {/* Username and bar */}
                 <div className="flex-1 min-w-0">
@@ -277,10 +277,14 @@ export function ReviewerDistributionChart({
                     {/* Show approval ratio for total view */}
                     {viewMode === 'total' && reviewer.username !== 'Unreviewed' && (
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <CheckCircle2 className="h-3 w-3 text-green-500" />
+                        <span title="Approved reviews">
+                          <CheckCircle2 className="h-3 w-3 text-green-500" />
+                        </span>
                         <span>{reviewer.approvedReviews}</span>
                         <span>/</span>
-                        <Clock className="h-3 w-3 text-yellow-500" />
+                        <span title="Pending reviews">
+                          <Clock className="h-3 w-3 text-yellow-500" />
+                        </span>
                         <span>{reviewer.pendingReviews}</span>
                       </div>
                     )}
@@ -338,13 +342,37 @@ export function ReviewerDistributionChart({
           )}
         </div>
 
-        {/* Summary stats */}
-        <div className="mt-4 pt-4 border-t flex items-center justify-between text-sm text-muted-foreground">
-          <span>Total reviewers: {reviewerData.length}</span>
-          <span>
-            Reviews: {reviewerData.reduce((sum, r) => sum + r.approvedReviews, 0)} approved,{' '}
-            {reviewerData.reduce((sum, r) => sum + r.pendingReviews, 0)} pending
-          </span>
+        {/* Summary stats and controls */}
+        <div className="mt-4 pt-4 border-t space-y-3">
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <span>Total reviewers: {reviewerData.length}</span>
+            <span>
+              Reviews: {reviewerData.reduce((sum, r) => sum + r.approvedReviews, 0)} approved,{' '}
+              {reviewerData.reduce((sum, r) => sum + r.pendingReviews, 0)} pending
+            </span>
+          </div>
+          <div className="flex items-center justify-end gap-4">
+            <div className="flex items-center gap-2">
+              <Switch
+                id="show-percentage-reviewer"
+                checked={showPercentage}
+                onCheckedChange={setShowPercentage}
+              />
+              <Label htmlFor="show-percentage-reviewer" className="text-sm text-muted-foreground">
+                Show %
+              </Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch
+                id="exclude-bots-reviewer"
+                checked={excludeBots}
+                onCheckedChange={setExcludeBots}
+              />
+              <Label htmlFor="exclude-bots-reviewer" className="text-sm text-muted-foreground">
+                Exclude Bots
+              </Label>
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>

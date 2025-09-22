@@ -599,21 +599,22 @@ function WorkspacePRs({
 
   return (
     <div className="space-y-6">
-      {/* PR Review Status Chart - shows blocking PRs and review status */}
-      <LazyPRReviewStatusChart
-        pullRequests={pullRequests}
-        onReviewerClick={handleReviewerClick}
-        title="PR Review Status - Blockers & Progress"
+      {/* Metrics and Trends - first, always full width */}
+      <WorkspaceMetricsAndTrends
+        repositories={repositories}
+        selectedRepositories={selectedRepositories}
+        timeRange={timeRange}
       />
 
-      {/* Metrics and Distribution Charts */}
-      {hasReviewers ? (
+      {/* Review Charts - PR Status and Distribution side by side */}
+      {hasReviewers && (
         <div className="grid gap-6 lg:grid-cols-2">
-          {/* PR Metrics and Trends */}
-          <WorkspaceMetricsAndTrends
-            repositories={repositories}
-            selectedRepositories={selectedRepositories}
-            timeRange={timeRange}
+          {/* PR Review Status Chart - shows blocking PRs and review status */}
+          <LazyPRReviewStatusChart
+            pullRequests={pullRequests}
+            onReviewerClick={handleReviewerClick}
+            title="Pull Request Review Status"
+            maxVisible={8}
           />
 
           {/* Reviewer Distribution Chart */}
@@ -623,13 +624,6 @@ function WorkspacePRs({
             maxVisible={8}
           />
         </div>
-      ) : (
-        /* Full width Metrics and Trends when no reviewers */
-        <WorkspaceMetricsAndTrends
-          repositories={repositories}
-          selectedRepositories={selectedRepositories}
-          timeRange={timeRange}
-        />
       )}
 
       {/* PR Table */}

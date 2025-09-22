@@ -11,6 +11,7 @@ import {
   Clock,
   AlertCircle,
   Users,
+  CheckCircle2,
 } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 import { isBot } from '@/lib/utils/bot-detection';
@@ -35,6 +36,7 @@ interface PRReviewStatusChartProps {
   className?: string;
   maxVisible?: number;
   title?: string;
+  repositories?: Array<{ owner: string; name: string }>;
 }
 
 export function PRReviewStatusChart({
@@ -43,11 +45,11 @@ export function PRReviewStatusChart({
   className,
   maxVisible = 10,
   title = 'PR Review Status Distribution',
+  repositories,
 }: PRReviewStatusChartProps) {
   const [excludeBots, setExcludeBots] = useState(true);
   const [isExpanded, setIsExpanded] = useState(false);
-  const [viewMode, setViewMode] = useState<'stacked' | 'grouped'>('stacked');
-  const [sortBy, setSortBy] = useState<'blocked' | 'requested' | 'total'>('blocked');
+  const [sortBy, setSortBy] = useState<'blocked' | 'total'>('blocked');
 
   // Calculate reviewer status distribution
   const reviewerStatusData = useMemo(() => {
@@ -129,10 +131,8 @@ export function PRReviewStatusChart({
     });
 
     // Calculate requested reviews (PRs waiting for initial review from each person)
-    statusMap.forEach((status) => {
-      // Requested reviews are pending reviews that haven't been started
-      status.requestedReviews = status.pendingReviews;
-    });
+    // Note: requestedReviews represents PRs that need initial review
+    // pendingReviews represents all non-approved reviews (including in-progress ones)
 
     // Convert to array and sort
     const statusArray = Array.from(statusMap.values());
@@ -142,8 +142,6 @@ export function PRReviewStatusChart({
       switch (sortBy) {
         case 'blocked':
           return b.blockedPRs - a.blockedPRs;
-        case 'requested':
-          return b.requestedReviews - a.requestedReviews;
         case 'total':
         default:
           return b.openPRsCount - a.openPRsCount;
@@ -182,22 +180,20 @@ export function PRReviewStatusChart({
     );
   }, [reviewerStatusData]);
 
-  // Get status color
-  const getStatusColor = (status: 'blocked' | 'requested' | 'pending' | 'approved' | 'changes') => {
-    switch (status) {
-      case 'blocked':
-        return 'bg-red-500 dark:bg-red-600';
-      case 'requested':
-        return 'bg-gray-500 dark:bg-gray-600';
-      case 'pending':
-        return 'bg-orange-500 dark:bg-orange-600';
-      case 'approved':
-        return 'bg-green-500 dark:bg-green-600';
-      case 'changes':
-        return 'bg-purple-500 dark:bg-purple-600';
-      default:
-        return 'bg-gray-500 dark:bg-gray-600';
+  // Generate GitHub URL for PRs awaiting review from this reviewer
+  const getGitHubReviewUrl = (reviewer: ReviewerStatus) => {
+    if (reviewer.username === 'Needs Reviewer') {
+      return null;
     }
+
+    // If we have repositories info, create a more specific search
+    if (repositories && repositories.length === 1) {
+      const repo = repositories[0];
+      return `https://github.com/${repo.owner}/${repo.name}/pulls?q=is%3Apr+is%3Aopen+review-requested%3A${reviewer.username}`;
+    }
+
+    // For multiple repos or no repo info, search all PRs requesting review from this user
+    return `https://github.com/pulls?q=is%3Apr+is%3Aopen+review-requested%3A${reviewer.username}`;
   };
 
   if (reviewerStatusData.length === 0) {
@@ -207,91 +203,27 @@ export function PRReviewStatusChart({
   return (
     <Card className={cn('w-full', className)}>
       <CardHeader>
-        <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <GitPullRequest className="h-5 w-5 text-muted-foreground" />
             <CardTitle>{title}</CardTitle>
           </div>
-          <div className="flex items-center gap-4 flex-wrap">
-            {/* Sort selector */}
-            <div className="flex items-center gap-1">
-              <Label htmlFor="sort-by" className="text-sm">
-                Sort by:
-              </Label>
-              <select
-                id="sort-by"
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-                className="h-7 px-2 text-sm border rounded-md bg-background"
-              >
-                <option value="blocked">Blocked PRs</option>
-                <option value="requested">Requested Reviews</option>
-                <option value="total">Total PRs</option>
-              </select>
-            </div>
-
-            {/* View mode toggle */}
-            <div className="flex items-center gap-1">
-              <Button
-                size="sm"
-                variant={viewMode === 'stacked' ? 'default' : 'ghost'}
-                onClick={() => setViewMode('stacked')}
-                className="h-7"
-              >
-                Stacked
-              </Button>
-              <Button
-                size="sm"
-                variant={viewMode === 'grouped' ? 'default' : 'ghost'}
-                onClick={() => setViewMode('grouped')}
-                className="h-7"
-              >
-                Grouped
-              </Button>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Switch
-                id="exclude-bots-pr-status"
-                checked={excludeBots}
-                onCheckedChange={setExcludeBots}
-              />
-              <Label htmlFor="exclude-bots-pr-status" className="text-sm">
-                Exclude Bots
-              </Label>
-            </div>
-          </div>
-        </div>
-
-        {/* Legend */}
-        <div className="flex items-center gap-4 mt-4 text-xs">
-          <div className="flex items-center gap-1.5">
-            <div className={cn('w-3 h-3 rounded', getStatusColor('blocked'))} />
-            <span>Blocked</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className={cn('w-3 h-3 rounded', getStatusColor('requested'))} />
-            <span>Requested</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className={cn('w-3 h-3 rounded', getStatusColor('pending'))} />
-            <span>In Progress</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className={cn('w-3 h-3 rounded', getStatusColor('approved'))} />
-            <span>Approved</span>
-          </div>
+          {/* Sort selector dropdown */}
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+            className="h-7 px-2 text-sm border rounded-md bg-background"
+          >
+            <option value="blocked">Blocked PRs</option>
+            <option value="total">All PRs</option>
+          </select>
         </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
           {visibleReviewers.map((reviewer) => {
             const totalForReviewer = reviewer.openPRsCount;
-            const blockedWidth = (reviewer.blockedPRs / maxCount) * 100;
-            const requestedWidth = (reviewer.requestedReviews / maxCount) * 100;
-            const pendingWidth =
-              ((reviewer.pendingReviews - reviewer.requestedReviews) / maxCount) * 100;
-            const approvedWidth = (reviewer.approvedReviews / maxCount) * 100;
+            const githubUrl = getGitHubReviewUrl(reviewer);
 
             return (
               <div
@@ -301,17 +233,40 @@ export function PRReviewStatusChart({
               >
                 <div className="flex items-center gap-3">
                   {/* Avatar */}
-                  {reviewer.username === 'Needs Reviewer' ? (
-                    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                      <Users className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                  ) : (
-                    <img
-                      src={reviewer.avatar_url}
-                      alt={reviewer.username}
-                      className="h-8 w-8 rounded-full flex-shrink-0"
-                    />
-                  )}
+                  {(() => {
+                    if (reviewer.username === 'Needs Reviewer') {
+                      return (
+                        <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                          <Users className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                      );
+                    }
+                    if (githubUrl) {
+                      return (
+                        <a
+                          href={githubUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-shrink-0"
+                          onClick={(e) => e.stopPropagation()}
+                          title={`View PRs awaiting review from ${reviewer.username}`}
+                        >
+                          <img
+                            src={reviewer.avatar_url}
+                            alt={reviewer.username}
+                            className="h-8 w-8 rounded-full hover:ring-2 hover:ring-primary transition-all"
+                          />
+                        </a>
+                      );
+                    }
+                    return (
+                      <img
+                        src={reviewer.avatar_url}
+                        alt={reviewer.username}
+                        className="h-8 w-8 rounded-full flex-shrink-0"
+                      />
+                    );
+                  })()}
 
                   {/* Username and stats */}
                   <div className="flex-1 min-w-0">
@@ -322,124 +277,83 @@ export function PRReviewStatusChart({
                           Bot
                         </Badge>
                       )}
-                      {/* Quick stats */}
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground ml-auto">
-                        {reviewer.blockedPRs > 0 && (
-                          <span className="flex items-center gap-1 text-red-600 dark:text-red-400 font-medium">
-                            <AlertCircle className="h-3 w-3" />
-                            {reviewer.blockedPRs} blocked
-                          </span>
-                        )}
-                        {reviewer.requestedReviews > 0 && (
-                          <span className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                            <Clock className="h-3 w-3" />
-                            {reviewer.requestedReviews} waiting
-                          </span>
-                        )}
-                        <span className="text-muted-foreground">{totalForReviewer} total</span>
-                      </div>
+                      {/* Status indicators with counts - next to username like ReviewerDistributionChart */}
+                      {(reviewer.blockedPRs > 0 ||
+                        reviewer.approvedReviews > 0 ||
+                        reviewer.pendingReviews > 0) && (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          {reviewer.blockedPRs > 0 && (
+                            <>
+                              <span title="Blocked PRs">
+                                <AlertCircle className="h-3 w-3 text-red-500" />
+                              </span>
+                              <span>{reviewer.blockedPRs}</span>
+                            </>
+                          )}
+                          {reviewer.approvedReviews > 0 && (
+                            <>
+                              {reviewer.blockedPRs > 0 && <span>/</span>}
+                              <span title="Approved PRs">
+                                <CheckCircle2 className="h-3 w-3 text-green-500" />
+                              </span>
+                              <span>{reviewer.approvedReviews}</span>
+                            </>
+                          )}
+                          {reviewer.pendingReviews > 0 && (
+                            <>
+                              {(reviewer.blockedPRs > 0 || reviewer.approvedReviews > 0) && (
+                                <span>/</span>
+                              )}
+                              <span title="Pending reviews">
+                                <Clock className="h-3 w-3 text-yellow-500" />
+                              </span>
+                              <span>{reviewer.pendingReviews}</span>
+                            </>
+                          )}
+                        </div>
+                      )}
                     </div>
 
-                    {/* Stacked or grouped bar */}
+                    {/* Stacked progress bar */}
                     <div className="relative">
                       <div className="h-6 bg-muted rounded-md overflow-hidden">
-                        {viewMode === 'stacked' ? (
-                          // Stacked bar
-                          <div className="flex h-full">
-                            {reviewer.blockedPRs > 0 && (
-                              <div
-                                className={cn(
-                                  'transition-all duration-500 ease-out',
-                                  getStatusColor('blocked')
-                                )}
-                                style={{ width: `${blockedWidth}%` }}
-                                title={`${reviewer.blockedPRs} blocked`}
-                              />
-                            )}
-                            {reviewer.requestedReviews > 0 && (
-                              <div
-                                className={cn(
-                                  'transition-all duration-500 ease-out',
-                                  getStatusColor('requested')
-                                )}
-                                style={{ width: `${requestedWidth}%` }}
-                                title={`${reviewer.requestedReviews} requested`}
-                              />
-                            )}
-                            {pendingWidth > 0 && (
-                              <div
-                                className={cn(
-                                  'transition-all duration-500 ease-out',
-                                  getStatusColor('pending')
-                                )}
-                                style={{ width: `${pendingWidth}%` }}
-                                title={`${reviewer.pendingReviews - reviewer.requestedReviews} in progress`}
-                              />
-                            )}
-                            {reviewer.approvedReviews > 0 && (
-                              <div
-                                className={cn(
-                                  'transition-all duration-500 ease-out',
-                                  getStatusColor('approved')
-                                )}
-                                style={{ width: `${approvedWidth}%` }}
-                                title={`${reviewer.approvedReviews} approved`}
-                              />
-                            )}
-                          </div>
-                        ) : (
-                          // Grouped bars
-                          <div className="flex h-full gap-1">
-                            {reviewer.blockedPRs > 0 && (
-                              <div
-                                className={cn(
-                                  'transition-all duration-500 ease-out',
-                                  getStatusColor('blocked')
-                                )}
-                                style={{
-                                  width: `${(reviewer.blockedPRs / totalForReviewer) * 100}%`,
-                                }}
-                                title={`${reviewer.blockedPRs} blocked`}
-                              />
-                            )}
-                            {reviewer.requestedReviews > 0 && (
-                              <div
-                                className={cn(
-                                  'transition-all duration-500 ease-out',
-                                  getStatusColor('requested')
-                                )}
-                                style={{
-                                  width: `${(reviewer.requestedReviews / totalForReviewer) * 100}%`,
-                                }}
-                                title={`${reviewer.requestedReviews} requested`}
-                              />
-                            )}
-                            {reviewer.pendingReviews - reviewer.requestedReviews > 0 && (
-                              <div
-                                className={cn(
-                                  'transition-all duration-500 ease-out',
-                                  getStatusColor('pending')
-                                )}
-                                style={{
-                                  width: `${((reviewer.pendingReviews - reviewer.requestedReviews) / totalForReviewer) * 100}%`,
-                                }}
-                                title={`${reviewer.pendingReviews - reviewer.requestedReviews} in progress`}
-                              />
-                            )}
-                            {reviewer.approvedReviews > 0 && (
-                              <div
-                                className={cn(
-                                  'transition-all duration-500 ease-out',
-                                  getStatusColor('approved')
-                                )}
-                                style={{
-                                  width: `${(reviewer.approvedReviews / totalForReviewer) * 100}%`,
-                                }}
-                                title={`${reviewer.approvedReviews} approved`}
-                              />
-                            )}
-                          </div>
-                        )}
+                        <div className="flex h-full">
+                          {reviewer.blockedPRs > 0 && (
+                            <div
+                              className="bg-red-500 dark:bg-red-600 transition-all duration-500 ease-out"
+                              style={{ width: `${(reviewer.blockedPRs / maxCount) * 100}%` }}
+                              title={`${reviewer.blockedPRs} blocked`}
+                            />
+                          )}
+                          {reviewer.pendingReviews > 0 && (
+                            <div
+                              className="bg-yellow-500 dark:bg-yellow-600 transition-all duration-500 ease-out"
+                              style={{ width: `${(reviewer.pendingReviews / maxCount) * 100}%` }}
+                              title={`${reviewer.pendingReviews} pending`}
+                            />
+                          )}
+                          {reviewer.approvedReviews > 0 && (
+                            <div
+                              className="bg-green-500 dark:bg-green-600 transition-all duration-500 ease-out"
+                              style={{ width: `${(reviewer.approvedReviews / maxCount) * 100}%` }}
+                              title={`${reviewer.approvedReviews} approved`}
+                            />
+                          )}
+                        </div>
+                      </div>
+                      {/* Count overlay */}
+                      <div className="absolute inset-0 flex items-center justify-end pr-2">
+                        <span
+                          className={cn(
+                            'text-xs font-medium',
+                            // Use contrasting color when bar is more than 80% width
+                            totalForReviewer / maxCount > 0.8
+                              ? 'text-white dark:text-black'
+                              : 'text-foreground'
+                          )}
+                        >
+                          {totalForReviewer}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -471,44 +385,31 @@ export function PRReviewStatusChart({
           )}
         </div>
 
-        {/* Summary stats */}
-        <div className="mt-4 pt-4 border-t">
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <span className="text-muted-foreground">Total Reviewers:</span>
-              <span className="ml-2 font-medium">{reviewerStatusData.length}</span>
-            </div>
-            <div>
-              <span className="text-muted-foreground">Open PRs:</span>
-              <span className="ml-2 font-medium">
-                {pullRequests.filter((pr) => pr.state === 'open' || pr.state === 'draft').length}
-              </span>
-            </div>
+        {/* Summary stats and controls */}
+        <div className="mt-4 pt-4 border-t space-y-3">
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <span>Total reviewers: {reviewerStatusData.length}</span>
+            <span>
+              {totals.totalBlocked > 0 && (
+                <span className="text-red-600 dark:text-red-400 font-medium mr-2">
+                  {totals.totalBlocked} blocked
+                </span>
+              )}
+              {totals.totalApproved} approved, {totals.totalPending} pending
+            </span>
+          </div>
+          <div className="flex items-center justify-end gap-4">
             <div className="flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
-              <span className="text-muted-foreground">Blocked:</span>
-              <span className="ml-1 font-medium text-red-600 dark:text-red-400">
-                {totals.totalBlocked}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-              <span className="text-muted-foreground">Waiting:</span>
-              <span className="ml-1 font-medium text-gray-600 dark:text-gray-400">
-                {totals.totalRequested}
-              </span>
+              <Switch
+                id="exclude-bots-pr-status"
+                checked={excludeBots}
+                onCheckedChange={setExcludeBots}
+              />
+              <Label htmlFor="exclude-bots-pr-status" className="text-sm text-muted-foreground">
+                Exclude Bots
+              </Label>
             </div>
           </div>
-
-          {/* Action insight */}
-          {totals.totalBlocked > 0 && (
-            <div className="mt-3 p-3 bg-red-50 dark:bg-red-950/20 rounded-md">
-              <p className="text-xs text-red-700 dark:text-red-400 font-medium">
-                ⚠️ {totals.totalBlocked} PRs are blocked waiting for review. Consider reassigning or
-                following up with reviewers.
-              </p>
-            </div>
-          )}
         </div>
       </CardContent>
     </Card>
