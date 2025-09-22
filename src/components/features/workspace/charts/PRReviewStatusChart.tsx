@@ -190,14 +190,14 @@ export function PRReviewStatusChart({
       return null;
     }
 
-    // If we have repositories info, create a more specific search
+    // Link to the specific repository's PRs
     if (repositories && repositories.length === 1) {
       const repo = repositories[0];
       return `https://github.com/${repo.owner}/${repo.name}/pulls?q=is%3Apr+is%3Aopen+review-requested%3A${reviewer.username}`;
     }
 
-    // For multiple repos or no repo info, search all PRs requesting review from this user
-    return `https://github.com/pulls?q=is%3Apr+is%3Aopen+review-requested%3A${reviewer.username}`;
+    // For multiple repos, don't provide a link (too ambiguous)
+    return null;
   };
 
   if (reviewerStatusData.length === 0) {
