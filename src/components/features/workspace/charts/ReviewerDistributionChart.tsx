@@ -186,11 +186,11 @@ export function ReviewerDistributionChart({
     // If we have repositories info, create a more specific search
     if (repositories && repositories.length === 1) {
       const repo = repositories[0];
-      return `https://github.com/${repo.owner}/${repo.name}/pulls?q=is%3Apr+author%3A${reviewer.username}`;
+      return `https://github.com/${repo.owner}/${repo.name}/pulls?q=is%3Apr+is%3Aopen+author%3A${reviewer.username}`;
     }
 
     // For multiple repos or no repo info, search all PRs from this user
-    return `https://github.com/pulls?q=is%3Apr+author%3A${reviewer.username}`;
+    return `https://github.com/pulls?q=is%3Apr+is%3Aopen+author%3A${reviewer.username}`;
   };
 
   if (reviewerData.length === 0) {
