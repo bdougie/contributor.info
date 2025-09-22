@@ -98,6 +98,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
+    "@inngest/agent-kit": "^0.9.0",
     "@netlify/functions": "^4.1.8",
     "@nivo/scatterplot": "^0.88.0",
     "@octokit/auth-app": "^8.0.2",
@@ -149,7 +150,7 @@
     "dub": "^0.63.6",
     "embla-carousel-react": "^8.3.0",
     "html2canvas": "^1.4.1",
-    "inngest": "^3.40.1",
+    "inngest": "^3.41.0",
     "input-otp": "^1.2.4",
     "js-yaml": "^4.1.0",
     "lucide-react": "^0.544.0",

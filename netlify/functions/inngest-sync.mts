@@ -87,5 +87,12 @@ const inngestHandler = serve({
   servePath: "/.netlify/functions/inngest-sync"
 });
 
-// Export the handler directly - let Inngest SDK handle all requests
-export default inngestHandler;
+// Main handler wrapper for Netlify - passes all requests to Inngest SDK
+const mainHandler = async (req: Request, context: Context) => {
+  // Pass ALL requests to Inngest SDK without any filtering
+  // This allows the SDK to handle GET, PUT, POST and all query params including fnId
+  return inngestHandler(req, context);
+};
+
+// Export the wrapped handler for Netlify
+export default mainHandler;
