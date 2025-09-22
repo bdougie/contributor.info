@@ -6,6 +6,7 @@ import { getFallbackAvatar } from '@/lib/utils/avatar';
 import { useWorkspaceContributors } from '@/hooks/useWorkspaceContributors';
 import { WorkspaceDashboard, WorkspaceDashboardSkeleton } from '@/components/features/workspace';
 import { WorkspaceErrorBoundary } from '@/components/error-boundaries/workspace-error-boundary';
+import { WorkspaceSyncButton } from '@/components/features/workspace/WorkspaceSyncButton';
 import {
   WorkspacePullRequestsTable,
   type PullRequest,
@@ -1536,6 +1537,7 @@ function WorkspaceContributors({
 }
 
 interface WorkspaceActivityProps {
+  workspace?: Workspace | null;
   prData: Array<{
     id: string;
     title: string;
@@ -1613,6 +1615,7 @@ interface WorkspaceActivityProps {
 }
 
 function WorkspaceActivity({
+  workspace = null,
   prData = [],
   issueData = [],
   reviewData = [],
@@ -1866,6 +1869,21 @@ function WorkspaceActivity({
 
   return (
     <div className="space-y-4">
+      {/* Sync Button */}
+      {workspace && (
+        <div className="flex justify-end mb-4">
+          <WorkspaceSyncButton
+            workspaceId={workspace.id}
+            workspaceSlug={workspace.slug}
+            repositoryIds={repositories.map((r) => r.id)}
+            onSyncComplete={() => {
+              // Optionally refresh the page after sync
+              window.location.reload();
+            }}
+          />
+        </div>
+      )}
+
       {/* Activity Trend Chart */}
       <TrendChart
         title="Activity Trend"
@@ -3121,6 +3139,7 @@ function WorkspacePage() {
           <TabsContent value="activity" className="mt-6">
             <div className="container max-w-7xl mx-auto">
               <WorkspaceActivity
+                workspace={workspace}
                 prData={fullPRData}
                 issueData={fullIssueData}
                 reviewData={fullReviewData}
