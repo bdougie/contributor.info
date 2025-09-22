@@ -13,6 +13,7 @@ import { WorkspaceService } from '@/services/workspace.service';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useAnalytics } from '@/hooks/use-analytics';
+import { getWorkspaceRoute } from '@/lib/utils/workspace-routes';
 import { useFeatureFlags } from '@/lib/feature-flags/context';
 import { FEATURE_FLAGS } from '@/lib/feature-flags/types';
 import type { CreateWorkspaceRequest } from '@/types/workspace';
@@ -146,7 +147,7 @@ export function WorkspaceCreateModal({
 
           // Navigate to the workspace if creating new one
           if (mode === 'create') {
-            navigate(`/i/${response.data.slug}`);
+            navigate(getWorkspaceRoute(response.data));
           }
         } else {
           setError(

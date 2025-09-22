@@ -18,6 +18,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Crown, LogIn, Plus, Loader2, AlertCircle } from '@/components/ui/icon';
+import { getWorkspaceRoute } from '@/lib/utils/workspace-routes';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { WorkspaceService } from '@/services/workspace.service';
@@ -153,8 +154,7 @@ export function AddToWorkspaceModal({ open, onOpenChange, owner, repo }: AddToWo
 
         const selectedWorkspace = workspaces.find((w) => w.id === selectedWorkspaceId);
         if (selectedWorkspace) {
-          const slugOrId = selectedWorkspace.slug || selectedWorkspace.id;
-          navigate(`/workspaces/${slugOrId}`);
+          navigate(getWorkspaceRoute(selectedWorkspace));
         }
       } else {
         toast.error(result.error || 'Failed to add repository to workspace');

@@ -7,7 +7,6 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { ContributorOfMonthSkeleton } from '@/components/skeletons';
 import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
 import { WorkspaceCreateModal } from '../workspace/WorkspaceCreateModal';
 import { useHasPaidWorkspace } from '@/hooks/use-has-paid-workspace';
@@ -34,7 +33,6 @@ export function ContributorOfTheMonth({
   repositoryOwner,
   repositoryName,
 }: ContributorOfTheMonthProps) {
-  const navigate = useNavigate();
   const [showWorkspaceModal, setShowWorkspaceModal] = useState(false);
   const { hasPaidWorkspace } = useHasPaidWorkspace();
   const hasTrackedView = useRef(false);
@@ -225,9 +223,8 @@ export function ContributorOfTheMonth({
         open={showWorkspaceModal}
         onOpenChange={setShowWorkspaceModal}
         source="home"
-        onSuccess={(workspaceSlug) => {
+        onSuccess={() => {
           setShowWorkspaceModal(false);
-          navigate(`/i/${workspaceSlug}`);
         }}
       />
     </>

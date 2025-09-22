@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { getWorkspaceRoute } from '@/lib/utils/workspace-routes';
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { WORKSPACE_TIMEOUTS } from '@/lib/workspace-config';
@@ -111,7 +112,7 @@ export function WorkspaceSwitcher({
   const handleViewCurrentWorkspace = (): void => {
     setOpen(false);
     if (activeWorkspace) {
-      navigate(`/i/${activeWorkspace.slug}`);
+      navigate(getWorkspaceRoute(activeWorkspace));
     }
   };
 

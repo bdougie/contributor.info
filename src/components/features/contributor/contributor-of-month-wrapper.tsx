@@ -77,9 +77,8 @@ export default function ContributorOfTheMonthWrapper() {
           open={showWorkspaceModal}
           onOpenChange={setShowWorkspaceModal}
           source="home"
-          onSuccess={(workspaceSlug) => {
+          onSuccess={() => {
             setShowWorkspaceModal(false);
-            navigate(`/i/${workspaceSlug}`);
           }}
         />
       </>
