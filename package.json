@@ -98,7 +98,6 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
-    "@inngest/agent-kit": "^0.9.0",
     "@netlify/functions": "^4.1.8",
     "@nivo/scatterplot": "^0.88.0",
     "@octokit/auth-app": "^8.0.2",
