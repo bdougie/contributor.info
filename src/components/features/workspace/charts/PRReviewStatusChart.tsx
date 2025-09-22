@@ -49,7 +49,7 @@ export function PRReviewStatusChart({
 }: PRReviewStatusChartProps) {
   const [excludeBots, setExcludeBots] = useState(true);
   const [isExpanded, setIsExpanded] = useState(false);
-  const [sortBy, setSortBy] = useState<'blocked' | 'total'>('blocked');
+  const [filterMode, setFilterMode] = useState<'blocked' | 'all'>('all');
 
   // Calculate reviewer status distribution
   const reviewerStatusData = useMemo(() => {
@@ -134,22 +134,26 @@ export function PRReviewStatusChart({
     // Note: requestedReviews represents PRs that need initial review
     // pendingReviews represents all non-approved reviews (including in-progress ones)
 
-    // Convert to array and sort
-    const statusArray = Array.from(statusMap.values());
+    // Convert to array
+    let statusArray = Array.from(statusMap.values());
 
-    // Sort based on selected criteria
+    // Filter based on mode
+    if (filterMode === 'blocked') {
+      statusArray = statusArray.filter((reviewer) => reviewer.blockedPRs > 0);
+    }
+
+    // Sort - blocked PRs first, then by total count
     statusArray.sort((a, b) => {
-      switch (sortBy) {
-        case 'blocked':
-          return b.blockedPRs - a.blockedPRs;
-        case 'total':
-        default:
-          return b.openPRsCount - a.openPRsCount;
+      // First sort by blocked PRs (descending)
+      if (a.blockedPRs !== b.blockedPRs) {
+        return b.blockedPRs - a.blockedPRs;
       }
+      // Then by total count (descending)
+      return b.openPRsCount - a.openPRsCount;
     });
 
     return statusArray;
-  }, [pullRequests, excludeBots, sortBy]);
+  }, [pullRequests, excludeBots, filterMode]);
 
   const visibleReviewers = isExpanded
     ? reviewerStatusData
@@ -208,14 +212,14 @@ export function PRReviewStatusChart({
             <GitPullRequest className="h-5 w-5 text-muted-foreground" />
             <CardTitle>{title}</CardTitle>
           </div>
-          {/* Sort selector dropdown */}
+          {/* Filter selector dropdown */}
           <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+            value={filterMode}
+            onChange={(e) => setFilterMode(e.target.value as typeof filterMode)}
             className="h-7 px-2 text-sm border rounded-md bg-background"
           >
-            <option value="blocked">Blocked PRs</option>
-            <option value="total">All PRs</option>
+            <option value="all">All PRs</option>
+            <option value="blocked">Blocked PRs Only</option>
           </select>
         </div>
       </CardHeader>
