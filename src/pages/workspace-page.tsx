@@ -80,6 +80,7 @@ const ContributorLeaderboard = lazy(() =>
 // Lazy load distribution charts
 import { LazyAssigneeDistributionChart } from '@/components/features/workspace/charts/AssigneeDistributionChart-lazy';
 import { LazyReviewerDistributionChart } from '@/components/features/workspace/charts/ReviewerDistributionChart-lazy';
+import { LazyPRReviewStatusChart } from '@/components/features/workspace/charts/PRReviewStatusChart-lazy';
 // import { WorkspaceExportService } from '@/services/workspace-export.service';
 // import type {
 //   AnalyticsData,
@@ -422,6 +423,16 @@ function WorkspacePRs({
             contributors:author_id(
               username,
               avatar_url
+            ),
+            reviews (
+              id,
+              state,
+              submitted_at,
+              reviewer_id,
+              contributors:reviewer_id (
+                username,
+                avatar_url
+              )
             )
           `
           )
@@ -463,41 +474,87 @@ function WorkspacePRs({
               username: string;
               avatar_url: string;
             };
+            reviews?: Array<{
+              id: string;
+              state: string;
+              submitted_at: string;
+              reviewer_id: string;
+              contributors?: {
+                username: string;
+                avatar_url: string;
+              };
+            }>;
           };
 
-          const transformedPRs: PullRequest[] = ((data || []) as unknown as PRData[]).map((pr) => ({
-            id: pr.id,
-            number: pr.number,
-            title: pr.title,
-            state: (() => {
-              if (pr.merged_at) return 'merged';
-              if (pr.state === 'closed') return 'closed';
-              return 'open';
-            })(),
-            repository: {
-              name: pr.repositories?.name || 'unknown',
-              owner: pr.repositories?.owner || 'unknown',
-              avatar_url: pr.repositories?.owner
-                ? `https://avatars.githubusercontent.com/${pr.repositories.owner}`
-                : getFallbackAvatar(),
-            },
-            author: {
-              username: pr.contributors?.username || 'unknown',
-              avatar_url: pr.contributors?.avatar_url || '',
-            },
-            created_at: pr.created_at,
-            updated_at: pr.updated_at,
-            closed_at: pr.closed_at || undefined,
-            merged_at: pr.merged_at || undefined,
-            comments_count: 0, // We don't have this data yet
-            commits_count: pr.commits || 0,
-            additions: pr.additions || 0,
-            deletions: pr.deletions || 0,
-            changed_files: pr.changed_files || 0,
-            labels: [], // We don't have this data yet
-            reviewers: [], // We don't have this data yet
-            url: pr.html_url,
-          }));
+          const transformedPRs: PullRequest[] = ((data || []) as unknown as PRData[]).map((pr) => {
+            // Process reviewers from the reviews data
+            const reviewers: PullRequest['reviewers'] = [];
+            const reviewerMap = new Map<
+              string,
+              { username: string; avatar_url: string; approved: boolean }
+            >();
+
+            if (pr.reviews && Array.isArray(pr.reviews)) {
+              pr.reviews.forEach((review) => {
+                if (review.contributors) {
+                  const reviewerUsername = review.contributors.username;
+                  const existing = reviewerMap.get(reviewerUsername);
+
+                  // Track the latest review state for each reviewer
+                  // APPROVED state takes precedence
+                  const isApproved = review.state === 'APPROVED' || review.state === 'approved';
+
+                  if (!existing || (isApproved && !existing.approved)) {
+                    reviewerMap.set(reviewerUsername, {
+                      username: reviewerUsername,
+                      avatar_url:
+                        review.contributors.avatar_url ||
+                        `https://avatars.githubusercontent.com/${reviewerUsername}`,
+                      approved: isApproved,
+                    });
+                  }
+                }
+              });
+
+              // Convert map to array
+              reviewers.push(...Array.from(reviewerMap.values()));
+            }
+
+            return {
+              id: pr.id,
+              number: pr.number,
+              title: pr.title,
+              state: (() => {
+                if (pr.merged_at) return 'merged';
+                if (pr.state === 'closed') return 'closed';
+                if (pr.state === 'draft') return 'draft';
+                return 'open';
+              })(),
+              repository: {
+                name: pr.repositories?.name || 'unknown',
+                owner: pr.repositories?.owner || 'unknown',
+                avatar_url: pr.repositories?.owner
+                  ? `https://avatars.githubusercontent.com/${pr.repositories.owner}`
+                  : getFallbackAvatar(),
+              },
+              author: {
+                username: pr.contributors?.username || 'unknown',
+                avatar_url: pr.contributors?.avatar_url || '',
+              },
+              created_at: pr.created_at,
+              updated_at: pr.updated_at,
+              closed_at: pr.closed_at || undefined,
+              merged_at: pr.merged_at || undefined,
+              comments_count: 0, // We don't have this data yet
+              commits_count: pr.commits || 0,
+              additions: pr.additions || 0,
+              deletions: pr.deletions || 0,
+              changed_files: pr.changed_files || 0,
+              labels: [], // We don't have this data yet
+              reviewers: reviewers,
+              url: pr.html_url,
+            };
+          });
           console.log('Transformed PRs:', transformedPRs.length, transformedPRs);
           setPullRequests(transformedPRs);
         }
@@ -542,7 +599,14 @@ function WorkspacePRs({
 
   return (
     <div className="space-y-6">
-      {/* Conditionally render side-by-side or full width based on reviewer data */}
+      {/* PR Review Status Chart - shows blocking PRs and review status */}
+      <LazyPRReviewStatusChart
+        pullRequests={pullRequests}
+        onReviewerClick={handleReviewerClick}
+        title="PR Review Status - Blockers & Progress"
+      />
+
+      {/* Metrics and Distribution Charts */}
       {hasReviewers ? (
         <div className="grid gap-6 lg:grid-cols-2">
           {/* PR Metrics and Trends */}
