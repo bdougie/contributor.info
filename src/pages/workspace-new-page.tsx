@@ -76,7 +76,7 @@ export default function WorkspaceNewPage() {
         }
 
         toast.success('Workspace created successfully!');
-        navigate(`/i/${response.data.id}`);
+        navigate(`/i/${response.data.slug}`);
       } else {
         setError(response.error || 'Failed to create workspace');
 

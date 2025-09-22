@@ -48,7 +48,7 @@ export function BillingDashboard() {
     if (success === 'true' && primaryWorkspace) {
       // Redirect to workspace after successful payment
       const redirectTimer = setTimeout(() => {
-        navigate(`/workspaces/${primaryWorkspace.id}`);
+        navigate(`/i/${primaryWorkspace.slug}`);
       }, 2000); // Give user time to see success state
       return () => clearTimeout(redirectTimer);
     }

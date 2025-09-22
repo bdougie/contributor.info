@@ -21,7 +21,7 @@ import type { User } from '@supabase/supabase-js';
 export interface WorkspaceCreateModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuccess?: (workspaceId: string) => void;
+  onSuccess?: (workspaceSlug: string) => void;
   mode?: 'create' | 'edit';
   initialValues?: Partial<CreateWorkspaceRequest>;
   workspaceId?: string;
@@ -141,12 +141,12 @@ export function WorkspaceCreateModal({
 
           // Call optional success callback
           if (onSuccess) {
-            onSuccess(response.data.id);
+            onSuccess(response.data.slug);
           }
 
           // Navigate to the workspace if creating new one
           if (mode === 'create') {
-            navigate(`/i/${response.data.id}`);
+            navigate(`/i/${response.data.slug}`);
           }
         } else {
           setError(

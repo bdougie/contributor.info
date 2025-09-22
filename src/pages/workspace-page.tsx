@@ -2716,9 +2716,9 @@ function WorkspacePage() {
 
   const handleTabChange = (value: string) => {
     if (value === 'overview') {
-      navigate(`/i/${workspaceId}`);
+      navigate(`/i/${workspace?.slug || workspaceId}`);
     } else {
-      navigate(`/i/${workspaceId}/${value}`);
+      navigate(`/i/${workspace?.slug || workspaceId}/${value}`);
     }
   };
 

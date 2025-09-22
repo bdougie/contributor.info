@@ -111,7 +111,7 @@ export function WorkspaceSwitcher({
   const handleViewCurrentWorkspace = (): void => {
     setOpen(false);
     if (activeWorkspace) {
-      navigate(`/workspaces/${activeWorkspace.id}`);
+      navigate(`/i/${activeWorkspace.slug}`);
     }
   };
 
