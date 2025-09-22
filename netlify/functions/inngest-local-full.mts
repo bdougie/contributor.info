@@ -1,9 +1,15 @@
 // Local development Inngest function with all capture functions
-import { Inngest } from "inngest";
 import { serve } from "inngest/lambda";
 import type { Context } from "@netlify/functions";
 
-// Import all capture functions (excluding embeddings to avoid transformers issue)
+// Import the shared client configuration
+import { createLocalClient } from "../../src/lib/inngest/client-config";
+
+// Import factory functions instead of pre-created functions
+import { createInngestFunctions, createLocalTestFunctions } from "../../src/lib/inngest/functions/factory";
+
+// Import individual function creators that we'll refactor later
+// For now, we'll create a hybrid approach
 import {
   capturePrDetails,
   capturePrReviews,
@@ -22,13 +28,8 @@ if (!process.env.GITHUB_TOKEN && process.env.VITE_GITHUB_TOKEN) {
   process.env.GITHUB_TOKEN = process.env.VITE_GITHUB_TOKEN;
 }
 
-// Create Inngest client for local development
-const inngest = new Inngest({ 
-  id: process.env.VITE_INNGEST_APP_ID || "contributor-info",
-  isDev: true, // Always dev mode for local
-  eventKey: process.env.INNGEST_EVENT_KEY || 'local-dev-key',
-  signingKey: process.env.INNGEST_SIGNING_KEY,
-});
+// Create Inngest client for local development using shared config
+const inngest = createLocalClient();
 
 // Log configuration
 console.log('Inngest Local Configuration:', {
@@ -39,51 +40,20 @@ console.log('Inngest Local Configuration:', {
   hasSupabaseUrl: !!process.env.SUPABASE_URL || !!process.env.VITE_SUPABASE_URL,
 });
 
-// Test function to verify connection
-const testFunction = inngest.createFunction(
-  { id: "local-test-function" },
-  { event: "test/local.hello" },
-  async ({ event, step }) => {
-    console.log("Local test function executed!", event);
-    
-    await step.run("log-environment", async () => {
-      console.log("Environment:", {
-        nodeEnv: process.env.NODE_ENV,
-        hasEventKey: !!process.env.INNGEST_EVENT_KEY,
-        hasSigningKey: !!process.env.INNGEST_SIGNING_KEY
-      });
-      return { logged: true };
-    });
-    
-    return { 
-      message: "Hello from Local Inngest with all functions!", 
-      timestamp: new Date().toISOString(),
-      environment: "local",
-      data: event.data
-    };
-  }
-);
+// Create functions using the factory with the local client
+const factoryFunctions = createInngestFunctions(inngest);
+const localTestFunctions = createLocalTestFunctions(inngest);
 
-// Create the serve handler with ALL functions
+// Create the serve handler with functions from factory
 const inngestHandler = serve({
   client: inngest,
   functions: [
-    testFunction,
-    // REST API functions
-    capturePrDetails,
-    capturePrReviews,
-    capturePrComments,
-    captureRepositorySync,
-    // GraphQL functions (preferred)
-    capturePrDetailsGraphQL,
-    captureRepositorySyncGraphQL,
-    // Classification functions
-    classifyRepositorySize,
-    classifySingleRepository,
-    // PR activity updates
-    updatePrActivity,
-    // Repository discovery
-    discoverNewRepository
+    // Functions created with the local client instance
+    localTestFunctions.localTestFunction,
+    factoryFunctions.testFunction,
+    factoryFunctions.captureRepositorySyncGraphQL,
+    // Note: The imported functions won't work because they're bound to a different client
+    // We'll need to refactor all functions to use the factory pattern
   ],
   servePath: "/.netlify/functions/inngest-local-full",
   landingPage: true
