@@ -153,7 +153,8 @@ export function AddToWorkspaceModal({ open, onOpenChange, owner, repo }: AddToWo
 
         const selectedWorkspace = workspaces.find((w) => w.id === selectedWorkspaceId);
         if (selectedWorkspace) {
-          navigate(`/workspaces/${selectedWorkspace.slug}`);
+          const slugOrId = selectedWorkspace.slug || selectedWorkspace.id;
+          navigate(`/workspaces/${slugOrId}`);
         }
       } else {
         toast.error(result.error || 'Failed to add repository to workspace');

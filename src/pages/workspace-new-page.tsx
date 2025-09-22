@@ -76,7 +76,14 @@ export default function WorkspaceNewPage() {
         }
 
         toast.success('Workspace created successfully!');
-        navigate(`/i/${response.data.slug}`);
+        // Ensure we have a valid slug before navigating
+        const slugOrId = response.data.slug || response.data.id;
+        if (!slugOrId) {
+          console.error('No slug or ID returned from workspace creation');
+          setError('Workspace created but navigation failed. Please refresh the page.');
+          return;
+        }
+        navigate(`/i/${slugOrId}`);
       } else {
         setError(response.error || 'Failed to create workspace');
 

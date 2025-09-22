@@ -122,8 +122,9 @@ export const InvitationAcceptancePage: React.FC = () => {
           description: `You've successfully joined ${invitation.workspace.name}`,
         });
 
-        // Redirect to the workspace dashboard
-        navigate(`/workspace/${invitation.workspace.id}`);
+        // Redirect to the workspace dashboard with slug fallback
+        const slugOrId = invitation.workspace.slug || invitation.workspace.id;
+        navigate(`/i/${slugOrId}`);
       } else {
         // Provide specific error messages based on status code
         const errorMessage = (() => {
