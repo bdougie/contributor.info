@@ -49,7 +49,6 @@ export function PRReviewStatusChart({
 }: PRReviewStatusChartProps) {
   const [excludeBots, setExcludeBots] = useState(true);
   const [isExpanded, setIsExpanded] = useState(false);
-  const [filterMode, setFilterMode] = useState<'blocked' | 'all'>('all');
 
   // Calculate reviewer status distribution
   const reviewerStatusData = useMemo(() => {
@@ -135,12 +134,7 @@ export function PRReviewStatusChart({
     // pendingReviews represents all non-approved reviews (including in-progress ones)
 
     // Convert to array
-    let statusArray = Array.from(statusMap.values());
-
-    // Filter based on mode
-    if (filterMode === 'blocked') {
-      statusArray = statusArray.filter((reviewer) => reviewer.blockedPRs > 0);
-    }
+    const statusArray = Array.from(statusMap.values());
 
     // Sort - blocked PRs first, then by total count
     statusArray.sort((a, b) => {
@@ -153,7 +147,7 @@ export function PRReviewStatusChart({
     });
 
     return statusArray;
-  }, [pullRequests, excludeBots, filterMode]);
+  }, [pullRequests, excludeBots]);
 
   const visibleReviewers = isExpanded
     ? reviewerStatusData
@@ -207,20 +201,9 @@ export function PRReviewStatusChart({
   return (
     <Card className={cn('w-full', className)}>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <GitPullRequest className="h-5 w-5 text-muted-foreground" />
-            <CardTitle>{title}</CardTitle>
-          </div>
-          {/* Filter selector dropdown */}
-          <select
-            value={filterMode}
-            onChange={(e) => setFilterMode(e.target.value as typeof filterMode)}
-            className="h-7 px-2 text-sm border rounded-md bg-background"
-          >
-            <option value="all">All PRs</option>
-            <option value="blocked">Blocked PRs Only</option>
-          </select>
+        <div className="flex items-center gap-2">
+          <GitPullRequest className="h-5 w-5 text-muted-foreground" />
+          <CardTitle>{title}</CardTitle>
         </div>
       </CardHeader>
       <CardContent>
