@@ -77,50 +77,12 @@ const inngestHandler = serve({
 
 // Create the main handler function
 const mainHandler = async (req: Request, context: Context) => {
-  const url = new URL(req.url);
-  
-  // Handle GET requests with a detailed status page
-  if (req.method === "GET" && !url.searchParams.has("fnId")) {
-    return new Response(JSON.stringify({
-      message: "Inngest Production endpoint",
-      status: "active",
-      endpoint: "/.netlify/functions/inngest-prod",
-      environment: {
-        context: process.env.CONTEXT || "unknown",
-        nodeEnv: process.env.NODE_ENV || "unknown",
-        isProduction: isProduction(),
-        hasEventKey: !!getProductionEnvVar('EVENT_KEY', 'INNGEST_EVENT_KEY'),
-        hasSigningKey: !!getProductionEnvVar('SIGNING_KEY', 'INNGEST_SIGNING_KEY'),
-      },
-      functions: [
-        { id: "capture-repository-sync-graphql", event: "capture/repository.sync.graphql" },
-        { id: "capture-pr-details", event: "capture/pr.details" },
-        { id: "capture-pr-details-graphql", event: "capture/pr.details.graphql" },
-        { id: "capture-pr-reviews", event: "capture/pr.reviews" },
-        { id: "capture-pr-comments", event: "capture/pr.comments" },
-        { id: "capture-repository-sync", event: "capture/repository.sync" },
-        { id: "classify-repository-size", event: "classify/repository.size" },
-        { id: "classify-single-repository", event: "classify/repository.single" },
-        { id: "update-pr-activity", event: "update/pr.activity" },
-        { id: "discover-new-repository", event: "discover/repository.new" },
-        { id: "capture-issue-comments", event: "capture/issue.comments" },
-        { id: "capture-repository-issues", event: "capture/repository.issues" }
-      ],
-      usage: {
-        syncEvent: 'Send: { "name": "capture/repository.sync.graphql", "data": { "repositoryId": "123", "days": 30 } }',
-        prEvent: 'Send: { "name": "capture/pr.details", "data": { "pull_request_id": "123", "repository_id": "456" } }',
-        classifyEvent: 'Send: { "name": "classify/repository.single", "data": { "repositoryId": "123" } }'
-      }
-    }, null, 2), {
-      status: 200,
-      headers: { 
-        "Content-Type": "application/json",
-        "Cache-Control": "no-cache"
-      }
-    });
-  }
-
-  // Pass all other requests to Inngest
+  // Pass ALL requests directly to Inngest SDK
+  // This allows proper handling of:
+  // - GET requests with fnId for function introspection
+  // - PUT requests for sync operations (important for Supabase edge functions)
+  // - POST requests for event processing
+  // The Inngest SDK handles all these internally including its own status endpoints
   return inngestHandler(req, context);
 };
 
