@@ -34,9 +34,9 @@ export const supabaseReviewWithContributorSchema = z.object({
   state: z.string(),
   body: z.string().nullable(),
   submitted_at: z.string(),
-  pull_request_id: z.string().uuid(),
-  reviewer_id: z.string().uuid().nullable(),
-  author_id: z.string().uuid().nullable(),
+  pull_request_id: z.string().uuid().optional(),
+  reviewer_id: z.string().uuid().nullable().optional(),
+  author_id: z.string().uuid().nullable().optional(),
   // Nested contributor from reviewer_id join
   contributors: supabaseContributorNestedSchema,
 });
