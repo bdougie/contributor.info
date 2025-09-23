@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useGitHubAuth } from './use-github-auth';
+import { handleApiResponse } from '@/lib/utils/api-helpers';
 
 export interface TrackingState {
   status: 'checking' | 'not_tracked' | 'tracking' | 'tracked' | 'error' | 'timeout' | 'idle';
@@ -34,6 +35,7 @@ export function useRepositoryTracking({
   });
 
   const { isLoggedIn } = useGitHubAuth();
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Check if repository exists in database
   const checkRepository = useCallback(async () => {
@@ -131,27 +133,19 @@ export function useRepositoryTracking({
         body: JSON.stringify({ owner, repo }),
       });
 
-      if (!response.ok) {
-        // Check content-type to determine how to parse error
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-          const text = await response.text();
-          console.error('Non-JSON error response received:', text.substring(0, 200));
-          throw new Error('Invalid response format from server - expected JSON but received HTML');
-        }
+      const result = await handleApiResponse(response, 'track-repository');
 
-        const result = await response.json();
-        throw new Error(result.message || 'Failed to track repository');
+      // Clear any existing polling interval
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
       }
-
-      // Parse successful response
-      const result = await response.json();
 
       // Start polling for repository creation
       let pollCount = 0;
       const maxPolls = 60; // 2 minutes max
 
-      const pollInterval = setInterval(async () => {
+      pollIntervalRef.current = setInterval(async () => {
         pollCount++;
 
         try {
@@ -163,7 +157,10 @@ export function useRepositoryTracking({
             .maybeSingle();
 
           if (repoData) {
-            clearInterval(pollInterval);
+            if (pollIntervalRef.current) {
+              clearInterval(pollIntervalRef.current);
+              pollIntervalRef.current = null;
+            }
 
             setState({
               status: 'tracked',
@@ -178,7 +175,10 @@ export function useRepositoryTracking({
           }
 
           if (pollCount >= maxPolls) {
-            clearInterval(pollInterval);
+            if (pollIntervalRef.current) {
+              clearInterval(pollIntervalRef.current);
+              pollIntervalRef.current = null;
+            }
             setState((prev) => ({
               ...prev,
               status: 'timeout',
@@ -233,6 +233,16 @@ export function useRepositoryTracking({
     }));
     trackRepository();
   }, [trackRepository]);
+
+  // Cleanup polling interval on unmount or when dependencies change
+  useEffect(() => {
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+    };
+  }, []);
 
   return {
     ...state,

@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { POLLING_CONFIG, isSyncAllowed } from '@/lib/progressive-capture/throttle-config';
 import { getSyncButtonText } from '@/lib/utils/ui-state';
+import { handleApiResponse } from '@/lib/utils/api-helpers';
 
 interface UnifiedSyncButtonProps {
   owner: string;
@@ -155,23 +156,7 @@ export function UnifiedSyncButton({
             body: JSON.stringify({ owner, repo }),
           });
 
-          if (!trackResponse.ok) {
-            // Check content-type to determine how to parse error
-            const contentType = trackResponse.headers.get('content-type');
-            if (!contentType || !contentType.includes('application/json')) {
-              const trackError = await trackResponse.text();
-              console.error('Non-JSON error response from track API:', trackError.substring(0, 200));
-              throw new Error(
-                'Invalid response format from server - expected JSON but received HTML'
-              );
-            }
-
-            const trackError = await trackResponse.json();
-            console.error('Failed to track repository:', trackError);
-            throw new Error(
-              trackError.message || `Failed to track repository: ${trackResponse.status}`
-            );
-          }
+          await handleApiResponse(trackResponse, 'track-repository');
 
           // Wait a moment for tracking to initialize
           await new Promise((resolve) => setTimeout(resolve, 2000));
