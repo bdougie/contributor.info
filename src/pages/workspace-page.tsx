@@ -399,7 +399,7 @@ function WorkspacePRs({
         const syncPromises = filteredRepos.map(async (repo) => {
           try {
             const prData = await syncPullRequestReviewers(repo.owner, repo.name, workspaceId);
-            console.log(`Synced ${prData.length} PRs for ${repo.owner}/${repo.name}`);
+            console.log('Synced %d PRs for %s/%s', prData.length, repo.owner, repo.name);
             return prData;
           } catch (error) {
             console.error(`Failed to sync PRs for ${repo.owner}/${repo.name}:`, error);
@@ -410,7 +410,7 @@ function WorkspacePRs({
         // Wait for all syncs to complete
         const syncResults = await Promise.all(syncPromises);
         const allSyncedPRs = syncResults.flat();
-        console.log(`Total synced PRs: ${allSyncedPRs.length}`);
+        console.log('Total synced PRs: %d', allSyncedPRs.length);
 
         const repoIds = filteredRepos.map((r) => r.id);
         console.log('Repository IDs for PR query:', repoIds);

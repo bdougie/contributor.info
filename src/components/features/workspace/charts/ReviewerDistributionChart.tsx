@@ -63,6 +63,15 @@ export function ReviewerDistributionChart({
     // Track unreviewed count
     let unreviewedCount = 0;
 
+    // Memoize bot detection results to avoid repeated calls
+    const botCache = new Map<string, boolean>();
+    const checkIsBot = (username: string): boolean => {
+      if (!botCache.has(username)) {
+        botCache.set(username, isBot({ username }));
+      }
+      return botCache.get(username)!;
+    };
+
     // Filter for open PRs only (including drafts) - matching PR Review Status Chart behavior
     const openPRs = pullRequests.filter((pr) => pr.state === 'open' || pr.state === 'draft');
 
@@ -104,7 +113,7 @@ export function ReviewerDistributionChart({
 
       // For each PR, track which reviewers are assigned and their status
       allReviewers.forEach((reviewer) => {
-        const isBotUser = isBot({ username: reviewer.username });
+        const isBotUser = checkIsBot(reviewer.username);
 
         // Skip bots if excluded
         if (excludeBots && isBotUser) {
@@ -232,11 +241,11 @@ export function ReviewerDistributionChart({
     if (repositories && repositories.length === 1) {
       const repo = repositories[0];
       // Search for PRs where this user is a requested reviewer or has reviewed
-      return `https://github.com/${repo.owner}/${repo.name}/pulls?q=is%3Apr+is%3Aopen+reviewed-by%3A${reviewer.username}+user-review-requested%3A${reviewer.username}`;
+      return `https://github.com/${repo.owner}/${repo.name}/pulls?q=is%3Apr+is%3Aopen+reviewed-by%3A${reviewer.username}+review-requested%3A${reviewer.username}`;
     }
 
     // For multiple repos or no repo info, search all PRs reviewed by this user
-    return `https://github.com/pulls?q=is%3Apr+is%3Aopen+reviewed-by%3A${reviewer.username}+user-review-requested%3A${reviewer.username}`;
+    return `https://github.com/pulls?q=is%3Apr+is%3Aopen+reviewed-by%3A${reviewer.username}+review-requested%3A${reviewer.username}`;
   };
 
   if (reviewerData.length === 0) {

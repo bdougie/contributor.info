@@ -292,11 +292,14 @@ export function PRAuthorStatusChart({
                     title={`View PRs authored by ${author.username}`}
                   >
                     <img
-                      src={author.avatar_url || `https://github.com/${author.username}.png`}
+                      src={
+                        author.avatar_url ||
+                        `https://github.com/${encodeURIComponent(author.username)}.png`
+                      }
                       alt={author.username}
                       className="h-8 w-8 rounded-full hover:ring-2 hover:ring-primary transition-all"
                       onError={(e) => {
-                        e.currentTarget.src = `https://github.com/${author.username}.png`;
+                        e.currentTarget.src = `https://github.com/${encodeURIComponent(author.username)}.png`;
                       }}
                     />
                   </a>
