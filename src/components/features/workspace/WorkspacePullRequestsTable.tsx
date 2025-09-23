@@ -64,10 +64,16 @@ export interface PullRequest {
     name: string;
     color: string;
   }>;
-  reviewers: Array<{
+  reviewers?: Array<{
     username: string;
     avatar_url: string;
     approved: boolean;
+    state?: 'APPROVED' | 'CHANGES_REQUESTED' | 'COMMENTED' | 'PENDING' | 'DISMISSED';
+    submitted_at?: string;
+  }>;
+  requested_reviewers?: Array<{
+    username: string;
+    avatar_url: string;
   }>;
   url: string;
 }
@@ -306,85 +312,75 @@ export function WorkspacePullRequestsTable({
             const repo = row.original.repository;
 
             if (!reviewers || reviewers.length === 0) {
-              return <span className="text-sm text-muted-foreground">No reviewers</span>;
+              return null;
             }
 
             const maxVisible = 3;
             const visibleReviewers = reviewers.slice(0, maxVisible);
             const remainingCount = reviewers.length - maxVisible;
-            const approved = reviewers.filter((r) => r.approved).length;
-            const pending = reviewers.length - approved;
 
             return (
-              <div className="flex items-center gap-2">
-                <div className="flex items-center -space-x-2">
-                  {visibleReviewers.map((reviewer, index) => {
-                    const reviewerFilterUrl = `https://github.com/${repo.owner}/${repo.name}/pulls?q=is%3Apr+reviewed-by%3A${encodeURIComponent(reviewer.username)}`;
+              <div className="flex items-center -space-x-2 pl-2">
+                {visibleReviewers.map((reviewer, index) => {
+                  const reviewerFilterUrl = `https://github.com/${repo.owner}/${repo.name}/pulls?q=is%3Apr+reviewed-by%3A${encodeURIComponent(reviewer.username)}`;
 
-                    return (
-                      <TooltipProvider key={reviewer.username}>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <a
-                              href={reviewerFilterUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-block"
-                              style={{ zIndex: maxVisible - index }}
-                            >
-                              <div className="relative">
-                                <img
-                                  src={reviewer.avatar_url}
-                                  alt={reviewer.username}
-                                  className={cn(
-                                    'h-6 w-6 rounded-full border-2',
-                                    reviewer.approved
-                                      ? 'border-green-500 ring-1 ring-green-500/20'
-                                      : 'border-background'
-                                  )}
-                                />
-                                {reviewer.approved && (
-                                  <CheckCircle2 className="absolute -bottom-1 -right-1 h-3 w-3 text-green-500 bg-background rounded-full" />
-                                )}
-                              </div>
-                            </a>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>
-                              {reviewer.username} {reviewer.approved ? '(Approved)' : '(Pending)'}
-                            </p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    );
-                  })}
-                  {remainingCount > 0 && (
-                    <TooltipProvider>
+                  return (
+                    <TooltipProvider key={reviewer.username}>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <div className="h-6 w-6 rounded-full bg-muted border-2 border-background flex items-center justify-center">
-                            <span className="text-xs font-medium">+{remainingCount}</span>
-                          </div>
+                          <a
+                            href={reviewerFilterUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-block"
+                            style={{ zIndex: maxVisible - index }}
+                          >
+                            <div className="relative">
+                              <img
+                                src={reviewer.avatar_url}
+                                alt={reviewer.username}
+                                className={cn(
+                                  'h-6 w-6 rounded-full border-2',
+                                  reviewer.approved
+                                    ? 'border-green-500 ring-1 ring-green-500/20'
+                                    : 'border-background'
+                                )}
+                              />
+                              {reviewer.approved && (
+                                <CheckCircle2 className="absolute -bottom-1 -right-1 h-3 w-3 text-green-500 bg-background rounded-full" />
+                              )}
+                            </div>
+                          </a>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <div className="space-y-1">
-                            {reviewers.slice(maxVisible).map((reviewer) => (
-                              <p key={reviewer.username}>
-                                {reviewer.username} {reviewer.approved ? '(Approved)' : '(Pending)'}
-                              </p>
-                            ))}
-                          </div>
+                          <p>
+                            {reviewer.username} {reviewer.approved ? '(Approved)' : '(Pending)'}
+                          </p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
-                  )}
-                </div>
-                {/* Summary text */}
-                <div className="text-xs text-muted-foreground">
-                  {approved > 0 && <span className="text-green-600">{approved}✓</span>}
-                  {approved > 0 && pending > 0 && <span> / </span>}
-                  {pending > 0 && <span>{pending}⏳</span>}
-                </div>
+                  );
+                })}
+                {remainingCount > 0 && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="h-6 w-6 rounded-full bg-muted border-2 border-background flex items-center justify-center">
+                          <span className="text-xs font-medium">+{remainingCount}</span>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <div className="space-y-1">
+                          {reviewers.slice(maxVisible).map((reviewer) => (
+                            <p key={reviewer.username}>
+                              {reviewer.username} {reviewer.approved ? '(Approved)' : '(Pending)'}
+                            </p>
+                          ))}
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
               </div>
             );
           },

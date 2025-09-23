@@ -3,11 +3,27 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import type { PullRequest } from '../WorkspacePullRequestsTable';
 
-// Lazy load the heavy chart component
+// Lazy load the heavy chart component with error boundary
 const ReviewerDistributionChartInner = lazy(() =>
-  import('./ReviewerDistributionChart').then((module) => ({
-    default: module.ReviewerDistributionChart,
-  }))
+  import('./ReviewerDistributionChart')
+    .then((module) => ({
+      default: module.ReviewerDistributionChart,
+    }))
+    .catch((error) => {
+      console.error('Failed to load ReviewerDistributionChart:', error);
+      // Return a fallback component
+      return {
+        default: () => (
+          <Card>
+            <CardContent className="p-6">
+              <div className="text-muted-foreground text-sm">
+                Failed to load Reviewer Distribution chart. Please refresh the page.
+              </div>
+            </CardContent>
+          </Card>
+        ),
+      };
+    })
 );
 
 interface ReviewerDistributionChartSkeletonProps {

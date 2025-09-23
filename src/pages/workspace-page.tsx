@@ -65,6 +65,7 @@ import type {
 import type { Workspace, WorkspaceMemberWithUser } from '@/types/workspace';
 import { WorkspaceService } from '@/services/workspace.service';
 import { WorkspaceSettings as WorkspaceSettingsComponent } from '@/components/features/workspace/settings/WorkspaceSettings';
+import { syncPullRequestReviewers } from '@/lib/sync-pr-reviewers';
 // Analytics imports disabled - will be implemented in issue #598
 // import { AnalyticsDashboard } from '@/components/features/workspace/AnalyticsDashboard';
 import { ActivityTable } from '@/components/features/workspace/ActivityTable';
@@ -80,6 +81,7 @@ const ContributorLeaderboard = lazy(() =>
 // Lazy load distribution charts
 import { LazyAssigneeDistributionChart } from '@/components/features/workspace/charts/AssigneeDistributionChart-lazy';
 import { LazyReviewerDistributionChart } from '@/components/features/workspace/charts/ReviewerDistributionChart-lazy';
+import { PRAuthorStatusChart as LazyPRAuthorStatusChart } from '@/components/features/workspace/charts/PRAuthorStatusChart-lazy';
 // import { WorkspaceExportService } from '@/services/workspace-export.service';
 // import type {
 //   AnalyticsData,
@@ -366,10 +368,12 @@ function WorkspacePRs({
   repositories,
   selectedRepositories,
   timeRange,
+  workspaceId,
 }: {
   repositories: Repository[];
   selectedRepositories: string[];
   timeRange: TimeRange;
+  workspaceId: string;
 }) {
   const [pullRequests, setPullRequests] = useState<PullRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -390,6 +394,23 @@ function WorkspacePRs({
         // Use utility function to filter repositories
         const filteredRepos = filterRepositoriesBySelection(repositories, selectedRepositories);
         console.log('Filtered repos:', filteredRepos.length, filteredRepos);
+
+        // Sync PR reviewers data from GitHub for each repository
+        const syncPromises = filteredRepos.map(async (repo) => {
+          try {
+            const prData = await syncPullRequestReviewers(repo.owner, repo.name, workspaceId);
+            console.log('Synced %d PRs for %s/%s', prData.length, repo.owner, repo.name);
+            return prData;
+          } catch (error) {
+            console.error(`Failed to sync PRs for ${repo.owner}/${repo.name}:`, error);
+            return [];
+          }
+        });
+
+        // Wait for all syncs to complete
+        const syncResults = await Promise.all(syncPromises);
+        const allSyncedPRs = syncResults.flat();
+        console.log('Total synced PRs: %d', allSyncedPRs.length);
 
         const repoIds = filteredRepos.map((r) => r.id);
         console.log('Repository IDs for PR query:', repoIds);
@@ -422,6 +443,18 @@ function WorkspacePRs({
             contributors:author_id(
               username,
               avatar_url
+            ),
+            reviews (
+              id,
+              state,
+              submitted_at,
+              pull_request_id,
+              reviewer_id,
+              author_id,
+              contributors:reviewer_id (
+                username,
+                avatar_url
+              )
             )
           `
           )
@@ -463,41 +496,110 @@ function WorkspacePRs({
               username: string;
               avatar_url: string;
             };
+            reviews?: Array<{
+              id: string;
+              state: string;
+              submitted_at: string;
+              reviewer_id: string;
+              contributors?: {
+                username: string;
+                avatar_url: string;
+              };
+            }>;
           };
 
-          const transformedPRs: PullRequest[] = ((data || []) as unknown as PRData[]).map((pr) => ({
-            id: pr.id,
-            number: pr.number,
-            title: pr.title,
-            state: (() => {
-              if (pr.merged_at) return 'merged';
-              if (pr.state === 'closed') return 'closed';
-              return 'open';
-            })(),
-            repository: {
-              name: pr.repositories?.name || 'unknown',
-              owner: pr.repositories?.owner || 'unknown',
-              avatar_url: pr.repositories?.owner
-                ? `https://avatars.githubusercontent.com/${pr.repositories.owner}`
-                : getFallbackAvatar(),
-            },
-            author: {
-              username: pr.contributors?.username || 'unknown',
-              avatar_url: pr.contributors?.avatar_url || '',
-            },
-            created_at: pr.created_at,
-            updated_at: pr.updated_at,
-            closed_at: pr.closed_at || undefined,
-            merged_at: pr.merged_at || undefined,
-            comments_count: 0, // We don't have this data yet
-            commits_count: pr.commits || 0,
-            additions: pr.additions || 0,
-            deletions: pr.deletions || 0,
-            changed_files: pr.changed_files || 0,
-            labels: [], // We don't have this data yet
-            reviewers: [], // We don't have this data yet
-            url: pr.html_url,
-          }));
+          const transformedPRs: PullRequest[] = ((data || []) as unknown as PRData[]).map((pr) => {
+            // Process reviewers from the reviews data
+            const reviewers: PullRequest['reviewers'] = [];
+            const reviewerMap = new Map<
+              string,
+              { username: string; avatar_url: string; approved: boolean }
+            >();
+
+            if (pr.reviews && Array.isArray(pr.reviews)) {
+              // Sort reviews by submission time to get the latest state per reviewer
+              const sortedReviews = [...pr.reviews].sort((a, b) => {
+                const dateA = new Date(a.submitted_at).getTime();
+                const dateB = new Date(b.submitted_at).getTime();
+                return dateA - dateB; // Earlier reviews first, will be overwritten by later ones
+              });
+
+              sortedReviews.forEach((review) => {
+                if (review.contributors) {
+                  const reviewerUsername = review.contributors.username;
+                  const isApproved = review.state === 'APPROVED' || review.state === 'approved';
+
+                  // Always update with the latest review state (sorted by time)
+                  reviewerMap.set(reviewerUsername, {
+                    username: reviewerUsername,
+                    avatar_url:
+                      review.contributors.avatar_url ||
+                      `https://avatars.githubusercontent.com/${reviewerUsername}`,
+                    approved: isApproved,
+                    ...(review.state && {
+                      state: review.state.toUpperCase() as
+                        | 'APPROVED'
+                        | 'CHANGES_REQUESTED'
+                        | 'COMMENTED'
+                        | 'PENDING'
+                        | 'DISMISSED',
+                    }),
+                    ...(review.submitted_at && {
+                      submitted_at: review.submitted_at,
+                    }),
+                  });
+                }
+              });
+
+              // Convert map to array
+              reviewers.push(...Array.from(reviewerMap.values()));
+            }
+
+            return {
+              id: pr.id,
+              number: pr.number,
+              title: pr.title,
+              state: (() => {
+                if (pr.merged_at) return 'merged';
+                if (pr.state === 'closed') return 'closed';
+                if (pr.state === 'draft') return 'draft';
+                return 'open';
+              })(),
+              repository: {
+                name: pr.repositories?.name || 'unknown',
+                owner: pr.repositories?.owner || 'unknown',
+                avatar_url: pr.repositories?.owner
+                  ? `https://avatars.githubusercontent.com/${pr.repositories.owner}`
+                  : getFallbackAvatar(),
+              },
+              author: {
+                username: pr.contributors?.username || 'unknown',
+                avatar_url: pr.contributors?.avatar_url || '',
+              },
+              created_at: pr.created_at,
+              updated_at: pr.updated_at,
+              closed_at: pr.closed_at || undefined,
+              merged_at: pr.merged_at || undefined,
+              comments_count: 0, // We don't have this data yet
+              commits_count: pr.commits || 0,
+              additions: pr.additions || 0,
+              deletions: pr.deletions || 0,
+              changed_files: pr.changed_files || 0,
+              labels: [], // We don't have this data yet
+              reviewers: reviewers,
+              // Find requested_reviewers from synced data
+              requested_reviewers: (() => {
+                const syncedPR = allSyncedPRs.find(
+                  (p) =>
+                    p.number === pr.number &&
+                    p.repository_owner === pr.repositories?.owner &&
+                    p.repository_name === pr.repositories?.name
+                );
+                return syncedPR?.requested_reviewers || [];
+              })(),
+              url: pr.html_url,
+            };
+          });
           console.log('Transformed PRs:', transformedPRs.length, transformedPRs);
           setPullRequests(transformedPRs);
         }
@@ -510,7 +612,7 @@ function WorkspacePRs({
     }
 
     fetchPullRequests();
-  }, [repositories, selectedRepositories]);
+  }, [repositories, selectedRepositories, workspaceId]);
 
   const handlePullRequestClick = (pr: PullRequest) => {
     window.open(pr.url, '_blank');
@@ -542,14 +644,22 @@ function WorkspacePRs({
 
   return (
     <div className="space-y-6">
-      {/* Conditionally render side-by-side or full width based on reviewer data */}
-      {hasReviewers ? (
+      {/* Metrics and Trends - first, always full width */}
+      <WorkspaceMetricsAndTrends
+        repositories={repositories}
+        selectedRepositories={selectedRepositories}
+        timeRange={timeRange}
+      />
+
+      {/* Review Charts - PR Status and Distribution side by side */}
+      {hasReviewers && (
         <div className="grid gap-6 lg:grid-cols-2">
-          {/* PR Metrics and Trends */}
-          <WorkspaceMetricsAndTrends
-            repositories={repositories}
-            selectedRepositories={selectedRepositories}
-            timeRange={timeRange}
+          {/* PR Author Status Chart - shows PRs grouped by author and their status */}
+          <LazyPRAuthorStatusChart
+            pullRequests={pullRequests}
+            onAuthorClick={handleReviewerClick}
+            title="Pull Request Author Status"
+            maxVisible={8}
           />
 
           {/* Reviewer Distribution Chart */}
@@ -559,13 +669,6 @@ function WorkspacePRs({
             maxVisible={8}
           />
         </div>
-      ) : (
-        /* Full width Metrics and Trends when no reviewers */
-        <WorkspaceMetricsAndTrends
-          repositories={repositories}
-          selectedRepositories={selectedRepositories}
-          timeRange={timeRange}
-        />
       )}
 
       {/* PR Table */}
@@ -3053,6 +3156,7 @@ function WorkspacePage() {
                 repositories={repositories}
                 selectedRepositories={selectedRepositories}
                 timeRange={timeRange}
+                workspaceId={workspace.id}
               />
             </div>
           </TabsContent>

@@ -193,16 +193,13 @@ export function AssigneeDistributionChart({
                 );
               }
 
+              // Determine avatar className based on whether it's clickable
+              const avatarClassName = githubUrl
+                ? 'h-8 w-8 rounded-full hover:ring-2 hover:ring-primary transition-all'
+                : 'h-8 w-8 rounded-full';
+
               const avatarImg = (
-                <img
-                  src={assignee.avatar_url}
-                  alt={assignee.login}
-                  className={
-                    githubUrl
-                      ? 'h-8 w-8 rounded-full hover:ring-2 hover:ring-primary transition-all'
-                      : 'h-8 w-8 rounded-full'
-                  }
-                />
+                <img src={assignee.avatar_url} alt={assignee.login} className={avatarClassName} />
               );
 
               if (githubUrl) {

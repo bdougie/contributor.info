@@ -3,11 +3,27 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import type { Issue } from '../WorkspaceIssuesTable';
 
-// Lazy load the heavy chart component
+// Lazy load the heavy chart component with error boundary
 const AssigneeDistributionChartInner = lazy(() =>
-  import('./AssigneeDistributionChart').then((module) => ({
-    default: module.AssigneeDistributionChart,
-  }))
+  import('./AssigneeDistributionChart')
+    .then((module) => ({
+      default: module.AssigneeDistributionChart,
+    }))
+    .catch((error) => {
+      console.error('Failed to load AssigneeDistributionChart:', error);
+      // Return a fallback component
+      return {
+        default: () => (
+          <Card>
+            <CardContent className="p-6">
+              <div className="text-muted-foreground text-sm">
+                Failed to load Assignee Distribution chart. Please refresh the page.
+              </div>
+            </CardContent>
+          </Card>
+        ),
+      };
+    })
 );
 
 interface AssigneeDistributionChartSkeletonProps {
