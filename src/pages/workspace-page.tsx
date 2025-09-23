@@ -448,7 +448,9 @@ function WorkspacePRs({
               id,
               state,
               submitted_at,
+              pull_request_id,
               reviewer_id,
+              author_id,
               contributors:reviewer_id (
                 username,
                 avatar_url
