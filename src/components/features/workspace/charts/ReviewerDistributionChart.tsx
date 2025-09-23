@@ -50,7 +50,10 @@ export function ReviewerDistributionChart({
     // Track unreviewed count
     let unreviewedCount = 0;
 
-    pullRequests.forEach((pr) => {
+    // Filter for open PRs only (including drafts) - matching PR Review Status Chart behavior
+    const openPRs = pullRequests.filter((pr) => pr.state === 'open' || pr.state === 'draft');
+
+    openPRs.forEach((pr) => {
       if (!pr.reviewers || pr.reviewers.length === 0) {
         unreviewedCount++;
         return;

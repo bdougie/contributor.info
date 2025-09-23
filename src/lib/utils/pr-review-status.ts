@@ -32,11 +32,6 @@ export interface ReviewerStatus {
 }
 
 /**
- * Special reviewer status for PRs that need reviewers
- */
-export const NEEDS_REVIEWER_KEY = '__needs_reviewer__';
-
-/**
  * Creates an empty ReviewerStatus object
  */
 export function createEmptyReviewerStatus(
@@ -56,25 +51,6 @@ export function createEmptyReviewerStatus(
     dismissedReviews: 0,
     blockedPRs: 0,
     isBot,
-  };
-}
-
-/**
- * Creates the special "Needs Reviewer" status entry
- */
-export function createNeedsReviewerStatus(): ReviewerStatus {
-  return {
-    username: 'Needs Reviewer',
-    avatar_url: '',
-    openPRsCount: 0,
-    requestedReviews: 0,
-    pendingReviews: 0,
-    approvedReviews: 0,
-    changesRequestedReviews: 0,
-    commentedReviews: 0,
-    dismissedReviews: 0,
-    blockedPRs: 0,
-    isBot: false,
   };
 }
 
@@ -162,10 +138,6 @@ export function isPRBlocked(reviewers: PRReviewer[]): boolean {
  */
 export function sortReviewerStatuses(statuses: ReviewerStatus[]): ReviewerStatus[] {
   return [...statuses].sort((a, b) => {
-    // "Needs Reviewer" always comes first
-    if (a.username === 'Needs Reviewer') return -1;
-    if (b.username === 'Needs Reviewer') return 1;
-
     // Sort by blocked PRs (descending)
     if (a.blockedPRs !== b.blockedPRs) {
       return b.blockedPRs - a.blockedPRs;
@@ -201,11 +173,6 @@ export function getGitHubReviewUrl(
   reviewer: ReviewerStatus,
   repositories?: Array<{ owner: string; name: string }>
 ): string | null {
-  // No URL for "Needs Reviewer"
-  if (reviewer.username === 'Needs Reviewer' || reviewer.username === NEEDS_REVIEWER_KEY) {
-    return null;
-  }
-
   const encodedUsername = encodeGitHubUsername(reviewer.username);
 
   // Single repository search
@@ -230,7 +197,7 @@ export function filterReviewerStatuses(
   if (!excludeBots) {
     return statuses;
   }
-  return statuses.filter((status) => !status.isBot || status.username === 'Needs Reviewer');
+  return statuses.filter((status) => !status.isBot);
 }
 
 /**
@@ -314,17 +281,7 @@ export function calculateReviewerStatusDistribution(
       updateReviewerStatus(reviewerStatus, reviewer, isBlocked);
     });
 
-    // Track PRs without any reviewers (need initial review)
-    if (reviewersForThisPR.length === 0) {
-      let needsReviewerStatus = statusMap.get(NEEDS_REVIEWER_KEY);
-      if (!needsReviewerStatus) {
-        needsReviewerStatus = createNeedsReviewerStatus();
-        statusMap.set(NEEDS_REVIEWER_KEY, needsReviewerStatus);
-      }
-      needsReviewerStatus.openPRsCount++;
-      needsReviewerStatus.requestedReviews++;
-      needsReviewerStatus.blockedPRs++;
-    }
+    // Skip PRs without reviewers - they don't contribute to reviewer workload
   });
 
   // Convert to array

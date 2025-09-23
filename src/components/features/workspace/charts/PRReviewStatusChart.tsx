@@ -10,7 +10,6 @@ import {
   GitPullRequest,
   Clock,
   AlertCircle,
-  Users,
   CheckCircle2,
 } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
@@ -18,7 +17,6 @@ import { isBot } from '@/lib/utils/bot-detection';
 import type { PullRequest } from '../WorkspacePullRequestsTable';
 import {
   type ReviewerStatus,
-  NEEDS_REVIEWER_KEY,
   sortReviewerStatuses,
   getGitHubReviewUrl,
   getGitHubAvatarUrl,
@@ -71,12 +69,7 @@ export function PRReviewStatusChart({
 
   const handleReviewerClick = (reviewer: ReviewerStatus) => {
     if (!onReviewerClick) return;
-
-    if (reviewer.username === 'Needs Reviewer') {
-      onReviewerClick(NEEDS_REVIEWER_KEY);
-    } else {
-      onReviewerClick(reviewer.username);
-    }
+    onReviewerClick(reviewer.username);
   };
 
   // Calculate totals for summary
@@ -111,13 +104,6 @@ export function PRReviewStatusChart({
                 <div className="flex items-center gap-3">
                   {/* Avatar */}
                   {(() => {
-                    if (reviewer.username === 'Needs Reviewer') {
-                      return (
-                        <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                          <Users className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                      );
-                    }
                     if (githubUrl) {
                       return (
                         <a
