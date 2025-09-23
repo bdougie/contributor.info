@@ -5,6 +5,7 @@ import { BarChart3, Lock, Loader2, AlertCircle } from '@/components/ui/icon';
 import { useGitHubAuth } from '@/hooks/use-github-auth';
 import { toast } from 'sonner';
 import { trackEvent } from '@/lib/posthog-lazy';
+import { handleApiResponse } from '@/lib/utils/api-helpers';
 
 interface RepositoryTrackingCardProps {
   owner: string;
@@ -122,20 +123,8 @@ export function RepositoryTrackingCard({
         body: JSON.stringify({ owner, repo }),
       });
 
-      const responseText = await response.text();
-      let result;
-      try {
-        result = JSON.parse(responseText);
-      } catch {
-        console.error('Failed to parse response: %s', responseText);
-        throw new Error('Invalid response from server');
-      }
-
+      const result = await handleApiResponse(response, 'track-repository');
       console.log('Track repository response: %o', result);
-
-      if (!response.ok) {
-        throw new Error(result.message || 'Failed to track repository');
-      }
 
       // Check if tracking was successful
       if (result.success) {

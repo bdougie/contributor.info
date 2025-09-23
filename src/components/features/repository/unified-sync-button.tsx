@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { POLLING_CONFIG, isSyncAllowed } from '@/lib/progressive-capture/throttle-config';
 import { getSyncButtonText } from '@/lib/utils/ui-state';
+import { handleApiResponse } from '@/lib/utils/api-helpers';
 
 interface UnifiedSyncButtonProps {
   owner: string;
@@ -155,13 +156,7 @@ export function UnifiedSyncButton({
             body: JSON.stringify({ owner, repo }),
           });
 
-          if (!trackResponse.ok) {
-            const trackError = await trackResponse.text();
-            console.error('Failed to track repository:', trackError);
-            throw new Error(
-              `Failed to track repository: ${trackResponse.status} ${trackResponse.statusText}`
-            );
-          }
+          await handleApiResponse(trackResponse, 'track-repository');
 
           // Wait a moment for tracking to initialize
           await new Promise((resolve) => setTimeout(resolve, 2000));
