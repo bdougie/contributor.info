@@ -122,7 +122,7 @@ export function useRepositoryTracking({
 
     try {
       // Call the tracking API endpoint
-      const response = await fetch('/.netlify/functions/api-track-repository', {
+      const response = await fetch('/api/track-repository', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -131,6 +131,14 @@ export function useRepositoryTracking({
         body: JSON.stringify({ owner, repo }),
       });
 
+      // Check content-type before parsing
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Non-JSON response received:', text.substring(0, 200));
+        throw new Error('Invalid response format from server');
+      }
+
       const result = await response.json();
 
       if (!response.ok) {
@@ -138,26 +146,6 @@ export function useRepositoryTracking({
       }
 
       // Start polling for repository creation
-      pollForRepository(owner, repo);
-
-      return { success: true, repositoryId: result.repositoryId };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to track repository';
-
-      setState({
-        status: 'error',
-        repository: null,
-        message: null,
-        error: errorMessage,
-      });
-
-      return { success: false, error: errorMessage };
-    }
-  }, [owner, repo, isLoggedIn]);
-
-  // Poll for repository creation after tracking
-  const pollForRepository = useCallback(
-    (owner: string, repo: string) => {
       let pollCount = 0;
       const maxPolls = 60; // 2 minutes max
 
@@ -201,11 +189,20 @@ export function useRepositoryTracking({
         }
       }, 2000);
 
-      // Clean up on unmount
-      return () => clearInterval(pollInterval);
-    },
-    [onTrackingComplete]
-  );
+      return { success: true, repositoryId: result.repositoryId };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to track repository';
+
+      setState({
+        status: 'error',
+        repository: null,
+        message: null,
+        error: errorMessage,
+      });
+
+      return { success: false, error: errorMessage };
+    }
+  }, [owner, repo, isLoggedIn, state.status, onTrackingComplete]);
 
   // Check repository on mount and when owner/repo changes
   useEffect(() => {
