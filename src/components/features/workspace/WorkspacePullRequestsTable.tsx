@@ -64,10 +64,12 @@ export interface PullRequest {
     name: string;
     color: string;
   }>;
-  reviewers: Array<{
+  reviewers?: Array<{
     username: string;
     avatar_url: string;
     approved: boolean;
+    state?: 'APPROVED' | 'CHANGES_REQUESTED' | 'COMMENTED' | 'PENDING' | 'DISMISSED';
+    submitted_at?: string;
   }>;
   url: string;
 }

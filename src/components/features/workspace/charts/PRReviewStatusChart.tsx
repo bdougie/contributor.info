@@ -16,19 +16,16 @@ import {
 import { cn } from '@/lib/utils';
 import { isBot } from '@/lib/utils/bot-detection';
 import type { PullRequest } from '../WorkspacePullRequestsTable';
-
-interface ReviewerStatus {
-  username: string;
-  avatar_url: string;
-  openPRsCount: number;
-  requestedReviews: number;
-  pendingReviews: number;
-  approvedReviews: number;
-  changesRequestedReviews: number;
-  blockedPRs: number; // PRs waiting for this reviewer
-  isBot?: boolean;
-  averageReviewTime?: number; // in hours
-}
+import {
+  type ReviewerStatus,
+  NEEDS_REVIEWER_KEY,
+  sortReviewerStatuses,
+  getGitHubReviewUrl,
+  getGitHubAvatarUrl,
+  filterReviewerStatuses,
+  calculateReviewTotals,
+  calculateReviewerStatusDistribution,
+} from '@/lib/utils/pr-review-status';
 
 interface PRReviewStatusChartProps {
   pullRequests: PullRequest[];
@@ -52,101 +49,16 @@ export function PRReviewStatusChart({
 
   // Calculate reviewer status distribution
   const reviewerStatusData = useMemo(() => {
-    const statusMap = new Map<string, ReviewerStatus>();
+    // Use the consolidated function to calculate reviewer statuses
+    const statusArray = calculateReviewerStatusDistribution(pullRequests, (username) =>
+      isBot({ username })
+    );
 
-    // Track PRs that need review (open PRs)
-    const openPRs = pullRequests.filter((pr) => pr.state === 'open' || pr.state === 'draft');
+    // Apply bot filtering before sorting
+    const filteredArray = filterReviewerStatuses(statusArray, excludeBots);
 
-    // Process each open PR to understand review status
-    openPRs.forEach((pr) => {
-      // Process assigned reviewers who haven't reviewed yet (requested reviewers)
-      // Since we don't have requested_reviewers in the current interface, we'll simulate it
-      // by identifying PRs without reviews or with pending reviews
-
-      // Get all reviewers for this PR
-      const reviewersForThisPR = pr.reviewers || [];
-
-      // Check if PR is blocked (no approved reviews)
-      const hasApprovedReview = reviewersForThisPR.some((r) => r.approved);
-      const isBlocked = !hasApprovedReview && reviewersForThisPR.length > 0;
-
-      // Process each reviewer
-      reviewersForThisPR.forEach((reviewer) => {
-        const isBotUser = isBot({ username: reviewer.username });
-
-        // Skip bots if excluded
-        if (excludeBots && isBotUser) {
-          return;
-        }
-
-        const existing = statusMap.get(reviewer.username);
-        if (existing) {
-          existing.openPRsCount++;
-
-          if (reviewer.approved) {
-            existing.approvedReviews++;
-          } else {
-            existing.pendingReviews++;
-            if (isBlocked) {
-              existing.blockedPRs++;
-            }
-          }
-        } else {
-          statusMap.set(reviewer.username, {
-            username: reviewer.username,
-            avatar_url: reviewer.avatar_url,
-            openPRsCount: 1,
-            requestedReviews: 0, // Will be calculated below
-            pendingReviews: reviewer.approved ? 0 : 1,
-            approvedReviews: reviewer.approved ? 1 : 0,
-            changesRequestedReviews: 0, // Would need additional data
-            blockedPRs: !reviewer.approved && isBlocked ? 1 : 0,
-            isBot: isBotUser,
-          });
-        }
-      });
-
-      // Also track PRs without any reviewers (need initial review)
-      if (reviewersForThisPR.length === 0) {
-        // These PRs need reviewers assigned
-        const unassignedKey = '__needs_reviewer__';
-        const existing = statusMap.get(unassignedKey);
-        if (existing) {
-          existing.requestedReviews++;
-        } else {
-          statusMap.set(unassignedKey, {
-            username: 'Needs Reviewer',
-            avatar_url: '',
-            openPRsCount: 1,
-            requestedReviews: 1,
-            pendingReviews: 0,
-            approvedReviews: 0,
-            changesRequestedReviews: 0,
-            blockedPRs: 1,
-            isBot: false,
-          });
-        }
-      }
-    });
-
-    // Calculate requested reviews (PRs waiting for initial review from each person)
-    // Note: requestedReviews represents PRs that need initial review
-    // pendingReviews represents all non-approved reviews (including in-progress ones)
-
-    // Convert to array
-    const statusArray = Array.from(statusMap.values());
-
-    // Sort - blocked PRs first, then by total count
-    statusArray.sort((a, b) => {
-      // First sort by blocked PRs (descending)
-      if (a.blockedPRs !== b.blockedPRs) {
-        return b.blockedPRs - a.blockedPRs;
-      }
-      // Then by total count (descending)
-      return b.openPRsCount - a.openPRsCount;
-    });
-
-    return statusArray;
+    // Sort by priority
+    return sortReviewerStatuses(filteredArray);
   }, [pullRequests, excludeBots]);
 
   const visibleReviewers = isExpanded
@@ -158,41 +70,19 @@ export function PRReviewStatusChart({
   const maxCount = Math.max(...reviewerStatusData.map((r) => r.openPRsCount), 1);
 
   const handleReviewerClick = (reviewer: ReviewerStatus) => {
+    if (!onReviewerClick) return;
+
     if (reviewer.username === 'Needs Reviewer') {
-      onReviewerClick?.('__needs_reviewer__');
+      onReviewerClick(NEEDS_REVIEWER_KEY);
     } else {
-      onReviewerClick?.(reviewer.username);
+      onReviewerClick(reviewer.username);
     }
   };
 
   // Calculate totals for summary
   const totals = useMemo(() => {
-    return reviewerStatusData.reduce(
-      (acc, reviewer) => ({
-        totalBlocked: acc.totalBlocked + reviewer.blockedPRs,
-        totalRequested: acc.totalRequested + reviewer.requestedReviews,
-        totalPending: acc.totalPending + reviewer.pendingReviews,
-        totalApproved: acc.totalApproved + reviewer.approvedReviews,
-      }),
-      { totalBlocked: 0, totalRequested: 0, totalPending: 0, totalApproved: 0 }
-    );
+    return calculateReviewTotals(reviewerStatusData);
   }, [reviewerStatusData]);
-
-  // Generate GitHub URL for PRs awaiting review from this reviewer
-  const getGitHubReviewUrl = (reviewer: ReviewerStatus) => {
-    if (reviewer.username === 'Needs Reviewer') {
-      return null;
-    }
-
-    // If we have repositories info, create a more specific search
-    if (repositories && repositories.length === 1) {
-      const repo = repositories[0];
-      return `https://github.com/${repo.owner}/${repo.name}/pulls?q=is%3Apr+is%3Aopen+review-requested%3A${reviewer.username}`;
-    }
-
-    // For multiple repos or no repo info, search all PRs requesting review from this user
-    return `https://github.com/pulls?q=is%3Apr+is%3Aopen+review-requested%3A${reviewer.username}`;
-  };
 
   if (reviewerStatusData.length === 0) {
     return null;
@@ -210,7 +100,7 @@ export function PRReviewStatusChart({
         <div className="space-y-3">
           {visibleReviewers.map((reviewer) => {
             const totalForReviewer = reviewer.openPRsCount;
-            const githubUrl = getGitHubReviewUrl(reviewer);
+            const githubUrl = getGitHubReviewUrl(reviewer, repositories);
 
             return (
               <div
@@ -239,18 +129,26 @@ export function PRReviewStatusChart({
                           title={`View PRs awaiting review from ${reviewer.username}`}
                         >
                           <img
-                            src={reviewer.avatar_url}
+                            src={reviewer.avatar_url || getGitHubAvatarUrl(reviewer.username)}
                             alt={reviewer.username}
                             className="h-8 w-8 rounded-full hover:ring-2 hover:ring-primary transition-all"
+                            onError={(e) => {
+                              // Fallback to GitHub default avatar if image fails to load
+                              e.currentTarget.src = getGitHubAvatarUrl(reviewer.username);
+                            }}
                           />
                         </a>
                       );
                     }
                     return (
                       <img
-                        src={reviewer.avatar_url}
+                        src={reviewer.avatar_url || getGitHubAvatarUrl(reviewer.username)}
                         alt={reviewer.username}
                         className="h-8 w-8 rounded-full flex-shrink-0"
+                        onError={(e) => {
+                          // Fallback to GitHub default avatar if image fails to load
+                          e.currentTarget.src = getGitHubAvatarUrl(reviewer.username);
+                        }}
                       />
                     );
                   })()}
@@ -310,6 +208,15 @@ export function PRReviewStatusChart({
                               className="bg-red-500 dark:bg-red-600 transition-all duration-500 ease-out"
                               style={{ width: `${(reviewer.blockedPRs / maxCount) * 100}%` }}
                               title={`${reviewer.blockedPRs} blocked`}
+                            />
+                          )}
+                          {reviewer.changesRequestedReviews > 0 && (
+                            <div
+                              className="bg-orange-500 dark:bg-orange-600 transition-all duration-500 ease-out"
+                              style={{
+                                width: `${(reviewer.changesRequestedReviews / maxCount) * 100}%`,
+                              }}
+                              title={`${reviewer.changesRequestedReviews} changes requested`}
                             />
                           )}
                           {reviewer.pendingReviews > 0 && (
@@ -382,7 +289,21 @@ export function PRReviewStatusChart({
                   {totals.totalBlocked} blocked
                 </span>
               )}
-              {totals.totalApproved} approved, {totals.totalPending} pending
+              {totals.totalApproved > 0 && (
+                <span className="text-green-600 dark:text-green-400 mr-2">
+                  {totals.totalApproved} approved
+                </span>
+              )}
+              {totals.totalPending > 0 && (
+                <span className="text-yellow-600 dark:text-yellow-400 mr-2">
+                  {totals.totalPending} pending
+                </span>
+              )}
+              {totals.totalChangesRequested > 0 && (
+                <span className="text-orange-600 dark:text-orange-400">
+                  {totals.totalChangesRequested} changes requested
+                </span>
+              )}
             </span>
           </div>
           <div className="flex items-center justify-end gap-4">
