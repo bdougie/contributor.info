@@ -71,6 +71,10 @@ export interface PullRequest {
     state?: 'APPROVED' | 'CHANGES_REQUESTED' | 'COMMENTED' | 'PENDING' | 'DISMISSED';
     submitted_at?: string;
   }>;
+  requested_reviewers?: Array<{
+    username: string;
+    avatar_url: string;
+  }>;
   url: string;
 }
 

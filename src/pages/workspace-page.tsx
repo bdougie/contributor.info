@@ -552,6 +552,18 @@ function WorkspacePRs({
               changed_files: pr.changed_files || 0,
               labels: [], // We don't have this data yet
               reviewers: reviewers,
+              // Mock requested_reviewers for testing - in production this would come from GitHub API
+              requested_reviewers:
+                reviewers.length === 0 && Math.random() > 0.3
+                  ? [
+                      {
+                        username: ['alice', 'bob', 'charlie', 'david', 'eve'][
+                          Math.floor(Math.random() * 5)
+                        ],
+                        avatar_url: `https://github.com/${['alice', 'bob', 'charlie', 'david', 'eve'][Math.floor(Math.random() * 5)]}.png`,
+                      },
+                    ]
+                  : [],
               url: pr.html_url,
             };
           });

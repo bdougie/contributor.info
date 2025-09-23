@@ -12,9 +12,9 @@ import type { PullRequest } from '../WorkspacePullRequestsTable';
 interface ReviewerData {
   username: string;
   avatar_url: string;
-  totalReviews: number;
-  approvedReviews: number;
-  pendingReviews: number;
+  totalPRs: number; // Number of PRs this reviewer is assigned to
+  approvedPRs: number; // Number of PRs where this reviewer has approved
+  pendingPRs: number; // Number of PRs where this reviewer hasn't approved yet
   percentage: number;
   isBot?: boolean;
 }
@@ -43,7 +43,7 @@ export function ReviewerDistributionChart({
   const [isExpanded, setIsExpanded] = useState(false);
   const [viewMode, setViewMode] = useState<'total' | 'approved' | 'pending'>('total');
 
-  // Calculate reviewer distribution
+  // Calculate reviewer distribution - showing how many PRs each reviewer is assigned to
   const reviewerData = useMemo(() => {
     const reviewerMap = new Map<string, ReviewerData>();
 
@@ -54,12 +54,43 @@ export function ReviewerDistributionChart({
     const openPRs = pullRequests.filter((pr) => pr.state === 'open' || pr.state === 'draft');
 
     openPRs.forEach((pr) => {
-      if (!pr.reviewers || pr.reviewers.length === 0) {
+      // Use requested_reviewers to show who is assigned to review
+      // If requested_reviewers doesn't exist, fall back to reviewers who have already reviewed
+      const requestedReviewers = pr.requested_reviewers || [];
+      const actualReviewers = pr.reviewers || [];
+
+      // Combine both lists - requested reviewers and those who have already reviewed
+      const allReviewers = new Map<
+        string,
+        { username: string; avatar_url: string; hasReviewed: boolean; approved: boolean }
+      >();
+
+      // Add requested reviewers first
+      requestedReviewers.forEach((reviewer) => {
+        allReviewers.set(reviewer.username, {
+          ...reviewer,
+          hasReviewed: false,
+          approved: false,
+        });
+      });
+
+      // Add/update with reviewers who have actually reviewed
+      actualReviewers.forEach((reviewer) => {
+        allReviewers.set(reviewer.username, {
+          username: reviewer.username,
+          avatar_url: reviewer.avatar_url,
+          hasReviewed: true,
+          approved: reviewer.approved,
+        });
+      });
+
+      if (allReviewers.size === 0) {
         unreviewedCount++;
         return;
       }
 
-      pr.reviewers.forEach((reviewer) => {
+      // For each PR, track which reviewers are assigned and their status
+      allReviewers.forEach((reviewer) => {
         const isBotUser = isBot({ username: reviewer.username });
 
         // Skip bots if excluded
@@ -69,19 +100,21 @@ export function ReviewerDistributionChart({
 
         const existing = reviewerMap.get(reviewer.username);
         if (existing) {
-          existing.totalReviews++;
+          // This reviewer is on another PR - increment their PR count
+          existing.totalPRs++;
           if (reviewer.approved) {
-            existing.approvedReviews++;
+            existing.approvedPRs++;
           } else {
-            existing.pendingReviews++;
+            existing.pendingPRs++;
           }
         } else {
+          // First time seeing this reviewer
           reviewerMap.set(reviewer.username, {
             username: reviewer.username,
             avatar_url: reviewer.avatar_url,
-            totalReviews: 1,
-            approvedReviews: reviewer.approved ? 1 : 0,
-            pendingReviews: reviewer.approved ? 0 : 1,
+            totalPRs: 1, // They're assigned to this PR
+            approvedPRs: reviewer.approved ? 1 : 0,
+            pendingPRs: reviewer.approved ? 0 : 1,
             percentage: 0,
             isBot: isBotUser,
           });
@@ -94,34 +127,31 @@ export function ReviewerDistributionChart({
       reviewerMap.set('__unreviewed__', {
         username: 'Unreviewed',
         avatar_url: '',
-        totalReviews: unreviewedCount,
-        approvedReviews: 0,
-        pendingReviews: unreviewedCount,
+        totalPRs: unreviewedCount,
+        approvedPRs: 0,
+        pendingPRs: unreviewedCount,
         percentage: 0,
         isBot: false,
       });
     }
 
     // Convert to array and calculate percentages
-    const totalReviews = Array.from(reviewerMap.values()).reduce(
-      (sum, r) => sum + r.totalReviews,
-      0
-    );
+    const totalPRCount = Array.from(reviewerMap.values()).reduce((sum, r) => sum + r.totalPRs, 0);
 
     const reviewerArray = Array.from(reviewerMap.values()).map((reviewer) => ({
       ...reviewer,
-      percentage: totalReviews > 0 ? (reviewer.totalReviews / totalReviews) * 100 : 0,
+      percentage: totalPRCount > 0 ? (reviewer.totalPRs / totalPRCount) * 100 : 0,
     }));
 
     // Sort by count descending based on view mode
     reviewerArray.sort((a, b) => {
       switch (viewMode) {
         case 'approved':
-          return b.approvedReviews - a.approvedReviews;
+          return b.approvedPRs - a.approvedPRs;
         case 'pending':
-          return b.pendingReviews - a.pendingReviews;
+          return b.pendingPRs - a.pendingPRs;
         default:
-          return b.totalReviews - a.totalReviews;
+          return b.totalPRs - a.totalPRs;
       }
     });
 
@@ -135,11 +165,11 @@ export function ReviewerDistributionChart({
   const maxCount = useMemo(() => {
     switch (viewMode) {
       case 'approved':
-        return Math.max(...reviewerData.map((r) => r.approvedReviews), 1);
+        return Math.max(...reviewerData.map((r) => r.approvedPRs), 1);
       case 'pending':
-        return Math.max(...reviewerData.map((r) => r.pendingReviews), 1);
+        return Math.max(...reviewerData.map((r) => r.pendingPRs), 1);
       default:
-        return Math.max(...reviewerData.map((r) => r.totalReviews), 1);
+        return Math.max(...reviewerData.map((r) => r.totalPRs), 1);
     }
   }, [reviewerData, viewMode]);
 
@@ -158,8 +188,7 @@ export function ReviewerDistributionChart({
       return 0.7;
     }
     // For total view, opacity based on approval ratio
-    const approvalRatio =
-      reviewer.totalReviews > 0 ? reviewer.approvedReviews / reviewer.totalReviews : 0;
+    const approvalRatio = reviewer.totalPRs > 0 ? reviewer.approvedPRs / reviewer.totalPRs : 0;
     if (approvalRatio >= 0.8) {
       return 1;
     } else if (approvalRatio >= 0.5) {
@@ -172,11 +201,11 @@ export function ReviewerDistributionChart({
   const getCount = (reviewer: ReviewerData) => {
     switch (viewMode) {
       case 'approved':
-        return reviewer.approvedReviews;
+        return reviewer.approvedPRs;
       case 'pending':
-        return reviewer.pendingReviews;
+        return reviewer.pendingPRs;
       default:
-        return reviewer.totalReviews;
+        return reviewer.totalPRs;
     }
   };
 
@@ -283,12 +312,12 @@ export function ReviewerDistributionChart({
                         <span title="Approved reviews">
                           <CheckCircle2 className="h-3 w-3 text-green-500" />
                         </span>
-                        <span>{reviewer.approvedReviews}</span>
+                        <span>{reviewer.approvedPRs}</span>
                         <span>/</span>
                         <span title="Pending reviews">
                           <Clock className="h-3 w-3 text-yellow-500" />
                         </span>
-                        <span>{reviewer.pendingReviews}</span>
+                        <span>{reviewer.pendingPRs}</span>
                       </div>
                     )}
                   </div>
@@ -350,8 +379,8 @@ export function ReviewerDistributionChart({
           <div className="flex items-center justify-between text-sm text-muted-foreground">
             <span>Total reviewers: {reviewerData.length}</span>
             <span>
-              Reviews: {reviewerData.reduce((sum, r) => sum + r.approvedReviews, 0)} approved,{' '}
-              {reviewerData.reduce((sum, r) => sum + r.pendingReviews, 0)} pending
+              PRs: {reviewerData.reduce((sum, r) => sum + r.approvedPRs, 0)} approved,{' '}
+              {reviewerData.reduce((sum, r) => sum + r.pendingPRs, 0)} pending
             </span>
           </div>
           <div className="flex items-center justify-end gap-4">
