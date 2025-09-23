@@ -9,19 +9,8 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-09-18T03:56:49.873Z</news:publication_date>
+      <news:publication_date>2025-09-22T19:28:22.276Z</news:publication_date>
       <news:title>continuedev/continue - Contributor Updates</news:title>
-    </news:news>
-  </url>
-  <url>
-    <loc>https://contributor.info/Ad-Astra-Innovia/frontend</loc>
-    <news:news>
-      <news:publication>
-        <news:name>Contributor.info</news:name>
-        <news:language>en</news:language>
-      </news:publication>
-      <news:publication_date>2025-09-18T03:35:31.060Z</news:publication_date>
-      <news:title>Ad-Astra-Innovia/frontend - Contributor Updates</news:title>
     </news:news>
   </url>
 </urlset>
