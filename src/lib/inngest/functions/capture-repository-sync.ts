@@ -10,7 +10,9 @@ const LARGE_REPO_THRESHOLD = 1000;
 const DEFAULT_DAYS_LIMIT = 30;
 
 // Helper function to ensure contributors exist and return their UUIDs
-async function ensureContributorExists(githubUser: any): Promise<string | null> {
+async function ensureContributorExists(
+  githubUser: GitHubPullRequest['user']
+): Promise<string | null> {
   if (!githubUser || !githubUser.id) {
     return null;
   }
@@ -21,20 +23,9 @@ async function ensureContributorExists(githubUser: any): Promise<string | null> 
       {
         github_id: githubUser.id,
         username: githubUser.login,
-        display_name: githubUser.name || null,
-        email: githubUser.email || null,
         avatar_url: githubUser.avatar_url || null,
         profile_url: `https://github.com/${githubUser.login}`,
-        bio: githubUser.bio || null,
-        company: githubUser.company || null,
-        location: githubUser.location || null,
-        blog: githubUser.blog || null,
-        public_repos: githubUser.public_repos || 0,
-        public_gists: githubUser.public_gists || 0,
-        followers: githubUser.followers || 0,
-        following: githubUser.following || 0,
-        github_created_at: githubUser.created_at || new Date().toISOString(),
-        is_bot: githubUser.type === 'Bot' || githubUser.login.includes('[bot]'),
+        is_bot: githubUser.login.includes('[bot]'),
         is_active: true,
         first_seen_at: new Date().toISOString(),
         last_updated_at: new Date().toISOString(),
@@ -173,6 +164,7 @@ export const captureRepositorySync = inngest.createFunction(
       const prsToStore = recentPRs.map((pr: GitHubPullRequest, index: number) => ({
         github_id: pr.id.toString(),
         repository_id: repositoryId,
+        repository_full_name: `${repository.owner}/${repository.name}`,
         number: pr.number,
         title: pr.title,
         body: null, // PR body not available in simplified type
@@ -190,6 +182,7 @@ export const captureRepositorySync = inngest.createFunction(
         commits: pr.commits || 0,
         base_branch: pr.base?.ref || 'main',
         head_branch: pr.head?.ref || 'unknown',
+        html_url: `https://github.com/${repository.owner}/${repository.name}/pull/${pr.number}`,
       }));
 
       const { data, error } = await supabase
@@ -209,10 +202,20 @@ export const captureRepositorySync = inngest.createFunction(
 
     // Step 5: Prepare job queue data (no nested steps)
     const jobsToQueue = await step.run('prepare-job-queue', async () => {
+      interface JobData {
+        name: string;
+        data: {
+          repositoryId: string;
+          repository: { owner: string; name: string };
+          prId: string;
+          prNumber: number;
+          priority: string;
+        };
+      }
       const jobs = {
-        details: [] as any[],
-        reviews: [] as any[],
-        comments: [] as any[],
+        details: [] as JobData[],
+        reviews: [] as JobData[],
+        comments: [] as JobData[],
       };
 
       // Limit the number of detail jobs to queue
@@ -239,7 +242,8 @@ export const captureRepositorySync = inngest.createFunction(
             name: 'capture/pr.details',
             data: {
               repositoryId,
-              prNumber: pr.number.toString(),
+              repository,
+              prNumber: pr.number,
               prId: pr.id,
               priority,
             },
@@ -253,9 +257,9 @@ export const captureRepositorySync = inngest.createFunction(
             name: 'capture/pr.reviews',
             data: {
               repositoryId,
-              prNumber: pr.number.toString(),
+              repository,
+              prNumber: pr.number,
               prId: pr.id,
-              prGithubId: prData.id.toString(),
               priority,
             },
           });
@@ -268,9 +272,9 @@ export const captureRepositorySync = inngest.createFunction(
             name: 'capture/pr.comments',
             data: {
               repositoryId,
-              prNumber: pr.number.toString(),
+              repository,
+              prNumber: pr.number,
               prId: pr.id,
-              prGithubId: prData.id.toString(),
               priority,
             },
           });

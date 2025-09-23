@@ -56,26 +56,22 @@ serve(async (req) => {
     const startDate = new Date(Date.UTC(targetYear, targetMonth - 1, 1, 0, 0, 0, 0))
     const endDate = new Date(Date.UTC(targetYear, targetMonth, 0, 23, 59, 59, 999))
 
-    // Create Supabase client with proper authentication
+    // Create Supabase client with optional authentication
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!
 
-    // Get the authorization header from the request
+    // Get the authorization header from the request (optional)
     const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Authentication required' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
 
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: {
-        headers: {
-          Authorization: authHeader,
-        },
-      },
-    })
+    const supabase = authHeader
+      ? createClient(supabaseUrl, supabaseAnonKey, {
+          global: {
+            headers: {
+              Authorization: authHeader,
+            },
+          },
+        })
+      : createClient(supabaseUrl, supabaseAnonKey)
 
     // First, get the repository ID
     const { data: repoData, error: repoError } = await supabase
@@ -175,13 +171,13 @@ serve(async (req) => {
       .from('reviews')
       .select(`
         id,
-        created_at,
+        submitted_at,
         reviewer_id,
         pull_request_id
       `)
       .in('pull_request_id', pullRequests?.map(pr => pr.id) || [])
-      .gte('created_at', startDate.toISOString())
-      .lte('created_at', endDate.toISOString())
+      .gte('submitted_at', startDate.toISOString())
+      .lte('submitted_at', endDate.toISOString())
 
     if (reviewsError) {
       console.error('Error fetching reviews:', reviewsError)
@@ -190,11 +186,11 @@ serve(async (req) => {
 
     // Get PR comments
     const { data: prComments, error: commentsError } = await supabase
-      .from('pr_comments')
+      .from('comments')
       .select(`
         id,
         created_at,
-        author_id,
+        commenter_id,
         pull_request_id
       `)
       .in('pull_request_id', pullRequests?.map(pr => pr.id) || [])
@@ -248,15 +244,15 @@ serve(async (req) => {
 
     // Count comments per contributor
     prComments?.forEach(comment => {
-      if (!comment.author_id) return
+      if (!comment.commenter_id) return
 
-      if (!contributorMap.has(comment.author_id)) {
+      if (!contributorMap.has(comment.commenter_id)) {
         // Need to fetch contributor info for commenters who didn't create PRs
         // For now, we'll skip them (they wouldn't rank high anyway)
         return
       }
 
-      const stats = contributorMap.get(comment.author_id)!
+      const stats = contributorMap.get(comment.commenter_id)!
       stats.comments_count++
     })
 

@@ -113,7 +113,7 @@
 
 [[redirects]]
   from = "/api/inngest-sync"
-  to = "/.netlify/functions/inngest-sync"
+  to = "/.netlify/functions/inngest-prod"
   status = 200
   force = true
 
