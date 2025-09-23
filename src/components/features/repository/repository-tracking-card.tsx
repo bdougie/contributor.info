@@ -122,23 +122,23 @@ export function RepositoryTrackingCard({
         body: JSON.stringify({ owner, repo }),
       });
 
-      // Check content-type before parsing
-      const contentType = response.headers.get('content-type');
-      let result;
-
-      if (!contentType || !contentType.includes('application/json')) {
-        const responseText = await response.text();
-        console.error('Non-JSON response received:', responseText.substring(0, 200));
-        throw new Error('Invalid response format from server - expected JSON but received HTML');
-      } else {
-        result = await response.json();
-      }
-
-      console.log('Track repository response: %o', result);
-
       if (!response.ok) {
+        // Check content-type to determine how to parse error
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          const responseText = await response.text();
+          console.error('Non-JSON error response received:', responseText.substring(0, 200));
+          throw new Error('Invalid response format from server - expected JSON but received HTML');
+        }
+
+        const result = await response.json();
+        console.log('Track repository error response: %o', result);
         throw new Error(result.message || 'Failed to track repository');
       }
+
+      // Parse successful response
+      const result = await response.json();
+      console.log('Track repository response: %o', result);
 
       // Check if tracking was successful
       if (result.success) {

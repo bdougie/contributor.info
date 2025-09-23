@@ -131,19 +131,21 @@ export function useRepositoryTracking({
         body: JSON.stringify({ owner, repo }),
       });
 
-      // Check content-type before parsing
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        const text = await response.text();
-        console.error('Non-JSON response received:', text.substring(0, 200));
-        throw new Error('Invalid response format from server');
-      }
-
-      const result = await response.json();
-
       if (!response.ok) {
+        // Check content-type to determine how to parse error
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          const text = await response.text();
+          console.error('Non-JSON error response received:', text.substring(0, 200));
+          throw new Error('Invalid response format from server - expected JSON but received HTML');
+        }
+
+        const result = await response.json();
         throw new Error(result.message || 'Failed to track repository');
       }
+
+      // Parse successful response
+      const result = await response.json();
 
       // Start polling for repository creation
       let pollCount = 0;

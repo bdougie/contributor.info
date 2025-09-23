@@ -155,17 +155,17 @@ export function UnifiedSyncButton({
             body: JSON.stringify({ owner, repo }),
           });
 
-          // Check content-type before parsing
-          const contentType = trackResponse.headers.get('content-type');
-          if (!contentType || !contentType.includes('application/json')) {
-            const trackError = await trackResponse.text();
-            console.error('Non-JSON response from track API:', trackError.substring(0, 200));
-            throw new Error(
-              'Invalid response format from server - expected JSON but received HTML'
-            );
-          }
-
           if (!trackResponse.ok) {
+            // Check content-type to determine how to parse error
+            const contentType = trackResponse.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+              const trackError = await trackResponse.text();
+              console.error('Non-JSON error response from track API:', trackError.substring(0, 200));
+              throw new Error(
+                'Invalid response format from server - expected JSON but received HTML'
+              );
+            }
+
             const trackError = await trackResponse.json();
             console.error('Failed to track repository:', trackError);
             throw new Error(
