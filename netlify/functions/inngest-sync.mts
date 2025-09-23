@@ -1,25 +1,12 @@
-// Inngest sync endpoint - properly implements SDK protocol for sync
-// Duplicates inngest-prod logic but at different path
+// Inngest sync endpoint - production endpoint for Inngest sync
+// Uses factory pattern for consistent client configuration
 
 import { Inngest } from "inngest";
 import { serve } from "inngest/lambda";
 import type { Context } from "@netlify/functions";
 
-// Import function creators
-import { createCaptureRepositorySyncGraphQL, createClassifySingleRepository } from "./inngest-prod-functions.mjs";
-
-// Import all capture functions
-import {
-  capturePrDetails,
-  capturePrReviews,
-  capturePrComments,
-  captureIssueComments,
-  captureRepositoryIssues,
-  captureRepositorySync,
-  capturePrDetailsGraphQL,
-  classifyRepositorySize,
-  discoverNewRepository
-} from "../../src/lib/inngest/functions/index-without-embeddings";
+// Import factory functions for consistent client usage
+import { createInngestFunctions } from "../../src/lib/inngest/functions/factory";
 
 // Environment detection
 const isProduction = () => {
@@ -64,25 +51,25 @@ console.log('Inngest Sync Configuration:', {
   environment: isProduction() ? "production" : "preview",
 });
 
-// Create production functions
-const captureRepositorySyncGraphQL = createCaptureRepositorySyncGraphQL(inngest);
-const classifySingleRepository = createClassifySingleRepository(inngest);
+// Create functions using the factory with production client
+const functions = createInngestFunctions(inngest);
 
 // Create the serve handler
 const inngestHandler = serve({
   client: inngest,
   functions: [
-    captureRepositorySyncGraphQL,
-    capturePrDetailsGraphQL,
-    capturePrDetails,
-    capturePrReviews,
-    capturePrComments,
-    captureIssueComments,
-    captureRepositoryIssues,
-    captureRepositorySync,
-    classifySingleRepository,
-    classifyRepositorySize,
-    discoverNewRepository
+    functions.captureRepositorySyncGraphQL,
+    functions.capturePrDetails,
+    functions.capturePrDetailsGraphQL,
+    functions.capturePrReviews,
+    functions.capturePrComments,
+    functions.captureRepositorySync,
+    functions.classifyRepositorySize,
+    functions.classifySingleRepository,
+    functions.updatePrActivity,
+    functions.discoverNewRepository,
+    functions.captureIssueComments,
+    functions.captureRepositoryIssues,
   ],
   servePath: "/.netlify/functions/inngest-sync"
 });
