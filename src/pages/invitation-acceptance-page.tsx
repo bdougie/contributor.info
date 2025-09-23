@@ -11,6 +11,7 @@ import { WorkspaceService } from '@/services/workspace.service';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import type { WorkspaceWithDetails } from '@/types/workspace';
+import { getWorkspaceRoute } from '@/lib/utils/workspace-routes';
 
 interface InvitationDetails {
   id: string;
@@ -123,7 +124,7 @@ export const InvitationAcceptancePage: React.FC = () => {
         });
 
         // Redirect to the workspace dashboard
-        navigate(`/workspace/${invitation.workspace.id}`);
+        navigate(getWorkspaceRoute(invitation.workspace));
       } else {
         // Provide specific error messages based on status code
         const errorMessage = (() => {

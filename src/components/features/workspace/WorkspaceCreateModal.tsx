@@ -13,6 +13,7 @@ import { WorkspaceService } from '@/services/workspace.service';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useAnalytics } from '@/hooks/use-analytics';
+import { getWorkspaceRoute } from '@/lib/utils/workspace-routes';
 import { useFeatureFlags } from '@/lib/feature-flags/context';
 import { FEATURE_FLAGS } from '@/lib/feature-flags/types';
 import type { CreateWorkspaceRequest } from '@/types/workspace';
@@ -21,7 +22,7 @@ import type { User } from '@supabase/supabase-js';
 export interface WorkspaceCreateModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuccess?: (workspaceId: string) => void;
+  onSuccess?: (workspaceSlug: string) => void;
   mode?: 'create' | 'edit';
   initialValues?: Partial<CreateWorkspaceRequest>;
   workspaceId?: string;
@@ -141,12 +142,12 @@ export function WorkspaceCreateModal({
 
           // Call optional success callback
           if (onSuccess) {
-            onSuccess(response.data.id);
+            onSuccess(response.data.slug);
           }
 
           // Navigate to the workspace if creating new one
           if (mode === 'create') {
-            navigate(`/i/${response.data.id}`);
+            navigate(getWorkspaceRoute(response.data));
           }
         } else {
           setError(

@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { trackEvent } from '@/lib/posthog-lazy';
 import type { CreateWorkspaceRequest } from '@/types/workspace';
 import type { User } from '@supabase/supabase-js';
+import { getWorkspaceRoute } from '@/lib/utils/workspace-routes';
 
 export default function WorkspaceNewPage() {
   const navigate = useNavigate();
@@ -76,7 +77,14 @@ export default function WorkspaceNewPage() {
         }
 
         toast.success('Workspace created successfully!');
-        navigate(`/i/${response.data.id}`);
+        // Ensure we have a valid slug before navigating
+        const slugOrId = response.data.slug || response.data.id;
+        if (!slugOrId) {
+          console.error('No slug or ID returned from workspace creation');
+          setError('Workspace created but navigation failed. Please refresh the page.');
+          return;
+        }
+        navigate(getWorkspaceRoute(response.data));
       } else {
         setError(response.error || 'Failed to create workspace');
 

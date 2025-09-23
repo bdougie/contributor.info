@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Check, X, Loader2, ExternalLink } from '@/components/ui/icon';
 import { formatDistanceToNow } from 'date-fns';
+import { getWorkspaceRoute } from '@/lib/utils/workspace-routes';
 
 interface UsageStats {
   tier: string;
@@ -48,7 +49,7 @@ export function BillingDashboard() {
     if (success === 'true' && primaryWorkspace) {
       // Redirect to workspace after successful payment
       const redirectTimer = setTimeout(() => {
-        navigate(`/workspaces/${primaryWorkspace.id}`);
+        navigate(getWorkspaceRoute(primaryWorkspace));
       }, 2000); // Give user time to see success state
       return () => clearTimeout(redirectTimer);
     }
