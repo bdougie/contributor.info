@@ -27,7 +27,7 @@ async function checkInngestEndpoint() {
 
     if (data.functions && data.functions.length > 0) {
       data.functions.forEach((fn, index) => {
-        console.log(`   ${index + 1}. ${fn.id} → ${fn.event}`);
+        console.log('   %s. %s → %s', index + 1, fn.id, fn.event);
       });
     } else {
       console.log('   No functions registered yet.');
@@ -40,12 +40,12 @@ async function checkInngestEndpoint() {
 
     console.log('\n📤 Test Event Commands:');
     console.log('Test function:');
-    console.log(`   curl -X POST http://localhost:8288/e/test/local.hello \\
+    console.log(`   curl -X POST http://localhost:8288/e/test/local.hello \\\
      -H "Content-Type: application/json" \\
      -d '{"data": {"message": "Test from script!"}}'`);
 
     console.log('\nRepository sync test:');
-    console.log(`   curl -X POST http://localhost:8288/e/capture/repository.sync.graphql \\
+    console.log(`   curl -X POST http://localhost:8288/e/capture/repository.sync.graphql \\\
      -H "Content-Type: application/json" \\
      -d '{"data": {"repositoryId": "test-repo-id", "days": 7}}'`);
 

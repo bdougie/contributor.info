@@ -39,9 +39,9 @@ const events = [
 async function sendEvent(event, port = 8288) {
   const url = `http://localhost:${port}/e/${event.name}`;
 
-  console.log(`\n📤 Sending event: ${event.description}`);
-  console.log(`   Event: ${event.name}`);
-  console.log(`   Data:`, JSON.stringify(event.data, null, 2));
+  console.log('\n📤 Sending event: %s', event.description);
+  console.log('   Event: %s', event.name);
+  console.log('   Data:', JSON.stringify(event.data, null, 2));
 
   try {
     const response = await fetch(url, {
@@ -54,17 +54,17 @@ async function sendEvent(event, port = 8288) {
 
     if (response.ok) {
       const result = await response.json();
-      console.log(`   ✅ Event sent successfully!`);
-      console.log(`   Response:`, result);
+      console.log('   ✅ Event sent successfully!');
+      console.log('   Response:', result);
       return true;
     } else {
-      console.log(`   ❌ Failed to send event: ${response.status} ${response.statusText}`);
+      console.log('   ❌ Failed to send event: %s %s', response.status, response.statusText);
       const text = await response.text();
-      if (text) console.log(`   Error:`, text);
+      if (text) console.log('   Error:', text);
       return false;
     }
   } catch (error) {
-    console.log(`   ❌ Error sending event:`, error.message);
+    console.log('   ❌ Error sending event:', error.message);
     return false;
   }
 }
@@ -108,7 +108,7 @@ async function main() {
   console.log('\n====================================');
   console.log('  Results');
   console.log('====================================');
-  console.log(`✅ Successfully sent: ${successCount}/${events.length} events`);
+  console.log('✅ Successfully sent: %s/%s events', successCount, events.length);
   console.log('\n📊 Check event processing:');
   console.log('   1. Event Stream: http://localhost:8288/stream');
   console.log('   2. Function Runs: http://localhost:8288/runs');
