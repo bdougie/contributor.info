@@ -209,7 +209,7 @@ export function ReviewerDistributionChart({
     }
   };
 
-  // Generate GitHub URL for all PRs from this reviewer
+  // Generate GitHub URL for all PRs reviewed by this user
   const getGitHubPRsUrl = (reviewer: ReviewerData) => {
     if (reviewer.username === 'Unreviewed') {
       return null;
@@ -218,11 +218,12 @@ export function ReviewerDistributionChart({
     // If we have repositories info, create a more specific search
     if (repositories && repositories.length === 1) {
       const repo = repositories[0];
-      return `https://github.com/${repo.owner}/${repo.name}/pulls?q=is%3Apr+is%3Aopen+author%3A${reviewer.username}`;
+      // Search for PRs where this user is a requested reviewer or has reviewed
+      return `https://github.com/${repo.owner}/${repo.name}/pulls?q=is%3Apr+is%3Aopen+reviewed-by%3A${reviewer.username}+user-review-requested%3A${reviewer.username}`;
     }
 
-    // For multiple repos or no repo info, search all PRs from this user
-    return `https://github.com/pulls?q=is%3Apr+is%3Aopen+author%3A${reviewer.username}`;
+    // For multiple repos or no repo info, search all PRs reviewed by this user
+    return `https://github.com/pulls?q=is%3Apr+is%3Aopen+reviewed-by%3A${reviewer.username}+user-review-requested%3A${reviewer.username}`;
   };
 
   if (reviewerData.length === 0) {
@@ -278,7 +279,7 @@ export function ReviewerDistributionChart({
                         rel="noopener noreferrer"
                         className="flex-shrink-0"
                         onClick={(e) => e.stopPropagation()}
-                        title={`View all PRs created by ${reviewer.username}`}
+                        title={`View PRs reviewed by ${reviewer.username}`}
                       >
                         <img
                           src={reviewer.avatar_url}

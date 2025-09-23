@@ -517,24 +517,26 @@ function WorkspacePRs({
             >();
 
             if (pr.reviews && Array.isArray(pr.reviews)) {
-              pr.reviews.forEach((review) => {
+              // Sort reviews by submission time to get the latest state per reviewer
+              const sortedReviews = [...pr.reviews].sort((a, b) => {
+                const dateA = new Date(a.submitted_at).getTime();
+                const dateB = new Date(b.submitted_at).getTime();
+                return dateA - dateB; // Earlier reviews first, will be overwritten by later ones
+              });
+
+              sortedReviews.forEach((review) => {
                 if (review.contributors) {
                   const reviewerUsername = review.contributors.username;
-                  const existing = reviewerMap.get(reviewerUsername);
-
-                  // Track the latest review state for each reviewer
-                  // APPROVED state takes precedence
                   const isApproved = review.state === 'APPROVED' || review.state === 'approved';
 
-                  if (!existing || (isApproved && !existing.approved)) {
-                    reviewerMap.set(reviewerUsername, {
-                      username: reviewerUsername,
-                      avatar_url:
-                        review.contributors.avatar_url ||
-                        `https://avatars.githubusercontent.com/${reviewerUsername}`,
-                      approved: isApproved,
-                    });
-                  }
+                  // Always update with the latest review state (sorted by time)
+                  reviewerMap.set(reviewerUsername, {
+                    username: reviewerUsername,
+                    avatar_url:
+                      review.contributors.avatar_url ||
+                      `https://avatars.githubusercontent.com/${reviewerUsername}`,
+                    approved: isApproved,
+                  });
                 }
               });
 

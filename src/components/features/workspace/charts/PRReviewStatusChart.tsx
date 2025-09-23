@@ -149,21 +149,21 @@ export function PRReviewStatusChart({
                         </Badge>
                       )}
                       {/* Status indicators with counts - next to username like ReviewerDistributionChart */}
-                      {(reviewer.blockedPRs > 0 ||
+                      {(reviewer.changesRequestedReviews > 0 ||
                         reviewer.approvedReviews > 0 ||
                         reviewer.pendingReviews > 0) && (
                         <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          {reviewer.blockedPRs > 0 && (
+                          {reviewer.changesRequestedReviews > 0 && (
                             <>
-                              <span title="Blocked PRs">
+                              <span title="Changes requested (blocked)">
                                 <AlertCircle className="h-3 w-3 text-red-500" />
                               </span>
-                              <span>{reviewer.blockedPRs}</span>
+                              <span>{reviewer.changesRequestedReviews}</span>
                             </>
                           )}
                           {reviewer.approvedReviews > 0 && (
                             <>
-                              {reviewer.blockedPRs > 0 && <span>/</span>}
+                              {reviewer.changesRequestedReviews > 0 && <span>/</span>}
                               <span title="Approved PRs">
                                 <CheckCircle2 className="h-3 w-3 text-green-500" />
                               </span>
@@ -172,9 +172,8 @@ export function PRReviewStatusChart({
                           )}
                           {reviewer.pendingReviews > 0 && (
                             <>
-                              {(reviewer.blockedPRs > 0 || reviewer.approvedReviews > 0) && (
-                                <span>/</span>
-                              )}
+                              {(reviewer.changesRequestedReviews > 0 ||
+                                reviewer.approvedReviews > 0) && <span>/</span>}
                               <span title="Pending reviews">
                                 <Clock className="h-3 w-3 text-yellow-500" />
                               </span>
@@ -189,22 +188,17 @@ export function PRReviewStatusChart({
                     <div className="relative">
                       <div className="h-6 bg-muted rounded-md overflow-hidden">
                         <div className="flex h-full">
-                          {reviewer.blockedPRs > 0 && (
-                            <div
-                              className="bg-red-500 dark:bg-red-600 transition-all duration-500 ease-out"
-                              style={{ width: `${(reviewer.blockedPRs / maxCount) * 100}%` }}
-                              title={`${reviewer.blockedPRs} blocked`}
-                            />
-                          )}
+                          {/* Changes requested = blocked PRs (as per Linear status model) */}
                           {reviewer.changesRequestedReviews > 0 && (
                             <div
-                              className="bg-orange-500 dark:bg-orange-600 transition-all duration-500 ease-out"
+                              className="bg-red-500 dark:bg-red-600 transition-all duration-500 ease-out"
                               style={{
                                 width: `${(reviewer.changesRequestedReviews / maxCount) * 100}%`,
                               }}
-                              title={`${reviewer.changesRequestedReviews} changes requested`}
+                              title={`${reviewer.changesRequestedReviews} changes requested (blocked)`}
                             />
                           )}
+                          {/* Pending reviews */}
                           {reviewer.pendingReviews > 0 && (
                             <div
                               className="bg-yellow-500 dark:bg-yellow-600 transition-all duration-500 ease-out"
@@ -212,6 +206,7 @@ export function PRReviewStatusChart({
                               title={`${reviewer.pendingReviews} pending`}
                             />
                           )}
+                          {/* Approved reviews */}
                           {reviewer.approvedReviews > 0 && (
                             <div
                               className="bg-green-500 dark:bg-green-600 transition-all duration-500 ease-out"
