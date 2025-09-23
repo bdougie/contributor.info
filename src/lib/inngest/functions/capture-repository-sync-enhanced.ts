@@ -272,6 +272,7 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
       const prsToStore = recentPRs.map((pr, index) => ({
         github_id: pr.databaseId?.toString() || '0',
         repository_id: repositoryId,
+        repository_full_name: `${repository.owner}/${repository.name}`,
         number: pr.number,
         title: pr.title,
         body: null, // Basic PR list doesn't include body
@@ -289,6 +290,7 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
         commits: pr.commits?.totalCount || 0,
         base_branch: pr.baseRefName || 'main',
         head_branch: pr.headRefName || 'unknown',
+        html_url: `https://github.com/${repository.owner}/${repository.name}/pull/${pr.number}`,
       }));
 
       const { data, error } = await supabase
