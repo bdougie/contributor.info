@@ -117,6 +117,7 @@ export const createLocalClient = (): Inngest => {
     id: process.env.VITE_INNGEST_APP_ID || 'contributor-info-local',
     isDev: true, // Always dev mode for local
     eventKey: process.env.INNGEST_EVENT_KEY || 'local-dev-key',
-    signingKey: process.env.INNGEST_SIGNING_KEY,
+    // Don't use signing key in dev mode - it causes sync issues
+    // signingKey: process.env.INNGEST_SIGNING_KEY,
   });
 };
