@@ -1,5 +1,4 @@
-import type { Inngest } from 'inngest';
-import type { NonRetriableError } from 'inngest';
+import { Inngest, NonRetriableError } from 'inngest';
 import { supabase } from '../../supabase';
 
 /**
@@ -27,7 +26,7 @@ export function createInngestFunctions(inngest: Inngest) {
       // Validate repositoryId first
       if (!repositoryId) {
         console.error('Missing repositoryId in event data:', event.data);
-        throw new Error(`Missing required field: repositoryId`) as NonRetriableError;
+        throw new NonRetriableError(`Missing required field: repositoryId`);
       }
 
       console.log(`[GraphQL Sync] Starting sync for repository ${repositoryId} for ${days} days`);
@@ -41,7 +40,7 @@ export function createInngestFunctions(inngest: Inngest) {
           .maybeSingle();
 
         if (error || !repo) {
-          throw new Error(`Repository not found: ${repositoryId}`) as NonRetriableError;
+          throw new NonRetriableError(`Repository not found: ${repositoryId}`);
         }
 
         return repo;
@@ -88,7 +87,7 @@ export function createInngestFunctions(inngest: Inngest) {
       const { pull_request_id, repository_id } = event.data;
 
       if (!pull_request_id || !repository_id) {
-        throw new Error('Missing required fields') as NonRetriableError;
+        throw new NonRetriableError('Missing required fields');
       }
 
       console.log(`Capturing PR details for PR ${pull_request_id} in repo ${repository_id}`);
@@ -125,7 +124,7 @@ export function createInngestFunctions(inngest: Inngest) {
       } = event.data;
 
       if (!pull_request_id || !repository_id) {
-        throw new Error('Missing required fields') as NonRetriableError;
+        throw new NonRetriableError('Missing required fields');
       }
 
       console.log(
@@ -160,7 +159,7 @@ export function createInngestFunctions(inngest: Inngest) {
       const { pull_request_id, repository_id } = event.data;
 
       if (!pull_request_id || !repository_id) {
-        throw new Error('Missing required fields') as NonRetriableError;
+        throw new NonRetriableError('Missing required fields');
       }
 
       console.log(`Capturing PR reviews for PR ${pull_request_id}`);
@@ -190,7 +189,7 @@ export function createInngestFunctions(inngest: Inngest) {
       const { pull_request_id, repository_id } = event.data;
 
       if (!pull_request_id || !repository_id) {
-        throw new Error('Missing required fields') as NonRetriableError;
+        throw new NonRetriableError('Missing required fields');
       }
 
       console.log(`Capturing PR comments for PR ${pull_request_id}`);
@@ -221,7 +220,7 @@ export function createInngestFunctions(inngest: Inngest) {
       const { repositoryId, days = 7 } = event.data;
 
       if (!repositoryId) {
-        throw new Error('Missing repositoryId') as NonRetriableError;
+        throw new NonRetriableError('Missing repositoryId');
       }
 
       console.log(`[REST] Syncing repository ${repositoryId} for ${days} days`);
@@ -268,7 +267,7 @@ export function createInngestFunctions(inngest: Inngest) {
       const { repositoryId } = event.data;
 
       if (!repositoryId) {
-        throw new Error('Missing repositoryId') as NonRetriableError;
+        throw new NonRetriableError('Missing repositoryId');
       }
 
       console.log(`Classifying repository ${repositoryId}`);
@@ -296,7 +295,7 @@ export function createInngestFunctions(inngest: Inngest) {
       const { pull_request_id } = event.data;
 
       if (!pull_request_id) {
-        throw new Error('Missing pull_request_id') as NonRetriableError;
+        throw new NonRetriableError('Missing pull_request_id');
       }
 
       console.log(`Updating activity for PR ${pull_request_id}`);
@@ -324,7 +323,7 @@ export function createInngestFunctions(inngest: Inngest) {
       const { repository, owner, name } = event.data;
 
       if (!repository && (!owner || !name)) {
-        throw new Error('Missing repository information') as NonRetriableError;
+        throw new NonRetriableError('Missing repository information');
       }
 
       const repoName = repository || `${owner}/${name}`;
@@ -354,7 +353,7 @@ export function createInngestFunctions(inngest: Inngest) {
       const { issue_id, repository_id } = event.data;
 
       if (!issue_id || !repository_id) {
-        throw new Error('Missing required fields') as NonRetriableError;
+        throw new NonRetriableError('Missing required fields');
       }
 
       console.log(`Capturing comments for issue ${issue_id}`);
@@ -385,7 +384,7 @@ export function createInngestFunctions(inngest: Inngest) {
       const { repositoryId, state = 'all' } = event.data;
 
       if (!repositoryId) {
-        throw new Error('Missing repositoryId') as NonRetriableError;
+        throw new NonRetriableError('Missing repositoryId');
       }
 
       console.log(`Capturing issues for repository ${repositoryId} with state: ${state}`);

@@ -11,6 +11,12 @@ async function checkInngestEndpoint() {
   try {
     // Check if the endpoint is responding
     const response = await fetch('http://localhost:8888/.netlify/functions/inngest-local-full');
+
+    // Check response status before parsing
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
     const data = await response.json();
 
     console.log('✅ Inngest endpoint is responding!\n');
@@ -53,7 +59,7 @@ async function checkInngestEndpoint() {
     console.log('3. Check that port 8888 is available');
     console.log('4. Look for errors in the npm start output');
 
-    return false;
+    process.exit(1);
   }
 }
 
@@ -94,4 +100,7 @@ async function main() {
   console.log('====================================');
 }
 
-main().catch(console.error);
+main().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});
