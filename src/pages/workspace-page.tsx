@@ -65,6 +65,7 @@ import type {
 import type { Workspace, WorkspaceMemberWithUser } from '@/types/workspace';
 import { WorkspaceService } from '@/services/workspace.service';
 import { WorkspaceSettings as WorkspaceSettingsComponent } from '@/components/features/workspace/settings/WorkspaceSettings';
+import { syncPullRequestReviewers } from '@/lib/sync-pr-reviewers';
 // Analytics imports disabled - will be implemented in issue #598
 // import { AnalyticsDashboard } from '@/components/features/workspace/AnalyticsDashboard';
 import { ActivityTable } from '@/components/features/workspace/ActivityTable';
@@ -367,10 +368,12 @@ function WorkspacePRs({
   repositories,
   selectedRepositories,
   timeRange,
+  workspaceId,
 }: {
   repositories: Repository[];
   selectedRepositories: string[];
   timeRange: TimeRange;
+  workspaceId: string;
 }) {
   const [pullRequests, setPullRequests] = useState<PullRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -391,6 +394,23 @@ function WorkspacePRs({
         // Use utility function to filter repositories
         const filteredRepos = filterRepositoriesBySelection(repositories, selectedRepositories);
         console.log('Filtered repos:', filteredRepos.length, filteredRepos);
+
+        // Sync PR reviewers data from GitHub for each repository
+        const syncPromises = filteredRepos.map(async (repo) => {
+          try {
+            const prData = await syncPullRequestReviewers(repo.owner, repo.name, workspaceId);
+            console.log(`Synced ${prData.length} PRs for ${repo.owner}/${repo.name}`);
+            return prData;
+          } catch (error) {
+            console.error(`Failed to sync PRs for ${repo.owner}/${repo.name}:`, error);
+            return [];
+          }
+        });
+
+        // Wait for all syncs to complete
+        const syncResults = await Promise.all(syncPromises);
+        const allSyncedPRs = syncResults.flat();
+        console.log(`Total synced PRs: ${allSyncedPRs.length}`);
 
         const repoIds = filteredRepos.map((r) => r.id);
         console.log('Repository IDs for PR query:', repoIds);
@@ -552,18 +572,16 @@ function WorkspacePRs({
               changed_files: pr.changed_files || 0,
               labels: [], // We don't have this data yet
               reviewers: reviewers,
-              // Mock requested_reviewers for testing - in production this would come from GitHub API
-              requested_reviewers:
-                reviewers.length === 0 && Math.random() > 0.3
-                  ? [
-                      {
-                        username: ['alice', 'bob', 'charlie', 'david', 'eve'][
-                          Math.floor(Math.random() * 5)
-                        ],
-                        avatar_url: `https://github.com/${['alice', 'bob', 'charlie', 'david', 'eve'][Math.floor(Math.random() * 5)]}.png`,
-                      },
-                    ]
-                  : [],
+              // Find requested_reviewers from synced data
+              requested_reviewers: (() => {
+                const syncedPR = allSyncedPRs.find(
+                  (p) =>
+                    p.number === pr.number &&
+                    p.repository_owner === pr.repositories?.owner &&
+                    p.repository_name === pr.repositories?.name
+                );
+                return syncedPR?.requested_reviewers || [];
+              })(),
               url: pr.html_url,
             };
           });
@@ -579,7 +597,7 @@ function WorkspacePRs({
     }
 
     fetchPullRequests();
-  }, [repositories, selectedRepositories]);
+  }, [repositories, selectedRepositories, workspaceId]);
 
   const handlePullRequestClick = (pr: PullRequest) => {
     window.open(pr.url, '_blank');
@@ -3123,6 +3141,7 @@ function WorkspacePage() {
                 repositories={repositories}
                 selectedRepositories={selectedRepositories}
                 timeRange={timeRange}
+                workspaceId={workspace.id}
               />
             </div>
           </TabsContent>
