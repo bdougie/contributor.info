@@ -81,7 +81,7 @@ const ContributorLeaderboard = lazy(() =>
 // Lazy load distribution charts
 import { LazyAssigneeDistributionChart } from '@/components/features/workspace/charts/AssigneeDistributionChart-lazy';
 import { LazyReviewerDistributionChart } from '@/components/features/workspace/charts/ReviewerDistributionChart-lazy';
-import { LazyPRReviewStatusChart } from '@/components/features/workspace/charts/PRReviewStatusChart-lazy';
+import { PRAuthorStatusChart as LazyPRAuthorStatusChart } from '@/components/features/workspace/charts/PRAuthorStatusChart-lazy';
 // import { WorkspaceExportService } from '@/services/workspace-export.service';
 // import type {
 //   AnalyticsData,
@@ -536,6 +536,17 @@ function WorkspacePRs({
                       review.contributors.avatar_url ||
                       `https://avatars.githubusercontent.com/${reviewerUsername}`,
                     approved: isApproved,
+                    ...(review.state && {
+                      state: review.state.toUpperCase() as
+                        | 'APPROVED'
+                        | 'CHANGES_REQUESTED'
+                        | 'COMMENTED'
+                        | 'PENDING'
+                        | 'DISMISSED',
+                    }),
+                    ...(review.submitted_at && {
+                      submitted_at: review.submitted_at,
+                    }),
                   });
                 }
               });
@@ -643,11 +654,11 @@ function WorkspacePRs({
       {/* Review Charts - PR Status and Distribution side by side */}
       {hasReviewers && (
         <div className="grid gap-6 lg:grid-cols-2">
-          {/* PR Review Status Chart - shows blocking PRs and review status */}
-          <LazyPRReviewStatusChart
+          {/* PR Author Status Chart - shows PRs grouped by author and their status */}
+          <LazyPRAuthorStatusChart
             pullRequests={pullRequests}
-            onReviewerClick={handleReviewerClick}
-            title="Pull Request Review Status"
+            onAuthorClick={handleReviewerClick}
+            title="Pull Request Author Status"
             maxVisible={8}
           />
 

@@ -4,7 +4,20 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { ChevronDown, ChevronUp, UserCheck, CheckCircle2, Clock } from '@/components/ui/icon';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  ChevronDown,
+  ChevronUp,
+  UserCheck,
+  CheckCircle2,
+  Clock,
+  Filter,
+} from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 import { isBot } from '@/lib/utils/bot-detection';
 import type { PullRequest } from '../WorkspacePullRequestsTable';
@@ -230,6 +243,18 @@ export function ReviewerDistributionChart({
     return null;
   }
 
+  // Helper function to get filter label
+  const getFilterLabel = () => {
+    switch (viewMode) {
+      case 'approved':
+        return 'Approved';
+      case 'pending':
+        return 'Pending';
+      default:
+        return 'All Reviews';
+    }
+  };
+
   return (
     <Card className={cn('w-full', className)}>
       <CardHeader>
@@ -238,16 +263,37 @@ export function ReviewerDistributionChart({
             <UserCheck className="h-5 w-5 text-muted-foreground" />
             <CardTitle>{title}</CardTitle>
           </div>
-          {/* View mode selector dropdown */}
-          <select
-            value={viewMode}
-            onChange={(e) => setViewMode(e.target.value as typeof viewMode)}
-            className="h-7 px-2 text-sm border rounded-md bg-background"
-          >
-            <option value="total">All Reviews</option>
-            <option value="approved">Approved</option>
-            <option value="pending">Pending</option>
-          </select>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8">
+                <Filter className="h-3 w-3 mr-2" />
+                {getFilterLabel()}
+                <ChevronDown className="h-3 w-3 ml-2" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={() => setViewMode('total')}
+                className={cn(viewMode === 'total' && 'bg-accent')}
+              >
+                All Reviews
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setViewMode('approved')}
+                className={cn(viewMode === 'approved' && 'bg-accent')}
+              >
+                <CheckCircle2 className="h-3 w-3 mr-2 text-green-500" />
+                Approved
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setViewMode('pending')}
+                className={cn(viewMode === 'pending' && 'bg-accent')}
+              >
+                <Clock className="h-3 w-3 mr-2 text-yellow-500" />
+                Pending
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </CardHeader>
       <CardContent>
@@ -340,7 +386,7 @@ export function ReviewerDistributionChart({
                         className={cn(
                           'text-xs font-medium',
                           // Use contrasting color when bar is more than 80% width
-                          count / maxCount > 0.8 ? 'text-white dark:text-black' : 'text-foreground'
+                          count / maxCount > 0.8 ? 'text-white' : 'text-foreground'
                         )}
                       >
                         {showPercentage ? `${reviewer.percentage.toFixed(1)}%` : count}
