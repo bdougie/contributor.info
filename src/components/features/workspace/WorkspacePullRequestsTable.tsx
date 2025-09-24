@@ -327,7 +327,7 @@ export function WorkspacePullRequestsTable({
             const remainingCount = reviewers.length - maxVisible;
 
             return (
-              <div className="flex items-center pl-2">
+              <>
                 {visibleReviewers.map((reviewer, index) => {
                   const reviewerFilterUrl = `https://github.com/${repo.owner}/${repo.name}/pulls?q=is%3Apr+reviewed-by%3A${encodeURIComponent(reviewer.username)}`;
 
@@ -339,7 +339,7 @@ export function WorkspacePullRequestsTable({
                             href={reviewerFilterUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-block -ml-2 first:ml-0"
+                            className="inline-block -ml-2 first:ml-0 first:ml-2"
                             style={{ zIndex: maxVisible - index }}
                           >
                             <img
@@ -365,7 +365,7 @@ export function WorkspacePullRequestsTable({
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <span className="inline-flex h-6 w-6 -ml-2 rounded-full bg-muted border-2 border-background items-center justify-center cursor-default">
+                        <span className="inline-flex h-6 w-6 -ml-2 rounded-full bg-muted border-2 border-background items-center justify-center cursor-default align-top">
                           <span className="text-xs font-medium">+{remainingCount}</span>
                         </span>
                       </TooltipTrigger>
@@ -381,7 +381,7 @@ export function WorkspacePullRequestsTable({
                     </Tooltip>
                   </TooltipProvider>
                 )}
-              </div>
+              </>
             );
           },
         }),
