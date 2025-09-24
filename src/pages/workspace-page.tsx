@@ -66,7 +66,7 @@ import type {
 import type { Workspace, WorkspaceMemberWithUser } from '@/types/workspace';
 import { WorkspaceService } from '@/services/workspace.service';
 import { WorkspaceSettings as WorkspaceSettingsComponent } from '@/components/features/workspace/settings/WorkspaceSettings';
-import { syncPullRequestReviewers } from '@/lib/sync-pr-reviewers';
+import { useWorkspacePRs } from '@/hooks/useWorkspacePRs';
 // Analytics imports disabled - will be implemented in issue #598
 // import { AnalyticsDashboard } from '@/components/features/workspace/AnalyticsDashboard';
 import { ActivityTable } from '@/components/features/workspace/ActivityTable';
@@ -376,244 +376,40 @@ function WorkspacePRs({
   timeRange: TimeRange;
   workspaceId: string;
 }) {
-  const [pullRequests, setPullRequests] = useState<PullRequest[]>([]);
-  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  // Use the new hook for automatic PR syncing and caching
+  const { pullRequests, loading, error, lastSynced, isStale, refresh } = useWorkspacePRs({
+    repositories,
+    selectedRepositories,
+    workspaceId,
+    refreshInterval: 60, // Hourly refresh interval
+    maxStaleMinutes: 60, // Consider data stale after 60 minutes
+    autoSyncOnMount: true, // Auto-sync enabled with hourly refresh
+  });
+
+  // Log sync status for debugging
   useEffect(() => {
-    async function fetchPullRequests() {
-      console.log('fetchPullRequests - repositories:', repositories.length, repositories);
-
-      if (repositories.length === 0) {
-        console.log('No repositories, skipping PR fetch');
-        setPullRequests([]);
-        setLoading(false);
-        return;
-      }
-
-      try {
-        // Use utility function to filter repositories
-        const filteredRepos = filterRepositoriesBySelection(repositories, selectedRepositories);
-        console.log('Filtered repos:', filteredRepos.length, filteredRepos);
-
-        // Sync PR reviewers data from GitHub for each repository
-        const syncPromises = filteredRepos.map(async (repo) => {
-          try {
-            const prData = await syncPullRequestReviewers(repo.owner, repo.name, workspaceId);
-            console.log('Synced %d PRs for %s/%s', prData.length, repo.owner, repo.name);
-            return prData;
-          } catch (error) {
-            console.error(`Failed to sync PRs for ${repo.owner}/${repo.name}:`, error);
-            return [];
-          }
-        });
-
-        // Wait for all syncs to complete
-        const syncResults = await Promise.all(syncPromises);
-        const allSyncedPRs = syncResults.flat();
-        console.log('Total synced PRs: %d', allSyncedPRs.length);
-
-        const repoIds = filteredRepos.map((r) => r.id);
-        console.log('Repository IDs for PR query:', repoIds);
-
-        const { data, error } = await supabase
-          .from('pull_requests')
-          .select(
-            `
-            id,
-            github_id,
-            number,
-            title,
-            state,
-            created_at,
-            updated_at,
-            closed_at,
-            merged_at,
-            additions,
-            deletions,
-            changed_files,
-            commits,
-            html_url,
-            repository_id,
-            repositories!inner(
-              id,
-              name,
-              owner,
-              full_name
-            ),
-            contributors:author_id(
-              username,
-              avatar_url
-            ),
-            reviews (
-              id,
-              state,
-              submitted_at,
-              pull_request_id,
-              reviewer_id,
-              author_id,
-              contributors:reviewer_id (
-                username,
-                avatar_url
-              )
-            )
-          `
-          )
-          .in('repository_id', repoIds)
-          .order('updated_at', { ascending: false })
-          .limit(100);
-
-        console.log('PR Query result - error:', error, 'data:', data);
-
-        if (error) {
-          console.error('Error fetching pull requests:', error);
-          setPullRequests([]);
-        } else {
-          // Transform data to match PullRequest interface
-          // Note: Supabase returns single objects for relationships when using !inner
-          type PRData = {
-            id: string;
-            github_id: number;
-            number: number;
-            title: string;
-            state: string;
-            created_at: string;
-            updated_at: string;
-            closed_at: string | null;
-            merged_at: string | null;
-            additions: number | null;
-            deletions: number | null;
-            changed_files: number | null;
-            commits: number | null;
-            html_url: string;
-            repository_id: string;
-            repositories?: {
-              id: string;
-              name: string;
-              owner: string;
-              full_name: string;
-            };
-            contributors?: {
-              username: string;
-              avatar_url: string;
-            };
-            reviews?: Array<{
-              id: string;
-              state: string;
-              submitted_at: string;
-              reviewer_id: string;
-              contributors?: {
-                username: string;
-                avatar_url: string;
-              };
-            }>;
-          };
-
-          const transformedPRs: PullRequest[] = ((data || []) as unknown as PRData[]).map((pr) => {
-            // Process reviewers from the reviews data
-            const reviewers: PullRequest['reviewers'] = [];
-            const reviewerMap = new Map<
-              string,
-              { username: string; avatar_url: string; approved: boolean }
-            >();
-
-            if (pr.reviews && Array.isArray(pr.reviews)) {
-              // Sort reviews by submission time to get the latest state per reviewer
-              const sortedReviews = [...pr.reviews].sort((a, b) => {
-                const dateA = new Date(a.submitted_at).getTime();
-                const dateB = new Date(b.submitted_at).getTime();
-                return dateA - dateB; // Earlier reviews first, will be overwritten by later ones
-              });
-
-              sortedReviews.forEach((review) => {
-                if (review.contributors) {
-                  const reviewerUsername = review.contributors.username;
-                  const isApproved = review.state === 'APPROVED' || review.state === 'approved';
-
-                  // Always update with the latest review state (sorted by time)
-                  reviewerMap.set(reviewerUsername, {
-                    username: reviewerUsername,
-                    avatar_url:
-                      review.contributors.avatar_url ||
-                      `https://avatars.githubusercontent.com/${reviewerUsername}`,
-                    approved: isApproved,
-                    ...(review.state && {
-                      state: review.state.toUpperCase() as
-                        | 'APPROVED'
-                        | 'CHANGES_REQUESTED'
-                        | 'COMMENTED'
-                        | 'PENDING'
-                        | 'DISMISSED',
-                    }),
-                    ...(review.submitted_at && {
-                      submitted_at: review.submitted_at,
-                    }),
-                  });
-                }
-              });
-
-              // Convert map to array
-              reviewers.push(...Array.from(reviewerMap.values()));
-            }
-
-            return {
-              id: pr.id,
-              number: pr.number,
-              title: pr.title,
-              state: (() => {
-                if (pr.merged_at) return 'merged';
-                if (pr.state === 'closed') return 'closed';
-                if (pr.state === 'draft') return 'draft';
-                return 'open';
-              })(),
-              repository: {
-                name: pr.repositories?.name || 'unknown',
-                owner: pr.repositories?.owner || 'unknown',
-                avatar_url: pr.repositories?.owner
-                  ? `https://avatars.githubusercontent.com/${pr.repositories.owner}`
-                  : getFallbackAvatar(),
-              },
-              author: {
-                username: pr.contributors?.username || 'unknown',
-                avatar_url: pr.contributors?.avatar_url || '',
-              },
-              created_at: pr.created_at,
-              updated_at: pr.updated_at,
-              closed_at: pr.closed_at || undefined,
-              merged_at: pr.merged_at || undefined,
-              comments_count: 0, // We don't have this data yet
-              commits_count: pr.commits || 0,
-              additions: pr.additions || 0,
-              deletions: pr.deletions || 0,
-              changed_files: pr.changed_files || 0,
-              labels: [], // We don't have this data yet
-              reviewers: reviewers,
-              // Find requested_reviewers from synced data
-              requested_reviewers: (() => {
-                const syncedPR = allSyncedPRs.find(
-                  (p) =>
-                    p.number === pr.number &&
-                    p.repository_owner === pr.repositories?.owner &&
-                    p.repository_name === pr.repositories?.name
-                );
-                return syncedPR?.requested_reviewers || [];
-              })(),
-              url: pr.html_url,
-            };
-          });
-          console.log('Transformed PRs:', transformedPRs.length, transformedPRs);
-          setPullRequests(transformedPRs);
-        }
-      } catch (err) {
-        console.error('Error:', err);
-        setPullRequests([]);
-      } finally {
-        setLoading(false);
-      }
+    if (lastSynced) {
+      const minutesAgo = ((Date.now() - lastSynced.getTime()) / (1000 * 60)).toFixed(1);
+      console.log(
+        `PR data last synced ${minutesAgo} minutes ago${isStale ? ' (stale)' : ' (fresh)'}`
+      );
     }
+  }, [lastSynced, isStale]);
 
-    fetchPullRequests();
-  }, [repositories, selectedRepositories, workspaceId]);
+  // Show error toast if sync fails
+  useEffect(() => {
+    if (error) {
+      toast.error('Failed to fetch pull requests', {
+        description: error,
+        action: {
+          label: 'Retry',
+          onClick: () => refresh(),
+        },
+      });
+    }
+  }, [error, refresh]);
 
   const handlePullRequestClick = (pr: PullRequest) => {
     window.open(pr.url, '_blank');
@@ -645,6 +441,27 @@ function WorkspacePRs({
 
   return (
     <div className="space-y-6">
+      {/* Sync Status and Refresh Button */}
+      {lastSynced && (
+        <div className="flex items-center justify-between bg-muted/50 px-4 py-2 rounded-lg">
+          <div className="text-sm text-muted-foreground">
+            Last checked: {new Date(lastSynced).toLocaleTimeString()}
+            {isStale && <span className="ml-2 text-yellow-600">(data may be outdated)</span>}
+          </div>
+          {/* Refresh disabled until edge function is fixed
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => refresh()}
+            disabled={loading}
+          >
+            {loading ? 'Loading...' : 'Refresh PRs'}
+          </Button>
+          */}
+          <span className="text-xs text-muted-foreground">Auto-sync every hour</span>
+        </div>
+      )}
+
       {/* Metrics and Trends - first, always full width */}
       <WorkspaceMetricsAndTrends
         repositories={repositories}

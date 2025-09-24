@@ -44,7 +44,7 @@ serve(async (req) => {
   }
 
   try {
-    const { owner, repo, workspace_id } = await req.json();
+    const { owner, repo, workspace_id, include_closed, max_closed_days = 30, update_database = true } = await req.json();
 
     if (!owner || !repo) {
       return new Response(
@@ -67,8 +67,11 @@ serve(async (req) => {
       );
     }
 
-    // Fetch open PRs from GitHub
-    const githubResponse = await fetch(
+    // Fetch both open and closed PRs from GitHub
+    const allPRs: GitHubPR[] = [];
+    
+    // Always fetch open PRs
+    const openResponse = await fetch(
       `https://api.github.com/repos/${owner}/${repo}/pulls?state=open&per_page=100`,
       {
         headers: {
@@ -78,14 +81,42 @@ serve(async (req) => {
       }
     );
 
-    if (!githubResponse.ok) {
-      throw new Error(`GitHub API error: ${githubResponse.status}`);
+    if (!openResponse.ok) {
+      throw new Error(`GitHub API error fetching open PRs: ${openResponse.status}`);
     }
 
-    const prs: GitHubPR[] = await githubResponse.json();
+    const openPRs: GitHubPR[] = await openResponse.json();
+    allPRs.push(...openPRs);
+    
+    // Optionally fetch closed PRs
+    if (include_closed) {
+      const since = new Date();
+      since.setDate(since.getDate() - max_closed_days);
+      
+      const closedResponse = await fetch(
+        `https://api.github.com/repos/${owner}/${repo}/pulls?state=closed&per_page=100&since=${since.toISOString()}`,
+        {
+          headers: {
+            'Authorization': `token ${githubToken}`,
+            'Accept': 'application/vnd.github.v3+json',
+          },
+        }
+      );
+
+      if (closedResponse.ok) {
+        const closedPRs: GitHubPR[] = await closedResponse.json();
+        // Filter to only include recently closed PRs
+        const recentClosedPRs = closedPRs.filter(pr => {
+          if (!pr.closed_at && !pr.merged_at) return false;
+          const closedDate = new Date(pr.closed_at || pr.merged_at || '');
+          return closedDate >= since;
+        });
+        allPRs.push(...recentClosedPRs);
+      }
+    }
 
     // Process each PR
-    const results = await Promise.all(prs.map(async (pr) => {
+    const results = await Promise.all(allPRs.map(async (pr) => {
       try {
         // Fetch detailed PR data with reviews
         const detailResponse = await fetch(
@@ -148,18 +179,114 @@ serve(async (req) => {
       }
     }));
 
-    // Store the results in a temporary table or return them
-    // For now, return the data for the client to process
-    const successCount = results.filter(r => r.success).length;
-    const prsWithReviewers = results
-      .filter(r => r.success)
-      .map(r => r.pr);
+    // Get successful results
+    const successfulResults = results.filter(r => r.success);
+    const prsWithReviewers = successfulResults.map(r => r.pr);
+    
+    // Update database if requested
+    if (update_database && prsWithReviewers.length > 0) {
+      // Get repository ID first
+      const { data: repoData } = await supabase
+        .from('repositories')
+        .select('id')
+        .eq('owner', owner)
+        .eq('name', repo)
+        .single();
+
+      if (repoData) {
+        // Get or create contributors for all PR authors
+        const uniqueAuthors = [...new Set(prsWithReviewers.map(pr => pr.author.username))];
+        const authorMap = new Map<string, string>();
+
+        // Batch fetch all existing contributors
+        const { data: existingContributors } = await supabase
+          .from('contributors')
+          .select('id, username')
+          .in('username', uniqueAuthors);
+
+        // Map existing contributors
+        if (existingContributors) {
+          existingContributors.forEach(contributor => {
+            authorMap.set(contributor.username, contributor.id);
+          });
+        }
+
+        // Identify missing contributors
+        const missingAuthors = uniqueAuthors.filter(
+          username => !authorMap.has(username)
+        );
+
+        // Batch create missing contributors
+        if (missingAuthors.length > 0) {
+          const newContributors = missingAuthors.map(username => {
+            const pr = prsWithReviewers.find(p => p.author.username === username);
+            return {
+              username: username,
+              avatar_url: pr?.author.avatar_url || '',
+              github_id: null, // We don't have the GitHub ID from the basic PR data
+              contributions_count: 0,
+              followers_count: 0,
+              following_count: 0,
+              public_repos_count: 0,
+              public_gists_count: 0,
+            };
+          });
+
+          const { data: createdContributors } = await supabase
+            .from('contributors')
+            .insert(newContributors)
+            .select('id, username');
+
+          // Map newly created contributors
+          if (createdContributors) {
+            createdContributors.forEach(contributor => {
+              authorMap.set(contributor.username, contributor.id);
+            });
+          }
+        }
+
+        // Prepare batch upsert data with author_id
+        const upsertData = prsWithReviewers.map(pr => ({
+          github_id: pr.github_id,
+          repository_id: repoData.id,
+          author_id: authorMap.get(pr.author.username) || null,
+          number: pr.number,
+          title: pr.title,
+          state: pr.state,
+          draft: pr.draft,
+          created_at: pr.created_at,
+          updated_at: pr.updated_at,
+          closed_at: pr.closed_at,
+          merged_at: pr.merged_at,
+          // Store reviewer data as JSON
+          reviewer_data: {
+            requested_reviewers: pr.requested_reviewers,
+            reviewers: pr.reviewers,
+          },
+          last_synced_at: new Date().toISOString(),
+        }));
+
+        // Perform single batch upsert instead of looping
+        await supabase
+          .from('pull_requests')
+          .upsert(upsertData, {
+            onConflict: 'github_id',
+          });
+      }
+    }
+
+    // Count open vs closed (fix: use pr.draft boolean field, not pr.state === 'draft')
+    const openCount = prsWithReviewers.filter(pr => pr.state === 'open').length;
+    const draftCount = prsWithReviewers.filter(pr => pr.draft).length;
+    const closedCount = prsWithReviewers.filter(pr => pr.state === 'closed').length;
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Synced ${successCount} PRs`,
+        message: `Synced ${prsWithReviewers.length} PRs (${openCount} open, ${closedCount} closed)`,
         prs: prsWithReviewers,
+        openCount,
+        closedCount,
         errors: results.filter(r => !r.success),
       }),
       {

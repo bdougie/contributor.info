@@ -122,9 +122,6 @@ export function WorkspacePullRequestsTable({
   onPullRequestClick,
   onRepositoryClick,
 }: WorkspacePullRequestsTableProps) {
-  console.log('WorkspacePullRequestsTable - pullRequests:', pullRequests?.length, pullRequests);
-  console.log('WorkspacePullRequestsTable - loading:', loading);
-
   const [sorting, setSorting] = useState<SortingState>([{ id: 'updated_at', desc: true }]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState('');

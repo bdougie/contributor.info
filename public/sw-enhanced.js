@@ -139,7 +139,8 @@ function addTimestamp(response) {
 function isValidApiResponse(response, isApiRequest) {
   if (!isApiRequest) return true;
   const contentType = response.headers.get('content-type');
-  return contentType && contentType.includes('application/json');
+  // Make content-type check case-insensitive to robustly detect JSON responses across servers
+  return contentType && contentType.toLowerCase().includes('application/json');
 }
 
 // Utility: Check if cached response is stale
@@ -160,15 +161,15 @@ function matchesPattern(url, patterns) {
 async function cacheFirst(request, cacheName, maxAge) {
   const cache = await caches.open(cacheName);
   const cachedResponse = await cache.match(request);
-  
+
   if (cachedResponse && !isStale(cachedResponse, maxAge)) {
     console.log('[SW] Cache hit (cache-first):', request.url);
     return cachedResponse;
   }
-  
+
   try {
     const networkResponse = await fetch(request);
-    
+
     // Only cache successful full responses (200 OK), not partial responses (206)
     if (networkResponse.ok && networkResponse.status === 200) {
       await cache.put(request, addTimestamp(networkResponse.clone()));
@@ -178,13 +179,29 @@ async function cacheFirst(request, cacheName, maxAge) {
     } else if (networkResponse.status === 206) {
       console.log('[SW] Partial response (206) - not caching:', request.url);
     }
-    
+
     return networkResponse;
   } catch (error) {
     if (cachedResponse) {
       console.log('[SW] Network failed, serving stale cache:', request.url);
       return cachedResponse;
     }
+
+    // For avatar images that fail, return a proper SVG placeholder to prevent infinite retries
+    const url = new URL(request.url);
+    if (url.hostname === 'avatars.githubusercontent.com') {
+      console.log('[SW] Avatar fetch failed, returning placeholder:', request.url);
+      const placeholderSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><rect width="40" height="40" fill="#e1e4e8"/><text x="20" y="25" font-family="system-ui, -apple-system, sans-serif" font-size="20" text-anchor="middle" fill="#6a737d">?</text></svg>';
+      return new Response(placeholderSvg, {
+        status: 200,
+        statusText: 'OK',
+        headers: {
+          'Content-Type': 'image/svg+xml',
+          'Cache-Control': 'public, max-age=3600'
+        }
+      });
+    }
+
     throw error;
   }
 }
@@ -461,13 +478,28 @@ async function handleRequest(request) {
     
   } catch (error) {
     console.error('[SW] Request failed:', request.url, error);
-    
+
     // Try to find something in cache
     const cachedResponse = await caches.match(request);
     if (cachedResponse) {
       return cachedResponse;
     }
-    
+
+    // Special handling for GitHub avatars to prevent infinite retries
+    const url = new URL(request.url);
+    if (url.hostname === 'avatars.githubusercontent.com') {
+      console.log('[SW] Avatar request failed, returning placeholder SVG to prevent retry loop');
+      const placeholderSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><rect width="40" height="40" fill="#e1e4e8"/><text x="20" y="25" font-family="system-ui, -apple-system, sans-serif" font-size="20" text-anchor="middle" fill="#6a737d">?</text></svg>';
+      return new Response(placeholderSvg, {
+        status: 200,
+        statusText: 'OK',
+        headers: {
+          'Content-Type': 'image/svg+xml',
+          'Cache-Control': 'public, max-age=3600'
+        }
+      });
+    }
+
     // For navigation, serve offline page
     if (request.mode === 'navigate') {
       const offlinePage = await caches.match('/offline.html');
@@ -475,7 +507,7 @@ async function handleRequest(request) {
         return offlinePage;
       }
     }
-    
+
     // Return error response
     return new Response('Network error', {
       status: 503,
