@@ -196,39 +196,52 @@ serve(async (req) => {
       if (repoData) {
         // Get or create contributors for all PR authors
         const uniqueAuthors = [...new Set(prsWithReviewers.map(pr => pr.author.username))];
-        const authorMap = new Map();
+        const authorMap = new Map<string, string>();
 
-        for (const username of uniqueAuthors) {
-          // Try to find existing contributor
-          const { data: existingContributor } = await supabase
-            .from('contributors')
-            .select('id')
-            .eq('username', username)
-            .single();
+        // Batch fetch all existing contributors
+        const { data: existingContributors } = await supabase
+          .from('contributors')
+          .select('id, username')
+          .in('username', uniqueAuthors);
 
-          if (existingContributor) {
-            authorMap.set(username, existingContributor.id);
-          } else {
-            // Create new contributor if doesn't exist
+        // Map existing contributors
+        if (existingContributors) {
+          existingContributors.forEach(contributor => {
+            authorMap.set(contributor.username, contributor.id);
+          });
+        }
+
+        // Identify missing contributors
+        const missingAuthors = uniqueAuthors.filter(
+          username => !authorMap.has(username)
+        );
+
+        // Batch create missing contributors
+        if (missingAuthors.length > 0) {
+          const newContributors = missingAuthors.map(username => {
             const pr = prsWithReviewers.find(p => p.author.username === username);
-            const { data: newContributor } = await supabase
-              .from('contributors')
-              .insert({
-                username: username,
-                avatar_url: pr.author.avatar_url,
-                github_id: null, // We don't have the GitHub ID from the basic PR data
-                contributions_count: 0,
-                followers_count: 0,
-                following_count: 0,
-                public_repos_count: 0,
-                public_gists_count: 0,
-              })
-              .select('id')
-              .single();
+            return {
+              username: username,
+              avatar_url: pr?.author.avatar_url || '',
+              github_id: null, // We don't have the GitHub ID from the basic PR data
+              contributions_count: 0,
+              followers_count: 0,
+              following_count: 0,
+              public_repos_count: 0,
+              public_gists_count: 0,
+            };
+          });
 
-            if (newContributor) {
-              authorMap.set(username, newContributor.id);
-            }
+          const { data: createdContributors } = await supabase
+            .from('contributors')
+            .insert(newContributors)
+            .select('id, username');
+
+          // Map newly created contributors
+          if (createdContributors) {
+            createdContributors.forEach(contributor => {
+              authorMap.set(contributor.username, contributor.id);
+            });
           }
         }
 

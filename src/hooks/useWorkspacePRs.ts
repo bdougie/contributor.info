@@ -22,6 +22,89 @@ interface UseWorkspacePRsResult {
   refresh: () => Promise<void>;
 }
 
+// Enum for consistent PR state naming
+enum PRState {
+  OPEN = 'open',
+  CLOSED = 'closed',
+  MERGED = 'merged',
+  DRAFT = 'draft',
+}
+
+// Explicit interface for database PR structure
+interface DatabasePR {
+  id: string;
+  number: number;
+  title: string;
+  state: string;
+  draft: boolean;
+  merged_at: string | null;
+  created_at: string;
+  updated_at: string;
+  closed_at: string | null;
+  html_url: string;
+  commits: number | null;
+  additions: number | null;
+  deletions: number | null;
+  changed_files: number | null;
+  repository_id: string;
+  contributor_id: string | null;
+  last_synced_at: string;
+  github_id?: string;
+  reviewer_data?: {
+    reviewers?: Array<{
+      username: string;
+      avatar_url: string;
+      approved?: boolean;
+      state?: string;
+      submitted_at?: string;
+    }>;
+    requested_reviewers?: Array<{
+      username: string;
+      avatar_url: string;
+    }>;
+  };
+  reviews?: Array<{
+    id: string;
+    state: string | null;
+    submitted_at: string | null;
+    pull_request_id: string;
+    reviewer_id: string | null;
+    contributors?:
+      | Array<{
+          id: string;
+          username: string;
+          avatar_url: string;
+        }>
+      | {
+          id: string;
+          username: string;
+          avatar_url: string;
+        };
+  }>;
+  repositories?:
+    | Array<{
+        id: string;
+        name: string;
+        owner: string;
+      }>
+    | {
+        id: string;
+        name: string;
+        owner: string;
+      };
+  contributors?:
+    | Array<{
+        id: string;
+        username: string;
+        avatar_url: string;
+      }>
+    | {
+        id: string;
+        username: string;
+        avatar_url: string;
+      };
+}
+
 /**
  * Custom hook for managing workspace PR data with smart caching
  * - Syncs on mount if data is stale
@@ -103,6 +186,7 @@ export function useWorkspacePRs({
         commits,
         html_url,
         repository_id,
+        contributor_id:author_id,
         last_synced_at,
         reviewer_data,
         repositories!inner(
@@ -112,6 +196,7 @@ export function useWorkspacePRs({
           full_name
         ),
         contributors:author_id(
+          id,
           username,
           avatar_url
         ),
@@ -122,6 +207,7 @@ export function useWorkspacePRs({
           pull_request_id,
           reviewer_id,
           contributors:reviewer_id (
+            id,
             username,
             avatar_url
           )
@@ -139,8 +225,6 @@ export function useWorkspacePRs({
   }, []);
 
   // Transform database PR to component format
-  type DatabasePR = Awaited<ReturnType<typeof fetchFromDatabase>>[number];
-
   const transformPR = useCallback((pr: DatabasePR): PullRequest => {
     // Build reviewers list from reviewer_data and reviews
     const reviewers: PullRequest['reviewers'] = [];
@@ -202,10 +286,10 @@ export function useWorkspacePRs({
       number: pr.number,
       title: pr.title,
       state: (() => {
-        if (pr.merged_at) return 'merged';
-        if (pr.state === 'closed') return 'closed';
-        if (pr.draft) return 'draft';
-        return 'open';
+        if (pr.merged_at) return PRState.MERGED;
+        if (pr.state === 'closed') return PRState.CLOSED;
+        if (pr.draft) return PRState.DRAFT;
+        return PRState.OPEN;
       })(),
       repository: {
         name: repo?.name || 'unknown',
