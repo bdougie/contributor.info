@@ -334,12 +334,15 @@ export function useWorkspacePRs({
     }
   }, [refreshInterval, fetchPullRequests]);
 
+  // Memoize the refresh function to prevent unnecessary re-renders
+  const refresh = useCallback(() => fetchPullRequests(true), [fetchPullRequests]);
+
   return {
     pullRequests,
     loading,
     error,
     lastSynced,
     isStale,
-    refresh: () => fetchPullRequests(true),
+    refresh,
   };
 }

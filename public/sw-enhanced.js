@@ -139,7 +139,8 @@ function addTimestamp(response) {
 function isValidApiResponse(response, isApiRequest) {
   if (!isApiRequest) return true;
   const contentType = response.headers.get('content-type');
-  return contentType && contentType.includes('application/json');
+  // Make content-type check case-insensitive to robustly detect JSON responses across servers
+  return contentType && contentType.toLowerCase().includes('application/json');
 }
 
 // Utility: Check if cached response is stale

@@ -19,7 +19,7 @@ CREATE OR REPLACE FUNCTION is_pr_data_stale(
 BEGIN
   RETURN (NOW() - last_sync) > (max_age_minutes || ' minutes')::INTERVAL;
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql STABLE;
 
 -- Add comment for documentation
 COMMENT ON COLUMN pull_requests.reviewer_data IS 'Stores reviewer and requested reviewer data from GitHub sync';

@@ -139,7 +139,7 @@ serve(async (req) => {
           github_id: pr.id,
           number: pr.number,
           title: pr.title,
-          state: pr.merged_at ? 'merged' : (pr.state === 'open' ? 'open' : 'closed'),
+          state: pr.state === 'open' ? 'open' : 'closed',
           draft: pr.draft || false,
           repository_owner: owner,
           repository_name: repo,
@@ -192,39 +192,80 @@ serve(async (req) => {
         .eq('owner', owner)
         .eq('name', repo)
         .single();
-        
+
       if (repoData) {
-        // Batch upsert PRs to database
-        for (const pr of prsWithReviewers) {
-          await supabase
-            .from('pull_requests')
-            .upsert({
-              github_id: pr.github_id,
-              repository_id: repoData.id,
-              number: pr.number,
-              title: pr.title,
-              state: pr.state,
-              draft: pr.draft,
-              created_at: pr.created_at,
-              updated_at: pr.updated_at,
-              closed_at: pr.closed_at,
-              merged_at: pr.merged_at,
-              // Store reviewer data as JSON
-              reviewer_data: {
-                requested_reviewers: pr.requested_reviewers,
-                reviewers: pr.reviewers,
-              },
-              last_synced_at: new Date().toISOString(),
-            }, {
-              onConflict: 'github_id',
-            });
+        // Get or create contributors for all PR authors
+        const uniqueAuthors = [...new Set(prsWithReviewers.map(pr => pr.author.username))];
+        const authorMap = new Map();
+
+        for (const username of uniqueAuthors) {
+          // Try to find existing contributor
+          const { data: existingContributor } = await supabase
+            .from('contributors')
+            .select('id')
+            .eq('username', username)
+            .single();
+
+          if (existingContributor) {
+            authorMap.set(username, existingContributor.id);
+          } else {
+            // Create new contributor if doesn't exist
+            const pr = prsWithReviewers.find(p => p.author.username === username);
+            const { data: newContributor } = await supabase
+              .from('contributors')
+              .insert({
+                username: username,
+                avatar_url: pr.author.avatar_url,
+                github_id: null, // We don't have the GitHub ID from the basic PR data
+                contributions_count: 0,
+                followers_count: 0,
+                following_count: 0,
+                public_repos_count: 0,
+                public_gists_count: 0,
+              })
+              .select('id')
+              .single();
+
+            if (newContributor) {
+              authorMap.set(username, newContributor.id);
+            }
+          }
         }
+
+        // Prepare batch upsert data with author_id
+        const upsertData = prsWithReviewers.map(pr => ({
+          github_id: pr.github_id,
+          repository_id: repoData.id,
+          author_id: authorMap.get(pr.author.username) || null,
+          number: pr.number,
+          title: pr.title,
+          state: pr.state,
+          draft: pr.draft,
+          created_at: pr.created_at,
+          updated_at: pr.updated_at,
+          closed_at: pr.closed_at,
+          merged_at: pr.merged_at,
+          // Store reviewer data as JSON
+          reviewer_data: {
+            requested_reviewers: pr.requested_reviewers,
+            reviewers: pr.reviewers,
+          },
+          last_synced_at: new Date().toISOString(),
+        }));
+
+        // Perform single batch upsert instead of looping
+        await supabase
+          .from('pull_requests')
+          .upsert(upsertData, {
+            onConflict: 'github_id',
+          });
       }
     }
 
-    // Count open vs closed
-    const openCount = prsWithReviewers.filter(pr => pr.state === 'open' || pr.state === 'draft').length;
-    const closedCount = prsWithReviewers.filter(pr => pr.state === 'closed' || pr.state === 'merged').length;
+    // Count open vs closed (fix: use pr.draft boolean field, not pr.state === 'draft')
+    const openCount = prsWithReviewers.filter(pr => pr.state === 'open').length;
+    const draftCount = prsWithReviewers.filter(pr => pr.draft).length;
+    const closedCount = prsWithReviewers.filter(pr => pr.state === 'closed').length;
 
     return new Response(
       JSON.stringify({
