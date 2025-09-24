@@ -327,7 +327,7 @@ export function WorkspacePullRequestsTable({
             const remainingCount = reviewers.length - maxVisible;
 
             return (
-              <>
+              <div className="flex items-center pl-2">
                 {visibleReviewers.map((reviewer, index) => {
                   const reviewerFilterUrl = `https://github.com/${repo.owner}/${repo.name}/pulls?q=is%3Apr+reviewed-by%3A${encodeURIComponent(reviewer.username)}`;
 
@@ -381,7 +381,7 @@ export function WorkspacePullRequestsTable({
                     </Tooltip>
                   </TooltipProvider>
                 )}
-              </>
+              </div>
             );
           },
         }),
