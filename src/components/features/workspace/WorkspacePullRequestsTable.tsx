@@ -21,7 +21,6 @@ import {
   GitPullRequest,
   GitBranch,
   XCircle,
-  CheckCircle2,
   FileText as GitPullRequestDraft,
   Search,
   ChevronLeft,
@@ -268,8 +267,8 @@ export function WorkspacePullRequestsTable({
           },
         }),
         columnHelper.accessor('author', {
-          size: 150,
-          minSize: 120,
+          size: 60,
+          minSize: 60,
           header: 'Author',
           cell: ({ row }) => {
             const author = row.original.author;
@@ -277,19 +276,27 @@ export function WorkspacePullRequestsTable({
             const authorFilterUrl = `https://github.com/${repo.owner}/${repo.name}/pulls?q=is%3Apr+author%3A${encodeURIComponent(author.username)}`;
 
             return (
-              <a
-                href={authorFilterUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 hover:text-primary transition-colors"
-              >
-                <img
-                  src={author.avatar_url}
-                  alt={author.username}
-                  className="h-6 w-6 rounded-full"
-                />
-                <span className="text-sm truncate">{author.username}</span>
-              </a>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <a
+                      href={authorFilterUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-block"
+                    >
+                      <img
+                        src={author.avatar_url}
+                        alt={author.username}
+                        className="h-6 w-6 rounded-full cursor-pointer hover:ring-2 hover:ring-primary transition-all"
+                      />
+                    </a>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{author.username}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             );
           },
         }),
@@ -304,7 +311,7 @@ export function WorkspacePullRequestsTable({
           },
         }),
         columnHelper.accessor('reviewers', {
-          size: 150,
+          size: 120,
           minSize: 120,
           header: 'Reviewers',
           cell: ({ row }) => {
@@ -312,7 +319,7 @@ export function WorkspacePullRequestsTable({
             const repo = row.original.repository;
 
             if (!reviewers || reviewers.length === 0) {
-              return null;
+              return <span className="text-sm text-muted-foreground">-</span>;
             }
 
             const maxVisible = 3;
@@ -320,7 +327,7 @@ export function WorkspacePullRequestsTable({
             const remainingCount = reviewers.length - maxVisible;
 
             return (
-              <div className="flex items-center -space-x-2 pl-2">
+              <>
                 {visibleReviewers.map((reviewer, index) => {
                   const reviewerFilterUrl = `https://github.com/${repo.owner}/${repo.name}/pulls?q=is%3Apr+reviewed-by%3A${encodeURIComponent(reviewer.username)}`;
 
@@ -332,24 +339,17 @@ export function WorkspacePullRequestsTable({
                             href={reviewerFilterUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-block"
+                            className="inline-block -ml-2 first:ml-0"
                             style={{ zIndex: maxVisible - index }}
                           >
-                            <div className="relative">
-                              <img
-                                src={reviewer.avatar_url}
-                                alt={reviewer.username}
-                                className={cn(
-                                  'h-6 w-6 rounded-full border-2',
-                                  reviewer.approved
-                                    ? 'border-green-500 ring-1 ring-green-500/20'
-                                    : 'border-background'
-                                )}
-                              />
-                              {reviewer.approved && (
-                                <CheckCircle2 className="absolute -bottom-1 -right-1 h-3 w-3 text-green-500 bg-background rounded-full" />
+                            <img
+                              src={reviewer.avatar_url}
+                              alt={reviewer.username}
+                              className={cn(
+                                'h-6 w-6 rounded-full border-2 hover:ring-2 hover:ring-primary transition-all',
+                                reviewer.approved ? 'border-green-500' : 'border-background'
                               )}
-                            </div>
+                            />
                           </a>
                         </TooltipTrigger>
                         <TooltipContent>
@@ -365,9 +365,9 @@ export function WorkspacePullRequestsTable({
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <div className="h-6 w-6 rounded-full bg-muted border-2 border-background flex items-center justify-center">
+                        <span className="inline-flex h-6 w-6 -ml-2 rounded-full bg-muted border-2 border-background items-center justify-center cursor-default">
                           <span className="text-xs font-medium">+{remainingCount}</span>
-                        </div>
+                        </span>
                       </TooltipTrigger>
                       <TooltipContent>
                         <div className="space-y-1">
@@ -381,7 +381,7 @@ export function WorkspacePullRequestsTable({
                     </Tooltip>
                   </TooltipProvider>
                 )}
-              </div>
+              </>
             );
           },
         }),
