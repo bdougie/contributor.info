@@ -161,7 +161,11 @@ describe('SpamDetectionService', () => {
     });
 
     it('should handle errors gracefully', async () => {
-      const invalidPR = {} as PullRequestData;
+      // Create an invalid PR with missing required fields
+      const invalidPR = {
+        id: '1',
+        // Missing author field which is required
+      } as PullRequestData;
       const result = await spamDetectionService.detectSpam(invalidPR);
 
       expect(result.spam_score).toBe(0);
@@ -208,10 +212,26 @@ describe('SpamDetectionService', () => {
   describe('getDetectionStats', () => {
     it('should calculate statistics correctly', async () => {
       const results = [
-        { spam_score: 10, is_spam: false, confidence: 0.8 } as any,
-        { spam_score: 85, is_spam: true, confidence: 0.9 } as any,
-        { spam_score: 30, is_spam: false, confidence: 0.6 } as any,
-        { spam_score: 95, is_spam: true, confidence: 0.95 } as any,
+        { spam_score: 10, is_spam: false, confidence: 0.8 } as {
+          spam_score: number;
+          is_spam: boolean;
+          confidence: number;
+        },
+        { spam_score: 85, is_spam: true, confidence: 0.9 } as {
+          spam_score: number;
+          is_spam: boolean;
+          confidence: number;
+        },
+        { spam_score: 30, is_spam: false, confidence: 0.6 } as {
+          spam_score: number;
+          is_spam: boolean;
+          confidence: number;
+        },
+        { spam_score: 95, is_spam: true, confidence: 0.95 } as {
+          spam_score: number;
+          is_spam: boolean;
+          confidence: number;
+        },
       ];
 
       const stats = spamDetectionService.getDetectionStats(results);

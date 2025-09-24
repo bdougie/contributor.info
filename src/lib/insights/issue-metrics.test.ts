@@ -239,6 +239,7 @@ describe('Issue Metrics', () => {
     });
 
     it('should handle errors gracefully', async () => {
+      // Mock an actual thrown error instead of returning an error object
       (supabase.from as vi.MockedFunction<typeof supabase.from>).mockImplementation(() => {
         throw new Error('Database error');
       });

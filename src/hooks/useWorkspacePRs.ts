@@ -137,51 +137,7 @@ export function useWorkspacePRs({
   }, []);
 
   // Transform database PR to component format
-  interface DatabasePR {
-    id: string;
-    number: number;
-    title: string;
-    state: string;
-    draft?: boolean;
-    created_at: string;
-    updated_at: string;
-    closed_at?: string;
-    merged_at?: string;
-    additions?: number;
-    deletions?: number;
-    changed_files?: number;
-    commits?: number;
-    html_url: string;
-    repositories?: {
-      name: string;
-      owner: string;
-    };
-    contributors?: {
-      username: string;
-      avatar_url: string;
-    };
-    reviewer_data?: {
-      requested_reviewers?: Array<{
-        username: string;
-        avatar_url: string;
-      }>;
-      reviewers?: Array<{
-        username: string;
-        avatar_url: string;
-        approved?: boolean;
-        state?: string;
-        submitted_at?: string;
-      }>;
-    };
-    reviews?: Array<{
-      contributors?: {
-        username: string;
-        avatar_url: string;
-      };
-      state: string;
-      submitted_at: string;
-    }>;
-  }
+  type DatabasePR = Awaited<ReturnType<typeof fetchFromDatabase>>[number];
 
   const transformPR = useCallback((pr: DatabasePR): PullRequest => {
     // Build reviewers list from reviewer_data and reviews
@@ -209,26 +165,22 @@ export function useWorkspacePRs({
       });
     }
 
-    // Process reviews table data
-    interface ReviewRecord {
-      contributors?: {
-        username: string;
-        avatar_url: string;
-      };
-      state: string;
-      submitted_at: string;
-    }
-
+    // Process reviews table data - handle both single and array contributors
     if (pr.reviews && Array.isArray(pr.reviews)) {
-      pr.reviews.forEach((review: ReviewRecord) => {
-        if (review.contributors) {
-          const username = review.contributors.username;
+      pr.reviews.forEach((review) => {
+        // Handle contributors as array (what Supabase returns)
+        const contributor = Array.isArray(review.contributors)
+          ? review.contributors[0]
+          : review.contributors;
+
+        if (contributor) {
+          const username = contributor.username;
           const isApproved = review.state === 'APPROVED';
 
           // Update or add reviewer
           reviewerMap.set(username, {
             username,
-            avatar_url: review.contributors.avatar_url,
+            avatar_url: contributor.avatar_url,
             approved: isApproved,
             state: review.state,
             submitted_at: review.submitted_at,
@@ -238,6 +190,10 @@ export function useWorkspacePRs({
     }
 
     reviewers.push(...Array.from(reviewerMap.values()));
+
+    // Handle repositories and contributors as arrays (what Supabase returns with joins)
+    const repo = Array.isArray(pr.repositories) ? pr.repositories[0] : pr.repositories;
+    const contributor = Array.isArray(pr.contributors) ? pr.contributors[0] : pr.contributors;
 
     return {
       id: pr.id,
@@ -250,15 +206,13 @@ export function useWorkspacePRs({
         return 'open';
       })(),
       repository: {
-        name: pr.repositories?.name || 'unknown',
-        owner: pr.repositories?.owner || 'unknown',
-        avatar_url: pr.repositories?.owner
-          ? `https://avatars.githubusercontent.com/${pr.repositories.owner}`
-          : '',
+        name: repo?.name || 'unknown',
+        owner: repo?.owner || 'unknown',
+        avatar_url: repo?.owner ? `https://avatars.githubusercontent.com/${repo.owner}` : '',
       },
       author: {
-        username: pr.contributors?.username || 'unknown',
-        avatar_url: pr.contributors?.avatar_url || '',
+        username: contributor?.username || 'unknown',
+        avatar_url: contributor?.avatar_url || '',
       },
       created_at: pr.created_at,
       updated_at: pr.updated_at,

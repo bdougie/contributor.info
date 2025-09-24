@@ -8,6 +8,7 @@ import { afterEach, vi } from 'vitest';
 
 // Configure React 18 for testing and suppress warnings
 const originalError = console.error;
+const originalWarn = console.warn;
 console.error = (...args) => {
   if (
     typeof args[0] === 'string' &&
@@ -19,6 +20,14 @@ console.error = (...args) => {
     return;
   }
   originalError.call(console, ...args);
+};
+
+// Suppress GoTrueClient multiple instances warning in tests
+console.warn = (...args) => {
+  if (typeof args[0] === 'string' && args[0].includes('Multiple GoTrueClient instances detected')) {
+    return;
+  }
+  originalWarn.call(console, ...args);
 };
 
 // Mock Path2D for uPlot (not available in jsdom)
