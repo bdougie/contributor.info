@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-// import { syncPullRequestReviewers } from '@/lib/sync-pr-reviewers'; // Temporarily disabled
+import { syncPullRequestReviewers } from '@/lib/sync-pr-reviewers';
 import type { PullRequest } from '@/components/features/workspace/WorkspacePullRequestsTable';
 import type { Repository } from '@/components/features/workspace';
 
@@ -32,9 +32,9 @@ export function useWorkspacePRs({
   repositories,
   selectedRepositories,
   workspaceId,
-  refreshInterval = 0,
-  maxStaleMinutes = 60, // Increased to 60 minutes temporarily while edge function is being fixed
-  autoSyncOnMount = false, // Disabled temporarily to avoid edge function errors
+  refreshInterval = 60, // Default to hourly refresh
+  maxStaleMinutes = 60, // Data considered stale after 60 minutes
+  autoSyncOnMount = true, // Auto-sync on mount if data is stale
 }: UseWorkspacePRsOptions): UseWorkspacePRsResult {
   const [pullRequests, setPullRequests] = useState<PullRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -313,37 +313,25 @@ export function useWorkspacePRs({
           } else if (needsSync) {
             syncReason = 'Data is stale';
           }
-          console.log(`Sync would run here but is disabled - ${syncReason}`);
+          console.log(`Syncing PR data - ${syncReason}`);
 
-          // TEMPORARILY DISABLED: Edge function needs GitHub token configuration
-          // Uncomment this block once the edge function is properly configured
-          /*
-        // Sync each repository
-        await Promise.all(
-          filteredRepos.map(async (repo) => {
-            try {
-              await syncPullRequestReviewers(
-                repo.owner,
-                repo.name,
-                workspaceId,
-                {
+          // Sync each repository
+          await Promise.all(
+            filteredRepos.map(async (repo) => {
+              try {
+                await syncPullRequestReviewers(repo.owner, repo.name, workspaceId, {
                   includeClosedPRs: true,
                   maxClosedDays: 30,
                   updateDatabase: true,
-                }
-              );
-            } catch (err) {
-              console.error(`Failed to sync ${repo.owner}/${repo.name}:`, err);
-            }
-          })
-        );
+                });
+              } catch (err) {
+                console.error(`Failed to sync ${repo.owner}/${repo.name}:`, err);
+              }
+            })
+          );
 
-        setLastSynced(new Date());
-        setIsStale(false);
-        */
-
-          // Don't update timestamps when sync is disabled
-          // This prevents misleading UI state
+          setLastSynced(new Date());
+          setIsStale(false);
         }
 
         // Fetch from database (now with updated data if synced)
@@ -362,12 +350,13 @@ export function useWorkspacePRs({
     [
       repositories,
       selectedRepositories,
+      workspaceId,
       checkStaleness,
       fetchFromDatabase,
       transformPR,
       autoSyncOnMount,
     ]
-  ); // Removed workspaceId and lastSynced to prevent infinite loop
+  );
 
   // Initial fetch - only run when key dependencies change
   useEffect(() => {

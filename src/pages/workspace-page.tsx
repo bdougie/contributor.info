@@ -383,9 +383,9 @@ function WorkspacePRs({
     repositories,
     selectedRepositories,
     workspaceId,
-    refreshInterval: 0, // No auto-refresh interval
+    refreshInterval: 60, // Hourly refresh interval
     maxStaleMinutes: 60, // Consider data stale after 60 minutes
-    autoSyncOnMount: false, // Temporarily disabled while edge function is being fixed
+    autoSyncOnMount: true, // Auto-sync enabled with hourly refresh
   });
 
   // Log sync status for debugging
@@ -441,7 +441,7 @@ function WorkspacePRs({
 
   return (
     <div className="space-y-6">
-      {/* Sync Status and Refresh Button - TEMPORARILY DISABLED */}
+      {/* Sync Status and Refresh Button */}
       {lastSynced && (
         <div className="flex items-center justify-between bg-muted/50 px-4 py-2 rounded-lg">
           <div className="text-sm text-muted-foreground">
@@ -458,7 +458,7 @@ function WorkspacePRs({
             {loading ? 'Loading...' : 'Refresh PRs'}
           </Button>
           */}
-          <span className="text-xs text-muted-foreground">Sync temporarily disabled</span>
+          <span className="text-xs text-muted-foreground">Auto-sync every hour</span>
         </div>
       )}
 
