@@ -127,12 +127,19 @@ function addTimestamp(response) {
   const headers = new Headers(response.headers);
   headers.set('sw-cached-date', new Date().toISOString());
   headers.set('sw-cache-version', CACHE_VERSION);
-  
+
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
     headers
   });
+}
+
+// Utility: Validate API responses
+function isValidApiResponse(response, isApiRequest) {
+  if (!isApiRequest) return true;
+  const contentType = response.headers.get('content-type');
+  return contentType && contentType.includes('application/json');
 }
 
 // Utility: Check if cached response is stale
@@ -186,41 +193,24 @@ async function cacheFirst(request, cacheName, maxAge) {
 async function staleWhileRevalidate(request, cacheName, maxAge) {
   const cache = await caches.open(cacheName);
   const cachedResponse = await cache.match(request);
-  const isApiRequest = request.url.includes('/api/');
+  const url = new URL(request.url);
+  const isApiRequest = matchesPattern(url.href, CACHE_STRATEGIES.API.patterns);
 
   // If we have a fresh cached response, return it immediately
   if (cachedResponse && !isStale(cachedResponse, maxAge)) {
     // For API requests, validate it's actually JSON before returning
-    if (isApiRequest) {
-      const contentType = cachedResponse.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        console.log('[SW] Invalid cached API response (not JSON), refetching:', request.url);
-        // Delete the invalid cache entry
-        await cache.delete(request);
-        // Continue to fetch new response below
-      } else {
-        console.log('[SW] Cache hit (fresh):', request.url);
-
-        // Still fetch in background to keep cache warm
-        fetch(request).then(response => {
-          // Only cache successful JSON responses for API
-          if (response.ok && response.status === 200) {
-            const respContentType = response.headers.get('content-type');
-            if (!isApiRequest || (respContentType && respContentType.includes('application/json'))) {
-              cache.put(request, addTimestamp(response.clone()));
-            }
-          }
-        }).catch(() => {});
-
-        return cachedResponse;
-      }
+    if (!isValidApiResponse(cachedResponse, isApiRequest)) {
+      console.log('[SW] Invalid cached API response (not JSON), refetching:', request.url);
+      // Delete the invalid cache entry
+      await cache.delete(request);
+      // Continue to fetch new response below
     } else {
       console.log('[SW] Cache hit (fresh):', request.url);
 
       // Still fetch in background to keep cache warm
       fetch(request).then(response => {
-        // Only cache successful full responses (200 OK)
-        if (response.ok && response.status === 200) {
+        // Only cache successful responses (with JSON validation for API)
+        if (response.ok && response.status === 200 && isValidApiResponse(response, isApiRequest)) {
           cache.put(request, addTimestamp(response.clone()));
         }
       }).catch(() => {});
@@ -232,49 +222,18 @@ async function staleWhileRevalidate(request, cacheName, maxAge) {
   // If we have a stale cached response, validate and return it while revalidating
   if (cachedResponse) {
     // For API requests, validate it's actually JSON
-    if (isApiRequest) {
-      const contentType = cachedResponse.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        console.log('[SW] Invalid cached API response (not JSON), refetching:', request.url);
-        // Delete the invalid cache entry
-        await cache.delete(request);
-        // Continue to fetch new response below
-      } else {
-        console.log('[SW] Serving stale while revalidating:', request.url);
-
-        // Revalidate in background
-        fetch(request).then(response => {
-          // Only cache successful JSON responses for API
-          if (response.ok && response.status === 200) {
-            const respContentType = response.headers.get('content-type');
-            if (respContentType && respContentType.includes('application/json')) {
-              cache.put(request, addTimestamp(response.clone()));
-              // Use the base cache name for limit lookup
-              const cacheKey = Object.keys(CACHE_LIMITS).find(key => cacheName === CACHES[key]) || 'RUNTIME';
-              limitCacheSize(cacheName, CACHE_LIMITS[cacheKey] || 100);
-
-              // Notify clients about the update
-              self.clients.matchAll().then(clients => {
-                clients.forEach(client => {
-                  client.postMessage({
-                    type: 'CACHE_UPDATED',
-                    url: request.url
-                  });
-                });
-              });
-            }
-          }
-        }).catch(() => {});
-
-        return cachedResponse;
-      }
+    if (!isValidApiResponse(cachedResponse, isApiRequest)) {
+      console.log('[SW] Invalid cached API response (not JSON), refetching:', request.url);
+      // Delete the invalid cache entry
+      await cache.delete(request);
+      // Continue to fetch new response below
     } else {
       console.log('[SW] Serving stale while revalidating:', request.url);
 
       // Revalidate in background
       fetch(request).then(response => {
-        // Only cache successful full responses (200 OK)
-        if (response.ok && response.status === 200) {
+        // Only cache successful responses (with JSON validation for API)
+        if (response.ok && response.status === 200 && isValidApiResponse(response, isApiRequest)) {
           cache.put(request, addTimestamp(response.clone()));
           // Use the base cache name for limit lookup
           const cacheKey = Object.keys(CACHE_LIMITS).find(key => cacheName === CACHES[key]) || 'RUNTIME';
@@ -307,25 +266,14 @@ async function staleWhileRevalidate(request, cacheName, maxAge) {
       return networkResponse;
     }
 
-    // Only cache successful full responses (200 OK)
-    if (networkResponse.ok && networkResponse.status === 200) {
-      // For API requests, only cache if it's JSON
-      if (isApiRequest) {
-        const contentType = networkResponse.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-          await cache.put(request, addTimestamp(networkResponse.clone()));
-          // Use the base cache name for limit lookup
-          const cacheKey = Object.keys(CACHE_LIMITS).find(key => cacheName === CACHES[key]) || 'RUNTIME';
-          await limitCacheSize(cacheName, CACHE_LIMITS[cacheKey] || 100);
-        } else {
-          console.log('[SW] API response is not JSON, not caching:', request.url);
-        }
-      } else {
-        await cache.put(request, addTimestamp(networkResponse.clone()));
-        // Use the base cache name for limit lookup
-        const cacheKey = Object.keys(CACHE_LIMITS).find(key => cacheName === CACHES[key]) || 'RUNTIME';
-        await limitCacheSize(cacheName, CACHE_LIMITS[cacheKey] || 100);
-      }
+    // Only cache successful full responses (200 OK) with valid content
+    if (networkResponse.ok && networkResponse.status === 200 && isValidApiResponse(networkResponse, isApiRequest)) {
+      await cache.put(request, addTimestamp(networkResponse.clone()));
+      // Use the base cache name for limit lookup
+      const cacheKey = Object.keys(CACHE_LIMITS).find(key => cacheName === CACHES[key]) || 'RUNTIME';
+      await limitCacheSize(cacheName, CACHE_LIMITS[cacheKey] || 100);
+    } else if (isApiRequest && networkResponse.ok) {
+      console.log('[SW] API response is not JSON, not caching:', request.url);
     }
 
     return networkResponse;
