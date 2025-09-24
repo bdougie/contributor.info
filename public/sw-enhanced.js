@@ -186,16 +186,17 @@ async function cacheFirst(request, cacheName, maxAge) {
       return cachedResponse;
     }
 
-    // For avatar images that fail, return a placeholder to prevent infinite retries
+    // For avatar images that fail, return a proper SVG placeholder to prevent infinite retries
     const url = new URL(request.url);
     if (url.hostname === 'avatars.githubusercontent.com') {
       console.log('[SW] Avatar fetch failed, returning placeholder:', request.url);
-      return new Response('', {
+      const placeholderSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><rect width="40" height="40" fill="#e1e4e8"/><text x="20" y="25" font-family="system-ui, -apple-system, sans-serif" font-size="20" text-anchor="middle" fill="#6a737d">?</text></svg>';
+      return new Response(placeholderSvg, {
         status: 200,
         statusText: 'OK',
         headers: {
           'Content-Type': 'image/svg+xml',
-          'Cache-Control': 'no-cache'
+          'Cache-Control': 'public, max-age=3600'
         }
       });
     }
@@ -486,13 +487,14 @@ async function handleRequest(request) {
     // Special handling for GitHub avatars to prevent infinite retries
     const url = new URL(request.url);
     if (url.hostname === 'avatars.githubusercontent.com') {
-      console.log('[SW] Avatar request failed, returning empty response to prevent retry loop');
-      return new Response('', {
+      console.log('[SW] Avatar request failed, returning placeholder SVG to prevent retry loop');
+      const placeholderSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><rect width="40" height="40" fill="#e1e4e8"/><text x="20" y="25" font-family="system-ui, -apple-system, sans-serif" font-size="20" text-anchor="middle" fill="#6a737d">?</text></svg>';
+      return new Response(placeholderSvg, {
         status: 200,
         statusText: 'OK',
         headers: {
           'Content-Type': 'image/svg+xml',
-          'Cache-Control': 'no-store, max-age=0'
+          'Cache-Control': 'public, max-age=3600'
         }
       });
     }
