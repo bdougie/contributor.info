@@ -29,26 +29,39 @@ export interface PRWithReviewers {
   merged_at: string | null;
 }
 
+export interface SyncOptions {
+  includeClosedPRs?: boolean;
+  maxClosedDays?: number; // How many days back to fetch closed PRs
+  updateDatabase?: boolean; // Whether to update database with fetched data
+}
+
 /**
  * Fetches the latest PR data from GitHub including requested reviewers
  * @param owner Repository owner
  * @param repo Repository name
  * @param workspaceId Optional workspace ID for tracking
+ * @param options Sync options for controlling what data to fetch
  * @returns Array of PRs with reviewer data
  */
 export async function syncPullRequestReviewers(
   owner: string,
   repo: string,
-  workspaceId?: string
+  workspaceId?: string,
+  options: SyncOptions = {}
 ): Promise<PRWithReviewers[]> {
   try {
-    console.log(`Syncing PR reviewers for ${owner}/${repo}`);
+    const { includeClosedPRs = true, maxClosedDays = 30, updateDatabase = true } = options;
+
+    console.log(`Syncing PR reviewers for ${owner}/${repo}`, { includeClosedPRs, maxClosedDays });
 
     const { data, error } = await supabase.functions.invoke('sync-pr-reviewers', {
       body: {
         owner,
         repo,
         workspace_id: workspaceId,
+        include_closed: includeClosedPRs,
+        max_closed_days: maxClosedDays,
+        update_database: updateDatabase,
       },
     });
 
@@ -62,7 +75,9 @@ export async function syncPullRequestReviewers(
       throw new Error(data.error || 'Failed to sync PR reviewers');
     }
 
-    console.log(`Successfully synced ${data.prs?.length || 0} PRs`);
+    console.log(
+      `Successfully synced ${data.prs?.length || 0} PRs (${data.openCount || 0} open, ${data.closedCount || 0} closed)`
+    );
     return data.prs || [];
   } catch (error) {
     console.error('Failed to sync PR reviewers:', error);

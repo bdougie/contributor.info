@@ -160,15 +160,15 @@ function matchesPattern(url, patterns) {
 async function cacheFirst(request, cacheName, maxAge) {
   const cache = await caches.open(cacheName);
   const cachedResponse = await cache.match(request);
-  
+
   if (cachedResponse && !isStale(cachedResponse, maxAge)) {
     console.log('[SW] Cache hit (cache-first):', request.url);
     return cachedResponse;
   }
-  
+
   try {
     const networkResponse = await fetch(request);
-    
+
     // Only cache successful full responses (200 OK), not partial responses (206)
     if (networkResponse.ok && networkResponse.status === 200) {
       await cache.put(request, addTimestamp(networkResponse.clone()));
@@ -178,13 +178,28 @@ async function cacheFirst(request, cacheName, maxAge) {
     } else if (networkResponse.status === 206) {
       console.log('[SW] Partial response (206) - not caching:', request.url);
     }
-    
+
     return networkResponse;
   } catch (error) {
     if (cachedResponse) {
       console.log('[SW] Network failed, serving stale cache:', request.url);
       return cachedResponse;
     }
+
+    // For avatar images that fail, return a placeholder to prevent infinite retries
+    const url = new URL(request.url);
+    if (url.hostname === 'avatars.githubusercontent.com') {
+      console.log('[SW] Avatar fetch failed, returning placeholder:', request.url);
+      return new Response('', {
+        status: 200,
+        statusText: 'OK',
+        headers: {
+          'Content-Type': 'image/svg+xml',
+          'Cache-Control': 'no-cache'
+        }
+      });
+    }
+
     throw error;
   }
 }
@@ -461,13 +476,27 @@ async function handleRequest(request) {
     
   } catch (error) {
     console.error('[SW] Request failed:', request.url, error);
-    
+
     // Try to find something in cache
     const cachedResponse = await caches.match(request);
     if (cachedResponse) {
       return cachedResponse;
     }
-    
+
+    // Special handling for GitHub avatars to prevent infinite retries
+    const url = new URL(request.url);
+    if (url.hostname === 'avatars.githubusercontent.com') {
+      console.log('[SW] Avatar request failed, returning empty response to prevent retry loop');
+      return new Response('', {
+        status: 200,
+        statusText: 'OK',
+        headers: {
+          'Content-Type': 'image/svg+xml',
+          'Cache-Control': 'no-store, max-age=0'
+        }
+      });
+    }
+
     // For navigation, serve offline page
     if (request.mode === 'navigate') {
       const offlinePage = await caches.match('/offline.html');
@@ -475,7 +504,7 @@ async function handleRequest(request) {
         return offlinePage;
       }
     }
-    
+
     // Return error response
     return new Response('Network error', {
       status: 503,
