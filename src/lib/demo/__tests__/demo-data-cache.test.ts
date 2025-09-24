@@ -142,8 +142,8 @@ describe('Demo Data Cache', () => {
       expect(metrics).toHaveProperty('totalCommits');
 
       expect(consoleSpy).toHaveBeenCalledWith(
-        '%s',
-        '🔄 Generating fresh metrics for demo workspace (30d)'
+        '🔄 Generating fresh metrics for demo workspace (%s)',
+        '30d'
       );
     });
 
@@ -159,8 +159,8 @@ describe('Demo Data Cache', () => {
       const metrics3 = getCachedWorkspaceMetrics(mockRepos, '7d');
       expect(metrics3).not.toBe(metrics1);
       expect(consoleSpy).toHaveBeenCalledWith(
-        '%s',
-        '🔄 Generating fresh metrics for demo workspace (7d)'
+        '🔄 Generating fresh metrics for demo workspace (%s)',
+        '7d'
       );
     });
 
@@ -182,8 +182,8 @@ describe('Demo Data Cache', () => {
 
       expect(trendData).toHaveLength(30);
       expect(consoleSpy).toHaveBeenCalledWith(
-        '%s',
-        '🔄 Generating fresh trend data for demo workspace (30 days)'
+        '🔄 Generating fresh trend data for demo workspace (%s days)',
+        30
       );
     });
 

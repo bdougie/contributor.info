@@ -52,7 +52,8 @@ describe('useAnalytics', () => {
     result.current.track('testEvent', { foo: 'bar' });
 
     expect(consoleWarnSpy).toHaveBeenCalledWith(
-      '[Analytics] Event name "testEvent" should be snake_case'
+      '[Analytics] Event name "%s" should be snake_case',
+      'testEvent'
     );
   });
 

@@ -76,7 +76,10 @@ export async function syncPullRequestReviewers(
     }
 
     console.log(
-      `Successfully synced ${data.prs?.length || 0} PRs (${data.openCount || 0} open, ${data.closedCount || 0} closed)`
+      'Successfully synced %d PRs (%d open, %d closed)',
+      data.prs?.length || 0,
+      data.openCount || 0,
+      data.closedCount || 0
     );
     return data.prs || [];
   } catch (error) {

@@ -28,7 +28,8 @@ describe('API Helpers', () => {
         'Invalid response format from server - expected JSON but received HTML'
       );
       expect(console.error).toHaveBeenCalledWith(
-        'Non-JSON response received:',
+        'Non-JSON response received%s:',
+        '',
         expect.stringContaining('<!DOCTYPE html>')
       );
     });
@@ -52,7 +53,8 @@ describe('API Helpers', () => {
         'Invalid response format from server - expected JSON but received HTML'
       );
       expect(console.error).toHaveBeenCalledWith(
-        'Non-JSON response received (test-context):',
+        'Non-JSON response received%s:',
+        ' (test-context)',
         'Error page'
       );
     });
@@ -97,9 +99,7 @@ describe('API Helpers', () => {
         headers: { 'content-type': 'application/json' },
       });
 
-      await expect(handleApiResponse(response)).rejects.toThrow(
-        'Request failed with status 500'
-      );
+      await expect(handleApiResponse(response)).rejects.toThrow('Request failed with status 500');
     });
 
     it('should handle HTML error pages gracefully', async () => {
@@ -109,9 +109,7 @@ describe('API Helpers', () => {
         headers: { 'content-type': 'text/html' },
       });
 
-      await expect(handleApiResponse(response)).rejects.toThrow(
-        'Request failed with status 503'
-      );
+      await expect(handleApiResponse(response)).rejects.toThrow('Request failed with status 503');
       expect(console.error).toHaveBeenCalled();
     });
 
@@ -123,9 +121,7 @@ describe('API Helpers', () => {
         headers: { 'content-type': 'text/plain' },
       });
 
-      await expect(handleApiResponse(response)).rejects.toThrow(
-        'Request failed with status 500'
-      );
+      await expect(handleApiResponse(response)).rejects.toThrow('Request failed with status 500');
     });
 
     it('should handle 401 unauthorized with JSON error', async () => {
