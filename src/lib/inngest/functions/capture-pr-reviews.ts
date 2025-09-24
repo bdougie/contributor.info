@@ -161,10 +161,10 @@ export const capturePrReviews = inngest.createFunction(
 
         return { reviews: processedReviews, failedContributorCreations };
       } catch (error: unknown) {
-        console.error(`Error fetching reviews for PR #${prNumber}:`, error);
+        console.error('Error fetching reviews for PR #%s:', error, prNumber);
         const apiError = error as { status?: number };
         if (apiError.status === 404) {
-          console.warn(`PR #${prNumber} not found, skipping reviews`);
+          console.warn('PR #%s not found, skipping reviews', prNumber);
           return { reviews: [], failedContributorCreations: 0 };
         }
         if (apiError.status === 403) {
@@ -210,7 +210,7 @@ export const capturePrReviews = inngest.createFunction(
         .eq('id', prId);
 
       if (error) {
-        console.warn(`Failed to update PR timestamp: ${error.message}`);
+        console.warn('Failed to update PR timestamp: %s', error.message);
       }
     });
 

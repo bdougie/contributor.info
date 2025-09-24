@@ -429,7 +429,7 @@ export class GraphQLClient {
 
       // Warn if approaching rate limits
       if (result.rateLimit && result.rateLimit.remaining < 1000) {
-        console.warn(`[GraphQL] Rate limit low: ${result.rateLimit.remaining} points remaining`);
+        console.warn('[GraphQL] Rate limit low: %s points remaining', result.rateLimit.remaining);
       }
 
       return {
@@ -457,7 +457,7 @@ export class GraphQLClient {
       }
 
       // Log the error but don't modify it - let caller handle fallback
-      console.error(`[GraphQL] Query failed for ${owner}/${repo}#${prNumber}:`, errorMessage);
+      console.error('[GraphQL] Query failed for %s/%s#%s:', errorMessage, owner, repo, prNumber);
       throw error;
     }
   }

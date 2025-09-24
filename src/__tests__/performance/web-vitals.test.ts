@@ -29,7 +29,7 @@ describe('Core Web Vitals', () => {
         const score = data.categories.performance.score * 100;
         expect(score).toBeGreaterThanOrEqual(90);
       } catch (error) {
-        console.error(`Failed to test ${url}:`, error);
+        console.error('Failed to test %s:', error, url);
         throw error;
       }
     });

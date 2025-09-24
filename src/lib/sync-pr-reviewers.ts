@@ -52,7 +52,7 @@ export async function syncPullRequestReviewers(
   try {
     const { includeClosedPRs = true, maxClosedDays = 30, updateDatabase = true } = options;
 
-    console.log(`Syncing PR reviewers for ${owner}/${repo}`, { includeClosedPRs, maxClosedDays });
+    console.log('Syncing PR reviewers for %s/%s', owner, repo, { includeClosedPRs, maxClosedDays });
 
     const { data, error } = await supabase.functions.invoke('sync-pr-reviewers', {
       body: {

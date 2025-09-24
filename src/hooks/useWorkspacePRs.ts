@@ -365,7 +365,7 @@ export function useWorkspacePRs({
                   updateDatabase: true,
                 });
               } catch (err) {
-                console.error(`Failed to sync ${repo.owner}/${repo.name}:`, err);
+                console.error('Failed to sync %s/%s:', err, repo.owner, repo.name);
               }
             })
           );

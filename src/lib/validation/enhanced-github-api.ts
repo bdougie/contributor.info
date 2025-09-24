@@ -152,7 +152,7 @@ export async function fetchPullRequestsWithValidation(
           );
 
           if (!detailsResponse.ok) {
-            console.warn(`Failed to fetch details for PR #${pr.number}`);
+            console.warn('Failed to fetch details for PR #%s', pr.number);
             // Use basic data without detailed stats
             return {
               id: validatedPR.id,

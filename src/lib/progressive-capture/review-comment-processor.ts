@@ -134,13 +134,13 @@ export class ReviewCommentProcessor {
             processed++;
           }
         } catch (reviewError) {
-          console.warn(`[Reviews Processor] Error processing review ${review.id}:`, reviewError);
+          console.warn('[Reviews Processor] Error processing review %s:', reviewError, review.id);
         }
       }
 
       return { success: true };
     } catch (error) {
-      console.error(`[Reviews Processor] Error processing reviews for PR #${prNumber}:`, error);
+      console.error('[Reviews Processor] Error processing reviews for PR #%s:', error, prNumber);
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }
@@ -296,7 +296,7 @@ export class ReviewCommentProcessor {
 
       return { success: true };
     } catch (error) {
-      console.error(`[Comments Processor] Error processing comments for PR #${prNumber}:`, error);
+      console.error('[Comments Processor] Error processing comments for PR #%s:', error, prNumber);
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }

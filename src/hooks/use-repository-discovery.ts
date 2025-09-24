@@ -53,7 +53,7 @@ export function useRepositoryDiscovery({
       try {
         // Check if repository exists in database
         // Using maybeSingle() to handle non-existent repos without 406 errors
-        console.log('%s', '[Repository Discovery] Checking repository:', `${owner}/${repo}`);
+        console.log('[Repository Discovery] Checking repository: %s/%s', owner, repo);
         const { data: repoData, error } = await supabase
           .from('repositories')
           .select('id, owner, name')

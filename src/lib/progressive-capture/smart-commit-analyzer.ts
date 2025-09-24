@@ -73,7 +73,7 @@ export class SmartCommitAnalyzer {
         analyzed_at: new Date().toISOString(),
       };
     } catch (error) {
-      console.error(`[Smart Commit] Failed to analyze commit ${sha}:`, error);
+      console.error('[Smart Commit] Failed to analyze commit %s:', error, sha);
       throw error;
     }
   }
@@ -151,10 +151,10 @@ export class SmartCommitAnalyzer {
           .eq('sha', result.sha);
 
         if (updateError) {
-          console.warn(`[Smart Commit] Failed to update commit ${result.sha}:`, updateError);
+          console.warn('[Smart Commit] Failed to update commit %s:', updateError, result.sha);
         }
       } catch (error) {
-        console.error(`[Smart Commit] Error storing result for commit ${result.sha}:`, error);
+        console.error('[Smart Commit] Error storing result for commit %s:', error, result.sha);
       }
     }
   }
@@ -175,7 +175,7 @@ export class SmartCommitAnalyzer {
       // Store the result in database
       await this.storeAnalysisResults(job.repository_id, [result]);
     } catch (error) {
-      console.error(`[Smart Commit] Failed to process job for commit ${commitSha}:`, error);
+      console.error('[Smart Commit] Failed to process job for commit %s:', error, commitSha);
       throw error;
     }
   }

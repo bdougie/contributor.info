@@ -110,7 +110,7 @@ export class GroundTruthExtractor {
       .limit(100);
 
     if (error) {
-      console.warn(`Failed to extract events for ${contributorId}: ${error.message}`);
+      console.warn('Failed to extract events for %s: %s', contributorId, error.message);
       return [];
     }
 

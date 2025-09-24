@@ -325,12 +325,12 @@ export async function calculateIssueActivityPatterns(
     ]);
 
     // Debug logging
-    console.log('%s', `[DEBUG] Repository: ${owner}/${repo}`);
-    console.log('%s', `[DEBUG] Issue comments found: ${issueComments?.length || 0}`);
-    console.log('%s', `[DEBUG] PR comments found: ${prComments?.length || 0}`);
-    console.log('%s', `[DEBUG] Issues found: ${issues?.length || 0}`);
+    console.log('[DEBUG] Repository: %s/%s', owner, repo);
+    console.log('[DEBUG] Issue comments found: %s', issueComments?.length || 0);
+    console.log('[DEBUG] PR comments found: %s', prComments?.length || 0);
+    console.log('[DEBUG] Issues found: %s', issues?.length || 0);
     if (issueComments && issueComments.length > 0) {
-      console.log(`[DEBUG] Sample issue comment:`, issueComments[0]);
+      console.log('[DEBUG] Sample issue comment:', issueComments[0]);
     }
 
     // Calculate most active triager (most comments across both PRs and issues)
@@ -378,13 +378,13 @@ export async function calculateIssueActivityPatterns(
       }
     });
 
-    console.log('%s', `[DEBUG] Triager stats size: ${triagerStats.size}`);
-    console.log(`[DEBUG] Triager stats:`, Array.from(triagerStats.entries()).slice(0, 3));
+    console.log('[DEBUG] Triager stats size: %s', triagerStats.size);
+    console.log('[DEBUG] Triager stats:', Array.from(triagerStats.entries()).slice(0, 3));
 
     const mostActiveTriager =
       Array.from(triagerStats.values()).sort((a, b) => b.count - a.count)[0] || null;
 
-    console.log(`[DEBUG] Most active triager:`, mostActiveTriager);
+    console.log('[DEBUG] Most active triager:', mostActiveTriager);
 
     // Calculate most active issue commenters (non-bot users who comment most on issues)
     // Using O(1) Map for efficient counting
@@ -434,15 +434,15 @@ export async function calculateIssueActivityPatterns(
       }
     });
 
-    console.log('%s', `[DEBUG] Issue commenter stats size: ${issueCommenterStats.size}`);
-    console.log('%s', `[DEBUG] Issue authors map size: ${issueAuthors.size}`);
+    console.log('[DEBUG] Issue commenter stats size: %s', issueCommenterStats.size);
+    console.log('[DEBUG] Issue authors map size: %s', issueAuthors.size);
     if (issueCommenterStats.size === 0) {
       console.log(
         `[DEBUG] No commenters found. Total issue comments: ${issueComments?.length || 0}`
       );
-      console.log(`[DEBUG] First 3 comments (if any):`, issueComments?.slice(0, 3));
+      console.log('[DEBUG] First 3 comments (if any):', issueComments?.slice(0, 3));
     } else {
-      console.log(`[DEBUG] Top commenters:`, Array.from(issueCommenterStats.values()).slice(0, 3));
+      console.log('[DEBUG] Top commenters:', Array.from(issueCommenterStats.values()).slice(0, 3));
     }
 
     // Get top 3 most active commenters (likely to be first responders)

@@ -198,7 +198,7 @@ export const discoverNewRepository = inngest.createFunction(
 
       if (error && error.code !== '23505') {
         // Ignore duplicate key errors
-        console.error(`Failed to track repository: ${error.message}`);
+        console.error('Failed to track repository: %s', error.message);
         // Don't throw - repository exists which is the main goal
       }
     });

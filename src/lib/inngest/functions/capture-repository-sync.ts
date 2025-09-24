@@ -342,7 +342,7 @@ export const captureRepositorySync = inngest.createFunction(
         .eq('id', repositoryId);
 
       if (error) {
-        console.warn(`Failed to update repository sync timestamp: ${error.message}`);
+        console.warn('Failed to update repository sync timestamp: %s', error.message);
       }
     });
 

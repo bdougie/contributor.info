@@ -36,7 +36,7 @@ const hasProcess = typeof process !== 'undefined' && process.env;
 function getEnvVar(viteKey: string, serverKey?: string): string {
   // Security check: Ensure viteKey always starts with VITE_ for browser safety
   if (!viteKey.startsWith('VITE_')) {
-    console.error(`🚨 SECURITY WARNING: Env key "${viteKey}" must start with VITE_ prefix`);
+    console.error('🚨 SECURITY WARNING: Env key "%s" must start with VITE_ prefix', viteKey);
   }
   // For tests, provide default local Supabase values
   const isTest = hasProcess && (process.env.NODE_ENV === 'test' || process.env.VITEST === 'true');
@@ -303,7 +303,7 @@ export function validateEnvironment(context: 'client' | 'server') {
   }
 
   if (missing.length > 0) {
-    console.error(`❌ Missing required ${context} environment variables:`, missing);
+    console.error('❌ Missing required %s environment variables:', missing, context);
     return false;
   }
 

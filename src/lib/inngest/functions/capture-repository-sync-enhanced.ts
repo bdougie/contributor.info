@@ -380,7 +380,7 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
         .eq('id', repositoryId);
 
       if (error) {
-        console.error(`Failed to update repository sync timestamp: ${error.message}`);
+        console.error('Failed to update repository sync timestamp: %s', error.message);
       }
     });
 
@@ -396,7 +396,7 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
       timestamp: new Date().toISOString(),
     };
 
-    console.log(`✅ Enhanced repository sync completed:`, summary);
+    console.log('✅ Enhanced repository sync completed:', summary);
 
     return summary;
   }
