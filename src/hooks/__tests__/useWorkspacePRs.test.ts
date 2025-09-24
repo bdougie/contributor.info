@@ -47,11 +47,15 @@ describe('useWorkspacePRs', () => {
     vi.mocked(syncPullRequestReviewers).mockReturnValue(Promise.resolve([]));
 
     // Default Supabase mock returns empty data immediately
-    vi.mocked(supabase.from).mockReturnValue({
+    const defaultMockClient = {
       select: vi.fn().mockReturnThis(),
       in: vi.fn().mockReturnThis(),
       order: vi.fn().mockReturnValue({ data: [], error: null }),
-    } as ReturnType<typeof supabase.from>);
+    };
+    // Ensure all chain methods return the mock client itself
+    defaultMockClient.select.mockReturnValue(defaultMockClient);
+    defaultMockClient.in.mockReturnValue(defaultMockClient);
+    vi.mocked(supabase.from).mockReturnValue(defaultMockClient as ReturnType<typeof supabase.from>);
   });
 
   afterEach(() => {
@@ -95,11 +99,15 @@ describe('useWorkspacePRs', () => {
       },
     ];
 
+    // Create a proper chain mock that returns the same instance for chaining
     const mockClient = {
       select: vi.fn().mockReturnThis(),
       in: vi.fn().mockReturnThis(),
       order: vi.fn().mockReturnValue({ data: [], error: null }),
     };
+    // Ensure all chain methods return the mock client itself
+    mockClient.select.mockReturnValue(mockClient);
+    mockClient.in.mockReturnValue(mockClient);
     vi.mocked(supabase.from).mockReturnValue(mockClient as ReturnType<typeof supabase.from>);
 
     renderHook(() =>
@@ -128,6 +136,9 @@ describe('useWorkspacePRs', () => {
         error: null,
       }),
     };
+    // Ensure all chain methods return the mock client itself
+    staleMockClient.select.mockReturnValue(staleMockClient);
+    staleMockClient.in.mockReturnValue(staleMockClient);
     vi.mocked(supabase.from).mockReturnValue(staleMockClient as ReturnType<typeof supabase.from>);
 
     renderHook(() =>

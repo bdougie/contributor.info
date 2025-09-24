@@ -63,9 +63,20 @@ export default tseslint.config(
       ],
     },
   },
-  // Bulletproof testing rules - prevent async/await in test files
+  // Bulletproof testing rules - prevent async/await in unit test files
+  // Excludes integration tests, API tests, and E2E tests which may legitimately need async
   {
     files: ['**/*.test.{ts,tsx}', '**/__tests__/**/*.{ts,tsx}'],
+    ignores: [
+      'netlify/functions/**/*.test.{ts,tsx}', // API function tests
+      'actions/**/*.test.{ts,tsx}', // GitHub action tests  
+      'e2e/**/*.test.{ts,tsx}', // E2E tests
+      'src/services/**/*.test.{ts,tsx}', // Service integration tests
+      '**/integration/**/*.test.{ts,tsx}', // Explicit integration tests
+      '**/*integration*.test.{ts,tsx}', // Integration test files
+      '**/*e2e*.test.{ts,tsx}', // E2E test files
+      '**/*api*.test.{ts,tsx}', // API test files
+    ],
     rules: {
       // Prevent async/await in test functions to avoid CI hangs
       'no-restricted-syntax': [
