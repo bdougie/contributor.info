@@ -70,7 +70,16 @@ export function WorkspaceAutoSync({
           console.log(`[AutoSync] Workspace "${workspaceSlug}" synced successfully`);
         }
       } else {
-        console.error('[AutoSync] Sync failed:', result);
+        // Handle rate limiting for auto-sync
+        if (response.status === 429) {
+          const retryAfter = response.headers.get('Retry-After');
+          const retrySeconds = retryAfter ? parseInt(retryAfter, 10) : 3600; // Default to 1 hour
+          const nextSync = new Date(Date.now() + retrySeconds * 1000);
+          setNextSyncTime(nextSync);
+          console.log(`[AutoSync] Rate limited. Next sync at ${nextSync.toLocaleTimeString()}`);
+        } else {
+          console.error('[AutoSync] Sync failed:', result);
+        }
       }
     } catch (error) {
       console.error('[AutoSync] Failed to sync workspace:', error);

@@ -1785,16 +1785,18 @@ function WorkspaceActivity({
   return (
     <div className="space-y-4">
       {/* Auto-sync indicator at top of tab */}
-      <div className="flex items-center justify-between px-1">
-        <WorkspaceAutoSync
-          workspaceId={workspace.id}
-          workspaceSlug={workspace.slug}
-          repositoryIds={repositories.map((r) => r.id).filter(Boolean)}
-          onSyncComplete={onSyncComplete}
-          syncIntervalMinutes={60}
-          className="text-sm text-muted-foreground"
-        />
-      </div>
+      {workspace && (
+        <div className="flex items-center justify-between px-1">
+          <WorkspaceAutoSync
+            workspaceId={workspace.id}
+            workspaceSlug={workspace.slug}
+            repositoryIds={repositories.map((r) => r.id).filter(Boolean)}
+            onSyncComplete={onSyncComplete}
+            syncIntervalMinutes={60}
+            className="text-sm text-muted-foreground"
+          />
+        </div>
+      )}
 
       {/* Activity Trend Chart */}
       <TrendChart

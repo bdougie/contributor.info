@@ -49,7 +49,13 @@ export function WorkspaceSyncButton({
 
       if (!response.ok) {
         // Handle specific error cases
-        if (response.status === 503) {
+        if (response.status === 429) {
+          // Rate limited
+          const retryAfter = response.headers.get('Retry-After');
+          const message =
+            result.message || `Too many sync requests. Please wait ${retryAfter || '60'} seconds.`;
+          toast.error(message);
+        } else if (response.status === 503) {
           toast.error('Sync service is temporarily unavailable. Please try again later.');
         } else {
           toast.error(result.message || 'Failed to start sync. Please try again.');
