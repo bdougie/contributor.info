@@ -141,7 +141,7 @@ function validateFunctionRedirects(config) {
 
   apiPrefixedFunctions.forEach((funcName) => {
     // Convert function name to expected API path
-    const expectedPath = `/api/${funcName.replace('api-', '').replace(/-/g, '-')}`;
+    const expectedPath = `/api/${funcName.replace('api-', '')}`;
 
     const hasRedirect = config.redirects.some((r) => {
       const fromPath = r.from.replace(/\/\*$/, ''); // Remove trailing /* for wildcard paths
