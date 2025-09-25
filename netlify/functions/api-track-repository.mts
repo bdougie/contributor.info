@@ -1,4 +1,4 @@
-import type { Context } from "@netlify/functions";
+import type { Context } from '@netlify/functions';
 
 export default async (req: Request, context: Context) => {
   // CORS headers
@@ -6,28 +6,25 @@ export default async (req: Request, context: Context) => {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Credentials': 'true'
+    'Access-Control-Allow-Credentials': 'true',
   };
 
   // Handle preflight
   if (req.method === 'OPTIONS') {
     return new Response('', {
       status: 200,
-      headers: corsHeaders
+      headers: corsHeaders,
     });
   }
 
   if (req.method !== 'POST') {
-    return new Response(
-      JSON.stringify({ error: 'Method not allowed' }),
-      {
-        status: 405,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json',
+      },
+    });
   }
 
   try {
@@ -49,14 +46,14 @@ export default async (req: Request, context: Context) => {
         JSON.stringify({
           success: false,
           error: 'Missing owner or repo',
-          message: 'Please provide both owner and repo parameters'
+          message: 'Please provide both owner and repo parameters',
         }),
         {
           status: 400,
           headers: {
             ...corsHeaders,
-            'Content-Type': 'application/json'
-          }
+            'Content-Type': 'application/json',
+          },
         }
       );
     }
@@ -67,14 +64,15 @@ export default async (req: Request, context: Context) => {
         JSON.stringify({
           success: false,
           error: 'Invalid repository format',
-          message: 'Repository names can only contain letters, numbers, dots, underscores, and hyphens'
+          message:
+            'Repository names can only contain letters, numbers, dots, underscores, and hyphens',
         }),
         {
           status: 400,
           headers: {
             ...corsHeaders,
-            'Content-Type': 'application/json'
-          }
+            'Content-Type': 'application/json',
+          },
         }
       );
     }
@@ -85,14 +83,14 @@ export default async (req: Request, context: Context) => {
         JSON.stringify({
           success: false,
           error: 'Invalid repository name length',
-          message: 'Repository or organization name is too long'
+          message: 'Repository or organization name is too long',
         }),
         {
           status: 400,
           headers: {
             ...corsHeaders,
-            'Content-Type': 'application/json'
-          }
+            'Content-Type': 'application/json',
+          },
         }
       );
     }
@@ -107,12 +105,12 @@ export default async (req: Request, context: Context) => {
       const githubToken = process.env.GITHUB_TOKEN || process.env.VITE_GITHUB_TOKEN;
       const githubResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
         headers: {
-          'Accept': 'application/vnd.github.v3+json',
+          Accept: 'application/vnd.github.v3+json',
           'User-Agent': 'contributor-info',
           ...(githubToken && {
-            'Authorization': `token ${githubToken}`
-          })
-        }
+            Authorization: `token ${githubToken}`,
+          }),
+        },
       });
 
       if (githubResponse.status === 404) {
@@ -120,14 +118,14 @@ export default async (req: Request, context: Context) => {
           JSON.stringify({
             success: false,
             error: 'Repository not found',
-            message: `Repository ${owner}/${repo} not found on GitHub`
+            message: `Repository ${owner}/${repo} not found on GitHub`,
           }),
           {
             status: 404,
             headers: {
               ...corsHeaders,
-              'Content-Type': 'application/json'
-            }
+              'Content-Type': 'application/json',
+            },
           }
         );
       }
@@ -144,25 +142,24 @@ export default async (req: Request, context: Context) => {
           JSON.stringify({
             success: false,
             error: 'Private repository',
-            message: 'Cannot track private repositories'
+            message: 'Cannot track private repositories',
           }),
           {
             status: 403,
             headers: {
               ...corsHeaders,
-              'Content-Type': 'application/json'
-            }
+              'Content-Type': 'application/json',
+            },
           }
         );
       }
-
     } catch (githubError: any) {
       // Log the actual error for debugging
       console.error('GitHub API call failed:', githubError);
       console.error('GitHub error details:', {
         message: githubError.message,
         status: githubError.status,
-        hasToken: !!process.env.GITHUB_TOKEN
+        hasToken: !!process.env.GITHUB_TOKEN,
       });
 
       // For local development, continue without GitHub data if API fails
@@ -175,14 +172,14 @@ export default async (req: Request, context: Context) => {
           JSON.stringify({
             success: false,
             error: 'GitHub API error',
-            message: 'Unable to fetch repository data from GitHub. Please try again later.'
+            message: 'Unable to fetch repository data from GitHub. Please try again later.',
           }),
           {
             status: 503,
             headers: {
               ...corsHeaders,
-              'Content-Type': 'application/json'
-            }
+              'Content-Type': 'application/json',
+            },
           }
         );
       }
@@ -195,7 +192,8 @@ export default async (req: Request, context: Context) => {
       const { createClient } = await import('@supabase/supabase-js');
 
       // Get Supabase credentials
-      const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://egcxzonpmmcirmgqdrla.supabase.co';
+      const supabaseUrl =
+        process.env.VITE_SUPABASE_URL || 'https://egcxzonpmmcirmgqdrla.supabase.co';
       const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
       const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
 
@@ -205,8 +203,8 @@ export default async (req: Request, context: Context) => {
       if (!supabaseKey) {
         console.error('Missing Supabase keys');
         // Fallback to sending Inngest event
-        const inngestEventKey = process.env.INNGEST_EVENT_KEY ||
-                               process.env.INNGEST_PRODUCTION_EVENT_KEY;
+        const inngestEventKey =
+          process.env.INNGEST_EVENT_KEY || process.env.INNGEST_PRODUCTION_EVENT_KEY;
 
         if (inngestEventKey && inngestEventKey !== 'local_development_only') {
           const inngestUrl = `https://inn.gs/e/${inngestEventKey}`;
@@ -222,9 +220,9 @@ export default async (req: Request, context: Context) => {
                 repo,
                 source: 'user-tracking',
                 userId: isAuthenticated ? 'authenticated-user' : null,
-                timestamp: new Date().toISOString()
-              }
-            })
+                timestamp: new Date().toISOString(),
+              },
+            }),
           });
         }
 
@@ -232,14 +230,14 @@ export default async (req: Request, context: Context) => {
           JSON.stringify({
             success: true,
             message: `Tracking request received for ${owner}/${repo}`,
-            warning: 'Background processing may be delayed'
+            warning: 'Background processing may be delayed',
           }),
           {
             status: 200,
             headers: {
               ...corsHeaders,
-              'Content-Type': 'application/json'
-            }
+              'Content-Type': 'application/json',
+            },
           }
         );
       }
@@ -266,16 +264,23 @@ export default async (req: Request, context: Context) => {
         // Send sync event for existing repository
         try {
           const { Inngest } = await import('inngest');
-          const isLocal = process.env.NODE_ENV === 'development' ||
-                         process.env.NETLIFY_DEV === 'true';
+
+          // Same environment detection as above
+          const isLocal =
+            process.env.NODE_ENV === 'development' ||
+            process.env.NETLIFY_DEV === 'true' ||
+            process.env.CONTEXT === 'dev' ||
+            (!process.env.NETLIFY && !process.env.AWS_LAMBDA_FUNCTION_NAME);
+
+          const eventKey = isLocal
+            ? 'local-dev-key'
+            : process.env.INNGEST_PRODUCTION_EVENT_KEY || process.env.INNGEST_EVENT_KEY;
 
           const inngest = new Inngest({
             id: 'contributor-info',
             isDev: isLocal,
-            eventKey: process.env.INNGEST_EVENT_KEY ||
-                     process.env.INNGEST_PRODUCTION_EVENT_KEY ||
-                     'local-dev-key',
-            ...(isLocal && { baseUrl: 'http://127.0.0.1:8288' })
+            eventKey,
+            ...(isLocal && { baseUrl: 'http://127.0.0.1:8288' }),
           });
 
           // Send sync event for the existing repository
@@ -287,8 +292,8 @@ export default async (req: Request, context: Context) => {
               name: existingRepo.name,
               days: 30,
               priority: 'high',
-              reason: 'Re-tracking existing repository'
-            }
+              reason: 'Re-tracking existing repository',
+            },
           });
 
           console.log('Sync event sent for existing repository:', result.ids);
@@ -300,70 +305,74 @@ export default async (req: Request, context: Context) => {
           JSON.stringify({
             success: true,
             message: `Repository ${owner}/${repo} is already being tracked`,
-            repositoryId: existingRepo.id
+            repositoryId: existingRepo.id,
           }),
           {
             status: 200,
             headers: {
               ...corsHeaders,
-              'Content-Type': 'application/json'
-            }
+              'Content-Type': 'application/json',
+            },
           }
         );
       }
 
       // Step 2: Create repository record directly
       // For development, generate a temporary github_id if we don't have GitHub data
-      const repositoryData = githubData ? {
-        github_id: githubData.id,
-        full_name: githubData.full_name,
-        owner: githubData.owner.login,
-        name: githubData.name,
-        description: githubData.description,
-        homepage: githubData.homepage,
-        language: githubData.language,
-        stargazers_count: githubData.stargazers_count,
-        watchers_count: githubData.watchers_count,
-        forks_count: githubData.forks_count,
-        open_issues_count: githubData.open_issues_count,
-        size: githubData.size,
-        default_branch: githubData.default_branch,
-        is_fork: githubData.fork,
-        is_archived: githubData.archived,
-        is_disabled: githubData.disabled,
-        is_private: githubData.private,
-        has_issues: githubData.has_issues,
-        has_projects: githubData.has_projects,
-        has_wiki: githubData.has_wiki,
-        has_pages: githubData.has_pages,
-        has_downloads: githubData.has_downloads,
-        license: githubData.license?.spdx_id || null,
-        topics: githubData.topics || [],
-        github_created_at: githubData.created_at,
-        github_updated_at: githubData.updated_at,
-        github_pushed_at: githubData.pushed_at,
-        first_tracked_at: new Date().toISOString(),
-        last_updated_at: new Date().toISOString(),
-        is_active: true
-      } : {
-        // Development mode: create minimal entry with a temporary github_id
-        // This uses a hash of the repo name to generate a consistent but unique ID
-        github_id: Math.abs(`${owner}/${repo}`.split('').reduce((a, b) => {
-          a = ((a << 5) - a) + b.charCodeAt(0);
-          return a & a;
-        }, 0)),
-        full_name: `${owner}/${repo}`,
-        owner: owner,
-        name: repo,
-        description: null,
-        stargazers_count: 0,
-        watchers_count: 0,
-        forks_count: 0,
-        open_issues_count: 0,
-        first_tracked_at: new Date().toISOString(),
-        last_updated_at: new Date().toISOString(),
-        is_active: true
-      };
+      const repositoryData = githubData
+        ? {
+            github_id: githubData.id,
+            full_name: githubData.full_name,
+            owner: githubData.owner.login,
+            name: githubData.name,
+            description: githubData.description,
+            homepage: githubData.homepage,
+            language: githubData.language,
+            stargazers_count: githubData.stargazers_count,
+            watchers_count: githubData.watchers_count,
+            forks_count: githubData.forks_count,
+            open_issues_count: githubData.open_issues_count,
+            size: githubData.size,
+            default_branch: githubData.default_branch,
+            is_fork: githubData.fork,
+            is_archived: githubData.archived,
+            is_disabled: githubData.disabled,
+            is_private: githubData.private,
+            has_issues: githubData.has_issues,
+            has_projects: githubData.has_projects,
+            has_wiki: githubData.has_wiki,
+            has_pages: githubData.has_pages,
+            has_downloads: githubData.has_downloads,
+            license: githubData.license?.spdx_id || null,
+            topics: githubData.topics || [],
+            github_created_at: githubData.created_at,
+            github_updated_at: githubData.updated_at,
+            github_pushed_at: githubData.pushed_at,
+            first_tracked_at: new Date().toISOString(),
+            last_updated_at: new Date().toISOString(),
+            is_active: true,
+          }
+        : {
+            // Development mode: create minimal entry with a temporary github_id
+            // This uses a hash of the repo name to generate a consistent but unique ID
+            github_id: Math.abs(
+              `${owner}/${repo}`.split('').reduce((a, b) => {
+                a = (a << 5) - a + b.charCodeAt(0);
+                return a & a;
+              }, 0)
+            ),
+            full_name: `${owner}/${repo}`,
+            owner: owner,
+            name: repo,
+            description: null,
+            stargazers_count: 0,
+            watchers_count: 0,
+            forks_count: 0,
+            open_issues_count: 0,
+            first_tracked_at: new Date().toISOString(),
+            last_updated_at: new Date().toISOString(),
+            is_active: true,
+          };
 
       const { data: repository, error: insertError } = await supabase
         .from('repositories')
@@ -374,7 +383,9 @@ export default async (req: Request, context: Context) => {
       if (insertError) {
         console.error('Failed to insert repository:', insertError);
         console.error('Insert error details:', JSON.stringify(insertError, null, 2));
-        throw new Error(`Failed to create repository record: ${insertError.message || 'Unknown error'}`);
+        throw new Error(
+          `Failed to create repository record: ${insertError.message || 'Unknown error'}`
+        );
       }
 
       if (!repository) {
@@ -382,17 +393,15 @@ export default async (req: Request, context: Context) => {
       }
 
       // Step 3: Add to tracked_repositories table
-      const { error: trackError } = await supabase
-        .from('tracked_repositories')
-        .insert({
-          repository_id: repository.id,
-          organization_name: owner,
-          repository_name: repo,
-          tracking_enabled: true,
-          priority: 'high',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        });
+      const { error: trackError } = await supabase.from('tracked_repositories').insert({
+        repository_id: repository.id,
+        organization_name: owner,
+        repository_name: repo,
+        tracking_enabled: true,
+        priority: 'high',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
 
       if (trackError && trackError.code !== '23505') {
         // Ignore duplicate key errors
@@ -405,18 +414,41 @@ export default async (req: Request, context: Context) => {
         // Import Inngest SDK
         const { Inngest } = await import('inngest');
 
-        // Create Inngest client for local or production
-        const isLocal = process.env.NODE_ENV === 'development' ||
-                       process.env.NETLIFY_DEV === 'true';
+        // Detect if we're in local development
+        // Check multiple indicators since Netlify Dev doesn't always set NODE_ENV
+        const isLocal =
+          process.env.NODE_ENV === 'development' ||
+          process.env.NETLIFY_DEV === 'true' ||
+          process.env.CONTEXT === 'dev' ||
+          (!process.env.NETLIFY && !process.env.AWS_LAMBDA_FUNCTION_NAME);
+
+        console.log('Inngest environment detection:', {
+          NODE_ENV: process.env.NODE_ENV,
+          NETLIFY_DEV: process.env.NETLIFY_DEV,
+          CONTEXT: process.env.CONTEXT,
+          NETLIFY: process.env.NETLIFY,
+          AWS_LAMBDA: process.env.AWS_LAMBDA_FUNCTION_NAME,
+          isLocal,
+        });
+
+        // For local development, don't use production keys
+        const eventKey = isLocal
+          ? 'local-dev-key' // Always use local key for local dev
+          : process.env.INNGEST_PRODUCTION_EVENT_KEY || process.env.INNGEST_EVENT_KEY;
 
         const inngest = new Inngest({
           id: 'contributor-info',
           isDev: isLocal,
-          eventKey: process.env.INNGEST_EVENT_KEY ||
-                   process.env.INNGEST_PRODUCTION_EVENT_KEY ||
-                   'local-dev-key',
-          // For local dev, events go to local dev server
-          ...(isLocal && { baseUrl: 'http://127.0.0.1:8288' })
+          eventKey,
+          // For local dev, events MUST go to local dev server
+          ...(isLocal && { baseUrl: 'http://127.0.0.1:8288' }),
+        });
+
+        console.log('Inngest client configuration:', {
+          id: 'contributor-info',
+          isDev: isLocal,
+          eventKey: eventKey ? '***' : 'none',
+          baseUrl: isLocal ? 'http://127.0.0.1:8288' : 'default',
         });
 
         // Send events through the SDK
@@ -426,8 +458,8 @@ export default async (req: Request, context: Context) => {
             data: {
               repositoryId: repository.id,
               owner,
-              repo
-            }
+              repo,
+            },
           },
           {
             name: 'capture/repository.sync.graphql',
@@ -437,9 +469,9 @@ export default async (req: Request, context: Context) => {
               name: repository.name,
               days: 30,
               priority: 'high',
-              reason: 'Initial repository discovery'
-            }
-          }
+              reason: 'Initial repository discovery',
+            },
+          },
         ];
 
         const results = await inngest.send(events);
@@ -449,7 +481,11 @@ export default async (req: Request, context: Context) => {
         // Don't throw - events are non-critical for tracking success
       }
 
-      console.log('Successfully tracked repository %s with ID %s', `${owner}/${repo}`, repository.id);
+      console.log(
+        'Successfully tracked repository %s with ID %s',
+        `${owner}/${repo}`,
+        repository.id
+      );
 
       return new Response(
         JSON.stringify({
@@ -461,18 +497,17 @@ export default async (req: Request, context: Context) => {
             owner: repository.owner,
             name: repository.name,
             stars: repository.stargazers_count || 0,
-            language: repository.language || null
-          }
+            language: repository.language || null,
+          },
         }),
         {
           status: 200,
           headers: {
             ...corsHeaders,
-            'Content-Type': 'application/json'
-          }
+            'Content-Type': 'application/json',
+          },
         }
       );
-
     } catch (error: any) {
       console.error('Failed to track repository:', error);
 
@@ -481,18 +516,17 @@ export default async (req: Request, context: Context) => {
         JSON.stringify({
           success: true,
           message: `Tracking request received for ${owner}/${repo}`,
-          warning: 'Processing may be delayed'
+          warning: 'Processing may be delayed',
         }),
         {
           status: 200,
           headers: {
             ...corsHeaders,
-            'Content-Type': 'application/json'
-          }
+            'Content-Type': 'application/json',
+          },
         }
       );
     }
-
   } catch (error: any) {
     console.error('Function error:', error);
 
@@ -500,14 +534,14 @@ export default async (req: Request, context: Context) => {
       JSON.stringify({
         success: false,
         error: 'Internal server error',
-        message: 'Failed to track repository. Please try again.'
+        message: 'Failed to track repository. Please try again.',
       }),
       {
         status: 500,
         headers: {
           ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+        },
       }
     );
   }
