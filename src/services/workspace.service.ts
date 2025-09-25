@@ -188,18 +188,9 @@ export class WorkspaceService {
         throw createError;
       }
 
-      // Add creator as owner member
-      const { error: memberError } = await supabase.from('workspace_members').insert({
-        workspace_id: workspace.id,
-        user_id: userId,
-        role: 'owner',
-      });
-
-      if (memberError) {
-        // Rollback workspace creation
-        await supabase.from('workspaces').delete().eq('id', workspace.id);
-        throw memberError;
-      }
+      // Note: The workspace owner is automatically added as a member
+      // via a database trigger (add_workspace_owner_as_member)
+      // No manual insertion needed here to avoid duplicate constraint violations
 
       return {
         success: true,

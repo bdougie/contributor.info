@@ -20,6 +20,7 @@ import { ProtectedRoute, AdminRoute } from '@/components/features/auth';
 import { initializeWebVitalsMonitoring } from '@/lib/web-vitals-monitoring';
 import { initializeLLMCitationTracking } from '@/lib/llm-citation-tracking';
 import { SVGSpriteInliner } from '@/components/ui/svg-sprite-loader';
+import { WorkspaceRedirect } from '@/components/WorkspaceRedirect';
 
 // Lazy load route components for better performance
 const RepoView = lazy(() => import('@/components/features/repository/repo-view'));
@@ -454,6 +455,13 @@ function App() {
                         </WorkspaceRoutesWrapper>
                       }
                     />
+                    {/* Redirect common typos: singular to plural */}
+                    <Route
+                      path="/workspace/new"
+                      element={<Navigate to="/workspaces/new" replace />}
+                    />
+                    <Route path="/workspace/:id" element={<WorkspaceRedirect />} />
+                    <Route path="/workspace/:id/:tab" element={<WorkspaceRedirect includeTab />} />
                     <Route path="/changelog" element={<ChangelogPage />} />
                     <Route path="/docs" element={<DocsList />} />
                     <Route path="/docs/:slug" element={<DocDetail />} />
