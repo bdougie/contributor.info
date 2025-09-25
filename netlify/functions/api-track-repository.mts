@@ -1,4 +1,6 @@
-exports.handler = async (event, context) => {
+import type { Handler, HandlerEvent, HandlerContext } from '@netlify/functions';
+
+export const handler: Handler = async (event: HandlerEvent, context: HandlerContext) => {
   // CORS headers
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -29,11 +31,17 @@ exports.handler = async (event, context) => {
 
   try {
     // Parse request body
-    const body = JSON.parse(event.body || '{}');
+    let body: any;
+    try {
+      body = JSON.parse(event.body || '{}');
+    } catch (parseError) {
+      // Handle malformed JSON
+      body = {};
+    }
     const { owner, repo } = body;
 
     // Validate repository parameters
-    const isValidRepoName = (name) => /^[a-zA-Z0-9._-]+$/.test(name);
+    const isValidRepoName = (name: string) => /^[a-zA-Z0-9._-]+$/.test(name);
 
     if (!owner || !repo) {
       return {
@@ -137,7 +145,7 @@ exports.handler = async (event, context) => {
 
     } catch (githubError) {
       // Continue anyway - the repository might exist but we hit rate limits
-      console.log('GitHub check error:', githubError.message);
+      console.log('GitHub check error:', (githubError as Error).message);
     }
 
     // Send Inngest event to trigger discovery and data sync
@@ -145,7 +153,7 @@ exports.handler = async (event, context) => {
       const inngestEventKey = process.env.INNGEST_EVENT_KEY ||
                              process.env.INNGEST_PRODUCTION_EVENT_KEY;
 
-      let inngestUrl;
+      let inngestUrl: string;
       // Check if we're in local development
       if (!inngestEventKey || inngestEventKey === 'local_development_only') {
         inngestUrl = 'http://localhost:8288/e/local';
@@ -199,7 +207,7 @@ exports.handler = async (event, context) => {
         })
       };
 
-    } catch (inngestError) {
+    } catch (inngestError: unknown) {
       // Log error for debugging but don't expose to client
       if (process.env.NODE_ENV === 'development') {
         console.error('Inngest error:', inngestError);
