@@ -85,14 +85,8 @@ describe('WorkspaceService', () => {
             }),
           } as any;
         }
-        if (table === 'workspace_members') {
-          // Mock member creation
-          return {
-            insert: vi.fn().mockResolvedValue({
-              error: null,
-            }),
-          } as any;
-        }
+        // Note: workspace_members insertion is handled by database trigger
+        // No need to mock it here
         return {} as any;
       });
 
@@ -180,11 +174,8 @@ describe('WorkspaceService', () => {
         if (table === 'workspaces') {
           return createMock() as any;
         }
-        if (table === 'workspace_members') {
-          return {
-            insert: vi.fn().mockResolvedValue({ error: null }),
-          } as any;
-        }
+        // Note: workspace_members insertion is handled by database trigger
+        // No need to mock it here
         return {} as any;
       });
 
@@ -256,6 +247,83 @@ describe('WorkspaceService', () => {
       expect(result.success).toBe(false);
       expect(result.error).toContain('Name is required');
       expect(result.statusCode).toBe(400);
+    });
+
+    it('should not manually insert workspace members (handled by database trigger)', async () => {
+      let workspaceTableCalls = 0;
+      const memberInsertSpy = vi.fn();
+
+      // Setup mocks
+      vi.mocked(supabase.from).mockImplementation((table: string) => {
+        if (table === 'workspaces' && workspaceTableCalls === 0) {
+          workspaceTableCalls++;
+          // Mock workspace count check
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({
+                count: 0,
+                error: null,
+              }),
+            }),
+          } as any;
+        }
+        if (table === 'subscriptions') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  maybeSingle: vi.fn().mockResolvedValue({
+                    data: null,
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          } as any;
+        }
+        if (table === 'workspaces' && workspaceTableCalls === 1) {
+          // Mock workspace creation
+          return {
+            insert: vi.fn().mockReturnValue({
+              select: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: {
+                    id: 'workspace-123',
+                    name: 'Test Workspace',
+                    tier: 'free',
+                    max_repositories: 3,
+                    current_repository_count: 0,
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          } as any;
+        }
+        if (table === 'workspace_members') {
+          // This should NOT be called
+          return {
+            insert: memberInsertSpy,
+          } as any;
+        }
+        return {} as any;
+      });
+
+      // Mock slug generation
+      vi.mocked(supabase.rpc).mockResolvedValue({
+        data: 'test-workspace',
+        error: null,
+      } as any);
+
+      // Execute
+      const result = await WorkspaceService.createWorkspace(mockUserId, mockWorkspaceData);
+
+      // Assert
+      expect(result.success).toBe(true);
+      expect(result.data?.id).toBe('workspace-123');
+
+      // IMPORTANT: Verify that workspace_members insert was NOT called
+      expect(memberInsertSpy).not.toHaveBeenCalled();
     });
   });
 
