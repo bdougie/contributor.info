@@ -249,12 +249,12 @@
   status = 200
   force = false
 
-# Redirect rules for SPA behavior (exclude functions and API routes)  
+# Redirect rules for SPA behavior
+# All API redirects above have force = true so they take precedence
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-  conditions = {Path = ["!/.netlify/functions/*", "!/api/*"]}
 
 # Font and image optimizations
 [[headers]]
