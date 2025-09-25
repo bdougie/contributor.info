@@ -1,4 +1,4 @@
-import type { Context, Config } from "@netlify/functions";
+import type { Context } from "@netlify/functions";
 
 export default async (req: Request, context: Context) => {
   // CORS headers
@@ -261,8 +261,4 @@ export default async (req: Request, context: Context) => {
       }
     );
   }
-};
-
-export const config: Config = {
-  path: "/api/track-repository"
 };
