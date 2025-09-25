@@ -1,1 +1,21 @@
+#!/bin/sh
+
+# Get list of staged TypeScript files
+STAGED_TS_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx)$')
+
+# Only run TypeScript check if there are staged TypeScript files
+if [ -n "$STAGED_TS_FILES" ]; then
+  echo "🔍 Running TypeScript type check on staged files..."
+
+  # Run full type check (needed because TypeScript needs to check dependencies)
+  # But only if TypeScript files were changed
+  npx tsc -b --noEmit
+  if [ $? -ne 0 ]; then
+    echo "❌ TypeScript type check failed. Please fix type errors before committing."
+    exit 1
+  fi
+  echo "✅ TypeScript check passed"
+fi
+
+# Run lint-staged for linting and formatting
 npx lint-staged

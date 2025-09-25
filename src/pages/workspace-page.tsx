@@ -6,7 +6,7 @@ import { getFallbackAvatar } from '@/lib/utils/avatar';
 import { useWorkspaceContributors } from '@/hooks/useWorkspaceContributors';
 import { WorkspaceDashboard, WorkspaceDashboardSkeleton } from '@/components/features/workspace';
 import { WorkspaceErrorBoundary } from '@/components/error-boundaries/workspace-error-boundary';
-import { WorkspaceSyncButton } from '@/components/features/workspace/WorkspaceSyncButton';
+import { WorkspaceAutoSync } from '@/components/features/workspace/WorkspaceAutoSync';
 import {
   WorkspacePullRequestsTable,
   type PullRequest,
@@ -370,11 +370,13 @@ function WorkspacePRs({
   selectedRepositories,
   timeRange,
   workspaceId,
+  workspace,
 }: {
   repositories: Repository[];
   selectedRepositories: string[];
   timeRange: TimeRange;
   workspaceId: string;
+  workspace?: Workspace;
 }) {
   const navigate = useNavigate();
 
@@ -441,26 +443,17 @@ function WorkspacePRs({
 
   return (
     <div className="space-y-6">
-      {/* Sync Status and Refresh Button */}
-      {lastSynced && (
-        <div className="flex items-center justify-between bg-muted/50 px-4 py-2 rounded-lg">
-          <div className="text-sm text-muted-foreground">
-            Last checked: {new Date(lastSynced).toLocaleTimeString()}
-            {isStale && <span className="ml-2 text-yellow-600">(data may be outdated)</span>}
-          </div>
-          {/* Refresh disabled until edge function is fixed
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => refresh()}
-            disabled={loading}
-          >
-            {loading ? 'Loading...' : 'Refresh PRs'}
-          </Button>
-          */}
-          <span className="text-xs text-muted-foreground">Auto-sync every hour</span>
-        </div>
-      )}
+      {/* Auto-sync indicator at top of tab */}
+      <div className="flex items-center justify-between px-1">
+        <WorkspaceAutoSync
+          workspaceId={workspaceId}
+          workspaceSlug={workspace?.slug || 'workspace'}
+          repositoryIds={repositories.map((r) => r.id).filter(Boolean)}
+          onSyncComplete={refresh}
+          syncIntervalMinutes={60}
+          className="text-sm text-muted-foreground"
+        />
+      </div>
 
       {/* Metrics and Trends - first, always full width */}
       <WorkspaceMetricsAndTrends
@@ -1791,17 +1784,16 @@ function WorkspaceActivity({
 
   return (
     <div className="space-y-4">
-      {/* Sync Button */}
+      {/* Auto-sync indicator at top of tab */}
       {workspace && (
-        <div className="flex justify-end mb-4">
-          <WorkspaceSyncButton
+        <div className="flex items-center justify-between px-1">
+          <WorkspaceAutoSync
             workspaceId={workspace.id}
             workspaceSlug={workspace.slug}
-            repositoryIds={repositories.map((r) => r.id)}
-            onSyncComplete={() => {
-              // Refresh data after sync completes without full page reload
-              onSyncComplete?.();
-            }}
+            repositoryIds={repositories.map((r) => r.id).filter(Boolean)}
+            onSyncComplete={onSyncComplete}
+            syncIntervalMinutes={60}
+            className="text-sm text-muted-foreground"
           />
         </div>
       )}
@@ -1896,10 +1888,12 @@ function WorkspaceActivity({
       {/* Activity Feed Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Activity Feed</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Real-time feed of all activities across your workspace repositories
-          </p>
+          <div>
+            <CardTitle>Activity Feed</CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              Real-time feed of all activities across your workspace repositories
+            </p>
+          </div>
         </CardHeader>
         <CardContent>
           {error ? (
@@ -2990,6 +2984,7 @@ function WorkspacePage() {
                 selectedRepositories={selectedRepositories}
                 timeRange={timeRange}
                 workspaceId={workspace.id}
+                workspace={workspace}
               />
             </div>
           </TabsContent>
