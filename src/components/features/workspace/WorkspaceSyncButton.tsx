@@ -29,6 +29,10 @@ export function WorkspaceSyncButton({
   const handleSync = async () => {
     if (isSyncing) return;
 
+    // Create AbortController for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
     try {
       setIsSyncing(true);
       setSyncProgress('Starting sync...');
@@ -43,6 +47,7 @@ export function WorkspaceSyncButton({
           workspaceId,
           repositoryIds,
         }),
+        signal: controller.signal,
       });
 
       const result = await response.json();
@@ -81,8 +86,13 @@ export function WorkspaceSyncButton({
       }
     } catch (error) {
       console.error('Failed to start workspace sync:', error);
-      toast.error('Network error. Please check your connection and try again.');
+      if (error instanceof Error && error.name === 'AbortError') {
+        toast.error('Sync request timed out. Please try again.');
+      } else {
+        toast.error('Network error. Please check your connection and try again.');
+      }
     } finally {
+      clearTimeout(timeoutId);
       setIsSyncing(false);
       setSyncProgress(null);
     }
@@ -94,10 +104,10 @@ export function WorkspaceSyncButton({
         <TooltipTrigger asChild>
           <Button
             onClick={handleSync}
-            disabled={isSyncing}
+            disabled={isSyncing || repositoryIds.length === 0}
             variant={variant}
             size={size}
-            className={className}
+            className={`${className} disabled:cursor-not-allowed`}
           >
             {isSyncing ? (
               <>

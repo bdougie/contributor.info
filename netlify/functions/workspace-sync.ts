@@ -4,7 +4,7 @@ import { Inngest } from 'inngest';
 const inngest = new Inngest({
   id: process.env.INNGEST_APP_ID || 'contributor-info',
   eventKey: process.env.INNGEST_EVENT_KEY || process.env.INNGEST_PRODUCTION_EVENT_KEY || '',
-  isDev: false,
+  isDev: process.env.NODE_ENV === 'development' || process.env.NETLIFY_DEV === 'true',
 });
 
 // Simple in-memory rate limiting (resets on function cold start)
@@ -14,12 +14,48 @@ const syncRateLimits = new Map<string, { count: number; resetTime: number }>();
 // Rate limit configuration
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour window
 const MAX_SYNCS_PER_WINDOW = 10; // Max 10 manual syncs per hour per workspace
+const MAX_CACHE_SIZE = 1000; // Maximum number of workspace entries to cache
+
+// Clean up expired entries periodically
+function cleanupExpiredEntries(): void {
+  const now = Date.now();
+  const entriesToDelete: string[] = [];
+
+  // Identify expired entries
+  for (const [key, data] of syncRateLimits.entries()) {
+    if (now > data.resetTime) {
+      entriesToDelete.push(key);
+    }
+  }
+
+  // Delete expired entries
+  for (const key of entriesToDelete) {
+    syncRateLimits.delete(key);
+  }
+
+  // If cache is still too large, remove oldest entries
+  if (syncRateLimits.size > MAX_CACHE_SIZE) {
+    const sortedEntries = Array.from(syncRateLimits.entries()).sort(
+      (a, b) => a[1].resetTime - b[1].resetTime
+    );
+
+    const entriesToRemove = sortedEntries.slice(0, sortedEntries.length - MAX_CACHE_SIZE);
+    for (const [key] of entriesToRemove) {
+      syncRateLimits.delete(key);
+    }
+  }
+}
 
 function checkRateLimit(workspaceId: string): {
   allowed: boolean;
   remaining: number;
   resetTime: number;
 } {
+  // Clean up expired entries on 10% of requests to avoid performance impact
+  if (Math.random() < 0.1) {
+    cleanupExpiredEntries();
+  }
+
   const now = Date.now();
   const key = workspaceId || 'anonymous';
 

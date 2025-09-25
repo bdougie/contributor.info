@@ -34,6 +34,10 @@ export function WorkspaceAutoSync({
   const performSync = async (isManual = false) => {
     if (isSyncing || repositoryIds.length === 0) return;
 
+    // Create AbortController for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
     try {
       setIsSyncing(true);
 
@@ -47,6 +51,7 @@ export function WorkspaceAutoSync({
           workspaceId,
           repositoryIds,
         }),
+        signal: controller.signal,
       });
 
       const result = await response.json();
@@ -67,7 +72,7 @@ export function WorkspaceAutoSync({
 
         // Log success silently (no toast for auto-sync)
         if (!isManual) {
-          console.log(`[AutoSync] Workspace "${workspaceSlug}" synced successfully`);
+          console.log('[AutoSync] Workspace %s synced successfully', workspaceSlug);
         }
       } else {
         // Handle rate limiting for auto-sync
@@ -76,14 +81,18 @@ export function WorkspaceAutoSync({
           const retrySeconds = retryAfter ? parseInt(retryAfter, 10) : 3600; // Default to 1 hour
           const nextSync = new Date(Date.now() + retrySeconds * 1000);
           setNextSyncTime(nextSync);
-          console.log(`[AutoSync] Rate limited. Next sync at ${nextSync.toLocaleTimeString()}`);
+          console.log('[AutoSync] Rate limited. Next sync at %s', nextSync.toLocaleTimeString());
         } else {
           console.error('[AutoSync] Sync failed:', result);
         }
       }
     } catch (error) {
       console.error('[AutoSync] Failed to sync workspace:', error);
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('[AutoSync] Sync request timed out');
+      }
     } finally {
+      clearTimeout(timeoutId);
       setIsSyncing(false);
     }
   };
@@ -217,8 +226,8 @@ export function WorkspaceAutoSync({
           <TooltipTrigger asChild>
             <button
               onClick={() => performSync(true)}
-              disabled={isSyncing}
-              className="p-1.5 rounded-md hover:bg-muted transition-colors disabled:opacity-50"
+              disabled={isSyncing || repositoryIds.length === 0}
+              className="p-1.5 rounded-md hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               aria-label="Sync now"
             >
               <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
