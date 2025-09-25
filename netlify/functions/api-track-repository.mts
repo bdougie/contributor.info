@@ -102,7 +102,32 @@ export default async (req: Request, context: Context) => {
     // First, verify the repository exists on GitHub
     let githubData: any = null;
     try {
+      // In production, we need a GitHub token to avoid rate limits
       const githubToken = process.env.GITHUB_TOKEN || process.env.VITE_GITHUB_TOKEN;
+
+      // Detect if we're in production
+      const isProduction = process.env.CONTEXT === 'production' ||
+                          process.env.NODE_ENV === 'production' ||
+                          process.env.NETLIFY === 'true';
+
+      if (isProduction && !githubToken) {
+        console.error('Missing GitHub token in production environment');
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Configuration error',
+            message: 'Service temporarily unavailable. Please try again later.',
+          }),
+          {
+            status: 503,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+      }
+
       const githubResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
         headers: {
           Accept: 'application/vnd.github.v3+json',
@@ -162,27 +187,22 @@ export default async (req: Request, context: Context) => {
         hasToken: !!process.env.GITHUB_TOKEN,
       });
 
-      // For local development, continue without GitHub data if API fails
-      // We'll handle missing github_id below
-      if (process.env.NODE_ENV === 'development' || process.env.NETLIFY_DEV === 'true') {
-        console.warn('Continuing without GitHub data in development mode');
-      } else {
-        // In production, require GitHub data
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error: 'GitHub API error',
-            message: 'Unable to fetch repository data from GitHub. Please try again later.',
-          }),
-          {
-            status: 503,
-            headers: {
-              ...corsHeaders,
-              'Content-Type': 'application/json',
-            },
-          }
-        );
-      }
+      // In production, GitHub data is REQUIRED - we cannot proceed without it
+      // The github_id is critical for all downstream processing
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'GitHub API error',
+          message: 'Unable to fetch repository data from GitHub. Please try again later.',
+        }),
+        {
+          status: 503,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
     }
 
     // Directly insert repository into database instead of relying on Inngest
@@ -318,61 +338,57 @@ export default async (req: Request, context: Context) => {
       }
 
       // Step 2: Create repository record directly
-      // For development, generate a temporary github_id if we don't have GitHub data
-      const repositoryData = githubData
-        ? {
-            github_id: githubData.id,
-            full_name: githubData.full_name,
-            owner: githubData.owner.login,
-            name: githubData.name,
-            description: githubData.description,
-            homepage: githubData.homepage,
-            language: githubData.language,
-            stargazers_count: githubData.stargazers_count,
-            watchers_count: githubData.watchers_count,
-            forks_count: githubData.forks_count,
-            open_issues_count: githubData.open_issues_count,
-            size: githubData.size,
-            default_branch: githubData.default_branch,
-            is_fork: githubData.fork,
-            is_archived: githubData.archived,
-            is_disabled: githubData.disabled,
-            is_private: githubData.private,
-            has_issues: githubData.has_issues,
-            has_projects: githubData.has_projects,
-            has_wiki: githubData.has_wiki,
-            has_pages: githubData.has_pages,
-            has_downloads: githubData.has_downloads,
-            license: githubData.license?.spdx_id || null,
-            topics: githubData.topics || [],
-            github_created_at: githubData.created_at,
-            github_updated_at: githubData.updated_at,
-            github_pushed_at: githubData.pushed_at,
-            first_tracked_at: new Date().toISOString(),
-            last_updated_at: new Date().toISOString(),
-            is_active: true,
+      // At this point we MUST have githubData since we return early on GitHub API failures
+      if (!githubData) {
+        console.error('Critical error: githubData is null but we should have returned earlier');
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Data validation error',
+            message: 'Unable to process repository data. Please try again.',
+          }),
+          {
+            status: 500,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json',
+            },
           }
-        : {
-            // Development mode: create minimal entry with a temporary github_id
-            // This uses a hash of the repo name to generate a consistent but unique ID
-            github_id: Math.abs(
-              `${owner}/${repo}`.split('').reduce((a, b) => {
-                a = (a << 5) - a + b.charCodeAt(0);
-                return a & a;
-              }, 0)
-            ),
-            full_name: `${owner}/${repo}`,
-            owner: owner,
-            name: repo,
-            description: null,
-            stargazers_count: 0,
-            watchers_count: 0,
-            forks_count: 0,
-            open_issues_count: 0,
-            first_tracked_at: new Date().toISOString(),
-            last_updated_at: new Date().toISOString(),
-            is_active: true,
-          };
+        );
+      }
+
+      const repositoryData = {
+        github_id: githubData.id,
+        full_name: githubData.full_name,
+        owner: githubData.owner.login,
+        name: githubData.name,
+        description: githubData.description,
+        homepage: githubData.homepage,
+        language: githubData.language,
+        stargazers_count: githubData.stargazers_count,
+        watchers_count: githubData.watchers_count,
+        forks_count: githubData.forks_count,
+        open_issues_count: githubData.open_issues_count,
+        size: githubData.size,
+        default_branch: githubData.default_branch,
+        is_fork: githubData.fork,
+        is_archived: githubData.archived,
+        is_disabled: githubData.disabled,
+        is_private: githubData.private,
+        has_issues: githubData.has_issues,
+        has_projects: githubData.has_projects,
+        has_wiki: githubData.has_wiki,
+        has_pages: githubData.has_pages,
+        has_downloads: githubData.has_downloads,
+        license: githubData.license?.spdx_id || null,
+        topics: githubData.topics || [],
+        github_created_at: githubData.created_at,
+        github_updated_at: githubData.updated_at,
+        github_pushed_at: githubData.pushed_at,
+        first_tracked_at: new Date().toISOString(),
+        last_updated_at: new Date().toISOString(),
+        is_active: true,
+      };
 
       const { data: repository, error: insertError } = await supabase
         .from('repositories')
