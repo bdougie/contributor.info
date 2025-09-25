@@ -188,12 +188,14 @@ export function WorkspacePullRequestsTable({
           header: 'Number',
           cell: ({ row }) => {
             const pr = row.original;
+            const repo = pr.repository;
+            const githubUrl = `https://github.com/${repo.owner}/${repo.name}/pull/${pr.number}`;
             return (
               <a
-                href={pr.url}
+                href={githubUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-medium hover:text-primary transition-colors"
+                className="font-medium hover:text-primary hover:underline transition-colors cursor-pointer"
               >
                 #{pr.number}
               </a>
@@ -206,6 +208,8 @@ export function WorkspacePullRequestsTable({
           header: 'Title',
           cell: ({ row }) => {
             const pr = row.original;
+            const repo = pr.repository;
+            const githubUrl = `https://github.com/${repo.owner}/${repo.name}/pull/${pr.number}`;
             const truncatedTitle =
               pr.title.length > 60 ? pr.title.substring(0, 60) + '...' : pr.title;
 
@@ -214,7 +218,7 @@ export function WorkspacePullRequestsTable({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <a
-                      href={pr.url}
+                      href={githubUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => {
@@ -223,7 +227,7 @@ export function WorkspacePullRequestsTable({
                           onPullRequestClick(pr);
                         }
                       }}
-                      className="font-medium hover:text-primary transition-colors text-left block"
+                      className="font-medium hover:text-primary hover:underline transition-colors text-left block cursor-pointer"
                     >
                       <span className="line-clamp-1">{truncatedTitle}</span>
                     </a>
@@ -440,16 +444,21 @@ export function WorkspacePullRequestsTable({
         }),
         columnHelper.display({
           id: 'actions',
-          cell: ({ row }) => (
-            <a
-              href={row.original.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <ExternalLink className="h-4 w-4" />
-            </a>
-          ),
+          cell: ({ row }) => {
+            const pr = row.original;
+            const repo = pr.repository;
+            const githubUrl = `https://github.com/${repo.owner}/${repo.name}/pull/${pr.number}`;
+            return (
+              <a
+                href={githubUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              >
+                <ExternalLink className="h-4 w-4" />
+              </a>
+            );
+          },
         }),
       ] as ColumnDef<PullRequest>[],
     [onPullRequestClick, onRepositoryClick]
