@@ -142,10 +142,10 @@ export const captureRepositoryIssues = inngest.createFunction(
 
         return issues;
       } catch (error: unknown) {
-        console.error(`Error fetching issues for ${repository.owner}/${repository.name}:`, error);
+        console.error('Error fetching issues for %s/%s:', error, repository.owner, repository.name);
         const apiError = error as { status?: number };
         if (apiError.status === 404) {
-          console.warn(`Repository ${repository.owner}/${repository.name} not found, skipping`);
+          console.warn('Repository %s/%s not found, skipping', repository.owner, repository.name);
           return [];
         }
         if (apiError.status === 403) {
@@ -241,7 +241,7 @@ export const captureRepositoryIssues = inngest.createFunction(
         });
       }
 
-      console.log('%s', `Queued ${issueCommentJobs.length} issue comment capture jobs`);
+      console.log('Queued %s issue comment capture jobs', issueCommentJobs.length);
       return issueCommentJobs.length;
     });
 

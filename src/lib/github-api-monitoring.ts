@@ -56,7 +56,7 @@ class GitHubAPIMonitoring {
 
       if (utilizationRate > this.RATE_LIMIT_WARNING_THRESHOLD) {
         // Simple error logging without analytics
-        console.error(`GitHub API rate limit warning for ${resource}`, {
+        console.error('GitHub API rate limit warning for %s', resource, {
           level: 'warning',
           tags: {
             component: 'github-api',

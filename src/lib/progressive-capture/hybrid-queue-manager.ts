@@ -320,7 +320,7 @@ export class HybridQueueManager {
         );
       }
     } catch (error) {
-      console.error(`[HybridQueue] Failed to send event ${eventName}:`, error);
+      console.error('[HybridQueue] Failed to send event %s:', eventName, error);
       (jobTracker as { failure?: (msg: string) => void })?.failure?.(
         `Failed to send ${eventName}: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
@@ -577,7 +577,7 @@ export class HybridQueueManager {
       const rollbackTriggered = await hybridRolloutManager.checkAndTriggerAutoRollback();
 
       if (rollbackTriggered) {
-        console.log(`[HybridQueue] Auto-rollback triggered due to high error rate`);
+        console.log('[HybridQueue] Auto-rollback triggered due to high error rate');
 
         // Optionally notify monitoring systems or send alerts
         // This could integrate with Sentry, PostHog, or other monitoring tools

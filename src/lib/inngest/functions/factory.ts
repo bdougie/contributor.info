@@ -29,7 +29,7 @@ export function createInngestFunctions(inngest: Inngest) {
         throw new NonRetriableError(`Missing required field: repositoryId`);
       }
 
-      console.log(`[GraphQL Sync] Starting sync for repository ${repositoryId} for ${days} days`);
+      console.log('[GraphQL Sync] Starting sync for repository %s for %s days', repositoryId, days);
 
       // Step 1: Fetch repository details from database
       const repoDetails = await step.run('fetch-repo-details', async () => {
@@ -48,7 +48,7 @@ export function createInngestFunctions(inngest: Inngest) {
 
       // Step 2: Trigger sync (actual implementation would go here)
       const syncResult = await step.run('sync-repository-data', async () => {
-        console.log(`Syncing ${repoDetails.owner}/${repoDetails.name} for ${days} days`);
+        console.log('Syncing %s/%s for %s days', repoDetails.owner, repoDetails.name, days);
 
         // This is where the actual GraphQL sync logic would be imported and called
         // For now, returning stub data to avoid breaking the function
@@ -90,7 +90,7 @@ export function createInngestFunctions(inngest: Inngest) {
         throw new NonRetriableError('Missing required fields');
       }
 
-      console.log(`Capturing PR details for PR ${pull_request_id} in repo ${repository_id}`);
+      console.log('Capturing PR details for PR %s in repo %s', pull_request_id, repository_id);
 
       // Step implementation would go here
       return {
@@ -162,7 +162,7 @@ export function createInngestFunctions(inngest: Inngest) {
         throw new NonRetriableError('Missing required fields');
       }
 
-      console.log(`Capturing PR reviews for PR ${pull_request_id}`);
+      console.log('Capturing PR reviews for PR %s', pull_request_id);
 
       return {
         success: true,
@@ -192,7 +192,7 @@ export function createInngestFunctions(inngest: Inngest) {
         throw new NonRetriableError('Missing required fields');
       }
 
-      console.log(`Capturing PR comments for PR ${pull_request_id}`);
+      console.log('Capturing PR comments for PR %s', pull_request_id);
 
       return {
         success: true,
@@ -223,7 +223,7 @@ export function createInngestFunctions(inngest: Inngest) {
         throw new NonRetriableError('Missing repositoryId');
       }
 
-      console.log(`[REST] Syncing repository ${repositoryId} for ${days} days`);
+      console.log('[REST] Syncing repository %s for %s days', repositoryId, days);
 
       return {
         success: true,
@@ -270,7 +270,7 @@ export function createInngestFunctions(inngest: Inngest) {
         throw new NonRetriableError('Missing repositoryId');
       }
 
-      console.log(`Classifying repository ${repositoryId}`);
+      console.log('Classifying repository %s', repositoryId);
 
       return {
         success: true,
@@ -298,7 +298,7 @@ export function createInngestFunctions(inngest: Inngest) {
         throw new NonRetriableError('Missing pull_request_id');
       }
 
-      console.log(`Updating activity for PR ${pull_request_id}`);
+      console.log('Updating activity for PR %s', pull_request_id);
 
       return {
         success: true,
@@ -327,7 +327,7 @@ export function createInngestFunctions(inngest: Inngest) {
       }
 
       const repoName = repository || `${owner}/${name}`;
-      console.log(`Discovering new repository: ${repoName}`);
+      console.log('Discovering new repository: %s', repoName);
 
       return {
         success: true,
@@ -356,7 +356,7 @@ export function createInngestFunctions(inngest: Inngest) {
         throw new NonRetriableError('Missing required fields');
       }
 
-      console.log(`Capturing comments for issue ${issue_id}`);
+      console.log('Capturing comments for issue %s', issue_id);
 
       return {
         success: true,
@@ -387,7 +387,7 @@ export function createInngestFunctions(inngest: Inngest) {
         throw new NonRetriableError('Missing repositoryId');
       }
 
-      console.log(`Capturing issues for repository ${repositoryId} with state: ${state}`);
+      console.log('Capturing issues for repository %s with state: %s', repositoryId, state);
 
       return {
         success: true,

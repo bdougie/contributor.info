@@ -149,7 +149,7 @@ export const capturePrDetails = inngest.createFunction(
 
         return contributor?.id || null;
       } catch (error) {
-        console.warn(`Error handling merged_by contributor:`, error);
+        console.warn('Error handling merged_by contributor:', error);
         return null;
       }
     });

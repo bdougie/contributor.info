@@ -158,7 +158,7 @@ export class PostHogFeatureFlagClient {
 
     const config = FEATURE_FLAG_CONFIGS[flagName];
     if (!config) {
-      console.warn(`[FeatureFlags] Unknown flag: ${flagName}`);
+      console.warn('[FeatureFlags] Unknown flag: %s', flagName);
       return {
         enabled: false,
         value: false,
@@ -222,7 +222,7 @@ export class PostHogFeatureFlagClient {
           return result;
         }
       } catch (error) {
-        console.error(`[FeatureFlags] Error evaluating flag ${flagName}:`, error);
+        console.error('[FeatureFlags] Error evaluating flag %s:', error, flagName);
       }
     }
 
@@ -265,7 +265,7 @@ export class PostHogFeatureFlagClient {
           return variant;
         }
       } catch (error) {
-        console.error(`[FeatureFlags] Error getting experiment variant ${experiment.name}:`, error);
+        console.error('[FeatureFlags] Error getting experiment variant %s:', error, experiment.name);
       }
     }
 

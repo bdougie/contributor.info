@@ -406,7 +406,7 @@ export class CacheWarmer {
         const metrics = await fetchFn(timeRange);
         this.cache.set(workspaceId, timeRange, metrics);
       } catch (error) {
-        console.error(`Failed to warm cache for ${workspaceId}:${timeRange}:`, error);
+        console.error('Failed to warm cache for %s:%s:', error, workspaceId, timeRange);
       }
     });
 

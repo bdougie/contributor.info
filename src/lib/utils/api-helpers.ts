@@ -17,7 +17,7 @@ export async function parseJsonResponse(response: Response, context?: string): P
   if (!contentType || !contentType.includes('application/json')) {
     const text = await response.text();
     const contextMsg = context ? ` (${context})` : '';
-    console.error(`Non-JSON response received${contextMsg}:`, text.substring(0, 200));
+    console.error('Non-JSON response received%s:', contextMsg, text.substring(0, 200));
     throw new Error('Invalid response format from server - expected JSON but received HTML');
   }
 

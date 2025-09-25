@@ -15,7 +15,7 @@ export function useAnalytics() {
       try {
         // Validate event name is snake_case for consistency (dev only)
         if (import.meta.env?.DEV && !/^[a-z]+(_[a-z]+)*$/.test(eventName)) {
-          console.warn(`[Analytics] Event name "${eventName}" should be snake_case`);
+          console.warn('[Analytics] Event name "%s" should be snake_case', eventName);
         }
 
         // For now, just log to console in development

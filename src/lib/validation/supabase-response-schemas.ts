@@ -229,12 +229,12 @@ export function validateSupabasePRArray(
           if (result.success) {
             validItems.push(result.data);
           } else {
-            console.warn(`Skipping invalid PR at index ${index}:`, result.error);
+            console.warn('Skipping invalid PR at index %s:', result.error, index);
           }
         });
 
         if (validItems.length > 0) {
-          console.warn(`Recovered ${validItems.length} valid PRs out of ${data.length}`);
+          console.warn('Recovered %s valid PRs out of %s', validItems.length, data.length);
           return { success: true, data: validItems };
         }
       }

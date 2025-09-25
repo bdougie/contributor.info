@@ -167,7 +167,7 @@ export class JobStatusReporter {
 
       // Handle potential null/undefined started_at
       if (!job.started_at) {
-        console.warn(`[JobStatusReporter] Job ${jobId} has no started_at timestamp`);
+        console.warn('[JobStatusReporter] Job %s has no started_at timestamp', jobId);
         return null;
       }
 

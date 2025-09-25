@@ -135,7 +135,7 @@ export async function fetchDocsContent(filename: string): Promise<string> {
 
     return content;
   } catch (error) {
-    console.error(`Error loading docs file ${filename}:`, error);
+    console.error('Error loading docs file %s:', error, filename);
     throw error;
   }
 }
@@ -152,7 +152,7 @@ export async function fetchAllDocs(): Promise<Map<string, string>> {
       const content = await fetchDocsContent(doc.file);
       contentMap.set(doc.file, content);
     } catch (error) {
-      console.error(`Failed to load ${doc.file}:`, error);
+      console.error('Failed to load %s:', error, doc.file);
       // Continue loading other docs even if one fails
     }
   });

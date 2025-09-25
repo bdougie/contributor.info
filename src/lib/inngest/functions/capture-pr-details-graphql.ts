@@ -226,7 +226,7 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
 
         // Sanitize error logging to avoid exposing sensitive information
         const errorType = error instanceof Error ? error.constructor.name : 'UnknownError';
-        console.warn(`GraphQL failed for PR #${prNumber}, falling back to REST:`, errorType);
+        console.warn('GraphQL failed for PR #%s, falling back to REST:', errorType, prNumber);
         throw error; // This will trigger the fallback to REST version
       }
     });
@@ -241,7 +241,7 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
       // First ensure the author exists and get their UUID
       const authorId = await ensureContributorExists(pullRequest.author);
       if (!authorId) {
-        console.warn(`PR #${prNumber} has no valid author, skipping PR storage`);
+        console.warn('PR #%s has no valid author, skipping PR storage', prNumber);
         return {
           totalItems: 0,
           prStored: false,

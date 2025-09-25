@@ -85,7 +85,7 @@ export async function runEvaluation(configName: keyof typeof DEFAULT_CONFIGS = '
 
     return results;
   } catch (error) {
-    console.error(`Evaluation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    console.error('Evaluation failed: %s', error instanceof Error ? error.message : 'Unknown error');
     throw error;
   }
 }

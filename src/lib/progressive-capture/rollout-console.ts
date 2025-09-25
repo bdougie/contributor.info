@@ -526,7 +526,7 @@ class RolloutConsoleManager implements RolloutConsole {
       // Get rollout metrics
       const stats = await hybridRolloutManager.getRolloutStats();
       if (stats) {
-        console.log(`\n📈 Rollout Metrics:`);
+        console.log('\n📈 Rollout Metrics:');
         console.log(
           '   Eligible Repositories: %s/%s',
           stats.eligible_repositories,
@@ -537,7 +537,7 @@ class RolloutConsoleManager implements RolloutConsole {
         console.log('   Active Jobs: %s', stats.active_jobs);
 
         if (Object.keys(stats.processor_distribution).length > 0) {
-          console.log(`   Processor Distribution:`);
+          console.log('   Processor Distribution:');
           Object.entries(stats.processor_distribution).forEach(([processor, count]) => {
             console.log('     %s: %s jobs', processor, count);
           });
@@ -552,7 +552,7 @@ class RolloutConsoleManager implements RolloutConsole {
         .order('created_at', { ascending: false })
         .limit(5);
 
-      console.log(`\n📜 Recent History:`);
+      console.log('\n📜 Recent History:');
       if (history && history.length > 0) {
         history.forEach((entry) => {
           const timestamp = new Date(entry.created_at).toLocaleString();
@@ -579,7 +579,7 @@ class RolloutConsoleManager implements RolloutConsole {
         .limit(3);
 
       if (recentMetrics && recentMetrics.length > 0) {
-        console.log(`\n⚠️ Recent Errors:`);
+        console.log('\n⚠️ Recent Errors:');
         recentMetrics.forEach((metric) => {
           console.log('   Repository: %s', metric.repository_id);
           console.log('   Processor: %s', metric.processor_type);
@@ -591,13 +591,13 @@ class RolloutConsoleManager implements RolloutConsole {
       }
 
       // Recommendations
-      console.log(`\n💡 Phase 4 Recommendations:`);
+      console.log('\n💡 Phase 4 Recommendations:');
 
       if (config.rollout_percentage < 10) {
-        console.log(`   📈 Increase rollout to 10% with: rollout.setRollout(10)`);
+        console.log('   📈 Increase rollout to 10% with: rollout.setRollout(10)');
       } else if (config.rollout_percentage === 10) {
-        console.log(`   ✅ Phase 4 active! Monitor for 24-48 hours before proceeding`);
-        console.log(`   📊 Next: Phase 5 (25%) when ready with small production repos`);
+        console.log('   ✅ Phase 4 active! Monitor for 24-48 hours before proceeding');
+        console.log('   📊 Next: Phase 5 (25%) when ready with small production repos');
       }
 
       if (stats && stats.error_rate > 2) {
@@ -608,11 +608,11 @@ class RolloutConsoleManager implements RolloutConsole {
       }
 
       if (!config.auto_rollback_enabled) {
-        console.log(`   🛡️ Enable auto rollback with: rollout.enableAutoRollback()`);
+        console.log('   🛡️ Enable auto rollback with: rollout.enableAutoRollback()');
       }
 
-      console.log(`\n🔄 Refresh monitoring with: rollout.monitorPhase4()`);
-      console.log(`🆘 Emergency stop with: rollout.emergencyStop("reason")`);
+      console.log('\n🔄 Refresh monitoring with: rollout.monitorPhase4()');
+      console.log('🆘 Emergency stop with: rollout.emergencyStop("reason")');
     } catch (error) {
       console.error('❌ Error monitoring Phase 4:', error);
     }
@@ -622,47 +622,47 @@ class RolloutConsoleManager implements RolloutConsole {
    * Show help
    */
   help(): void {
-    console.log(`
-🚀 Hybrid Progressive Capture Rollout Console
-
-MONITORING COMMANDS:
-  rollout.status()                    - Show current rollout status
-  rollout.stats()                     - Show rollout statistics
-  rollout.categories()                - Show repository categories
-  rollout.checkHealth()               - Check rollout health and trigger auto-rollback if needed
-  rollout.showMetrics()               - Show detailed metrics
-  rollout.monitorPhase4()             - 🚀 Monitor Phase 4: 10% test rollout
-
-ROLLOUT CONTROLS:
-  rollout.setRollout(percentage)      - Set rollout percentage (0-100)
-  rollout.emergencyStop(reason?)      - Emergency stop rollout
-  rollout.resume()                    - Resume rollout after emergency stop
-
-WHITELIST MANAGEMENT:
-  rollout.addToWhitelist([ids])       - Add repositories to whitelist
-  rollout.removeFromWhitelist([ids])  - Remove repositories from whitelist
-  rollout.showWhitelist()             - Show current whitelist
-
-REPOSITORY MANAGEMENT:
-  rollout.categorizeAll()             - Categorize all repositories
-  rollout.markAsTest(id)              - Mark repository as test
-  rollout.unmarkAsTest(id)            - Unmark repository as test
-
-ROLLBACK PROCEDURES:
-  rollout.rollbackToPercentage(pct)   - Rollback to specific percentage
-  rollout.rollbackToZero()            - Rollback to 0%
-  rollout.enableAutoRollback()        - Enable automatic rollback
-  rollout.disableAutoRollback()       - Disable automatic rollback
-
-UTILITIES:
-  rollout.clearCache()                - Clear browser cache and reload
-
-EXAMPLES:
-  rollout.setRollout(10)              - Start with 10% rollout
-  rollout.addToWhitelist(['repo-id']) - Add test repository
-  rollout.emergencyStop('High errors')- Emergency stop with reason
-  rollout.checkHealth()               - Check if rollback needed
-    `);
+    console.log(
+      '\n🚀 Hybrid Progressive Capture Rollout Console\n' +
+      '\n' +
+      'MONITORING COMMANDS:\n' +
+      '  rollout.status()                    - Show current rollout status\n' +
+      '  rollout.stats()                     - Show rollout statistics\n' +
+      '  rollout.categories()                - Show repository categories\n' +
+      '  rollout.checkHealth()               - Check rollout health and trigger auto-rollback if needed\n' +
+      '  rollout.showMetrics()               - Show detailed metrics\n' +
+      '  rollout.monitorPhase4()             - 🚀 Monitor Phase 4: 10% test rollout\n' +
+      '\n' +
+      'ROLLOUT CONTROLS:\n' +
+      '  rollout.setRollout(percentage)      - Set rollout percentage (0-100)\n' +
+      '  rollout.emergencyStop(reason?)      - Emergency stop rollout\n' +
+      '  rollout.resume()                    - Resume rollout after emergency stop\n' +
+      '\n' +
+      'WHITELIST MANAGEMENT:\n' +
+      '  rollout.addToWhitelist([ids])       - Add repositories to whitelist\n' +
+      '  rollout.removeFromWhitelist([ids])  - Remove repositories from whitelist\n' +
+      '  rollout.showWhitelist()             - Show current whitelist\n' +
+      '\n' +
+      'REPOSITORY MANAGEMENT:\n' +
+      '  rollout.categorizeAll()             - Categorize all repositories\n' +
+      '  rollout.markAsTest(id)              - Mark repository as test\n' +
+      '  rollout.unmarkAsTest(id)            - Unmark repository as test\n' +
+      '\n' +
+      'ROLLBACK PROCEDURES:\n' +
+      '  rollout.rollbackToPercentage(pct)   - Rollback to specific percentage\n' +
+      '  rollout.rollbackToZero()            - Rollback to 0%\n' +
+      '  rollout.enableAutoRollback()        - Enable automatic rollback\n' +
+      '  rollout.disableAutoRollback()       - Disable automatic rollback\n' +
+      '\n' +
+      'UTILITIES:\n' +
+      '  rollout.clearCache()                - Clear browser cache and reload\n' +
+      '\n' +
+      'EXAMPLES:\n' +
+      '  rollout.setRollout(10)              - Start with 10% rollout\n' +
+      "  rollout.addToWhitelist(['repo-id']) - Add test repository\n" +
+      "  rollout.emergencyStop('High errors')- Emergency stop with reason\n" +
+      '  rollout.checkHealth()               - Check if rollback needed'
+    );
   }
 
   /**

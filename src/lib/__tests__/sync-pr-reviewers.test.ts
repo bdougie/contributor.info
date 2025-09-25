@@ -81,11 +81,21 @@ describe('syncPullRequestReviewers', () => {
     });
 
     expect(result).toEqual(mockPRData);
-    expect(console.log).toHaveBeenCalledWith('Syncing PR reviewers for testowner/testrepo', {
-      includeClosedPRs: true,
-      maxClosedDays: 30,
-    });
-    expect(console.log).toHaveBeenCalledWith('Successfully synced 1 PRs (1 open, 0 closed)');
+    expect(console.log).toHaveBeenCalledWith(
+      'Syncing PR reviewers for %s/%s',
+      'testowner',
+      'testrepo',
+      {
+        includeClosedPRs: true,
+        maxClosedDays: 30,
+      }
+    );
+    expect(console.log).toHaveBeenCalledWith(
+      'Successfully synced %d PRs (%d open, %d closed)',
+      1,
+      1,
+      0
+    );
   });
 
   it('should handle custom sync options', async () => {
@@ -199,7 +209,12 @@ describe('syncPullRequestReviewers', () => {
     const result = await syncPullRequestReviewers('owner', 'repo', 'workspace-789');
 
     expect(result).toHaveLength(100);
-    expect(console.log).toHaveBeenCalledWith('Successfully synced 100 PRs (50 open, 50 closed)');
+    expect(console.log).toHaveBeenCalledWith(
+      'Successfully synced %d PRs (%d open, %d closed)',
+      100,
+      50,
+      50
+    );
   });
 
   it('should handle missing workspace ID', async () => {
