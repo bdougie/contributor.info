@@ -14,6 +14,7 @@
     "build": "npm run verify:csp && tsc -b && vite build && cp public/_headers dist/_headers",
     "build:analyze": "ANALYZE=true npm run build",
     "generate-sitemap": "node scripts/sitemap/generate-sitemap.js",
+    "typecheck": "tsc -b --noEmit",
     "typecheck:functions": "tsc --project tsconfig.functions.json --noEmit",
     "typecheck:functions:strict": "# Run this locally to check function types - not in build due to Inngest type incompatibilities",
     "optimize-images": "node scripts/assets/convert-images.js",
