@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { WorkspaceService } from '../workspace.service';
 import { supabase } from '@/lib/supabase';
@@ -7,6 +6,7 @@ import type {
   UpdateWorkspaceRequest,
   AddRepositoryRequest,
 } from '@/types/workspace';
+import type { MockQueryBuilder, MockSupabaseResponse } from './test-types';
 
 // Mock Supabase
 vi.mock('@/lib/supabase', () => ({
@@ -37,7 +37,7 @@ describe('WorkspaceService', () => {
       let callCount = 0;
 
       // Setup mocks
-      vi.mocked(supabase.from).mockImplementation((table: string) => {
+      vi.mocked(supabase.from).mockImplementation((table: string): MockQueryBuilder => {
         if (table === 'workspaces' && callCount === 0) {
           callCount++;
           // Mock workspace count check
@@ -48,7 +48,7 @@ describe('WorkspaceService', () => {
                 error: null,
               }),
             }),
-          } as any;
+          } as MockQueryBuilder;
         }
         if (table === 'subscriptions') {
           // Mock subscription check (no subscription = free tier)
@@ -63,7 +63,7 @@ describe('WorkspaceService', () => {
                 }),
               }),
             }),
-          } as any;
+          } as MockQueryBuilder;
         }
         if (table === 'workspaces' && callCount === 1) {
           callCount++;
@@ -83,18 +83,18 @@ describe('WorkspaceService', () => {
                 }),
               }),
             }),
-          } as any;
+          } as MockQueryBuilder;
         }
         // Note: workspace_members insertion is handled by database trigger
         // No need to mock it here
-        return {} as any;
+        return {} as MockQueryBuilder;
       });
 
       // Mock slug generation
       vi.mocked(supabase.rpc).mockResolvedValue({
         data: 'test-workspace',
         error: null,
-      } as any);
+      } as MockSupabaseResponse);
 
       // Execute
       const result = await WorkspaceService.createWorkspace(mockUserId, mockWorkspaceData);
@@ -140,7 +140,7 @@ describe('WorkspaceService', () => {
       vi.mocked(supabase.rpc).mockResolvedValue({
         data: 'test-workspace',
         error: null,
-      } as any);
+      } as MockSupabaseResponse);
 
       // Mock workspace creation with pro tier
       const createMock = vi.fn().mockReturnValue({
@@ -166,17 +166,17 @@ describe('WorkspaceService', () => {
       vi.mocked(supabase.from).mockImplementation((table: string) => {
         if (table === 'workspaces' && callCount === 0) {
           callCount++;
-          return fromMock() as any;
+          return fromMock() as MockQueryBuilder;
         }
         if (table === 'subscriptions') {
-          return subscriptionMock() as any;
+          return subscriptionMock() as MockQueryBuilder;
         }
         if (table === 'workspaces') {
-          return createMock() as any;
+          return createMock() as MockQueryBuilder;
         }
         // Note: workspace_members insertion is handled by database trigger
         // No need to mock it here
-        return {} as any;
+        return {} as MockQueryBuilder;
       });
 
       // Execute
@@ -193,7 +193,7 @@ describe('WorkspaceService', () => {
       let callCount = 0;
 
       // Setup mocks
-      vi.mocked(supabase.from).mockImplementation((table: string) => {
+      vi.mocked(supabase.from).mockImplementation((table: string): MockQueryBuilder => {
         if (table === 'workspaces' && callCount === 0) {
           callCount++;
           // Mock workspace count at limit
@@ -204,7 +204,7 @@ describe('WorkspaceService', () => {
                 error: null,
               }),
             }),
-          } as any;
+          } as MockQueryBuilder;
         }
         if (table === 'subscriptions') {
           // Mock no subscription (free tier)
@@ -219,9 +219,9 @@ describe('WorkspaceService', () => {
                 }),
               }),
             }),
-          } as any;
+          } as MockQueryBuilder;
         }
-        return {} as any;
+        return {} as MockQueryBuilder;
       });
 
       // Execute
@@ -254,7 +254,7 @@ describe('WorkspaceService', () => {
       const memberInsertSpy = vi.fn();
 
       // Setup mocks
-      vi.mocked(supabase.from).mockImplementation((table: string) => {
+      vi.mocked(supabase.from).mockImplementation((table: string): MockQueryBuilder => {
         if (table === 'workspaces' && workspaceTableCalls === 0) {
           workspaceTableCalls++;
           // Mock workspace count check
@@ -265,7 +265,7 @@ describe('WorkspaceService', () => {
                 error: null,
               }),
             }),
-          } as any;
+          } as MockQueryBuilder;
         }
         if (table === 'subscriptions') {
           return {
@@ -279,7 +279,7 @@ describe('WorkspaceService', () => {
                 }),
               }),
             }),
-          } as any;
+          } as MockQueryBuilder;
         }
         if (table === 'workspaces' && workspaceTableCalls === 1) {
           // Mock workspace creation
@@ -298,22 +298,22 @@ describe('WorkspaceService', () => {
                 }),
               }),
             }),
-          } as any;
+          } as MockQueryBuilder;
         }
         if (table === 'workspace_members') {
           // This should NOT be called
           return {
             insert: memberInsertSpy,
-          } as any;
+          } as MockQueryBuilder;
         }
-        return {} as any;
+        return {} as MockQueryBuilder;
       });
 
       // Mock slug generation
       vi.mocked(supabase.rpc).mockResolvedValue({
         data: 'test-workspace',
         error: null,
-      } as any);
+      } as MockSupabaseResponse);
 
       // Execute
       const result = await WorkspaceService.createWorkspace(mockUserId, mockWorkspaceData);
@@ -404,19 +404,19 @@ describe('WorkspaceService', () => {
       vi.mocked(supabase.from).mockImplementation((table: string) => {
         if (table === 'workspace_repositories' && callCount === 0) {
           callCount++;
-          return existingRepoMock as any;
+          return existingRepoMock as MockQueryBuilder;
         }
         if (table === 'workspaces' && callCount === 1) {
           callCount++;
-          return workspaceMock as any;
+          return workspaceMock as MockQueryBuilder;
         }
         if (table === 'workspace_repositories') {
-          return addRepoMock as any;
+          return addRepoMock as MockQueryBuilder;
         }
         if (table === 'workspaces') {
-          return updateMock as any;
+          return updateMock as MockQueryBuilder;
         }
-        return {} as any;
+        return {} as MockQueryBuilder;
       });
 
       // Execute
@@ -452,7 +452,7 @@ describe('WorkspaceService', () => {
             }),
           }),
         }),
-      } as any);
+      } as MockSupabaseResponse);
 
       // Mock workspace at limit
       vi.mocked(supabase.from).mockReturnValueOnce({
@@ -467,7 +467,7 @@ describe('WorkspaceService', () => {
             }),
           }),
         }),
-      } as any);
+      } as MockSupabaseResponse);
 
       // Execute
       const result = await WorkspaceService.addRepositoryToWorkspace(
@@ -502,7 +502,7 @@ describe('WorkspaceService', () => {
             }),
           }),
         }),
-      } as any);
+      } as MockSupabaseResponse);
 
       // Execute
       const result = await WorkspaceService.addRepositoryToWorkspace(
@@ -559,7 +559,7 @@ describe('WorkspaceService', () => {
             }),
           }),
         }),
-      } as any);
+      } as MockSupabaseResponse);
 
       // Mock update
       vi.mocked(supabase.from).mockReturnValueOnce({
@@ -577,7 +577,7 @@ describe('WorkspaceService', () => {
             }),
           }),
         }),
-      } as any);
+      } as MockSupabaseResponse);
 
       // Execute
       const result = await WorkspaceService.updateWorkspace(
@@ -605,7 +605,7 @@ describe('WorkspaceService', () => {
             }),
           }),
         }),
-      } as any);
+      } as MockSupabaseResponse);
 
       // Execute
       const result = await WorkspaceService.updateWorkspace(
@@ -643,7 +643,7 @@ describe('WorkspaceService', () => {
             }),
           }),
         }),
-      } as any);
+      } as MockSupabaseResponse);
 
       // Mock get current count
       vi.mocked(supabase.from).mockReturnValueOnce({
@@ -655,7 +655,7 @@ describe('WorkspaceService', () => {
             }),
           }),
         }),
-      } as any);
+      } as MockSupabaseResponse);
 
       // Mock update count
       vi.mocked(supabase.from).mockReturnValueOnce({
@@ -664,7 +664,7 @@ describe('WorkspaceService', () => {
             error: null,
           }),
         }),
-      } as any);
+      } as MockSupabaseResponse);
 
       // Execute
       const result = await WorkspaceService.removeRepositoryFromWorkspace(
