@@ -1,5 +1,6 @@
 import type { Context } from "@netlify/functions";
 
+// Netlify Function to handle repository tracking requests
 export default async (req: Request, _context: Context) => {
   // CORS headers
   const corsHeaders = {
