@@ -114,7 +114,7 @@ export const createDefaultClient = (): Inngest => {
  */
 export const createLocalClient = (): Inngest => {
   return new Inngest({
-    id: process.env.VITE_INNGEST_APP_ID || 'contributor-info-local',
+    id: process.env.VITE_INNGEST_APP_ID || 'contributor-info',
     isDev: true, // Always dev mode for local
     eventKey: process.env.INNGEST_EVENT_KEY || 'local-dev-key',
     // Don't use signing key in dev mode - it causes sync issues

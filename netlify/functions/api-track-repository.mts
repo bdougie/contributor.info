@@ -102,6 +102,7 @@ export default async (req: Request, context: Context) => {
     const isAuthenticated = !!authHeader;
 
     // First, verify the repository exists on GitHub
+    let githubData: any = null;
     try {
       const githubResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
         headers: {
@@ -134,7 +135,7 @@ export default async (req: Request, context: Context) => {
         throw new Error(`GitHub API error: ${githubResponse.status}`);
       }
 
-      const githubData = await githubResponse.json();
+      githubData = await githubResponse.json();
 
       // Check if it's a private repository
       if (githubData.private) {
@@ -249,40 +250,51 @@ export default async (req: Request, context: Context) => {
       }
 
       // Step 2: Create repository record directly
+      const repositoryData = githubData ? {
+        github_id: githubData.id,
+        full_name: githubData.full_name,
+        owner: githubData.owner.login,
+        name: githubData.name,
+        description: githubData.description,
+        homepage: githubData.homepage,
+        language: githubData.language,
+        stargazers_count: githubData.stargazers_count,
+        watchers_count: githubData.watchers_count,
+        forks_count: githubData.forks_count,
+        open_issues_count: githubData.open_issues_count,
+        size: githubData.size,
+        default_branch: githubData.default_branch,
+        is_fork: githubData.fork,
+        is_archived: githubData.archived,
+        is_disabled: githubData.disabled,
+        is_private: githubData.private,
+        has_issues: githubData.has_issues,
+        has_projects: githubData.has_projects,
+        has_wiki: githubData.has_wiki,
+        has_pages: githubData.has_pages,
+        has_downloads: githubData.has_downloads,
+        license: githubData.license?.spdx_id || null,
+        topics: githubData.topics || [],
+        github_created_at: githubData.created_at,
+        github_updated_at: githubData.updated_at,
+        github_pushed_at: githubData.pushed_at,
+        first_tracked_at: new Date().toISOString(),
+        last_updated_at: new Date().toISOString(),
+        is_active: true
+      } : {
+        // Minimal data when GitHub API is unavailable
+        full_name: `${owner}/${repo}`,
+        owner: owner,
+        name: repo,
+        description: null,
+        first_tracked_at: new Date().toISOString(),
+        last_updated_at: new Date().toISOString(),
+        is_active: true
+      };
+
       const { data: repository, error: insertError } = await supabase
         .from('repositories')
-        .insert({
-          github_id: githubData.id,
-          full_name: githubData.full_name,
-          owner: githubData.owner.login,
-          name: githubData.name,
-          description: githubData.description,
-          homepage: githubData.homepage,
-          language: githubData.language,
-          stargazers_count: githubData.stargazers_count,
-          watchers_count: githubData.watchers_count,
-          forks_count: githubData.forks_count,
-          open_issues_count: githubData.open_issues_count,
-          size: githubData.size,
-          default_branch: githubData.default_branch,
-          is_fork: githubData.fork,
-          is_archived: githubData.archived,
-          is_disabled: githubData.disabled,
-          is_private: githubData.private,
-          has_issues: githubData.has_issues,
-          has_projects: githubData.has_projects,
-          has_wiki: githubData.has_wiki,
-          has_pages: githubData.has_pages,
-          has_downloads: githubData.has_downloads,
-          license: githubData.license?.spdx_id || null,
-          topics: githubData.topics || [],
-          github_created_at: githubData.created_at,
-          github_updated_at: githubData.updated_at,
-          github_pushed_at: githubData.pushed_at,
-          first_tracked_at: new Date().toISOString(),
-          last_updated_at: new Date().toISOString(),
-          is_active: true
-        })
+        .insert(repositoryData)
         .select()
         .single();
 
@@ -318,37 +330,53 @@ export default async (req: Request, context: Context) => {
       const inngestEventKey = process.env.INNGEST_EVENT_KEY ||
                              process.env.INNGEST_PRODUCTION_EVENT_KEY;
 
-      if (inngestEventKey && inngestEventKey !== 'local_development_only') {
-        const inngestUrl = `https://inn.gs/e/${inngestEventKey}`;
+      // Determine Inngest URL based on environment
+      let inngestUrl: string;
+      if (inngestEventKey === 'local_development_only') {
+        // For local development, send to local Inngest server
+        inngestUrl = 'http://localhost:8888/.netlify/functions/inngest-local-full';
+      } else if (inngestEventKey) {
+        // For production, send to Inngest cloud
+        inngestUrl = `https://inn.gs/e/${inngestEventKey}`;
+      } else {
+        // Skip if no event key
+        inngestUrl = '';
+      }
 
-        // Send classification event
-        await fetch(inngestUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: 'classify/repository.single',
-            data: {
-              repositoryId: repository.id,
-              owner,
-              repo
-            }
-          })
-        });
+      if (inngestUrl) {
+        try {
+          // Send classification event
+          await fetch(inngestUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: 'classify/repository.single',
+              data: {
+                repositoryId: repository.id,
+                owner,
+                repo
+              }
+            })
+          });
 
-        // Send sync event
-        await fetch(inngestUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: 'capture/repository.sync.graphql',
-            data: {
-              repositoryId: repository.id,
-              days: 30,
-              priority: 'high',
-              reason: 'Initial repository discovery'
-            }
-          })
-        });
+          // Send sync event
+          await fetch(inngestUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: 'capture/repository.sync.graphql',
+              data: {
+                repositoryId: repository.id,
+                days: 30,
+                priority: 'high',
+                reason: 'Initial repository discovery'
+              }
+            })
+          });
+        } catch (eventError) {
+          console.error('Failed to send Inngest events:', eventError);
+          // Don't throw - events are non-critical
+        }
       }
 
       console.log('Successfully tracked repository %s with ID %s', `${owner}/${repo}`, repository.id);
@@ -362,8 +390,8 @@ export default async (req: Request, context: Context) => {
             id: repository.id,
             owner: repository.owner,
             name: repository.name,
-            stars: repository.stargazers_count,
-            language: repository.language
+            stars: repository.stargazers_count || 0,
+            language: repository.language || null
           }
         }),
         {
