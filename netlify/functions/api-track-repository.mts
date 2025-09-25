@@ -162,12 +162,19 @@ export default async (req: Request, context: Context) => {
     // Directly insert repository into database instead of relying on Inngest
     // (Inngest discovery function is not processing events in production)
     try {
-      // Get Supabase admin credentials to insert data
+      // Import Supabase admin client
+      const { createClient } = await import('@supabase/supabase-js');
+
+      // Get Supabase credentials
       const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://egcxzonpmmcirmgqdrla.supabase.co';
       const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
 
-      if (!supabaseServiceKey) {
-        console.error('Missing SUPABASE_SERVICE_ROLE_KEY');
+      // Use service key if available, otherwise use anon key (for local dev)
+      const supabaseKey = supabaseServiceKey || supabaseAnonKey;
+
+      if (!supabaseKey) {
+        console.error('Missing Supabase keys');
         // Fallback to sending Inngest event
         const inngestEventKey = process.env.INNGEST_EVENT_KEY ||
                                process.env.INNGEST_PRODUCTION_EVENT_KEY;
@@ -208,20 +215,20 @@ export default async (req: Request, context: Context) => {
         );
       }
 
-      // Step 1: Check if repository already exists in database
-      const checkResponse = await fetch(
-        `${supabaseUrl}/rest/v1/repositories?owner=eq.${owner}&name=eq.${repo}`,
-        {
-          headers: {
-            'apikey': supabaseServiceKey,
-            'Authorization': `Bearer ${supabaseServiceKey}`,
-            'Content-Type': 'application/json',
-            'Prefer': 'return=representation'
-          }
-        }
-      );
+      // Create Supabase client
+      const supabase = createClient(supabaseUrl, supabaseKey);
 
-      const existingRepos = await checkResponse.json();
+      // Step 1: Check if repository already exists in database
+      const { data: existingRepos, error: checkError } = await supabase
+        .from('repositories')
+        .select('id, owner, name')
+        .eq('owner', owner)
+        .eq('name', repo);
+
+      if (checkError) {
+        console.error('Error checking existing repository:', checkError);
+        throw new Error('Failed to check repository');
+      }
 
       if (existingRepos && existingRepos.length > 0) {
         // Repository already exists
@@ -242,80 +249,70 @@ export default async (req: Request, context: Context) => {
       }
 
       // Step 2: Create repository record directly
-      const insertResponse = await fetch(
-        `${supabaseUrl}/rest/v1/repositories`,
-        {
-          method: 'POST',
-          headers: {
-            'apikey': supabaseServiceKey,
-            'Authorization': `Bearer ${supabaseServiceKey}`,
-            'Content-Type': 'application/json',
-            'Prefer': 'return=representation'
-          },
-          body: JSON.stringify({
-            github_id: githubData.id,
-            full_name: githubData.full_name,
-            owner: githubData.owner.login,
-            name: githubData.name,
-            description: githubData.description,
-            homepage: githubData.homepage,
-            language: githubData.language,
-            stargazers_count: githubData.stargazers_count,
-            watchers_count: githubData.watchers_count,
-            forks_count: githubData.forks_count,
-            open_issues_count: githubData.open_issues_count,
-            size: githubData.size,
-            default_branch: githubData.default_branch,
-            is_fork: githubData.fork,
-            is_archived: githubData.archived,
-            is_disabled: githubData.disabled,
-            is_private: githubData.private,
-            has_issues: githubData.has_issues,
-            has_projects: githubData.has_projects,
-            has_wiki: githubData.has_wiki,
-            has_pages: githubData.has_pages,
-            has_downloads: githubData.has_downloads,
-            license: githubData.license?.spdx_id || null,
-            topics: githubData.topics || [],
-            github_created_at: githubData.created_at,
-            github_updated_at: githubData.updated_at,
-            github_pushed_at: githubData.pushed_at,
-            first_tracked_at: new Date().toISOString(),
-            last_updated_at: new Date().toISOString(),
-            is_active: true
-          })
-        }
-      );
+      const { data: repository, error: insertError } = await supabase
+        .from('repositories')
+        .insert({
+          github_id: githubData.id,
+          full_name: githubData.full_name,
+          owner: githubData.owner.login,
+          name: githubData.name,
+          description: githubData.description,
+          homepage: githubData.homepage,
+          language: githubData.language,
+          stargazers_count: githubData.stargazers_count,
+          watchers_count: githubData.watchers_count,
+          forks_count: githubData.forks_count,
+          open_issues_count: githubData.open_issues_count,
+          size: githubData.size,
+          default_branch: githubData.default_branch,
+          is_fork: githubData.fork,
+          is_archived: githubData.archived,
+          is_disabled: githubData.disabled,
+          is_private: githubData.private,
+          has_issues: githubData.has_issues,
+          has_projects: githubData.has_projects,
+          has_wiki: githubData.has_wiki,
+          has_pages: githubData.has_pages,
+          has_downloads: githubData.has_downloads,
+          license: githubData.license?.spdx_id || null,
+          topics: githubData.topics || [],
+          github_created_at: githubData.created_at,
+          github_updated_at: githubData.updated_at,
+          github_pushed_at: githubData.pushed_at,
+          first_tracked_at: new Date().toISOString(),
+          last_updated_at: new Date().toISOString(),
+          is_active: true
+        })
+        .select()
+        .single();
 
-      if (!insertResponse.ok) {
-        const errorData = await insertResponse.json();
-        console.error('Failed to insert repository:', errorData);
+      if (insertError) {
+        console.error('Failed to insert repository:', insertError);
         throw new Error('Failed to create repository record');
       }
 
-      const [repository] = await insertResponse.json();
+      if (!repository) {
+        throw new Error('Repository creation returned no data');
+      }
 
       // Step 3: Add to tracked_repositories table
-      await fetch(
-        `${supabaseUrl}/rest/v1/tracked_repositories`,
-        {
-          method: 'POST',
-          headers: {
-            'apikey': supabaseServiceKey,
-            'Authorization': `Bearer ${supabaseServiceKey}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            repository_id: repository.id,
-            organization_name: owner,
-            repository_name: repo,
-            tracking_enabled: true,
-            priority: 'high',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          })
-        }
-      );
+      const { error: trackError } = await supabase
+        .from('tracked_repositories')
+        .insert({
+          repository_id: repository.id,
+          organization_name: owner,
+          repository_name: repo,
+          tracking_enabled: true,
+          priority: 'high',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+
+      if (trackError && trackError.code !== '23505') {
+        // Ignore duplicate key errors
+        console.error('Failed to track repository:', trackError);
+        // Don't throw - repository exists which is the main goal
+      }
 
       // Step 4: Also send Inngest events for background processing (classification & sync)
       const inngestEventKey = process.env.INNGEST_EVENT_KEY ||
