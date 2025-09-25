@@ -1,6 +1,4 @@
-import type { Handler, HandlerEvent, HandlerContext } from '@netlify/functions';
-
-export const handler: Handler = async (event: HandlerEvent, context: HandlerContext) => {
+exports.handler = async (event, context) => {
   // CORS headers
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -31,7 +29,7 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
 
   try {
     // Parse request body
-    let body: any;
+    let body;
     try {
       body = JSON.parse(event.body || '{}');
     } catch (parseError) {
@@ -41,7 +39,7 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
     const { owner, repo } = body;
 
     // Validate repository parameters
-    const isValidRepoName = (name: string) => /^[a-zA-Z0-9._-]+$/.test(name);
+    const isValidRepoName = (name) => /^[a-zA-Z0-9._-]+$/.test(name);
 
     if (!owner || !repo) {
       return {
@@ -145,7 +143,7 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
 
     } catch (githubError) {
       // Continue anyway - the repository might exist but we hit rate limits
-      console.log('GitHub check error:', (githubError as Error).message);
+      console.log('GitHub check error:', githubError.message);
     }
 
     // Send Inngest event to trigger discovery and data sync
@@ -153,7 +151,7 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
       const inngestEventKey = process.env.INNGEST_EVENT_KEY ||
                              process.env.INNGEST_PRODUCTION_EVENT_KEY;
 
-      let inngestUrl: string;
+      let inngestUrl;
       // Check if we're in local development
       if (!inngestEventKey || inngestEventKey === 'local_development_only') {
         inngestUrl = 'http://localhost:8288/e/local';
@@ -207,7 +205,7 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
         })
       };
 
-    } catch (inngestError: unknown) {
+    } catch (inngestError) {
       // Log error for debugging but don't expose to client
       if (process.env.NODE_ENV === 'development') {
         console.error('Inngest error:', inngestError);
