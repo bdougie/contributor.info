@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { handler } from '../../../netlify/functions/api-track-repository.js';
+import { handler } from '../../../netlify/functions/api-track-repository.mts';
 
 /**
  * Unit tests for track-repository function handler
@@ -119,7 +119,8 @@ describe('track-repository handler unit tests', () => {
   it('should process valid repository with mocked APIs', async () => {
     // Mock fetch for GitHub and Inngest
     global.fetch = vi.fn().mockImplementation((url) => {
-      if (url.includes('api.github.com')) {
+      const urlStr = typeof url === 'string' ? url : url.toString();
+      if (urlStr.startsWith('https://api.github.com/')) {
         return Promise.resolve({
           ok: true,
           status: 200,
@@ -130,7 +131,7 @@ describe('track-repository handler unit tests', () => {
           })
         });
       }
-      if (url.includes('inn.gs')) {
+      if (urlStr.startsWith('https://inn.gs/') || urlStr.startsWith('http://localhost:8288/')) {
         return Promise.resolve({
           ok: true,
           status: 200,
@@ -163,7 +164,8 @@ describe('track-repository handler unit tests', () => {
 
   it('should reject private repositories', async () => {
     global.fetch = vi.fn().mockImplementation((url) => {
-      if (url.includes('api.github.com')) {
+      const urlStr = typeof url === 'string' ? url : url.toString();
+      if (urlStr.startsWith('https://api.github.com/')) {
         return Promise.resolve({
           ok: true,
           status: 200,
@@ -194,7 +196,8 @@ describe('track-repository handler unit tests', () => {
 
   it('should handle GitHub 404', async () => {
     global.fetch = vi.fn().mockImplementation((url) => {
-      if (url.includes('api.github.com')) {
+      const urlStr = typeof url === 'string' ? url : url.toString();
+      if (urlStr.startsWith('https://api.github.com/')) {
         return Promise.resolve({
           ok: false,
           status: 404
@@ -221,7 +224,8 @@ describe('track-repository handler unit tests', () => {
 
   it('should handle Inngest failure gracefully', async () => {
     global.fetch = vi.fn().mockImplementation((url) => {
-      if (url.includes('api.github.com')) {
+      const urlStr = typeof url === 'string' ? url : url.toString();
+      if (urlStr.startsWith('https://api.github.com/')) {
         return Promise.resolve({
           ok: true,
           status: 200,
@@ -231,7 +235,7 @@ describe('track-repository handler unit tests', () => {
           })
         });
       }
-      if (url.includes('inn.gs')) {
+      if (urlStr.startsWith('https://inn.gs/') || urlStr.startsWith('http://localhost:8288/')) {
         return Promise.resolve({
           ok: false,
           status: 500,
