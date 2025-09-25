@@ -159,8 +159,8 @@ export function ActivityItem({ activity }: ActivityItemProps) {
               {pullRequest.number > 0 ? (
                 <>
                   <a
-                    href={pullRequest.url}
-                    className="text-orange-500 hover:underline"
+                    href={`https://github.com/${repository.owner}/${repository.name}/pull/${pullRequest.number}`}
+                    className="text-orange-500 hover:underline cursor-pointer transition-colors"
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={`Pull request #${pullRequest.number}`}
@@ -173,8 +173,8 @@ export function ActivityItem({ activity }: ActivityItemProps) {
                 <span className="text-muted-foreground hidden sm:inline"></span>
               )}
               <a
-                href={repository.url}
-                className="text-orange-500 hover:underline truncate max-w-xs sm:max-w-none hidden sm:inline"
+                href={`https://github.com/${repository.owner}/${repository.name}`}
+                className="text-orange-500 hover:underline cursor-pointer transition-colors truncate max-w-xs sm:max-w-none hidden sm:inline"
                 target="_blank"
                 rel="noopener noreferrer"
                 title={`${repository.owner}/${repository.name}`}
@@ -183,7 +183,21 @@ export function ActivityItem({ activity }: ActivityItemProps) {
                 {repository.owner}/{repository.name}
               </a>
             </div>
-            <h3 className="text-sm line-clamp-1 pr-2 font-normal">{pullRequest.title}</h3>
+            <h3 className="text-sm line-clamp-1 pr-2 font-normal">
+              {pullRequest.number > 0 ? (
+                <a
+                  href={`https://github.com/${repository.owner}/${repository.name}/pull/${pullRequest.number}`}
+                  className="hover:text-primary hover:underline cursor-pointer transition-colors"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`Pull request: ${pullRequest.title}`}
+                >
+                  {pullRequest.title}
+                </a>
+              ) : (
+                pullRequest.title
+              )}
+            </h3>
           </div>
           <time className="text-xs text-muted-foreground whitespace-nowrap sm:ml-2">
             {timestamp}
