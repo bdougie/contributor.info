@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, Loader2 } from '@/components/ui/icon';
 import { toast } from 'sonner';
-import { inngest } from '@/lib/inngest/client';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface WorkspaceSyncButtonProps {
@@ -24,9 +23,6 @@ export function WorkspaceSyncButton({
   size = 'sm',
   onSyncComplete,
 }: WorkspaceSyncButtonProps) {
-  // Store workspaceId for potential future use (e.g., API calls, analytics)
-  // Currently using repositoryIds for sync operations
-  void workspaceId;
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState<string | null>(null);
 
@@ -37,28 +33,39 @@ export function WorkspaceSyncButton({
       setIsSyncing(true);
       setSyncProgress('Starting sync...');
 
-      // Trigger sync for all repositories in the workspace
-      const syncPromises = repositoryIds.map(async (repoId) => {
-        try {
-          // Send event to Inngest to sync repository data
-          await inngest.send({
-            name: 'capture/repository.sync.graphql',
-            data: {
-              repositoryId: repoId,
-              days: 30,
-              priority: 'high' as const,
-              reason: 'Manual workspace sync',
-            },
-          });
-        } catch (error) {
-          console.error(`Failed to sync repository ${repoId}:`, error);
-        }
+      // Call the server-side API endpoint to trigger sync
+      const response = await fetch('/.netlify/functions/workspace-sync', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          workspaceId,
+          repositoryIds,
+        }),
       });
 
-      setSyncProgress(`Syncing ${repositoryIds.length} repositories...`);
-      await Promise.allSettled(syncPromises);
+      const result = await response.json();
 
-      toast.success(`Started syncing workspace "${workspaceSlug}"`);
+      if (!response.ok) {
+        // Handle specific error cases
+        if (response.status === 503) {
+          toast.error('Sync service is temporarily unavailable. Please try again later.');
+        } else {
+          toast.error(result.message || 'Failed to start sync. Please try again.');
+        }
+        console.error('Workspace sync failed:', result);
+        return;
+      }
+
+      // Show success message
+      if (result.failureCount > 0) {
+        toast.warning(
+          `Sync started for ${result.successCount} of ${repositoryIds.length} repositories`
+        );
+      } else {
+        toast.success(`Started syncing workspace "${workspaceSlug}"`);
+      }
 
       // Optional callback when sync is initiated
       if (onSyncComplete) {
@@ -68,7 +75,7 @@ export function WorkspaceSyncButton({
       }
     } catch (error) {
       console.error('Failed to start workspace sync:', error);
-      toast.error('Failed to start sync. Please try again.');
+      toast.error('Network error. Please check your connection and try again.');
     } finally {
       setIsSyncing(false);
       setSyncProgress(null);
