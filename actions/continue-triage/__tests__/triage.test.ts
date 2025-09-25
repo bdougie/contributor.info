@@ -155,12 +155,12 @@ describe('Continue Triage Action', () => {
   });
 
   describe('Dry Run Mode', () => {
-    it('should not apply labels in dry run mode', async () => {
+    it('should not apply labels in dry run mode', () => {
       const dryRun = true;
       const mockAddLabels = vi.fn();
 
       if (!dryRun) {
-        await mockAddLabels();
+        mockAddLabels();
       }
 
       expect(mockAddLabels).not.toHaveBeenCalled();
@@ -175,7 +175,7 @@ describe('Continue Triage Action', () => {
   });
 
   describe('Rate Limiting', () => {
-    it('should check rate limit before proceeding', async () => {
+    it('should check rate limit before proceeding', () => {
       const rateLimit = {
         core: {
           limit: 5000,

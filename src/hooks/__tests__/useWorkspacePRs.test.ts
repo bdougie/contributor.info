@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useWorkspacePRs } from '../useWorkspacePRs';
 import type { Repository } from '@/components/features/workspace';
@@ -43,15 +43,19 @@ describe('useWorkspacePRs', () => {
     vi.spyOn(console, 'log').mockImplementation(() => {});
     vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    // Set up default mock implementations
-    vi.mocked(syncPullRequestReviewers).mockResolvedValue([]);
+    // Set up default mock implementations - return immediately 
+    vi.mocked(syncPullRequestReviewers).mockReturnValue(Promise.resolve([]));
 
     // Default Supabase mock returns empty data immediately
-    vi.mocked(supabase.from).mockReturnValue({
+    const defaultMockClient = {
       select: vi.fn().mockReturnThis(),
       in: vi.fn().mockReturnThis(),
-      order: vi.fn().mockResolvedValue({ data: [], error: null }),
-    } as ReturnType<typeof supabase.from>);
+      order: vi.fn().mockReturnValue({ data: [], error: null }),
+    };
+    // Ensure all chain methods return the mock client itself
+    defaultMockClient.select.mockReturnValue(defaultMockClient);
+    defaultMockClient.in.mockReturnValue(defaultMockClient);
+    vi.mocked(supabase.from).mockReturnValue(defaultMockClient as ReturnType<typeof supabase.from>);
   });
 
   afterEach(() => {
@@ -85,7 +89,7 @@ describe('useWorkspacePRs', () => {
     expect(syncPullRequestReviewers).not.toHaveBeenCalled();
   });
 
-  it('should filter repositories by selected IDs', async () => {
+  it('should filter repositories by selected IDs', () => {
     const multipleRepos: Repository[] = [
       ...mockRepositories,
       {
@@ -95,11 +99,15 @@ describe('useWorkspacePRs', () => {
       },
     ];
 
+    // Create a proper chain mock that returns the same instance for chaining
     const mockClient = {
       select: vi.fn().mockReturnThis(),
       in: vi.fn().mockReturnThis(),
-      order: vi.fn().mockResolvedValue({ data: [], error: null }),
+      order: vi.fn().mockReturnValue({ data: [], error: null }),
     };
+    // Ensure all chain methods return the mock client itself
+    mockClient.select.mockReturnValue(mockClient);
+    mockClient.in.mockReturnValue(mockClient);
     vi.mocked(supabase.from).mockReturnValue(mockClient as ReturnType<typeof supabase.from>);
 
     renderHook(() =>
@@ -111,40 +119,27 @@ describe('useWorkspacePRs', () => {
       })
     );
 
-    await waitFor(
-      () => {
-        expect(mockClient.in).toHaveBeenCalledWith('repository_id', ['repo-1']);
-      },
-      { timeout: 2000 }
-    );
+    // Immediate synchronous assertion - no waiting
+    expect(mockClient.in).toHaveBeenCalledWith('repository_id', ['repo-1']);
   });
 
-  it('should trigger sync when data is stale', async () => {
+  it('should trigger sync when data is stale', () => {
     const staleDate = new Date();
     staleDate.setHours(staleDate.getHours() - 2); // 2 hours old
 
-    // Mock for staleness check
-    let callCount = 0;
-    vi.mocked(supabase.from).mockImplementation(() => {
-      callCount++;
-      if (callCount === 1) {
-        // First call is staleness check
-        return {
-          select: vi.fn().mockReturnThis(),
-          in: vi.fn().mockReturnThis(),
-          order: vi.fn().mockResolvedValue({
-            data: [{ last_synced_at: staleDate.toISOString(), repository_id: 'repo-1' }],
-            error: null,
-          }),
-        } as ReturnType<typeof supabase.from>;
-      }
-      // Subsequent calls return empty PR list
-      return {
-        select: vi.fn().mockReturnThis(),
-        in: vi.fn().mockReturnThis(),
-        order: vi.fn().mockResolvedValue({ data: [], error: null }),
-      } as ReturnType<typeof supabase.from>;
-    });
+    // Mock for staleness check - return stale data immediately
+    const staleMockClient = {
+      select: vi.fn().mockReturnThis(),
+      in: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnValue({
+        data: [{ last_synced_at: staleDate.toISOString(), repository_id: 'repo-1' }],
+        error: null,
+      }),
+    };
+    // Ensure all chain methods return the mock client itself
+    staleMockClient.select.mockReturnValue(staleMockClient);
+    staleMockClient.in.mockReturnValue(staleMockClient);
+    vi.mocked(supabase.from).mockReturnValue(staleMockClient as ReturnType<typeof supabase.from>);
 
     renderHook(() =>
       useWorkspacePRs({
@@ -156,20 +151,16 @@ describe('useWorkspacePRs', () => {
       })
     );
 
-    await waitFor(
-      () => {
-        expect(syncPullRequestReviewers).toHaveBeenCalledWith(
-          'test-owner',
-          'test-repo',
-          'workspace-123',
-          {
-            includeClosedPRs: true,
-            maxClosedDays: 30,
-            updateDatabase: true,
-          }
-        );
-      },
-      { timeout: 2000 }
+    // Immediate synchronous assertion - sync should be triggered
+    expect(syncPullRequestReviewers).toHaveBeenCalledWith(
+      'test-owner',
+      'test-repo',
+      'workspace-123',
+      {
+        includeClosedPRs: true,
+        maxClosedDays: 30,
+        updateDatabase: true,
+      }
     );
   });
 });

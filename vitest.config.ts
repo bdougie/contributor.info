@@ -80,10 +80,10 @@ export default defineConfig({
       'src/lib/insights/health-metrics.test.ts',
       'src/lib/progressive-capture/__tests__/hybrid-queue-manager.test.ts',
       // Tests with async patterns added in fix/repository-status-json-response PR
-      // These tests have mock dependencies or shared state that can cause hangs in CI
-      'src/hooks/__tests__/useWorkspacePRs.test.ts',
-      'src/lib/insights/issue-metrics.test.ts',
-      'src/lib/spam/__tests__/SpamDetectionService.test.ts',
+      // These tests have been rewritten to use synchronous patterns
+      // 'src/hooks/__tests__/useWorkspacePRs.test.ts', // Fixed - now synchronous
+      // 'src/lib/insights/issue-metrics.test.ts', // Fixed - now synchronous  
+      // 'src/lib/spam/__tests__/SpamDetectionService.test.ts', // Fixed - now synchronous
     ],
 
     // No coverage
