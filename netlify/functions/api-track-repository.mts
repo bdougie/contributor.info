@@ -104,12 +104,13 @@ export default async (req: Request, context: Context) => {
     // First, verify the repository exists on GitHub
     let githubData: any = null;
     try {
+      const githubToken = process.env.GITHUB_TOKEN || process.env.VITE_GITHUB_TOKEN;
       const githubResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
         headers: {
           'Accept': 'application/vnd.github.v3+json',
           'User-Agent': 'contributor-info',
-          ...(process.env.GITHUB_TOKEN && {
-            'Authorization': `token ${process.env.GITHUB_TOKEN}`
+          ...(githubToken && {
+            'Authorization': `token ${githubToken}`
           })
         }
       });
@@ -156,8 +157,35 @@ export default async (req: Request, context: Context) => {
       }
 
     } catch (githubError: any) {
-      // Continue anyway - the repository might exist but we hit rate limits
-      console.log('GitHub check error:', githubError.message);
+      // Log the actual error for debugging
+      console.error('GitHub API call failed:', githubError);
+      console.error('GitHub error details:', {
+        message: githubError.message,
+        status: githubError.status,
+        hasToken: !!process.env.GITHUB_TOKEN
+      });
+
+      // For local development, continue without GitHub data if API fails
+      // We'll handle missing github_id below
+      if (process.env.NODE_ENV === 'development' || process.env.NETLIFY_DEV === 'true') {
+        console.warn('Continuing without GitHub data in development mode');
+      } else {
+        // In production, require GitHub data
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'GitHub API error',
+            message: 'Unable to fetch repository data from GitHub. Please try again later.'
+          }),
+          {
+            status: 503,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+      }
     }
 
     // Directly insert repository into database instead of relying on Inngest
@@ -232,12 +260,47 @@ export default async (req: Request, context: Context) => {
       }
 
       if (existingRepos && existingRepos.length > 0) {
-        // Repository already exists
+        // Repository already exists - still send sync event
+        const existingRepo = existingRepos[0];
+
+        // Send sync event for existing repository
+        try {
+          const { Inngest } = await import('inngest');
+          const isLocal = process.env.NODE_ENV === 'development' ||
+                         process.env.NETLIFY_DEV === 'true';
+
+          const inngest = new Inngest({
+            id: 'contributor-info',
+            isDev: isLocal,
+            eventKey: process.env.INNGEST_EVENT_KEY ||
+                     process.env.INNGEST_PRODUCTION_EVENT_KEY ||
+                     'local-dev-key',
+            ...(isLocal && { baseUrl: 'http://127.0.0.1:8288' })
+          });
+
+          // Send sync event for the existing repository
+          const result = await inngest.send({
+            name: 'capture/repository.sync.graphql',
+            data: {
+              repositoryId: existingRepo.id,
+              owner: existingRepo.owner,
+              name: existingRepo.name,
+              days: 30,
+              priority: 'high',
+              reason: 'Re-tracking existing repository'
+            }
+          });
+
+          console.log('Sync event sent for existing repository:', result.ids);
+        } catch (eventError) {
+          console.error('Failed to send sync event:', eventError);
+        }
+
         return new Response(
           JSON.stringify({
             success: true,
             message: `Repository ${owner}/${repo} is already being tracked`,
-            repositoryId: existingRepos[0].id
+            repositoryId: existingRepo.id
           }),
           {
             status: 200,
@@ -250,6 +313,7 @@ export default async (req: Request, context: Context) => {
       }
 
       // Step 2: Create repository record directly
+      // For development, generate a temporary github_id if we don't have GitHub data
       const repositoryData = githubData ? {
         github_id: githubData.id,
         full_name: githubData.full_name,
@@ -282,11 +346,20 @@ export default async (req: Request, context: Context) => {
         last_updated_at: new Date().toISOString(),
         is_active: true
       } : {
-        // Minimal data when GitHub API is unavailable
+        // Development mode: create minimal entry with a temporary github_id
+        // This uses a hash of the repo name to generate a consistent but unique ID
+        github_id: Math.abs(`${owner}/${repo}`.split('').reduce((a, b) => {
+          a = ((a << 5) - a) + b.charCodeAt(0);
+          return a & a;
+        }, 0)),
         full_name: `${owner}/${repo}`,
         owner: owner,
         name: repo,
         description: null,
+        stargazers_count: 0,
+        watchers_count: 0,
+        forks_count: 0,
+        open_issues_count: 0,
         first_tracked_at: new Date().toISOString(),
         last_updated_at: new Date().toISOString(),
         is_active: true
@@ -300,7 +373,8 @@ export default async (req: Request, context: Context) => {
 
       if (insertError) {
         console.error('Failed to insert repository:', insertError);
-        throw new Error('Failed to create repository record');
+        console.error('Insert error details:', JSON.stringify(insertError, null, 2));
+        throw new Error(`Failed to create repository record: ${insertError.message || 'Unknown error'}`);
       }
 
       if (!repository) {
@@ -326,57 +400,53 @@ export default async (req: Request, context: Context) => {
         // Don't throw - repository exists which is the main goal
       }
 
-      // Step 4: Also send Inngest events for background processing (classification & sync)
-      const inngestEventKey = process.env.INNGEST_EVENT_KEY ||
-                             process.env.INNGEST_PRODUCTION_EVENT_KEY;
+      // Step 4: Send Inngest events for background processing using the SDK
+      try {
+        // Import Inngest SDK
+        const { Inngest } = await import('inngest');
 
-      // Determine Inngest URL based on environment
-      let inngestUrl: string;
-      if (inngestEventKey === 'local_development_only') {
-        // For local development, send to local Inngest server
-        inngestUrl = 'http://localhost:8888/.netlify/functions/inngest-local-full';
-      } else if (inngestEventKey) {
-        // For production, send to Inngest cloud
-        inngestUrl = `https://inn.gs/e/${inngestEventKey}`;
-      } else {
-        // Skip if no event key
-        inngestUrl = '';
-      }
+        // Create Inngest client for local or production
+        const isLocal = process.env.NODE_ENV === 'development' ||
+                       process.env.NETLIFY_DEV === 'true';
 
-      if (inngestUrl) {
-        try {
-          // Send classification event
-          await fetch(inngestUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              name: 'classify/repository.single',
-              data: {
-                repositoryId: repository.id,
-                owner,
-                repo
-              }
-            })
-          });
+        const inngest = new Inngest({
+          id: 'contributor-info',
+          isDev: isLocal,
+          eventKey: process.env.INNGEST_EVENT_KEY ||
+                   process.env.INNGEST_PRODUCTION_EVENT_KEY ||
+                   'local-dev-key',
+          // For local dev, events go to local dev server
+          ...(isLocal && { baseUrl: 'http://127.0.0.1:8288' })
+        });
 
-          // Send sync event
-          await fetch(inngestUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              name: 'capture/repository.sync.graphql',
-              data: {
-                repositoryId: repository.id,
-                days: 30,
-                priority: 'high',
-                reason: 'Initial repository discovery'
-              }
-            })
-          });
-        } catch (eventError) {
-          console.error('Failed to send Inngest events:', eventError);
-          // Don't throw - events are non-critical
-        }
+        // Send events through the SDK
+        const events = [
+          {
+            name: 'classify/repository.single',
+            data: {
+              repositoryId: repository.id,
+              owner,
+              repo
+            }
+          },
+          {
+            name: 'capture/repository.sync.graphql',
+            data: {
+              repositoryId: repository.id,
+              owner: repository.owner,
+              name: repository.name,
+              days: 30,
+              priority: 'high',
+              reason: 'Initial repository discovery'
+            }
+          }
+        ];
+
+        const results = await inngest.send(events);
+        console.log('Inngest events sent successfully:', results.ids);
+      } catch (eventError) {
+        console.error('Failed to send Inngest events:', eventError);
+        // Don't throw - events are non-critical for tracking success
       }
 
       console.log('Successfully tracked repository %s with ID %s', `${owner}/${repo}`, repository.id);
