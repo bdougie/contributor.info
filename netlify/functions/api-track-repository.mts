@@ -159,57 +159,215 @@ export default async (req: Request, context: Context) => {
       console.log('GitHub check error:', githubError.message);
     }
 
-    // Send Inngest event to trigger discovery and data sync
+    // Directly insert repository into database instead of relying on Inngest
+    // (Inngest discovery function is not processing events in production)
     try {
+      // Get Supabase admin credentials to insert data
+      const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://egcxzonpmmcirmgqdrla.supabase.co';
+      const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+      if (!supabaseServiceKey) {
+        console.error('Missing SUPABASE_SERVICE_ROLE_KEY');
+        // Fallback to sending Inngest event
+        const inngestEventKey = process.env.INNGEST_EVENT_KEY ||
+                               process.env.INNGEST_PRODUCTION_EVENT_KEY;
+
+        if (inngestEventKey && inngestEventKey !== 'local_development_only') {
+          const inngestUrl = `https://inn.gs/e/${inngestEventKey}`;
+          await fetch(inngestUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              name: 'discover/repository.new',
+              data: {
+                owner,
+                repo,
+                source: 'user-tracking',
+                userId: isAuthenticated ? 'authenticated-user' : null,
+                timestamp: new Date().toISOString()
+              }
+            })
+          });
+        }
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            message: `Tracking request received for ${owner}/${repo}`,
+            warning: 'Background processing may be delayed'
+          }),
+          {
+            status: 200,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+      }
+
+      // Step 1: Check if repository already exists in database
+      const checkResponse = await fetch(
+        `${supabaseUrl}/rest/v1/repositories?owner=eq.${owner}&name=eq.${repo}`,
+        {
+          headers: {
+            'apikey': supabaseServiceKey,
+            'Authorization': `Bearer ${supabaseServiceKey}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation'
+          }
+        }
+      );
+
+      const existingRepos = await checkResponse.json();
+
+      if (existingRepos && existingRepos.length > 0) {
+        // Repository already exists
+        return new Response(
+          JSON.stringify({
+            success: true,
+            message: `Repository ${owner}/${repo} is already being tracked`,
+            repositoryId: existingRepos[0].id
+          }),
+          {
+            status: 200,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+      }
+
+      // Step 2: Create repository record directly
+      const insertResponse = await fetch(
+        `${supabaseUrl}/rest/v1/repositories`,
+        {
+          method: 'POST',
+          headers: {
+            'apikey': supabaseServiceKey,
+            'Authorization': `Bearer ${supabaseServiceKey}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation'
+          },
+          body: JSON.stringify({
+            github_id: githubData.id,
+            full_name: githubData.full_name,
+            owner: githubData.owner.login,
+            name: githubData.name,
+            description: githubData.description,
+            homepage: githubData.homepage,
+            language: githubData.language,
+            stargazers_count: githubData.stargazers_count,
+            watchers_count: githubData.watchers_count,
+            forks_count: githubData.forks_count,
+            open_issues_count: githubData.open_issues_count,
+            size: githubData.size,
+            default_branch: githubData.default_branch,
+            is_fork: githubData.fork,
+            is_archived: githubData.archived,
+            is_disabled: githubData.disabled,
+            is_private: githubData.private,
+            has_issues: githubData.has_issues,
+            has_projects: githubData.has_projects,
+            has_wiki: githubData.has_wiki,
+            has_pages: githubData.has_pages,
+            has_downloads: githubData.has_downloads,
+            license: githubData.license?.spdx_id || null,
+            topics: githubData.topics || [],
+            github_created_at: githubData.created_at,
+            github_updated_at: githubData.updated_at,
+            github_pushed_at: githubData.pushed_at,
+            first_tracked_at: new Date().toISOString(),
+            last_updated_at: new Date().toISOString(),
+            is_active: true
+          })
+        }
+      );
+
+      if (!insertResponse.ok) {
+        const errorData = await insertResponse.json();
+        console.error('Failed to insert repository:', errorData);
+        throw new Error('Failed to create repository record');
+      }
+
+      const [repository] = await insertResponse.json();
+
+      // Step 3: Add to tracked_repositories table
+      await fetch(
+        `${supabaseUrl}/rest/v1/tracked_repositories`,
+        {
+          method: 'POST',
+          headers: {
+            'apikey': supabaseServiceKey,
+            'Authorization': `Bearer ${supabaseServiceKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            repository_id: repository.id,
+            organization_name: owner,
+            repository_name: repo,
+            tracking_enabled: true,
+            priority: 'high',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+        }
+      );
+
+      // Step 4: Also send Inngest events for background processing (classification & sync)
       const inngestEventKey = process.env.INNGEST_EVENT_KEY ||
                              process.env.INNGEST_PRODUCTION_EVENT_KEY;
 
-      let inngestUrl: string;
-      // Check if we're in local development
-      if (!inngestEventKey || inngestEventKey === 'local_development_only') {
-        inngestUrl = 'http://localhost:8288/e/local';
-      } else {
-        inngestUrl = `https://inn.gs/e/${inngestEventKey}`;
+      if (inngestEventKey && inngestEventKey !== 'local_development_only') {
+        const inngestUrl = `https://inn.gs/e/${inngestEventKey}`;
+
+        // Send classification event
+        await fetch(inngestUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: 'classify/repository.single',
+            data: {
+              repositoryId: repository.id,
+              owner,
+              repo
+            }
+          })
+        });
+
+        // Send sync event
+        await fetch(inngestUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: 'capture/repository.sync.graphql',
+            data: {
+              repositoryId: repository.id,
+              days: 30,
+              priority: 'high',
+              reason: 'Initial repository discovery'
+            }
+          })
+        });
       }
 
-      // Send the discovery event
-      const inngestResponse = await fetch(inngestUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: 'discover/repository.new',
-          data: {
-            owner,
-            repo,
-            source: 'user-tracking',
-            userId: isAuthenticated ? 'authenticated-user' : null,
-            timestamp: new Date().toISOString()
-          }
-        })
-      });
-
-      const responseText = await inngestResponse.text();
-
-      if (!inngestResponse.ok) {
-        console.error('Inngest error:', inngestResponse.status, responseText);
-        throw new Error(`Inngest returned ${inngestResponse.status}`);
-      }
-
-      let result: any;
-      try {
-        result = JSON.parse(responseText);
-      } catch (e) {
-        result = { status: 'sent' };
-      }
+      console.log('Successfully tracked repository %s with ID %s', `${owner}/${repo}`, repository.id);
 
       return new Response(
         JSON.stringify({
           success: true,
-          message: `Tracking started for ${owner}/${repo}`,
-          repositoryId: result.ids?.[0] || 'pending',
-          eventId: result.ids?.[0] || result.status || 'pending'
+          message: `Successfully started tracking ${owner}/${repo}`,
+          repositoryId: repository.id,
+          repository: {
+            id: repository.id,
+            owner: repository.owner,
+            name: repository.name,
+            stars: repository.stargazers_count,
+            language: repository.language
+          }
         }),
         {
           status: 200,
@@ -220,18 +378,15 @@ export default async (req: Request, context: Context) => {
         }
       );
 
-    } catch (inngestError: any) {
-      // Log error for debugging but don't expose to client
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Inngest error:', inngestError);
-      }
+    } catch (error: any) {
+      console.error('Failed to track repository:', error);
 
-      // Still return success but note the background processing issue
+      // Still return success to not break the UI
       return new Response(
         JSON.stringify({
           success: true,
           message: `Tracking request received for ${owner}/${repo}`,
-          warning: 'Background processing may be delayed'
+          warning: 'Processing may be delayed'
         }),
         {
           status: 200,
