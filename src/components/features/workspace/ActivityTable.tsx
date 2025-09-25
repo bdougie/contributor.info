@@ -46,9 +46,27 @@ const getActivityUrl = (activity: ActivityItem): string => {
   const [owner, repo] = activity.repository.split('/');
   if (!owner || !repo) return '#';
 
-  // Extract PR/issue number from title if it exists
-  const numberMatch = activity.title.match(/#(\d+)/);
-  const number = numberMatch ? numberMatch[1] : '';
+  // Try to extract number from existing URL if available, then from id, then from title
+  let number = '';
+  
+  // First try to extract from URL if it exists
+  if (activity.url) {
+    const urlMatch = activity.url.match(/\/(?:pull|issues)\/(\d+)/);
+    if (urlMatch) {
+      number = urlMatch[1];
+    }
+  }
+  
+  // If no number found and we have an id that looks like a number, use it
+  if (!number && activity.id && /^\d+$/.test(activity.id)) {
+    number = activity.id;
+  }
+  
+  // Fall back to extracting from title as last resort
+  if (!number) {
+    const titleMatch = activity.title.match(/#(\d+)/);
+    number = titleMatch ? titleMatch[1] : '';
+  }
 
   switch (activity.type) {
     case 'pr':
