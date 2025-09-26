@@ -22,6 +22,15 @@ import {
   ContributorsList,
   type Contributor,
 } from '@/components/features/workspace/ContributorsList';
+import { ContributorsTable } from '@/components/features/workspace/ContributorsTable';
+import { ContributorGroupFilter } from '@/components/features/workspace/ContributorGroupFilter';
+import { ContributorGroupManager } from '@/components/features/workspace/ContributorGroupManager';
+import {
+  ContributorNotesDialog,
+  type ContributorNote,
+} from '@/components/features/workspace/ContributorNotesDialog';
+import { ContributorProfileModal } from '@/components/features/workspace/ContributorProfileModal';
+import type { ContributorGroup } from '@/components/features/workspace/ContributorsTable';
 import { AddRepositoryModal } from '@/components/features/workspace/AddRepositoryModal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -755,12 +764,28 @@ function WorkspaceContributors({
   selectedRepositories: string[];
   workspaceId: string;
 }) {
-  const navigate = useNavigate();
+  // Navigate removed - no longer needed as profile modal handles internally
   const [showAddContributors, setShowAddContributors] = useState(false);
   const [selectedContributorsToAdd, setSelectedContributorsToAdd] = useState<string[]>([]);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
+  // CRM State
+  const [showGroupManager, setShowGroupManager] = useState(false);
+  const [showNotesDialog, setShowNotesDialog] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [selectedContributor, setSelectedContributor] = useState<Contributor | null>(null);
+  const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
+
+  // Mock data for groups and notes - will be replaced with database calls
+  const [groups, setGroups] = useState<ContributorGroup[]>([
+    { id: '1', name: 'VIP Contributors', color: 'default', is_system: true },
+    { id: '2', name: 'Internal', color: 'secondary', is_system: true },
+    { id: '3', name: 'New Contributors', color: 'outline', is_system: true },
+  ]);
+  const [contributorGroups] = useState<Map<string, string[]>>(new Map());
+  const [notes] = useState<ContributorNote[]>([]);
 
   const {
     contributors,
@@ -777,7 +802,8 @@ function WorkspaceContributors({
   });
 
   const handleContributorClick = (contributor: Contributor) => {
-    navigate(`/contributor/${contributor.username}`);
+    setSelectedContributor(contributor);
+    setShowProfileModal(true);
   };
 
   const handleTrackContributor = (contributorId: string) => {
@@ -813,6 +839,88 @@ function WorkspaceContributors({
   const handleCancelAdd = () => {
     setShowAddContributors(false);
     setSelectedContributorsToAdd([]);
+  };
+
+  // CRM Handlers
+  const handleAddToGroup = (contributorId: string) => {
+    const contributor = contributors.find((c) => c.id === contributorId);
+    if (contributor) {
+      setSelectedContributor(contributor);
+      setShowGroupManager(true);
+    }
+  };
+
+  const handleAddNote = (contributorId: string) => {
+    const contributor = contributors.find((c) => c.id === contributorId);
+    if (contributor) {
+      setSelectedContributor(contributor);
+      setShowNotesDialog(true);
+    }
+  };
+
+  const handleRemoveContributor = async (contributorId: string) => {
+    await removeContributorFromWorkspace(contributorId);
+  };
+
+  // Mock CRM functions - will be replaced with actual database operations
+  const handleCreateGroup = async (name: string, _description: string, color: string) => {
+    const newGroup: ContributorGroup = {
+      id: Date.now().toString(),
+      name,
+      color: color as ContributorGroup['color'],
+      is_system: false,
+    };
+    setGroups((prev) => [...prev, newGroup]);
+    toast.success(`Group "${name}" created successfully`);
+  };
+
+  const handleUpdateGroup = async (
+    groupId: string,
+    name: string,
+    _description: string,
+    color: string
+  ) => {
+    setGroups((prev) =>
+      prev.map((g) =>
+        g.id === groupId ? { ...g, name, color: color as ContributorGroup['color'] } : g
+      )
+    );
+    toast.success('Group updated successfully');
+  };
+
+  const handleDeleteGroup = async (groupId: string) => {
+    setGroups((prev) => prev.filter((g) => g.id !== groupId));
+    toast.success('Group deleted successfully');
+  };
+
+  const handleAddContributorToGroup = async (contributorId: string, groupId: string) => {
+    // Mock implementation
+    console.log('Adding contributor to group:', contributorId, groupId);
+    toast.success('Contributor added to group');
+  };
+
+  const handleRemoveContributorFromGroup = async (contributorId: string, groupId: string) => {
+    // Mock implementation
+    console.log('Removing contributor from group:', contributorId, groupId);
+    toast.success('Contributor removed from group');
+  };
+
+  const handleAddNoteToContributor = async (contributorId: string, note: string) => {
+    // Mock implementation
+    console.log('Adding note for contributor:', contributorId, note);
+    toast.success('Note added successfully');
+  };
+
+  const handleUpdateNote = async (noteId: string, note: string) => {
+    // Mock implementation
+    console.log('Updating note:', noteId, note);
+    toast.success('Note updated successfully');
+  };
+
+  const handleDeleteNote = async (noteId: string) => {
+    // Mock implementation
+    console.log('Deleting note:', noteId);
+    toast.success('Note deleted successfully');
   };
 
   // Define columns for the add contributors table
@@ -950,7 +1058,8 @@ function WorkspaceContributors({
     },
   ];
 
-  // Define columns for the view list (without checkbox)
+  // View columns and table are no longer needed - replaced by ContributorsTable component
+  /*
   const viewColumns: ColumnDef<Contributor>[] = [
     {
       accessorKey: 'username',
@@ -1054,6 +1163,7 @@ function WorkspaceContributors({
       },
     },
   ];
+  */
 
   const addTable = useReactTable({
     data: allAvailableContributors,
@@ -1075,25 +1185,7 @@ function WorkspaceContributors({
     },
   });
 
-  const viewTable = useReactTable({
-    data: contributors,
-    columns: viewColumns,
-    state: {
-      sorting,
-      globalFilter,
-    },
-    onSortingChange: setSorting,
-    onGlobalFilterChange: setGlobalFilter,
-    getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    initialState: {
-      pagination: {
-        pageSize: 10,
-      },
-    },
-  });
+  // viewTable removed - functionality moved to ContributorsTable component
 
   // Show error state if there's an error
   if (error) {
@@ -1292,6 +1384,16 @@ function WorkspaceContributors({
             />
           </Suspense>
 
+          {/* Group Filter */}
+          <ContributorGroupFilter
+            groups={groups}
+            selectedGroups={selectedGroups}
+            onGroupsChange={setSelectedGroups}
+            onCreateGroup={() => setShowGroupManager(true)}
+            contributorCounts={new Map(groups.map((g) => [g.id, 0]))} // Will be replaced with actual counts
+            variant="badges"
+          />
+
           {/* View Toggle */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <h2 className="text-lg font-semibold">All Contributors</h2>
@@ -1311,11 +1413,20 @@ function WorkspaceContributors({
                   size="sm"
                   onClick={() => setViewMode('list')}
                   className="px-3 min-h-[44px] min-w-[44px]"
-                  title="List view"
+                  title="Table view"
                 >
                   <Menu className="h-4 w-4" />
                 </Button>
               </div>
+              <Button
+                onClick={() => setShowGroupManager(true)}
+                size="sm"
+                className="min-h-[44px] px-4"
+              >
+                <Users className="h-4 w-4 mr-1" />
+                <span className="hidden sm:inline">Manage Groups</span>
+                <span className="sm:hidden">Groups</span>
+              </Button>
               <Button onClick={handleAddContributor} size="sm" className="min-h-[44px] px-4">
                 <Plus className="h-4 w-4 mr-1" />
                 <span className="hidden sm:inline">Add Contributors</span>
@@ -1335,116 +1446,63 @@ function WorkspaceContributors({
               view="grid"
             />
           ) : (
-            <Card>
-              <CardContent className="p-6">
-                {/* Search Input for List View */}
-                <div className="mb-4">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search contributors..."
-                      value={globalFilter ?? ''}
-                      onChange={(e) => setGlobalFilter(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-
-                {/* Table */}
-                <div className="rounded-md border">
-                  <table className="w-full">
-                    <thead>
-                      {viewTable.getHeaderGroups().map((headerGroup) => (
-                        <tr key={headerGroup.id} className="border-b">
-                          {headerGroup.headers.map((header) => (
-                            <th
-                              key={header.id}
-                              className="px-4 py-3 text-left font-medium text-sm"
-                              style={{
-                                width: header.column.columnDef.size,
-                                minWidth: header.column.columnDef.size,
-                              }}
-                            >
-                              {flexRender(header.column.columnDef.header, header.getContext())}
-                            </th>
-                          ))}
-                        </tr>
-                      ))}
-                    </thead>
-                    <tbody>
-                      {viewTable.getRowModel().rows.length > 0 ? (
-                        viewTable.getRowModel().rows.map((row) => (
-                          <tr
-                            key={row.id}
-                            className="border-b hover:bg-muted/50 transition-colors cursor-pointer"
-                            onClick={() => handleContributorClick(row.original)}
-                          >
-                            {row.getVisibleCells().map((cell) => (
-                              <td
-                                key={cell.id}
-                                className="px-4 py-3"
-                                style={{
-                                  width: cell.column.columnDef.size,
-                                  minWidth: cell.column.columnDef.size,
-                                }}
-                              >
-                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                              </td>
-                            ))}
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td
-                            colSpan={viewColumns.length}
-                            className="px-4 py-8 text-center text-muted-foreground"
-                          >
-                            No contributors found
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Pagination */}
-                <div className="flex flex-col sm:flex-row items-center justify-between mt-4 gap-4">
-                  <div className="text-sm text-muted-foreground order-2 sm:order-1">
-                    Showing {viewTable.getState().pagination.pageIndex * 10 + 1} to{' '}
-                    {Math.min(
-                      (viewTable.getState().pagination.pageIndex + 1) * 10,
-                      contributors.length
-                    )}{' '}
-                    of {contributors.length} contributors
-                  </div>
-                  <div className="flex items-center gap-2 order-1 sm:order-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => viewTable.previousPage()}
-                      disabled={!viewTable.getCanPreviousPage()}
-                      className="min-h-[44px] px-3"
-                    >
-                      <span className="hidden sm:inline">Previous</span>
-                      <span className="sm:hidden">‹</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => viewTable.nextPage()}
-                      disabled={!viewTable.getCanNextPage()}
-                      className="min-h-[44px] px-3"
-                    >
-                      <span className="hidden sm:inline">Next</span>
-                      <span className="sm:hidden">›</span>
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <ContributorsTable
+              contributors={contributors}
+              groups={groups}
+              contributorGroups={contributorGroups}
+              loading={loading}
+              onContributorClick={handleContributorClick}
+              onAddToGroup={handleAddToGroup}
+              onAddNote={handleAddNote}
+              onRemoveContributor={handleRemoveContributor}
+            />
           )}
         </div>
       )}
+
+      {/* CRM Modals */}
+      <ContributorGroupManager
+        open={showGroupManager}
+        onOpenChange={setShowGroupManager}
+        groups={groups}
+        contributors={contributors}
+        contributorGroups={contributorGroups}
+        selectedContributorId={selectedContributor?.id}
+        onCreateGroup={handleCreateGroup}
+        onUpdateGroup={handleUpdateGroup}
+        onDeleteGroup={handleDeleteGroup}
+        onAddContributorToGroup={handleAddContributorToGroup}
+        onRemoveContributorFromGroup={handleRemoveContributorFromGroup}
+      />
+
+      <ContributorNotesDialog
+        open={showNotesDialog}
+        onOpenChange={setShowNotesDialog}
+        contributor={selectedContributor}
+        notes={notes}
+        loading={false}
+        currentUserId="current-user-id" // Will be replaced with actual user ID
+        onAddNote={handleAddNoteToContributor}
+        onUpdateNote={handleUpdateNote}
+        onDeleteNote={handleDeleteNote}
+      />
+
+      <ContributorProfileModal
+        open={showProfileModal}
+        onOpenChange={setShowProfileModal}
+        contributor={selectedContributor}
+        groups={groups}
+        contributorGroups={contributorGroups.get(selectedContributor?.id || '') || []}
+        notes={notes}
+        onManageGroups={() => {
+          setShowProfileModal(false);
+          setShowGroupManager(true);
+        }}
+        onAddNote={() => {
+          setShowProfileModal(false);
+          setShowNotesDialog(true);
+        }}
+      />
     </div>
   );
 }
