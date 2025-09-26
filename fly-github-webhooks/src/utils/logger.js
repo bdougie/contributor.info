@@ -14,12 +14,12 @@ class Logger {
   formatMessage(level, message, ...args) {
     const timestamp = new Date().toISOString();
     const prefix = `[${this.context}]`;
-    
+
     // Handle parameterized logging to prevent format string vulnerabilities
     if (args.length > 0) {
       return { timestamp, level, context: this.context, message, params: args };
     }
-    
+
     return { timestamp, level, context: this.context, message };
   }
 
@@ -28,10 +28,13 @@ class Logger {
    */
   info(message, ...args) {
     const formatted = this.formatMessage('INFO', message, ...args);
-    
+
     // Use parameterized console.log to prevent format string vulnerabilities
     if (args.length > 0) {
-      console.log(`${formatted.timestamp} [${formatted.context}] ${formatted.level}: ${message}`, ...args);
+      console.log(
+        `${formatted.timestamp} [${formatted.context}] ${formatted.level}: ${message}`,
+        ...args
+      );
     } else {
       console.log(`${formatted.timestamp} [${formatted.context}] ${formatted.level}: ${message}`);
     }
@@ -42,10 +45,13 @@ class Logger {
    */
   error(message, ...args) {
     const formatted = this.formatMessage('ERROR', message, ...args);
-    
+
     // Use parameterized console.error to prevent format string vulnerabilities
     if (args.length > 0) {
-      console.error(`${formatted.timestamp} [${formatted.context}] ${formatted.level}: ${message}`, ...args);
+      console.error(
+        `${formatted.timestamp} [${formatted.context}] ${formatted.level}: ${message}`,
+        ...args
+      );
     } else {
       console.error(`${formatted.timestamp} [${formatted.context}] ${formatted.level}: ${message}`);
     }
@@ -56,9 +62,12 @@ class Logger {
    */
   warn(message, ...args) {
     const formatted = this.formatMessage('WARN', message, ...args);
-    
+
     if (args.length > 0) {
-      console.warn(`${formatted.timestamp} [${formatted.context}] ${formatted.level}: ${message}`, ...args);
+      console.warn(
+        `${formatted.timestamp} [${formatted.context}] ${formatted.level}: ${message}`,
+        ...args
+      );
     } else {
       console.warn(`${formatted.timestamp} [${formatted.context}] ${formatted.level}: ${message}`);
     }
@@ -70,9 +79,12 @@ class Logger {
   debug(message, ...args) {
     if (process.env.NODE_ENV === 'development') {
       const formatted = this.formatMessage('DEBUG', message, ...args);
-      
+
       if (args.length > 0) {
-        console.log(`${formatted.timestamp} [${formatted.context}] ${formatted.level}: ${message}`, ...args);
+        console.log(
+          `${formatted.timestamp} [${formatted.context}] ${formatted.level}: ${message}`,
+          ...args
+        );
       } else {
         console.log(`${formatted.timestamp} [${formatted.context}] ${formatted.level}: ${message}`);
       }
@@ -88,9 +100,9 @@ class Logger {
       delivery,
       repository: repository || 'unknown',
       action,
-      installation
+      installation,
     };
-    
+
     console.log(`${new Date().toISOString()} [${this.context}] WEBHOOK:`, JSON.stringify(data));
   }
 

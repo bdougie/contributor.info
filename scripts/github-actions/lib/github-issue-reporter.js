@@ -26,7 +26,7 @@ export class GitHubIssueReporter {
       workflowUrl,
       errorMessage,
       timestamp,
-      metadata = {}
+      metadata = {},
     } = jobDetails;
 
     try {
@@ -52,12 +52,12 @@ export class GitHubIssueReporter {
   async findExistingIssue(repositoryName, jobType) {
     try {
       const query = `repo:${this.owner}/${this.repo} is:issue is:open in:title "${repositoryName}" "${jobType}"`;
-      
+
       const { data } = await this.octokit.search.issuesAndPullRequests({
         q: query,
         sort: 'created',
         order: 'desc',
-        per_page: 1
+        per_page: 1,
       });
 
       return data.items.length > 0 ? data.items[0] : null;
@@ -78,11 +78,11 @@ export class GitHubIssueReporter {
       workflowUrl,
       errorMessage,
       timestamp,
-      metadata = {}
+      metadata = {},
     } = jobDetails;
 
     const title = `Data Capture Failed: ${repositoryName} - ${jobType}`;
-    
+
     const body = `## Data Capture Failure Report
 
 @${this.maintainer} - A data capture job has failed and needs attention.
@@ -116,7 +116,7 @@ ${this.formatMetadata(metadata)}
         repo: this.repo,
         title,
         body,
-        labels: ['bug', 'data-capture-failure', 'automated']
+        labels: ['bug', 'data-capture-failure', 'automated'],
       });
 
       console.log(`Created issue #${data.number}: ${data.html_url}`);
@@ -131,13 +131,7 @@ ${this.formatMetadata(metadata)}
    * Update existing issue with new failure information
    */
   async updateIssue(issue, jobDetails) {
-    const {
-      workflowName,
-      workflowUrl,
-      errorMessage,
-      timestamp,
-      metadata = {}
-    } = jobDetails;
+    const { workflowName, workflowUrl, errorMessage, timestamp, metadata = {} } = jobDetails;
 
     // Extract failure count from issue body
     const failureCountMatch = issue.body.match(/Total failures: (\d+)/);
@@ -172,7 +166,7 @@ ${this.formatMetadata(metadata)}
         owner: this.owner,
         repo: this.repo,
         issue_number: issue.number,
-        body: comment
+        body: comment,
       });
 
       // Update issue body to reflect new failure count
@@ -185,7 +179,7 @@ ${this.formatMetadata(metadata)}
         owner: this.owner,
         repo: this.repo,
         issue_number: issue.number,
-        body: updatedBody
+        body: updatedBody,
       });
 
       console.log(`Updated issue #${issue.number}: ${issue.html_url}`);
@@ -215,7 +209,7 @@ ${this.formatMetadata(metadata)}
   formatKey(key) {
     return key
       .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
   }
 
@@ -235,7 +229,7 @@ ${this.formatMetadata(metadata)}
   async closeIssueIfFixed(repositoryName, jobType) {
     try {
       const existingIssue = await this.findExistingIssue(repositoryName, jobType);
-      
+
       if (existingIssue) {
         const comment = `## Job Successfully Completed ✅
 
@@ -249,14 +243,14 @@ The data capture job is now working correctly. Closing this issue.
           owner: this.owner,
           repo: this.repo,
           issue_number: existingIssue.number,
-          body: comment
+          body: comment,
         });
 
         await this.octokit.issues.update({
           owner: this.owner,
           repo: this.repo,
           issue_number: existingIssue.number,
-          state: 'closed'
+          state: 'closed',
         });
 
         console.log(`Closed issue #${existingIssue.number} as fixed`);
@@ -271,13 +265,13 @@ The data capture job is now working correctly. Closing this issue.
 export async function reportFailure(jobDetails) {
   const token = process.env.GITHUB_TOKEN;
   const repository = process.env.GITHUB_REPOSITORY;
-  
+
   if (!token || !repository) {
     throw new Error('GITHUB_TOKEN and GITHUB_REPOSITORY environment variables are required');
   }
 
   const [owner, repo] = repository.split('/');
   const reporter = new GitHubIssueReporter(token, owner, repo);
-  
+
   return await reporter.reportFailedJob(jobDetails);
 }

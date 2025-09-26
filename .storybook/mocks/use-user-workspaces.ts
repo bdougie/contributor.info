@@ -28,7 +28,7 @@ const mockWorkspaceData = {
       full_name: 'vitejs/vite',
       name: 'vite',
       owner: 'vitejs',
-      description: 'Next generation frontend tooling. It\'s fast!',
+      description: "Next generation frontend tooling. It's fast!",
       language: 'JavaScript',
       activity_score: 28,
       last_activity: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
@@ -52,8 +52,9 @@ const mockWorkspaceData = {
 };
 
 export const usePrimaryWorkspace = () => {
-  const storyId = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('id') : '';
-  
+  const storyId =
+    typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('id') : '';
+
   if (storyId?.includes('logged-in-with-workspace')) {
     return {
       workspace: mockWorkspaceData,
@@ -62,7 +63,7 @@ export const usePrimaryWorkspace = () => {
       error: null,
     };
   }
-  
+
   if (storyId?.includes('workspace-loading')) {
     return {
       workspace: null,
@@ -71,7 +72,7 @@ export const usePrimaryWorkspace = () => {
       error: null,
     };
   }
-  
+
   if (storyId?.includes('workspace-error')) {
     return {
       workspace: null,
@@ -80,7 +81,7 @@ export const usePrimaryWorkspace = () => {
       error: new Error('Failed to load workspace'),
     };
   }
-  
+
   return {
     workspace: null,
     hasWorkspace: false,

@@ -9,7 +9,7 @@ console.log('🔍 Testing Event Flow\n');
 const inngest = new Inngest({
   id: 'contributor-info',
   isDev: true,
-  eventKey: process.env.INNGEST_EVENT_KEY || 'local-dev-key'
+  eventKey: process.env.INNGEST_EVENT_KEY || 'local-dev-key',
 });
 
 async function testEventFlow() {
@@ -18,10 +18,10 @@ async function testEventFlow() {
   try {
     const result = await inngest.send({
       name: 'test/local.hello',
-      data: { 
+      data: {
         message: 'Direct test',
-        timestamp: new Date().toISOString()
-      }
+        timestamp: new Date().toISOString(),
+      },
     });
     console.log('✅ Direct send successful:', result.ids?.[0]);
   } catch (error) {
@@ -36,11 +36,11 @@ async function testEventFlow() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         eventName: 'test/local.hello',
-        data: { 
+        data: {
           message: 'Queue endpoint test',
-          timestamp: new Date().toISOString()
-        }
-      })
+          timestamp: new Date().toISOString(),
+        },
+      }),
     });
     const result = await response.json();
     console.log('✅ Queue endpoint:', result.success ? 'Success' : 'Failed', result);
@@ -57,8 +57,8 @@ async function testEventFlow() {
         repositoryId: 'test-123',
         days: 7,
         priority: 'medium',
-        reason: 'test'
-      }
+        reason: 'test',
+      },
     });
     console.log('✅ Production event sent:', result.ids?.[0]);
   } catch (error) {
@@ -69,8 +69,8 @@ async function testEventFlow() {
   console.log('- Events: http://localhost:8288/stream');
   console.log('- Runs: http://localhost:8288/runs');
   console.log('- Functions: http://localhost:8288/functions');
-  
-  console.log('\n💡 If events aren\'t showing:');
+
+  console.log("\n💡 If events aren't showing:");
   console.log('1. Clear browser cache and reload the app');
   console.log('2. Check browser console for errors');
   console.log('3. Verify INNGEST_EVENT_KEY in .env matches dev server');

@@ -84,7 +84,7 @@ serve(async (req: Request) => {
 
     let avgProcessingTime: number | null = null;
     if (recentCompleted && recentCompleted.length > 0) {
-      const processingTimes = recentCompleted.map(job => {
+      const processingTimes = recentCompleted.map((job) => {
         const start = new Date(job.started_at!).getTime();
         const end = new Date(job.completed_at!).getTime();
         return (end - start) / 1000;
@@ -96,9 +96,8 @@ serve(async (req: Request) => {
 
     // Calculate failure rate
     const totalProcessed = (failedCount || 0) + (completedCount || 0);
-    const failureRate = totalProcessed > 0
-      ? Math.round(((failedCount || 0) / totalProcessed) * 100)
-      : 0;
+    const failureRate =
+      totalProcessed > 0 ? Math.round(((failedCount || 0) / totalProcessed) * 100) : 0;
 
     // Determine health status
     let status: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
@@ -114,8 +113,11 @@ serve(async (req: Request) => {
       status = 'degraded';
     }
 
-    if (oldestQueuedAge && oldestQueuedAge > 600) { // 10 minutes
-      warnings.push(`Old jobs in queue: oldest job is ${Math.floor(oldestQueuedAge / 60)} minutes old`);
+    if (oldestQueuedAge && oldestQueuedAge > 600) {
+      // 10 minutes
+      warnings.push(
+        `Old jobs in queue: oldest job is ${Math.floor(oldestQueuedAge / 60)} minutes old`
+      );
       status = 'degraded';
     }
 
@@ -130,8 +132,11 @@ serve(async (req: Request) => {
       status = 'unhealthy';
     }
 
-    if (oldestQueuedAge && oldestQueuedAge > 3600) { // 1 hour
-      errors.push(`Stale jobs in queue: oldest job is ${Math.floor(oldestQueuedAge / 3600)} hours old`);
+    if (oldestQueuedAge && oldestQueuedAge > 3600) {
+      // 1 hour
+      errors.push(
+        `Stale jobs in queue: oldest job is ${Math.floor(oldestQueuedAge / 3600)} hours old`
+      );
       status = 'unhealthy';
     }
 
@@ -149,23 +154,19 @@ serve(async (req: Request) => {
         failed_count: failedCount || 0,
         oldest_queued_job_age_seconds: oldestQueuedAge,
         avg_processing_time_seconds: avgProcessingTime,
-        failure_rate_percent: failureRate
+        failure_rate_percent: failureRate,
       },
       warnings,
-      errors
+      errors,
     };
 
     // Return appropriate status code based on health
     const statusCode = status === 'healthy' ? 200 : status === 'degraded' ? 200 : 503;
 
-    return new Response(
-      JSON.stringify(healthStatus),
-      {
-        status: statusCode,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    );
-
+    return new Response(JSON.stringify(healthStatus), {
+      status: statusCode,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   } catch (error) {
     console.error('Health check error:', error);
     return new Response(
@@ -179,14 +180,14 @@ serve(async (req: Request) => {
           failed_count: 0,
           oldest_queued_job_age_seconds: null,
           avg_processing_time_seconds: null,
-          failure_rate_percent: 0
+          failure_rate_percent: 0,
         },
         warnings: [],
-        errors: ['Health check failed']
+        errors: ['Health check failed'],
       }),
       {
         status: 503,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
   }

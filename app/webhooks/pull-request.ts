@@ -5,11 +5,11 @@ import { formatPRComment, formatMinimalPRComment } from '../services/comments';
 import { findSimilarIssues, SimilarIssue } from '../services/similarity';
 import { suggestReviewers, ReviewerSuggestion } from '../services/reviewers';
 import { supabase } from '../../src/lib/supabase';
-import { 
-  fetchContributorConfig, 
+import {
+  fetchContributorConfig,
   isFeatureEnabled,
   isUserExcluded,
-  generateCodeOwnersSuggestion
+  generateCodeOwnersSuggestion,
 } from '../services/contributor-config';
 
 /**
@@ -32,7 +32,7 @@ export async function handlePullRequestEvent(event: PullRequestEvent) {
   }
 
   try {
-    console.log("Processing PR #%s in ${event.repository.full_name}", event.pull_request.number);
+    console.log('Processing PR #%s in ${event.repository.full_name}', event.pull_request.number);
 
     // Check if we should comment on this PR
     const shouldComment = await checkIfShouldComment(event);
@@ -59,7 +59,7 @@ export async function handlePullRequestEvent(event: PullRequestEvent) {
 
     // Check if PR author is excluded
     if (isUserExcluded(config, event.pull_request.user.login, 'author')) {
-      console.log("PR author %s is excluded from comments", event.pull_request.user.login);
+      console.log('PR author %s is excluded from comments', event.pull_request.user.login);
       return;
     }
 
@@ -70,9 +70,7 @@ export async function handlePullRequestEvent(event: PullRequestEvent) {
     }
 
     // Generate insights in parallel (only fetch what's enabled)
-    const insightsPromises = [
-      generatePRInsights(event.pull_request, event.repository),
-    ];
+    const insightsPromises = [generatePRInsights(event.pull_request, event.repository)];
 
     if (isFeatureEnabled(config, 'similar_issues')) {
       insightsPromises.push(findSimilarIssues(event.pull_request, event.repository));
@@ -86,7 +84,8 @@ export async function handlePullRequestEvent(event: PullRequestEvent) {
       insightsPromises.push(Promise.resolve({ suggestions: [], hasCodeOwners: false }));
     }
 
-    const [contributorInsights, similarIssues, reviewerSuggestionsResult] = await Promise.all(insightsPromises);
+    const [contributorInsights, similarIssues, reviewerSuggestionsResult] =
+      await Promise.all(insightsPromises);
 
     // Extract suggestions and hasCodeOwners flag
     const hasCodeOwners = reviewerSuggestionsResult?.hasCodeOwners || false;
@@ -94,29 +93,30 @@ export async function handlePullRequestEvent(event: PullRequestEvent) {
 
     // Filter out excluded reviewers
     const filteredReviewers = reviewerSuggestions.filter(
-      reviewer => !isUserExcluded(config, reviewer.login, 'reviewer')
+      (reviewer) => !isUserExcluded(config, reviewer.login, 'reviewer')
     );
 
     // Format the comment based on style preference
-    const comment = config.comment_style === 'minimal' 
-      ? formatMinimalPRComment({
-          pullRequest: event.pull_request,
-          repository: event.repository,
-          contributorInsights,
-          similarIssues,
-          reviewerSuggestions: filteredReviewers,
-          hasCodeOwners,
-          config,
-        })
-      : formatPRComment({
-          pullRequest: event.pull_request,
-          repository: event.repository,
-          contributorInsights,
-          similarIssues,
-          reviewerSuggestions: filteredReviewers,
-          hasCodeOwners,
-          config,
-        });
+    const comment =
+      config.comment_style === 'minimal'
+        ? formatMinimalPRComment({
+            pullRequest: event.pull_request,
+            repository: event.repository,
+            contributorInsights,
+            similarIssues,
+            reviewerSuggestions: filteredReviewers,
+            hasCodeOwners,
+            config,
+          })
+        : formatPRComment({
+            pullRequest: event.pull_request,
+            repository: event.repository,
+            contributorInsights,
+            similarIssues,
+            reviewerSuggestions: filteredReviewers,
+            hasCodeOwners,
+            config,
+          });
 
     // Post the comment
     const { data: postedComment } = await octokit.issues.createComment({
@@ -126,7 +126,7 @@ export async function handlePullRequestEvent(event: PullRequestEvent) {
       body: comment,
     });
 
-    console.log("Posted comment %s on PR #${event.pull_request.number}", postedComment.id);
+    console.log('Posted comment %s on PR #${event.pull_request.number}', postedComment.id);
 
     // Store insights in database
     await storePRInsights({
@@ -137,7 +137,6 @@ export async function handlePullRequestEvent(event: PullRequestEvent) {
       reviewerSuggestions,
       commentId: postedComment.id,
     });
-
   } catch (error) {
     console.error('Error handling pull request event:', error);
     // Don't throw - we don't want GitHub to retry
@@ -149,7 +148,10 @@ export async function handlePullRequestEvent(event: PullRequestEvent) {
  */
 async function handlePROpened(event: PullRequestEvent) {
   try {
-    console.log("Processing opened PR #%s in ${event.repository.full_name}", event.pull_request.number);
+    console.log(
+      'Processing opened PR #%s in ${event.repository.full_name}',
+      event.pull_request.number
+    );
 
     // Check if we should comment on this PR
     const shouldComment = await checkIfShouldComment(event);
@@ -176,7 +178,7 @@ async function handlePROpened(event: PullRequestEvent) {
 
     // Check if PR author is excluded
     if (isUserExcluded(config, event.pull_request.user.login, 'author')) {
-      console.log("PR author %s is excluded from comments", event.pull_request.user.login);
+      console.log('PR author %s is excluded from comments', event.pull_request.user.login);
       return;
     }
 
@@ -212,7 +214,10 @@ async function handlePROpened(event: PullRequestEvent) {
       body: comment,
     });
 
-    console.log("Posted similarity comment %s on PR #${event.pull_request.number}", postedComment.id);
+    console.log(
+      'Posted similarity comment %s on PR #${event.pull_request.number}',
+      postedComment.id
+    );
 
     // Store basic tracking info (lightweight compared to full insights)
     await storePRSimilarityComment({
@@ -221,7 +226,6 @@ async function handlePROpened(event: PullRequestEvent) {
       similarIssues,
       commentId: postedComment.id,
     });
-
   } catch (error) {
     console.error('Error handling PR opened event:', error);
     // Don't throw - we don't want GitHub to retry
@@ -315,19 +319,16 @@ async function storePRInsights(data: StorePRInsightsData) {
     if (!pr) return;
 
     // Store the insights
-    await supabase
-      .from('pr_insights')
-      .upsert({
-        pull_request_id: pr.id,
-        github_pr_id: data.pullRequest.id,
-        contributor_stats: data.contributorInsights,
-        suggested_reviewers: data.reviewerSuggestions,
-        similar_issues: data.similarIssues,
-        comment_posted: true,
-        comment_id: data.commentId,
-        generated_at: new Date().toISOString(),
-      });
-
+    await supabase.from('pr_insights').upsert({
+      pull_request_id: pr.id,
+      github_pr_id: data.pullRequest.id,
+      contributor_stats: data.contributorInsights,
+      suggested_reviewers: data.reviewerSuggestions,
+      similar_issues: data.similarIssues,
+      comment_posted: true,
+      comment_id: data.commentId,
+      generated_at: new Date().toISOString(),
+    });
   } catch (error) {
     console.error('Error storing PR insights:', error);
   }
@@ -336,18 +337,26 @@ async function storePRInsights(data: StorePRInsightsData) {
 /**
  * Format simple similarity comment for PR opened events
  */
-function formatSimplePRSimilarityComment(similarIssues: SimilarIssue[], pullRequest: PullRequest): string {
+function formatSimplePRSimilarityComment(
+  similarIssues: SimilarIssue[],
+  pullRequest: PullRequest
+): string {
   let comment = '## 🔗 Related Issues\n\n';
   comment += 'I found the following issues that may be related to this PR:\n\n';
 
   for (const similar of similarIssues) {
     const stateEmoji = similar.issue.state === 'open' ? '🟢' : '🔴';
-    const relationshipEmoji = similar.relationship === 'fixes' ? '🔧' : 
-                            similar.relationship === 'implements' ? '⚡' :
-                            similar.relationship === 'relates_to' ? '🔗' : '💭';
-    
+    const relationshipEmoji =
+      similar.relationship === 'fixes'
+        ? '🔧'
+        : similar.relationship === 'implements'
+          ? '⚡'
+          : similar.relationship === 'relates_to'
+            ? '🔗'
+            : '💭';
+
     comment += `- ${stateEmoji} ${relationshipEmoji} [#${similar.issue.number} - ${similar.issue.title}](${similar.issue.html_url}) `;
-    
+
     if (similar.reasons.length > 0) {
       comment += `(${similar.reasons.join(', ')})\n`;
     } else {
@@ -404,18 +413,15 @@ async function storePRSimilarityComment(data: StorePRSimilarityData) {
     if (!pr) return;
 
     // Store basic similarity tracking (lighter than full insights)
-    await supabase
-      .from('pr_insights')
-      .upsert({
-        pull_request_id: pr.id,
-        github_pr_id: data.pullRequest.id,
-        similar_issues: data.similarIssues,
-        comment_posted: false,
-        comment_id: data.commentId,
-        generated_at: new Date().toISOString(),
-        comment_type: 'similarity', // Mark as similarity-only comment
-      });
-
+    await supabase.from('pr_insights').upsert({
+      pull_request_id: pr.id,
+      github_pr_id: data.pullRequest.id,
+      similar_issues: data.similarIssues,
+      comment_posted: false,
+      comment_id: data.commentId,
+      generated_at: new Date().toISOString(),
+      comment_type: 'similarity', // Mark as similarity-only comment
+    });
   } catch (error) {
     console.error('Error storing PR similarity comment:', error);
   }

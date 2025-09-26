@@ -2,7 +2,7 @@
 
 /**
  * Edge Case and Error Scenario Tester
- * 
+ *
  * Comprehensive testing of edge cases, error scenarios, and failure modes
  * for the hybrid progressive capture system.
  */
@@ -12,16 +12,13 @@ const { HybridQueueManager } = require('../../src/lib/progressive-capture/hybrid
 
 class EdgeCaseTester {
   constructor() {
-    this.supabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_KEY
-    );
+    this.supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
     this.hybridManager = new HybridQueueManager();
-    
+
     this.testResults = {
       passed: 0,
       failed: 0,
-      tests: []
+      tests: [],
     };
   }
 
@@ -30,7 +27,7 @@ class EdgeCaseTester {
    */
   async runAllTests() {
     console.log('🧪 Starting comprehensive edge case testing...\n');
-    
+
     const testSuites = [
       () => this.testRateLimitScenarios(),
       () => this.testNetworkFailures(),
@@ -41,7 +38,7 @@ class EdgeCaseTester {
       () => this.testResourceExhaustion(),
       () => this.testTimeoutScenarios(),
       () => this.testAuthenticationFailures(),
-      () => this.testCorruptedDataRecovery()
+      () => this.testCorruptedDataRecovery(),
     ];
 
     for (const testSuite of testSuites) {
@@ -55,7 +52,7 @@ class EdgeCaseTester {
 
     this.displayTestSummary();
     await this.generateTestReport();
-    
+
     return this.testResults.failed === 0;
   }
 
@@ -64,7 +61,7 @@ class EdgeCaseTester {
    */
   async testRateLimitScenarios() {
     console.log('⚡ Testing rate limit scenarios...');
-    
+
     // Test 1: Simulated rate limit response
     await this.runTest('rate_limit_detection', async () => {
       // This would normally involve mocking GitHub API responses
@@ -91,7 +88,7 @@ class EdgeCaseTester {
    */
   async testNetworkFailures() {
     console.log('🌐 Testing network failure scenarios...');
-    
+
     // Test 1: Temporary network outage
     await this.runTest('network_timeout', async () => {
       const result = await this.simulateNetworkTimeout();
@@ -116,7 +113,7 @@ class EdgeCaseTester {
    */
   async testDatabaseFailures() {
     console.log('🗄️ Testing database failure scenarios...');
-    
+
     // Test 1: Connection pool exhaustion
     await this.runTest('db_connection_exhaustion', async () => {
       const result = await this.simulateConnectionPoolExhaustion();
@@ -141,14 +138,14 @@ class EdgeCaseTester {
    */
   async testInvalidDataScenarios() {
     console.log('📊 Testing invalid data scenarios...');
-    
+
     // Test 1: Malformed repository data
     await this.runTest('invalid_repository_data', async () => {
       try {
         await this.hybridManager.queueJob('test-job', {
           repositoryId: null, // Invalid
-          repositoryName: '',  // Invalid
-          timeRange: -1        // Invalid
+          repositoryName: '', // Invalid
+          timeRange: -1, // Invalid
         });
         return false; // Should have thrown an error
       } catch (error) {
@@ -159,14 +156,14 @@ class EdgeCaseTester {
     // Test 2: Extremely large payload
     await this.runTest('large_payload', async () => {
       const largeMetadata = {
-        data: 'x'.repeat(1000000) // 1MB of data
+        data: 'x'.repeat(1000000), // 1MB of data
       };
-      
+
       try {
         const result = await this.hybridManager.queueJob('test-job', {
           repositoryId: 'test-repo',
           repositoryName: 'test/repo',
-          metadata: largeMetadata
+          metadata: largeMetadata,
         });
         return result !== null;
       } catch (error) {
@@ -180,7 +177,7 @@ class EdgeCaseTester {
       try {
         await this.hybridManager.queueJob('test-job', {
           // Missing repositoryId and repositoryName
-          timeRange: 7
+          timeRange: 7,
         });
         return false; // Should have thrown an error
       } catch (error) {
@@ -194,7 +191,7 @@ class EdgeCaseTester {
    */
   async testConcurrencyIssues() {
     console.log('🔄 Testing concurrency scenarios...');
-    
+
     // Test 1: Simultaneous job creation
     await this.runTest('concurrent_job_creation', async () => {
       const promises = [];
@@ -203,14 +200,14 @@ class EdgeCaseTester {
           this.hybridManager.queueJob('concurrent-test', {
             repositoryId: `test-repo-${i}`,
             repositoryName: `test/repo-${i}`,
-            timeRange: 1
+            timeRange: 1,
           })
         );
       }
-      
+
       try {
         const results = await Promise.all(promises);
-        return results.every(r => r && r.id);
+        return results.every((r) => r && r.id);
       } catch (error) {
         return false;
       }
@@ -228,7 +225,7 @@ class EdgeCaseTester {
    */
   async testLargeDatasets() {
     console.log('📈 Testing large dataset scenarios...');
-    
+
     // Test 1: Maximum batch size
     await this.runTest('max_batch_size', async () => {
       try {
@@ -236,9 +233,9 @@ class EdgeCaseTester {
           repositoryId: 'test-repo',
           repositoryName: 'test/repo',
           maxItems: 10000, // Very large batch
-          timeRange: 365   // Full year
+          timeRange: 365, // Full year
         });
-        
+
         // Should route to GitHub Actions
         return result.processor === 'github_actions';
       } catch (error) {
@@ -258,7 +255,7 @@ class EdgeCaseTester {
    */
   async testResourceExhaustion() {
     console.log('⚠️ Testing resource exhaustion scenarios...');
-    
+
     // Test 1: CPU overload
     await this.runTest('cpu_overload', async () => {
       const result = await this.simulateCpuOverload();
@@ -277,7 +274,7 @@ class EdgeCaseTester {
    */
   async testTimeoutScenarios() {
     console.log('⏱️ Testing timeout scenarios...');
-    
+
     // Test 1: Function timeout
     await this.runTest('function_timeout', async () => {
       const result = await this.simulateFunctionTimeout();
@@ -296,7 +293,7 @@ class EdgeCaseTester {
    */
   async testAuthenticationFailures() {
     console.log('🔐 Testing authentication failure scenarios...');
-    
+
     // Test 1: Expired token
     await this.runTest('expired_token', async () => {
       const result = await this.simulateExpiredToken();
@@ -315,7 +312,7 @@ class EdgeCaseTester {
    */
   async testCorruptedDataRecovery() {
     console.log('🔧 Testing corrupted data recovery...');
-    
+
     // Test 1: Partial data corruption
     await this.runTest('partial_corruption', async () => {
       const result = await this.simulatePartialCorruption();
@@ -436,7 +433,7 @@ class EdgeCaseTester {
       const startTime = Date.now();
       const result = await testFunction();
       const duration = Date.now() - startTime;
-      
+
       if (result) {
         console.log(`    ✅ ${testName} passed (${duration}ms)`);
         this.testResults.passed++;
@@ -459,19 +456,21 @@ class EdgeCaseTester {
       passed,
       error,
       duration,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   }
 
   displayTestSummary() {
     const total = this.testResults.passed + this.testResults.failed;
     const successRate = total > 0 ? (this.testResults.passed / total) * 100 : 0;
-    
+
     console.log('\n📊 Edge Case Testing Summary:');
     console.log(`  ✅ Passed: ${this.testResults.passed}`);
     console.log(`  ❌ Failed: ${this.testResults.failed}`);
     console.log(`  📈 Success Rate: ${successRate.toFixed(1)}%`);
-    console.log(`  🎯 Status: ${successRate >= 90 ? 'EXCELLENT' : successRate >= 75 ? 'GOOD' : 'NEEDS_IMPROVEMENT'}`);
+    console.log(
+      `  🎯 Status: ${successRate >= 90 ? 'EXCELLENT' : successRate >= 75 ? 'GOOD' : 'NEEDS_IMPROVEMENT'}`
+    );
   }
 
   async generateTestReport() {
@@ -481,18 +480,20 @@ class EdgeCaseTester {
         total_tests: this.testResults.passed + this.testResults.failed,
         passed: this.testResults.passed,
         failed: this.testResults.failed,
-        success_rate: this.testResults.passed + this.testResults.failed > 0 ? 
-          (this.testResults.passed / (this.testResults.passed + this.testResults.failed)) * 100 : 0
+        success_rate:
+          this.testResults.passed + this.testResults.failed > 0
+            ? (this.testResults.passed / (this.testResults.passed + this.testResults.failed)) * 100
+            : 0,
       },
       test_results: this.testResults.tests,
-      recommendations: this.generateRecommendations()
+      recommendations: this.generateRecommendations(),
     };
 
     // Save report
     const fs = require('fs');
     const reportsDir = './edge-case-reports';
     fs.mkdirSync(reportsDir, { recursive: true });
-    
+
     const reportPath = `${reportsDir}/edge-case-test-${Date.now()}.json`;
     fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
 
@@ -501,26 +502,26 @@ class EdgeCaseTester {
   }
 
   generateRecommendations() {
-    const failedTests = this.testResults.tests.filter(t => !t.passed);
+    const failedTests = this.testResults.tests.filter((t) => !t.passed);
     const recommendations = [];
 
-    if (failedTests.some(t => t.name.includes('rate_limit'))) {
+    if (failedTests.some((t) => t.name.includes('rate_limit'))) {
       recommendations.push('Improve rate limit handling and backoff strategies');
     }
 
-    if (failedTests.some(t => t.name.includes('network'))) {
+    if (failedTests.some((t) => t.name.includes('network'))) {
       recommendations.push('Enhance network failure resilience and retry mechanisms');
     }
 
-    if (failedTests.some(t => t.name.includes('db'))) {
+    if (failedTests.some((t) => t.name.includes('db'))) {
       recommendations.push('Strengthen database connection management and error handling');
     }
 
-    if (failedTests.some(t => t.name.includes('timeout'))) {
+    if (failedTests.some((t) => t.name.includes('timeout'))) {
       recommendations.push('Optimize timeout handling and implement progressive timeouts');
     }
 
-    if (failedTests.some(t => t.name.includes('concurrent'))) {
+    if (failedTests.some((t) => t.name.includes('concurrent'))) {
       recommendations.push('Improve concurrency control and resource management');
     }
 
@@ -531,8 +532,9 @@ class EdgeCaseTester {
 // Main execution
 if (require.main === module) {
   const tester = new EdgeCaseTester();
-  tester.runAllTests()
-    .then(success => {
+  tester
+    .runAllTests()
+    .then((success) => {
       console.log(`\n🎯 All edge case tests ${success ? 'PASSED' : 'COMPLETED WITH FAILURES'}`);
       process.exit(success ? 0 : 1);
     })

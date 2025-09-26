@@ -16,14 +16,14 @@ async function checkBuildClean() {
     '.stories.',
     '.test.',
     '__tests__',
-    '__mocks__'
+    '__mocks__',
   ];
 
   let foundTestDeps = false;
 
   for (const file of distFiles) {
     const content = fs.readFileSync(file, 'utf-8');
-    
+
     for (const dep of testDependencies) {
       if (content.includes(dep)) {
         console.error(`❌ Found test dependency "${dep}" in ${path.basename(file)}`);
@@ -34,16 +34,16 @@ async function checkBuildClean() {
 
   if (foundTestDeps) {
     console.error('\n💡 Test dependencies found in build. This could hurt Lighthouse scores.');
-    console.error('   Check your imports and ensure story files aren\'t being bundled.');
+    console.error("   Check your imports and ensure story files aren't being bundled.");
     process.exit(1);
   } else {
     console.log('✅ Build is clean - no test dependencies found in bundle');
-    
+
     // Show bundle size summary
     const totalSize = distFiles.reduce((total, file) => {
       return total + fs.statSync(file).size;
     }, 0);
-    
+
     console.log(`📦 Total JS bundle size: ${(totalSize / 1024 / 1024).toFixed(2)} MB`);
   }
 }

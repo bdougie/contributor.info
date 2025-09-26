@@ -1,4 +1,4 @@
-import { fn } from "@storybook/test";
+import { fn } from '@storybook/test';
 
 const stableLogin = fn();
 const stableLogout = fn();
@@ -6,11 +6,12 @@ const stableCheckSession = fn();
 const stableSetShowLoginDialog = fn();
 
 export const useGitHubAuth = () => {
-  const storyId = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('id') : '';
-  
+  const storyId =
+    typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('id') : '';
+
   const isLoggedIn = storyId?.includes('logged-in') || false;
   const isLoading = storyId?.includes('auth-loading') || false;
-  
+
   return {
     isLoggedIn,
     loading: isLoading,

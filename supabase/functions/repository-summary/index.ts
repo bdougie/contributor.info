@@ -29,9 +29,9 @@ interface Repository {
 function createActivityHash(pullRequests: PullRequest[]): string {
   const activityData = pullRequests
     .slice(0, 10) // Consider only the 10 most recent PRs
-    .map(pr => `${pr.number}-${pr.merged_at || pr.created_at}`)
+    .map((pr) => `${pr.number}-${pr.merged_at || pr.created_at}`)
     .join('|');
-  
+
   return btoa(activityData); // Simple base64 encoding for hash
 }
 
@@ -40,10 +40,10 @@ function needsRegeneration(repo: Repository, activityHash: string): boolean {
   if (!repo.summary_generated_at || !repo.recent_activity_hash) {
     return true;
   }
-  
+
   const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
   const generatedAt = new Date(repo.summary_generated_at);
-  
+
   return generatedAt < fourteenDaysAgo || repo.recent_activity_hash !== activityHash;
 }
 
@@ -60,21 +60,19 @@ function humanizeNumber(num: number): string {
 
 // Generate AI summary using OpenAI
 async function generateAISummary(repo: Repository, pullRequests: PullRequest[]): Promise<string> {
-  const recentMergedPRs = pullRequests
-    .filter(pr => pr.merged_at !== null)
-    .slice(0, 10); // Last 10 merged PRs
-  
-  const recentOpenPRs = pullRequests
-    .filter(pr => pr.state === 'open')
-    .slice(0, 5); // Current open PRs
-  
+  const recentMergedPRs = pullRequests.filter((pr) => pr.merged_at !== null).slice(0, 10); // Last 10 merged PRs
+
+  const recentOpenPRs = pullRequests.filter((pr) => pr.state === 'open').slice(0, 5); // Current open PRs
+
   const formatPRList = (prs: PullRequest[]) => {
-    return prs.map(pr => {
-      const prInfo = `#${pr.number}: ${pr.title}`;
-      return pr.body ? `${prInfo}\n  ${pr.body.substring(0, 200)}...` : prInfo;
-    }).join('\n');
+    return prs
+      .map((pr) => {
+        const prInfo = `#${pr.number}: ${pr.title}`;
+        return pr.body ? `${prInfo}\n  ${pr.body.substring(0, 200)}...` : prInfo;
+      })
+      .join('\n');
   };
-  
+
   const prompt = `Analyze this GitHub repository and provide a concise summary:
 
 Repository: ${repo.full_name}
@@ -102,12 +100,12 @@ Always use humanized numbers (1.2k, 5.7M) rather than full numbers when referrin
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 30000);
-  
+
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
+        Authorization: `Bearer ${openaiApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -115,28 +113,28 @@ Always use humanized numbers (1.2k, 5.7M) rather than full numbers when referrin
         messages: [
           {
             role: 'system',
-            content: 'You are a technical writer who creates concise, informative repository summaries for developers. Always format your response with proper markdown, using paragraphs for better readability. Use inline code formatting (backticks) for technical terms, repository names, and feature names.'
+            content:
+              'You are a technical writer who creates concise, informative repository summaries for developers. Always format your response with proper markdown, using paragraphs for better readability. Use inline code formatting (backticks) for technical terms, repository names, and feature names.',
           },
           {
             role: 'user',
-            content: prompt
-          }
+            content: prompt,
+          },
         ],
         temperature: 0.7,
         max_tokens: 400, // Allow for better formatting with paragraphs
       }),
       signal: controller.signal,
     });
-    
+
     clearTimeout(timeout);
-    
+
     if (!response.ok) {
       throw new Error(`OpenAI API error: ${response.status}`);
     }
-    
+
     const data = await response.json();
     return data.choices[0].message.content;
-    
   } catch (error) {
     clearTimeout(timeout);
     throw error;
@@ -147,12 +145,12 @@ Always use humanized numbers (1.2k, 5.7M) rather than full numbers when referrin
 async function generateEmbedding(text: string): Promise<number[]> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 30000);
-  
+
   try {
     const response = await fetch('https://api.openai.com/v1/embeddings', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
+        Authorization: `Bearer ${openaiApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -161,16 +159,15 @@ async function generateEmbedding(text: string): Promise<number[]> {
       }),
       signal: controller.signal,
     });
-    
+
     clearTimeout(timeout);
-    
+
     if (!response.ok) {
       throw new Error(`OpenAI Embeddings API error: ${response.status}`);
     }
-    
+
     const data = await response.json();
     return data.data[0].embedding;
-    
   } catch (error) {
     clearTimeout(timeout);
     throw error;
@@ -181,26 +178,26 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
-  
+
   try {
     console.log('Repository summary function started');
-    
+
     if (!openaiApiKey) {
       console.error('OpenAI API key is not configured in environment');
       throw new Error('OpenAI API key is not configured');
     }
-    
+
     const { repository, pullRequests, forceRegeneration = false } = await req.json();
-    
+
     if (!repository || !repository.id) {
       throw new Error('Repository data is required');
     }
-    
-    console.log("Processing summary for %s", repository.full_name);
-    
+
+    console.log('Processing summary for %s', repository.full_name);
+
     // Create activity hash
     const activityHash = createActivityHash(pullRequests || []);
-    
+
     // Check if regeneration is needed
     if (!forceRegeneration && !needsRegeneration(repository, activityHash)) {
       console.log('Using cached summary');
@@ -208,18 +205,18 @@ serve(async (req) => {
         JSON.stringify({
           summary: repository.ai_summary,
           cached: true,
-          generated_at: repository.summary_generated_at
+          generated_at: repository.summary_generated_at,
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-    
+
     console.log('Generating new AI summary');
-    
+
     // Generate new summary and embedding
     let summary: string;
     let embedding: number[] | null = null;
-    
+
     try {
       summary = await generateAISummary(repository, pullRequests || []);
       console.log('AI summary generated successfully');
@@ -227,7 +224,7 @@ serve(async (req) => {
       console.error('Failed to generate AI summary:', error);
       throw new Error(`AI summary generation failed: ${error.message}`);
     }
-    
+
     try {
       embedding = await generateEmbedding(summary);
       console.log('Embedding generated successfully');
@@ -236,55 +233,54 @@ serve(async (req) => {
       // Continue without embedding - it's not critical
       embedding = null;
     }
-    
+
     // Update repository with new summary
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    
+
     if (!supabaseUrl || !supabaseKey) {
       console.error('Supabase environment variables not configured');
       throw new Error('Supabase configuration missing');
     }
-    
+
     const supabase = createClient(supabaseUrl, supabaseKey);
-    
+
     const updateData: any = {
       ai_summary: summary,
       summary_generated_at: new Date().toISOString(),
-      recent_activity_hash: activityHash
+      recent_activity_hash: activityHash,
     };
-    
+
     // Only include embedding if it was generated successfully
     if (embedding) {
       updateData.embedding = `[${embedding.join(',')}]`; // Convert to PostgreSQL array format
     }
-    
+
     const { error } = await supabase
       .from('repositories')
       .update(updateData)
       .eq('id', repository.id);
-    
+
     if (error) {
       console.error('Database update error:', error);
       console.error('Update data:', updateData);
       throw new Error(`Failed to update repository summary: ${error.message}`);
     }
-    
+
     console.log('Successfully generated and stored AI summary');
-    
+
     return new Response(
       JSON.stringify({
         summary,
         cached: false,
-        generated_at: new Date().toISOString()
+        generated_at: new Date().toISOString(),
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-    
   } catch (error) {
     console.error('Repository summary error:', error);
     console.error('Error stack:', error.stack);
-    
+
     // Provide more detailed error information
     const errorDetails = {
       error: error.message,
@@ -293,16 +289,13 @@ serve(async (req) => {
       environment: {
         hasOpenAIKey: !!openaiApiKey,
         hasSupabaseUrl: !!Deno.env.get('SUPABASE_URL'),
-        hasSupabaseKey: !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-      }
+        hasSupabaseKey: !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'),
+      },
     };
-    
-    return new Response(
-      JSON.stringify(errorDetails),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    );
+
+    return new Response(JSON.stringify(errorDetails), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });

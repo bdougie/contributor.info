@@ -11,8 +11,10 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 // Get Inngest configuration from environment
 const INNGEST_APP_ID = Deno.env.get('INNGEST_APP_ID') || 'contributor-info';
-const INNGEST_EVENT_KEY = Deno.env.get('INNGEST_EVENT_KEY') || Deno.env.get('INNGEST_PRODUCTION_EVENT_KEY');
-const INNGEST_SIGNING_KEY = Deno.env.get('INNGEST_SIGNING_KEY') || Deno.env.get('INNGEST_PRODUCTION_SIGNING_KEY');
+const INNGEST_EVENT_KEY =
+  Deno.env.get('INNGEST_EVENT_KEY') || Deno.env.get('INNGEST_PRODUCTION_EVENT_KEY');
+const INNGEST_SIGNING_KEY =
+  Deno.env.get('INNGEST_SIGNING_KEY') || Deno.env.get('INNGEST_PRODUCTION_SIGNING_KEY');
 
 // Ensure GitHub token is available
 const GITHUB_TOKEN = Deno.env.get('GITHUB_TOKEN') || Deno.env.get('VITE_GITHUB_TOKEN');
@@ -40,7 +42,7 @@ import {
   captureRepositorySync,
   capturePrDetailsGraphQL,
   classifyRepositorySize,
-  discoverNewRepository
+  discoverNewRepository,
 } from './inngest-functions.ts';
 
 // Test function to verify connection
@@ -65,7 +67,7 @@ const testFunction = inngest.createFunction(
       message: 'Hello from Production Inngest on Supabase Edge!',
       timestamp: new Date().toISOString(),
       environment: 'supabase-edge-production',
-      data: event.data
+      data: event.data,
     };
   }
 );
@@ -98,7 +100,7 @@ const inngestHandler = new InngestCommHandler({
     classifySingleRepository,
     classifyRepositorySize,
     // Discovery function
-    discoverNewRepository
+    discoverNewRepository,
   ],
 });
 
@@ -113,7 +115,7 @@ serve(async (req: Request) => {
         ...corsHeaders,
         // Add Inngest-specific headers
         'Access-Control-Allow-Headers': `${corsHeaders['Access-Control-Allow-Headers']}, x-inngest-signature, X-Inngest-Signature, x-inngest-sdk, X-Inngest-SDK`,
-      }
+      },
     });
   }
 
@@ -124,55 +126,65 @@ serve(async (req: Request) => {
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/json',
-      }
+      },
     });
   }
 
   try {
     // Handle GET requests with a status page
     if (req.method === 'GET' && !url.searchParams.has('fnId')) {
-      return new Response(JSON.stringify({
-        message: 'Inngest Production endpoint (Supabase Edge)',
-        status: 'active',
-        endpoint: '/functions/v1/inngest-prod',
-        environment: {
-          runtime: 'deno',
-          platform: 'supabase-edge',
-          hasEventKey: !!INNGEST_EVENT_KEY,
-          hasSigningKey: !!INNGEST_SIGNING_KEY,
-          hasGithubToken: !!GITHUB_TOKEN,
-        },
-        functions: [
-          { id: 'prod-test-function', event: 'test/prod.hello' },
-          { id: 'capture-repository-sync-graphql', event: 'capture/repository.sync.graphql' },
-          { id: 'capture-pr-details-graphql', event: 'capture/pr.details.graphql' },
-          { id: 'capture-pr-details', event: 'capture/pr.details' },
-          { id: 'capture-pr-reviews', event: 'capture/pr.reviews' },
-          { id: 'capture-pr-comments', event: 'capture/pr.comments' },
-          { id: 'capture-issue-comments', event: 'capture/issue.comments' },
-          { id: 'capture-repository-issues', event: 'capture/repository.issues' },
-          { id: 'capture-repository-sync', event: 'capture/repository.sync' },
-          { id: 'classify-single-repository', event: 'classify/repository.single' },
-          { id: 'classify-repository-size', event: 'classify/repository.size' },
-          { id: 'discover-new-repository', event: 'discover/repository.new' }
-        ],
-        usage: {
-          testEvent: 'Send POST: { "name": "test/prod.hello", "data": { "message": "Hello!" } }',
-          syncEvent: 'Send POST: { "name": "capture/repository.sync.graphql", "data": { "repositoryId": "123", "days": 30 } }',
-          classifyEvent: 'Send POST: { "name": "classify/repository.single", "data": { "repositoryId": "123", "owner": "owner", "repo": "repo" } }'
-        },
-        cors: {
-          enabled: true,
-          headers: Object.keys(corsHeaders),
+      return new Response(
+        JSON.stringify(
+          {
+            message: 'Inngest Production endpoint (Supabase Edge)',
+            status: 'active',
+            endpoint: '/functions/v1/inngest-prod',
+            environment: {
+              runtime: 'deno',
+              platform: 'supabase-edge',
+              hasEventKey: !!INNGEST_EVENT_KEY,
+              hasSigningKey: !!INNGEST_SIGNING_KEY,
+              hasGithubToken: !!GITHUB_TOKEN,
+            },
+            functions: [
+              { id: 'prod-test-function', event: 'test/prod.hello' },
+              { id: 'capture-repository-sync-graphql', event: 'capture/repository.sync.graphql' },
+              { id: 'capture-pr-details-graphql', event: 'capture/pr.details.graphql' },
+              { id: 'capture-pr-details', event: 'capture/pr.details' },
+              { id: 'capture-pr-reviews', event: 'capture/pr.reviews' },
+              { id: 'capture-pr-comments', event: 'capture/pr.comments' },
+              { id: 'capture-issue-comments', event: 'capture/issue.comments' },
+              { id: 'capture-repository-issues', event: 'capture/repository.issues' },
+              { id: 'capture-repository-sync', event: 'capture/repository.sync' },
+              { id: 'classify-single-repository', event: 'classify/repository.single' },
+              { id: 'classify-repository-size', event: 'classify/repository.size' },
+              { id: 'discover-new-repository', event: 'discover/repository.new' },
+            ],
+            usage: {
+              testEvent:
+                'Send POST: { "name": "test/prod.hello", "data": { "message": "Hello!" } }',
+              syncEvent:
+                'Send POST: { "name": "capture/repository.sync.graphql", "data": { "repositoryId": "123", "days": 30 } }',
+              classifyEvent:
+                'Send POST: { "name": "classify/repository.single", "data": { "repositoryId": "123", "owner": "owner", "repo": "repo" } }',
+            },
+            cors: {
+              enabled: true,
+              headers: Object.keys(corsHeaders),
+            },
+          },
+          null,
+          2
+        ),
+        {
+          status: 200,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache',
+          },
         }
-      }, null, 2), {
-        status: 200,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache'
-        }
-      });
+      );
     }
 
     // Handle Inngest webhook requests
@@ -184,7 +196,7 @@ serve(async (req: Request) => {
       headers: {
         ...Object.fromEntries(response.headers.entries()),
         ...corsHeaders,
-      }
+      },
     });
 
     return corsResponse;
@@ -195,13 +207,13 @@ serve(async (req: Request) => {
       JSON.stringify({
         error: 'Internal server error',
         message: error.message,
-        service: 'inngest-prod'
+        service: 'inngest-prod',
       }),
       {
         status: 500,
         headers: {
           ...corsHeaders,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
       }
     );

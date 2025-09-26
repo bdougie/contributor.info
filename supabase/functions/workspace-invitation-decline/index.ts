@@ -97,13 +97,9 @@ Deno.serve(async (req: Request) => {
     if (updateError) {
       console.error('Failed to update invitation status:', updateError);
       return new Response(
-        JSON.stringify({ 
-<<<<<<< HEAD
-          error: 'Failed to decline invitation' 
-=======
+        JSON.stringify({
           error: 'Failed to decline invitation',
-          details: updateError.message 
->>>>>>> origin/main
+          details: updateError.message
         }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       );
@@ -148,13 +144,9 @@ Deno.serve(async (req: Request) => {
     console.error('Error declining workspace invitation:', error);
     
     return new Response(
-      JSON.stringify({ 
-<<<<<<< HEAD
-        error: 'Failed to decline workspace invitation' 
-=======
+      JSON.stringify({
         error: 'Failed to decline workspace invitation',
-        details: error.message 
->>>>>>> origin/main
+        details: error.message
       }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );

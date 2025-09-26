@@ -8,7 +8,7 @@
 // =====================================================
 
 export type WorkspaceVisibility = 'public' | 'private';
-export type WorkspaceRole = 'owner' | 'maintainer' | 'contributor';
+export type WorkspaceRole = 'owner' | 'admin' | 'maintainer' | 'contributor' | 'editor' | 'viewer';
 
 // Subscription tier enum for type safety
 export enum SubscriptionTier {
@@ -498,8 +498,11 @@ export const canViewWorkspace = (): boolean => {
 export const getRoleDisplayName = (role: WorkspaceRole): string => {
   const roleNames: Record<WorkspaceRole, string> = {
     owner: 'Owner',
+    admin: 'Admin',
     maintainer: 'Maintainer',
     contributor: 'Contributor',
+    editor: 'Editor',
+    viewer: 'Viewer',
   };
   return roleNames[role];
 };
@@ -510,8 +513,11 @@ export const getRoleDisplayName = (role: WorkspaceRole): string => {
 export const getRoleDescription = (role: WorkspaceRole): string => {
   const descriptions: Record<WorkspaceRole, string> = {
     owner: 'Full control over the workspace, manage billing',
+    admin: 'Full administrative access to workspace',
     maintainer: 'Can manage repositories and invite contributors',
     contributor: 'View-only access to workspace content',
+    editor: 'Can edit workspace content and manage groups',
+    viewer: 'Read-only access to workspace',
   };
   return descriptions[role];
 };

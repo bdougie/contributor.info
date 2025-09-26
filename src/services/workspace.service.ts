@@ -1457,12 +1457,8 @@ export class WorkspaceService {
         };
       }
 
-      // Get inviter's name
-      const { data: inviterData } = await supabase
-        .from('profiles')
-        .select('name')
-        .eq('id', invitation.invited_by)
-        .maybeSingle();
+      // Skip fetching inviter's name since profiles table doesn't exist
+      // We'll just show the inviter ID for now
 
       // Format the response
       const invitationDetails = {
@@ -1471,7 +1467,7 @@ export class WorkspaceService {
           ? invitation.workspaces[0]
           : invitation.workspaces) as WorkspaceWithDetails,
         role: invitation.role,
-        inviterName: inviterData?.name,
+        inviterName: undefined, // profiles table doesn't exist
         expiresAt: invitation.expires_at,
         status: invitation.status,
       };

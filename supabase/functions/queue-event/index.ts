@@ -39,7 +39,10 @@ interface IdempotencyRecord {
 /**
  * Generate a secure SHA-256 hash of the request for comparison
  */
-async function generateRequestHash(eventName: string, data: Record<string, unknown>): Promise<string> {
+async function generateRequestHash(
+  eventName: string,
+  data: Record<string, unknown>
+): Promise<string> {
   const content = JSON.stringify({ eventName, data });
   const encoder = new TextEncoder();
   const dataBuffer = encoder.encode(content);
@@ -96,17 +99,15 @@ async function handleIdempotency(
 
     // Create new idempotency record with processing status
     const requestHash = await generateRequestHash(eventName, data);
-    const { error: insertError } = await supabase
-      .from('idempotency_keys')
-      .insert({
-        key,
-        request_hash: requestHash,
-        status: 'processing',
-        endpoint: 'queue-event',
-        user_id: userId,
-        metadata: { eventName },
-        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-      });
+    const { error: insertError } = await supabase.from('idempotency_keys').insert({
+      key,
+      request_hash: requestHash,
+      status: 'processing',
+      endpoint: 'queue-event',
+      user_id: userId,
+      metadata: { eventName },
+      expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+    });
 
     if (insertError) {
       // If insert fails due to race condition (duplicate key), fetch the existing record
@@ -162,7 +163,10 @@ async function updateIdempotencyRecord(
 /**
  * Send event to Inngest
  */
-async function sendToInngest(eventName: string, data: Record<string, unknown>): Promise<Record<string, unknown>> {
+async function sendToInngest(
+  eventName: string,
+  data: Record<string, unknown>
+): Promise<Record<string, unknown>> {
   if (!INNGEST_EVENT_KEY) {
     throw new Error('INNGEST_EVENT_KEY is not configured');
   }
@@ -199,13 +203,10 @@ serve(async (req: Request) => {
     const { eventName, data } = body;
 
     if (!eventName || !data) {
-      return new Response(
-        JSON.stringify({ error: 'Missing eventName or data' }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
+      return new Response(JSON.stringify({ error: 'Missing eventName or data' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Get idempotency key from headers
@@ -216,7 +217,9 @@ serve(async (req: Request) => {
     let userId: string | undefined;
     if (authHeader && authHeader.startsWith('Bearer ')) {
       try {
-        const { data: { user } } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
+        const {
+          data: { user },
+        } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
         userId = user?.id;
       } catch (error) {
         console.log('Could not extract user ID from token:', error);

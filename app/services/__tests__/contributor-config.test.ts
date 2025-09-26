@@ -12,7 +12,7 @@ describe('Contributor Configuration', () => {
           auto_comment: true,
         },
       };
-      
+
       expect(isFeatureEnabled(config, 'reviewer_suggestions')).toBe(true);
       expect(isFeatureEnabled(config, 'similar_issues')).toBe(true);
       expect(isFeatureEnabled(config, 'auto_comment')).toBe(true);
@@ -27,7 +27,7 @@ describe('Contributor Configuration', () => {
           auto_comment: false,
         },
       };
-      
+
       expect(isFeatureEnabled(config, 'reviewer_suggestions')).toBe(false);
       expect(isFeatureEnabled(config, 'auto_comment')).toBe(false);
     });
@@ -36,7 +36,7 @@ describe('Contributor Configuration', () => {
       const config = {
         version: 1,
       };
-      
+
       expect(isFeatureEnabled(config, 'reviewer_suggestions')).toBe(true);
     });
   });
@@ -74,7 +74,7 @@ describe('Contributor Configuration', () => {
         version: 1,
         features: {},
       };
-      
+
       expect(isUserExcluded(configWithoutExcludes, 'anyone', 'author')).toBe(false);
       expect(isUserExcluded(configWithoutExcludes, 'anyone', 'reviewer')).toBe(false);
     });

@@ -9,26 +9,31 @@ class PRReviewsCaptureScript extends BaseCaptureScript {
     super({
       repositoryId: process.env.REPOSITORY_ID,
       repositoryName: process.env.REPOSITORY_NAME,
-      jobId: process.env.JOB_ID
+      jobId: process.env.JOB_ID,
     });
-    
-    this.prNumbers = process.env.PR_NUMBERS?.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n)) || [];
+
+    this.prNumbers =
+      process.env.PR_NUMBERS?.split(',')
+        .map((n) => parseInt(n.trim()))
+        .filter((n) => !isNaN(n)) || [];
     this.timeRange = parseInt(process.env.TIME_RANGE || '30');
-    
+
     console.log(`Initialized PR Reviews Capture for ${this.repositoryName}`);
-    console.log(`PR Numbers: ${this.prNumbers.length > 0 ? this.prNumbers.join(', ') : 'All recent PRs'}`);
+    console.log(
+      `PR Numbers: ${this.prNumbers.length > 0 ? this.prNumbers.join(', ') : 'All recent PRs'}`
+    );
   }
 
   async getItemsToProcess() {
     if (this.prNumbers.length > 0) {
       // Specific PRs requested
-      return this.prNumbers.map(number => ({ number }));
+      return this.prNumbers.map((number) => ({ number }));
     }
-    
+
     // Get recent PRs from database
     const since = new Date();
     since.setDate(since.getDate() - this.timeRange);
-    
+
     try {
       const { data: prs, error } = await this.supabase
         .from('pull_requests')
@@ -53,9 +58,9 @@ class PRReviewsCaptureScript extends BaseCaptureScript {
 
   async processItem(pr) {
     const [owner, repo] = this.repositoryName.split('/');
-    
+
     this.log(`Processing reviews for PR #${pr.number}...`);
-    
+
     try {
       // Fetch PR reviews using REST API
       // Note: This script intentionally uses REST API for reviews.
@@ -66,17 +71,17 @@ class PRReviewsCaptureScript extends BaseCaptureScript {
         owner,
         repo,
         pull_number: pr.number,
-        per_page: 100
+        per_page: 100,
       });
-      
+
       // Fetch review comments (code comments)
       const { data: reviewComments } = await this.octokit.rest.pulls.listReviewComments({
         owner,
         repo,
         pull_number: pr.number,
-        per_page: 100
+        per_page: 100,
       });
-      
+
       // Process reviews
       for (const review of reviews) {
         const reviewRecord = {
@@ -90,20 +95,18 @@ class PRReviewsCaptureScript extends BaseCaptureScript {
           author_avatar_url: review.user?.avatar_url,
           submitted_at: review.submitted_at,
           commit_id: review.commit_id,
-          html_url: review.html_url
+          html_url: review.html_url,
         };
-        
-        const { error } = await this.supabase
-          .from('reviews')
-          .upsert(reviewRecord, {
-            onConflict: 'github_id'
-          });
+
+        const { error } = await this.supabase.from('reviews').upsert(reviewRecord, {
+          onConflict: 'github_id',
+        });
 
         if (error) {
           console.error(`Failed to upsert review ${review.id}:`, error);
         }
       }
-      
+
       // Process review comments
       for (const comment of reviewComments) {
         const commentRecord = {
@@ -125,22 +128,21 @@ class PRReviewsCaptureScript extends BaseCaptureScript {
           updated_at: comment.updated_at,
           html_url: comment.html_url,
           in_reply_to_id: comment.in_reply_to_id,
-          type: 'review_comment'
+          type: 'review_comment',
         };
-        
-        const { error } = await this.supabase
-          .from('comments')
-          .upsert(commentRecord, {
-            onConflict: 'github_id'
-          });
+
+        const { error } = await this.supabase.from('comments').upsert(commentRecord, {
+          onConflict: 'github_id',
+        });
 
         if (error) {
           console.error(`Failed to upsert review comment ${comment.id}:`, error);
         }
       }
-      
-      this.log(`✓ Captured ${reviews.length} reviews and ${reviewComments.length} review comments for PR #${pr.number}`);
-      
+
+      this.log(
+        `✓ Captured ${reviews.length} reviews and ${reviewComments.length} review comments for PR #${pr.number}`
+      );
     } catch (error) {
       if (error.status === 404) {
         this.log(`PR #${pr.number} not found (may have been deleted)`, 'warn');
@@ -157,7 +159,7 @@ class PRReviewsCaptureScript extends BaseCaptureScript {
 
 // Run the script
 const script = new PRReviewsCaptureScript();
-script.run().catch(error => {
+script.run().catch((error) => {
   console.error('Script failed:', error);
   process.exit(1);
 });

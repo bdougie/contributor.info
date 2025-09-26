@@ -69,7 +69,7 @@ export default tseslint.config(
     files: ['**/*.test.{ts,tsx}', '**/__tests__/**/*.{ts,tsx}'],
     ignores: [
       'netlify/functions/**/*.test.{ts,tsx}', // API function tests
-      'actions/**/*.test.{ts,tsx}', // GitHub action tests  
+      'actions/**/*.test.{ts,tsx}', // GitHub action tests
       'e2e/**/*.test.{ts,tsx}', // E2E tests
       'src/services/**/*.test.{ts,tsx}', // Service integration tests
       '**/integration/**/*.test.{ts,tsx}', // Explicit integration tests

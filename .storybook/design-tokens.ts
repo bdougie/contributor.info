@@ -1,6 +1,6 @@
 /**
  * Design Tokens System for Contributor.info
- * 
+ *
  * This file defines the core design tokens used throughout the application.
  * These tokens ensure consistency in colors, spacing, typography, and other
  * visual properties across all components.
@@ -25,7 +25,7 @@ export const colors = {
     900: '#0c4a6e',
     950: '#082f49',
   },
-  
+
   // Secondary colors - Accent
   secondary: {
     50: '#faf5ff',
@@ -40,7 +40,7 @@ export const colors = {
     900: '#581c87',
     950: '#3b0764',
   },
-  
+
   // Neutral colors - Grays
   neutral: {
     50: '#fafafa',
@@ -55,32 +55,32 @@ export const colors = {
     900: '#18181b',
     950: '#09090b',
   },
-  
+
   // Semantic colors
   success: {
     light: '#4ade80',
     DEFAULT: '#22c55e',
     dark: '#16a34a',
   },
-  
+
   warning: {
     light: '#fbbf24',
     DEFAULT: '#f59e0b',
     dark: '#d97706',
   },
-  
+
   error: {
     light: '#f87171',
     DEFAULT: '#ef4444',
     dark: '#dc2626',
   },
-  
+
   info: {
     light: '#60a5fa',
     DEFAULT: '#3b82f6',
     dark: '#2563eb',
   },
-  
+
   // GitHub-specific colors
   github: {
     green: '#2ea043',
@@ -90,7 +90,7 @@ export const colors = {
     blue: '#0969da',
     gray: '#6e7681',
   },
-  
+
   // Component-specific colors
   background: {
     DEFAULT: '#ffffff',
@@ -98,13 +98,13 @@ export const colors = {
     tertiary: '#f0f2f4',
     dark: '#0d1117',
   },
-  
+
   border: {
     DEFAULT: '#d0d7de',
     muted: '#d8dee4',
     subtle: '#f0f2f4',
   },
-  
+
   text: {
     primary: '#24292f',
     secondary: '#57606a',
@@ -124,38 +124,38 @@ export const spacing = {
   px: '1px',
   0: '0',
   0.5: '0.125rem', // 2px
-  1: '0.25rem',    // 4px
+  1: '0.25rem', // 4px
   1.5: '0.375rem', // 6px
-  2: '0.5rem',     // 8px
+  2: '0.5rem', // 8px
   2.5: '0.625rem', // 10px
-  3: '0.75rem',    // 12px
+  3: '0.75rem', // 12px
   3.5: '0.875rem', // 14px
-  4: '1rem',       // 16px
-  5: '1.25rem',    // 20px
-  6: '1.5rem',     // 24px
-  7: '1.75rem',    // 28px
-  8: '2rem',       // 32px
-  9: '2.25rem',    // 36px
-  10: '2.5rem',    // 40px
-  11: '2.75rem',   // 44px
-  12: '3rem',      // 48px
-  14: '3.5rem',    // 56px
-  16: '4rem',      // 64px
-  20: '5rem',      // 80px
-  24: '6rem',      // 96px
-  28: '7rem',      // 112px
-  32: '8rem',      // 128px
-  36: '9rem',      // 144px
-  40: '10rem',     // 160px
-  44: '11rem',     // 176px
-  48: '12rem',     // 192px
-  52: '13rem',     // 208px
-  56: '14rem',     // 224px
-  60: '15rem',     // 240px
-  64: '16rem',     // 256px
-  72: '18rem',     // 288px
-  80: '20rem',     // 320px
-  96: '24rem',     // 384px
+  4: '1rem', // 16px
+  5: '1.25rem', // 20px
+  6: '1.5rem', // 24px
+  7: '1.75rem', // 28px
+  8: '2rem', // 32px
+  9: '2.25rem', // 36px
+  10: '2.5rem', // 40px
+  11: '2.75rem', // 44px
+  12: '3rem', // 48px
+  14: '3.5rem', // 56px
+  16: '4rem', // 64px
+  20: '5rem', // 80px
+  24: '6rem', // 96px
+  28: '7rem', // 112px
+  32: '8rem', // 128px
+  36: '9rem', // 144px
+  40: '10rem', // 160px
+  44: '11rem', // 176px
+  48: '12rem', // 192px
+  52: '13rem', // 208px
+  56: '14rem', // 224px
+  60: '15rem', // 240px
+  64: '16rem', // 256px
+  72: '18rem', // 288px
+  80: '20rem', // 320px
+  96: '24rem', // 384px
 } as const;
 
 // ============================================================================
@@ -186,24 +186,24 @@ export const typography = {
       'monospace',
     ].join(', '),
   },
-  
+
   // Font sizes with line heights
   fontSize: {
-    xs: { size: '0.75rem', lineHeight: '1rem' },      // 12px
-    sm: { size: '0.875rem', lineHeight: '1.25rem' },  // 14px
-    base: { size: '1rem', lineHeight: '1.5rem' },     // 16px
-    lg: { size: '1.125rem', lineHeight: '1.75rem' },  // 18px
-    xl: { size: '1.25rem', lineHeight: '1.75rem' },   // 20px
-    '2xl': { size: '1.5rem', lineHeight: '2rem' },    // 24px
+    xs: { size: '0.75rem', lineHeight: '1rem' }, // 12px
+    sm: { size: '0.875rem', lineHeight: '1.25rem' }, // 14px
+    base: { size: '1rem', lineHeight: '1.5rem' }, // 16px
+    lg: { size: '1.125rem', lineHeight: '1.75rem' }, // 18px
+    xl: { size: '1.25rem', lineHeight: '1.75rem' }, // 20px
+    '2xl': { size: '1.5rem', lineHeight: '2rem' }, // 24px
     '3xl': { size: '1.875rem', lineHeight: '2.25rem' }, // 30px
-    '4xl': { size: '2.25rem', lineHeight: '2.5rem' },  // 36px
-    '5xl': { size: '3rem', lineHeight: '1' },         // 48px
-    '6xl': { size: '3.75rem', lineHeight: '1' },      // 60px
-    '7xl': { size: '4.5rem', lineHeight: '1' },       // 72px
-    '8xl': { size: '6rem', lineHeight: '1' },         // 96px
-    '9xl': { size: '8rem', lineHeight: '1' },         // 128px
+    '4xl': { size: '2.25rem', lineHeight: '2.5rem' }, // 36px
+    '5xl': { size: '3rem', lineHeight: '1' }, // 48px
+    '6xl': { size: '3.75rem', lineHeight: '1' }, // 60px
+    '7xl': { size: '4.5rem', lineHeight: '1' }, // 72px
+    '8xl': { size: '6rem', lineHeight: '1' }, // 96px
+    '9xl': { size: '8rem', lineHeight: '1' }, // 128px
   },
-  
+
   // Font weights
   fontWeight: {
     thin: 100,
@@ -216,7 +216,7 @@ export const typography = {
     extrabold: 800,
     black: 900,
   },
-  
+
   // Letter spacing
   letterSpacing: {
     tighter: '-0.05em',
@@ -226,7 +226,7 @@ export const typography = {
     wider: '0.05em',
     widest: '0.1em',
   },
-  
+
   // Line heights
   lineHeight: {
     none: 1,
@@ -257,13 +257,13 @@ export const breakpoints = {
 
 export const borderRadius = {
   none: '0',
-  sm: '0.125rem',   // 2px
+  sm: '0.125rem', // 2px
   DEFAULT: '0.25rem', // 4px
-  md: '0.375rem',   // 6px
-  lg: '0.5rem',     // 8px
-  xl: '0.75rem',    // 12px
-  '2xl': '1rem',    // 16px
-  '3xl': '1.5rem',  // 24px
+  md: '0.375rem', // 6px
+  lg: '0.5rem', // 8px
+  xl: '0.75rem', // 12px
+  '2xl': '1rem', // 16px
+  '3xl': '1.5rem', // 24px
   full: '9999px',
 } as const;
 
@@ -318,7 +318,7 @@ export const animation = {
     slow: '500ms',
     slower: '1000ms',
   },
-  
+
   // Easing functions
   easing: {
     linear: 'linear',
@@ -327,11 +327,12 @@ export const animation = {
     easeInOut: 'cubic-bezier(0.4, 0, 0.2, 1)',
     bounce: 'cubic-bezier(0.68, -0.55, 0.265, 1.55)',
   },
-  
+
   // Common transitions
   transition: {
     all: 'all 300ms cubic-bezier(0.4, 0, 0.2, 1)',
-    colors: 'background-color 300ms cubic-bezier(0.4, 0, 0.2, 1), border-color 300ms cubic-bezier(0.4, 0, 0.2, 1), color 300ms cubic-bezier(0.4, 0, 0.2, 1), fill 300ms cubic-bezier(0.4, 0, 0.2, 1), stroke 300ms cubic-bezier(0.4, 0, 0.2, 1)',
+    colors:
+      'background-color 300ms cubic-bezier(0.4, 0, 0.2, 1), border-color 300ms cubic-bezier(0.4, 0, 0.2, 1), color 300ms cubic-bezier(0.4, 0, 0.2, 1), fill 300ms cubic-bezier(0.4, 0, 0.2, 1), stroke 300ms cubic-bezier(0.4, 0, 0.2, 1)',
     opacity: 'opacity 300ms cubic-bezier(0.4, 0, 0.2, 1)',
     shadow: 'box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1)',
     transform: 'transform 300ms cubic-bezier(0.4, 0, 0.2, 1)',

@@ -19,24 +19,24 @@ describe('Pull Request Reviewer Suggestions Handler', () => {
     mockLogger = {
       info: vi.fn(),
       error: vi.fn(),
-      child: vi.fn(() => mockLogger)
+      child: vi.fn(() => mockLogger),
     };
 
     // Setup Octokit mock
     mockOctokit = {
       rest: {
         pulls: {
-          listFiles: vi.fn()
+          listFiles: vi.fn(),
         },
         issues: {
-          createComment: vi.fn()
-        }
-      }
+          createComment: vi.fn(),
+        },
+      },
     };
 
     // Setup GitHub App mock
     mockGithubApp = {
-      getInstallationOctokit: vi.fn().mockResolvedValue(mockOctokit)
+      getInstallationOctokit: vi.fn().mockResolvedValue(mockOctokit),
     };
 
     // Setup Supabase mock with proper structure
@@ -46,62 +46,64 @@ describe('Pull Request Reviewer Suggestions Handler', () => {
           repositories: {
             select: vi.fn(() => ({
               eq: vi.fn(() => ({
-                maybeSingle: vi.fn()
-              }))
+                maybeSingle: vi.fn(),
+              })),
             })),
             upsert: vi.fn(() => ({
               select: vi.fn(() => ({
-                single: vi.fn()
-              }))
-            }))
+                single: vi.fn(),
+              })),
+            })),
           },
           contributors: {
             select: vi.fn(() => ({
               eq: vi.fn(() => ({
-                maybeSingle: vi.fn()
-              }))
+                maybeSingle: vi.fn(),
+              })),
             })),
             upsert: vi.fn(() => ({
               select: vi.fn(() => ({
-                single: vi.fn()
-              }))
-            }))
+                single: vi.fn(),
+              })),
+            })),
           },
           pull_requests: {
             select: vi.fn(() => ({
               eq: vi.fn(() => ({
-                eq: vi.fn()
-              }))
+                eq: vi.fn(),
+              })),
             })),
-            upsert: vi.fn()
+            upsert: vi.fn(),
           },
           reviews: {
             select: vi.fn(() => ({
-              eq: vi.fn()
-            }))
+              eq: vi.fn(),
+            })),
           },
           comments: {
             select: vi.fn(() => ({
-              eq: vi.fn()
-            }))
+              eq: vi.fn(),
+            })),
           },
           file_contributors: {
             select: vi.fn(() => ({
               eq: vi.fn(() => ({
-                in: vi.fn()
-              }))
-            }))
-          }
+                in: vi.fn(),
+              })),
+            })),
+          },
         };
 
-        return mockQueries[table] || {
-          select: vi.fn(() => ({
-            eq: vi.fn(() => ({
-              maybeSingle: vi.fn()
-            }))
-          }))
-        };
-      })
+        return (
+          mockQueries[table] || {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                maybeSingle: vi.fn(),
+              })),
+            })),
+          }
+        );
+      }),
     };
   });
 
@@ -120,7 +122,7 @@ describe('Pull Request Reviewer Suggestions Handler', () => {
           body: 'Test body',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
-          html_url: 'https://github.com/test/repo/pull/1'
+          html_url: 'https://github.com/test/repo/pull/1',
         },
         repository: {
           id: 789, // GitHub ID
@@ -130,9 +132,9 @@ describe('Pull Request Reviewer Suggestions Handler', () => {
           private: false,
           html_url: 'https://github.com/test/repo',
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         },
-        installation: { id: 999 }
+        installation: { id: 999 },
       };
 
       // Mock repository lookup to return internal ID
@@ -141,9 +143,9 @@ describe('Pull Request Reviewer Suggestions Handler', () => {
         eq: vi.fn(() => ({
           maybeSingle: vi.fn().mockResolvedValue({
             data: { id: internalRepoId },
-            error: null
-          })
-        }))
+            error: null,
+          }),
+        })),
       }));
 
       // Mock contributor lookup
@@ -152,9 +154,9 @@ describe('Pull Request Reviewer Suggestions Handler', () => {
         eq: vi.fn(() => ({
           maybeSingle: vi.fn().mockResolvedValue({
             data: { id: internalContributorId },
-            error: null
-          })
-        }))
+            error: null,
+          }),
+        })),
       }));
 
       // Mock PR history query
@@ -163,11 +165,11 @@ describe('Pull Request Reviewer Suggestions Handler', () => {
           eq: vi.fn().mockResolvedValue({
             data: [
               { id: '1', state: 'closed', merged: true },
-              { id: '2', state: 'closed', merged: false }
+              { id: '2', state: 'closed', merged: false },
             ],
-            error: null
-          })
-        }))
+            error: null,
+          }),
+        })),
       }));
 
       // Setup the mocks
@@ -184,14 +186,14 @@ describe('Pull Request Reviewer Suggestions Handler', () => {
         // Default mock for other tables
         return {
           select: vi.fn(() => ({
-            eq: vi.fn().mockResolvedValue({ data: [], error: null })
-          }))
+            eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+          })),
         };
       });
 
       // Mock file list
       mockOctokit.rest.pulls.listFiles.mockResolvedValue({
-        data: [{ filename: 'src/index.js' }]
+        data: [{ filename: 'src/index.js' }],
       });
 
       await handlePRWithReviewerSuggestions(payload, mockGithubApp, mockSupabase, mockLogger);
@@ -221,7 +223,7 @@ describe('Pull Request Reviewer Suggestions Handler', () => {
           body: 'Test body',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
-          html_url: 'https://github.com/test/repo/pull/1'
+          html_url: 'https://github.com/test/repo/pull/1',
         },
         repository: {
           id: 789,
@@ -231,9 +233,9 @@ describe('Pull Request Reviewer Suggestions Handler', () => {
           private: false,
           html_url: 'https://github.com/test/repo',
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         },
-        installation: { id: 999 }
+        installation: { id: 999 },
       };
 
       // Mock repository not found
@@ -244,34 +246,39 @@ describe('Pull Request Reviewer Suggestions Handler', () => {
               eq: vi.fn(() => ({
                 maybeSingle: vi.fn().mockResolvedValue({
                   data: null,
-                  error: null
-                })
-              }))
+                  error: null,
+                }),
+              })),
             })),
             upsert: vi.fn(() => ({
               select: vi.fn(() => ({
                 single: vi.fn().mockResolvedValue({
                   data: { id: 'new-repo-id' },
-                  error: null
-                })
-              }))
-            }))
+                  error: null,
+                }),
+              })),
+            })),
           };
         }
         // Return empty data for other tables
         return {
           select: vi.fn(() => ({
-            eq: vi.fn().mockResolvedValue({ data: [], error: null })
-          }))
+            eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+          })),
         };
       });
 
       // Mock file list
       mockOctokit.rest.pulls.listFiles.mockResolvedValue({
-        data: [{ filename: 'src/index.js' }]
+        data: [{ filename: 'src/index.js' }],
       });
 
-      const result = await handlePRWithReviewerSuggestions(payload, mockGithubApp, mockSupabase, mockLogger);
+      const result = await handlePRWithReviewerSuggestions(
+        payload,
+        mockGithubApp,
+        mockSupabase,
+        mockLogger
+      );
 
       // Should still complete successfully
       expect(result.success).toBe(true);
@@ -297,7 +304,7 @@ describe('Pull Request Reviewer Suggestions Handler', () => {
           body: 'Test body',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
-          html_url: 'https://github.com/test/repo/pull/1'
+          html_url: 'https://github.com/test/repo/pull/1',
         },
         repository: {
           id: 789,
@@ -307,9 +314,9 @@ describe('Pull Request Reviewer Suggestions Handler', () => {
           private: false,
           html_url: 'https://github.com/test/repo',
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         },
-        installation: { id: 999 }
+        installation: { id: 999 },
       };
 
       const fileContributorsMock = vi.fn().mockResolvedValue({
@@ -319,10 +326,10 @@ describe('Pull Request Reviewer Suggestions Handler', () => {
           contributors: {
             github_id: 1000 + i,
             username: `user${i}`,
-            avatar_url: `https://github.com/user${i}.png`
-          }
+            avatar_url: `https://github.com/user${i}.png`,
+          },
         })),
-        error: null
+        error: null,
       });
 
       // Setup mocks
@@ -333,31 +340,31 @@ describe('Pull Request Reviewer Suggestions Handler', () => {
               eq: vi.fn(() => ({
                 maybeSingle: vi.fn().mockResolvedValue({
                   data: { id: 'repo-id' },
-                  error: null
-                })
-              }))
-            }))
+                  error: null,
+                }),
+              })),
+            })),
           };
         }
         if (table === 'file_contributors') {
           return {
             select: vi.fn(() => ({
               eq: vi.fn(() => ({
-                in: fileContributorsMock
-              }))
-            }))
+                in: fileContributorsMock,
+              })),
+            })),
           };
         }
         return {
           select: vi.fn(() => ({
-            eq: vi.fn().mockResolvedValue({ data: [], error: null })
-          }))
+            eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+          })),
         };
       });
 
       // Mock file list
       mockOctokit.rest.pulls.listFiles.mockResolvedValue({
-        data: [{ filename: 'src/index.js' }]
+        data: [{ filename: 'src/index.js' }],
       });
 
       await handlePRWithReviewerSuggestions(payload, mockGithubApp, mockSupabase, mockLogger);
@@ -381,7 +388,7 @@ describe('Pull Request Reviewer Suggestions Handler', () => {
           body: 'Test body',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
-          html_url: 'https://github.com/test/repo/pull/1'
+          html_url: 'https://github.com/test/repo/pull/1',
         },
         repository: {
           id: 789,
@@ -391,9 +398,9 @@ describe('Pull Request Reviewer Suggestions Handler', () => {
           private: false,
           html_url: 'https://github.com/test/repo',
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         },
-        installation: { id: 999 }
+        installation: { id: 999 },
       };
 
       const reviewsMock = vi.fn().mockResolvedValue({
@@ -401,14 +408,14 @@ describe('Pull Request Reviewer Suggestions Handler', () => {
           reviewer_id: `reviewer-${i}`,
           contributors: {
             username: `reviewer${i}`,
-            avatar_url: `https://github.com/reviewer${i}.png`
+            avatar_url: `https://github.com/reviewer${i}.png`,
           },
           pull_requests: {
             author_id: 'author-1',
-            repository_id: 'repo-id'
-          }
+            repository_id: 'repo-id',
+          },
         })),
-        error: null
+        error: null,
       });
 
       // Setup mocks
@@ -419,29 +426,29 @@ describe('Pull Request Reviewer Suggestions Handler', () => {
               eq: vi.fn(() => ({
                 maybeSingle: vi.fn().mockResolvedValue({
                   data: { id: 'repo-id' },
-                  error: null
-                })
-              }))
-            }))
+                  error: null,
+                }),
+              })),
+            })),
           };
         }
         if (table === 'reviews') {
           return {
             select: vi.fn(() => ({
-              eq: reviewsMock
-            }))
+              eq: reviewsMock,
+            })),
           };
         }
         return {
           select: vi.fn(() => ({
-            eq: vi.fn().mockResolvedValue({ data: [], error: null })
-          }))
+            eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+          })),
         };
       });
 
       // Mock file list
       mockOctokit.rest.pulls.listFiles.mockResolvedValue({
-        data: [{ filename: 'src/index.js' }]
+        data: [{ filename: 'src/index.js' }],
       });
 
       await handlePRWithReviewerSuggestions(payload, mockGithubApp, mockSupabase, mockLogger);
@@ -466,7 +473,7 @@ describe('Pull Request Reviewer Suggestions Handler', () => {
           body: 'Test body',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
-          html_url: 'https://github.com/test/repo/pull/1'
+          html_url: 'https://github.com/test/repo/pull/1',
         },
         repository: {
           id: 789,
@@ -476,9 +483,9 @@ describe('Pull Request Reviewer Suggestions Handler', () => {
           private: false,
           html_url: 'https://github.com/test/repo',
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         },
-        installation: { id: 999 }
+        installation: { id: 999 },
       };
 
       // Mock database error
@@ -487,18 +494,23 @@ describe('Pull Request Reviewer Suggestions Handler', () => {
           eq: vi.fn(() => ({
             maybeSingle: vi.fn().mockResolvedValue({
               data: null,
-              error: { message: 'Database connection failed' }
-            })
-          }))
-        }))
+              error: { message: 'Database connection failed' },
+            }),
+          })),
+        })),
       }));
 
       // Mock file list
       mockOctokit.rest.pulls.listFiles.mockResolvedValue({
-        data: [{ filename: 'src/index.js' }]
+        data: [{ filename: 'src/index.js' }],
       });
 
-      const result = await handlePRWithReviewerSuggestions(payload, mockGithubApp, mockSupabase, mockLogger);
+      const result = await handlePRWithReviewerSuggestions(
+        payload,
+        mockGithubApp,
+        mockSupabase,
+        mockLogger
+      );
 
       // Should handle error gracefully
       expect(result.success).toBe(true);
@@ -519,7 +531,7 @@ describe('Pull Request Reviewer Suggestions Handler', () => {
           body: 'Test body',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
-          html_url: 'https://github.com/test/repo/pull/1'
+          html_url: 'https://github.com/test/repo/pull/1',
         },
         repository: {
           id: 789,
@@ -529,9 +541,9 @@ describe('Pull Request Reviewer Suggestions Handler', () => {
           private: false,
           html_url: 'https://github.com/test/repo',
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         },
-        installation: { id: 999 }
+        installation: { id: 999 },
       };
 
       // Mock malformed data
@@ -542,10 +554,10 @@ describe('Pull Request Reviewer Suggestions Handler', () => {
               eq: vi.fn(() => ({
                 maybeSingle: vi.fn().mockResolvedValue({
                   data: { id: 'repo-id' },
-                  error: null
-                })
-              }))
-            }))
+                  error: null,
+                }),
+              })),
+            })),
           };
         }
         if (table === 'file_contributors') {
@@ -554,39 +566,44 @@ describe('Pull Request Reviewer Suggestions Handler', () => {
               eq: vi.fn(() => ({
                 in: vi.fn().mockResolvedValue({
                   data: [
-                    { 
+                    {
                       contributor_id: 'c1',
                       commit_count: 5,
-                      contributors: null // Missing nested data
+                      contributors: null, // Missing nested data
                     },
                     {
                       contributor_id: 'c2',
                       commit_count: 3,
                       contributors: {
                         username: 'user2',
-                        avatar_url: 'https://github.com/user2.png'
-                      }
-                    }
+                        avatar_url: 'https://github.com/user2.png',
+                      },
+                    },
                   ],
-                  error: null
-                })
-              }))
-            }))
+                  error: null,
+                }),
+              })),
+            })),
           };
         }
         return {
           select: vi.fn(() => ({
-            eq: vi.fn().mockResolvedValue({ data: [], error: null })
-          }))
+            eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+          })),
         };
       });
 
       // Mock file list
       mockOctokit.rest.pulls.listFiles.mockResolvedValue({
-        data: [{ filename: 'src/index.js' }]
+        data: [{ filename: 'src/index.js' }],
       });
 
-      const result = await handlePRWithReviewerSuggestions(payload, mockGithubApp, mockSupabase, mockLogger);
+      const result = await handlePRWithReviewerSuggestions(
+        payload,
+        mockGithubApp,
+        mockSupabase,
+        mockLogger
+      );
 
       // Should handle malformed data gracefully
       expect(result.success).toBe(true);
@@ -610,7 +627,7 @@ describe('Pull Request Reviewer Suggestions Handler', () => {
           body: 'Test body',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
-          html_url: 'https://github.com/test/repo/pull/1'
+          html_url: 'https://github.com/test/repo/pull/1',
         },
         repository: {
           id: 789,
@@ -620,9 +637,9 @@ describe('Pull Request Reviewer Suggestions Handler', () => {
           private: false,
           html_url: 'https://github.com/test/repo',
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         },
-        installation: { id: 999 }
+        installation: { id: 999 },
       };
 
       // Setup basic mocks
@@ -631,14 +648,14 @@ describe('Pull Request Reviewer Suggestions Handler', () => {
           eq: vi.fn(() => ({
             maybeSingle: vi.fn().mockResolvedValue({
               data: null,
-              error: { message: 'Test error' }
-            })
-          }))
-        }))
+              error: { message: 'Test error' },
+            }),
+          })),
+        })),
       }));
 
       mockOctokit.rest.pulls.listFiles.mockResolvedValue({
-        data: [{ filename: 'src/index.js' }]
+        data: [{ filename: 'src/index.js' }],
       });
 
       await handlePRWithReviewerSuggestions(payload, mockGithubApp, mockSupabase, mockLogger);

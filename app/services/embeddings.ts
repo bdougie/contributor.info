@@ -22,10 +22,7 @@ export interface EmbeddingItem {
 async function getEmbeddingPipeline() {
   if (!embeddingPipeline) {
     console.log('Loading MiniLM embedding model...');
-    embeddingPipeline = await pipeline(
-      'feature-extraction',
-      'Xenova/all-MiniLM-L6-v2'
-    );
+    embeddingPipeline = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
     console.log('MiniLM model loaded successfully');
   }
   return embeddingPipeline;
@@ -37,13 +34,13 @@ async function getEmbeddingPipeline() {
 export async function generateEmbedding(text: string): Promise<number[]> {
   try {
     const embedder = await getEmbeddingPipeline();
-    
+
     // Generate embeddings - pass empty options object to satisfy TypeScript
-    const output = await embedder(text, {} as any) as any;
-    
+    const output = (await embedder(text, {} as any)) as any;
+
     // Extract data from the tensor
     const embeddings = output.data || output.tolist?.()?.[0] || [];
-    
+
     // Convert to array and return
     return Array.from(embeddings);
   } catch (error) {
@@ -74,41 +71,48 @@ export function prepareTextForEmbedding(item: EmbeddingItem): string {
  */
 export async function generateAndStoreEmbeddings(items: EmbeddingItem[]): Promise<void> {
   const batchSize = 10; // Process in batches to avoid rate limits
-  
+
   for (let i = 0; i < items.length; i += batchSize) {
     const batch = items.slice(i, i + batchSize);
-    
-    await Promise.all(batch.map(async (item) => {
-      try {
-        const text = prepareTextForEmbedding(item);
-        const contentHash = createContentHash(item.title, item.body);
-        const embedding = await generateEmbedding(text);
-        
-        const table = item.type === 'issue' ? 'issues' : 'pull_requests';
-        
-        const { error: updateError } = await supabase
-          .from(table)
-          .update({
-            embedding,
-            embedding_generated_at: new Date().toISOString(),
-            content_hash: contentHash,
-          })
-          .eq('id', item.id);
-          
-        if (updateError) {
-          console.error('Failed to store embedding for %s %s: %s', item.type, item.id, updateError);
-          throw new Error(`Failed to store embedding: ${updateError.message}`);
+
+    await Promise.all(
+      batch.map(async (item) => {
+        try {
+          const text = prepareTextForEmbedding(item);
+          const contentHash = createContentHash(item.title, item.body);
+          const embedding = await generateEmbedding(text);
+
+          const table = item.type === 'issue' ? 'issues' : 'pull_requests';
+
+          const { error: updateError } = await supabase
+            .from(table)
+            .update({
+              embedding,
+              embedding_generated_at: new Date().toISOString(),
+              content_hash: contentHash,
+            })
+            .eq('id', item.id);
+
+          if (updateError) {
+            console.error(
+              'Failed to store embedding for %s %s: %s',
+              item.type,
+              item.id,
+              updateError
+            );
+            throw new Error(`Failed to store embedding: ${updateError.message}`);
+          }
+
+          console.log('Generated embedding for %s ${item.id}', item.type);
+        } catch (error) {
+          console.error('Failed to generate embedding for %s %s: %s', item.type, item.id, error);
         }
-          
-        console.log("Generated embedding for %s ${item.id}", item.type);
-      } catch (error) {
-        console.error('Failed to generate embedding for %s %s: %s', item.type, item.id, error);
-      }
-    }));
-    
+      })
+    );
+
     // Small delay between batches
     if (i + batchSize < items.length) {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     }
   }
 }
@@ -124,16 +128,16 @@ export function needsEmbedding(
   if (!embeddingGeneratedAt || !existingHash) {
     return true;
   }
-  
+
   // Re-generate if content changed
   if (contentHash !== existingHash) {
     return true;
   }
-  
+
   // Re-generate if older than 30 days
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const generatedAt = new Date(embeddingGeneratedAt);
-  
+
   return generatedAt < thirtyDaysAgo;
 }
 
@@ -145,7 +149,7 @@ export async function getItemsNeedingEmbeddings(
   limit: number = 50
 ): Promise<EmbeddingItem[]> {
   const items: EmbeddingItem[] = [];
-  
+
   // Get recent issues
   const { data: issues } = await supabase
     .from('issues')
@@ -153,7 +157,7 @@ export async function getItemsNeedingEmbeddings(
     .eq('repository_id', repositoryId)
     .order('created_at', { ascending: false })
     .limit(limit);
-    
+
   if (issues) {
     for (const issue of issues) {
       const contentHash = createContentHash(issue.title, issue.body);
@@ -167,7 +171,7 @@ export async function getItemsNeedingEmbeddings(
       }
     }
   }
-  
+
   // Get recent PRs
   const { data: prs } = await supabase
     .from('pull_requests')
@@ -175,7 +179,7 @@ export async function getItemsNeedingEmbeddings(
     .eq('repository_id', repositoryId)
     .order('created_at', { ascending: false })
     .limit(limit);
-    
+
   if (prs) {
     for (const pr of prs) {
       const contentHash = createContentHash(pr.title, pr.body);
@@ -189,6 +193,6 @@ export async function getItemsNeedingEmbeddings(
       }
     }
   }
-  
+
   return items;
 }
