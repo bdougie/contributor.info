@@ -163,12 +163,13 @@ export async function fetchPRDataSmart(
       if (triggerBackgroundSync && (isEmpty || isStale)) {
         try {
           await sendInngestEvent({
-            name: 'capture/repository.sync',
+            name: 'capture/repository.sync.graphql',
             data: {
               repositoryId: repoData.id,
-              days: 7,
+              repositoryName: `${repoData.owner}/${repoData.name}`,
+              days: 30,
               priority: isEmpty ? 'high' : 'medium',
-              reason: 'smart-fetch-stale-data',
+              reason: isEmpty ? 'smart-fetch-empty-repository' : 'smart-fetch-stale-data',
             },
           });
 

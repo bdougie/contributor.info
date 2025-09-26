@@ -1,5 +1,5 @@
 {
-  "*.{js,jsx,ts,tsx}": [
+  "*.{js,jsx,ts,tsx,mjs,mts}": [
     "eslint --fix --cache --max-warnings=0 --no-warn-ignored",
     "prettier --write"
   ],
