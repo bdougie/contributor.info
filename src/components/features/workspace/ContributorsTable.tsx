@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -103,24 +103,30 @@ export function ContributorsTable({
   const [globalFilter, setGlobalFilter] = useState('');
   const [selectedContributors, setSelectedContributors] = useState<Set<string>>(new Set());
 
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      const allContributorIds = new Set(contributors.map(c => c.id));
-      setSelectedContributors(allContributorIds);
-    } else {
-      setSelectedContributors(new Set());
-    }
-  };
+  const handleSelectAll = useCallback(
+    (checked: boolean) => {
+      if (checked) {
+        const allContributorIds = new Set(contributors.map((c) => c.id));
+        setSelectedContributors(allContributorIds);
+      } else {
+        setSelectedContributors(new Set());
+      }
+    },
+    [contributors]
+  );
 
-  const handleSelectContributor = (contributorId: string, checked: boolean) => {
-    const newSelected = new Set(selectedContributors);
-    if (checked) {
-      newSelected.add(contributorId);
-    } else {
-      newSelected.delete(contributorId);
-    }
-    setSelectedContributors(newSelected);
-  };
+  const handleSelectContributor = useCallback(
+    (contributorId: string, checked: boolean) => {
+      const newSelected = new Set(selectedContributors);
+      if (checked) {
+        newSelected.add(contributorId);
+      } else {
+        newSelected.delete(contributorId);
+      }
+      setSelectedContributors(newSelected);
+    },
+    [selectedContributors]
+  );
 
   const handleBulkAddToGroup = async (groupId: string) => {
     if (selectedContributors.size === 0 || !onBulkAddToGroups) return;
@@ -129,8 +135,10 @@ export function ContributorsTable({
     setSelectedContributors(new Set()); // Clear selection after bulk action
   };
 
-  const isAllSelected = contributors.length > 0 && selectedContributors.size === contributors.length;
-  const isPartiallySelected = selectedContributors.size > 0 && selectedContributors.size < contributors.length;
+  const isAllSelected =
+    contributors.length > 0 && selectedContributors.size === contributors.length;
+  const isPartiallySelected =
+    selectedContributors.size > 0 && selectedContributors.size < contributors.length;
 
   const columns = useMemo<ColumnDef<Contributor>[]>(
     () => [
@@ -364,7 +372,19 @@ export function ContributorsTable({
         },
       }),
     ],
-    [groups, contributorGroups, onContributorClick, onAddToGroup, onAddNote, onRemoveContributor, selectedContributors, handleSelectAll, handleSelectContributor, isAllSelected, isPartiallySelected]
+    [
+      groups,
+      contributorGroups,
+      onContributorClick,
+      onAddToGroup,
+      onAddNote,
+      onRemoveContributor,
+      selectedContributors,
+      handleSelectAll,
+      handleSelectContributor,
+      isAllSelected,
+      isPartiallySelected,
+    ]
   );
 
   const table = useReactTable({
@@ -434,7 +454,8 @@ export function ContributorsTable({
       {selectedContributors.size > 0 && (
         <div className="mb-4 p-3 bg-muted/50 rounded-md flex items-center justify-between">
           <span className="text-sm font-medium">
-            {selectedContributors.size} contributor{selectedContributors.size === 1 ? '' : 's'} selected
+            {selectedContributors.size} contributor{selectedContributors.size === 1 ? '' : 's'}{' '}
+            selected
           </span>
           <div className="flex items-center gap-2">
             <DropdownMenu>
@@ -446,11 +467,8 @@ export function ContributorsTable({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 {groups.map((group) => (
-                  <DropdownMenuItem
-                    key={group.id}
-                    onClick={() => handleBulkAddToGroup(group.id)}
-                  >
-                    <Badge variant={group.is_system ? "outline" : "secondary"} className="mr-2">
+                  <DropdownMenuItem key={group.id} onClick={() => handleBulkAddToGroup(group.id)}>
+                    <Badge variant={group.is_system ? 'outline' : 'secondary'} className="mr-2">
                       {group.name}
                     </Badge>
                     {group.is_system && (
@@ -459,17 +477,11 @@ export function ContributorsTable({
                   </DropdownMenuItem>
                 ))}
                 {groups.length === 0 && (
-                  <DropdownMenuItem disabled>
-                    No groups available
-                  </DropdownMenuItem>
+                  <DropdownMenuItem disabled>No groups available</DropdownMenuItem>
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => setSelectedContributors(new Set())}
-            >
+            <Button size="sm" variant="ghost" onClick={() => setSelectedContributors(new Set())}>
               Clear Selection
             </Button>
           </div>
