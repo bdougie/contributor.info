@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,15 +15,16 @@ import {
   Globe,
   Users,
   Github,
-  ExternalLink,
   TrendingUp,
   TrendingDown,
   Minus,
   Clock,
   Plus,
+  Loader2,
 } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 import { humanizeNumber } from '@/lib/utils';
+import { useContributorActivity } from '@/hooks/useContributorActivity';
 import type { Contributor } from './ContributorsList';
 import type { ContributorGroup } from './ContributorsTable';
 import type { ContributorNote } from './ContributorNotesDialog';
@@ -45,10 +46,10 @@ export interface ContributorProfileModalProps {
   groups: ContributorGroup[];
   contributorGroups: string[]; // groupIds for this contributor
   notes: ContributorNote[];
-  recentActivity?: Activity[];
+  workspaceId?: string;
   onManageGroups?: () => void;
   onAddNote?: () => void;
-  onViewFullProfile?: () => void;
+  isFiltered?: boolean; // Whether this group is being used for filtering
 }
 
 function getRelativeTime(date: string) {
@@ -102,12 +103,25 @@ export function ContributorProfileModal({
   groups,
   contributorGroups,
   notes,
-  recentActivity = [],
+  workspaceId,
   onManageGroups,
   onAddNote,
-  onViewFullProfile,
 }: ContributorProfileModalProps) {
   const [activeTab, setActiveTab] = useState('overview');
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  // Fetch contributor activity
+  const {
+    activities,
+    loading: activityLoading,
+    error: activityError,
+    hasMore,
+    loadMore
+  } = useContributorActivity({
+    contributorUsername: contributor?.username,
+    workspaceId,
+    pageSize: 20,
+  });
 
   if (!contributor) return null;
 
@@ -156,36 +170,30 @@ export function ContributorProfileModal({
                 <p className="text-sm text-muted-foreground">@{contributor.username}</p>
                 <div className="flex flex-wrap gap-1 mt-2">
                   {assignedGroups.map((group) => (
-                    <Badge key={group.id} variant={group.color} className="text-xs">
+                    <Badge key={group.id} variant="secondary" className="text-xs">
                       {group.name}
                     </Badge>
                   ))}
-                  {assignedGroups.length === 0 && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={onManageGroups}
-                      className="h-6 text-xs"
-                    >
-                      <Plus className="h-3 w-3 mr-1" />
-                      Add to Group
-                    </Button>
-                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onManageGroups}
+                    className="h-6 text-xs"
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Add to Group
+                  </Button>
                 </div>
               </div>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={onViewFullProfile}>
-                <ExternalLink className="h-4 w-4 mr-1" />
-                Full Profile
-              </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => window.open(`https://github.com/${contributor.username}`, '_blank')}
               >
                 <Github className="h-4 w-4 mr-1" />
-                GitHub
+                GitHub Profile
               </Button>
             </div>
           </div>
@@ -282,16 +290,39 @@ export function ContributorProfileModal({
           </TabsContent>
 
           <TabsContent value="activity" className="mt-4">
-            <Card>
+            <Card className="overflow-hidden">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base">Recent Activity</CardTitle>
                 <CardDescription>Latest contributions across repositories</CardDescription>
               </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-[400px] pr-4">
-                  {recentActivity.length > 0 ? (
+              <CardContent className="p-0">
+                <ScrollArea
+                  className="h-[400px] px-6 py-4"
+                  ref={scrollAreaRef}
+                  onScrollCapture={(e) => {
+                    const target = e.currentTarget;
+                    const scrollPercentage = (target.scrollTop + target.clientHeight) / target.scrollHeight;
+
+                    // Load more when user scrolls to 80% of content
+                    if (scrollPercentage > 0.8 && hasMore && !activityLoading) {
+                      loadMore();
+                    }
+                  }}
+                >
+                  {(() => {
+                    if (activityError) {
+                      return (
+                        <div className="text-center py-8">
+                          <AlertCircle className="mx-auto h-10 w-10 text-destructive" />
+                          <p className="mt-2 text-sm text-destructive">Failed to load activity</p>
+                          <p className="text-xs text-muted-foreground mt-1">{activityError}</p>
+                        </div>
+                      );
+                    }
+                    if (activities.length > 0 || activityLoading) {
+                      return (
                     <div className="space-y-3">
-                      {recentActivity.map((activity) => (
+                      {activities.map((activity) => (
                         <div
                           key={activity.id}
                           className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors"
@@ -301,23 +332,23 @@ export function ContributorProfileModal({
                           >
                             {getActivityIcon(activity.type)}
                           </div>
-                          <div className="flex-1 min-w-0">
+                          <div className="flex-1 min-w-0 overflow-hidden">
                             <a
                               href={activity.url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="font-medium hover:underline line-clamp-1"
+                              className="font-medium hover:underline line-clamp-2 text-sm block"
                             >
                               {activity.title}
                             </a>
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <span>{activity.repository}</span>
-                              <span>•</span>
-                              <span>{getRelativeTime(activity.created_at)}</span>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                              <span className="truncate max-w-[150px]">{activity.repository}</span>
+                              <span className="flex-shrink-0">•</span>
+                              <span className="flex-shrink-0">{getRelativeTime(activity.created_at)}</span>
                               {activity.state && (
                                 <>
-                                  <span>•</span>
-                                  <Badge variant="outline" className="text-xs capitalize">
+                                  <span className="flex-shrink-0">•</span>
+                                  <Badge variant="outline" className="text-xs capitalize h-5 px-1 flex-shrink-0">
                                     {activity.state}
                                   </Badge>
                                 </>
@@ -326,20 +357,47 @@ export function ContributorProfileModal({
                           </div>
                         </div>
                       ))}
+
+                      {activityLoading && (
+                        <div className="flex items-center justify-center py-4">
+                          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                          <span className="ml-2 text-sm text-muted-foreground">Loading more activity...</span>
+                        </div>
+                      )}
+
+                      {!activityLoading && hasMore && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={loadMore}
+                          className="w-full"
+                        >
+                          Load More
+                        </Button>
+                      )}
+
+                      {!hasMore && activities.length > 0 && (
+                        <div className="text-center py-4 text-sm text-muted-foreground">
+                          No more activity to load
+                        </div>
+                      )}
                     </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <Clock className="mx-auto h-10 w-10 text-muted-foreground" />
-                      <p className="mt-2 text-sm text-muted-foreground">No recent activity</p>
-                    </div>
-                  )}
+                      );
+                    }
+                    return (
+                      <div className="text-center py-8">
+                        <Clock className="mx-auto h-10 w-10 text-muted-foreground" />
+                        <p className="mt-2 text-sm text-muted-foreground">No recent activity</p>
+                      </div>
+                    );
+                  })()}
                 </ScrollArea>
               </CardContent>
             </Card>
           </TabsContent>
 
           <TabsContent value="notes" className="mt-4">
-            <Card>
+            <Card className="overflow-hidden">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div>
@@ -354,20 +412,20 @@ export function ContributorProfileModal({
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-[400px] pr-4">
+              <CardContent className="p-0">
+                <ScrollArea className="h-[400px] px-6 py-4">
                   {notes.length > 0 ? (
                     <div className="space-y-3">
                       {notes.map((note) => (
-                        <div key={note.id} className="p-3 border rounded-lg space-y-2">
+                        <div key={note.id} className="p-3 border rounded-lg space-y-2 overflow-hidden">
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <span className="font-medium">
+                            <span className="font-medium truncate">
                               {note.created_by.display_name || note.created_by.email}
                             </span>
-                            <span>•</span>
-                            <span>{getRelativeTime(note.created_at)}</span>
+                            <span className="flex-shrink-0">•</span>
+                            <span className="flex-shrink-0">{getRelativeTime(note.created_at)}</span>
                           </div>
-                          <p className="text-sm whitespace-pre-wrap">{note.note}</p>
+                          <p className="text-sm whitespace-pre-wrap break-words">{note.note}</p>
                         </div>
                       ))}
                     </div>

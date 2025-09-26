@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import { getFallbackAvatar } from '@/lib/utils/avatar';
 import { useWorkspaceContributors } from '@/hooks/useWorkspaceContributors';
+import { useContributorGroups } from '@/hooks/useContributorGroups';
 import { WorkspaceDashboard, WorkspaceDashboardSkeleton } from '@/components/features/workspace';
 import { WorkspaceErrorBoundary } from '@/components/error-boundaries/workspace-error-boundary';
 import { WorkspaceAutoSync } from '@/components/features/workspace/WorkspaceAutoSync';
@@ -23,18 +24,16 @@ import {
   type Contributor,
 } from '@/components/features/workspace/ContributorsList';
 import { ContributorsTable } from '@/components/features/workspace/ContributorsTable';
-import { ContributorGroupFilter } from '@/components/features/workspace/ContributorGroupFilter';
 import { ContributorGroupManager } from '@/components/features/workspace/ContributorGroupManager';
 import {
   ContributorNotesDialog,
-  type ContributorNote,
 } from '@/components/features/workspace/ContributorNotesDialog';
 import { ContributorProfileModal } from '@/components/features/workspace/ContributorProfileModal';
-import type { ContributorGroup } from '@/components/features/workspace/ContributorsTable';
 import { AddRepositoryModal } from '@/components/features/workspace/AddRepositoryModal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -769,23 +768,55 @@ function WorkspaceContributors({
   const [selectedContributorsToAdd, setSelectedContributorsToAdd] = useState<string[]>([]);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
 
   // CRM State
   const [showGroupManager, setShowGroupManager] = useState(false);
   const [showNotesDialog, setShowNotesDialog] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [selectedContributor, setSelectedContributor] = useState<Contributor | null>(null);
-  const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
 
-  // Mock data for groups and notes - will be replaced with database calls
-  const [groups, setGroups] = useState<ContributorGroup[]>([
-    { id: '1', name: 'VIP Contributors', color: 'default', is_system: true },
-    { id: '2', name: 'Internal', color: 'secondary', is_system: true },
-    { id: '3', name: 'New Contributors', color: 'outline', is_system: true },
-  ]);
-  const [contributorGroups] = useState<Map<string, string[]>>(new Map());
-  const [notes] = useState<ContributorNote[]>([]);
+  // Group filtering state
+  const [selectedFilterGroup, setSelectedFilterGroup] = useState<string | null>(null);
+
+  // Use the contributor groups hook for real database operations
+  const {
+    groups,
+    groupMembers,
+    notes,
+    createGroup,
+    updateGroup,
+    deleteGroup,
+    addContributorToGroup,
+    removeContributorFromGroup,
+    upsertNote,
+    deleteNote,
+  } = useContributorGroups(workspaceId);
+
+  // Get the contributor groups map for filtering
+  // Build the map directly from groupMembers to ensure reactivity
+  const contributorGroupsByUsername = useMemo(() => {
+    const map = new Map<string, string[]>();
+    groupMembers.forEach(member => {
+      const current = map.get(member.contributor_username) || [];
+      current.push(member.group_id);
+      map.set(member.contributor_username, current);
+    });
+    return map;
+  }, [groupMembers]);
+
+  // Transform notes to match ContributorNotesDialog interface
+  const transformedNotes = useMemo(() => {
+    return notes.map(note => ({
+      ...note,
+      created_by: {
+        id: note.created_by || 'unknown',
+        email: 'unknown',
+        display_name: 'Unknown User',
+        avatar_url: undefined,
+      },
+    }));
+  }, [notes]);
 
   const {
     contributors,
@@ -800,6 +831,27 @@ function WorkspaceContributors({
     repositories,
     selectedRepositories,
   });
+
+  // Create a Map indexed by contributor ID for the UI components
+  const contributorGroups = useMemo(() => {
+    const map = new Map<string, string[]>();
+
+    // Build a username to ID lookup
+    const usernameToId = new Map<string, string>();
+    contributors.forEach(contributor => {
+      usernameToId.set(contributor.username, contributor.id);
+    });
+
+    // Transform the username-indexed map to ID-indexed map
+    contributorGroupsByUsername.forEach((groupIds, username) => {
+      const contributorId = usernameToId.get(username);
+      if (contributorId) {
+        map.set(contributorId, groupIds);
+      }
+    });
+
+    return map;
+  }, [contributorGroupsByUsername, contributors]);
 
   const handleContributorClick = (contributor: Contributor) => {
     setSelectedContributor(contributor);
@@ -862,65 +914,116 @@ function WorkspaceContributors({
     await removeContributorFromWorkspace(contributorId);
   };
 
-  // Mock CRM functions - will be replaced with actual database operations
-  const handleCreateGroup = async (name: string, _description: string, color: string) => {
-    const newGroup: ContributorGroup = {
-      id: Date.now().toString(),
-      name,
-      color: color as ContributorGroup['color'],
-      is_system: false,
-    };
-    setGroups((prev) => [...prev, newGroup]);
-    toast.success(`Group "${name}" created successfully`);
+  // CRM handler functions using the database hook
+  const handleCreateGroup = async (name: string, description: string) => {
+    try {
+      await createGroup(name, description);
+    } catch (error) {
+      console.error('Error creating group:', error);
+      toast.error('Failed to create group');
+    }
   };
 
   const handleUpdateGroup = async (
     groupId: string,
     name: string,
-    _description: string,
-    color: string
+    description: string
   ) => {
-    setGroups((prev) =>
-      prev.map((g) =>
-        g.id === groupId ? { ...g, name, color: color as ContributorGroup['color'] } : g
-      )
-    );
-    toast.success('Group updated successfully');
+    try {
+      await updateGroup(groupId, name, description);
+    } catch (error) {
+      console.error('Error updating group:', error);
+      toast.error('Failed to update group');
+    }
   };
 
   const handleDeleteGroup = async (groupId: string) => {
-    setGroups((prev) => prev.filter((g) => g.id !== groupId));
-    toast.success('Group deleted successfully');
+    try {
+      await deleteGroup(groupId);
+    } catch (error) {
+      console.error('Error deleting group:', error);
+      toast.error('Failed to delete group');
+    }
   };
 
   const handleAddContributorToGroup = async (contributorId: string, groupId: string) => {
-    // Mock implementation
-    console.log('Adding contributor to group:', contributorId, groupId);
-    toast.success('Contributor added to group');
+    // Find the contributor by ID to get their username
+    const contributor = contributors.find(c => c.id === contributorId);
+    if (!contributor) {
+      toast.error('Contributor not found');
+      return;
+    }
+
+    try {
+      await addContributorToGroup(contributor.username, groupId);
+    } catch (error) {
+      console.error('Error adding contributor to group:', error);
+      toast.error('Failed to add contributor to group');
+    }
   };
 
   const handleRemoveContributorFromGroup = async (contributorId: string, groupId: string) => {
-    // Mock implementation
-    console.log('Removing contributor from group:', contributorId, groupId);
-    toast.success('Contributor removed from group');
+    // Find the contributor by ID to get their username
+    const contributor = contributors.find(c => c.id === contributorId);
+    if (!contributor) {
+      toast.error('Contributor not found');
+      return;
+    }
+
+    try {
+      await removeContributorFromGroup(contributor.username, groupId);
+    } catch (error) {
+      console.error('Error removing contributor from group:', error);
+      toast.error('Failed to remove contributor from group');
+    }
   };
 
   const handleAddNoteToContributor = async (contributorId: string, note: string) => {
-    // Mock implementation
-    console.log('Adding note for contributor:', contributorId, note);
-    toast.success('Note added successfully');
+    // Find the contributor by ID to get their username
+    const contributor = contributors.find(c => c.id === contributorId);
+    if (!contributor) {
+      toast.error('Contributor not found');
+      return;
+    }
+
+    try {
+      await upsertNote(contributor.username, note);
+    } catch (error) {
+      console.error('Error saving note:', error);
+      toast.error('Failed to save note');
+    }
   };
 
-  const handleUpdateNote = async (noteId: string, note: string) => {
-    // Mock implementation
-    console.log('Updating note:', noteId, note);
-    toast.success('Note updated successfully');
+  const handleUpdateNote = async (contributorId: string, note: string) => {
+    // Find the contributor by ID to get their username
+    const contributor = contributors.find(c => c.id === contributorId);
+    if (!contributor) {
+      toast.error('Contributor not found');
+      return;
+    }
+
+    try {
+      await upsertNote(contributor.username, note);
+    } catch (error) {
+      console.error('Error updating note:', error);
+      toast.error('Failed to update note');
+    }
   };
 
-  const handleDeleteNote = async (noteId: string) => {
-    // Mock implementation
-    console.log('Deleting note:', noteId);
-    toast.success('Note deleted successfully');
+  const handleDeleteNote = async (contributorId: string) => {
+    // Find the contributor by ID to get their username
+    const contributor = contributors.find(c => c.id === contributorId);
+    if (!contributor) {
+      toast.error('Contributor not found');
+      return;
+    }
+
+    try {
+      await deleteNote(contributor.username);
+    } catch (error) {
+      console.error('Error deleting note:', error);
+      toast.error('Failed to delete note');
+    }
   };
 
   // Define columns for the add contributors table
@@ -1185,6 +1288,25 @@ function WorkspaceContributors({
     },
   });
 
+  // Filter contributors by selected group
+  const filteredContributors = useMemo(() => {
+    if (!selectedFilterGroup) {
+      return contributors;
+    }
+
+    // Get all contributor usernames in the selected group
+    const usernamesInGroup = new Set(
+      groupMembers
+        .filter(member => member.group_id === selectedFilterGroup)
+        .map(member => member.contributor_username)
+    );
+
+    // Filter contributors whose usernames are in the group
+    return contributors.filter(contributor =>
+      usernamesInGroup.has(contributor.username)
+    );
+  }, [contributors, selectedFilterGroup, groupMembers]);
+
   // viewTable removed - functionality moved to ContributorsTable component
 
   // Show error state if there's an error
@@ -1367,7 +1489,7 @@ function WorkspaceContributors({
             }
           >
             <ContributorLeaderboard
-              contributors={contributors.map((contributor) => ({
+              contributors={filteredContributors.map((contributor) => ({
                 id: contributor.id,
                 username: contributor.username,
                 avatar_url: contributor.avatar_url,
@@ -1384,79 +1506,117 @@ function WorkspaceContributors({
             />
           </Suspense>
 
-          {/* Group Filter */}
-          <ContributorGroupFilter
-            groups={groups}
-            selectedGroups={selectedGroups}
-            onGroupsChange={setSelectedGroups}
-            onCreateGroup={() => setShowGroupManager(true)}
-            contributorCounts={new Map(groups.map((g) => [g.id, 0]))} // Will be replaced with actual counts
-            variant="badges"
-          />
+          {/* Group Filter - outside the card */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm text-muted-foreground">Groups:</span>
+            {groups.map((group) => {
+              const count = groupMembers.filter(m => m.group_id === group.id).length;
+              const isSelected = selectedFilterGroup === group.id;
 
-          {/* View Toggle */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <h2 className="text-lg font-semibold">All Contributors</h2>
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <div className="flex items-center rounded-lg border bg-muted/50 p-1">
+              return (
                 <Button
-                  variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+                  key={group.id}
+                  variant={isSelected ? "default" : "secondary"}
                   size="sm"
-                  onClick={() => setViewMode('grid')}
-                  className="px-3 min-h-[44px] min-w-[44px]"
-                  title="Grid view"
+                  onClick={() => setSelectedFilterGroup(isSelected ? null : group.id)}
+                  className="h-7"
                 >
-                  <Package className="h-4 w-4" />
+                  {group.name}
+                  <Badge variant="outline" className="ml-1.5 px-1 h-4 text-xs">
+                    {count}
+                  </Badge>
                 </Button>
-                <Button
-                  variant={viewMode === 'list' ? 'secondary' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('list')}
-                  className="px-3 min-h-[44px] min-w-[44px]"
-                  title="Table view"
-                >
-                  <Menu className="h-4 w-4" />
-                </Button>
-              </div>
+              );
+            })}
+            {selectedFilterGroup && (
               <Button
-                onClick={() => setShowGroupManager(true)}
+                variant="ghost"
                 size="sm"
-                className="min-h-[44px] px-4"
+                onClick={() => setSelectedFilterGroup(null)}
+                className="h-7 text-xs"
               >
-                <Users className="h-4 w-4 mr-1" />
-                <span className="hidden sm:inline">Manage Groups</span>
-                <span className="sm:hidden">Groups</span>
+                Clear filter
               </Button>
-              <Button onClick={handleAddContributor} size="sm" className="min-h-[44px] px-4">
-                <Plus className="h-4 w-4 mr-1" />
-                <span className="hidden sm:inline">Add Contributors</span>
-                <span className="sm:hidden">Add</span>
-              </Button>
-            </div>
+            )}
           </div>
 
-          {viewMode === 'grid' ? (
-            <ContributorsList
-              contributors={contributors}
-              trackedContributors={workspaceContributorIds}
-              onTrackContributor={handleTrackContributor}
-              onUntrackContributor={handleUntrackContributor}
-              onContributorClick={handleContributorClick}
-              loading={loading}
-              view="grid"
-            />
-          ) : (
-            <ContributorsTable
-              contributors={contributors}
-              groups={groups}
-              contributorGroups={contributorGroups}
-              loading={loading}
-              onContributorClick={handleContributorClick}
-              onAddToGroup={handleAddToGroup}
-              onAddNote={handleAddNote}
-              onRemoveContributor={handleRemoveContributor}
-            />
-          )}
+          {/* Contributors Card with integrated controls */}
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <CardTitle>Contributors</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {filteredContributors.length} {selectedFilterGroup ? 'filtered ' : ''}contributors
+                    {selectedFilterGroup && ` • ${contributors.length} total`}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center rounded-lg border bg-muted/50 p-1">
+                    <Button
+                      variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+                      size="sm"
+                      onClick={() => setViewMode('grid')}
+                      className="px-3 min-h-[36px] min-w-[36px]"
+                      title="Grid view"
+                    >
+                      <Package className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                      size="sm"
+                      onClick={() => setViewMode('list')}
+                      className="px-3 min-h-[36px] min-w-[36px]"
+                      title="Table view"
+                    >
+                      <Menu className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <Button
+                    onClick={() => setShowGroupManager(true)}
+                    size="sm"
+                    variant="outline"
+                    className="min-h-[36px] px-3"
+                  >
+                    <Users className="h-4 w-4 mr-1.5" />
+                    <span className="hidden sm:inline">Manage Groups</span>
+                    <span className="sm:hidden">Groups</span>
+                  </Button>
+                  <Button onClick={handleAddContributor} size="sm" className="min-h-[36px] px-3">
+                    <Plus className="h-4 w-4 mr-1.5" />
+                    <span className="hidden sm:inline">Add Contributors</span>
+                    <span className="sm:hidden">Add</span>
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              {viewMode === 'grid' ? (
+                <ContributorsList
+                  contributors={filteredContributors}
+                  trackedContributors={workspaceContributorIds}
+                  onTrackContributor={handleTrackContributor}
+                  onUntrackContributor={handleUntrackContributor}
+                  onContributorClick={handleContributorClick}
+                  loading={loading}
+                  view="grid"
+                  showHeader={false} // We'll add this prop to hide the built-in header
+                />
+              ) : (
+                <ContributorsTable
+                  contributors={filteredContributors}
+                  groups={groups}
+                  contributorGroups={contributorGroups}
+                  loading={loading}
+                  onContributorClick={handleContributorClick}
+                  onAddToGroup={handleAddToGroup}
+                  onAddNote={handleAddNote}
+                  onRemoveContributor={handleRemoveContributor}
+                  showHeader={false} // We'll add this prop to hide the built-in header
+                />
+              )}
+            </CardContent>
+          </Card>
         </div>
       )}
 
@@ -1479,7 +1639,7 @@ function WorkspaceContributors({
         open={showNotesDialog}
         onOpenChange={setShowNotesDialog}
         contributor={selectedContributor}
-        notes={notes}
+        notes={transformedNotes}
         loading={false}
         currentUserId="current-user-id" // Will be replaced with actual user ID
         onAddNote={handleAddNoteToContributor}
@@ -1493,9 +1653,14 @@ function WorkspaceContributors({
         contributor={selectedContributor}
         groups={groups}
         contributorGroups={contributorGroups.get(selectedContributor?.id || '') || []}
-        notes={notes}
+        notes={transformedNotes}
+        workspaceId={workspaceId}
         onManageGroups={() => {
           setShowProfileModal(false);
+          // Pre-select the current contributor when opening group manager
+          if (selectedContributor) {
+            setSelectedContributorsToAdd([selectedContributor.id]);
+          }
           setShowGroupManager(true);
         }}
         onAddNote={() => {
