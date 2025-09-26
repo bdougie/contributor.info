@@ -165,10 +165,10 @@ export async function fetchPRDataSmart(
           await sendInngestEvent({
             name: 'capture/repository.sync',
             data: {
-              owner,
-              repo,
+              repositoryId: repoData.id,
+              days: 7,
               priority: isEmpty ? 'high' : 'medium',
-              source: 'smart-fetch-stale-data',
+              reason: 'smart-fetch-stale-data',
             },
           });
 
