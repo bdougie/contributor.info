@@ -37,9 +37,14 @@ export const isDevelopment = (): boolean => {
  * Get event key based on context
  */
 export const getEventKey = (): string => {
-  // In browser context, we need the production event key for sending events
+  // In browser context, check if we're in development
   if (typeof window !== 'undefined') {
-    // Try to get a production event key from environment
+    // If we're on localhost, use local dev key
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      return 'local-dev-key';
+    }
+
+    // In production browser context, we need the production event key
     const prodKey = env.VITE_INNGEST_EVENT_KEY;
     if (prodKey) {
       return prodKey;
@@ -105,6 +110,15 @@ export const getDefaultClientConfig = (): InngestClientConfig => {
  */
 export const createDefaultClient = (): Inngest => {
   const config = getDefaultClientConfig();
+
+  // In browser context during development, add local baseUrl
+  if (typeof window !== 'undefined' && isDevelopment()) {
+    return new Inngest({
+      ...config,
+      baseUrl: 'http://127.0.0.1:8288',
+    });
+  }
+
   return new Inngest(config);
 };
 
@@ -114,7 +128,7 @@ export const createDefaultClient = (): Inngest => {
  */
 export const createLocalClient = (): Inngest => {
   return new Inngest({
-    id: process.env.VITE_INNGEST_APP_ID || 'contributor-info-local',
+    id: process.env.VITE_INNGEST_APP_ID || 'contributor-info',
     isDev: true, // Always dev mode for local
     eventKey: process.env.INNGEST_EVENT_KEY || 'local-dev-key',
     // Don't use signing key in dev mode - it causes sync issues

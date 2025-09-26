@@ -202,7 +202,14 @@ export default function RepoView() {
           </Card>
         </section>
         <section className="grid gap-8">
-          <RepositoryTrackingCard owner={owner || ''} repo={repo || ''} />
+          <RepositoryTrackingCard
+            owner={owner || ''}
+            repo={repo || ''}
+            onTrackingComplete={() => {
+              // Refresh the page to load the newly tracked repository data
+              window.location.reload();
+            }}
+          />
         </section>
       </article>
     );
