@@ -59,9 +59,7 @@ export const getEventKey = (): string | null => {
     }
 
     // In development, fall back to dev key
-    console.warn(
-      '[Inngest] No event key found for development client. Using dev fallback.'
-    );
+    console.warn('[Inngest] No event key found for development client. Using dev fallback.');
     return 'dev-key';
   }
 
@@ -130,7 +128,7 @@ export const createDefaultClient = (): Inngest | null => {
   if (typeof window !== 'undefined' && isDevelopment()) {
     return new Inngest({
       ...config,
-      eventKey: config.eventKey || 'dev-key', // Ensure we have a key for dev
+      eventKey: config.eventKey || undefined, // Convert null to undefined for Inngest
       baseUrl: 'http://127.0.0.1:8288',
     });
   }

@@ -13,7 +13,7 @@ export const inngest = new Proxy({} as Inngest, {
       _inngestClient = createDefaultClient();
       _clientInitialized = true;
     }
-    
+
     // If client is null (disabled), return a no-op function for 'send'
     if (!_inngestClient) {
       if (prop === 'send') {
@@ -26,9 +26,9 @@ export const inngest = new Proxy({} as Inngest, {
       return () => {
         console.warn('[Inngest] Client disabled - operation skipped');
       };
+    } else {
+      return Reflect.get(_inngestClient, prop, receiver);
     }
-    
-    return Reflect.get(_inngestClient, prop, receiver);
   },
 });
 

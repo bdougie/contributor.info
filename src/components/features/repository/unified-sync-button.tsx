@@ -199,14 +199,14 @@ export function UnifiedSyncButton({
             try {
               const errorData = await response.json();
               errorDetails = errorData.message || errorData.error || response.statusText;
-              
+
               // Log structured error information
               console.error('gh-datapipe trigger failed:', {
                 status: response.status,
                 statusText: response.statusText,
                 code: errorData.code,
                 service: errorData.service,
-                message: errorDetails
+                message: errorDetails,
               });
             } catch {
               errorDetails = await response.text().catch(() => 'Unknown error');
@@ -217,7 +217,7 @@ export function UnifiedSyncButton({
                 errorDetails
               );
             }
-            
+
             // Don't throw - we want to continue even if gh-datapipe fails
             return null;
           }
@@ -299,10 +299,12 @@ export function UnifiedSyncButton({
           '',
           'This may be due to:',
           '• Temporary service outage',
-          '• API configuration issues', 
+          '• API configuration issues',
           '• Network connectivity problems',
           '',
           'The system will automatically retry failed operations. Try refreshing the page in a few minutes.',
+          '',
+          'Check your browser console for technical details.',
         ].join('\n');
         throw new Error(errorDetails);
       }
