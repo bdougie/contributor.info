@@ -1,8 +1,19 @@
 import { createDefaultClient } from './client-config';
+import type { Inngest } from 'inngest';
+
+// Lazy initialization to ensure browser context is available
+let _inngestClient: Inngest | null = null;
 
 // Create the Inngest client using the shared configuration
 // This ensures consistency across all uses
-export const inngest = createDefaultClient();
+export const inngest = new Proxy({} as Inngest, {
+  get(target, prop, receiver) {
+    if (!_inngestClient) {
+      _inngestClient = createDefaultClient();
+    }
+    return Reflect.get(_inngestClient, prop, receiver);
+  },
+});
 
 // Define event schemas for type safety
 export type DataCaptureEvents = {
