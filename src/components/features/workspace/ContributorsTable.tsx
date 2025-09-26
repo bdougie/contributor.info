@@ -112,12 +112,12 @@ export function ContributorsTable({
   workspaceTier,
   isLoggedIn = false,
 }: ContributorsTableProps) {
-  const [sorting, setSorting] = useState<SortingState>([
-    { id: 'activity', desc: true },
-  ]);
+  const [sorting, setSorting] = useState<SortingState>([{ id: 'activity', desc: true }]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
-  const [internalSelectedContributors, setInternalSelectedContributors] = useState<Set<string>>(new Set());
+  const [internalSelectedContributors, setInternalSelectedContributors] = useState<Set<string>>(
+    new Set()
+  );
 
   // Use external state if provided, otherwise use internal state
   const selectedContributors = externalSelectedContributors || internalSelectedContributors;
@@ -142,7 +142,7 @@ export function ContributorsTable({
         setSelectedContributors(new Set());
       }
     },
-    [contributors]
+    [contributors, setSelectedContributors]
   );
 
   const handleSelectContributor = useCallback(
@@ -155,7 +155,7 @@ export function ContributorsTable({
       }
       setSelectedContributors(newSelected);
     },
-    [selectedContributors]
+    [selectedContributors, setSelectedContributors]
   );
 
   const handleBulkAddToGroup = async (groupId: string) => {
@@ -199,31 +199,7 @@ export function ContributorsTable({
         id: 'username',
         size: 350,
         minSize: 300,
-        enableSorting: true,
-        sortingFn: (rowA, rowB, columnId) => {
-          const aValue = rowA.original.username.toLowerCase();
-          const bValue = rowB.original.username.toLowerCase();
-          return aValue.localeCompare(bValue);
-        },
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="-ml-3 h-8 data-[state=open]:bg-accent"
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-          >
-            Contributor
-            {(() => {
-              if (column.getIsSorted() === 'asc') {
-                return <ChevronUp className="ml-2 h-4 w-4" />;
-              }
-              if (column.getIsSorted() === 'desc') {
-                return <ChevronDown className="ml-2 h-4 w-4" />;
-              }
-              return <ChevronsUpDown className="ml-2 h-4 w-4" />;
-            })()}
-          </Button>
-        ),
+        header: () => <div className="font-medium">Contributor</div>,
         cell: ({ row }) => {
           const contributor = row.original;
           const groupIds = contributorGroups.get(contributor.id) || [];
@@ -387,15 +363,17 @@ export function ContributorsTable({
                   <Eye className="mr-2 h-4 w-4" />
                   View Profile
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => {
-                  // Add contributor to selection if not already selected
-                  if (!selectedContributors.has(contributor.id)) {
-                    const newSelected = new Set(selectedContributors);
-                    newSelected.add(contributor.id);
-                    setSelectedContributors(newSelected);
-                  }
-                  onAddToGroup?.(contributor.id);
-                }}>
+                <DropdownMenuItem
+                  onClick={() => {
+                    // Add contributor to selection if not already selected
+                    if (!selectedContributors.has(contributor.id)) {
+                      const newSelected = new Set(selectedContributors);
+                      newSelected.add(contributor.id);
+                      setSelectedContributors(newSelected);
+                    }
+                    onAddToGroup?.(contributor.id);
+                  }}
+                >
                   <Users className="mr-2 h-4 w-4" />
                   Manage Groups
                 </DropdownMenuItem>
@@ -421,6 +399,7 @@ export function ContributorsTable({
       contributorGroups,
       onContributorClick,
       onAddToGroup,
+      setSelectedContributors,
       onAddNote,
       onRemoveContributor,
       selectedContributors,
@@ -502,44 +481,53 @@ export function ContributorsTable({
             selected
           </span>
           <div className="flex items-center gap-2">
-            {!permissions.canAssignContributorsToGroups ? (
-              !isLoggedIn ? (
-                <Button size="sm" onClick={login}>
-                  Login to Manage Groups
-                </Button>
-              ) : (
-                <GroupManagementCTA
-                  message={permissions.getGroupAssignmentMessage()}
-                  variant="inline"
-                  size="sm"
-                  showAction={true}
-                />
-              )
-            ) : (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button size="sm" variant="outline">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add to Group
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {groups.map((group) => (
-                    <DropdownMenuItem key={group.id} onClick={() => handleBulkAddToGroup(group.id)}>
-                      <Badge variant={group.is_system ? 'outline' : 'secondary'} className="mr-2">
-                        {group.name}
-                      </Badge>
-                      {group.is_system && (
-                        <span className="text-xs text-muted-foreground ml-1">(System)</span>
-                      )}
-                    </DropdownMenuItem>
-                  ))}
-                  {groups.length === 0 && (
-                    <DropdownMenuItem disabled>No groups created yet</DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
+            {(() => {
+              if (!permissions.canAssignContributorsToGroups) {
+                if (!isLoggedIn) {
+                  return (
+                    <Button size="sm" onClick={login}>
+                      Login to Manage Groups
+                    </Button>
+                  );
+                }
+                return (
+                  <GroupManagementCTA
+                    message={permissions.getGroupAssignmentMessage()}
+                    variant="inline"
+                    size="sm"
+                    showAction={true}
+                  />
+                );
+              }
+              return (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button size="sm" variant="outline">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add to Group
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {groups.map((group) => (
+                      <DropdownMenuItem
+                        key={group.id}
+                        onClick={() => handleBulkAddToGroup(group.id)}
+                      >
+                        <Badge variant={group.is_system ? 'outline' : 'secondary'} className="mr-2">
+                          {group.name}
+                        </Badge>
+                        {group.is_system && (
+                          <span className="text-xs text-muted-foreground ml-1">(System)</span>
+                        )}
+                      </DropdownMenuItem>
+                    ))}
+                    {groups.length === 0 && (
+                      <DropdownMenuItem disabled>No groups created yet</DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              );
+            })()}
             <Button size="sm" variant="ghost" onClick={() => setSelectedContributors(new Set())}>
               Clear Selection
             </Button>
