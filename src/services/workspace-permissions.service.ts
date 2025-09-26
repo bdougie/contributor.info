@@ -105,8 +105,11 @@ export class WorkspacePermissionService {
     // Additional context-based checks
     if (context?.targetRole && permission === 'change_member_role') {
       // Maintainers and editors can only change contributor/viewer roles
-      if ((role === 'maintainer' || role === 'editor') &&
-          context.targetRole !== 'contributor' && context.targetRole !== 'viewer') {
+      if (
+        (role === 'maintainer' || role === 'editor') &&
+        context.targetRole !== 'contributor' &&
+        context.targetRole !== 'viewer'
+      ) {
         return false;
       }
       // Cannot change owner or admin role
@@ -530,7 +533,8 @@ export class WorkspacePermissionService {
           : 'You do not have permission to export data',
       manage_billing: 'Only workspace owners can manage billing',
       manage_contributor_groups: 'Only owners and maintainers can manage contributor groups',
-      assign_contributors_to_groups: 'Only owners and maintainers can assign contributors to groups',
+      assign_contributors_to_groups:
+        'Only owners and maintainers can assign contributors to groups',
     };
 
     return messages[action] ?? 'You do not have permission to perform this action';

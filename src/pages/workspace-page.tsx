@@ -781,7 +781,9 @@ function WorkspaceContributors({
   const [selectedContributor, setSelectedContributor] = useState<Contributor | null>(null);
 
   // Unified selection state for table and modals
-  const [selectedContributorsForGroups, setSelectedContributorsForGroups] = useState<Set<string>>(new Set());
+  const [selectedContributorsForGroups, setSelectedContributorsForGroups] = useState<Set<string>>(
+    new Set()
+  );
 
   // Group filtering state
   const [selectedFilterGroup, setSelectedFilterGroup] = useState<string | null>(null);
@@ -815,16 +817,25 @@ function WorkspaceContributors({
   // Transform notes to match ContributorNotesDialog interface
   const transformedNotes = useMemo(() => {
     return notes.map((note) => {
-      const createdBy = note.created_by as any;
+      const createdBy = note.created_by as
+        | {
+            auth_user_id: string;
+            email: string;
+            display_name: string;
+          }
+        | string
+        | null;
       const isObject = typeof createdBy === 'object' && createdBy !== null;
 
       return {
         ...note,
         created_by: {
-          id: isObject ? createdBy.id : createdBy || 'unknown',
+          id: isObject ? createdBy.auth_user_id : createdBy || 'unknown',
           email: isObject ? createdBy.email : 'unknown@example.com',
-          display_name: isObject ? (createdBy.full_name || createdBy.email?.split('@')[0]) : 'Unknown User',
-          avatar_url: isObject ? createdBy.avatar_url : undefined,
+          display_name: isObject
+            ? createdBy.display_name || createdBy.email?.split('@')[0]
+            : 'Unknown User',
+          avatar_url: undefined,
         },
       };
     });
@@ -912,7 +923,9 @@ function WorkspaceContributors({
       setSelectedContributor(contributor);
       // Ensure this contributor is in the selection
       if (!selectedContributorsForGroups.has(contributorId)) {
-        setSelectedContributorsForGroups(new Set([...selectedContributorsForGroups, contributorId]));
+        setSelectedContributorsForGroups(
+          new Set([...selectedContributorsForGroups, contributorId])
+        );
       }
       setShowGroupManager(true);
     }
@@ -1577,7 +1590,9 @@ function WorkspaceContributors({
                 maxDisplay={10}
                 onContributorClick={(contributorStat) => {
                   // Find the full contributor object by id
-                  const fullContributor = filteredContributors.find(c => c.id === contributorStat.id);
+                  const fullContributor = filteredContributors.find(
+                    (c) => c.id === contributorStat.id
+                  );
                   if (fullContributor) {
                     handleContributorClick(fullContributor);
                   }
@@ -1627,7 +1642,7 @@ function WorkspaceContributors({
                 <div>
                   <CardTitle>
                     {selectedFilterGroup
-                      ? `${groups.find(g => g.id === selectedFilterGroup)?.name || 'Group'} Contributors`
+                      ? `${groups.find((g) => g.id === selectedFilterGroup)?.name || 'Group'} Contributors`
                       : 'All Contributors'}
                   </CardTitle>
                   <p className="text-sm text-muted-foreground mt-1">
