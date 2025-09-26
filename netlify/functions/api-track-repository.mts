@@ -212,15 +212,14 @@ export default async (req: Request, context: Context) => {
       const { createClient } = await import('@supabase/supabase-js');
 
       // Get Supabase credentials
-      const supabaseUrl =
-        process.env.VITE_SUPABASE_URL || 'https://egcxzonpmmcirmgqdrla.supabase.co';
+      const supabaseUrl = process.env.VITE_SUPABASE_URL;
       const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
       const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
 
       // Use service key if available, otherwise use anon key (for local dev)
       const supabaseKey = supabaseServiceKey || supabaseAnonKey;
 
-      if (!supabaseKey) {
+      if (!supabaseUrl || !supabaseKey) {
         console.error('Missing Supabase keys');
         // Fallback to sending Inngest event
         const inngestEventKey =
