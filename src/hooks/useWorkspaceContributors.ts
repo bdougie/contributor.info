@@ -215,7 +215,7 @@ export function useWorkspaceContributors({
           // Get review counts and dates for last activity
           supabase
             .from('reviews')
-            .select('author_id, pull_request_id, created_at, pull_requests!inner(repository_id)')
+            .select('author_id, pull_request_id, submitted_at, pull_requests!inner(repository_id)')
             .in('author_id', contributorIdsForStats)
             .in('pull_requests.repository_id', repoIds),
         ]);
@@ -243,7 +243,7 @@ export function useWorkspaceContributors({
           reviewCounts.set(review.author_id, count + 1);
 
           // Track last activity from reviews
-          const reviewDate = new Date(review.created_at);
+          const reviewDate = new Date(review.submitted_at);
           const currentLastActivity = lastActivityMap.get(review.author_id);
           if (!currentLastActivity || reviewDate > currentLastActivity) {
             lastActivityMap.set(review.author_id, reviewDate);
