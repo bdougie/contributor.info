@@ -27,9 +27,10 @@ export const handler: Handler = async (event) => {
       headers,
       body: JSON.stringify({
         error: 'Service unavailable',
-        message: 'Backfill service is temporarily unavailable. Please try again later or use the sync button for immediate updates.',
+        message:
+          'Backfill service is temporarily unavailable. Please try again later or use the sync button for immediate updates.',
         code: 'SERVICE_UNAVAILABLE',
-        service: 'gh-datapipe'
+        service: 'gh-datapipe',
       }),
     };
   }
@@ -100,7 +101,7 @@ export const handler: Handler = async (event) => {
         error: 'Backfill trigger failed',
         message: `Failed to trigger backfill: ${errorMessage}`,
         code: errorCode,
-        service: 'backfill-trigger'
+        service: 'backfill-trigger',
       }),
     };
   }

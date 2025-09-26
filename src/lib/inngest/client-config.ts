@@ -52,14 +52,12 @@ export const getEventKey = (): string | null => {
 
     // In production without a key, return null to disable Inngest entirely
     if (!isDevelopment()) {
-      console.warn(
-        '[Inngest] No production event key found for browser client. Inngest features disabled.'
-      );
+      console.warn('• Inngest background jobs: Service disabled or configuration missing');
       return null;
     }
 
     // In development, fall back to dev key
-    console.warn('[Inngest] No event key found for development client. Using dev fallback.');
+    console.warn('• Inngest background jobs: Using local development mode');
     return 'dev-key';
   }
 
@@ -71,7 +69,7 @@ export const getEventKey = (): string | null => {
 
   // In production, ensure we have a real key
   if (!isDevelopment() && (!eventKey || eventKey === 'dev-key')) {
-    console.warn('[Inngest] Production environment detected but no valid event key found');
+    console.warn('• Inngest background jobs: Service disabled or configuration missing');
   }
 
   return eventKey || 'dev-key';
@@ -93,7 +91,7 @@ export const getSigningKey = (): string | undefined => {
 
   // In production, we need a signing key
   if (!isDevelopment() && !signingKey) {
-    console.warn('[Inngest] Production environment detected but no signing key found');
+    console.warn('• Inngest background jobs: Service disabled or configuration missing');
   }
 
   return signingKey;
@@ -120,7 +118,7 @@ export const createDefaultClient = (): Inngest | null => {
 
   // If no event key and not in development, return null to disable Inngest
   if (!config.eventKey && !isDevelopment()) {
-    console.warn('[Inngest] Client disabled due to missing configuration');
+    console.warn('• Inngest background jobs: Service disabled or configuration missing');
     return null;
   }
 
@@ -135,7 +133,7 @@ export const createDefaultClient = (): Inngest | null => {
 
   // For production or server context
   if (!config.eventKey) {
-    console.warn('[Inngest] Client disabled due to missing event key');
+    console.warn('• Inngest background jobs: Service disabled or configuration missing');
     return null;
   }
 

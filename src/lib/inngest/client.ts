@@ -18,17 +18,18 @@ export const inngest = new Proxy({} as Inngest, {
     if (!_inngestClient) {
       if (prop === 'send') {
         return async () => {
-          console.warn('[Inngest] Client disabled - event sending skipped');
+          console.warn('• Inngest background jobs: Service disabled or configuration missing');
           return { ids: [] };
         };
       }
       // For other properties, return undefined or a no-op
       return () => {
-        console.warn('[Inngest] Client disabled - operation skipped');
+        console.warn('• Inngest background jobs: Service disabled or configuration missing');
       };
-    } else {
-      return Reflect.get(_inngestClient, prop, receiver);
     }
+
+    // Client is guaranteed to be non-null here
+    return Reflect.get(_inngestClient, prop, receiver);
   },
 });
 
