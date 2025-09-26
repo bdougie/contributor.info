@@ -3,14 +3,31 @@ import type { Inngest } from 'inngest';
 
 // Lazy initialization to ensure browser context is available
 let _inngestClient: Inngest | null = null;
+let _clientInitialized = false;
 
 // Create the Inngest client using the shared configuration
 // This ensures consistency across all uses
 export const inngest = new Proxy({} as Inngest, {
   get(_target, prop, receiver) {
-    if (!_inngestClient) {
+    if (!_clientInitialized) {
       _inngestClient = createDefaultClient();
+      _clientInitialized = true;
     }
+    
+    // If client is null (disabled), return a no-op function for 'send'
+    if (!_inngestClient) {
+      if (prop === 'send') {
+        return async () => {
+          console.warn('[Inngest] Client disabled - event sending skipped');
+          return { ids: [] };
+        };
+      }
+      // For other properties, return undefined or a no-op
+      return () => {
+        console.warn('[Inngest] Client disabled - operation skipped');
+      };
+    }
+    
     return Reflect.get(_inngestClient, prop, receiver);
   },
 });

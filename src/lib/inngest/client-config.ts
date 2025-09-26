@@ -7,7 +7,7 @@ import { env, serverEnv } from '../env';
 export interface InngestClientConfig {
   id: string;
   isDev: boolean;
-  eventKey: string;
+  eventKey: string | null;
   signingKey?: string;
 }
 
@@ -36,7 +36,7 @@ export const isDevelopment = (): boolean => {
 /**
  * Get event key based on context
  */
-export const getEventKey = (): string => {
+export const getEventKey = (): string | null => {
   // In browser context, check if we're in development
   if (typeof window !== 'undefined') {
     // If we're on localhost, use local dev key
@@ -50,11 +50,19 @@ export const getEventKey = (): string => {
       return prodKey;
     }
 
-    // Fall back to a placeholder, but warn that events won't work
+    // In production without a key, return null to disable Inngest entirely
+    if (!isDevelopment()) {
+      console.warn(
+        '[Inngest] No production event key found for browser client. Inngest features disabled.'
+      );
+      return null;
+    }
+
+    // In development, fall back to dev key
     console.warn(
-      '[Inngest] No production event key found for browser client. Event sending will fail.'
+      '[Inngest] No event key found for development client. Using dev fallback.'
     );
-    return 'browser-client-no-key';
+    return 'dev-key';
   }
 
   // Server context - prefer production keys to match production endpoint
@@ -107,19 +115,36 @@ export const getDefaultClientConfig = (): InngestClientConfig => {
 
 /**
  * Create an Inngest client with the default configuration
+ * Returns null if configuration is invalid (missing keys in production)
  */
-export const createDefaultClient = (): Inngest => {
+export const createDefaultClient = (): Inngest | null => {
   const config = getDefaultClientConfig();
+
+  // If no event key and not in development, return null to disable Inngest
+  if (!config.eventKey && !isDevelopment()) {
+    console.warn('[Inngest] Client disabled due to missing configuration');
+    return null;
+  }
 
   // In browser context during development, add local baseUrl
   if (typeof window !== 'undefined' && isDevelopment()) {
     return new Inngest({
       ...config,
+      eventKey: config.eventKey || 'dev-key', // Ensure we have a key for dev
       baseUrl: 'http://127.0.0.1:8288',
     });
   }
 
-  return new Inngest(config);
+  // For production or server context
+  if (!config.eventKey) {
+    console.warn('[Inngest] Client disabled due to missing event key');
+    return null;
+  }
+
+  return new Inngest({
+    ...config,
+    eventKey: config.eventKey || undefined, // Convert null to undefined for Inngest
+  });
 };
 
 /**
