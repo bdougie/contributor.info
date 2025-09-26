@@ -215,8 +215,9 @@ export function useWorkspaceContributors({
           // Get review counts and dates for last activity
           supabase
             .from('reviews')
-            .select('author_id, pull_request_id, created_at')
-            .in('author_id', contributorIdsForStats),
+            .select('author_id, pull_request_id, created_at, pull_requests!inner(repository_id)')
+            .in('author_id', contributorIdsForStats)
+            .in('pull_requests.repository_id', repoIds),
         ]);
 
         // Count issues per contributor and track last activity
