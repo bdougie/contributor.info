@@ -376,6 +376,76 @@ export function useContributorGroups(workspaceId: string | undefined) {
     [notes]
   );
 
+  // Update a note by ID (for ContributorNotesDialog)
+  const updateNoteById = useCallback(
+    async (noteId: string, noteContent: string) => {
+      if (!workspaceId) throw new Error('Workspace ID is required');
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      const { data, error } = await supabase
+        .from('contributor_notes')
+        .update({
+          note_content: noteContent,
+          updated_by: user.id,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', noteId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      if (!data) throw new Error('Failed to update note');
+
+      // Fetch user information for the note author
+      const { data: userData } = await supabase
+        .from('app_users')
+        .select('auth_user_id, email, display_name')
+        .eq('auth_user_id', user.id)
+        .maybeSingle();
+
+      // Map the data to match the expected format with derived 'note' property
+      const userInfo = userData || {
+        auth_user_id: user.id,
+        email: user.email || 'unknown',
+        display_name: user.email?.split('@')[0] || 'Unknown user'
+      };
+
+      const mappedNote = {
+        ...data,
+        note: data.note_content, // Add the derived 'note' property
+        contributorId: data.contributor_username,
+        created_by: userInfo,
+        updated_by: userInfo,
+      };
+
+      // Update the note in local state with properly mapped data
+      setNotes((prev) =>
+        prev.map((n) => (n.id === noteId ? mappedNote as any : n))
+      );
+
+      toast.success('Note updated successfully');
+      return mappedNote;
+    },
+    [workspaceId]
+  );
+
+  // Delete a note by ID (for ContributorNotesDialog)
+  const deleteNoteById = useCallback(
+    async (noteId: string) => {
+      const { error } = await supabase.from('contributor_notes').delete().eq('id', noteId);
+
+      if (error) throw error;
+
+      setNotes((prev) => prev.filter((n) => n.id !== noteId));
+      toast.success('Note deleted successfully');
+    },
+    []
+  );
+
   // Get contributor's groups as a Map for easy lookup
   const getContributorGroupsMap = useCallback(() => {
     const map = new Map<string, string[]>();
@@ -414,6 +484,8 @@ export function useContributorGroups(workspaceId: string | undefined) {
     removeContributorFromGroup,
     upsertNote,
     deleteNote,
+    updateNoteById,
+    deleteNoteById,
     getContributorGroupsMap,
     getContributorNote,
     refetch: fetchGroups,

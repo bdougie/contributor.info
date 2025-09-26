@@ -322,9 +322,14 @@ export function useWorkspaceContributors({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workspaceId, repositories.length, selectedRepositories.length]); // Use stable dependencies
 
+  // Filter out contributors that are already in the workspace
+  const availableToAdd = allAvailableContributors.filter(
+    (contributor) => !workspaceContributorIds.includes(contributor.id)
+  );
+
   return {
     contributors,
-    allAvailableContributors,
+    allAvailableContributors: availableToAdd,  // Only return contributors not in workspace
     workspaceContributorIds,
     loading,
     error,

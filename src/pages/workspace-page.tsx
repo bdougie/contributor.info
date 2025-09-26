@@ -759,6 +759,7 @@ function WorkspaceContributors({
   userRole,
   workspaceTier,
   isLoggedIn,
+  currentUser,
 }: {
   repositories: Repository[];
   selectedRepositories: string[];
@@ -766,6 +767,7 @@ function WorkspaceContributors({
   userRole?: import('@/types/workspace').WorkspaceRole;
   workspaceTier?: import('@/types/workspace').WorkspaceTier;
   isLoggedIn?: boolean;
+  currentUser?: User | null;
 }) {
   // Navigate removed - no longer needed as profile modal handles internally
   const [showAddContributors, setShowAddContributors] = useState(false);
@@ -799,7 +801,8 @@ function WorkspaceContributors({
     addContributorToGroup,
     removeContributorFromGroup,
     upsertNote,
-    deleteNote,
+    updateNoteById,
+    deleteNoteById,
   } = useContributorGroups(workspaceId);
 
   // Get the contributor groups map for filtering
@@ -1080,32 +1083,18 @@ function WorkspaceContributors({
     }
   };
 
-  const handleUpdateNote = async (contributorId: string, note: string) => {
-    // Find the contributor by ID to get their username
-    const contributor = contributors.find((c) => c.id === contributorId);
-    if (!contributor) {
-      toast.error('Contributor not found');
-      return;
-    }
-
+  const handleUpdateNote = async (noteId: string, note: string) => {
     try {
-      await upsertNote(contributor.username, note);
+      await updateNoteById(noteId, note);
     } catch (error) {
       console.error('Error updating note:', error);
       toast.error('Failed to update note');
     }
   };
 
-  const handleDeleteNote = async (contributorId: string) => {
-    // Find the contributor by ID to get their username
-    const contributor = contributors.find((c) => c.id === contributorId);
-    if (!contributor) {
-      toast.error('Contributor not found');
-      return;
-    }
-
+  const handleDeleteNote = async (noteId: string) => {
     try {
-      await deleteNote(contributor.username);
+      await deleteNoteById(noteId);
     } catch (error) {
       console.error('Error deleting note:', error);
       toast.error('Failed to delete note');
@@ -1758,7 +1747,7 @@ function WorkspaceContributors({
         contributor={selectedContributor}
         notes={transformedNotes}
         loading={false}
-        currentUserId="current-user-id" // Will be replaced with actual user ID
+        currentUserId={currentUser?.id}
         onAddNote={handleAddNoteToContributor}
         onUpdateNote={handleUpdateNote}
         onDeleteNote={handleDeleteNote}
@@ -3351,6 +3340,7 @@ function WorkspacePage() {
                 userRole={currentMember?.role}
                 workspaceTier={workspace.tier}
                 isLoggedIn={!!currentUser}
+                currentUser={currentUser}
               />
             </div>
           </TabsContent>

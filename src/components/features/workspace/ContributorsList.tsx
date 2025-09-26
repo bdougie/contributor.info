@@ -27,6 +27,8 @@ export interface Contributor {
   bio?: string;
   company?: string;
   location?: string;
+  discord_url?: string | null;
+  linkedin_url?: string | null;
   contributions: {
     commits: number;
     pull_requests: number;
@@ -55,6 +57,7 @@ export interface ContributorsListProps {
   className?: string;
   view?: 'grid' | 'list';
   showHeader?: boolean;
+  showTrackedOnly?: boolean;
 }
 
 function ContributorCard({
@@ -267,6 +270,7 @@ export function ContributorsList({
   className,
   view = 'grid',
   showHeader = true,
+  showTrackedOnly = false,
 }: ContributorsListProps) {
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -276,15 +280,20 @@ export function ContributorsList({
       contributor.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       contributor.bio?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    return matchesSearch;
+    const isTracked = trackedContributors.includes(contributor.id);
+    const matchesTrackedFilter = showTrackedOnly ? isTracked : true;
+
+    return matchesSearch && matchesTrackedFilter;
   });
 
   if (loading) {
     return (
       <Card className={cn('w-full', className)}>
-        <CardHeader>
-          <CardTitle>Contributors</CardTitle>
-        </CardHeader>
+        {showHeader && (
+          <CardHeader>
+            <CardTitle>Contributors</CardTitle>
+          </CardHeader>
+        )}
         <CardContent>
           <div
             className={

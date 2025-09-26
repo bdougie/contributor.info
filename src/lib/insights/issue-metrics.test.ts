@@ -10,6 +10,7 @@ interface TestRepository {
 interface TestIssue {
   created_at: string;
   state: string;
+  closed_at?: string;
 }
 
 // Mock the supabase client

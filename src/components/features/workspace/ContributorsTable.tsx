@@ -199,6 +199,12 @@ export function ContributorsTable({
         id: 'username',
         size: 350,
         minSize: 300,
+        enableSorting: true,
+        sortingFn: (rowA, rowB, columnId) => {
+          const aValue = rowA.original.username.toLowerCase();
+          const bValue = rowB.original.username.toLowerCase();
+          return aValue.localeCompare(bValue);
+        },
         header: ({ column }) => (
           <Button
             variant="ghost"

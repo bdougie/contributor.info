@@ -40,6 +40,8 @@ export interface Database {
           display_name: string;
           avatar_url: string;
           profile_url: string;
+          discord_url: string | null;
+          linkedin_url: string | null;
           is_bot: boolean;
           first_seen_at: string;
           last_updated_at: string;

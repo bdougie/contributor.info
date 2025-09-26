@@ -49,7 +49,10 @@ export function useContributorActivity({
       setError(null);
 
       const currentPage = reset ? 0 : page;
-      const offset = currentPage * pageSize;
+
+      // For combined queries, we need to fetch more data to account for the interleaving
+      // of different activity types. We'll fetch more and then slice after sorting.
+      const fetchLimit = (currentPage + 1) * pageSize * 4; // Fetch 4x to ensure coverage
 
       try {
         // Fetch contributor ID
@@ -72,7 +75,7 @@ export function useContributorActivity({
 
         const repoIds = workspaceRepos?.map((r) => r.repository_id) || [];
 
-        // Fetch activities from multiple tables
+        // Fetch activities from multiple tables - fetch more data initially
         const [pullRequests, issues, reviews, comments] = await Promise.all([
           // Pull Requests
           supabase
@@ -97,7 +100,7 @@ export function useContributorActivity({
             .eq('author_id', contributorId)
             .in('repository_id', repoIds)
             .order('created_at', { ascending: false })
-            .range(offset, offset + pageSize - 1),
+            .range(0, fetchLimit - 1),
 
           // Issues (without html_url which doesn't exist)
           supabase
@@ -121,7 +124,7 @@ export function useContributorActivity({
             .eq('author_id', contributorId)
             .in('repository_id', repoIds)
             .order('created_at', { ascending: false })
-            .range(offset, offset + pageSize - 1),
+            .range(0, fetchLimit - 1),
 
           // Reviews (using correct table name)
           supabase
@@ -144,7 +147,7 @@ export function useContributorActivity({
             .eq('reviewer_id', contributorId)
             .in('pull_requests.repository_id', repoIds)
             .order('submitted_at', { ascending: false })
-            .range(offset, offset + pageSize - 1),
+            .range(0, fetchLimit - 1),
 
           // Comments (from comments table filtered by issue_id)
           supabase
@@ -167,7 +170,7 @@ export function useContributorActivity({
             .not('issue_id', 'is', null)
             .in('issues.repository_id', repoIds)
             .order('created_at', { ascending: false })
-            .range(offset, offset + pageSize - 1),
+            .range(0, fetchLimit - 1),
         ]);
 
         // Transform and combine activities
@@ -295,8 +298,10 @@ export function useContributorActivity({
           (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         );
 
-        // Take only the requested page size
-        const pageActivities = allActivities.slice(0, pageSize);
+        // Properly paginate the combined results
+        const startIndex = currentPage * pageSize;
+        const endIndex = startIndex + pageSize;
+        const pageActivities = allActivities.slice(startIndex, endIndex);
 
         if (reset) {
           setActivities(pageActivities);
@@ -306,7 +311,8 @@ export function useContributorActivity({
           setPage((prev) => prev + 1);
         }
 
-        setHasMore(pageActivities.length === pageSize);
+        // Check if there are more activities beyond what we're showing
+        setHasMore(allActivities.length > endIndex);
       } catch (err) {
         console.error('Error fetching contributor activity:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch activity');

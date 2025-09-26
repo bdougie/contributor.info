@@ -88,9 +88,9 @@ BEGIN
     -- Create default system groups for the new workspace
     INSERT INTO contributor_groups (workspace_id, name, description, color, is_system, created_by)
     VALUES
-        (NEW.id, 'VIP Contributors', 'High-value contributors with significant impact', 'gold', TRUE, NEW.created_by),
-        (NEW.id, 'Internal', 'Internal team members and maintainers', 'blue', TRUE, NEW.created_by),
-        (NEW.id, 'New Contributors', 'First-time or recent contributors', 'green', TRUE, NEW.created_by)
+        (NEW.id, 'VIP Contributors', 'High-value contributors with significant impact', 'gold', TRUE, NEW.owner_id),
+        (NEW.id, 'Internal', 'Internal team members and maintainers', 'blue', TRUE, NEW.owner_id),
+        (NEW.id, 'New Contributors', 'First-time or recent contributors', 'green', TRUE, NEW.owner_id)
     ON CONFLICT (workspace_id, name) DO NOTHING;
 
     RETURN NEW;
