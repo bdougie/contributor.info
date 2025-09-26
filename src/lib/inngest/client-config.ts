@@ -7,7 +7,7 @@ import { env, serverEnv } from '../env';
 export interface InngestClientConfig {
   id: string;
   isDev: boolean;
-  eventKey: string;
+  eventKey: string | null;
   signingKey?: string;
 }
 
@@ -36,7 +36,7 @@ export const isDevelopment = (): boolean => {
 /**
  * Get event key based on context
  */
-export const getEventKey = (): string => {
+export const getEventKey = (): string | null => {
   // In browser context, check if we're in development
   if (typeof window !== 'undefined') {
     // If we're on localhost, use local dev key
@@ -50,11 +50,15 @@ export const getEventKey = (): string => {
       return prodKey;
     }
 
-    // Fall back to a placeholder, but warn that events won't work
-    console.warn(
-      '[Inngest] No production event key found for browser client. Event sending will fail.'
-    );
-    return 'browser-client-no-key';
+    // In production without a key, return null to disable Inngest entirely
+    if (!isDevelopment()) {
+      console.warn('• Inngest background jobs: Service disabled or configuration missing');
+      return null;
+    }
+
+    // In development, fall back to dev key
+    console.warn('• Inngest background jobs: Using local development mode');
+    return 'dev-key';
   }
 
   // Server context - prefer production keys to match production endpoint
@@ -65,7 +69,7 @@ export const getEventKey = (): string => {
 
   // In production, ensure we have a real key
   if (!isDevelopment() && (!eventKey || eventKey === 'dev-key')) {
-    console.warn('[Inngest] Production environment detected but no valid event key found');
+    console.warn('• Inngest background jobs: Service disabled or configuration missing');
   }
 
   return eventKey || 'dev-key';
@@ -87,7 +91,7 @@ export const getSigningKey = (): string | undefined => {
 
   // In production, we need a signing key
   if (!isDevelopment() && !signingKey) {
-    console.warn('[Inngest] Production environment detected but no signing key found');
+    console.warn('• Inngest background jobs: Service disabled or configuration missing');
   }
 
   return signingKey;
@@ -107,19 +111,37 @@ export const getDefaultClientConfig = (): InngestClientConfig => {
 
 /**
  * Create an Inngest client with the default configuration
+ * Returns null if configuration is invalid (missing keys in production)
  */
-export const createDefaultClient = (): Inngest => {
+export const createDefaultClient = (): Inngest | null => {
   const config = getDefaultClientConfig();
+
+  // Check for missing or invalid event key in production
+  // 'dev-key' is not valid for production environments
+  if (!isDevelopment() && (!config.eventKey || config.eventKey === 'dev-key')) {
+    console.warn('• Inngest background jobs: Service disabled or configuration missing');
+    return null;
+  }
 
   // In browser context during development, add local baseUrl
   if (typeof window !== 'undefined' && isDevelopment()) {
     return new Inngest({
       ...config,
+      eventKey: config.eventKey || undefined, // Convert null to undefined for Inngest
       baseUrl: 'http://127.0.0.1:8288',
     });
   }
 
-  return new Inngest(config);
+  // For production or server context
+  if (!config.eventKey || (!isDevelopment() && config.eventKey === 'dev-key')) {
+    console.warn('• Inngest background jobs: Service disabled or configuration missing');
+    return null;
+  }
+
+  return new Inngest({
+    ...config,
+    eventKey: config.eventKey || undefined, // Convert null to undefined for Inngest
+  });
 };
 
 /**

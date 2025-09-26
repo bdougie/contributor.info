@@ -21,12 +21,16 @@ export const handler: Handler = async (event) => {
 
   // Check if API is configured
   if (!process.env.GH_DATPIPE_KEY) {
+    console.warn('[backfill-trigger] GH_DATPIPE_KEY not configured - service unavailable');
     return {
       statusCode: 503,
       headers,
       body: JSON.stringify({
         error: 'Service unavailable',
-        message: 'Manual backfill service is not configured',
+        message:
+          'Backfill service is temporarily unavailable. Please try again later or use the sync button for immediate updates.',
+        code: 'SERVICE_UNAVAILABLE',
+        service: 'gh-datapipe',
       }),
     };
   }
@@ -75,14 +79,29 @@ export const handler: Handler = async (event) => {
     console.error('[backfill-trigger] Error:', error);
 
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    const statusCode = errorMessage.includes('Rate limit') ? 429 : 500;
+    let statusCode = 500;
+    let errorCode = 'INTERNAL_ERROR';
+
+    // Determine appropriate status code and error code
+    if (errorMessage.includes('Rate limit') || errorMessage.includes('rate limit')) {
+      statusCode = 429;
+      errorCode = 'RATE_LIMITED';
+    } else if (errorMessage.includes('Network') || errorMessage.includes('fetch')) {
+      statusCode = 502;
+      errorCode = 'NETWORK_ERROR';
+    } else if (errorMessage.includes('timeout')) {
+      statusCode = 504;
+      errorCode = 'TIMEOUT';
+    }
 
     return {
       statusCode,
       headers,
       body: JSON.stringify({
-        error: 'Internal server error',
-        message: errorMessage,
+        error: 'Backfill trigger failed',
+        message: `Failed to trigger backfill: ${errorMessage}`,
+        code: errorCode,
+        service: 'backfill-trigger',
       }),
     };
   }

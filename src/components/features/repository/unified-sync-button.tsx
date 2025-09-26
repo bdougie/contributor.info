@@ -195,13 +195,30 @@ export function UnifiedSyncButton({
       })
         .then(async (response) => {
           if (!response.ok) {
-            const errorText = await response.text().catch(() => 'Unknown error');
-            console.error(
-              'gh-datapipe trigger failed:',
-              response.status,
-              response.statusText,
-              errorText
-            );
+            let errorDetails = 'Unknown error';
+            try {
+              // Clone response to preserve body for potential text fallback
+              const errorData = await response.clone().json();
+              errorDetails = errorData.message || errorData.error || response.statusText;
+
+              // Log structured error information
+              console.error('gh-datapipe trigger failed:', {
+                status: response.status,
+                statusText: response.statusText,
+                code: errorData.code,
+                service: errorData.service,
+                message: errorDetails,
+              });
+            } catch {
+              errorDetails = await response.text().catch(() => 'Unknown error');
+              console.error(
+                'gh-datapipe trigger failed:',
+                response.status,
+                response.statusText,
+                errorDetails
+              );
+            }
+
             // Don't throw - we want to continue even if gh-datapipe fails
             return null;
           }
@@ -277,16 +294,18 @@ export function UnifiedSyncButton({
       // Check if at least one succeeded
       if (!ghDatapipeResult && !inngestResult) {
         const errorDetails = [
-          'Sync methods failed:',
-          '• GitHub data pipeline: Unable to trigger backfill',
-          '• Inngest background jobs: Connection blocked by security policy',
+          'Both sync methods failed:',
+          '• GitHub data pipeline: Service unavailable or rate limited',
+          '• Inngest background jobs: Client configuration issue',
           '',
           'This may be due to:',
-          '• Network connectivity issues',
-          '• Service maintenance',
-          '• Browser security restrictions',
+          '• Temporary service outage',
+          '• API configuration issues',
+          '• Network connectivity problems',
           '',
-          'Please try again in a few minutes or contact support if this persists.',
+          'The system will automatically retry failed operations. Try refreshing the page in a few minutes.',
+          '',
+          'Check your browser console for technical details.',
         ].join('\n');
         throw new Error(errorDetails);
       }
