@@ -166,8 +166,7 @@ export async function fetchPRDataSmart(
             name: 'capture/repository.sync.graphql',
             data: {
               repositoryId: repoData.id,
-              owner: repoData.owner,
-              name: repoData.name,
+              repositoryName: `${repoData.owner}/${repoData.name}`,
               days: 30,
               priority: isEmpty ? 'high' : 'medium',
               reason: isEmpty ? 'smart-fetch-empty-repository' : 'smart-fetch-stale-data',

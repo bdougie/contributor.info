@@ -106,9 +106,10 @@ export default async (req: Request, context: Context) => {
       const githubToken = process.env.GITHUB_TOKEN;
 
       // Detect if we're in production
-      const isProduction = process.env.CONTEXT === 'production' ||
-                          process.env.NODE_ENV === 'production' ||
-                          process.env.NETLIFY === 'true';
+      const isProduction =
+        process.env.CONTEXT === 'production' ||
+        process.env.NODE_ENV === 'production' ||
+        process.env.NETLIFY === 'true';
 
       if (isProduction && !githubToken) {
         console.error('Missing GitHub token in production environment');
