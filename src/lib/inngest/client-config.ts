@@ -116,8 +116,9 @@ export const getDefaultClientConfig = (): InngestClientConfig => {
 export const createDefaultClient = (): Inngest | null => {
   const config = getDefaultClientConfig();
 
-  // If no event key and not in development, return null to disable Inngest
-  if (!config.eventKey && !isDevelopment()) {
+  // Check for missing or invalid event key in production
+  // 'dev-key' is not valid for production environments
+  if (!isDevelopment() && (!config.eventKey || config.eventKey === 'dev-key')) {
     console.warn('• Inngest background jobs: Service disabled or configuration missing');
     return null;
   }
@@ -132,7 +133,7 @@ export const createDefaultClient = (): Inngest | null => {
   }
 
   // For production or server context
-  if (!config.eventKey) {
+  if (!config.eventKey || (!isDevelopment() && config.eventKey === 'dev-key')) {
     console.warn('• Inngest background jobs: Service disabled or configuration missing');
     return null;
   }

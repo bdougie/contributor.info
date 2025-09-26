@@ -197,7 +197,8 @@ export function UnifiedSyncButton({
           if (!response.ok) {
             let errorDetails = 'Unknown error';
             try {
-              const errorData = await response.json();
+              // Clone response to preserve body for potential text fallback
+              const errorData = await response.clone().json();
               errorDetails = errorData.message || errorData.error || response.statusText;
 
               // Log structured error information
