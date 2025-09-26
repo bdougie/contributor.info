@@ -200,7 +200,53 @@ rollout.clearCache = () => {
 rollout.clearCache();
 ```
 
-### 4. Rate Limiting Issues
+### 4. Missing repositoryId Error
+
+**Symptoms**:
+- Function fails with: `NonRetriableError: Missing repositoryId`
+- Event is sent but function rejects it immediately
+- Common with `capture/repository.sync` and `capture/repository.sync.graphql` events
+
+**Cause**:
+Event data structure doesn't match function expectations. The function requires `repositoryId` field but event might be sending `owner`/`repo` instead.
+
+**Solutions**:
+
+1. **Verify event data structure**:
+   ```javascript
+   // ❌ Incorrect - will cause "Missing repositoryId" error
+   await sendInngestEvent({
+     name: 'capture/repository.sync',
+     data: {
+       owner: 'someowner',
+       repo: 'somerepo',
+       priority: 'high'
+     }
+   });
+
+   // ✅ Correct - includes required repositoryId
+   await sendInngestEvent({
+     name: 'capture/repository.sync',
+     data: {
+       repositoryId: repoData.id,  // UUID from repositories table
+       days: 30,
+       priority: 'high',
+       reason: 'smart-fetch-stale-data'
+     }
+   });
+   ```
+
+2. **Check function parameter validation**:
+   - Functions validate required fields on entry
+   - Missing required fields cause immediate failure
+   - Check function definition for required fields
+
+3. **Common locations to check**:
+   - `src/lib/supabase-pr-data-smart.ts` - Smart fetch triggers
+   - `src/lib/progressive-capture/hybrid-queue-manager.ts` - Queue routing
+   - `src/components/features/repository/unified-sync-button.tsx` - Manual triggers
+
+### 5. Rate Limiting Issues
 
 **Symptoms**:
 - Functions fail with rate limit errors
@@ -230,7 +276,7 @@ rollout.clearCache();
    - Verify GITHUB_TOKEN is from GitHub App
    - Not personal access token
 
-### 5. Local vs Production Mismatch
+### 6. Local vs Production Mismatch
 
 **Issue**: Works locally but not in production
 
