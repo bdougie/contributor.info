@@ -13,8 +13,8 @@ const supabase = createClient(
   {
     auth: {
       autoRefreshToken: false,
-      persistSession: false
-    }
+      persistSession: false,
+    },
   }
 );
 
@@ -55,16 +55,22 @@ async function initializePytorchBackfill() {
     if (existingBackfill) {
       console.log(`\n⚠️  Backfill already exists for ${repository.owner}/${repository.name}:`);
       console.log(`   Status: ${existingBackfill.status}`);
-      console.log(`   Progress: ${existingBackfill.processed_prs}/${existingBackfill.total_prs} PRs (${Math.round((existingBackfill.processed_prs / existingBackfill.total_prs) * 100)}%)`);
+      console.log(
+        `   Progress: ${existingBackfill.processed_prs}/${existingBackfill.total_prs} PRs (${Math.round((existingBackfill.processed_prs / existingBackfill.total_prs) * 100)}%)`
+      );
       console.log(`   Created: ${new Date(existingBackfill.created_at).toLocaleString()}`);
-      console.log(`   Last processed: ${existingBackfill.last_processed_at ? new Date(existingBackfill.last_processed_at).toLocaleString() : 'Never'}`);
-      
+      console.log(
+        `   Last processed: ${existingBackfill.last_processed_at ? new Date(existingBackfill.last_processed_at).toLocaleString() : 'Never'}`
+      );
+
       if (existingBackfill.status === 'paused') {
-        console.log('\n💡 The backfill is paused. You can resume it by updating the status to "active".');
+        console.log(
+          '\n💡 The backfill is paused. You can resume it by updating the status to "active".'
+        );
       } else if (existingBackfill.status === 'completed') {
         console.log('\n✅ The backfill is already completed!');
       }
-      
+
       return;
     }
 
@@ -94,7 +100,7 @@ async function initializePytorchBackfill() {
 
     // Create the backfill entry
     console.log('\n🚀 Creating backfill entry...');
-    
+
     const { data: newBackfill, error: createError } = await supabase
       .from('progressive_backfill_state')
       .insert({
@@ -108,8 +114,8 @@ async function initializePytorchBackfill() {
           initiated_by: 'manual_initialization',
           repository_name: `${repository.owner}/${repository.name}`,
           estimated_hours: Math.ceil((totalPRs - (capturedPRs || 0)) / 25 / 10), // Rough estimate
-          initialization_timestamp: new Date().toISOString()
-        }
+          initialization_timestamp: new Date().toISOString(),
+        },
       })
       .select()
       .single();
@@ -124,7 +130,9 @@ async function initializePytorchBackfill() {
     console.log(`   Status: ${newBackfill.status}`);
     console.log(`   PRs to process: ${totalPRs - (capturedPRs || 0)}`);
     console.log(`   Chunk size: ${newBackfill.chunk_size} PRs per chunk`);
-    console.log(`   Estimated time: ~${Math.ceil((totalPRs - (capturedPRs || 0)) / 25 / 10)} hours`);
+    console.log(
+      `   Estimated time: ~${Math.ceil((totalPRs - (capturedPRs || 0)) / 25 / 10)} hours`
+    );
 
     console.log('\n📋 Next steps:');
     console.log('   1. The GitHub Actions workflow will automatically pick up this backfill');
@@ -147,7 +155,6 @@ SELECT
 FROM backfill_progress_summary
 WHERE owner = 'pytorch' AND name = 'pytorch';
 `);
-
   } catch (error) {
     console.error('❌ Unexpected error:', error);
     process.exit(1);
@@ -160,7 +167,7 @@ initializePytorchBackfill()
     console.log('\n✨ Done!');
     process.exit(0);
   })
-  .catch(error => {
+  .catch((error) => {
     console.error('Fatal error:', error);
     process.exit(1);
   });

@@ -38,6 +38,19 @@ const ROLE_PERMISSIONS: Record<WorkspaceRole, WorkspacePermission[]> = {
     'export_data',
     'manage_billing',
   ],
+  admin: [
+    'view_workspace',
+    'edit_workspace',
+    'delete_workspace',
+    'add_repository',
+    'remove_repository',
+    'invite_member',
+    'remove_member',
+    'change_member_role',
+    'view_analytics',
+    'export_data',
+    'manage_billing',
+  ],
   maintainer: [
     'view_workspace',
     'edit_workspace',
@@ -49,7 +62,14 @@ const ROLE_PERMISSIONS: Record<WorkspaceRole, WorkspacePermission[]> = {
     'view_analytics',
     'export_data',
   ],
+  editor: [
+    'view_workspace',
+    'edit_workspace',
+    'add_repository',
+    'view_analytics',
+  ],
   contributor: ['view_workspace', 'view_analytics'],
+  viewer: ['view_workspace'],
 };
 
 /**
@@ -74,12 +94,13 @@ export class WorkspacePermissionService {
 
     // Additional context-based checks
     if (context?.targetRole && permission === 'change_member_role') {
-      // Maintainers can only change contributor roles
-      if (role === 'maintainer' && context.targetRole !== 'contributor') {
+      // Maintainers and editors can only change contributor/viewer roles
+      if ((role === 'maintainer' || role === 'editor') &&
+          context.targetRole !== 'contributor' && context.targetRole !== 'viewer') {
         return false;
       }
-      // Cannot change owner role
-      if (context.targetRole === 'owner') {
+      // Cannot change owner or admin role
+      if (context.targetRole === 'owner' || context.targetRole === 'admin') {
         return false;
       }
     }

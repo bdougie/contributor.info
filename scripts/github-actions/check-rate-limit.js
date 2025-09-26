@@ -14,30 +14,30 @@ if (!GITHUB_TOKEN) {
 // Fetch rate limit from GitHub API
 fetch('https://api.github.com/rate_limit', {
   headers: {
-    'Authorization': `Bearer ${GITHUB_TOKEN}`,
-    'Accept': 'application/vnd.github.v3+json'
-  }
+    Authorization: `Bearer ${GITHUB_TOKEN}`,
+    Accept: 'application/vnd.github.v3+json',
+  },
 })
-.then(response => response.json())
-.then(data => {
-  const remaining = data.rate.remaining;
-  const limit = data.rate.limit;
-  
-  // GitHub Actions output format (only output variables to stdout)
-  console.log(`remaining=${remaining}`);
-  console.log(`limit=${limit}`);
-  
-  // Warning if rate limit is low (send to stderr to avoid corrupting output)
-  if (remaining < 500) {
-    console.error(`::warning::Low rate limit remaining: ${remaining}`);
-  }
-  
-  // Log for debugging
-  console.error(`Rate limit: ${remaining}/${limit}`);
-})
-.catch(error => {
-  console.error('Error checking rate limit:', error.message);
-  // Default to high values to not block the workflow
-  console.log('remaining=5000');
-  console.log('limit=5000');
-});
+  .then((response) => response.json())
+  .then((data) => {
+    const remaining = data.rate.remaining;
+    const limit = data.rate.limit;
+
+    // GitHub Actions output format (only output variables to stdout)
+    console.log(`remaining=${remaining}`);
+    console.log(`limit=${limit}`);
+
+    // Warning if rate limit is low (send to stderr to avoid corrupting output)
+    if (remaining < 500) {
+      console.error(`::warning::Low rate limit remaining: ${remaining}`);
+    }
+
+    // Log for debugging
+    console.error(`Rate limit: ${remaining}/${limit}`);
+  })
+  .catch((error) => {
+    console.error('Error checking rate limit:', error.message);
+    // Default to high values to not block the workflow
+    console.log('remaining=5000');
+    console.log('limit=5000');
+  });

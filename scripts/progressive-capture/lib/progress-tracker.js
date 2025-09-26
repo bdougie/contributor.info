@@ -13,11 +13,11 @@ export class ProgressTracker {
   async start(totalItems = 0) {
     this.startTime = new Date();
     this.totalItems = totalItems;
-    
+
     try {
       // First update job status to processing
       await this.updateJobStatus('processing');
-      
+
       // Create progress record in database
       const { data: progress, error } = await this.supabase
         .from('progressive_capture_progress')
@@ -27,7 +27,7 @@ export class ProgressTracker {
           processed_items: 0,
           failed_items: 0,
           current_item: 'Starting...',
-          errors: []
+          errors: [],
         })
         .select()
         .single();
@@ -40,7 +40,9 @@ export class ProgressTracker {
         console.warn('Continuing without progress tracking');
       } else {
         this.progressId = progress.id;
-        console.log(`Progress tracking started for job ${this.jobId} with progress ID ${this.progressId}`);
+        console.log(
+          `Progress tracking started for job ${this.jobId} with progress ID ${this.progressId}`
+        );
       }
     } catch (error) {
       console.error('Failed to start progress tracking:', error);
@@ -51,7 +53,7 @@ export class ProgressTracker {
 
   async increment(currentItem = null) {
     this.processedItems++;
-    
+
     if (this.progressId) {
       try {
         await this.supabase
@@ -59,7 +61,7 @@ export class ProgressTracker {
           .update({
             processed_items: this.processedItems,
             current_item: currentItem || `Item ${this.processedItems}`,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           })
           .eq('id', this.progressId);
       } catch (error) {
@@ -73,7 +75,7 @@ export class ProgressTracker {
     this.errors.push({
       itemId,
       error: error.message,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
 
     if (this.progressId) {
@@ -83,7 +85,7 @@ export class ProgressTracker {
           .update({
             failed_items: this.failedItems,
             errors: this.errors,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           })
           .eq('id', this.progressId);
       } catch (error) {
@@ -95,7 +97,7 @@ export class ProgressTracker {
   async complete() {
     const endTime = new Date();
     const duration = endTime - this.startTime;
-    
+
     console.log(`Job completed in ${Math.round(duration / 1000)}s`);
     console.log(`Processed: ${this.processedItems}, Failed: ${this.failedItems}`);
 
@@ -107,7 +109,7 @@ export class ProgressTracker {
             processed_items: this.processedItems,
             failed_items: this.failedItems,
             current_item: 'Completed',
-            updated_at: endTime.toISOString()
+            updated_at: endTime.toISOString(),
           })
           .eq('id', this.progressId);
       } catch (error) {
@@ -128,11 +130,14 @@ export class ProgressTracker {
           .from('progressive_capture_progress')
           .update({
             current_item: 'Failed',
-            errors: [...this.errors, {
-              error: error.message,
-              timestamp: new Date().toISOString()
-            }],
-            updated_at: new Date().toISOString()
+            errors: [
+              ...this.errors,
+              {
+                error: error.message,
+                timestamp: new Date().toISOString(),
+              },
+            ],
+            updated_at: new Date().toISOString(),
           })
           .eq('id', this.progressId);
       } catch (updateError) {
@@ -151,7 +156,7 @@ export class ProgressTracker {
     try {
       const updateData = {
         status,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       };
 
       if (status === 'completed') {
@@ -164,14 +169,13 @@ export class ProgressTracker {
         .from('progressive_capture_jobs')
         .update(updateData)
         .eq('id', this.jobId);
-        
+
       if (updateError) {
         console.error(`Failed to update job ${this.jobId} to status ${status}:`, updateError);
         throw updateError;
       }
-      
+
       console.log(`Successfully updated job ${this.jobId} to status: ${status}`);
-      
     } catch (error) {
       console.error('Failed to update job status:', error);
       // Re-throw to ensure calling code knows the update failed
@@ -185,8 +189,9 @@ export class ProgressTracker {
       totalItems: this.totalItems,
       processedItems: this.processedItems,
       failedItems: this.failedItems,
-      percentage: this.totalItems > 0 ? Math.round((this.processedItems / this.totalItems) * 100) : 0,
-      errors: this.errors
+      percentage:
+        this.totalItems > 0 ? Math.round((this.processedItems / this.totalItems) * 100) : 0,
+      errors: this.errors,
     };
   }
 }

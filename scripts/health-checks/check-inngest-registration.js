@@ -4,7 +4,7 @@ dotenv.config();
 
 async function checkInngestRegistration() {
   console.log('Checking Inngest function registration...\n');
-  
+
   // Check local endpoint
   console.log('1. Checking local endpoint:');
   try {
@@ -17,8 +17,8 @@ async function checkInngestRegistration() {
   } catch (error) {
     console.log(`   ❌ Local endpoint error: ${error.message}`);
   }
-  
-  // Check production endpoint  
+
+  // Check production endpoint
   console.log('\n2. Checking production endpoint:');
   try {
     const prodResponse = await fetch('https://contributor.info/.netlify/functions/inngest-prod');
@@ -30,7 +30,7 @@ async function checkInngestRegistration() {
   } catch (error) {
     console.log(`   ❌ Production endpoint error: ${error.message}`);
   }
-  
+
   // Check function registration via Inngest Dev UI
   console.log('\n3. Next steps to verify function registration:');
   console.log('   - For local: Visit http://localhost:8288/functions');

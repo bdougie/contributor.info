@@ -7,12 +7,8 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      exclude: [
-        'node_modules/',
-        'test/',
-        'vitest.config.js'
-      ]
+      exclude: ['node_modules/', 'test/', 'vitest.config.js'],
     },
-    testTimeout: 10000
-  }
+    testTimeout: 10000,
+  },
 });

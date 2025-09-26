@@ -22,13 +22,13 @@ async function loadMigrationReport() {
 
 async function calculateDirectorySize(dir) {
   let totalSize = 0;
-  
+
   try {
     const entries = await fs.readdir(dir, { withFileTypes: true });
-    
+
     for (const entry of entries) {
       const fullPath = path.join(dir, entry.name);
-      
+
       if (entry.isDirectory()) {
         totalSize += await calculateDirectorySize(fullPath);
       } else if (entry.isFile()) {
@@ -39,7 +39,7 @@ async function calculateDirectorySize(dir) {
   } catch (error) {
     console.warn(`⚠️  Error calculating size for ${dir}:`, error.message);
   }
-  
+
   return totalSize;
 }
 
@@ -56,57 +56,57 @@ async function deleteDirectory(dir) {
 async function main() {
   console.log('🧹 Automated Local Images Cleanup');
   console.log('=================================\n');
-  
+
   // Check if migration was successful
   const report = await loadMigrationReport();
-  
+
   if (!report) {
     console.log('⚠️  No migration report found.');
     console.log('Please run npm run migrate-images first.\n');
     process.exit(1);
   }
-  
+
   const { statistics } = report;
-  
+
   console.log('📊 Migration Statistics:');
   console.log(`  ✅ Successfully uploaded: ${statistics.uploaded} files`);
   console.log(`  ❌ Failed uploads: ${statistics.failed} files`);
   console.log(`  📦 Total files: ${statistics.totalFiles} files\n`);
-  
+
   if (statistics.failed > 0) {
     console.log('⚠️  WARNING: Some files failed to upload.');
     console.log('Aborting cleanup to prevent data loss.\n');
     process.exit(1);
   }
-  
+
   // Calculate size to be freed
   console.log('📁 Calculating space to be freed...');
   const directorySize = await calculateDirectorySize(PUBLIC_IMAGES_DIR);
   const sizeMB = (directorySize / 1024 / 1024).toFixed(2);
-  
+
   console.log(`📊 Space to be freed: ${sizeMB}MB`);
   console.log(`📁 Directory to delete: ${PUBLIC_IMAGES_DIR}\n`);
-  
+
   // Delete the directory
   console.log('🗑️  Deleting local images...');
   const deleted = await deleteDirectory(PUBLIC_IMAGES_DIR);
-  
+
   if (deleted) {
     console.log('✅ Local images deleted successfully');
     console.log(`📊 Freed ${sizeMB}MB of space`);
-    
+
     // Update .gitignore to ensure images aren't re-added
     console.log('\n📝 Updating .gitignore...');
     try {
       const gitignorePath = path.join(__dirname, '../../.gitignore');
       let gitignoreContent = '';
-      
+
       try {
         gitignoreContent = await fs.readFile(gitignorePath, 'utf-8');
       } catch (error) {
         // .gitignore might not exist
       }
-      
+
       if (!gitignoreContent.includes('public/docs/images')) {
         gitignoreContent += '\n# Images migrated to Supabase Storage\npublic/docs/images/\n';
         await fs.writeFile(gitignorePath, gitignoreContent);
@@ -117,7 +117,7 @@ async function main() {
     } catch (error) {
       console.warn('⚠️  Failed to update .gitignore:', error.message);
     }
-    
+
     console.log('\n✅ Cleanup complete!');
     console.log('\n📝 Next Steps:');
     console.log('1. Run: npm run build');
@@ -130,7 +130,7 @@ async function main() {
 }
 
 // Run the cleanup
-main().catch(error => {
+main().catch((error) => {
   console.error('\n❌ Cleanup failed:', error);
   process.exit(1);
 });

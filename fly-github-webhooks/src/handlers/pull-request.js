@@ -8,13 +8,13 @@ import Logger from '../utils/logger.js';
 export async function handlePullRequestEvent(payload, githubApp, supabase, parentLogger) {
   const logger = parentLogger ? parentLogger.child('PullRequest') : new Logger('PullRequest');
   const { pull_request: pr, repository: repo, installation, action } = payload;
-  
+
   logger.info('Processing PR %s: #%s in %s', action, pr.number, repo.full_name);
-  
+
   try {
     // Get installation Octokit
     const octokit = await githubApp.getInstallationOctokit(installation.id);
-    
+
     // Handle different PR actions
     switch (action) {
       case 'opened':
@@ -22,7 +22,7 @@ export async function handlePullRequestEvent(payload, githubApp, supabase, paren
         // Track PR in database
         await trackPullRequest(pr, repo, supabase, logger);
         break;
-        
+
       case 'closed':
         if (pr.merged) {
           logger.info('PR #%s was merged', pr.number);
@@ -33,17 +33,17 @@ export async function handlePullRequestEvent(payload, githubApp, supabase, paren
           await updatePRStatus(pr, repo, 'closed', supabase, logger);
         }
         break;
-        
+
       case 'synchronize':
         logger.info('PR #%s was updated with new commits', pr.number);
         // Update PR data
         await updatePullRequest(pr, repo, supabase, logger);
         break;
-        
+
       default:
         logger.info('Unhandled PR action: %s', action);
     }
-    
+
     return { success: true };
   } catch (error) {
     logger.error('Error handling pull request event:', error);
@@ -53,9 +53,8 @@ export async function handlePullRequestEvent(payload, githubApp, supabase, paren
 
 async function trackPullRequest(pr, repo, supabase, logger) {
   try {
-    const { data, error } = await supabase
-      .from('pull_requests')
-      .upsert({
+    const { data, error } = await supabase.from('pull_requests').upsert(
+      {
         github_id: pr.id,
         repository_id: repo.id,
         number: pr.number,
@@ -73,11 +72,13 @@ async function trackPullRequest(pr, repo, supabase, logger) {
         changed_files: pr.changed_files,
         commits: pr.commits,
         merged: pr.merged,
-        merged_at: pr.merged_at
-      }, {
-        onConflict: 'github_id'
-      });
-      
+        merged_at: pr.merged_at,
+      },
+      {
+        onConflict: 'github_id',
+      }
+    );
+
     if (error) {
       logger.error('Error tracking PR in database:', error);
     } else {
@@ -97,10 +98,10 @@ async function updatePRStatus(pr, repo, status, supabase, logger) {
         closed_at: status === 'closed' || status === 'merged' ? new Date().toISOString() : null,
         merged: status === 'merged',
         merged_at: status === 'merged' ? new Date().toISOString() : null,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('github_id', pr.id);
-      
+
     if (error) {
       logger.error('Error updating PR status:', error);
     } else {
@@ -122,10 +123,10 @@ async function updatePullRequest(pr, repo, supabase, logger) {
         additions: pr.additions,
         deletions: pr.deletions,
         changed_files: pr.changed_files,
-        commits: pr.commits
+        commits: pr.commits,
       })
       .eq('github_id', pr.id);
-      
+
     if (error) {
       logger.error('Error updating PR:', error);
     } else {

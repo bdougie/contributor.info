@@ -5,23 +5,25 @@ const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPA
 
 async function testSupabaseQueueEndpoint() {
   console.log('Testing Supabase Edge Function queue-event endpoint...\n');
-  
+
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     console.error('❌ Required environment variables are not set');
     console.error('Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY');
-    console.error('Usage: VITE_SUPABASE_URL=your-url VITE_SUPABASE_ANON_KEY=your-key node test-supabase-queue.js');
+    console.error(
+      'Usage: VITE_SUPABASE_URL=your-url VITE_SUPABASE_ANON_KEY=your-key node test-supabase-queue.js'
+    );
     console.error('Or source your .env file first: source .env && node test-supabase-queue.js');
     return;
   }
-  
+
   const testEvent = {
     eventName: 'test/supabase.test',
     data: {
       message: 'Testing Supabase Edge Function for queue-event',
       timestamp: new Date().toISOString(),
       source: 'test-script',
-      endpoint: 'supabase-edge-function'
-    }
+      endpoint: 'supabase-edge-function',
+    },
   };
 
   // Build the endpoint URL dynamically based on environment
@@ -30,25 +32,25 @@ async function testSupabaseQueueEndpoint() {
   try {
     console.log('Sending event to:', queueEventUrl);
     console.log('Event:', JSON.stringify(testEvent, null, 2));
-    
+
     const response = await fetch(queueEventUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
       },
-      body: JSON.stringify(testEvent)
+      body: JSON.stringify(testEvent),
     });
 
     console.log('\nResponse status:', response.status, response.statusText);
-    
+
     // Check if response is JSON before parsing
     const contentType = response.headers.get('content-type');
     if (contentType && contentType.includes('application/json')) {
       const data = await response.json();
       console.log('Response data:', JSON.stringify(data, null, 2));
-      
+
       if (response.ok) {
         console.log('\n✅ Success! Event was queued via Supabase Edge Function');
         console.log('Event ID:', data.eventId);

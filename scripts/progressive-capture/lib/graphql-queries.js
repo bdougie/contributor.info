@@ -362,10 +362,10 @@ export const GET_PR_COMMENTS = `
 
 // Helper function to build dynamic batch queries
 export function buildBatchPRQuery(prNumbers) {
-  const aliases = prNumbers.map((number, index) => 
-    `pr${index}: pullRequest(number: ${number}) { ...PRBasicFragment }`
-  ).join('\n        ');
-  
+  const aliases = prNumbers
+    .map((number, index) => `pr${index}: pullRequest(number: ${number}) { ...PRBasicFragment }`)
+    .join('\n        ');
+
   return `
     query GetBatchPRs($owner: String!, $repo: String!) {
       repository(owner: $owner, name: $repo) {

@@ -13,18 +13,18 @@ const sourceDir = 'src';
 // Find all .ts/.tsx files
 function findFiles(dir, files = []) {
   const items = readdirSync(dir);
-  
+
   for (const item of items) {
     const fullPath = join(dir, item);
     const stat = statSync(fullPath);
-    
+
     if (stat.isDirectory()) {
       findFiles(fullPath, files);
     } else if (['.ts', '.tsx'].includes(extname(item))) {
       files.push(fullPath);
     }
   }
-  
+
   return files;
 }
 
@@ -32,18 +32,16 @@ function findFiles(dir, files = []) {
 function analyzeLucideImports(content, filePath) {
   const lucideImportRegex = /import\s*\{\s*([^}]+)\s*\}\s*from\s*['"]lucide-react['"]/g;
   const matches = Array.from(content.matchAll(lucideImportRegex));
-  
+
   if (matches.length === 0) return null;
-  
-  const icons = matches.flatMap(match => 
-    match[1].split(',').map(icon => icon.trim())
-  );
-  
+
+  const icons = matches.flatMap((match) => match[1].split(',').map((icon) => icon.trim()));
+
   return {
     file: filePath,
     icons: icons,
     count: icons.length,
-    originalImport: matches[0][0]
+    originalImport: matches[0][0],
   };
 }
 
@@ -58,9 +56,9 @@ function iconToFilePath(iconName) {
 
 // Generate optimized import statement
 function generateOptimizedImports(icons) {
-  return icons.map(icon => 
-    `import ${icon} from 'lucide-react/dist/esm/icons/${iconToFilePath(icon)}';`
-  ).join('\n');
+  return icons
+    .map((icon) => `import ${icon} from 'lucide-react/dist/esm/icons/${iconToFilePath(icon)}';`)
+    .join('\n');
 }
 
 console.log('🔍 Analyzing lucide-react imports...\n');
@@ -73,7 +71,7 @@ for (const filePath of files) {
   try {
     const content = readFileSync(filePath, 'utf-8');
     const analysis = analyzeLucideImports(content, filePath);
-    
+
     if (analysis) {
       lucideFiles.push(analysis);
       totalIcons += analysis.count;
@@ -104,8 +102,10 @@ if (lucideFiles.length > 0) {
   console.log(topFile.originalImport);
   console.log('\n✅ Optimized (specific imports):');
   console.log(generateOptimizedImports(topFile.icons));
-  
-  console.log(`\n📈 Potential savings: Only loads ${topFile.count} icons instead of entire lucide-react library`);
+
+  console.log(
+    `\n📈 Potential savings: Only loads ${topFile.count} icons instead of entire lucide-react library`
+  );
 }
 
 console.log('\n🚀 Next steps:');

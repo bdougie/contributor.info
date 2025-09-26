@@ -27,7 +27,8 @@ export async function generatePRInsights(
     // Get contributor data from database
     const { data: contributor } = await supabase
       .from('contributors')
-      .select(`
+      .select(
+        `
         *,
         pull_requests (
           id,
@@ -45,7 +46,8 @@ export async function generatePRInsights(
         comments (
           id
         )
-      `)
+      `
+      )
       .eq('github_login', authorLogin)
       .maybeSingle();
 
@@ -79,9 +81,10 @@ export async function generatePRInsights(
       return approvals.length > 0 && changes.length === 0;
     }).length;
 
-    const firstTimeApprovalRate = prsWithReviews.length > 0 
-      ? Math.round((firstTimeApprovals / prsWithReviews.length) * 100)
-      : 0;
+    const firstTimeApprovalRate =
+      prsWithReviews.length > 0
+        ? Math.round((firstTimeApprovals / prsWithReviews.length) * 100)
+        : 0;
 
     // Get expertise from most touched files/areas
     const expertise = await getContributorExpertise(contributor.id);
@@ -101,10 +104,9 @@ export async function generatePRInsights(
       expertise,
       lastActive,
     };
-
   } catch (error) {
     console.error('Error generating PR insights:', error);
-    
+
     // Return basic info on error
     return {
       login: authorLogin,
@@ -139,48 +141,52 @@ async function getContributorExpertise(contributorId: string): Promise<string[]>
 
     // Analyze file paths to determine expertise
     const expertise = new Set<string>();
-    
+
     for (const fc of fileContributions) {
       const path = fc.file_path.toLowerCase();
-      
+
       // Frontend
       if (path.match(/\.(tsx?|jsx?|vue|svelte)$/)) {
         expertise.add('frontend');
       }
-      
+
       // Backend/API
       if (path.includes('/api/') || path.includes('/server/') || path.match(/\.(py|rb|java|go)$/)) {
         expertise.add('backend');
       }
-      
+
       // Database
       if (path.match(/\.(sql|migration)/) || path.includes('/migrations/')) {
         expertise.add('database');
       }
-      
+
       // Testing
-      if (path.match(/\b(test|spec)\b/) || path.includes('__tests__') || path.includes('.test.') || path.includes('.spec.')) {
+      if (
+        path.match(/\b(test|spec)\b/) ||
+        path.includes('__tests__') ||
+        path.includes('.test.') ||
+        path.includes('.spec.')
+      ) {
         expertise.add('testing');
       }
-      
+
       // DevOps
       if (path.match(/\.(yml|yaml)$/) || path.includes('.github/')) {
         expertise.add('devops');
       }
-      
+
       // Documentation
       if (path.match(/\.(md|mdx|rst)$/)) {
         expertise.add('documentation');
       }
     }
-    
+
     return Array.from(expertise).slice(0, 3);
   } catch (error) {
     console.error('Error getting contributor expertise:', error);
     return [];
   }
 }
-
 
 /**
  * Calculate how long ago the contributor was last active
@@ -191,7 +197,7 @@ function calculateLastActive(lastActiveAt: string | null): string {
   const now = new Date();
   const lastActive = new Date(lastActiveAt);
   const diffMs = now.getTime() - lastActive.getTime();
-  
+
   const minutes = Math.floor(diffMs / 60000);
   const hours = Math.floor(minutes / 60);
   const days = Math.floor(hours / 24);

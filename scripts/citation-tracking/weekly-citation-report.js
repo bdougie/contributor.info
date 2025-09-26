@@ -2,7 +2,7 @@
 
 /**
  * Weekly Citation Report Generator
- * 
+ *
  * Generates a weekly summary of LLM citations and referral traffic
  * Run via: node scripts/citation-tracking/weekly-citation-report.js
  */
@@ -38,7 +38,7 @@ function getLastWeekDateRange() {
   const endDate = new Date();
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - 7);
-  
+
   return {
     start: startDate.toISOString(),
     end: endDate.toISOString(),
@@ -50,7 +50,7 @@ function getLastWeekDateRange() {
  */
 async function getReferralMetrics() {
   const { start, end } = getLastWeekDateRange();
-  
+
   const { data, error } = await supabase
     .from('referral_traffic')
     .select('*')
@@ -71,7 +71,7 @@ async function getReferralMetrics() {
  */
 async function getCitationAlerts() {
   const { start, end } = getLastWeekDateRange();
-  
+
   const { data, error } = await supabase
     .from('citation_alerts')
     .select('*')
@@ -92,7 +92,7 @@ async function getCitationAlerts() {
  */
 async function getQueryPatterns() {
   const { start, end } = getLastWeekDateRange();
-  
+
   const { data, error } = await supabase
     .from('query_patterns')
     .select('*')
@@ -124,16 +124,16 @@ function analyzeReferralData(referrals) {
     dailyTrend: {},
   };
 
-  referrals.forEach(referral => {
+  referrals.forEach((referral) => {
     // AI Platform breakdown
     if (referral.ai_platform) {
-      analysis.aiPlatforms[referral.ai_platform] = 
+      analysis.aiPlatforms[referral.ai_platform] =
         (analysis.aiPlatforms[referral.ai_platform] || 0) + 1;
     }
 
     // Repository breakdown
     if (referral.repository) {
-      analysis.repositories[referral.repository] = 
+      analysis.repositories[referral.repository] =
         (analysis.repositories[referral.repository] || 0) + 1;
     }
 
@@ -161,12 +161,12 @@ function analyzeReferralData(referrals) {
 function generateReport(referrals, alerts, patterns) {
   const analysis = analyzeReferralData(referrals);
   const { start, end } = getLastWeekDateRange();
-  
+
   console.log('\n🚀 WEEKLY LLM CITATION REPORT');
-  console.log('=' .repeat(50));
+  console.log('='.repeat(50));
   console.log(`📅 Period: ${start.split('T')[0]} to ${end.split('T')[0]}`);
   console.log(`⏰ Generated: ${new Date().toISOString()}`);
-  
+
   // Overview
   console.log('\n📊 OVERVIEW');
   console.log('-'.repeat(30));
@@ -181,7 +181,7 @@ function generateReport(referrals, alerts, patterns) {
     console.log('\n🤖 AI PLATFORM BREAKDOWN');
     console.log('-'.repeat(30));
     Object.entries(analysis.aiPlatforms)
-      .sort(([,a], [,b]) => b - a)
+      .sort(([, a], [, b]) => b - a)
       .forEach(([platform, count]) => {
         const percentage = ((count / analysis.total) * 100).toFixed(1);
         console.log(`${platform.padEnd(12)}: ${count.toString().padStart(3)} (${percentage}%)`);
@@ -193,10 +193,12 @@ function generateReport(referrals, alerts, patterns) {
     console.log('\n📁 TOP CITED REPOSITORIES');
     console.log('-'.repeat(30));
     Object.entries(analysis.repositories)
-      .sort(([,a], [,b]) => b - a)
+      .sort(([, a], [, b]) => b - a)
       .slice(0, 10)
       .forEach(([repo, count], index) => {
-        console.log(`${(index + 1).toString().padStart(2)}. ${repo.padEnd(30)}: ${count} citations`);
+        console.log(
+          `${(index + 1).toString().padStart(2)}. ${repo.padEnd(30)}: ${count} citations`
+        );
       });
   }
 
@@ -224,8 +226,12 @@ function generateReport(referrals, alerts, patterns) {
     console.log('\n🔍 TOP QUERY PATTERNS');
     console.log('-'.repeat(30));
     patterns.slice(0, 5).forEach((pattern, index) => {
-      console.log(`${(index + 1).toString().padStart(2)}. [${pattern.pattern_type}] ${pattern.pattern_text}`);
-      console.log(`    Frequency: ${pattern.frequency_count}, Platforms: ${pattern.ai_platforms?.join(', ') || 'N/A'}`);
+      console.log(
+        `${(index + 1).toString().padStart(2)}. [${pattern.pattern_type}] ${pattern.pattern_text}`
+      );
+      console.log(
+        `    Frequency: ${pattern.frequency_count}, Platforms: ${pattern.ai_platforms?.join(', ') || 'N/A'}`
+      );
     });
   }
 
@@ -234,11 +240,13 @@ function generateReport(referrals, alerts, patterns) {
     console.log('\n🚨 CITATION ALERTS');
     console.log('-'.repeat(30));
     alerts.slice(0, 5).forEach((alert, index) => {
-      console.log(`${(index + 1).toString().padStart(2)}. [${alert.alert_source}] ${alert.citation_type || 'Unknown'}`);
+      console.log(
+        `${(index + 1).toString().padStart(2)}. [${alert.alert_source}] ${alert.citation_type || 'Unknown'}`
+      );
       console.log(`    Source: ${alert.source_domain || 'N/A'}`);
       console.log(`    Confidence: ${((alert.confidence_score || 0) * 100).toFixed(1)}%`);
     });
-    
+
     if (alerts.length > 5) {
       console.log(`    ... and ${alerts.length - 5} more alerts`);
     }
@@ -247,7 +255,7 @@ function generateReport(referrals, alerts, patterns) {
   // Recommendations
   console.log('\n💡 RECOMMENDATIONS');
   console.log('-'.repeat(30));
-  
+
   if (analysis.total === 0) {
     console.log('• No citations detected this week. Consider:');
     console.log('  - Reviewing referrer tracking implementation');
@@ -259,13 +267,13 @@ function generateReport(referrals, alerts, patterns) {
       console.log('  - AI platform detection algorithms');
       console.log('  - Landing page analysis for better scoring');
     }
-    
+
     if (Object.keys(analysis.aiPlatforms).length < 2) {
       console.log('• Limited platform diversity. Consider:');
       console.log('  - Expanding referrer detection patterns');
       console.log('  - Monitoring additional AI platforms');
     }
-    
+
     if (alerts.length === 0) {
       console.log('• No manual citations alerts. Consider:');
       console.log('  - Setting up Google Alerts');
@@ -274,7 +282,7 @@ function generateReport(referrals, alerts, patterns) {
   }
 
   console.log('\n🎉 Report complete! View detailed analytics at: /admin/llm-citations');
-  console.log('=' .repeat(50));
+  console.log('='.repeat(50));
 }
 
 /**
@@ -283,7 +291,7 @@ function generateReport(referrals, alerts, patterns) {
 async function main() {
   try {
     console.log('🔍 Generating weekly LLM citation report...');
-    
+
     // Fetch all data in parallel
     const [referrals, alerts, patterns] = await Promise.all([
       getReferralMetrics(),
@@ -298,42 +306,46 @@ async function main() {
 
     // Generate and display report
     generateReport(referrals, alerts, patterns);
-    
+
     // Store report summary in database
-    const { error: insertError } = await supabase
-      .from('citation_metrics')
-      .upsert({
-        metric_date: new Date().toISOString().split('T')[0],
-        total_citations: referrals.length,
-        citations_by_platform: referrals.reduce((acc, r) => {
-          if (r.ai_platform) {
-            acc[r.ai_platform] = (acc[r.ai_platform] || 0) + 1;
+    const { error: insertError } = await supabase.from('citation_metrics').upsert({
+      metric_date: new Date().toISOString().split('T')[0],
+      total_citations: referrals.length,
+      citations_by_platform: referrals.reduce((acc, r) => {
+        if (r.ai_platform) {
+          acc[r.ai_platform] = (acc[r.ai_platform] || 0) + 1;
+        }
+        return acc;
+      }, {}),
+      top_repositories: Object.entries(
+        referrals.reduce((acc, r) => {
+          if (r.repository) {
+            acc[r.repository] = (acc[r.repository] || 0) + 1;
           }
           return acc;
-        }, {}),
-        top_repositories: Object.entries(
-          referrals.reduce((acc, r) => {
-            if (r.repository) {
-              acc[r.repository] = (acc[r.repository] || 0) + 1;
-            }
-            return acc;
-          }, {})
-        ).sort(([,a], [,b]) => b - a).slice(0, 10).map(([repo]) => repo),
-        citation_rate_percent: referrals.length > 0 ? 
-          (referrals.filter(r => (r.citation_confidence || 0) >= 0.7).length / referrals.length) * 100 : 0,
-        metadata: {
-          alerts_count: alerts.length,
-          patterns_count: patterns.length,
-          generated_at: new Date().toISOString(),
-        },
-      });
+        }, {})
+      )
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 10)
+        .map(([repo]) => repo),
+      citation_rate_percent:
+        referrals.length > 0
+          ? (referrals.filter((r) => (r.citation_confidence || 0) >= 0.7).length /
+              referrals.length) *
+            100
+          : 0,
+      metadata: {
+        alerts_count: alerts.length,
+        patterns_count: patterns.length,
+        generated_at: new Date().toISOString(),
+      },
+    });
 
     if (insertError) {
       console.warn('⚠️ Warning: Failed to store report summary in database:', insertError.message);
     } else {
       console.log('✅ Report summary stored in database');
     }
-
   } catch (error) {
     console.error('❌ Error generating report:', error);
     process.exit(1);

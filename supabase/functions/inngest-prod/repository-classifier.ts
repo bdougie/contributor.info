@@ -95,9 +95,7 @@ export class RepositorySizeClassifier {
       });
 
       // Calculate monthly commits (last 4 weeks)
-      const monthlyCommits = commitActivity
-        .slice(-4)
-        .reduce((sum, week) => sum + week.total, 0);
+      const monthlyCommits = commitActivity.slice(-4).reduce((sum, week) => sum + week.total, 0);
 
       // Get contributor statistics
       const { data: contributors } = await this.octokit.repos.getContributorsStats({

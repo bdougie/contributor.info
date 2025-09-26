@@ -200,12 +200,11 @@ describe('Inngest Production Edge Function', () => {
       const client = new GraphQLClient();
 
       // Mock rate limit error
-      vi.spyOn(client, 'getRecentPRs').mockRejectedValue(
-        new Error('GraphQL rate limit exceeded')
-      );
+      vi.spyOn(client, 'getRecentPRs').mockRejectedValue(new Error('GraphQL rate limit exceeded'));
 
-      await expect(client.getRecentPRs('owner', 'repo', '2024-01-01', 100))
-        .rejects.toThrow('GraphQL rate limit exceeded');
+      await expect(client.getRecentPRs('owner', 'repo', '2024-01-01', 100)).rejects.toThrow(
+        'GraphQL rate limit exceeded'
+      );
     });
   });
 
