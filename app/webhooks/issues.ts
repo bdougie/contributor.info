@@ -8,7 +8,7 @@ import { createIssueComment } from '../services/github-api';
  * Handle issue webhook events
  */
 export async function handleIssuesEvent(event: IssuesEvent) {
-  console.log("Issue %s: #${event.issue.number} in ${event.repository.full_name}", event.action);
+  console.log('Issue %s: #${event.issue.number} in ${event.repository.full_name}', event.action);
 
   switch (event.action) {
     case 'opened':
@@ -78,7 +78,7 @@ async function handleIssueOpened(event: IssuesEvent) {
         created_at: event.issue.created_at,
         updated_at: event.issue.updated_at,
         labels: event.issue.labels,
-        assignees: event.issue.assignees.map(a => ({
+        assignees: event.issue.assignees.map((a) => ({
           id: a.id,
           login: a.login,
         })),
@@ -127,7 +127,6 @@ async function handleIssueOpened(event: IssuesEvent) {
         repository_name: event.repository.full_name,
       },
     });
-
   } catch (error) {
     console.error('Error handling issue opened:', error);
     // Re-throw to allow webhook retry
@@ -155,7 +154,6 @@ async function handleIssueClosed(event: IssuesEvent) {
     if (event.issue.closed_at) {
       await checkIfClosedByPR(event.issue, event.repository);
     }
-
   } catch (error) {
     console.error('Error handling issue closed: %o', error);
   }
@@ -175,7 +173,6 @@ async function handleIssueReopened(event: IssuesEvent) {
         updated_at: event.issue.updated_at,
       })
       .eq('github_id', event.issue.id);
-
   } catch (error) {
     console.error('Error handling issue reopened: %s', error);
   }
@@ -203,7 +200,6 @@ async function handleIssueEdited(event: IssuesEvent) {
         repository_id: event.repository.id,
       },
     });
-
   } catch (error) {
     console.error('Error handling issue edited: %s', error);
   }
@@ -221,7 +217,6 @@ async function handleIssueLabeled(event: IssuesEvent) {
         updated_at: event.issue.updated_at,
       })
       .eq('github_id', event.issue.id);
-
   } catch (error) {
     console.error('Error handling issue labeled: %s', error);
   }
@@ -235,14 +230,13 @@ async function handleIssueAssigned(event: IssuesEvent) {
     await supabase
       .from('issues')
       .update({
-        assignees: event.issue.assignees.map(a => ({
+        assignees: event.issue.assignees.map((a) => ({
           id: a.id,
           login: a.login,
         })),
         updated_at: event.issue.updated_at,
       })
       .eq('github_id', event.issue.id);
-
   } catch (error) {
     console.error('Error handling issue assigned: %s', error);
   }
@@ -266,17 +260,18 @@ async function checkForDuplicateIssues(issue: any, repositoryId: string) {
     if (!recentIssues || recentIssues.length === 0) return;
 
     // Simple duplicate detection based on title similarity
-    const potentialDuplicates = recentIssues.filter(existingIssue => {
+    const potentialDuplicates = recentIssues.filter((existingIssue) => {
       const similarity = calculateTitleSimilarity(issue.title, existingIssue.title);
       return similarity > 0.8; // 80% similarity threshold
     });
 
     if (potentialDuplicates.length > 0) {
       // Could post a comment or send a notification
-      console.log(`Issue #${issue.number} might be duplicate of:`, 
-        potentialDuplicates.map(i => `#${i.number}`).join(', '));
+      console.log(
+        `Issue #${issue.number} might be duplicate of:`,
+        potentialDuplicates.map((i) => `#${i.number}`).join(', ')
+      );
     }
-
   } catch (error) {
     console.error('Error checking for duplicates: %s', error);
   }
@@ -297,9 +292,10 @@ async function checkIfClosedByPR(issue: any, repository: any) {
 
     if (linkedPRs && linkedPRs.length > 0) {
       // Update issue with linked PR
-      const closingPR = linkedPRs.find(pr => 
-        pr.body?.toLowerCase().includes(`fixes #${issue.number}`) ||
-        pr.body?.toLowerCase().includes(`closes #${issue.number}`)
+      const closingPR = linkedPRs.find(
+        (pr) =>
+          pr.body?.toLowerCase().includes(`fixes #${issue.number}`) ||
+          pr.body?.toLowerCase().includes(`closes #${issue.number}`)
       );
 
       if (closingPR) {
@@ -311,7 +307,6 @@ async function checkIfClosedByPR(issue: any, repository: any) {
           .eq('github_id', issue.id);
       }
     }
-
   } catch (error) {
     console.error('Error checking if closed by PR: %s', error);
   }
@@ -323,12 +318,12 @@ async function checkIfClosedByPR(issue: any, repository: any) {
 function calculateTitleSimilarity(title1: string, title2: string): number {
   const words1 = title1.toLowerCase().split(/\s+/);
   const words2 = title2.toLowerCase().split(/\s+/);
-  
+
   const set1 = new Set(words1);
   const set2 = new Set(words2);
-  
-  const intersection = new Set([...set1].filter(x => set2.has(x)));
+
+  const intersection = new Set([...set1].filter((x) => set2.has(x)));
   const union = new Set([...set1, ...set2]);
-  
+
   return intersection.size / union.size;
 }

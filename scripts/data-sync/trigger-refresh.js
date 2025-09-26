@@ -3,14 +3,14 @@ import { ProgressiveCaptureTrigger } from './src/lib/progressive-capture/manual-
 async function refreshRepos() {
   const repos = [
     ['continuedev', 'continue'],
-    ['better-auth', 'better-auth'], 
+    ['better-auth', 'better-auth'],
     ['etcd-io', 'etcd'],
     ['argoproj', 'argo-cd'],
-    ['pgvector', 'pgvector']
+    ['pgvector', 'pgvector'],
   ];
-  
+
   console.log('🔄 Refreshing stale example repositories...');
-  
+
   for (const [owner, repo] of repos) {
     console.log(`\n🚀 Triggering refresh for ${owner}/${repo}...`);
     try {
@@ -19,11 +19,11 @@ async function refreshRepos() {
     } catch (error) {
       console.error(`❌ Failed to queue ${owner}/${repo}:`, error.message);
     }
-    
+
     // Small delay between requests
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
   }
-  
+
   console.log('\n🎉 All repositories queued for refresh!');
 }
 

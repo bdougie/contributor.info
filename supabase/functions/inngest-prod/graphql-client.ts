@@ -252,7 +252,7 @@ export class GraphQLClient {
     const cutoff = now - this.WINDOW_SIZE_MS;
 
     // Remove windows older than 1 hour
-    this.metricsWindows = this.metricsWindows.filter(w => w.timestamp > cutoff);
+    this.metricsWindows = this.metricsWindows.filter((w) => w.timestamp > cutoff);
 
     // If we still have too many windows, keep only the most recent
     if (this.metricsWindows.length > this.MAX_WINDOWS) {
@@ -265,7 +265,7 @@ export class GraphQLClient {
     const now = Date.now();
     const currentMinute = Math.floor(now / 60000) * 60000; // Round to nearest minute
 
-    let window = this.metricsWindows.find(w => w.timestamp === currentMinute);
+    let window = this.metricsWindows.find((w) => w.timestamp === currentMinute);
     if (!window) {
       window = {
         timestamp: currentMinute,
@@ -289,7 +289,8 @@ export class GraphQLClient {
     }
 
     // Clean up old windows periodically
-    if (Math.random() < 0.1) { // 10% chance to clean up on each record
+    if (Math.random() < 0.1) {
+      // 10% chance to clean up on each record
       this.cleanupOldWindows();
     }
   }
@@ -310,7 +311,12 @@ export class GraphQLClient {
     return totals;
   }
 
-  async getRecentPRs(owner: string, repo: string, since: string, limit: number = 100): Promise<any[]> {
+  async getRecentPRs(
+    owner: string,
+    repo: string,
+    since: string,
+    limit: number = 100
+  ): Promise<any[]> {
     try {
       console.log(`Fetching recent PRs for ${owner}/${repo} since ${since}`);
 
@@ -387,12 +393,10 @@ export class GraphQLClient {
     const metrics = this.getAggregatedMetrics();
     return {
       ...metrics,
-      averagePointsPerQuery: metrics.totalQueries > 0
-        ? metrics.totalPointsUsed / metrics.totalQueries
-        : 0,
-      fallbackRate: metrics.totalQueries > 0
-        ? (metrics.fallbackCount / metrics.totalQueries) * 100
-        : 0,
+      averagePointsPerQuery:
+        metrics.totalQueries > 0 ? metrics.totalPointsUsed / metrics.totalQueries : 0,
+      fallbackRate:
+        metrics.totalQueries > 0 ? (metrics.fallbackCount / metrics.totalQueries) * 100 : 0,
       rateLimit: this.rateLimit,
       windowCount: this.metricsWindows.length,
       windowPeriod: '1 hour rolling window',

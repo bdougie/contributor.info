@@ -24,12 +24,12 @@ function calculateCost(usage: any, model: string): number {
 
   // OpenAI pricing per 1M tokens (as of 2025)
   const pricing: Record<string, { input: number; output: number }> = {
-    'gpt-4o': { input: 2.50, output: 10.00 },
-    'gpt-4o-mini': { input: 0.15, output: 0.60 },
-    'gpt-4-turbo': { input: 10.00, output: 30.00 },
-    'gpt-4': { input: 30.00, output: 60.00 },
-    'gpt-3.5-turbo': { input: 0.50, output: 1.50 },
-    'gpt-4-1106-preview': { input: 10.00, output: 30.00 }, // Fallback for older model
+    'gpt-4o': { input: 2.5, output: 10.0 },
+    'gpt-4o-mini': { input: 0.15, output: 0.6 },
+    'gpt-4-turbo': { input: 10.0, output: 30.0 },
+    'gpt-4': { input: 30.0, output: 60.0 },
+    'gpt-3.5-turbo': { input: 0.5, output: 1.5 },
+    'gpt-4-1106-preview': { input: 10.0, output: 30.0 }, // Fallback for older model
   };
 
   const modelPricing = pricing[model] || pricing['gpt-4o-mini']; // fallback
@@ -60,7 +60,9 @@ serve(async (req) => {
     // Validate OpenAI API key with more specific error message
     if (!openaiApiKey) {
       console.error('OpenAI API key missing');
-      throw new Error('OpenAI API key is not configured in the edge function environment. Please add OPENAI_API_KEY to your Supabase project settings.');
+      throw new Error(
+        'OpenAI API key is not configured in the edge function environment. Please add OPENAI_API_KEY to your Supabase project settings.'
+      );
     }
 
     // Validate pull requests data
@@ -84,7 +86,7 @@ serve(async (req) => {
 
     // Format PRs for the prompt
     const formatPRList = (prs: PullRequest[]) => {
-      return prs.map(pr => `#${pr.number}: ${pr.title} (${pr.html_url})`).join('\n');
+      return prs.map((pr) => `#${pr.number}: ${pr.title} (${pr.html_url})`).join('\n');
     };
 
     const prompt = `Analyze these GitHub Pull Requests and provide insights:
@@ -111,12 +113,12 @@ Format the response in clear markdown sections.`;
       try {
         const posthogModule = await import('npm:posthog-node');
         const PostHogClass = posthogModule.PostHog || (posthogModule as any).default?.PostHog;
-        
+
         if (!PostHogClass) {
           throw new Error('PostHog class not found');
         }
-        
-        posthogClient = new PostHogClass(posthogApiKey, { 
+
+        posthogClient = new PostHogClass(posthogApiKey, {
           host: posthogHost,
         });
         console.log('PostHog initialized for tracking');
@@ -136,7 +138,7 @@ Format the response in clear markdown sections.`;
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${openaiApiKey}`,
+          Authorization: `Bearer ${openaiApiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -144,12 +146,13 @@ Format the response in clear markdown sections.`;
           messages: [
             {
               role: 'system',
-              content: 'You are an expert software development analyst. Analyze GitHub pull requests and provide clear, actionable insights.'
+              content:
+                'You are an expert software development analyst. Analyze GitHub pull requests and provide clear, actionable insights.',
             },
             {
               role: 'user',
-              content: prompt
-            }
+              content: prompt,
+            },
           ],
           temperature: 0.7,
         }),
@@ -163,7 +166,7 @@ Format the response in clear markdown sections.`;
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
         console.error('OpenAI API error:', errorData);
-        
+
         // Provide more specific error messages based on status codes
         let errorMessage = 'An error occurred while calling the OpenAI API';
         if (response.status === 401) {
@@ -173,13 +176,13 @@ Format the response in clear markdown sections.`;
         } else if (response.status >= 500) {
           errorMessage = 'OpenAI API service is currently unavailable. Please try again later.';
         }
-        
+
         throw new Error(`${errorMessage} (Status: ${response.status})`);
       }
 
       const data = await response.json();
       console.log('OpenAI API response received');
-      
+
       if (!data.choices?.[0]?.message?.content) {
         console.error('Invalid response format from OpenAI API:', data);
         throw new Error('Invalid response format from OpenAI API');
@@ -192,7 +195,7 @@ Format the response in clear markdown sections.`;
       if (posthogClient) {
         try {
           const cost = calculateCost(data.usage, data.model);
-          
+
           posthogClient.capture({
             distinctId: userId || 'anonymous',
             event: '$ai_generation',
@@ -204,7 +207,7 @@ Format the response in clear markdown sections.`;
               $ai_cost_dollars: cost,
               $ai_latency_ms: latency,
               $ai_provider: 'openai',
-              
+
               // Custom properties
               feature: 'pr-insights',
               repository: repository,
@@ -225,15 +228,12 @@ Format the response in clear markdown sections.`;
 
       console.log('Function completed successfully');
 
-      return new Response(
-        JSON.stringify({ insights }),
-        {
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json',
-          },
+      return new Response(JSON.stringify({ insights }), {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
         },
-      );
+      });
     } catch (error) {
       // Track the error with PostHog
       if (posthogClient) {
@@ -266,7 +266,7 @@ Format the response in clear markdown sections.`;
     }
   } catch (error) {
     console.error('Edge function error:', error);
-    
+
     // Provide more specific error messages
     let errorMessage = error.message;
     let status = 500;
@@ -278,9 +278,9 @@ Format the response in clear markdown sections.`;
     }
 
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         error: errorMessage,
-        details: error.message
+        details: error.message,
       }),
       {
         status,
@@ -288,7 +288,7 @@ Format the response in clear markdown sections.`;
           ...corsHeaders,
           'Content-Type': 'application/json',
         },
-      },
+      }
     );
   }
 });

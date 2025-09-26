@@ -14,7 +14,6 @@ import {
   Calendar,
   Globe,
   Users,
-  Github,
   TrendingUp,
   TrendingDown,
   Minus,
@@ -22,12 +21,16 @@ import {
   Plus,
   Loader2,
 } from '@/components/ui/icon';
+import { GroupManagementCTA } from '@/components/ui/permission-upgrade-cta';
+import { useWorkspacePermissions } from '@/hooks/useWorkspacePermissions';
+import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 import { humanizeNumber } from '@/lib/utils';
 import { useContributorActivity } from '@/hooks/useContributorActivity';
 import type { Contributor } from './ContributorsList';
 import type { ContributorGroup } from './ContributorsTable';
 import type { ContributorNote } from './ContributorNotesDialog';
+import type { WorkspaceRole, WorkspaceTier } from '@/types/workspace';
 
 export interface Activity {
   id: string;
@@ -50,6 +53,10 @@ export interface ContributorProfileModalProps {
   onManageGroups?: () => void;
   onAddNote?: () => void;
   isFiltered?: boolean; // Whether this group is being used for filtering
+  // Permission context
+  userRole?: WorkspaceRole;
+  workspaceTier?: WorkspaceTier;
+  isLoggedIn?: boolean;
 }
 
 function getRelativeTime(date: string) {
@@ -106,9 +113,20 @@ export function ContributorProfileModal({
   workspaceId,
   onManageGroups,
   onAddNote,
+  userRole,
+  workspaceTier,
+  isLoggedIn = false,
 }: ContributorProfileModalProps) {
   const [activeTab, setActiveTab] = useState('overview');
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const { login } = useAuth();
+
+  // Permission checks
+  const permissions = useWorkspacePermissions({
+    userRole,
+    workspaceTier,
+    isLoggedIn,
+  });
 
   // Fetch contributor activity
   const {
@@ -116,7 +134,7 @@ export function ContributorProfileModal({
     loading: activityLoading,
     error: activityError,
     hasMore,
-    loadMore
+    loadMore,
   } = useContributorActivity({
     contributorUsername: contributor?.username,
     workspaceId,
@@ -174,15 +192,24 @@ export function ContributorProfileModal({
                       {group.name}
                     </Badge>
                   ))}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={onManageGroups}
-                    className="h-6 text-xs"
-                  >
-                    <Plus className="h-3 w-3 mr-1" />
-                    Add to Group
-                  </Button>
+                  {permissions.canAssignContributorsToGroups ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={onManageGroups}
+                      className="h-6 text-xs"
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Add to Group
+                    </Button>
+                  ) : (
+                    <GroupManagementCTA
+                      message={permissions.getGroupAssignmentMessage()}
+                      variant="inline"
+                      size="sm"
+                      showAction={false}
+                    />
+                  )}
                 </div>
               </div>
             </div>
@@ -192,7 +219,6 @@ export function ContributorProfileModal({
                 size="sm"
                 onClick={() => window.open(`https://github.com/${contributor.username}`, '_blank')}
               >
-                <Github className="h-4 w-4 mr-1" />
                 GitHub Profile
               </Button>
             </div>
@@ -301,7 +327,8 @@ export function ContributorProfileModal({
                   ref={scrollAreaRef}
                   onScrollCapture={(e) => {
                     const target = e.currentTarget;
-                    const scrollPercentage = (target.scrollTop + target.clientHeight) / target.scrollHeight;
+                    const scrollPercentage =
+                      (target.scrollTop + target.clientHeight) / target.scrollHeight;
 
                     // Load more when user scrolls to 80% of content
                     if (scrollPercentage > 0.8 && hasMore && !activityLoading) {
@@ -321,67 +348,74 @@ export function ContributorProfileModal({
                     }
                     if (activities.length > 0 || activityLoading) {
                       return (
-                    <div className="space-y-3">
-                      {activities.map((activity) => (
-                        <div
-                          key={activity.id}
-                          className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors"
-                        >
-                          <div
-                            className={cn('mt-1', getActivityColor(activity.type, activity.state))}
-                          >
-                            {getActivityIcon(activity.type)}
-                          </div>
-                          <div className="flex-1 min-w-0 overflow-hidden">
-                            <a
-                              href={activity.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="font-medium hover:underline line-clamp-2 text-sm block"
+                        <div className="space-y-3">
+                          {activities.map((activity) => (
+                            <div
+                              key={activity.id}
+                              className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors"
                             >
-                              {activity.title}
-                            </a>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                              <span className="truncate max-w-[150px]">{activity.repository}</span>
-                              <span className="flex-shrink-0">•</span>
-                              <span className="flex-shrink-0">{getRelativeTime(activity.created_at)}</span>
-                              {activity.state && (
-                                <>
+                              <div
+                                className={cn(
+                                  'mt-1',
+                                  getActivityColor(activity.type, activity.state)
+                                )}
+                              >
+                                {getActivityIcon(activity.type)}
+                              </div>
+                              <div className="flex-1 min-w-0 overflow-hidden">
+                                <a
+                                  href={activity.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="font-medium hover:underline line-clamp-2 text-sm block"
+                                >
+                                  {activity.title}
+                                </a>
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                                  <span className="truncate max-w-[150px]">
+                                    {activity.repository}
+                                  </span>
                                   <span className="flex-shrink-0">•</span>
-                                  <Badge variant="outline" className="text-xs capitalize h-5 px-1 flex-shrink-0">
-                                    {activity.state}
-                                  </Badge>
-                                </>
-                              )}
+                                  <span className="flex-shrink-0">
+                                    {getRelativeTime(activity.created_at)}
+                                  </span>
+                                  {activity.state && (
+                                    <>
+                                      <span className="flex-shrink-0">•</span>
+                                      <Badge
+                                        variant="outline"
+                                        className="text-xs capitalize h-5 px-1 flex-shrink-0"
+                                      >
+                                        {activity.state}
+                                      </Badge>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                        </div>
-                      ))}
+                          ))}
 
-                      {activityLoading && (
-                        <div className="flex items-center justify-center py-4">
-                          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                          <span className="ml-2 text-sm text-muted-foreground">Loading more activity...</span>
-                        </div>
-                      )}
+                          {activityLoading && (
+                            <div className="flex items-center justify-center py-4">
+                              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                              <span className="ml-2 text-sm text-muted-foreground">
+                                Loading more activity...
+                              </span>
+                            </div>
+                          )}
 
-                      {!activityLoading && hasMore && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={loadMore}
-                          className="w-full"
-                        >
-                          Load More
-                        </Button>
-                      )}
+                          {!activityLoading && hasMore && (
+                            <Button variant="ghost" size="sm" onClick={loadMore} className="w-full">
+                              Load More
+                            </Button>
+                          )}
 
-                      {!hasMore && activities.length > 0 && (
-                        <div className="text-center py-4 text-sm text-muted-foreground">
-                          No more activity to load
+                          {!hasMore && activities.length > 0 && (
+                            <div className="text-center py-4 text-sm text-muted-foreground">
+                              No more activity to load
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
                       );
                     }
                     return (
@@ -406,39 +440,60 @@ export function ContributorProfileModal({
                       Context and information about this contributor
                     </CardDescription>
                   </div>
-                  <Button size="sm" onClick={onAddNote}>
-                    <MessageSquare className="h-4 w-4 mr-1" />
-                    Add Note
-                  </Button>
+                  {permissions.canAssignContributorsToGroups && (
+                    <Button size="sm" onClick={onAddNote}>
+                      <MessageSquare className="h-4 w-4 mr-1" />
+                      Add Note
+                    </Button>
+                  )}
                 </div>
               </CardHeader>
               <CardContent className="p-0">
-                <ScrollArea className="h-[400px] px-6 py-4">
-                  {notes.length > 0 ? (
-                    <div className="space-y-3">
-                      {notes.map((note) => (
-                        <div key={note.id} className="p-3 border rounded-lg space-y-2 overflow-hidden">
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <span className="font-medium truncate">
-                              {note.created_by.display_name || note.created_by.email}
-                            </span>
-                            <span className="flex-shrink-0">•</span>
-                            <span className="flex-shrink-0">{getRelativeTime(note.created_at)}</span>
+                {permissions.canViewNotes ? (
+                  <ScrollArea className="h-[400px] px-6 py-4">
+                    {notes.length > 0 ? (
+                      <div className="space-y-3">
+                        {notes.map((note) => (
+                          <div
+                            key={note.id}
+                            className="p-3 border rounded-lg space-y-2 overflow-hidden"
+                          >
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <span className="font-medium truncate">
+                                {note.created_by.display_name || note.created_by.email}
+                              </span>
+                              <span className="flex-shrink-0">•</span>
+                              <span className="flex-shrink-0">
+                                {getRelativeTime(note.created_at)}
+                              </span>
+                            </div>
+                            <p className="text-sm whitespace-pre-wrap break-words">{note.note}</p>
                           </div>
-                          <p className="text-sm whitespace-pre-wrap break-words">{note.note}</p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <MessageSquare className="mx-auto h-10 w-10 text-muted-foreground" />
-                      <p className="mt-2 text-sm text-muted-foreground">No notes yet</p>
-                      <Button variant="outline" size="sm" onClick={onAddNote} className="mt-4">
-                        Add First Note
-                      </Button>
-                    </div>
-                  )}
-                </ScrollArea>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <MessageSquare className="mx-auto h-10 w-10 text-muted-foreground" />
+                        <p className="mt-2 text-sm text-muted-foreground">No notes yet</p>
+                        {permissions.canAssignContributorsToGroups && (
+                          <Button variant="outline" size="sm" onClick={onAddNote} className="mt-4">
+                            Add First Note
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </ScrollArea>
+                ) : (
+                  <div className="px-6 py-8">
+                    <GroupManagementCTA
+                      message={permissions.getGroupAssignmentMessage()}
+                      variant="card"
+                      size="md"
+                      showAction={true}
+                      onAction={!isLoggedIn ? login : undefined}
+                    />
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

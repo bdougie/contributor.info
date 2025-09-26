@@ -17,8 +17,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Trash2, Users, Plus, Settings, AlertCircle } from '@/components/ui/icon';
+import { GroupManagementCTA } from '@/components/ui/permission-upgrade-cta';
+import { useGroupManagementPermissions } from '@/hooks/useWorkspacePermissions';
 import type { ContributorGroup } from './ContributorsTable';
 import type { Contributor } from './ContributorsList';
+import type { WorkspaceRole, WorkspaceTier } from '@/types/workspace';
 
 export interface ContributorGroupManagerProps {
   open: boolean;
@@ -27,11 +30,16 @@ export interface ContributorGroupManagerProps {
   contributors: Contributor[];
   contributorGroups: Map<string, string[]>; // contributorId -> groupIds[]
   selectedContributorId?: string; // If managing groups for a specific contributor
+  selectedContributorIds?: Set<string>; // Multiple selected contributors for bulk operations
   onCreateGroup: (name: string, description: string) => Promise<void>;
   onUpdateGroup: (groupId: string, name: string, description: string) => Promise<void>;
   onDeleteGroup: (groupId: string) => Promise<void>;
   onAddContributorToGroup: (contributorId: string, groupId: string) => Promise<void>;
   onRemoveContributorFromGroup: (contributorId: string, groupId: string) => Promise<void>;
+  // Permission context
+  userRole?: WorkspaceRole;
+  workspaceTier?: WorkspaceTier;
+  isLoggedIn?: boolean;
 }
 
 export function ContributorGroupManager({
@@ -41,15 +49,28 @@ export function ContributorGroupManager({
   contributors,
   contributorGroups,
   selectedContributorId,
+  selectedContributorIds,
   onCreateGroup,
   onUpdateGroup,
   onDeleteGroup,
   onAddContributorToGroup,
   onRemoveContributorFromGroup,
+  userRole,
+  workspaceTier,
+  isLoggedIn = false,
 }: ContributorGroupManagerProps) {
-  const [activeTab, setActiveTab] = useState(selectedContributorId ? 'assign' : 'manage');
+  // Determine selected contributors - prioritize multiple selection over single
+  const hasSelection = selectedContributorIds?.size || selectedContributorId;
+  const [activeTab, setActiveTab] = useState(hasSelection ? 'assign' : 'manage');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Permission checks
+  const permissions = useGroupManagementPermissions({
+    userRole,
+    workspaceTier,
+    isLoggedIn,
+  });
 
   // Create group form state
   const [newGroupName, setNewGroupName] = useState('');
@@ -114,26 +135,6 @@ export function ContributorGroupManager({
     }
   };
 
-  const toggleContributorInGroup = async (contributorId: string, groupId: string) => {
-    const currentGroups = contributorGroups.get(contributorId) || [];
-    const isInGroup = currentGroups.includes(groupId);
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      if (isInGroup) {
-        await onRemoveContributorFromGroup(contributorId, groupId);
-      } else {
-        await onAddContributorToGroup(contributorId, groupId);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update group membership');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const startEditingGroup = (group: ContributorGroup) => {
     setEditingGroup(group);
     setEditName(group.name);
@@ -165,20 +166,27 @@ export function ContributorGroupManager({
           </TabsList>
 
           <TabsContent value="manage" className="space-y-4">
-            <ScrollArea className="h-[400px] pr-4">
-              {groups.length === 0 ? (
-                <div className="text-center py-8">
-                  <Users className="mx-auto h-12 w-12 text-muted-foreground" />
-                  <h3 className="mt-2 text-sm font-semibold">No groups yet</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Create your first group to start organizing contributors
-                  </p>
-                  <Button className="mt-4" onClick={() => setActiveTab('create')}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Create Group
-                  </Button>
-                </div>
-              ) : (
+            {!permissions.canManageGroups ? (
+              <GroupManagementCTA
+                message={permissions.getGroupManagementMessage()}
+                variant="card"
+                size="md"
+              />
+            ) : (
+              <ScrollArea className="h-[400px] pr-4">
+                {groups.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Users className="mx-auto h-12 w-12 text-muted-foreground" />
+                    <h3 className="mt-2 text-sm font-semibold">No groups yet</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Create your first group to start organizing contributors
+                    </p>
+                    <Button className="mt-4" onClick={() => setActiveTab('create')}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Create Group
+                    </Button>
+                  </div>
+                ) : (
                 <div className="space-y-2">
                   {groups.map((group) => {
                     const memberCount = contributors.filter((c) =>
@@ -258,114 +266,173 @@ export function ContributorGroupManager({
                     );
                   })}
                 </div>
-              )}
-            </ScrollArea>
+                )}
+              </ScrollArea>
+            )}
           </TabsContent>
 
           <TabsContent value="create" className="space-y-4">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Group Name</Label>
-                <Input
-                  id="name"
-                  value={newGroupName}
-                  onChange={(e) => setNewGroupName(e.target.value)}
-                  placeholder="e.g., Core Maintainers"
-                  disabled={loading}
-                />
+            {!permissions.canManageGroups ? (
+              <GroupManagementCTA
+                message={permissions.getGroupManagementMessage()}
+                variant="card"
+                size="md"
+              />
+            ) : (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Group Name</Label>
+                  <Input
+                    id="name"
+                    value={newGroupName}
+                    onChange={(e) => setNewGroupName(e.target.value)}
+                    placeholder="e.g., Core Maintainers"
+                    disabled={loading}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description (Optional)</Label>
+                  <Textarea
+                    id="description"
+                    value={newGroupDescription}
+                    onChange={(e) => setNewGroupDescription(e.target.value)}
+                    placeholder="Describe the purpose of this group..."
+                    rows={3}
+                    disabled={loading}
+                  />
+                </div>
+                <Button
+                  onClick={handleCreateGroup}
+                  disabled={loading || !newGroupName.trim()}
+                  className="w-full"
+                >
+                  Create Group
+                </Button>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="description">Description (Optional)</Label>
-                <Textarea
-                  id="description"
-                  value={newGroupDescription}
-                  onChange={(e) => setNewGroupDescription(e.target.value)}
-                  placeholder="Describe the purpose of this group..."
-                  rows={3}
-                  disabled={loading}
-                />
-              </div>
-              <Button
-                onClick={handleCreateGroup}
-                disabled={loading || !newGroupName.trim()}
-                className="w-full"
-              >
-                Create Group
-              </Button>
-            </div>
+            )}
           </TabsContent>
 
           <TabsContent value="assign" className="space-y-4">
-            <div className="space-y-4">
-              {selectedContributorId ? (
-                // Single contributor mode
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3 p-3 border rounded-lg">
-                    {contributors
-                      .filter((c) => c.id === selectedContributorId)
-                      .map((contributor) => (
-                        <div key={contributor.id} className="flex items-center gap-3">
-                          <img
-                            src={contributor.avatar_url}
-                            alt={contributor.username}
-                            className="h-8 w-8 rounded-full"
-                          />
-                          <div>
-                            <p className="font-medium">
-                              {contributor.name || contributor.username}
-                            </p>
-                            <p className="text-sm text-muted-foreground">@{contributor.username}</p>
-                          </div>
+            {!permissions.canAssignContributorsToGroups ? (
+              <GroupManagementCTA
+                message={permissions.getGroupAssignmentMessage()}
+                variant="card"
+                size="md"
+              />
+            ) : (
+              <div className="space-y-4">
+                {/* Determine which contributors are selected */}
+                {(() => {
+                  // Use selectedContributorIds if available, otherwise fall back to single selectedContributorId
+                  const selectedIds = selectedContributorIds?.size
+                    ? Array.from(selectedContributorIds)
+                    : selectedContributorId
+                      ? [selectedContributorId]
+                      : [];
+
+                  if (selectedIds.length === 0) {
+                    return (
+                      <Alert>
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>
+                          No contributors selected. Please select contributors from the table to manage their group assignments.
+                        </AlertDescription>
+                      </Alert>
+                    );
+                  }
+
+                  const selectedContributorsList = contributors.filter((c) => selectedIds.includes(c.id));
+
+                  return (
+                    <div className="space-y-3">
+                      {/* Show selected contributors */}
+                      <div className="p-3 border rounded-lg">
+                        <Label className="text-sm mb-2 block">Selected Contributors ({selectedContributorsList.length})</Label>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedContributorsList
+                            .map((contributor) => (
+                              <div key={contributor.id} className="flex items-center gap-2 p-1 border rounded">
+                                <img
+                                  src={contributor.avatar_url}
+                                  alt={contributor.username}
+                                  className="h-6 w-6 rounded-full"
+                                />
+                                <span className="text-sm">@{contributor.username}</span>
+                              </div>
+                            ))}
                         </div>
-                      ))}
-                  </div>
-                  <Label>Assign to Groups</Label>
-                  <ScrollArea className="h-[300px]">
-                    {groups.map((group) => {
-                      const isInGroup = (
-                        contributorGroups.get(selectedContributorId) || []
-                      ).includes(group.id);
-                      return (
-                        <div
-                          key={group.id}
-                          className="flex items-center space-x-2 p-2 hover:bg-muted/50 rounded"
-                        >
-                          <Checkbox
-                            id={`group-${group.id}`}
-                            checked={isInGroup}
-                            onCheckedChange={() =>
-                              toggleContributorInGroup(selectedContributorId, group.id)
-                            }
-                            disabled={loading}
-                          />
-                          <label htmlFor={`group-${group.id}`} className="flex-1 cursor-pointer">
-                            <div className="flex items-center gap-2">
-                              <Badge variant="secondary">{group.name}</Badge>
-                              {group.is_system && (
-                                <Badge variant="outline" className="text-xs">
-                                  System
-                                </Badge>
-                              )}
+                      </div>
+
+                      <div>
+                        <Label>Assign to Groups</Label>
+                        <ScrollArea className="h-[300px] mt-2">
+                          {groups.length === 0 ? (
+                            <div className="text-center py-8">
+                              <p className="text-sm text-muted-foreground">
+                                No groups available. Create a group first.
+                              </p>
                             </div>
-                          </label>
-                        </div>
-                      );
-                    })}
-                  </ScrollArea>
-                </div>
-              ) : (
-                // Multi-select mode
-                <div className="text-center py-8">
-                  <Users className="mx-auto h-12 w-12 text-muted-foreground" />
-                  <h3 className="mt-2 text-sm font-semibold">
-                    Select contributors to manage groups
-                  </h3>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Choose contributors from the table to assign them to groups
-                  </p>
-                </div>
-              )}
-            </div>
+                          ) : (
+                            groups.map((group) => {
+                              // Check if ALL selected contributors are in this group
+                              const allInGroup = selectedIds.every((id) =>
+                                (contributorGroups.get(id) || []).includes(group.id)
+                              );
+                              // Check if SOME (but not all) are in this group
+                              const someInGroup = selectedIds.some((id) =>
+                                (contributorGroups.get(id) || []).includes(group.id)
+                              ) && !allInGroup;
+
+                              return (
+                                <div
+                                  key={group.id}
+                                  className="flex items-center space-x-2 p-2 hover:bg-muted/50 rounded"
+                                >
+                                  <Checkbox
+                                    id={`group-${group.id}`}
+                                    checked={someInGroup ? 'indeterminate' : allInGroup}
+                                    onCheckedChange={async (checked) => {
+                                      // If indeterminate (some selected), checking means select all
+                                      const shouldAdd = someInGroup || checked;
+
+                                      // Handle bulk assignment/removal
+                                      for (const contributorId of selectedIds) {
+                                        const currentlyInGroup = (contributorGroups.get(contributorId) || []).includes(group.id);
+                                        if (shouldAdd && !currentlyInGroup) {
+                                          await onAddContributorToGroup(contributorId, group.id);
+                                        } else if (!shouldAdd && currentlyInGroup) {
+                                          await onRemoveContributorFromGroup(contributorId, group.id);
+                                        }
+                                      }
+                                    }}
+                                    disabled={loading}
+                                  />
+                                  <label htmlFor={`group-${group.id}`} className="flex-1 cursor-pointer">
+                                    <div className="flex items-center gap-2">
+                                      <Badge variant="secondary">{group.name}</Badge>
+                                      {group.is_system && (
+                                        <Badge variant="outline" className="text-xs">
+                                          System
+                                        </Badge>
+                                      )}
+                                      <span className="text-xs text-muted-foreground">
+                                        ({contributors.filter((c) =>
+                                          (contributorGroups.get(c.id) || []).includes(group.id)
+                                        ).length} members)
+                                      </span>
+                                    </div>
+                                  </label>
+                                </div>
+                              );
+                            })
+                          )}
+                        </ScrollArea>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
           </TabsContent>
         </Tabs>
 

@@ -19,7 +19,9 @@ export type WorkspacePermission =
   | 'change_member_role'
   | 'view_analytics'
   | 'export_data'
-  | 'manage_billing';
+  | 'manage_billing'
+  | 'manage_contributor_groups'
+  | 'assign_contributors_to_groups';
 
 /**
  * Role permission matrix
@@ -37,6 +39,23 @@ const ROLE_PERMISSIONS: Record<WorkspaceRole, WorkspacePermission[]> = {
     'view_analytics',
     'export_data',
     'manage_billing',
+    'manage_contributor_groups',
+    'assign_contributors_to_groups',
+  ],
+  admin: [
+    'view_workspace',
+    'edit_workspace',
+    'delete_workspace',
+    'add_repository',
+    'remove_repository',
+    'invite_member',
+    'remove_member',
+    'change_member_role',
+    'view_analytics',
+    'export_data',
+    'manage_billing',
+    'manage_contributor_groups',
+    'assign_contributors_to_groups',
   ],
   maintainer: [
     'view_workspace',
@@ -48,8 +67,19 @@ const ROLE_PERMISSIONS: Record<WorkspaceRole, WorkspacePermission[]> = {
     'change_member_role', // Can only change contributor roles
     'view_analytics',
     'export_data',
+    'manage_contributor_groups',
+    'assign_contributors_to_groups',
+  ],
+  editor: [
+    'view_workspace',
+    'edit_workspace',
+    'add_repository',
+    'view_analytics',
+    'manage_contributor_groups',
+    'assign_contributors_to_groups',
   ],
   contributor: ['view_workspace', 'view_analytics'],
+  viewer: ['view_workspace'],
 };
 
 /**
@@ -74,12 +104,13 @@ export class WorkspacePermissionService {
 
     // Additional context-based checks
     if (context?.targetRole && permission === 'change_member_role') {
-      // Maintainers can only change contributor roles
-      if (role === 'maintainer' && context.targetRole !== 'contributor') {
+      // Maintainers and editors can only change contributor/viewer roles
+      if ((role === 'maintainer' || role === 'editor') &&
+          context.targetRole !== 'contributor' && context.targetRole !== 'viewer') {
         return false;
       }
-      // Cannot change owner role
-      if (context.targetRole === 'owner') {
+      // Cannot change owner or admin role
+      if (context.targetRole === 'owner' || context.targetRole === 'admin') {
         return false;
       }
     }
@@ -498,6 +529,8 @@ export class WorkspacePermissionService {
           ? 'Data export is available in Pro and Team plans'
           : 'You do not have permission to export data',
       manage_billing: 'Only workspace owners can manage billing',
+      manage_contributor_groups: 'Only owners and maintainers can manage contributor groups',
+      assign_contributors_to_groups: 'Only owners and maintainers can assign contributors to groups',
     };
 
     return messages[action] ?? 'You do not have permission to perform this action';

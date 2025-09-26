@@ -2,7 +2,7 @@
 
 /**
  * Data Gap Validation System
- * 
+ *
  * Validates that there are no data gaps between Inngest and GitHub Actions processing
  * Ensures data consistency and completeness across both systems
  */
@@ -11,25 +11,22 @@ const { createClient } = require('@supabase/supabase-js');
 
 class DataGapValidator {
   constructor() {
-    this.supabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_KEY
-    );
-    
+    this.supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+
     this.validationRules = {
       temporal: {
         maxGapMinutes: 60, // Max acceptable gap between jobs
-        overlapToleranceMinutes: 5 // Acceptable overlap between jobs
+        overlapToleranceMinutes: 5, // Acceptable overlap between jobs
       },
       data: {
         minDataPoints: 1, // Minimum data points per job
         maxDuplicateRate: 0.05, // Max 5% duplicate data acceptable
-        requiredFields: ['repository_id', 'created_at', 'status']
+        requiredFields: ['repository_id', 'created_at', 'status'],
       },
       consistency: {
         maxTimeDifference: 300000, // 5 minutes max difference for same data
-        requiredCoverage: 0.95 // 95% data coverage required
-      }
+        requiredCoverage: 0.95, // 95% data coverage required
+      },
     };
   }
 
@@ -38,23 +35,23 @@ class DataGapValidator {
    */
   async validateDataGaps() {
     console.log('🔍 Starting comprehensive data gap validation...\n');
-    
+
     try {
       const validationResults = {
         temporal: await this.validateTemporalGaps(),
         consistency: await this.validateDataConsistency(),
         completeness: await this.validateDataCompleteness(),
         duplicates: await this.validateDuplicates(),
-        cross_system: await this.validateCrossSystemConsistency()
+        cross_system: await this.validateCrossSystemConsistency(),
       };
-      
+
       console.log('📊 Validation Results Summary:');
       this.displayValidationResults(validationResults);
-      
+
       const overallStatus = this.calculateOverallStatus(validationResults);
       console.log(`\n🎯 Overall Data Integrity: ${overallStatus.status.toUpperCase()}`);
       console.log(`   Score: ${overallStatus.score}/100`);
-      
+
       // Generate recommendations
       const recommendations = this.generateRecommendations(validationResults);
       if (recommendations.length > 0) {
@@ -63,12 +60,11 @@ class DataGapValidator {
           console.log(`  ${index + 1}. ${rec}`);
         });
       }
-      
+
       // Save validation report
       await this.generateValidationReport(validationResults, overallStatus, recommendations);
-      
+
       return overallStatus.status === 'excellent' || overallStatus.status === 'good';
-      
     } catch (error) {
       console.error('❌ Data gap validation failed:', error);
       return false;
@@ -80,14 +76,14 @@ class DataGapValidator {
    */
   async validateTemporalGaps() {
     console.log('⏰ Validating temporal gaps...');
-    
+
     const results = {
       gaps: [],
       overlaps: [],
       totalGaps: 0,
       maxGapMinutes: 0,
       avgGapMinutes: 0,
-      status: 'unknown'
+      status: 'unknown',
     };
 
     // Get all jobs from last 7 days
@@ -117,29 +113,30 @@ class DataGapValidator {
       for (let i = 1; i < repoJobs.length; i++) {
         const prevJob = repoJobs[i - 1];
         const currentJob = repoJobs[i];
-        
-        const gap = new Date(currentJob.created_at) - new Date(prevJob.completed_at || prevJob.created_at);
+
+        const gap =
+          new Date(currentJob.created_at) - new Date(prevJob.completed_at || prevJob.created_at);
         const gapMinutes = gap / (1000 * 60);
-        
+
         if (gapMinutes > this.validationRules.temporal.maxGapMinutes) {
           results.gaps.push({
             repository_id: repoId,
             gap_minutes: gapMinutes,
             prev_job: prevJob.id,
             current_job: currentJob.id,
-            severity: gapMinutes > 240 ? 'high' : 'medium' // 4+ hours is high severity
+            severity: gapMinutes > 240 ? 'high' : 'medium', // 4+ hours is high severity
           });
         }
-        
+
         if (gapMinutes < -this.validationRules.temporal.overlapToleranceMinutes) {
           results.overlaps.push({
             repository_id: repoId,
             overlap_minutes: Math.abs(gapMinutes),
             job1: prevJob.id,
-            job2: currentJob.id
+            job2: currentJob.id,
           });
         }
-        
+
         allGaps.push(gapMinutes);
       }
     }
@@ -147,7 +144,8 @@ class DataGapValidator {
     // Calculate statistics
     results.totalGaps = results.gaps.length;
     results.maxGapMinutes = allGaps.length > 0 ? Math.max(...allGaps) : 0;
-    results.avgGapMinutes = allGaps.length > 0 ? allGaps.reduce((a, b) => a + b, 0) / allGaps.length : 0;
+    results.avgGapMinutes =
+      allGaps.length > 0 ? allGaps.reduce((a, b) => a + b, 0) / allGaps.length : 0;
 
     // Determine status
     if (results.totalGaps === 0) {
@@ -160,7 +158,9 @@ class DataGapValidator {
       results.status = 'poor';
     }
 
-    console.log(`  ✅ Found ${results.totalGaps} temporal gaps (max: ${results.maxGapMinutes.toFixed(1)}min)`);
+    console.log(
+      `  ✅ Found ${results.totalGaps} temporal gaps (max: ${results.maxGapMinutes.toFixed(1)}min)`
+    );
     return results;
   }
 
@@ -169,12 +169,12 @@ class DataGapValidator {
    */
   async validateDataConsistency() {
     console.log('🔄 Validating cross-system consistency...');
-    
+
     const results = {
       inconsistencies: [],
       totalInconsistencies: 0,
       consistencyRate: 0,
-      status: 'unknown'
+      status: 'unknown',
     };
 
     // Get jobs that should have produced similar data
@@ -191,7 +191,7 @@ class DataGapValidator {
 
     // Group jobs by repository and time period
     const jobGroups = this.groupJobsForConsistencyCheck(recentJobs);
-    
+
     for (const group of jobGroups) {
       if (group.inngest.length > 0 && group.github_actions.length > 0) {
         const inconsistency = await this.checkDataConsistency(group);
@@ -202,8 +202,10 @@ class DataGapValidator {
     }
 
     results.totalInconsistencies = results.inconsistencies.length;
-    results.consistencyRate = jobGroups.length > 0 ? 
-      ((jobGroups.length - results.totalInconsistencies) / jobGroups.length) * 100 : 100;
+    results.consistencyRate =
+      jobGroups.length > 0
+        ? ((jobGroups.length - results.totalInconsistencies) / jobGroups.length) * 100
+        : 100;
 
     // Determine status
     if (results.consistencyRate >= 98) {
@@ -225,18 +227,18 @@ class DataGapValidator {
    */
   async validateDataCompleteness() {
     console.log('📊 Validating data completeness...');
-    
+
     const results = {
       missing_data: [],
       completion_rate: 0,
       total_expected: 0,
       total_found: 0,
-      status: 'unknown'
+      status: 'unknown',
     };
 
     // Check expected vs actual data for each processor
     const processors = ['inngest', 'github_actions'];
-    
+
     for (const processor of processors) {
       const completeness = await this.checkProcessorCompleteness(processor);
       results.missing_data.push(...completeness.missing);
@@ -244,8 +246,8 @@ class DataGapValidator {
       results.total_found += completeness.found;
     }
 
-    results.completion_rate = results.total_expected > 0 ? 
-      (results.total_found / results.total_expected) * 100 : 100;
+    results.completion_rate =
+      results.total_expected > 0 ? (results.total_found / results.total_expected) * 100 : 100;
 
     // Determine status
     if (results.completion_rate >= 99) {
@@ -267,32 +269,32 @@ class DataGapValidator {
    */
   async validateDuplicates() {
     console.log('🔍 Validating duplicate data...');
-    
+
     const results = {
       duplicates: [],
       duplicate_rate: 0,
       total_records: 0,
       duplicate_records: 0,
-      status: 'unknown'
+      status: 'unknown',
     };
 
     // Check for duplicates in main data tables
     const tables = ['pull_requests', 'pull_request_reviews', 'pull_request_comments'];
-    
+
     for (const table of tables) {
       const duplicates = await this.findDuplicatesInTable(table);
       results.duplicates.push(...duplicates);
-      
+
       const { count: totalCount } = await this.supabase
         .from(table)
         .select('*', { count: 'exact', head: true });
-      
+
       results.total_records += totalCount || 0;
       results.duplicate_records += duplicates.length;
     }
 
-    results.duplicate_rate = results.total_records > 0 ? 
-      (results.duplicate_records / results.total_records) * 100 : 0;
+    results.duplicate_rate =
+      results.total_records > 0 ? (results.duplicate_records / results.total_records) * 100 : 0;
 
     // Determine status
     if (results.duplicate_rate <= 1) {
@@ -314,12 +316,12 @@ class DataGapValidator {
    */
   async validateCrossSystemConsistency() {
     console.log('🔗 Validating cross-system consistency...');
-    
+
     const results = {
       sync_issues: [],
       consistency_score: 0,
       last_sync_diff: 0,
-      status: 'unknown'
+      status: 'unknown',
     };
 
     // Check if both systems are processing data for the same repositories
@@ -335,18 +337,18 @@ class DataGapValidator {
       .eq('processor_type', 'github_actions')
       .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
 
-    const inngestRepoIds = new Set((inngestRepos || []).map(r => r.repository_id));
-    const actionsRepoIds = new Set((actionsRepos || []).map(r => r.repository_id));
+    const inngestRepoIds = new Set((inngestRepos || []).map((r) => r.repository_id));
+    const actionsRepoIds = new Set((actionsRepos || []).map((r) => r.repository_id));
 
     // Find repositories processed by only one system
-    const onlyInngest = [...inngestRepoIds].filter(id => !actionsRepoIds.has(id));
-    const onlyActions = [...actionsRepoIds].filter(id => !inngestRepoIds.has(id));
+    const onlyInngest = [...inngestRepoIds].filter((id) => !actionsRepoIds.has(id));
+    const onlyActions = [...actionsRepoIds].filter((id) => !inngestRepoIds.has(id));
 
     if (onlyInngest.length > 0) {
       results.sync_issues.push({
         type: 'inngest_only',
         repositories: onlyInngest,
-        count: onlyInngest.length
+        count: onlyInngest.length,
       });
     }
 
@@ -354,14 +356,14 @@ class DataGapValidator {
       results.sync_issues.push({
         type: 'actions_only',
         repositories: onlyActions,
-        count: onlyActions.length
+        count: onlyActions.length,
       });
     }
 
     // Calculate consistency score
     const totalRepos = new Set([...inngestRepoIds, ...actionsRepoIds]).size;
-    const sharedRepos = [...inngestRepoIds].filter(id => actionsRepoIds.has(id)).length;
-    
+    const sharedRepos = [...inngestRepoIds].filter((id) => actionsRepoIds.has(id)).length;
+
     results.consistency_score = totalRepos > 0 ? (sharedRepos / totalRepos) * 100 : 100;
 
     // Determine status
@@ -397,7 +399,7 @@ class DataGapValidator {
       if (group.inngest.length > 0 || group.github_actions.length > 0) {
         groups.push({
           repository_id: repoId,
-          ...group
+          ...group,
         });
       }
     }
@@ -408,22 +410,27 @@ class DataGapValidator {
   async checkDataConsistency(group) {
     // Check if both processors produced consistent data for the same repository
     // This is a simplified check - in practice, you'd compare actual data records
-    
-    const inngestItems = group.inngest.reduce((sum, job) => 
-      sum + (job.metadata?.processed_items || 0), 0);
-    const actionsItems = group.github_actions.reduce((sum, job) => 
-      sum + (job.metadata?.processed_items || 0), 0);
+
+    const inngestItems = group.inngest.reduce(
+      (sum, job) => sum + (job.metadata?.processed_items || 0),
+      0
+    );
+    const actionsItems = group.github_actions.reduce(
+      (sum, job) => sum + (job.metadata?.processed_items || 0),
+      0
+    );
 
     const difference = Math.abs(inngestItems - actionsItems);
     const totalItems = Math.max(inngestItems, actionsItems);
-    
-    if (totalItems > 0 && (difference / totalItems) > 0.1) { // >10% difference
+
+    if (totalItems > 0 && difference / totalItems > 0.1) {
+      // >10% difference
       return {
         repository_id: group.repository_id,
         inngest_items: inngestItems,
         actions_items: actionsItems,
         difference_percentage: (difference / totalItems) * 100,
-        severity: (difference / totalItems) > 0.25 ? 'high' : 'medium'
+        severity: difference / totalItems > 0.25 ? 'high' : 'medium',
       };
     }
 
@@ -432,7 +439,7 @@ class DataGapValidator {
 
   async checkProcessorCompleteness(processor) {
     const result = { expected: 0, found: 0, missing: [] };
-    
+
     // Get jobs for this processor
     const { data: jobs } = await this.supabase
       .from('progressive_capture_jobs')
@@ -444,14 +451,15 @@ class DataGapValidator {
 
     for (const job of jobs) {
       result.expected++;
-      
+
       // Check if job has required fields and data
       const hasRequiredFields = this.validationRules.data.requiredFields.every(
-        field => job[field] !== null && job[field] !== undefined
+        (field) => job[field] !== null && job[field] !== undefined
       );
-      
-      const hasMinData = (job.metadata?.processed_items || 0) >= this.validationRules.data.minDataPoints;
-      
+
+      const hasMinData =
+        (job.metadata?.processed_items || 0) >= this.validationRules.data.minDataPoints;
+
       if (hasRequiredFields && hasMinData) {
         result.found++;
       } else {
@@ -460,9 +468,9 @@ class DataGapValidator {
           repository_id: job.repository_id,
           processor,
           missing_fields: this.validationRules.data.requiredFields.filter(
-            field => job[field] === null || job[field] === undefined
+            (field) => job[field] === null || job[field] === undefined
           ),
-          has_min_data: hasMinData
+          has_min_data: hasMinData,
         });
       }
     }
@@ -473,22 +481,21 @@ class DataGapValidator {
   async findDuplicatesInTable(tableName) {
     // This is a simplified duplicate check
     // In practice, you'd need to define what constitutes a duplicate for each table
-    
+
     const duplicateCheckQueries = {
       pull_requests: 'number, repository_id',
       pull_request_reviews: 'pr_number, repository_id, user_login',
-      pull_request_comments: 'pr_number, repository_id, comment_id'
+      pull_request_comments: 'pr_number, repository_id, comment_id',
     };
 
     const fields = duplicateCheckQueries[tableName];
     if (!fields) return [];
 
     try {
-      const { data: duplicates } = await this.supabase
-        .rpc('find_duplicates', { 
-          table_name: tableName, 
-          check_fields: fields.split(', ') 
-        });
+      const { data: duplicates } = await this.supabase.rpc('find_duplicates', {
+        table_name: tableName,
+        check_fields: fields.split(', '),
+      });
 
       return duplicates || [];
     } catch (error) {
@@ -504,7 +511,7 @@ class DataGapValidator {
       acceptable: 60,
       poor: 30,
       unknown: 0,
-      insufficient_data: 50
+      insufficient_data: 50,
     };
 
     const weights = {
@@ -512,7 +519,7 @@ class DataGapValidator {
       consistency: 0.3,
       completeness: 0.3,
       duplicates: 0.1,
-      cross_system: 0.1
+      cross_system: 0.1,
     };
 
     let totalScore = 0;
@@ -526,7 +533,7 @@ class DataGapValidator {
     }
 
     const finalScore = totalWeight > 0 ? Math.round(totalScore / totalWeight) : 0;
-    
+
     let status;
     if (finalScore >= 90) status = 'excellent';
     else if (finalScore >= 75) status = 'good';
@@ -564,15 +571,16 @@ class DataGapValidator {
 
   displayValidationResults(results) {
     for (const [category, result] of Object.entries(results)) {
-      const statusEmoji = {
-        excellent: '🟢',
-        good: '🟡',
-        acceptable: '🟠',
-        poor: '🔴',
-        unknown: '⚪',
-        insufficient_data: '⚫'
-      }[result.status] || '❓';
-      
+      const statusEmoji =
+        {
+          excellent: '🟢',
+          good: '🟡',
+          acceptable: '🟠',
+          poor: '🔴',
+          unknown: '⚪',
+          insufficient_data: '⚫',
+        }[result.status] || '❓';
+
       console.log(`  ${statusEmoji} ${category.replace('_', ' ').toUpperCase()}: ${result.status}`);
     }
   }
@@ -585,17 +593,19 @@ class DataGapValidator {
       recommendations,
       summary: {
         total_categories: Object.keys(validationResults).length,
-        excellent_categories: Object.values(validationResults).filter(r => r.status === 'excellent').length,
-        poor_categories: Object.values(validationResults).filter(r => r.status === 'poor').length,
-        data_integrity_score: overallStatus.score
-      }
+        excellent_categories: Object.values(validationResults).filter(
+          (r) => r.status === 'excellent'
+        ).length,
+        poor_categories: Object.values(validationResults).filter((r) => r.status === 'poor').length,
+        data_integrity_score: overallStatus.score,
+      },
     };
 
     // Save report
     const fs = require('fs');
     const reportsDir = './validation-reports';
     fs.mkdirSync(reportsDir, { recursive: true });
-    
+
     const reportPath = `${reportsDir}/data-gap-validation-${Date.now()}.json`;
     fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
 
@@ -607,8 +617,9 @@ class DataGapValidator {
 // Main execution
 if (require.main === module) {
   const validator = new DataGapValidator();
-  validator.validateDataGaps()
-    .then(success => {
+  validator
+    .validateDataGaps()
+    .then((success) => {
       process.exit(success ? 0 : 1);
     })
     .catch(console.error);

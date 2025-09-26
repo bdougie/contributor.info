@@ -50,6 +50,7 @@ export interface ContributorsListProps {
   onUntrackContributor?: (contributorId: string) => void;
   onContributorClick?: (contributor: Contributor) => void;
   onAddContributor?: () => void;
+  onAddToGroup?: (contributorId: string) => void;
   loading?: boolean;
   className?: string;
   view?: 'grid' | 'list';
@@ -62,12 +63,14 @@ function ContributorCard({
   onTrack,
   onUntrack,
   onClick,
+  onAddToGroup,
 }: {
   contributor: Contributor;
   isTracked: boolean;
   onTrack?: () => void;
   onUntrack?: () => void;
   onClick?: () => void;
+  onAddToGroup?: () => void;
 }) {
   const trend = contributor.stats.contribution_trend;
   let TrendIcon = Minus;
@@ -82,20 +85,26 @@ function ContributorCard({
     <Card className="relative hover:shadow-md transition-shadow">
       <CardContent className="p-4">
         <div className="flex items-start justify-between mb-3">
-          <button
-            onClick={onClick}
-            className="flex items-center gap-3 hover:opacity-80 transition-opacity"
-          >
-            <img
-              src={contributor.avatar_url}
-              alt={contributor.username}
-              className="h-12 w-12 rounded-full"
-            />
-            <div className="text-left">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onAddToGroup || onClick}
+              className="hover:opacity-80 transition-opacity"
+              title={onAddToGroup ? "Add to group" : "View profile"}
+            >
+              <img
+                src={contributor.avatar_url}
+                alt={contributor.username}
+                className="h-12 w-12 rounded-full cursor-pointer"
+              />
+            </button>
+            <button
+              onClick={onClick}
+              className="text-left hover:opacity-80 transition-opacity"
+            >
               <p className="font-semibold">{contributor.name || contributor.username}</p>
               <p className="text-sm text-muted-foreground">@{contributor.username}</p>
-            </div>
-          </button>
+            </button>
+          </div>
           <Button
             variant={isTracked ? 'ghost' : 'outline'}
             size="icon"
@@ -253,6 +262,7 @@ export function ContributorsList({
   onTrackContributor,
   onUntrackContributor,
   onContributorClick,
+  onAddToGroup,
   loading = false,
   className,
   view = 'grid',
@@ -337,6 +347,7 @@ export function ContributorsList({
                     onTrack={() => onTrackContributor?.(contributor.id)}
                     onUntrack={() => onUntrackContributor?.(contributor.id)}
                     onClick={() => onContributorClick?.(contributor)}
+                    onAddToGroup={() => onAddToGroup?.(contributor.id)}
                   />
                 );
               } else {
@@ -415,6 +426,7 @@ export function ContributorsList({
                   onTrack={() => onTrackContributor?.(contributor.id)}
                   onUntrack={() => onUntrackContributor?.(contributor.id)}
                   onClick={() => onContributorClick?.(contributor)}
+                  onAddToGroup={() => onAddToGroup?.(contributor.id)}
                 />
               ) : (
                 <ContributorListItem

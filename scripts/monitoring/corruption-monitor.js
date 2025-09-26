@@ -3,7 +3,7 @@
 /**
  * Automated PR Data Corruption Monitor
  * Run this script periodically (e.g., every hour via cron) to detect and alert on data corruption
- * 
+ *
  * Usage:
  *   node corruption-monitor.js                    # Run all checks
  *   node corruption-monitor.js --alert-only       # Only run critical alert checks
@@ -40,19 +40,21 @@ const webhookUrl = args.includes('--webhook') ? args[args.indexOf('--webhook') +
 
 // Corruption detection thresholds
 const THRESHOLDS = {
-  CRITICAL_COUNT: 20,        // More than 20 corrupted PRs in an hour
-  WARNING_PERCENTAGE: 50,    // More than 50% corruption rate
-  ALERT_PERCENTAGE: 10,      // More than 10% corruption rate for alerts
+  CRITICAL_COUNT: 20, // More than 20 corrupted PRs in an hour
+  WARNING_PERCENTAGE: 50, // More than 50% corruption rate
+  ALERT_PERCENTAGE: 10, // More than 10% corruption rate for alerts
 };
 
 async function checkRecentCorruption() {
   const { data, error } = await supabase
     .from('pull_requests')
-    .select(`
+    .select(
+      `
       id, number, 
       additions, deletions, changed_files, commits,
       repositories!inner(owner, name)
-    `)
+    `
+    )
     .gte('created_at', new Date(Date.now() - 60 * 60 * 1000).toISOString()) // Last hour
     .eq('additions', 0)
     .eq('deletions', 0)
@@ -65,12 +67,12 @@ async function checkRecentCorruption() {
   }
 
   const corruptedCount = data?.length || 0;
-  
+
   if (corruptedCount > THRESHOLDS.CRITICAL_COUNT) {
     return {
       status: 'CRITICAL',
       message: `Found ${corruptedCount} corrupted PRs in the last hour`,
-      data: data.map(pr => `${pr.repositories.owner}/${pr.repositories.name}#${pr.number}`)
+      data: data.map((pr) => `${pr.repositories.owner}/${pr.repositories.name}#${pr.number}`),
     };
   }
 
@@ -78,7 +80,7 @@ async function checkRecentCorruption() {
     return {
       status: 'WARNING',
       message: `Found ${corruptedCount} corrupted PRs in the last hour`,
-      data: data.map(pr => `${pr.repositories.owner}/${pr.repositories.name}#${pr.number}`)
+      data: data.map((pr) => `${pr.repositories.owner}/${pr.repositories.name}#${pr.number}`),
     };
   }
 
@@ -115,11 +117,8 @@ async function checkRepositoryHealth() {
     const total = prs?.length || 0;
     if (total === 0) continue;
 
-    const corrupted = prs.filter(pr => 
-      pr.additions === 0 && 
-      pr.deletions === 0 && 
-      pr.changed_files === 0 && 
-      pr.commits === 0
+    const corrupted = prs.filter(
+      (pr) => pr.additions === 0 && pr.deletions === 0 && pr.changed_files === 0 && pr.commits === 0
     ).length;
 
     const corruptionRate = (corrupted / total) * 100;
@@ -129,7 +128,7 @@ async function checkRepositoryHealth() {
         repo: `${repo.owner}/${repo.name}`,
         total,
         corrupted,
-        rate: corruptionRate.toFixed(2)
+        rate: corruptionRate.toFixed(2),
       });
     }
   }
@@ -138,7 +137,7 @@ async function checkRepositoryHealth() {
     return {
       status: 'WARNING',
       message: `${unhealthyRepos.length} repositories have high corruption rates`,
-      data: unhealthyRepos
+      data: unhealthyRepos,
     };
   }
 
@@ -147,11 +146,11 @@ async function checkRepositoryHealth() {
 
 async function checkCorruptionTrend() {
   const hourlyStats = [];
-  
+
   for (let i = 0; i < 24; i++) {
     const startTime = new Date(Date.now() - (i + 1) * 60 * 60 * 1000);
     const endTime = new Date(Date.now() - i * 60 * 60 * 1000);
-    
+
     try {
       const { count: total, error: totalError } = await supabase
         .from('pull_requests')
@@ -183,7 +182,7 @@ async function checkCorruptionTrend() {
         hour: `${i}h ago`,
         total: total || 0,
         corrupted: corrupted || 0,
-        rate: total ? ((corrupted || 0) / total * 100).toFixed(2) : 0
+        rate: total ? (((corrupted || 0) / total) * 100).toFixed(2) : 0,
       });
     } catch (error) {
       console.error(`Error processing hour ${i} stats:`, error.message);
@@ -194,7 +193,7 @@ async function checkCorruptionTrend() {
   // Check if corruption is increasing
   const recentHours = hourlyStats.slice(0, 3);
   const olderHours = hourlyStats.slice(3, 6);
-  
+
   const recentAvg = recentHours.reduce((sum, h) => sum + parseFloat(h.rate), 0) / 3;
   const olderAvg = olderHours.reduce((sum, h) => sum + parseFloat(h.rate), 0) / 3;
 
@@ -202,7 +201,7 @@ async function checkCorruptionTrend() {
     return {
       status: 'WARNING',
       message: `Corruption rate increasing: ${recentAvg.toFixed(2)}% (recent) vs ${olderAvg.toFixed(2)}% (older)`,
-      data: hourlyStats.slice(0, 6)
+      data: hourlyStats.slice(0, 6),
     };
   }
 
@@ -210,7 +209,7 @@ async function checkCorruptionTrend() {
     status: 'OK',
     message: 'Corruption trend stable',
     recentRate: recentAvg.toFixed(2),
-    historicalRate: olderAvg.toFixed(2)
+    historicalRate: olderAvg.toFixed(2),
   };
 }
 
@@ -226,8 +225,8 @@ async function sendAlert(alertData) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         text: `PR Data Corruption Alert: ${alertData.status}`,
-        ...alertData
-      })
+        ...alertData,
+      }),
     });
 
     if (!response.ok) {
@@ -245,7 +244,7 @@ async function runMonitoring() {
 
   const results = {
     timestamp: new Date().toISOString(),
-    checks: []
+    checks: [],
   };
 
   // Check 1: Recent corruption
@@ -272,9 +271,9 @@ async function runMonitoring() {
   }
 
   // Determine overall status
-  const criticalChecks = results.checks.filter(c => c.status === 'CRITICAL');
-  const warningChecks = results.checks.filter(c => c.status === 'WARNING');
-  
+  const criticalChecks = results.checks.filter((c) => c.status === 'CRITICAL');
+  const warningChecks = results.checks.filter((c) => c.status === 'WARNING');
+
   if (criticalChecks.length > 0) {
     results.overallStatus = 'CRITICAL';
     console.log('\n🚨 CRITICAL: Immediate action required!');
@@ -296,7 +295,7 @@ async function runMonitoring() {
 
 // Run the monitoring
 runMonitoring()
-  .then(results => {
+  .then((results) => {
     if (results.overallStatus === 'CRITICAL') {
       process.exit(2); // Exit code 2 for critical
     } else if (results.overallStatus === 'WARNING') {
@@ -305,7 +304,7 @@ runMonitoring()
       process.exit(0); // Exit code 0 for OK
     }
   })
-  .catch(error => {
+  .catch((error) => {
     console.error('Monitor failed:', error);
     process.exit(3); // Exit code 3 for error
   });

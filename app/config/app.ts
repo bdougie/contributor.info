@@ -1,16 +1,17 @@
 /**
  * GitHub App Configuration
- * 
+ *
  * This file contains the configuration for the Contributor Insights GitHub App.
  * Use these values when creating the app at: https://github.com/settings/apps/new
  */
 
 export const APP_CONFIG = {
   name: 'contributor.info',
-  description: 'Get intelligent PR insights with contributor profiles, reviewer suggestions, and related issues.',
+  description:
+    'Get intelligent PR insights with contributor profiles, reviewer suggestions, and related issues.',
   url: 'https://contributor.info',
   webhook_url: 'https://contributor.info/api/github/webhook',
-  
+
   // Webhook events to subscribe to
   webhook_events: [
     'installation',
@@ -24,7 +25,7 @@ export const APP_CONFIG = {
     'repository',
     'star',
   ],
-  
+
   // Permissions required
   permissions: {
     // Repository permissions
@@ -33,17 +34,17 @@ export const APP_CONFIG = {
     issues: 'read',
     metadata: 'read',
     pull_requests: 'write', // Need write to comment
-    
+
     // Organization permissions
     members: 'read',
-    
+
     // User permissions
     email: 'read',
   },
-  
+
   // Where the app can be installed
   installation_targets: ['users', 'organizations'],
-  
+
   // Default settings
   default_settings: {
     enabled: true,
@@ -69,31 +70,31 @@ function getPrivateKey(): string {
       process.env.GITHUB_PEM_PART2,
       process.env.GITHUB_PEM_PART3,
       process.env.GITHUB_PEM_PART4,
-      process.env.GITHUB_PEM_PART5
+      process.env.GITHUB_PEM_PART5,
     ].filter(Boolean);
-    
+
     // Join parts and decode from base64
     const base64Key = keyParts.join('');
     return Buffer.from(base64Key, 'base64').toString();
   }
-  
+
   // Try encoded format
   if (process.env.GITHUB_APP_PRIVATE_KEY_ENCODED) {
     return Buffer.from(process.env.GITHUB_APP_PRIVATE_KEY_ENCODED, 'base64').toString();
   }
-  
+
   // Try base64 format (single line without headers)
   if (process.env.GITHUB_APP_PRIVATE_KEY_BASE64) {
     const keyContent = process.env.GITHUB_APP_PRIVATE_KEY_BASE64;
     // Reconstruct the PEM format
     return `-----BEGIN RSA PRIVATE KEY-----\n${keyContent.match(/.{1,64}/g)?.join('\n')}\n-----END RSA PRIVATE KEY-----`;
   }
-  
+
   // Try regular base64 format
   if (process.env.GITHUB_APP_PRIVATE_KEY) {
     return Buffer.from(process.env.GITHUB_APP_PRIVATE_KEY, 'base64').toString();
   }
-  
+
   return '';
 }
 

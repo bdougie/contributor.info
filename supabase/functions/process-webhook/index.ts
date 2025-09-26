@@ -20,7 +20,7 @@ async function sendInngestEvent(event: any) {
   const response = await fetch(`${INNGEST_BASE_URL}/e/${INNGEST_EVENT_KEY}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(event)
+    body: JSON.stringify(event),
   });
 
   if (!response.ok) {
@@ -38,10 +38,10 @@ serve(async (req: Request) => {
     const { jobId } = await req.json();
 
     if (!jobId) {
-      return new Response(
-        JSON.stringify({ error: 'Job ID required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Job ID required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Get job details
@@ -52,10 +52,10 @@ serve(async (req: Request) => {
       .single();
 
     if (jobError || !job) {
-      return new Response(
-        JSON.stringify({ error: 'Job not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Job not found' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Update job status to processing
@@ -63,7 +63,7 @@ serve(async (req: Request) => {
       .from('background_jobs')
       .update({
         status: 'processing',
-        started_at: new Date().toISOString()
+        started_at: new Date().toISOString(),
       })
       .eq('id', jobId);
 
@@ -76,15 +76,14 @@ serve(async (req: Request) => {
         .update({
           status: 'completed',
           result,
-          completed_at: new Date().toISOString()
+          completed_at: new Date().toISOString(),
         })
         .eq('id', jobId);
 
-      return new Response(
-        JSON.stringify({ success: true, result }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-
+      return new Response(JSON.stringify({ success: true, result }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     } catch (error: any) {
       console.error(`Job ${jobId} failed:`, error);
 
@@ -94,7 +93,7 @@ serve(async (req: Request) => {
         .update({
           status: 'failed',
           error: error.message,
-          failed_at: new Date().toISOString()
+          failed_at: new Date().toISOString(),
         })
         .eq('id', jobId);
 
@@ -102,10 +101,10 @@ serve(async (req: Request) => {
     }
   } catch (error: any) {
     console.error('Webhook processor error:', error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });
 
@@ -174,7 +173,7 @@ async function processPullRequestEvent(event: any, action: string) {
     try {
       // Mark cache as stale
       await supabase.rpc('mark_workspace_cache_stale', {
-        p_workspace_id: wr.workspace_id
+        p_workspace_id: wr.workspace_id,
       });
 
       // Send Inngest events for high-priority actions
@@ -190,23 +189,22 @@ async function processPullRequestEvent(event: any, action: string) {
               event: 'pull_request',
               action,
               pr_number: pullRequest.number,
-              repository: repository.full_name
-            }
-          }
+              repository: repository.full_name,
+            },
+          },
         });
       }
 
       results.push({
         workspaceId: wr.workspace_id,
-        status: 'processed'
+        status: 'processed',
       });
-
     } catch (error) {
       console.error(`Failed to process workspace ${wr.workspace_id}:`, error);
       results.push({
         workspaceId: wr.workspace_id,
         status: 'failed',
-        error: error.message
+        error: error.message,
       });
     }
   }
@@ -215,9 +213,9 @@ async function processPullRequestEvent(event: any, action: string) {
     message: `Processed PR ${action} event`,
     pr: pullRequest.number,
     repository: repository.full_name,
-    workspacesProcessed: results.filter(r => r.status === 'processed').length,
-    workspacesFailed: results.filter(r => r.status === 'failed').length,
-    totalWorkspaces: workspaceRepos.length
+    workspacesProcessed: results.filter((r) => r.status === 'processed').length,
+    workspacesFailed: results.filter((r) => r.status === 'failed').length,
+    totalWorkspaces: workspaceRepos.length,
   };
 }
 
@@ -250,9 +248,9 @@ async function processIssueEvent(event: any, action: string) {
   }
 
   // Mark all workspace caches as stale
-  const promises = workspaceRepos.map(wr =>
+  const promises = workspaceRepos.map((wr) =>
     supabase.rpc('mark_workspace_cache_stale', {
-      p_workspace_id: wr.workspace_id
+      p_workspace_id: wr.workspace_id,
     })
   );
 
@@ -262,7 +260,7 @@ async function processIssueEvent(event: any, action: string) {
     message: `Processed issue ${action} event`,
     issue: issue.number,
     repository: repository.full_name,
-    affectedWorkspaces: workspaceRepos.length
+    affectedWorkspaces: workspaceRepos.length,
   };
 }
 
@@ -294,7 +292,7 @@ async function processPushEvent(event: any) {
   }
 
   // Send aggregation events with lower priority
-  const promises = workspaceRepos.map(wr =>
+  const promises = workspaceRepos.map((wr) =>
     sendInngestEvent({
       name: 'workspace.metrics.aggregate',
       data: {
@@ -305,9 +303,9 @@ async function processPushEvent(event: any) {
         triggerMetadata: {
           event: 'push',
           commits: commits.length,
-          repository: repository.full_name
-        }
-      }
+          repository: repository.full_name,
+        },
+      },
     })
   );
 
@@ -317,7 +315,7 @@ async function processPushEvent(event: any) {
     message: 'Processed push event',
     commits: commits.length,
     repository: repository.full_name,
-    affectedWorkspaces: workspaceRepos.length
+    affectedWorkspaces: workspaceRepos.length,
   };
 }
 
@@ -348,15 +346,15 @@ async function processRepositoryEvent(event: any, action: string) {
   }
 
   // Send change notifications
-  const promises = workspaceRepos.map(wr =>
+  const promises = workspaceRepos.map((wr) =>
     sendInngestEvent({
       name: 'workspace.repository.changed',
       data: {
         workspaceId: wr.workspace_id,
         action: action as 'added' | 'removed',
         repositoryId: existingRepo.id,
-        repositoryName: repository.full_name
-      }
+        repositoryName: repository.full_name,
+      },
     })
   );
 
@@ -364,6 +362,6 @@ async function processRepositoryEvent(event: any, action: string) {
 
   return {
     message: `Processed ${action} event for ${repository.full_name}`,
-    affectedWorkspaces: workspaceRepos.length
+    affectedWorkspaces: workspaceRepos.length,
   };
 }

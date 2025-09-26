@@ -46,6 +46,10 @@ import {
 import { cn } from '@/lib/utils';
 import { humanizeNumber } from '@/lib/utils';
 import type { Contributor } from './ContributorsList';
+import type { WorkspaceRole, WorkspaceTier } from '@/types/workspace';
+import { useGroupManagementPermissions } from '@/hooks/useWorkspacePermissions';
+import { GroupManagementCTA } from '@/components/ui/permission-upgrade-cta';
+import { useAuth } from '@/hooks/useAuth';
 
 export interface ContributorGroup {
   id: string;
@@ -65,6 +69,13 @@ export interface ContributorsTableProps {
   onAddNote?: (contributorId: string) => void;
   onRemoveContributor?: (contributorId: string) => void;
   showHeader?: boolean;
+  // Selection state
+  selectedContributors?: Set<string>;
+  onSelectedContributorsChange?: (selected: Set<string>) => void;
+  // Permission context
+  userRole?: WorkspaceRole;
+  workspaceTier?: WorkspaceTier;
+  isLoggedIn?: boolean;
 }
 
 const columnHelper = createColumnHelper<Contributor>();
@@ -95,13 +106,32 @@ export function ContributorsTable({
   onAddNote,
   onRemoveContributor,
   showHeader = true,
+  selectedContributors: externalSelectedContributors,
+  onSelectedContributorsChange,
+  userRole,
+  workspaceTier,
+  isLoggedIn = false,
 }: ContributorsTableProps) {
   const [sorting, setSorting] = useState<SortingState>([
-    { id: 'stats.total_contributions', desc: true },
+    { id: 'activity', desc: true },
   ]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
-  const [selectedContributors, setSelectedContributors] = useState<Set<string>>(new Set());
+  const [internalSelectedContributors, setInternalSelectedContributors] = useState<Set<string>>(new Set());
+
+  // Use external state if provided, otherwise use internal state
+  const selectedContributors = externalSelectedContributors || internalSelectedContributors;
+  const setSelectedContributors = onSelectedContributorsChange || setInternalSelectedContributors;
+
+  // Permission checks
+  const permissions = useGroupManagementPermissions({
+    userRole,
+    workspaceTier,
+    isLoggedIn,
+  });
+
+  // Auth functionality
+  const { login } = useAuth();
 
   const handleSelectAll = useCallback(
     (checked: boolean) => {
@@ -351,7 +381,15 @@ export function ContributorsTable({
                   <Eye className="mr-2 h-4 w-4" />
                   View Profile
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onAddToGroup?.(contributor.id)}>
+                <DropdownMenuItem onClick={() => {
+                  // Add contributor to selection if not already selected
+                  if (!selectedContributors.has(contributor.id)) {
+                    const newSelected = new Set(selectedContributors);
+                    newSelected.add(contributor.id);
+                    setSelectedContributors(newSelected);
+                  }
+                  onAddToGroup?.(contributor.id);
+                }}>
                   <Users className="mr-2 h-4 w-4" />
                   Manage Groups
                 </DropdownMenuItem>
@@ -458,29 +496,44 @@ export function ContributorsTable({
             selected
           </span>
           <div className="flex items-center gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button size="sm" variant="outline">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add to Group
+            {!permissions.canAssignContributorsToGroups ? (
+              !isLoggedIn ? (
+                <Button size="sm" onClick={login}>
+                  Login to Manage Groups
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {groups.map((group) => (
-                  <DropdownMenuItem key={group.id} onClick={() => handleBulkAddToGroup(group.id)}>
-                    <Badge variant={group.is_system ? 'outline' : 'secondary'} className="mr-2">
-                      {group.name}
-                    </Badge>
-                    {group.is_system && (
-                      <span className="text-xs text-muted-foreground ml-1">(System)</span>
-                    )}
-                  </DropdownMenuItem>
-                ))}
-                {groups.length === 0 && (
-                  <DropdownMenuItem disabled>No groups available</DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+              ) : (
+                <GroupManagementCTA
+                  message={permissions.getGroupAssignmentMessage()}
+                  variant="inline"
+                  size="sm"
+                  showAction={true}
+                />
+              )
+            ) : (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add to Group
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {groups.map((group) => (
+                    <DropdownMenuItem key={group.id} onClick={() => handleBulkAddToGroup(group.id)}>
+                      <Badge variant={group.is_system ? 'outline' : 'secondary'} className="mr-2">
+                        {group.name}
+                      </Badge>
+                      {group.is_system && (
+                        <span className="text-xs text-muted-foreground ml-1">(System)</span>
+                      )}
+                    </DropdownMenuItem>
+                  ))}
+                  {groups.length === 0 && (
+                    <DropdownMenuItem disabled>No groups created yet</DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
             <Button size="sm" variant="ghost" onClick={() => setSelectedContributors(new Set())}>
               Clear Selection
             </Button>

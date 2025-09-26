@@ -30,6 +30,7 @@ export interface ContributorLeaderboardProps {
   timeRange?: TimeRange;
   maxDisplay?: number;
   className?: string;
+  onContributorClick?: (contributor: ContributorStat) => void;
 }
 
 type SortBy = 'contributions' | 'pull_requests' | 'commits' | 'reviews' | 'issues';
@@ -45,6 +46,7 @@ export function ContributorLeaderboard({
   loading = false,
   maxDisplay = 20,
   className,
+  onContributorClick,
 }: ContributorLeaderboardProps) {
   const [sortBy, setSortBy] = useState<SortBy>('contributions');
   const [showAll, setShowAll] = useState(false);
@@ -200,13 +202,21 @@ export function ContributorLeaderboard({
               </div>
               <CardHeader className="pb-4">
                 <div className="flex flex-col items-center text-center">
-                  <Avatar className="h-12 w-12 border-2 border-background mb-3">
+                  <Avatar
+                    className="h-12 w-12 border-2 border-background mb-3 cursor-pointer hover:opacity-80 transition-opacity"
+                    onClick={() => onContributorClick?.(contributor)}
+                  >
                     <AvatarImage src={contributor.avatar_url} />
                     <AvatarFallback>
                       {contributor.username.slice(0, 2).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
-                  <p className="font-semibold">{contributor.username}</p>
+                  <p
+                    className="font-semibold cursor-pointer hover:underline"
+                    onClick={() => onContributorClick?.(contributor)}
+                  >
+                    {contributor.username}
+                  </p>
                   <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
                     <span className="font-medium text-foreground">{contributor.contributions}</span>
                     contributions
@@ -273,12 +283,10 @@ export function ContributorLeaderboard({
         })}
       </div>
 
-      {/* Full Leaderboard */}
-      <Card className="overflow-hidden">
-        <CardHeader>
-          <CardTitle className="text-base">All Contributors</CardTitle>
-        </CardHeader>
-        <CardContent className="px-3 sm:px-6 space-y-2 sm:space-y-4">
+      {/* Full Leaderboard - only show if more than 3 contributors */}
+      {rankedContributors.length > 3 && (
+        <Card className="overflow-hidden">
+          <CardContent className="px-3 sm:px-6 space-y-2 sm:space-y-4 pt-6">
           {displayedContributors.slice(3).map((contributor) => (
             <div key={contributor.id} className="py-3 border-b last:border-0">
               <div className="flex flex-col gap-2">
@@ -299,14 +307,22 @@ export function ContributorLeaderboard({
                   </div>
 
                   {/* Avatar and Name */}
-                  <Avatar className="h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0">
+                  <Avatar
+                    className="h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                    onClick={() => onContributorClick?.(contributor)}
+                  >
                     <AvatarImage src={contributor.avatar_url} />
                     <AvatarFallback>
                       {contributor.username.slice(0, 2).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{contributor.username}</p>
+                    <p
+                      className="text-sm font-medium truncate cursor-pointer hover:underline"
+                      onClick={() => onContributorClick?.(contributor)}
+                    >
+                      {contributor.username}
+                    </p>
                     {/* Mobile: Show icons, Desktop: Show text */}
                     <div className="flex items-center gap-2 sm:gap-3 text-xs text-muted-foreground">
                       {/* Mobile view with icons */}
@@ -393,6 +409,7 @@ export function ContributorLeaderboard({
           )}
         </CardContent>
       </Card>
+      )}
     </div>
   );
 }

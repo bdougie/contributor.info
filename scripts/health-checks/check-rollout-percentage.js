@@ -3,10 +3,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const supabase = createClient(
-  process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_TOKEN
-);
+const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_TOKEN);
 
 async function checkAndUpdateRollout() {
   console.log('🔍 Checking rollout percentage in database...\n');
@@ -32,13 +29,13 @@ async function checkAndUpdateRollout() {
   if (config.rollout_percentage !== 10) {
     console.log('\n⚠️  Rollout is not at 10% as expected');
     console.log('Would you like to update it to 10%?');
-    
+
     // Update to 10%
     const { error: updateError } = await supabase
       .from('rollout_configuration')
       .update({
         rollout_percentage: 10,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('id', config.id);
 
@@ -46,19 +43,17 @@ async function checkAndUpdateRollout() {
       console.error('Error updating rollout:', updateError);
     } else {
       console.log('\n✅ Updated rollout to 10%');
-      
+
       // Log the change
-      await supabase
-        .from('rollout_history')
-        .insert({
-          rollout_config_id: config.id,
-          action: 'updated',
-          previous_percentage: config.rollout_percentage,
-          new_percentage: 10,
-          reason: 'Reset to intended 10% rollout for GitHub Actions testing',
-          triggered_by: 'manual',
-          metadata: { timestamp: new Date().toISOString() }
-        });
+      await supabase.from('rollout_history').insert({
+        rollout_config_id: config.id,
+        action: 'updated',
+        previous_percentage: config.rollout_percentage,
+        new_percentage: 10,
+        reason: 'Reset to intended 10% rollout for GitHub Actions testing',
+        triggered_by: 'manual',
+        metadata: { timestamp: new Date().toISOString() },
+      });
     }
   } else {
     console.log('\n✅ Rollout is already at 10%');

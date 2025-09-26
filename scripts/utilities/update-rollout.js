@@ -40,7 +40,7 @@ async function updateRollout(percentage) {
       .from('rollout_configuration')
       .update({
         rollout_percentage: percentage,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('id', config.id);
 
@@ -50,23 +50,23 @@ async function updateRollout(percentage) {
     }
 
     // Log the change in rollout history
-    const { error: historyError } = await supabase
-      .from('rollout_history')
-      .insert({
-        rollout_config_id: config.id,
-        action: 'updated',
-        previous_percentage: config.rollout_percentage,
-        new_percentage: percentage,
-        reason: `Rollout percentage updated from ${config.rollout_percentage}% to ${percentage}%`,
-        triggered_by: 'manual',
-        metadata: { timestamp: new Date().toISOString() }
-      });
+    const { error: historyError } = await supabase.from('rollout_history').insert({
+      rollout_config_id: config.id,
+      action: 'updated',
+      previous_percentage: config.rollout_percentage,
+      new_percentage: percentage,
+      reason: `Rollout percentage updated from ${config.rollout_percentage}% to ${percentage}%`,
+      triggered_by: 'manual',
+      metadata: { timestamp: new Date().toISOString() },
+    });
 
     if (historyError) {
       console.error('Error logging rollout history:', historyError);
     }
 
-    console.log(`\n✅ Successfully updated rollout percentage from ${config.rollout_percentage}% to ${percentage}%`);
+    console.log(
+      `\n✅ Successfully updated rollout percentage from ${config.rollout_percentage}% to ${percentage}%`
+    );
   } catch (error) {
     console.error('Exception updating rollout:', error);
   }

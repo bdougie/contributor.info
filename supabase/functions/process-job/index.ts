@@ -59,11 +59,14 @@ const GITHUB_TOKEN = Deno.env.get('GITHUB_TOKEN') || Deno.env.get('VITE_GITHUB_T
 // Circuit breaker configuration
 const CIRCUIT_BREAKER_THRESHOLD = 5; // Number of consecutive failures to open circuit
 const CIRCUIT_BREAKER_TIMEOUT_MS = 60000; // 1 minute cooldown
-const circuitBreakers = new Map<string, {
-  failures: number;
-  lastFailure: number;
-  isOpen: boolean;
-}>();
+const circuitBreakers = new Map<
+  string,
+  {
+    failures: number;
+    lastFailure: number;
+    isOpen: boolean;
+  }
+>();
 
 console.log('Job processor starting with circuit breaker protection...');
 
@@ -83,10 +86,10 @@ serve(async (req: Request) => {
     const isInternalCall = req.headers.get('x-forwarded-host')?.includes('supabase.co');
     if (!isInternalCall) {
       console.error('Unauthorized request to process-job function');
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
   }
 
@@ -95,23 +98,22 @@ serve(async (req: Request) => {
 
     if (!jobId) {
       // Process next queued job
-      const { data: nextJob, error } = await supabase
-        .rpc('get_next_job');
+      const { data: nextJob, error } = await supabase.rpc('get_next_job');
 
       if (error || !nextJob || nextJob.length === 0) {
-        return new Response(
-          JSON.stringify({ message: 'No jobs in queue' }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return new Response(JSON.stringify({ message: 'No jobs in queue' }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       }
 
       const job = nextJob[0];
       processJob(job.id, job.type, job.payload);
 
-      return new Response(
-        JSON.stringify({ jobId: job.id, status: 'processing' }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ jobId: job.id, status: 'processing' }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Process specific job
@@ -122,35 +124,35 @@ serve(async (req: Request) => {
       .single();
 
     if (jobError || !job) {
-      return new Response(
-        JSON.stringify({ error: 'Job not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Job not found' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // If immediate flag is set, wait for completion
     if (immediate) {
       const result = await processJobSync(job.id, job.type, job.payload);
-      return new Response(
-        JSON.stringify(result),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify(result), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Otherwise, process async
     processJob(job.id, job.type, job.payload);
 
-    return new Response(
-      JSON.stringify({ jobId: job.id, status: 'processing' }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ jobId: job.id, status: 'processing' }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('Error in job processor:', error);
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ error: errorMessage }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });
 
@@ -180,7 +182,7 @@ function checkCircuitBreaker(jobType: string): { isOpen: boolean; reason?: strin
     }
     return {
       isOpen: true,
-      reason: `Circuit breaker open for ${jobType}: ${breaker.failures} consecutive failures`
+      reason: `Circuit breaker open for ${jobType}: ${breaker.failures} consecutive failures`,
     };
   }
 
@@ -214,7 +216,11 @@ function recordCircuitBreakerSuccess(jobType: string) {
 }
 
 // Synchronous job processing
-async function processJobSync(jobId: string, type: string, payload: JobPayload): Promise<JobResult> {
+async function processJobSync(
+  jobId: string,
+  type: string,
+  payload: JobPayload
+): Promise<JobResult> {
   const startTime = Date.now();
 
   // Check circuit breaker before processing
@@ -228,7 +234,7 @@ async function processJobSync(jobId: string, type: string, payload: JobPayload):
       .update({
         status: 'failed',
         error: circuitStatus.reason,
-        failed_at: new Date().toISOString()
+        failed_at: new Date().toISOString(),
       })
       .eq('id', jobId);
 
@@ -240,7 +246,7 @@ async function processJobSync(jobId: string, type: string, payload: JobPayload):
     .from('background_jobs')
     .update({
       status: 'processing',
-      started_at: new Date().toISOString()
+      started_at: new Date().toISOString(),
     })
     .eq('id', jobId);
 
@@ -299,7 +305,7 @@ async function processJobSync(jobId: string, type: string, payload: JobPayload):
               full_name: `${repoOwner}/${repoName}`,
               owner: repoOwner,
               name: repoName,
-              first_tracked_at: new Date().toISOString()
+              first_tracked_at: new Date().toISOString(),
             })
             .select()
             .single();
@@ -344,7 +350,7 @@ async function processJobSync(jobId: string, type: string, payload: JobPayload):
       .update({
         status: 'completed',
         result,
-        completed_at: new Date().toISOString()
+        completed_at: new Date().toISOString(),
       })
       .eq('id', jobId);
 
@@ -354,7 +360,6 @@ async function processJobSync(jobId: string, type: string, payload: JobPayload):
     recordCircuitBreakerSuccess(type);
 
     return { success: true, result, duration };
-
   } catch (error) {
     const duration = Date.now() - startTime;
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -369,7 +374,7 @@ async function processJobSync(jobId: string, type: string, payload: JobPayload):
       .update({
         status: 'failed',
         error: errorMessage,
-        failed_at: new Date().toISOString()
+        failed_at: new Date().toISOString(),
       })
       .eq('id', jobId);
 
@@ -383,7 +388,9 @@ async function processJobSync(jobId: string, type: string, payload: JobPayload):
     if (job && job.retry_count < job.max_retries) {
       // Schedule retry
       await supabase.rpc('retry_failed_job', { job_id: jobId });
-      console.log(`Job ${jobId} scheduled for retry (attempt ${job.retry_count + 1}/${job.max_retries})`);
+      console.log(
+        `Job ${jobId} scheduled for retry (attempt ${job.retry_count + 1}/${job.max_retries})`
+      );
     }
 
     throw error;
@@ -411,7 +418,7 @@ async function syncRepositoryWithGraphQL(
   const prs = await client.getRecentPRs(owner, repo, since.toISOString(), 100);
 
   // Store PRs in database
-  const prRecords = prs.map(pr => ({
+  const prRecords = prs.map((pr) => ({
     repository_id: repositoryId,
     pr_number: pr.number,
     github_id: pr.databaseId,
@@ -429,16 +436,14 @@ async function syncRepositoryWithGraphQL(
     additions: pr.additions,
     deletions: pr.deletions,
     changed_files: pr.changedFiles,
-    commit_count: pr.commits?.totalCount || 0
+    commit_count: pr.commits?.totalCount || 0,
   }));
 
   // Upsert PRs
-  const { error: prError } = await supabase
-    .from('pull_requests')
-    .upsert(prRecords, {
-      onConflict: 'repository_id,pr_number',
-      ignoreDuplicates: false
-    });
+  const { error: prError } = await supabase.from('pull_requests').upsert(prRecords, {
+    onConflict: 'repository_id,pr_number',
+    ignoreDuplicates: false,
+  });
 
   if (prError) {
     console.error('Error upserting PRs:', prError);
@@ -451,7 +456,7 @@ async function syncRepositoryWithGraphQL(
     .update({
       last_synced_at: new Date().toISOString(),
       sync_status: 'completed',
-      total_pull_requests: prRecords.length
+      total_pull_requests: prRecords.length,
     })
     .eq('id', repositoryId);
 
@@ -462,7 +467,7 @@ async function syncRepositoryWithGraphQL(
     repositoryId,
     prsProcessed: prRecords.length,
     metrics,
-    duration: new Date().toISOString()
+    duration: new Date().toISOString(),
   };
 }
 
@@ -483,7 +488,7 @@ async function classifyRepositorySize(
   return {
     repositoryId,
     size,
-    classified_at: new Date().toISOString()
+    classified_at: new Date().toISOString(),
   };
 }
 
@@ -515,7 +520,7 @@ async function fetchPullRequestDetails(
     repo,
     fetched: details.length,
     total: prNumbers.length,
-    details
+    details,
   };
 }
 
@@ -526,7 +531,9 @@ async function syncRepositoryBasic(
   fullSync: boolean,
   daysLimit: number
 ): Promise<JobResult> {
-  console.log(`Basic sync for ${owner}/${repo} (${fullSync ? 'full' : 'partial'}, ${daysLimit} days)`);
+  console.log(
+    `Basic sync for ${owner}/${repo} (${fullSync ? 'full' : 'partial'}, ${daysLimit} days)`
+  );
 
   if (!GITHUB_TOKEN) {
     throw new Error('GitHub token not configured');
@@ -557,7 +564,7 @@ async function syncRepositoryBasic(
         full_name: `${owner}/${repo}`,
         owner,
         name: repo,
-        first_tracked_at: new Date().toISOString()
+        first_tracked_at: new Date().toISOString(),
       })
       .select()
       .single();
@@ -574,22 +581,20 @@ async function syncRepositoryBasic(
 
   // Store basic PR data
   if (prs.length > 0) {
-    const prRecords = prs.map(pr => ({
+    const prRecords = prs.map((pr) => ({
       repository_id: repositoryId,
       pr_number: pr.number,
       title: pr.title,
       state: pr.state,
       created_at: pr.createdAt,
       updated_at: pr.updatedAt,
-      author_login: pr.author?.login
+      author_login: pr.author?.login,
     }));
 
-    await supabase
-      .from('pull_requests')
-      .upsert(prRecords, {
-        onConflict: 'repository_id,pr_number',
-        ignoreDuplicates: false
-      });
+    await supabase.from('pull_requests').upsert(prRecords, {
+      onConflict: 'repository_id,pr_number',
+      ignoreDuplicates: false,
+    });
   }
 
   return {
@@ -598,15 +603,12 @@ async function syncRepositoryBasic(
     pullRequests: prs.length,
     syncType: fullSync ? 'full' : 'partial',
     daysLimit,
-    completed: new Date().toISOString()
+    completed: new Date().toISOString(),
   };
 }
 
 // Fallback webhook processor (simplified version)
-async function processWebhookFallback(
-  type: string,
-  payload: WebhookPayload
-): Promise<JobResult> {
+async function processWebhookFallback(type: string, payload: WebhookPayload): Promise<JobResult> {
   const { event: githubEvent, data } = payload;
   console.log(`Processing webhook fallback: ${githubEvent}`);
 
@@ -616,6 +618,6 @@ async function processWebhookFallback(
     processed: true,
     type: githubEvent,
     message: 'Webhook processed (fallback handler)',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   };
 }

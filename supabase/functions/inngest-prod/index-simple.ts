@@ -8,7 +8,8 @@ const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 // Get Inngest configuration
-const INNGEST_SIGNING_KEY = Deno.env.get('INNGEST_SIGNING_KEY') || Deno.env.get('INNGEST_PRODUCTION_SIGNING_KEY') || '';
+const INNGEST_SIGNING_KEY =
+  Deno.env.get('INNGEST_SIGNING_KEY') || Deno.env.get('INNGEST_PRODUCTION_SIGNING_KEY') || '';
 
 serve(async (req: Request) => {
   const url = new URL(req.url);
@@ -118,16 +119,13 @@ serve(async (req: Request) => {
       );
     } catch (error) {
       console.error('Error handling PUT request:', error);
-      return new Response(
-        JSON.stringify({ error: 'Failed to process registration' }),
-        {
-          status: 500,
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      return new Response(JSON.stringify({ error: 'Failed to process registration' }), {
+        status: 500,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+        },
+      });
     }
   }
 
@@ -135,7 +133,8 @@ serve(async (req: Request) => {
   if (method === 'POST') {
     try {
       // Verify signature if present
-      const signature = req.headers.get('x-inngest-signature') || req.headers.get('X-Inngest-Signature');
+      const signature =
+        req.headers.get('x-inngest-signature') || req.headers.get('X-Inngest-Signature');
 
       if (signature && INNGEST_SIGNING_KEY) {
         // TODO: Implement signature verification
@@ -181,28 +180,22 @@ serve(async (req: Request) => {
       );
     } catch (error) {
       console.error('Error processing webhook:', error);
-      return new Response(
-        JSON.stringify({ error: 'Failed to process webhook' }),
-        {
-          status: 500,
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      return new Response(JSON.stringify({ error: 'Failed to process webhook' }), {
+        status: 500,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+        },
+      });
     }
   }
 
   // Method not allowed
-  return new Response(
-    JSON.stringify({ error: `Method ${method} not allowed` }),
-    {
-      status: 405,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json',
-      },
-    }
-  );
+  return new Response(JSON.stringify({ error: `Method ${method} not allowed` }), {
+    status: 405,
+    headers: {
+      ...corsHeaders,
+      'Content-Type': 'application/json',
+    },
+  });
 });

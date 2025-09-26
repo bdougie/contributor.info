@@ -34,7 +34,7 @@ export function parseCodeOwners(content: string): CodeOwner[] {
 
     const pattern = parts[0];
     const ownersList = parts.slice(1);
-    const isTeam = ownersList.map(owner => owner.includes('/'));
+    const isTeam = ownersList.map((owner) => owner.includes('/'));
 
     owners.push({
       pattern,
@@ -70,7 +70,11 @@ export async function fetchCodeOwners(
       };
     }
   } catch (error) {
-    if (error instanceof Error && 'status' in error && (error as { status: number }).status !== 404) {
+    if (
+      error instanceof Error &&
+      'status' in error &&
+      (error as { status: number }).status !== 404
+    ) {
       console.error('Error fetching CODEOWNERS from .github/', error);
       throw error;
     }
@@ -93,7 +97,11 @@ export async function fetchCodeOwners(
       };
     }
   } catch (error) {
-    if (error instanceof Error && 'status' in error && (error as { status: number }).status !== 404) {
+    if (
+      error instanceof Error &&
+      'status' in error &&
+      (error as { status: number }).status !== 404
+    ) {
       console.error('Error fetching CODEOWNERS from root/', error);
       throw error;
     }
@@ -233,7 +241,7 @@ export function getSuggestedReviewersFromCodeOwners(
 
   for (const [owner, percentage] of ownerPercentages) {
     const username = extractUsername(owner);
-    
+
     // Skip if not a valid username or if it's the PR author
     if (!username || username === excludeUsername) {
       continue;

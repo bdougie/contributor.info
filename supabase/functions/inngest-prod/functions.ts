@@ -39,30 +39,33 @@ async function ensureContributorExists(githubUser: any): Promise<string | null> 
 
   const { data, error } = await supabase
     .from('contributors')
-    .upsert({
-      github_id: githubUser.databaseId,
-      username: githubUser.login,
-      display_name: githubUser.name || null,
-      email: githubUser.email || null,
-      avatar_url: githubUser.avatarUrl || null,
-      profile_url: `https://github.com/${githubUser.login}`,
-      bio: githubUser.bio || null,
-      company: githubUser.company || null,
-      location: githubUser.location || null,
-      blog: githubUser.blog || null,
-      public_repos: githubUser.public_repos || 0,
-      public_gists: githubUser.public_gists || 0,
-      followers: githubUser.followers || 0,
-      following: githubUser.following || 0,
-      github_created_at: githubUser.createdAt || new Date().toISOString(),
-      is_bot: false,
-      is_active: true,
-      first_seen_at: new Date().toISOString(),
-      last_updated_at: new Date().toISOString(),
-    }, {
-      onConflict: 'github_id',
-      ignoreDuplicates: false,
-    })
+    .upsert(
+      {
+        github_id: githubUser.databaseId,
+        username: githubUser.login,
+        display_name: githubUser.name || null,
+        email: githubUser.email || null,
+        avatar_url: githubUser.avatarUrl || null,
+        profile_url: `https://github.com/${githubUser.login}`,
+        bio: githubUser.bio || null,
+        company: githubUser.company || null,
+        location: githubUser.location || null,
+        blog: githubUser.blog || null,
+        public_repos: githubUser.public_repos || 0,
+        public_gists: githubUser.public_gists || 0,
+        followers: githubUser.followers || 0,
+        following: githubUser.following || 0,
+        github_created_at: githubUser.createdAt || new Date().toISOString(),
+        is_bot: false,
+        is_active: true,
+        first_seen_at: new Date().toISOString(),
+        last_updated_at: new Date().toISOString(),
+      },
+      {
+        onConflict: 'github_id',
+        ignoreDuplicates: false,
+      }
+    )
     .select('id')
     .single();
 
@@ -89,7 +92,9 @@ export function createClassifySingleRepository(inngest: any) {
       // Validate required fields
       if (!repositoryId || !owner || !repo) {
         console.error('Missing required fields in event data:', event.data);
-        throw new Error(`Missing required fields: repositoryId=${repositoryId}, owner=${owner}, repo=${repo}`);
+        throw new Error(
+          `Missing required fields: repositoryId=${repositoryId}, owner=${owner}, repo=${repo}`
+        );
       }
 
       // Initialize classifier
@@ -194,7 +199,7 @@ export function createCaptureRepositorySyncGraphQL(inngest: any) {
 
             throw new Error(
               `Repository ${data.owner}/${data.name} was synced ${timeDisplay} ago. ` +
-              `Skipping to prevent excessive API usage (minimum ${minHoursBetweenSyncs} hours between syncs for ${reason || 'default'} sync).`
+                `Skipping to prevent excessive API usage (minimum ${minHoursBetweenSyncs} hours between syncs for ${reason || 'default'} sync).`
             );
           }
         }
@@ -210,7 +215,9 @@ export function createCaptureRepositorySyncGraphQL(inngest: any) {
           .eq('repository_id', repositoryId);
 
         if (prCount && prCount > LARGE_REPO_THRESHOLD) {
-          console.warn(`Large repository detected: ${repository.owner}/${repository.name} has ${prCount} PRs`);
+          console.warn(
+            `Large repository detected: ${repository.owner}/${repository.name} has ${prCount} PRs`
+          );
         }
 
         return { prCount: prCount || 0 };
@@ -228,14 +235,22 @@ export function createCaptureRepositorySyncGraphQL(inngest: any) {
             MAX_PRS_PER_SYNC
           );
 
-          console.log('✅ GraphQL recent PRs query successful for %s/%s (%d PRs found)',
-            repository.owner, repository.name, prs.length);
+          console.log(
+            '✅ GraphQL recent PRs query successful for %s/%s (%d PRs found)',
+            repository.owner,
+            repository.name,
+            prs.length
+          );
 
           // Log rate limit info
           const rateLimit = getGraphQLClient().getRateLimit();
           if (rateLimit) {
-            console.log('📊 GraphQL rate limit: %d/%d remaining (cost: %d points)',
-              rateLimit.remaining, rateLimit.limit, rateLimit.cost);
+            console.log(
+              '📊 GraphQL rate limit: %d/%d remaining (cost: %d points)',
+              rateLimit.remaining,
+              rateLimit.limit,
+              rateLimit.cost
+            );
           }
 
           return prs.slice(0, MAX_PRS_PER_SYNC);
@@ -244,10 +259,14 @@ export function createCaptureRepositorySyncGraphQL(inngest: any) {
             throw new Error(`Repository ${repository.owner}/${repository.name} not found`);
           }
           if (error.message?.includes('rate limit')) {
-            throw new Error(`GraphQL rate limit hit for ${repository.owner}/${repository.name}. Please try again later.`);
+            throw new Error(
+              `GraphQL rate limit hit for ${repository.owner}/${repository.name}. Please try again later.`
+            );
           }
 
-          console.warn(`GraphQL failed for ${repository.owner}/${repository.name}, this will trigger fallback to REST`);
+          console.warn(
+            `GraphQL failed for ${repository.owner}/${repository.name}, this will trigger fallback to REST`
+          );
           throw error;
         }
       });
@@ -269,8 +288,7 @@ export function createCaptureRepositorySyncGraphQL(inngest: any) {
           number: pr.number,
           title: pr.title,
           body: null, // Basic PR list doesn't include body
-          state: pr.state?.toLowerCase() === 'open' ? 'open' :
-                 pr.merged ? 'merged' : 'closed',
+          state: pr.state?.toLowerCase() === 'open' ? 'open' : pr.merged ? 'merged' : 'closed',
           author_id: contributorIds[index],
           created_at: pr.createdAt,
           updated_at: pr.updatedAt,
@@ -327,8 +345,12 @@ export function createCaptureRepositorySyncGraphQL(inngest: any) {
           }
 
           if (detailJobsQueued >= MAX_DETAIL_JOBS) {
-            console.log('Reached GraphQL job queue limit (%d) for %s/%s',
-              MAX_DETAIL_JOBS, repository.owner, repository.name);
+            console.log(
+              'Reached GraphQL job queue limit (%d) for %s/%s',
+              MAX_DETAIL_JOBS,
+              repository.owner,
+              repository.name
+            );
             break;
           }
         }
@@ -379,11 +401,13 @@ export function createCaptureRepositorySyncGraphQL(inngest: any) {
           averagePointsPerQuery: metrics.averagePointsPerQuery,
           fallbackRate: `${metrics.fallbackRate.toFixed(1)}%`,
         },
-        rateLimit: rateLimit ? {
-          remaining: rateLimit.remaining,
-          limit: rateLimit.limit,
-          resetAt: rateLimit.resetAt,
-        } : null,
+        rateLimit: rateLimit
+          ? {
+              remaining: rateLimit.remaining,
+              limit: rateLimit.limit,
+              resetAt: rateLimit.resetAt,
+            }
+          : null,
       };
     }
   );

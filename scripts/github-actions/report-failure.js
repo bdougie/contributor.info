@@ -20,7 +20,7 @@ async function main() {
   try {
     // Get repository name if not provided
     let repositoryName = options.repositoryName;
-    
+
     if (!repositoryName && options.repositoryId) {
       repositoryName = await getRepositoryName(options.repositoryId);
     }
@@ -31,14 +31,19 @@ async function main() {
     }
 
     // Get error message from GitHub Actions context if not provided
-    const errorMessage = options.errorMessage || process.env.GITHUB_JOB_ERROR || 'Job failed without specific error message';
+    const errorMessage =
+      options.errorMessage ||
+      process.env.GITHUB_JOB_ERROR ||
+      'Job failed without specific error message';
 
     // Prepare job details
     const jobDetails = {
       jobType: options.jobType || 'unknown',
       repositoryName,
       workflowName: options.workflowName || process.env.GITHUB_WORKFLOW || 'Unknown Workflow',
-      workflowUrl: options.workflowUrl || `https://github.com/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`,
+      workflowUrl:
+        options.workflowUrl ||
+        `https://github.com/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`,
       errorMessage,
       timestamp: new Date().toISOString(),
       metadata: {
@@ -49,27 +54,26 @@ async function main() {
         actor: process.env.GITHUB_ACTOR,
         event_name: process.env.GITHUB_EVENT_NAME,
         ref: process.env.GITHUB_REF,
-        sha: process.env.GITHUB_SHA
-      }
+        sha: process.env.GITHUB_SHA,
+      },
     };
 
     // Create issue reporter
     const token = process.env.GITHUB_TOKEN;
     const repository = process.env.GITHUB_REPOSITORY;
-    
+
     if (!token || !repository) {
       throw new Error('GITHUB_TOKEN and GITHUB_REPOSITORY environment variables are required');
     }
 
     const [owner, repo] = repository.split('/');
     const reporter = new GitHubIssueReporter(token, owner, repo);
-    
+
     // Report the failure
     const issue = await reporter.reportFailedJob(jobDetails);
-    
+
     console.log(`✅ Failure reported successfully`);
     console.log(`   Issue: ${issue.html_url}`);
-    
   } catch (error) {
     console.error('❌ Error reporting failure:', error);
     // Don't fail the workflow if issue reporting fails
@@ -79,16 +83,12 @@ async function main() {
 
 async function getRepositoryName(repositoryId) {
   try {
-    const supabase = createClient(
-      process.env.VITE_SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_KEY,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    );
+    const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
 
     const { data, error } = await supabase
       .from('repositories')

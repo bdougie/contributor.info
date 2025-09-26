@@ -1,5 +1,5 @@
 // Mock for use-repo-search hook in Storybook
-import { fn } from "@storybook/test";
+import { fn } from '@storybook/test';
 
 export const useRepoSearch = fn(() => ({
   searchResults: [],
@@ -7,5 +7,5 @@ export const useRepoSearch = fn(() => ({
   searchRepo: fn(),
   selectedRepo: null,
   setSelectedRepo: fn(),
-  clearSearch: fn()
+  clearSearch: fn(),
 }));

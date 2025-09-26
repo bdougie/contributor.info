@@ -1,4 +1,4 @@
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 // Main function for accepting workspace invitations
@@ -6,10 +6,10 @@ Deno.serve(async (req: Request) => {
   try {
     // Only allow POST requests
     if (req.method !== 'POST') {
-      return new Response(
-        JSON.stringify({ error: 'Method not allowed' }),
-        { status: 405, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+        status: 405,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     // Get environment variables
@@ -20,10 +20,10 @@ Deno.serve(async (req: Request) => {
     // Get the authorization header
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Authorization required' }),
-        { status: 401, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Authorization required' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     // Create client with user context from auth header
@@ -36,26 +36,29 @@ Deno.serve(async (req: Request) => {
     });
 
     // Get the authenticated user
-    const { data: { user: authUser }, error: authError } = await supabaseUser.auth.getUser();
+    const {
+      data: { user: authUser },
+      error: authError,
+    } = await supabaseUser.auth.getUser();
     if (authError || !authUser) {
       console.error('Authentication failed:', authError);
-      return new Response(
-        JSON.stringify({ error: 'Authentication failed' }),
-        { status: 401, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Authentication failed' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     const userId = authUser.id;
 
     // Parse the request payload for the token
     const { token } = await req.json();
-    
+
     if (!token) {
       console.error('Invalid payload: missing invitation token');
-      return new Response(
-        JSON.stringify({ error: 'Invitation token required' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Invitation token required' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     // Create service role client for database operations
@@ -64,7 +67,8 @@ Deno.serve(async (req: Request) => {
     // Fetch invitation details
     const { data: invitation, error: invitationError } = await supabase
       .from('workspace_invitations')
-      .select(`
+      .select(
+        `
         *,
         workspace:workspaces!workspace_id(
           id,
@@ -73,17 +77,18 @@ Deno.serve(async (req: Request) => {
           owner_id,
           member_count
         )
-      `)
+      `
+      )
       .eq('invitation_token', token)
       .eq('status', 'pending')
       .single();
 
     if (invitationError || !invitation) {
       console.error('Failed to fetch invitation:', invitationError);
-      return new Response(
-        JSON.stringify({ error: 'Invalid or expired invitation' }),
-        { status: 404, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Invalid or expired invitation' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     // Check if invitation has expired
@@ -92,38 +97,39 @@ Deno.serve(async (req: Request) => {
       // Update invitation status to expired
       await supabase
         .from('workspace_invitations')
-        .update({ 
+        .update({
           status: 'expired',
           metadata: {
             ...(invitation.metadata ?? {}),
-            expired_at: new Date().toISOString()
-          }
+            expired_at: new Date().toISOString(),
+          },
         })
         .eq('id', invitation.id);
 
       console.error('Invitation has expired');
-      return new Response(
-        JSON.stringify({ error: 'This invitation has expired' }),
-        { status: 410, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'This invitation has expired' }), {
+        status: 410,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     // Verify that the user email matches the invitation email using RPC
-    const { data: userEmail, error: userError } = await supabase
-      .rpc('get_user_email', { user_id: userId });
+    const { data: userEmail, error: userError } = await supabase.rpc('get_user_email', {
+      user_id: userId,
+    });
 
     if (userError || !userEmail) {
       console.error('Failed to fetch user email:', userError);
-      return new Response(
-        JSON.stringify({ error: 'User not found' }),
-        { status: 404, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'User not found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     if (userEmail !== invitation.email) {
       console.error('Email mismatch:', {
         userEmail: userEmail,
-        invitationEmail: invitation.email
+        invitationEmail: invitation.email,
       });
       return new Response(
         JSON.stringify({ error: 'This invitation was sent to a different email address' }),
@@ -143,25 +149,25 @@ Deno.serve(async (req: Request) => {
       // User is already a member, just update the invitation status
       await supabase
         .from('workspace_invitations')
-        .update({ 
+        .update({
           status: 'accepted',
           accepted_at: new Date().toISOString(),
           metadata: {
             ...invitation.metadata,
-            already_member: true
-          }
+            already_member: true,
+          },
         })
         .eq('id', invitation.id);
 
       return new Response(
-        JSON.stringify({ 
+        JSON.stringify({
           success: true,
           message: 'You are already a member of this workspace',
           workspace: {
             id: invitation.workspace.id,
             name: invitation.workspace.name,
-            slug: invitation.workspace.slug
-          }
+            slug: invitation.workspace.slug,
+          },
         }),
         { status: 200, headers: { 'Content-Type': 'application/json' } }
       );
@@ -171,7 +177,7 @@ Deno.serve(async (req: Request) => {
     console.log('Accepting invitation and adding member to workspace:', {
       workspaceId: invitation.workspace_id,
       userId: userId,
-      role: invitation.role
+      role: invitation.role,
     });
 
     // Add user as a workspace member
@@ -184,7 +190,7 @@ Deno.serve(async (req: Request) => {
         invited_by: invitation.invited_by,
         invited_at: invitation.invited_at,
         accepted_at: new Date().toISOString(),
-        is_active: true
+        is_active: true,
       })
       .select()
       .single();
@@ -192,9 +198,9 @@ Deno.serve(async (req: Request) => {
     if (memberError) {
       console.error('Failed to add workspace member:', memberError);
       return new Response(
-        JSON.stringify({ 
+        JSON.stringify({
           error: 'Failed to add you to the workspace',
-          details: memberError.message 
+          details: memberError.message,
         }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       );
@@ -203,14 +209,14 @@ Deno.serve(async (req: Request) => {
     // Update invitation status to accepted
     const { error: updateError } = await supabase
       .from('workspace_invitations')
-      .update({ 
+      .update({
         status: 'accepted',
         accepted_at: new Date().toISOString(),
         metadata: {
           ...invitation.metadata,
           member_id: newMember.id,
-          accepted_by_user_id: userId
-        }
+          accepted_by_user_id: userId,
+        },
       })
       .eq('id', invitation.id);
 
@@ -221,59 +227,56 @@ Deno.serve(async (req: Request) => {
 
     // Update workspace member count atomically using SQL
     const { error: countError } = await supabase.rpc('increment_workspace_member_count', {
-      workspace_id_param: invitation.workspace_id
+      workspace_id_param: invitation.workspace_id,
     });
-    
+
     if (countError) {
       console.warn('Failed to update member count:', countError);
       // Don't fail the request as member was added successfully
     }
 
     // Log activity for audit trail
-    await supabase
-      .from('workspace_activity_log')
-      .insert({
-        workspace_id: invitation.workspace_id,
-        user_id: userId,
-        action: 'member_joined',
-        details: {
-          invitation_id: invitation.id,
-          invited_by: invitation.invited_by,
-          role: invitation.role,
-          accepted_at: new Date().toISOString()
-        }
-      });
+    await supabase.from('workspace_activity_log').insert({
+      workspace_id: invitation.workspace_id,
+      user_id: userId,
+      action: 'member_joined',
+      details: {
+        invitation_id: invitation.id,
+        invited_by: invitation.invited_by,
+        role: invitation.role,
+        accepted_at: new Date().toISOString(),
+      },
+    });
 
     console.log('Workspace invitation accepted successfully:', {
       workspaceId: invitation.workspace_id,
       userId: userId,
-      memberId: newMember.id
+      memberId: newMember.id,
     });
 
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         success: true,
         message: 'Successfully joined the workspace',
         workspace: {
           id: invitation.workspace.id,
           name: invitation.workspace.name,
-          slug: invitation.workspace.slug
+          slug: invitation.workspace.slug,
         },
         member: {
           id: newMember.id,
-          role: newMember.role
-        }
+          role: newMember.role,
+        },
       }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
-
   } catch (error) {
     console.error('Error accepting workspace invitation:', error);
-    
+
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         error: 'Failed to accept workspace invitation',
-        details: error.message 
+        details: error.message,
       }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );

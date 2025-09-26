@@ -9,7 +9,7 @@ exports.handler = async (event, context) => {
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS'
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
   };
 
   // Handle preflight
@@ -17,18 +17,18 @@ exports.handler = async (event, context) => {
     return {
       statusCode: 200,
       headers: corsHeaders,
-      body: ''
+      body: '',
     };
   }
 
   if (event.httpMethod !== 'GET') {
     return {
       statusCode: 405,
-      headers: { 
+      headers: {
         ...corsHeaders,
-        'Content-Type': 'application/json' 
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ error: 'Method not allowed' })
+      body: JSON.stringify({ error: 'Method not allowed' }),
     };
   }
 
@@ -40,14 +40,14 @@ exports.handler = async (event, context) => {
     if (!owner || !repo) {
       return {
         statusCode: 400,
-        headers: { 
+        headers: {
           ...corsHeaders,
-          'Content-Type': 'application/json' 
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           error: 'Missing owner or repo',
-          message: 'Please provide both owner and repo parameters' 
-        })
+          message: 'Please provide both owner and repo parameters',
+        }),
       };
     }
 
@@ -58,16 +58,16 @@ exports.handler = async (event, context) => {
       console.warn('Supabase credentials not configured, returning simulated response');
       return {
         statusCode: 200,
-        headers: { 
+        headers: {
           ...corsHeaders,
-          'Content-Type': 'application/json' 
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           owner,
           repo,
           hasData: false,
-          message: 'Repository not yet available'
-        })
+          message: 'Repository not yet available',
+        }),
       };
     }
 
@@ -87,16 +87,16 @@ exports.handler = async (event, context) => {
       // Don't expose database errors to client
       return {
         statusCode: 200,
-        headers: { 
+        headers: {
           ...corsHeaders,
-          'Content-Type': 'application/json' 
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           owner,
           repo,
           hasData: false,
-          message: 'Repository not yet available'
-        })
+          message: 'Repository not yet available',
+        }),
       };
     }
 
@@ -104,31 +104,30 @@ exports.handler = async (event, context) => {
 
     return {
       statusCode: 200,
-      headers: { 
+      headers: {
         ...corsHeaders,
-        'Content-Type': 'application/json' 
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         owner,
         repo,
         hasData,
-        message: hasData ? 'Repository has data' : 'Repository not yet available'
-      })
+        message: hasData ? 'Repository has data' : 'Repository not yet available',
+      }),
     };
-
   } catch (error) {
     console.error('Failed to check repository status:', error);
-    
+
     return {
       statusCode: 500,
-      headers: { 
+      headers: {
         ...corsHeaders,
-        'Content-Type': 'application/json' 
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         error: 'Internal server error',
-        message: 'Failed to check repository status' 
-      })
+        message: 'Failed to check repository status',
+      }),
     };
   }
 };

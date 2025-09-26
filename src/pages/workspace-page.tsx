@@ -25,9 +25,7 @@ import {
 } from '@/components/features/workspace/ContributorsList';
 import { ContributorsTable } from '@/components/features/workspace/ContributorsTable';
 import { ContributorGroupManager } from '@/components/features/workspace/ContributorGroupManager';
-import {
-  ContributorNotesDialog,
-} from '@/components/features/workspace/ContributorNotesDialog';
+import { ContributorNotesDialog } from '@/components/features/workspace/ContributorNotesDialog';
 import { ContributorProfileModal } from '@/components/features/workspace/ContributorProfileModal';
 import { AddRepositoryModal } from '@/components/features/workspace/AddRepositoryModal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -758,10 +756,16 @@ function WorkspaceContributors({
   repositories,
   selectedRepositories,
   workspaceId,
+  userRole,
+  workspaceTier,
+  isLoggedIn,
 }: {
   repositories: Repository[];
   selectedRepositories: string[];
   workspaceId: string;
+  userRole?: import('@/types/workspace').WorkspaceRole;
+  workspaceTier?: import('@/types/workspace').WorkspaceTier;
+  isLoggedIn?: boolean;
 }) {
   // Navigate removed - no longer needed as profile modal handles internally
   const [showAddContributors, setShowAddContributors] = useState(false);
@@ -775,6 +779,9 @@ function WorkspaceContributors({
   const [showNotesDialog, setShowNotesDialog] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [selectedContributor, setSelectedContributor] = useState<Contributor | null>(null);
+
+  // Unified selection state for table and modals
+  const [selectedContributorsForGroups, setSelectedContributorsForGroups] = useState<Set<string>>(new Set());
 
   // Group filtering state
   const [selectedFilterGroup, setSelectedFilterGroup] = useState<string | null>(null);
@@ -797,7 +804,7 @@ function WorkspaceContributors({
   // Build the map directly from groupMembers to ensure reactivity
   const contributorGroupsByUsername = useMemo(() => {
     const map = new Map<string, string[]>();
-    groupMembers.forEach(member => {
+    groupMembers.forEach((member) => {
       const current = map.get(member.contributor_username) || [];
       current.push(member.group_id);
       map.set(member.contributor_username, current);
@@ -807,15 +814,20 @@ function WorkspaceContributors({
 
   // Transform notes to match ContributorNotesDialog interface
   const transformedNotes = useMemo(() => {
-    return notes.map(note => ({
-      ...note,
-      created_by: {
-        id: note.created_by || 'unknown',
-        email: 'unknown',
-        display_name: 'Unknown User',
-        avatar_url: undefined,
-      },
-    }));
+    return notes.map((note) => {
+      const createdBy = note.created_by as any;
+      const isObject = typeof createdBy === 'object' && createdBy !== null;
+
+      return {
+        ...note,
+        created_by: {
+          id: isObject ? createdBy.id : createdBy || 'unknown',
+          email: isObject ? createdBy.email : 'unknown@example.com',
+          display_name: isObject ? (createdBy.full_name || createdBy.email?.split('@')[0]) : 'Unknown User',
+          avatar_url: isObject ? createdBy.avatar_url : undefined,
+        },
+      };
+    });
   }, [notes]);
 
   const {
@@ -838,7 +850,7 @@ function WorkspaceContributors({
 
     // Build a username to ID lookup
     const usernameToId = new Map<string, string>();
-    contributors.forEach(contributor => {
+    contributors.forEach((contributor) => {
       usernameToId.set(contributor.username, contributor.id);
     });
 
@@ -898,6 +910,10 @@ function WorkspaceContributors({
     const contributor = contributors.find((c) => c.id === contributorId);
     if (contributor) {
       setSelectedContributor(contributor);
+      // Ensure this contributor is in the selection
+      if (!selectedContributorsForGroups.has(contributorId)) {
+        setSelectedContributorsForGroups(new Set([...selectedContributorsForGroups, contributorId]));
+      }
       setShowGroupManager(true);
     }
   };
@@ -924,11 +940,7 @@ function WorkspaceContributors({
     }
   };
 
-  const handleUpdateGroup = async (
-    groupId: string,
-    name: string,
-    description: string
-  ) => {
+  const handleUpdateGroup = async (groupId: string, name: string, description: string) => {
     try {
       await updateGroup(groupId, name, description);
     } catch (error) {
@@ -948,7 +960,7 @@ function WorkspaceContributors({
 
   const handleAddContributorToGroup = async (contributorId: string, groupId: string) => {
     // Find the contributor by ID to get their username
-    const contributor = contributors.find(c => c.id === contributorId);
+    const contributor = contributors.find((c) => c.id === contributorId);
     if (!contributor) {
       toast.error('Contributor not found');
       return;
@@ -962,21 +974,26 @@ function WorkspaceContributors({
     }
   };
 
-  const handleBulkAddContributorsToGroups = async (contributorIds: string[], groupIds: string[]) => {
+  const handleBulkAddContributorsToGroups = async (
+    contributorIds: string[],
+    groupIds: string[]
+  ) => {
     if (contributorIds.length === 0 || groupIds.length === 0) {
       toast.error('Please select contributors and groups');
       return;
     }
 
     // Find contributors by IDs to get their usernames
-    const selectedContributors = contributors.filter(c => contributorIds.includes(c.id));
+    const selectedContributors = contributors.filter((c) => contributorIds.includes(c.id));
     if (selectedContributors.length !== contributorIds.length) {
       toast.error('Some contributors not found');
       return;
     }
 
     // Find the "new contributors" group (topinos) to remove from
-    const newContributorsGroup = groups.find(g => g.name.toLowerCase().includes('new') || g.name.toLowerCase().includes('topinos'));
+    const newContributorsGroup = groups.find(
+      (g) => g.name.toLowerCase().includes('new') || g.name.toLowerCase().includes('topinos')
+    );
 
     try {
       const promises = [];
@@ -993,14 +1010,18 @@ function WorkspaceContributors({
           const isInNewGroup = contributorGroupsList.includes(newContributorsGroup.id);
 
           if (isInNewGroup) {
-            promises.push(removeContributorFromGroup(contributor.username, newContributorsGroup.id));
+            promises.push(
+              removeContributorFromGroup(contributor.username, newContributorsGroup.id)
+            );
           }
         }
       }
 
       await Promise.all(promises);
 
-      const groupNames = groupIds.map(id => groups.find(g => g.id === id)?.name).filter(Boolean);
+      const groupNames = groupIds
+        .map((id) => groups.find((g) => g.id === id)?.name)
+        .filter(Boolean);
       let message = `Added ${selectedContributors.length} contributor${selectedContributors.length === 1 ? '' : 's'} to ${groupNames.length} group${groupNames.length === 1 ? '' : 's'}`;
 
       if (newContributorsGroup) {
@@ -1016,7 +1037,7 @@ function WorkspaceContributors({
 
   const handleRemoveContributorFromGroup = async (contributorId: string, groupId: string) => {
     // Find the contributor by ID to get their username
-    const contributor = contributors.find(c => c.id === contributorId);
+    const contributor = contributors.find((c) => c.id === contributorId);
     if (!contributor) {
       toast.error('Contributor not found');
       return;
@@ -1032,7 +1053,7 @@ function WorkspaceContributors({
 
   const handleAddNoteToContributor = async (contributorId: string, note: string) => {
     // Find the contributor by ID to get their username
-    const contributor = contributors.find(c => c.id === contributorId);
+    const contributor = contributors.find((c) => c.id === contributorId);
     if (!contributor) {
       toast.error('Contributor not found');
       return;
@@ -1048,7 +1069,7 @@ function WorkspaceContributors({
 
   const handleUpdateNote = async (contributorId: string, note: string) => {
     // Find the contributor by ID to get their username
-    const contributor = contributors.find(c => c.id === contributorId);
+    const contributor = contributors.find((c) => c.id === contributorId);
     if (!contributor) {
       toast.error('Contributor not found');
       return;
@@ -1064,7 +1085,7 @@ function WorkspaceContributors({
 
   const handleDeleteNote = async (contributorId: string) => {
     // Find the contributor by ID to get their username
-    const contributor = contributors.find(c => c.id === contributorId);
+    const contributor = contributors.find((c) => c.id === contributorId);
     if (!contributor) {
       toast.error('Contributor not found');
       return;
@@ -1349,14 +1370,12 @@ function WorkspaceContributors({
     // Get all contributor usernames in the selected group
     const usernamesInGroup = new Set(
       groupMembers
-        .filter(member => member.group_id === selectedFilterGroup)
-        .map(member => member.contributor_username)
+        .filter((member) => member.group_id === selectedFilterGroup)
+        .map((member) => member.contributor_username)
     );
 
     // Filter contributors whose usernames are in the group
-    return contributors.filter(contributor =>
-      usernamesInGroup.has(contributor.username)
-    );
+    return contributors.filter((contributor) => usernamesInGroup.has(contributor.username));
   }, [contributors, selectedFilterGroup, groupMembers]);
 
   // viewTable removed - functionality moved to ContributorsTable component
@@ -1511,64 +1530,73 @@ function WorkspaceContributors({
         </Card>
       ) : (
         <div className="space-y-6">
-          {/* Contributor Leaderboard */}
-          <Suspense
-            fallback={
-              <Card>
-                <CardHeader>
-                  <CardTitle>Top Contributors</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center justify-between p-3 border rounded-lg"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-muted animate-pulse rounded-full" />
-                          <div className="space-y-1">
-                            <div className="h-4 w-24 bg-muted animate-pulse rounded" />
-                            <div className="h-3 w-32 bg-muted animate-pulse rounded" />
+          {/* Contributor Leaderboard - only show if more than 3 contributors */}
+          {filteredContributors.length > 3 && (
+            <Suspense
+              fallback={
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Top Contributors</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <div
+                          key={i}
+                          className="flex items-center justify-between p-3 border rounded-lg"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-muted animate-pulse rounded-full" />
+                            <div className="space-y-1">
+                              <div className="h-4 w-24 bg-muted animate-pulse rounded" />
+                              <div className="h-3 w-32 bg-muted animate-pulse rounded" />
+                            </div>
                           </div>
+                          <div className="h-5 w-12 bg-muted animate-pulse rounded" />
                         </div>
-                        <div className="h-5 w-12 bg-muted animate-pulse rounded" />
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            }
-          >
-            <ContributorLeaderboard
-              contributors={filteredContributors.map((contributor) => ({
-                id: contributor.id,
-                username: contributor.username,
-                avatar_url: contributor.avatar_url,
-                contributions: contributor.stats.total_contributions,
-                pull_requests: contributor.contributions.pull_requests,
-                issues: contributor.contributions.issues,
-                reviews: contributor.contributions.reviews,
-                commits: contributor.contributions.commits,
-                trend: contributor.stats.contribution_trend,
-              }))}
-              loading={loading}
-              timeRange="30d"
-              maxDisplay={10}
-            />
-          </Suspense>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              }
+            >
+              <ContributorLeaderboard
+                contributors={filteredContributors.map((contributor) => ({
+                  id: contributor.id,
+                  username: contributor.username,
+                  avatar_url: contributor.avatar_url,
+                  contributions: contributor.stats.total_contributions,
+                  pull_requests: contributor.contributions.pull_requests,
+                  issues: contributor.contributions.issues,
+                  reviews: contributor.contributions.reviews,
+                  commits: contributor.contributions.commits,
+                  trend: contributor.stats.contribution_trend,
+                }))}
+                loading={loading}
+                timeRange="30d"
+                maxDisplay={10}
+                onContributorClick={(contributorStat) => {
+                  // Find the full contributor object by id
+                  const fullContributor = filteredContributors.find(c => c.id === contributorStat.id);
+                  if (fullContributor) {
+                    handleContributorClick(fullContributor);
+                  }
+                }}
+              />
+            </Suspense>
+          )}
 
           {/* Group Filter - outside the card */}
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm text-muted-foreground">Groups:</span>
             {groups.map((group) => {
-              const count = groupMembers.filter(m => m.group_id === group.id).length;
+              const count = groupMembers.filter((m) => m.group_id === group.id).length;
               const isSelected = selectedFilterGroup === group.id;
 
               return (
                 <Button
                   key={group.id}
-                  variant={isSelected ? "default" : "secondary"}
+                  variant={isSelected ? 'default' : 'secondary'}
                   size="sm"
                   onClick={() => setSelectedFilterGroup(isSelected ? null : group.id)}
                   className="h-7"
@@ -1597,9 +1625,14 @@ function WorkspaceContributors({
             <CardHeader>
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                  <CardTitle>Contributors</CardTitle>
+                  <CardTitle>
+                    {selectedFilterGroup
+                      ? `${groups.find(g => g.id === selectedFilterGroup)?.name || 'Group'} Contributors`
+                      : 'All Contributors'}
+                  </CardTitle>
                   <p className="text-sm text-muted-foreground mt-1">
-                    {filteredContributors.length} {selectedFilterGroup ? 'filtered ' : ''}contributors
+                    {filteredContributors.length} {selectedFilterGroup ? 'filtered ' : ''}
+                    {filteredContributors.length === 1 ? 'contributor' : 'contributors'}
                     {selectedFilterGroup && ` • ${contributors.length} total`}
                   </p>
                 </div>
@@ -1650,6 +1683,7 @@ function WorkspaceContributors({
                   onTrackContributor={handleTrackContributor}
                   onUntrackContributor={handleUntrackContributor}
                   onContributorClick={handleContributorClick}
+                  onAddToGroup={handleAddToGroup}
                   loading={loading}
                   view="grid"
                   showHeader={false} // We'll add this prop to hide the built-in header
@@ -1666,6 +1700,11 @@ function WorkspaceContributors({
                   onAddNote={handleAddNote}
                   onRemoveContributor={handleRemoveContributor}
                   showHeader={false} // We'll add this prop to hide the built-in header
+                  selectedContributors={selectedContributorsForGroups}
+                  onSelectedContributorsChange={setSelectedContributorsForGroups}
+                  userRole={userRole}
+                  workspaceTier={workspaceTier}
+                  isLoggedIn={isLoggedIn}
                 />
               )}
             </CardContent>
@@ -1676,16 +1715,26 @@ function WorkspaceContributors({
       {/* CRM Modals */}
       <ContributorGroupManager
         open={showGroupManager}
-        onOpenChange={setShowGroupManager}
+        onOpenChange={(open) => {
+          setShowGroupManager(open);
+          // Clear selection when closing modal
+          if (!open) {
+            setSelectedContributorsForGroups(new Set());
+          }
+        }}
         groups={groups}
         contributors={contributors}
         contributorGroups={contributorGroups}
         selectedContributorId={selectedContributor?.id}
+        selectedContributorIds={selectedContributorsForGroups}
         onCreateGroup={handleCreateGroup}
         onUpdateGroup={handleUpdateGroup}
         onDeleteGroup={handleDeleteGroup}
         onAddContributorToGroup={handleAddContributorToGroup}
         onRemoveContributorFromGroup={handleRemoveContributorFromGroup}
+        userRole={userRole}
+        workspaceTier={workspaceTier}
+        isLoggedIn={isLoggedIn}
       />
 
       <ContributorNotesDialog
@@ -1712,7 +1761,7 @@ function WorkspaceContributors({
           setShowProfileModal(false);
           // Pre-select the current contributor when opening group manager
           if (selectedContributor) {
-            setSelectedContributorsToAdd([selectedContributor.id]);
+            setSelectedContributorsForGroups(new Set([selectedContributor.id]));
           }
           setShowGroupManager(true);
         }}
@@ -1720,6 +1769,9 @@ function WorkspaceContributors({
           setShowProfileModal(false);
           setShowNotesDialog(true);
         }}
+        userRole={userRole}
+        workspaceTier={workspaceTier}
+        isLoggedIn={isLoggedIn}
       />
     </div>
   );
@@ -3281,6 +3333,9 @@ function WorkspacePage() {
                 repositories={repositories}
                 selectedRepositories={selectedRepositories}
                 workspaceId={workspace.id}
+                userRole={currentMember?.role}
+                workspaceTier={workspace.tier}
+                isLoggedIn={!!currentUser}
               />
             </div>
           </TabsContent>

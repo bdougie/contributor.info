@@ -12,31 +12,31 @@ import Logger from '../utils/logger.js';
 export async function handlePRCheckRuns(payload, githubApp, supabase, parentLogger) {
   const logger = parentLogger ? parentLogger.child('PRCheckRuns') : new Logger('PRCheckRuns');
   const { pull_request: pr, repository: repo, installation, action } = payload;
-  
+
   // Only process on PR opened, synchronize, or ready_for_review
   if (!['opened', 'synchronize', 'ready_for_review'].includes(action)) {
     logger.info('Skipping check runs for action: %s', action);
     return { success: true, skipped: true };
   }
-  
+
   // Skip draft PRs
   if (pr.draft) {
     logger.info('Skipping check runs for draft PR');
     return { success: true, skipped: true };
   }
-  
+
   logger.info('Running checks for PR #%s in %s', pr.number, repo.full_name);
-  
+
   try {
     // Get installation Octokit
     const octokit = await githubApp.getInstallationOctokit(installation.id);
-    
+
     // Run checks in parallel
     const [similarityResult, performanceResult] = await Promise.allSettled([
       runSimilarityCheck(pr, repo, octokit, supabase, logger),
-      runPerformanceCheck(pr, repo, octokit, logger)
+      runPerformanceCheck(pr, repo, octokit, logger),
     ]);
-    
+
     // Log results
     if (similarityResult.status === 'rejected') {
       logger.error('Similarity check failed:', similarityResult.reason);
@@ -44,11 +44,11 @@ export async function handlePRCheckRuns(payload, githubApp, supabase, parentLogg
     if (performanceResult.status === 'rejected') {
       logger.error('Performance check failed:', performanceResult.reason);
     }
-    
+
     return {
       success: true,
       similarity: similarityResult.status === 'fulfilled' ? similarityResult.value : null,
-      performance: performanceResult.status === 'fulfilled' ? performanceResult.value : null
+      performance: performanceResult.status === 'fulfilled' ? performanceResult.value : null,
     };
   } catch (error) {
     logger.error('Error handling PR check runs:', error);
@@ -61,7 +61,7 @@ export async function handlePRCheckRuns(payload, githubApp, supabase, parentLogg
  */
 async function runSimilarityCheck(pr, repo, octokit, supabase, logger) {
   const checkRunName = 'Similarity Analysis';
-  
+
   // Create check run
   const { data: checkRun } = await octokit.rest.checks.create({
     owner: repo.owner.login,
@@ -69,9 +69,9 @@ async function runSimilarityCheck(pr, repo, octokit, supabase, logger) {
     name: checkRunName,
     head_sha: pr.head.sha,
     status: 'in_progress',
-    started_at: new Date().toISOString()
+    started_at: new Date().toISOString(),
   });
-  
+
   try {
     // Find similar issues
     const similarIssues = await findSimilarIssues(
@@ -81,30 +81,30 @@ async function runSimilarityCheck(pr, repo, octokit, supabase, logger) {
       supabase,
       logger
     );
-    
+
     // Prepare check run output
     let conclusion = 'success';
     let summary = '';
     let text = '';
     let annotations = [];
-    
+
     if (similarIssues.length > 0) {
       conclusion = 'neutral';
       summary = `Found ${similarIssues.length} similar issue(s)`;
-      
+
       text = '## 🔍 Similar Issues Found\n\n';
       text += 'The following issues appear to be related to this PR:\n\n';
-      
+
       for (const issue of similarIssues) {
         const similarity = Math.round(issue.similarity * 100);
         const stateEmoji = issue.state === 'open' ? '🟢' : '🔴';
-        
+
         text += `### ${stateEmoji} Issue #${issue.number}\n`;
         text += `- **Title**: ${issue.title}\n`;
         text += `- **Similarity**: ${similarity}%\n`;
         text += `- **Status**: ${issue.state}\n`;
         text += `- **Link**: [View Issue](${issue.html_url})\n\n`;
-        
+
         // Add annotation for high similarity
         if (similarity >= 80) {
           annotations.push({
@@ -113,11 +113,11 @@ async function runSimilarityCheck(pr, repo, octokit, supabase, logger) {
             end_line: 1,
             annotation_level: 'warning',
             message: `High similarity (${similarity}%) with issue #${issue.number}: ${issue.title}`,
-            title: 'Potential Duplicate'
+            title: 'Potential Duplicate',
           });
         }
       }
-      
+
       text += '\n### 💡 Recommendations\n\n';
       text += '- Review the similar issues to avoid duplicate work\n';
       text += '- Reference related issues in your PR description\n';
@@ -131,7 +131,7 @@ async function runSimilarityCheck(pr, repo, octokit, supabase, logger) {
       text += '- Add relevant labels to help with categorization\n';
       text += '- Link any related issues or discussions\n';
     }
-    
+
     // Update check run with results
     await octokit.rest.checks.update({
       owner: repo.owner.login,
@@ -144,10 +144,10 @@ async function runSimilarityCheck(pr, repo, octokit, supabase, logger) {
         title: checkRunName,
         summary,
         text,
-        annotations: annotations.slice(0, 50) // GitHub limits to 50 annotations
-      }
+        annotations: annotations.slice(0, 50), // GitHub limits to 50 annotations
+      },
     });
-    
+
     logger.info('✅ Similarity check completed for PR #%s', pr.number);
     return { similar_issues: similarIssues.length, conclusion };
   } catch (error) {
@@ -162,10 +162,10 @@ async function runSimilarityCheck(pr, repo, octokit, supabase, logger) {
       output: {
         title: checkRunName,
         summary: 'Similarity check failed',
-        text: `An error occurred during similarity analysis:\n\n\`\`\`\n${error.message}\n\`\`\``
-      }
+        text: `An error occurred during similarity analysis:\n\n\`\`\`\n${error.message}\n\`\`\``,
+      },
     });
-    
+
     throw error;
   }
 }
@@ -175,7 +175,7 @@ async function runSimilarityCheck(pr, repo, octokit, supabase, logger) {
  */
 async function runPerformanceCheck(pr, repo, octokit, logger) {
   const checkRunName = 'Performance Impact Analysis';
-  
+
   // Create check run
   const { data: checkRun } = await octokit.rest.checks.create({
     owner: repo.owner.login,
@@ -183,37 +183,32 @@ async function runPerformanceCheck(pr, repo, octokit, logger) {
     name: checkRunName,
     head_sha: pr.head.sha,
     status: 'in_progress',
-    started_at: new Date().toISOString()
+    started_at: new Date().toISOString(),
   });
-  
+
   try {
     // Analyze PR changes for performance impact
-    const performanceAnalysis = await analyzePerformanceImpact(
-      pr,
-      repo,
-      octokit,
-      logger
-    );
-    
+    const performanceAnalysis = await analyzePerformanceImpact(pr, repo, octokit, logger);
+
     // Determine conclusion based on analysis
     let conclusion = 'success';
     let summary = '';
     let text = '## ⚡ Performance Impact Analysis\n\n';
     let annotations = [];
-    
+
     if (performanceAnalysis.hasRisks) {
       conclusion = performanceAnalysis.severity === 'high' ? 'failure' : 'neutral';
       summary = `Found ${performanceAnalysis.risks.length} potential performance issue(s)`;
-      
+
       text += '### ⚠️ Potential Performance Impacts\n\n';
-      
+
       for (const risk of performanceAnalysis.risks) {
         const emoji = risk.severity === 'high' ? '🔴' : risk.severity === 'medium' ? '🟡' : '🟢';
         text += `${emoji} **${risk.title}**\n`;
         text += `- File: \`${risk.file}\`\n`;
         text += `- Severity: ${risk.severity}\n`;
         text += `- Description: ${risk.description}\n\n`;
-        
+
         // Add annotation
         if (risk.line) {
           annotations.push({
@@ -222,17 +217,17 @@ async function runPerformanceCheck(pr, repo, octokit, logger) {
             end_line: risk.line,
             annotation_level: risk.severity === 'high' ? 'failure' : 'warning',
             message: risk.description,
-            title: risk.title
+            title: risk.title,
           });
         }
       }
-      
+
       text += '\n### 📊 Metrics\n\n';
       text += `- Files changed: ${pr.changed_files}\n`;
       text += `- Lines added: ${pr.additions}\n`;
       text += `- Lines removed: ${pr.deletions}\n`;
       text += `- Bundle size impact: ${performanceAnalysis.bundleSizeImpact || 'Unknown'}\n`;
-      
+
       text += '\n### 💡 Recommendations\n\n';
       for (const rec of performanceAnalysis.recommendations) {
         text += `- ${rec}\n`;
@@ -246,7 +241,7 @@ async function runPerformanceCheck(pr, repo, octokit, logger) {
       text += `- Lines added: ${pr.additions}\n`;
       text += `- Lines removed: ${pr.deletions}\n`;
     }
-    
+
     // Update check run with results
     await octokit.rest.checks.update({
       owner: repo.owner.login,
@@ -259,10 +254,10 @@ async function runPerformanceCheck(pr, repo, octokit, logger) {
         title: checkRunName,
         summary,
         text,
-        annotations: annotations.slice(0, 50) // GitHub limits to 50 annotations
-      }
+        annotations: annotations.slice(0, 50), // GitHub limits to 50 annotations
+      },
     });
-    
+
     logger.info('✅ Performance check completed for PR #%s', pr.number);
     return { has_risks: performanceAnalysis.hasRisks, conclusion };
   } catch (error) {
@@ -277,10 +272,10 @@ async function runPerformanceCheck(pr, repo, octokit, logger) {
       output: {
         title: checkRunName,
         summary: 'Performance check failed',
-        text: `An error occurred during performance analysis:\n\n\`\`\`\n${error.message}\n\`\`\``
-      }
+        text: `An error occurred during performance analysis:\n\n\`\`\`\n${error.message}\n\`\`\``,
+      },
     });
-    
+
     throw error;
   }
 }
@@ -292,36 +287,33 @@ async function findSimilarIssues(repoFullName, prTitle, prBody, supabase, logger
   try {
     // Generate embedding for the PR
     const prEmbedding = await generateIssueEmbedding(prTitle, prBody || '');
-    
+
     // Query database for the repository
     const { data: repo } = await supabase
       .from('repositories')
       .select('id')
       .eq('full_name', repoFullName)
       .single();
-    
+
     if (!repo) {
       logger.info('Repository %s not found in database', repoFullName);
       return [];
     }
-    
+
     // Find similar issues using vector similarity
-    const { data: similarIssues, error } = await supabase.rpc(
-      'find_similar_issues',
-      {
-        query_embedding: prEmbedding,
-        match_count: 5,
-        repo_id: repo.id,
-        similarity_threshold: 0.7,
-        exclude_issue_id: null
-      }
-    );
-    
+    const { data: similarIssues, error } = await supabase.rpc('find_similar_issues', {
+      query_embedding: prEmbedding,
+      match_count: 5,
+      repo_id: repo.id,
+      similarity_threshold: 0.7,
+      exclude_issue_id: null,
+    });
+
     if (error) {
       logger.error('Error finding similar issues:', error);
       return [];
     }
-    
+
     return similarIssues || [];
   } catch (error) {
     logger.error('Error in findSimilarIssues:', error);
@@ -335,16 +327,16 @@ async function findSimilarIssues(repoFullName, prTitle, prBody, supabase, logger
 async function analyzePerformanceImpact(pr, repo, octokit, logger) {
   const risks = [];
   const recommendations = [];
-  
+
   try {
     // Get PR files
     const { data: files } = await octokit.rest.pulls.listFiles({
       owner: repo.owner.login,
       repo: repo.name,
       pull_number: pr.number,
-      per_page: 100
+      per_page: 100,
     });
-    
+
     // Analyze each file for performance patterns
     for (const file of files) {
       // Check for large file additions
@@ -354,15 +346,15 @@ async function analyzePerformanceImpact(pr, repo, octokit, logger) {
           title: 'Large file addition',
           description: `Added ${file.additions} lines which may impact bundle size`,
           severity: file.additions > 1000 ? 'high' : 'medium',
-          line: null
+          line: null,
         });
       }
-      
+
       // Check for performance-sensitive file patterns
       if (file.filename.match(/\.(jsx?|tsx?)$/)) {
         // Get file content patch
         const patch = file.patch || '';
-        
+
         // Check for common performance anti-patterns
         if (patch.includes('setTimeout') || patch.includes('setInterval')) {
           risks.push({
@@ -370,30 +362,30 @@ async function analyzePerformanceImpact(pr, repo, octokit, logger) {
             title: 'Timer usage detected',
             description: 'Ensure timers are properly cleaned up to avoid memory leaks',
             severity: 'medium',
-            line: null
+            line: null,
           });
         }
-        
+
         if (patch.includes('.map(') && patch.includes('.map(')) {
           risks.push({
             file: file.filename,
             title: 'Multiple map operations',
             description: 'Consider combining multiple map operations for better performance',
             severity: 'low',
-            line: null
+            line: null,
           });
         }
-        
+
         if (patch.includes('JSON.parse') || patch.includes('JSON.stringify')) {
           risks.push({
             file: file.filename,
             title: 'JSON operations detected',
             description: 'Large JSON operations can block the main thread',
             severity: 'low',
-            line: null
+            line: null,
           });
         }
-        
+
         // Check for large dependencies
         if (file.filename === 'package.json' && file.additions > 0) {
           risks.push({
@@ -401,12 +393,12 @@ async function analyzePerformanceImpact(pr, repo, octokit, logger) {
             title: 'Dependencies added',
             description: 'New dependencies may increase bundle size',
             severity: 'medium',
-            line: null
+            line: null,
           });
           recommendations.push('Run bundle size analysis to measure impact');
         }
       }
-      
+
       // Check for image files
       if (file.filename.match(/\.(png|jpg|jpeg|gif|svg)$/i)) {
         risks.push({
@@ -414,35 +406,39 @@ async function analyzePerformanceImpact(pr, repo, octokit, logger) {
           title: 'Image file added',
           description: 'Consider optimizing images for web delivery',
           severity: 'low',
-          line: null
+          line: null,
         });
         recommendations.push('Use image optimization tools to reduce file size');
       }
     }
-    
+
     // Add general recommendations based on PR size
     if (pr.changed_files > 20) {
       recommendations.push('Consider breaking this PR into smaller, focused changes');
     }
-    
+
     if (pr.additions > 1000) {
       recommendations.push('Large PRs are harder to review - consider splitting if possible');
     }
-    
+
     return {
       hasRisks: risks.length > 0,
-      severity: risks.some(r => r.severity === 'high') ? 'high' : 
-                risks.some(r => r.severity === 'medium') ? 'medium' : 'low',
+      severity: risks.some((r) => r.severity === 'high')
+        ? 'high'
+        : risks.some((r) => r.severity === 'medium')
+          ? 'medium'
+          : 'low',
       risks,
-      recommendations: recommendations.length > 0 ? recommendations : ['Continue with standard review process'],
-      bundleSizeImpact: null // Could integrate with bundle analysis tools
+      recommendations:
+        recommendations.length > 0 ? recommendations : ['Continue with standard review process'],
+      bundleSizeImpact: null, // Could integrate with bundle analysis tools
     };
   } catch (error) {
     logger.error('Error analyzing performance impact:', error);
     return {
       hasRisks: false,
       risks: [],
-      recommendations: ['Unable to complete performance analysis']
+      recommendations: ['Unable to complete performance analysis'],
     };
   }
 }

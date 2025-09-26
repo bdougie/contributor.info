@@ -22,21 +22,6 @@ interface RepositoryData {
   full_name: string;
 }
 
-interface PullRequestFromReview {
-  id: string;
-  title?: string;
-  number: number;
-  html_url?: string;
-  repositories: RepositoryData;
-}
-
-interface IssueFromComment {
-  id: string;
-  title?: string;
-  number: number;
-  repositories: RepositoryData;
-}
-
 interface UseContributorActivityOptions {
   contributorUsername: string | undefined;
   workspaceId: string | undefined;
@@ -114,7 +99,7 @@ export function useContributorActivity({
             .order('created_at', { ascending: false })
             .range(offset, offset + pageSize - 1),
 
-          // Issues
+          // Issues (without html_url which doesn't exist)
           supabase
             .from('issues')
             .select(
@@ -124,7 +109,6 @@ export function useContributorActivity({
               number,
               state,
               created_at,
-              html_url,
               repository_id,
               repositories!inner(
                 id,
@@ -139,9 +123,9 @@ export function useContributorActivity({
             .order('created_at', { ascending: false })
             .range(offset, offset + pageSize - 1),
 
-          // Reviews
+          // Reviews (using correct table name)
           supabase
-            .from('pull_request_reviews')
+            .from('reviews')
             .select(
               `
               id,
@@ -153,45 +137,35 @@ export function useContributorActivity({
                 title,
                 number,
                 html_url,
-                repository_id,
-                repositories!inner(
-                  id,
-                  name,
-                  owner,
-                  full_name
-                )
+                repository_id
               )
             `
             )
             .eq('reviewer_id', contributorId)
+            .in('pull_requests.repository_id', repoIds)
             .order('submitted_at', { ascending: false })
             .range(offset, offset + pageSize - 1),
 
-          // Comments
+          // Comments (from comments table filtered by issue_id)
           supabase
-            .from('issue_comments')
+            .from('comments')
             .select(
               `
               id,
               body,
               created_at,
-              html_url,
               issue_id,
               issues!inner(
                 id,
                 title,
                 number,
-                repository_id,
-                repositories!inner(
-                  id,
-                  name,
-                  owner,
-                  full_name
-                )
+                repository_id
               )
             `
             )
-            .eq('author_id', contributorId)
+            .eq('commenter_id', contributorId)
+            .not('issue_id', 'is', null)
+            .in('issues.repository_id', repoIds)
             .order('created_at', { ascending: false })
             .range(offset, offset + pageSize - 1),
         ]);
@@ -230,9 +204,8 @@ export function useContributorActivity({
                 title: issue.title || `Issue #${issue.number}`,
                 repository: repository.name,
                 repository_full_name: repository.full_name,
-                url:
-                  issue.html_url ||
-                  `https://github.com/${repository.full_name}/issues/${issue.number}`,
+                // Generate URL since issues don't have html_url
+                url: `https://github.com/${repository.full_name}/issues/${issue.number}`,
                 created_at: issue.created_at,
                 state: issue.state as 'open' | 'closed',
                 issue_number: issue.number,
@@ -241,45 +214,78 @@ export function useContributorActivity({
           });
         }
 
-        // Process reviews
-        if (reviews.data) {
+        // Process reviews - fetch repository data separately
+        if (reviews.data && reviews.data.length > 0) {
+          // Get unique repository IDs from pull requests
+          const prIds = reviews.data
+            .map((r) => (r.pull_requests as any)?.repository_id)
+            .filter((id): id is string => !!id);
+
+          const uniqueRepoIds = [...new Set(prIds)];
+
+          // Fetch repository data
+          const { data: repoData } = await supabase
+            .from('repositories')
+            .select('id, name, owner, full_name')
+            .in('id', uniqueRepoIds);
+
+          const repoMap = new Map(repoData?.map((r) => [r.id, r]) || []);
+
           reviews.data.forEach((review) => {
-            const pullRequest = review.pull_requests as unknown as PullRequestFromReview;
-            const repository = pullRequest?.repositories;
-            if (repository && pullRequest) {
-              allActivities.push({
-                id: review.id,
-                type: 'review',
-                title: `Review on: ${pullRequest.title || `PR #${pullRequest.number}`}`,
-                repository: repository.name,
-                repository_full_name: repository.full_name,
-                url:
-                  pullRequest.html_url ||
-                  `https://github.com/${repository.full_name}/pull/${pullRequest.number}`,
-                created_at: review.submitted_at,
-                state: review.state === 'APPROVED' ? 'merged' : 'open',
-              });
+            const pullRequest = review.pull_requests as any;
+            if (pullRequest?.repository_id) {
+              const repository = repoMap.get(pullRequest.repository_id);
+              if (repository) {
+                allActivities.push({
+                  id: review.id,
+                  type: 'review',
+                  title: `Review on: ${pullRequest.title || `PR #${pullRequest.number}`}`,
+                  repository: repository.name,
+                  repository_full_name: repository.full_name,
+                  url:
+                    pullRequest.html_url ||
+                    `https://github.com/${repository.full_name}/pull/${pullRequest.number}`,
+                  created_at: review.submitted_at,
+                  state: review.state === 'APPROVED' ? 'merged' : 'open',
+                });
+              }
             }
           });
         }
 
-        // Process comments
-        if (comments.data) {
+        // Process comments - fetch repository data separately
+        if (comments.data && comments.data.length > 0) {
+          // Get unique repository IDs from issues
+          const issueRepoIds = comments.data
+            .map((c) => (c.issues as any)?.repository_id)
+            .filter((id): id is string => !!id);
+
+          const uniqueIssueRepoIds = [...new Set(issueRepoIds)];
+
+          // Fetch repository data
+          const { data: issueRepoData } = await supabase
+            .from('repositories')
+            .select('id, name, owner, full_name')
+            .in('id', uniqueIssueRepoIds);
+
+          const issueRepoMap = new Map(issueRepoData?.map((r) => [r.id, r]) || []);
+
           comments.data.forEach((comment) => {
-            const issue = comment.issues as unknown as IssueFromComment;
-            const repository = issue?.repositories;
-            if (repository && issue) {
-              allActivities.push({
-                id: comment.id,
-                type: 'comment',
-                title: `Comment on: ${issue.title || `Issue #${issue.number}`}`,
-                repository: repository.name,
-                repository_full_name: repository.full_name,
-                url:
-                  comment.html_url ||
-                  `https://github.com/${repository.full_name}/issues/${issue.number}`,
-                created_at: comment.created_at,
-              });
+            const issue = comment.issues as any;
+            if (issue?.repository_id) {
+              const repository = issueRepoMap.get(issue.repository_id);
+              if (repository) {
+                allActivities.push({
+                  id: comment.id,
+                  type: 'comment',
+                  title: `Comment on: ${issue.title || `Issue #${issue.number}`}`,
+                  repository: repository.name,
+                  repository_full_name: repository.full_name,
+                  // Generate URL since comments don't have html_url
+                  url: `https://github.com/${repository.full_name}/issues/${issue.number}`,
+                  created_at: comment.created_at,
+                });
+              }
             }
           });
         }

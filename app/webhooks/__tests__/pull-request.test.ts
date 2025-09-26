@@ -74,17 +74,13 @@ describe('PR Webhook Handler', () => {
       // Should process 'opened' events
       const openedEvent = { ...baseEvent, action: 'opened' as const };
       await handlePullRequestEvent(openedEvent);
-      expect(console.log).toHaveBeenCalledWith(
-        expect.stringContaining('Processing opened PR #1')
-      );
+      expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Processing opened PR #1'));
 
       // Should process 'ready_for_review' events
       vi.clearAllMocks();
       const readyEvent = { ...baseEvent, action: 'ready_for_review' as const };
       await handlePullRequestEvent(readyEvent);
-      expect(console.log).toHaveBeenCalledWith(
-        expect.stringContaining('Processing PR #1')
-      );
+      expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Processing PR #1'));
     });
 
     it('should skip draft PRs for opened events', async () => {
@@ -117,7 +113,9 @@ describe('PR Webhook Handler', () => {
 
   describe('Similarity Comments', () => {
     it('should post similarity comment when similar issues found', async () => {
-      const { fetchContributorConfig, isFeatureEnabled, isUserExcluded } = await import('../../services/contributor-config');
+      const { fetchContributorConfig, isFeatureEnabled, isUserExcluded } = await import(
+        '../../services/contributor-config'
+      );
       const { findSimilarIssues } = await import('../../services/similarity');
       const { githubAppAuth } = await import('../../lib/auth');
       const { supabase } = await import('../../../src/lib/supabase');
@@ -129,7 +127,7 @@ describe('PR Webhook Handler', () => {
       });
       vi.mocked(isFeatureEnabled).mockReturnValue(true);
       vi.mocked(isUserExcluded).mockReturnValue(false);
-      
+
       // Mock similar issues found
       vi.mocked(findSimilarIssues).mockResolvedValue([
         {
@@ -212,7 +210,9 @@ describe('PR Webhook Handler', () => {
     });
 
     it('should not comment when similar_issues feature is disabled', async () => {
-      const { fetchContributorConfig, isFeatureEnabled, isUserExcluded } = await import('../../services/contributor-config');
+      const { fetchContributorConfig, isFeatureEnabled, isUserExcluded } = await import(
+        '../../services/contributor-config'
+      );
       const { githubAppAuth } = await import('../../lib/auth');
       const { supabase } = await import('../../../src/lib/supabase');
 
@@ -271,7 +271,9 @@ describe('PR Webhook Handler', () => {
     });
 
     it('should not comment when no similar issues found', async () => {
-      const { fetchContributorConfig, isFeatureEnabled, isUserExcluded } = await import('../../services/contributor-config');
+      const { fetchContributorConfig, isFeatureEnabled, isUserExcluded } = await import(
+        '../../services/contributor-config'
+      );
       const { findSimilarIssues } = await import('../../services/similarity');
       const { githubAppAuth } = await import('../../lib/auth');
       const { supabase } = await import('../../../src/lib/supabase');
