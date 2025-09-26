@@ -62,6 +62,7 @@ export interface ContributorsTableProps {
   onAddToGroup?: (contributorId: string) => void;
   onAddNote?: (contributorId: string) => void;
   onRemoveContributor?: (contributorId: string) => void;
+  showHeader?: boolean;
 }
 
 const columnHelper = createColumnHelper<Contributor>();
@@ -90,6 +91,7 @@ export function ContributorsTable({
   onAddToGroup,
   onAddNote,
   onRemoveContributor,
+  showHeader = true,
 }: ContributorsTableProps) {
   const [sorting, setSorting] = useState<SortingState>([
     { id: 'stats.total_contributions', desc: true },
@@ -124,6 +126,9 @@ export function ContributorsTable({
         ),
         cell: ({ row }) => {
           const contributor = row.original;
+          const groupIds = contributorGroups.get(contributor.id) || [];
+          const contributorGroupsList = groups.filter((g) => groupIds.includes(g.id));
+
           return (
             <button
               onClick={() => onContributorClick?.(contributor)}
@@ -134,35 +139,67 @@ export function ContributorsTable({
                 alt={contributor.username}
                 className="h-8 w-8 rounded-full"
               />
-              <div>
-                <p className="font-medium">{contributor.name || contributor.username}</p>
-                <p className="text-sm text-muted-foreground">@{contributor.username}</p>
+              <div className="space-y-1">
+                <p className="font-medium">@{contributor.username}</p>
+                <div className="flex flex-wrap gap-1">
+                  {contributorGroupsList.length > 0 ? (
+                    contributorGroupsList.map((group) => (
+                      <Badge key={group.id} variant={group.color} className="text-xs">
+                        {group.name}
+                      </Badge>
+                    ))
+                  ) : (
+                    <span className="text-xs text-muted-foreground">No groups</span>
+                  )}
+                </div>
               </div>
             </button>
           );
         },
       }),
       columnHelper.display({
-        id: 'groups',
-        size: 200,
-        minSize: 150,
-        header: 'Groups',
+        id: 'trend',
+        size: 100,
+        minSize: 80,
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="-ml-3 h-8 data-[state=open]:bg-accent"
+            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+          >
+            Trend
+            {(() => {
+              if (column.getIsSorted() === 'asc') {
+                return <ChevronUp className="ml-2 h-4 w-4" />;
+              }
+              if (column.getIsSorted() === 'desc') {
+                return <ChevronDown className="ml-2 h-4 w-4" />;
+              }
+              return <ChevronsUpDown className="ml-2 h-4 w-4" />;
+            })()}
+          </Button>
+        ),
         cell: ({ row }) => {
-          const contributor = row.original;
-          const groupIds = contributorGroups.get(contributor.id) || [];
-          const contributorGroupsList = groups.filter((g) => groupIds.includes(g.id));
+          const trend = row.original.stats.contribution_trend;
+          let TrendIcon = Minus;
+          let trendColor = 'text-muted-foreground';
 
-          if (contributorGroupsList.length === 0) {
-            return <span className="text-sm text-muted-foreground">-</span>;
+          if (trend > 0) {
+            TrendIcon = TrendingUp;
+            trendColor = 'text-green-600';
+          } else if (trend < 0) {
+            TrendIcon = TrendingDown;
+            trendColor = 'text-red-600';
           }
 
           return (
-            <div className="flex flex-wrap gap-1">
-              {contributorGroupsList.map((group) => (
-                <Badge key={group.id} variant={group.color} className="text-xs">
-                  {group.name}
-                </Badge>
-              ))}
+            <div className={cn('flex items-center gap-1', trendColor)}>
+              <TrendIcon className="h-4 w-4" />
+              <span className="font-medium">
+                {trend > 0 ? '+' : ''}
+                {trend}%
+              </span>
             </div>
           );
         },
@@ -228,53 +265,6 @@ export function ContributorsTable({
             <span className="text-sm">
               {count} {count === 1 ? 'repo' : 'repos'}
             </span>
-          );
-        },
-      }),
-      columnHelper.display({
-        id: 'trend',
-        size: 100,
-        minSize: 80,
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="-ml-3 h-8 data-[state=open]:bg-accent"
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-          >
-            Trend
-            {(() => {
-              if (column.getIsSorted() === 'asc') {
-                return <ChevronUp className="ml-2 h-4 w-4" />;
-              }
-              if (column.getIsSorted() === 'desc') {
-                return <ChevronDown className="ml-2 h-4 w-4" />;
-              }
-              return <ChevronsUpDown className="ml-2 h-4 w-4" />;
-            })()}
-          </Button>
-        ),
-        cell: ({ row }) => {
-          const trend = row.original.stats.contribution_trend;
-          let TrendIcon = Minus;
-          let trendColor = 'text-muted-foreground';
-
-          if (trend > 0) {
-            TrendIcon = TrendingUp;
-            trendColor = 'text-green-600';
-          } else if (trend < 0) {
-            TrendIcon = TrendingDown;
-            trendColor = 'text-red-600';
-          }
-
-          return (
-            <div className={cn('flex items-center gap-1', trendColor)}>
-              <TrendIcon className="h-4 w-4" />
-              <span className="font-medium">
-                {trend > 0 ? '+' : ''}
-                {trend}%
-              </span>
-            </div>
           );
         },
       }),
@@ -369,110 +359,118 @@ export function ContributorsTable({
     );
   }
 
-  return (
-    <Card className={className}>
-      <CardContent className="p-6">
-        {/* Search Input */}
-        <div className="mb-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search contributors..."
-              value={globalFilter ?? ''}
-              onChange={(e) => setGlobalFilter(e.target.value)}
-              className="pl-10"
-            />
-          </div>
+  const tableContent = (
+    <>
+      {/* Search Input */}
+      <div className="mb-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search contributors..."
+            value={globalFilter ?? ''}
+            onChange={(e) => setGlobalFilter(e.target.value)}
+            className="pl-10"
+          />
         </div>
+      </div>
 
-        {/* Table */}
-        <div className="rounded-md border">
-          <table className="w-full">
-            <thead>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <tr key={headerGroup.id} className="border-b">
-                  {headerGroup.headers.map((header) => (
-                    <th
-                      key={header.id}
-                      className="px-4 py-3 text-left font-medium text-sm"
+      {/* Table */}
+      <div className="rounded-md border overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <tr key={headerGroup.id} className="border-b">
+                {headerGroup.headers.map((header) => (
+                  <th
+                    key={header.id}
+                    className="px-4 py-3 text-left font-medium text-sm"
+                    style={{
+                      width: header.column.columnDef.size,
+                      minWidth: header.column.columnDef.minSize,
+                    }}
+                  >
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(header.column.columnDef.header, header.getContext())}
+                  </th>
+                ))}
+              </tr>
+            ))}
+          </thead>
+          <tbody>
+            {table.getRowModel().rows.length > 0 ? (
+              table.getRowModel().rows.map((row) => (
+                <tr key={row.id} className="border-b hover:bg-muted/50 transition-colors">
+                  {row.getVisibleCells().map((cell) => (
+                    <td
+                      key={cell.id}
+                      className="px-4 py-3"
                       style={{
-                        width: header.column.columnDef.size,
-                        minWidth: header.column.columnDef.minSize,
+                        width: cell.column.columnDef.size,
+                        minWidth: cell.column.columnDef.minSize,
                       }}
                     >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(header.column.columnDef.header, header.getContext())}
-                    </th>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
                   ))}
                 </tr>
-              ))}
-            </thead>
-            <tbody>
-              {table.getRowModel().rows.length > 0 ? (
-                table.getRowModel().rows.map((row) => (
-                  <tr key={row.id} className="border-b hover:bg-muted/50 transition-colors">
-                    {row.getVisibleCells().map((cell) => (
-                      <td
-                        key={cell.id}
-                        className="px-4 py-3"
-                        style={{
-                          width: cell.column.columnDef.size,
-                          minWidth: cell.column.columnDef.minSize,
-                        }}
-                      >
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </td>
-                    ))}
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={columns.length} className="h-24 text-center">
-                    No contributors found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={columns.length} className="h-24 text-center">
+                  No contributors found.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
 
-        {/* Pagination */}
-        <div className="flex items-center justify-between px-2 py-4">
-          <div className="flex-1 text-sm text-muted-foreground">
-            {table.getFilteredSelectedRowModel().rows.length} of{' '}
-            {table.getFilteredRowModel().rows.length} contributor(s).
+      {/* Pagination */}
+      <div className="flex items-center justify-between px-2 py-4">
+        <div className="flex-1 text-sm text-muted-foreground">
+          {table.getFilteredSelectedRowModel().rows.length} of{' '}
+          {table.getFilteredRowModel().rows.length} contributor(s).
+        </div>
+        <div className="flex items-center space-x-6 lg:space-x-8">
+          <div className="flex items-center space-x-2">
+            <p className="text-sm font-medium">Page</p>
+            <p className="text-sm font-medium">
+              {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+            </p>
           </div>
-          <div className="flex items-center space-x-6 lg:space-x-8">
-            <div className="flex items-center space-x-2">
-              <p className="text-sm font-medium">Page</p>
-              <p className="text-sm font-medium">
-                {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
-              </p>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => table.previousPage()}
-                disabled={!table.getCanPreviousPage()}
-              >
-                <ChevronLeft className="h-4 w-4" />
-                Previous
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => table.nextPage()}
-                disabled={!table.getCanNextPage()}
-              >
-                Next
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+            >
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
         </div>
-      </CardContent>
+      </div>
+    </>
+  );
+
+  if (!showHeader) {
+    return <div className={className}>{tableContent}</div>;
+  }
+
+  return (
+    <Card className={className}>
+      <CardContent className="p-6">{tableContent}</CardContent>
     </Card>
   );
 }
