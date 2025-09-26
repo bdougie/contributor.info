@@ -103,7 +103,7 @@ export default async (req: Request, context: Context) => {
     let githubData: any = null;
     try {
       // In production, we need a GitHub token to avoid rate limits
-      const githubToken = process.env.GITHUB_TOKEN || process.env.VITE_GITHUB_TOKEN;
+      const githubToken = process.env.GITHUB_TOKEN;
 
       // Detect if we're in production
       const isProduction = process.env.CONTEXT === 'production' ||

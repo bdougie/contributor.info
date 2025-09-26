@@ -7,7 +7,7 @@ let _inngestClient: Inngest | null = null;
 // Create the Inngest client using the shared configuration
 // This ensures consistency across all uses
 export const inngest = new Proxy({} as Inngest, {
-  get(target, prop, receiver) {
+  get(_target, prop, receiver) {
     if (!_inngestClient) {
       _inngestClient = createDefaultClient();
     }
