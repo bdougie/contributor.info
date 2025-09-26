@@ -1,0 +1,339 @@
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/lib/supabase';
+
+export interface ContributorActivity {
+  id: string;
+  type: 'pr' | 'issue' | 'review' | 'comment';
+  title: string;
+  repository: string;
+  repository_full_name: string;
+  url: string;
+  created_at: string;
+  state?: 'open' | 'closed' | 'merged';
+  pr_number?: number;
+  issue_number?: number;
+}
+
+// Types for Supabase query results
+interface RepositoryData {
+  id: string;
+  name: string;
+  owner: string;
+  full_name: string;
+}
+
+interface PullRequestFromReview {
+  id: string;
+  title?: string;
+  number: number;
+  html_url?: string;
+  repositories: RepositoryData;
+}
+
+interface IssueFromComment {
+  id: string;
+  title?: string;
+  number: number;
+  repositories: RepositoryData;
+}
+
+interface UseContributorActivityOptions {
+  contributorUsername: string | undefined;
+  workspaceId: string | undefined;
+  pageSize?: number;
+}
+
+export function useContributorActivity({
+  contributorUsername,
+  workspaceId,
+  pageSize = 20,
+}: UseContributorActivityOptions) {
+  const [activities, setActivities] = useState<ContributorActivity[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(0);
+
+  const fetchActivities = useCallback(
+    async (reset = false) => {
+      if (!contributorUsername || !workspaceId) return;
+      if (loading) return;
+      if (!reset && !hasMore) return;
+
+      setLoading(true);
+      setError(null);
+
+      const currentPage = reset ? 0 : page;
+      const offset = currentPage * pageSize;
+
+      try {
+        // Fetch contributor ID
+        const { data: contributorData, error: contributorError } = await supabase
+          .from('contributors')
+          .select('id')
+          .eq('username', contributorUsername)
+          .maybeSingle();
+
+        if (contributorError) throw contributorError;
+        if (!contributorData) throw new Error('Contributor not found');
+
+        const contributorId = contributorData.id;
+
+        // First, get repository IDs for this workspace
+        const { data: workspaceRepos } = await supabase
+          .from('workspace_repositories')
+          .select('repository_id')
+          .eq('workspace_id', workspaceId);
+
+        const repoIds = workspaceRepos?.map((r) => r.repository_id) || [];
+
+        // Fetch activities from multiple tables
+        const [pullRequests, issues, reviews, comments] = await Promise.all([
+          // Pull Requests
+          supabase
+            .from('pull_requests')
+            .select(
+              `
+              id,
+              title,
+              number,
+              state,
+              created_at,
+              html_url,
+              repository_id,
+              repositories!inner(
+                id,
+                name,
+                owner,
+                full_name
+              )
+            `
+            )
+            .eq('author_id', contributorId)
+            .in('repository_id', repoIds)
+            .order('created_at', { ascending: false })
+            .range(offset, offset + pageSize - 1),
+
+          // Issues
+          supabase
+            .from('issues')
+            .select(
+              `
+              id,
+              title,
+              number,
+              state,
+              created_at,
+              html_url,
+              repository_id,
+              repositories!inner(
+                id,
+                name,
+                owner,
+                full_name
+              )
+            `
+            )
+            .eq('author_id', contributorId)
+            .in('repository_id', repoIds)
+            .order('created_at', { ascending: false })
+            .range(offset, offset + pageSize - 1),
+
+          // Reviews
+          supabase
+            .from('pull_request_reviews')
+            .select(
+              `
+              id,
+              state,
+              submitted_at,
+              pull_request_id,
+              pull_requests!inner(
+                id,
+                title,
+                number,
+                html_url,
+                repository_id,
+                repositories!inner(
+                  id,
+                  name,
+                  owner,
+                  full_name
+                )
+              )
+            `
+            )
+            .eq('reviewer_id', contributorId)
+            .order('submitted_at', { ascending: false })
+            .range(offset, offset + pageSize - 1),
+
+          // Comments
+          supabase
+            .from('issue_comments')
+            .select(
+              `
+              id,
+              body,
+              created_at,
+              html_url,
+              issue_id,
+              issues!inner(
+                id,
+                title,
+                number,
+                repository_id,
+                repositories!inner(
+                  id,
+                  name,
+                  owner,
+                  full_name
+                )
+              )
+            `
+            )
+            .eq('author_id', contributorId)
+            .order('created_at', { ascending: false })
+            .range(offset, offset + pageSize - 1),
+        ]);
+
+        // Transform and combine activities
+        const allActivities: ContributorActivity[] = [];
+
+        // Process pull requests
+        if (pullRequests.data) {
+          pullRequests.data.forEach((pr) => {
+            const repository = pr.repositories as unknown as RepositoryData;
+            if (repository) {
+              allActivities.push({
+                id: pr.id,
+                type: 'pr',
+                title: pr.title || `Pull Request #${pr.number}`,
+                repository: repository.name,
+                repository_full_name: repository.full_name,
+                url: pr.html_url || `https://github.com/${repository.full_name}/pull/${pr.number}`,
+                created_at: pr.created_at,
+                state: pr.state === 'merged' ? 'merged' : (pr.state as 'open' | 'closed'),
+                pr_number: pr.number,
+              });
+            }
+          });
+        }
+
+        // Process issues
+        if (issues.data) {
+          issues.data.forEach((issue) => {
+            const repository = issue.repositories as unknown as RepositoryData;
+            if (repository) {
+              allActivities.push({
+                id: issue.id,
+                type: 'issue',
+                title: issue.title || `Issue #${issue.number}`,
+                repository: repository.name,
+                repository_full_name: repository.full_name,
+                url:
+                  issue.html_url ||
+                  `https://github.com/${repository.full_name}/issues/${issue.number}`,
+                created_at: issue.created_at,
+                state: issue.state as 'open' | 'closed',
+                issue_number: issue.number,
+              });
+            }
+          });
+        }
+
+        // Process reviews
+        if (reviews.data) {
+          reviews.data.forEach((review) => {
+            const pullRequest = review.pull_requests as unknown as PullRequestFromReview;
+            const repository = pullRequest?.repositories;
+            if (repository && pullRequest) {
+              allActivities.push({
+                id: review.id,
+                type: 'review',
+                title: `Review on: ${pullRequest.title || `PR #${pullRequest.number}`}`,
+                repository: repository.name,
+                repository_full_name: repository.full_name,
+                url:
+                  pullRequest.html_url ||
+                  `https://github.com/${repository.full_name}/pull/${pullRequest.number}`,
+                created_at: review.submitted_at,
+                state: review.state === 'APPROVED' ? 'merged' : 'open',
+              });
+            }
+          });
+        }
+
+        // Process comments
+        if (comments.data) {
+          comments.data.forEach((comment) => {
+            const issue = comment.issues as unknown as IssueFromComment;
+            const repository = issue?.repositories;
+            if (repository && issue) {
+              allActivities.push({
+                id: comment.id,
+                type: 'comment',
+                title: `Comment on: ${issue.title || `Issue #${issue.number}`}`,
+                repository: repository.name,
+                repository_full_name: repository.full_name,
+                url:
+                  comment.html_url ||
+                  `https://github.com/${repository.full_name}/issues/${issue.number}`,
+                created_at: comment.created_at,
+              });
+            }
+          });
+        }
+
+        // Sort all activities by date
+        allActivities.sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+
+        // Take only the requested page size
+        const pageActivities = allActivities.slice(0, pageSize);
+
+        if (reset) {
+          setActivities(pageActivities);
+          setPage(1);
+        } else {
+          setActivities((prev) => [...prev, ...pageActivities]);
+          setPage((prev) => prev + 1);
+        }
+
+        setHasMore(pageActivities.length === pageSize);
+      } catch (err) {
+        console.error('Error fetching contributor activity:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch activity');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [contributorUsername, workspaceId, pageSize, page, hasMore, loading]
+  );
+
+  const loadMore = useCallback(() => {
+    fetchActivities(false);
+  }, [fetchActivities]);
+
+  const refresh = useCallback(() => {
+    setPage(0);
+    setHasMore(true);
+    fetchActivities(true);
+  }, [fetchActivities]);
+
+  useEffect(() => {
+    if (contributorUsername && workspaceId) {
+      refresh();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contributorUsername, workspaceId]);
+
+  return {
+    activities,
+    loading,
+    error,
+    hasMore,
+    loadMore,
+    refresh,
+  };
+}

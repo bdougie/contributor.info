@@ -141,7 +141,7 @@ export function ContributorGroupFilter({
         return (
           <Badge
             key={group.id}
-            variant={isSelected ? group.color : 'outline'}
+            variant={isSelected ? 'default' : 'secondary'}
             className={cn(
               'cursor-pointer transition-all',
               !isSelected && 'opacity-60 hover:opacity-100'

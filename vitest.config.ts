@@ -82,7 +82,7 @@ export default defineConfig({
       // Tests with async patterns added in fix/repository-status-json-response PR
       // These tests have been rewritten to use synchronous patterns
       // 'src/hooks/__tests__/useWorkspacePRs.test.ts', // Fixed - now synchronous
-      // 'src/lib/insights/issue-metrics.test.ts', // Fixed - now synchronous  
+      // 'src/lib/insights/issue-metrics.test.ts', // Fixed - now synchronous
       // 'src/lib/spam/__tests__/SpamDetectionService.test.ts', // Fixed - now synchronous
     ],
 

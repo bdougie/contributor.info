@@ -3,8 +3,11 @@ import { ProgressiveCaptureNotifications } from './ui-notifications';
 import { AISummaryProcessor } from './ai-summary-processor';
 import { getQueueHealthStatus, getBatchCapabilityMessage } from '../utils/performance-helpers';
 
+// Import type for HybridQueueManager
+import type { HybridQueueManager } from './hybrid-queue-manager';
+
 // Lazy load Hybrid queue manager to avoid Buffer issues in browser
-let hybridQueueManager: any = null;
+let hybridQueueManager: HybridQueueManager | null = null;
 async function getHybridQueueManager() {
   if (!hybridQueueManager) {
     const { hybridQueueManager: manager } = await import('./hybrid-queue-manager');
@@ -28,25 +31,25 @@ export class ProgressiveCaptureTrigger {
 
     console.log(
       '\n📊 Data Gap Analysis Results:\n' +
-      '━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
-      '\n🕐 Stale Data:\n' +
-      '  • %s repositories with data older than 3 days\n' +
-      '\n📊 Missing Data:\n' +
-      '  • %s PRs without file change data (additions/deletions)\n' +
-      '  • Reviews table: %s\n' +
-      '  • Comments table: %s\n' +
-      '  • Commits table: %s\n' +
-      '\n⚡ Current Queue Status:\n' +
-      '  • %s jobs pending\n' +
-      '  • %s jobs processing\n' +
-      '  • %s jobs completed\n' +
-      '  • %s jobs failed\n' +
-      '  • 🔄 Inngest: %s pending, %s processing\n' +
-      '  • 🏗️ GitHub Actions: %s pending, %s processing\n' +
-      '\n💡 Recommendations:\n' +
-      '%s\n' +
-      '%s\n' +
-      '%s',
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
+        '\n🕐 Stale Data:\n' +
+        '  • %s repositories with data older than 3 days\n' +
+        '\n📊 Missing Data:\n' +
+        '  • %s PRs without file change data (additions/deletions)\n' +
+        '  • Reviews table: %s\n' +
+        '  • Comments table: %s\n' +
+        '  • Commits table: %s\n' +
+        '\n⚡ Current Queue Status:\n' +
+        '  • %s jobs pending\n' +
+        '  • %s jobs processing\n' +
+        '  • %s jobs completed\n' +
+        '  • %s jobs failed\n' +
+        '  • 🔄 Inngest: %s pending, %s processing\n' +
+        '  • 🏗️ GitHub Actions: %s pending, %s processing\n' +
+        '\n💡 Recommendations:\n' +
+        '%s\n' +
+        '%s\n' +
+        '%s',
       gaps.repositoriesWithStaleData,
       gaps.prsWithoutFileChanges,
       gaps.emptyReviewsTable ? '❌ Empty' : '✅ Has data',
@@ -60,9 +63,15 @@ export class ProgressiveCaptureTrigger {
       queueStats.inngest.processing,
       queueStats.github_actions.pending,
       queueStats.github_actions.processing,
-      gaps.repositoriesWithStaleData > 0 ? '  • Run bootstrap to queue recent PRs for stale repositories' : '  • ✅ Repository data is fresh',
-      gaps.prsWithoutFileChanges > 0 ? '  • Run bootstrap to queue file change updates' : '  • ✅ File change data is complete',
-      gaps.emptyReviewsTable ? '  • Consider queuing review data (lower priority)' : '  • ✅ Review data available'
+      gaps.repositoriesWithStaleData > 0
+        ? '  • Run bootstrap to queue recent PRs for stale repositories'
+        : '  • ✅ Repository data is fresh',
+      gaps.prsWithoutFileChanges > 0
+        ? '  • Run bootstrap to queue file change updates'
+        : '  • ✅ File change data is complete',
+      gaps.emptyReviewsTable
+        ? '  • Consider queuing review data (lower priority)'
+        : '  • ✅ Review data available'
     );
 
     return gaps;
@@ -78,17 +87,17 @@ export class ProgressiveCaptureTrigger {
       const manager = await getHybridQueueManager();
       const queueStats = await manager.getHybridStats();
       console.log(
-      '\n✅ Bootstrap completed successfully!\n' +
-      '\n📈 Queue Status:\n' +
-      '  • %s jobs queued and ready to process\n' +
-      '  • %s total jobs in queue\n' +
-      '\n🔄 Next Steps:\n' +
-      '  1. The queue will automatically process jobs when the app is active\n' +
-      '  2. Monitor progress with: ProgressiveCaptureTrigger.status()\n' +
-      '  3. Check rate limits with: ProgressiveCaptureTrigger.rateLimits()',
-      queueStats.total.pending,
-      queueStats.total.pending + queueStats.total.processing + queueStats.total.completed
-    );
+        '\n✅ Bootstrap completed successfully!\n' +
+          '\n📈 Queue Status:\n' +
+          '  • %s jobs queued and ready to process\n' +
+          '  • %s total jobs in queue\n' +
+          '\n🔄 Next Steps:\n' +
+          '  1. The queue will automatically process jobs when the app is active\n' +
+          '  2. Monitor progress with: ProgressiveCaptureTrigger.status()\n' +
+          '  3. Check rate limits with: ProgressiveCaptureTrigger.rateLimits()',
+        queueStats.total.pending,
+        queueStats.total.pending + queueStats.total.processing + queueStats.total.completed
+      );
     } catch (error) {
       console.error('❌ Bootstrap failed:', error);
     }
@@ -104,30 +113,30 @@ export class ProgressiveCaptureTrigger {
 
     console.log(
       '\n📊 Queue Status Report:\n' +
-      '━━━━━━━━━━━━━━━━━━━━━\n' +
-      '\n📋 Job Counts:\n' +
-      '  • Pending: %s\n' +
-      '  • Processing: %s\n' +
-      '  • Completed: %s\n' +
-      '  • Failed: %s\n' +
-      '  • Total: %s\n' +
-      '\n🔄 Inngest Jobs:\n' +
-      '  • Pending: %s\n' +
-      '  • Processing: %s\n' +
-      '  • Completed: %s\n' +
-      '  • Failed: %s\n' +
-      '\n🏗️ GitHub Actions Jobs:\n' +
-      '  • Pending: %s\n' +
-      '  • Processing: %s\n' +
-      '  • Completed: %s\n' +
-      '  • Failed: %s\n' +
-      '\n🔄 Processing Status:\n' +
-      '  • Can make API calls: %s\n' +
-      '  • Queue health: %s\n' +
-      '\n💡 Actions:\n' +
-      '  • To process manually: ProgressiveCaptureTrigger.processNext()\n' +
-      '  • To check rate limits: ProgressiveCaptureTrigger.rateLimits()\n' +
-      '  • To see detailed monitoring: ProgressiveCaptureTrigger.monitoring()',
+        '━━━━━━━━━━━━━━━━━━━━━\n' +
+        '\n📋 Job Counts:\n' +
+        '  • Pending: %s\n' +
+        '  • Processing: %s\n' +
+        '  • Completed: %s\n' +
+        '  • Failed: %s\n' +
+        '  • Total: %s\n' +
+        '\n🔄 Inngest Jobs:\n' +
+        '  • Pending: %s\n' +
+        '  • Processing: %s\n' +
+        '  • Completed: %s\n' +
+        '  • Failed: %s\n' +
+        '\n🏗️ GitHub Actions Jobs:\n' +
+        '  • Pending: %s\n' +
+        '  • Processing: %s\n' +
+        '  • Completed: %s\n' +
+        '  • Failed: %s\n' +
+        '\n🔄 Processing Status:\n' +
+        '  • Can make API calls: %s\n' +
+        '  • Queue health: %s\n' +
+        '\n💡 Actions:\n' +
+        '  • To process manually: ProgressiveCaptureTrigger.processNext()\n' +
+        '  • To check rate limits: ProgressiveCaptureTrigger.rateLimits()\n' +
+        '  • To see detailed monitoring: ProgressiveCaptureTrigger.monitoring()',
       stats.total.pending,
       stats.total.processing,
       stats.total.completed,
@@ -173,12 +182,12 @@ export class ProgressiveCaptureTrigger {
 
     console.log(
       '\n🔒 Rate Limit Status:\n' +
-      '━━━━━━━━━━━━━━━━━━━━\n' +
-      '\n✅ Can make 1 API call: %s\n' +
-      '⚡ Can make 10 API calls: %s\n' +
-      '🚀 Can make 100 API calls: %s\n' +
-      '\n💡 Recommendations:\n' +
-      '%s',
+        '━━━━━━━━━━━━━━━━━━━━\n' +
+        '\n✅ Can make 1 API call: %s\n' +
+        '⚡ Can make 10 API calls: %s\n' +
+        '🚀 Can make 100 API calls: %s\n' +
+        '\n💡 Recommendations:\n' +
+        '%s',
       canMake1 ? 'Yes' : 'No',
       canMake10 ? 'Yes' : 'No',
       canMake100 ? 'Yes' : 'No',
@@ -222,14 +231,14 @@ export class ProgressiveCaptureTrigger {
       }
 
       console.log(
-      '\n✅ Commit analysis queued for %s/%s:\n' +
-      '  • %s commits queued for PR association analysis\n' +
-      '  • This will enable YOLO coder detection\n' +
-      '  • Use ProgressiveCapture.processNext() to process manually',
-      owner,
-      repo,
-      queuedCount
-    );
+        '\n✅ Commit analysis queued for %s/%s:\n' +
+          '  • %s commits queued for PR association analysis\n' +
+          '  • This will enable YOLO coder detection\n' +
+          '  • Use ProgressiveCapture.processNext() to process manually',
+        owner,
+        repo,
+        queuedCount
+      );
     } catch (error) {
       console.error('❌ Commit analysis failed for %s/%s:', owner, repo, error);
     }
@@ -240,7 +249,7 @@ export class ProgressiveCaptureTrigger {
    */
   static async processRecentPRsJob(
     repositoryId: string,
-    metadata: any
+    metadata: Record<string, unknown>
   ): Promise<{ success: boolean; error?: string }> {
     try {
       // Get repository info
@@ -292,7 +301,13 @@ export class ProgressiveCaptureTrigger {
         }
       }
 
-      console.log('✅ Imported %s/%s recent PRs for %s/%s', importedCount, recentPRs.length, repo.owner, repo.name);
+      console.log(
+        '✅ Imported %s/%s recent PRs for %s/%s',
+        importedCount,
+        recentPRs.length,
+        repo.owner,
+        repo.name
+      );
       return { success: true };
     } catch (error) {
       console.error('❌ Error processing recent PRs job:', error);
@@ -359,19 +374,19 @@ export class ProgressiveCaptureTrigger {
         ProgressiveCaptureNotifications.showProcessingStarted(`${owner}/${repo}`);
 
         console.log(
-      '\n✅ Quick fix queued for %s/%s:\n' +
-      '  • Recent data: Queued (%s processor)\n' +
-      '  • Historical data: Queued (%s processor)\n' +
-      '  • AI Summary: %s\n' +
-      '  • Total: %s jobs queued\n' +
-      '  • Smart routing: Recent data → Inngest, Historical data → GitHub Actions',
-      owner,
-      repo,
-      recentJob.processor,
-      historicalJob.processor,
-      aiSummaryQueued ? 'Queued' : 'Skipped (recent)',
-      totalJobs
-    );
+          '\n✅ Quick fix queued for %s/%s:\n' +
+            '  • Recent data: Queued (%s processor)\n' +
+            '  • Historical data: Queued (%s processor)\n' +
+            '  • AI Summary: %s\n' +
+            '  • Total: %s jobs queued\n' +
+            '  • Smart routing: Recent data → Inngest, Historical data → GitHub Actions',
+          owner,
+          repo,
+          recentJob.processor,
+          historicalJob.processor,
+          aiSummaryQueued ? 'Queued' : 'Skipped (recent)',
+          totalJobs
+        );
       }
     } catch (error) {
       console.error('❌ Quick fix failed for %s/%s:', owner, repo, error);
@@ -423,19 +438,19 @@ export class ProgressiveCaptureTrigger {
       const routing = await HybridMonitoringDashboard.getRoutingEffectiveness();
 
       console.log(
-      '\n🎯 Routing Effectiveness Analysis:\n' +
-      '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
-      '\n📈 Routing Accuracy: %s%\n' +
-      '✅ Correct Routing: %s jobs\n' +
-      '⚠️ Suboptimal Routing: %s jobs\n' +
-      '\n%s',
-      routing.routingAccuracy.toFixed(1),
-      routing.correctRouting,
-      routing.suboptimalRouting,
-      routing.suggestions.length > 0
-        ? `💡 Suggestions:\n${routing.suggestions.map((s) => `  • ${s}`).join('\n')}`
-        : '✅ No routing issues detected'
-    );
+        '\n🎯 Routing Effectiveness Analysis:\n' +
+          '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
+          '\n📈 Routing Accuracy: %s%\n' +
+          '✅ Correct Routing: %s jobs\n' +
+          '⚠️ Suboptimal Routing: %s jobs\n' +
+          '\n%s',
+        routing.routingAccuracy.toFixed(1),
+        routing.correctRouting,
+        routing.suboptimalRouting,
+        routing.suggestions.length > 0
+          ? `💡 Suggestions:\n${routing.suggestions.map((s) => `  • ${s}`).join('\n')}`
+          : '✅ No routing issues detected'
+      );
 
       return routing;
     } catch (error) {
@@ -463,12 +478,21 @@ export class ProgressiveCaptureTrigger {
   }
 }
 
+// Extend window interface for development tools
+declare global {
+  interface Window {
+    ProgressiveCapture: typeof ProgressiveCaptureTrigger;
+    pc: typeof ProgressiveCaptureTrigger;
+    cap: typeof ProgressiveCaptureTrigger;
+  }
+}
+
 // Make it available globally for console access
 if (typeof window !== 'undefined') {
-  (window as any).ProgressiveCapture = ProgressiveCaptureTrigger;
+  window.ProgressiveCapture = ProgressiveCaptureTrigger;
   // Short aliases for easier console usage
-  (window as any).pc = ProgressiveCaptureTrigger;
-  (window as any).cap = ProgressiveCaptureTrigger;
+  window.pc = ProgressiveCaptureTrigger;
+  window.cap = ProgressiveCaptureTrigger;
 
   // Enable console tools in development
   if (import.meta.env?.DEV) {

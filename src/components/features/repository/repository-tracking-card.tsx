@@ -7,6 +7,13 @@ import { toast } from 'sonner';
 import { trackEvent } from '@/lib/posthog-lazy';
 import { handleApiResponse } from '@/lib/utils/api-helpers';
 
+// Type for track repository API response
+interface TrackRepositoryResponse {
+  success: boolean;
+  eventId?: string;
+  message?: string;
+}
+
 interface RepositoryTrackingCardProps {
   owner: string;
   repo: string;
@@ -123,11 +130,11 @@ export function RepositoryTrackingCard({
         body: JSON.stringify({ owner, repo }),
       });
 
-      const result = await handleApiResponse(response, 'track-repository');
+      const result = await handleApiResponse<TrackRepositoryResponse>(response, 'track-repository');
       console.log('Track repository response: %o', result);
 
       // Check if tracking was successful
-      if (result.success) {
+      if (result && result.success) {
         console.log('Tracking initiated successfully, eventId: %s', result.eventId);
 
         // Track successful tracking initiation
@@ -145,7 +152,7 @@ export function RepositoryTrackingCard({
           duration: 8000,
         });
       } else {
-        throw new Error(result.message || 'Tracking failed');
+        throw new Error(result?.message || 'Tracking failed');
       }
 
       // Start polling for completion

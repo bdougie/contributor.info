@@ -2,6 +2,9 @@
  * Utility functions for API response handling
  */
 
+// Generic type for JSON response data
+export type JsonResponse = Record<string, unknown> | unknown[] | string | number | boolean | null;
+
 /**
  * Safely parse JSON response, with special handling for error responses
  * that might be HTML (e.g., 404 pages) instead of JSON
@@ -11,7 +14,10 @@
  * @returns Parsed JSON object
  * @throws Error if response is not JSON
  */
-export async function parseJsonResponse(response: Response, context?: string): Promise<any> {
+export async function parseJsonResponse<T = JsonResponse>(
+  response: Response,
+  context?: string
+): Promise<T> {
   const contentType = response.headers.get('content-type');
 
   if (!contentType || !contentType.includes('application/json')) {
@@ -32,19 +38,22 @@ export async function parseJsonResponse(response: Response, context?: string): P
  * @returns Parsed JSON for successful responses
  * @throws Error with message from server or generic error
  */
-export async function handleApiResponse(response: Response, context?: string): Promise<any> {
+export async function handleApiResponse<T = JsonResponse>(
+  response: Response,
+  context?: string
+): Promise<T> {
   if (!response.ok) {
     // Try to parse error response as JSON, but handle HTML error pages
     let errorData;
     try {
-      errorData = await parseJsonResponse(response, context);
+      errorData = await parseJsonResponse<{ message?: string }>(response, context);
     } catch {
       // If we can't parse as JSON, throw a generic error with status
       throw new Error(`Request failed with status ${response.status}`);
     }
 
     // Throw error with message from server if available
-    throw new Error(errorData.message || `Request failed with status ${response.status}`);
+    throw new Error(errorData?.message || `Request failed with status ${response.status}`);
   }
 
   // Parse successful response

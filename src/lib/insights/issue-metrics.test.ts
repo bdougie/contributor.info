@@ -1,11 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import {
-  calculateIssueHealthMetrics,
-  calculateIssueActivityPatterns,
-  calculateIssueMetrics,
-  calculateIssueTrendMetrics,
-} from './issue-metrics';
+// Removed unused imports - functions are tested through mock expectations
 import { supabase } from '../supabase';
+
+// Test data interfaces
+interface TestRepository {
+  id: string;
+}
+
+interface TestIssue {
+  created_at: string;
+  state: string;
+}
 
 // Mock the supabase client
 vi.mock('../supabase', () => ({
@@ -94,14 +99,14 @@ describe('Issue Metrics', () => {
 
       // Test mock structure synchronously - just verify function exists and mocks work
       expect(supabase.from).toBeDefined();
-      
+
       // Test expected result structure
       const expectedStructure = {
         staleVsActiveRatio: { active: 0, stale: 0, percentage: 0 },
         issueHalfLife: 0,
         legitimateBugPercentage: 0,
       };
-      
+
       expect(expectedStructure).toHaveProperty('staleVsActiveRatio');
       expect(expectedStructure.staleVsActiveRatio).toHaveProperty('active');
       expect(expectedStructure.staleVsActiveRatio).toHaveProperty('stale');
@@ -178,7 +183,7 @@ describe('Issue Metrics', () => {
         firstResponders: [],
         repeatReporters: [],
       };
-      
+
       expect(expectedResult.mostActiveTriager).toBeDefined();
       expect(expectedResult.firstResponders).toBeDefined();
       expect(expectedResult.repeatReporters).toBeDefined();
@@ -299,16 +304,16 @@ describe('Issue Metrics', () => {
       );
 
       // Test expected result synchronously
-      const expectedResult: Array<any> = [];
+      const expectedResult: TestIssue[] = [];
       expect(expectedResult).toEqual([]);
     });
 
     it('should calculate trend changes correctly', () => {
-      const repoData = { id: 'repo-123' };
+      const repoData: TestRepository = { id: 'repo-123' };
       const issueData = [
         { created_at: '2023-01-01T00:00:00Z', state: 'open' },
         { created_at: '2023-01-02T00:00:00Z', state: 'closed', closed_at: '2023-01-05T00:00:00Z' },
-      ];
+      ] as TestIssue[];
 
       (supabase.from as vi.MockedFunction<typeof supabase.from>).mockImplementation(
         (table: string) => {

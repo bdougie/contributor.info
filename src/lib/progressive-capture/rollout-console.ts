@@ -519,7 +519,8 @@ class RolloutConsoleManager implements RolloutConsole {
         for (const repo of testRepos) {
           const isEligible = await hybridRolloutManager.isRepositoryEligible(repo.repository_id);
           const status = isEligible ? '✅ ELIGIBLE' : '❌ Not eligible';
-          console.log('   %s: %s', (repo.repositories as any).full_name, status);
+          const repository = repo.repositories as unknown as { full_name: string };
+          console.log('   %s: %s', repository.full_name, status);
         }
       }
 
@@ -624,44 +625,44 @@ class RolloutConsoleManager implements RolloutConsole {
   help(): void {
     console.log(
       '\n🚀 Hybrid Progressive Capture Rollout Console\n' +
-      '\n' +
-      'MONITORING COMMANDS:\n' +
-      '  rollout.status()                    - Show current rollout status\n' +
-      '  rollout.stats()                     - Show rollout statistics\n' +
-      '  rollout.categories()                - Show repository categories\n' +
-      '  rollout.checkHealth()               - Check rollout health and trigger auto-rollback if needed\n' +
-      '  rollout.showMetrics()               - Show detailed metrics\n' +
-      '  rollout.monitorPhase4()             - 🚀 Monitor Phase 4: 10% test rollout\n' +
-      '\n' +
-      'ROLLOUT CONTROLS:\n' +
-      '  rollout.setRollout(percentage)      - Set rollout percentage (0-100)\n' +
-      '  rollout.emergencyStop(reason?)      - Emergency stop rollout\n' +
-      '  rollout.resume()                    - Resume rollout after emergency stop\n' +
-      '\n' +
-      'WHITELIST MANAGEMENT:\n' +
-      '  rollout.addToWhitelist([ids])       - Add repositories to whitelist\n' +
-      '  rollout.removeFromWhitelist([ids])  - Remove repositories from whitelist\n' +
-      '  rollout.showWhitelist()             - Show current whitelist\n' +
-      '\n' +
-      'REPOSITORY MANAGEMENT:\n' +
-      '  rollout.categorizeAll()             - Categorize all repositories\n' +
-      '  rollout.markAsTest(id)              - Mark repository as test\n' +
-      '  rollout.unmarkAsTest(id)            - Unmark repository as test\n' +
-      '\n' +
-      'ROLLBACK PROCEDURES:\n' +
-      '  rollout.rollbackToPercentage(pct)   - Rollback to specific percentage\n' +
-      '  rollout.rollbackToZero()            - Rollback to 0%\n' +
-      '  rollout.enableAutoRollback()        - Enable automatic rollback\n' +
-      '  rollout.disableAutoRollback()       - Disable automatic rollback\n' +
-      '\n' +
-      'UTILITIES:\n' +
-      '  rollout.clearCache()                - Clear browser cache and reload\n' +
-      '\n' +
-      'EXAMPLES:\n' +
-      '  rollout.setRollout(10)              - Start with 10% rollout\n' +
-      "  rollout.addToWhitelist(['repo-id']) - Add test repository\n" +
-      "  rollout.emergencyStop('High errors')- Emergency stop with reason\n" +
-      '  rollout.checkHealth()               - Check if rollback needed'
+        '\n' +
+        'MONITORING COMMANDS:\n' +
+        '  rollout.status()                    - Show current rollout status\n' +
+        '  rollout.stats()                     - Show rollout statistics\n' +
+        '  rollout.categories()                - Show repository categories\n' +
+        '  rollout.checkHealth()               - Check rollout health and trigger auto-rollback if needed\n' +
+        '  rollout.showMetrics()               - Show detailed metrics\n' +
+        '  rollout.monitorPhase4()             - 🚀 Monitor Phase 4: 10% test rollout\n' +
+        '\n' +
+        'ROLLOUT CONTROLS:\n' +
+        '  rollout.setRollout(percentage)      - Set rollout percentage (0-100)\n' +
+        '  rollout.emergencyStop(reason?)      - Emergency stop rollout\n' +
+        '  rollout.resume()                    - Resume rollout after emergency stop\n' +
+        '\n' +
+        'WHITELIST MANAGEMENT:\n' +
+        '  rollout.addToWhitelist([ids])       - Add repositories to whitelist\n' +
+        '  rollout.removeFromWhitelist([ids])  - Remove repositories from whitelist\n' +
+        '  rollout.showWhitelist()             - Show current whitelist\n' +
+        '\n' +
+        'REPOSITORY MANAGEMENT:\n' +
+        '  rollout.categorizeAll()             - Categorize all repositories\n' +
+        '  rollout.markAsTest(id)              - Mark repository as test\n' +
+        '  rollout.unmarkAsTest(id)            - Unmark repository as test\n' +
+        '\n' +
+        'ROLLBACK PROCEDURES:\n' +
+        '  rollout.rollbackToPercentage(pct)   - Rollback to specific percentage\n' +
+        '  rollout.rollbackToZero()            - Rollback to 0%\n' +
+        '  rollout.enableAutoRollback()        - Enable automatic rollback\n' +
+        '  rollout.disableAutoRollback()       - Disable automatic rollback\n' +
+        '\n' +
+        'UTILITIES:\n' +
+        '  rollout.clearCache()                - Clear browser cache and reload\n' +
+        '\n' +
+        'EXAMPLES:\n' +
+        '  rollout.setRollout(10)              - Start with 10% rollout\n' +
+        "  rollout.addToWhitelist(['repo-id']) - Add test repository\n" +
+        "  rollout.emergencyStop('High errors')- Emergency stop with reason\n" +
+        '  rollout.checkHealth()               - Check if rollback needed'
     );
   }
 
@@ -698,6 +699,12 @@ class RolloutConsoleManager implements RolloutConsole {
 export const rolloutConsole = new RolloutConsoleManager();
 
 // Make available globally for console access
+declare global {
+  interface Window {
+    rollout: typeof rolloutConsole;
+  }
+}
+
 if (typeof window !== 'undefined') {
-  (window as any).rollout = rolloutConsole;
+  window.rollout = rolloutConsole;
 }

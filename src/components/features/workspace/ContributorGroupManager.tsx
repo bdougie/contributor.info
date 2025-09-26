@@ -15,16 +15,8 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Trash2, Users, Plus, Settings, AlertCircle } from '@/components/ui/icon';
-import { cn } from '@/lib/utils';
 import type { ContributorGroup } from './ContributorsTable';
 import type { Contributor } from './ContributorsList';
 
@@ -35,24 +27,12 @@ export interface ContributorGroupManagerProps {
   contributors: Contributor[];
   contributorGroups: Map<string, string[]>; // contributorId -> groupIds[]
   selectedContributorId?: string; // If managing groups for a specific contributor
-  onCreateGroup: (name: string, description: string, color: string) => Promise<void>;
-  onUpdateGroup: (
-    groupId: string,
-    name: string,
-    description: string,
-    color: string
-  ) => Promise<void>;
+  onCreateGroup: (name: string, description: string) => Promise<void>;
+  onUpdateGroup: (groupId: string, name: string, description: string) => Promise<void>;
   onDeleteGroup: (groupId: string) => Promise<void>;
   onAddContributorToGroup: (contributorId: string, groupId: string) => Promise<void>;
   onRemoveContributorFromGroup: (contributorId: string, groupId: string) => Promise<void>;
 }
-
-const GROUP_COLORS = [
-  { value: 'default', label: 'Primary', preview: 'bg-primary' },
-  { value: 'secondary', label: 'Secondary', preview: 'bg-secondary' },
-  { value: 'outline', label: 'Outline', preview: 'bg-border' },
-  { value: 'destructive', label: 'Destructive', preview: 'bg-destructive' },
-] as const;
 
 export function ContributorGroupManager({
   open,
@@ -74,13 +54,11 @@ export function ContributorGroupManager({
   // Create group form state
   const [newGroupName, setNewGroupName] = useState('');
   const [newGroupDescription, setNewGroupDescription] = useState('');
-  const [newGroupColor, setNewGroupColor] = useState<string>('secondary');
 
   // Edit group state
   const [editingGroup, setEditingGroup] = useState<ContributorGroup | null>(null);
   const [editName, setEditName] = useState('');
   const [editDescription, setEditDescription] = useState('');
-  const [editColor, setEditColor] = useState<string>('secondary');
 
   // Assignment state - removed as not used in current implementation
 
@@ -94,10 +72,9 @@ export function ContributorGroupManager({
     setError(null);
 
     try {
-      await onCreateGroup(newGroupName, newGroupDescription, newGroupColor);
+      await onCreateGroup(newGroupName, newGroupDescription);
       setNewGroupName('');
       setNewGroupDescription('');
-      setNewGroupColor('secondary');
       setActiveTab('manage');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create group');
@@ -113,7 +90,7 @@ export function ContributorGroupManager({
     setError(null);
 
     try {
-      await onUpdateGroup(editingGroup.id, editName, editDescription, editColor);
+      await onUpdateGroup(editingGroup.id, editName, editDescription);
       setEditingGroup(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update group');
@@ -161,7 +138,6 @@ export function ContributorGroupManager({
     setEditingGroup(group);
     setEditName(group.name);
     setEditDescription(''); // Add description field to group type
-    setEditColor(group.color);
   };
 
   return (
@@ -225,21 +201,6 @@ export function ContributorGroupManager({
                             rows={2}
                             disabled={loading}
                           />
-                          <Select value={editColor} onValueChange={setEditColor} disabled={loading}>
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {GROUP_COLORS.map((color) => (
-                                <SelectItem key={color.value} value={color.value}>
-                                  <div className="flex items-center gap-2">
-                                    <div className={cn('h-3 w-3 rounded', color.preview)} />
-                                    {color.label}
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
                           <div className="flex gap-2">
                             <Button size="sm" onClick={handleUpdateGroup} disabled={loading}>
                               Save
@@ -263,7 +224,7 @@ export function ContributorGroupManager({
                         className="flex items-center justify-between p-4 border rounded-lg"
                       >
                         <div className="flex items-center gap-3">
-                          <Badge variant={group.color}>{group.name}</Badge>
+                          <Badge variant="secondary">{group.name}</Badge>
                           {group.is_system && (
                             <Badge variant="outline" className="text-xs">
                               System
@@ -324,24 +285,6 @@ export function ContributorGroupManager({
                   disabled={loading}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="color">Color</Label>
-                <Select value={newGroupColor} onValueChange={setNewGroupColor} disabled={loading}>
-                  <SelectTrigger id="color">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {GROUP_COLORS.map((color) => (
-                      <SelectItem key={color.value} value={color.value}>
-                        <div className="flex items-center gap-2">
-                          <div className={cn('h-3 w-3 rounded', color.preview)} />
-                          {color.label}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
               <Button
                 onClick={handleCreateGroup}
                 disabled={loading || !newGroupName.trim()}
@@ -397,7 +340,7 @@ export function ContributorGroupManager({
                           />
                           <label htmlFor={`group-${group.id}`} className="flex-1 cursor-pointer">
                             <div className="flex items-center gap-2">
-                              <Badge variant={group.color}>{group.name}</Badge>
+                              <Badge variant="secondary">{group.name}</Badge>
                               {group.is_system && (
                                 <Badge variant="outline" className="text-xs">
                                   System

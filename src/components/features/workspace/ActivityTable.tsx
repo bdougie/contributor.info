@@ -48,7 +48,7 @@ const getActivityUrl = (activity: ActivityItem): string => {
 
   // Try to extract number from existing URL if available, then from id, then from title
   let number = '';
-  
+
   // First try to extract from URL if it exists
   if (activity.url) {
     const urlMatch = activity.url.match(/\/(?:pull|issues)\/(\d+)/);
@@ -56,12 +56,12 @@ const getActivityUrl = (activity: ActivityItem): string => {
       number = urlMatch[1];
     }
   }
-  
+
   // If no number found and we have an id that looks like a number, use it
   if (!number && activity.id && /^\d+$/.test(activity.id)) {
     number = activity.id;
   }
-  
+
   // Fall back to extracting from title as last resort
   if (!number) {
     const titleMatch = activity.title.match(/#(\d+)/);

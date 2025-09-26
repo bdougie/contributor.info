@@ -3,6 +3,14 @@ import { supabase } from '@/lib/supabase';
 import { useGitHubAuth } from './use-github-auth';
 import { handleApiResponse } from '@/lib/utils/api-helpers';
 
+// Type for track repository API response
+interface TrackRepositoryResponse {
+  success: boolean;
+  repositoryId?: string;
+  eventId?: string;
+  message?: string;
+}
+
 export interface TrackingState {
   status: 'checking' | 'not_tracked' | 'tracking' | 'tracked' | 'error' | 'timeout' | 'idle';
   repository: { id: string; owner: string; name: string } | null;
@@ -133,7 +141,7 @@ export function useRepositoryTracking({
         body: JSON.stringify({ owner, repo }),
       });
 
-      const result = await handleApiResponse(response, 'track-repository');
+      const result = await handleApiResponse<TrackRepositoryResponse>(response, 'track-repository');
 
       // Clear any existing polling interval
       if (pollIntervalRef.current) {
@@ -191,7 +199,7 @@ export function useRepositoryTracking({
         }
       }, 2000);
 
-      return { success: true, repositoryId: result.repositoryId };
+      return { success: true, repositoryId: result?.repositoryId };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to track repository';
 

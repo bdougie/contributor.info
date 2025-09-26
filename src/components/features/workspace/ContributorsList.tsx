@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
-  Plus,
   X,
   Search,
   UserPlus,
@@ -54,6 +53,7 @@ export interface ContributorsListProps {
   loading?: boolean;
   className?: string;
   view?: 'grid' | 'list';
+  showHeader?: boolean;
 }
 
 function ContributorCard({
@@ -253,13 +253,12 @@ export function ContributorsList({
   onTrackContributor,
   onUntrackContributor,
   onContributorClick,
-  onAddContributor,
   loading = false,
   className,
   view = 'grid',
+  showHeader = true,
 }: ContributorsListProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [showOnlyTracked, setShowOnlyTracked] = useState(false);
 
   const filteredContributors = contributors.filter((contributor) => {
     const matchesSearch =
@@ -267,9 +266,7 @@ export function ContributorsList({
       contributor.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       contributor.bio?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesTracked = !showOnlyTracked || trackedContributors.includes(contributor.id);
-
-    return matchesSearch && matchesTracked;
+    return matchesSearch;
   });
 
   if (loading) {
@@ -293,6 +290,75 @@ export function ContributorsList({
     );
   }
 
+  if (!showHeader) {
+    // When header is hidden, just return the content without card wrapper
+    return (
+      <div className={cn('w-full', className)}>
+        <div className="mb-4">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search contributors..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-8 min-h-[44px]"
+            />
+          </div>
+        </div>
+
+        {filteredContributors.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <UserPlus className="h-12 w-12 text-muted-foreground mb-4" />
+            <p className="text-muted-foreground mb-2">
+              {searchTerm
+                ? 'No contributors match your search'
+                : 'No contributors found in selected repositories'}
+            </p>
+            {searchTerm && (
+              <p className="text-sm text-muted-foreground mb-4">
+                Try adjusting your search terms or clear the search to see all contributors
+              </p>
+            )}
+          </div>
+        ) : (
+          <div
+            className={
+              view === 'grid' ? 'grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'space-y-3'
+            }
+          >
+            {filteredContributors.map((contributor) => {
+              const isTracked = trackedContributors.includes(contributor.id);
+              if (view === 'grid') {
+                return (
+                  <ContributorCard
+                    key={contributor.id}
+                    contributor={contributor}
+                    isTracked={isTracked}
+                    onTrack={() => onTrackContributor?.(contributor.id)}
+                    onUntrack={() => onUntrackContributor?.(contributor.id)}
+                    onClick={() => onContributorClick?.(contributor)}
+                  />
+                );
+              } else {
+                return (
+                  <ContributorListItem
+                    key={contributor.id}
+                    contributor={contributor}
+                    isTracked={isTracked}
+                    onTrack={() => onTrackContributor?.(contributor.id)}
+                    onUntrack={() => onUntrackContributor?.(contributor.id)}
+                    onClick={() => onContributorClick?.(contributor)}
+                  />
+                );
+              }
+            })}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Original card-wrapped version (for backwards compatibility)
   return (
     <Card className={cn('w-full', className)}>
       <CardHeader>
@@ -300,33 +366,8 @@ export function ContributorsList({
           <div>
             <CardTitle>Contributors</CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
-              {showOnlyTracked
-                ? `${trackedContributors.length} contributors in workspace`
-                : `${contributors.length} contributors from selected repositories`}
+              {contributors.length} contributors from selected repositories
             </p>
-          </div>
-          <div className="flex items-center gap-2">
-            {trackedContributors.length > 0 && (
-              <Button
-                variant={showOnlyTracked ? 'default' : 'outline'}
-                size="sm"
-                className="min-h-[44px] px-4"
-                onClick={() => setShowOnlyTracked(!showOnlyTracked)}
-              >
-                {showOnlyTracked ? 'Show All Available' : 'Show Workspace Only'}
-                {showOnlyTracked && (
-                  <Badge variant="secondary" className="ml-2">
-                    {trackedContributors.length}
-                  </Badge>
-                )}
-              </Button>
-            )}
-            {onAddContributor && (
-              <Button onClick={onAddContributor} size="sm" className="min-h-[44px] px-4">
-                <Plus className="h-4 w-4 mr-1" />
-                Add Contributors
-              </Button>
-            )}
           </div>
         </div>
       </CardHeader>
@@ -347,26 +388,14 @@ export function ContributorsList({
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <UserPlus className="h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-muted-foreground mb-2">
-              {(() => {
-                if (searchTerm) {
-                  return 'No contributors match your search';
-                }
-                if (showOnlyTracked && trackedContributors.length === 0) {
-                  return 'No contributors added to workspace yet';
-                }
-                return 'No contributors found in selected repositories';
-              })()}
+              {searchTerm
+                ? 'No contributors match your search'
+                : 'No contributors found in selected repositories'}
             </p>
             {searchTerm && (
               <p className="text-sm text-muted-foreground mb-4">
                 Try adjusting your search terms or clear the search to see all contributors
               </p>
-            )}
-            {showOnlyTracked && trackedContributors.length === 0 && onAddContributor && (
-              <Button onClick={onAddContributor} className="mt-4 min-h-[44px] px-4">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Contributors from Repositories
-              </Button>
             )}
           </div>
         ) : (
