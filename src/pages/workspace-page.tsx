@@ -962,6 +962,58 @@ function WorkspaceContributors({
     }
   };
 
+  const handleBulkAddContributorsToGroups = async (contributorIds: string[], groupIds: string[]) => {
+    if (contributorIds.length === 0 || groupIds.length === 0) {
+      toast.error('Please select contributors and groups');
+      return;
+    }
+
+    // Find contributors by IDs to get their usernames
+    const selectedContributors = contributors.filter(c => contributorIds.includes(c.id));
+    if (selectedContributors.length !== contributorIds.length) {
+      toast.error('Some contributors not found');
+      return;
+    }
+
+    // Find the "new contributors" group (topinos) to remove from
+    const newContributorsGroup = groups.find(g => g.name.toLowerCase().includes('new') || g.name.toLowerCase().includes('topinos'));
+
+    try {
+      const promises = [];
+
+      for (const contributor of selectedContributors) {
+        // Add to selected groups
+        for (const groupId of groupIds) {
+          promises.push(addContributorToGroup(contributor.username, groupId));
+        }
+
+        // Remove from "new contributors" group if they're being added to other groups and currently in it
+        if (newContributorsGroup) {
+          const contributorGroupsList = contributorGroups.get(contributor.id) || [];
+          const isInNewGroup = contributorGroupsList.includes(newContributorsGroup.id);
+
+          if (isInNewGroup) {
+            promises.push(removeContributorFromGroup(contributor.username, newContributorsGroup.id));
+          }
+        }
+      }
+
+      await Promise.all(promises);
+
+      const groupNames = groupIds.map(id => groups.find(g => g.id === id)?.name).filter(Boolean);
+      let message = `Added ${selectedContributors.length} contributor${selectedContributors.length === 1 ? '' : 's'} to ${groupNames.length} group${groupNames.length === 1 ? '' : 's'}`;
+
+      if (newContributorsGroup) {
+        message += ` and removed from ${newContributorsGroup.name}`;
+      }
+
+      toast.success(message);
+    } catch (error) {
+      console.error('Error adding contributors to groups:', error);
+      toast.error('Failed to add contributors to groups');
+    }
+  };
+
   const handleRemoveContributorFromGroup = async (contributorId: string, groupId: string) => {
     // Find the contributor by ID to get their username
     const contributor = contributors.find(c => c.id === contributorId);
@@ -1610,6 +1662,7 @@ function WorkspaceContributors({
                   loading={loading}
                   onContributorClick={handleContributorClick}
                   onAddToGroup={handleAddToGroup}
+                  onBulkAddToGroups={handleBulkAddContributorsToGroups}
                   onAddNote={handleAddNote}
                   onRemoveContributor={handleRemoveContributor}
                   showHeader={false} // We'll add this prop to hide the built-in header

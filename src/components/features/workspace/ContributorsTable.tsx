@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   DropdownMenu,
@@ -40,6 +41,7 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
+  Plus,
 } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 import { humanizeNumber } from '@/lib/utils';
@@ -48,7 +50,6 @@ import type { Contributor } from './ContributorsList';
 export interface ContributorGroup {
   id: string;
   name: string;
-  color: 'default' | 'secondary' | 'outline' | 'destructive';
   is_system: boolean;
 }
 
@@ -60,6 +61,7 @@ export interface ContributorsTableProps {
   className?: string;
   onContributorClick?: (contributor: Contributor) => void;
   onAddToGroup?: (contributorId: string) => void;
+  onBulkAddToGroups?: (contributorIds: string[], groupIds: string[]) => void;
   onAddNote?: (contributorId: string) => void;
   onRemoveContributor?: (contributorId: string) => void;
   showHeader?: boolean;
@@ -89,6 +91,7 @@ export function ContributorsTable({
   className,
   onContributorClick,
   onAddToGroup,
+  onBulkAddToGroups,
   onAddNote,
   onRemoveContributor,
   showHeader = true,
@@ -98,9 +101,62 @@ export function ContributorsTable({
   ]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
+  const [selectedContributors, setSelectedContributors] = useState<Set<string>>(new Set());
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const allContributorIds = new Set(contributors.map(c => c.id));
+      setSelectedContributors(allContributorIds);
+    } else {
+      setSelectedContributors(new Set());
+    }
+  };
+
+  const handleSelectContributor = (contributorId: string, checked: boolean) => {
+    const newSelected = new Set(selectedContributors);
+    if (checked) {
+      newSelected.add(contributorId);
+    } else {
+      newSelected.delete(contributorId);
+    }
+    setSelectedContributors(newSelected);
+  };
+
+  const handleBulkAddToGroup = async (groupId: string) => {
+    if (selectedContributors.size === 0 || !onBulkAddToGroups) return;
+
+    await onBulkAddToGroups(Array.from(selectedContributors), [groupId]);
+    setSelectedContributors(new Set()); // Clear selection after bulk action
+  };
+
+  const isAllSelected = contributors.length > 0 && selectedContributors.size === contributors.length;
+  const isPartiallySelected = selectedContributors.size > 0 && selectedContributors.size < contributors.length;
 
   const columns = useMemo<ColumnDef<Contributor>[]>(
     () => [
+      columnHelper.display({
+        id: 'select',
+        size: 50,
+        minSize: 50,
+        header: () => (
+          <Checkbox
+            checked={isAllSelected}
+            onCheckedChange={(checked) => handleSelectAll(!!checked)}
+            aria-label="Select all contributors"
+            {...(isPartiallySelected && { 'data-indeterminate': true })}
+          />
+        ),
+        cell: ({ row }) => {
+          const contributor = row.original;
+          return (
+            <Checkbox
+              checked={selectedContributors.has(contributor.id)}
+              onCheckedChange={(checked) => handleSelectContributor(contributor.id, !!checked)}
+              aria-label={`Select ${contributor.username}`}
+            />
+          );
+        },
+      }),
       columnHelper.display({
         id: 'username',
         size: 350,
@@ -144,7 +200,7 @@ export function ContributorsTable({
                 <div className="flex flex-wrap gap-1">
                   {contributorGroupsList.length > 0 ? (
                     contributorGroupsList.map((group) => (
-                      <Badge key={group.id} variant={group.color} className="text-xs">
+                      <Badge key={group.id} variant="secondary" className="text-xs">
                         {group.name}
                       </Badge>
                     ))
@@ -308,7 +364,7 @@ export function ContributorsTable({
         },
       }),
     ],
-    [groups, contributorGroups, onContributorClick, onAddToGroup, onAddNote, onRemoveContributor]
+    [groups, contributorGroups, onContributorClick, onAddToGroup, onAddNote, onRemoveContributor, selectedContributors, handleSelectAll, handleSelectContributor, isAllSelected, isPartiallySelected]
   );
 
   const table = useReactTable({
@@ -373,6 +429,52 @@ export function ContributorsTable({
           />
         </div>
       </div>
+
+      {/* Bulk Actions */}
+      {selectedContributors.size > 0 && (
+        <div className="mb-4 p-3 bg-muted/50 rounded-md flex items-center justify-between">
+          <span className="text-sm font-medium">
+            {selectedContributors.size} contributor{selectedContributors.size === 1 ? '' : 's'} selected
+          </span>
+          <div className="flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" variant="outline">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add to Group
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {groups.map((group) => (
+                  <DropdownMenuItem
+                    key={group.id}
+                    onClick={() => handleBulkAddToGroup(group.id)}
+                  >
+                    <Badge variant={group.is_system ? "outline" : "secondary"} className="mr-2">
+                      {group.name}
+                    </Badge>
+                    {group.is_system && (
+                      <span className="text-xs text-muted-foreground ml-1">(System)</span>
+                    )}
+                  </DropdownMenuItem>
+                ))}
+                {groups.length === 0 && (
+                  <DropdownMenuItem disabled>
+                    No groups available
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setSelectedContributors(new Set())}
+            >
+              Clear Selection
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Table */}
       <div className="rounded-md border overflow-x-auto">
