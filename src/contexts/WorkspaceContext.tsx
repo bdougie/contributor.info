@@ -4,6 +4,7 @@ import {
   useState,
   useEffect,
   useCallback,
+  useMemo,
   ReactNode,
   useRef,
 } from 'react';
@@ -30,6 +31,7 @@ interface WorkspaceContextValue {
   workspaces: Workspace[];
   switchWorkspace: (idOrSlug: string) => Promise<void>;
   findWorkspace: (idOrSlug: string) => Workspace | undefined;
+  syncWithUrl: (idOrSlug: string) => void;
   isLoading: boolean;
   recentWorkspaces: string[];
   addToRecent: (id: string) => void;
@@ -63,10 +65,8 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
   const urlWorkspaceId = params.workspaceId;
 
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(() => {
-    // Prioritize URL param, then localStorage
-    if (urlWorkspaceId) {
-      return urlWorkspaceId;
-    }
+    // Don't set initial state from URL param as we need to resolve slug to ID first
+    // Only use localStorage for initial state
     if (typeof window !== 'undefined') {
       return localStorage.getItem(WORKSPACE_STORAGE_KEYS.ACTIVE);
     }
@@ -93,9 +93,21 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
   const retryCountRef = useRef(0);
 
   // Find active workspace from the list (support both ID and slug)
-  const activeWorkspace =
-    workspaces.find((w: Workspace) => w.id === activeWorkspaceId || w.slug === activeWorkspaceId) ||
-    null;
+  // First try to find by ID (most common case after initial load)
+  // Then check if the activeWorkspaceId might be a slug from URL
+  const activeWorkspace = useMemo(() => {
+    if (!activeWorkspaceId) return null;
+
+    // Try to find by ID first
+    const workspaceById = workspaces.find((w: Workspace) => w.id === activeWorkspaceId);
+    if (workspaceById) return workspaceById;
+
+    // If not found by ID, try to find by slug
+    const workspaceBySlug = workspaces.find((w: Workspace) => w.slug === activeWorkspaceId);
+    if (workspaceBySlug) return workspaceBySlug;
+
+    return null;
+  }, [workspaces, activeWorkspaceId]);
 
   // Persist active workspace to localStorage
   useEffect(() => {
@@ -141,10 +153,17 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
 
   // Sync active workspace with URL parameter when URL changes
   useEffect(() => {
-    if (urlWorkspaceId && urlWorkspaceId !== activeWorkspaceId) {
-      const workspace = workspaces.find(w => w.id === urlWorkspaceId || w.slug === urlWorkspaceId);
-      if (workspace) {
-        console.log('[WorkspaceContext] Syncing workspace from URL:', urlWorkspaceId);
+    if (urlWorkspaceId && workspaces.length > 0) {
+      const workspace = workspaces.find(
+        (w) => w.id === urlWorkspaceId || w.slug === urlWorkspaceId
+      );
+      if (workspace && workspace.id !== activeWorkspaceId) {
+        console.log(
+          '[WorkspaceContext] Syncing workspace from URL:',
+          urlWorkspaceId,
+          '-> workspace:',
+          workspace.name
+        );
         setActiveWorkspaceId(workspace.id);
         addToRecent(workspace.id);
       }
@@ -209,6 +228,24 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
       return workspaces.find((w) => w.id === idOrSlug || w.slug === idOrSlug);
     },
     [workspaces]
+  );
+
+  // Sync workspace with URL (doesn't navigate, just updates context)
+  const syncWithUrl = useCallback(
+    (idOrSlug: string): void => {
+      const workspace = findWorkspace(idOrSlug);
+      if (workspace && workspace.id !== activeWorkspaceId) {
+        console.log(
+          '[WorkspaceContext] Syncing with URL:',
+          idOrSlug,
+          '-> workspace:',
+          workspace.name
+        );
+        setActiveWorkspaceId(workspace.id);
+        addToRecent(workspace.id);
+      }
+    },
+    [activeWorkspaceId, addToRecent, findWorkspace]
   );
 
   const switchWorkspace = useCallback(
@@ -289,6 +326,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     workspaces: workspaces as Workspace[],
     switchWorkspace,
     findWorkspace,
+    syncWithUrl,
     isLoading: isLoading || (workspacesLoading && !hasTimedOut),
     recentWorkspaces,
     addToRecent,
@@ -299,6 +337,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useWorkspaceContext() {
   const context = useContext(WorkspaceContext);
   if (context === undefined) {
@@ -308,4 +347,5 @@ export function useWorkspaceContext() {
 }
 
 // Export types for external use
+
 export type { Workspace, WorkspaceContextValue };

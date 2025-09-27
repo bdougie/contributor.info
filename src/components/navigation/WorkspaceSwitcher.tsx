@@ -190,7 +190,7 @@ export function WorkspaceSwitcher({
             <div className="flex items-center gap-2">
               <Package className="h-4 w-4" />
               {showFullName && (
-                <span className="truncate max-w-[200px]">
+                <span className="truncate max-w-[200px]" title={activeWorkspace?.name}>
                   {(() => {
                     if (isLoading && !loadingTimeout) return 'Loading...';
                     if (error) return 'Error loading';
