@@ -1,4 +1,10 @@
 import { supabase } from '@/lib/supabase';
+import {
+  isValidLinkedInUrl,
+  isValidDiscordUrl,
+  sanitizeLinkedInUrl,
+  sanitizeDiscordUrl,
+} from '@/lib/validation/url-validation';
 
 interface SocialLinks {
   discord_url: string | null;
@@ -131,12 +137,18 @@ export async function fetchGitHubProfileSocialLinks(username: string): Promise<S
               console.log('Social accounts found:', user.socialAccounts.nodes);
               for (const account of user.socialAccounts.nodes) {
                 console.log('Checking account:', account);
-                if (account.provider === 'LINKEDIN' || account.url?.includes('linkedin.com')) {
-                  linkedin_url = account.url;
+                if (
+                  account.provider === 'LINKEDIN' ||
+                  (typeof account.url === 'string' && isValidLinkedInUrl(account.url))
+                ) {
+                  linkedin_url = sanitizeLinkedInUrl(account.url) || account.url;
                   console.log('Found LinkedIn URL:', linkedin_url);
                 }
-                if (account.provider === 'DISCORD' || account.url?.includes('discord')) {
-                  discord_url = account.url;
+                if (
+                  account.provider === 'DISCORD' ||
+                  (typeof account.url === 'string' && isValidDiscordUrl(account.url))
+                ) {
+                  discord_url = sanitizeDiscordUrl(account.url) || account.url;
                   console.log('Found Discord URL:', discord_url);
                 }
               }
@@ -148,10 +160,14 @@ export async function fetchGitHubProfileSocialLinks(username: string): Promise<S
               .join(' ');
 
             if (!discord_url) {
-              discord_url = extractDiscordUrl(searchText);
+              const extracted = extractDiscordUrl(searchText);
+              discord_url =
+                extracted && isValidDiscordUrl(extracted) ? sanitizeDiscordUrl(extracted) : null;
             }
             if (!linkedin_url) {
-              linkedin_url = extractLinkedInUrl(searchText);
+              const extracted = extractLinkedInUrl(searchText);
+              linkedin_url =
+                extracted && isValidLinkedInUrl(extracted) ? sanitizeLinkedInUrl(extracted) : null;
             }
 
             console.log('Final social links from GraphQL:', { discord_url, linkedin_url });
