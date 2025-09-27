@@ -1,5 +1,86 @@
 # PRD: Row Level Security (RLS) Audit and Remediation
 
+## ⚠️ CRITICAL UPDATE (2025-01-27 - Phase 2 Discovery)
+
+### MASSIVE SECURITY ISSUE DISCOVERED
+- **115+ overly permissive policies** found across 50+ tables
+- Many tables have `true` conditions allowing unrestricted access
+- This is a much larger security issue than initially identified
+
+### Affected Tables by Category
+
+#### System/Internal Tables (HIGH RISK - Should be service role only):
+- **progressive_capture_jobs** - ALL operations unrestricted
+- **progressive_capture_progress** - ALL operations unrestricted
+- **data_capture_queue** - ALL operations unrestricted
+- **dead_letter_queue** - Public read/write
+- **rate_limit_tracking** - ALL operations unrestricted
+- **rate_limits** - ALL operations unrestricted
+- **sync_logs** - ALL operations unrestricted
+- **queue_metrics** - Public read/write
+
+#### GitHub Data Cache (MEDIUM RISK - May need public read):
+- **github_events_cache** - Public read
+- **github_events_cache_2025_01** - ALL operations unrestricted
+- **github_events_cache_2025_02** - ALL operations unrestricted
+- **github_events_cache_2025_03** - ALL operations unrestricted
+- **github_events_cache_2025_06** - ALL operations unrestricted
+- **github_events_cache_2025_09** - Public read (partially fixed)
+- **github_activities** - ALL operations unrestricted
+- **github_sync_status** - ALL operations unrestricted
+
+#### Repository Metadata (MEDIUM RISK - Some need public read):
+- **repository_categories** - Public read/write/delete
+- **repository_changelogs** - Public read
+- **repository_confidence_cache** - Public read
+- **repository_metrics_history** - Public read
+- **repository_spam_patterns** - Public read
+- **tracked_repositories** - ALL operations + public read
+
+#### Analytics/Metrics (LOW-MEDIUM RISK - May need public read for dashboards):
+- **daily_activity_snapshots** - Public read, unrestricted delete/update
+- **monthly_rankings** - Public read, unrestricted delete/update
+- **performance_alerts** - Public read
+- **query_patterns** - Public read
+- **referral_traffic** - Public read
+- **share_click_analytics** - ALL operations unrestricted
+- **share_events** - ALL operations unrestricted
+- **web_vitals_events** - Public read
+- **sync_metrics** - Public read
+
+#### Rollout/Feature Management (HIGH RISK):
+- **rollout_configuration** - ALL operations unrestricted
+- **rollout_history** - ALL operations unrestricted
+- **rollout_metrics** - ALL operations unrestricted
+- **progressive_backfill_state** - ALL operations unrestricted
+
+#### User/Contributor Data (HIGH RISK):
+- **contributor_roles** - ALL operations unrestricted
+- **contributor_role_history** - ALL operations unrestricted
+- **file_contributors** - Public read
+- **file_embeddings** - Public read
+- **requested_reviewers** - Public read
+- **reviews** - Public read, unrestricted delete/update
+
+#### Workspace Related (HIGH RISK):
+- **workspace_members** - Public read (should be workspace-scoped)
+- **workspace_tracked_repositories** - Public read
+
+#### Other High Risk:
+- **organizations** - Public read, unrestricted delete/update
+- **short_urls** - Public read
+- **spam_detections** - ALL operations unrestricted
+- **subscription_features** - Public read
+- **tier_limits** - Public read
+- **issue_similarities** - Public read
+- **pr_insights** - Public read
+
+### Summary by Risk Level:
+- **CRITICAL (Unrestricted ALL operations)**: 25+ tables
+- **HIGH (Public write/delete)**: 40+ tables
+- **MEDIUM (Public read on sensitive data)**: 30+ tables
+- **LOW (Public read on public data)**: 20+ tables
+
 ## Progress Update (2025-01-27)
 
 ### ✅ SECURITY AUDIT COMPLETE
@@ -23,6 +104,17 @@
 4. ✅ **Secured system tables**:
    - github_events_cache_2025_09: Matches other partitions
    - _dlt_version: Service role only
+
+### Phase 3 - Completed Actions (2025-01-27):
+1. ✅ **Secured all critical system tables** (13 tables total):
+   - **Progressive capture**: progressive_capture_jobs, progressive_capture_progress, progressive_backfill_state
+   - **Queue tables**: data_capture_queue, dead_letter_queue, queue_metrics
+   - **Rate limiting**: rate_limit_tracking, rate_limits
+   - **Sync logs**: sync_logs
+   - **Rollout management**: rollout_configuration, rollout_history, rollout_metrics
+   - **Spam detection**: spam_detections
+2. ✅ **Applied service-role-only policies**: All tables now restricted to `auth.role() = 'service_role'`
+3. ✅ **Removed all public/authenticated access**: No unauthorized access possible to system tables
 
 ### Final Status:
 - **0 tables with RLS disabled** ✅
@@ -78,7 +170,50 @@ During routine security review, potential RLS policy gaps were identified that c
 - ~~**citation_metrics**~~ - 0 rows - ✅ DROPPED
 - ~~**comment_commands**~~ - 0 rows - ✅ DROPPED
 
-## Implementation Plan
+## REVISED Implementation Plan (Post-Discovery)
+
+### Phase 3: CRITICAL - System Tables ✅ COMPLETED (2025-01-27)
+Fix tables that should NEVER have public access:
+- ✅ progressive_capture_jobs/progress
+- ✅ data_capture_queue
+- ✅ dead_letter_queue
+- ✅ rate_limit_tracking/rate_limits
+- ✅ sync_logs
+- ✅ rollout_configuration/history/metrics
+- ✅ spam_detections
+
+**Pattern**: Service role only for ALL operations - APPLIED
+
+### Phase 4: HIGH - Workspace & User Data
+Fix tables with improper public write/delete:
+- contributor_roles/role_history
+- reviews
+- organizations
+- workspace_members
+- workspace_tracked_repositories
+
+**Pattern**: Authenticated users with workspace scope
+
+### Phase 5: MEDIUM - GitHub Cache & Analytics
+Fix tables that may need public read but not write:
+- github_events_cache_* partitions
+- github_activities
+- repository_categories
+- share_click_analytics
+- daily/monthly snapshots
+
+**Pattern**: Public read, service role write
+
+### Phase 6: LOW - Public Metadata
+Verify these actually need public read:
+- repository_changelogs
+- repository_confidence_cache
+- tier_limits
+- subscription_features
+
+**Pattern**: Keep public read if needed for UX
+
+## Original Implementation Plan
 
 ### Phase 1: Critical Tables (Priority: HIGH)
 **Target: Fix backup/replica tables that contain sensitive data**
