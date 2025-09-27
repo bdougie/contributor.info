@@ -118,13 +118,165 @@ function previewStandardMode(dbUrl, extraArgs) {
   console.log('\n✨ End of dry-run preview. Use without --dry-run to execute.\n');
 }
 
+// PID-based locking system
+function getLockFilePath() {
+  return path.resolve('supabase/migrations-local/.lock');
+}
+
+function isProcessRunning(pid) {
+  try {
+    // On all platforms, process.kill(pid, 0) checks if process exists without killing it
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    // ESRCH means no such process - it's not running
+    // EPERM means process exists but we don't have permission - it's running
+    return error.code === 'EPERM';
+  }
+}
+
+function readLockFile() {
+  const lockPath = getLockFilePath();
+  if (!existsSync(lockPath)) {
+    return null;
+  }
+  
+  try {
+    const lockData = JSON.parse(readFileSync(lockPath, 'utf8'));
+    return {
+      pid: lockData.pid,
+      startTime: new Date(lockData.startTime),
+      mode: lockData.mode || 'unknown'
+    };
+  } catch (error) {
+    console.warn('⚠️  Warning: Corrupted lock file found, treating as stale');
+    return null;
+  }
+}
+
+function createLockFile(mode = 'standard') {
+  const lockPath = getLockFilePath();
+  const lockDir = path.dirname(lockPath);
+  
+  // Ensure the directory exists
+  if (!existsSync(lockDir)) {
+    mkdirSync(lockDir, { recursive: true });
+  }
+  
+  const lockData = {
+    pid: process.pid,
+    startTime: new Date().toISOString(),
+    mode: mode,
+    platform: process.platform,
+    nodeVersion: process.version
+  };
+  
+  try {
+    writeFileSync(lockPath, JSON.stringify(lockData, null, 2));
+    return true;
+  } catch (error) {
+    console.error('❌ Failed to create lock file:', error.message);
+    return false;
+  }
+}
+
+function removeLockFile() {
+  const lockPath = getLockFilePath();
+  if (existsSync(lockPath)) {
+    try {
+      rmSync(lockPath, { force: true });
+      return true;
+    } catch (error) {
+      console.warn('⚠️  Warning: Failed to remove lock file:', error.message);
+      return false;
+    }
+  }
+  return true;
+}
+
+function checkExistingLock() {
+  const existingLock = readLockFile();
+  
+  if (!existingLock) {
+    return { canProceed: true };
+  }
+  
+  // Check if the process is still running
+  if (!isProcessRunning(existingLock.pid)) {
+    console.log('🧹 Found stale lock file (process no longer running), cleaning up...');
+    removeLockFile();
+    return { canProceed: true };
+  }
+  
+  // Process is still running - this is a conflict
+  const timeRunning = new Date() - existingLock.startTime;
+  const minutesRunning = Math.floor(timeRunning / (1000 * 60));
+  
+  return {
+    canProceed: false,
+    conflictInfo: {
+      pid: existingLock.pid,
+      mode: existingLock.mode,
+      startTime: existingLock.startTime,
+      minutesRunning: minutesRunning
+    }
+  };
+}
+
+function acquireLock(mode = 'standard', isDryRun = false) {
+  if (isDryRun) {
+    console.log('[DRY-RUN] Would check for existing lock file and acquire new lock');
+    console.log(`[DRY-RUN] Lock file path: ${getLockFilePath()}`);
+    console.log(`[DRY-RUN] Would lock with PID: ${process.pid}, mode: ${mode}`);
+    return { success: true, isDryRun: true };
+  }
+  
+  const lockCheck = checkExistingLock();
+  
+  if (!lockCheck.canProceed) {
+    const conflict = lockCheck.conflictInfo;
+    console.error('❌ Another migration process is already running!');
+    console.error(`   Process ID: ${conflict.pid}`);
+    console.error(`   Mode: ${conflict.mode}`);
+    console.error(`   Started: ${conflict.startTime.toLocaleString()}`);
+    console.error(`   Running for: ${conflict.minutesRunning} minutes`);
+    console.error('');
+    console.error('Solutions:');
+    console.error('   1. Wait for the other process to complete');
+    console.error('   2. Kill the other process if it is stuck:');
+    console.error(`      - Windows: taskkill /PID ${conflict.pid} /F`);
+    console.error(`      - Unix/Mac: kill ${conflict.pid}`);
+    console.error('   3. Use the recovery script: node supabase/migrations-local/recover.mjs --cleanup-locks');
+    
+    return { success: false, reason: 'conflict', conflictInfo: conflict };
+  }
+  
+  if (!createLockFile(mode)) {
+    return { success: false, reason: 'create_failed' };
+  }
+  
+  console.log(`🔒 Acquired process lock (PID: ${process.pid}, mode: ${mode})`);
+  return { success: true };
+}
+
+function releaseLock(isDryRun = false) {
+  if (isDryRun) {
+    console.log('[DRY-RUN] Would release lock file');
+    return;
+  }
+  
+  if (removeLockFile()) {
+    console.log('🔓 Released process lock');
+  }
+}
+
 // Cross-platform local migration runner with consolidated migration support
 // - Checks Supabase local status
 // - Optionally applies production-based consolidated migration by temporarily managing migration files
 // - Falls back to standard migration push
 
 import { spawnSync } from 'node:child_process';
-import { existsSync, readdirSync, mkdirSync, copyFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, mkdirSync, copyFileSync, renameSync, rmSync, writeFileSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
 function run(cmd, args, opts = {}) {
@@ -435,6 +587,14 @@ async function main() {
   } else {
     console.log('⚡ EXECUTION MODE: Changes will be applied to your database\n');
   }
+  
+  // Acquire process lock to prevent concurrent runs
+  const lockMode = config.consolidated ? 'consolidated' : 'standard';
+  const lockResult = acquireLock(lockMode, config.dryRun);
+  
+  if (!lockResult.success && !config.dryRun) {
+    process.exit(1);
+  }
 
   const supabaseCmd = resolveSupabaseCmd();
   
@@ -504,6 +664,7 @@ async function main() {
       if (moved) {
         restoreExistingMigrations();
       }
+      releaseLock(config.dryRun);
     }
     
     process.exit(exitCode);
@@ -528,6 +689,8 @@ async function main() {
   } else {
     console.error('❌ Migration failed with exit code:', code);
   }
+  
+  releaseLock(config.dryRun);
   process.exit(code);
 }
 
@@ -540,6 +703,7 @@ process.on('SIGINT', () => {
   if (migrationsMoved) {
     restoreExistingMigrations();
   }
+  releaseLock();
   process.exit(130);
 });
 
@@ -551,10 +715,12 @@ process.on('SIGTERM', () => {
   if (migrationsMoved) {
     restoreExistingMigrations();
   }
+  releaseLock();
   process.exit(143);
 });
 
 main().catch((err) => {
   console.error('❌ Unexpected error:', err);
+  releaseLock();
   process.exit(1);
 });
