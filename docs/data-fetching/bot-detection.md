@@ -18,8 +18,8 @@ The main bot detection function uses a priority-based approach:
 
 2. **Username Pattern Matching** (Fallback)
    - Matches against known bot patterns
-   - Includes suffixes like `[bot]`, `-bot`, `_bot`
-   - Covers common bot services (dependabot, renovate, etc.)
+   - Includes suffixes like `[bot]` and `-bot`
+   - Covers common bot services (dependabot, renovate, github-actions)
 
 ### Edge Function Support
 
@@ -54,19 +54,11 @@ const isBot = detectBot(user).isBot;
 The system recognizes various bot patterns:
 
 - **GitHub Apps**: `[bot]` suffix (e.g., `dependabot[bot]`)
-- **Common Suffixes**: `-bot`, `_bot`, `.bot`
-- **Known Services**:
+- **Common Suffixes**: `-bot` (e.g., `release-bot`)
+- **Known Services** (exact matches with optional `[bot]` suffix):
   - Dependabot
   - Renovate
-  - Greenkeeper
-  - Snyk
-  - ImgBot
-  - Mergify
-  - AllContributors
-  - Stale
   - GitHub Actions
-  - Codecov
-  - And many more...
 
 ## Components Using Bot Detection
 
