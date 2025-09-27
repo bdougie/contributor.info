@@ -8,42 +8,42 @@ import Logger from '../utils/logger.js';
 export async function handlePROpenedDirect(payload, githubApp, supabase, parentLogger) {
   const logger = parentLogger ? parentLogger.child('PROpenedDirect') : new Logger('PROpenedDirect');
   const { pull_request: pr, repository: repo, installation } = payload;
-  
+
   logger.info('Processing opened PR #%s in %s', pr.number, repo.full_name);
   logger.info('  PR author: %s', pr.user.login);
-  
+
   try {
     // Get installation Octokit
     const octokit = await githubApp.getInstallationOctokit(installation.id);
-    
+
     // Check if this is the author's first PR to this repo
     const isFirstPR = await checkIfFirstPR(pr.user.login, repo, octokit);
-    
+
     // Create welcome comment
     let comment = `👋 Thanks for opening this pull request, @${pr.user.login}!`;
-    
+
     if (isFirstPR) {
       comment += `\n\nWelcome to ${repo.name}! This appears to be your first contribution to this repository. 🎉`;
     }
-    
+
     comment += `\n\nThe maintainers will review your PR soon. In the meantime, please ensure:`;
     comment += `\n- [ ] Your PR has a clear description`;
     comment += `\n- [ ] You've included any necessary tests`;
     comment += `\n- [ ] Your code follows the project's style guidelines`;
-    
+
     // Post comment
     await octokit.rest.issues.createComment({
       owner: repo.owner.login,
       repo: repo.name,
       issue_number: pr.number,
-      body: comment
+      body: comment,
     });
-    
+
     logger.info('✅ Posted welcome comment on PR #%s', pr.number);
-    
+
     // Track PR in database
     await trackPullRequest(pr, repo, supabase, logger);
-    
+
     return { success: true, commented: true };
   } catch (error) {
     logger.error('Error handling PR opened:', error);
@@ -60,12 +60,12 @@ async function checkIfFirstPR(username, repo, octokit) {
       owner: repo.owner.login,
       repo: repo.name,
       state: 'all',
-      per_page: 100
+      per_page: 100,
     });
-    
+
     // Filter PRs by the specific user
-    const userPrs = prs.filter(pr => pr.user.login === username);
-    
+    const userPrs = prs.filter((pr) => pr.user.login === username);
+
     // If we only find 1 PR (the current one), it's their first
     return userPrs.length <= 1;
   } catch (error) {
@@ -77,9 +77,8 @@ async function checkIfFirstPR(username, repo, octokit) {
 async function trackPullRequest(pr, repo, supabase, logger) {
   try {
     // First ensure the repository is tracked
-    await supabase
-      .from('repositories')
-      .upsert({
+    await supabase.from('repositories').upsert(
+      {
         github_id: repo.id,
         owner: repo.owner.login,
         name: repo.name,
@@ -88,28 +87,30 @@ async function trackPullRequest(pr, repo, supabase, logger) {
         is_private: repo.private,
         html_url: repo.html_url,
         created_at: repo.created_at,
-        updated_at: repo.updated_at
-      }, {
-        onConflict: 'github_id'
-      });
-    
+        updated_at: repo.updated_at,
+      },
+      {
+        onConflict: 'github_id',
+      }
+    );
+
     // Track the contributor
-    await supabase
-      .from('contributors')
-      .upsert({
+    await supabase.from('contributors').upsert(
+      {
         github_id: pr.user.id,
         username: pr.user.login,
         avatar_url: pr.user.avatar_url,
         html_url: pr.user.html_url,
-        is_bot: pr.user.type === 'Bot'
-      }, {
-        onConflict: 'github_id'
-      });
-    
+        is_bot: pr.user.type === 'Bot',
+      },
+      {
+        onConflict: 'github_id',
+      }
+    );
+
     // Track the PR
-    await supabase
-      .from('pull_requests')
-      .upsert({
+    await supabase.from('pull_requests').upsert(
+      {
         github_id: pr.id,
         repository_id: repo.id,
         number: pr.number,
@@ -127,11 +128,13 @@ async function trackPullRequest(pr, repo, supabase, logger) {
         changed_files: pr.changed_files || 0,
         commits: pr.commits || 0,
         merged: false,
-        merged_at: null
-      }, {
-        onConflict: 'github_id'
-      });
-      
+        merged_at: null,
+      },
+      {
+        onConflict: 'github_id',
+      }
+    );
+
     logger.info('✅ Tracked PR #%s in database', pr.number);
   } catch (error) {
     logger.error('Error tracking PR in database:', error);

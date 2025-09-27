@@ -1,11 +1,11 @@
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from '@storybook/react';
 
 /**
  * Story Template for Contributor.info Components
- * 
+ *
  * This template provides a consistent structure for creating Storybook stories
  * across all components in the application.
- * 
+ *
  * Usage:
  * 1. Copy this template
  * 2. Replace YourComponent with your actual component
@@ -20,7 +20,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 
 /**
  * Meta configuration for the component
- * 
+ *
  * Title should follow the pattern:
  * - UI/ComponentName (for basic UI components)
  * - Features/Category/ComponentName (for feature components)
@@ -29,10 +29,10 @@ import type { Meta, StoryObj } from "@storybook/react";
  * - Skeletons/ComponentName (for loading skeletons)
  */
 const meta = {
-  title: "Category/YourComponent", // Update this path
+  title: 'Category/YourComponent', // Update this path
   // component: YourComponent, // Uncomment and update
   parameters: {
-    layout: "centered", // or "fullscreen", "padded"
+    layout: 'centered', // or "fullscreen", "padded"
     docs: {
       description: {
         component: `
@@ -46,7 +46,7 @@ const meta = {
       },
     },
   },
-  tags: ["autodocs"],
+  tags: ['autodocs'],
   decorators: [
     (Story) => (
       // Add necessary providers/context here
@@ -54,7 +54,9 @@ const meta = {
       // <ThemeProvider>
       // <TooltipProvider>
       // <RepoStatsContext.Provider value={mockData}>
-      <div className="w-[400px] p-4"> {/* Adjust container as needed */}
+      <div className="w-[400px] p-4">
+        {' '}
+        {/* Adjust container as needed */}
         <Story />
       </div>
       // </RepoStatsContext.Provider>
@@ -157,14 +159,14 @@ export const WithInteraction: Story = {
     // await userEvent.click(button);
     // await expect(button).toHaveTextContent("Clicked");
   },
-  tags: ["interaction"],
+  tags: ['interaction'],
 };
 
 // Responsive variations
 export const Mobile: Story = {
   parameters: {
     viewport: {
-      defaultViewport: "mobile",
+      defaultViewport: 'mobile',
     },
   },
   decorators: [
@@ -179,7 +181,7 @@ export const Mobile: Story = {
 export const Desktop: Story = {
   parameters: {
     viewport: {
-      defaultViewport: "desktop",
+      defaultViewport: 'desktop',
     },
   },
   decorators: [
@@ -194,7 +196,7 @@ export const Desktop: Story = {
 // Theme variations
 export const DarkTheme: Story = {
   parameters: {
-    backgrounds: { default: "dark" },
+    backgrounds: { default: 'dark' },
   },
   decorators: [
     (Story) => (
@@ -222,7 +224,7 @@ export const Multiple: Story = {
  * - Use PascalCase for story names
  * - Be descriptive but concise
  * - Group related stories logically
- * 
+ *
  * Common story patterns:
  * - Default: Basic usage
  * - [Variant]Name: Different visual variants

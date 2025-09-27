@@ -12,7 +12,15 @@ const DEFAULT_DAYS_LIMIT = 30;
 const BACKFILL_SYNC_DAYS = 1; // Only sync 1 day when backfill is active
 
 // Helper function to ensure a contributor exists
-async function ensureContributorExists(author: any): Promise<string> {
+interface GitHubAuthor {
+  login: string;
+  databaseId?: number;
+  id?: number;
+  avatarUrl?: string;
+  __typename?: string;
+}
+
+async function ensureContributorExists(author: GitHubAuthor): Promise<string> {
   if (!author?.login) {
     throw new Error('Author login is required');
   }
@@ -228,13 +236,14 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
         }
 
         return prs.slice(0, MAX_PRS_PER_SYNC);
-      } catch (error: any) {
-        if (error.message?.includes('NOT_FOUND')) {
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : '';
+        if (errorMessage.includes('NOT_FOUND')) {
           throw new Error(
             `Repository ${repository.owner}/${repository.name} not found`
           ) as NonRetriableError;
         }
-        if (error.message?.includes('rate limit')) {
+        if (errorMessage.includes('rate limit')) {
           throw new Error(
             `GraphQL rate limit hit for ${repository.owner}/${repository.name}. Please try again later.`
           );
@@ -254,13 +263,16 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
       }
 
       // First, ensure all contributors exist and get their UUIDs
-      const contributorPromises = recentPRs.map((pr: any) => ensureContributorExists(pr.author));
+      const contributorPromises = recentPRs.map((pr) =>
+        ensureContributorExists(pr.author as GitHubAuthor)
+      );
       const contributorIds = await Promise.all(contributorPromises);
 
       // Then create PRs with proper UUIDs
-      const prsToStore = recentPRs.map((pr: any, index: number) => ({
-        github_id: pr.databaseId.toString(),
+      const prsToStore = recentPRs.map((pr, index) => ({
+        github_id: pr.databaseId?.toString() || '0',
         repository_id: repositoryId,
+        repository_full_name: `${repository.owner}/${repository.name}`,
         number: pr.number,
         title: pr.title,
         body: null, // Basic PR list doesn't include body
@@ -278,6 +290,7 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
         commits: pr.commits?.totalCount || 0,
         base_branch: pr.baseRefName || 'main',
         head_branch: pr.headRefName || 'unknown',
+        html_url: `https://github.com/${repository.owner}/${repository.name}/pull/${pr.number}`,
       }));
 
       const { data, error } = await supabase
@@ -297,7 +310,16 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
 
     // Step 7: Queue detail jobs (less aggressive if backfill is active)
     const jobsToQueue = await step.run('prepare-graphql-job-queue', async () => {
-      const jobs = [] as any[];
+      interface JobData {
+        name: string;
+        data: {
+          repositoryId: string;
+          prNumber: string;
+          prId: string;
+          priority: string;
+        };
+      }
+      const jobs: JobData[] = [];
 
       // Limit detail jobs if backfill is active
       const MAX_DETAIL_JOBS = backfillState ? 10 : 50;
@@ -305,14 +327,14 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
       let detailJobsQueued = 0;
 
       for (const pr of storedPRs) {
-        const prData = recentPRs.find((p: any) => p.number === pr.number);
+        const prData = recentPRs.find((p) => p.number === pr.number);
 
         if (!prData) continue;
 
         // Only queue detail jobs for very recent or open PRs when backfill is active
         const isOpen = prData.state === 'OPEN';
         const isVeryRecent =
-          new Date(prData.updatedAt).getTime() > Date.now() - 24 * 60 * 60 * 1000; // 24 hours
+          new Date(prData.updatedAt || '').getTime() > Date.now() - 24 * 60 * 60 * 1000; // 24 hours
 
         if (detailJobsQueued < MAX_DETAIL_JOBS && (isOpen || (!backfillState && isVeryRecent))) {
           jobs.push({
@@ -358,7 +380,7 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
         .eq('id', repositoryId);
 
       if (error) {
-        console.error(`Failed to update repository sync timestamp: ${error.message}`);
+        console.error('Failed to update repository sync timestamp: %s', error.message);
       }
     });
 
@@ -374,7 +396,7 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
       timestamp: new Date().toISOString(),
     };
 
-    console.log(`✅ Enhanced repository sync completed:`, summary);
+    console.log('✅ Enhanced repository sync completed:', summary);
 
     return summary;
   }

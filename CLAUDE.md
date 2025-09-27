@@ -1,5 +1,10 @@
 # Claude Development Guidelines
 
+<critical>
+    Never write env variables inline into scripts. Especially SUPABASE tokens keys and urls.
+    Delete scripts that are not referenced anywhere and are one-time use.
+</critical>
+
 ## Build Commands
 
 When making changes to the codebase, please run the following commands to ensure code quality:
@@ -43,7 +48,7 @@ When working on larger features or multi-step implementations, use Product Requi
    - **Technical Guidelines**: Architecture decisions, patterns to follow
    - **Acceptance Criteria**: Specific, measurable outcomes for each phase
 
-3. **Phase-Based Implementation**: 
+3. **Phase-Based Implementation**:
    - Break large features into 2-4 phases based on priority and dependencies
    - Each phase should be completable in 1-3 days
    - Mark phases as completed with ✅ as work progresses
@@ -107,14 +112,15 @@ VITE_SUPABASE_ANON_KEY=your-anon-key
 - use the supabase mcp server for migrations
 - `console.log(\`${owner}\`)` is a security vulnerability. We need to do `console.log(%s, owner)`
 - optimized for user experience with modern tooling and excellent dependency management. prioritize immediate value delivery over pure performance metrics.
-- never use "any" types in typescript
+- never use "any" types in typescript - always create proper interfaces/types for data structures
+- never use "unknown" as a lazy fix - define real types for resilience and maintainability
 - script need to be documented and organized into folders/readmes
 
 ## Known Issues
 
 ### Repository Tracking Changes (Jan 2025)
 
-**Update**: The automatic repository tracking system has been replaced with manual, user-initiated tracking. 
+**Update**: The automatic repository tracking system has been replaced with manual, user-initiated tracking.
 - Old auto-tracking hooks (`useAutoTrackRepository`) have been removed
 - Discovery now happens via explicit user action through UI buttons
 - This change improves transparency and user control over data collection

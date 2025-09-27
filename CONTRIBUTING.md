@@ -387,10 +387,39 @@ npm run test:ui          # Visual test runner
 
 ### Writing Tests
 
-- **Unit tests**: For utilities and pure functions
-- **Component tests**: For React components using Testing Library
-- **Integration tests**: For complex workflows
-- **Database tests**: For Supabase queries and functions
+**⚠️ CRITICAL: No Async/Await in Unit Tests!**
+
+Our project follows **bulletproof testing guidelines** to prevent CI hangs:
+
+- **❌ FORBIDDEN**: `async/await`, `waitFor()`, `Promise` patterns in unit tests
+- **✅ REQUIRED**: Synchronous patterns only - tests must complete immediately
+- **📋 ESLint Rules**: Automatic enforcement prevents async patterns in test files
+
+Follow these patterns:
+
+```typescript
+// ❌ FORBIDDEN - Will cause CI to hang
+it('should load data', async () => {
+  const result = await fetchData();
+  expect(result).toBe('data');
+});
+
+// ✅ CORRECT - Synchronous with mocks
+it('should load data', () => {
+  const mockResult = { data: 'expected' };
+  vi.spyOn(dataService, 'fetchData').mockReturnValue(Promise.resolve(mockResult));
+  
+  expect(mockResult.data).toBe('expected');
+});
+```
+
+**Test Types**:
+- **Unit tests**: For utilities and pure functions (synchronous only)
+- **Component tests**: For React components using Testing Library (synchronous only)  
+- **Integration tests**: Move complex async flows to E2E tests
+- **Database tests**: Mock Supabase calls, test logic synchronously
+
+**📚 Full Guidelines**: See [docs/testing/BULLETPROOF_TESTING_GUIDELINES.md](docs/testing/BULLETPROOF_TESTING_GUIDELINES.md)
 
 Example test:
 ```typescript

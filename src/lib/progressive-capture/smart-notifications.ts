@@ -80,7 +80,7 @@ export class SmartDataNotifications {
 
       this.checkedRepositories.add(repoKey);
     } catch (error) {
-      console.error(`[Smart Notifications] Error checking ${repoKey}:`, error);
+      console.error('[Smart Notifications] Error checking %s:', error, repoKey);
     }
   }
 
@@ -288,7 +288,7 @@ export class SmartDataNotifications {
         console.log('✅ Auto-fix jobs queued for %s/%s:', owner, repo, results);
       }
     } catch (error) {
-      console.warn(`Could not auto-fix data for ${owner}/${repo}:`, error);
+      console.warn('Could not auto-fix data for %s/%s:', error, owner, repo);
     }
   }
 

@@ -95,14 +95,31 @@ function recordFailure(endpointName: string): void {
 }
 
 /**
- * Send an event to Inngest in a client-safe way
+ * Generate a unique idempotency key for a request
+ * Uses crypto.randomUUID if available, otherwise falls back to a timestamp-based approach
+ */
+export function generateIdempotencyKey(): string {
+  if (typeof window !== 'undefined' && window.crypto && window.crypto.randomUUID) {
+    return window.crypto.randomUUID();
+  }
+  // Fallback for environments without crypto.randomUUID
+  return `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+}
+
+/**
+ * Send an event to Inngest in a client-safe way with idempotency support
  *
  * @param event - The event to send with name and data
+ * @param options - Optional configuration including idempotency key
  * @returns Promise that resolves when the event is sent
  */
-export async function sendInngestEvent<T extends { name: string; data: any }>(
-  event: T
-): Promise<{ ids?: string[] }> {
+export async function sendInngestEvent<T extends { name: string; data: Record<string, unknown> }>(
+  event: T,
+  options?: { idempotencyKey?: string }
+): Promise<{ ids?: string[]; idempotencyKey?: string; duplicate?: boolean }> {
+  // Generate idempotency key if not provided
+  const idempotencyKey = options?.idempotencyKey || generateIdempotencyKey();
+
   // In browser context, use the API endpoint
   if (typeof window !== 'undefined') {
     // Try Supabase first, fallback to Netlify if it fails
@@ -111,6 +128,7 @@ export async function sendInngestEvent<T extends { name: string; data: any }>(
         url: `${SUPABASE_URL}/functions/v1/queue-event`,
         headers: {
           'Content-Type': 'application/json',
+          'X-Idempotency-Key': idempotencyKey,
           ...(SUPABASE_ANON_KEY ? { apikey: SUPABASE_ANON_KEY } : {}),
           ...(SUPABASE_ANON_KEY ? { Authorization: `Bearer ${SUPABASE_ANON_KEY}` } : {}),
         },
@@ -120,6 +138,7 @@ export async function sendInngestEvent<T extends { name: string; data: any }>(
         url: '/api/queue-event',
         headers: {
           'Content-Type': 'application/json',
+          'X-Idempotency-Key': idempotencyKey,
         },
         name: 'Netlify Function',
       },
@@ -153,12 +172,25 @@ export async function sendInngestEvent<T extends { name: string; data: any }>(
         }
 
         const result = await response.json();
-        console.log('Event sent successfully via %s', endpoint.name);
+
+        // Check if this was a duplicate request
+        if (result.duplicate) {
+          console.log(
+            'Duplicate request detected via %s, returning cached response',
+            endpoint.name
+          );
+        } else {
+          console.log('Event sent successfully via %s', endpoint.name);
+        }
 
         // Record success for circuit breaker
         recordSuccess(endpoint.name);
 
-        return { ids: result.eventId ? [result.eventId] : result.eventIds || [] };
+        return {
+          ids: result.eventId ? [result.eventId] : result.eventIds || [],
+          idempotencyKey,
+          duplicate: result.duplicate || false,
+        };
       } catch (error) {
         console.warn('Failed to send event via %s:', endpoint.name, error);
         lastError = error as Error;
@@ -181,8 +213,20 @@ export async function sendInngestEvent<T extends { name: string; data: any }>(
     throw lastError || new Error('Failed to send event to any endpoint');
   }
 
-  // Server-side: send directly to Inngest
-  return inngest.send(event);
+  // Server-side: send directly to Inngest with idempotency key in event data
+  const eventWithIdempotency = {
+    ...event,
+    data: {
+      ...event.data,
+      _idempotencyKey: idempotencyKey,
+    },
+  };
+  const result = await inngest.send(eventWithIdempotency);
+  return {
+    ...result,
+    idempotencyKey,
+    duplicate: false,
+  };
 }
 
 /**

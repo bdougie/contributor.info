@@ -3,6 +3,7 @@ import type { PullRequest } from './types';
 import { env } from './env';
 import { githubApiRequest } from './github-rate-limit';
 import { trackRateLimit, startSpan } from './simple-logging';
+import { detectBot } from './utils/bot-detection';
 
 const GITHUB_API_BASE = 'https://api.github.com';
 
@@ -484,8 +485,8 @@ export async function fetchPullRequests(
               fetchPRComments(owner, repo, pr.number, headers),
             ]);
 
-            // Check if user is a bot by their type or by checking if name contains [bot]
-            const isBot = pr.user.type === 'Bot' || pr.user.login.includes('[bot]');
+            // Check if user is a bot using centralized detection
+            const isBot = detectBot({ githubUser: pr.user }).isBot;
 
             return {
               id: pr.id,
@@ -904,7 +905,7 @@ export async function fetchDirectCommits(
     if (NODE_ENV === 'development') {
       console.log('YOLO Debug - Total commits on main branch: %s', allCommits.length);
       console.log('YOLO Debug - PR commit SHAs collected: %s', prCommitShaSet.size);
-      console.log(`YOLO Debug - Sample PR commit SHAs:`, Array.from(prCommitShaSet).slice(0, 5));
+      console.log('YOLO Debug - Sample PR commit SHAs:', Array.from(prCommitShaSet).slice(0, 5));
     }
 
     const directCommitData = allCommits.filter((commit: GitHubCommit) => {

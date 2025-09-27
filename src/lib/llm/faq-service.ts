@@ -174,7 +174,7 @@ class FAQService {
         timestamp: new Date(),
       };
     } catch (error) {
-      console.error(`Failed to generate LLM answer for ${question.id}:`, error);
+      console.error('Failed to generate LLM answer for %s:', error, question.id);
       return this.generateFallbackAnswer(question, owner, repo, timeRange, repositoryData);
     }
   }
@@ -508,7 +508,7 @@ Answer:`;
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        console.error(`OpenAI API error: ${response.status}`);
+        console.error('OpenAI API error: %s', response.status);
         return null;
       }
 

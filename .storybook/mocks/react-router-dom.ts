@@ -5,10 +5,12 @@ import React from 'react';
 
 export const useSearchParams = () => {
   const searchParams = new URLSearchParams();
-  const setSearchParams = (params: URLSearchParams | ((prev: URLSearchParams) => URLSearchParams)) => {
+  const setSearchParams = (
+    params: URLSearchParams | ((prev: URLSearchParams) => URLSearchParams)
+  ) => {
     console.log('Storybook: setSearchParams called with:', params);
   };
-  
+
   return [searchParams, setSearchParams] as const;
 };
 
@@ -24,7 +26,7 @@ export const useLocation = () => {
     search: '',
     hash: '',
     state: null,
-    key: 'default'
+    key: 'default',
   };
 };
 
@@ -40,11 +42,27 @@ export const MemoryRouter = ({ children }: { children: React.ReactNode }) => {
   return children;
 };
 
-export const Link = ({ children, to, ...props }: { children: React.ReactNode; to: string; [key: string]: any }) => {
+export const Link = ({
+  children,
+  to,
+  ...props
+}: {
+  children: React.ReactNode;
+  to: string;
+  [key: string]: any;
+}) => {
   return React.createElement('a', { href: to, ...props }, children);
 };
 
-export const NavLink = ({ children, to, ...props }: { children: React.ReactNode; to: string; [key: string]: any }) => {
+export const NavLink = ({
+  children,
+  to,
+  ...props
+}: {
+  children: React.ReactNode;
+  to: string;
+  [key: string]: any;
+}) => {
   return React.createElement('a', { href: to, ...props }, children);
 };
 

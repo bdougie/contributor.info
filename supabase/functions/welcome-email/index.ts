@@ -1,4 +1,4 @@
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 // Email template types
@@ -256,16 +256,15 @@ Privacy policy: https://contributor.info/privacy
 GitHub: https://github.com/bdougie/contributor.info
 `;
 
-
 // Main function
 Deno.serve(async (req: Request) => {
   try {
     // Only allow POST requests
     if (req.method !== 'POST') {
-      return new Response(
-        JSON.stringify({ error: 'Method not allowed' }),
-        { status: 405, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+        status: 405,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     // Get environment variables
@@ -275,49 +274,49 @@ Deno.serve(async (req: Request) => {
 
     if (!resendApiKey) {
       console.error('RESEND_API_KEY not configured');
-      return new Response(
-        JSON.stringify({ error: 'Email service not configured' }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Email service not configured' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     // Parse the webhook payload
     const { record } = await req.json();
-    
+
     if (!record || !record.email) {
       console.error('Invalid webhook payload:', { record });
-      return new Response(
-        JSON.stringify({ error: 'Invalid payload' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Invalid payload' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     // Extract user information
     const userEmail = record.email;
-    const userName = record.raw_user_meta_data?.name || 
-                    record.raw_user_meta_data?.full_name || 
-                    record.raw_user_meta_data?.user_name ||
-                    userEmail.split('@')[0];
+    const userName =
+      record.raw_user_meta_data?.name ||
+      record.raw_user_meta_data?.full_name ||
+      record.raw_user_meta_data?.user_name ||
+      userEmail.split('@')[0];
     const signupDate = new Date(record.created_at).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
     });
 
     console.log('Processing welcome email request for:', { userEmail, userName, signupDate });
 
     // GDPR COMPLIANCE: Welcome emails are transactional and sent under contractual necessity
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    
+
     // Log GDPR processing activity under contractual necessity
-    const { data: gdprLogId, error: gdprError } = await supabase
-      .rpc('log_gdpr_processing', {
-        p_user_id: record.id,
-        p_purpose: 'welcome_email_transactional',
-        p_legal_basis: 'contract',
-        p_data_categories: ['email', 'name'],
-        p_notes: `Sending transactional welcome email to ${userEmail} - necessary for service setup`
-      });
+    const { data: gdprLogId, error: gdprError } = await supabase.rpc('log_gdpr_processing', {
+      p_user_id: record.id,
+      p_purpose: 'welcome_email_transactional',
+      p_legal_basis: 'contract',
+      p_data_categories: ['email', 'name'],
+      p_notes: `Sending transactional welcome email to ${userEmail} - necessary for service setup`,
+    });
 
     if (gdprError) {
       console.warn('Failed to log GDPR processing:', gdprError);
@@ -327,7 +326,7 @@ Deno.serve(async (req: Request) => {
     const emailData: WelcomeEmailData = {
       userName,
       userEmail,
-      signupDate
+      signupDate,
     };
 
     console.log('Sending transactional welcome email to:', userEmail);
@@ -336,7 +335,7 @@ Deno.serve(async (req: Request) => {
     const emailResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${resendApiKey}`,
+        Authorization: `Bearer ${resendApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -347,8 +346,8 @@ Deno.serve(async (req: Request) => {
         text: getWelcomeEmailText(emailData),
         tags: [
           { name: 'type', value: 'transactional' },
-          { name: 'user_id', value: record.id }
-        ]
+          { name: 'user_id', value: record.id },
+        ],
       }),
     });
 
@@ -357,7 +356,7 @@ Deno.serve(async (req: Request) => {
       console.error('Resend API error:', {
         status: emailResponse.status,
         statusText: emailResponse.statusText,
-        error: errorText
+        error: errorText,
       });
       throw new Error(`Resend API error: ${emailResponse.status} ${errorText}`);
     }
@@ -367,33 +366,31 @@ Deno.serve(async (req: Request) => {
 
     // GDPR COMPLIANCE: Log the email send for audit trail
     try {
-      await supabase
-        .from('email_logs')
-        .insert({
-          user_id: record.id,
-          email_type: 'welcome',
-          recipient_email: userEmail,
-          resend_email_id: emailResult.id,
-          sent_at: new Date().toISOString(),
-          legal_basis: 'contract',
-          gdpr_log_id: gdprLogId,
-          metadata: {
-            user_name: userName,
-            signup_date: signupDate,
-            transactional: true,
-            privacy_policy_version: '1.0'
-          }
-        });
-        
+      await supabase.from('email_logs').insert({
+        user_id: record.id,
+        email_type: 'welcome',
+        recipient_email: userEmail,
+        resend_email_id: emailResult.id,
+        sent_at: new Date().toISOString(),
+        legal_basis: 'contract',
+        gdpr_log_id: gdprLogId,
+        metadata: {
+          user_name: userName,
+          signup_date: signupDate,
+          transactional: true,
+          privacy_policy_version: '1.0',
+        },
+      });
+
       // Mark GDPR processing as completed
       await supabase
         .from('gdpr_processing_log')
-        .update({ 
+        .update({
           processing_completed_at: new Date().toISOString(),
-          notes: `Welcome email sent successfully via Resend (ID: ${emailResult.id})`
+          notes: `Welcome email sent successfully via Resend (ID: ${emailResult.id})`,
         })
         .eq('id', gdprLogId);
-        
+
       console.log('Email send logged successfully with GDPR compliance');
     } catch (logError) {
       // Don't fail the main function if logging fails, but warn about compliance
@@ -401,21 +398,20 @@ Deno.serve(async (req: Request) => {
     }
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         message: 'Transactional welcome email sent successfully',
-        email_id: emailResult.id 
+        email_id: emailResult.id,
       }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
-
   } catch (error) {
     console.error('Error sending welcome email:', error);
-    
+
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         error: 'Failed to send welcome email',
-        details: error.message 
+        details: error.message,
       }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );

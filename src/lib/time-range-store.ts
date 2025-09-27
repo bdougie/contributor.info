@@ -9,7 +9,12 @@ interface TimeRangeState {
 }
 
 // Helper to check if device is mobile
-const isMobile = () => window.innerWidth < 768; // Matches Tailwind's md breakpoint
+const isMobile = () => {
+  if (typeof window === 'undefined' || !window.innerWidth) {
+    return false; // Default to desktop in test/SSR environment
+  }
+  return window.innerWidth < 768; // Matches Tailwind's md breakpoint
+};
 
 export const useTimeRangeStore = create<TimeRangeState>((set) => ({
   timeRange: '30', // Default to 30 days
@@ -27,7 +32,7 @@ export const useTimeRangeStore = create<TimeRangeState>((set) => ({
 }));
 
 // Initialize window resize listener to update timeRange on viewport changes
-if (typeof window !== 'undefined') {
+if (typeof window !== 'undefined' && window.addEventListener) {
   window.addEventListener('resize', () => {
     const { timeRange } = useTimeRangeStore.getState();
     useTimeRangeStore.getState().setTimeRange(timeRange);

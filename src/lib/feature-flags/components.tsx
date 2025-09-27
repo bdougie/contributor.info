@@ -20,7 +20,7 @@ interface FeatureFlagProps {
  */
 export function FeatureFlag({ flag, children, fallback = null }: FeatureFlagProps) {
   const isEnabled = useFeatureFlag(flag);
-  
+
   return <>{isEnabled ? children : fallback}</>;
 }
 
@@ -40,15 +40,15 @@ interface ExperimentProps {
 export function Experiment({ name, control, variants, loading = null }: ExperimentProps) {
   const variantKeys = ['control', ...Object.keys(variants)];
   const { variant, loading: isLoading } = useExperiment(name, variantKeys);
-  
+
   if (isLoading) {
     return <>{loading}</>;
   }
-  
+
   if (!variant || variant === 'control') {
     return <>{control}</>;
   }
-  
+
   return <>{variants[variant] || control}</>;
 }
 
@@ -65,18 +65,16 @@ interface FeatureGateProps {
 /**
  * Component that requires multiple feature flags
  */
-export function FeatureGate({ 
-  flags, 
-  requireAll = true, 
-  children, 
-  fallback = null 
+export function FeatureGate({
+  flags,
+  requireAll = true,
+  children,
+  fallback = null,
 }: FeatureGateProps) {
   const enabledFlags = flags.map(useFeatureFlag);
-  
-  const isEnabled = requireAll 
-    ? enabledFlags.every(Boolean)
-    : enabledFlags.some(Boolean);
-  
+
+  const isEnabled = requireAll ? enabledFlags.every(Boolean) : enabledFlags.some(Boolean);
+
   return <>{isEnabled ? children : fallback}</>;
 }
 
@@ -93,19 +91,19 @@ interface RolloutPercentageProps {
 /**
  * Component for manual percentage-based rollout
  */
-export function RolloutPercentage({ 
-  percentage, 
-  children, 
+export function RolloutPercentage({
+  percentage,
+  children,
   fallback = null,
-  seed = 'default'
+  seed = 'default',
 }: RolloutPercentageProps) {
   // Generate stable hash based on seed
   const hash = seed.split('').reduce((acc, char) => {
     return ((acc << 5) - acc + char.charCodeAt(0)) | 0;
   }, 0);
-  
+
   const isIncluded = Math.abs(hash) % 100 < percentage;
-  
+
   return <>{isIncluded ? children : fallback}</>;
 }
 
@@ -121,11 +119,11 @@ interface FeatureFlagDebugProps {
  */
 export function FeatureFlagDebug({ className }: FeatureFlagDebugProps) {
   const isDevelopment = process.env.NODE_ENV === 'development';
-  
+
   if (!isDevelopment) {
     return null;
   }
-  
+
   // Use a static list to avoid circular dependency
   // This list should be kept in sync with FEATURE_FLAGS in types.ts
   const flags: FeatureFlagName[] = [
@@ -139,7 +137,7 @@ export function FeatureFlagDebug({ className }: FeatureFlagDebugProps) {
     'enable_advanced_filters',
     'enable_export_features',
   ] as FeatureFlagName[];
-  
+
   return (
     <div className={className}>
       <h3 className="text-sm font-semibold mb-2">Feature Flags</h3>
@@ -154,7 +152,7 @@ export function FeatureFlagDebug({ className }: FeatureFlagDebugProps) {
 
 function FeatureFlagDebugItem({ flag }: { flag: FeatureFlagName }) {
   const isEnabled = useFeatureFlag(flag);
-  
+
   return (
     <div className="flex items-center gap-2 text-xs">
       <span className={`w-2 h-2 rounded-full ${isEnabled ? 'bg-green-500' : 'bg-gray-400'}`} />

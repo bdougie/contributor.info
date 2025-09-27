@@ -44,7 +44,7 @@ export async function fetchContributorConfig(
 
     if ('content' in data && data.type === 'file') {
       const content = Buffer.from(data.content, 'base64').toString('utf-8');
-      
+
       // Try to parse as YAML first, then JSON
       let config: ContributorConfig;
       try {
@@ -74,10 +74,10 @@ function validateAndMergeConfig(config: unknown): ContributorConfig {
   if (!config || typeof config !== 'object') {
     return DEFAULT_CONFIG;
   }
-  
+
   // Cast to a partial config type for safer access
   const inputConfig = config as Partial<ContributorConfig>;
-  
+
   const validated: ContributorConfig = {
     version: inputConfig.version || DEFAULT_CONFIG.version,
     features: {
@@ -86,7 +86,9 @@ function validateAndMergeConfig(config: unknown): ContributorConfig {
     },
     comment_style: inputConfig.comment_style || DEFAULT_CONFIG.comment_style,
     exclude_authors: Array.isArray(inputConfig.exclude_authors) ? inputConfig.exclude_authors : [],
-    exclude_reviewers: Array.isArray(inputConfig.exclude_reviewers) ? inputConfig.exclude_reviewers : [],
+    exclude_reviewers: Array.isArray(inputConfig.exclude_reviewers)
+      ? inputConfig.exclude_reviewers
+      : [],
   };
 
   // Validate comment_style

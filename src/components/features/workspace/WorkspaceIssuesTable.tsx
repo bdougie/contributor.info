@@ -31,6 +31,9 @@ import {
   MessageSquare,
 } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
+import { useWorkspaceFiltersStore, type IssueState } from '@/lib/workspace-filters-store';
+import { IssueFilters } from './filters/TableFilters';
+import { isBot, hasBotAuthors } from '@/lib/utils/bot-detection';
 
 export interface Issue {
   id: string;
@@ -45,6 +48,7 @@ export interface Issue {
   author: {
     username: string;
     avatar_url: string;
+    isBot?: boolean;
   };
   created_at: string;
   updated_at: string;
@@ -53,6 +57,10 @@ export interface Issue {
   labels: Array<{
     name: string;
     color: string;
+  }>;
+  assignees?: Array<{
+    login: string;
+    avatar_url: string;
   }>;
   linked_pull_requests?: Array<{
     number: number;
@@ -106,6 +114,41 @@ export function WorkspaceIssuesTable({
   const [sorting, setSorting] = useState<SortingState>([{ id: 'updated_at', desc: true }]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
+  // Get filter state from store
+  const {
+    issueStates,
+    issueIncludeBots,
+    issueAssignmentFilter,
+    toggleIssueState,
+    setIssueIncludeBots,
+    setIssueAssignmentFilter,
+    resetIssueFilters,
+  } = useWorkspaceFiltersStore();
+
+  // Check if there are any bot issues - using useMemo for performance
+  const hasBots = useMemo(() => {
+    return hasBotAuthors(issues);
+  }, [issues]);
+
+  // Filter issues based on state, bot settings, and assignment
+  const filteredIssues = useMemo(() => {
+    return issues.filter((issue) => {
+      // Filter by state
+      const stateMatch = issueStates.includes(issue.state as IssueState);
+
+      // Filter by bot status
+      const botMatch = issueIncludeBots || !isBot(issue.author);
+
+      // Filter by assignment
+      const hasAssignees = issue.assignees && issue.assignees.length > 0;
+      const assignmentMatch =
+        issueAssignmentFilter === 'all' ||
+        (issueAssignmentFilter === 'assigned' && hasAssignees) ||
+        (issueAssignmentFilter === 'unassigned' && !hasAssignees);
+
+      return stateMatch && botMatch && assignmentMatch;
+    });
+  }, [issues, issueStates, issueIncludeBots, issueAssignmentFilter]);
 
   const columns = useMemo<ColumnDef<Issue>[]>(
     () =>
@@ -137,12 +180,31 @@ export function WorkspaceIssuesTable({
           },
           size: 100,
         }),
+        columnHelper.accessor('number', {
+          header: 'Number',
+          cell: ({ row }) => {
+            const issue = row.original;
+            return issue.url ? (
+              <a
+                href={issue.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium hover:text-primary transition-colors"
+              >
+                #{issue.number}
+              </a>
+            ) : (
+              <span className="font-medium text-muted-foreground">#{issue.number}</span>
+            );
+          },
+          size: 80,
+        }),
         columnHelper.accessor('title', {
-          header: 'Issue',
+          header: 'Title',
           cell: ({ row }) => {
             const issue = row.original;
             const truncatedTitle =
-              issue.title.length > 50 ? issue.title.substring(0, 50) + '...' : issue.title;
+              issue.title.length > 60 ? issue.title.substring(0, 60) + '...' : issue.title;
 
             return (
               <div className="flex flex-col gap-1">
@@ -160,22 +222,18 @@ export function WorkspaceIssuesTable({
                               onIssueClick(issue);
                             }
                           }}
-                          className="font-medium hover:text-primary transition-colors text-left inline-flex items-center gap-1"
+                          className="font-medium hover:text-primary transition-colors text-left block"
                         >
                           <span className="line-clamp-1">{truncatedTitle}</span>
-                          <span className="text-muted-foreground">#{issue.number}</span>
                         </a>
                       ) : (
-                        <span className="font-medium text-muted-foreground text-left inline-flex items-center gap-1">
+                        <span className="font-medium text-muted-foreground text-left block">
                           <span className="line-clamp-1">{truncatedTitle}</span>
-                          <span className="text-muted-foreground">#{issue.number}</span>
                         </span>
                       )}
                     </TooltipTrigger>
                     <TooltipContent className="max-w-md">
-                      <p>
-                        {issue.title} #{issue.number}
-                      </p>
+                      <p>{issue.title}</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -233,15 +291,25 @@ export function WorkspaceIssuesTable({
           header: 'Author',
           cell: ({ row }) => {
             const author = row.original.author;
+            const repo = row.original.repository;
+            const authorFilterUrl = `https://github.com/${repo.owner}/${repo.name}/issues?q=is%3Aissue+author%3A${encodeURIComponent(author.username)}`;
+
             return (
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <img
-                      src={author.avatar_url}
-                      alt={author.username}
-                      className="h-6 w-6 rounded-full cursor-pointer hover:ring-2 hover:ring-primary transition-all"
-                    />
+                    <a
+                      href={authorFilterUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-block"
+                    >
+                      <img
+                        src={author.avatar_url}
+                        alt={author.username}
+                        className="h-6 w-6 rounded-full cursor-pointer hover:ring-2 hover:ring-primary transition-all"
+                      />
+                    </a>
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>{author.username}</p>
@@ -251,6 +319,73 @@ export function WorkspaceIssuesTable({
             );
           },
           size: 60,
+        }),
+        columnHelper.accessor('assignees', {
+          header: 'Assignees',
+          cell: ({ row }) => {
+            const assignees = row.original.assignees || [];
+            const repo = row.original.repository;
+
+            if (assignees.length === 0) {
+              return <span className="text-sm text-muted-foreground">Unassigned</span>;
+            }
+
+            const maxVisible = 3;
+            const visibleAssignees = assignees.slice(0, maxVisible);
+            const remainingCount = assignees.length - maxVisible;
+
+            return (
+              <>
+                {visibleAssignees.map((assignee, index) => {
+                  const assigneeFilterUrl = `https://github.com/${repo.owner}/${repo.name}/issues?q=is%3Aissue+assignee%3A${encodeURIComponent(assignee.login)}`;
+
+                  return (
+                    <TooltipProvider key={assignee.login}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <a
+                            href={assigneeFilterUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-block -ml-2 first:ml-0"
+                            style={{ zIndex: maxVisible - index }}
+                          >
+                            <img
+                              src={assignee.avatar_url}
+                              alt={assignee.login}
+                              className="h-6 w-6 rounded-full border-2 border-background hover:ring-2 hover:ring-primary transition-all"
+                            />
+                          </a>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{assignee.login}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  );
+                })}
+                {remainingCount > 0 && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex h-6 w-6 -ml-2 rounded-full bg-muted border-2 border-background items-center justify-center cursor-default">
+                          <span className="text-xs font-medium">+{remainingCount}</span>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <div className="space-y-1">
+                          {assignees.slice(maxVisible).map((assignee) => (
+                            <p key={assignee.login}>{assignee.login}</p>
+                          ))}
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+              </>
+            );
+          },
+          size: 120,
         }),
         columnHelper.accessor('linked_pull_requests', {
           header: 'Linked PRs',
@@ -371,7 +506,7 @@ export function WorkspaceIssuesTable({
   );
 
   const table = useReactTable({
-    data: issues,
+    data: filteredIssues,
     columns,
     state: {
       sorting,
@@ -412,19 +547,31 @@ export function WorkspaceIssuesTable({
   return (
     <Card className={cn('w-full', className)}>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="hidden sm:block">Issues</CardTitle>
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <div className="relative flex-1 sm:flex-initial">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search issues..."
-                value={globalFilter ?? ''}
-                onChange={(e) => setGlobalFilter(e.target.value)}
-                className="pl-10 w-full sm:w-[300px]"
-              />
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <CardTitle className="hidden sm:block">Issues</CardTitle>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="relative flex-1 sm:flex-initial">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search issues..."
+                  value={globalFilter ?? ''}
+                  onChange={(e) => setGlobalFilter(e.target.value)}
+                  className="pl-10 w-full sm:w-[300px]"
+                />
+              </div>
             </div>
           </div>
+          <IssueFilters
+            selectedStates={issueStates}
+            includeBots={issueIncludeBots}
+            assignmentFilter={issueAssignmentFilter}
+            onToggleState={toggleIssueState}
+            onIncludeBotsChange={setIssueIncludeBots}
+            onAssignmentFilterChange={setIssueAssignmentFilter}
+            onReset={resetIssueFilters}
+            hasBots={hasBots}
+          />
         </div>
       </CardHeader>
       <CardContent>
@@ -438,74 +585,111 @@ export function WorkspaceIssuesTable({
           </div>
         ) : (
           <>
-            <div className="rounded-md border">
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[800px]">
-                  <thead>
-                    {table.getHeaderGroups().map((headerGroup) => (
-                      <tr key={headerGroup.id} className="border-b">
-                        {headerGroup.headers.map((header) => (
-                          <th
-                            key={header.id}
-                            className={cn(
-                              'px-4 py-3 font-medium text-sm whitespace-nowrap',
-                              header.column.id === 'comments_count' ? 'text-center' : 'text-left'
-                            )}
-                            style={{
-                              width: header.column.columnDef.size,
-                              minWidth: header.column.columnDef.minSize,
-                              maxWidth: header.column.columnDef.maxSize,
-                            }}
-                          >
-                            {flexRender(header.column.columnDef.header, header.getContext())}
-                          </th>
-                        ))}
-                      </tr>
-                    ))}
-                  </thead>
-                  <tbody>
-                    {table.getRowModel().rows.map((row) => (
-                      <tr key={row.id} className="border-b hover:bg-muted/50 transition-colors">
-                        {row.getVisibleCells().map((cell) => (
-                          <td key={cell.id} className="px-4 py-4">
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            {filteredIssues.length === 0 && globalFilter === '' ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <XCircle className="h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-lg font-medium text-muted-foreground mb-2">
+                  No issues match your filters
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Try adjusting your filter settings or reset filters to see all issues
+                </p>
               </div>
-            </div>
+            ) : (
+              <div className="rounded-md border">
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[800px]">
+                    <thead>
+                      {table.getHeaderGroups().map((headerGroup) => (
+                        <tr key={headerGroup.id} className="border-b">
+                          {headerGroup.headers.map((header) => (
+                            <th
+                              key={header.id}
+                              className={cn(
+                                'px-4 py-3 font-medium text-sm whitespace-nowrap',
+                                header.column.id === 'comments_count' ? 'text-center' : 'text-left'
+                              )}
+                              style={{
+                                width: header.column.columnDef.size,
+                                minWidth: header.column.columnDef.minSize,
+                                maxWidth: header.column.columnDef.maxSize,
+                              }}
+                            >
+                              {flexRender(header.column.columnDef.header, header.getContext())}
+                            </th>
+                          ))}
+                        </tr>
+                      ))}
+                    </thead>
+                    <tbody>
+                      {table.getRowModel().rows.map((row) => (
+                        <tr key={row.id} className="border-b hover:bg-muted/50 transition-colors">
+                          {row.getVisibleCells().map((cell) => (
+                            <td key={cell.id} className="px-4 py-4">
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
 
             {/* Pagination */}
-            <div className="flex items-center justify-between mt-4">
-              <div className="text-sm text-muted-foreground">
-                Showing {table.getState().pagination.pageIndex * 10 + 1} to{' '}
-                {Math.min((table.getState().pagination.pageIndex + 1) * 10, issues.length)} of{' '}
-                {issues.length} issues
+            {filteredIssues.length > 0 && (
+              <div className="flex items-center justify-between mt-4">
+                <div className="text-sm text-muted-foreground">
+                  {filteredIssues.length > 0 ? (
+                    <>
+                      Showing {table.getState().pagination.pageIndex * 10 + 1} to{' '}
+                      {Math.min(
+                        (table.getState().pagination.pageIndex + 1) * 10,
+                        filteredIssues.length
+                      )}{' '}
+                      of {filteredIssues.length} issues
+                      {filteredIssues.length < issues.length && (
+                        <span className="text-muted-foreground">
+                          {' '}
+                          (filtered from {issues.length})
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      No issues found
+                      {issues.length > 0 && (
+                        <span className="text-muted-foreground">
+                          {' '}
+                          (filtered from {issues.length})
+                        </span>
+                      )}
+                    </>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => table.previousPage()}
+                    disabled={!table.getCanPreviousPage()}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => table.nextPage()}
+                    disabled={!table.getCanNextPage()}
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => table.previousPage()}
-                  disabled={!table.getCanPreviousPage()}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => table.nextPage()}
-                  disabled={!table.getCanNextPage()}
-                >
-                  Next
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
+            )}
           </>
         )}
       </CardContent>

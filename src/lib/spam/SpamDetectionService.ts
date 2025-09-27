@@ -60,7 +60,7 @@ export class SpamDetectionService {
       // Log performance
       const processingTime = Date.now() - startTime;
       if (processingTime > 100) {
-        console.warn(`Spam detection took ${processingTime}ms for PR ${pr.id}`);
+        console.warn('Spam detection took %sms for PR %s', processingTime, pr.id);
       }
 
       return result;

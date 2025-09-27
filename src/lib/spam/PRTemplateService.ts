@@ -52,7 +52,7 @@ export class PRTemplateService {
           }
         }
       } catch (error) {
-        console.warn(`Failed to fetch template at ${templatePath}:`, error);
+        console.warn('Failed to fetch template at %s:', error, templatePath);
         continue;
       }
     }
@@ -462,7 +462,7 @@ export class PRTemplateService {
       } catch (error) {
         const errorMsg = `${repo.owner}/${repo.name}: ${error instanceof Error ? error.message : 'Unknown error'}`;
         results.errors.push(errorMsg);
-        console.error(`Error syncing template for ${repo.owner}/${repo.name}:`, error);
+        console.error('Error syncing template for %s/%s:', error, repo.owner, repo.name);
       }
     }
 

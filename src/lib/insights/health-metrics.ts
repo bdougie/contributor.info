@@ -425,8 +425,8 @@ export async function calculateRepositoryConfidence(
       .maybeSingle();
 
     if (!repoData) {
-      console.warn(`Repository ${owner}/${repo} not found in database`);
-      console.warn(`This repository needs to be tracked or synced first to calculate confidence`);
+      console.warn('Repository %s/%s not found in database', owner, repo);
+      console.warn('This repository needs to be tracked or synced first to calculate confidence');
       return 0;
     }
 
@@ -591,7 +591,7 @@ async function calculateStarForkConfidence(
     contributorData?.map((c: any) => c.contributors?.username).filter(Boolean) || []
   );
 
-  console.log(`[Confidence] Star/Fork data for %s/%s:`, owner, repo, {
+  console.log('[Confidence] Star/Fork data for %s/%s:', owner, repo, {
     starForkEvents: starForkEvents?.length || 0,
     contributors: contributors.size,
     cutoffDate: cutoffDate.toISOString(),
@@ -1069,7 +1069,7 @@ export async function invalidateConfidenceCache(
     const { error } = await query;
 
     if (error) {
-      console.warn(`[Confidence Cache] Error invalidating cache for ${owner}/${repo}:`, error);
+      console.warn('[Confidence Cache] Error invalidating cache for %s/%s:', error, owner, repo);
     } else {
       console.log('[Confidence Cache] Invalidated cache for %s/%s', owner, repo);
     }

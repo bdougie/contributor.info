@@ -106,9 +106,9 @@ export class EvaluationRunner {
   }
 
   private logDatasetStats(stats: DatasetStats): void {
-    console.log(`📊 Dataset Statistics:`);
+    console.log('📊 Dataset Statistics:');
     console.log('  Total samples: %s', stats.total_samples);
-    console.log(`  Class distribution:`);
+    console.log('  Class distribution:');
     console.log(
       '    - Maintainer: %s (%s%)',
       stats.class_distribution.maintainer,
@@ -119,7 +119,7 @@ export class EvaluationRunner {
       stats.class_distribution.contributor,
       ((stats.class_distribution.contributor / stats.total_samples) * 100).toFixed(1)
     );
-    console.log(`  Quality metrics:`);
+    console.log('  Quality metrics:');
     console.log('    - Verified samples: %s', stats.quality_metrics.verified_samples);
     console.log('    - High confidence: %s', stats.quality_metrics.high_confidence_samples);
     console.log('    - Edge cases: %s', stats.quality_metrics.edge_cases);
@@ -153,7 +153,7 @@ export class EvaluationRunner {
 
     if (issues.length > 0) {
       console.warn('\n⚠️  Evaluation issues detected:');
-      issues.forEach((issue) => console.warn(`  - ${issue}`));
+      issues.forEach((issue) => console.warn('  - %s', issue));
     } else {
       console.log('\n✅ All evaluation criteria passed!');
     }
@@ -187,7 +187,7 @@ export class EvaluationRunner {
     const report = this.metricsCalculator.generateDetailedReport(metrics);
     fs.writeFileSync(reportPath, report);
 
-    console.log(`\n📁 Results exported to:`);
+    console.log('\n📁 Results exported to:');
     console.log('  - Results: %s', resultsPath);
     console.log('  - Metrics: %s', metricsPath);
     console.log('  - Report: %s', reportPath);
@@ -216,7 +216,9 @@ export class EvaluationRunner {
         );
       } catch (error) {
         console.error(
-          `❌ ${config.name} failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+          '❌ %s failed: %s',
+          config.name,
+          error instanceof Error ? error.message : 'Unknown error'
         );
       }
     }

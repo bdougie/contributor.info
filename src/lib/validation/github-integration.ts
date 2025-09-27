@@ -21,6 +21,7 @@ import {
   type ReviewCreate,
   type CommentCreate,
 } from './index';
+import { detectBot } from '../utils/bot-detection';
 
 // =====================================================
 // GITHUB API RESPONSE VALIDATION
@@ -90,8 +91,10 @@ export function transformGitHubUserToContributor(githubUser: GitHubUser): Contri
     followers: githubUser.followers ?? 0,
     following: githubUser.following ?? 0,
     github_created_at: githubUser.created_at ? new Date(githubUser.created_at) : null,
-    is_bot: githubUser.type === 'Bot',
+    is_bot: detectBot({ githubUser }).isBot,
     is_active: true,
+    discord_url: null,
+    linkedin_url: null,
   };
   return result;
 }

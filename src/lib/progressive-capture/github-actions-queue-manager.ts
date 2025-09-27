@@ -179,7 +179,7 @@ export class GitHubActionsQueueManager {
         }
       }
     } catch (error) {
-      console.error(`[GitHubActions] Error checking status for job ${job.id}:`, error);
+      console.error('[GitHubActions] Error checking status for job %s:', error, job.id);
     }
   }
 

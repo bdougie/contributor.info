@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { SpamFilterControls } from '@/components/features/spam/spam-filter-controls';
 import { SpamAwareActivityItem } from './spam-aware-activity-item';
 import { ActivityItemSkeleton } from '@/components/skeletons';
+import { detectBot } from '@/lib/utils/bot-detection';
 import { useSpamFilteredFeed } from '@/hooks/use-spam-filtered-feed';
 import { usePRActivityStore } from '@/lib/pr-activity-store';
 import {
@@ -31,7 +32,11 @@ export default function FilteredPRActivity() {
   }, [pullRequests]);
 
   // Filter by bot status only (spam filtering is handled by SpamFilterControls)
-  const filteredActivities = activities.filter((activity) => includeBots || !activity.user.isBot);
+  const filteredActivities = activities.filter((activity) => {
+    // Check both the existing isBot flag and detect using name (which is actually the username/login)
+    const isBot = activity.user.isBot || detectBot({ username: activity.user.name }).isBot;
+    return includeBots || !isBot;
+  });
 
   const visibleActivities = filteredActivities.slice(0, visibleCount);
   const hasMore = visibleActivities.length < filteredActivities.length;
@@ -73,7 +78,7 @@ export default function FilteredPRActivity() {
     );
   }
 
-  const hasBots = activities.some((activity) => activity.user.isBot);
+  const hasBots = activities.some((activity) => activity.user.isBot || detectBot({ username: activity.user.name }).isBot);
 
   return (
     <Card>

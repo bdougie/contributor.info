@@ -128,11 +128,11 @@ export function useWorkspaceContributors({
         const repoIds = filteredRepos.map((r) => r.id);
 
         // Get unique contributor IDs from pull requests with optimized query
+        // Also fetch dates for last activity calculation
         const { data: pullRequests, error: prError } = await supabase
           .from('pull_requests')
-          .select('author_id, repository_id')
-          .in('repository_id', repoIds)
-          .not('author_id', 'is', null);
+          .select('author_id, repository_id, created_at, updated_at')
+          .in('repository_id', repoIds);
 
         if (prError) {
           console.error('Error fetching pull requests:', prError);
@@ -204,32 +204,60 @@ export function useWorkspaceContributors({
         const contributorIdsForStats = Array.from(contributorMap.keys());
 
         const [issuesResult, reviewsResult] = await Promise.all([
-          // Get issue counts
+          // Get issue counts and dates for last activity
           supabase
             .from('issues')
-            .select('author_id')
+            .select('author_id, created_at, updated_at')
             .in('author_id', contributorIdsForStats)
             .in('repository_id', repoIds),
 
-          // Get review counts
+          // Get review counts and dates for last activity
           supabase
             .from('reviews')
-            .select('author_id, pull_request_id')
-            .in('author_id', contributorIdsForStats),
+            .select('author_id, pull_request_id, submitted_at, pull_requests!inner(repository_id)')
+            .in('author_id', contributorIdsForStats)
+            .in('pull_requests.repository_id', repoIds),
         ]);
 
-        // Count issues per contributor
+        // Count issues per contributor and track last activity
         const issueCounts = new Map<string, number>();
+        const lastActivityMap = new Map<string, Date>();
+
         issuesResult.data?.forEach((issue) => {
           const count = issueCounts.get(issue.author_id) || 0;
           issueCounts.set(issue.author_id, count + 1);
+
+          // Track last activity from issues
+          const issueDate = new Date(issue.updated_at || issue.created_at);
+          const currentLastActivity = lastActivityMap.get(issue.author_id);
+          if (!currentLastActivity || issueDate > currentLastActivity) {
+            lastActivityMap.set(issue.author_id, issueDate);
+          }
         });
 
-        // Count reviews per contributor
+        // Count reviews per contributor and track last activity
         const reviewCounts = new Map<string, number>();
         reviewsResult.data?.forEach((review) => {
           const count = reviewCounts.get(review.author_id) || 0;
           reviewCounts.set(review.author_id, count + 1);
+
+          // Track last activity from reviews
+          const reviewDate = new Date(review.submitted_at);
+          const currentLastActivity = lastActivityMap.get(review.author_id);
+          if (!currentLastActivity || reviewDate > currentLastActivity) {
+            lastActivityMap.set(review.author_id, reviewDate);
+          }
+        });
+
+        // Also track last activity from pull requests
+        pullRequests.forEach((pr) => {
+          if (pr.author_id) {
+            const prDate = new Date(pr.updated_at || pr.created_at);
+            const currentLastActivity = lastActivityMap.get(pr.author_id);
+            if (!currentLastActivity || prDate > currentLastActivity) {
+              lastActivityMap.set(pr.author_id, prDate);
+            }
+          }
         });
 
         // Build final contributor list
@@ -259,7 +287,8 @@ export function useWorkspaceContributors({
               stats: {
                 total_contributions: prCount + issueCount + reviewCount,
                 contribution_trend: Math.floor(Math.random() * 40) - 20, // Mock trend
-                last_active: new Date().toISOString(), // TODO: Get actual last activity
+                last_active:
+                  lastActivityMap.get(contributorId)?.toISOString() || new Date().toISOString(),
                 repositories_contributed: repoCount,
               },
               is_tracked: false,
@@ -292,9 +321,14 @@ export function useWorkspaceContributors({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workspaceId, repositories.length, selectedRepositories.length]); // Use stable dependencies
 
+  // Filter out contributors that are already in the workspace
+  const availableToAdd = allAvailableContributors.filter(
+    (contributor) => !workspaceContributorIds.includes(contributor.id)
+  );
+
   return {
     contributors,
-    allAvailableContributors,
+    allAvailableContributors: availableToAdd, // Only return contributors not in workspace
     workspaceContributorIds,
     loading,
     error,

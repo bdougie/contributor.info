@@ -17,10 +17,10 @@ if (!pemFile) {
 try {
   // Read the PEM file
   const pemContent = fs.readFileSync(pemFile, 'utf8');
-  
+
   // Replace newlines with \n literal (not actual newlines)
   const encoded = pemContent.replace(/\n/g, '\\n');
-  
+
   console.log('Encoded private key:');
   console.log('===================');
   console.log(encoded);
@@ -30,7 +30,6 @@ try {
   console.log('1. Copy the encoded string above');
   console.log('2. Set GITHUB_APP_PRIVATE_KEY_ENCODED in Netlify');
   console.log('3. The app will decode it at runtime');
-  
 } catch (error) {
   console.error('Error reading file:', error.message);
   process.exit(1);

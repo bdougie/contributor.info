@@ -46,7 +46,15 @@ export function convertDatabasePRToActivity(pr: DatabasePR): PullRequestActivity
       // Add spam detection fields
       spamScore: pr.spam_score,
       isSpam: pr.is_spam,
-      spamFlags: pr.spam_flags,
+      spamFlags: pr.spam_flags as
+        | {
+            suspicious_title?: boolean;
+            suspicious_body?: boolean;
+            suspicious_user?: boolean;
+            unusual_activity?: boolean;
+            [key: string]: boolean | undefined;
+          }
+        | undefined,
     },
     repository: {
       id: String(pr.repository.github_id),

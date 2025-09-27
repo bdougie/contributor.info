@@ -334,7 +334,7 @@ export class RepositorySizeClassifier {
       console.log('Repository %s/%s classified as %s', owner, repo, size);
       return size;
     } catch (error) {
-      console.error(`Error classifying repository ${owner}/${repo}:`, error);
+      console.error('Error classifying repository %s/%s:', error, owner, repo);
       throw error;
     }
   }

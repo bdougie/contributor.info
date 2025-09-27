@@ -6,10 +6,10 @@ const config: TestRunnerConfig = {
     include: ['interaction', 'accessibility'],
     exclude: ['skip-test'],
   },
-  
+
   // Configure test timeouts
   testTimeout: 30000,
-  
+
   // Log level for debugging
   logLevel: 'verbose',
 };

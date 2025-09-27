@@ -5,21 +5,27 @@ import { program } from 'commander';
 import { ChunkRecovery } from './lib/chunk-recovery.js';
 
 // Initialize Supabase client
-const supabase = createClient(
-  process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  }
-);
+const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+  },
+});
 
 // Parse command line arguments
 program
-  .option('--stuck-threshold <minutes>', 'Minutes after which a chunk is considered stuck', parseInt, 30)
-  .option('--cleanup-days <days>', 'Clean up completed chunks older than this many days', parseInt, 30)
+  .option(
+    '--stuck-threshold <minutes>',
+    'Minutes after which a chunk is considered stuck',
+    parseInt,
+    30
+  )
+  .option(
+    '--cleanup-days <days>',
+    'Clean up completed chunks older than this many days',
+    parseInt,
+    30
+  )
   .option('--dry-run', 'Run without making changes')
   .parse(process.argv);
 
@@ -42,18 +48,18 @@ async function main() {
 
     // Recover stuck chunks
     console.log(`\n🔍 Looking for chunks stuck for more than ${options.stuckThreshold} minutes...`);
-    
+
     if (!options.dryRun) {
       const results = await recovery.recoverStuckChunks(options.stuckThreshold);
-      
+
       console.log('\n📈 Recovery results:');
       console.log(`   Found stuck chunks: ${results.foundStuckChunks}`);
       console.log(`   Successfully recovered: ${results.recoveredChunks}`);
       console.log(`   Failed recoveries: ${results.failedRecoveries}`);
-      
+
       if (results.errors.length > 0) {
         console.log('\n❌ Recovery errors:');
-        results.errors.forEach(err => {
+        results.errors.forEach((err) => {
           console.log(`   Chunk ${err.chunkId}: ${err.error}`);
         });
       }
@@ -64,7 +70,7 @@ async function main() {
     // Clean up old chunks
     if (options.cleanupDays > 0) {
       console.log(`\n🧹 Cleaning up completed chunks older than ${options.cleanupDays} days...`);
-      
+
       if (!options.dryRun) {
         const cleanedUp = await recovery.cleanupOldChunks(options.cleanupDays);
         console.log(`   Cleaned up ${cleanedUp} old chunks`);
@@ -78,8 +84,12 @@ async function main() {
       console.log('\n📊 Updated chunk statistics:');
       const statsAfter = await recovery.getChunkStatistics();
       console.log(`   Total chunks: ${statsAfter.total}`);
-      console.log(`   Processing: ${statsAfter.processing} (${statsAfter.processing - statsBefore.processing})`);
-      console.log(`   Completed: ${statsAfter.completed} (+${statsAfter.completed - statsBefore.completed})`);
+      console.log(
+        `   Processing: ${statsAfter.processing} (${statsAfter.processing - statsBefore.processing})`
+      );
+      console.log(
+        `   Completed: ${statsAfter.completed} (+${statsAfter.completed - statsBefore.completed})`
+      );
       console.log(`   Failed: ${statsAfter.failed} (+${statsAfter.failed - statsBefore.failed})`);
     }
 
@@ -91,7 +101,7 @@ async function main() {
 }
 
 // Run the script
-main().catch(error => {
+main().catch((error) => {
   console.error('Fatal error:', error);
   process.exit(1);
 });

@@ -45,6 +45,20 @@ vi.mock('@/hooks/use-analytics', () => ({
   }),
 }));
 
+// Mock feature flags context
+vi.mock('@/lib/feature-flags/context', () => ({
+  useFeatureFlags: () => ({
+    checkFlag: vi.fn(() => true),
+    flags: new Map(),
+    isLoading: false,
+    error: null,
+    getFlagValue: vi.fn(),
+    getExperimentVariant: vi.fn(),
+    reload: vi.fn(),
+  }),
+  FeatureFlagsProvider: ({ children }: { children: React.ReactNode }) => children,
+}));
+
 // Mock child components to isolate testing
 // Note: paths are relative to this test file, and must resolve to the same
 // module IDs Home imports ("../../features/repository" from home.tsx).

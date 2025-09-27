@@ -36,7 +36,7 @@ const hasProcess = typeof process !== 'undefined' && process.env;
 function getEnvVar(viteKey: string, serverKey?: string): string {
   // Security check: Ensure viteKey always starts with VITE_ for browser safety
   if (!viteKey.startsWith('VITE_')) {
-    console.error(`🚨 SECURITY WARNING: Env key "${viteKey}" must start with VITE_ prefix`);
+    console.error('🚨 SECURITY WARNING: Env key "%s" must start with VITE_ prefix', viteKey);
   }
   // For tests, provide default local Supabase values
   const isTest = hasProcess && (process.env.NODE_ENV === 'test' || process.env.VITEST === 'true');
@@ -131,6 +131,14 @@ export const env = {
   HYBRID_ROLLOUT_STRATEGY: getEnvVar('VITE_HYBRID_ROLLOUT_STRATEGY', 'HYBRID_ROLLOUT_STRATEGY'),
   HYBRID_AUTO_ROLLBACK: getEnvVar('VITE_HYBRID_AUTO_ROLLBACK', 'HYBRID_AUTO_ROLLBACK'),
   HYBRID_MAX_ERROR_RATE: getEnvVar('VITE_HYBRID_MAX_ERROR_RATE', 'HYBRID_MAX_ERROR_RATE'),
+
+  // Netlify deployment context variables
+  DEPLOY_PRIME_URL: getEnvVar('VITE_DEPLOY_PRIME_URL', 'DEPLOY_PRIME_URL'),
+  DEPLOY_URL: getEnvVar('VITE_DEPLOY_URL', 'DEPLOY_URL'),
+  URL: getEnvVar('VITE_URL', 'URL'),
+  CONTEXT: getEnvVar('VITE_CONTEXT', 'CONTEXT'),
+  DEPLOY_ID: getEnvVar('VITE_DEPLOY_ID', 'DEPLOY_ID'),
+  BUILD_ID: getEnvVar('VITE_BUILD_ID', 'BUILD_ID'),
 
   // Development mode detection
   get DEV() {
@@ -295,7 +303,7 @@ export function validateEnvironment(context: 'client' | 'server') {
   }
 
   if (missing.length > 0) {
-    console.error(`❌ Missing required ${context} environment variables:`, missing);
+    console.error('❌ Missing required %s environment variables:', missing, context);
     return false;
   }
 

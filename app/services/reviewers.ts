@@ -1,10 +1,10 @@
 import { PullRequest, Repository } from '../types/github';
 import { supabase } from '../../src/lib/supabase';
 import { githubAppAuth } from '../lib/auth';
-import { 
-  fetchCodeOwners, 
+import {
+  fetchCodeOwners,
   getSuggestedReviewersFromCodeOwners,
-  CodeOwnerSuggestion 
+  CodeOwnerSuggestion,
 } from './codeowners';
 import { findFileContributors, getExpertiseFromFiles } from './git-history';
 import { findSimilarFiles } from './file-embeddings';
@@ -42,39 +42,39 @@ export async function suggestReviewers(
   try {
     const suggestions: ReviewerSuggestion[] = [];
     let hasCodeOwners = false;
-    
+
     // Get octokit client if we have installation ID
     let octokit;
     if (installationId) {
       octokit = await githubAppAuth.getInstallationOctokit(installationId);
     }
-    
+
     // Get files changed in the PR
     const changedFiles = await getChangedFiles(pullRequest, repository, octokit);
-    
+
     // 1. Find code owners
     const codeOwnersResult = await findCodeOwners(
-      changedFiles, 
-      repository, 
+      changedFiles,
+      repository,
       octokit,
       pullRequest.user.login
     );
-    
+
     // Track if CODEOWNERS exists (will be set in findCodeOwners)
     hasCodeOwners = codeOwnersResult.hasCodeOwners || false;
     const codeOwners = codeOwnersResult.owners || [];
-    
+
     // 2. Find frequent reviewers
     const frequentReviewers = await findFrequentReviewers(pullRequest.user.login, repository);
-    
+
     // 3. Find subject matter experts
     const experts = await findSubjectMatterExperts(changedFiles, repository);
-    
+
     // 4. Combine and score all candidates
     const allCandidates = new Map<string, ReviewerCandidate>();
-    
+
     // Add code owners with high base score
-    codeOwners.forEach(owner => {
+    codeOwners.forEach((owner) => {
       if (owner.login !== pullRequest.user.login) {
         allCandidates.set(owner.login, {
           ...owner,
@@ -83,9 +83,9 @@ export async function suggestReviewers(
         });
       }
     });
-    
+
     // Add frequent reviewers
-    frequentReviewers.forEach(reviewer => {
+    frequentReviewers.forEach((reviewer) => {
       if (reviewer.login !== pullRequest.user.login) {
         const existing = allCandidates.get(reviewer.login);
         if (existing) {
@@ -100,9 +100,9 @@ export async function suggestReviewers(
         }
       }
     });
-    
+
     // Add experts
-    experts.forEach(expert => {
+    experts.forEach((expert) => {
       if (expert.login !== pullRequest.user.login) {
         const existing = allCandidates.get(expert.login);
         if (existing) {
@@ -117,15 +117,15 @@ export async function suggestReviewers(
         }
       }
     });
-    
+
     // 5. Get additional stats for top candidates
     const topCandidates = Array.from(allCandidates.values())
       .sort((a, b) => b.score - a.score)
       .slice(0, 5);
-    
+
     for (const candidate of topCandidates) {
       const stats = await getReviewerStats(candidate.login, repository);
-      
+
       suggestions.push({
         login: candidate.login,
         name: candidate.name,
@@ -135,17 +135,16 @@ export async function suggestReviewers(
         stats,
       });
     }
-    
+
     return {
       suggestions: suggestions.slice(0, 3), // Return top 3
-      hasCodeOwners
+      hasCodeOwners,
     };
-    
   } catch (error) {
     console.error('Error suggesting reviewers:', error);
     return {
       suggestions: [],
-      hasCodeOwners: false
+      hasCodeOwners: false,
     };
   }
 }
@@ -164,7 +163,11 @@ interface ReviewerCandidate {
 /**
  * Get files changed in a PR
  */
-async function getChangedFiles(pr: PullRequest, repo: Repository, octokit?: OctokitClient): Promise<string[]> {
+async function getChangedFiles(
+  pr: PullRequest,
+  repo: Repository,
+  octokit?: OctokitClient
+): Promise<string[]> {
   try {
     if (!octokit) {
       console.error('No octokit client available for getting changed files');
@@ -174,7 +177,7 @@ async function getChangedFiles(pr: PullRequest, repo: Repository, octokit?: Octo
     const changedFiles: string[] = [];
     let page = 1;
     let hasMorePages = true;
-    
+
     while (hasMorePages) {
       const { data: files } = await octokit.pulls.listFiles({
         owner: repo.owner.login,
@@ -183,20 +186,20 @@ async function getChangedFiles(pr: PullRequest, repo: Repository, octokit?: Octo
         per_page: 100,
         page,
       });
-      
+
       changedFiles.push(...files.map((f: { filename: string }) => f.filename));
-      
+
       // Check if there are more pages
       hasMorePages = files.length === 100;
       page++;
-      
+
       // Safety limit to prevent infinite loops
       if (page > 10) {
         console.warn(`PR #${pr.number} has more than 1000 files, stopping pagination`);
         break;
       }
     }
-    
+
     return changedFiles;
   } catch (error) {
     console.error('Error getting changed files:', error);
@@ -219,8 +222,8 @@ interface CodeOwnersResult {
 }
 
 async function findCodeOwners(
-  files: string[], 
-  repo: Repository, 
+  files: string[],
+  repo: Repository,
   octokit?: OctokitClient,
   prAuthor?: string
 ): Promise<CodeOwnersResult> {
@@ -232,12 +235,12 @@ async function findCodeOwners(
         .select('installation_id')
         .eq('repository_id', repo.id)
         .maybeSingle();
-        
+
       if (installation?.data) {
         octokit = await githubAppAuth.getInstallationOctokit(installation.data.installation_id);
       }
     }
-    
+
     if (!octokit) {
       console.log('No octokit client available for CODEOWNERS lookup');
       return { owners: [], hasCodeOwners: false };
@@ -256,15 +259,11 @@ async function findCodeOwners(
     }
 
     // Get suggested reviewers from CODEOWNERS
-    const suggestions = getSuggestedReviewersFromCodeOwners(
-      files,
-      codeOwners,
-      prAuthor
-    );
+    const suggestions = getSuggestedReviewersFromCodeOwners(files, codeOwners, prAuthor);
 
     // Convert to expected format and fetch additional user data
     const ownersWithData = [];
-    
+
     for (const suggestion of suggestions) {
       try {
         // Get user data from GitHub
@@ -281,7 +280,7 @@ async function findCodeOwners(
         });
       } catch (error) {
         // User might not exist or be accessible
-        console.log("Could not fetch data for user %s", suggestion.username);
+        console.log('Could not fetch data for user %s', suggestion.username);
         ownersWithData.push({
           login: suggestion.username,
           name: suggestion.username,
@@ -302,36 +301,46 @@ async function findCodeOwners(
 /**
  * Find reviewers who frequently review PRs from this author
  */
-async function findFrequentReviewers(authorLogin: string, repo: Repository): Promise<Array<{
-  login: string;
-  name?: string;
-  avatarUrl?: string;
-  count: number;
-}>> {
+async function findFrequentReviewers(
+  authorLogin: string,
+  repo: Repository
+): Promise<
+  Array<{
+    login: string;
+    name?: string;
+    avatarUrl?: string;
+    count: number;
+  }>
+> {
   try {
     // Query database for past reviews
     const { data: reviews } = await supabase
       .from('reviews')
-      .select(`
+      .select(
+        `
         reviewer_id,
         contributors!reviewer_id (
           github_login,
           name,
           avatar_url
         )
-      `)
+      `
+      )
       .eq('pull_requests.contributor.github_login', authorLogin)
       .limit(20);
-    
+
     // Count reviews per reviewer
-    const reviewerCounts = new Map<string, {
-      login: string;
-      name?: string;
-      avatarUrl?: string;
-      count: number;
-    }>();
-    
-    reviews?.forEach(review => {
+    const reviewerCounts = new Map<
+      string,
+      {
+        login: string;
+        name?: string;
+        avatarUrl?: string;
+        count: number;
+      }
+    >();
+
+    reviews?.forEach((review) => {
       const reviewer = review.contributors;
       if (reviewer) {
         const existing = reviewerCounts.get(reviewer.github_login);
@@ -347,11 +356,10 @@ async function findFrequentReviewers(authorLogin: string, repo: Repository): Pro
         }
       }
     });
-    
+
     return Array.from(reviewerCounts.values())
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
-    
   } catch (error) {
     console.error('Error finding frequent reviewers:', error);
     return [];
@@ -361,14 +369,19 @@ async function findFrequentReviewers(authorLogin: string, repo: Repository): Pro
 /**
  * Find subject matter experts based on file types and areas
  */
-async function findSubjectMatterExperts(files: string[], repo: Repository): Promise<Array<{
-  login: string;
-  name?: string;
-  avatarUrl?: string;
-  expertise: string[];
-  score: number;
-  directContributor: boolean;
-}>> {
+async function findSubjectMatterExperts(
+  files: string[],
+  repo: Repository
+): Promise<
+  Array<{
+    login: string;
+    name?: string;
+    avatarUrl?: string;
+    expertise: string[];
+    score: number;
+    directContributor: boolean;
+  }>
+> {
   try {
     // Get repository ID
     const { data: dbRepo } = await supabase
@@ -376,30 +389,31 @@ async function findSubjectMatterExperts(files: string[], repo: Repository): Prom
       .select('id')
       .eq('github_id', repo.id)
       .maybeSingle();
-    
+
     if (!dbRepo) {
       return [];
     }
-    
+
     // Find contributors who have worked on these files
     const fileContributors = await findFileContributors(dbRepo.id, files);
-    
+
     // Find contributors who have worked on similar files
     const similarFiles = await findSimilarFiles(dbRepo.id, files);
     const similarFilePaths: string[] = [];
-    
+
     for (const [_, similar] of similarFiles) {
-      similarFilePaths.push(...similar.map(s => s.path));
+      similarFilePaths.push(...similar.map((s) => s.path));
     }
-    
+
     // Get contributors for similar files
-    const similarFileContributors = similarFilePaths.length > 0
-      ? await findFileContributors(dbRepo.id, similarFilePaths)
-      : new Map();
-    
+    const similarFileContributors =
+      similarFilePaths.length > 0
+        ? await findFileContributors(dbRepo.id, similarFilePaths)
+        : new Map();
+
     // Determine expertise based on files
     const expertise = getExpertiseFromFiles(files);
-    
+
     // Combine and score experts
     const experts: Array<{
       login: string;
@@ -409,7 +423,7 @@ async function findSubjectMatterExperts(files: string[], repo: Repository): Prom
       score: number;
       directContributor: boolean;
     }> = [];
-    
+
     // Add direct file contributors as experts
     for (const [login, contributor] of fileContributors) {
       experts.push({
@@ -421,7 +435,7 @@ async function findSubjectMatterExperts(files: string[], repo: Repository): Prom
         directContributor: true,
       });
     }
-    
+
     // Add similar file contributors with lower score
     for (const [login, contributor] of similarFileContributors) {
       if (!fileContributors.has(login)) {
@@ -435,12 +449,9 @@ async function findSubjectMatterExperts(files: string[], repo: Repository): Prom
         });
       }
     }
-    
+
     // Sort by score and return top experts
-    return experts
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 5);
-    
+    return experts.sort((a, b) => b.score - a.score).slice(0, 5);
   } catch (error) {
     console.error('Error finding subject matter experts:', error);
     return [];
@@ -450,7 +461,10 @@ async function findSubjectMatterExperts(files: string[], repo: Repository): Prom
 /**
  * Get detailed stats for a reviewer
  */
-async function getReviewerStats(login: string, repo: Repository): Promise<{
+async function getReviewerStats(
+  login: string,
+  repo: Repository
+): Promise<{
   reviewsGiven: number;
   avgResponseTime: string;
   expertise: string[];
@@ -460,16 +474,18 @@ async function getReviewerStats(login: string, repo: Repository): Promise<{
     // Query database for reviewer stats
     const { data: contributor } = await supabase
       .from('contributors')
-      .select(`
+      .select(
+        `
         *,
         reviews (
           created_at,
           submitted_at
         )
-      `)
+      `
+      )
       .eq('github_login', login)
       .maybeSingle();
-    
+
     if (!contributor) {
       return {
         reviewsGiven: 0,
@@ -478,7 +494,7 @@ async function getReviewerStats(login: string, repo: Repository): Promise<{
         lastActive: 'Unknown',
       };
     }
-    
+
     // Calculate average response time
     const responseTimes: number[] = [];
     contributor.reviews?.forEach((review: { created_at: string; submitted_at: string }) => {
@@ -489,15 +505,19 @@ async function getReviewerStats(login: string, repo: Repository): Promise<{
         responseTimes.push(hours);
       }
     });
-    
-    const avgHours = responseTimes.length > 0
-      ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length
-      : 0;
-    
-    const avgResponseTime = avgHours < 1 ? '<1 hour' :
-                           avgHours < 24 ? `${Math.round(avgHours)} hours` :
-                           `${Math.round(avgHours / 24)} days`;
-    
+
+    const avgHours =
+      responseTimes.length > 0
+        ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length
+        : 0;
+
+    const avgResponseTime =
+      avgHours < 1
+        ? '<1 hour'
+        : avgHours < 24
+          ? `${Math.round(avgHours)} hours`
+          : `${Math.round(avgHours / 24)} days`;
+
     // Get expertise based on files they've contributed to
     const { data: fileContributions } = await supabase
       .from('file_contributors')
@@ -505,17 +525,16 @@ async function getReviewerStats(login: string, repo: Repository): Promise<{
       .eq('contributor_id', contributor.id)
       .eq('repository_id', repo.id)
       .limit(50);
-    
-    const filePaths = fileContributions?.map(fc => fc.file_path) || [];
+
+    const filePaths = fileContributions?.map((fc) => fc.file_path) || [];
     const expertise = getExpertiseFromFiles(filePaths);
-    
+
     return {
       reviewsGiven: contributor.reviews?.length || 0,
       avgResponseTime,
       expertise: expertise.length > 0 ? expertise : ['general'],
       lastActive: calculateLastActive(contributor.last_active_at),
     };
-    
   } catch (error) {
     console.error('Error getting reviewer stats:', error);
     return {
@@ -532,11 +551,11 @@ async function getReviewerStats(login: string, repo: Repository): Promise<{
  */
 function calculateLastActive(lastActiveAt: string | null): string {
   if (!lastActiveAt) return 'Unknown';
-  
+
   const now = new Date();
   const lastActive = new Date(lastActiveAt);
   const diffHours = (now.getTime() - lastActive.getTime()) / (1000 * 60 * 60);
-  
+
   if (diffHours < 1) return 'Just now';
   if (diffHours < 24) return `${Math.round(diffHours)} hours ago`;
   if (diffHours < 168) return `${Math.round(diffHours / 24)} days ago`;

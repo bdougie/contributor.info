@@ -138,9 +138,19 @@ export interface Installation {
 
 // Webhook payload types
 export interface PullRequestEvent {
-  action: 'opened' | 'edited' | 'closed' | 'assigned' | 'unassigned' | 
-          'review_requested' | 'review_request_removed' | 'ready_for_review' |
-          'labeled' | 'unlabeled' | 'synchronize' | 'reopened';
+  action:
+    | 'opened'
+    | 'edited'
+    | 'closed'
+    | 'assigned'
+    | 'unassigned'
+    | 'review_requested'
+    | 'review_request_removed'
+    | 'ready_for_review'
+    | 'labeled'
+    | 'unlabeled'
+    | 'synchronize'
+    | 'reopened';
   number: number;
   pull_request: PullRequest;
   repository: Repository;
@@ -149,9 +159,21 @@ export interface PullRequestEvent {
 }
 
 export interface IssuesEvent {
-  action: 'opened' | 'edited' | 'deleted' | 'transferred' | 'pinned' | 
-          'unpinned' | 'closed' | 'reopened' | 'assigned' | 'unassigned' |
-          'labeled' | 'unlabeled' | 'milestoned' | 'demilestoned';
+  action:
+    | 'opened'
+    | 'edited'
+    | 'deleted'
+    | 'transferred'
+    | 'pinned'
+    | 'unpinned'
+    | 'closed'
+    | 'reopened'
+    | 'assigned'
+    | 'unassigned'
+    | 'labeled'
+    | 'unlabeled'
+    | 'milestoned'
+    | 'demilestoned';
   issue: Issue;
   repository: Repository;
   installation?: Installation;

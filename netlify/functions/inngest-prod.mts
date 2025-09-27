@@ -3,21 +3,8 @@ import { Inngest } from "inngest";
 import { serve } from "inngest/lambda";
 import type { Context } from "@netlify/functions";
 
-// Import function creators for production client
-import { createCaptureRepositorySyncGraphQL, createClassifySingleRepository } from "./inngest-prod-functions.mjs";
-
-// Import all capture functions from the main library
-import {
-  capturePrDetails,
-  capturePrReviews,
-  capturePrComments,
-  captureIssueComments,
-  captureRepositoryIssues,
-  captureRepositorySync,
-  capturePrDetailsGraphQL,
-  classifyRepositorySize,
-  discoverNewRepository
-} from "../../src/lib/inngest/functions/index-without-embeddings";
+// Import factory functions for consistent client usage
+import { createInngestFunctions } from "../../src/lib/inngest/functions/factory";
 
 // Environment detection - treat deploy previews as production for signing
 const isProduction = () => {
@@ -64,107 +51,38 @@ console.log('Inngest Production Configuration:', {
   hasGithubToken: !!process.env.GITHUB_TOKEN || !!process.env.VITE_GITHUB_TOKEN,
 });
 
-// Test function to verify connection
-const testFunction = inngest.createFunction(
-  { id: "prod-test-function" },
-  { event: "test/prod.hello" },
-  async ({ event, step }) => {
-    console.log("Production test function executed!", event);
-    
-    await step.run("log-environment", async () => {
-      console.log("Environment:", {
-        context: process.env.CONTEXT,
-        nodeEnv: process.env.NODE_ENV,
-        isProduction: isProduction(),
-        hasEventKey: !!getProductionEnvVar('EVENT_KEY', 'INNGEST_EVENT_KEY'),
-        hasSigningKey: !!getProductionEnvVar('SIGNING_KEY', 'INNGEST_SIGNING_KEY')
-      });
-      return { logged: true };
-    });
-    
-    return { 
-      message: "Hello from Production Inngest!", 
-      timestamp: new Date().toISOString(),
-      environment: isProduction() ? "production" : "preview",
-      data: event.data
-    };
-  }
-);
-
-// Create production functions using our configured client
-const captureRepositorySyncGraphQL = createCaptureRepositorySyncGraphQL(inngest);
-const classifySingleRepository = createClassifySingleRepository(inngest);
+// Create functions using the factory with production client
+const functions = createInngestFunctions(inngest);
 
 // Create the serve handler
 const inngestHandler = serve({
   client: inngest,
   functions: [
-    testFunction,
-    // GraphQL functions (preferred)
-    captureRepositorySyncGraphQL,
-    capturePrDetailsGraphQL,
-    // REST functions
-    capturePrDetails,
-    capturePrReviews,
-    capturePrComments,
-    captureIssueComments,
-    captureRepositoryIssues,
-    captureRepositorySync,
-    // Classification functions
-    classifySingleRepository,
-    classifyRepositorySize,
-    // Discovery function
-    discoverNewRepository
+    // All factory-created functions
+    functions.captureRepositorySyncGraphQL,
+    functions.capturePrDetails,
+    functions.capturePrDetailsGraphQL,
+    functions.capturePrReviews,
+    functions.capturePrComments,
+    functions.captureRepositorySync,
+    functions.classifyRepositorySize,
+    functions.classifySingleRepository,
+    functions.updatePrActivity,
+    functions.discoverNewRepository,
+    functions.captureIssueComments,
+    functions.captureRepositoryIssues,
   ],
   servePath: "/.netlify/functions/inngest-prod"
 });
 
 // Create the main handler function
 const mainHandler = async (req: Request, context: Context) => {
-  const url = new URL(req.url);
-  
-  // Handle GET requests with a detailed status page
-  if (req.method === "GET" && !url.searchParams.has("fnId")) {
-    return new Response(JSON.stringify({
-      message: "Inngest Production endpoint",
-      status: "active",
-      endpoint: "/.netlify/functions/inngest-prod",
-      environment: {
-        context: process.env.CONTEXT || "unknown",
-        nodeEnv: process.env.NODE_ENV || "unknown",
-        isProduction: isProduction(),
-        hasEventKey: !!getProductionEnvVar('EVENT_KEY', 'INNGEST_EVENT_KEY'),
-        hasSigningKey: !!getProductionEnvVar('SIGNING_KEY', 'INNGEST_SIGNING_KEY'),
-      },
-      functions: [
-        { id: "prod-test-function", event: "test/prod.hello" },
-        { id: "capture-repository-sync-graphql", event: "capture/repository.sync.graphql" },
-        { id: "capture-pr-details-graphql", event: "capture/pr.details.graphql" },
-        { id: "capture-pr-details", event: "capture/pr.details" },
-        { id: "capture-pr-reviews", event: "capture/pr.reviews" },
-        { id: "capture-pr-comments", event: "capture/pr.comments" },
-        { id: "capture-issue-comments", event: "capture/issue.comments" },
-        { id: "capture-repository-issues", event: "capture/repository.issues" },
-        { id: "capture-repository-sync", event: "capture/repository.sync" },
-        { id: "classify-single-repository", event: "classify/repository.single" },
-        { id: "classify-repository-size", event: "classify/repository.size" },
-        { id: "discover-new-repository", event: "discover/repository.new" }
-      ],
-      usage: {
-        testEvent: 'Send: { "name": "test/prod.hello", "data": { "message": "Hello!" } }',
-        syncEvent: 'Send: { "name": "capture/repository.sync.graphql", "data": { "repositoryId": "123", "days": 30 } }',
-        classifyEvent: 'Send: { "name": "classify/repository.single", "data": { "repositoryId": "123", "owner": "owner", "repo": "repo" } }'
-      }
-    }, null, 2), {
-      status: 200,
-      headers: { 
-        "Content-Type": "application/json",
-        "Cache-Control": "no-cache"
-      }
-    });
-  }
-
-  // Pass all other requests to Inngest
+  // Pass ALL requests directly to Inngest SDK
+  // This allows proper handling of:
+  // - GET requests with fnId for function introspection
+  // - PUT requests for sync operations (important for Supabase edge functions)
+  // - POST requests for event processing
+  // The Inngest SDK handles all these internally including its own status endpoints
   return inngestHandler(req, context);
 };
 

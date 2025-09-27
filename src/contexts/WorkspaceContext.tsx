@@ -4,10 +4,11 @@ import {
   useState,
   useEffect,
   useCallback,
+  useMemo,
   ReactNode,
   useRef,
 } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useUserWorkspaces } from '@/hooks/use-user-workspaces';
 import type { WorkspacePreviewData } from '@/components/features/workspace/WorkspacePreviewCard';
 import { generateWorkspaceSlug, getWorkspaceUrl } from '@/lib/workspace-utils';
@@ -30,6 +31,7 @@ interface WorkspaceContextValue {
   workspaces: Workspace[];
   switchWorkspace: (idOrSlug: string) => Promise<void>;
   findWorkspace: (idOrSlug: string) => Workspace | undefined;
+  syncWithUrl: (idOrSlug: string) => void;
   isLoading: boolean;
   recentWorkspaces: string[];
   addToRecent: (id: string) => void;
@@ -45,6 +47,7 @@ interface WorkspaceProviderProps {
 
 export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
   const navigate = useNavigate();
+  const params = useParams<{ workspaceId?: string }>();
   const {
     workspaces: rawWorkspaces,
     loading: workspacesLoading,
@@ -58,8 +61,12 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     slug: ws.slug || generateWorkspaceSlug(ws.name),
   }));
 
+  // Get workspace ID from URL if on a workspace page
+  const urlWorkspaceId = params.workspaceId;
+
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(() => {
-    // Initialize from localStorage
+    // Don't set initial state from URL param as we need to resolve slug to ID first
+    // Only use localStorage for initial state
     if (typeof window !== 'undefined') {
       return localStorage.getItem(WORKSPACE_STORAGE_KEYS.ACTIVE);
     }
@@ -86,9 +93,21 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
   const retryCountRef = useRef(0);
 
   // Find active workspace from the list (support both ID and slug)
-  const activeWorkspace =
-    workspaces.find((w: Workspace) => w.id === activeWorkspaceId || w.slug === activeWorkspaceId) ||
-    null;
+  // First try to find by ID (most common case after initial load)
+  // Then check if the activeWorkspaceId might be a slug from URL
+  const activeWorkspace = useMemo(() => {
+    if (!activeWorkspaceId) return null;
+
+    // Try to find by ID first
+    const workspaceById = workspaces.find((w: Workspace) => w.id === activeWorkspaceId);
+    if (workspaceById) return workspaceById;
+
+    // If not found by ID, try to find by slug
+    const workspaceBySlug = workspaces.find((w: Workspace) => w.slug === activeWorkspaceId);
+    if (workspaceBySlug) return workspaceBySlug;
+
+    return null;
+  }, [workspaces, activeWorkspaceId]);
 
   // Persist active workspace to localStorage
   useEffect(() => {
@@ -103,6 +122,16 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
   useEffect(() => {
     localStorage.setItem(WORKSPACE_STORAGE_KEYS.RECENT, JSON.stringify(recentWorkspaces));
   }, [recentWorkspaces]);
+
+  // Define addToRecent early so it can be used in effects
+  const addToRecent = useCallback((id: string): void => {
+    setRecentWorkspaces((prev) => {
+      // Remove if already exists, then add to front
+      const filtered = prev.filter((wId) => wId !== id);
+      const newRecent = [id, ...filtered].slice(0, WORKSPACE_LIMITS.MAX_RECENT);
+      return newRecent;
+    });
+  }, []);
 
   // Broadcast workspace changes across tabs
   useEffect(() => {
@@ -122,13 +151,32 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
+  // Sync active workspace with URL parameter when URL changes
+  useEffect(() => {
+    if (urlWorkspaceId && workspaces.length > 0) {
+      const workspace = workspaces.find(
+        (w) => w.id === urlWorkspaceId || w.slug === urlWorkspaceId
+      );
+      if (workspace && workspace.id !== activeWorkspaceId) {
+        console.log(
+          '[WorkspaceContext] Syncing workspace from URL:',
+          urlWorkspaceId,
+          '-> workspace:',
+          workspace.name
+        );
+        setActiveWorkspaceId(workspace.id);
+        addToRecent(workspace.id);
+      }
+    }
+  }, [urlWorkspaceId, workspaces, activeWorkspaceId, addToRecent]);
+
   // Auto-select first workspace if none selected but workspaces exist
   useEffect(() => {
-    if (!activeWorkspaceId && workspaces.length > 0 && !workspacesLoading) {
+    if (!activeWorkspaceId && !urlWorkspaceId && workspaces.length > 0 && !workspacesLoading) {
       console.log('[WorkspaceContext] Auto-selecting first workspace');
       setActiveWorkspaceId(workspaces[0].id);
     }
-  }, [activeWorkspaceId, workspaces, workspacesLoading]);
+  }, [activeWorkspaceId, urlWorkspaceId, workspaces, workspacesLoading]);
 
   // Set up loading timeout to prevent infinite loading states with proper cleanup
   useEffect(() => {
@@ -175,20 +223,29 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     }
   }, [workspacesError]);
 
-  const addToRecent = useCallback((id: string): void => {
-    setRecentWorkspaces((prev) => {
-      // Remove if already exists, then add to front
-      const filtered = prev.filter((wId) => wId !== id);
-      const newRecent = [id, ...filtered].slice(0, WORKSPACE_LIMITS.MAX_RECENT);
-      return newRecent;
-    });
-  }, []);
-
   const findWorkspace = useCallback(
     (idOrSlug: string): Workspace | undefined => {
       return workspaces.find((w) => w.id === idOrSlug || w.slug === idOrSlug);
     },
     [workspaces]
+  );
+
+  // Sync workspace with URL (doesn't navigate, just updates context)
+  const syncWithUrl = useCallback(
+    (idOrSlug: string): void => {
+      const workspace = findWorkspace(idOrSlug);
+      if (workspace && workspace.id !== activeWorkspaceId) {
+        console.log(
+          '[WorkspaceContext] Syncing with URL:',
+          idOrSlug,
+          '-> workspace:',
+          workspace.name
+        );
+        setActiveWorkspaceId(workspace.id);
+        addToRecent(workspace.id);
+      }
+    },
+    [activeWorkspaceId, addToRecent, findWorkspace]
   );
 
   const switchWorkspace = useCallback(
@@ -269,6 +326,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     workspaces: workspaces as Workspace[],
     switchWorkspace,
     findWorkspace,
+    syncWithUrl,
     isLoading: isLoading || (workspacesLoading && !hasTimedOut),
     recentWorkspaces,
     addToRecent,
@@ -279,6 +337,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useWorkspaceContext() {
   const context = useContext(WorkspaceContext);
   if (context === undefined) {
@@ -288,4 +347,5 @@ export function useWorkspaceContext() {
 }
 
 // Export types for external use
+
 export type { Workspace, WorkspaceContextValue };

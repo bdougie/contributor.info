@@ -4,6 +4,7 @@ import { getOctokit } from '../github-client';
 import type { DatabaseComment } from '../types';
 import { SyncLogger } from '../sync-logger';
 import { NonRetriableError } from 'inngest';
+import { detectBot } from '../../utils/bot-detection';
 
 // GitHub Issue Comment from API
 interface GitHubIssueComment {
@@ -116,7 +117,7 @@ export const captureIssueComments = inngest.createFunction(
                 github_id: comment.user.id,
                 username: comment.user.login,
                 avatar_url: comment.user.avatar_url,
-                is_bot: comment.user.type === 'Bot' || comment.user.login.includes('[bot]'),
+                is_bot: detectBot({ githubUser: comment.user }).isBot,
               },
               {
                 onConflict: 'github_id',
@@ -164,10 +165,10 @@ export const captureIssueComments = inngest.createFunction(
           failedContributorCreations: failedContributorCreations,
         };
       } catch (error: unknown) {
-        console.error(`Error fetching comments for issue #${issueNumber}:`, error);
+        console.error('Error fetching comments for issue #%s:', error, issueNumber);
         const apiError = error as { status?: number };
         if (apiError.status === 404) {
-          console.warn(`Issue #${issueNumber} not found, skipping comments`);
+          console.warn('Issue #%s not found, skipping comments', issueNumber);
           return { comments: [], failedContributorCreations: 0 };
         }
         if (apiError.status === 403) {
@@ -215,7 +216,7 @@ export const captureIssueComments = inngest.createFunction(
         .eq('id', issueId);
 
       if (error) {
-        console.warn(`Failed to update issue timestamp: ${error.message}`);
+        console.warn('Failed to update issue timestamp: %s', error.message);
       }
     });
 

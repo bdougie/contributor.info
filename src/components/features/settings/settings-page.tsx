@@ -53,7 +53,7 @@ export function SettingsPage() {
           .from('user_email_preferences')
           .select('*')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
         if (data) {
           setPreferences({
@@ -217,15 +217,20 @@ export function SettingsPage() {
             <p className="text-sm text-muted-foreground">
               Signed in as <strong>{user?.email}</strong>
             </p>
-            <Button
-              variant="outline"
-              onClick={() => {
-                supabase.auth.signOut();
-                navigate('/');
-              }}
-            >
-              Sign Out
-            </Button>
+            <div className="flex gap-4">
+              <Button variant="outline" onClick={() => navigate('/billing')}>
+                Manage Plan
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  supabase.auth.signOut();
+                  navigate('/');
+                }}
+              >
+                Sign Out
+              </Button>
+            </div>
           </div>
         </section>
       </div>

@@ -1,14 +1,14 @@
 // Supabase Edge Function for long-running repository sync operations
 // Supports up to 150 seconds execution time on paid plans (50s on free tier)
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { corsHeaders } from '../_shared/cors.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { corsHeaders } from '../_shared/cors.ts';
 
 // Deno.serve is the new way to create edge functions
 Deno.serve(async (req) => {
   // Function will be wrapped here
-  return await handleRequest(req)
-})
+  return await handleRequest(req);
+});
 
 interface SyncRequest {
   owner: string;
@@ -58,149 +58,157 @@ const GITHUB_API_BASE = 'https://api.github.com';
 async function handleRequest(req: Request): Promise<Response> {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response('ok', { headers: corsHeaders });
   }
 
   const startTime = Date.now();
-  
+
   try {
     // Parse request
-    const { owner, name, fullSync = false, daysLimit = DEFAULT_DAYS_LIMIT, prLimit = MAX_PRS_PER_SYNC, resumeFrom } = 
-      await req.json() as SyncRequest;
-    
+    const {
+      owner,
+      name,
+      fullSync = false,
+      daysLimit = DEFAULT_DAYS_LIMIT,
+      prLimit = MAX_PRS_PER_SYNC,
+      resumeFrom,
+    } = (await req.json()) as SyncRequest;
+
     // Validate input parameters
     if (!owner || !name) {
       return new Response(
-        JSON.stringify({ 
-          error: 'Missing required fields', 
-          details: 'Both owner and name are required' 
+        JSON.stringify({
+          error: 'Missing required fields',
+          details: 'Both owner and name are required',
         }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
-      )
+      );
     }
-    
+
     // Initialize Supabase client with service role
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
-    
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
     // Get GitHub token
-    const githubToken = Deno.env.get('GITHUB_TOKEN')
+    const githubToken = Deno.env.get('GITHUB_TOKEN');
     if (!githubToken) {
-      throw new Error('GitHub token not configured')
+      throw new Error('GitHub token not configured');
     }
-    
+
     // Step 1: Verify repository exists and is tracked
     const { data: repoData, error: repoError } = await supabase
       .from('repositories')
       .select('id, github_id, full_name, is_tracked')
       .eq('owner', owner)
       .eq('name', name)
-      .single()
-    
+      .single();
+
     if (repoError || !repoData) {
       return new Response(
-        JSON.stringify({ 
-          error: 'Repository not found', 
-          details: `${owner}/${name} is not tracked` 
+        JSON.stringify({
+          error: 'Repository not found',
+          details: `${owner}/${name} is not tracked`,
         }),
-        { 
-          status: 404, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
-      )
+      );
     }
-    
+
     if (!repoData.is_tracked) {
       return new Response(
-        JSON.stringify({ 
-          error: 'Repository not tracked', 
-          details: 'Please track the repository first' 
+        JSON.stringify({
+          error: 'Repository not tracked',
+          details: 'Please track the repository first',
         }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
-      )
+      );
     }
-    
+
     // Step 2: Calculate date range for sync
-    const cutoffDate = fullSync 
+    const cutoffDate = fullSync
       ? new Date(0) // Beginning of time for full sync
       : new Date(Date.now() - daysLimit * 24 * 60 * 60 * 1000);
-    
+
     // Step 3: Fetch pull requests from GitHub
     const pullRequests: GitHubPullRequest[] = [];
     let page = 1;
     let hasMore = true;
     let cursor = resumeFrom;
-    
+
     // If resuming, we need to find where we left off
     const resumeDate = resumeFrom ? new Date(resumeFrom) : null;
-    
+
     while (hasMore && pullRequests.length < prLimit) {
       // Check execution time to avoid timeout (leave 10s buffer)
       const elapsedSeconds = (Date.now() - startTime) / 1000;
       const timeout = parseInt(Deno.env.get('SUPABASE_FUNCTION_TIMEOUT') || '50', 10);
       const maxExecutionTime = timeout - 10; // Leave 10s buffer for cleanup
-      
+
       if (elapsedSeconds > maxExecutionTime) {
         // Save progress and return partial results
-        await supabase
-          .from('sync_progress')
-          .upsert({
+        await supabase.from('sync_progress').upsert(
+          {
             repository_id: repoData.id,
             last_cursor: cursor,
             last_sync_at: new Date().toISOString(),
             prs_processed: pullRequests.length,
-            status: 'partial'
-          }, { onConflict: 'repository_id' })
-        
+            status: 'partial',
+          },
+          { onConflict: 'repository_id' }
+        );
+
         return new Response(
           JSON.stringify({
             success: true,
             partial: true,
             processed: pullRequests.length,
             resumeFrom: cursor,
-            message: 'Partial sync completed due to time limit. Call again with resumeFrom cursor to continue.'
+            message:
+              'Partial sync completed due to time limit. Call again with resumeFrom cursor to continue.',
           }),
-          { 
-            status: 200, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           }
-        )
+        );
       }
-      
+
       const response = await fetch(
         `${GITHUB_API_BASE}/repos/${owner}/${name}/pulls?state=all&per_page=100&page=${page}&sort=updated&direction=desc`,
         {
           headers: {
-            'Authorization': `Bearer ${githubToken}`,
-            'Accept': 'application/vnd.github.v3+json',
-            'User-Agent': 'contributor-info-sync'
-          }
+            Authorization: `Bearer ${githubToken}`,
+            Accept: 'application/vnd.github.v3+json',
+            'User-Agent': 'contributor-info-sync',
+          },
         }
-      )
-      
+      );
+
       if (!response.ok) {
-        throw new Error(`GitHub API error: ${response.status} ${response.statusText}`)
+        throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
       }
-      
-      const prs = await response.json() as GitHubPullRequest[];
-      
+
+      const prs = (await response.json()) as GitHubPullRequest[];
+
       if (prs.length === 0) {
         hasMore = false;
         break;
       }
-      
+
       // Filter by date and resume cursor
       let reachedResumePoint = false;
-      const filteredPrs = prs.filter(pr => {
+      const filteredPrs = prs.filter((pr) => {
         const prDate = new Date(pr.updated_at);
-        
+
         // If resuming, skip PRs until we get past the ones we already processed
         if (resumeDate) {
           // Since PRs are sorted by updated_at DESC, we skip newer PRs until we reach the resume point
@@ -211,12 +219,12 @@ async function handleRequest(req: Request): Promise<Response> {
             return false; // Skip the PR at the exact resume point (already processed)
           }
         }
-        
+
         return prDate >= cutoffDate;
       });
-      
+
       pullRequests.push(...filteredPrs);
-      
+
       // Check if we should stop fetching
       if (reachedResumePoint) {
         // We've reached the resume point, all older PRs are already processed
@@ -232,25 +240,24 @@ async function handleRequest(req: Request): Promise<Response> {
         cursor = prs[prs.length - 1].updated_at; // Save cursor for resume
       }
     }
-    
+
     // Step 4: Process and store pull requests
     let processed = 0;
     let errors = 0;
-    
+
     for (const pr of pullRequests) {
       try {
         // Ensure contributor exists
         const contributorId = await ensureContributor(supabase, pr.user);
-        
+
         if (!contributorId) {
           errors++;
           continue;
         }
-        
+
         // Upsert pull request
-        const { error: prError } = await supabase
-          .from('pull_requests')
-          .upsert({
+        const { error: prError } = await supabase.from('pull_requests').upsert(
+          {
             github_id: pr.id,
             repository_id: repoData.id,
             number: pr.number,
@@ -271,40 +278,39 @@ async function handleRequest(req: Request): Promise<Response> {
             commits: pr.commits || 0,
             author_id: contributorId,
             html_url: `https://github.com/${owner}/${name}/pull/${pr.number}`,
-            last_synced_at: new Date().toISOString()
-          }, {
+            last_synced_at: new Date().toISOString(),
+          },
+          {
             onConflict: 'github_id',
-            ignoreDuplicates: false
-          })
-        
+            ignoreDuplicates: false,
+          }
+        );
+
         if (prError) {
-          console.error(`Error upserting PR #${pr.number}:`, prError)
+          console.error(`Error upserting PR #${pr.number}:`, prError);
           errors++;
         } else {
           processed++;
         }
       } catch (error) {
-        console.error(`Error processing PR #${pr.number}:`, error)
+        console.error(`Error processing PR #${pr.number}:`, error);
         errors++;
       }
     }
-    
+
     // Step 5: Update repository last sync time
     await supabase
       .from('repositories')
-      .update({ 
+      .update({
         last_synced_at: new Date().toISOString(),
-        sync_status: 'completed'
+        sync_status: 'completed',
       })
-      .eq('id', repoData.id)
-    
+      .eq('id', repoData.id);
+
     // Clear sync progress if this was a complete sync (not partial)
     // Only clear if we processed everything and didn't hit the time limit
-    await supabase
-      .from('sync_progress')
-      .delete()
-      .eq('repository_id', repoData.id)
-    
+    await supabase.from('sync_progress').delete().eq('repository_id', repoData.id);
+
     // Return success response
     return new Response(
       JSON.stringify({
@@ -315,28 +321,27 @@ async function handleRequest(req: Request): Promise<Response> {
         totalFound: pullRequests.length,
         executionTime: `${((Date.now() - startTime) / 1000).toFixed(2)}s`,
         syncType: fullSync ? 'full' : 'incremental',
-        dateRange: fullSync ? 'all' : `last ${daysLimit} days`
+        dateRange: fullSync ? 'all' : `last ${daysLimit} days`,
       }),
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
-    )
-    
+    );
   } catch (error) {
-    console.error('Sync error:', error)
-    
+    console.error('Sync error:', error);
+
     return new Response(
-      JSON.stringify({ 
-        error: 'Sync failed', 
+      JSON.stringify({
+        error: 'Sync failed',
         details: error instanceof Error ? error.message : 'Unknown error',
-        executionTime: `${((Date.now() - startTime) / 1000).toFixed(2)}s`
+        executionTime: `${((Date.now() - startTime) / 1000).toFixed(2)}s`,
       }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
-    )
+    );
   }
 }
 
@@ -348,21 +353,24 @@ async function ensureContributor(supabase: any, githubUser: any): Promise<string
 
   const { data, error } = await supabase
     .from('contributors')
-    .upsert({
-      github_id: githubUser.id,
-      username: githubUser.login,
-      display_name: githubUser.name || null,
-      email: githubUser.email || null,
-      avatar_url: githubUser.avatar_url || null,
-      profile_url: `https://github.com/${githubUser.login}`,
-      is_bot: githubUser.type === 'Bot' || githubUser.login.includes('[bot]'),
-      is_active: true,
-      first_seen_at: new Date().toISOString(),
-      last_updated_at: new Date().toISOString(),
-    }, {
-      onConflict: 'github_id',
-      ignoreDuplicates: false
-    })
+    .upsert(
+      {
+        github_id: githubUser.id,
+        username: githubUser.login,
+        display_name: githubUser.name || null,
+        email: githubUser.email || null,
+        avatar_url: githubUser.avatar_url || null,
+        profile_url: `https://github.com/${githubUser.login}`,
+        is_bot: githubUser.type === 'Bot' || githubUser.login.includes('[bot]'),
+        is_active: true,
+        first_seen_at: new Date().toISOString(),
+        last_updated_at: new Date().toISOString(),
+      },
+      {
+        onConflict: 'github_id',
+        ignoreDuplicates: false,
+      }
+    )
     .select('id')
     .maybeSingle();
 

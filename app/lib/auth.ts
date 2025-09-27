@@ -54,7 +54,7 @@ export class GitHubAppAuth {
     if (!this.isReady()) {
       throw new Error('GitHub App not configured - cannot generate JWT');
     }
-    
+
     const payload = {
       iat: Math.floor(Date.now() / 1000),
       exp: Math.floor(Date.now() / 1000) + 600, // 10 minutes
@@ -71,7 +71,7 @@ export class GitHubAppAuth {
     if (!this.isReady()) {
       throw new Error('GitHub App not configured - cannot get installation token');
     }
-    
+
     // Check cache first
     const cached = this.installationTokens.get(installationId);
     if (cached && cached.expiresAt > new Date()) {
@@ -90,7 +90,7 @@ export class GitHubAppAuth {
     // Cache for 1 hour (GitHub tokens expire in 1 hour)
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 1);
-    
+
     this.installationTokens.set(installationId, {
       token: data.token,
       expiresAt,
@@ -104,7 +104,7 @@ export class GitHubAppAuth {
    */
   async getInstallationOctokit(installationId: number): Promise<Octokit> {
     const token = await this.getInstallationToken(installationId);
-    
+
     return new Octokit({
       auth: token,
     });

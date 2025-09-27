@@ -61,7 +61,7 @@ export function FeatureFlagsProvider({
   // Load all feature flags
   const loadAllFlags = async () => {
     const newFlags = new Map<FeatureFlagName, FeatureFlagResult>();
-    
+
     // Evaluate all defined flags
     for (const flagName of Object.values(FEATURE_FLAGS)) {
       try {
@@ -77,7 +77,7 @@ export function FeatureFlagsProvider({
         });
       }
     }
-    
+
     setFlags(newFlags);
   };
 
@@ -96,62 +96,72 @@ export function FeatureFlagsProvider({
   }, []);
 
   // Check if a flag is enabled
-  const checkFlag = useCallback((flagName: FeatureFlagName): boolean => {
-    const result = flags.get(flagName);
-    if (result) {
-      // Track exposure
-      featureFlagClient.trackFlagExposure(flagName, result.value);
-      return result.enabled;
-    }
-    return false;
-  }, [flags]);
+  const checkFlag = useCallback(
+    (flagName: FeatureFlagName): boolean => {
+      const result = flags.get(flagName);
+      if (result) {
+        // Track exposure
+        featureFlagClient.trackFlagExposure(flagName, result.value);
+        return result.enabled;
+      }
+      return false;
+    },
+    [flags]
+  );
 
   // Get flag value
-  const getFlagValue = useCallback((flagName: FeatureFlagName): FeatureFlagValue => {
-    const result = flags.get(flagName);
-    if (result) {
-      // Track exposure
-      featureFlagClient.trackFlagExposure(flagName, result.value);
-      return result.value;
-    }
-    return false;
-  }, [flags]);
+  const getFlagValue = useCallback(
+    (flagName: FeatureFlagName): FeatureFlagValue => {
+      const result = flags.get(flagName);
+      if (result) {
+        // Track exposure
+        featureFlagClient.trackFlagExposure(flagName, result.value);
+        return result.value;
+      }
+      return false;
+    },
+    [flags]
+  );
 
   // Get experiment variant
-  const getExperimentVariant = useCallback(async (experimentName: string): Promise<string | null> => {
-    const experiment: ExperimentConfig = {
-      name: experimentName,
-      variants: ['control', 'variant'], // Default variants
-      metrics: [],
-      allocation: 100,
-    };
-    
-    const variant = await featureFlagClient.getExperimentVariant(experiment);
-    if (variant) {
-      featureFlagClient.trackExperimentExposure(experimentName, variant);
-    }
-    return variant;
-  }, []);
+  const getExperimentVariant = useCallback(
+    async (experimentName: string): Promise<string | null> => {
+      const experiment: ExperimentConfig = {
+        name: experimentName,
+        variants: ['control', 'variant'], // Default variants
+        metrics: [],
+        allocation: 100,
+      };
+
+      const variant = await featureFlagClient.getExperimentVariant(experiment);
+      if (variant) {
+        featureFlagClient.trackExperimentExposure(experimentName, variant);
+      }
+      return variant;
+    },
+    []
+  );
 
   // Context value
-  const contextValue = useMemo<FeatureFlagsContextValue>(() => ({
-    flags,
-    isLoading,
-    error,
-    checkFlag,
-    getFlagValue,
-    getExperimentVariant: (name: string) => {
-      // Convert async to sync for simpler API
-      getExperimentVariant(name);
-      return null; // Return null initially, component should handle async
-    },
-    reload,
-  }), [flags, isLoading, error, checkFlag, getFlagValue, getExperimentVariant, reload]);
+  const contextValue = useMemo<FeatureFlagsContextValue>(
+    () => ({
+      flags,
+      isLoading,
+      error,
+      checkFlag,
+      getFlagValue,
+      getExperimentVariant: (name: string) => {
+        // Convert async to sync for simpler API
+        getExperimentVariant(name);
+        return null; // Return null initially, component should handle async
+      },
+      reload,
+    }),
+    [flags, isLoading, error, checkFlag, getFlagValue, getExperimentVariant, reload]
+  );
 
   return (
-    <FeatureFlagsContext.Provider value={contextValue}>
-      {children}
-    </FeatureFlagsContext.Provider>
+    <FeatureFlagsContext.Provider value={contextValue}>{children}</FeatureFlagsContext.Provider>
   );
 }
 

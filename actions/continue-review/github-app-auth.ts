@@ -7,9 +7,7 @@ import * as github from '@actions/github';
  * by actions/create-github-app-token in the workflow
  */
 export async function getAuthenticatedOctokit(
-  githubToken: string,
-  _owner: string,
-  _repo: string
+  githubToken: string
 ): Promise<ReturnType<typeof github.getOctokit>> {
   // Validate that we have a token
   if (!githubToken) {

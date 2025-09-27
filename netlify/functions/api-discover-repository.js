@@ -5,14 +5,14 @@ exports.handler = async (event, context) => {
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS'
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
   };
 
   if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 200,
       headers: corsHeaders,
-      body: ''
+      body: '',
     };
   }
 
@@ -23,14 +23,14 @@ exports.handler = async (event, context) => {
 
   return {
     statusCode: 410, // Gone - indicates the endpoint is deprecated
-    headers: { 
+    headers: {
       ...corsHeaders,
-      'Content-Type': 'application/json' 
+      'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ 
+    body: JSON.stringify({
       error: 'Deprecated endpoint',
       message: 'This discovery endpoint is deprecated. Please use the tracking feature instead.',
-      deprecated: true
-    })
+      deprecated: true,
+    }),
   };
 };

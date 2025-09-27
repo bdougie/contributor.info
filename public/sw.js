@@ -18,7 +18,7 @@ const STATIC_ASSETS = [
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
   '/icons/icon-192x192-maskable.png',
-  '/icons/icon-512x512-maskable.png'
+  '/icons/icon-512x512-maskable.png',
 ];
 
 // Cache configuration
@@ -33,19 +33,26 @@ const CACHE_CONFIG = {
   MAX_ENTRIES: {
     API: 100,
     RUNTIME: 200,
-    IMAGES: 300
-  }
+    IMAGES: 300,
+  },
 };
 
 // Utility functions
 async function cleanupOldCaches() {
   const cacheNames = await caches.keys();
-  const currentCaches = [CACHE_NAME, STATIC_CACHE, API_CACHE, RUNTIME_CACHE, IMAGES_CACHE, DATA_CACHE];
-  
+  const currentCaches = [
+    CACHE_NAME,
+    STATIC_CACHE,
+    API_CACHE,
+    RUNTIME_CACHE,
+    IMAGES_CACHE,
+    DATA_CACHE,
+  ];
+
   return Promise.all(
     cacheNames
-      .filter(cacheName => !currentCaches.includes(cacheName))
-      .map(cacheName => caches.delete(cacheName))
+      .filter((cacheName) => !currentCaches.includes(cacheName))
+      .map((cacheName) => caches.delete(cacheName))
   );
 }
 
@@ -54,7 +61,7 @@ async function limitCacheSize(cacheName, maxSize) {
   const keys = await cache.keys();
   if (keys.length > maxSize) {
     const oldestKeys = keys.slice(0, keys.length - maxSize);
-    await Promise.all(oldestKeys.map(key => cache.delete(key)));
+    await Promise.all(oldestKeys.map((key) => cache.delete(key)));
   }
 }
 
@@ -64,7 +71,7 @@ function isExpired(response, maxAge) {
 }
 
 // Install event - cache static assets
-self.addEventListener('install', event => {
+self.addEventListener('install', (event) => {
   console.log('[SW] Install event');
   event.waitUntil(
     (async () => {
@@ -82,7 +89,7 @@ self.addEventListener('install', event => {
 });
 
 // Activate event - cleanup old caches
-self.addEventListener('activate', event => {
+self.addEventListener('activate', (event) => {
   console.log('[SW] Activate event');
   event.waitUntil(
     (async () => {
@@ -99,7 +106,7 @@ self.addEventListener('activate', event => {
 });
 
 // Enhanced fetch event with comprehensive caching strategies
-self.addEventListener('fetch', event => {
+self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
@@ -143,20 +150,21 @@ async function handleRequest(request, url) {
         // Always fetch JS files fresh to ensure correct MIME type
         return fetch(request);
       }
-      
-      const isStaticAsset = /\.(css|png|jpg|jpeg|gif|webp|svg|ico|woff2?|ttf|eot)(\?.*)?$/.test(url.pathname);
-      
+
+      const isStaticAsset = /\.(css|png|jpg|jpeg|gif|webp|svg|ico|woff2?|ttf|eot)(\?.*)?$/.test(
+        url.pathname
+      );
+
       if (isStaticAsset) {
         return await handleStaticAsset(request, STATIC_CACHE);
       }
-      
+
       // HTML pages - Network first with cache fallback
       return await handlePageRequest(request, RUNTIME_CACHE);
     }
 
     // External resources - Cache with limited lifetime
     return await handleExternalRequest(request, RUNTIME_CACHE);
-
   } catch (error) {
     console.error('[SW] Error handling request:', error);
     return await handleOfflineFallback(request);
@@ -167,23 +175,23 @@ async function handleSupabaseRequest(request, cacheName) {
   try {
     // Try network first
     const networkResponse = await fetch(request);
-    
+
     // Only cache successful responses that are NOT partial content (206)
     if (networkResponse.ok && networkResponse.status !== 206) {
       // Cache successful responses
       const cache = await caches.open(cacheName);
       const responseClone = networkResponse.clone();
-      
+
       // Add timestamp for freshness check
       const headers = new Headers(responseClone.headers);
       headers.set('sw-cached-date', new Date().toISOString());
-      
+
       const modifiedResponse = new Response(responseClone.body, {
         status: responseClone.status,
         statusText: responseClone.statusText,
-        headers
+        headers,
       });
-      
+
       try {
         await cache.put(request, modifiedResponse);
         // Limit cache size
@@ -196,18 +204,18 @@ async function handleSupabaseRequest(request, cacheName) {
       // Skip caching for partial content (206) responses
       // These are typically range requests that shouldn't be cached
     }
-    
+
     return networkResponse;
   } catch (error) {
     // Network failed, try cache
     const cachedResponse = await caches.match(request);
-    
+
     if (cachedResponse) {
       console.log('[SW] Serving Supabase data from cache (offline):', request.url);
       // Return cached data even if expired when offline
       return cachedResponse;
     }
-    
+
     // If no cached version and it's critical data, return empty response
     const url = new URL(request.url);
     if (url.pathname.includes('/rest/v1/')) {
@@ -217,11 +225,11 @@ async function handleSupabaseRequest(request, cacheName) {
         statusText: 'OK (Offline)',
         headers: {
           'Content-Type': 'application/json',
-          'X-Offline-Response': 'true'
-        }
+          'X-Offline-Response': 'true',
+        },
       });
     }
-    
+
     throw error;
   }
 }
@@ -230,38 +238,38 @@ async function handleAPIRequest(request, cacheName, maxAge) {
   try {
     // Try network first
     const networkResponse = await fetch(request);
-    
+
     if (networkResponse.ok) {
       // Cache successful responses
       const cache = await caches.open(cacheName);
       const responseClone = networkResponse.clone();
-      
+
       // Add timestamp for freshness check
       const headers = new Headers(responseClone.headers);
       headers.set('sw-cached-date', new Date().toISOString());
-      
+
       const modifiedResponse = new Response(responseClone.body, {
         status: responseClone.status,
         statusText: responseClone.statusText,
-        headers
+        headers,
       });
-      
+
       await cache.put(request, modifiedResponse);
-      
+
       // Limit cache size
       await limitCacheSize(cacheName, CACHE_CONFIG.MAX_ENTRIES.API);
     }
-    
+
     return networkResponse;
   } catch (error) {
     // Network failed, try cache
     const cachedResponse = await caches.match(request);
-    
+
     if (cachedResponse && !isExpired(cachedResponse, maxAge)) {
       console.log('[SW] Serving from API cache:', request.url);
       return cachedResponse;
     }
-    
+
     throw error;
   }
 }
@@ -269,54 +277,56 @@ async function handleAPIRequest(request, cacheName, maxAge) {
 async function handleImageRequest(request, cacheName) {
   // Cache first for images
   const cachedResponse = await caches.match(request);
-  
+
   if (cachedResponse) {
     console.log('[SW] Serving image from cache:', request.url);
-    
+
     // Update in background if old
     if (isExpired(cachedResponse, CACHE_CONFIG.STATIC_MAX_AGE)) {
-      fetch(request).then(response => {
-        if (response.ok) {
-          caches.open(cacheName).then(cache => {
-            const headers = new Headers(response.headers);
-            headers.set('sw-cached-date', new Date().toISOString());
-            
-            const modifiedResponse = new Response(response.body, {
-              status: response.status,
-              statusText: response.statusText,
-              headers
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            caches.open(cacheName).then((cache) => {
+              const headers = new Headers(response.headers);
+              headers.set('sw-cached-date', new Date().toISOString());
+
+              const modifiedResponse = new Response(response.body, {
+                status: response.status,
+                statusText: response.statusText,
+                headers,
+              });
+
+              cache.put(request, modifiedResponse);
             });
-            
-            cache.put(request, modifiedResponse);
-          });
-        }
-      }).catch(() => {});
+          }
+        })
+        .catch(() => {});
     }
-    
+
     return cachedResponse;
   }
-  
+
   // Not in cache, fetch and cache
   try {
     const networkResponse = await fetch(request);
-    
+
     if (networkResponse.ok) {
       const cache = await caches.open(cacheName);
       const responseClone = networkResponse.clone();
-      
+
       const headers = new Headers(responseClone.headers);
       headers.set('sw-cached-date', new Date().toISOString());
-      
+
       const modifiedResponse = new Response(responseClone.body, {
         status: responseClone.status,
         statusText: responseClone.statusText,
-        headers
+        headers,
       });
-      
+
       await cache.put(request, modifiedResponse);
       await limitCacheSize(cacheName, CACHE_CONFIG.MAX_ENTRIES.IMAGES);
     }
-    
+
     return networkResponse;
   } catch (error) {
     console.error('[SW] Failed to fetch image:', error);
@@ -327,21 +337,21 @@ async function handleImageRequest(request, cacheName) {
 async function handleStaticAsset(request, cacheName) {
   // Cache first for static assets
   const cachedResponse = await caches.match(request);
-  
+
   if (cachedResponse) {
     console.log('[SW] Serving static asset from cache:', request.url);
     return cachedResponse;
   }
-  
+
   // Not in cache, fetch and cache
   try {
     const networkResponse = await fetch(request);
-    
+
     if (networkResponse.ok) {
       const cache = await caches.open(cacheName);
       await cache.put(request, networkResponse.clone());
     }
-    
+
     return networkResponse;
   } catch (error) {
     console.error('[SW] Failed to fetch static asset:', error);
@@ -353,33 +363,33 @@ async function handlePageRequest(request, cacheName) {
   try {
     // Network first for HTML pages
     const networkResponse = await fetch(request);
-    
+
     if (networkResponse.ok) {
       const cache = await caches.open(cacheName);
-      
+
       const headers = new Headers(networkResponse.headers);
       headers.set('sw-cached-date', new Date().toISOString());
-      
+
       const modifiedResponse = new Response(await networkResponse.clone().text(), {
         status: networkResponse.status,
         statusText: networkResponse.statusText,
-        headers
+        headers,
       });
-      
+
       await cache.put(request, modifiedResponse);
       await limitCacheSize(cacheName, CACHE_CONFIG.MAX_ENTRIES.RUNTIME);
     }
-    
+
     return networkResponse;
   } catch (error) {
     // Network failed, try cache
     const cachedResponse = await caches.match(request);
-    
+
     if (cachedResponse) {
       console.log('[SW] Serving page from cache (offline):', request.url);
       return cachedResponse;
     }
-    
+
     // If no cached version and it's a navigation request, serve offline page
     if (request.mode === 'navigate') {
       const offlineResponse = await caches.match('/');
@@ -387,7 +397,7 @@ async function handlePageRequest(request, cacheName) {
         return offlineResponse;
       }
     }
-    
+
     throw error;
   }
 }
@@ -395,32 +405,32 @@ async function handlePageRequest(request, cacheName) {
 async function handleExternalRequest(request, cacheName) {
   try {
     const networkResponse = await fetch(request);
-    
+
     if (networkResponse.ok) {
       const cache = await caches.open(cacheName);
-      
+
       const headers = new Headers(networkResponse.headers);
       headers.set('sw-cached-date', new Date().toISOString());
-      
+
       const modifiedResponse = new Response(await networkResponse.clone().blob(), {
         status: networkResponse.status,
         statusText: networkResponse.statusText,
-        headers
+        headers,
       });
-      
+
       await cache.put(request, modifiedResponse);
       await limitCacheSize(cacheName, CACHE_CONFIG.MAX_ENTRIES.RUNTIME);
     }
-    
+
     return networkResponse;
   } catch (error) {
     const cachedResponse = await caches.match(request);
-    
+
     if (cachedResponse && !isExpired(cachedResponse, CACHE_CONFIG.RUNTIME_MAX_AGE)) {
       console.log('[SW] Serving external resource from cache:', request.url);
       return cachedResponse;
     }
-    
+
     throw error;
   }
 }
@@ -433,7 +443,7 @@ async function handleOfflineFallback(request) {
       return cachedPage;
     }
   }
-  
+
   // For images, return a placeholder if available
   if (request.destination === 'image') {
     const placeholder = await caches.match('/icons/icon-192x192.png');
@@ -441,18 +451,18 @@ async function handleOfflineFallback(request) {
       return placeholder;
     }
   }
-  
+
   // Return a simple offline response
   return new Response('Offline', {
     status: 503,
     statusText: 'Service Unavailable',
-    headers: { 'Content-Type': 'text/plain' }
+    headers: { 'Content-Type': 'text/plain' },
   });
 }
 
 // Background sync for failed requests (if supported)
 if ('sync' in self.registration) {
-  self.addEventListener('sync', event => {
+  self.addEventListener('sync', (event) => {
     if (event.tag === 'background-sync') {
       event.waitUntil(handleBackgroundSync());
     }
@@ -466,26 +476,22 @@ async function handleBackgroundSync() {
 }
 
 // Push notifications (if needed)
-self.addEventListener('push', event => {
+self.addEventListener('push', (event) => {
   if (event.data) {
     const options = {
       body: event.data.text(),
       icon: '/icons/icon-192x192.png',
       badge: '/icons/icon-192x192.png',
-      tag: 'contributor-info-notification'
+      tag: 'contributor-info-notification',
     };
-    
-    event.waitUntil(
-      self.registration.showNotification('Contributor Info', options)
-    );
+
+    event.waitUntil(self.registration.showNotification('Contributor Info', options));
   }
 });
 
 // Notification click handler
-self.addEventListener('notificationclick', event => {
+self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  
-  event.waitUntil(
-    clients.openWindow('/')
-  );
+
+  event.waitUntil(clients.openWindow('/'));
 });

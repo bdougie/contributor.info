@@ -35,6 +35,8 @@ describe('Validation Integration Tests', () => {
         display_name: 'The Octocat',
         avatar_url: 'https://github.com/images/error/octocat_happy.gif',
         profile_url: 'https://github.com/octocat',
+        discord_url: null,
+        linkedin_url: null,
         email: 'octocat@github.com',
         company: 'GitHub',
         location: 'San Francisco',

@@ -3,9 +3,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 
 // Lazy load the heavy org-view component
-const OrgViewInner = lazy(() => 
-  import('./org-view').then(module => ({
-    default: module.default
+const OrgViewInner = lazy(() =>
+  import('./org-view').then((module) => ({
+    default: module.default,
   }))
 );
 
@@ -18,7 +18,7 @@ function OrgViewSkeleton() {
         <span>/</span>
         <Skeleton className="h-4 w-20" />
       </div>
-      
+
       {/* Org header skeleton */}
       <div className="flex items-center gap-3">
         <Skeleton className="w-12 h-12 rounded-md" />

@@ -1,9 +1,18 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BarChart3, Lock, Loader2, AlertCircle } from '@/components/ui/icon';
 import { useGitHubAuth } from '@/hooks/use-github-auth';
 import { toast } from 'sonner';
+import { trackEvent } from '@/lib/posthog-lazy';
+import { handleApiResponse } from '@/lib/utils/api-helpers';
+
+// Type for track repository API response
+interface TrackRepositoryResponse {
+  success: boolean;
+  eventId?: string;
+  message?: string;
+}
 
 interface RepositoryTrackingCardProps {
   owner: string;
@@ -22,8 +31,59 @@ export function RepositoryTrackingCard({
   const [isTracking, setIsTracking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isMountedRef = useRef(true);
+  const viewEventTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Safe trackEvent wrapper with error handling
+  const safeTrackEvent = useCallback(
+    async (eventName: string, properties?: Record<string, unknown>) => {
+      try {
+        await trackEvent(eventName, properties);
+      } catch (error) {
+        console.warn('Failed to track event:', eventName, error);
+      }
+    },
+    []
+  );
+
+  // Track when users view the "Track This Repository" prompt (debounced)
+  useEffect(() => {
+    // Clear any existing timeout
+    if (viewEventTimeoutRef.current) {
+      clearTimeout(viewEventTimeoutRef.current);
+    }
+
+    // Debounce the view event to prevent spam
+    viewEventTimeoutRef.current = setTimeout(() => {
+      if (isMountedRef.current) {
+        safeTrackEvent('viewed_track_repository_prompt', {
+          repository: `${owner}/${repo}`,
+          owner,
+          repo,
+          isLoggedIn,
+          page_url: window.location.href,
+          page_path: window.location.pathname,
+        });
+      }
+    }, 500);
+
+    return () => {
+      if (viewEventTimeoutRef.current) {
+        clearTimeout(viewEventTimeoutRef.current);
+        viewEventTimeoutRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [owner, repo, safeTrackEvent]); // Intentionally exclude isLoggedIn to avoid duplicate events on auth changes
 
   const handleLogin = async () => {
+    // Track login button click
+    safeTrackEvent('clicked_login_to_track_repository', {
+      repository: `${owner}/${repo}`,
+      owner,
+      repo,
+    });
+
     // Store the repository path so we can auto-track after login
     localStorage.setItem('pendingTrackRepo', `${owner}/${repo}`);
     localStorage.setItem('redirectAfterLogin', `/${owner}/${repo}`);
@@ -35,6 +95,13 @@ export function RepositoryTrackingCard({
     if (isTracking) {
       return;
     }
+
+    // Track button click
+    safeTrackEvent('clicked_track_repository', {
+      repository: `${owner}/${repo}`,
+      owner,
+      repo,
+    });
 
     // Validate props before sending
     if (!owner || !repo) {
@@ -63,24 +130,20 @@ export function RepositoryTrackingCard({
         body: JSON.stringify({ owner, repo }),
       });
 
-      const responseText = await response.text();
-      let result;
-      try {
-        result = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error('Failed to parse response: %s', responseText);
-        throw new Error('Invalid response from server');
-      }
-
+      const result = await handleApiResponse<TrackRepositoryResponse>(response, 'track-repository');
       console.log('Track repository response: %o', result);
 
-      if (!response.ok) {
-        throw new Error(result.message || 'Failed to track repository');
-      }
-
       // Check if tracking was successful
-      if (result.success) {
+      if (result && result.success) {
         console.log('Tracking initiated successfully, eventId: %s', result.eventId);
+
+        // Track successful tracking initiation
+        safeTrackEvent('repository_tracking_initiated', {
+          repository: `${owner}/${repo}`,
+          owner,
+          repo,
+          eventId: result.eventId,
+        });
 
         // Show success message
         toast.success('Repository tracking initiated!', {
@@ -89,7 +152,7 @@ export function RepositoryTrackingCard({
           duration: 8000,
         });
       } else {
-        throw new Error(result.message || 'Tracking failed');
+        throw new Error(result?.message || 'Tracking failed');
       }
 
       // Start polling for completion
@@ -97,6 +160,26 @@ export function RepositoryTrackingCard({
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to track repository';
       setError(errorMessage);
+
+      // Track tracking failure with error type instead of raw message
+      let errorType = 'UNKNOWN_ERROR';
+      if (err instanceof Error) {
+        if (err.message.includes('network')) {
+          errorType = 'NETWORK_ERROR';
+        } else if (err.message.includes('auth')) {
+          errorType = 'AUTH_ERROR';
+        } else if (err.message.includes('permission')) {
+          errorType = 'PERMISSION_ERROR';
+        }
+      }
+
+      safeTrackEvent('repository_tracking_failed', {
+        repository: `${owner}/${repo}`,
+        owner,
+        repo,
+        errorType,
+      });
+
       toast.error('Tracking failed', {
         description: errorMessage,
         duration: 6000,
@@ -106,12 +189,17 @@ export function RepositoryTrackingCard({
     }
   };
 
-  // Cleanup polling on unmount
+  // Cleanup polling and timeouts on unmount
   useEffect(() => {
     return () => {
+      isMountedRef.current = false;
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current);
         pollIntervalRef.current = null;
+      }
+      if (viewEventTimeoutRef.current) {
+        clearTimeout(viewEventTimeoutRef.current);
+        viewEventTimeoutRef.current = null;
       }
     };
   }, []);
@@ -138,6 +226,20 @@ export function RepositoryTrackingCard({
             clearInterval(pollIntervalRef.current);
             pollIntervalRef.current = null;
           }
+
+          // Only proceed if component is still mounted
+          if (!isMountedRef.current) {
+            return;
+          }
+
+          // Track when data becomes available
+          safeTrackEvent('repository_data_ready', {
+            repository: `${owner}/${repo}`,
+            owner,
+            repo,
+            pollAttempts: pollCount,
+          });
+
           toast.success('Repository data is ready!', {
             description: 'Refreshing page...',
             duration: 2000,
@@ -149,7 +251,9 @@ export function RepositoryTrackingCard({
           } else {
             // Refresh the page after a short delay
             setTimeout(() => {
-              window.location.reload();
+              if (isMountedRef.current) {
+                window.location.reload();
+              }
             }, 1500);
           }
         }
@@ -159,10 +263,23 @@ export function RepositoryTrackingCard({
             clearInterval(pollIntervalRef.current);
             pollIntervalRef.current = null;
           }
-          toast.info('Data sync is taking longer than expected', {
-            description: 'Please refresh the page in a few minutes.',
-            duration: 10000,
-          });
+
+          // Only proceed if component is still mounted
+          if (isMountedRef.current) {
+            // Track the polling timeout as a failure event
+            safeTrackEvent('repository_tracking_failed', {
+              repository: `${owner}/${repo}`,
+              owner,
+              repo,
+              errorType: 'POLLING_TIMEOUT',
+              pollAttempts: pollCount,
+            });
+
+            toast.info('Data sync is taking longer than expected', {
+              description: 'Please refresh the page in a few minutes.',
+              duration: 10000,
+            });
+          }
         }
       } catch (err) {
         // Silently continue polling

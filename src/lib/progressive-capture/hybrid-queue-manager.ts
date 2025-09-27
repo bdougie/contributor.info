@@ -302,7 +302,7 @@ export class HybridQueueManager {
         const { sendInngestEvent } = await import('../inngest/client-safe');
         await sendInngestEvent({
           name: eventName,
-          data: eventData,
+          data: eventData as Record<string, unknown>,
         });
         console.log(
           `[HybridQueue] Event ${eventName} queued successfully via client-safe API for`,
@@ -320,7 +320,7 @@ export class HybridQueueManager {
         );
       }
     } catch (error) {
-      console.error(`[HybridQueue] Failed to send event ${eventName}:`, error);
+      console.error('[HybridQueue] Failed to send event %s:', eventName, error);
       (jobTracker as { failure?: (msg: string) => void })?.failure?.(
         `Failed to send ${eventName}: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
@@ -577,7 +577,7 @@ export class HybridQueueManager {
       const rollbackTriggered = await hybridRolloutManager.checkAndTriggerAutoRollback();
 
       if (rollbackTriggered) {
-        console.log(`[HybridQueue] Auto-rollback triggered due to high error rate`);
+        console.log('[HybridQueue] Auto-rollback triggered due to high error rate');
 
         // Optionally notify monitoring systems or send alerts
         // This could integrate with Sentry, PostHog, or other monitoring tools
@@ -629,15 +629,29 @@ export class HybridQueueManager {
 
   /**
    * Queue recent data capture (routes to Inngest)
+   * Now also captures issue comments along with PR data
    */
   async queueRecentDataCapture(repositoryId: string, repositoryName: string): Promise<HybridJob> {
-    return this.queueJob('recent-prs', {
+    // Queue recent PRs
+    const prJob = await this.queueJob('recent-prs', {
       repositoryId,
       repositoryName,
       timeRange: 1, // Last 24 hours
       triggerSource: 'automatic',
       maxItems: 50,
     });
+
+    // Also queue comments (PR and issue comments)
+    // This will trigger capture/pr.comments event for both PR and issue comments
+    await this.queueJob('comments', {
+      repositoryId,
+      repositoryName,
+      timeRange: 7, // Get more comment history for better first responder data
+      triggerSource: 'automatic',
+      maxItems: 100,
+    });
+
+    return prJob;
   }
 
   /**

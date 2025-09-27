@@ -21,7 +21,8 @@ const ATOM_PATH = path.join(PUBLIC_DIR, 'changelog-atom.xml');
 
 const SITE_URL = 'https://contributor.info';
 const FEED_TITLE = 'contributor.info Changelog';
-const FEED_DESCRIPTION = 'All notable changes to contributor.info - the platform for understanding open source repository health and dynamics.';
+const FEED_DESCRIPTION =
+  'All notable changes to contributor.info - the platform for understanding open source repository health and dynamics.';
 const FEED_AUTHOR = 'contributor.info Team';
 const FEED_EMAIL = 'team@contributor.info';
 
@@ -30,25 +31,25 @@ const FEED_EMAIL = 'team@contributor.info';
  */
 function parseChangelog(content) {
   const entries = [];
-  
+
   // Updated regex to handle markdown links in version headers
   const versionRegex = /## \[([0-9.]+)\]\(([^)]+)\) \((.+?)\)/g;
   const matches = [...content.matchAll(versionRegex)];
-  
+
   for (let i = 0; i < matches.length; i++) {
     const match = matches[i];
     const version = match[1];
     const versionLink = match[2];
     const date = match[3];
-    
+
     // Extract content between this version and the next
     const startIndex = match.index + match[0].length;
     const endIndex = matches[i + 1]?.index || content.length;
     const entryContent = content.slice(startIndex, endIndex).trim();
-    
+
     // Parse the content into sections
     const sections = parseVersionContent(entryContent);
-    
+
     entries.push({
       version,
       versionLink,
@@ -57,10 +58,10 @@ function parseChangelog(content) {
       title: `Version ${version}`,
       content: entryContent,
       sections,
-      guid: `${SITE_URL}/changelog#version-${version.replace(/\./g, '-')}`
+      guid: `${SITE_URL}/changelog#version-${version.replace(/\./g, '-')}`,
     });
   }
-  
+
   return entries;
 }
 
@@ -73,12 +74,12 @@ function parseVersionContent(content) {
     fixes: [],
     performance: [],
     documentation: [],
-    breaking: []
+    breaking: [],
   };
-  
+
   const lines = content.split('\n');
   let currentSection = null;
-  
+
   for (const line of lines) {
     // Detect section headers
     if (line.includes('### 🚀 Features') || line.includes('### Features')) {
@@ -97,7 +98,7 @@ function parseVersionContent(content) {
       sections[currentSection].push(item);
     }
   }
-  
+
   return sections;
 }
 
@@ -109,7 +110,9 @@ function parseDate(dateStr) {
   const date = new Date(dateStr);
   if (isNaN(date.getTime())) {
     // Throw error for invalid dates to ensure changelog integrity
-    throw new Error(`Invalid date format in changelog: "${dateStr}". Please use a valid date format like "2025-01-15" or "January 15, 2025"`);
+    throw new Error(
+      `Invalid date format in changelog: "${dateStr}". Please use a valid date format like "2025-01-15" or "January 15, 2025"`
+    );
   }
   return date;
 }
@@ -137,35 +140,35 @@ function markdownToHtml(markdown) {
       gfm: true,
       headerIds: false,
       mangle: false,
-      sanitize: false // We're escaping XML separately
+      sanitize: false, // We're escaping XML separately
     });
-    
+
     return marked.parse(markdown);
   } catch (error) {
     console.warn('Failed to parse markdown with marked, using fallback:', error.message);
     // Fallback to simple conversion
     let html = markdown;
-    
+
     // Convert headers
     html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
     html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
-    
+
     // Convert bold
     html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-    
+
     // Convert links
     html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
-    
+
     // Convert list items
     html = html.replace(/^\* (.+)$/gm, '<li>$1</li>');
-    
+
     // Wrap consecutive list items in ul tags
     html = html.replace(/(<li>.*<\/li>\n?)+/g, (match) => `<ul>${match}</ul>`);
-    
+
     // Convert line breaks
     html = html.replace(/\n\n/g, '</p><p>');
     html = `<p>${html}</p>`;
-    
+
     return html;
   }
 }
@@ -175,7 +178,7 @@ function markdownToHtml(markdown) {
  */
 function generateRss(entries) {
   const now = new Date().toUTCString();
-  
+
   let rss = `<?xml version="1.0" encoding="UTF-8" ?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
@@ -197,9 +200,10 @@ function generateRss(entries) {
 `;
 
   // Add entries
-  for (const entry of entries.slice(0, 20)) { // Limit to 20 most recent
+  for (const entry of entries.slice(0, 20)) {
+    // Limit to 20 most recent
     const htmlContent = generateEntryHtml(entry);
-    
+
     rss += `
     <item>
       <title>${escapeXml(entry.title)} - ${escapeXml(entry.dateString)}</title>
@@ -211,7 +215,7 @@ function generateRss(entries) {
       <author>${FEED_EMAIL} (${FEED_AUTHOR})</author>
       <category>Release</category>
 `;
-    
+
     // Add categories based on content
     if (entry.sections.features.length > 0) {
       rss += `      <category>Features</category>\n`;
@@ -222,14 +226,14 @@ function generateRss(entries) {
     if (entry.sections.breaking.length > 0) {
       rss += `      <category>Breaking Changes</category>\n`;
     }
-    
+
     rss += `    </item>`;
   }
-  
+
   rss += `
   </channel>
 </rss>`;
-  
+
   return rss;
 }
 
@@ -238,7 +242,7 @@ function generateRss(entries) {
  */
 function generateAtom(entries) {
   const now = new Date().toISOString();
-  
+
   let atom = `<?xml version="1.0" encoding="UTF-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom" xmlns:webfeeds="http://webfeeds.org/rss/1.0">
   <title>${escapeXml(FEED_TITLE)}</title>
@@ -260,7 +264,7 @@ function generateAtom(entries) {
   // Add entries
   for (const entry of entries.slice(0, 20)) {
     const htmlContent = generateEntryHtml(entry);
-    
+
     atom += `
   <entry>
     <title>${escapeXml(entry.title)} - ${escapeXml(entry.dateString)}</title>
@@ -275,7 +279,7 @@ function generateAtom(entries) {
       <email>${FEED_EMAIL}</email>
     </author>
 `;
-    
+
     // Add categories
     if (entry.sections.features.length > 0) {
       atom += `    <category term="Features"/>\n`;
@@ -286,13 +290,13 @@ function generateAtom(entries) {
     if (entry.sections.breaking.length > 0) {
       atom += `    <category term="Breaking Changes"/>\n`;
     }
-    
+
     atom += `  </entry>`;
   }
-  
+
   atom += `
 </feed>`;
-  
+
   return atom;
 }
 
@@ -302,7 +306,7 @@ function generateAtom(entries) {
 function generateEntryHtml(entry) {
   let html = `<h2>${escapeXml(entry.title)}</h2>\n`;
   html += `<p><strong>Released on ${escapeXml(entry.dateString)}</strong></p>\n`;
-  
+
   if (entry.sections.features.length > 0) {
     html += '<h3>🚀 Features</h3>\n<ul>\n';
     for (const feature of entry.sections.features) {
@@ -310,7 +314,7 @@ function generateEntryHtml(entry) {
     }
     html += '</ul>\n';
   }
-  
+
   if (entry.sections.fixes.length > 0) {
     html += '<h3>🐛 Bug Fixes</h3>\n<ul>\n';
     for (const fix of entry.sections.fixes) {
@@ -318,7 +322,7 @@ function generateEntryHtml(entry) {
     }
     html += '</ul>\n';
   }
-  
+
   if (entry.sections.performance.length > 0) {
     html += '<h3>⚡ Performance Improvements</h3>\n<ul>\n';
     for (const perf of entry.sections.performance) {
@@ -326,7 +330,7 @@ function generateEntryHtml(entry) {
     }
     html += '</ul>\n';
   }
-  
+
   if (entry.sections.breaking.length > 0) {
     html += '<h3>⚠️ Breaking Changes</h3>\n<ul>\n';
     for (const breaking of entry.sections.breaking) {
@@ -334,11 +338,11 @@ function generateEntryHtml(entry) {
     }
     html += '</ul>\n';
   }
-  
+
   if (entry.versionLink) {
     html += `<p><a href="${escapeXml(entry.versionLink)}">View full release notes on GitHub</a></p>\n`;
   }
-  
+
   return html;
 }
 
@@ -347,7 +351,7 @@ function generateEntryHtml(entry) {
  */
 function generateEntrySummary(entry) {
   const parts = [];
-  
+
   if (entry.sections.features.length > 0) {
     parts.push(`${entry.sections.features.length} new features`);
   }
@@ -360,11 +364,11 @@ function generateEntrySummary(entry) {
   if (entry.sections.breaking.length > 0) {
     parts.push(`${entry.sections.breaking.length} breaking changes`);
   }
-  
+
   if (parts.length === 0) {
     return 'Release notes for ' + entry.title;
   }
-  
+
   return parts.join(', ') + '.';
 }
 
@@ -378,48 +382,48 @@ function main() {
       console.error('CHANGELOG.md not found');
       process.exit(1);
     }
-    
+
     const changelogContent = fs.readFileSync(CHANGELOG_PATH, 'utf-8');
-    
+
     // Parse entries
     const entries = parseChangelog(changelogContent);
-    
+
     if (entries.length === 0) {
       console.warn('No version entries found in changelog');
       process.exit(0);
     }
-    
+
     console.log(`Found ${entries.length} changelog entries`);
-    
+
     // Ensure public directory exists
     if (!fs.existsSync(PUBLIC_DIR)) {
       fs.mkdirSync(PUBLIC_DIR, { recursive: true });
     }
-    
+
     // Generate and write RSS feed
     const rssFeed = generateRss(entries);
     fs.writeFileSync(RSS_PATH, rssFeed, 'utf-8');
     console.log(`✅ Generated RSS feed: ${RSS_PATH}`);
-    
+
     // Generate and write Atom feed
     const atomFeed = generateAtom(entries);
     fs.writeFileSync(ATOM_PATH, atomFeed, 'utf-8');
     console.log(`✅ Generated Atom feed: ${ATOM_PATH}`);
-    
+
     // Update feed metadata file for monitoring
     const metadata = {
       lastGenerated: new Date().toISOString(),
       entriesCount: entries.length,
       latestVersion: entries[0]?.version,
-      latestDate: entries[0]?.date.toISOString()
+      latestDate: entries[0]?.date.toISOString(),
     };
-    
+
     fs.writeFileSync(
       path.join(PUBLIC_DIR, 'changelog-feeds.json'),
       JSON.stringify(metadata, null, 2),
       'utf-8'
     );
-    
+
     console.log('✅ Feed generation complete');
   } catch (error) {
     console.error('Error generating feeds:', error);

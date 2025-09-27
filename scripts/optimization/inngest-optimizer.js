@@ -2,7 +2,7 @@
 
 /**
  * Inngest Performance Optimizer
- * 
+ *
  * Optimizes Inngest functions for recent data processing:
  * - Reduces concurrency limits for real-time responsiveness
  * - Optimizes for < 100 items per job
@@ -13,32 +13,29 @@ const { createClient } = require('@supabase/supabase-js');
 
 class InngestOptimizer {
   constructor() {
-    this.supabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_KEY
-    );
-    
+    this.supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+
     this.optimizations = {
       concurrency: {
         current: 10,
         optimal: 3,
-        reason: 'Lower concurrency for real-time responsiveness'
+        reason: 'Lower concurrency for real-time responsiveness',
       },
       batchSize: {
         current: 100,
         optimal: 25,
-        reason: 'Smaller batches for faster user feedback'
+        reason: 'Smaller batches for faster user feedback',
       },
       timeout: {
         current: 300000, // 5 minutes
         optimal: 120000, // 2 minutes
-        reason: 'Shorter timeout for quick failure detection'
+        reason: 'Shorter timeout for quick failure detection',
       },
       retries: {
         current: 3,
         optimal: 2,
-        reason: 'Fewer retries for faster failure handling'
-      }
+        reason: 'Fewer retries for faster failure handling',
+      },
     };
   }
 
@@ -47,26 +44,25 @@ class InngestOptimizer {
    */
   async optimize() {
     console.log('🚀 Starting Inngest optimization...\n');
-    
+
     try {
       // Analyze current performance
       const currentMetrics = await this.analyzeCurrentPerformance();
       console.log('📊 Current performance metrics:');
       this.displayMetrics(currentMetrics);
-      
+
       // Generate optimization recommendations
       const recommendations = await this.generateOptimizations(currentMetrics);
       console.log('\n💡 Optimization recommendations:');
       this.displayRecommendations(recommendations);
-      
+
       // Apply optimizations
       const results = await this.applyOptimizations(recommendations);
       console.log('\n✅ Optimization results:');
       this.displayResults(results);
-      
+
       // Generate optimization report
       await this.generateOptimizationReport(currentMetrics, recommendations, results);
-      
     } catch (error) {
       console.error('❌ Optimization failed:', error);
       process.exit(1);
@@ -85,7 +81,7 @@ class InngestOptimizer {
       costEfficiency: 0,
       recentJobsCount: 0,
       avgItemsPerJob: 0,
-      timeoutRate: 0
+      timeoutRate: 0,
     };
 
     // Get recent Inngest jobs (last 7 days)
@@ -104,33 +100,33 @@ class InngestOptimizer {
     metrics.recentJobsCount = recentJobs.length;
 
     // Calculate response times
-    const completedJobs = recentJobs.filter(job => 
-      job.status === 'completed' && job.started_at && job.completed_at
+    const completedJobs = recentJobs.filter(
+      (job) => job.status === 'completed' && job.started_at && job.completed_at
     );
-    
+
     if (completedJobs.length > 0) {
-      const responseTimes = completedJobs.map(job => 
-        new Date(job.completed_at) - new Date(job.started_at)
+      const responseTimes = completedJobs.map(
+        (job) => new Date(job.completed_at) - new Date(job.started_at)
       );
       metrics.avgResponseTime = responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length;
     }
 
     // Calculate success rate
-    const successfulJobs = recentJobs.filter(job => job.status === 'completed');
+    const successfulJobs = recentJobs.filter((job) => job.status === 'completed');
     metrics.successRate = (successfulJobs.length / recentJobs.length) * 100;
 
     // Calculate timeout rate
-    const timeoutJobs = recentJobs.filter(job => 
-      job.status === 'failed' && job.error && job.error.includes('timeout')
+    const timeoutJobs = recentJobs.filter(
+      (job) => job.status === 'failed' && job.error && job.error.includes('timeout')
     );
     metrics.timeoutRate = (timeoutJobs.length / recentJobs.length) * 100;
 
     // Estimate average items per job
-    const jobsWithMetadata = recentJobs.filter(job => job.metadata?.max_items);
+    const jobsWithMetadata = recentJobs.filter((job) => job.metadata?.max_items);
     if (jobsWithMetadata.length > 0) {
-      metrics.avgItemsPerJob = jobsWithMetadata.reduce(
-        (sum, job) => sum + (job.metadata.max_items || 0), 0
-      ) / jobsWithMetadata.length;
+      metrics.avgItemsPerJob =
+        jobsWithMetadata.reduce((sum, job) => sum + (job.metadata.max_items || 0), 0) /
+        jobsWithMetadata.length;
     }
 
     // User satisfaction score (based on response time and success rate)
@@ -152,7 +148,8 @@ class InngestOptimizer {
     const recommendations = [];
 
     // Response time optimization
-    if (currentMetrics.avgResponseTime > 60000) { // > 1 minute
+    if (currentMetrics.avgResponseTime > 60000) {
+      // > 1 minute
       recommendations.push({
         type: 'response_time',
         priority: 'high',
@@ -162,9 +159,9 @@ class InngestOptimizer {
           'Reduce batch size from 100 to 25 items',
           'Lower concurrency from 10 to 3 parallel jobs',
           'Implement aggressive caching for recent data',
-          'Use GraphQL for more efficient API calls'
+          'Use GraphQL for more efficient API calls',
         ],
-        expectedImprovement: '40-50% faster response times'
+        expectedImprovement: '40-50% faster response times',
       });
     }
 
@@ -179,9 +176,9 @@ class InngestOptimizer {
           'Implement better error handling and retries',
           'Add circuit breaker for external API calls',
           'Optimize timeout handling',
-          'Add fallback mechanisms'
+          'Add fallback mechanisms',
         ],
-        expectedImprovement: '15-20% improvement in success rate'
+        expectedImprovement: '15-20% improvement in success rate',
       });
     }
 
@@ -196,9 +193,9 @@ class InngestOptimizer {
           'Reduce function timeout from 5min to 2min',
           'Implement progressive timeout strategy',
           'Add better progress tracking',
-          'Optimize database queries'
+          'Optimize database queries',
         ],
-        expectedImprovement: '60-70% reduction in timeout failures'
+        expectedImprovement: '60-70% reduction in timeout failures',
       });
     }
 
@@ -213,9 +210,9 @@ class InngestOptimizer {
           'Add real-time progress indicators',
           'Implement optimistic UI updates',
           'Provide better error messages',
-          'Add estimated completion times'
+          'Add estimated completion times',
         ],
-        expectedImprovement: 'Significant improvement in user satisfaction'
+        expectedImprovement: 'Significant improvement in user satisfaction',
       });
     }
 
@@ -230,9 +227,9 @@ class InngestOptimizer {
           'Route large batches to GitHub Actions',
           'Implement smart batch splitting',
           'Use hybrid routing more aggressively',
-          'Cache frequently accessed data'
+          'Cache frequently accessed data',
         ],
-        expectedImprovement: '30-40% cost reduction'
+        expectedImprovement: '30-40% cost reduction',
       });
     }
 
@@ -247,21 +244,21 @@ class InngestOptimizer {
 
     for (const rec of recommendations) {
       console.log(`\n🔧 Applying ${rec.type} optimizations...`);
-      
+
       try {
         const result = await this.applyOptimization(rec);
         results.push({
           type: rec.type,
           success: true,
           result,
-          message: `Successfully applied ${rec.type} optimizations`
+          message: `Successfully applied ${rec.type} optimizations`,
         });
       } catch (error) {
         results.push({
           type: rec.type,
           success: false,
           error: error.message,
-          message: `Failed to apply ${rec.type} optimizations`
+          message: `Failed to apply ${rec.type} optimizations`,
         });
       }
     }
@@ -299,7 +296,7 @@ class InngestOptimizer {
       batchSize: this.optimizations.batchSize.optimal,
       enableCaching: true,
       useGraphQL: true,
-      aggressiveOptimizations: true
+      aggressiveOptimizations: true,
     };
 
     await this.saveOptimizationConfig('response_time', config);
@@ -312,7 +309,7 @@ class InngestOptimizer {
       circuitBreakerThreshold: 5,
       fallbackEnabled: true,
       enhancedErrorHandling: true,
-      progressiveBackoff: true
+      progressiveBackoff: true,
     };
 
     await this.saveOptimizationConfig('reliability', config);
@@ -324,7 +321,7 @@ class InngestOptimizer {
       functionTimeout: this.optimizations.timeout.optimal,
       progressiveTimeout: true,
       timeoutAlerts: true,
-      queryOptimization: true
+      queryOptimization: true,
     };
 
     await this.saveOptimizationConfig('timeout_handling', config);
@@ -337,7 +334,7 @@ class InngestOptimizer {
       optimisticUpdates: true,
       betterErrorMessages: true,
       completionTimeEstimates: true,
-      progressWebhooks: true
+      progressWebhooks: true,
     };
 
     await this.saveOptimizationConfig('user_experience', config);
@@ -350,7 +347,7 @@ class InngestOptimizer {
       aggressiveHybridRouting: true,
       intelligentCaching: true,
       costAwareScheduling: true,
-      resourcePooling: true
+      resourcePooling: true,
     };
 
     await this.saveOptimizationConfig('cost_efficiency', config);
@@ -361,15 +358,13 @@ class InngestOptimizer {
    * Save optimization configuration
    */
   async saveOptimizationConfig(type, config) {
-    const { error } = await this.supabase
-      .from('optimization_configs')
-      .upsert({
-        processor_type: 'inngest',
-        optimization_type: type,
-        configuration: config,
-        applied_at: new Date().toISOString(),
-        status: 'active'
-      });
+    const { error } = await this.supabase.from('optimization_configs').upsert({
+      processor_type: 'inngest',
+      optimization_type: type,
+      configuration: config,
+      applied_at: new Date().toISOString(),
+      status: 'active',
+    });
 
     if (error) {
       throw new Error(`Failed to save optimization config: ${error.message}`);
@@ -388,16 +383,16 @@ class InngestOptimizer {
       results,
       summary: {
         totalOptimizations: recommendations.length,
-        successfulOptimizations: results.filter(r => r.success).length,
-        expectedImprovements: this.calculateExpectedImprovements(recommendations)
-      }
+        successfulOptimizations: results.filter((r) => r.success).length,
+        expectedImprovements: this.calculateExpectedImprovements(recommendations),
+      },
     };
 
     // Save report
     const fs = require('fs');
     const reportsDir = './optimization-reports';
     fs.mkdirSync(reportsDir, { recursive: true });
-    
+
     const reportPath = `${reportsDir}/inngest-optimization-${Date.now()}.json`;
     fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
 
@@ -423,12 +418,12 @@ class InngestOptimizer {
       console.log(`     Current: ${rec.current} → Target: ${rec.target}`);
       console.log(`     Expected: ${rec.expectedImprovement}`);
       console.log(`     Actions:`);
-      rec.actions.forEach(action => console.log(`       • ${action}`));
+      rec.actions.forEach((action) => console.log(`       • ${action}`));
     });
   }
 
   displayResults(results) {
-    results.forEach(result => {
+    results.forEach((result) => {
       const status = result.success ? '✅' : '❌';
       console.log(`  ${status} ${result.type}: ${result.message}`);
     });
@@ -439,7 +434,7 @@ class InngestOptimizer {
       responseTime: '40-50% faster',
       successRate: '15-20% improvement',
       userSatisfaction: '25-30% improvement',
-      costEfficiency: '30-40% reduction'
+      costEfficiency: '30-40% reduction',
     };
   }
 }

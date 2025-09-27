@@ -139,6 +139,38 @@ If a test hangs in CI:
 2. **Root Cause**: Look for forbidden patterns above
 3. **Replacement**: Write simpler unit tests or move to E2E
 
+## ESLint Rules for Test Files
+
+The following ESLint rules automatically prevent async/await patterns in test files:
+
+```javascript
+// In eslint.config.js
+{
+  files: ['**/*.test.{ts,tsx}', '**/__tests__/**/*.{ts,tsx}'],
+  rules: {
+    'no-restricted-syntax': [
+      'error',
+      {
+        selector: 'FunctionDeclaration[async=true]',
+        message: 'Async functions are forbidden in unit tests. Use synchronous patterns only.',
+      },
+      {
+        selector: 'ArrowFunctionExpression[async=true]',
+        message: 'Async arrow functions are forbidden in unit tests. Use synchronous patterns only.',
+      },
+      {
+        selector: 'AwaitExpression',
+        message: 'await expressions are forbidden in unit tests. Use synchronous mocks instead.',
+      },
+      {
+        selector: 'CallExpression[callee.name="waitFor"]',
+        message: 'waitFor() is forbidden in unit tests as it can hang indefinitely.',
+      },
+    ],
+  },
+}
+```
+
 ## CI Configuration
 
 Update package.json scripts:
@@ -146,6 +178,13 @@ Update package.json scripts:
 {
   "test": "vitest run --config vitest.config.simple.ts",
   "test:quick": "vitest run --config vitest.config.simple.ts --bail 1"
+}
+```
+
+Run ESLint before tests to catch async patterns:
+```json
+{
+  "test:lint": "eslint src/**/*.test.{ts,tsx} --max-warnings=0"
 }
 ```
 

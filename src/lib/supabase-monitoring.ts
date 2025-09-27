@@ -105,7 +105,7 @@ class SupabaseMonitoring {
       // Log slow queries as warnings
       if (metrics.duration > MONITORING_CONFIG.slowQueryThreshold) {
         // Simple error logging without analytics
-        console.error(`Slow query detected: ${metrics.operation}`, {
+        console.error('Slow query detected: %s', metrics.operation, {
           level: 'warning',
           tags: {
             component: 'database',

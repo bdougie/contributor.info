@@ -7,7 +7,7 @@ const sleep = promisify(setTimeout);
 // Install Playwright browsers if needed
 async function ensurePlaywrightBrowsers() {
   console.log('Checking Playwright browser installation...');
-  
+
   try {
     // Try to launch browser to check if it's installed
     const browser = await chromium.launch({ headless: true });
@@ -15,16 +15,18 @@ async function ensurePlaywrightBrowsers() {
     console.log('Playwright browsers already installed');
     return true;
   } catch (error) {
-    if (error.message.includes('Executable doesn\'t exist') || 
-        error.message.includes('Browser is not installed')) {
+    if (
+      error.message.includes("Executable doesn't exist") ||
+      error.message.includes('Browser is not installed')
+    ) {
       console.log('Installing Playwright browsers...');
-      
+
       return new Promise((resolve) => {
         const install = spawn('npx', ['playwright', 'install', 'chromium'], {
           stdio: 'inherit',
-          cwd: process.cwd()
+          cwd: process.cwd(),
         });
-        
+
         install.on('close', (code) => {
           if (code === 0) {
             console.log('Playwright browsers installed successfully');
@@ -34,9 +36,11 @@ async function ensurePlaywrightBrowsers() {
             resolve(false);
           }
         });
-        
+
         install.on('error', (error) => {
-          console.warn(`Failed to install Playwright browsers: ${error.message} - skipping social cards`);
+          console.warn(
+            `Failed to install Playwright browsers: ${error.message} - skipping social cards`
+          );
           resolve(false);
         });
       });
@@ -66,18 +70,18 @@ async function waitForServer(url, maxAttempts = 30) {
 
 async function generateSocialCardsWithPreview() {
   console.log('Starting preview server for social card generation...');
-  
+
   // Ensure Playwright browsers are installed
   const browsersReady = await ensurePlaywrightBrowsers();
   if (!browsersReady) {
     console.log('Skipping social card generation due to Playwright installation failure');
     return;
   }
-  
+
   // Start the preview server
   const server = spawn('npm', ['run', 'preview'], {
     stdio: 'pipe',
-    cwd: process.cwd()
+    cwd: process.cwd(),
   });
 
   // Set up server output logging
@@ -92,12 +96,12 @@ async function generateSocialCardsWithPreview() {
   try {
     // Wait for the server to be ready
     await waitForServer('http://localhost:4173');
-    
+
     // Test that social card routes work
     console.log('Testing social card routes...');
     const browser = await chromium.launch({ headless: true });
     const page = await browser.newPage();
-    
+
     try {
       await page.goto('http://localhost:4173/social-cards/home');
       await page.waitForTimeout(2000);
@@ -108,16 +112,15 @@ async function generateSocialCardsWithPreview() {
     } finally {
       await browser.close();
     }
-    
+
     // Now run the social card generation script
     console.log('Generating social cards...');
     const { default: generateCards } = await import('./generate-social-cards.js');
-    
   } finally {
     // Clean up: kill the preview server
     console.log('Stopping preview server...');
     server.kill('SIGTERM');
-    
+
     // Give it a moment to clean up
     await sleep(1000);
   }

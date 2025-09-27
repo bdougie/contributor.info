@@ -26,14 +26,14 @@ const mockPullRequestPayload = {
     id: 123,
     number: 1,
     user: { id: 456, login: 'testuser' },
-    draft: false
+    draft: false,
   },
   repository: {
     id: 789,
     name: 'repo',
-    owner: { login: 'test' }
+    owner: { login: 'test' },
   },
-  installation: { id: 999 }
+  installation: { id: 999 },
 };
 
 describe('GitHub Webhook Handler - Unit Tests', () => {
@@ -50,25 +50,25 @@ describe('GitHub Webhook Handler - Unit Tests', () => {
       from: vi.fn(() => ({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
-            maybeSingle: vi.fn(() => ({ data: null, error: null }))
-          }))
-        }))
-      }))
+            maybeSingle: vi.fn(() => ({ data: null, error: null })),
+          })),
+        })),
+      })),
     };
 
     mockHandlers = {
       handlePullRequest: vi.fn(() => ({ success: true })),
       handleIssue: vi.fn(() => ({ success: true })),
-      handlePRWithReviewerSuggestions: vi.fn(() => ({ success: true }))
+      handlePRWithReviewerSuggestions: vi.fn(() => ({ success: true })),
     };
 
     // Mock app structure
     mockApp = {
       webhooks: {
         on: vi.fn(),
-        verifyAndReceive: vi.fn()
+        verifyAndReceive: vi.fn(),
       },
-      getInstallationOctokit: vi.fn()
+      getInstallationOctokit: vi.fn(),
     };
   });
 
@@ -76,20 +76,15 @@ describe('GitHub Webhook Handler - Unit Tests', () => {
     it('should validate correct signature format', () => {
       const payload = mockPullRequestPayload;
       const signature = createSignature(payload);
-      
+
       // Simple synchronous validation
       expect(signature).toMatch(/^sha256=[a-f0-9]{64}$/);
     });
 
     it('should detect invalid signature format', () => {
-      const invalidSignatures = [
-        '',
-        'invalid',
-        'sha1=123',
-        'sha256=xyz'
-      ];
+      const invalidSignatures = ['', 'invalid', 'sha1=123', 'sha256=xyz'];
 
-      invalidSignatures.forEach(sig => {
+      invalidSignatures.forEach((sig) => {
         expect(sig).not.toMatch(/^sha256=[a-f0-9]{64}$/);
       });
     });
@@ -97,10 +92,10 @@ describe('GitHub Webhook Handler - Unit Tests', () => {
     it('should generate different signatures for different payloads', () => {
       const payload1 = { data: 'test1' };
       const payload2 = { data: 'test2' };
-      
+
       const sig1 = createSignature(payload1);
       const sig2 = createSignature(payload2);
-      
+
       expect(sig1).not.toBe(sig2);
     });
   });
@@ -109,21 +104,21 @@ describe('GitHub Webhook Handler - Unit Tests', () => {
     it('should identify pull_request events', () => {
       const event = 'pull_request';
       const supportedEvents = ['pull_request', 'issues', 'ping'];
-      
+
       expect(supportedEvents).toContain(event);
     });
 
     it('should identify issue events', () => {
       const event = 'issues';
       const supportedEvents = ['pull_request', 'issues', 'ping'];
-      
+
       expect(supportedEvents).toContain(event);
     });
 
     it('should handle unknown events', () => {
       const event = 'unknown_event';
       const supportedEvents = ['pull_request', 'issues', 'ping'];
-      
+
       expect(supportedEvents).not.toContain(event);
     });
   });
@@ -131,13 +126,13 @@ describe('GitHub Webhook Handler - Unit Tests', () => {
   describe('Payload Validation', () => {
     it('should validate required pull_request fields', () => {
       const payload = mockPullRequestPayload;
-      
+
       // Simple field validation
       expect(payload).toHaveProperty('action');
       expect(payload).toHaveProperty('pull_request');
       expect(payload).toHaveProperty('repository');
       expect(payload).toHaveProperty('installation');
-      
+
       expect(payload.pull_request).toHaveProperty('id');
       expect(payload.pull_request).toHaveProperty('number');
       expect(payload.pull_request).toHaveProperty('user');
@@ -145,7 +140,7 @@ describe('GitHub Webhook Handler - Unit Tests', () => {
 
     it('should validate repository structure', () => {
       const repo = mockPullRequestPayload.repository;
-      
+
       expect(repo).toHaveProperty('id');
       expect(repo).toHaveProperty('name');
       expect(repo).toHaveProperty('owner');
@@ -154,7 +149,7 @@ describe('GitHub Webhook Handler - Unit Tests', () => {
 
     it('should validate installation id exists', () => {
       const installation = mockPullRequestPayload.installation;
-      
+
       expect(installation).toHaveProperty('id');
       expect(typeof installation.id).toBe('number');
     });
@@ -164,13 +159,13 @@ describe('GitHub Webhook Handler - Unit Tests', () => {
     it('should route pull_request opened events', () => {
       const event = 'pull_request';
       const action = 'opened';
-      
+
       const routingMap = {
         'pull_request:opened': 'handlePRWithReviewerSuggestions',
         'pull_request:ready_for_review': 'handlePRWithReviewerSuggestions',
-        'issues:opened': 'handleIssue'
+        'issues:opened': 'handleIssue',
       };
-      
+
       const handler = routingMap[`${event}:${action}`];
       expect(handler).toBe('handlePRWithReviewerSuggestions');
     });
@@ -178,13 +173,13 @@ describe('GitHub Webhook Handler - Unit Tests', () => {
     it('should route issues opened events', () => {
       const event = 'issues';
       const action = 'opened';
-      
+
       const routingMap = {
         'pull_request:opened': 'handlePRWithReviewerSuggestions',
         'pull_request:ready_for_review': 'handlePRWithReviewerSuggestions',
-        'issues:opened': 'handleIssue'
+        'issues:opened': 'handleIssue',
       };
-      
+
       const handler = routingMap[`${event}:${action}`];
       expect(handler).toBe('handleIssue');
     });
@@ -194,10 +189,10 @@ describe('GitHub Webhook Handler - Unit Tests', () => {
         ...mockPullRequestPayload,
         pull_request: {
           ...mockPullRequestPayload.pull_request,
-          draft: true
-        }
+          draft: true,
+        },
       };
-      
+
       // Simple synchronous check
       const shouldProcess = !payload.pull_request.draft;
       expect(shouldProcess).toBe(false);
@@ -206,14 +201,9 @@ describe('GitHub Webhook Handler - Unit Tests', () => {
 
   describe('Error Handling', () => {
     it('should handle missing required fields', () => {
-      const invalidPayloads = [
-        {},
-        { action: 'opened' },
-        { pull_request: {} },
-        { repository: {} }
-      ];
+      const invalidPayloads = [{}, { action: 'opened' }, { pull_request: {} }, { repository: {} }];
 
-      invalidPayloads.forEach(payload => {
+      invalidPayloads.forEach((payload) => {
         const isValid = !!(
           payload.action &&
           payload.pull_request &&
@@ -226,8 +216,8 @@ describe('GitHub Webhook Handler - Unit Tests', () => {
 
     it('should handle malformed installation id', () => {
       const invalidIds = [null, undefined, '', 'string', {}, []];
-      
-      invalidIds.forEach(id => {
+
+      invalidIds.forEach((id) => {
         const isValid = typeof id === 'number' && id > 0;
         expect(isValid).toBe(false);
       });
@@ -239,9 +229,9 @@ describe('GitHub Webhook Handler - Unit Tests', () => {
       const response = {
         success: true,
         event: 'pull_request',
-        action: 'opened'
+        action: 'opened',
       };
-      
+
       expect(response).toHaveProperty('success', true);
       expect(response).toHaveProperty('event');
       expect(response).toHaveProperty('action');
@@ -250,9 +240,9 @@ describe('GitHub Webhook Handler - Unit Tests', () => {
     it('should format error response', () => {
       const response = {
         success: false,
-        error: 'Invalid signature'
+        error: 'Invalid signature',
       };
-      
+
       expect(response).toHaveProperty('success', false);
       expect(response).toHaveProperty('error');
       expect(typeof response.error).toBe('string');
@@ -264,9 +254,9 @@ describe('GitHub Webhook Handler - Unit Tests', () => {
       const health = {
         status: 'healthy',
         timestamp: Date.now(),
-        version: '1.0.0'
+        version: '1.0.0',
       };
-      
+
       expect(health).toHaveProperty('status');
       expect(health).toHaveProperty('timestamp');
       expect(typeof health.timestamp).toBe('number');
@@ -276,9 +266,9 @@ describe('GitHub Webhook Handler - Unit Tests', () => {
       const metrics = {
         eventsProcessed: 100,
         uptime: 3600,
-        memory: process.memoryUsage().heapUsed
+        memory: process.memoryUsage().heapUsed,
       };
-      
+
       expect(metrics).toHaveProperty('eventsProcessed');
       expect(metrics).toHaveProperty('uptime');
       expect(metrics).toHaveProperty('memory');

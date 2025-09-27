@@ -80,8 +80,9 @@ export const FEATURE_FLAG_CONFIGS: Record<FeatureFlagName, FeatureFlagConfig> = 
   [FEATURE_FLAGS.ENABLE_WORKSPACE_CREATION]: {
     name: FEATURE_FLAGS.ENABLE_WORKSPACE_CREATION,
     defaultValue: false,
-    description: 'Enable workspace creation functionality',
+    description: 'Control workspace creation functionality',
     rolloutPercentage: 0,
+    enabledForUsers: [], // Can add specific user IDs for early access
   },
 };
 
@@ -157,12 +158,33 @@ export class PostHogFeatureFlagClient {
 
     const config = FEATURE_FLAG_CONFIGS[flagName];
     if (!config) {
-      console.warn(`[FeatureFlags] Unknown flag: ${flagName}`);
+      console.warn('[FeatureFlags] Unknown flag: %s', flagName);
       return {
         enabled: false,
         value: false,
         reason: 'default',
       };
+    }
+
+    // Check localStorage overrides first (for development)
+    if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+      try {
+        const stored = localStorage.getItem('feature_flag_overrides');
+        if (stored) {
+          const overrides = JSON.parse(stored);
+          if (flagName in overrides) {
+            const result: FeatureFlagResult = {
+              enabled: Boolean(overrides[flagName]),
+              value: overrides[flagName],
+              reason: 'override',
+            };
+            this.cacheFlag(flagName, result);
+            return result;
+          }
+        }
+      } catch (err) {
+        console.error('[FeatureFlags] Error reading localStorage overrides:', err);
+      }
     }
 
     // Check user/org overrides
@@ -200,7 +222,7 @@ export class PostHogFeatureFlagClient {
           return result;
         }
       } catch (error) {
-        console.error(`[FeatureFlags] Error evaluating flag ${flagName}:`, error);
+        console.error('[FeatureFlags] Error evaluating flag %s:', error, flagName);
       }
     }
 
@@ -243,7 +265,11 @@ export class PostHogFeatureFlagClient {
           return variant;
         }
       } catch (error) {
-        console.error(`[FeatureFlags] Error getting experiment variant ${experiment.name}:`, error);
+        console.error(
+          '[FeatureFlags] Error getting experiment variant %s:',
+          error,
+          experiment.name
+        );
       }
     }
 
@@ -296,21 +322,65 @@ export class PostHogFeatureFlagClient {
   // Private methods
 
   private getCachedFlag(flagName: string): FeatureFlagResult | null {
-    if (Date.now() - this.lastCacheUpdate > this.cacheExpiry) {
-      this.clearCache();
-      return null;
+    // Check in-memory cache first
+    const inMemory = this.cache.get(flagName);
+    if (inMemory && Date.now() - this.lastCacheUpdate <= this.cacheExpiry) {
+      return inMemory;
     }
-    return this.cache.get(flagName) || null;
+
+    // Fallback to localStorage cache for offline support
+    if (typeof window !== 'undefined') {
+      try {
+        const cachedFlags = JSON.parse(localStorage.getItem('feature_flag_cache') || '{}');
+        const cached = cachedFlags[flagName];
+        if (cached && cached.result) {
+          // Use cached value if it's less than 24 hours old (for offline support)
+          const age = Date.now() - cached.timestamp;
+          if (age < 24 * 60 * 60 * 1000) {
+            // Update in-memory cache
+            this.cache.set(flagName, cached.result);
+            return cached.result;
+          }
+        }
+      } catch (err) {
+        console.error('[FeatureFlags] Error reading cache:', err);
+      }
+    }
+
+    return null;
   }
 
   private cacheFlag(flagName: string, result: FeatureFlagResult): void {
     this.cache.set(flagName, result);
     this.lastCacheUpdate = Date.now();
+
+    // Persist to localStorage for offline support
+    if (typeof window !== 'undefined') {
+      try {
+        const cachedFlags = JSON.parse(localStorage.getItem('feature_flag_cache') || '{}');
+        cachedFlags[flagName] = {
+          result,
+          timestamp: Date.now(),
+        };
+        localStorage.setItem('feature_flag_cache', JSON.stringify(cachedFlags));
+      } catch (err) {
+        console.error('[FeatureFlags] Error persisting cache:', err);
+      }
+    }
   }
 
   private clearCache(): void {
     this.cache.clear();
     this.lastCacheUpdate = 0;
+
+    // Clear localStorage cache
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem('feature_flag_cache');
+      } catch (err) {
+        console.error('[FeatureFlags] Error clearing cache:', err);
+      }
+    }
   }
 
   private isInRollout(key: string, percentage: number): boolean {

@@ -20,7 +20,7 @@ export const FEATURE_FLAGS = {
   ENABLE_BULK_OPERATIONS: 'enable_bulk_operations',
   ENABLE_ADVANCED_FILTERS: 'enable_advanced_filters',
   ENABLE_EXPORT_FEATURES: 'enable_export_features',
-  ENABLE_WORKSPACE_CREATION: 'enable_workspace_creation',
+  ENABLE_WORKSPACE_CREATION: 'enable_workspace_creation', // Controls workspace creation only
 } as const;
 
 export type FeatureFlagName = (typeof FEATURE_FLAGS)[keyof typeof FEATURE_FLAGS];
