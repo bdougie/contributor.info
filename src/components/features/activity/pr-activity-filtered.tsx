@@ -32,7 +32,11 @@ export default function FilteredPRActivity() {
   }, [pullRequests]);
 
   // Filter by bot status only (spam filtering is handled by SpamFilterControls)
-  const filteredActivities = activities.filter((activity) => includeBots || !detectBot({ username: activity.user.name }).isBot);
+  const filteredActivities = activities.filter((activity) => {
+    // Check both the existing isBot flag and detect using name (which is actually the username/login)
+    const isBot = activity.user.isBot || detectBot({ username: activity.user.name }).isBot;
+    return includeBots || !isBot;
+  });
 
   const visibleActivities = filteredActivities.slice(0, visibleCount);
   const hasMore = visibleActivities.length < filteredActivities.length;
@@ -74,7 +78,7 @@ export default function FilteredPRActivity() {
     );
   }
 
-  const hasBots = activities.some((activity) => detectBot({ username: activity.user.name }).isBot);
+  const hasBots = activities.some((activity) => activity.user.isBot || detectBot({ username: activity.user.name }).isBot);
 
   return (
     <Card>

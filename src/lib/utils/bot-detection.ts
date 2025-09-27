@@ -75,11 +75,16 @@ export function detectBot(input: BotDetectionInput): { isBot: boolean } {
  * Simple boolean check - for cases where you just need true/false
  * Supports both new and legacy interfaces for backward compatibility
  */
-export function isBot(input: BotDetectionInput | { isBot?: boolean; username: string }): boolean {
+export function isBot(input: BotDetectionInput | { isBot?: boolean; username: string; type?: string }): boolean {
   // Handle legacy interface for backward compatibility
   if ('username' in input && !('githubUser' in input)) {
-    const legacyInput = input as { isBot?: boolean; username: string };
-    return legacyInput.isBot === true || legacyInput.username.toLowerCase().includes('bot');
+    const legacyInput = input as { isBot?: boolean; username: string; type?: string };
+    // Check all possible bot indicators for legacy compatibility
+    return (
+      legacyInput.isBot === true ||
+      legacyInput.type === 'Bot' ||
+      detectBotFromUsername(legacyInput.username)
+    );
   }
 
   // Use the new detection logic
