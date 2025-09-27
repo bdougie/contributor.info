@@ -81,22 +81,26 @@ export function ContributorOfTheMonth(props: ContributorOfTheMonthProps) {
 
   const renderSkeleton = ({ className, phase, contributorCount }: {
     className?: string;
-    phase?: 'winner' | 'leaderboard';
-    contributorCount?: number;
+    phase: string;
+    contributorCount: number;
   }) => (
     <ContributorOfMonthSkeleton
       className={className}
-      phase={phase}
+      phase={phase as 'winner' | 'leaderboard'}
       contributorCount={contributorCount}
     />
   );
 
   const renderEmptyState = ({ type, message, className }: {
-    type?: 'no_data' | 'no_activity' | 'minimal_activity' | 'loading_error';
+    type: string;
     message?: string;
     className?: string;
   }) => (
-    <ContributorEmptyState type={type || 'no_data'} message={message} className={className} />
+    <ContributorEmptyState
+      type={(type as 'no_data' | 'no_activity' | 'minimal_activity' | 'loading_error') || 'no_data'}
+      message={message}
+      className={className}
+    />
   );
 
   const renderMinimalActivity = ({ contributors, month, year, className }: {

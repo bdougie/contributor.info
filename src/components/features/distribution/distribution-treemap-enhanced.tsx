@@ -55,15 +55,13 @@ export function DistributionTreemapEnhanced({
       // Extract unique contributors with their GitHub IDs
       const contributors = new Map<number, string>();
 
-      const extractContributors = (node: {
+      type NodeType = {
         login?: string;
         avatar_url?: string;
-        children?: Array<{
-          login?: string;
-          avatar_url?: string;
-          children?: unknown[];
-        }>;
-      }) => {
+        children?: NodeType[];
+      };
+
+      const extractContributors = (node: NodeType): void => {
         if (node.login && node.avatar_url) {
           // Try to extract GitHub ID from avatar URL or use a hash
           const match = node.avatar_url.match(/u\/(\d+)/);
@@ -542,10 +540,25 @@ export function DistributionTreemapEnhanced({
               {data.pr && typeof data.pr === 'object' && (
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">
-                    Size: +{typeof (data.pr as Record<string, unknown>).additions === 'number' ? (data.pr as Record<string, unknown>).additions : 0} -{typeof (data.pr as Record<string, unknown>).deletions === 'number' ? (data.pr as Record<string, unknown>).deletions : 0} lines
+                    Size: +{(() => {
+                      const pr = data.pr as Record<string, unknown>;
+                      const additions = typeof pr.additions === 'number' ? pr.additions : 0;
+                      return additions;
+                    })()} -{(() => {
+                      const pr = data.pr as Record<string, unknown>;
+                      const deletions = typeof pr.deletions === 'number' ? pr.deletions : 0;
+                      return deletions;
+                    })()} lines
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {(typeof (data.pr as Record<string, unknown>).user === 'object' && (data.pr as Record<string, unknown>).user && typeof ((data.pr as Record<string, unknown>).user as Record<string, unknown>).login === 'string' ? ((data.pr as Record<string, unknown>).user as Record<string, unknown>).login : '') || ''} • {(typeof (data.pr as Record<string, unknown>).created_at === 'string' ? new Date((data.pr as Record<string, unknown>).created_at as string).toLocaleDateString() : '')}
+                    {(() => {
+                      const pr = data.pr as Record<string, unknown>;
+                      const user = pr.user as Record<string, unknown> | undefined;
+                      const login = user && typeof user.login === 'string' ? user.login : '';
+                      const createdAt = typeof pr.created_at === 'string' ? pr.created_at : '';
+                      const date = createdAt ? new Date(createdAt).toLocaleDateString() : '';
+                      return `${login}${login && date ? ' • ' : ''}${date}`;
+                    })()}
                   </p>
                   <p className="text-xs font-medium text-primary">Click to open PR →</p>
                 </div>
@@ -579,11 +592,17 @@ export function DistributionTreemapEnhanced({
                           <span className="ml-1 line-clamp-1">{pr.title}</span>
                         </div>
                       ))}
-                      {data.prs && Array.isArray(data.prs) && data.prs.length > 5 && (
-                        <p className="text-xs text-muted-foreground">
-                          +{data.prs.length - 5} more PRs
-                        </p>
-                      )}
+                      {(() => {
+                        const prs = data.prs;
+                        if (prs && Array.isArray(prs) && prs.length > 5) {
+                          return (
+                            <p className="text-xs text-muted-foreground">
+                              +{prs.length - 5} more PRs
+                            </p>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
                   )}
                   <p className="text-xs font-medium text-primary mt-2">Click to view PRs →</p>
