@@ -164,8 +164,7 @@ serve(async (req) => {
       )
       .eq('repository_id', repositoryId)
       .gte('created_at', startDate.toISOString())
-      .lte('created_at', endDate.toISOString())
-      .not('author_id', 'is', null);
+      .lte('created_at', endDate.toISOString());
 
     if (prError) {
       console.error('Error fetching pull requests:', prError);

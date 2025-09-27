@@ -36,7 +36,9 @@ export const supabaseReviewWithContributorSchema = z.object({
   submitted_at: z.string(),
   pull_request_id: z.string().uuid().optional(),
   reviewer_id: z.string().uuid().nullable().optional(),
-  author_id: z.string().uuid().nullable().optional(),
+  // author_id is NOT NULL in database but optional in validation
+  // because some queries (like fetchPRDataSmart) don't select it
+  author_id: z.string().uuid().optional(),
   // Nested contributor from reviewer_id join
   contributors: supabaseContributorNestedSchema,
 });
@@ -81,7 +83,7 @@ export const supabasePullRequestWithRelationsSchema = z.object({
   commits: z.number().nullable(),
   html_url: z.string().url('Invalid HTML URL').nullable(),
   repository_id: z.string().uuid(),
-  author_id: z.string().uuid().nullable(),
+  author_id: z.string().uuid(),
   // Nested contributor from author_id join
   contributors: supabaseContributorNestedSchema,
   // Nested reviews array with contributors
