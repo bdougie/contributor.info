@@ -52,9 +52,24 @@ CREATE POLICY "workspace_member_access" ON table FOR SELECT
 USING (
   workspace_id IN (
     SELECT workspace_id FROM workspace_members
-    WHERE user_id = auth.uid()
+    WHERE user_id = (SELECT auth.uid())
   )
 );
+```
+
+### Service Role Access
+```sql
+-- ❌ WRONG: Re-evaluates for every row
+CREATE POLICY "service_role_all" ON table
+FOR ALL
+USING (auth.role() = 'service_role'::text)
+WITH CHECK (auth.role() = 'service_role'::text);
+
+-- ✅ RIGHT: Evaluates once per query
+CREATE POLICY "service_role_all" ON table
+FOR ALL
+USING ((SELECT auth.role()) = 'service_role'::text)
+WITH CHECK ((SELECT auth.role()) = 'service_role'::text);
 ```
 
 ## Performance Impact
@@ -82,9 +97,12 @@ psql $DATABASE_URL -c "
 ```
 
 ## Remember
-- **91 policies were consolidated in PR #818**
-- **30-40% performance improvement** from consolidation
-- **Always check before creating**
+- **12 auth.uid() policies optimized in PR #821 (Phase 1)**
+- **30+ service role policies optimized in PR #822 (Phase 2)**
+- **91 policies were consolidated in PR #818 (Phase 3)**
+- **50-60% total performance improvement** from all optimizations
+- **Always wrap auth functions in SELECT subqueries**
+- **Always check before creating new policies**
 - **Consolidate when possible**
 - **Document your policies**
 
