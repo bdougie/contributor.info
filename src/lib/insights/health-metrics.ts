@@ -1,4 +1,5 @@
 import { fetchPRDataWithFallback } from '../supabase-pr-data';
+import { toDateOnlyString, toUTCTimestamp } from '../utils/date-formatting';
 
 export interface HealthMetrics {
   score: number; // 0-100
@@ -578,14 +579,14 @@ async function calculateStarForkConfidence(
     .eq('repository_owner', owner)
     .eq('repository_name', repo)
     .in('event_type', ['WatchEvent', 'ForkEvent'])
-    .gte('created_at', cutoffDate.toISOString());
+    .gte('created_at', toDateOnlyString(cutoffDate));
 
   // Get contributors
   const { data: contributorData } = await supabase
     .from('pull_requests')
     .select('contributors!inner(username)')
     .eq('repository_id', repositoryId)
-    .gte('created_at', cutoffDate.toISOString());
+    .gte('created_at', toDateOnlyString(cutoffDate));
 
   const contributors = new Set(
     contributorData?.map((c: any) => c.contributors?.username).filter(Boolean) || []
@@ -594,7 +595,7 @@ async function calculateStarForkConfidence(
   console.log('[Confidence] Star/Fork data for %s/%s:', owner, repo, {
     starForkEvents: starForkEvents?.length || 0,
     contributors: contributors.size,
-    cutoffDate: cutoffDate.toISOString(),
+    cutoffDate: toDateOnlyString(cutoffDate),
   });
 
   if (!starForkEvents?.length) {
@@ -650,14 +651,14 @@ async function calculateStarForkConfidenceWithBreakdown(
     .eq('repository_owner', owner)
     .eq('repository_name', repo)
     .in('event_type', ['WatchEvent', 'ForkEvent'])
-    .gte('created_at', cutoffDate.toISOString());
+    .gte('created_at', toDateOnlyString(cutoffDate));
 
   // Get contributors
   const { data: contributorData } = await supabase
     .from('pull_requests')
     .select('contributors!inner(username)')
     .eq('repository_id', repositoryId)
-    .gte('created_at', cutoffDate.toISOString());
+    .gte('created_at', toDateOnlyString(cutoffDate));
 
   const contributors = new Set(
     contributorData?.map((c: any) => c.contributors?.username).filter(Boolean) || []
@@ -728,14 +729,14 @@ async function calculateEngagementConfidence(
       'PullRequestReviewCommentEvent',
       'CommitCommentEvent',
     ])
-    .gte('created_at', cutoffDate.toISOString());
+    .gte('created_at', toDateOnlyString(cutoffDate));
 
   // Get PR contributors
   const { data: prContributors } = await supabase
     .from('pull_requests')
     .select('contributors!inner(username)')
     .eq('repository_id', repositoryId)
-    .gte('created_at', cutoffDate.toISOString());
+    .gte('created_at', toDateOnlyString(cutoffDate));
 
   const contributors = new Set(
     prContributors?.map((c: any) => c.contributors?.username).filter(Boolean) || []
@@ -770,14 +771,14 @@ async function calculateRetentionConfidence(
       .from('pull_requests')
       .select('contributors!inner(username)')
       .eq('repository_id', repositoryId)
-      .gte('created_at', currentPeriodStart.toISOString()),
+      .gte('created_at', toDateOnlyString(currentPeriodStart)),
 
     supabase
       .from('pull_requests')
       .select('contributors!inner(username)')
       .eq('repository_id', repositoryId)
-      .gte('created_at', previousPeriodStart.toISOString())
-      .lt('created_at', currentPeriodStart.toISOString()),
+      .gte('created_at', toDateOnlyString(previousPeriodStart))
+      .lt('created_at', toDateOnlyString(currentPeriodStart)),
   ]);
 
   const currentSet = new Set(
@@ -811,7 +812,7 @@ async function calculateQualityConfidence(
     .from('pull_requests')
     .select('state, merged_at')
     .eq('repository_id', repositoryId)
-    .gte('created_at', cutoffDate.toISOString());
+    .gte('created_at', toDateOnlyString(cutoffDate));
 
   if (!pullRequests?.length) {
     return 50; // Neutral score if no PR data
@@ -882,7 +883,7 @@ async function calculateBasicFallback(
       .from('pull_requests')
       .select('author_id')
       .eq('repository_id', repoData.id)
-      .gte('created_at', cutoffDate.toISOString());
+      .gte('created_at', toDateOnlyString(cutoffDate));
 
     const uniqueContributors = new Set(recentContributors?.map((c) => c.author_id) || []).size;
 
@@ -947,7 +948,7 @@ async function getCachedConfidenceScore(
       .eq('repository_owner', owner)
       .eq('repository_name', repo)
       .eq('time_range_days', timeRangeDays)
-      .gt('expires_at', new Date().toISOString())
+      .gt('expires_at', toUTCTimestamp(new Date()))
       .maybeSingle();
 
     if (error || !data) {
@@ -1001,7 +1002,7 @@ async function cacheConfidenceScore(
       repository_name: repo,
       time_range_days: timeRangeDays,
       confidence_score: score,
-      expires_at: expiresAt.toISOString(),
+      expires_at: toUTCTimestamp(expiresAt),
       last_sync_at: syncData?.last_sync_at || null,
       calculation_time_ms: calculationTimeMs,
       data_version: 1, // Current algorithm version
