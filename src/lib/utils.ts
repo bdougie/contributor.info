@@ -1,6 +1,7 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import type { PullRequest, LotteryFactor, ContributorStats } from './types';
+import { detectBot } from './utils/bot-detection';
 
 // Re-export mobile detection utilities
 export {
@@ -100,7 +101,7 @@ export function calculateLotteryFactor(
   // Filter by time range and optionally by bot status
   const recentPRs = prs.filter((pr) => {
     const isRecent = new Date(pr.created_at) > daysAgo;
-    const isBot = pr.user.type === 'Bot';
+    const isBot = detectBot({ githubUser: pr.user }).isBot;
 
     // If includeBots is false, filter out bots
     if (!includeBots && isBot) {

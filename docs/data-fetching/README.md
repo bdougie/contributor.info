@@ -8,6 +8,13 @@ The Smart Data Fetching system is a sophisticated data pipeline that ensures all
 
 ## Documentation Structure
 
+### 🤖 [Bot Detection System](./bot-detection.md) **NEW - Jan 2025**
+Centralized bot detection for accurate contributor metrics:
+- Unified detection logic across all components
+- Priority-based detection (GitHub API type > username patterns)
+- Edge Function support for Supabase runtime
+- Database integration for historical tracking
+
 ### 🚀 [Hybrid Job Processing](../infrastructure/hybrid-job-processing.md) **NEW - Jan 2025**
 Revolutionary hybrid approach solving 60% timeout failures:
 - Intelligent job routing between Netlify (10s) and Supabase Edge Functions (150s)

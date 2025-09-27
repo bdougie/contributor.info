@@ -3,6 +3,7 @@ import { supabase } from '../../supabase';
 import { getOctokit } from '../github-client';
 import { SyncLogger } from '../sync-logger';
 import { NonRetriableError } from 'inngest';
+import { detectBot } from '../../utils/bot-detection';
 
 // GitHub Issue from API
 interface GitHubIssue {
@@ -183,7 +184,7 @@ export const captureRepositoryIssues = inngest.createFunction(
               github_id: issue.user.id,
               username: issue.user.login,
               avatar_url: issue.user.avatar_url,
-              is_bot: issue.user.type === 'Bot' || issue.user.login.includes('[bot]'),
+              is_bot: detectBot({ githubUser: issue.user }).isBot,
             })
             .select('id')
             .maybeSingle();

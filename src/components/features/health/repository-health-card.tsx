@@ -9,6 +9,7 @@ import { useTimeRangeStore } from '@/lib/time-range-store';
 import { RepositoryHealthOverall } from '@/components/insights/sections/repository-health-overall';
 import { RepositoryHealthFactors } from '@/components/insights/sections/repository-health-factors';
 import { LotteryFactorContent } from './lottery-factor';
+import { detectBot } from '@/lib/utils/bot-detection';
 import { RepoStatsContext } from '@/lib/repo-stats-context';
 import { SelfSelectionRate } from '@/components/features/contributor/self-selection-rate';
 import { ContributorConfidenceCard } from './contributor-confidence-card';
@@ -61,22 +62,28 @@ export function RepositoryHealthCard() {
         .rpc('get_repository_confidence_summary_simple')
         .eq('repository_owner', owner)
         .eq('repository_name', repo)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
 
-      if (data && (data as any).avg_confidence_score !== null) {
-        setConfidenceScore(Number((data as any).avg_confidence_score));
+      interface ConfidenceData {
+        avg_confidence_score: number | null;
+        contributor_count: number;
+      }
+
+      const typedData = data as ConfidenceData | null;
+      if (typedData && typedData.avg_confidence_score !== null) {
+        setConfidenceScore(Number(typedData.avg_confidence_score));
         // Create a basic breakdown for tooltip compatibility
         setConfidenceBreakdown({
-          starForkConfidence: Number((data as any).avg_confidence_score) * 0.35,
-          engagementConfidence: Number((data as any).avg_confidence_score) * 0.25,
-          retentionConfidence: Number((data as any).avg_confidence_score) * 0.25,
-          qualityConfidence: Number((data as any).avg_confidence_score) * 0.15,
+          starForkConfidence: Number(typedData.avg_confidence_score) * 0.35,
+          engagementConfidence: Number(typedData.avg_confidence_score) * 0.25,
+          retentionConfidence: Number(typedData.avg_confidence_score) * 0.25,
+          qualityConfidence: Number(typedData.avg_confidence_score) * 0.15,
           totalStargazers: 0,
           totalForkers: 0,
-          contributorCount: (data as any).contributor_count || 0,
-          conversionRate: Number((data as any).avg_confidence_score),
+          contributorCount: typedData.contributor_count || 0,
+          conversionRate: Number(typedData.avg_confidence_score),
         });
       } else {
         // Fallback to the original algorithm if no data in the new system
@@ -125,7 +132,7 @@ export function RepositoryHealthCard() {
     confidenceSyncStatus.isComplete,
   ]);
 
-  const botCount = stats.pullRequests.filter((pr) => pr.user.type === 'Bot').length;
+  const botCount = stats.pullRequests.filter((pr) => detectBot({ githubUser: pr.user }).isBot).length;
   const hasBots = botCount > 0;
   // YOLO Coders button should only be visible if there are YOLO pushes
   const showYoloButton = directCommitsData?.hasYoloCoders === true;

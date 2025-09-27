@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { PullRequestActivity, PullRequest } from '@/lib/types';
+import { detectBot } from '@/lib/utils/bot-detection';
 
 function formatTimestamp(date: string): string {
   const now = new Date();
@@ -31,7 +32,7 @@ export function usePRActivity(pullRequests: PullRequest[]) {
         const repo = pr.repository_name || repoUrl.split('github.com/')[1]?.split('/')[1] || '';
 
         // Check if user is a bot
-        const isBot = pr.user.type === 'Bot' || pr.user.login.includes('[bot]');
+        const isBot = detectBot({ githubUser: pr.user }).isBot;
 
         // Add PR creation activity
         processedActivities.push({
@@ -117,7 +118,7 @@ export function usePRActivity(pullRequests: PullRequest[]) {
           pr.reviews.forEach((review, index) => {
             if (review.state === 'APPROVED' || review.state === 'CHANGES_REQUESTED') {
               // Check if reviewer is a bot
-              const reviewerIsBot = review.user.login.includes('[bot]');
+              const reviewerIsBot = detectBot({ username: review.user.login }).isBot;
 
               processedActivities.push({
                 id: `review-${pr.id}-${index}`,
@@ -151,7 +152,7 @@ export function usePRActivity(pullRequests: PullRequest[]) {
         if (pr.comments && pr.comments.length > 0) {
           pr.comments.forEach((comment, index) => {
             // Check if commenter is a bot
-            const commenterIsBot = comment.user.login.includes('[bot]');
+            const commenterIsBot = detectBot({ githubUser: comment.user }).isBot;
 
             processedActivities.push({
               id: `comment-${pr.id}-${index}`,

@@ -12,6 +12,7 @@ import {
   processContributionVisualization,
   type ContributionDataPoint,
 } from '@/lib/utils/contribution-visualization';
+import { detectBot } from '@/lib/utils/bot-detection';
 
 // Lazy load the ScatterPlot component to reduce initial bundle size
 const ResponsiveScatterPlot = lazy(() =>
@@ -174,7 +175,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
     try {
       // Sort by created_at and filter based on preferences
       const filteredPRs = [...safeStats.pullRequests]
-        .filter((pr) => localIncludeBots || pr.user.type !== 'Bot')
+        .filter((pr) => localIncludeBots || !detectBot({ githubUser: pr.user }).isBot)
         .filter((pr) => {
           if (statusFilter === 'all') return pr.state === 'open' || pr.merged_at !== null;
           if (statusFilter === 'open') return pr.state === 'open';
@@ -671,7 +672,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
   };
 
   const data = getScatterData();
-  const botCount = safeStats.pullRequests.filter((pr) => pr.user.type === 'Bot').length;
+  const botCount = safeStats.pullRequests.filter((pr) => detectBot({ githubUser: pr.user }).isBot).length;
   const hasBots = botCount > 0;
 
   // Show placeholder when repository is not tracked

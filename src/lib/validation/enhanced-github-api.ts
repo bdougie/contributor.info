@@ -16,6 +16,7 @@ import {
   githubReviewsArraySchema,
   githubCommentsArraySchema,
 } from './github-api-schemas';
+import { detectBot } from '../utils/bot-detection';
 
 const GITHUB_API_BASE = 'https://api.github.com';
 
@@ -282,9 +283,8 @@ export async function fetchPullRequestsWithValidation(
             }
           }
 
-          // Check if user is a bot by their type or by checking if name contains [bot]
-          const isBot =
-            validatedDetails.user.type === 'Bot' || validatedDetails.user.login.includes('[bot]');
+          // Check if user is a bot using centralized detection
+          const isBot = detectBot({ githubUser: validatedDetails.user }).isBot;
 
           return {
             id: validatedDetails.id,

@@ -3,6 +3,7 @@ import type { PullRequest } from './types';
 import { env } from './env';
 import { githubApiRequest } from './github-rate-limit';
 import { trackRateLimit, startSpan } from './simple-logging';
+import { detectBot } from './utils/bot-detection';
 
 const GITHUB_API_BASE = 'https://api.github.com';
 
@@ -484,8 +485,8 @@ export async function fetchPullRequests(
               fetchPRComments(owner, repo, pr.number, headers),
             ]);
 
-            // Check if user is a bot by their type or by checking if name contains [bot]
-            const isBot = pr.user.type === 'Bot' || pr.user.login.includes('[bot]');
+            // Check if user is a bot using centralized detection
+            const isBot = detectBot({ githubUser: pr.user }).isBot;
 
             return {
               id: pr.id,
