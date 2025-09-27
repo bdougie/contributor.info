@@ -8,6 +8,7 @@ import { useContributorGroups } from '@/hooks/useContributorGroups';
 import { WorkspaceDashboard, WorkspaceDashboardSkeleton } from '@/components/features/workspace';
 import { WorkspaceErrorBoundary } from '@/components/error-boundaries/workspace-error-boundary';
 import { WorkspaceAutoSync } from '@/components/features/workspace/WorkspaceAutoSync';
+import { useWorkspaceContext } from '@/contexts/WorkspaceContext';
 import {
   WorkspacePullRequestsTable,
   type PullRequest,
@@ -2246,6 +2247,8 @@ function WorkspacePage() {
   const { workspaceId } = useParams<{ workspaceId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const { syncWithUrl } = useWorkspaceContext();
+
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [repositories, setRepositories] = useState<Repository[]>([]);
   const [metrics, setMetrics] = useState<WorkspaceMetrics | null>(null);
@@ -2894,6 +2897,11 @@ function WorkspacePage() {
       setWorkspace(workspaceData);
       setRepositories(transformedRepos);
 
+      // Also ensure the workspace context is synced with the fetched data
+      if (workspaceData) {
+        syncWithUrl(workspaceData.slug || workspaceData.id);
+      }
+
       // Count total issues from the current period only
       const currentPeriodStart = new Date();
       currentPeriodStart.setDate(currentPeriodStart.getDate() - TIME_RANGE_DAYS[timeRange]);
@@ -2970,11 +2978,15 @@ function WorkspacePage() {
     } finally {
       setLoading(false);
     }
-  }, [workspaceId, timeRange, selectedRepositories]);
+  }, [workspaceId, timeRange, selectedRepositories, syncWithUrl]);
 
   useEffect(() => {
+    // Sync the workspace dropdown with the current URL
+    if (workspaceId) {
+      syncWithUrl(workspaceId);
+    }
     fetchWorkspace();
-  }, [fetchWorkspace]);
+  }, [fetchWorkspace, workspaceId, syncWithUrl]);
 
   const handleTabChange = (value: string) => {
     if (value === 'overview') {
@@ -3412,8 +3424,8 @@ function WorkspacePage() {
                   currentMember || {
                     id: '',
                     workspace_id: workspace.id,
-                    user_id: '',
-                    role: 'contributor',
+                    user_id: currentUser?.id || '',
+                    role: isWorkspaceOwner ? 'owner' : 'contributor',
                     accepted_at: null,
                     invited_at: null,
                     invited_by: null,
