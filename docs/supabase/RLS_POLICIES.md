@@ -4,13 +4,27 @@ This document outlines the recommended Row Level Security policies for the Contr
 
 ## Changelog
 
-### January 2025 - Security Advisory Fixes
+### September 2025 - Security Advisory Fixes
 
-#### Database View Security (January 28, 2025)
+#### SECURITY DEFINER Removal (September 27, 2025)
+- **CRITICAL**: Removed SECURITY DEFINER from 11 remaining database views
+- Fixed views: `share_analytics_summary`, `admin_check`, `backfill_progress_summary`, `contributor_stats`, `issue_comments`, `pr_comments`, `progressive_capture_stats`, `recent_activity`, `daily_citation_summary`, `repository_performance_summary`, `web_vitals_summary`
+- Views now use SECURITY INVOKER (default) to properly enforce permissions based on the querying user
+- Eliminates privilege escalation vulnerabilities where views could bypass RLS policies
+- Resolves all remaining ERROR-level SECURITY DEFINER findings from Supabase security advisor
+
+#### Database Cleanup (September 27, 2025)
+- **CLEANUP**: Removed 11 empty and vulnerable database objects that were no longer in use
+- Dropped 10 views: `trending_repositories_30d`, `trending_repositories_24h`, `trending_repositories`, `top_cited_repositories`, `repository_top_contributors`, `repository_stats`, `job_statistics`, `job_retry_status`, `webhook_metrics`, `ai_platform_performance`
+- Dropped 1 table: `repository_spam_patterns`
+- These objects were confirmed empty (0 rows) and represented potential security vulnerabilities
+- Simplifies database schema and reduces attack surface
+
+#### Database View Security (January 2025)
 - **CRITICAL**: Removed SECURITY DEFINER from 21 database views
 - Views now use default SECURITY INVOKER for proper permission enforcement
 - Eliminates privilege escalation vulnerabilities where views ran with superuser privileges
-- Fixed views: `admin_check`, `repository_stats`, `contributor_stats`, `recent_activity`, `trending_repositories`, and 16 others
+- Fixed remaining views: `admin_check`, `contributor_stats`, `recent_activity`, and others still in use
 - Resolves 21 ERROR-level security findings from Supabase security advisor
 
 #### RLS Policy Fixes (January 2025)
