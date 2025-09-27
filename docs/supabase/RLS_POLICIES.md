@@ -4,6 +4,17 @@ This document outlines the recommended Row Level Security policies for the Contr
 
 ## Changelog
 
+### January 2025 - Performance Optimization
+
+#### RLS Auth Function Optimization (January 27, 2025)
+- **PERFORMANCE**: Optimized 50+ RLS policies across 30+ tables for better query performance
+- Wrapped all `auth.uid()`, `auth.role()`, and `auth.jwt()` calls in subqueries
+- Changed from row-by-row evaluation to once-per-statement evaluation
+- **Impact**: ~50% reduction in query evaluation overhead
+- **Migration**: `20250127_fix_rls_auth_initialization_actual.sql`
+- Resolves Phase 1 of 248 performance warnings from Supabase linter (Issue #816)
+- See `/docs/database/rls-performance-optimization.md` for full details
+
 ### September 2025 - Security Advisory Fixes
 
 #### SECURITY DEFINER Removal (September 27, 2025)
@@ -673,6 +684,44 @@ SET LOCAL role TO service_role;
 -- This should work (admin operation)
 INSERT INTO tracked_repositories (repository_id) 
 SELECT id FROM repositories LIMIT 1;
+```
+
+## Performance Best Practices
+
+### Auth Function Optimization
+
+Always wrap auth functions in subqueries to prevent row-by-row evaluation:
+
+```sql
+-- ❌ BAD: Evaluated for each row
+CREATE POLICY "user_policy" ON table_name
+USING (user_id = auth.uid());
+
+-- ✅ GOOD: Evaluated once per statement
+CREATE POLICY "user_policy" ON table_name
+USING (user_id = (select auth.uid()));
+```
+
+This applies to all auth functions:
+- `auth.uid()` → `(select auth.uid())`
+- `auth.role()` → `(select auth.role())`
+- `auth.jwt()` → `(select auth.jwt())`
+
+### Policy Consolidation
+
+Combine multiple permissive policies into single policies:
+
+```sql
+-- ❌ BAD: Multiple policies evaluated separately
+CREATE POLICY "owner_access" ON table FOR SELECT USING (owner_id = (select auth.uid()));
+CREATE POLICY "member_access" ON table FOR SELECT USING (EXISTS (...));
+
+-- ✅ GOOD: Single policy with OR condition
+CREATE POLICY "combined_access" ON table FOR SELECT
+USING (
+  owner_id = (select auth.uid()) OR
+  EXISTS (SELECT 1 FROM members WHERE user_id = (select auth.uid()))
+);
 ```
 
 ## Security Considerations
