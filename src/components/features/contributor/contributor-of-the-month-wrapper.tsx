@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { ContributorOfMonthSkeleton } from '@/components/skeletons';
-import type { ContributorRanking } from '@/lib/types';
+import type { ContributorRanking, MonthlyContributor } from '@/lib/types';
 
 interface ContributorOfTheMonthProps {
   ranking: ContributorRanking | null;
@@ -72,7 +72,7 @@ export function ContributorOfTheMonth(props: ContributorOfTheMonthProps) {
   };
 
   const renderContributorCard = ({ contributor, isWinner, showRank }: {
-    contributor: unknown;
+    contributor: MonthlyContributor;
     isWinner?: boolean;
     showRank?: boolean;
   }) => (
@@ -81,7 +81,7 @@ export function ContributorOfTheMonth(props: ContributorOfTheMonthProps) {
 
   const renderSkeleton = ({ className, phase, contributorCount }: {
     className?: string;
-    phase?: string;
+    phase?: 'winner' | 'leaderboard';
     contributorCount?: number;
   }) => (
     <ContributorOfMonthSkeleton
@@ -92,23 +92,33 @@ export function ContributorOfTheMonth(props: ContributorOfTheMonthProps) {
   );
 
   const renderEmptyState = ({ type, message, className }: {
-    type?: string;
+    type?: 'no_data' | 'no_activity' | 'minimal_activity' | 'loading_error';
     message?: string;
     className?: string;
   }) => (
-    <ContributorEmptyState type={type} message={message} className={className} />
+    <ContributorEmptyState type={type || 'no_data'} message={message} className={className} />
   );
 
   const renderMinimalActivity = ({ contributors, month, year, className }: {
-    contributors?: unknown[];
-    month?: number;
+    contributors?: Array<{
+      login: string;
+      avatar_url: string;
+      activity: {
+        pullRequests: number;
+        reviews: number;
+        comments: number;
+        totalScore: number;
+      };
+      rank: number;
+    }>;
+    month?: string;
     year?: number;
     className?: string;
   }) => (
     <MinimalActivityDisplay
-      contributors={contributors}
-      month={month}
-      year={year}
+      contributors={contributors || []}
+      month={month || ''}
+      year={year || new Date().getFullYear()}
       className={className}
     />
   );
