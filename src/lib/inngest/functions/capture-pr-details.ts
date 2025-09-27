@@ -4,6 +4,7 @@ import { makeGitHubRequest } from '../github-client';
 import type { GitHubPullRequest } from '../types';
 import { SyncLogger } from '../sync-logger';
 import { NonRetriableError } from 'inngest';
+import { detectBot } from '../../utils/bot-detection';
 
 export const capturePrDetails = inngest.createFunction(
   {
@@ -121,9 +122,7 @@ export const capturePrDetails = inngest.createFunction(
               github_id: githubPrData.merged_by.id,
               username: githubPrData.merged_by.login,
               avatar_url: githubPrData.merged_by.avatar_url,
-              is_bot:
-                githubPrData.merged_by.type === 'Bot' ||
-                githubPrData.merged_by.login.includes('[bot]'),
+              is_bot: detectBot({ githubUser: githubPrData.merged_by }).isBot,
             },
             {
               onConflict: 'github_id',

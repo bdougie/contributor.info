@@ -251,7 +251,7 @@ export function LotteryFactorContent({
                       pullRequests: 0, // YOLO coders bypass PRs
                       percentage: 0, // Not applicable for direct commits
                     }}
-                    role={coder.type === 'Bot' ? 'bot' : getContributorRole(coder.login, index)}
+                    role={detectBot({ githubUser: coder }).isBot ? 'bot' : getContributorRole(coder.login, index)}
                   >
                     <OptimizedAvatar
                       src={coder.avatar_url}
@@ -265,7 +265,7 @@ export function LotteryFactorContent({
                   <div>
                     <p className="font-medium">{coder.login}</p>
                     <p className="text-sm text-muted-foreground">
-                      {coder.type === 'Bot' ? 'bot' : getContributorRole(coder.login, index)}
+                      {detectBot({ githubUser: coder }).isBot ? 'bot' : getContributorRole(coder.login, index)}
                     </p>
                   </div>
                 </div>
