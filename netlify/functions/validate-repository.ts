@@ -1,9 +1,9 @@
 import type { Handler } from '@netlify/functions';
 
 // Environment variables
-const VITE_SUPABASE_URL = process.env.VITE_SUPABASE_URL || '';
-const VITE_SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || '';
-const GITHUB_TOKEN = process.env.VITE_GITHUB_TOKEN || process.env.GITHUB_TOKEN || '';
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN || process.env.VITE_GITHUB_TOKEN || '';
 
 interface ValidationResponse {
   status: 'exists_in_db' | 'exists_on_github' | 'not_found';
@@ -128,19 +128,19 @@ export const handler: Handler = async (event) => {
 async function checkSupabase(
   owner: string,
   repo: string
-): Promise<{ exists: boolean; repository?: any }> {
-  if (!VITE_SUPABASE_URL || !VITE_SUPABASE_ANON_KEY) {
+): Promise<{ exists: boolean; repository?: ValidationResponse['repository'] }> {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     console.warn('Supabase credentials not configured, skipping database check');
     return { exists: false };
   }
 
   try {
     const response = await fetch(
-      `${VITE_SUPABASE_URL}/rest/v1/repositories?owner=eq.${owner}&name=eq.${repo}&select=*`,
+      `${SUPABASE_URL}/rest/v1/repositories?owner=eq.${owner}&name=eq.${repo}&select=*`,
       {
         headers: {
-          apikey: VITE_SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${VITE_SUPABASE_ANON_KEY}`,
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
           'Content-Type': 'application/json',
           Accept: 'application/json',
         },
@@ -179,7 +179,7 @@ async function checkSupabase(
 async function checkGitHub(
   owner: string,
   repo: string
-): Promise<{ exists: boolean; repository?: any }> {
+): Promise<{ exists: boolean; repository?: ValidationResponse['repository'] }> {
   try {
     const headers: HeadersInit = {
       Accept: 'application/vnd.github.v3+json',

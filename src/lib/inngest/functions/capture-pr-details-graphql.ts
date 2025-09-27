@@ -7,7 +7,7 @@ import { getPRState } from '../../utils/data-type-mapping';
 
 // Type definitions for GitHub user data
 interface GitHubUser {
-  databaseId: number;
+  databaseId?: number;
   login: string;
   name?: string | null;
   email?: string | null;
@@ -52,14 +52,15 @@ interface GraphQLReviewComment {
   author: GitHubUser | null;
   body: string;
   path: string;
-  position: number | null;
-  originalPosition: number | null;
+  position: number;
+  originalPosition?: number | null;
   commit?: { oid: string };
-  originalCommit?: { oid: string };
+  originalCommit?: { oid: string } | null;
   diffHunk: string;
   createdAt: string;
   updatedAt: string;
-  replyTo?: { databaseId: number };
+  replyTo?: { databaseId: number } | null;
+  outdated?: boolean;
 }
 
 interface GraphQLComment {
@@ -225,7 +226,7 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
 
         // Sanitize error logging to avoid exposing sensitive information
         const errorType = error instanceof Error ? error.constructor.name : 'UnknownError';
-        console.warn(`GraphQL failed for PR #${prNumber}, falling back to REST:`, errorType);
+        console.warn('GraphQL failed for PR #%s, falling back to REST:', errorType, prNumber);
         throw error; // This will trigger the fallback to REST version
       }
     });
@@ -240,7 +241,13 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
       // First ensure the author exists and get their UUID
       const authorId = await ensureContributorExists(pullRequest.author);
       if (!authorId) {
-        throw new Error(`Failed to create/find author for PR #${prNumber}`) as NonRetriableError;
+        console.warn('PR #%s has no valid author, skipping PR storage', prNumber);
+        return {
+          totalItems: 0,
+          prStored: false,
+          reviewsStored: 0,
+          commentsStored: 0,
+        };
       }
 
       // Ensure merged_by contributor exists if present

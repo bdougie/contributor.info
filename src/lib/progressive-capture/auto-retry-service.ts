@@ -136,7 +136,7 @@ export class AutoRetryService {
 
       // Validate job has repository_id (repository_name can be fetched if missing)
       if (!job.repository_id) {
-        console.error(`[AutoRetry] ❌ Job ${job.id} missing repository_id, cannot retry:`, {
+        console.error('[AutoRetry] ❌ Job %s missing repository_id, cannot retry:', job.id, {
           jobId: job.id,
           jobType: job.job_type,
           metadata: job.metadata,
@@ -183,7 +183,7 @@ export class AutoRetryService {
         },
       });
     } catch (error) {
-      console.error(`[AutoRetry] ❌ Error processing failed job ${job.id}:`, {
+      console.error('[AutoRetry] ❌ Error processing failed job %s:', job.id, {
         jobId: job.id,
         jobType: job.job_type,
         repositoryId: job.repository_id,

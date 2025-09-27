@@ -46,7 +46,7 @@ const supabaseRetryConfig: Partial<RetryConfig> = {
     retryMetrics.totalRetries++;
     // Only log in development
     if (process.env.NODE_ENV === 'development') {
-      console.log(`%s`, `Supabase retry attempt ${attempt}:`, error.message);
+      console.log('Supabase retry attempt %s:', attempt, error.message);
     }
   },
 };
@@ -72,7 +72,7 @@ const githubRetryConfig: Partial<RetryConfig> = {
     const isRateLimit = error.message.includes('429') || error.message.includes('rate limit');
     // Only log in development
     if (process.env.NODE_ENV === 'development' && isRateLimit) {
-      console.log(`%s`, `GitHub rate limit hit, waiting longer (attempt ${attempt})...`);
+      console.log('GitHub rate limit hit, waiting longer (attempt %s)...', attempt);
     }
   },
 };

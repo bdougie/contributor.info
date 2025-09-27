@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { getWorkspaceRoute } from '@/lib/utils/workspace-routes';
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { WORKSPACE_TIMEOUTS } from '@/lib/workspace-config';
@@ -41,6 +42,7 @@ export function WorkspaceSwitcher({
   onOpenCommandPalette,
 }: WorkspaceSwitcherProps) {
   const navigate = useNavigate();
+
   const {
     activeWorkspace,
     workspaces,
@@ -110,7 +112,7 @@ export function WorkspaceSwitcher({
   const handleViewCurrentWorkspace = (): void => {
     setOpen(false);
     if (activeWorkspace) {
-      navigate(`/workspaces/${activeWorkspace.id}`);
+      navigate(getWorkspaceRoute(activeWorkspace));
     }
   };
 
@@ -188,7 +190,7 @@ export function WorkspaceSwitcher({
             <div className="flex items-center gap-2">
               <Package className="h-4 w-4" />
               {showFullName && (
-                <span className="truncate max-w-[200px]">
+                <span className="truncate max-w-[200px]" title={activeWorkspace?.name}>
                   {(() => {
                     if (isLoading && !loadingTimeout) return 'Loading...';
                     if (error) return 'Error loading';

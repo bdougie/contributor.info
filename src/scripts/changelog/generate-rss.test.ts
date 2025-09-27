@@ -1,12 +1,9 @@
-﻿import { describe, it, expect } from 'vitest';
-
-/**
- * RSS/Atom Feed Generation Tests
- *
- * These tests verify the RSS and Atom feed generation functionality
- * for the changelog. Due to module execution constraints, we test
- * the core parsing logic and feed generation capabilities.
- */
+import { describe, it, expect } from 'vitest';
+import {
+  parseChangelog,
+  generateRss,
+  generateAtom,
+} from '../../../scripts/changelog/generate-rss.js';
 
 describe('RSS/Atom Feed Generation', () => {
   describe('integration tests', () => {

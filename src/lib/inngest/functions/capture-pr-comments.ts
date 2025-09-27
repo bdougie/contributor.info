@@ -251,10 +251,10 @@ export const capturePrComments = inngest.createFunction(
           failedContributorCreations: failedContributorCreations,
         };
       } catch (error: unknown) {
-        console.error(`Error fetching comments for PR #${prNumber}:`, error);
+        console.error('Error fetching comments for PR #%s:', error, prNumber);
         const apiError = error as { status?: number };
         if (apiError.status === 404) {
-          console.warn(`PR #${prNumber} not found, skipping comments`);
+          console.warn('PR #%s not found, skipping comments', prNumber);
           return { prComments: [], issueComments: [], failedContributorCreations: 0 };
         }
         if (apiError.status === 403) {
@@ -302,7 +302,7 @@ export const capturePrComments = inngest.createFunction(
         .eq('id', prId);
 
       if (error) {
-        console.warn(`Failed to update PR timestamp: ${error.message}`);
+        console.warn('Failed to update PR timestamp: %s', error.message);
       }
     });
 

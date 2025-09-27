@@ -16,16 +16,17 @@ export class ChunkRecovery {
       foundStuckChunks: 0,
       recoveredChunks: 0,
       failedRecoveries: 0,
-      errors: []
+      errors: [],
     };
 
     try {
       // Find chunks that have been processing for too long
       const stuckThreshold = new Date(Date.now() - stuckThresholdMinutes * 60 * 1000).toISOString();
-      
+
       const { data: stuckChunks, error } = await this.supabase
         .from('backfill_chunks')
-        .select(`
+        .select(
+          `
           id,
           repository_id,
           backfill_state_id,
@@ -33,7 +34,8 @@ export class ChunkRecovery {
           pr_numbers,
           started_at,
           repositories!inner(owner, name)
-        `)
+        `
+        )
         .eq('status', 'processing')
         .lt('started_at', stuckThreshold)
         .order('started_at', { ascending: true });
@@ -60,7 +62,7 @@ export class ChunkRecovery {
           results.failedRecoveries++;
           results.errors.push({
             chunkId: chunk.id,
-            error: error.message
+            error: error.message,
           });
         }
       }
@@ -79,8 +81,10 @@ export class ChunkRecovery {
   async recoverChunk(chunk) {
     const processingTime = Date.now() - new Date(chunk.started_at).getTime();
     const processingMinutes = Math.floor(processingTime / 1000 / 60);
-    
-    console.log(`🔧 Recovering chunk ${chunk.chunk_number} for ${chunk.repositories.owner}/${chunk.repositories.name}`);
+
+    console.log(
+      `🔧 Recovering chunk ${chunk.chunk_number} for ${chunk.repositories.owner}/${chunk.repositories.name}`
+    );
     console.log(`   Stuck for ${processingMinutes} minutes`);
 
     // Check if the chunk has actual PR data
@@ -101,17 +105,25 @@ export class ChunkRecovery {
 
     if (completionRate >= 0.8) {
       // If most PRs were processed, mark as completed
-      console.log(`   ✅ ${processedPRs}/${chunk.pr_numbers.length} PRs found, marking as completed`);
+      console.log(
+        `   ✅ ${processedPRs}/${chunk.pr_numbers.length} PRs found, marking as completed`
+      );
       await this.markChunkAsCompleted(chunk.id, processedPRs);
     } else if (completionRate > 0) {
       // Partial completion - mark as failed with details
       console.log(`   ⚠️  Only ${processedPRs}/${chunk.pr_numbers.length} PRs processed`);
-      await this.markChunkAsFailed(chunk.id, `Partial completion: ${processedPRs}/${chunk.pr_numbers.length} PRs`);
+      await this.markChunkAsFailed(
+        chunk.id,
+        `Partial completion: ${processedPRs}/${chunk.pr_numbers.length} PRs`
+      );
     } else {
       // No PRs processed - check if we should retry
       if (processingMinutes > 60) {
         // Too old, mark as failed
-        await this.markChunkAsFailed(chunk.id, 'Processing timeout - no PRs found after 60 minutes');
+        await this.markChunkAsFailed(
+          chunk.id,
+          'Processing timeout - no PRs found after 60 minutes'
+        );
       } else {
         // Recent enough to potentially still be processing
         console.log(`   ⏳ Chunk might still be processing (${processingMinutes} minutes old)`);
@@ -131,8 +143,8 @@ export class ChunkRecovery {
         api_calls_made: processedCount,
         metadata: {
           recovered: true,
-          recovered_at: new Date().toISOString()
-        }
+          recovered_at: new Date().toISOString(),
+        },
       })
       .eq('id', chunkId);
 
@@ -154,8 +166,8 @@ export class ChunkRecovery {
         metadata: {
           recovery_attempted: true,
           recovery_reason: reason,
-          recovered_at: new Date().toISOString()
-        }
+          recovered_at: new Date().toISOString(),
+        },
       })
       .eq('id', chunkId);
 
@@ -169,9 +181,7 @@ export class ChunkRecovery {
    */
   async getChunkStatistics(backfillStateId = null) {
     try {
-      let query = this.supabase
-        .from('backfill_chunks')
-        .select('status', { count: 'exact' });
+      let query = this.supabase.from('backfill_chunks').select('status', { count: 'exact' });
 
       if (backfillStateId) {
         query = query.eq('backfill_state_id', backfillStateId);
@@ -188,7 +198,7 @@ export class ChunkRecovery {
         total: 0,
         processing: 0,
         completed: 0,
-        failed: 0
+        failed: 0,
       };
 
       // Since we can't use GROUP BY directly, we need to count each status
@@ -197,8 +207,8 @@ export class ChunkRecovery {
           .from('backfill_chunks')
           .select('*', { count: 'exact', head: true })
           .eq('status', status)
-          .then(result => ({ count: result.count || 0 }));
-        
+          .then((result) => ({ count: result.count || 0 }));
+
         stats[status] = count;
         stats.total += count;
       }
@@ -217,7 +227,7 @@ export class ChunkRecovery {
   async cleanupOldChunks(daysToKeep = 30) {
     try {
       const cutoffDate = new Date(Date.now() - daysToKeep * 24 * 60 * 60 * 1000).toISOString();
-      
+
       const { data: deletedChunks, error } = await this.supabase
         .from('backfill_chunks')
         .delete()

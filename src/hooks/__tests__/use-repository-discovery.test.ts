@@ -11,16 +11,16 @@ const mockFetch = vi.fn();
 
 vi.mock('@/lib/supabase', () => ({
   supabase: {
-    from: () => mockSupabaseFrom()
-  }
+    from: () => mockSupabaseFrom(),
+  },
 }));
 
 vi.mock('sonner', () => ({
   toast: {
     info: () => mockToastInfo(),
     error: () => mockToastError(),
-    success: () => mockToastSuccess()
-  }
+    success: () => mockToastSuccess(),
+  },
 }));
 
 // Replace global fetch with mock
@@ -29,22 +29,23 @@ global.fetch = mockFetch as any;
 describe('useRepositoryDiscovery', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     // Reset all mock implementations
     mockSupabaseFrom.mockClear();
     mockToastInfo.mockClear();
     mockToastError.mockClear();
     mockToastSuccess.mockClear();
     mockFetch.mockClear();
-    
+
     // Setup default successful API response
     mockFetch.mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({ 
-        success: true, 
-        message: 'Discovery started',
-        eventId: 'mock-event-id'
-      })
+      json: () =>
+        Promise.resolve({
+          success: true,
+          message: 'Discovery started',
+          eventId: 'mock-event-id',
+        }),
     });
   });
 
@@ -54,7 +55,7 @@ describe('useRepositoryDiscovery', () => {
         useRepositoryDiscovery({
           owner: 'pytorch',
           repo: 'pytorch',
-          enabled: false
+          enabled: false,
         })
       );
 
@@ -62,7 +63,7 @@ describe('useRepositoryDiscovery', () => {
         status: 'checking',
         repository: null,
         message: null,
-        isNewRepository: false
+        isNewRepository: false,
       });
     });
 
@@ -71,7 +72,7 @@ describe('useRepositoryDiscovery', () => {
         useRepositoryDiscovery({
           owner: undefined,
           repo: 'pytorch',
-          enabled: true
+          enabled: true,
         })
       );
 
@@ -79,7 +80,7 @@ describe('useRepositoryDiscovery', () => {
         status: 'checking',
         repository: null,
         message: null,
-        isNewRepository: false
+        isNewRepository: false,
       });
     });
   });
@@ -90,19 +91,21 @@ describe('useRepositoryDiscovery', () => {
       const mockQueryBuilder = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        single: vi.fn(() => Promise.resolve({ 
-          data: { id: 'existing-repo-id', owner: 'pytorch', name: 'pytorch' }, 
-          error: null 
-        }))
+        single: vi.fn(() =>
+          Promise.resolve({
+            data: { id: 'existing-repo-id', owner: 'pytorch', name: 'pytorch' },
+            error: null,
+          })
+        ),
       };
-      
+
       mockSupabaseFrom.mockReturnValue(mockQueryBuilder);
 
       const { result } = renderHook(() =>
         useRepositoryDiscovery({
           owner: 'pytorch',
           repo: 'pytorch',
-          enabled: true
+          enabled: true,
         })
       );
 
@@ -119,19 +122,21 @@ describe('useRepositoryDiscovery', () => {
       const mockQueryBuilder = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        single: vi.fn(() => Promise.resolve({ 
-          data: null,
-          error: { code: 'PGRST116', message: 'Not found' }
-        }))
+        single: vi.fn(() =>
+          Promise.resolve({
+            data: null,
+            error: { code: 'PGRST116', message: 'Not found' },
+          })
+        ),
       };
-      
+
       mockSupabaseFrom.mockReturnValue(mockQueryBuilder);
 
       const { result } = renderHook(() =>
         useRepositoryDiscovery({
           owner: 'newowner',
           repo: 'newrepo',
-          enabled: true
+          enabled: true,
         })
       );
 
@@ -147,7 +152,7 @@ describe('useRepositoryDiscovery', () => {
           expect.objectContaining({
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ owner: 'newowner', repo: 'newrepo' })
+            body: JSON.stringify({ owner: 'newowner', repo: 'newrepo' }),
           })
         );
       });
@@ -160,19 +165,21 @@ describe('useRepositoryDiscovery', () => {
       const mockQueryBuilder = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        single: vi.fn(() => Promise.resolve({ 
-          data: null,
-          error: { code: 'DB_ERROR', message: 'Database error' }
-        }))
+        single: vi.fn(() =>
+          Promise.resolve({
+            data: null,
+            error: { code: 'DB_ERROR', message: 'Database error' },
+          })
+        ),
       };
-      
+
       mockSupabaseFrom.mockReturnValue(mockQueryBuilder);
 
       const { result } = renderHook(() =>
         useRepositoryDiscovery({
           owner: 'owner',
           repo: 'repo',
-          enabled: true
+          enabled: true,
         })
       );
 
@@ -187,12 +194,14 @@ describe('useRepositoryDiscovery', () => {
       const mockQueryBuilder = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        single: vi.fn(() => Promise.resolve({ 
-          data: null,
-          error: { code: 'PGRST116', message: 'Not found' }
-        }))
+        single: vi.fn(() =>
+          Promise.resolve({
+            data: null,
+            error: { code: 'PGRST116', message: 'Not found' },
+          })
+        ),
       };
-      
+
       mockSupabaseFrom.mockReturnValue(mockQueryBuilder);
 
       // Mock API error
@@ -202,7 +211,7 @@ describe('useRepositoryDiscovery', () => {
         useRepositoryDiscovery({
           owner: 'owner',
           repo: 'repo',
-          enabled: true
+          enabled: true,
         })
       );
 
@@ -219,17 +228,18 @@ describe('useRepositoryDiscovery', () => {
       const mockQueryBuilder = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        single: vi.fn()
-          .mockResolvedValueOnce({ 
-            data: { id: 'repo1', owner: 'owner1', name: 'repo1' }, 
-            error: null 
+        single: vi
+          .fn()
+          .mockResolvedValueOnce({
+            data: { id: 'repo1', owner: 'owner1', name: 'repo1' },
+            error: null,
           })
-          .mockResolvedValueOnce({ 
-            data: { id: 'repo2', owner: 'owner2', name: 'repo2' }, 
-            error: null 
-          })
+          .mockResolvedValueOnce({
+            data: { id: 'repo2', owner: 'owner2', name: 'repo2' },
+            error: null,
+          }),
       };
-      
+
       mockSupabaseFrom.mockReturnValue(mockQueryBuilder);
 
       const { result, rerender } = renderHook(
@@ -265,3 +275,4 @@ describe('useRepositoryDiscovery', () => {
       expect(result.current.status).toBe('checking');
     });
   });
+});

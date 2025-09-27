@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { handleIssueCommentEvent, containsIssuesCommand } from '../../../../app/webhooks/issue-comment';
+import {
+  handleIssueCommentEvent,
+  containsIssuesCommand,
+} from '../../../../app/webhooks/issue-comment';
 import type { IssueCommentEvent } from '../../../../app/types/github';
 
 // Mock the auth module
@@ -31,7 +34,7 @@ vi.mock('../../../lib/supabase', () => ({
         single: vi.fn().mockResolvedValue({ data: { id: 'test-id' } }),
         upsert: vi.fn().mockReturnThis(),
       };
-      
+
       // Special handling for different tables
       if (table === 'pull_requests') {
         chainObj.single = vi.fn().mockResolvedValue({ data: { id: 'pr-123', repository_id: 1 } });
@@ -40,7 +43,7 @@ vi.mock('../../../lib/supabase', () => ({
       } else if (table === 'contributors') {
         chainObj.single = vi.fn().mockResolvedValue({ data: { id: 'contributor-123' } });
       }
-      
+
       return chainObj;
     }),
   },
@@ -107,7 +110,6 @@ describe('handleIssueCommentEvent', () => {
     vi.clearAllMocks();
   });
 
-
   it('ignores non-.issues comments', async () => {
     const mockEvent = createMockEvent('Just a regular comment');
     const { githubAppAuth } = await import('../../../../app/lib/auth');
@@ -129,3 +131,4 @@ describe('handleIssueCommentEvent', () => {
     expect(mockOctokit.issues.createComment).not.toHaveBeenCalled();
     expect(mockOctokit.issues.deleteComment).not.toHaveBeenCalled();
   });
+});

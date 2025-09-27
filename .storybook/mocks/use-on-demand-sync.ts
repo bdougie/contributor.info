@@ -2,5 +2,5 @@
 export const useOnDemandSync = () => ({
   hasData: true,
   syncStatus: { isTriggering: false, isInProgress: false, error: null },
-  triggerSync: () => {}
+  triggerSync: () => {},
 });

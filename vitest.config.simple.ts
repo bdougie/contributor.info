@@ -71,6 +71,11 @@ export default defineConfig({
       'src/lib/inngest/functions/__tests__/event-flow.integration.test.ts',
       'src/lib/insights/health-metrics.test.ts',
       'src/lib/progressive-capture/__tests__/hybrid-queue-manager.test.ts',
+      // Tests with async patterns added in fix/repository-status-json-response PR
+      // These have been rewritten to follow bulletproof guidelines
+      // 'src/hooks/__tests__/useWorkspacePRs.test.ts', // Fixed - now synchronous
+      // 'src/lib/insights/issue-metrics.test.ts', // Fixed - now synchronous
+      // 'src/lib/spam/__tests__/SpamDetectionService.test.ts', // Fixed - now synchronous
     ],
 
     // No coverage - focus on stability

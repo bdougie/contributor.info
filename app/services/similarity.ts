@@ -21,7 +21,7 @@ export async function findSimilarIssues(
 
     // 1. Check for explicitly mentioned issues in PR body
     const mentionedIssues = extractMentionedIssues(pullRequest.body || '');
-    
+
     // 2. Get issues from the database
     const { data: dbIssues } = await supabase
       .from('issues')
@@ -38,7 +38,7 @@ export async function findSimilarIssues(
         const octokit = await githubAppAuth.getInstallationOctokit(
           parseInt(process.env.GITHUB_APP_INSTALLATION_ID || '0')
         );
-        
+
         const { data } = await octokit.issues.listForRepo({
           owner: repository.owner.login,
           repo: repository.name,
@@ -46,8 +46,8 @@ export async function findSimilarIssues(
           per_page: 50,
           sort: 'updated',
         });
-        
-        githubIssues = data.filter(issue => !issue.pull_request);
+
+        githubIssues = data.filter((issue) => !issue.pull_request);
       } catch (error) {
         console.error('Could not fetch issues from GitHub:', error);
       }
@@ -55,11 +55,12 @@ export async function findSimilarIssues(
 
     // 4. Calculate similarity for each issue
     const allIssues = [...(dbIssues || []), ...githubIssues];
-    
+
     for (const issue of allIssues) {
       const similarity = await calculateIssueSimilarity(pullRequest, issue, mentionedIssues);
-      
-      if (similarity.score > 0.3) { // Threshold for relevance
+
+      if (similarity.score > 0.3) {
+        // Threshold for relevance
         similarIssues.push({
           issue: issue as Issue,
           similarityScore: similarity.score,
@@ -70,10 +71,7 @@ export async function findSimilarIssues(
     }
 
     // 5. Sort by similarity score and return top matches
-    return similarIssues
-      .sort((a, b) => b.similarityScore - a.similarityScore)
-      .slice(0, 5);
-
+    return similarIssues.sort((a, b) => b.similarityScore - a.similarityScore).slice(0, 5);
   } catch (error) {
     console.error('Error finding similar issues:', error);
     return [];
@@ -87,7 +85,11 @@ async function calculateIssueSimilarity(
   pr: PullRequest,
   issue: any,
   mentionedIssues: number[]
-): Promise<{ score: number; reasons: string[]; relationship: 'implements' | 'fixes' | 'relates_to' | 'similar' }> {
+): Promise<{
+  score: number;
+  reasons: string[];
+  relationship: 'implements' | 'fixes' | 'relates_to' | 'similar';
+}> {
   const reasons: string[] = [];
   let score = 0;
   let relationship: 'implements' | 'fixes' | 'relates_to' | 'similar' = 'similar';
@@ -96,7 +98,7 @@ async function calculateIssueSimilarity(
   if (mentionedIssues.includes(issue.number)) {
     score += 0.5;
     reasons.push('Mentioned in PR description');
-    
+
     // Check if it's a fix or implementation
     const prBody = pr.body?.toLowerCase() || '';
     if (prBody.includes(`fixes #${issue.number}`) || prBody.includes(`closes #${issue.number}`)) {
@@ -118,10 +120,10 @@ async function calculateIssueSimilarity(
   }
 
   // 3. Label overlap
-  const prLabels = pr.labels.map(l => l.name);
+  const prLabels = pr.labels.map((l) => l.name);
   const issueLabels = issue.labels?.map((l: any) => l.name) || [];
-  const commonLabels = prLabels.filter(l => issueLabels.includes(l));
-  
+  const commonLabels = prLabels.filter((l) => issueLabels.includes(l));
+
   if (commonLabels.length > 0) {
     score += (commonLabels.length / Math.max(prLabels.length, issueLabels.length)) * 0.2;
     reasons.push(`Common labels: ${commonLabels.join(', ')}`);
@@ -137,7 +139,7 @@ async function calculateIssueSimilarity(
   const prDate = new Date(pr.created_at);
   const issueDate = new Date(issue.updated_at || issue.created_at);
   const daysDiff = Math.abs(prDate.getTime() - issueDate.getTime()) / (1000 * 60 * 60 * 24);
-  
+
   if (daysDiff < 7) {
     score += 0.1;
     reasons.push('Recently active');
@@ -146,13 +148,13 @@ async function calculateIssueSimilarity(
   // 6. Check for keywords indicating relationship
   const prText = `${pr.title} ${pr.body || ''}`.toLowerCase();
   const issueText = `${issue.title} ${issue.body || ''}`.toLowerCase();
-  
+
   const fixKeywords = ['bug', 'error', 'fix', 'issue', 'problem'];
   const featureKeywords = ['feature', 'implement', 'add', 'enhance', 'support'];
-  
-  const prHasFix = fixKeywords.some(kw => prText.includes(kw));
-  const issueHasBug = fixKeywords.some(kw => issueText.includes(kw));
-  
+
+  const prHasFix = fixKeywords.some((kw) => prText.includes(kw));
+  const issueHasBug = fixKeywords.some((kw) => issueText.includes(kw));
+
   if (prHasFix && issueHasBug && relationship === 'similar') {
     score += 0.15;
     reasons.push('PR may fix this issue');
@@ -168,7 +170,7 @@ async function calculateIssueSimilarity(
 function extractMentionedIssues(text: string): number[] {
   const issuePattern = /#(\d+)/g;
   const matches = text.matchAll(issuePattern);
-  return Array.from(matches).map(match => parseInt(match[1]));
+  return Array.from(matches).map((match) => parseInt(match[1]));
 }
 
 /**
@@ -180,12 +182,12 @@ function calculateTextSimilarity(text1: string, text2: string): number {
 
   const words1 = text1.toLowerCase().split(/\s+/);
   const words2 = text2.toLowerCase().split(/\s+/);
-  
+
   const set1 = new Set(words1);
   const set2 = new Set(words2);
-  
-  const intersection = new Set([...set1].filter(x => set2.has(x)));
+
+  const intersection = new Set([...set1].filter((x) => set2.has(x)));
   const union = new Set([...set1, ...set2]);
-  
+
   return intersection.size / union.size;
 }

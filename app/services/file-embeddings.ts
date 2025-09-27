@@ -33,7 +33,7 @@ const RETRY_CONFIG = {
  * Sleep utility for retries
  */
 function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
@@ -46,18 +46,18 @@ async function withRetry<T>(
 ): Promise<T> {
   let lastError: Error | unknown;
   let delay = config.initialDelay;
-  
+
   for (let attempt = 1; attempt <= config.maxRetries; attempt++) {
     try {
       return await fn();
     } catch (error) {
       lastError = error;
       console.warn(`${operation} failed (attempt ${attempt}/${config.maxRetries}):`, error);
-      
+
       if (attempt < config.maxRetries) {
         // Check if error is retryable
         if (isRetryableError(error)) {
-          console.log("Retrying %s in %sms...", operation, delay);
+          console.log('Retrying %s in %sms...', operation, delay);
           await sleep(delay);
           delay = Math.min(delay * config.backoffMultiplier, config.maxDelay);
         } else {
@@ -67,7 +67,7 @@ async function withRetry<T>(
       }
     }
   }
-  
+
   console.error(`${operation} failed after ${config.maxRetries} attempts`);
   throw lastError;
 }
@@ -78,30 +78,32 @@ async function withRetry<T>(
 function isRetryableError(error: unknown): boolean {
   if (error instanceof Error) {
     const message = error.message.toLowerCase();
-    
+
     // Network errors
-    if (message.includes('network') || 
-        message.includes('timeout') ||
-        message.includes('econnrefused') ||
-        message.includes('etimedout')) {
+    if (
+      message.includes('network') ||
+      message.includes('timeout') ||
+      message.includes('econnrefused') ||
+      message.includes('etimedout')
+    ) {
       return true;
     }
-    
+
     // Rate limit errors
-    if (message.includes('rate limit') ||
-        message.includes('too many requests') ||
-        message.includes('429')) {
+    if (
+      message.includes('rate limit') ||
+      message.includes('too many requests') ||
+      message.includes('429')
+    ) {
       return true;
     }
-    
+
     // Temporary server errors
-    if (message.includes('502') ||
-        message.includes('503') ||
-        message.includes('504')) {
+    if (message.includes('502') || message.includes('503') || message.includes('504')) {
       return true;
     }
   }
-  
+
   return false;
 }
 
@@ -119,64 +121,56 @@ async function processFileEmbedding(
     if (!isCodeFile(filePath)) {
       return null;
     }
-    
+
     // Fetch file content with retry
-    const fileData = await withRetry(
-      async () => {
-        const { data } = await octokit.repos.getContent({
-          owner: repository.owner.login,
-          repo: repository.name,
-          path: filePath,
-        });
-        return data;
-      },
-      `Fetching content for ${filePath}`
-    );
-    
+    const fileData = await withRetry(async () => {
+      const { data } = await octokit.repos.getContent({
+        owner: repository.owner.login,
+        repo: repository.name,
+        path: filePath,
+      });
+      return data;
+    }, `Fetching content for ${filePath}`);
+
     if ('content' in fileData && fileData.type === 'file') {
       // Decode base64 content
       const content = Buffer.from(fileData.content, 'base64').toString('utf-8');
-      
+
       // Generate content hash
-      const contentHash = createHash('sha256')
-        .update(content)
-        .digest('hex');
-      
+      const contentHash = createHash('sha256').update(content).digest('hex');
+
       // Check if we already have an embedding for this exact content
-      const existing = await withRetry(
-        async () => {
-          const { data, error } = await supabase
-            .from('file_embeddings')
-            .select('id')
-            .eq('repository_id', repositoryId)
-            .eq('file_path', filePath)
-            .eq('content_hash', contentHash)
-            .maybeSingle();
-          
-          // Supabase returns an error for no rows found, which is expected
-          if (error && error.code !== 'PGRST116') {
-            throw error;
-          }
-          
-          return data;
-        },
-        `Checking existing embedding for ${filePath}`
-      );
-      
+      const existing = await withRetry(async () => {
+        const { data, error } = await supabase
+          .from('file_embeddings')
+          .select('id')
+          .eq('repository_id', repositoryId)
+          .eq('file_path', filePath)
+          .eq('content_hash', contentHash)
+          .maybeSingle();
+
+        // Supabase returns an error for no rows found, which is expected
+        if (error && error.code !== 'PGRST116') {
+          throw error;
+        }
+
+        return data;
+      }, `Checking existing embedding for ${filePath}`);
+
       if (existing) {
-        console.log("Skipping %s - embedding already exists", filePath);
+        console.log('Skipping %s - embedding already exists', filePath);
         return null;
       }
-      
+
       // Prepare content for embedding (truncate if too long)
       const embeddingContent = prepareContentForEmbedding(filePath, content);
-      
+
       // Generate embedding with retry
       const embedding = await withRetry(
         async () => generateEmbedding(embeddingContent),
         `Generating embedding for ${filePath}`
       );
-      
+
       return {
         repository_id: repositoryId,
         file_path: filePath,
@@ -185,7 +179,7 @@ async function processFileEmbedding(
         last_indexed_at: new Date().toISOString(),
       };
     }
-    
+
     return null;
   } catch (error) {
     console.error(`Error processing file ${filePath}:`, error);
@@ -199,8 +193,8 @@ export async function generateFileEmbeddings(
   octokit: Octokit,
   filePaths: string[]
 ): Promise<void> {
-  console.log("Generating embeddings for %s files in %s", filePaths.length, repository.full_name);
-  
+  console.log('Generating embeddings for %s files in %s', filePaths.length, repository.full_name);
+
   try {
     // Get repository record
     const { data: dbRepo, error: repoError } = await supabase
@@ -208,71 +202,64 @@ export async function generateFileEmbeddings(
       .select('id')
       .eq('github_id', repository.id)
       .maybeSingle();
-    
+
     if (repoError) {
       console.error('Error fetching repository:', repoError);
       return;
     }
-    
+
     if (!dbRepo) {
       console.error('Repository not found in database');
       return;
     }
-    
+
     // Process files in batches
     for (let i = 0; i < filePaths.length; i += FILE_PROCESSING_BATCH_SIZE) {
       const batch = filePaths.slice(i, i + FILE_PROCESSING_BATCH_SIZE);
       const batchEmbeddings: FileEmbedding[] = [];
-      
+
       // Process batch and collect embeddings
       const results = await Promise.all(
-        batch.map(filePath => processFileEmbedding(filePath, repository, octokit, dbRepo.id))
+        batch.map((filePath) => processFileEmbedding(filePath, repository, octokit, dbRepo.id))
       );
-      
+
       // Filter out null results
       for (const embedding of results) {
         if (embedding) {
           batchEmbeddings.push(embedding);
         }
       }
-      
+
       // Insert batch embeddings immediately to avoid memory buildup
       if (batchEmbeddings.length > 0) {
-        await withRetry(
-          async () => {
-            const { error } = await supabase
-              .from('file_embeddings')
-              .upsert(batchEmbeddings, {
-                onConflict: 'repository_id,file_path',
-              });
-            
-            if (error) {
-              throw error;
-            }
-            
-            console.log("Inserted %s embeddings", batchEmbeddings.length);
-          },
-          `Inserting ${batchEmbeddings.length} embeddings`
-        ).catch(error => {
+        await withRetry(async () => {
+          const { error } = await supabase.from('file_embeddings').upsert(batchEmbeddings, {
+            onConflict: 'repository_id,file_path',
+          });
+
+          if (error) {
+            throw error;
+          }
+
+          console.log('Inserted %s embeddings', batchEmbeddings.length);
+        }, `Inserting ${batchEmbeddings.length} embeddings`).catch((error) => {
           console.error('Error inserting file embeddings:', error);
           // Continue processing even if this batch fails
         });
       }
-      
+
       // Add delay to avoid rate limiting
       if (i + FILE_PROCESSING_BATCH_SIZE < filePaths.length) {
-        await new Promise(resolve => setTimeout(resolve, RATE_LIMIT_DELAY_MS));
+        await new Promise((resolve) => setTimeout(resolve, RATE_LIMIT_DELAY_MS));
       }
     }
-    
-    console.log("Completed embedding generation for %s", repository.full_name);
-    
+
+    console.log('Completed embedding generation for %s', repository.full_name);
   } catch (error) {
     console.error('Error generating file embeddings:', error);
     throw error;
   }
 }
-
 
 /**
  * Find similar files using vector similarity
@@ -284,23 +271,23 @@ export async function findSimilarFiles(
 ): Promise<Map<string, { path: string; similarity: number }[]>> {
   try {
     const similarFiles = new Map<string, { path: string; similarity: number }[]>();
-    
+
     // Get embeddings for the input files
     const { data: inputEmbeddings, error: embeddingsError } = await supabase
       .from('file_embeddings')
       .select('file_path, embedding')
       .eq('repository_id', repositoryId)
       .in('file_path', filePaths);
-    
+
     if (embeddingsError) {
       console.error('Error fetching file embeddings:', embeddingsError);
       return similarFiles;
     }
-    
+
     if (!inputEmbeddings || inputEmbeddings.length === 0) {
       return similarFiles;
     }
-    
+
     // For each input file, find similar files
     for (const inputFile of inputEmbeddings) {
       // Use Supabase's vector similarity search
@@ -310,17 +297,19 @@ export async function findSimilarFiles(
         match_threshold: threshold,
         match_count: 10,
       });
-      
+
       if (rpcError) {
         console.error('Error finding similar files via RPC:', rpcError);
         continue;
       }
-      
+
       if (similar && similar.length > 0) {
         similarFiles.set(
           inputFile.file_path,
           similar
-            .filter((s: { file_path: string; similarity: number }) => s.file_path !== inputFile.file_path)
+            .filter(
+              (s: { file_path: string; similarity: number }) => s.file_path !== inputFile.file_path
+            )
             .map((s: { file_path: string; similarity: number }) => ({
               path: s.file_path,
               similarity: s.similarity,
@@ -328,7 +317,7 @@ export async function findSimilarFiles(
         );
       }
     }
-    
+
     return similarFiles;
   } catch (error) {
     console.error('Error finding similar files:', error);
@@ -341,14 +330,14 @@ export async function findSimilarFiles(
  */
 function prepareContentForEmbedding(filePath: string, content: string): string {
   const maxLength = 8000; // Maximum characters for embedding
-  
+
   // Extract the most important parts of the file
   let prepared = `File: ${filePath}\n\n`;
-  
+
   // Add file extension context
   const ext = filePath.split('.').pop()?.toLowerCase() || '';
   prepared += `Type: ${getFileType(ext)}\n\n`;
-  
+
   // For code files, try to extract important sections
   if (isCodeFile(filePath)) {
     // Extract imports/includes
@@ -356,13 +345,13 @@ function prepareContentForEmbedding(filePath: string, content: string): string {
     if (imports) {
       prepared += `Imports:\n${imports}\n\n`;
     }
-    
+
     // Extract function/class signatures
     const signatures = extractSignatures(content);
     if (signatures) {
       prepared += `Functions/Classes:\n${signatures}\n\n`;
     }
-    
+
     // Add remaining content (truncated)
     const remainingSpace = maxLength - prepared.length - 100;
     if (remainingSpace > 0) {
@@ -373,7 +362,7 @@ function prepareContentForEmbedding(filePath: string, content: string): string {
     // For non-code files, just include the content
     prepared += content.substring(0, maxLength - prepared.length);
   }
-  
+
   return prepared;
 }
 
@@ -381,10 +370,40 @@ function prepareContentForEmbedding(filePath: string, content: string): string {
  * Set of file extensions that are considered code files
  */
 const CODE_EXTENSIONS = new Set([
-  'js', 'jsx', 'ts', 'tsx', 'py', 'rb', 'java', 'go', 'rs',
-  'cpp', 'c', 'h', 'hpp', 'cs', 'php', 'swift', 'kt', 'scala',
-  'r', 'vue', 'svelte', 'sql', 'sh', 'bash', 'ps1', 'yaml', 'yml',
-  'json', 'xml', 'html', 'css', 'scss', 'sass', 'less'
+  'js',
+  'jsx',
+  'ts',
+  'tsx',
+  'py',
+  'rb',
+  'java',
+  'go',
+  'rs',
+  'cpp',
+  'c',
+  'h',
+  'hpp',
+  'cs',
+  'php',
+  'swift',
+  'kt',
+  'scala',
+  'r',
+  'vue',
+  'svelte',
+  'sql',
+  'sh',
+  'bash',
+  'ps1',
+  'yaml',
+  'yml',
+  'json',
+  'xml',
+  'html',
+  'css',
+  'scss',
+  'sass',
+  'less',
 ]);
 
 /**
@@ -445,12 +464,16 @@ function getFileType(ext: string): string {
 function extractImports(content: string): string {
   const lines = content.split('\n');
   const imports: string[] = [];
-  
+
   for (const line of lines) {
     const trimmed = line.trim();
-    
+
     // JavaScript/TypeScript imports
-    if (trimmed.startsWith('import ') || trimmed.startsWith('export ') || trimmed.startsWith('require(')) {
+    if (
+      trimmed.startsWith('import ') ||
+      trimmed.startsWith('export ') ||
+      trimmed.startsWith('require(')
+    ) {
       imports.push(trimmed);
     }
     // Python imports
@@ -461,13 +484,13 @@ function extractImports(content: string): string {
     else if (trimmed.startsWith('#include') || trimmed.startsWith('using ')) {
       imports.push(trimmed);
     }
-    
+
     // Stop after finding main code
     if (imports.length > 0 && trimmed === '') {
       break;
     }
   }
-  
+
   return imports.slice(0, 20).join('\n');
 }
 
@@ -477,11 +500,11 @@ function extractImports(content: string): string {
 function extractSignatures(content: string): string {
   const signatures: string[] = [];
   const lines = content.split('\n');
-  
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const trimmed = line.trim();
-    
+
     // JavaScript/TypeScript functions and classes
     if (
       trimmed.match(/^(export\s+)?(async\s+)?function\s+\w+/) ||
@@ -503,7 +526,7 @@ function extractSignatures(content: string): string {
       signatures.push(line);
     }
   }
-  
+
   return signatures.slice(0, 30).join('\n');
 }
 
@@ -535,9 +558,9 @@ export async function createMatchFileEmbeddingsFunction(): Promise<void> {
       LIMIT match_count;
     $$;
   `;
-  
+
   const { error } = await supabase.rpc('exec_sql', { sql });
-  
+
   if (error) {
     console.error('Error creating match_file_embeddings function:', error);
   }

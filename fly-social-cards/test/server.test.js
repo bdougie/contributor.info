@@ -8,12 +8,12 @@ const mockGenerateSocialCard = vi.fn((data) => {
 });
 
 vi.mock('../src/card-generator.js', () => ({
-  generateSocialCard: mockGenerateSocialCard
+  generateSocialCard: mockGenerateSocialCard,
 }));
 
 // Mock Supabase
 vi.mock('@supabase/supabase-js', () => ({
-  createClient: vi.fn(() => null)
+  createClient: vi.fn(() => null),
 }));
 
 // Import server after mocks are set up
@@ -24,7 +24,7 @@ describe('Social Cards Server', () => {
   beforeAll(async () => {
     // Set test environment variables
     process.env.PORT = '3001';
-    
+
     // Import and start server
     const serverModule = await import('../src/server.js');
     app = serverModule.app;
@@ -96,7 +96,7 @@ describe('Social Cards Server', () => {
       expect(mockGenerateSocialCard).toHaveBeenCalledWith(
         expect.objectContaining({
           title: 'contributor.info',
-          type: 'home'
+          type: 'home',
         })
       );
     });
@@ -113,22 +113,20 @@ describe('Social Cards Server', () => {
           type: 'repo',
           stats: expect.objectContaining({
             weeklyPRVolume: expect.any(Number),
-            activeContributors: expect.any(Number)
-          })
+            activeContributors: expect.any(Number),
+          }),
         })
       );
     });
 
     it('should generate user card with fallback data', async () => {
-      const res = await request(app)
-        .get('/social-cards/user')
-        .query({ username: 'testuser' });
+      const res = await request(app).get('/social-cards/user').query({ username: 'testuser' });
       expect(res.status).toBe(200);
       expect(res.headers['content-type']).toBe('image/svg+xml');
       expect(mockGenerateSocialCard).toHaveBeenCalledWith(
         expect.objectContaining({
           title: '@testuser',
-          type: 'user'
+          type: 'user',
         })
       );
     });
@@ -149,15 +147,13 @@ describe('Social Cards Server', () => {
       // Make multiple requests quickly
       const promises = [];
       for (let i = 0; i < 61; i++) {
-        promises.push(
-          request(app).get('/social-cards/home')
-        );
+        promises.push(request(app).get('/social-cards/home'));
       }
-      
+
       const results = await Promise.all(promises);
-      const rateLimited = results.filter(r => r.status === 429);
+      const rateLimited = results.filter((r) => r.status === 429);
       expect(rateLimited.length).toBeGreaterThan(0);
-      
+
       const limitedResponse = rateLimited[0];
       expect(limitedResponse.body).toHaveProperty('error', 'Too many requests');
       expect(limitedResponse.body).toHaveProperty('retryAfter');
@@ -170,7 +166,7 @@ describe('Social Cards Server', () => {
       mockGenerateSocialCard.mockImplementationOnce(() => {
         throw new Error('Generation failed');
       });
-      
+
       const res = await request(app).get('/social-cards/home');
       expect(res.status).toBe(500);
       expect(res.headers['content-type']).toBe('image/svg+xml');

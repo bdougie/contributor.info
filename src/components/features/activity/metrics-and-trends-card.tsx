@@ -48,22 +48,25 @@ function TrendCard({ trend, loading = false }: TrendCardProps) {
 
     const isPositive = change > 0;
     const Icon = isPositive ? TrendingUp : TrendingDown;
-    
+
     // For metrics where lower is better (like review time), reverse the color logic
     const isLowerBetter = metric === 'Avg Review Time';
-    const color = isLowerBetter 
-      ? (isPositive ? 'text-red-500' : 'text-green-500') 
-      : (isPositive ? 'text-green-500' : 'text-red-500');
+    let color: string;
+    if (isLowerBetter) {
+      color = isPositive ? 'text-red-500' : 'text-green-500';
+    } else {
+      color = isPositive ? 'text-green-500' : 'text-red-500';
+    }
 
     return <Icon className={cn('h-4 w-4', color)} />;
   };
 
   const getTrendColor = (change: number, metric: string) => {
     if (change === 0) return 'text-muted-foreground';
-    
+
     // For metrics where lower is better (like review time), reverse the color logic
     const isLowerBetter = metric === 'Avg Review Time';
-    
+
     if (change > 0) {
       return isLowerBetter ? 'text-red-500' : 'text-green-500';
     } else {
@@ -92,7 +95,9 @@ function TrendCard({ trend, loading = false }: TrendCardProps) {
             </div>
           </dl>
 
-          {trend.insight && <p className="text-xs text-muted-foreground leading-tight">{trend.insight}</p>}
+          {trend.insight && (
+            <p className="text-xs text-muted-foreground leading-tight">{trend.insight}</p>
+          )}
 
           <Badge variant="secondary" className="text-xs">
             vs previous 30d
@@ -280,7 +285,8 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
           <div>
             <CardTitle>Metrics and Trends</CardTitle>
             <CardDescription>
-              <span className="font-medium text-foreground">30-day snapshot</span> with review and comment data vs <span className="font-medium text-foreground">previous period</span>
+              <span className="font-medium text-foreground">30-day snapshot</span> with review and
+              comment data vs <span className="font-medium text-foreground">previous period</span>
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
@@ -291,10 +297,18 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
               className="h-8 w-8"
               title="Share page link"
             >
-              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
-                <path d="m16 6-4-4-4 4"/>
-                <path d="M12 2v15"/>
+              <svg
+                className="h-4 w-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                <path d="m16 6-4-4-4 4" />
+                <path d="M12 2v15" />
               </svg>
             </Button>
           </div>

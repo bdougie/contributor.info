@@ -23,19 +23,19 @@ const THRESHOLDS = {
 
 function analyzeBundle() {
   const distPath = path.join(__dirname, '..', 'dist');
-  
+
   if (!fs.existsSync(distPath)) {
     console.log('❌ No build found. Run `npm run build` first.');
     return { passed: false, reason: 'no-build' };
   }
 
   console.log('📊 Analyzing Bundle Performance...\n');
-  
+
   const results = {
     passed: true,
     issues: [],
     metrics: {},
-    files: []
+    files: [],
   };
 
   // Analyze assets
@@ -51,19 +51,19 @@ function analyzeBundle() {
   let jsSize = 0;
   let cssSize = 0;
   let largeChunks = [];
-  
-  files.forEach(file => {
+
+  files.forEach((file) => {
     const filePath = path.join(assetsPath, file);
     const stats = fs.statSync(filePath);
     const size = stats.size;
     totalSize += size;
-    
+
     results.files.push({
       name: file,
       size: size,
-      sizeKB: Math.round(size / 1024)
+      sizeKB: Math.round(size / 1024),
     });
-    
+
     if (file.endsWith('.js')) {
       jsSize += size;
       if (size > THRESHOLDS.largeChunkSize) {
@@ -79,22 +79,28 @@ function analyzeBundle() {
     jsSize,
     cssSize,
     fileCount: files.length,
-    largeChunks: largeChunks.length
+    largeChunks: largeChunks.length,
   };
 
   // Check thresholds
   if (totalSize > THRESHOLDS.totalBundleSize) {
     results.passed = false;
-    results.issues.push(`Total bundle size (${Math.round(totalSize/1024)}KB) exceeds threshold (${Math.round(THRESHOLDS.totalBundleSize/1024)}KB)`);
+    results.issues.push(
+      `Total bundle size (${Math.round(totalSize / 1024)}KB) exceeds threshold (${Math.round(THRESHOLDS.totalBundleSize / 1024)}KB)`
+    );
   }
 
   if (files.length > THRESHOLDS.chunkCount) {
     results.passed = false;
-    results.issues.push(`Too many chunks (${files.length}) exceeds threshold (${THRESHOLDS.chunkCount})`);
+    results.issues.push(
+      `Too many chunks (${files.length}) exceeds threshold (${THRESHOLDS.chunkCount})`
+    );
   }
 
   if (largeChunks.length > 0) {
-    results.issues.push(`Large chunks detected: ${largeChunks.map(c => `${c.file} (${Math.round(c.size/1024)}KB)`).join(', ')}`);
+    results.issues.push(
+      `Large chunks detected: ${largeChunks.map((c) => `${c.file} (${Math.round(c.size / 1024)}KB)`).join(', ')}`
+    );
   }
 
   return results;
@@ -102,14 +108,14 @@ function analyzeBundle() {
 
 function analyzeAIChanges() {
   console.log('🤖 Analyzing AI Summary Feature Impact...\n');
-  
+
   const issues = [];
   const recommendations = [];
-  
+
   // Check for new heavy dependencies
   const packageJsonPath = path.join(__dirname, '..', 'package.json');
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-  
+
   // AI-related dependencies that could impact performance
   const aiDependencies = [
     '@anthropic/sdk',
@@ -117,12 +123,13 @@ function analyzeAIChanges() {
     'langchain',
     '@huggingface/',
     'tensorflow',
-    '@tensorflow/tfjs'
+    '@tensorflow/tfjs',
   ];
-  
-  const foundAIDeps = Object.keys(packageJson.dependencies || {})
-    .filter(dep => aiDependencies.some(ai => dep.includes(ai)));
-  
+
+  const foundAIDeps = Object.keys(packageJson.dependencies || {}).filter((dep) =>
+    aiDependencies.some((ai) => dep.includes(ai))
+  );
+
   if (foundAIDeps.length > 0) {
     issues.push(`AI dependencies detected: ${foundAIDeps.join(', ')}`);
     recommendations.push('Consider lazy loading AI features to reduce initial bundle size');
@@ -132,17 +139,18 @@ function analyzeAIChanges() {
   const progressiveCaptureFiles = [
     'src/lib/progressive-capture/ai-summary-processor.ts',
     'src/hooks/use-repository-summary.ts',
-    'src/components/insights/sections/repository-summary.tsx'
+    'src/components/insights/sections/repository-summary.tsx',
   ];
-  
+
   let addedFiles = 0;
-  progressiveCaptureFiles.forEach(file => {
+  progressiveCaptureFiles.forEach((file) => {
     const filePath = path.join(__dirname, '..', file);
     if (fs.existsSync(filePath)) {
       addedFiles++;
       const stats = fs.statSync(filePath);
-      if (stats.size > 5 * 1024) { // > 5KB
-        issues.push(`Large new file: ${file} (${Math.round(stats.size/1024)}KB)`);
+      if (stats.size > 5 * 1024) {
+        // > 5KB
+        issues.push(`Large new file: ${file} (${Math.round(stats.size / 1024)}KB)`);
       }
     }
   });
@@ -151,7 +159,7 @@ function analyzeAIChanges() {
     addedFiles,
     issues,
     recommendations,
-    hasAIDeps: foundAIDeps.length > 0
+    hasAIDeps: foundAIDeps.length > 0,
   };
 }
 
@@ -159,15 +167,15 @@ function printReport(bundleResults, aiResults) {
   console.log('=' + '='.repeat(60));
   console.log('📊 PERFORMANCE ANALYSIS REPORT');
   console.log('=' + '='.repeat(60));
-  
+
   // Bundle Analysis
   console.log('\n📦 Bundle Analysis:');
   console.log('-'.repeat(40));
-  console.log(`Total Size: ${Math.round(bundleResults.metrics.totalSize/1024)}KB`);
-  console.log(`JavaScript: ${Math.round(bundleResults.metrics.jsSize/1024)}KB`);
-  console.log(`CSS: ${Math.round(bundleResults.metrics.cssSize/1024)}KB`);
+  console.log(`Total Size: ${Math.round(bundleResults.metrics.totalSize / 1024)}KB`);
+  console.log(`JavaScript: ${Math.round(bundleResults.metrics.jsSize / 1024)}KB`);
+  console.log(`CSS: ${Math.round(bundleResults.metrics.cssSize / 1024)}KB`);
   console.log(`File Count: ${bundleResults.metrics.fileCount}`);
-  
+
   if (bundleResults.metrics.largeChunks > 0) {
     console.log(`⚠️  Large Chunks: ${bundleResults.metrics.largeChunks}`);
   }
@@ -177,20 +185,20 @@ function printReport(bundleResults, aiResults) {
   console.log('-'.repeat(40));
   console.log(`New Files Added: ${aiResults.addedFiles}`);
   console.log(`AI Dependencies: ${aiResults.hasAIDeps ? 'Found' : 'None'}`);
-  
+
   // Issues
   const allIssues = [...bundleResults.issues, ...aiResults.issues];
   if (allIssues.length > 0) {
     console.log('\n⚠️  Issues Detected:');
     console.log('-'.repeat(40));
-    allIssues.forEach(issue => console.log(`• ${issue}`));
+    allIssues.forEach((issue) => console.log(`• ${issue}`));
   }
-  
+
   // Recommendations
   if (aiResults.recommendations.length > 0) {
     console.log('\n💡 Recommendations:');
     console.log('-'.repeat(40));
-    aiResults.recommendations.forEach(rec => console.log(`• ${rec}`));
+    aiResults.recommendations.forEach((rec) => console.log(`• ${rec}`));
   }
 
   // Performance specific to AI changes
@@ -201,16 +209,15 @@ function printReport(bundleResults, aiResults) {
   console.log('✅ Smart caching with 14-day TTL');
   console.log('✅ Error boundaries prevent crashes');
   console.log('✅ Markdown rendering happens client-side only when needed');
-  
+
   // Overall assessment
   console.log('\n🎯 Overall Assessment:');
   console.log('-'.repeat(40));
-  
-  const critical = allIssues.filter(i => 
-    i.includes('exceeds threshold') || 
-    i.includes('Too many chunks')
+
+  const critical = allIssues.filter(
+    (i) => i.includes('exceeds threshold') || i.includes('Too many chunks')
   ).length;
-  
+
   if (critical > 0) {
     console.log('❌ Critical performance issues detected');
     return false;
@@ -225,7 +232,7 @@ function printReport(bundleResults, aiResults) {
 
 function compareWithBaseline() {
   const baselinePath = path.join(__dirname, '..', 'lighthouse-final.json');
-  
+
   if (!fs.existsSync(baselinePath)) {
     console.log('\n📊 Baseline Comparison: No baseline found');
     return;
@@ -234,7 +241,7 @@ function compareWithBaseline() {
   try {
     const baseline = JSON.parse(fs.readFileSync(baselinePath, 'utf8'));
     const baselineScore = Math.round(baseline.categories.performance.score * 100);
-    
+
     console.log('\n📊 Expected Performance:');
     console.log('-'.repeat(40));
     console.log(`Baseline Score: ${baselineScore}/100`);
@@ -243,7 +250,6 @@ function compareWithBaseline() {
     console.log('  • Client-side markdown rendering (lazy)');
     console.log('  • Progressive enhancement (non-blocking)');
     console.log('✅ Minimal impact on core web vitals expected');
-    
   } catch (error) {
     console.log('⚠️  Could not read baseline:', error.message);
   }
@@ -252,29 +258,31 @@ function compareWithBaseline() {
 // Main execution
 async function main() {
   console.log('🚀 Performance Check for AI Summary Changes\n');
-  
+
   const bundleResults = analyzeBundle();
   const aiResults = analyzeAIChanges();
-  
+
   const passed = printReport(bundleResults, aiResults);
   compareWithBaseline();
-  
+
   console.log('\n' + '='.repeat(60));
-  
+
   if (passed && bundleResults.passed) {
     console.log('✅ Performance check passed! No significant regressions detected.');
     console.log('💡 AI summary changes follow progressive enhancement patterns.');
   } else {
     console.log('⚠️  Performance concerns detected. Review recommendations above.');
   }
-  
+
   return passed && bundleResults.passed;
 }
 
 // Run the check
-main().then(passed => {
-  process.exit(passed ? 0 : 1);
-}).catch(error => {
-  console.error('❌ Performance check failed:', error);
-  process.exit(1);
-});
+main()
+  .then((passed) => {
+    process.exit(passed ? 0 : 1);
+  })
+  .catch((error) => {
+    console.error('❌ Performance check failed:', error);
+    process.exit(1);
+  });

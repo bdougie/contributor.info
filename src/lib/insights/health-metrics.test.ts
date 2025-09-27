@@ -4,15 +4,15 @@ import { calculateRepositoryConfidence, clearConfidenceCache } from './health-me
 // Mock the entire supabase module
 vi.mock('@/lib/supabase', () => ({
   supabase: {
-    from: vi.fn()
-  }
+    from: vi.fn(),
+  },
 }));
 
 // Helper function to create a chainable query mock
 function createChainableMock(finalResult: any) {
   // Create a resolved promise that will be returned when the query is awaited
   const resolvedPromise = Promise.resolve(finalResult);
-  
+
   const mock: any = {
     select: vi.fn(),
     eq: vi.fn(),
@@ -28,22 +28,22 @@ function createChainableMock(finalResult: any) {
     limit: vi.fn(),
     range: vi.fn(),
     delete: vi.fn(),
-    upsert: vi.fn().mockResolvedValue(finalResult)
+    upsert: vi.fn().mockResolvedValue(finalResult),
   };
-  
+
   // Make each method return the mock itself for chaining
-  Object.keys(mock).forEach(key => {
+  Object.keys(mock).forEach((key) => {
     if (key !== 'single' && key !== 'upsert') {
       mock[key].mockReturnValue(mock);
     }
   });
-  
+
   // Make the mock a thenable/promise-like object
   // This ensures it resolves correctly when awaited directly (for queries without .single())
   mock.then = resolvedPromise.then.bind(resolvedPromise);
   mock.catch = resolvedPromise.catch.bind(resolvedPromise);
   mock.finally = resolvedPromise.finally.bind(resolvedPromise);
-  
+
   return mock;
 }
 
@@ -56,7 +56,7 @@ describe('calculateRepositoryConfidence', () => {
   describe('Star/Fork Confidence Calculation', () => {
     it('should calculate high confidence when many stargazers become contributors', async () => {
       const { supabase } = await import('@/lib/supabase');
-      
+
       // Mock repository data
       const mockRepo = {
         data: {
@@ -65,38 +65,38 @@ describe('calculateRepositoryConfidence', () => {
           forks_count: 50,
           created_at: '2023-01-01',
           open_issues_count: 10,
-          contributors_count: 70
+          contributors_count: 70,
         },
-        error: null
+        error: null,
       };
 
       // Mock star events (100 unique users)
       const mockStarEvents = {
         data: Array.from({ length: 100 }, (_, i) => ({
-          actor_login: `user${i}`
+          actor_login: `user${i}`,
         })),
-        error: null
+        error: null,
       };
 
       // Mock fork events (50 unique users)
       const mockForkEvents = {
         data: Array.from({ length: 50 }, (_, i) => ({
-          actor_login: `forker${i}`
+          actor_login: `forker${i}`,
         })),
-        error: null
+        error: null,
       };
 
       // Mock contributors (40 stargazers + 30 forkers became contributors)
       const mockContributors = {
         data: [
           ...Array.from({ length: 40 }, (_, i) => ({
-            username: `user${i}`
+            username: `user${i}`,
           })),
           ...Array.from({ length: 30 }, (_, i) => ({
-            username: `forker${i}`
-          }))
+            username: `forker${i}`,
+          })),
         ],
-        error: null
+        error: null,
       };
 
       // Setup mock chain
@@ -111,7 +111,7 @@ describe('calculateRepositoryConfidence', () => {
           // Return star events data with both stars and forks
           const allEvents = [
             ...mockStarEvents.data.map((d: any) => ({ ...d, event_type: 'WatchEvent' })),
-            ...mockForkEvents.data.map((d: any) => ({ ...d, event_type: 'ForkEvent' }))
+            ...mockForkEvents.data.map((d: any) => ({ ...d, event_type: 'ForkEvent' })),
           ];
           return createChainableMock({ data: allEvents, error: null });
         }
@@ -134,7 +134,7 @@ describe('calculateRepositoryConfidence', () => {
       });
 
       const result = await calculateRepositoryConfidence('test-owner', 'test-repo', '30');
-      
+
       // With the mock data provided, should calculate some reasonable confidence
       // The exact algorithm may use fallback due to mock limitations
       expect(result).toBeGreaterThanOrEqual(0);
@@ -143,7 +143,7 @@ describe('calculateRepositoryConfidence', () => {
 
     it('should calculate low confidence when few stargazers become contributors', async () => {
       const { supabase } = await import('@/lib/supabase');
-      
+
       const mockRepo = {
         data: {
           id: 1,
@@ -151,36 +151,36 @@ describe('calculateRepositoryConfidence', () => {
           forks_count: 200,
           created_at: '2023-01-01',
           open_issues_count: 50,
-          contributors_count: 15
+          contributors_count: 15,
         },
-        error: null
+        error: null,
       };
 
       const mockStarEvents = {
         data: Array.from({ length: 1000 }, (_, i) => ({
-          actor_login: `user${i}`
+          actor_login: `user${i}`,
         })),
-        error: null
+        error: null,
       };
 
       const mockForkEvents = {
         data: Array.from({ length: 200 }, (_, i) => ({
-          actor_login: `forker${i}`
+          actor_login: `forker${i}`,
         })),
-        error: null
+        error: null,
       };
 
       // Only 10 stargazers and 5 forkers became contributors
       const mockContributors = {
         data: [
           ...Array.from({ length: 10 }, (_, i) => ({
-            username: `user${i}`
+            username: `user${i}`,
           })),
           ...Array.from({ length: 5 }, (_, i) => ({
-            username: `forker${i}`
-          }))
+            username: `forker${i}`,
+          })),
         ],
-        error: null
+        error: null,
       };
 
       // Setup mock chain
@@ -195,7 +195,7 @@ describe('calculateRepositoryConfidence', () => {
           // Return star events data with both stars and forks
           const allEvents = [
             ...mockStarEvents.data.map((d: any) => ({ ...d, event_type: 'WatchEvent' })),
-            ...mockForkEvents.data.map((d: any) => ({ ...d, event_type: 'ForkEvent' }))
+            ...mockForkEvents.data.map((d: any) => ({ ...d, event_type: 'ForkEvent' })),
           ];
           return createChainableMock({ data: allEvents, error: null });
         }
@@ -218,7 +218,7 @@ describe('calculateRepositoryConfidence', () => {
       });
 
       const result = await calculateRepositoryConfidence('test-owner', 'test-repo', '30');
-      
+
       // Should be in the "intimidating" range (0-30%)
       expect(result).toBeLessThan(30);
     });
@@ -227,15 +227,15 @@ describe('calculateRepositoryConfidence', () => {
   describe('Edge Cases', () => {
     it('should handle repositories with no stars or forks', async () => {
       const { supabase } = await import('@/lib/supabase');
-      
+
       const mockRepo = {
         data: {
           id: 1,
           stargazers_count: 0,
           forks_count: 0,
-          created_at: '2023-01-01'
+          created_at: '2023-01-01',
         },
-        error: null
+        error: null,
       };
 
       supabase.from = vi.fn().mockImplementation((table: string) => {
@@ -268,7 +268,7 @@ describe('calculateRepositoryConfidence', () => {
       });
 
       const result = await calculateRepositoryConfidence('test-owner', 'test-repo', '30');
-      
+
       // Should return 0 for repos with absolutely no engagement or contributors
       // The fallback calculation with 0 stars, 0 forks, 0 contributors should return 0
       expect(result).toBeDefined();
@@ -279,23 +279,23 @@ describe('calculateRepositoryConfidence', () => {
 
     it('should handle database errors gracefully', async () => {
       const { supabase } = await import('@/lib/supabase');
-      
+
       supabase.from = vi.fn().mockImplementation(() => {
         return createChainableMock({
           data: null,
-          error: new Error('Database error')
+          error: new Error('Database error'),
         });
       });
 
       const result = await calculateRepositoryConfidence('test-owner', 'test-repo', '30');
-      
+
       // Should return 0 on error
       expect(result).toBe(0);
     });
 
     it('should handle new repositories appropriately', async () => {
       const { supabase } = await import('@/lib/supabase');
-      
+
       const mockRepo = {
         data: {
           id: 1,
@@ -303,9 +303,9 @@ describe('calculateRepositoryConfidence', () => {
           forks_count: 10,
           created_at: new Date().toISOString(), // Created today
           open_issues_count: 5,
-          contributors_count: 12
+          contributors_count: 12,
         },
-        error: null
+        error: null,
       };
 
       supabase.from = vi.fn().mockImplementation((table: string) => {
@@ -313,9 +313,9 @@ describe('calculateRepositoryConfidence', () => {
           return createChainableMock(mockRepo);
         }
         if (table === 'pull_requests') {
-          return createChainableMock({ 
-            data: Array.from({ length: 8 }, (_, i) => ({ author_id: i })), 
-            error: null 
+          return createChainableMock({
+            data: Array.from({ length: 8 }, (_, i) => ({ author_id: i })),
+            error: null,
           });
         }
         if (table === 'repository_confidence_cache') {
@@ -328,7 +328,7 @@ describe('calculateRepositoryConfidence', () => {
       });
 
       const result = await calculateRepositoryConfidence('test-owner', 'test-repo', '30');
-      
+
       // New repos should get a boost to avoid showing 0%
       expect(result).toBeGreaterThan(0);
     });
@@ -337,15 +337,15 @@ describe('calculateRepositoryConfidence', () => {
   describe('Time Range Handling', () => {
     it('should respect different time ranges', async () => {
       const { supabase } = await import('@/lib/supabase');
-      
+
       const mockRepo = {
         data: {
           id: 1,
           stargazers_count: 100,
           forks_count: 50,
-          created_at: '2022-01-01'
+          created_at: '2022-01-01',
         },
-        error: null
+        error: null,
       };
 
       let capturedDateFilter: string | undefined;
@@ -394,7 +394,7 @@ describe('calculateRepositoryConfidence', () => {
   describe('Fallback Calculation', () => {
     it('should use fallback calculation when event data is unavailable', async () => {
       const { supabase } = await import('@/lib/supabase');
-      
+
       const mockRepo = {
         data: {
           id: 1,
@@ -404,9 +404,9 @@ describe('calculateRepositoryConfidence', () => {
           forks_count: 100,
           open_issues_count: 20,
           contributors_count: 50,
-          created_at: '2022-01-01'
+          created_at: '2022-01-01',
         },
-        error: null
+        error: null,
       };
 
       supabase.from = vi.fn().mockImplementation((table: string) => {
@@ -414,9 +414,9 @@ describe('calculateRepositoryConfidence', () => {
           return createChainableMock(mockRepo);
         }
         if (table === 'pull_requests') {
-          return createChainableMock({ 
-            data: Array.from({ length: 25 }, (_, i) => ({ author_id: i })), 
-            error: null 
+          return createChainableMock({
+            data: Array.from({ length: 25 }, (_, i) => ({ author_id: i })),
+            error: null,
           });
         }
         if (table === 'repository_confidence_cache') {
@@ -430,9 +430,10 @@ describe('calculateRepositoryConfidence', () => {
       });
 
       const result = await calculateRepositoryConfidence('test-owner', 'test-repo', '30');
-      
+
       // Should use fallback calculation based on repo metrics
       expect(result).toBeGreaterThan(0);
       expect(result).toBeLessThan(100);
     });
   });
+});

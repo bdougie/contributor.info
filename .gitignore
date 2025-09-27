@@ -41,6 +41,9 @@ chromatic-diagnostics.json
 # Coverage reports
 coverage
 
+# Vitest HTML report metadata
+html/html.meta.json.gz
+
 # ESLint cache
 .eslintcache
 

@@ -40,15 +40,13 @@ const webhookLimiter = rateLimit({
 });
 
 // Environment validation
-const requiredEnvVars = [
-  'SUPABASE_URL',
-  'SUPABASE_ANON_KEY'
-];
+const requiredEnvVars = ['SUPABASE_URL', 'SUPABASE_ANON_KEY'];
 
 // Check for GitHub App credentials - support both naming conventions
-const hasGitHubCreds = (process.env.CONTRIBUTOR_APP_ID || process.env.GITHUB_APP_ID) &&
-                       (process.env.CONTRIBUTOR_APP_KEY || process.env.GITHUB_APP_PRIVATE_KEY) &&
-                       process.env.GITHUB_APP_WEBHOOK_SECRET;
+const hasGitHubCreds =
+  (process.env.CONTRIBUTOR_APP_ID || process.env.GITHUB_APP_ID) &&
+  (process.env.CONTRIBUTOR_APP_KEY || process.env.GITHUB_APP_PRIVATE_KEY) &&
+  process.env.GITHUB_APP_WEBHOOK_SECRET;
 
 if (!hasGitHubCreds) {
   requiredEnvVars.push('CONTRIBUTOR_APP_ID or GITHUB_APP_ID');
@@ -56,7 +54,7 @@ if (!hasGitHubCreds) {
   requiredEnvVars.push('GITHUB_APP_WEBHOOK_SECRET');
 }
 
-const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+const missingEnvVars = requiredEnvVars.filter((varName) => !process.env[varName]);
 if (missingEnvVars.length > 0) {
   logger.error('❌ Missing required environment variables: %s', missingEnvVars.join(', '));
   process.exit(1);
@@ -67,13 +65,13 @@ let githubApp;
 try {
   const appId = process.env.CONTRIBUTOR_APP_ID || process.env.GITHUB_APP_ID;
   const privateKey = process.env.CONTRIBUTOR_APP_KEY || process.env.GITHUB_APP_PRIVATE_KEY;
-  
+
   githubApp = new App({
     appId: appId,
     privateKey: privateKey.replace(/\\n/g, '\n'),
     webhooks: {
-      secret: process.env.GITHUB_APP_WEBHOOK_SECRET
-    }
+      secret: process.env.GITHUB_APP_WEBHOOK_SECRET,
+    },
   });
   logger.info('✅ GitHub App initialized successfully with App ID: %s', appId);
 } catch (error) {
@@ -82,10 +80,7 @@ try {
 }
 
 // Initialize Supabase client
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY
-);
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
 
 // Import webhook handlers
 import { handlePullRequestEvent } from './handlers/pull-request.js';
@@ -104,7 +99,7 @@ const metrics = {
   webhooksProcessed: 0,
   webhooksFailed: 0,
   processingTime: [],
-  startTime: new Date()
+  startTime: new Date(),
 };
 
 // Health check endpoint
@@ -114,32 +109,34 @@ app.get('/health', (req, res) => {
     status: 'healthy',
     uptime: `${uptime}s`,
     environment: process.env.NODE_ENV || 'production',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 });
 
 // Metrics endpoint
 app.get('/metrics', (req, res) => {
-  const avgProcessingTime = metrics.processingTime.length > 0
-    ? metrics.processingTime.reduce((a, b) => a + b, 0) / metrics.processingTime.length
-    : 0;
+  const avgProcessingTime =
+    metrics.processingTime.length > 0
+      ? metrics.processingTime.reduce((a, b) => a + b, 0) / metrics.processingTime.length
+      : 0;
 
   res.json({
     webhooks: {
       received: metrics.webhooksReceived,
       processed: metrics.webhooksProcessed,
       failed: metrics.webhooksFailed,
-      successRate: metrics.webhooksReceived > 0 
-        ? ((metrics.webhooksProcessed / metrics.webhooksReceived) * 100).toFixed(2) + '%'
-        : 'N/A'
+      successRate:
+        metrics.webhooksReceived > 0
+          ? ((metrics.webhooksProcessed / metrics.webhooksReceived) * 100).toFixed(2) + '%'
+          : 'N/A',
     },
     performance: {
       averageProcessingTime: `${avgProcessingTime.toFixed(2)}ms`,
       totalProcessingTime: `${metrics.processingTime.reduce((a, b) => a + b, 0)}ms`,
-      samples: metrics.processingTime.length
+      samples: metrics.processingTime.length,
     },
     uptime: `${Math.floor((new Date() - metrics.startTime) / 1000)}s`,
-    lastUpdated: new Date().toISOString()
+    lastUpdated: new Date().toISOString(),
   });
 });
 
@@ -151,9 +148,9 @@ app.get('/', (req, res) => {
     endpoints: {
       health: '/health',
       metrics: '/metrics',
-      webhook: '/webhook'
+      webhook: '/webhook',
     },
-    version: VERSION
+    version: VERSION,
   });
 });
 
@@ -206,20 +203,25 @@ app.post('/webhook', webhookLimiter, async (req, res) => {
           break;
 
         case 'installation':
-          logger.info('🔧 Installation %s: %s', payload.action, payload.installation?.account?.login);
+          logger.info(
+            '🔧 Installation %s: %s',
+            payload.action,
+            payload.installation?.account?.login
+          );
           await handleInstallationEvent(payload, githubApp, supabase, logger);
           break;
 
         case 'pull_request':
           logger.info('🔀 PR %s: #%d', payload.action, payload.pull_request?.number);
-          
+
           // Run check runs for fork PRs (similarity & performance monitoring)
           // This runs in parallel with other handlers and doesn't block
           if (['opened', 'synchronize', 'ready_for_review'].includes(payload.action)) {
-            handlePRCheckRuns(payload, githubApp, supabase, logger)
-              .catch(err => logger.error('Check runs failed:', err));
+            handlePRCheckRuns(payload, githubApp, supabase, logger).catch((err) =>
+              logger.error('Check runs failed:', err)
+            );
           }
-          
+
           // Process other PR handlers
           if (payload.action === 'opened' || payload.action === 'ready_for_review') {
             // Use the new handler with reviewer suggestions
@@ -272,17 +274,16 @@ app.post('/webhook', webhookLimiter, async (req, res) => {
       message: 'Webhook received',
       event: eventType,
       delivery: deliveryId,
-      processingTime: `${processingTime}ms`
+      processingTime: `${processingTime}ms`,
     });
-
   } catch (error) {
     logger.error('❌ Webhook error: %s', error.message);
     metrics.webhooksFailed++;
-    
+
     // Still return 200 to prevent GitHub retries
     res.status(200).json({
       message: 'Webhook received with errors',
-      error: error.message
+      error: error.message,
     });
   }
 });
@@ -301,10 +302,7 @@ function verifyWebhookSignature(payload, signature, secret) {
     return false;
   }
 
-  return crypto.timingSafeEqual(
-    Buffer.from(signature),
-    Buffer.from(digest)
-  );
+  return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(digest));
 }
 
 // Error handling middleware
@@ -312,7 +310,7 @@ app.use((err, req, res, next) => {
   logger.error('Express error: %s', err.message);
   res.status(500).json({
     error: 'Internal server error',
-    message: process.env.NODE_ENV === 'development' ? err.message : undefined
+    message: process.env.NODE_ENV === 'development' ? err.message : undefined,
   });
 });
 

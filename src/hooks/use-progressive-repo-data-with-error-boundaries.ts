@@ -125,7 +125,7 @@ export function useProgressiveRepoDataWithErrorBoundaries(
           ? (error as LoadingError)
           : createGenericLoadingError(error, stage, context);
 
-      console.error(`Stage ${stage} error:`, loadingError);
+      console.error('Stage %s error:', loadingError, stage);
 
       // Update error state
       setData((prev) => ({

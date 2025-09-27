@@ -23,7 +23,7 @@ const env = {
   CI: 'true',
   NODE_ENV: 'test',
   VITE_OPENAI_API_KEY: 'test-key-for-ci',
-  NODE_OPTIONS: '--unhandled-rejections=strict'
+  NODE_OPTIONS: '--unhandled-rejections=strict',
 };
 
 console.log('\n🏃 Running tests with CI environment variables...');
@@ -31,7 +31,7 @@ console.log('\n🏃 Running tests with CI environment variables...');
 const test = spawn('npm', ['test', '--', '--coverage', '--passWithNoTests', '--reporter=verbose'], {
   stdio: 'inherit',
   cwd: process.cwd(),
-  env
+  env,
 });
 
 test.on('close', (code) => {

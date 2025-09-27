@@ -22,12 +22,12 @@ export class Logger {
    */
   private formatMessage(level: string, message: string, ...args: unknown[]) {
     const timestamp = new Date().toISOString();
-    
+
     // Handle parameterized logging to prevent format string vulnerabilities
     if (args.length > 0) {
       return { timestamp, level, context: this.context, message, params: args };
     }
-    
+
     return { timestamp, level, context: this.context, message };
   }
 
@@ -36,12 +36,12 @@ export class Logger {
    */
   info(message: string, ...args: unknown[]): void {
     const formatted = this.formatMessage('INFO', message, ...args);
-    
+
     // Use parameterized console.log to prevent format string vulnerabilities
     if (args.length > 0) {
       console.log(`[${this.context}] ${message}`, ...args);
     } else {
-      console.log("[%s] ${message}", this.context);
+      console.log('[%s] ${message}', this.context);
     }
   }
 
@@ -50,7 +50,7 @@ export class Logger {
    */
   warn(message: string, ...args: unknown[]): void {
     const formatted = this.formatMessage('WARN', message, ...args);
-    
+
     if (args.length > 0) {
       console.warn(`[${this.context}] ${message}`, ...args);
     } else {
@@ -63,7 +63,7 @@ export class Logger {
    */
   error(message: string, ...args: unknown[]): void {
     const formatted = this.formatMessage('ERROR', message, ...args);
-    
+
     // Use parameterized console.error to prevent format string vulnerabilities
     if (args.length > 0) {
       console.error(`[${this.context}] ERROR: ${message}`, ...args);
@@ -78,11 +78,11 @@ export class Logger {
   debug(message: string, ...args: unknown[]): void {
     if (process.env.NODE_ENV === 'development') {
       const formatted = this.formatMessage('DEBUG', message, ...args);
-      
+
       if (args.length > 0) {
         console.log(`[${this.context}] DEBUG: ${message}`, ...args);
       } else {
-        console.log("[%s] DEBUG: ${message}", this.context);
+        console.log('[%s] DEBUG: ${message}', this.context);
       }
     }
   }

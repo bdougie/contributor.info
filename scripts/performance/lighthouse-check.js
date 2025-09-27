@@ -48,7 +48,7 @@ async function runLighthouse() {
   try {
     console.log(`🔍 Running Lighthouse on ${URL}...`);
     const runnerResult = await lighthouse(URL, options);
-    
+
     if (!runnerResult) {
       throw new Error('Lighthouse runner returned no results');
     }
@@ -68,61 +68,65 @@ async function runLighthouse() {
 function analyzeResults(results) {
   const { categories, audits } = results;
   const performance = categories.performance;
-  
+
   console.log('\n📊 Performance Results:');
   console.log('=' + '='.repeat(50));
-  
+
   // Overall score
   const score = Math.round(performance.score * 100);
   const scoreStatus = score >= PERFORMANCE_THRESHOLDS.performance ? '✅' : '❌';
-  console.log(`${scoreStatus} Performance Score: ${score}/100 (threshold: ${PERFORMANCE_THRESHOLDS.performance})`);
-  
+  console.log(
+    `${scoreStatus} Performance Score: ${score}/100 (threshold: ${PERFORMANCE_THRESHOLDS.performance})`
+  );
+
   // Key metrics
   const metrics = [
     {
       name: 'First Contentful Paint',
       audit: 'first-contentful-paint',
       threshold: PERFORMANCE_THRESHOLDS['first-contentful-paint'],
-      unit: 'ms'
+      unit: 'ms',
     },
     {
       name: 'Largest Contentful Paint',
-      audit: 'largest-contentful-paint', 
+      audit: 'largest-contentful-paint',
       threshold: PERFORMANCE_THRESHOLDS['largest-contentful-paint'],
-      unit: 'ms'
+      unit: 'ms',
     },
     {
       name: 'Cumulative Layout Shift',
       audit: 'cumulative-layout-shift',
       threshold: PERFORMANCE_THRESHOLDS['cumulative-layout-shift'],
-      unit: ''
+      unit: '',
     },
     {
       name: 'Total Blocking Time',
       audit: 'total-blocking-time',
       threshold: PERFORMANCE_THRESHOLDS['total-blocking-time'],
-      unit: 'ms'
-    }
+      unit: 'ms',
+    },
   ];
 
   const failures = [];
-  
-  metrics.forEach(metric => {
+
+  metrics.forEach((metric) => {
     const audit = audits[metric.audit];
     if (!audit) return;
-    
+
     const value = audit.numericValue || 0;
     const passed = value <= metric.threshold;
     const status = passed ? '✅' : '❌';
-    
-    console.log(`${status} ${metric.name}: ${Math.round(value)}${metric.unit} (threshold: ${metric.threshold}${metric.unit})`);
-    
+
+    console.log(
+      `${status} ${metric.name}: ${Math.round(value)}${metric.unit} (threshold: ${metric.threshold}${metric.unit})`
+    );
+
     if (!passed) {
       failures.push({
         metric: metric.name,
         value: Math.round(value),
         threshold: metric.threshold,
-        unit: metric.unit
+        unit: metric.unit,
       });
     }
   });
@@ -130,15 +134,17 @@ function analyzeResults(results) {
   // Analysis
   console.log('\n🔍 Analysis:');
   console.log('-'.repeat(50));
-  
+
   if (failures.length === 0) {
     console.log('✅ All performance metrics are within acceptable thresholds');
     console.log('✅ No performance regression detected');
   } else {
     console.log('❌ Performance regressions detected:');
-    failures.forEach(failure => {
+    failures.forEach((failure) => {
       const regression = failure.value - failure.threshold;
-      console.log(`   • ${failure.metric}: ${failure.value}${failure.unit} (${regression > 0 ? '+' : ''}${regression}${failure.unit} over threshold)`);
+      console.log(
+        `   • ${failure.metric}: ${failure.value}${failure.unit} (${regression > 0 ? '+' : ''}${regression}${failure.unit} over threshold)`
+      );
     });
   }
 
@@ -146,7 +152,7 @@ function analyzeResults(results) {
   if (score < 90) {
     console.log('\n💡 Performance Recommendations:');
     console.log('-'.repeat(50));
-    
+
     if (audits['unused-javascript']?.score < 1) {
       console.log('• Consider removing unused JavaScript');
     }
@@ -165,18 +171,18 @@ function analyzeResults(results) {
     score,
     passed: failures.length === 0 && score >= PERFORMANCE_THRESHOLDS.performance,
     failures,
-    metrics: metrics.map(m => ({
+    metrics: metrics.map((m) => ({
       name: m.name,
       value: Math.round(audits[m.audit]?.numericValue || 0),
-      threshold: m.threshold
-    }))
+      threshold: m.threshold,
+    })),
   };
 }
 
 // Helper function to compare with baseline
 function compareWithBaseline(current) {
   const baselinePath = join(__dirname, '..', 'lighthouse-final.json');
-  
+
   if (!fs.existsSync(baselinePath)) {
     console.log('\n⚠️  No baseline report found for comparison');
     return;
@@ -186,19 +192,18 @@ function compareWithBaseline(current) {
     const baseline = JSON.parse(fs.readFileSync(baselinePath, 'utf8'));
     const baselineScore = Math.round(baseline.categories.performance.score * 100);
     const currentScore = current.score;
-    
+
     console.log('\n📊 Comparison with Baseline:');
     console.log('-'.repeat(50));
     console.log(`Baseline Score: ${baselineScore}/100`);
     console.log(`Current Score:  ${currentScore}/100`);
-    
+
     const difference = currentScore - baselineScore;
     if (difference >= 0) {
       console.log(`✅ Performance improved by ${difference} points`);
     } else {
       console.log(`❌ Performance regressed by ${Math.abs(difference)} points`);
     }
-    
   } catch (error) {
     console.log('⚠️  Could not compare with baseline:', error.message);
   }
@@ -208,12 +213,12 @@ function compareWithBaseline(current) {
 async function main() {
   try {
     console.log('🚀 Starting Lighthouse Performance Check...\n');
-    
+
     const results = await runLighthouse();
     compareWithBaseline(results);
-    
+
     console.log('\n' + '='.repeat(60));
-    
+
     if (results.passed) {
       console.log('✅ Performance check passed!');
       process.exit(0);

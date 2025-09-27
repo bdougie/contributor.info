@@ -67,6 +67,7 @@ export default async (req: Request, _context: Context) => {
     });
   }
 
+
   const url = new URL(req.url);
   const pathParts = url.pathname.split('/').filter(Boolean);
   const workspaceId = pathParts[pathParts.length - 1] !== 'api-workspaces' ? pathParts[pathParts.length - 1] : null;
@@ -170,6 +171,26 @@ export default async (req: Request, _context: Context) => {
 
       case 'POST': {
         // POST /api/workspaces - Create new workspace
+        
+        // Check if workspace creation is enabled via environment variable
+        const isWorkspaceCreationEnabled = process.env.FEATURE_FLAG_ENABLE_WORKSPACE_CREATION === 'true' || 
+                                           process.env.FEATURE_FLAG_ENABLE_WORKSPACE_CREATION === '1';
+        
+        if (!isWorkspaceCreationEnabled) {
+          return new Response(JSON.stringify({
+            error: 'Workspace creation is currently disabled',
+            code: 'FEATURE_DISABLED',
+            message: 'This feature is temporarily unavailable. Please try again later.'
+          }), {
+            status: 503, // Service Unavailable
+            headers: { 
+              ...corsHeaders, 
+              'Content-Type': 'application/json',
+              'Retry-After': '3600' // Suggest retry in 1 hour
+            }
+          });
+        }
+
         const body = await req.json() as CreateWorkspaceRequest;
         
         const validation = validateWorkspaceData(body);

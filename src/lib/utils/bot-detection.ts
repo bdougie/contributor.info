@@ -127,9 +127,17 @@ export function detectBot(input: BotDetectionInput): BotDetectionResult {
 
 /**
  * Simple boolean check - for cases where you just need true/false
+ * Supports both the old interface (simple object) and new detection input
  */
-export function isBot(input: BotDetectionInput): boolean {
-  return detectBot(input).isBot;
+export function isBot(input: BotDetectionInput | { isBot?: boolean; username: string }): boolean {
+  // Handle legacy interface for backward compatibility
+  if ('username' in input && !('githubUser' in input) && !('contributor' in input)) {
+    const legacyInput = input as { isBot?: boolean; username: string };
+    return legacyInput.isBot === true || legacyInput.username.toLowerCase().includes('bot');
+  }
+
+  // Use the new detection logic
+  return detectBot(input as BotDetectionInput).isBot;
 }
 
 /**
@@ -176,4 +184,31 @@ export function validateBotClassification(
       ? 'Classifications match'
       : `GitHub detection: ${githubDetection.isBot}, DB: ${dbDetection.isBot} - recommend GitHub value`,
   };
+}
+
+/**
+ * Filters items based on bot inclusion preferences
+ * @param items - Array of items with author property
+ * @param includeBots - Whether to include bots in the results
+ * @returns Filtered array based on bot inclusion preference
+ */
+export function filterByBotPreference<T extends { author: { isBot?: boolean; username: string } }>(
+  items: T[],
+  includeBots: boolean
+): T[] {
+  if (includeBots) {
+    return items;
+  }
+  return items.filter((item) => !isBot(item.author));
+}
+
+/**
+ * Checks if any items in an array are from bot users
+ * @param items - Array of items with author property
+ * @returns true if any item is from a bot
+ */
+export function hasBotAuthors<T extends { author: { isBot?: boolean; username: string } }>(
+  items: T[]
+): boolean {
+  return items.some((item) => isBot(item.author));
 }

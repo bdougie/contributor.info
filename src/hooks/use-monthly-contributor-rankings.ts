@@ -14,23 +14,108 @@ export interface MonthlyContributorRanking {
   rank: number;
 }
 
-export function useMonthlyContributorRankings(owner: string, repo: string) {
+export interface MonthlyRankingsResult {
+  rankings: MonthlyContributorRanking[] | null;
+  loading: boolean;
+  error: Error | null;
+  isUsingFallback: boolean;
+  displayMonth?: string;
+  displayYear?: number;
+  isCalculating?: boolean;
+}
+
+export function useMonthlyContributorRankings(owner: string, repo: string): MonthlyRankingsResult {
   const [rankings, setRankings] = useState<MonthlyContributorRanking[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [isUsingFallback, setIsUsingFallback] = useState(false);
+  const [displayMonth, setDisplayMonth] = useState<string>();
+  const [displayYear, setDisplayYear] = useState<number>();
+  const [isCalculating, setIsCalculating] = useState(false);
 
   useEffect(() => {
     async function fetchRankings() {
       try {
         setLoading(true);
+        setIsUsingFallback(false);
+        setIsCalculating(false);
 
-        // Get current month and year
+        // Get current month and year using UTC to match Edge Function
         const now = new Date();
-        const currentMonth = now.getMonth() + 1;
-        const currentYear = now.getFullYear();
+        const currentMonth = now.getUTCMonth() + 1;
+        const currentYear = now.getUTCFullYear();
 
-        // Query monthly rankings with contributor details
-        const { data, error: queryError } = await supabase
+        // First, try to call the Edge Function for on-demand calculation
+        try {
+          setIsCalculating(true);
+
+          // Get current session for authentication
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
+
+          const { data: functionData, error: functionError } = await supabase.functions.invoke(
+            'calculate-monthly-rankings',
+            {
+              body: {
+                owner,
+                repo,
+                month: currentMonth,
+                year: currentYear,
+                limit: 10,
+              },
+              headers: session
+                ? {
+                    Authorization: `Bearer ${session.access_token}`,
+                  }
+                : undefined,
+            }
+          );
+
+          if (!functionError && functionData?.rankings) {
+            // Transform the data from the Edge Function
+            const transformedRankings: MonthlyContributorRanking[] = functionData.rankings.map(
+              (item: {
+                contributor_id: string;
+                username: string;
+                display_name?: string;
+                avatar_url?: string;
+                pull_requests_count: number;
+                reviews_count: number;
+                comments_count: number;
+                weighted_score: number;
+                rank: number;
+              }) => ({
+                id: item.contributor_id,
+                username: item.username,
+                displayName: item.display_name || item.username,
+                avatarUrl:
+                  item.avatar_url || `https://avatars.githubusercontent.com/${item.username}`,
+                profileUrl: `https://github.com/${item.username}`,
+                pullRequestsCount: item.pull_requests_count || 0,
+                reviewsCount: item.reviews_count || 0,
+                commentsCount: item.comments_count || 0,
+                weightedScore: item.weighted_score || 0,
+                rank: item.rank || 0,
+              })
+            );
+
+            setRankings(transformedRankings);
+            setDisplayMonth(now.toLocaleString('default', { month: 'long' }));
+            setDisplayYear(currentYear);
+            setIsCalculating(false);
+            return; // Successfully got rankings from Edge Function
+          }
+          // Edge function failed, reset state before falling back
+          setIsCalculating(false);
+        } catch (err) {
+          console.log('Edge function error:', err, 'Falling back to database query');
+          // Reset state before fallback
+          setIsCalculating(false);
+        }
+
+        // Fallback to direct database query if Edge Function fails
+        const { data: currentData, error: queryError } = await supabase
           .from('monthly_rankings')
           .select(
             `
@@ -56,6 +141,81 @@ export function useMonthlyContributorRankings(owner: string, repo: string) {
           .limit(10);
 
         if (queryError) throw queryError;
+
+        let data = currentData;
+
+        // If no data for current month, try to get the most recent month with data
+        if (!data || data.length === 0) {
+          console.log('No data for current month, trying fallback to most recent month...');
+
+          // First, find the most recent month that has data
+          const { data: monthCheck, error: monthCheckError } = await supabase
+            .from('monthly_rankings')
+            .select(
+              `
+              year,
+              month,
+              repositories!inner (
+                owner,
+                name
+              )
+            `
+            )
+            .eq('repositories.owner', owner)
+            .eq('repositories.name', repo)
+            .order('year', { ascending: false })
+            .order('month', { ascending: false })
+            .limit(1);
+
+          if (monthCheckError) throw monthCheckError;
+
+          if (monthCheck && monthCheck.length > 0) {
+            const recentYear = monthCheck[0].year;
+            const recentMonth = monthCheck[0].month;
+
+            // Now get all data for that specific month
+            const { data: recentData, error: recentError } = await supabase
+              .from('monthly_rankings')
+              .select(
+                `
+                *,
+                contributors!inner (
+                  id,
+                  username,
+                  display_name,
+                  avatar_url,
+                  github_id
+                ),
+                repositories!inner (
+                  owner,
+                  name
+                )
+              `
+              )
+              .eq('repositories.owner', owner)
+              .eq('repositories.name', repo)
+              .eq('year', recentYear)
+              .eq('month', recentMonth)
+              .order('weighted_score', { ascending: false })
+              .limit(10);
+
+            if (recentError) throw recentError;
+
+            if (recentData && recentData.length > 0) {
+              data = recentData;
+              setIsUsingFallback(true);
+              setDisplayMonth(
+                new Date(recentYear, recentMonth - 1).toLocaleString('default', {
+                  month: 'long',
+                })
+              );
+              setDisplayYear(recentYear);
+            }
+          }
+        } else {
+          setDisplayMonth(now.toLocaleString('default', { month: 'long' }));
+          setDisplayYear(currentYear);
+        }
 
         if (data && data.length > 0) {
           // Transform the data into the expected format
@@ -83,6 +243,7 @@ export function useMonthlyContributorRankings(owner: string, repo: string) {
         setError(err as Error);
       } finally {
         setLoading(false);
+        setIsCalculating(false);
       }
     }
 
@@ -91,5 +252,5 @@ export function useMonthlyContributorRankings(owner: string, repo: string) {
     }
   }, [owner, repo]);
 
-  return { rankings, loading, error };
+  return { rankings, loading, error, isUsingFallback, displayMonth, displayYear, isCalculating };
 }

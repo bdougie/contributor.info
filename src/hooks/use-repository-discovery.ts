@@ -34,7 +34,7 @@ export function useRepositoryDiscovery({
   });
 
   const hasInitiatedDiscovery = useRef(false);
-  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  // const pollIntervalRef = useRef<NodeJS.Timeout | null>(null); // Removed - no longer used after refactor
   // const pollCountRef = useRef(0); // Commented out - no longer used after refactor
   // const MAX_POLL_COUNT = 60; // Commented out - no longer used after refactor
 
@@ -53,7 +53,7 @@ export function useRepositoryDiscovery({
       try {
         // Check if repository exists in database
         // Using maybeSingle() to handle non-existent repos without 406 errors
-        console.log('[Repository Discovery] Checking repository:', `${owner}/${repo}`);
+        console.log('[Repository Discovery] Checking repository: %s/%s', owner, repo);
         const { data: repoData, error } = await supabase
           .from('repositories')
           .select('id, owner, name')
@@ -241,9 +241,6 @@ export function useRepositoryDiscovery({
     // Cleanup
     return () => {
       hasInitiatedDiscovery.current = false;
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current);
-      }
     };
   }, [owner, repo, enabled, onDiscoveryComplete]);
 

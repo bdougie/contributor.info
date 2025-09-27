@@ -30,6 +30,8 @@ jobs:
         uses: wagoid/commitlint-github-action@v6
         with:
           configFile: .commitlintrc.warning.json
+          failOnErrors: false
+          failOnWarnings: false
         continue-on-error: true
 
       - name: Add commit message guidance comment

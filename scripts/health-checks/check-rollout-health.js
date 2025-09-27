@@ -3,10 +3,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const supabase = createClient(
-  process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_TOKEN
-);
+const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_TOKEN);
 
 async function checkRolloutHealth() {
   console.log('🔍 Checking Rollout Health...\n');
@@ -41,7 +38,7 @@ async function checkRolloutHealth() {
 
   if (!metricsError && metrics && metrics.length > 0) {
     console.log('\n📈 Recent Metrics (Last 24 hours):');
-    
+
     // Aggregate metrics by processor type
     const aggregated = metrics.reduce((acc, m) => {
       if (!acc[m.processor_type]) {
@@ -54,15 +51,17 @@ async function checkRolloutHealth() {
     }, {});
 
     Object.entries(aggregated).forEach(([processor, stats]) => {
-      const errorRate = stats.total > 0 ? (stats.errors / stats.total * 100).toFixed(2) : 0;
-      console.log(`   ${processor}: ${stats.success}/${stats.total} success (${errorRate}% error rate)`);
+      const errorRate = stats.total > 0 ? ((stats.errors / stats.total) * 100).toFixed(2) : 0;
+      console.log(
+        `   ${processor}: ${stats.success}/${stats.total} success (${errorRate}% error rate)`
+      );
     });
 
     // Show recent errors
-    const recentErrors = metrics.filter(m => m.last_error_message);
+    const recentErrors = metrics.filter((m) => m.last_error_message);
     if (recentErrors.length > 0) {
       console.log('\n❌ Recent Errors:');
-      recentErrors.slice(0, 3).forEach(m => {
+      recentErrors.slice(0, 3).forEach((m) => {
         console.log(`   ${m.processor_type}: ${m.last_error_message}`);
       });
     }
@@ -78,7 +77,7 @@ async function checkRolloutHealth() {
 
   if (!historyError && history && history.length > 0) {
     console.log('\n📜 Recent Rollout History:');
-    history.forEach(h => {
+    history.forEach((h) => {
       const time = new Date(h.created_at).toLocaleString();
       console.log(`   ${h.action}: ${h.previous_percentage}% → ${h.new_percentage}%`);
       console.log(`   Reason: ${h.reason}`);
@@ -97,7 +96,7 @@ async function checkRolloutHealth() {
 
   if (!jobsError && jobs && jobs.length > 0) {
     console.log('\n🚀 Recent GitHub Actions Jobs:');
-    jobs.forEach(job => {
+    jobs.forEach((job) => {
       console.log(`   ${job.job_type} - ${job.status} (${job.repository_id})`);
       if (job.error) {
         console.log(`   Error: ${job.error}`);

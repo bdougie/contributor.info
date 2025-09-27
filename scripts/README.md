@@ -1,235 +1,296 @@
 # Scripts Directory
 
-Automation tools and utilities for managing the contributor.info platform. These scripts help with performance optimization, data processing, monitoring, and maintenance tasks.
+Comprehensive collection of automation, testing, and maintenance scripts for the contributor.info platform.
 
-## Quick Start
-
-Most scripts run independently and require minimal setup:
+## 🚀 Quick Start
 
 ```bash
-# Install dependencies if needed
+# Install dependencies
 npm install
 
-# Run any script
-node scripts/[folder]/script-name.js
+# Set up environment variables
+cp .env.example .env
+
+# Run common tasks
+npm run build
+npm run health:check
+npm run test:integration
 ```
 
-## Categories
+## ⚠️ Security Note
 
-### 📊 **[Data Sync](./data-sync/)** 
-Sync and manage GitHub data.
+**NEVER commit API keys or secrets to the repository!** All sensitive values must be stored in environment variables.
 
-| Script | Purpose | When to Use |
-|--------|---------|-------------|
-| `backfill-pr-stats.js` | Backfill missing PR statistics | Data recovery |
-| `backfill-reviews-comments.mjs` | Backfill missing PR reviews and comments | Fill gaps in review/comment data |
-| `sync-historical-prs.js` | Sync historical pull request data | Initial setup or data recovery |
-| `sync-historical-comments.js` | Sync historical PR comments | Complete data backfills |
-| `sync-historical-reviews.js` | Sync historical PR reviews | Review data backfills |
-| `refresh-stale-repos.js` | Refresh outdated repository data | Monthly maintenance |
-| `trigger-refresh.js` | Manually trigger data refresh | Force data updates |
-| `manual-trigger.mjs` | Manually trigger data refresh for specific repos | Target specific repository updates |
-| `get-pytorch-stats.js` | Get accurate GitHub repository statistics | Verify repository data |
-| `initialize-pytorch-backfill.js` | Initialize large repository backfill | Start progressive backfill |
-| `manual-sync-repository.js` | Manually sync individual repositories | Force sync specific repo |
-| `sync-bdougie-repos.js` | Direct GitHub API sync for specific repos | Sync bdougie repositories |
-| `sync-all-tracked-repos.js` | Bulk sync all tracked repositories | Sync all repos with rate limiting |
-| `test-406-fix-and-sync.js` | Test 406 error fix and sync functionality | Verify 406 fix works |
+## 📁 Directory Structure
 
-### ⚡ **[Performance](./performance/)**
-Improve application speed and reduce resource usage.
+### 🎨 Asset Management
+- [`assets/`](./assets/) - Social cards, PWA icons, image optimization
+- [`screenshots/`](./screenshots/) - Screenshot generation utilities
 
-| Script | Purpose | When to Use |
-|--------|---------|-------------|
-| `analyze-bundle.js` | Analyze build bundle sizes | Before releases |
-| `analyze-mobile-performance.js` | Check mobile performance metrics | Mobile optimization |
-| `lighthouse-check.js` | Run Lighthouse performance audits | Performance validation |
-| `performance-check.js` | Comprehensive performance analysis | Regular performance reviews |
-| `monitor-cdn-performance.js` | Monitor CDN and asset performance | Performance troubleshooting |
-| `monitor-database-performance.js` | Check database query performance | Database optimization |
-| `test-core-web-vitals.js` | Test Core Web Vitals (LCP, CLS, INP) | Measure UX performance metrics |
-| `compare-web-vitals.js` | Compare Web Vitals between branches | PR performance validation |
+### 🔄 Data Operations  
+- [`data-sync/`](./data-sync/) - Repository data fetching and synchronization
+- [`progressive-capture/`](./progressive-capture/) - Intelligent hybrid data processing
+- [`validation/`](./validation/) - Data integrity and gap validation
+- [`migrations/`](./migrations/) - Database migration management
 
-### 🗺️ **[Sitemap](./sitemap/)**
-Generate and submit XML sitemaps for SEO.
+### 🏗️ Infrastructure & Deployment
+- [`setup/`](./setup/) - Platform configuration and initialization
+- [`github-actions/`](./github-actions/) - GitHub Actions workflow scripts
+- [`monitoring/`](./monitoring/) - System health and corruption monitoring
+- [`health-checks/`](./health-checks/) - Automated system health validation
 
-| Script | Purpose | When to Use |
-|--------|---------|-------------|
-| `generate-sitemap.js` | Generate XML sitemaps from database | Automatic during build |
-| `submit-sitemap.js` | Submit sitemaps to search engines | Automatic after release |
+### 🧪 Testing & Quality
+- [`testing/`](./testing/) - Comprehensive system validation
+- [`testing-tools/`](./testing-tools/) - API, queue, and UI testing utilities
+- [`debugging/`](./debugging/) - Troubleshooting and diagnostic tools
 
-### 🎨 **[Assets](./assets/)**
-Create and manage visual assets.
+### ⚡ Performance & Optimization
+- [`performance/`](./performance/) - Bundle analysis and performance monitoring
+- [`optimization/`](./optimization/) - System performance optimization
+- [`load-testing/`](./load-testing/) - Stress testing and load validation
 
-| Script | Purpose | When to Use |
-|--------|---------|-------------|
-| `generate-social-cards.js` | Generate repository social cards | Marketing assets |
-| `generate-pwa-icons.js` | Create PWA app icons | Mobile app updates |
-| `generate-pwa-screenshots.js` | Generate app store screenshots | App store submissions |
-| `convert-images.js` | Convert and optimize images | Image preprocessing |
-| `build-with-social-cards.js` | Build with social card generation | Integrated build process |
+### 🔧 Utilities & Maintenance
+- [`utilities/`](./utilities/) - General-purpose tools and AI operations
+- [`sitemap/`](./sitemap/) - SEO and sitemap management
+- [`citation-tracking/`](./citation-tracking/) - LLM citation monitoring
+- [`changelog/`](./changelog/) - RSS feed generation
+- [`docs/`](./docs/) - Testing documentation and reports
 
-### 🛠️ **[Setup](./setup/)**
-Initialize and configure system components.
+### 📊 Analytics & Features
+- `create-posthog-cohorts.js` - PostHog cohort management
+- `create-internal-users-cohort.js` - Internal team cohort setup
+- `create-workspace-feature-flag.js` - Workspace feature flag management
+- `enable-workspaces-for-internal-cohort.js` - Enable workspace features
 
-| Script | Purpose | When to Use |
-|--------|---------|-------------|
-| `setup-supabase-storage.js` | Configure Supabase storage buckets | Initial deployment |
-| `setup-card-regeneration.js` | Setup social card regeneration | Social features setup |
-| `setup-chromatic-baselines.sh` | Setup visual testing baselines | CI/CD configuration |
-| `encode-private-key.js` | Encode GitHub private keys | Security configuration |
-| `prepare-private-key.sh` | Prepare GitHub App private keys | Deployment setup |
+## 🎯 Common Tasks
 
-### 🔍 **[Debugging](./debugging/)**
-Support development and debugging workflows.
-
-| Script | Purpose | When to Use |
-|--------|---------|-------------|
-| `debug-github-actions-errors.js` | Debug GitHub Actions failures | CI/CD troubleshooting |
-| `debug-ui-events.js` | Debug frontend user interactions | UI issue investigation |
-| `debug-capture-pr.mjs` | Debug PR capture functionality | Troubleshoot PR data capture |
-| `check-build-clean.js` | Verify clean build output | Pre-release validation |
-| `check-commits.cjs` | Analyze commit patterns | Git history debugging |
-| `fix-inngest-local.sh` | Fix local Inngest development | Local development setup |
-
-### 🏥 **[Health Checks](./health-checks/)**
-Monitor system performance and detect issues.
-
-| Script | Purpose | When to Use |
-|--------|---------|-------------|
-| `check-rollout-health.js` | Monitor progressive rollout health | During feature rollouts |
-| `check-rollout-percentage.js` | Check current rollout status | Verify rollout configuration |
-| `check-repos.mjs` | Validate tracked repositories | Weekly repository audits |
-| `check-tracked-repos.mjs` | Check repository tracking status | Troubleshoot tracking issues |
-| `check-bucket-status.js` | Verify storage bucket health | Storage troubleshooting |
-| `check-inngest-registration.js` | Check Inngest queue registration | Queue system validation |
-
-### 🧪 **[Testing Tools](./testing-tools/)**
-Ensure system reliability and data integrity. See [README](./testing-tools/README.md) for detailed documentation.
-
-| Script | Purpose | When to Use |
-|--------|---------|-------------|
-| `test-api-fallback-prevention.mjs` | Verify API fallback prevention works | Ensure efficient data fetching |
-| `test-ci-environment.js` | Test CI/CD environment configuration | Validate CI setup |
-| `test-console-warn.js` | Test console warning detection | Debug console output |
-| `test-event-flow.js` | Test event processing flow | Validate event handling |
-| `test-github-auth.mjs` | Test GitHub API authentication | Debug auth issues |
-| `test-inngest.js` | Test Inngest queue functionality | Queue troubleshooting |
-| `test-inngest-direct.mjs` | Test direct Inngest event sending | Test event queue directly |
-| `test-last-updated-logic.js` | Test last updated timestamp logic | Verify timestamp calculations |
-| `test-new-repo-tracking.mjs` | Test new repository tracking flow | Validate repo onboarding |
-| `test-production-inngest.js` | Test production Inngest connection | Production queue validation |
-| `test-review-sync.mjs` | Test PR review syncing functionality | Debug review data issues |
-| `test-sanitize.js` | Test HTML sanitization | Security validation |
-| `test-social-cards.js` | Validate social card generation | Social media debugging |
-| `test-storybook-interactions.sh` | Test Storybook interaction tests | UI component testing |
-| `test-sync-logger.js` | Test sync logging functionality | Debug sync operations |
-| `test-sync-logging.mjs` | Test sync logging with ES modules | Modern sync debugging |
-| `test-update-activity.mjs` | Test activity update functionality | Validate activity tracking |
-| `test-visual-regression.sh` | Run visual regression tests | UI change validation |
-| `test-visual-workflow.sh` | Test visual workflow automation | Visual testing pipeline |
-
-### 🔧 **[Utilities](./utilities/)**
-General-purpose tools and maintenance scripts.
-
-| Script | Purpose | When to Use |
-|--------|---------|-------------|
-| `classify-repositories.ts` | Categorize repositories by type/language | Data analysis |
-| `regenerate-embeddings.ts` | Rebuild AI embeddings | Search optimization |
-| `verify-embeddings.ts` | Verify AI embedding accuracy | AI feature validation |
-| `search-user-reviews.mjs` | Search and analyze user PR reviews | Find specific user contributions |
-| `optimize-icon-imports.js` | Optimize icon import statements | Reduce bundle size |
-| `verify-social-card-system.js` | Test complete social card system | End-to-end validation |
-| `update-rollout.js` | Update feature rollout configuration | Feature flag management |
-
-## Subfolders
-
-### 🚀 **[/github-actions/](./github-actions/)**
-Scripts designed to run in GitHub Actions workflows for automated processing.
-
-| Script | Purpose | When to Use |
-|--------|---------|-------------|
-| `check-rate-limit.js` | Check GitHub API rate limits | Before API-intensive operations |
-| `progressive-backfill.js` | Process large repository backfills | Scheduled backfill workflows |
-| `capture-pr-details-graphql.js` | Capture PR details via GraphQL | GitHub Actions PR processing |
-| `report-failure.js` | Report workflow failures as GitHub issues | Automated failure notifications |
-
-### 📊 **[/monitoring/](./monitoring/)**
-Advanced monitoring and cost analysis tools. See [README](./monitoring/README.md) for details.
-
-### ⚡ **[/optimization/](./optimization/)**
-Performance optimization utilities for GitHub Actions and Inngest. See [README](./optimization/README.md) for details.
-
-### 🔄 **[/progressive-capture/](./progressive-capture/)**
-Progressive data capture system for efficient GitHub data processing. See [README](./progressive-capture/README.md) for details.
-
-### 🧪 **[/testing/](./testing/)**
-Comprehensive testing utilities for edge cases and system validation. See [README](./testing/README.md) for details.
-
-### ✅ **[/validation/](./validation/)**
-Data integrity and gap validation tools. See [README](./validation/README.md) for details.
-
-### 📈 **[/rollout/](./rollout/)**
-Rollout management and monitoring system. See [README](./rollout/README.md) for detailed documentation.
-
-## Usage Guidelines
-
-### Environment Setup
-
-Most scripts require environment variables:
-
+### Initial Setup
 ```bash
-# Required for most scripts
-VITE_SUPABASE_URL=your-supabase-url
-SUPABASE_TOKEN=your-service-role-key
-VITE_GITHUB_TOKEN=your-github-token
+# Platform setup
+node scripts/setup/setup-supabase-storage.js
+node scripts/setup/setup-card-regeneration.js
 
-# Optional for specific scripts
-INNGEST_EVENT_KEY=your-inngest-key
+# Generate seed data
+node scripts/setup/generate-seed-data.js
 ```
 
-### Running Scripts Safely
-
-1. **Start with monitoring scripts** to understand current system state
-2. **Use validation scripts** before making changes
-3. **Run test scripts** in development first
-4. **Monitor health checks** after running data processing scripts
-
-### Common Workflows
-
-#### System Health Check
+### Data Operations
 ```bash
+# Sync repository data
+node scripts/data-sync/sync-historical-prs.js --owner facebook --repo react
+
+# Validate data integrity  
+node scripts/validation/data-gap-validator.js
+
+# Monitor system health
 node scripts/health-checks/check-rollout-health.js
-node scripts/performance/monitor-database-performance.js
-node scripts/health-checks/check-repos.mjs
 ```
 
-#### Performance Analysis
+### Performance & Testing
 ```bash
-node scripts/performance/analyze-bundle.js
-node scripts/performance/lighthouse-check.js
+# Run performance checks
 node scripts/performance/performance-check.js
+
+# Execute test suite
+node scripts/testing/hybrid-system-test.js
+
+# Analyze bundle size
+node scripts/performance/analyze-bundle.js
 ```
 
-#### Data Refresh
+## 🔐 Environment Variables
+
+### Required Core Variables
 ```bash
-node scripts/health-checks/check-tracked-repos.mjs
-node scripts/data-sync/refresh-stale-repos.js
-node scripts/data-sync/trigger-refresh.js
+# Supabase
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_KEY=your-service-role-key
+
+# GitHub
+VITE_GITHUB_TOKEN=your-github-token
+GITHUB_APP_ID=your-app-id
+GITHUB_PRIVATE_KEY=your-encoded-private-key
+
+# PostHog (Analytics)
+POSTHOG_PROJECT_ID=your-project-id
+POSTHOG_PERSONAL_API_KEY=phx_your-personal-api-key
 ```
 
-## Support
+### Optional Feature Variables
+```bash
+# AI Features
+OPENAI_API_KEY=your-openai-key
 
-- **For specific script documentation**: Check the README in each subfolder
-- **For rollout management**: See [/scripts/rollout/README.md](./rollout/README.md)
-- **For progressive capture**: See [/scripts/progressive-capture/README.md](./progressive-capture/README.md)
-- **For monitoring**: See [/scripts/monitoring/README.md](./monitoring/README.md)
+# External Services
+VITE_DUB_CO_KEY=your-dub-key
+CHROMATIC_PROJECT_TOKEN=your-chromatic-token
 
-## Safety Notes
+# Testing
+TEST_GITHUB_TOKEN=your-test-token
+```
 
-- **Always backup data** before running processing scripts
-- **Test in development** before running in production
-- **Monitor system health** after script execution
-- **Check rollout status** before making system changes
+## 🚦 Script Categories
 
-Scripts follow the project's user-friendly, action-oriented approach—focusing on what you can do rather than technical implementation details.
+### 🟢 Safe Scripts (Read-only)
+- Health checks and monitoring
+- Performance analysis
+- Data validation
+- Testing utilities
+
+### 🟡 Maintenance Scripts (Modify data)
+- Data sync operations
+- Cache updates
+- Asset generation
+- Migration scripts  
+
+### 🔴 Administrative Scripts (System changes)
+- User management
+- Feature flag updates
+- Infrastructure changes
+- Security operations
+
+## 📊 Usage Patterns
+
+### Development Workflow
+```bash
+# 1. Health check
+npm run health:check
+
+# 2. Run tests
+npm run test:comprehensive  
+
+# 3. Performance check
+npm run performance:analyze
+
+# 4. Deploy preparation
+npm run build
+```
+
+### Production Maintenance
+```bash
+# Daily tasks
+node scripts/health-checks/check-rollout-health.js
+node scripts/monitoring/corruption-monitor.js
+
+# Weekly tasks  
+node scripts/validation/data-gap-validator.js --all
+node scripts/performance/performance-check.js
+
+# Monthly tasks
+node scripts/utilities/classify-repositories.ts
+node scripts/utilities/regenerate-embeddings.ts
+```
+
+### Incident Response
+```bash
+# Debug issues
+node scripts/debugging/debug-github-actions-errors.js
+node scripts/debugging/debug-capture-pr.mjs
+
+# Fix data issues
+node scripts/progressive-capture/fix-stuck-jobs.js
+node scripts/validation/data-gap-validator.js --repository=X
+
+# Recovery operations
+node scripts/data-sync/manual-trigger.mjs --repo owner/name
+```
+
+## PostHog Management
+
+### Cohort Management
+```bash
+# Create internal team cohort
+node scripts/create-internal-users-cohort.js
+
+# Create property-based cohorts
+node scripts/create-posthog-cohorts-simple.js
+```
+
+### Feature Flag Management  
+```bash
+# First, ensure POSTHOG_INTERNAL_TEAM_COHORT_ID is set in .env
+node scripts/create-workspace-feature-flag.js
+
+# Enable workspaces for internal cohort
+node scripts/enable-workspaces-for-internal-cohort.js
+```
+
+### PostHog Troubleshooting
+| Issue | Solution |
+|-------|----------|
+| "POSTHOG_PERSONAL_API_KEY not found" | Add the key to your `.env` file |
+| "Failed to create cohort: Forbidden" | Check API key permissions in PostHog |
+| "POSTHOG_INTERNAL_TEAM_COHORT_ID not set" | Run cohort script first, add ID to `.env` |
+| "Invalid project ID" | Verify POSTHOG_PROJECT_ID matches your PostHog project |
+
+## 🔗 Integration Points
+
+### GitHub Actions
+Scripts integrate with CI/CD workflows for:
+- Automated testing
+- Performance monitoring  
+- Data validation
+- Health checks
+
+### Supabase Edge Functions
+Scripts support serverless functions for:
+- Queue processing
+- Webhook handling
+- Real-time operations
+- Background tasks
+
+### External APIs
+Scripts interact with:
+- GitHub API (data fetching)
+- PostHog (analytics)
+- OpenAI (embeddings)
+- dub.co (URL shortening)
+
+## 📚 Documentation Standards
+
+Each script directory includes:
+- **README.md**: Comprehensive usage guide
+- **Examples**: Common usage patterns
+- **Troubleshooting**: Common issues and solutions
+- **Best Practices**: Security and performance tips
+
+## 🆘 Getting Help
+
+1. **Check script README**: Each directory has detailed documentation
+2. **Run with --help**: Most scripts support help flags
+3. **View logs**: Scripts provide detailed logging
+4. **Check environment**: Verify required variables are set
+
+## 🔄 Contributing
+
+When adding new scripts:
+1. **Follow naming conventions**: Use kebab-case for files
+2. **Add documentation**: Include comprehensive README
+3. **Use environment variables**: Never hardcode secrets
+4. **Add error handling**: Graceful failure modes
+5. **Include examples**: Show common usage patterns
+6. **Update this README**: Add to appropriate category
+
+## 📈 Monitoring & Alerts
+
+Key metrics tracked by scripts:
+- **System Health**: Uptime, performance, errors
+- **Data Quality**: Completeness, consistency, accuracy  
+- **Performance**: Response times, throughput, efficiency
+- **Security**: Access patterns, anomaly detection
+
+For operational insights, see:
+- [Health Checks](./health-checks/README.md)
+- [Monitoring](./monitoring/README.md)  
+- [Performance](./performance/README.md)
+
+## Security Checklist
+
+- [ ] No API keys in code
+- [ ] No hardcoded IDs or secrets
+- [ ] `.env` file is in `.gitignore`
+- [ ] Environment variables documented in `.env.example`
+- [ ] Sensitive values never logged to console
+- [ ] Regular security audits of scripts
+- [ ] Proper error handling to avoid data leaks

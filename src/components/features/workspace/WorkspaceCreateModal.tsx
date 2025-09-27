@@ -8,17 +8,21 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { WorkspaceCreateForm } from './WorkspaceCreateForm';
+import { WorkspaceCreationDisabled } from './WorkspaceCreationDisabled';
 import { WorkspaceService } from '@/services/workspace.service';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useAnalytics } from '@/hooks/use-analytics';
+import { getWorkspaceRoute } from '@/lib/utils/workspace-routes';
+import { useFeatureFlags } from '@/lib/feature-flags/context';
+import { FEATURE_FLAGS } from '@/lib/feature-flags/types';
 import type { CreateWorkspaceRequest } from '@/types/workspace';
 import type { User } from '@supabase/supabase-js';
 
 export interface WorkspaceCreateModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuccess?: (workspaceId: string) => void;
+  onSuccess?: (workspaceSlug: string) => void;
   mode?: 'create' | 'edit';
   initialValues?: Partial<CreateWorkspaceRequest>;
   workspaceId?: string;
@@ -39,6 +43,10 @@ export function WorkspaceCreateModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { trackWorkspaceCreated, trackWorkspaceSettingsModified } = useAnalytics();
+  const { checkFlag } = useFeatureFlags();
+
+  // Check if workspace creation is enabled
+  const canCreateWorkspaces = checkFlag(FEATURE_FLAGS.ENABLE_WORKSPACE_CREATION);
 
   useEffect(() => {
     // Get the current user when the modal opens
@@ -54,8 +62,45 @@ export function WorkspaceCreateModal({
     }
   }, [open]);
 
+  const handleRequestAccess = useCallback(async () => {
+    if (!user) {
+      // For logged-out users, trigger GitHub OAuth sign-in
+      try {
+        const redirectTo = window.location.href;
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'github',
+          options: {
+            redirectTo,
+            scopes: 'public_repo read:user user:email',
+          },
+        });
+
+        if (error) {
+          console.error('Authentication error:', error);
+          toast.error('Failed to start authentication. Please try again.');
+        }
+      } catch (err) {
+        console.error('Unexpected authentication error:', err);
+        toast.error('Failed to start authentication. Please try again.');
+      }
+      onOpenChange(false);
+    } else {
+      // For logged-in users without pro access, show generic message
+      toast.success(
+        "Thanks for your interest! We'll notify you when workspace creation is available."
+      );
+      onOpenChange(false);
+    }
+  }, [user, onOpenChange]);
+
   const handleWorkspaceSubmit = useCallback(
     async (data: CreateWorkspaceRequest) => {
+      // Additional feature flag check during submission
+      if (mode === 'create' && !canCreateWorkspaces) {
+        setError('Workspace creation is currently disabled');
+        return;
+      }
+
       if (!user?.id) {
         setError(`You must be logged in to ${mode === 'create' ? 'create' : 'edit'} a workspace`);
         return;
@@ -97,12 +142,12 @@ export function WorkspaceCreateModal({
 
           // Call optional success callback
           if (onSuccess) {
-            onSuccess(response.data.id);
+            onSuccess(response.data.slug);
           }
 
           // Navigate to the workspace if creating new one
           if (mode === 'create') {
-            navigate(`/i/${response.data.id}`);
+            navigate(getWorkspaceRoute(response.data));
           }
         } else {
           setError(
@@ -126,6 +171,7 @@ export function WorkspaceCreateModal({
       source,
       trackWorkspaceCreated,
       trackWorkspaceSettingsModified,
+      canCreateWorkspaces,
     ]
   );
 
@@ -139,23 +185,44 @@ export function WorkspaceCreateModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>{mode === 'create' ? 'Create New Workspace' : 'Edit Workspace'}</DialogTitle>
-          <DialogDescription>
-            {mode === 'create'
-              ? 'Organize your favorite repositories and collaborate with your team. You can add repositories and invite members after creating your workspace.'
-              : 'Update your workspace settings. Changes will be applied immediately.'}
-          </DialogDescription>
-        </DialogHeader>
+        {mode === 'create' && !canCreateWorkspaces ? (
+          <>
+            <DialogHeader>
+              <DialogTitle data-testid="modal-title-disabled">Workspace Creation</DialogTitle>
+              <DialogDescription data-testid="modal-description-disabled">
+                Workspace creation is currently unavailable
+              </DialogDescription>
+            </DialogHeader>
 
-        <WorkspaceCreateForm
-          onSubmit={handleWorkspaceSubmit}
-          onCancel={handleCancel}
-          loading={loading}
-          error={error}
-          mode={mode}
-          initialValues={initialValues}
-        />
+            <WorkspaceCreationDisabled
+              variant="modal"
+              onRequestAccess={handleRequestAccess}
+              user={user}
+            />
+          </>
+        ) : (
+          <>
+            <DialogHeader>
+              <DialogTitle data-testid="modal-title-enabled">
+                {mode === 'create' ? 'Create New Workspace' : 'Edit Workspace'}
+              </DialogTitle>
+              <DialogDescription data-testid="modal-description-enabled">
+                {mode === 'create'
+                  ? 'Organize your favorite repositories and collaborate with your team. You can add repositories and invite members after creating your workspace.'
+                  : 'Update your workspace settings. Changes will be applied immediately.'}
+              </DialogDescription>
+            </DialogHeader>
+
+            <WorkspaceCreateForm
+              onSubmit={handleWorkspaceSubmit}
+              onCancel={handleCancel}
+              loading={loading}
+              error={error}
+              mode={mode}
+              initialValues={initialValues}
+            />
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );

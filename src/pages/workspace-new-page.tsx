@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,14 +7,18 @@ import { WorkspaceCreateForm } from '@/components/features/workspace/WorkspaceCr
 import { WorkspaceService } from '@/services/workspace.service';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { trackEvent } from '@/lib/posthog-lazy';
 import type { CreateWorkspaceRequest } from '@/types/workspace';
 import type { User } from '@supabase/supabase-js';
+import { getWorkspaceRoute } from '@/lib/utils/workspace-routes';
 
 export default function WorkspaceNewPage() {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const hasTrackedPageView = useRef(false);
+  const creationStartTime = useRef<number>(Date.now());
 
   useEffect(() => {
     // Get the current user when the page loads
@@ -23,6 +27,15 @@ export default function WorkspaceNewPage() {
         data: { user },
       } = await supabase.auth.getUser();
       setUser(user);
+
+      // Track workspace creation page view
+      if (!hasTrackedPageView.current && user) {
+        hasTrackedPageView.current = true;
+        trackEvent('workspace_creation_started', {
+          source: 'workspace_new_page',
+          user_id: user.id,
+        });
+      }
     };
 
     getUser();
@@ -41,14 +54,55 @@ export default function WorkspaceNewPage() {
       const response = await WorkspaceService.createWorkspace(user.id, data);
 
       if (response.success && response.data) {
+        // Track successful workspace creation
+        const timeToCreate = Date.now() - creationStartTime.current;
+        trackEvent('workspace_created', {
+          workspace_id: response.data.id,
+          workspace_name: data.name,
+          time_to_create_ms: timeToCreate,
+          is_first_workspace: true, // This could be enhanced by checking actual count
+        });
+
+        // Track if this is the user's first workspace
+        const { count } = await supabase
+          .from('workspaces')
+          .select('*', { count: 'exact', head: true })
+          .eq('owner_id', user.id);
+
+        if (count === 1) {
+          trackEvent('first_workspace_created', {
+            workspace_id: response.data.id,
+            time_to_create_ms: timeToCreate,
+          });
+        }
+
         toast.success('Workspace created successfully!');
-        navigate(`/i/${response.data.id}`);
+        // Ensure we have a valid slug before navigating
+        const slugOrId = response.data.slug || response.data.id;
+        if (!slugOrId) {
+          console.error('No slug or ID returned from workspace creation');
+          setError('Workspace created but navigation failed. Please refresh the page.');
+          return;
+        }
+        navigate(getWorkspaceRoute(response.data));
       } else {
         setError(response.error || 'Failed to create workspace');
+
+        // Track workspace creation failure
+        trackEvent('workspace_creation_failed', {
+          error: response.error || 'Unknown error',
+          workspace_name: data.name,
+        });
       }
     } catch (err) {
       console.error('%s', 'Error creating workspace:', err);
       setError('An unexpected error occurred. Please try again.');
+
+      // Track workspace creation error
+      trackEvent('workspace_creation_error', {
+        error_type: 'exception',
+        workspace_name: data.name,
+      });
     } finally {
       setLoading(false);
     }

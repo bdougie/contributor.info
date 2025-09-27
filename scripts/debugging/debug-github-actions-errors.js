@@ -2,7 +2,7 @@
 
 /**
  * Debug GitHub Actions errors from stored artifacts
- * 
+ *
  * This script helps analyze why GitHub Actions jobs are succeeding but
  * producing errors that get stored as artifacts.
  */
@@ -61,11 +61,13 @@ async function analyzeGitHubActionsErrors() {
 
       if (allJobs && allJobs.length > 0) {
         console.log(`Found ${allJobs.length} GitHub Actions jobs with errors in metadata:\n`);
-        allJobs.forEach(job => {
+        allJobs.forEach((job) => {
           console.log(`Job ID: ${job.id}`);
           console.log(`Status: ${job.status}`);
           console.log(`Created: ${new Date(job.created_at).toLocaleString()}`);
-          console.log(`Error in metadata: ${JSON.stringify(job.metadata?.error || 'No error', null, 2)}`);
+          console.log(
+            `Error in metadata: ${JSON.stringify(job.metadata?.error || 'No error', null, 2)}`
+          );
           console.log('---');
         });
       }
@@ -74,7 +76,7 @@ async function analyzeGitHubActionsErrors() {
 
       // Group errors by type
       const errorGroups = {};
-      failedJobs.forEach(job => {
+      failedJobs.forEach((job) => {
         const errorType = job.error?.split('\n')[0] || 'Unknown error';
         if (!errorGroups[errorType]) {
           errorGroups[errorType] = [];
@@ -87,7 +89,7 @@ async function analyzeGitHubActionsErrors() {
       Object.entries(errorGroups).forEach(([errorType, jobs]) => {
         console.log(`\n${errorType}: ${jobs.length} occurrences`);
         console.log('Recent examples:');
-        jobs.slice(0, 3).forEach(job => {
+        jobs.slice(0, 3).forEach((job) => {
           console.log(`  - Job ${job.id} (${new Date(job.created_at).toLocaleString()})`);
           if (job.metadata?.repository_name) {
             console.log(`    Repository: ${job.metadata.repository_name}`);
@@ -101,7 +103,9 @@ async function analyzeGitHubActionsErrors() {
 
     // 1. Check if GITHUB_TOKEN is configured
     const hasGitHubToken = process.env.GITHUB_TOKEN || process.env.VITE_GITHUB_TOKEN;
-    console.log(`✓ GITHUB_TOKEN configured: ${hasGitHubToken ? 'Yes' : 'No (THIS IS LIKELY THE ISSUE!)'}`);
+    console.log(
+      `✓ GITHUB_TOKEN configured: ${hasGitHubToken ? 'Yes' : 'No (THIS IS LIKELY THE ISSUE!)'}`
+    );
 
     // 2. Check repository access
     console.log('\n📦 Checking workflow repository configuration:');
@@ -124,7 +128,7 @@ async function analyzeGitHubActionsErrors() {
     // Get system metrics directly from database
     console.log('\n📈 System Metrics:');
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    
+
     const { data: metricsData, error: metricsError } = await supabase
       .from('progressive_capture_jobs')
       .select('processor_type, status')
@@ -138,26 +142,27 @@ async function analyzeGitHubActionsErrors() {
 
     if (metricsData && metricsData.length > 0) {
       const total = metricsData.length;
-      const completed = metricsData.filter(j => j.status === 'completed').length;
-      const failed = metricsData.filter(j => j.status === 'failed').length;
-      const processing = metricsData.filter(j => j.status === 'processing').length;
-      const pending = metricsData.filter(j => j.status === 'pending').length;
-      
+      const completed = metricsData.filter((j) => j.status === 'completed').length;
+      const failed = metricsData.filter((j) => j.status === 'failed').length;
+      const processing = metricsData.filter((j) => j.status === 'processing').length;
+      const pending = metricsData.filter((j) => j.status === 'pending').length;
+
       const successRate = total > 0 ? (completed / total) * 100 : 0;
       const errorRate = total > 0 ? (failed / total) * 100 : 0;
-      
+
       console.log(`Total Jobs: ${total}`);
       console.log(`Success Rate: ${successRate.toFixed(1)}%`);
       console.log(`Error Rate: ${errorRate.toFixed(1)}%`);
-      console.log(`Status breakdown: ${completed} completed, ${failed} failed, ${processing} processing, ${pending} pending`);
-      
+      console.log(
+        `Status breakdown: ${completed} completed, ${failed} failed, ${processing} processing, ${pending} pending`
+      );
+
       if (errorRate > 50) {
         console.log('\n⚠️ High error rate detected - check GitHub Actions configuration');
       }
     } else {
       console.log('No GitHub Actions jobs found in the last 24 hours');
     }
-
   } catch (error) {
     console.error('❌ Error during analysis:', error);
   }

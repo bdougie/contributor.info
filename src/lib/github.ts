@@ -905,7 +905,7 @@ export async function fetchDirectCommits(
     if (NODE_ENV === 'development') {
       console.log('YOLO Debug - Total commits on main branch: %s', allCommits.length);
       console.log('YOLO Debug - PR commit SHAs collected: %s', prCommitShaSet.size);
-      console.log(`YOLO Debug - Sample PR commit SHAs:`, Array.from(prCommitShaSet).slice(0, 5));
+      console.log('YOLO Debug - Sample PR commit SHAs:', Array.from(prCommitShaSet).slice(0, 5));
     }
 
     const directCommitData = allCommits.filter((commit: GitHubCommit) => {

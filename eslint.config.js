@@ -63,6 +63,52 @@ export default tseslint.config(
       ],
     },
   },
+  // Bulletproof testing rules - prevent async/await in unit test files
+  // Excludes integration tests, API tests, and E2E tests which may legitimately need async
+  {
+    files: ['**/*.test.{ts,tsx}', '**/__tests__/**/*.{ts,tsx}'],
+    ignores: [
+      'netlify/functions/**/*.test.{ts,tsx}', // API function tests
+      'actions/**/*.test.{ts,tsx}', // GitHub action tests
+      'e2e/**/*.test.{ts,tsx}', // E2E tests
+      'src/services/**/*.test.{ts,tsx}', // Service integration tests
+      '**/integration/**/*.test.{ts,tsx}', // Explicit integration tests
+      '**/*integration*.test.{ts,tsx}', // Integration test files
+      '**/*e2e*.test.{ts,tsx}', // E2E test files
+      '**/*api*.test.{ts,tsx}', // API test files
+    ],
+    rules: {
+      // Prevent async/await in test functions to avoid CI hangs
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'FunctionDeclaration[async=true]',
+          message:
+            'Async functions are forbidden in unit tests. Use synchronous patterns only. See docs/testing/BULLETPROOF_TESTING_GUIDELINES.md',
+        },
+        {
+          selector: 'ArrowFunctionExpression[async=true]',
+          message:
+            'Async arrow functions are forbidden in unit tests. Use synchronous patterns only. See docs/testing/BULLETPROOF_TESTING_GUIDELINES.md',
+        },
+        {
+          selector: 'AwaitExpression',
+          message:
+            'await expressions are forbidden in unit tests. Use synchronous mocks instead. See docs/testing/BULLETPROOF_TESTING_GUIDELINES.md',
+        },
+        {
+          selector: 'CallExpression[callee.name="waitFor"]',
+          message:
+            'waitFor() is forbidden in unit tests as it can hang indefinitely. Use synchronous assertions only. See docs/testing/BULLETPROOF_TESTING_GUIDELINES.md',
+        },
+        {
+          selector: 'CallExpression[callee.name="waitForElementToBeRemoved"]',
+          message:
+            'waitForElementToBeRemoved() is forbidden in unit tests as it can hang indefinitely. Use synchronous assertions only. See docs/testing/BULLETPROOF_TESTING_GUIDELINES.md',
+        },
+      ],
+    },
+  },
   eslintConfigPrettier,
   storybook.configs['flat/recommended']
 );

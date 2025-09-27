@@ -27,7 +27,7 @@ const validateImport = async (
     await importFn();
     return true;
   } catch (err) {
-    console.warn(`Failed to prefetch ${moduleName}:`, err);
+    console.warn('Failed to prefetch %s:', err, moduleName);
     return false;
   }
 };
@@ -39,7 +39,7 @@ const validateImport = async (
 export const prefetchRoute = (routePath: string) => {
   // Validate route for security
   if (!isValidRoute(routePath)) {
-    console.warn(`Invalid route pattern: ${routePath}`);
+    console.warn('Invalid route pattern: %s', routePath);
     return;
   }
 

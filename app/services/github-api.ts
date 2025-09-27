@@ -16,7 +16,7 @@ async function getOctokit(): Promise<Octokit> {
 
   // Try to use GitHub App authentication if private key is available
   const privateKey = process.env.GITHUB_APP_PRIVATE_KEY;
-  
+
   if (privateKey && process.env.GITHUB_APP_ID) {
     // Use GitHub App authentication
     octokit = new Octokit({
@@ -24,7 +24,7 @@ async function getOctokit(): Promise<Octokit> {
       auth: {
         appId: parseInt(process.env.GITHUB_APP_ID),
         privateKey: privateKey.replace(/\\n/g, '\n'),
-        installationId: process.env.GITHUB_APP_INSTALLATION_ID 
+        installationId: process.env.GITHUB_APP_INSTALLATION_ID
           ? parseInt(process.env.GITHUB_APP_INSTALLATION_ID)
           : undefined,
       },
@@ -58,8 +58,8 @@ export async function createIssueComment(
       issue_number: issueNumber,
       body,
     });
-    
-    console.log("Posted comment on issue #%s in %s/%s", issueNumber, owner, repo);
+
+    console.log('Posted comment on issue #%s in %s/%s', issueNumber, owner, repo);
   } catch (error) {
     console.error('Error creating issue comment: %s', error);
     throw error;
@@ -83,8 +83,8 @@ export async function createPullRequestComment(
       issue_number: pullNumber,
       body,
     });
-    
-    console.log("Posted comment on PR #%s in %s/%s", pullNumber, owner, repo);
+
+    console.log('Posted comment on PR #%s in %s/%s', pullNumber, owner, repo);
   } catch (error) {
     console.error('Error creating PR comment: %s', error);
     throw error;
@@ -94,11 +94,7 @@ export async function createPullRequestComment(
 /**
  * Get issue details
  */
-export async function getIssue(
-  owner: string,
-  repo: string,
-  issueNumber: number
-) {
+export async function getIssue(owner: string, repo: string, issueNumber: number) {
   try {
     const octokit = await getOctokit();
     const { data } = await octokit.issues.get({
@@ -106,7 +102,7 @@ export async function getIssue(
       repo,
       issue_number: issueNumber,
     });
-    
+
     return data;
   } catch (error) {
     console.error('Error fetching issue: %s', error);
@@ -143,7 +139,7 @@ export async function listRepositoryIssues(
       per_page: options.per_page || 30,
       page: options.page || 1,
     });
-    
+
     return data;
   } catch (error) {
     console.error('Error listing issues: %s', error);

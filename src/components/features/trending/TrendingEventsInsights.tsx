@@ -2,15 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { 
-  Star, 
-  GitFork, 
-  TrendingUp, 
-  Activity, 
-  Users, 
-  BarChart3,
-  Zap
-} from '@/components/ui/icon';
+import { Star, GitFork, TrendingUp, Activity, Users, BarChart3, Zap } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 
@@ -23,7 +15,6 @@ interface TrendingEventsInsightsProps {
   }>;
   timeRange?: string;
 }
-
 
 interface TrendingInsights {
   totalStars: number;
@@ -39,9 +30,9 @@ interface TrendingInsights {
   languageBreakdown: Record<string, number>;
 }
 
-export function TrendingEventsInsights({ 
-  repositories, 
-  timeRange = '30d' 
+export function TrendingEventsInsights({
+  repositories,
+  timeRange = '30d',
 }: TrendingEventsInsightsProps) {
   const [insights, setInsights] = useState<TrendingInsights | null>(null);
   const [loading, setLoading] = useState(true);
@@ -71,9 +62,9 @@ export function TrendingEventsInsights({
         startDate.setDate(endDate.getDate() - days);
 
         // Get event data for trending repositories
-        const repoConditions = repositories.map(repo => 
-          `(repository_owner.eq.${repo.owner},repository_name.eq.${repo.name})`
-        ).join(',');
+        const repoConditions = repositories
+          .map((repo) => `(repository_owner.eq.${repo.owner},repository_name.eq.${repo.name})`)
+          .join(',');
 
         const { data: eventData, error: eventError } = await supabase
           .from('github_events_cache')
@@ -93,25 +84,27 @@ export function TrendingEventsInsights({
             uniqueContributors: 0,
             avgVelocity: 0,
             mostActiveRepo: null,
-            languageBreakdown: {}
+            languageBreakdown: {},
           });
           return;
         }
 
         // Process event data
-        const starEvents = eventData.filter(e => e.event_type === 'WatchEvent');
-        const forkEvents = eventData.filter(e => e.event_type === 'ForkEvent');
-        const uniqueActors = new Set(eventData.map(e => e.actor_login));
+        const starEvents = eventData.filter((e) => e.event_type === 'WatchEvent');
+        const forkEvents = eventData.filter((e) => e.event_type === 'ForkEvent');
+        const uniqueActors = new Set(eventData.map((e) => e.actor_login));
 
         // Find most active repository
-        const repoActivity = eventData.reduce((acc, event) => {
-          const repoKey = `${event.repository_owner}/${event.repository_name}`;
-          acc[repoKey] = (acc[repoKey] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>);
+        const repoActivity = eventData.reduce(
+          (acc, event) => {
+            const repoKey = `${event.repository_owner}/${event.repository_name}`;
+            acc[repoKey] = (acc[repoKey] || 0) + 1;
+            return acc;
+          },
+          {} as Record<string, number>
+        );
 
-        const mostActiveEntry = Object.entries(repoActivity)
-          .sort(([,a], [,b]) => b - a)[0];
+        const mostActiveEntry = Object.entries(repoActivity).sort(([, a], [, b]) => b - a)[0];
 
         let mostActiveRepo = null;
         if (mostActiveEntry) {
@@ -121,15 +114,18 @@ export function TrendingEventsInsights({
         }
 
         // Language breakdown
-        const languageBreakdown = repositories.reduce((acc, repo) => {
-          if (repo.language) {
-            const repoEvents = eventData.filter(e => 
-              e.repository_owner === repo.owner && e.repository_name === repo.name
-            ).length;
-            acc[repo.language] = (acc[repo.language] || 0) + repoEvents;
-          }
-          return acc;
-        }, {} as Record<string, number>);
+        const languageBreakdown = repositories.reduce(
+          (acc, repo) => {
+            if (repo.language) {
+              const repoEvents = eventData.filter(
+                (e) => e.repository_owner === repo.owner && e.repository_name === repo.name
+              ).length;
+              acc[repo.language] = (acc[repo.language] || 0) + repoEvents;
+            }
+            return acc;
+          },
+          {} as Record<string, number>
+        );
 
         // Calculate velocity (events per day)
         const avgVelocity = eventData.length / Math.max(days, 1);
@@ -141,9 +137,8 @@ export function TrendingEventsInsights({
           uniqueContributors: uniqueActors.size,
           avgVelocity: Math.round(avgVelocity * 100) / 100,
           mostActiveRepo,
-          languageBreakdown
+          languageBreakdown,
         });
-
       } catch (err) {
         console.error('Error fetching trending insights:', err);
         setError(err instanceof Error ? err.message : 'Failed to load insights');
@@ -202,7 +197,7 @@ export function TrendingEventsInsights({
 
   const getTopLanguages = () => {
     return Object.entries(insights.languageBreakdown)
-      .sort(([,a], [,b]) => b - a)
+      .sort(([, a], [, b]) => b - a)
       .slice(0, 3)
       .map(([lang, events]) => ({ lang, events }));
   };
@@ -215,7 +210,8 @@ export function TrendingEventsInsights({
           📊 Trending Insights
         </CardTitle>
         <CardDescription>
-          Real-time activity metrics from GitHub events across {repositories.length} trending repositories
+          Real-time activity metrics from GitHub events across {repositories.length} trending
+          repositories
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -253,9 +249,7 @@ export function TrendingEventsInsights({
             <p className="text-xs text-muted-foreground">Total Events</p>
             <div className="flex items-center justify-center gap-1 mt-1">
               <BarChart3 className="h-3 w-3 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">
-                {insights.avgVelocity}/day
-              </span>
+              <span className="text-xs text-muted-foreground">{insights.avgVelocity}/day</span>
             </div>
           </div>
 
@@ -299,14 +293,16 @@ export function TrendingEventsInsights({
               {getTopLanguages().map(({ lang, events }, index) => (
                 <div key={lang} className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2">
-                    <div className={cn(
-                      'w-2 h-2 rounded-full',
-                      (() => {
-                        if (index === 0) return 'bg-blue-500';
-                        if (index === 1) return 'bg-green-500';
-                        return 'bg-yellow-500';
-                      })()
-                    )} />
+                    <div
+                      className={cn(
+                        'w-2 h-2 rounded-full',
+                        (() => {
+                          if (index === 0) return 'bg-blue-500';
+                          if (index === 1) return 'bg-green-500';
+                          return 'bg-yellow-500';
+                        })()
+                      )}
+                    />
                     <span>{lang}</span>
                   </div>
                   <span className="text-muted-foreground">{events}</span>

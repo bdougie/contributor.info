@@ -6,26 +6,28 @@ const mockSupabase = {
   from: vi.fn(() => ({
     select: vi.fn(() => ({
       eq: vi.fn(() => ({
-        single: vi.fn(() => Promise.resolve({
-          data: {
-            id: 'test-repo-id',
-            owner: 'test-owner',
-            name: 'test-repo',
-            last_updated_at: new Date().toISOString()
-          },
-          error: null
-        }))
-      }))
+        single: vi.fn(() =>
+          Promise.resolve({
+            data: {
+              id: 'test-repo-id',
+              owner: 'test-owner',
+              name: 'test-repo',
+              last_updated_at: new Date().toISOString(),
+            },
+            error: null,
+          })
+        ),
+      })),
     })),
     insert: vi.fn(() => Promise.resolve({ error: null })),
     update: vi.fn(() => ({
-      eq: vi.fn(() => Promise.resolve({ error: null }))
-    }))
-  }))
+      eq: vi.fn(() => Promise.resolve({ error: null })),
+    })),
+  })),
 };
 
 vi.mock('@supabase/supabase-js', () => ({
-  createClient: vi.fn(() => mockSupabase)
+  createClient: vi.fn(() => mockSupabase),
 }));
 
 describe('Repository Sync Event Flow Integration', () => {
@@ -45,8 +47,8 @@ describe('Repository Sync Event Flow Integration', () => {
           priority: 'medium',
           reason: 'automatic',
           jobId: 'test-job-id',
-          maxItems: 50
-        }
+          maxItems: 50,
+        },
       };
 
       // Validate all required fields are present
@@ -62,7 +64,7 @@ describe('Repository Sync Event Flow Integration', () => {
         repositoryName: 'owner/repo',
         timeRange: 3, // This should be mapped to days
         triggerSource: 'scheduled', // This should be mapped to reason
-        maxItems: 100
+        maxItems: 100,
       };
 
       // Expected transformed event
@@ -75,8 +77,8 @@ describe('Repository Sync Event Flow Integration', () => {
           reason: queueData.triggerSource, // Mapped from triggerSource
           maxItems: Math.min(queueData.maxItems, 50), // Capped at 50
           priority: 'medium',
-          jobId: expect.any(String)
-        }
+          jobId: expect.any(String),
+        },
       };
 
       // Validate transformation
@@ -93,8 +95,8 @@ describe('Repository Sync Event Flow Integration', () => {
         data: {
           // Missing repositoryId
           repositoryName: 'owner/repo',
-          days: 7
-        }
+          days: 7,
+        },
       };
 
       // Function should validate and throw error for missing repositoryId
@@ -110,9 +112,9 @@ describe('Repository Sync Event Flow Integration', () => {
         name: 'capture/repository.sync.graphql',
         data: {
           repositoryId: 'test-repo-id',
-          repositoryName: 'owner/repo'
+          repositoryName: 'owner/repo',
           // Missing days, reason, etc.
-        }
+        },
       };
 
       // Apply defaults
@@ -121,7 +123,7 @@ describe('Repository Sync Event Flow Integration', () => {
         days: partialEvent.data.days || 7,
         reason: partialEvent.data.reason || 'automatic',
         priority: partialEvent.data.priority || 'medium',
-        maxItems: partialEvent.data.maxItems || 50
+        maxItems: partialEvent.data.maxItems || 50,
       };
 
       expect(withDefaults.days).toBe(7);
@@ -136,7 +138,8 @@ describe('Repository Sync Event Flow Integration', () => {
       // Simulate the query from scheduled-data-sync.yml
       const query = mockSupabase
         .from('tracked_repositories')
-        .select(`
+        .select(
+          `
           repository_id,
           repositories!inner(
             id,
@@ -144,18 +147,16 @@ describe('Repository Sync Event Flow Integration', () => {
             name,
             last_updated_at
           )
-        `)
+        `
+        )
         .eq('tracking_enabled', true); // Must use tracking_enabled, not is_active
 
       // Verify the correct method calls
       expect(mockSupabase.from).toHaveBeenCalledWith('tracked_repositories');
-      
+
       // The actual query would fail with is_active
       const incorrectQuery = () => {
-        return mockSupabase
-          .from('tracked_repositories')
-          .select('*')
-          .eq('is_active', true); // This would fail in production
+        return mockSupabase.from('tracked_repositories').select('*').eq('is_active', true); // This would fail in production
       };
 
       // Document that is_active is incorrect
@@ -168,3 +169,4 @@ describe('Repository Sync Event Flow Integration', () => {
       }).toThrow('column tracked_repositories.is_active does not exist');
     });
   });
+});

@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
-  Plus,
   X,
   Search,
   UserPlus,
@@ -28,6 +27,8 @@ export interface Contributor {
   bio?: string;
   company?: string;
   location?: string;
+  discord_url?: string | null;
+  linkedin_url?: string | null;
   contributions: {
     commits: number;
     pull_requests: number;
@@ -51,9 +52,12 @@ export interface ContributorsListProps {
   onUntrackContributor?: (contributorId: string) => void;
   onContributorClick?: (contributor: Contributor) => void;
   onAddContributor?: () => void;
+  onAddToGroup?: (contributorId: string) => void;
   loading?: boolean;
   className?: string;
   view?: 'grid' | 'list';
+  showHeader?: boolean;
+  showTrackedOnly?: boolean;
 }
 
 function ContributorCard({
@@ -62,35 +66,48 @@ function ContributorCard({
   onTrack,
   onUntrack,
   onClick,
+  onAddToGroup,
 }: {
   contributor: Contributor;
   isTracked: boolean;
   onTrack?: () => void;
   onUntrack?: () => void;
   onClick?: () => void;
+  onAddToGroup?: () => void;
 }) {
   const trend = contributor.stats.contribution_trend;
-  const TrendIcon = trend > 0 ? TrendingUp : trend < 0 ? TrendingDown : Minus;
+  let TrendIcon = Minus;
+  if (trend > 0) {
+    TrendIcon = TrendingUp;
+  } else if (trend < 0) {
+    TrendIcon = TrendingDown;
+  }
   const trendColor = getTrendColor(trend);
 
   return (
     <Card className="relative hover:shadow-md transition-shadow">
       <CardContent className="p-4">
         <div className="flex items-start justify-between mb-3">
-          <button
-            onClick={onClick}
-            className="flex items-center gap-3 hover:opacity-80 transition-opacity"
-          >
-            <img
-              src={contributor.avatar_url}
-              alt={contributor.username}
-              className="h-12 w-12 rounded-full"
-            />
-            <div className="text-left">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onAddToGroup || onClick}
+              className="hover:opacity-80 transition-opacity"
+              title={onAddToGroup ? "Add to group" : "View profile"}
+            >
+              <img
+                src={contributor.avatar_url}
+                alt={contributor.username}
+                className="h-12 w-12 rounded-full cursor-pointer"
+              />
+            </button>
+            <button
+              onClick={onClick}
+              className="text-left hover:opacity-80 transition-opacity"
+            >
               <p className="font-semibold">{contributor.name || contributor.username}</p>
               <p className="text-sm text-muted-foreground">@{contributor.username}</p>
-            </div>
-          </button>
+            </button>
+          </div>
           <Button
             variant={isTracked ? 'ghost' : 'outline'}
             size="icon"
@@ -167,7 +184,12 @@ function ContributorListItem({
   onClick?: () => void;
 }) {
   const trend = contributor.stats.contribution_trend;
-  const TrendIcon = trend > 0 ? TrendingUp : trend < 0 ? TrendingDown : Minus;
+  let TrendIcon = Minus;
+  if (trend > 0) {
+    TrendIcon = TrendingUp;
+  } else if (trend < 0) {
+    TrendIcon = TrendingDown;
+  }
   const trendColor = getTrendColor(trend);
 
   return (
@@ -223,7 +245,11 @@ function ContributorListItem({
           className="h-10 w-10 min-h-[44px] min-w-[44px] p-0"
           onClick={(e) => {
             e.stopPropagation();
-            isTracked ? onUntrack?.() : onTrack?.();
+            if (isTracked) {
+              onUntrack?.();
+            } else {
+              onTrack?.();
+            }
           }}
         >
           {isTracked ? <X className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
@@ -239,13 +265,14 @@ export function ContributorsList({
   onTrackContributor,
   onUntrackContributor,
   onContributorClick,
-  onAddContributor,
+  onAddToGroup,
   loading = false,
   className,
   view = 'grid',
+  showHeader = true,
+  showTrackedOnly = false,
 }: ContributorsListProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [showOnlyTracked, setShowOnlyTracked] = useState(false);
 
   const filteredContributors = contributors.filter((contributor) => {
     const matchesSearch =
@@ -253,20 +280,25 @@ export function ContributorsList({
       contributor.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       contributor.bio?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesTracked = !showOnlyTracked || trackedContributors.includes(contributor.id);
+    const isTracked = trackedContributors.includes(contributor.id);
+    const matchesTrackedFilter = showTrackedOnly ? isTracked : true;
 
-    return matchesSearch && matchesTracked;
+    return matchesSearch && matchesTrackedFilter;
   });
 
   if (loading) {
     return (
       <Card className={cn('w-full', className)}>
-        <CardHeader>
-          <CardTitle>Contributors</CardTitle>
-        </CardHeader>
+        {showHeader && (
+          <CardHeader>
+            <CardTitle>Contributors</CardTitle>
+          </CardHeader>
+        )}
         <CardContent>
           <div
-            className={view === 'grid' ? 'grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'space-y-3'}
+            className={
+              view === 'grid' ? 'grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'space-y-3'
+            }
           >
             {[...Array(6)].map((_, i) => (
               <Skeleton key={i} className="h-32 w-full" />
@@ -277,6 +309,76 @@ export function ContributorsList({
     );
   }
 
+  if (!showHeader) {
+    // When header is hidden, just return the content without card wrapper
+    return (
+      <div className={cn('w-full', className)}>
+        <div className="mb-4">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search contributors..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-8 min-h-[44px]"
+            />
+          </div>
+        </div>
+
+        {filteredContributors.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <UserPlus className="h-12 w-12 text-muted-foreground mb-4" />
+            <p className="text-muted-foreground mb-2">
+              {searchTerm
+                ? 'No contributors match your search'
+                : 'No contributors found in selected repositories'}
+            </p>
+            {searchTerm && (
+              <p className="text-sm text-muted-foreground mb-4">
+                Try adjusting your search terms or clear the search to see all contributors
+              </p>
+            )}
+          </div>
+        ) : (
+          <div
+            className={
+              view === 'grid' ? 'grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'space-y-3'
+            }
+          >
+            {filteredContributors.map((contributor) => {
+              const isTracked = trackedContributors.includes(contributor.id);
+              if (view === 'grid') {
+                return (
+                  <ContributorCard
+                    key={contributor.id}
+                    contributor={contributor}
+                    isTracked={isTracked}
+                    onTrack={() => onTrackContributor?.(contributor.id)}
+                    onUntrack={() => onUntrackContributor?.(contributor.id)}
+                    onClick={() => onContributorClick?.(contributor)}
+                    onAddToGroup={() => onAddToGroup?.(contributor.id)}
+                  />
+                );
+              } else {
+                return (
+                  <ContributorListItem
+                    key={contributor.id}
+                    contributor={contributor}
+                    isTracked={isTracked}
+                    onTrack={() => onTrackContributor?.(contributor.id)}
+                    onUntrack={() => onUntrackContributor?.(contributor.id)}
+                    onClick={() => onContributorClick?.(contributor)}
+                  />
+                );
+              }
+            })}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Original card-wrapped version (for backwards compatibility)
   return (
     <Card className={cn('w-full', className)}>
       <CardHeader>
@@ -284,33 +386,8 @@ export function ContributorsList({
           <div>
             <CardTitle>Contributors</CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
-              {showOnlyTracked
-                ? `${trackedContributors.length} contributors in workspace`
-                : `${contributors.length} contributors from selected repositories`}
+              {contributors.length} contributors from selected repositories
             </p>
-          </div>
-          <div className="flex items-center gap-2">
-            {trackedContributors.length > 0 && (
-              <Button
-                variant={showOnlyTracked ? 'default' : 'outline'}
-                size="sm"
-                className="min-h-[44px] px-4"
-                onClick={() => setShowOnlyTracked(!showOnlyTracked)}
-              >
-                {showOnlyTracked ? 'Show All Available' : 'Show Workspace Only'}
-                {showOnlyTracked && (
-                  <Badge variant="secondary" className="ml-2">
-                    {trackedContributors.length}
-                  </Badge>
-                )}
-              </Button>
-            )}
-            {onAddContributor && (
-              <Button onClick={onAddContributor} size="sm" className="min-h-[44px] px-4">
-                <Plus className="h-4 w-4 mr-1" />
-                Add Contributors
-              </Button>
-            )}
           </div>
         </div>
       </CardHeader>
@@ -333,25 +410,19 @@ export function ContributorsList({
             <p className="text-muted-foreground mb-2">
               {searchTerm
                 ? 'No contributors match your search'
-                : showOnlyTracked && trackedContributors.length === 0
-                  ? 'No contributors added to workspace yet'
-                  : 'No contributors found in selected repositories'}
+                : 'No contributors found in selected repositories'}
             </p>
             {searchTerm && (
               <p className="text-sm text-muted-foreground mb-4">
                 Try adjusting your search terms or clear the search to see all contributors
               </p>
             )}
-            {showOnlyTracked && trackedContributors.length === 0 && onAddContributor && (
-              <Button onClick={onAddContributor} className="mt-4 min-h-[44px] px-4">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Contributors from Repositories
-              </Button>
-            )}
           </div>
         ) : (
           <div
-            className={view === 'grid' ? 'grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'space-y-3'}
+            className={
+              view === 'grid' ? 'grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'space-y-3'
+            }
           >
             {filteredContributors.map((contributor) => {
               const isTracked = trackedContributors.includes(contributor.id);
@@ -364,6 +435,7 @@ export function ContributorsList({
                   onTrack={() => onTrackContributor?.(contributor.id)}
                   onUntrack={() => onUntrackContributor?.(contributor.id)}
                   onClick={() => onContributorClick?.(contributor)}
+                  onAddToGroup={() => onAddToGroup?.(contributor.id)}
                 />
               ) : (
                 <ContributorListItem

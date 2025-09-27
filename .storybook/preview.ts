@@ -1,8 +1,8 @@
-import type { Preview } from '@storybook/react-vite'
-import React from 'react'
-import '../src/index.css'
-import { theme } from './theme'
-import { SVGSpriteInliner } from '../src/components/ui/svg-sprite-loader'
+import type { Preview } from '@storybook/react-vite';
+import React from 'react';
+import '../src/index.css';
+import { theme } from './theme';
+import { SVGSpriteInliner } from '../src/components/ui/svg-sprite-loader';
 
 // Mock environment variables for Storybook
 if (!import.meta.env.VITE_SUPABASE_URL) {
@@ -15,7 +15,7 @@ if (!import.meta.env.VITE_SUPABASE_URL) {
     MODE: 'test',
     DEV: false,
     PROD: false,
-    SSR: false
+    SSR: false,
   };
 }
 
@@ -23,8 +23,8 @@ const preview: Preview = {
   parameters: {
     controls: {
       matchers: {
-       color: /(background|color)$/i,
-       date: /Date$/i,
+        color: /(background|color)$/i,
+        date: /Date$/i,
       },
       // Enhanced controls panel styling
       expanded: true,
@@ -103,7 +103,7 @@ const preview: Preview = {
     },
     // Actions configuration for better test feedback
     actions: {
-      argTypesRegex: "^on[A-Z].*",
+      argTypesRegex: '^on[A-Z].*',
       // Enhanced action logging for tests
       depth: 3,
       clearOnStoryChange: true,
@@ -156,9 +156,10 @@ const preview: Preview = {
   decorators: [
     (Story, context) => {
       // Test environment detection
-      const isTestEnvironment = window.location.search.includes('test-runner') || 
-                               window.navigator.userAgent.includes('Playwright');
-      
+      const isTestEnvironment =
+        window.location.search.includes('test-runner') ||
+        window.navigator.userAgent.includes('Playwright');
+
       if (isTestEnvironment) {
         // Add test-specific attributes to root for better debugging
         const root = document.getElementById('storybook-root');
@@ -170,16 +171,17 @@ const preview: Preview = {
           root.style.setProperty('--focus-ring-color', '#0066cc');
         }
       }
-      
+
       // Apply dark mode based on background selection
-      const isDarkBackground = context.globals?.backgrounds?.value === '#0a0a0a' || 
-                              context.parameters?.backgrounds?.default === 'dark';
+      const isDarkBackground =
+        context.globals?.backgrounds?.value === '#0a0a0a' ||
+        context.parameters?.backgrounds?.default === 'dark';
       if (isDarkBackground) {
         document.documentElement.classList.add('dark');
       } else {
         document.documentElement.classList.remove('dark');
       }
-      
+
       // Setup window mock for Zustand stores and other window-dependent code
       if (typeof window !== 'undefined') {
         // Ensure window.innerWidth is available for responsive Zustand stores
@@ -190,10 +192,10 @@ const preview: Preview = {
             value: 1200, // Default desktop width for Storybook
           });
         }
-        
+
         // Mock window.addEventListener if needed for stores
         const originalAddEventListener = window.addEventListener;
-        window.addEventListener = function(type, listener, options) {
+        window.addEventListener = function (type, listener, options) {
           // Only add listeners we care about, ignore others to prevent issues
           if (type === 'resize' || type === 'load') {
             return originalAddEventListener.call(this, type, listener, options);
@@ -201,8 +203,10 @@ const preview: Preview = {
           return originalAddEventListener.call(this, type, listener, options);
         };
       }
-      
-      return React.createElement(React.Fragment, {}, 
+
+      return React.createElement(
+        React.Fragment,
+        {},
         React.createElement(SVGSpriteInliner, {}),
         React.createElement(Story, {})
       );

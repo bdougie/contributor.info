@@ -27,7 +27,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 async function updateTrackedRepositories() {
   try {
     console.log('📊 Fetching tracked repositories from Supabase...');
-    
+
     // Fetch all repositories
     const { data: repositories, error } = await supabase
       .from('repositories')
@@ -36,55 +36,44 @@ async function updateTrackedRepositories() {
       .not('name', 'is', null)
       .order('owner', { ascending: true })
       .order('name', { ascending: true });
-    
+
     if (error) {
       throw new Error(`Failed to fetch repositories: ${error.message}`);
     }
-    
+
     console.log(`✅ Found ${repositories.length} repositories`);
-    
+
     // Format repositories as owner/name
-    const repoList = repositories
-      .map(repo => `${repo.owner}/${repo.name}`)
-      .join('\n');
-    
+    const repoList = repositories.map((repo) => `${repo.owner}/${repo.name}`).join('\n');
+
     // Write to file
     const outputPath = path.join(__dirname, '..', 'tracked-repositories.txt');
     await fs.writeFile(outputPath, repoList + '\n', 'utf-8');
-    
+
     console.log(`✅ Updated tracked-repositories.txt with ${repositories.length} repositories`);
-    
+
     // Also create a JSON version for programmatic access
     const jsonPath = path.join(__dirname, '..', 'tracked-repositories.json');
-    await fs.writeFile(
-      jsonPath, 
-      JSON.stringify(repositories, null, 2) + '\n',
-      'utf-8'
-    );
-    
+    await fs.writeFile(jsonPath, JSON.stringify(repositories, null, 2) + '\n', 'utf-8');
+
     console.log('✅ Also created tracked-repositories.json');
-    
+
     // Generate statistics
     const stats = {
       total_repositories: repositories.length,
-      organizations: [...new Set(repositories.map(r => r.owner))].length,
-      generated_at: new Date().toISOString()
+      organizations: [...new Set(repositories.map((r) => r.owner))].length,
+      generated_at: new Date().toISOString(),
     };
-    
+
     console.log('\n📈 Statistics:');
     console.log(`   Total repositories: ${stats.total_repositories}`);
     console.log(`   Unique organizations: ${stats.organizations}`);
-    
+
     // Write stats to a separate file
     const statsPath = path.join(__dirname, '..', 'tracked-repositories-stats.json');
-    await fs.writeFile(
-      statsPath,
-      JSON.stringify(stats, null, 2) + '\n',
-      'utf-8'
-    );
-    
+    await fs.writeFile(statsPath, JSON.stringify(stats, null, 2) + '\n', 'utf-8');
+
     return stats;
-    
   } catch (error) {
     console.error('❌ Error updating tracked repositories:', error.message);
     process.exit(1);
@@ -93,11 +82,11 @@ async function updateTrackedRepositories() {
 
 // Run the update
 updateTrackedRepositories()
-  .then(stats => {
+  .then((stats) => {
     console.log('\n✨ Successfully updated tracked repositories list');
     process.exit(0);
   })
-  .catch(error => {
+  .catch((error) => {
     console.error('❌ Failed to update tracked repositories:', error);
     process.exit(1);
   });

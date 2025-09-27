@@ -37,7 +37,7 @@ export enum ErrorCode {
 export interface ApiError {
   code: ErrorCode;
   message: string;
-  details?: any;
+  details?: Record<string, unknown>;
   timestamp: string;
   path?: string;
 }
@@ -50,9 +50,14 @@ export interface ValidationErrorDetail {
 export class ApiErrorResponse extends Error {
   public statusCode: number;
   public errorCode: ErrorCode;
-  public details?: any;
+  public details?: Record<string, unknown>;
 
-  constructor(statusCode: number, errorCode: ErrorCode, message: string, details?: any) {
+  constructor(
+    statusCode: number,
+    errorCode: ErrorCode,
+    message: string,
+    details?: Record<string, unknown>
+  ) {
     super(message);
     this.name = 'ApiErrorResponse';
     this.statusCode = statusCode;
