@@ -1,5 +1,19 @@
 # PRD: Row Level Security (RLS) Audit and Remediation
 
+## Progress Update (2025-01-27)
+
+### Completed Actions:
+1. ✅ **Secured 2 backup tables** with RLS (contributors_backup, contributors_replica)
+2. ✅ **Dropped 7 empty tables** that had security issues:
+   - _dlt_loads, _dlt_pipeline_state (RLS disabled, 0 rows)
+   - commits, contributor_organizations, citation_alerts, citation_metrics, comment_commands (overly permissive, 0 rows)
+3. ✅ **Identified critical exposure**: pull_requests_backup has 117,569 rows with RLS disabled
+
+### Remaining Risk Summary:
+- **5 tables** with disabled RLS containing **120,236 total rows**
+- **4 tables** with overly permissive policies containing **23,121 total rows**
+- **Highest priority**: pull_requests_backup (117,569 rows exposed)
+
 ## Project Overview
 
 ### Objective
@@ -18,25 +32,35 @@ During routine security review, potential RLS policy gaps were identified that c
 ## Current State Analysis
 
 ### Tables with RLS DISABLED (10 tables - HIGH RISK)
-1. **_dlt_loads** - Data pipeline tracking
-2. **_dlt_pipeline_state** - Pipeline state management
-3. **_dlt_version** - Version tracking
-4. **contributors_backup** - Backup of contributors data
-5. **contributors_replica** - Replica of contributors data
-6. **github_events_cache_2025_09** - Future cache partition
-7. **issues_backup** - Backup of issues data
-8. **issues_replica** - Replica of issues data
-9. **pull_requests_backup** - Backup of pull requests data
-10. **pull_requests_replica** - Replica of pull requests data
+
+#### With Data (Need RLS Fix):
+1. **pull_requests_backup** - 117,569 rows - CRITICAL: Large dataset exposed
+2. **contributors_backup** - 9,404 rows - ✅ FIXED (Phase 1)
+3. **contributors_replica** - 9,602 rows - ✅ FIXED (Phase 1)
+4. **pull_requests_replica** - 1,000 rows - Needs RLS
+5. **github_events_cache_2025_09** - 923 rows - Future cache partition
+6. **issues_backup** - 695 rows - Needs RLS
+7. **issues_replica** - 48 rows - Needs RLS
+8. **_dlt_version** - 1 row - Version tracking
+
+#### Empty Tables (Dropped):
+1. ~~**_dlt_loads**~~ - 0 rows - ✅ DROPPED
+2. ~~**_dlt_pipeline_state**~~ - 0 rows - ✅ DROPPED
 
 ### Tables with Overly Permissive Policies (20+ tables - MEDIUM RISK)
-Tables with `true` conditions allowing unrestricted access:
-- **app_users** - Public read (SELECT = true)
-- **comments** - Public read, unrestricted insert/update/delete
-- **commits** - Public read, unrestricted insert/update/delete
-- **contributor_organizations** - ALL operations = true
-- **backfill_chunks** - Service role ALL = true
-- Multiple tables with public SELECT = true
+
+#### With Data (Need Policy Fix):
+- **backfill_chunks** - 19,269 rows - Service role ALL = true
+- **comments** - 3,841 rows - Public read, unrestricted insert/update/delete
+- **app_users** - 6 rows - Public read (SELECT = true)
+- **auth_errors** - 5 rows - System can insert (INSERT with_check = true)
+
+#### Empty Tables (Dropped):
+- ~~**commits**~~ - 0 rows - ✅ DROPPED
+- ~~**contributor_organizations**~~ - 0 rows - ✅ DROPPED
+- ~~**citation_alerts**~~ - 0 rows - ✅ DROPPED
+- ~~**citation_metrics**~~ - 0 rows - ✅ DROPPED
+- ~~**comment_commands**~~ - 0 rows - ✅ DROPPED
 
 ## Implementation Plan
 
