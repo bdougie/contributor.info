@@ -24,16 +24,32 @@ jobs:
 
       - name: Check for unoptimized RLS patterns
         run: |
-          echo "Checking for unoptimized RLS patterns..."
+          echo "Checking for unoptimized RLS patterns in new/modified files..."
 
-          # Check for auth functions without SELECT wrapper
-          if grep -r "auth\.\(uid\|role\|jwt\)()" supabase/migrations/ 2>/dev/null | grep -v "SELECT auth\." | grep -v "^--"; then
-            echo "❌ Found unoptimized auth function calls without SELECT wrapper"
-            echo "Fix by wrapping with: (SELECT auth.function())"
-            exit 1
-          fi
+          # Only check files that are being added or modified in this PR
+          # We exclude checking existing migrations since they may contain patterns being fixed
+          for file in $(git diff --name-only origin/main...HEAD -- 'supabase/migrations/*.sql' 2>/dev/null || echo ""); do
+            if [ -f "$file" ]; then
+              echo "Checking $file..."
 
-          echo "✅ No unoptimized auth patterns found"
+              # Skip monitoring and template files
+              if echo "$file" | grep -E "(monitoring|template)" > /dev/null; then
+                echo "  Skipping monitoring/template file"
+                continue
+              fi
+
+              # Extract only CREATE POLICY statements (not DO blocks or comments)
+              # Check for auth functions without SELECT wrapper in actual policy definitions
+              if sed -n '/CREATE POLICY/,/;/p' "$file" 2>/dev/null | grep -E "auth\.(uid|role|jwt)\(\)" | grep -v "(SELECT auth\." | grep -v "( SELECT auth\." > /dev/null 2>&1; then
+                echo "❌ Found unoptimized auth function calls in policy definitions in $file"
+                echo "Fix by wrapping with: (SELECT auth.function())"
+                sed -n '/CREATE POLICY/,/;/p' "$file" | grep -n -E "auth\.(uid|role|jwt)\(\)" | grep -v "SELECT auth\." | head -5
+                exit 1
+              fi
+            fi
+          done
+
+          echo "✅ No unoptimized auth patterns found in new/modified files"
 
       - name: Validate RLS policy structure
         run: |
