@@ -22,36 +22,7 @@ interface RepositoryData {
   full_name: string;
 }
 
-interface PullRequestData {
-  id: string;
-  title: string;
-  number: number;
-  html_url: string;
-  repository_id: string;
-}
 
-interface IssueData {
-  id: string;
-  title: string;
-  number: number;
-  repository_id: string;
-}
-
-interface ReviewWithPR {
-  id: string;
-  state: string;
-  submitted_at: string;
-  pull_request_id: string;
-  pull_requests: PullRequestData;
-}
-
-interface CommentWithIssue {
-  id: string;
-  body: string;
-  created_at: string;
-  issue_id: string;
-  issues: IssueData;
-}
 
 interface UseContributorActivityOptions {
   contributorUsername: string | undefined;
@@ -252,7 +223,11 @@ export function useContributorActivity({
         if (reviews.data && reviews.data.length > 0) {
           // Get unique repository IDs from pull requests
           const prIds = reviews.data
-            .map((r) => r.pull_requests?.repository_id)
+            .map((r) => {
+              // Handle both single object and array cases
+              const pr = Array.isArray(r.pull_requests) ? r.pull_requests[0] : r.pull_requests;
+              return pr?.repository_id;
+            })
             .filter((id): id is string => !!id);
 
           const uniqueRepoIds = [...new Set(prIds)];
@@ -266,7 +241,8 @@ export function useContributorActivity({
           const repoMap = new Map(repoData?.map((r) => [r.id, r]) || []);
 
           reviews.data.forEach((review) => {
-            const pullRequest = review.pull_requests;
+            // Handle both single object and array cases
+            const pullRequest = Array.isArray(review.pull_requests) ? review.pull_requests[0] : review.pull_requests;
             if (pullRequest?.repository_id) {
               const repository = repoMap.get(pullRequest.repository_id);
               if (repository) {
@@ -291,7 +267,11 @@ export function useContributorActivity({
         if (comments.data && comments.data.length > 0) {
           // Get unique repository IDs from issues
           const issueRepoIds = comments.data
-            .map((c) => c.issues?.repository_id)
+            .map((c) => {
+              // Handle both single object and array cases
+              const issue = Array.isArray(c.issues) ? c.issues[0] : c.issues;
+              return issue?.repository_id;
+            })
             .filter((id): id is string => !!id);
 
           const uniqueIssueRepoIds = [...new Set(issueRepoIds)];
@@ -305,7 +285,8 @@ export function useContributorActivity({
           const issueRepoMap = new Map(issueRepoData?.map((r) => [r.id, r]) || []);
 
           comments.data.forEach((comment) => {
-            const issue = comment.issues;
+            // Handle both single object and array cases
+            const issue = Array.isArray(comment.issues) ? comment.issues[0] : comment.issues;
             if (issue?.repository_id) {
               const repository = issueRepoMap.get(issue.repository_id);
               if (repository) {

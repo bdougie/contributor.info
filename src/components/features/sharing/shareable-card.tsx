@@ -165,13 +165,13 @@ export function ShareableCard({
     try {
       await trackAnalytics({
         original_url: window.location.href,
-        short_url: metadata?.shortUrl,
-        dub_link_id: metadata?.dubLinkId,
+        short_url: typeof metadata?.shortUrl === 'string' ? metadata.shortUrl : undefined,
+        dub_link_id: typeof metadata?.dubLinkId === 'string' ? metadata.dubLinkId : undefined,
         chart_type: chartType,
         repository: contextInfo?.repository,
         page_path: location.pathname,
         action: action as 'copy' | 'download' | 'share',
-        share_type: type as 'url' | 'image' | 'embed',
+        share_type: type as 'url' | 'image' | 'native',
         domain: dubConfig.isDev ? 'dub.co' : 'oss.fyi',
         metadata: {
           title,
