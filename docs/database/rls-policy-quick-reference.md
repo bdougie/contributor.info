@@ -2,6 +2,11 @@
 
 ## 🚨 STOP Before Creating a New Policy!
 
+### ✅ Current Status: 100% Optimized
+- **0 unoptimized auth policies** remaining
+- **273+ policies** have been optimized
+- **All auth functions** wrapped in SELECT subqueries
+
 ### 1️⃣ Check Existing Policies
 ```sql
 SELECT polname, polcmd, polpermissive, polqual::text
@@ -83,6 +88,19 @@ USING (user_id = (SELECT auth.uid()))
 USING ((SELECT auth.role()) = 'service_role')
 ```
 
+### Service Role Access Pattern
+```sql
+-- ❌ WRONG: Direct auth.role() call
+CREATE POLICY "service_role_all" ON table
+FOR ALL
+USING (auth.role() = 'service_role'::text);
+
+-- ✅ RIGHT: Wrapped in SELECT subquery
+CREATE POLICY "service_role_all" ON table
+FOR ALL
+USING ((SELECT auth.role()) = 'service_role'::text);
+```
+
 ## Performance Impact
 
 | Policies | Evaluation Time | Memory Usage |
@@ -108,10 +126,13 @@ psql $DATABASE_URL -c "
 ```
 
 ## Remember
-- **12 auth.uid() policies optimized in PR #821 (Phase 1)**
-- **30+ service role policies optimized in PR #822 (Phase 2)**
-- **91 policies were consolidated in PR #818 (Phase 3)**
-- **50-60% total performance improvement** from all optimizations
+- **62 auth initialization issues fixed in PRs #817 and #821 (Phase 1)**
+- **120+ additional auth issues fixed in PR #823 (Phase 4)**
+- **91 policies consolidated in PR #818 (Phase 2)**
+- **30+ service role policies optimized in PR #822 (Phase 2b)**
+- **11 duplicate indexes removed in PR #819 (Phase 3)**
+- **50-60% total performance improvement** achieved
+- **100% auth RLS optimization** - zero unoptimized policies remain
 - **Always wrap auth functions in SELECT subqueries**
 - **Always check before creating new policies**
 - **Consolidate when possible**
