@@ -132,8 +132,7 @@ export function useWorkspaceContributors({
         const { data: pullRequests, error: prError } = await supabase
           .from('pull_requests')
           .select('author_id, repository_id, created_at, updated_at')
-          .in('repository_id', repoIds)
-          .not('author_id', 'is', null);
+          .in('repository_id', repoIds);
 
         if (prError) {
           console.error('Error fetching pull requests:', prError);
@@ -329,7 +328,7 @@ export function useWorkspaceContributors({
 
   return {
     contributors,
-    allAvailableContributors: availableToAdd,  // Only return contributors not in workspace
+    allAvailableContributors: availableToAdd, // Only return contributors not in workspace
     workspaceContributorIds,
     loading,
     error,

@@ -253,10 +253,13 @@ serve(async (req) => {
         }
 
         // Prepare batch upsert data with author_id
-        const upsertData = prsWithReviewers.map((pr) => ({
+        // Filter out PRs where we couldn't find or create the author
+        const upsertData = prsWithReviewers
+          .filter((pr) => authorMap.has(pr.author.username))
+          .map((pr) => ({
           github_id: pr.github_id,
           repository_id: repoData.id,
-          author_id: authorMap.get(pr.author.username) || null,
+          author_id: authorMap.get(pr.author.username)!,
           number: pr.number,
           title: pr.title,
           state: pr.state,
