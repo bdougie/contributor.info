@@ -105,6 +105,17 @@
    - github_events_cache_2025_09: Matches other partitions
    - _dlt_version: Service role only
 
+### Phase 3 - Completed Actions (2025-01-27):
+1. ✅ **Secured all critical system tables** (13 tables total):
+   - **Progressive capture**: progressive_capture_jobs, progressive_capture_progress, progressive_backfill_state
+   - **Queue tables**: data_capture_queue, dead_letter_queue, queue_metrics
+   - **Rate limiting**: rate_limit_tracking, rate_limits
+   - **Sync logs**: sync_logs
+   - **Rollout management**: rollout_configuration, rollout_history, rollout_metrics
+   - **Spam detection**: spam_detections
+2. ✅ **Applied service-role-only policies**: All tables now restricted to `auth.role() = 'service_role'`
+3. ✅ **Removed all public/authenticated access**: No unauthorized access possible to system tables
+
 ### Final Status:
 - **0 tables with RLS disabled** ✅
 - **All backup/replica tables secured** ✅
@@ -161,17 +172,17 @@ During routine security review, potential RLS policy gaps were identified that c
 
 ## REVISED Implementation Plan (Post-Discovery)
 
-### Phase 3: CRITICAL - System Tables (IMMEDIATE)
+### Phase 3: CRITICAL - System Tables ✅ COMPLETED (2025-01-27)
 Fix tables that should NEVER have public access:
-- progressive_capture_jobs/progress
-- data_capture_queue
-- dead_letter_queue
-- rate_limit_tracking/rate_limits
-- sync_logs
-- rollout_configuration/history/metrics
-- spam_detections
+- ✅ progressive_capture_jobs/progress
+- ✅ data_capture_queue
+- ✅ dead_letter_queue
+- ✅ rate_limit_tracking/rate_limits
+- ✅ sync_logs
+- ✅ rollout_configuration/history/metrics
+- ✅ spam_detections
 
-**Pattern**: Service role only for ALL operations
+**Pattern**: Service role only for ALL operations - APPLIED
 
 ### Phase 4: HIGH - Workspace & User Data
 Fix tables with improper public write/delete:
