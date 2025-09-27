@@ -9,6 +9,7 @@ interface GitHubWorkflowRun {
   head_branch: string;
   head_sha: string;
   run_number: number;
+  run_attempt?: number;
   event: string;
   status: string;
   conclusion: string | null;

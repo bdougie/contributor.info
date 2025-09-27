@@ -50,8 +50,16 @@ export interface ContributorNote {
   note_content?: string;
   created_at: string;
   updated_at: string;
-  created_by: string | null;
-  updated_by: string | null;
+  created_by: {
+    auth_user_id: string | null;
+    email: string;
+    display_name: string;
+  } | string | null;
+  updated_by: {
+    auth_user_id: string | null;
+    email: string;
+    display_name: string;
+  } | string | null;
 }
 
 export function useContributorGroups(workspaceId: string | undefined) {

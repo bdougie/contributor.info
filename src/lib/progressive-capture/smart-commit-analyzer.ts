@@ -239,8 +239,19 @@ export class SmartCommitAnalyzer {
         return { hasYoloCoders: false, yoloCoderStats: [] };
       }
 
+      // Map database results to CommitRecord format
+      const mappedCommits: CommitRecord[] = commits.map((commit: Record<string, unknown>) => ({
+        sha: commit.sha as string,
+        is_direct_commit: commit.is_direct_commit as boolean,
+        authored_at: commit.authored_at as string,
+        contributors: {
+          username: (commit['contributors!commits_author_id_fkey'] as { username: string; avatar_url: string })?.username || '',
+          avatar_url: (commit['contributors!commits_author_id_fkey'] as { username: string; avatar_url: string })?.avatar_url || ''
+        }
+      }));
+
       // Calculate YOLO coder stats from database
-      const contributorStats = this.calculateYoloCoderStats(commits);
+      const contributorStats = this.calculateYoloCoderStats(mappedCommits);
 
       return {
         hasYoloCoders: contributorStats.length > 0,

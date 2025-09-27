@@ -1,5 +1,5 @@
 import { supabase } from '../supabase';
-import { hybridQueueManager } from './hybrid-queue-manager';
+import { hybridQueueManager, type HybridJob } from './hybrid-queue-manager';
 import { jobStatusReporter } from './job-status-reporter';
 
 export interface RetryConfig {
@@ -11,6 +11,14 @@ export interface RetryConfig {
 interface RetryMetadata {
   retry_count?: number;
   last_retry_at?: string;
+  retry_history?: Array<{
+    attempt: number;
+    timestamp: string;
+    previous_error?: string;
+  }>;
+  time_range_days?: number;
+  max_items?: number;
+  repository_name?: string;
   [key: string]: unknown;
 }
 
@@ -248,7 +256,7 @@ export class AutoRetryService {
   /**
    * Create a new job for retry
    */
-  private async createRetryJob(originalJob: RetryableJob): Promise<unknown> {
+  private async createRetryJob(originalJob: RetryableJob): Promise<HybridJob> {
     // Validate required fields before retry
     if (!originalJob.repository_id) {
       console.error('[AutoRetry] Cannot retry job without repository_id:', {

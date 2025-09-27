@@ -12,11 +12,15 @@ interface JobUpdateRecord {
 interface JobSummary {
   id: string;
   job_type: string;
+  processor?: string;
   status: string;
   repository_id: string;
   created_at: string;
   started_at?: string;
   completed_at?: string;
+  duration?: number;
+  progress?: unknown;
+  metrics?: unknown;
   metadata?: Record<string, unknown>;
   error?: string;
 }
@@ -260,7 +264,7 @@ export class JobStatusReporter {
 
       return {
         id: job.id,
-        type: job.job_type,
+        job_type: job.job_type,
         processor: job.processor_type,
         status: job.status,
         repository_id: job.repository_id,
@@ -294,7 +298,21 @@ export class JobStatusReporter {
           filter: `id=eq.${jobId}`,
         },
         (payload) => {
-          callback(payload.new);
+          const job = payload.new as Record<string, unknown>;
+          if (job && typeof job === 'object' && 'id' in job) {
+            const jobSummary: JobSummary = {
+              id: job.id as string,
+              job_type: job.job_type as string,
+              status: job.status as string,
+              repository_id: job.repository_id as string,
+              created_at: job.created_at as string,
+              started_at: job.started_at as string | undefined,
+              completed_at: job.completed_at as string | undefined,
+              metadata: job.metadata as Record<string, unknown> | undefined,
+              error: job.error as string | undefined,
+            };
+            callback(jobSummary);
+          }
         }
       )
       .subscribe();
