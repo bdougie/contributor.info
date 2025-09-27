@@ -54,7 +54,7 @@ export function WebVitalsDashboard({ repository }: { repository?: string }) {
   const [selectedMetric, setSelectedMetric] = useState<'LCP' | 'INP' | 'CLS' | 'FCP' | 'TTFB'>(
     'LCP'
   );
-  const [historicalData, setHistoricalData] = useState<any[]>([]);
+  const [historicalData, setHistoricalData] = useState<Record<string, unknown>[]>([]);
 
   useEffect(() => {
     loadPerformanceData();
@@ -162,7 +162,7 @@ export function WebVitalsDashboard({ repository }: { repository?: string }) {
         </div>
 
         {/* Time Range Selector */}
-        <Tabs value={timeRange} onValueChange={(v) => setTimeRange(v as any)}>
+        <Tabs value={timeRange} onValueChange={(v) => setTimeRange(v as '1h' | '24h' | '7d' | '30d')}>
           <TabsList>
             <TabsTrigger value="1h">1 Hour</TabsTrigger>
             <TabsTrigger value="24h">24 Hours</TabsTrigger>
@@ -208,7 +208,7 @@ export function WebVitalsDashboard({ repository }: { repository?: string }) {
       </Card>
 
       {/* Metrics Details */}
-      <Tabs value={selectedMetric} onValueChange={(v) => setSelectedMetric(v as any)}>
+      <Tabs value={selectedMetric} onValueChange={(v) => setSelectedMetric(v as 'LCP' | 'INP' | 'CLS' | 'FCP' | 'TTFB')}>
         <TabsList className="grid grid-cols-5 w-full">
           <TabsTrigger value="LCP">LCP</TabsTrigger>
           <TabsTrigger value="INP">INP</TabsTrigger>
@@ -344,17 +344,26 @@ export function WebVitalsDashboard({ repository }: { repository?: string }) {
               <CardContent>
                 {(() => {
                   // Transform data for uPlot LineChart
-                  const timestamps = historicalData.map((d) => new Date(d.time).getTime() / 1000);
-                  const values = historicalData.map((d) => d[metric]);
+                  const timestamps = historicalData.map((d) => {
+                    const time = d.time;
+                    if (typeof time === 'string' || typeof time === 'number' || time instanceof Date) {
+                      return new Date(time).getTime() / 1000;
+                    }
+                    return 0;
+                  });
+                  const values = historicalData.map((d) => {
+                    const value = d[metric];
+                    return typeof value === 'number' ? value : null;
+                  });
                   const threshold = THRESHOLDS[metric];
                   const thresholdValues = historicalData.map(() => threshold);
 
                   const chartData = {
-                    labels: timestamps,
+                    labels: timestamps as (string | number)[],
                     datasets: [
                       {
-                        label: metric,
-                        data: values,
+                        label: metric as string,
+                        data: values as (number | null)[],
                         color: '#8884d8',
                         strokeWidth: 2,
                         fill: false,
@@ -362,7 +371,7 @@ export function WebVitalsDashboard({ repository }: { repository?: string }) {
                       },
                       {
                         label: 'Good Threshold',
-                        data: thresholdValues,
+                        data: thresholdValues as (number | null)[],
                         color: '#10b981',
                         strokeWidth: 1,
                         fill: false,

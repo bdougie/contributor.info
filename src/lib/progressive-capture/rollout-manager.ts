@@ -13,7 +13,7 @@ export interface RolloutConfiguration {
   monitoring_window_hours: number;
   auto_rollback_enabled: boolean;
   emergency_stop: boolean;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 }

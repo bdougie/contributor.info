@@ -29,7 +29,7 @@ export interface GitHubRepository {
 }
 
 // GitHub API PR response type
-interface GitHubPullRequest {
+export interface GitHubPullRequest {
   id: number;
   number: number;
   title: string;

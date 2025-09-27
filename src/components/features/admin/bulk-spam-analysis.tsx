@@ -351,7 +351,13 @@ export function BulkSpamAnalysis() {
 
       // Update bulk jobs with detailed results
       if (result.results) {
-        const newJobs: BulkAnalysisJob[] = result.results.map((repoResult: any) => ({
+        const newJobs: BulkAnalysisJob[] = result.results.map((repoResult: {
+          repository_id: string;
+          repository_name: string;
+          error?: string;
+          processed?: number;
+          errors?: number;
+        }) => ({
           repository_id: repoResult.repository_id,
           repository_name: repoResult.repository_name,
           status: repoResult.error ? 'failed' : 'completed',
@@ -573,7 +579,7 @@ export function BulkSpamAnalysis() {
                 />
               </div>
             </div>
-            <Select value={filterStatus} onValueChange={(value: any) => setFilterStatus(value)}>
+            <Select value={filterStatus} onValueChange={(value: 'all' | 'pending' | 'analyzed' | 'partial') => setFilterStatus(value)}>
               <SelectTrigger className="w-full sm:w-[200px]">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>

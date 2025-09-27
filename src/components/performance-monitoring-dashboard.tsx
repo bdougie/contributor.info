@@ -39,14 +39,23 @@ interface PerformanceAlert {
   metric_value: number;
   threshold_value: number;
   created_at: string;
-  details?: any;
+  details?: Record<string, unknown>;
 }
 
 interface HealthEndpointData {
   success: boolean;
   status: string;
   timestamp: string;
-  [key: string]: any;
+  connectivity?: { latency: number };
+  performance?: { slow_queries_5min: number };
+  alerts?: { count: number };
+  authentication?: { status: string };
+  rate_limits?: { status: string };
+  checks?: {
+    database?: { latency: number };
+    system?: { latency: number };
+  };
+  recommendations?: string[];
 }
 
 interface CDNMetrics {

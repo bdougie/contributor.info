@@ -55,7 +55,13 @@ export function DistributionTreemapEnhanced({
       // Extract unique contributors with their GitHub IDs
       const contributors = new Map<number, string>();
 
-      const extractContributors = (node: any) => {
+      type NodeType = {
+        login?: string;
+        avatar_url?: string;
+        children?: NodeType[];
+      };
+
+      const extractContributors = (node: NodeType): void => {
         if (node.login && node.avatar_url) {
           // Try to extract GitHub ID from avatar URL or use a hash
           const match = node.avatar_url.match(/u\/(\d+)/);
@@ -71,7 +77,7 @@ export function DistributionTreemapEnhanced({
 
           contributors.set(githubId, node.avatar_url);
         }
-        if (node.children) {
+        if (node.children && Array.isArray(node.children)) {
           node.children.forEach(extractContributors);
         }
       };
@@ -494,7 +500,7 @@ export function DistributionTreemapEnhanced({
     payload,
   }: {
     active?: boolean;
-    payload?: Array<{ payload: any }>;
+    payload?: Array<{ payload: Record<string, unknown> }>;
   }) => {
     if (active && payload && payload[0]) {
       const data = payload[0].payload;
@@ -506,32 +512,53 @@ export function DistributionTreemapEnhanced({
         return null;
       }
 
+      const name = typeof data.name === 'string' ? data.name : '';
+      const language = typeof data.language === 'string' ? data.language : undefined;
+      const languageColor = typeof data.languageColor === 'string' ? data.languageColor : undefined;
+
       return (
         <div className="bg-background border rounded-lg shadow-lg p-3 max-w-sm">
           {isPR ? (
             // PR tooltip
             <>
               <div className="flex items-center gap-2 mb-2">
-                <p className="font-semibold text-sm">{data.name}</p>
-                {data.language && (
+                <p className="font-semibold text-sm">{name}</p>
+                {language && languageColor && (
                   <div className="flex items-center gap-1">
                     <div
                       className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: data.languageColor }}
-                      title={data.language}
+                      style={{ backgroundColor: languageColor }}
+                      title={language}
                     />
-                    <span className="text-xs text-muted-foreground">{data.language}</span>
+                    <span className="text-xs text-muted-foreground">{language}</span>
                   </div>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground mb-2">{data.title}</p>
-              {data.pr && (
+              <p className="text-xs text-muted-foreground mb-2">
+                {typeof data.title === 'string' ? data.title : ''}
+              </p>
+              {data.pr && typeof data.pr === 'object' && (
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">
-                    Size: +{data.pr.additions || 0} -{data.pr.deletions || 0} lines
+                    Size: +{(() => {
+                      const pr = data.pr as Record<string, unknown>;
+                      const additions = typeof pr.additions === 'number' ? pr.additions : 0;
+                      return additions;
+                    })()} -{(() => {
+                      const pr = data.pr as Record<string, unknown>;
+                      const deletions = typeof pr.deletions === 'number' ? pr.deletions : 0;
+                      return deletions;
+                    })()} lines
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {data.pr.user?.login} • {new Date(data.pr.created_at).toLocaleDateString()}
+                    {(() => {
+                      const pr = data.pr as Record<string, unknown>;
+                      const user = pr.user as Record<string, unknown> | undefined;
+                      const login = user && typeof user.login === 'string' ? user.login : '';
+                      const createdAt = typeof pr.created_at === 'string' ? pr.created_at : '';
+                      const date = createdAt ? new Date(createdAt).toLocaleDateString() : '';
+                      return `${login}${login && date ? ' • ' : ''}${date}`;
+                    })()}
                   </p>
                   <p className="text-xs font-medium text-primary">Click to open PR →</p>
                 </div>
@@ -542,16 +569,18 @@ export function DistributionTreemapEnhanced({
             <>
               {data.login === 'others' ? (
                 <>
-                  <p className="font-semibold text-sm">{data.name}</p>
+                  <p className="font-semibold text-sm">{name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {data.value} PRs from remaining contributors
+                    {typeof data.value === 'number' ? data.value : 0} PRs from remaining contributors
                   </p>
                 </>
               ) : (
                 <>
-                  <p className="font-semibold text-sm">{data.login || 'Unknown'}</p>
+                  <p className="font-semibold text-sm">
+                    {typeof data.login === 'string' ? data.login : 'Unknown'}
+                  </p>
                   <p className="text-xs text-muted-foreground mb-2">
-                    {data.value} PRs in{' '}
+                    {typeof data.value === 'number' ? data.value : 0} PRs in{' '}
                     {QUADRANT_INFO[selectedQuadrant as keyof typeof QUADRANT_INFO]?.label}
                   </p>
                   {hoveredPRs.length > 0 && (
@@ -563,11 +592,17 @@ export function DistributionTreemapEnhanced({
                           <span className="ml-1 line-clamp-1">{pr.title}</span>
                         </div>
                       ))}
-                      {data.prs && data.prs.length > 5 && (
-                        <p className="text-xs text-muted-foreground">
-                          +{data.prs.length - 5} more PRs
-                        </p>
-                      )}
+                      {(() => {
+                        const prs = data.prs;
+                        if (prs && Array.isArray(prs) && prs.length > 5) {
+                          return (
+                            <p className="text-xs text-muted-foreground">
+                              +{prs.length - 5} more PRs
+                            </p>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
                   )}
                   <p className="text-xs font-medium text-primary mt-2">Click to view PRs →</p>
@@ -600,7 +635,7 @@ export function DistributionTreemapEnhanced({
                   (q: QuadrantNode) => q.id === selectedQuadrant
                 );
                 const contributor = quadrant?.children?.find(
-                  (c: any) => c.id === selectedContributor
+                  (c: { id: string; login?: string }) => c.id === selectedContributor
                 );
                 return contributor?.login || 'PRs';
               })()}

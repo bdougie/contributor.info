@@ -150,7 +150,7 @@ export function VirtualizedGrid<T>({
  * Window scroller for full-page virtualization
  * Use when the list takes up the entire viewport
  */
-export const WindowVirtualizedList = forwardRef<HTMLDivElement, VirtualizedListProps<any>>(
+export const WindowVirtualizedList = forwardRef<HTMLDivElement, VirtualizedListProps<unknown>>(
   function WindowVirtualizedList(
     { items, renderItem, itemHeight = 100, overscan = 5, className, estimateSize, gap = 0 },
     ref
