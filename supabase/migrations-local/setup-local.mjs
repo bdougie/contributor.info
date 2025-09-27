@@ -1,4 +1,123 @@
-#!/usr/bin/env node
+#!/usr/bimport os from 'node:os';
+
+// Track what we moved for cleanup
+let migrationsMoved = false;
+let seedWasMoved = false;
+const processId = process.pid;
+
+// CLI argument parsing
+function parseArgs() {
+  const args = process.argv.slice(2);
+  return {
+    consolidated: args.includes('--consolidated') || process.env.USE_CONSOLIDATED_SQL === '1',
+    dryRun: args.includes('--dry-run'),
+    help: args.includes('--help') || args.includes('-h'),
+    extraArgs: args.filter(arg => !['--consolidated', '--dry-run', '--help', '-h'].includes(arg))
+  };
+}
+
+// Help text
+function showHelp() {
+  console.log(`
+🚀 Local Supabase Migration Setup Tool
+`);
+  console.log('Usage: node setup-local.mjs [options]\n');
+  console.log('Options:');
+  console.log('  --consolidated    Use consolidated migration mode (recommended)');
+  console.log('  --dry-run         Preview operations without executing them');
+  console.log('  --help, -h        Show this help message\n');
+  console.log('Examples:');
+  console.log('  node setup-local.mjs --consolidated');
+  console.log('  node setup-local.mjs --consolidated --dry-run');
+  console.log('  node setup-local.mjs --dry-run\n');
+  console.log('Environment Variables:');
+  console.log('  USE_CONSOLIDATED_SQL=1    Enable consolidated mode via env var\n');
+}
+
+// Dry-run preview functions
+function previewConsolidatedMode() {
+  console.log('\n📋 DRY-RUN PREVIEW: Consolidated Migration Mode');
+  console.log('================================================\n');
+  
+  const migrationsDir = path.resolve('supabase/migrations');
+  const tempDir = path.resolve('supabase/migrations.temp');
+  const consolidatedSource = path.resolve('supabase/migrations-local/001_production_based_consolidated.sql');
+  
+  // Check what migrations exist
+  if (existsSync(migrationsDir)) {
+    const files = readdirSync(migrationsDir).filter(f => f.endsWith('.sql'));
+    console.log(`[DRY-RUN] Would temporarily move ${files.length} existing migrations to: ${tempDir}`);
+    if (files.length > 0) {
+      console.log(`[DRY-RUN] Migration files to move:`);
+      files.slice(0, 5).forEach(file => console.log(`  - ${file}`));
+      if (files.length > 5) {
+        console.log(`  ... and ${files.length - 5} more files`);
+      }
+    }
+  } else {
+    console.log('[DRY-RUN] Would create new migrations directory');
+  }
+  
+  // Check consolidated migration
+  if (existsSync(consolidatedSource)) {
+    console.log(`[DRY-RUN] Would copy consolidated migration from: migrations-local/`);
+    console.log(`[DRY-RUN] Target: migrations/20240101000000_production_based_consolidated.sql`);
+  } else {
+    console.log('[DRY-RUN] ⚠️  WARNING: Consolidated migration not found!');
+    console.log(`[DRY-RUN] Expected: ${consolidatedSource}`);
+  }
+  
+  // Check seed file
+  const seedPath = path.resolve('supabase/seed.sql');
+  if (existsSync(seedPath)) {
+    console.log('[DRY-RUN] Would temporarily replace seed.sql with no-op version');
+    console.log('[DRY-RUN] Original seed.sql would be backed up to seed.sql.temp');
+  } else {
+    console.log('[DRY-RUN] No seed.sql found - skipping seed management');
+  }
+  
+  console.log('\n[DRY-RUN] Database operations that would be performed:');
+  console.log('[DRY-RUN] 1. Run "supabase db reset" to apply consolidated migration');
+  console.log('[DRY-RUN] 2. Create complete schema with 8 core tables and 27 indexes');
+  console.log('[DRY-RUN] 3. Enable vector extensions and RLS policies');
+  
+  console.log('\n[DRY-RUN] Cleanup operations:');
+  console.log('[DRY-RUN] 1. Restore original seed.sql from backup');
+  console.log('[DRY-RUN] 2. Remove consolidated migration file');
+  console.log('[DRY-RUN] 3. Restore all original migration files');
+  console.log('[DRY-RUN] 4. Remove temporary directories');
+  
+  console.log('\n✨ End of dry-run preview. Use without --dry-run to execute.\n');
+}
+
+function previewStandardMode(dbUrl, extraArgs) {
+  console.log('\n📋 DRY-RUN PREVIEW: Standard Migration Mode');
+  console.log('==========================================\n');
+  
+  console.log(`[DRY-RUN] Would connect to database: ${redactDbUrl(dbUrl)}`);
+  
+  const migrationsDir = path.resolve('supabase/migrations');
+  if (existsSync(migrationsDir)) {
+    const files = readdirSync(migrationsDir).filter(f => f.endsWith('.sql'));
+    console.log(`[DRY-RUN] Would apply ${files.length} migration files using "supabase db push"`);
+    if (files.length > 0) {
+      console.log('[DRY-RUN] Migrations to apply:');
+      files.slice(0, 10).forEach(file => console.log(`  - ${file}`));
+      if (files.length > 10) {
+        console.log(`  ... and ${files.length - 10} more files`);
+      }
+    }
+  } else {
+    console.log('[DRY-RUN] No migrations directory found - would create empty one');
+  }
+  
+  if (extraArgs.length > 0) {
+    console.log(`[DRY-RUN] Additional arguments that would be passed: ${extraArgs.join(' ')}`);
+  }
+  
+  console.log('\n✨ End of dry-run preview. Use without --dry-run to execute.\n');
+}
+
 // Cross-platform local migration runner with consolidated migration support
 // - Checks Supabase local status
 // - Optionally applies production-based consolidated migration by temporarily managing migration files
@@ -7,11 +126,6 @@
 import { spawnSync } from 'node:child_process';
 import { existsSync, readdirSync, mkdirSync, copyFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-
-// Track what we moved for cleanup
-let migrationsMoved = false;
-let seedWasMoved = false;
-const processId = process.pid;
 
 function run(cmd, args, opts = {}) {
   return spawnSync(cmd, args, { stdio: 'pipe', encoding: 'utf8', shell: false, ...opts });
@@ -304,9 +418,38 @@ function applyConsolidatedMigration(supabaseCmd) {
 }
 
 async function main() {
+  // Parse command line arguments
+  const config = parseArgs();
+  
+  // Show help if requested
+  if (config.help) {
+    showHelp();
+    process.exit(0);
+  }
+  
   console.log('🚀 Setting up local Supabase database (cross-platform)...');
+  
+  // Show dry-run indicator
+  if (config.dryRun) {
+    console.log('🔍 DRY-RUN MODE: No changes will be made\n');
+  } else {
+    console.log('⚡ EXECUTION MODE: Changes will be applied to your database\n');
+  }
 
   const supabaseCmd = resolveSupabaseCmd();
+  
+  // In dry-run mode, we can preview even if Supabase CLI is not available
+  if (config.dryRun && supabaseCmd.via === 'unavailable') {
+    console.log('⚠️  Supabase CLI not available, but continuing with dry-run preview...');
+    
+    if (config.consolidated) {
+      previewConsolidatedMode();
+    } else {
+      previewStandardMode('postgresql://postgres:postgres@127.0.0.1:54322/postgres', config.extraArgs);
+    }
+    process.exit(0);
+  }
+  
   if (supabaseCmd.via === 'unavailable') {
     console.error('❌ Supabase CLI not found. Install it or use npx:');
     console.error('   - npm i -g supabase');
@@ -332,11 +475,14 @@ async function main() {
   ensureSupabaseRunning(statusRes.combinedOutput || statusRes.stdout);
 
   // 3) Check for consolidated migration flag
-  const args = process.argv.slice(2);
-  const useConsolidated = args.includes('--consolidated') || process.env.USE_CONSOLIDATED_SQL === '1';
-
-  if (useConsolidated) {
+  if (config.consolidated) {
     console.log('🎯 Consolidated migration mode enabled');
+    
+    // Handle dry-run mode for consolidated migrations
+    if (config.dryRun) {
+      previewConsolidatedMode();
+      process.exit(0);
+    }
     
     // Move existing migrations out of the way
     const moved = temporarilyMoveExistingMigrations();
@@ -369,8 +515,13 @@ async function main() {
   const dbUrl = extractDbUrl(statusRes.combinedOutput || statusRes.stdout);
   console.log('📌 Using DB URL: %s', redactDbUrl(dbUrl));
 
-  const extraArgs = args.filter(arg => arg !== '--consolidated');
-  const code = pushMigrations(supabaseCmd, dbUrl, extraArgs);
+  // Handle dry-run mode for standard migrations
+  if (config.dryRun) {
+    previewStandardMode(dbUrl, config.extraArgs);
+    process.exit(0);
+  }
+
+  const code = pushMigrations(supabaseCmd, dbUrl, config.extraArgs);
 
   if (code === 0) {
     console.log('✅ Migration completed successfully!');
