@@ -5,6 +5,15 @@ This document outlines the recommended Row Level Security policies for the Contr
 ## Changelog
 
 ### January 2025 - Security Advisory Fixes
+
+#### Database View Security (January 28, 2025)
+- **CRITICAL**: Removed SECURITY DEFINER from 21 database views
+- Views now use default SECURITY INVOKER for proper permission enforcement
+- Eliminates privilege escalation vulnerabilities where views ran with superuser privileges
+- Fixed views: `admin_check`, `repository_stats`, `contributor_stats`, `recent_activity`, `trending_repositories`, and 16 others
+- Resolves 21 ERROR-level security findings from Supabase security advisor
+
+#### RLS Policy Fixes (January 2025)
 - Enabled RLS on `rate_limit_tracking`, `data_capture_queue`, and `commits` tables
 - Added appropriate access policies following existing patterns:
   - `rate_limit_tracking`: Public read access, service role management
