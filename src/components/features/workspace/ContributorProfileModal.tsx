@@ -34,6 +34,14 @@ import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 import { humanizeNumber } from '@/lib/utils';
 import { useContributorActivity } from '@/hooks/useContributorActivity';
+import {
+  sanitizeLinkedInUrl,
+  sanitizeDiscordUrl,
+  canSafelyOpenUrl,
+  getSafeHref,
+  isValidLinkedInUrl,
+  isValidDiscordUrl,
+} from '@/lib/validation/url-validation';
 import type { Contributor } from './ContributorsList';
 import type { ContributorGroup } from './ContributorsTable';
 import type { ContributorNote } from './ContributorNotesDialog';
@@ -228,11 +236,16 @@ export function ContributorProfileModal({
               >
                 GitHub Profile
               </Button>
-              {contributor.linkedin_url && (
+              {contributor.linkedin_url && canSafelyOpenUrl(contributor.linkedin_url) && (
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => window.open(contributor.linkedin_url!, '_blank')}
+                  onClick={() => {
+                    const sanitized = sanitizeLinkedInUrl(contributor.linkedin_url);
+                    if (sanitized) {
+                      window.open(sanitized, '_blank');
+                    }
+                  }}
                 >
                   LinkedIn
                 </Button>
@@ -249,7 +262,10 @@ export function ContributorProfileModal({
                       );
                       // You might want to add a toast notification here
                     } else {
-                      window.open(contributor.discord_url!, '_blank');
+                      const sanitized = sanitizeDiscordUrl(contributor.discord_url);
+                      if (sanitized && canSafelyOpenUrl(sanitized)) {
+                        window.open(sanitized, '_blank');
+                      }
                     }
                   }}
                 >
@@ -685,23 +701,60 @@ function SocialLinksCard({
 
   const handleSave = async () => {
     try {
+      // Validate and sanitize URLs before saving
+      const validatedDiscordUrl = discordUrl ? sanitizeDiscordUrl(discordUrl) : null;
+      const validatedLinkedInUrl = linkedinUrl ? sanitizeLinkedInUrl(linkedinUrl) : null;
+
+      // Show error if URLs are invalid
+      if (discordUrl && !validatedDiscordUrl) {
+        const { toast } = await import('@/hooks/use-toast');
+        toast({
+          title: 'Invalid Discord URL',
+          description: 'Please enter a valid Discord URL or username (discord:username)',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (linkedinUrl && !validatedLinkedInUrl) {
+        const { toast } = await import('@/hooks/use-toast');
+        toast({
+          title: 'Invalid LinkedIn URL',
+          description: 'Please enter a valid LinkedIn profile URL',
+          variant: 'destructive',
+        });
+        return;
+      }
+
       const { error } = await supabase
         .from('contributors')
         .update({
-          discord_url: discordUrl || null,
-          linkedin_url: linkedinUrl || null,
+          discord_url: validatedDiscordUrl,
+          linkedin_url: validatedLinkedInUrl,
         })
         .eq('id', contributor.id);
 
       if (error) throw error;
 
-      // Update the contributor object
-      contributor.discord_url = discordUrl || null;
-      contributor.linkedin_url = linkedinUrl || null;
+      // Update the contributor object with validated URLs
+      contributor.discord_url = validatedDiscordUrl;
+      contributor.linkedin_url = validatedLinkedInUrl;
 
       setIsEditing(false);
+
+      const { toast } = await import('@/hooks/use-toast');
+      toast({
+        title: 'Social links updated',
+        description: 'Your social links have been saved successfully',
+      });
     } catch (error) {
       console.error('Failed to save social links:', error);
+      const { toast } = await import('@/hooks/use-toast');
+      toast({
+        title: 'Error updating social links',
+        description: 'Failed to save social links. Please try again.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -733,9 +786,9 @@ function SocialLinksCard({
                     GitHub
                   </a>
                 )}
-                {linkedinUrl && (
+                {linkedinUrl && isValidLinkedInUrl(linkedinUrl) && (
                   <a
-                    href={linkedinUrl}
+                    href={getSafeHref(linkedinUrl)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1"
@@ -746,12 +799,12 @@ function SocialLinksCard({
                     LinkedIn
                   </a>
                 )}
-                {discordUrl && (
+                {discordUrl && isValidDiscordUrl(discordUrl) && (
                   <a
                     href={
                       discordUrl.startsWith('discord:')
                         ? `https://discord.com/users/${discordUrl.replace('discord:', '')}`
-                        : discordUrl
+                        : getSafeHref(discordUrl)
                     }
                     target="_blank"
                     rel="noopener noreferrer"

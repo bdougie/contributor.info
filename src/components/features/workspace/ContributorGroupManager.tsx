@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -82,6 +82,15 @@ export function ContributorGroupManager({
   const [editDescription, setEditDescription] = useState('');
 
   // Assignment state - removed as not used in current implementation
+
+  // Cleanup to prevent potential memory leaks on unmount
+  useEffect(() => {
+    return () => {
+      setNewGroupName('');
+      setNewGroupDescription('');
+      setEditingGroup(null);
+    };
+  }, []);
 
   const handleCreateGroup = async () => {
     if (!newGroupName.trim()) {
@@ -187,85 +196,85 @@ export function ContributorGroupManager({
                     </Button>
                   </div>
                 ) : (
-                <div className="space-y-2">
-                  {groups.map((group) => {
-                    const memberCount = contributors.filter((c) =>
-                      (contributorGroups.get(c.id) || []).includes(group.id)
-                    ).length;
+                  <div className="space-y-2">
+                    {groups.map((group) => {
+                      const memberCount = contributors.filter((c) =>
+                        (contributorGroups.get(c.id) || []).includes(group.id)
+                      ).length;
 
-                    if (editingGroup?.id === group.id) {
-                      return (
-                        <div key={group.id} className="p-4 border rounded-lg space-y-3">
-                          <Input
-                            value={editName}
-                            onChange={(e) => setEditName(e.target.value)}
-                            placeholder="Group name"
-                            disabled={loading}
-                          />
-                          <Textarea
-                            value={editDescription}
-                            onChange={(e) => setEditDescription(e.target.value)}
-                            placeholder="Description (optional)"
-                            rows={2}
-                            disabled={loading}
-                          />
-                          <div className="flex gap-2">
-                            <Button size="sm" onClick={handleUpdateGroup} disabled={loading}>
-                              Save
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setEditingGroup(null)}
+                      if (editingGroup?.id === group.id) {
+                        return (
+                          <div key={group.id} className="p-4 border rounded-lg space-y-3">
+                            <Input
+                              value={editName}
+                              onChange={(e) => setEditName(e.target.value)}
+                              placeholder="Group name"
                               disabled={loading}
-                            >
-                              Cancel
-                            </Button>
+                            />
+                            <Textarea
+                              value={editDescription}
+                              onChange={(e) => setEditDescription(e.target.value)}
+                              placeholder="Description (optional)"
+                              rows={2}
+                              disabled={loading}
+                            />
+                            <div className="flex gap-2">
+                              <Button size="sm" onClick={handleUpdateGroup} disabled={loading}>
+                                Save
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setEditingGroup(null)}
+                                disabled={loading}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
                           </div>
+                        );
+                      }
+
+                      return (
+                        <div
+                          key={group.id}
+                          className="flex items-center justify-between p-4 border rounded-lg"
+                        >
+                          <div className="flex items-center gap-3">
+                            <Badge variant="secondary">{group.name}</Badge>
+                            {group.is_system && (
+                              <Badge variant="outline" className="text-xs">
+                                System
+                              </Badge>
+                            )}
+                            <span className="text-sm text-muted-foreground">
+                              {memberCount} {memberCount === 1 ? 'member' : 'members'}
+                            </span>
+                          </div>
+                          {!group.is_system && (
+                            <div className="flex gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => startEditingGroup(group)}
+                                disabled={loading}
+                              >
+                                <Settings className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteGroup(group.id)}
+                                disabled={loading}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       );
-                    }
-
-                    return (
-                      <div
-                        key={group.id}
-                        className="flex items-center justify-between p-4 border rounded-lg"
-                      >
-                        <div className="flex items-center gap-3">
-                          <Badge variant="secondary">{group.name}</Badge>
-                          {group.is_system && (
-                            <Badge variant="outline" className="text-xs">
-                              System
-                            </Badge>
-                          )}
-                          <span className="text-sm text-muted-foreground">
-                            {memberCount} {memberCount === 1 ? 'member' : 'members'}
-                          </span>
-                        </div>
-                        {!group.is_system && (
-                          <div className="flex gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => startEditingGroup(group)}
-                              disabled={loading}
-                            >
-                              <Settings className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteGroup(group.id)}
-                              disabled={loading}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
+                    })}
+                  </div>
                 )}
               </ScrollArea>
             )}
@@ -323,43 +332,51 @@ export function ContributorGroupManager({
               <div className="space-y-4">
                 {/* Determine which contributors are selected */}
                 {(() => {
-                  // Use selectedContributorIds if available, otherwise fall back to single selectedContributorId
-                  const selectedIds = selectedContributorIds?.size
-                    ? Array.from(selectedContributorIds)
-                    : selectedContributorId
-                      ? [selectedContributorId]
-                      : [];
+                  // Determine selected contributor IDs without nested ternaries
+                  let selectedIds: string[] = [];
+                  if (selectedContributorIds?.size) {
+                    selectedIds = Array.from(selectedContributorIds);
+                  } else if (selectedContributorId) {
+                    selectedIds = [selectedContributorId];
+                  }
 
                   if (selectedIds.length === 0) {
                     return (
                       <Alert>
                         <AlertCircle className="h-4 w-4" />
                         <AlertDescription>
-                          No contributors selected. Please select contributors from the table to manage their group assignments.
+                          No contributors selected. Please select contributors from the table to
+                          manage their group assignments.
                         </AlertDescription>
                       </Alert>
                     );
                   }
 
-                  const selectedContributorsList = contributors.filter((c) => selectedIds.includes(c.id));
+                  const selectedContributorsList = contributors.filter((c) =>
+                    selectedIds.includes(c.id)
+                  );
 
                   return (
                     <div className="space-y-3">
                       {/* Show selected contributors */}
                       <div className="p-3 border rounded-lg">
-                        <Label className="text-sm mb-2 block">Selected Contributors ({selectedContributorsList.length})</Label>
+                        <Label className="text-sm mb-2 block">
+                          Selected Contributors ({selectedContributorsList.length})
+                        </Label>
                         <div className="flex flex-wrap gap-2">
-                          {selectedContributorsList
-                            .map((contributor) => (
-                              <div key={contributor.id} className="flex items-center gap-2 p-1 border rounded">
-                                <img
-                                  src={contributor.avatar_url}
-                                  alt={contributor.username}
-                                  className="h-6 w-6 rounded-full"
-                                />
-                                <span className="text-sm">@{contributor.username}</span>
-                              </div>
-                            ))}
+                          {selectedContributorsList.map((contributor) => (
+                            <div
+                              key={contributor.id}
+                              className="flex items-center gap-2 p-1 border rounded"
+                            >
+                              <img
+                                src={contributor.avatar_url}
+                                alt={contributor.username}
+                                className="h-6 w-6 rounded-full"
+                              />
+                              <span className="text-sm">@{contributor.username}</span>
+                            </div>
+                          ))}
                         </div>
                       </div>
 
@@ -379,9 +396,10 @@ export function ContributorGroupManager({
                                 (contributorGroups.get(id) || []).includes(group.id)
                               );
                               // Check if SOME (but not all) are in this group
-                              const someInGroup = selectedIds.some((id) =>
-                                (contributorGroups.get(id) || []).includes(group.id)
-                              ) && !allInGroup;
+                              const someInGroup =
+                                selectedIds.some((id) =>
+                                  (contributorGroups.get(id) || []).includes(group.id)
+                                ) && !allInGroup;
 
                               return (
                                 <div
@@ -397,17 +415,25 @@ export function ContributorGroupManager({
 
                                       // Handle bulk assignment/removal
                                       for (const contributorId of selectedIds) {
-                                        const currentlyInGroup = (contributorGroups.get(contributorId) || []).includes(group.id);
+                                        const currentlyInGroup = (
+                                          contributorGroups.get(contributorId) || []
+                                        ).includes(group.id);
                                         if (shouldAdd && !currentlyInGroup) {
                                           await onAddContributorToGroup(contributorId, group.id);
                                         } else if (!shouldAdd && currentlyInGroup) {
-                                          await onRemoveContributorFromGroup(contributorId, group.id);
+                                          await onRemoveContributorFromGroup(
+                                            contributorId,
+                                            group.id
+                                          );
                                         }
                                       }
                                     }}
                                     disabled={loading}
                                   />
-                                  <label htmlFor={`group-${group.id}`} className="flex-1 cursor-pointer">
+                                  <label
+                                    htmlFor={`group-${group.id}`}
+                                    className="flex-1 cursor-pointer"
+                                  >
                                     <div className="flex items-center gap-2">
                                       <Badge variant="secondary">{group.name}</Badge>
                                       {group.is_system && (
@@ -416,9 +442,13 @@ export function ContributorGroupManager({
                                         </Badge>
                                       )}
                                       <span className="text-xs text-muted-foreground">
-                                        ({contributors.filter((c) =>
-                                          (contributorGroups.get(c.id) || []).includes(group.id)
-                                        ).length} members)
+                                        (
+                                        {
+                                          contributors.filter((c) =>
+                                            (contributorGroups.get(c.id) || []).includes(group.id)
+                                          ).length
+                                        }{' '}
+                                        members)
                                       </span>
                                     </div>
                                   </label>
