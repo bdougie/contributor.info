@@ -1,5 +1,12 @@
 # PRD: Row Level Security (RLS) Audit and Remediation
 
+## ⚠️ CRITICAL UPDATE (2025-01-27 - Phase 2 Discovery)
+
+### MASSIVE SECURITY ISSUE DISCOVERED
+- **115+ overly permissive policies** found across 50+ tables
+- Many tables have `true` conditions allowing unrestricted access
+- This is a much larger security issue than initially identified
+
 ## Progress Update (2025-01-27)
 
 ### ✅ SECURITY AUDIT COMPLETE
