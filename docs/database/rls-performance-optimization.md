@@ -13,7 +13,7 @@ The Supabase database linter identified **248 performance warnings** across our 
 
 Reference: [GitHub Issue #816](https://github.com/bdougie/contributor.info/issues/816)
 
-## Phase 1: Auth RLS Initialization (Completed)
+## Phase 1: Auth RLS Initialization (Completed - Updated)
 
 ### Problem
 RLS policies using `auth.uid()`, `auth.role()`, or `auth.jwt()` directly cause these functions to be re-evaluated for every row in the result set, creating significant performance overhead.
@@ -28,24 +28,33 @@ USING (user_id = auth.uid());
 
 -- After (optimized)
 ALTER POLICY "user_policy" ON public.users
-USING (user_id = (select auth.uid()));
+USING (user_id = (SELECT auth.uid()));
 ```
 
 ### Impact
-- **50% reduction** in query evaluation overhead
+- **20-40% reduction** in query evaluation overhead
 - Improved response times for all authenticated queries
-- Reduced database CPU usage
+- Reduced database CPU usage at scale
 
-### Tables Optimized (30+)
+### High-Priority Tables Optimized (Phase 1)
+- `user_email_preferences` (3 policies)
+- `workspace_members` (3 policies)
+- `workspace_repositories` (3 policies)
+- `repository_confidence_cache` (1 policy)
+- `monthly_rankings` (1 policy)
+- `pr_insights` (1 policy)
+
+### Additional Tables Optimized (Previous Work)
 - Core tables: `app_users`, `contributors`, `pull_requests`, `issues`
-- Workspace tables: `workspaces`, `workspace_members`, `workspace_repositories`
+- Workspace tables: `workspaces`, `workspace_tracked_repositories`
 - System tables: `auth_errors`, `billing_history`, `subscriptions`
 - Cache tables: `github_events_cache`, `workspace_metrics_cache`
 
-### Migration Applied
-- File: `supabase/migrations/20250127_fix_rls_auth_initialization_actual.sql`
-- Policies updated: 50
+### Migrations Applied
+- File: `supabase/migrations/20250127_fix_phase1_auth_rls_initialization.sql`
+- Policies updated: 12 (Phase 1 high-priority)
 - Applied: January 27, 2025
+- Previous work: 50+ policies (earlier migrations)
 
 ## Phase 2: Service Role Optimizations (Completed - January 27, 2025)
 
@@ -239,4 +248,4 @@ Before deploying RLS changes:
 | 2025-01-27 | Phase 2: Service Role Optimizations | 30+ | 20250127_fix_phase2_service_role_optimizations.sql | #822 |
 | 2025-01-27 | Phase 3: Permissive Policies | 91 | 20250127_consolidate_permissive_policies.sql | #818 |
 | Pending | Phase 4: Duplicate Indexes | 10 | TBD | - |
-| Pending | Phase 5: Remaining Tables | TBD | TBD | - |
+| Pending | Phase 5: Remaining Auth RLS | 75+ | TBD | - |

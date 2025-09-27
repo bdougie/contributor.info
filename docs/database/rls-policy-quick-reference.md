@@ -29,7 +29,7 @@ USING (condition1 OR condition2);
 CREATE POLICY "public_and_auth_read" ON table FOR SELECT
 USING (
   true  -- public access
-  OR auth.uid() IS NOT NULL  -- authenticated users
+  OR (SELECT auth.uid()) IS NOT NULL  -- authenticated users
 );
 ```
 
@@ -38,10 +38,10 @@ USING (
 CREATE POLICY "owner_or_admin_write" ON table
 FOR UPDATE
 USING (
-  user_id = auth.uid()  -- owner
+  user_id = (SELECT auth.uid())  -- owner
   OR EXISTS (
     SELECT 1 FROM user_roles
-    WHERE user_id = auth.uid() AND role = 'admin'
+    WHERE user_id = (SELECT auth.uid()) AND role = 'admin'
   )
 );
 ```
@@ -70,6 +70,17 @@ CREATE POLICY "service_role_all" ON table
 FOR ALL
 USING ((SELECT auth.role()) = 'service_role'::text)
 WITH CHECK ((SELECT auth.role()) = 'service_role'::text);
+```
+
+### ⚠️ CRITICAL: Always Use Subqueries for Auth Functions
+```sql
+-- ❌ WRONG: Re-evaluates for every row
+USING (user_id = auth.uid())
+USING (auth.role() = 'service_role')
+
+-- ✅ RIGHT: Evaluates once per query
+USING (user_id = (SELECT auth.uid()))
+USING ((SELECT auth.role()) = 'service_role')
 ```
 
 ## Performance Impact
