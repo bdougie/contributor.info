@@ -92,25 +92,25 @@ export async function bootstrapDataCaptureQueue(): Promise<void> {
 
     console.log(
       '\n[Bootstrap] Hybrid Queue Bootstrap Summary:\n' +
-      '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
-      '- Queued recent data jobs for %s stale repositories (→ Inngest)\n' +
-      '- Queued historical data jobs for %s active repositories (→ GitHub Actions)\n' +
-      '- Queued extended historical jobs for %s repositories with commits (→ GitHub Actions)\n' +
-      '\n' +
-      '📊 Queue Statistics:\n' +
-      '- Total pending jobs: %s\n' +
-      '- 🔄 Inngest: %s pending, %s processing\n' +
-      '- 🏗️ GitHub Actions: %s pending, %s processing\n' +
-      '\n' +
-      '🎯 Smart Routing Active:\n' +
-      '- Recent data (< 24 hours) → Inngest for real-time processing\n' +
-      '- Historical data (> 24 hours) → GitHub Actions for cost-effective bulk processing\n' +
-      '\n' +
-      '📋 Next Steps:\n' +
-      '1. Jobs will process automatically across both systems\n' +
-      '2. Monitor progress with: ProgressiveCapture.status()\n' +
-      '3. Check detailed monitoring with: ProgressiveCapture.monitoring()\n' +
-      '4. View routing analysis with: ProgressiveCapture.routingAnalysis()',
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
+        '- Queued recent data jobs for %s stale repositories (→ Inngest)\n' +
+        '- Queued historical data jobs for %s active repositories (→ GitHub Actions)\n' +
+        '- Queued extended historical jobs for %s repositories with commits (→ GitHub Actions)\n' +
+        '\n' +
+        '📊 Queue Statistics:\n' +
+        '- Total pending jobs: %s\n' +
+        '- 🔄 Inngest: %s pending, %s processing\n' +
+        '- 🏗️ GitHub Actions: %s pending, %s processing\n' +
+        '\n' +
+        '🎯 Smart Routing Active:\n' +
+        '- Recent data (< 24 hours) → Inngest for real-time processing\n' +
+        '- Historical data (> 24 hours) → GitHub Actions for cost-effective bulk processing\n' +
+        '\n' +
+        '📋 Next Steps:\n' +
+        '1. Jobs will process automatically across both systems\n' +
+        '2. Monitor progress with: ProgressiveCapture.status()\n' +
+        '3. Check detailed monitoring with: ProgressiveCapture.monitoring()\n' +
+        '4. View routing analysis with: ProgressiveCapture.routingAnalysis()',
       staleRepos?.length || 0,
       activeRepos?.length || 0,
       reposWithCommits?.length || 0,

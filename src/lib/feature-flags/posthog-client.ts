@@ -265,7 +265,11 @@ export class PostHogFeatureFlagClient {
           return variant;
         }
       } catch (error) {
-        console.error('[FeatureFlags] Error getting experiment variant %s:', error, experiment.name);
+        console.error(
+          '[FeatureFlags] Error getting experiment variant %s:',
+          error,
+          experiment.name
+        );
       }
     }
 

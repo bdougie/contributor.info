@@ -92,6 +92,8 @@ export function transformGitHubUserToContributor(githubUser: GitHubUser): Contri
     github_created_at: githubUser.created_at ? new Date(githubUser.created_at) : null,
     is_bot: githubUser.type === 'Bot',
     is_active: true,
+    discord_url: null,
+    linkedin_url: null,
   };
   return result;
 }

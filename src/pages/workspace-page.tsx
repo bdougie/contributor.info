@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import { getFallbackAvatar } from '@/lib/utils/avatar';
 import { useWorkspaceContributors } from '@/hooks/useWorkspaceContributors';
+import { useContributorGroups } from '@/hooks/useContributorGroups';
 import { WorkspaceDashboard, WorkspaceDashboardSkeleton } from '@/components/features/workspace';
 import { WorkspaceErrorBoundary } from '@/components/error-boundaries/workspace-error-boundary';
 import { WorkspaceAutoSync } from '@/components/features/workspace/WorkspaceAutoSync';
@@ -22,10 +23,15 @@ import {
   ContributorsList,
   type Contributor,
 } from '@/components/features/workspace/ContributorsList';
+import { ContributorsTable } from '@/components/features/workspace/ContributorsTable';
+import { ContributorGroupManager } from '@/components/features/workspace/ContributorGroupManager';
+import { ContributorNotesDialog } from '@/components/features/workspace/ContributorNotesDialog';
+import { ContributorProfileModal } from '@/components/features/workspace/ContributorProfileModal';
 import { AddRepositoryModal } from '@/components/features/workspace/AddRepositoryModal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -750,17 +756,93 @@ function WorkspaceContributors({
   repositories,
   selectedRepositories,
   workspaceId,
+  userRole,
+  workspaceTier,
+  isLoggedIn,
+  currentUser,
 }: {
   repositories: Repository[];
   selectedRepositories: string[];
   workspaceId: string;
+  userRole?: import('@/types/workspace').WorkspaceRole;
+  workspaceTier?: import('@/types/workspace').WorkspaceTier;
+  isLoggedIn?: boolean;
+  currentUser?: User | null;
 }) {
-  const navigate = useNavigate();
+  // Navigate removed - no longer needed as profile modal handles internally
   const [showAddContributors, setShowAddContributors] = useState(false);
   const [selectedContributorsToAdd, setSelectedContributorsToAdd] = useState<string[]>([]);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+
+  // CRM State
+  const [showGroupManager, setShowGroupManager] = useState(false);
+  const [showNotesDialog, setShowNotesDialog] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [selectedContributor, setSelectedContributor] = useState<Contributor | null>(null);
+
+  // Unified selection state for table and modals
+  const [selectedContributorsForGroups, setSelectedContributorsForGroups] = useState<Set<string>>(
+    new Set()
+  );
+
+  // Group filtering state
+  const [selectedFilterGroup, setSelectedFilterGroup] = useState<string | null>(null);
+
+  // Use the contributor groups hook for real database operations
+  const {
+    groups,
+    groupMembers,
+    notes,
+    createGroup,
+    updateGroup,
+    deleteGroup,
+    addContributorToGroup,
+    removeContributorFromGroup,
+    upsertNote,
+    updateNoteById,
+    deleteNoteById,
+  } = useContributorGroups(workspaceId);
+
+  // Get the contributor groups map for filtering
+  // Build the map directly from groupMembers to ensure reactivity
+  const contributorGroupsByUsername = useMemo(() => {
+    const map = new Map<string, string[]>();
+    groupMembers.forEach((member) => {
+      const current = map.get(member.contributor_username) || [];
+      current.push(member.group_id);
+      map.set(member.contributor_username, current);
+    });
+    return map;
+  }, [groupMembers]);
+
+  // Transform notes to match ContributorNotesDialog interface
+  const transformedNotes = useMemo(() => {
+    return notes.map((note) => {
+      const createdBy = note.created_by as
+        | {
+            auth_user_id: string;
+            email: string;
+            display_name: string;
+          }
+        | string
+        | null;
+      const isObject = typeof createdBy === 'object' && createdBy !== null;
+
+      return {
+        ...note,
+        created_by: {
+          id: isObject ? createdBy.auth_user_id : createdBy || 'unknown',
+          email: isObject ? createdBy.email : 'unknown@example.com',
+          display_name: isObject
+            ? createdBy.display_name || createdBy.email?.split('@')[0]
+            : 'Unknown User',
+          avatar_url: undefined,
+        },
+      };
+    });
+  }, [notes]);
 
   const {
     contributors,
@@ -776,8 +858,30 @@ function WorkspaceContributors({
     selectedRepositories,
   });
 
+  // Create a Map indexed by contributor ID for the UI components
+  const contributorGroups = useMemo(() => {
+    const map = new Map<string, string[]>();
+
+    // Build a username to ID lookup
+    const usernameToId = new Map<string, string>();
+    contributors.forEach((contributor) => {
+      usernameToId.set(contributor.username, contributor.id);
+    });
+
+    // Transform the username-indexed map to ID-indexed map
+    contributorGroupsByUsername.forEach((groupIds, username) => {
+      const contributorId = usernameToId.get(username);
+      if (contributorId) {
+        map.set(contributorId, groupIds);
+      }
+    });
+
+    return map;
+  }, [contributorGroupsByUsername, contributors]);
+
   const handleContributorClick = (contributor: Contributor) => {
-    navigate(`/contributor/${contributor.username}`);
+    setSelectedContributor(contributor);
+    setShowProfileModal(true);
   };
 
   const handleTrackContributor = (contributorId: string) => {
@@ -813,6 +917,188 @@ function WorkspaceContributors({
   const handleCancelAdd = () => {
     setShowAddContributors(false);
     setSelectedContributorsToAdd([]);
+  };
+
+  // CRM Handlers
+  const handleAddToGroup = (contributorId: string) => {
+    const contributor = contributors.find((c) => c.id === contributorId);
+    if (contributor) {
+      setSelectedContributor(contributor);
+      // Ensure this contributor is in the selection
+      if (!selectedContributorsForGroups.has(contributorId)) {
+        setSelectedContributorsForGroups(
+          new Set([...selectedContributorsForGroups, contributorId])
+        );
+      }
+      setShowGroupManager(true);
+    }
+  };
+
+  const handleAddNote = (contributorId: string) => {
+    const contributor = contributors.find((c) => c.id === contributorId);
+    if (contributor) {
+      setSelectedContributor(contributor);
+      setShowNotesDialog(true);
+    }
+  };
+
+  const handleRemoveContributor = async (contributorId: string) => {
+    await removeContributorFromWorkspace(contributorId);
+  };
+
+  // CRM handler functions using the database hook
+  const handleCreateGroup = async (name: string, description: string) => {
+    try {
+      await createGroup(name, description);
+    } catch (error) {
+      console.error('Error creating group:', error);
+      toast.error('Failed to create group');
+    }
+  };
+
+  const handleUpdateGroup = async (groupId: string, name: string, description: string) => {
+    try {
+      await updateGroup(groupId, name, description);
+    } catch (error) {
+      console.error('Error updating group:', error);
+      toast.error('Failed to update group');
+    }
+  };
+
+  const handleDeleteGroup = async (groupId: string) => {
+    try {
+      await deleteGroup(groupId);
+    } catch (error) {
+      console.error('Error deleting group:', error);
+      toast.error('Failed to delete group');
+    }
+  };
+
+  const handleAddContributorToGroup = async (contributorId: string, groupId: string) => {
+    // Find the contributor by ID to get their username
+    const contributor = contributors.find((c) => c.id === contributorId);
+    if (!contributor) {
+      toast.error('Contributor not found');
+      return;
+    }
+
+    try {
+      await addContributorToGroup(contributor.username, groupId);
+    } catch (error) {
+      console.error('Error adding contributor to group:', error);
+      toast.error('Failed to add contributor to group');
+    }
+  };
+
+  const handleBulkAddContributorsToGroups = async (
+    contributorIds: string[],
+    groupIds: string[]
+  ) => {
+    if (contributorIds.length === 0 || groupIds.length === 0) {
+      toast.error('Please select contributors and groups');
+      return;
+    }
+
+    // Find contributors by IDs to get their usernames
+    const selectedContributors = contributors.filter((c) => contributorIds.includes(c.id));
+    if (selectedContributors.length !== contributorIds.length) {
+      toast.error('Some contributors not found');
+      return;
+    }
+
+    // Find the "new contributors" group (topinos) to remove from
+    const newContributorsGroup = groups.find(
+      (g) => g.name.toLowerCase().includes('new') || g.name.toLowerCase().includes('topinos')
+    );
+
+    try {
+      const promises = [];
+
+      for (const contributor of selectedContributors) {
+        // Add to selected groups
+        for (const groupId of groupIds) {
+          promises.push(addContributorToGroup(contributor.username, groupId));
+        }
+
+        // Remove from "new contributors" group if they're being added to other groups and currently in it
+        if (newContributorsGroup) {
+          const contributorGroupsList = contributorGroups.get(contributor.id) || [];
+          const isInNewGroup = contributorGroupsList.includes(newContributorsGroup.id);
+
+          if (isInNewGroup) {
+            promises.push(
+              removeContributorFromGroup(contributor.username, newContributorsGroup.id)
+            );
+          }
+        }
+      }
+
+      await Promise.all(promises);
+
+      const groupNames = groupIds
+        .map((id) => groups.find((g) => g.id === id)?.name)
+        .filter(Boolean);
+      let message = `Added ${selectedContributors.length} contributor${selectedContributors.length === 1 ? '' : 's'} to ${groupNames.length} group${groupNames.length === 1 ? '' : 's'}`;
+
+      if (newContributorsGroup) {
+        message += ` and removed from ${newContributorsGroup.name}`;
+      }
+
+      toast.success(message);
+    } catch (error) {
+      console.error('Error adding contributors to groups:', error);
+      toast.error('Failed to add contributors to groups');
+    }
+  };
+
+  const handleRemoveContributorFromGroup = async (contributorId: string, groupId: string) => {
+    // Find the contributor by ID to get their username
+    const contributor = contributors.find((c) => c.id === contributorId);
+    if (!contributor) {
+      toast.error('Contributor not found');
+      return;
+    }
+
+    try {
+      await removeContributorFromGroup(contributor.username, groupId);
+    } catch (error) {
+      console.error('Error removing contributor from group:', error);
+      toast.error('Failed to remove contributor from group');
+    }
+  };
+
+  const handleAddNoteToContributor = async (contributorId: string, note: string) => {
+    // Find the contributor by ID to get their username
+    const contributor = contributors.find((c) => c.id === contributorId);
+    if (!contributor) {
+      toast.error('Contributor not found');
+      return;
+    }
+
+    try {
+      await upsertNote(contributor.username, note);
+    } catch (error) {
+      console.error('Error saving note:', error);
+      toast.error('Failed to save note');
+    }
+  };
+
+  const handleUpdateNote = async (noteId: string, note: string) => {
+    try {
+      await updateNoteById(noteId, note);
+    } catch (error) {
+      console.error('Error updating note:', error);
+      toast.error('Failed to update note');
+    }
+  };
+
+  const handleDeleteNote = async (noteId: string) => {
+    try {
+      await deleteNoteById(noteId);
+    } catch (error) {
+      console.error('Error deleting note:', error);
+      toast.error('Failed to delete note');
+    }
   };
 
   // Define columns for the add contributors table
@@ -950,7 +1236,8 @@ function WorkspaceContributors({
     },
   ];
 
-  // Define columns for the view list (without checkbox)
+  // View columns and table are no longer needed - replaced by ContributorsTable component
+  /*
   const viewColumns: ColumnDef<Contributor>[] = [
     {
       accessorKey: 'username',
@@ -1054,6 +1341,7 @@ function WorkspaceContributors({
       },
     },
   ];
+  */
 
   const addTable = useReactTable({
     data: allAvailableContributors,
@@ -1075,25 +1363,24 @@ function WorkspaceContributors({
     },
   });
 
-  const viewTable = useReactTable({
-    data: contributors,
-    columns: viewColumns,
-    state: {
-      sorting,
-      globalFilter,
-    },
-    onSortingChange: setSorting,
-    onGlobalFilterChange: setGlobalFilter,
-    getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    initialState: {
-      pagination: {
-        pageSize: 10,
-      },
-    },
-  });
+  // Filter contributors by selected group
+  const filteredContributors = useMemo(() => {
+    if (!selectedFilterGroup) {
+      return contributors;
+    }
+
+    // Get all contributor usernames in the selected group
+    const usernamesInGroup = new Set(
+      groupMembers
+        .filter((member) => member.group_id === selectedFilterGroup)
+        .map((member) => member.contributor_username)
+    );
+
+    // Filter contributors whose usernames are in the group
+    return contributors.filter((contributor) => usernamesInGroup.has(contributor.username));
+  }, [contributors, selectedFilterGroup, groupMembers]);
+
+  // viewTable removed - functionality moved to ContributorsTable component
 
   // Show error state if there's an error
   if (error) {
@@ -1245,206 +1532,251 @@ function WorkspaceContributors({
         </Card>
       ) : (
         <div className="space-y-6">
-          {/* Contributor Leaderboard */}
-          <Suspense
-            fallback={
-              <Card>
-                <CardHeader>
-                  <CardTitle>Top Contributors</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center justify-between p-3 border rounded-lg"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-muted animate-pulse rounded-full" />
-                          <div className="space-y-1">
-                            <div className="h-4 w-24 bg-muted animate-pulse rounded" />
-                            <div className="h-3 w-32 bg-muted animate-pulse rounded" />
+          {/* Contributor Leaderboard - only show if more than 3 contributors */}
+          {filteredContributors.length > 3 && (
+            <Suspense
+              fallback={
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Top Contributors</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <div
+                          key={i}
+                          className="flex items-center justify-between p-3 border rounded-lg"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-muted animate-pulse rounded-full" />
+                            <div className="space-y-1">
+                              <div className="h-4 w-24 bg-muted animate-pulse rounded" />
+                              <div className="h-3 w-32 bg-muted animate-pulse rounded" />
+                            </div>
                           </div>
+                          <div className="h-5 w-12 bg-muted animate-pulse rounded" />
                         </div>
-                        <div className="h-5 w-12 bg-muted animate-pulse rounded" />
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            }
-          >
-            <ContributorLeaderboard
-              contributors={contributors.map((contributor) => ({
-                id: contributor.id,
-                username: contributor.username,
-                avatar_url: contributor.avatar_url,
-                contributions: contributor.stats.total_contributions,
-                pull_requests: contributor.contributions.pull_requests,
-                issues: contributor.contributions.issues,
-                reviews: contributor.contributions.reviews,
-                commits: contributor.contributions.commits,
-                trend: contributor.stats.contribution_trend,
-              }))}
-              loading={loading}
-              timeRange="30d"
-              maxDisplay={10}
-            />
-          </Suspense>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              }
+            >
+              <ContributorLeaderboard
+                contributors={filteredContributors.map((contributor) => ({
+                  id: contributor.id,
+                  username: contributor.username,
+                  avatar_url: contributor.avatar_url,
+                  contributions: contributor.stats.total_contributions,
+                  pull_requests: contributor.contributions.pull_requests,
+                  issues: contributor.contributions.issues,
+                  reviews: contributor.contributions.reviews,
+                  commits: contributor.contributions.commits,
+                  trend: contributor.stats.contribution_trend,
+                }))}
+                loading={loading}
+                timeRange="30d"
+                maxDisplay={10}
+                onContributorClick={(contributorStat) => {
+                  // Find the full contributor object by id
+                  const fullContributor = filteredContributors.find(
+                    (c) => c.id === contributorStat.id
+                  );
+                  if (fullContributor) {
+                    handleContributorClick(fullContributor);
+                  }
+                }}
+              />
+            </Suspense>
+          )}
 
-          {/* View Toggle */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <h2 className="text-lg font-semibold">All Contributors</h2>
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <div className="flex items-center rounded-lg border bg-muted/50 p-1">
+          {/* Group Filter - outside the card */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm text-muted-foreground">Groups:</span>
+            {groups.map((group) => {
+              const count = groupMembers.filter((m) => m.group_id === group.id).length;
+              const isSelected = selectedFilterGroup === group.id;
+
+              return (
                 <Button
-                  variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+                  key={group.id}
+                  variant={isSelected ? 'default' : 'secondary'}
                   size="sm"
-                  onClick={() => setViewMode('grid')}
-                  className="px-3 min-h-[44px] min-w-[44px]"
-                  title="Grid view"
+                  onClick={() => setSelectedFilterGroup(isSelected ? null : group.id)}
+                  className="h-7"
                 >
-                  <Package className="h-4 w-4" />
+                  {group.name}
+                  <Badge variant="outline" className="ml-1.5 px-1 h-4 text-xs">
+                    {count}
+                  </Badge>
                 </Button>
-                <Button
-                  variant={viewMode === 'list' ? 'secondary' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('list')}
-                  className="px-3 min-h-[44px] min-w-[44px]"
-                  title="List view"
-                >
-                  <Menu className="h-4 w-4" />
-                </Button>
-              </div>
-              <Button onClick={handleAddContributor} size="sm" className="min-h-[44px] px-4">
-                <Plus className="h-4 w-4 mr-1" />
-                <span className="hidden sm:inline">Add Contributors</span>
-                <span className="sm:hidden">Add</span>
+              );
+            })}
+            {selectedFilterGroup && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedFilterGroup(null)}
+                className="h-7 text-xs"
+              >
+                Clear filter
               </Button>
-            </div>
+            )}
           </div>
 
-          {viewMode === 'grid' ? (
-            <ContributorsList
-              contributors={contributors}
-              trackedContributors={workspaceContributorIds}
-              onTrackContributor={handleTrackContributor}
-              onUntrackContributor={handleUntrackContributor}
-              onContributorClick={handleContributorClick}
-              loading={loading}
-              view="grid"
-            />
-          ) : (
-            <Card>
-              <CardContent className="p-6">
-                {/* Search Input for List View */}
-                <div className="mb-4">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search contributors..."
-                      value={globalFilter ?? ''}
-                      onChange={(e) => setGlobalFilter(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
+          {/* Contributors Card with integrated controls */}
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <CardTitle>
+                    {selectedFilterGroup
+                      ? `${groups.find((g) => g.id === selectedFilterGroup)?.name || 'Group'} Contributors`
+                      : 'All Contributors'}
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {filteredContributors.length} {selectedFilterGroup ? 'filtered ' : ''}
+                    {filteredContributors.length === 1 ? 'contributor' : 'contributors'}
+                    {selectedFilterGroup && ` • ${contributors.length} total`}
+                  </p>
                 </div>
-
-                {/* Table */}
-                <div className="rounded-md border">
-                  <table className="w-full">
-                    <thead>
-                      {viewTable.getHeaderGroups().map((headerGroup) => (
-                        <tr key={headerGroup.id} className="border-b">
-                          {headerGroup.headers.map((header) => (
-                            <th
-                              key={header.id}
-                              className="px-4 py-3 text-left font-medium text-sm"
-                              style={{
-                                width: header.column.columnDef.size,
-                                minWidth: header.column.columnDef.size,
-                              }}
-                            >
-                              {flexRender(header.column.columnDef.header, header.getContext())}
-                            </th>
-                          ))}
-                        </tr>
-                      ))}
-                    </thead>
-                    <tbody>
-                      {viewTable.getRowModel().rows.length > 0 ? (
-                        viewTable.getRowModel().rows.map((row) => (
-                          <tr
-                            key={row.id}
-                            className="border-b hover:bg-muted/50 transition-colors cursor-pointer"
-                            onClick={() => handleContributorClick(row.original)}
-                          >
-                            {row.getVisibleCells().map((cell) => (
-                              <td
-                                key={cell.id}
-                                className="px-4 py-3"
-                                style={{
-                                  width: cell.column.columnDef.size,
-                                  minWidth: cell.column.columnDef.size,
-                                }}
-                              >
-                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                              </td>
-                            ))}
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td
-                            colSpan={viewColumns.length}
-                            className="px-4 py-8 text-center text-muted-foreground"
-                          >
-                            No contributors found
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Pagination */}
-                <div className="flex flex-col sm:flex-row items-center justify-between mt-4 gap-4">
-                  <div className="text-sm text-muted-foreground order-2 sm:order-1">
-                    Showing {viewTable.getState().pagination.pageIndex * 10 + 1} to{' '}
-                    {Math.min(
-                      (viewTable.getState().pagination.pageIndex + 1) * 10,
-                      contributors.length
-                    )}{' '}
-                    of {contributors.length} contributors
-                  </div>
-                  <div className="flex items-center gap-2 order-1 sm:order-2">
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center rounded-lg border bg-muted/50 p-1">
                     <Button
-                      variant="outline"
+                      variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
                       size="sm"
-                      onClick={() => viewTable.previousPage()}
-                      disabled={!viewTable.getCanPreviousPage()}
-                      className="min-h-[44px] px-3"
+                      onClick={() => setViewMode('grid')}
+                      className="px-3 min-h-[36px] min-w-[36px]"
+                      title="Grid view"
                     >
-                      <span className="hidden sm:inline">Previous</span>
-                      <span className="sm:hidden">‹</span>
+                      <Package className="h-4 w-4" />
                     </Button>
                     <Button
-                      variant="outline"
+                      variant={viewMode === 'list' ? 'secondary' : 'ghost'}
                       size="sm"
-                      onClick={() => viewTable.nextPage()}
-                      disabled={!viewTable.getCanNextPage()}
-                      className="min-h-[44px] px-3"
+                      onClick={() => setViewMode('list')}
+                      className="px-3 min-h-[36px] min-w-[36px]"
+                      title="Table view"
                     >
-                      <span className="hidden sm:inline">Next</span>
-                      <span className="sm:hidden">›</span>
+                      <Menu className="h-4 w-4" />
                     </Button>
                   </div>
+                  <Button
+                    onClick={() => setShowGroupManager(true)}
+                    size="sm"
+                    variant="outline"
+                    className="min-h-[36px] px-3"
+                  >
+                    <Users className="h-4 w-4 mr-1.5" />
+                    <span className="hidden sm:inline">Manage Groups</span>
+                    <span className="sm:hidden">Groups</span>
+                  </Button>
+                  <Button onClick={handleAddContributor} size="sm" className="min-h-[36px] px-3">
+                    <Plus className="h-4 w-4 mr-1.5" />
+                    <span className="hidden sm:inline">Add Contributors</span>
+                    <span className="sm:hidden">Add</span>
+                  </Button>
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              {viewMode === 'grid' ? (
+                <ContributorsList
+                  contributors={filteredContributors}
+                  trackedContributors={workspaceContributorIds}
+                  onTrackContributor={handleTrackContributor}
+                  onUntrackContributor={handleUntrackContributor}
+                  onContributorClick={handleContributorClick}
+                  onAddToGroup={handleAddToGroup}
+                  loading={loading}
+                  view="grid"
+                  showHeader={false} // We'll add this prop to hide the built-in header
+                />
+              ) : (
+                <ContributorsTable
+                  contributors={filteredContributors}
+                  groups={groups}
+                  contributorGroups={contributorGroups}
+                  loading={loading}
+                  onContributorClick={handleContributorClick}
+                  onAddToGroup={handleAddToGroup}
+                  onBulkAddToGroups={handleBulkAddContributorsToGroups}
+                  onAddNote={handleAddNote}
+                  onRemoveContributor={handleRemoveContributor}
+                  showHeader={false} // We'll add this prop to hide the built-in header
+                  selectedContributors={selectedContributorsForGroups}
+                  onSelectedContributorsChange={setSelectedContributorsForGroups}
+                  userRole={userRole}
+                  workspaceTier={workspaceTier}
+                  isLoggedIn={isLoggedIn}
+                />
+              )}
+            </CardContent>
+          </Card>
         </div>
       )}
+
+      {/* CRM Modals */}
+      <ContributorGroupManager
+        open={showGroupManager}
+        onOpenChange={(open) => {
+          setShowGroupManager(open);
+          // Clear selection when closing modal
+          if (!open) {
+            setSelectedContributorsForGroups(new Set());
+          }
+        }}
+        groups={groups}
+        contributors={contributors}
+        contributorGroups={contributorGroups}
+        selectedContributorId={selectedContributor?.id}
+        selectedContributorIds={selectedContributorsForGroups}
+        onCreateGroup={handleCreateGroup}
+        onUpdateGroup={handleUpdateGroup}
+        onDeleteGroup={handleDeleteGroup}
+        onAddContributorToGroup={handleAddContributorToGroup}
+        onRemoveContributorFromGroup={handleRemoveContributorFromGroup}
+        userRole={userRole}
+        workspaceTier={workspaceTier}
+        isLoggedIn={isLoggedIn}
+      />
+
+      <ContributorNotesDialog
+        open={showNotesDialog}
+        onOpenChange={setShowNotesDialog}
+        contributor={selectedContributor}
+        notes={transformedNotes}
+        loading={false}
+        currentUserId={currentUser?.id}
+        onAddNote={handleAddNoteToContributor}
+        onUpdateNote={handleUpdateNote}
+        onDeleteNote={handleDeleteNote}
+      />
+
+      <ContributorProfileModal
+        open={showProfileModal}
+        onOpenChange={setShowProfileModal}
+        contributor={selectedContributor}
+        groups={groups}
+        contributorGroups={contributorGroups.get(selectedContributor?.id || '') || []}
+        notes={transformedNotes}
+        workspaceId={workspaceId}
+        onManageGroups={() => {
+          setShowProfileModal(false);
+          // Pre-select the current contributor when opening group manager
+          if (selectedContributor) {
+            setSelectedContributorsForGroups(new Set([selectedContributor.id]));
+          }
+          setShowGroupManager(true);
+        }}
+        onAddNote={() => {
+          setShowProfileModal(false);
+          setShowNotesDialog(true);
+        }}
+        userRole={userRole}
+        workspaceTier={workspaceTier}
+        isLoggedIn={isLoggedIn}
+      />
     </div>
   );
 }
@@ -3005,6 +3337,10 @@ function WorkspacePage() {
                 repositories={repositories}
                 selectedRepositories={selectedRepositories}
                 workspaceId={workspace.id}
+                userRole={currentMember?.role}
+                workspaceTier={workspace.tier}
+                isLoggedIn={!!currentUser}
+                currentUser={currentUser}
               />
             </div>
           </TabsContent>

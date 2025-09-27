@@ -65,7 +65,11 @@ export async function makeGitHubRequest<T = unknown>(endpoint: string): Promise<
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: response.statusText }));
-    console.error('GitHub API error: %s - %s', response.status, error.message || response.statusText);
+    console.error(
+      'GitHub API error: %s - %s',
+      response.status,
+      error.message || response.statusText
+    );
     console.error('Endpoint: %s', endpoint);
     console.error('Has auth token: %s', !!headers['Authorization']);
     const apiError = new Error(
