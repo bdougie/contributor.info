@@ -4,6 +4,7 @@ import { getOctokit } from '../github-client';
 import type { DatabaseReview } from '../types';
 import { SyncLogger } from '../sync-logger';
 import { NonRetriableError } from 'inngest';
+import { detectBot } from '../../utils/bot-detection';
 
 // Extended GitHub Review type with user details
 interface GitHubReviewWithUser {
@@ -116,7 +117,7 @@ export const capturePrReviews = inngest.createFunction(
                 github_id: review.user.id,
                 username: review.user.login,
                 avatar_url: review.user.avatar_url,
-                is_bot: review.user.type === 'Bot' || review.user.login.includes('[bot]'),
+                is_bot: detectBot({ githubUser: review.user }).isBot,
               })
               .select('id')
               .maybeSingle();

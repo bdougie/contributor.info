@@ -4,6 +4,7 @@ import { getOctokit } from '../github-client';
 import type { DatabaseComment } from '../types';
 import { SyncLogger } from '../sync-logger';
 import { NonRetriableError } from 'inngest';
+import { detectBot } from '../../utils/bot-detection';
 
 // GitHub Issue Comment from API
 interface GitHubIssueComment {
@@ -116,7 +117,7 @@ export const captureIssueComments = inngest.createFunction(
                 github_id: comment.user.id,
                 username: comment.user.login,
                 avatar_url: comment.user.avatar_url,
-                is_bot: comment.user.type === 'Bot' || comment.user.login.includes('[bot]'),
+                is_bot: detectBot({ githubUser: comment.user }).isBot,
               },
               {
                 onConflict: 'github_id',
