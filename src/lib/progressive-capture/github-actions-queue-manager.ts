@@ -29,11 +29,14 @@ interface GitHubWorkflowRunsResponse {
 
 interface JobRecord {
   id: string;
-  workflow: string;
   status: string;
   started_at: string;
   repository_id: string;
   created_at: string;
+  metadata: {
+    workflow?: string;
+    [key: string]: unknown;
+  };
 }
 
 export interface GitHubActionsJobInput {

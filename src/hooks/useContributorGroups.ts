@@ -33,7 +33,7 @@ interface NoteDbRecord {
   contributorId?: string;
   workspace_id?: string;
   contributor_username?: string;
-  note: string;
+  note?: string;
   note_content?: string;
   created_at: string;
   updated_at: string;
@@ -136,7 +136,7 @@ export function useContributorGroups(workspaceId: string | undefined) {
 
         return {
           ...note,
-          note: note.note_content || note.note,
+          note: note.note_content ?? note.note ?? '',
           contributorId: note.contributor_username,
           created_by: createdByUser || {
             auth_user_id: note.created_by,

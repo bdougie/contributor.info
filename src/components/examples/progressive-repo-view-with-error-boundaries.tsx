@@ -160,7 +160,7 @@ export function ProgressiveRepoViewWithErrorBoundaries() {
               })),
               stats: {
                 totalPRs: progressiveData.stats?.pullRequests?.length || 0,
-                mergedPRs: progressiveData.stats?.pullRequests?.filter(pr => pr.merged_at).length || 0,
+                mergedPRs: progressiveData.stats?.pullRequests?.filter(pr => pr.merged_at)?.length || 0,
                 pullRequests: progressiveData.stats?.pullRequests?.map(pr => ({
                   id: pr.id,
                   title: pr.title,

@@ -10,6 +10,7 @@ import {
   validateAndTransformGitHubRepository,
   safeValidateGitHubResponse,
 } from './github-integration';
+import type { RepositoryCreate } from './database-schemas';
 import {
   githubPullRequestsArraySchema,
   githubUsersArraySchema,
@@ -422,7 +423,7 @@ export async function fetchRepositoryWithValidation(
   repo: string,
   headers: HeadersInit
 ): Promise<{
-  repository: unknown | null;
+  repository: RepositoryCreate | null;
   validationErrors: Array<{ error: string; rawData: unknown }>;
 }> {
   try {
