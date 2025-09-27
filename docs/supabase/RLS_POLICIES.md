@@ -6,13 +6,31 @@ This document outlines the recommended Row Level Security policies for the Contr
 
 ### January 2025 - Performance Optimization
 
-#### RLS Auth Function Optimization (January 27, 2025)
-- **PERFORMANCE**: Optimized 50+ RLS policies across 30+ tables for better query performance
+#### Service Role Optimization - Phase 2 (January 27, 2025)
+- **PERFORMANCE**: Optimized 30+ service role policies for backend operations
+- Wrapped all `auth.role()` calls in subqueries for single evaluation
+- Fixed high-priority tables: `reviews`, `organizations`, `repository_categories`, `web_vitals_events`, etc.
+- Consolidated duplicate service role policies in partitioned tables
+- **Impact**: 20-30% performance improvement for backend services
+- **Migration**: `20250127_fix_phase2_service_role_optimizations.sql`
+- **PR**: #822
+- Resolves Phase 2 of Issue #820
+
+#### RLS Auth Function Optimization - Phase 1 (January 27, 2025)
+- **PERFORMANCE**: Optimized 12 critical auth.uid() policies in high-traffic tables
+- Wrapped `auth.uid()` calls in subqueries for single evaluation
+- Fixed tables: `user_email_preferences`, `workspace_members`, `workspace_repositories`, etc.
+- **Impact**: 20-40% reduction in query evaluation overhead
+- **Migration**: `20250127_fix_phase1_auth_rls_initialization.sql`
+- **PR**: #821
+- Resolves Phase 1 of Issue #820
+
+#### Previous Auth Optimizations (January 27, 2025)
+- **PERFORMANCE**: Optimized 50+ RLS policies across 30+ tables
 - Wrapped all `auth.uid()`, `auth.role()`, and `auth.jwt()` calls in subqueries
 - Changed from row-by-row evaluation to once-per-statement evaluation
 - **Impact**: ~50% reduction in query evaluation overhead
 - **Migration**: `20250127_fix_rls_auth_initialization_actual.sql`
-- Resolves Phase 1 of 248 performance warnings from Supabase linter (Issue #816)
 - See `/docs/database/rls-performance-optimization.md` for full details
 
 ### September 2025 - Security Advisory Fixes

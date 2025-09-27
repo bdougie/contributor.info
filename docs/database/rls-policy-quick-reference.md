@@ -62,6 +62,21 @@ USING (
 );
 ```
 
+### Service Role Access
+```sql
+-- ❌ WRONG: Re-evaluates for every row
+CREATE POLICY "service_role_all" ON table
+FOR ALL
+USING (auth.role() = 'service_role'::text)
+WITH CHECK (auth.role() = 'service_role'::text);
+
+-- ✅ RIGHT: Evaluates once per query
+CREATE POLICY "service_role_all" ON table
+FOR ALL
+USING ((SELECT auth.role()) = 'service_role'::text)
+WITH CHECK ((SELECT auth.role()) = 'service_role'::text);
+```
+
 ### ⚠️ CRITICAL: Always Use Subqueries for Auth Functions
 ```sql
 -- ❌ WRONG: Re-evaluates for every row
@@ -114,8 +129,8 @@ psql $DATABASE_URL -c "
 - **62 auth initialization issues fixed in PRs #817 and #821 (Phase 1)**
 - **120+ additional auth issues fixed in PR #823 (Phase 4)**
 - **91 policies consolidated in PR #818 (Phase 2)**
+- **30+ service role policies optimized in PR #822 (Phase 2b)**
 - **11 duplicate indexes removed in PR #819 (Phase 3)**
-- **30+ service role policies being optimized in PR #822**
 - **50-60% total performance improvement** achieved
 - **100% auth RLS optimization** - zero unoptimized policies remain
 - **Always wrap auth functions in SELECT subqueries**
