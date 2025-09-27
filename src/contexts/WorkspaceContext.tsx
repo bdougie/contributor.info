@@ -7,7 +7,7 @@ import {
   ReactNode,
   useRef,
 } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useUserWorkspaces } from '@/hooks/use-user-workspaces';
 import type { WorkspacePreviewData } from '@/components/features/workspace/WorkspacePreviewCard';
 import { generateWorkspaceSlug, getWorkspaceUrl } from '@/lib/workspace-utils';
@@ -45,6 +45,7 @@ interface WorkspaceProviderProps {
 
 export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
   const navigate = useNavigate();
+  const params = useParams<{ workspaceId?: string }>();
   const {
     workspaces: rawWorkspaces,
     loading: workspacesLoading,
@@ -58,8 +59,14 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     slug: ws.slug || generateWorkspaceSlug(ws.name),
   }));
 
+  // Get workspace ID from URL if on a workspace page
+  const urlWorkspaceId = params.workspaceId;
+
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(() => {
-    // Initialize from localStorage
+    // Prioritize URL param, then localStorage
+    if (urlWorkspaceId) {
+      return urlWorkspaceId;
+    }
     if (typeof window !== 'undefined') {
       return localStorage.getItem(WORKSPACE_STORAGE_KEYS.ACTIVE);
     }
@@ -104,6 +111,16 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     localStorage.setItem(WORKSPACE_STORAGE_KEYS.RECENT, JSON.stringify(recentWorkspaces));
   }, [recentWorkspaces]);
 
+  // Define addToRecent early so it can be used in effects
+  const addToRecent = useCallback((id: string): void => {
+    setRecentWorkspaces((prev) => {
+      // Remove if already exists, then add to front
+      const filtered = prev.filter((wId) => wId !== id);
+      const newRecent = [id, ...filtered].slice(0, WORKSPACE_LIMITS.MAX_RECENT);
+      return newRecent;
+    });
+  }, []);
+
   // Broadcast workspace changes across tabs
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
@@ -122,13 +139,25 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
+  // Sync active workspace with URL parameter when URL changes
+  useEffect(() => {
+    if (urlWorkspaceId && urlWorkspaceId !== activeWorkspaceId) {
+      const workspace = workspaces.find(w => w.id === urlWorkspaceId || w.slug === urlWorkspaceId);
+      if (workspace) {
+        console.log('[WorkspaceContext] Syncing workspace from URL:', urlWorkspaceId);
+        setActiveWorkspaceId(workspace.id);
+        addToRecent(workspace.id);
+      }
+    }
+  }, [urlWorkspaceId, workspaces, activeWorkspaceId, addToRecent]);
+
   // Auto-select first workspace if none selected but workspaces exist
   useEffect(() => {
-    if (!activeWorkspaceId && workspaces.length > 0 && !workspacesLoading) {
+    if (!activeWorkspaceId && !urlWorkspaceId && workspaces.length > 0 && !workspacesLoading) {
       console.log('[WorkspaceContext] Auto-selecting first workspace');
       setActiveWorkspaceId(workspaces[0].id);
     }
-  }, [activeWorkspaceId, workspaces, workspacesLoading]);
+  }, [activeWorkspaceId, urlWorkspaceId, workspaces, workspacesLoading]);
 
   // Set up loading timeout to prevent infinite loading states with proper cleanup
   useEffect(() => {
@@ -174,15 +203,6 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
       setError(workspacesError.message);
     }
   }, [workspacesError]);
-
-  const addToRecent = useCallback((id: string): void => {
-    setRecentWorkspaces((prev) => {
-      // Remove if already exists, then add to front
-      const filtered = prev.filter((wId) => wId !== id);
-      const newRecent = [id, ...filtered].slice(0, WORKSPACE_LIMITS.MAX_RECENT);
-      return newRecent;
-    });
-  }, []);
 
   const findWorkspace = useCallback(
     (idOrSlug: string): Workspace | undefined => {

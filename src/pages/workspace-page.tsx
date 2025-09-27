@@ -3412,8 +3412,8 @@ function WorkspacePage() {
                   currentMember || {
                     id: '',
                     workspace_id: workspace.id,
-                    user_id: '',
-                    role: 'contributor',
+                    user_id: currentUser?.id || '',
+                    role: isWorkspaceOwner ? 'owner' : 'contributor',
                     accepted_at: null,
                     invited_at: null,
                     invited_by: null,
