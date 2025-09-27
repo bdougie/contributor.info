@@ -18,6 +18,7 @@ import {
 } from '@/components/fallbacks/loading-fallbacks';
 import { useErrorTracking } from '@/lib/error-tracking';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import type { LoadingStage } from '@/lib/types/data-loading-errors';
 
 /**
  * Enhanced Progressive Repository View with comprehensive error boundaries
@@ -55,7 +56,7 @@ export function ProgressiveRepoViewWithErrorBoundaries() {
     }
   );
 
-  const handleManualRetry = (stage?: any) => {
+  const handleManualRetry = (stage?: LoadingStage) => {
     addBreadcrumb(`Manual retry triggered for stage: ${stage || 'all'}`, 'user', 'info', { stage });
     progressiveData.manualRetry(stage);
   };
@@ -124,7 +125,7 @@ export function ProgressiveRepoViewWithErrorBoundaries() {
                 </div>
               ) : (
                 <div className="flex -space-x-2">
-                  {progressiveData.basicInfo?.topContributors.map((contributor: any, i: number) => (
+                  {progressiveData.basicInfo?.topContributors.map((contributor: { login: string; avatar_url: string }, i: number) => (
                     <Avatar key={contributor.login} className="h-8 w-8 border-2 border-background">
                       <AvatarImage
                         src={`${contributor.avatar_url}?s=64`}
@@ -149,7 +150,25 @@ export function ProgressiveRepoViewWithErrorBoundaries() {
         fallbackData={
           <FullDataFallback
             stage="full"
-            partialData={progressiveData.basicInfo ? { stats: progressiveData.stats } : undefined}
+            partialData={progressiveData.basicInfo ? {
+              prCount: progressiveData.basicInfo.prCount,
+              contributorCount: progressiveData.basicInfo.contributorCount,
+              topContributors: progressiveData.basicInfo.topContributors.map(c => ({
+                login: c.login,
+                avatar_url: c.avatar_url,
+                contributions: c.contributions
+              })),
+              stats: {
+                totalPRs: progressiveData.stats?.pullRequests?.length || 0,
+                mergedPRs: progressiveData.stats?.pullRequests?.filter(pr => pr.merged_at).length || 0,
+                pullRequests: progressiveData.stats?.pullRequests?.map(pr => ({
+                  id: pr.id,
+                  title: pr.title,
+                  number: pr.number,
+                  html_url: pr.html_url || ''
+                })) || []
+              }
+            } : undefined}
             message={progressiveData.stageErrors.full?.userMessage}
           />
         }
@@ -222,7 +241,15 @@ export function ProgressiveRepoViewWithErrorBoundaries() {
             stage="enhancement"
             partialData={
               progressiveData.directCommitsData
-                ? { directCommitsData: progressiveData.directCommitsData }
+                ? {
+                    directCommitsData: {
+                      totalCommits: 0,
+                      contributors: 0,
+                      recentActivity: true,
+                      hasYoloCoders: progressiveData.directCommitsData.hasYoloCoders,
+                      yoloCoderStats: progressiveData.directCommitsData.yoloCoderStats
+                    }
+                  }
                 : undefined
             }
             message={progressiveData.stageErrors.enhancement?.userMessage}

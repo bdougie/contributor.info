@@ -36,7 +36,7 @@ interface ContributorCardSimpleProps {
     variant: 'default' | 'secondary';
     className?: string;
   }) => React.ReactNode;
-  renderHoverCard?: (props: { children: React.ReactNode; contributor: any }) => React.ReactNode;
+  renderHoverCard?: (props: { children: React.ReactNode; contributor: unknown }) => React.ReactNode;
 }
 
 export function ContributorCardSimple({

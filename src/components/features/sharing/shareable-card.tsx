@@ -161,7 +161,7 @@ export function ShareableCard({
     }
   };
 
-  const trackShareEvent = async (action: string, type: string, metadata?: Record<string, any>) => {
+  const trackShareEvent = async (action: string, type: string, metadata?: Record<string, unknown>) => {
     try {
       await trackAnalytics({
         original_url: window.location.href,
@@ -170,8 +170,8 @@ export function ShareableCard({
         chart_type: chartType,
         repository: contextInfo?.repository,
         page_path: location.pathname,
-        action: action as any,
-        share_type: type as any,
+        action: action as 'copy' | 'download' | 'share',
+        share_type: type as 'url' | 'image' | 'embed',
         domain: dubConfig.isDev ? 'dub.co' : 'oss.fyi',
         metadata: {
           title,

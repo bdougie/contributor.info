@@ -1,5 +1,35 @@
 import { supabase } from '../supabase';
 
+interface JobUpdateRecord {
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  metadata?: Record<string, unknown>;
+  started_at?: string;
+  completed_at?: string;
+  error?: string;
+  workflow_run_id?: number;
+}
+
+interface JobSummary {
+  id: string;
+  job_type: string;
+  status: string;
+  repository_id: string;
+  created_at: string;
+  started_at?: string;
+  completed_at?: string;
+  metadata?: Record<string, unknown>;
+  error?: string;
+}
+
+interface JobHistoryItem {
+  id: string;
+  job_type: string;
+  status: string;
+  created_at: string;
+  completed_at?: string;
+  metadata?: Record<string, unknown>;
+}
+
 export interface JobStatusUpdate {
   jobId: string;
   status: 'pending' | 'processing' | 'completed' | 'failed';
@@ -8,7 +38,7 @@ export interface JobStatusUpdate {
     processed: number;
     failed?: number;
   };
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   error?: string;
   workflowRunId?: number;
   workflowRunUrl?: string;
@@ -32,7 +62,7 @@ export class JobStatusReporter {
    */
   async reportStatus(update: JobStatusUpdate): Promise<void> {
     try {
-      const updates: any = {
+      const updates: JobUpdateRecord = {
         status: update.status,
       };
 
@@ -216,7 +246,7 @@ export class JobStatusReporter {
   /**
    * Get job status summary
    */
-  async getJobSummary(jobId: string): Promise<any> {
+  async getJobSummary(jobId: string): Promise<JobSummary | null> {
     try {
       const { data: job } = await supabase
         .from('progressive_capture_jobs')
@@ -252,7 +282,7 @@ export class JobStatusReporter {
   /**
    * Stream job status updates (for real-time monitoring)
    */
-  subscribeToJobUpdates(jobId: string, callback: (job: any) => void): () => void {
+  subscribeToJobUpdates(jobId: string, callback: (job: JobSummary) => void): () => void {
     const subscription = supabase
       .channel(`job-status-${jobId}`)
       .on(
@@ -278,7 +308,7 @@ export class JobStatusReporter {
   /**
    * Get recent job history for a repository
    */
-  async getRepositoryJobHistory(repositoryId: string, limit: number = 10): Promise<any[]> {
+  async getRepositoryJobHistory(repositoryId: string, limit: number = 10): Promise<JobHistoryItem[]> {
     try {
       const { data: jobs } = await supabase
         .from('progressive_capture_jobs')

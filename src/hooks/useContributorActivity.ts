@@ -22,6 +22,37 @@ interface RepositoryData {
   full_name: string;
 }
 
+interface PullRequestData {
+  id: string;
+  title: string;
+  number: number;
+  html_url: string;
+  repository_id: string;
+}
+
+interface IssueData {
+  id: string;
+  title: string;
+  number: number;
+  repository_id: string;
+}
+
+interface ReviewWithPR {
+  id: string;
+  state: string;
+  submitted_at: string;
+  pull_request_id: string;
+  pull_requests: PullRequestData;
+}
+
+interface CommentWithIssue {
+  id: string;
+  body: string;
+  created_at: string;
+  issue_id: string;
+  issues: IssueData;
+}
+
 interface UseContributorActivityOptions {
   contributorUsername: string | undefined;
   workspaceId: string | undefined;
@@ -221,7 +252,7 @@ export function useContributorActivity({
         if (reviews.data && reviews.data.length > 0) {
           // Get unique repository IDs from pull requests
           const prIds = reviews.data
-            .map((r) => (r.pull_requests as any)?.repository_id)
+            .map((r) => r.pull_requests?.repository_id)
             .filter((id): id is string => !!id);
 
           const uniqueRepoIds = [...new Set(prIds)];
@@ -235,7 +266,7 @@ export function useContributorActivity({
           const repoMap = new Map(repoData?.map((r) => [r.id, r]) || []);
 
           reviews.data.forEach((review) => {
-            const pullRequest = review.pull_requests as any;
+            const pullRequest = review.pull_requests;
             if (pullRequest?.repository_id) {
               const repository = repoMap.get(pullRequest.repository_id);
               if (repository) {
@@ -260,7 +291,7 @@ export function useContributorActivity({
         if (comments.data && comments.data.length > 0) {
           // Get unique repository IDs from issues
           const issueRepoIds = comments.data
-            .map((c) => (c.issues as any)?.repository_id)
+            .map((c) => c.issues?.repository_id)
             .filter((id): id is string => !!id);
 
           const uniqueIssueRepoIds = [...new Set(issueRepoIds)];
@@ -274,7 +305,7 @@ export function useContributorActivity({
           const issueRepoMap = new Map(issueRepoData?.map((r) => [r.id, r]) || []);
 
           comments.data.forEach((comment) => {
-            const issue = comment.issues as any;
+            const issue = comment.issues;
             if (issue?.repository_id) {
               const repository = issueRepoMap.get(issue.repository_id);
               if (repository) {

@@ -54,7 +54,7 @@ export function WebVitalsDashboard({ repository }: { repository?: string }) {
   const [selectedMetric, setSelectedMetric] = useState<'LCP' | 'INP' | 'CLS' | 'FCP' | 'TTFB'>(
     'LCP'
   );
-  const [historicalData, setHistoricalData] = useState<any[]>([]);
+  const [historicalData, setHistoricalData] = useState<Record<string, unknown>[]>([]);
 
   useEffect(() => {
     loadPerformanceData();
@@ -162,7 +162,7 @@ export function WebVitalsDashboard({ repository }: { repository?: string }) {
         </div>
 
         {/* Time Range Selector */}
-        <Tabs value={timeRange} onValueChange={(v) => setTimeRange(v as any)}>
+        <Tabs value={timeRange} onValueChange={(v) => setTimeRange(v as '1h' | '24h' | '7d' | '30d')}>
           <TabsList>
             <TabsTrigger value="1h">1 Hour</TabsTrigger>
             <TabsTrigger value="24h">24 Hours</TabsTrigger>
@@ -208,7 +208,7 @@ export function WebVitalsDashboard({ repository }: { repository?: string }) {
       </Card>
 
       {/* Metrics Details */}
-      <Tabs value={selectedMetric} onValueChange={(v) => setSelectedMetric(v as any)}>
+      <Tabs value={selectedMetric} onValueChange={(v) => setSelectedMetric(v as 'LCP' | 'INP' | 'CLS' | 'FCP' | 'TTFB')}>
         <TabsList className="grid grid-cols-5 w-full">
           <TabsTrigger value="LCP">LCP</TabsTrigger>
           <TabsTrigger value="INP">INP</TabsTrigger>

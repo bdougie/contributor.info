@@ -15,6 +15,8 @@ import {
   githubUsersArraySchema,
   githubReviewsArraySchema,
   githubCommentsArraySchema,
+  type GitHubReviews,
+  type GitHubComments,
 } from './github-api-schemas';
 import { detectBot } from '../utils/bot-detection';
 
@@ -49,8 +51,8 @@ export async function fetchPullRequestsWithValidation(
       type?: 'User' | 'Bot';
     };
     html_url?: string;
-    reviews?: Array<any>;
-    comments?: Array<any>;
+    reviews?: GitHubReviews;
+    comments?: GitHubComments;
   }>;
   validationErrors: Array<{
     index: number;
@@ -126,14 +128,15 @@ export async function fetchPullRequestsWithValidation(
     }
 
     // Filter PRs by the time range
-    const filteredPRs = rawPullRequests.filter((pr: any) => {
-      const prDate = new Date(pr.updated_at);
+    const filteredPRs = rawPullRequests.filter((pr: unknown) => {
+      const prData = pr as { updated_at?: string };
+      const prDate = new Date(prData.updated_at || '');
       return prDate >= since;
     });
 
     // Process each PR with validation
     const validatedPullRequests = await Promise.all(
-      filteredPRs.map(async (pr: any, index: number) => {
+      filteredPRs.map(async (pr: unknown, index: number) => {
         try {
           // Validate the basic PR data first
           const validatedPR = validateGitHubPullRequest(pr);
@@ -146,14 +149,15 @@ export async function fetchPullRequestsWithValidation(
             return null;
           }
 
+          const prData = pr as { number?: number };
           // Fetch additional details for each PR to get additions/deletions
           const detailsResponse = await fetch(
-            `${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls/${pr.number}`,
+            `${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls/${prData.number}`,
             { headers }
           );
 
           if (!detailsResponse.ok) {
-            console.warn('Failed to fetch details for PR #%s', pr.number);
+            console.warn('Failed to fetch details for PR #%s', prData.number);
             // Use basic data without detailed stats
             return {
               id: validatedPR.id,
@@ -217,16 +221,16 @@ export async function fetchPullRequestsWithValidation(
 
           // Fetch PR reviews and comments (in parallel)
           const [reviewsResponse, commentsResponse] = await Promise.all([
-            fetch(`${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls/${pr.number}/reviews`, {
+            fetch(`${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls/${prData.number}/reviews`, {
               headers,
             }),
-            fetch(`${GITHUB_API_BASE}/repos/${owner}/${repo}/issues/${pr.number}/comments`, {
+            fetch(`${GITHUB_API_BASE}/repos/${owner}/${repo}/issues/${prData.number}/comments`, {
               headers,
             }),
           ]);
 
-          let validatedReviews: any[] = [];
-          let validatedComments: any[] = [];
+          let validatedReviews: GitHubReviews = [];
+          let validatedComments: GitHubComments = [];
 
           // Validate reviews
           if (reviewsResponse.ok) {
@@ -234,23 +238,27 @@ export async function fetchPullRequestsWithValidation(
             const reviewsValidation = safeValidateGitHubResponse(
               githubReviewsArraySchema,
               reviewsData,
-              `PR #${pr.number} reviews`
+              `PR #${prData.number} reviews`
             );
 
             if (Array.isArray(reviewsValidation)) {
-              validatedReviews = reviewsValidation.map((review: any) => ({
+              validatedReviews = reviewsValidation.map((review) => ({
                 id: review.id,
                 state: review.state,
-                user: {
-                  login: review.user.login,
-                  avatar_url: review.user.avatar_url,
-                },
+                body: review.body,
+                html_url: review.html_url,
+                pull_request_url: review.pull_request_url,
+                commit_id: review.commit_id,
+                node_id: review.node_id,
+                author_association: review.author_association,
+                user: review.user,
                 submitted_at: review.submitted_at,
+                _links: review._links,
               }));
             } else {
               validationErrors.push({
                 index,
-                error: `Failed to validate reviews for PR #${pr.number}`,
+                error: `Failed to validate reviews for PR #${prData.number}`,
                 rawData: reviewsData,
               });
             }
@@ -262,22 +270,27 @@ export async function fetchPullRequestsWithValidation(
             const commentsValidation = safeValidateGitHubResponse(
               githubCommentsArraySchema,
               commentsData,
-              `PR #${pr.number} comments`
+              `PR #${prData.number} comments`
             );
 
             if (Array.isArray(commentsValidation)) {
-              validatedComments = commentsValidation.map((comment: any) => ({
+              validatedComments = commentsValidation.map((comment) => ({
                 id: comment.id,
-                user: {
-                  login: comment.user.login,
-                  avatar_url: comment.user.avatar_url,
-                },
+                node_id: comment.node_id,
+                url: comment.url,
+                html_url: comment.html_url,
+                body: comment.body,
+                user: comment.user,
                 created_at: comment.created_at,
+                updated_at: comment.updated_at,
+                issue_url: comment.issue_url,
+                author_association: comment.author_association,
+                reactions: comment.reactions,
               }));
             } else {
               validationErrors.push({
                 index,
-                error: `Failed to validate comments for PR #${pr.number}`,
+                error: `Failed to validate comments for PR #${prData.number}`,
                 rawData: commentsData,
               });
             }
@@ -310,9 +323,10 @@ export async function fetchPullRequestsWithValidation(
             comments: validatedComments,
           };
         } catch (error) {
+          const prData = pr as { number?: number };
           validationErrors.push({
             index,
-            error: `Error processing PR #${pr.number}: ${String(error)}`,
+            error: `Error processing PR #${prData.number}: ${String(error)}`,
             rawData: pr,
           });
           return null;
@@ -381,7 +395,7 @@ export async function fetchUserOrganizationsWithValidation(
     }
 
     const organizations = Array.isArray(validatedOrgs)
-      ? validatedOrgs.slice(0, 3).map((org: any) => ({
+      ? validatedOrgs.slice(0, 3).map((org) => ({
           login: org.login,
           avatar_url: org.avatar_url,
         }))
@@ -408,7 +422,7 @@ export async function fetchRepositoryWithValidation(
   repo: string,
   headers: HeadersInit
 ): Promise<{
-  repository: any | null;
+  repository: unknown | null;
   validationErrors: Array<{ error: string; rawData: unknown }>;
 }> {
   try {

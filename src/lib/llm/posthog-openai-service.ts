@@ -77,7 +77,7 @@ class PostHogOpenAIService {
   private config: LLMServiceConfig;
   private posthogConfig: PostHogConfig;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private posthogClient: any = null; // Will be dynamically imported
+  private posthogClient: { capture: (event: string, properties: Record<string, unknown>) => void } | null = null; // Will be dynamically imported
 
   constructor() {
     // Handle both Vite and Node.js environments
@@ -127,7 +127,7 @@ class PostHogOpenAIService {
         throw new Error('posthog-node not available');
       }
 
-      this.posthogClient = posthogModule;
+      this.posthogClient = posthogModule as { capture: (event: string, properties: Record<string, unknown>) => void };
       console.log('PostHog LLM analytics initialized');
     } catch (error) {
       console.warn('PostHog not available - install posthog-node for LLM tracking:', error);
@@ -378,7 +378,7 @@ class PostHogOpenAIService {
 
       // Track the error
       if (this.isTrackingEnabled() && metadata) {
-        this.trackLLMError(error, metadata, prompt);
+        this.trackLLMError(error as Error, metadata, prompt);
       }
 
       if (error instanceof Error && error.name === 'AbortError') {
@@ -486,9 +486,8 @@ class PostHogOpenAIService {
     if (!this.posthogClient) return;
 
     try {
-      this.posthogClient.capture({
+      this.posthogClient.capture('$ai_generation', {
         distinctId: metadata.userId || 'anonymous',
-        event: '$ai_generation',
         properties: {
           $ai_model: result.model,
           $ai_input_tokens: result.usage?.prompt_tokens,
@@ -517,13 +516,12 @@ class PostHogOpenAIService {
    * Track LLM errors
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private trackLLMError(error: any, metadata: LLMCallMetadata, prompt: string): void {
+  private trackLLMError(error: Error | { message?: string; code?: string | number }, metadata: LLMCallMetadata, prompt: string): void {
     if (!this.posthogClient) return;
 
     try {
-      this.posthogClient.capture({
+      this.posthogClient.capture('$ai_generation_error', {
         distinctId: metadata.userId || 'anonymous',
-        event: '$ai_generation_error',
         properties: {
           error_message: error?.message || 'Unknown error',
           error_type: error?.constructor?.name || 'UnknownError',

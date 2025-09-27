@@ -117,7 +117,7 @@ export function HybridQueueStatus({
   }: {
     title: string;
     stats: QueueStats;
-    icon: React.ComponentType<any>;
+    icon: React.ComponentType<{ className?: string }>;
     iconColor: string;
     processor: 'inngest' | 'github_actions' | 'total';
   }) => {

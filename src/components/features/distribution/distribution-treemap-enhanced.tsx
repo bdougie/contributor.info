@@ -55,7 +55,11 @@ export function DistributionTreemapEnhanced({
       // Extract unique contributors with their GitHub IDs
       const contributors = new Map<number, string>();
 
-      const extractContributors = (node: any) => {
+      const extractContributors = (node: {
+        login?: string;
+        avatar_url?: string;
+        children?: unknown[];
+      }) => {
         if (node.login && node.avatar_url) {
           // Try to extract GitHub ID from avatar URL or use a hash
           const match = node.avatar_url.match(/u\/(\d+)/);
@@ -494,7 +498,7 @@ export function DistributionTreemapEnhanced({
     payload,
   }: {
     active?: boolean;
-    payload?: Array<{ payload: any }>;
+    payload?: Array<{ payload: Record<string, unknown> }>;
   }) => {
     if (active && payload && payload[0]) {
       const data = payload[0].payload;
@@ -600,7 +604,7 @@ export function DistributionTreemapEnhanced({
                   (q: QuadrantNode) => q.id === selectedQuadrant
                 );
                 const contributor = quadrant?.children?.find(
-                  (c: any) => c.id === selectedContributor
+                  (c: { id: string; login?: string }) => c.id === selectedContributor
                 );
                 return contributor?.login || 'PRs';
               })()}

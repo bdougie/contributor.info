@@ -23,7 +23,7 @@ export interface ProgressiveDataState {
 
   // Enhancement data (loaded last)
   directCommitsData: DirectCommitsData | null;
-  historicalTrends: any | null;
+  historicalTrends: null; // Future enhancement placeholder
 
   // Loading state
   currentStage: LoadingStage;
@@ -31,7 +31,7 @@ export interface ProgressiveDataState {
   dataStatus: {
     status: 'success' | 'pending' | 'no_data' | 'partial_data' | 'large_repository_protected';
     message?: string;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
   };
 }
 
@@ -150,7 +150,7 @@ export function useProgressiveRepoDataWithDeduplication(
             { login: string; avatar_url: string; contributions: number }
           >();
 
-          pullRequests.forEach((pr: any) => {
+          pullRequests.forEach((pr: { user: { login: string; avatar_url: string } }) => {
             const author = pr.user?.login;
             if (author) {
               const existing = contributors.get(author) || {

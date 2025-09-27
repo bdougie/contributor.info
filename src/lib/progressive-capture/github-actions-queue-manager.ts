@@ -2,6 +2,39 @@ import { supabase } from '../supabase';
 import { env } from '../env';
 import { jobStatusReporter } from './job-status-reporter';
 
+interface GitHubWorkflowRun {
+  id: number;
+  name: string;
+  node_id: string;
+  head_branch: string;
+  head_sha: string;
+  run_number: number;
+  event: string;
+  status: string;
+  conclusion: string | null;
+  workflow_id: number;
+  check_suite_id: number;
+  check_suite_node_id: string;
+  url: string;
+  html_url: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface GitHubWorkflowRunsResponse {
+  total_count: number;
+  workflow_runs: GitHubWorkflowRun[];
+}
+
+interface JobRecord {
+  id: string;
+  workflow: string;
+  status: string;
+  started_at: string;
+  repository_id: string;
+  created_at: string;
+}
+
 export interface GitHubActionsJobInput {
   workflow: string;
   inputs: {
@@ -127,7 +160,7 @@ export class GitHubActionsQueueManager {
   /**
    * Check the status of a specific job
    */
-  private async checkJobStatus(job: any): Promise<void> {
+  private async checkJobStatus(job: JobRecord): Promise<void> {
     try {
       // Query workflow runs to find our job
       const response = await fetch(
@@ -145,11 +178,11 @@ export class GitHubActionsQueueManager {
         return;
       }
 
-      const data = await response.json();
+      const data = await response.json() as GitHubWorkflowRunsResponse;
 
       // Try to find a run that matches our job
       // This is a heuristic - in production, you might want to pass a unique identifier
-      const matchingRun = data.workflow_runs.find((run: any) => {
+      const matchingRun = data.workflow_runs.find((run: GitHubWorkflowRun) => {
         const runTime = new Date(run.created_at).getTime();
         const jobTime = new Date(job.started_at).getTime();
         return Math.abs(runTime - jobTime) < 60000; // Within 1 minute

@@ -47,14 +47,31 @@ export function ContributorCard(props: ContributorCardProps) {
     return <IconComponent className={className} />;
   };
 
-  const renderAvatar = ({ src, alt, fallback, className }: any) => (
+  const renderAvatar = ({ src, alt, fallback, className }: {
+    src?: string;
+    alt?: string;
+    fallback?: string;
+    className?: string;
+  }) => (
     <Avatar className={className}>
       <AvatarImage src={src} alt={alt} loading="lazy" width={40} height={40} />
       <AvatarFallback>{fallback}</AvatarFallback>
     </Avatar>
   );
 
-  const renderTooltip = ({ trigger, content, side, className }: any) => (
+  const renderTooltip = ({ trigger, content, side, className }: {
+    trigger: React.ReactNode;
+    content: {
+      title: string;
+      items: Array<{
+        iconName: string;
+        count: number;
+        label: string;
+      }>;
+    };
+    side?: 'top' | 'right' | 'bottom' | 'left';
+    className?: string;
+  }) => (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>{trigger}</TooltipTrigger>
@@ -62,7 +79,11 @@ export function ContributorCard(props: ContributorCardProps) {
           <div className="space-y-1">
             <div className="font-medium">{content.title}</div>
             <div className="text-xs space-y-1">
-              {content.items.map((item: any, index: number) => (
+              {content.items.map((item: {
+                iconName: string;
+                count: number;
+                label: string;
+              }, index: number) => (
                 <div key={index} className="flex items-center gap-2">
                   {renderIcon(item.iconName, 'h-3 w-3')}
                   <span>
@@ -77,13 +98,17 @@ export function ContributorCard(props: ContributorCardProps) {
     </TooltipProvider>
   );
 
-  const renderBadge = ({ children, variant, className }: any) => (
+  const renderBadge = ({ children, variant, className }: {
+    children: React.ReactNode;
+    variant?: 'default' | 'secondary' | 'destructive' | 'outline';
+    className?: string;
+  }) => (
     <Badge variant={variant} className={className}>
       {children}
     </Badge>
   );
 
-  const renderHoverCard = ({ children }: any) => (
+  const renderHoverCard = ({ children }: { children: React.ReactNode }) => (
     <ContributorHoverCard contributor={contributorData}>{children}</ContributorHoverCard>
   );
 

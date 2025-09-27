@@ -9,10 +9,17 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useGitHubAuth } from '@/hooks/use-github-auth';
 
+interface SyncResponse {
+  success: boolean;
+  data?: Record<string, unknown>;
+  error?: string;
+  message?: string;
+}
+
 export function GitHubSyncDebug() {
   const [owner, setOwner] = useState('continuedev');
   const [repo, setRepo] = useState('continue');
-  const [syncResponse, setSyncResponse] = useState<any>(null);
+  const [syncResponse, setSyncResponse] = useState<SyncResponse | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);

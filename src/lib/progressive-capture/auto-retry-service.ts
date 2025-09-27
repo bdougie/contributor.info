@@ -8,12 +8,18 @@ export interface RetryConfig {
   backoffMultiplier: number;
 }
 
+interface RetryMetadata {
+  retry_count?: number;
+  last_retry_at?: string;
+  [key: string]: unknown;
+}
+
 export interface RetryableJob {
   id: string;
   job_type: string;
   repository_id: string;
   processor_type: 'inngest' | 'github_actions';
-  metadata: any;
+  metadata: RetryMetadata;
   error?: string;
   retry_count?: number;
   last_retry_at?: string;
@@ -242,7 +248,7 @@ export class AutoRetryService {
   /**
    * Create a new job for retry
    */
-  private async createRetryJob(originalJob: RetryableJob): Promise<any> {
+  private async createRetryJob(originalJob: RetryableJob): Promise<unknown> {
     // Validate required fields before retry
     if (!originalJob.repository_id) {
       console.error('[AutoRetry] Cannot retry job without repository_id:', {
