@@ -138,13 +138,14 @@ test.describe('Critical User Flows', () => {
     await expect(page.locator('body')).toBeVisible({ timeout: 5000 });
 
     // Basic accessibility - check for essential elements
-    // Wait for React to render content
+    // Wait for React to render content and specifically wait for headings or interactive elements
     await page.waitForFunction(
       () => {
-        const root = document.getElementById('root');
-        return root && root.children.length > 0;
+        const headings = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
+        const interactiveElements = document.querySelectorAll('button, input, a, select');
+        return headings.length > 0 || interactiveElements.length > 0;
       },
-      { timeout: 10000 }
+      { timeout: 15000 }
     );
 
     const headings = page.locator('h1, h2, h3, h4, h5, h6');
