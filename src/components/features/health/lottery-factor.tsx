@@ -18,6 +18,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { OptimizedAvatar } from '@/components/ui/optimized-avatar';
+import { detectBot } from '@/lib/utils/bot-detection';
 import { ContributorHoverCard } from '../contributor';
 import { RepoStatsContext } from '@/lib/repo-stats-context';
 import { useTimeRange } from '@/lib/time-range-store';
@@ -100,7 +101,7 @@ export function LotteryFactorContent({
     ...rawStats,
     pullRequests: includeBots
       ? rawStats.pullRequests
-      : rawStats.pullRequests.filter((pr) => pr.user.type !== 'Bot'),
+      : rawStats.pullRequests.filter((pr) => !detectBot({ githubUser: pr.user }).isBot),
   };
 
   // Filter lottery factor contributors based on includeBots
@@ -113,7 +114,7 @@ export function LotteryFactorContent({
             const userPRs = rawStats.pullRequests.filter(
               (pr) => pr.user.login === contributor.login
             );
-            return userPRs.length === 0 || userPRs[0].user.type !== 'Bot';
+            return userPRs.length === 0 || !detectBot({ githubUser: userPRs[0].user }).isBot;
           }),
         }
       : rawLotteryFactor;
@@ -574,7 +575,7 @@ export default function LotteryFactor() {
     setLocalIncludeBots(includeBots);
   }, [includeBots]);
 
-  const botCount = stats.pullRequests.filter((pr) => pr.user.type === 'Bot').length;
+  const botCount = stats.pullRequests.filter((pr) => detectBot({ githubUser: pr.user }).isBot).length;
   const hasBots = botCount > 0;
   // YOLO Coders button should only be visible if there are YOLO pushes
   const showYoloButton = directCommitsData?.hasYoloCoders === true;
