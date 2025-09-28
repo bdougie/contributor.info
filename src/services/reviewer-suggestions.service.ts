@@ -15,8 +15,8 @@ export async function fetchCodeOwners(owner: string, repo: string) {
   return res.json() as Promise<{ exists: boolean; content?: string; path?: string; message?: string }>;
 }
 
-export async function fetchSuggestedCodeOwners(owner: string, repo: string) {
-  const res = await fetch(`/api/repos/${owner}/${repo}/suggested-codeowners`);
+export async function fetchSuggestedCodeOwners(owner: string, repo: string, opts?: { llm?: boolean }) {
+  const res = await fetch(`/api/repos/${owner}/${repo}/suggested-codeowners${opts?.llm ? '?llm=1' : ''}`);
   if (!res.ok) throw new Error(`Failed to fetch suggested CODEOWNERS: ${res.status}`);
   return res.json() as Promise<{ suggestions: Array<{ pattern: string; owners: string[]; confidence: number; reasoning: string }>; codeOwnersContent: string; cached?: boolean }>;
 }
@@ -24,13 +24,14 @@ export async function fetchSuggestedCodeOwners(owner: string, repo: string) {
 export async function suggestReviewers(
   owner: string,
   repo: string,
-  files: string[],
-  prAuthor?: string
+  files?: string[],
+  prAuthor?: string,
+  prUrl?: string
 ) {
   const res = await fetch(`/api/repos/${owner}/${repo}/suggest-reviewers`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ files, prAuthor }),
+    body: JSON.stringify({ files, prAuthor, prUrl }),
   });
   if (!res.ok) throw new Error(`Failed to suggest reviewers: ${res.status}`);
   return res.json() as Promise<{
@@ -48,4 +49,3 @@ export async function fetchFileTree(owner: string, repo: string) {
   if (!res.ok) throw new Error(`Failed to fetch file tree: ${res.status}`);
   return res.json() as Promise<{ files: string[]; directories: string[]; totalSize: number; truncated: boolean }>;
 }
-

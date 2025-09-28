@@ -160,17 +160,48 @@ export default async (req: Request, context: Context) => {
     const parts = url.pathname.split('/');
     const apiIndex = parts.findIndex((p) => p === 'api');
     if (apiIndex === -1 || parts.length < apiIndex + 5) return createErrorResponse('Invalid API path format');
-    const owner = parts[apiIndex + 2];
-    const repo = parts[apiIndex + 3];
+    let owner = parts[apiIndex + 2];
+    let repo = parts[apiIndex + 3];
 
     const validation = await validateRepository(owner, repo);
     if (!validation.isTracked) return createNotFoundResponse(owner, repo, validation.trackingUrl);
     if (validation.error) return createErrorResponse(validation.error);
 
     const body = await req.json();
-    const { files, prAuthor } = body || {};
+    let { files, prAuthor, prUrl } = body || {};
+
+    // If PR URL is provided, derive owner/repo and changed files automatically
+    if (typeof prUrl === 'string' && prUrl.includes('github.com')) {
+      const m = prUrl.match(/github\.com\/(.*?)\/(.*?)\/pull\/(\d+)/i);
+      if (m) {
+        owner = m[1];
+        repo = m[2];
+        const prNumber = parseInt(m[3], 10);
+        const ghToken = process.env.GITHUB_TOKEN || process.env.VITE_GITHUB_TOKEN || '';
+        const headers: HeadersInit = { Accept: 'application/vnd.github+json' };
+        if (ghToken) headers['Authorization'] = `Bearer ${ghToken}`;
+
+        // Paginate PR files (up to 300 files)
+        const collected: string[] = [];
+        for (let page = 1; page <= 3; page++) {
+          const r = await fetch(
+            `https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}/files?per_page=100&page=${page}`,
+            { headers }
+          );
+          if (!r.ok) break;
+          const arr = await r.json();
+          const pageFiles = Array.isArray(arr) ? arr.map((f: any) => f.filename).filter(Boolean) : [];
+          collected.push(...pageFiles);
+          if (pageFiles.length < 100) break;
+        }
+        if (collected.length > 0) {
+          files = collected;
+        }
+      }
+    }
+
     if (!files || !Array.isArray(files) || files.length === 0) {
-      return createErrorResponse('Please provide an array of files changed in the PR');
+      return createErrorResponse('Please provide a PR URL or an array of files changed in the PR');
     }
 
     const prFiles = await analyzePRFiles(files);

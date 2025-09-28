@@ -8,6 +8,7 @@ import { Loader2, Users, Copy } from '@/components/ui/icon';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectTrigger,
@@ -37,6 +38,8 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
 
   // Suggest Reviewers state
   const [fileList, setFileList] = useState('');
+  const [prUrl, setPrUrl] = useState('');
+  const [useAI, setUseAI] = useState(true);
   type ReviewerSuggestionDTO = {
     username: string;
     avatarUrl?: string;
@@ -95,7 +98,13 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
         .split('\n')
         .map((s) => s.trim())
         .filter(Boolean);
-      const res = await suggestReviewers(owner, repo, files);
+      const res = await suggestReviewers(
+        owner,
+        repo,
+        files.length ? files : undefined,
+        undefined,
+        prUrl || undefined
+      );
       setSuggestions(res);
     } catch (e: any) {
       setError(e?.message || 'Failed to get suggestions');
@@ -125,7 +134,7 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
     try {
       const [ft, gen] = await Promise.all([
         fetchFileTree(owner, repo),
-        fetchSuggestedCodeOwners(owner, repo),
+        fetchSuggestedCodeOwners(owner, repo, { llm: useAI }),
       ]);
       setFileTree(ft);
       setGenerated(gen);
@@ -169,21 +178,48 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
           </TabsList>
 
           <TabsContent value="reviewers" className="mt-4 space-y-4">
-            <div>
-              <div className="text-sm font-medium">Changed files (one per line)</div>
-              <Textarea
-                className="mt-2 h-32"
-                placeholder="src/components/Button.tsx\nsrc/pages/home.tsx"
-                value={fileList}
-                onChange={(e) => setFileList(e.target.value)}
-              />
+            <div className="grid gap-3">
+              <div>
+                <div className="text-sm font-medium">Pull Request URL</div>
+                <Textarea
+                  className="mt-2 h-10"
+                  placeholder="https://github.com/owner/repo/pull/123"
+                  value={prUrl}
+                  onChange={(e) => setPrUrl(e.target.value)}
+                />
+                <div className="text-xs text-muted-foreground mt-1">
+                  Paste a PR URL to auto-analyze changed files, or enter files manually below.
+                </div>
+              </div>
+              <div>
+                <div className="text-sm font-medium">Changed files (one per line)</div>
+                <Textarea
+                  className="mt-2 h-32"
+                  placeholder="src/components/Button.tsx\nsrc/pages/home.tsx"
+                  value={fileList}
+                  onChange={(e) => setFileList(e.target.value)}
+                />
+              </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button onClick={handleSuggest} disabled={loading || !fileList.trim()}>
+              <Button onClick={handleSuggest} disabled={loading || (!fileList.trim() && !prUrl.trim())}>
                 {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Get Suggestions
               </Button>
               {error && <span className="text-sm text-red-500">{error}</span>}
+              {suggestions && (
+                <Button
+                  variant="secondary"
+                  onClick={() =>
+                    navigator.clipboard.writeText(
+                      suggestions.suggestions.primary.map((s) => `@${s.username}`).join(' ')
+                    )
+                  }
+                  title="Copy primary reviewers"
+                >
+                  <Copy className="h-4 w-4 mr-2" /> Copy primary
+                </Button>
+              )}
             </div>
             {suggestions && (
               <div className="space-y-6">
@@ -250,11 +286,15 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
           </TabsContent>
 
           <TabsContent value="generate" className="mt-4 space-y-3">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-4">
               <Button onClick={handleGenerate} disabled={loading}>
                 {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Generate Suggestions
               </Button>
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-muted-foreground">Use AI</span>
+                <Switch checked={useAI} onCheckedChange={setUseAI} />
+              </div>
               {error && <span className="text-sm text-red-500">{error}</span>}
             </div>
             {fileTree && (
