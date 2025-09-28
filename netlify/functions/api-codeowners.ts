@@ -5,8 +5,8 @@ import {
   createNotFoundResponse,
   createErrorResponse,
   CORS_HEADERS,
-} from './lib/repository-validation';
-import { RateLimiter, getRateLimitKey, applyRateLimitHeaders } from './lib/rate-limiter';
+} from './lib/repository-validation.mts';
+import { RateLimiter, getRateLimitKey, applyRateLimitHeaders } from './lib/rate-limiter.mts';
 
 interface CodeOwnersResponse {
   content?: string;
@@ -94,7 +94,7 @@ export default async (req: Request, context: Context) => {
     }
 
     const { data: repository, error: repoError } = await supabase
-      .from('repositories')
+      .from('tracked_repositories')
       .select('id')
       .eq('owner', owner.toLowerCase())
       .eq('name', repo.toLowerCase())
@@ -112,18 +112,23 @@ export default async (req: Request, context: Context) => {
           checkedPaths: ['.github/CODEOWNERS', 'CODEOWNERS', 'docs/CODEOWNERS', '.gitlab/CODEOWNERS'],
         }),
         {
-          status: 200,
-          headers: { ...CORS_HEADERS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600' },
+          status: 404,
+          headers: { ...CORS_HEADERS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300' },
         }
       );
       return applyRateLimitHeaders(resp, rate);
     }
 
     const resp = new Response(
-      JSON.stringify({ exists: true, content: codeOwnersData.content, path: codeOwnersData.path }),
+      JSON.stringify({
+        exists: true,
+        content: codeOwnersData.content,
+        path: codeOwnersData.path,
+        repository: `${owner}/${repo}`
+      }),
       {
         status: 200,
-        headers: { ...CORS_HEADERS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600' },
+        headers: { ...CORS_HEADERS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300' },
       }
     );
     return applyRateLimitHeaders(resp, rate);

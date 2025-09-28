@@ -6,8 +6,8 @@ import {
   createNotFoundResponse,
   createErrorResponse,
   CORS_HEADERS,
-} from './lib/repository-validation';
-import { RateLimiter, getRateLimitKey, applyRateLimitHeaders } from './lib/rate-limiter';
+} from './lib/repository-validation.mts';
+import { RateLimiter, getRateLimitKey, applyRateLimitHeaders } from './lib/rate-limiter.mts';
 
 interface CodeOwnersSuggestion {
   pattern: string;
@@ -129,7 +129,7 @@ export default async (req: Request, context: Context) => {
 
     const supabase = createSupabaseClient();
     const { data: repository, error: repoError } = await supabase
-      .from('repositories')
+      .from('tracked_repositories')
       .select('id')
       .eq('owner', owner.toLowerCase())
       .eq('name', repo.toLowerCase())
