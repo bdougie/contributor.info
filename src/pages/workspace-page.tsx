@@ -5,6 +5,7 @@ import type { User } from '@supabase/supabase-js';
 import { getFallbackAvatar } from '@/lib/utils/avatar';
 import { useWorkspaceContributors } from '@/hooks/useWorkspaceContributors';
 import { useContributorGroups } from '@/hooks/useContributorGroups';
+import { TIME_PERIODS, timeHelpers } from '@/lib/constants/time-constants';
 import { WorkspaceDashboard, WorkspaceDashboardSkeleton } from '@/components/features/workspace';
 import { WorkspaceErrorBoundary } from '@/components/error-boundaries/workspace-error-boundary';
 import { WorkspaceAutoSync } from '@/components/features/workspace/WorkspaceAutoSync';
@@ -2444,7 +2445,7 @@ function WorkspacePage() {
         // Ensure startDate is valid and not in the future
         if (startDate.getTime() > Date.now()) {
           console.warn('Start date is in the future, using 30 days ago as fallback');
-          startDate.setTime(Date.now() - 30 * 24 * 60 * 60 * 1000);
+          startDate.setTime(Date.now() - timeHelpers.daysToMs(TIME_PERIODS.DEFAULT_METRICS_DAYS));
         }
 
         // Fetch PRs for activity data and metrics with more fields for activity tab
