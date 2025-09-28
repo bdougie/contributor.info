@@ -126,7 +126,7 @@ For each issue, use ### headers with clear structure:
 
 ### 1. Issue Title
 **Priority**: High/Medium/Low
-**File**: `path/to/file.ts:line`
+**File**: \`path/to/file.ts:line\`
 **Problem**: Clear description of the issue
 **Why it matters**: Explanation of impact
 **Fix**: Concrete solution with code example
