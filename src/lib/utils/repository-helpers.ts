@@ -26,6 +26,8 @@ export interface ExtendedGitHubRepository extends GitHubRepository {
 
 /**
  * Create a repository in the database as a fallback when GitHub API is unavailable
+ * WARNING: This is only for local development when API is unavailable
+ * Production should always use the server-side API endpoint
  * Uses a negative github_id to avoid conflicts with real GitHub IDs
  */
 export async function createRepositoryFallback(
@@ -33,6 +35,12 @@ export async function createRepositoryFallback(
   name: string,
   repo?: Partial<ExtendedGitHubRepository>
 ) {
+  // Only allow this in development environment
+  if (import.meta.env.PROD) {
+    console.error('Repository fallback creation attempted in production - this should use the API');
+    return { data: null, error: new Error('Direct repository creation not allowed in production') };
+  }
+
   // Generate a temporary github_id for local development (negative to avoid conflicts)
   const tempGithubId = -Math.floor(Math.random() * 1000000000);
 
@@ -51,7 +59,7 @@ export async function createRepositoryFallback(
         forks_count: repo?.forks_count || 0,
         open_issues_count: repo?.open_issues_count || repo?.open_issues || 0,
         size: repo?.size || 0,
-        is_active: true,
+        // is_active is managed server-side, not set client-side
         // Extended properties if available
         homepage: repo?.homepage || null,
         default_branch: repo?.default_branch || 'main',
@@ -88,13 +96,13 @@ export async function createRepositoryFallback(
         }
       }
 
-      console.error(`Failed to create repository ${owner}/${name}:`, error);
+      console.error('Failed to create repository %s/%s:', owner, name, error);
       return { data: null, error };
     }
 
     return { data, error: null };
   } catch (err) {
-    console.error(`Unexpected error creating repository ${owner}/${name}:`, err);
+    console.error('Unexpected error creating repository %s/%s:', owner, name, err);
     return { data: null, error: err };
   }
 }
@@ -120,7 +128,7 @@ export async function waitForRepository(
       .maybeSingle();
 
     if (data) {
-      console.log(`Repository ${owner}/${name} found after ${attempt + 1} attempts`);
+      console.log('Repository %s/%s found after %d attempts', owner, name, attempt + 1);
       return data.id;
     }
 

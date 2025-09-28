@@ -6,7 +6,6 @@ import { useGitHubAuth } from '@/hooks/use-github-auth';
 import { toast } from 'sonner';
 import { trackEvent } from '@/lib/posthog-lazy';
 import { handleApiResponse } from '@/lib/utils/api-helpers';
-import { createRepositoryFallback } from '@/lib/utils/repository-helpers';
 
 // Type for track repository API response
 interface TrackRepositoryResponse {
@@ -131,23 +130,7 @@ export function RepositoryTrackingCard({
         body: JSON.stringify({ owner, repo }),
       });
 
-      // Check if API is unavailable (common in local dev without GitHub token)
-      let result: TrackRepositoryResponse | null = null;
-
-      if (response.status === 503) {
-        console.info('Track API unavailable (likely missing GitHub token), using direct database creation');
-
-        // Fallback: Create repository directly in the database
-        const { error: createError } = await createRepositoryFallback(owner, repo);
-
-        if (createError) {
-          throw createError;
-        }
-
-        result = { success: true };
-      } else {
-        result = await handleApiResponse<TrackRepositoryResponse>(response, 'track-repository');
-      }
+      const result = await handleApiResponse<TrackRepositoryResponse>(response, 'track-repository');
 
       console.log('Track repository response: %o', result);
 

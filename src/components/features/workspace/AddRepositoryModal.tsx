@@ -407,20 +407,29 @@ export function AddRepositoryModal({
 
           return newRepo.id;
         } catch (error) {
-          console.error('%s %o', 'Error processing repository:', error);
-          throw new Error(`Failed to add ${repo.full_name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          console.error('Error processing repository %s:', repo.full_name, error);
+          // Return null to indicate failure but don't throw to allow other repos to process
+          return null;
         }
       });
 
-      const repositoryIds = await Promise.all(repoPromises);
+      const repositoryResults = await Promise.all(repoPromises);
+      const repositoryIds = repositoryResults.filter((id): id is string => id !== null);
+
+      // Track which repositories failed to process
+      const failedRepos = stagedRepos.filter((_, index) => repositoryResults[index] === null);
 
       // Now add all repositories to the workspace
       let successCount = 0;
-      const errors: string[] = [];
+      const errors: string[] = failedRepos.map(r => `Failed to process ${r.full_name}`);
 
-      for (let i = 0; i < repositoryIds.length; i++) {
-        const repoId = repositoryIds[i];
-        const stagedRepo = stagedRepos[i];
+      // Create a map of successful repository IDs to their staged repos
+      const successfulRepos = repositoryIds.map(id => {
+        const index = repositoryResults.findIndex(r => r === id);
+        return { id, repo: stagedRepos[index] };
+      });
+
+      for (const { id: repoId, repo: stagedRepo } of successfulRepos) {
 
         const response = await WorkspaceService.addRepositoryToWorkspace(workspaceId, user.id, {
           repository_id: repoId,
