@@ -159,9 +159,9 @@ export const computeEmbeddings = inngest.createFunction(
           }
 
           // Call OpenAI API for batch embeddings
-          const apiKey = process.env.VITE_OPENAI_API_KEY;
+          const apiKey = process.env.VITE_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
           if (!apiKey) {
-            throw new Error('OpenAI API key not configured');
+            throw new Error('OpenAI API key not configured - check VITE_OPENAI_API_KEY or OPENAI_API_KEY environment variables');
           }
 
           const texts = batch.map(

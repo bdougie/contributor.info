@@ -1,4 +1,5 @@
 import { similarityCache } from './similarity-cache';
+import { withRetry, type RetryConfig } from '../../src/lib/retry-utils';
 
 interface EmbeddingItem {
   id: string;
@@ -19,11 +20,19 @@ export class EmbeddingService {
   private baseUrl = 'https://api.openai.com/v1';
   private model = 'text-embedding-3-small'; // Cheaper and faster
   private maxBatchSize = 20;
-  private maxRetries = 3;
-  private retryDelay = 1000; // Start with 1 second
+  private retryConfig: Partial<RetryConfig> = {
+    maxRetries: 3,
+    initialDelay: 1000,
+    maxDelay: 10000,
+    backoffMultiplier: 2,
+    retryableErrors: new Set(['429', '500', '502', '503', '504', 'NetworkError', 'TimeoutError'])
+  };
 
   constructor() {
-    this.apiKey = import.meta.env?.VITE_OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
+    // Only use API key from environment variables, never from client-side
+    if (typeof process !== 'undefined' && process.env) {
+      this.apiKey = process.env.VITE_OPENAI_API_KEY;
+    }
   }
 
   /**
@@ -42,7 +51,7 @@ export class EmbeddingService {
       return null;
     }
 
-    const contentHash = similarityCache.generateContentHash(item.title, item.body || '');
+    const contentHash = await similarityCache.generateContentHash(item.title, item.body || '');
 
     // Check cache first
     const cached = await similarityCache.get(
@@ -140,12 +149,14 @@ export class EmbeddingService {
    * Check cache for batch of items
    */
   private async checkBatchCache(items: EmbeddingItem[]): Promise<Map<string, number[]>> {
-    const cacheRequests = items.map((item) => ({
-      repositoryId: item.repositoryId,
-      itemType: item.type,
-      itemId: item.id,
-      contentHash: similarityCache.generateContentHash(item.title, item.body || ''),
-    }));
+    const cacheRequests = await Promise.all(
+      items.map(async (item) => ({
+        repositoryId: item.repositoryId,
+        itemType: item.type,
+        itemId: item.id,
+        contentHash: await similarityCache.generateContentHash(item.title, item.body || ''),
+      }))
+    );
 
     const cacheResults = await similarityCache.getBatch(cacheRequests);
     const results = new Map<string, number[]>();
@@ -183,7 +194,7 @@ export class EmbeddingService {
 
         if (embedding) {
           // Store in cache
-          const contentHash = similarityCache.generateContentHash(item.title, item.body || '');
+          const contentHash = await similarityCache.generateContentHash(item.title, item.body || '');
           await similarityCache.set(
             item.repositoryId,
             item.type,
@@ -251,42 +262,44 @@ export class EmbeddingService {
   }
 
   /**
-   * Call OpenAI embedding API with retry logic
+   * Call OpenAI embedding API using centralized retry logic
    */
-  private async callEmbeddingAPI(texts: string[], retryCount = 0): Promise<(number[] | null)[]> {
-    try {
-      const response = await fetch(`${this.baseUrl}/embeddings`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.apiKey}`,
-        },
-        body: JSON.stringify({
-          model: this.model,
-          input: texts,
-        }),
-      });
-
-      if (!response.ok) {
-        if (response.status === 429 && retryCount < this.maxRetries) {
-          // Rate limited, retry with exponential backoff
-          const delay = this.retryDelay * Math.pow(2, retryCount);
-          await new Promise((resolve) => setTimeout(resolve, delay));
-          return this.callEmbeddingAPI(texts, retryCount + 1);
-        }
-        throw new Error(`OpenAI API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return data.data.map((item: any) => item.embedding || null);
-    } catch (error) {
-      if (retryCount < this.maxRetries) {
-        const delay = this.retryDelay * Math.pow(2, retryCount);
-        await new Promise((resolve) => setTimeout(resolve, delay));
-        return this.callEmbeddingAPI(texts, retryCount + 1);
-      }
-      throw error;
+  private async callEmbeddingAPI(texts: string[]): Promise<(number[] | null)[]> {
+    if (!this.apiKey) {
+      throw new Error('OpenAI API key not configured - this service should only be called server-side');
     }
+
+    return withRetry(
+      async () => {
+        const response = await fetch(`${this.baseUrl}/embeddings`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.apiKey}`,
+          },
+          body: JSON.stringify({
+            model: this.model,
+            input: texts,
+          }),
+        });
+
+        if (!response.ok) {
+          const error = new Error(`OpenAI API error: ${response.status}`) as Error & { status?: number };
+          error.status = response.status;
+          throw error;
+        }
+
+        const data = await response.json();
+        return data.data.map((item: any) => item.embedding || null);
+      },
+      {
+        ...this.retryConfig,
+        onRetry: (error, attempt) => {
+          console.warn(`OpenAI API retry attempt ${attempt}:`, error.message);
+        }
+      },
+      'openai-embeddings' // Circuit breaker key
+    );
   }
 
   /**

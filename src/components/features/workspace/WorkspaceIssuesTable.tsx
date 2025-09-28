@@ -127,27 +127,41 @@ export function WorkspaceIssuesTable({
   const [selectedIssueForSimilar, setSelectedIssueForSimilar] = useState<Issue | null>(null);
   const [similarIssuesMap, setSimilarIssuesMap] = useState<Map<string, Issue[]>>(new Map());
 
-  // Check for similar issues in the background
+  // Check for similar issues in the background (optimized batch query)
   useEffect(() => {
     const checkSimilarIssues = async () => {
       if (issues.length === 0) return;
 
-      // For each issue, check if we have similarity data
+      // Batch query all issue IDs at once to avoid N+1 query problem
+      const issueIds = issues.map(issue => issue.id);
       const similarMap = new Map<string, Issue[]>();
 
-      for (const issue of issues) {
-        // Query similarity cache to see if this issue has similar items
-        const { data } = await supabase
+      try {
+        // Single query to check which issues have similarity data
+        const { data, error } = await supabase
           .from('similarity_cache')
           .select('item_id')
           .eq('item_type', 'issue')
-          .eq('item_id', issue.id)
-          .limit(1);
+          .in('item_id', issueIds);
+
+        if (error) {
+          console.error('Error checking similarity cache:', error);
+          return;
+        }
 
         if (data && data.length > 0) {
-          // Mark this issue as having similar issues available
-          similarMap.set(issue.id, []);
+          // Create a Set for O(1) lookup performance
+          const cachedIssueIds = new Set(data.map(item => item.item_id));
+
+          // Mark issues that have similar items available
+          for (const issue of issues) {
+            if (cachedIssueIds.has(issue.id)) {
+              similarMap.set(issue.id, []);
+            }
+          }
         }
+      } catch (error) {
+        console.error('Failed to check similar issues:', error);
       }
 
       setSimilarIssuesMap(similarMap);

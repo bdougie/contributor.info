@@ -1,4 +1,3 @@
-import { createHash } from 'crypto';
 import { supabase } from '../../src/lib/supabase';
 
 export interface CachedEmbedding {
@@ -54,11 +53,24 @@ export class SimilarityCacheService {
   }
 
   /**
-   * Generate content hash for cache invalidation
+   * Generate content hash for cache invalidation using Web Crypto API
    */
-  public generateContentHash(title: string, body: string | null): string {
+  public async generateContentHash(title: string, body: string | null): Promise<string> {
     const content = `${title || ''}:${body || ''}`;
-    return createHash('sha256').update(content).digest('hex').substring(0, 16);
+
+    // Use Web Crypto API for browser compatibility
+    if (typeof crypto !== 'undefined' && crypto.subtle) {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(content);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      return hashHex.substring(0, 16);
+    } else {
+      // Fallback for Node.js environments (e.g., during SSR)
+      const { createHash } = await import('crypto');
+      return createHash('sha256').update(content).digest('hex').substring(0, 16);
+    }
   }
 
   /**
@@ -70,7 +82,8 @@ export class SimilarityCacheService {
     itemId: string,
     contentHash: string
   ): Promise<number[] | null> {
-    const key = this.generateCacheKey(repositoryId, itemType, itemId, contentHash);
+    try {
+      const key = this.generateCacheKey(repositoryId, itemType, itemId, contentHash);
 
     // Check memory cache first
     const memoryEntry = this.memoryCache.get(key);
@@ -105,9 +118,15 @@ export class SimilarityCacheService {
       console.error('Cache lookup error:', error);
     }
 
-    this.stats.misses++;
-    this.updateHitRate();
-    return null;
+      this.stats.misses++;
+      this.updateHitRate();
+      return null;
+    } catch (error) {
+      console.error('Error in cache get operation:', error);
+      this.stats.misses++;
+      this.updateHitRate();
+      return null;
+    }
   }
 
   /**
@@ -121,9 +140,10 @@ export class SimilarityCacheService {
     embedding: number[],
     ttlHours?: number
   ): Promise<void> {
-    const key = this.generateCacheKey(repositoryId, itemType, itemId, contentHash);
-    const entry: CachedEmbedding = {
-      id: crypto.randomUUID(),
+    try {
+      const key = this.generateCacheKey(repositoryId, itemType, itemId, contentHash);
+      const entry: CachedEmbedding = {
+        id: this.generateUUID(),
       item_type: itemType,
       item_id: itemId,
       repository_id: repositoryId,
@@ -157,6 +177,27 @@ export class SimilarityCacheService {
       );
     } catch (error) {
       console.error('Cache storage error:', error);
+      throw error;
+    }
+    } catch (error) {
+      console.error('Error in cache set operation:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Generate UUID using Web Crypto API or fallback
+   */
+  private generateUUID(): string {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      return crypto.randomUUID();
+    } else {
+      // Fallback UUID generation
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
     }
   }
 
@@ -244,35 +285,59 @@ export class SimilarityCacheService {
   }
 
   /**
-   * Check if cache entry is still valid
+   * Check if cache entry is still valid based on TTL
    */
   private isValid(entry: CachedEmbedding | any): boolean {
     const now = new Date();
     const created = new Date(entry.created_at);
     const expiryHours = entry.ttl_hours || this.defaultTTLHours;
     const expiryTime = created.getTime() + expiryHours * 60 * 60 * 1000;
-    return now.getTime() < expiryTime;
+
+    // Check if entry has expired
+    const isNotExpired = now.getTime() < expiryTime;
+
+    // If expired, schedule for removal (async)
+    if (!isNotExpired && entry.id) {
+      this.scheduleRemoval(entry.id);
+    }
+
+    return isNotExpired;
   }
 
   /**
-   * Add entry to memory cache with LRU eviction
+   * Schedule removal of expired entry
+   */
+  private async scheduleRemoval(entryId: string): Promise<void> {
+    try {
+      // Remove from database asynchronously
+      await supabase
+        .from('similarity_cache')
+        .delete()
+        .eq('id', entryId);
+    } catch (error) {
+      console.error('Failed to remove expired cache entry:', error);
+    }
+  }
+
+  /**
+   * Add entry to memory cache with proper LRU eviction
    */
   private addToMemoryCache(key: string, entry: CachedEmbedding): void {
-    // Implement LRU eviction if at capacity
+    // Remove entry if it already exists (will be re-added at the end)
+    if (this.memoryCache.has(key)) {
+      this.memoryCache.delete(key);
+    }
+
+    // Implement proper LRU eviction if at capacity
     if (this.memoryCache.size >= this.maxMemorySize) {
-      // Find least recently accessed entry
-      let oldestKey: string | null = null;
-      let oldestTime = new Date();
-      for (const [k, v] of this.memoryCache.entries()) {
-        if (v.accessed_at < oldestTime) {
-          oldestTime = v.accessed_at;
-          oldestKey = k;
-        }
-      }
-      if (oldestKey) {
-        this.memoryCache.delete(oldestKey);
+      // The first entry in Map is the oldest (least recently used)
+      const firstKey = this.memoryCache.keys().next().value;
+      if (firstKey) {
+        this.memoryCache.delete(firstKey);
       }
     }
+
+    // Add to end of Map (most recently used)
     this.memoryCache.set(key, entry);
     this.stats.memorySize = this.memoryCache.size;
   }
