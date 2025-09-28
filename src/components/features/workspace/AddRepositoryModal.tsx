@@ -316,41 +316,67 @@ export function AddRepositoryModal({
     try {
       // First, we need to ensure these repositories are tracked in our system
       const repoPromises = stagedRepos.map(async (repo) => {
-        // Check if repository exists in our database
-        const { data: existingRepo } = await supabase
-          .from('repositories')
-          .select('id')
-          .eq('full_name', repo.full_name)
-          .maybeSingle();
+        try {
+          // Always use the tracking API endpoint to ensure proper GitHub data handling
+          const trackResponse = await fetch('/api/track-repository', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+              owner: repo.owner.login,
+              repo: repo.name,
+            }),
+          });
 
-        if (existingRepo) {
-          return existingRepo.id;
+          const trackResult = await trackResponse.json();
+
+          if (!trackResult.success) {
+            console.error('Track API error:', trackResult);
+            // If already tracked, that's OK - get the repository ID
+            if (trackResult.message?.includes('already being tracked')) {
+              // Wait a moment for database consistency
+              await new Promise(resolve => setTimeout(resolve, 500));
+
+              const { data: existingRepo } = await supabase
+                .from('repositories')
+                .select('id')
+                .eq('owner', repo.owner.login)
+                .eq('name', repo.name)
+                .maybeSingle();
+
+              if (existingRepo) {
+                return existingRepo.id;
+              }
+            }
+            throw new Error(trackResult.message || `Failed to track ${repo.full_name}`);
+          }
+
+          // If we have a repositoryId in the response, use it
+          if (trackResult.repositoryId) {
+            return trackResult.repositoryId;
+          }
+
+          // Otherwise, wait a moment for database consistency then fetch it
+          await new Promise(resolve => setTimeout(resolve, 1000));
+
+          const { data: newRepo } = await supabase
+            .from('repositories')
+            .select('id')
+            .eq('owner', repo.owner.login)
+            .eq('name', repo.name)
+            .maybeSingle();
+
+          if (!newRepo) {
+            throw new Error(`Repository ${repo.full_name} was tracked but not found in database`);
+          }
+
+          return newRepo.id;
+        } catch (error) {
+          console.error('%s %o', 'Error tracking repository:', error);
+          throw new Error(`Failed to track ${repo.full_name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
-
-        // If not, create it
-        const { data: newRepo, error: createError } = await supabase
-          .from('repositories')
-          .insert({
-            github_id: repo.id,
-            full_name: repo.full_name,
-            name: repo.name,
-            owner: repo.owner.login,
-            description: repo.description,
-            language: repo.language,
-            stargazers_count: repo.stargazers_count,
-            forks_count: repo.forks_count,
-            is_tracked: true,
-            is_active: true,
-          })
-          .select('id')
-          .maybeSingle();
-
-        if (createError || !newRepo) {
-          console.error('%s %o', 'Error creating repository:', createError);
-          throw new Error(`Failed to add ${repo.full_name}`);
-        }
-
-        return newRepo.id;
       });
 
       const repositoryIds = await Promise.all(repoPromises);
