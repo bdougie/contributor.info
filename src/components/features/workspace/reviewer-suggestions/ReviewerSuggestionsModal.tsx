@@ -2,9 +2,19 @@ import { useEffect, useMemo, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Users } from '@/components/ui/icon';
+import { Loader2, Users, Copy } from '@/components/ui/icon';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
+import {
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue,
+} from '@/components/ui/select';
 import { fetchCodeOwners, fetchFileTree, fetchSuggestedCodeOwners, suggestReviewers } from '@/services/reviewer-suggestions.service';
 import type { Repository } from '@/types/github';
 
@@ -16,7 +26,10 @@ interface ReviewerSuggestionsModalProps {
 
 export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: ReviewerSuggestionsModalProps) {
   const [activeRepo, setActiveRepo] = useState<string>('');
-  const active = useMemo(() => repositories.find((r) => r.id === activeRepo) || repositories[0], [repositories, activeRepo]);
+  const active = useMemo(
+    () => repositories.find((r) => r.id === activeRepo) || repositories[0],
+    [repositories, activeRepo]
+  );
 
   const [tab, setTab] = useState<'reviewers' | 'codeowners' | 'generate'>('reviewers');
   const [loading, setLoading] = useState(false);
@@ -24,13 +37,39 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
 
   // Suggest Reviewers state
   const [fileList, setFileList] = useState('');
-  const [suggestions, setSuggestions] = useState<any | null>(null);
+  type ReviewerSuggestionDTO = {
+    username: string;
+    avatarUrl?: string;
+    score: number;
+    reasoning: string[];
+    relevantFiles: string[];
+    recentActivity: boolean;
+  };
+
+  type SuggestionsResponse = {
+    suggestions: {
+      primary: ReviewerSuggestionDTO[];
+      secondary: ReviewerSuggestionDTO[];
+      additional: ReviewerSuggestionDTO[];
+    };
+    codeOwners: string[];
+    repository: string;
+    filesAnalyzed: number;
+    directoriesAffected: number;
+    generatedAt: string;
+  };
+
+  const [suggestions, setSuggestions] = useState<SuggestionsResponse | null>(null);
 
   // CODEOWNERS state
-  const [codeowners, setCodeowners] = useState<{ exists: boolean; content?: string; path?: string; message?: string } | null>(null);
+  const [codeowners, setCodeowners] = useState<
+    { exists: boolean; content?: string; path?: string; message?: string } | null
+  >(null);
 
   // Generate CODEOWNERS state
-  const [generated, setGenerated] = useState<{ suggestions: any[]; codeOwnersContent: string } | null>(null);
+  const [generated, setGenerated] = useState<
+    { suggestions: Array<{ pattern: string; owners: string[]; confidence: number; reasoning: string }>; codeOwnersContent: string } | null
+  >(null);
   const [fileTree, setFileTree] = useState<{ files: string[]; directories: string[] } | null>(null);
 
   useEffect(() => {
@@ -106,19 +145,20 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex items-center gap-2 mb-4">
-          <label className="text-sm text-muted-foreground">Repository:</label>
-          <select
-            className="border rounded px-2 py-1 text-sm"
-            value={active?.id || ''}
-            onChange={(e) => setActiveRepo(e.target.value)}
-          >
-            {repositories.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.full_name || `${r.owner}/${r.name}`}
-              </option>
-            ))}
-          </select>
+        <div className="flex items-center gap-3 mb-4">
+          <span className="text-sm text-muted-foreground">Repository</span>
+          <Select value={active?.id || ''} onValueChange={setActiveRepo}>
+            <SelectTrigger className="w-[280px]">
+              <SelectValue placeholder="Select repository" />
+            </SelectTrigger>
+            <SelectContent>
+              {repositories.map((r) => (
+                <SelectItem key={r.id} value={r.id}>
+                  {r.full_name || `${r.owner}/${r.name}`}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
@@ -130,9 +170,9 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
 
           <TabsContent value="reviewers" className="mt-4 space-y-4">
             <div>
-              <label className="text-sm font-medium">Changed files (one per line)</label>
-              <textarea
-                className="mt-1 w-full border rounded p-2 text-sm h-32"
+              <div className="text-sm font-medium">Changed files (one per line)</div>
+              <Textarea
+                className="mt-2 h-32"
                 placeholder="src/components/Button.tsx\nsrc/pages/home.tsx"
                 value={fileList}
                 onChange={(e) => setFileList(e.target.value)}
@@ -150,23 +190,39 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
                 {(['primary', 'secondary', 'additional'] as const).map((group) => (
                   <div key={group}>
                     <h4 className="font-semibold capitalize">{group}</h4>
-                    <div className="grid gap-3">
-                      {suggestions.suggestions[group].length === 0 && (
-                        <p className="text-sm text-muted-foreground">No suggestions.</p>
-                      )}
-                      {suggestions.suggestions[group].map((s: any) => (
-                        <div key={s.username} className="flex items-center gap-3 border rounded p-2">
-                          {s.avatarUrl && (
-                            <img src={s.avatarUrl} alt={s.username} className="h-6 w-6 rounded-full" />
-                          )}
-                          <span className="font-medium">@{s.username}</span>
-                          <Badge variant="secondary">Score {s.score}</Badge>
-                          <div className="text-xs text-muted-foreground ml-auto">
-                            {s.reasoning.slice(0, 2).join(' • ')}
+                    <ScrollArea className="h-auto max-h-72 rounded border">
+                      <div className="p-2 space-y-2">
+                        {suggestions.suggestions[group].length === 0 && (
+                          <p className="text-sm text-muted-foreground">No suggestions.</p>
+                        )}
+                        {suggestions.suggestions[group].map((s) => (
+                          <div key={s.username} className="flex items-center gap-3 rounded border p-2">
+                            <Avatar className="h-6 w-6">
+                              {s.avatarUrl ? (
+                                <AvatarImage src={s.avatarUrl} alt={s.username} />
+                              ) : (
+                                <AvatarFallback>{s.username[0]?.toUpperCase()}</AvatarFallback>
+                              )}
+                            </Avatar>
+                            <span className="font-medium">@{s.username}</span>
+                            <Badge variant="secondary">Score {s.score}</Badge>
+                            <div className="text-xs text-muted-foreground ml-auto truncate max-w-[40%]">
+                              {s.reasoning.slice(0, 2).join(' • ')}
+                            </div>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="ml-1"
+                              onClick={() => navigator.clipboard.writeText(s.username)}
+                              title="Copy username"
+                              aria-label={`Copy @${s.username}`}
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
                           </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
                   </div>
                 ))}
               </div>
@@ -185,9 +241,11 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
             </div>
             {error && <span className="text-sm text-red-500">{error}</span>}
             {codeowners && (
-              <pre className="border rounded p-3 bg-muted/30 max-h-72 overflow-auto text-xs whitespace-pre-wrap">
-                {codeowners.content || codeowners.message}
-              </pre>
+              <ScrollArea className="h-72 rounded border">
+                <pre className="p-3 bg-muted/30 text-xs whitespace-pre-wrap">
+                  {codeowners.content || codeowners.message}
+                </pre>
+              </ScrollArea>
             )}
           </TabsContent>
 
@@ -200,25 +258,33 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
               {error && <span className="text-sm text-red-500">{error}</span>}
             </div>
             {fileTree && (
-              <div className="text-xs text-muted-foreground">{fileTree.directories.length} directories, {fileTree.files.length} files</div>
+              <div className="text-xs text-muted-foreground">
+                {fileTree.directories.length} directories, {fileTree.files.length} files
+              </div>
             )}
             {generated && (
               <div className="grid gap-2">
-                {generated.suggestions.map((s: any, idx: number) => (
-                  <div key={idx} className="border rounded p-2 text-sm">
-                    <div className="flex items-center justify-between">
-                      <code>{s.pattern}</code>
-                      <Badge variant="secondary">{Math.round(s.confidence * 100)}%</Badge>
-                    </div>
-                    <div className="text-xs mt-1">Owners: {s.owners.join(' ')}</div>
-                    <div className="text-xs text-muted-foreground">{s.reasoning}</div>
+                <ScrollArea className="h-48 rounded border">
+                  <div className="p-2 space-y-2">
+                    {generated.suggestions.map((s, idx) => (
+                      <div key={idx} className="border rounded p-2 text-sm">
+                        <div className="flex items-center justify-between">
+                          <code>{s.pattern}</code>
+                          <Badge variant="secondary">{Math.round(s.confidence * 100)}%</Badge>
+                        </div>
+                        <div className="text-xs mt-1">Owners: {s.owners.join(' ')}</div>
+                        <div className="text-xs text-muted-foreground">{s.reasoning}</div>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                </ScrollArea>
                 <div>
                   <h4 className="font-semibold mt-2">Generated CODEOWNERS</h4>
-                  <pre className="border rounded p-3 bg-muted/30 max-h-72 overflow-auto text-xs whitespace-pre-wrap">
-                    {generated.codeOwnersContent}
-                  </pre>
+                  <ScrollArea className="h-72 rounded border">
+                    <pre className="p-3 bg-muted/30 text-xs whitespace-pre-wrap">
+                      {generated.codeOwnersContent}
+                    </pre>
+                  </ScrollArea>
                 </div>
               </div>
             )}
@@ -228,4 +294,3 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
     </Dialog>
   );
 }
-
