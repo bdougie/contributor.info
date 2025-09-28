@@ -5,6 +5,7 @@ import { formatPRComment, formatMinimalPRComment } from '../services/comments';
 import { findSimilarIssues, SimilarIssue } from '../services/similarity';
 import { suggestReviewers, ReviewerSuggestion } from '../services/reviewers';
 import { supabase } from '../../src/lib/supabase';
+import { ensureContributorForWebhook } from '../lib/webhook-contributor-utils';
 import {
   fetchContributorConfig,
   isFeatureEnabled,
@@ -452,35 +453,4 @@ async function storePRSimilarityComment(data: StorePRSimilarityData) {
   }
 }
 
-// Local helper (Phase 1). Will be replaced by shared utility in Phase 2.
-async function ensureContributorForWebhook(githubUser: any): Promise<string | null> {
-  if (!githubUser || !githubUser.id || !githubUser.login) return null;
-  try {
-    const { data, error } = await supabase
-      .from('contributors')
-      .upsert(
-        {
-          github_id: githubUser.id,
-          username: githubUser.login,
-          display_name: githubUser.name || githubUser.login,
-          avatar_url: githubUser.avatar_url,
-          profile_url: githubUser.html_url,
-          is_bot: githubUser.type === 'Bot',
-          is_active: true,
-          first_seen_at: new Date().toISOString(),
-          last_updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'github_id' }
-      )
-      .select('id')
-      .maybeSingle();
-    if (error) {
-      console.error('Error ensuring contributor:', error.message);
-      return null;
-    }
-    return data?.id || null;
-  } catch (e: any) {
-    console.error('Unexpected ensureContributor error:', e.message);
-    return null;
-  }
-}
+// (Phase 2) Local helper removed in favor of shared utility import.

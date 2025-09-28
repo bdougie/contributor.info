@@ -1,4 +1,7 @@
 import Logger from '../utils/logger.js';
+// Phase 2: reuse shared contributor utility via dynamic import path (not TypeScript here)
+// We intentionally avoid relative traversal into app/; progressive scripts own shared utils.
+import { ensureContributor as sharedEnsureContributor } from '../../../scripts/progressive-capture/lib/contributor-utils.js';
 
 /**
  * Direct PR opened handler
@@ -74,39 +77,11 @@ async function checkIfFirstPR(username, repo, octokit) {
   }
 }
 
+// Wrap shared ensureContributor to keep logging behavior
 async function ensureContributor(supabase, githubUser, logger) {
-  if (!githubUser || !githubUser.id || !githubUser.login) {
-    logger.warn('Missing GitHub user information when ensuring contributor');
-    return null;
-  }
-  try {
-    const { data, error } = await supabase
-      .from('contributors')
-      .upsert(
-        {
-          github_id: githubUser.id,
-          username: githubUser.login,
-          display_name: githubUser.name || githubUser.login,
-          avatar_url: githubUser.avatar_url,
-          profile_url: githubUser.html_url,
-          is_bot: githubUser.type === 'Bot',
-          is_active: true,
-          first_seen_at: new Date().toISOString(),
-          last_updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'github_id' }
-      )
-      .select('id')
-      .maybeSingle();
-    if (error) {
-      logger.error('Failed upserting contributor %s: %s', githubUser.login, error.message);
-      return null;
-    }
-    return data?.id || null;
-  } catch (err) {
-    logger.error('Unexpected error ensuring contributor %s: %s', githubUser.login, err.message);
-    return null;
-  }
+  const id = await sharedEnsureContributor(supabase, githubUser);
+  if (!id) logger.error('Failed upserting contributor %s', githubUser?.login);
+  return id;
 }
 
 async function trackPullRequest(pr, repo, supabase, logger) {
