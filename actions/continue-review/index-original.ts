@@ -117,12 +117,44 @@ function shouldApplyRule(rule: Rule, changedFiles: string[]): boolean {
  * Simple glob pattern matching
  */
 function matchesPattern(filepath: string, pattern: string): boolean {
-  // Convert glob pattern to regex
-  const regexPattern = pattern
-    .replace(/\*\*/g, '.*')
-    .replace(/\*/g, '[^/]*')
-    .replace(/\?/g, '.')
-    .replace(/\{([^}]+)\}/g, (_, group) => `(${group.split(',').join('|')})`);
+  // Escape regex special characters first, except for glob-specific characters
+  const escapeRegex = (str: string) => {
+    return str.replace(/[.+^$()[\]{}|\\]/g, '\\$&');
+  };
+
+  // Split pattern to handle glob characters separately
+  let regexPattern = '';
+  let i = 0;
+
+  while (i < pattern.length) {
+    if (pattern.slice(i, i + 2) === '**') {
+      regexPattern += '.*';
+      i += 2;
+    } else if (pattern[i] === '*') {
+      regexPattern += '[^/]*';
+      i += 1;
+    } else if (pattern[i] === '?') {
+      regexPattern += '.';
+      i += 1;
+    } else if (pattern[i] === '{') {
+      // Find closing brace
+      const closeIdx = pattern.indexOf('}', i);
+      if (closeIdx !== -1) {
+        const group = pattern.slice(i + 1, closeIdx);
+        const options = group.split(',').map(opt => escapeRegex(opt));
+        regexPattern += `(${options.join('|')})`;
+        i = closeIdx + 1;
+      } else {
+        // No closing brace, treat as literal
+        regexPattern += escapeRegex(pattern[i]);
+        i += 1;
+      }
+    } else {
+      // Regular character - escape it
+      regexPattern += escapeRegex(pattern[i]);
+      i += 1;
+    }
+  }
 
   const regex = new RegExp(`^${regexPattern}$`);
   return regex.test(filepath);

@@ -153,7 +153,8 @@ async function findRelatedFiles(changedFiles: string[]): Promise<string[]> {
  */
 function extractImportPatterns(content: string, filepath: string): CodebasePattern[] {
   const patterns: CodebasePattern[] = [];
-  const importRegex = /import\s+(?:{[^}]+}|\*\s+as\s+\w+|\w+)?\s*(?:,\s*{[^}]+})?\s*from\s+['"`]([^'"`]+)['"`]/g;
+  // Updated regex to handle type-only imports (import type { ... } from ...)
+  const importRegex = /import\s+(?:type\s+)?(?:{[^}]+}|\*\s+as\s+\w+|\w+)?\s*(?:,\s*(?:type\s+)?{[^}]+})?\s*from\s+['"`]([^'"`]+)['"`]/g;
 
   let match;
   const imports = new Map<string, number>();

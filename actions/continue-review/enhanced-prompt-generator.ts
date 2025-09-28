@@ -152,7 +152,7 @@ For each issue, use ### headers with clear structure:
 
   // Truncate if too large (15KB limit, increased from 12KB for better context)
   if (diffContent.length > 15000) {
-    diffContent = diffContent.substring(0, 14000) + '\n\n... (diff truncated due to size - focus on critical files)';
+    diffContent = diffContent.substring(0, 14000) + '\n```\n\n... (diff truncated due to size - focus on critical files)';
   }
 
   prompt += diffContent;

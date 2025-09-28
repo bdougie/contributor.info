@@ -371,16 +371,82 @@ Please address the user's specific request while also checking for any significa
   prompt += 'Focus on issues that matter for functionality, security, and maintainability.\n';
   prompt += 'If the code looks good overall, acknowledge that while noting any minor suggestions.';
 
-  return {
-    review: 'Standard review analysis completed. Enhanced features temporarily unavailable.',
-    metrics: {
-      processingTime: Math.round((Date.now() - startTime) / 1000),
-      promptLength: prompt.length,
-      responseLength: 0,
-      rulesApplied: context.rules.length,
-      patternsDetected: 0
-    }
-  };
+  // Write prompt to temp file for headless mode
+  const tempFile = path.join('/tmp', `continue-review-fallback-${Date.now()}.txt`);
+  await fs.writeFile(tempFile, prompt);
+
+  try {
+    // Call Continue CLI for fallback review
+    core.info('Fallback: Calling Continue CLI for standard review...');
+
+    // Check if Continue CLI is available
+    await new Promise<void>((resolve, reject) => {
+      exec('which cn', (error) => {
+        if (error) {
+          reject(new Error('Continue CLI not found'));
+        } else {
+          resolve();
+        }
+      });
+    });
+
+    // Execute Continue CLI with the prompt
+    const command = `cn --config ${continueConfig} -p @${tempFile} --allow Bash`;
+
+    const { stdout } = await new Promise<{ stdout: string; stderr: string }>(
+      (resolve, reject) => {
+        exec(
+          command,
+          {
+            env: {
+              ...process.env,
+              CONTINUE_API_KEY: continueApiKey,
+              GITHUB_TOKEN: githubToken,
+              GH_TOKEN: githubToken,
+            },
+            timeout: 360000,
+            maxBuffer: 10 * 1024 * 1024,
+          },
+          (error, stdout, stderr) => {
+            if (error) {
+              reject(error);
+            } else {
+              resolve({ stdout, stderr });
+            }
+          }
+        );
+      }
+    );
+
+    // Clean up temp file
+    await fs.unlink(tempFile).catch(() => {});
+
+    return {
+      review: stdout.trim() || 'Review completed but no output generated.',
+      metrics: {
+        processingTime: Math.round((Date.now() - startTime) / 1000),
+        promptLength: prompt.length,
+        responseLength: stdout.length,
+        rulesApplied: context.rules.length,
+        patternsDetected: 0
+      }
+    };
+  } catch (error) {
+    // Clean up temp file on error
+    await fs.unlink(tempFile).catch(() => {});
+
+    core.warning(`Fallback Continue CLI failed: ${error}`);
+    return {
+      review: 'Unable to generate review. Both enhanced and standard Continue CLI analysis failed.',
+      metrics: {
+        processingTime: Math.round((Date.now() - startTime) / 1000),
+        promptLength: prompt.length,
+        responseLength: 0,
+        rulesApplied: context.rules.length,
+        patternsDetected: 0
+      }
+    };
+  }
 }
 
 /**

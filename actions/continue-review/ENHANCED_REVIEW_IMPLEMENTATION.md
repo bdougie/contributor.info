@@ -52,9 +52,9 @@ This implementation addresses GitHub issue #832 by significantly improving the c
    - Provides guidelines for strategic analysis
    - Ensures consistent quality across reviews
 
-5. **`index-enhanced.ts`** (replaces `index.ts`)
-   - Main action logic with enhanced capabilities
-   - Fallback to standard review if enhanced analysis fails
+5. **`index.ts`** (updated with enhanced capabilities)
+   - Main action logic with integrated enhanced review features
+   - Includes fallback to standard Continue CLI review if enhanced analysis fails
    - Comprehensive error handling and logging
 
 ### Enhanced Features
