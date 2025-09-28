@@ -350,17 +350,30 @@ export default async (req: Request, context: Context) => {
           });
 
           // Send sync event for the existing repository
-          const result = await inngest.send({
-            name: 'capture/repository.sync.graphql',
-            data: {
-              repositoryId: existingRepo.id,
-              owner: existingRepo.owner,
-              name: existingRepo.name,
-              days: 30,
-              priority: 'high',
-              reason: 'Re-tracking existing repository',
+          const result = await inngest.send([
+            {
+              name: 'capture/repository.sync.graphql',
+              data: {
+                repositoryId: existingRepo.id,
+                owner: existingRepo.owner,
+                name: existingRepo.name,
+                days: 30,
+                priority: 'high',
+                reason: 'Re-tracking existing repository',
+              },
             },
-          });
+            {
+              name: 'capture/commits.update',
+              data: {
+                repositoryId: existingRepo.id,
+                repositoryName: `${existingRepo.owner}/${existingRepo.name}`,
+                days: 1, // Incremental update for existing repos
+                priority: 'medium',
+                forceInitial: false,
+                reason: 'Re-tracking existing repository',
+              },
+            },
+          ]);
 
           console.log('Sync event sent for existing repository:', result.ids);
         } catch (eventError) {
@@ -531,6 +544,17 @@ export default async (req: Request, context: Context) => {
               name: repository.name,
               days: 30,
               priority: 'high',
+              reason: 'Initial repository discovery',
+            },
+          },
+          {
+            name: 'capture/commits.initial',
+            data: {
+              repositoryId: repository.id,
+              repositoryName: `${repository.owner}/${repository.name}`,
+              days: 7, // Initial capture for 7 days as per configuration
+              priority: 'high',
+              forceInitial: true,
               reason: 'Initial repository discovery',
             },
           },
