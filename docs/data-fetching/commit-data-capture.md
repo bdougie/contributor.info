@@ -41,6 +41,12 @@ const result = await captureCommits('owner', 'repo');
 const since = new Date('2025-09-01');
 const result = await captureCommits('owner', 'repo', since);
 
+// Capture with custom configuration
+const result = await captureCommits('owner', 'repo', since, {
+  batchSize: 50,   // Smaller batches for rate limiting
+  maxPages: 20     // More pages for complete history
+});
+
 // Check result
 if (result.success) {
   console.log(`Captured ${result.count} commits`);
@@ -101,13 +107,18 @@ VITE_SUPABASE_ANON_KEY=your-anon-key
 
 # Optional (for higher rate limits)
 VITE_GITHUB_TOKEN=your-github-token
+
+# Commit Capture Configuration
+VITE_GITHUB_COMMITS_BATCH_SIZE=100  # Commits per API request (max 100)
+VITE_GITHUB_COMMITS_MAX_PAGES=10    # Maximum pages to fetch
 ```
 
 ### Rate Limits
 
 - Without token: 60 requests/hour
 - With token: 5000 requests/hour
-- Script fetches 100 commits per request
+- Default batch size: 100 commits per request
+- Maximum commits per run: batch_size × max_pages (default: 1000)
 
 ## Error Handling
 

@@ -9,7 +9,11 @@ import GitHubAPIService from '../services/github-api.service';
 export async function captureCommits(
   owner: string,
   repo: string,
-  since?: Date
+  since?: Date,
+  options?: {
+    batchSize?: number;
+    maxPages?: number;
+  }
 ): Promise<{ success: boolean; count: number; error?: string }> {
   try {
     // Get repository ID first
@@ -28,17 +32,48 @@ export async function captureCommits(
       };
     }
 
+    // Configuration with defaults
+    const batchSize = options?.batchSize ||
+      parseInt(process.env.VITE_GITHUB_COMMITS_BATCH_SIZE || '100', 10);
+    const maxPages = options?.maxPages ||
+      parseInt(process.env.VITE_GITHUB_COMMITS_MAX_PAGES || '10', 10);
+
     // Calculate date range - default to last 30 days
     const sinceDate = since || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
     // Fetch commits from GitHub
     console.log(`[Capture Commits] Fetching commits for ${owner}/${repo} since ${sinceDate.toISOString()}`);
+    console.log(`[Capture Commits] Batch size: ${batchSize}, Max pages: ${maxPages}`);
 
     const githubApiService = new GitHubAPIService(process.env.VITE_GITHUB_TOKEN);
-    const commits = await githubApiService.fetchCommits(owner, repo, {
-      since: sinceDate.toISOString(),
-      per_page: 100
-    });
+
+    // Fetch multiple pages if needed
+    let allCommits: any[] = [];
+    let page = 1;
+    let hasMore = true;
+
+    while (hasMore && page <= maxPages) {
+      const commits = await githubApiService.fetchCommits(owner, repo, {
+        since: sinceDate.toISOString(),
+        per_page: batchSize,
+        page
+      });
+
+      if (!commits || commits.length === 0) {
+        hasMore = false;
+      } else {
+        allCommits = allCommits.concat(commits);
+        console.log(`[Capture Commits] Fetched page ${page} with ${commits.length} commits`);
+
+        // GitHub API returns less than per_page when no more results
+        if (commits.length < batchSize) {
+          hasMore = false;
+        }
+        page++;
+      }
+    }
+
+    const commits = allCommits;
 
     if (!commits || commits.length === 0) {
       console.log(`[Capture Commits] No commits found for ${owner}/${repo}`);
