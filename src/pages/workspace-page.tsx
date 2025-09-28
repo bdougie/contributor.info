@@ -33,6 +33,7 @@ import { AddRepositoryModal } from '@/components/features/workspace/AddRepositor
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
+import { ReviewerSuggestionsModal } from '@/components/features/workspace/reviewer-suggestions/ReviewerSuggestionsModal';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -2270,6 +2271,7 @@ function WorkspacePage() {
   const [currentMember, setCurrentMember] = useState<WorkspaceMemberWithUser | null>(null);
   const [memberCount, setMemberCount] = useState(0);
   const [isWorkspaceOwner, setIsWorkspaceOwner] = useState(false);
+  const [reviewerModalOpen, setReviewerModalOpen] = useState(false);
 
   // Determine active tab from URL
   const pathSegments = location.pathname.split('/');
@@ -3259,8 +3261,8 @@ function WorkspacePage() {
                 onSelectionChange={setSelectedRepositories}
                 className="w-[200px]"
               />
-              <Button onClick={handleSettingsClick} size="sm" variant="outline">
-                <Settings className="h-4 w-4" />
+              <Button onClick={() => setReviewerModalOpen(true)} size="sm" variant="outline">
+                Reviewer Suggestions
               </Button>
             </div>
           </div>
@@ -3304,6 +3306,13 @@ function WorkspacePage() {
 
           <TabsContent value="overview" className="mt-6 space-y-4">
             <div className="container max-w-7xl mx-auto">
+              {repositories.length > 0 && (
+                <ReviewerSuggestionsModal
+                  open={reviewerModalOpen}
+                  onOpenChange={setReviewerModalOpen}
+                  repositories={repositories.map((r) => ({ id: r.id, name: r.name, owner: r.owner, full_name: r.full_name }))}
+                />
+              )}
               <WorkspaceDashboard
                 workspaceId={workspace.id}
                 workspaceName=""
