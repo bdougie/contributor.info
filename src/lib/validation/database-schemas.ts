@@ -91,6 +91,8 @@ export const contributorCreateSchema = z.object({
   display_name: z.string().max(255, 'Display name too long').nullable(),
   avatar_url: urlSchema,
   profile_url: urlSchema,
+  discord_url: urlSchema,
+  linkedin_url: urlSchema,
   email: emailSchema,
   company: z.string().max(255, 'Company name too long').nullable(),
   location: z.string().max(255, 'Location too long').nullable(),

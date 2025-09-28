@@ -2,7 +2,7 @@
 
 /**
  * GitHub Actions Performance Optimizer
- * 
+ *
  * Optimizes GitHub Actions workflows for historical data processing:
  * - Increases batch sizes for efficiency
  * - Implements parallel processing with matrix strategy
@@ -16,43 +16,42 @@ class GitHubActionsOptimizer {
   constructor() {
     // Check for required environment variables
     if (!process.env.GITHUB_TOKEN) {
-      throw new Error('GITHUB_TOKEN environment variable is required. Unauthenticated requests have a rate limit of only 60 requests per hour.');
+      throw new Error(
+        'GITHUB_TOKEN environment variable is required. Unauthenticated requests have a rate limit of only 60 requests per hour.'
+      );
     }
-    
+
     if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
       throw new Error('SUPABASE_URL and SUPABASE_SERVICE_KEY environment variables are required.');
     }
-    
-    this.supabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_KEY
-    );
-    
+
+    this.supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+
     this.octokit = new Octokit({
-      auth: process.env.GITHUB_TOKEN
+      auth: process.env.GITHUB_TOKEN,
     });
-    
+
     this.optimizations = {
       batchSize: {
         current: 1000,
         optimal: 2500,
-        reason: 'Larger batches for better cost efficiency'
+        reason: 'Larger batches for better cost efficiency',
       },
       parallelJobs: {
         current: 3,
         optimal: 6,
-        reason: 'More parallel processing within time limits'
+        reason: 'More parallel processing within time limits',
       },
       timeout: {
         current: 120, // 2 hours
         optimal: 300, // 5 hours
-        reason: 'Longer timeout for processing large datasets'
+        reason: 'Longer timeout for processing large datasets',
       },
       retentionDays: {
         current: 7,
         optimal: 30,
-        reason: 'Longer retention for debugging large jobs'
-      }
+        reason: 'Longer retention for debugging large jobs',
+      },
     };
   }
 
@@ -61,31 +60,35 @@ class GitHubActionsOptimizer {
    */
   async optimize() {
     console.log('🚀 Starting GitHub Actions optimization...\n');
-    
+
     try {
       // Analyze current performance
       const currentMetrics = await this.analyzeCurrentPerformance();
       console.log('📊 Current performance metrics:');
       this.displayMetrics(currentMetrics);
-      
+
       // Analyze workflow efficiency
       const workflowAnalysis = await this.analyzeWorkflowEfficiency();
       console.log('\n🔄 Workflow efficiency analysis:');
       this.displayWorkflowAnalysis(workflowAnalysis);
-      
+
       // Generate optimization recommendations
       const recommendations = await this.generateOptimizations(currentMetrics, workflowAnalysis);
       console.log('\n💡 Optimization recommendations:');
       this.displayRecommendations(recommendations);
-      
+
       // Apply optimizations
       const results = await this.applyOptimizations(recommendations);
       console.log('\n✅ Optimization results:');
       this.displayResults(results);
-      
+
       // Generate optimization report
-      await this.generateOptimizationReport(currentMetrics, workflowAnalysis, recommendations, results);
-      
+      await this.generateOptimizationReport(
+        currentMetrics,
+        workflowAnalysis,
+        recommendations,
+        results
+      );
     } catch (error) {
       console.error('❌ Optimization failed:', error);
       process.exit(1);
@@ -104,7 +107,7 @@ class GitHubActionsOptimizer {
       resourceUtilization: 0,
       totalJobs: 0,
       avgItemsPerJob: 0,
-      parallelEfficiency: 0
+      parallelEfficiency: 0,
     };
 
     // Get recent GitHub Actions jobs (last 7 days)
@@ -123,32 +126,32 @@ class GitHubActionsOptimizer {
     metrics.totalJobs = recentJobs.length;
 
     // Calculate execution times
-    const completedJobs = recentJobs.filter(job => 
-      job.status === 'completed' && job.started_at && job.completed_at
+    const completedJobs = recentJobs.filter(
+      (job) => job.status === 'completed' && job.started_at && job.completed_at
     );
-    
+
     if (completedJobs.length > 0) {
-      const executionTimes = completedJobs.map(job => 
-        new Date(job.completed_at) - new Date(job.started_at)
+      const executionTimes = completedJobs.map(
+        (job) => new Date(job.completed_at) - new Date(job.started_at)
       );
       metrics.avgExecutionTime = executionTimes.reduce((a, b) => a + b, 0) / executionTimes.length;
     }
 
     // Calculate success rate
-    const successfulJobs = recentJobs.filter(job => job.status === 'completed');
+    const successfulJobs = recentJobs.filter((job) => job.status === 'completed');
     metrics.successRate = (successfulJobs.length / recentJobs.length) * 100;
 
     // Estimate average items per job
-    const jobsWithMetadata = recentJobs.filter(job => job.metadata?.max_items);
+    const jobsWithMetadata = recentJobs.filter((job) => job.metadata?.max_items);
     if (jobsWithMetadata.length > 0) {
-      metrics.avgItemsPerJob = jobsWithMetadata.reduce(
-        (sum, job) => sum + (job.metadata.max_items || 0), 0
-      ) / jobsWithMetadata.length;
+      metrics.avgItemsPerJob =
+        jobsWithMetadata.reduce((sum, job) => sum + (job.metadata.max_items || 0), 0) /
+        jobsWithMetadata.length;
     }
 
     // Calculate throughput (items per hour)
     if (metrics.avgExecutionTime > 0 && metrics.avgItemsPerJob > 0) {
-      metrics.throughput = (metrics.avgItemsPerJob / (metrics.avgExecutionTime / 1000 / 60 / 60));
+      metrics.throughput = metrics.avgItemsPerJob / (metrics.avgExecutionTime / 1000 / 60 / 60);
     }
 
     // Estimate cost efficiency (items per dollar)
@@ -170,7 +173,7 @@ class GitHubActionsOptimizer {
       avgProcessingTime: 0,
       bottlenecks: [],
       resourceUsage: {},
-      parallelization: 0
+      parallelization: 0,
     };
 
     try {
@@ -179,7 +182,7 @@ class GitHubActionsOptimizer {
         owner: 'bdougie',
         repo: 'jobs',
         per_page: 50,
-        status: 'completed'
+        status: 'completed',
       });
 
       analysis.workflowRuns = workflowRuns.workflow_runs.slice(0, 20); // Recent 20 runs
@@ -190,7 +193,7 @@ class GitHubActionsOptimizer {
           const jobs = await this.getWorkflowJobs(run.id);
           const setupTime = this.calculateSetupTime(jobs);
           const processingTime = this.calculateProcessingTime(jobs);
-          
+
           analysis.avgSetupTime += setupTime;
           analysis.avgProcessingTime += processingTime;
         }
@@ -201,7 +204,6 @@ class GitHubActionsOptimizer {
         // Identify bottlenecks
         analysis.bottlenecks = this.identifyBottlenecks(analysis);
       }
-
     } catch (error) {
       console.warn('Could not analyze workflows via GitHub API:', error.message);
     }
@@ -216,7 +218,8 @@ class GitHubActionsOptimizer {
     const recommendations = [];
 
     // Throughput optimization
-    if (currentMetrics.throughput < 500) { // items per hour
+    if (currentMetrics.throughput < 500) {
+      // items per hour
       recommendations.push({
         type: 'throughput',
         priority: 'high',
@@ -226,14 +229,15 @@ class GitHubActionsOptimizer {
           'Increase batch size from 1000 to 2500 items',
           'Implement matrix strategy for parallel processing',
           'Optimize data fetching with GraphQL batch queries',
-          'Use workflow artifacts for intermediate results'
+          'Use workflow artifacts for intermediate results',
         ],
-        expectedImprovement: '100-150% throughput increase'
+        expectedImprovement: '100-150% throughput increase',
       });
     }
 
     // Cost efficiency optimization
-    if (currentMetrics.costEfficiency < 1000) { // items per dollar
+    if (currentMetrics.costEfficiency < 1000) {
+      // items per dollar
       recommendations.push({
         type: 'cost_efficiency',
         priority: 'high',
@@ -243,14 +247,15 @@ class GitHubActionsOptimizer {
           'Optimize runner usage with self-hosted runners',
           'Implement intelligent job scheduling',
           'Use compressed artifacts and caching',
-          'Batch multiple repositories in single workflow'
+          'Batch multiple repositories in single workflow',
         ],
-        expectedImprovement: '50-70% cost reduction'
+        expectedImprovement: '50-70% cost reduction',
       });
     }
 
     // Setup time optimization
-    if (workflowAnalysis.avgSetupTime > 180000) { // > 3 minutes
+    if (workflowAnalysis.avgSetupTime > 180000) {
+      // > 3 minutes
       recommendations.push({
         type: 'setup_optimization',
         priority: 'medium',
@@ -260,9 +265,9 @@ class GitHubActionsOptimizer {
           'Use pre-built Docker images',
           'Implement aggressive dependency caching',
           'Optimize checkout and setup steps',
-          'Use workflow templates for consistency'
+          'Use workflow templates for consistency',
         ],
-        expectedImprovement: '40-60% faster startup times'
+        expectedImprovement: '40-60% faster startup times',
       });
     }
 
@@ -277,9 +282,9 @@ class GitHubActionsOptimizer {
           'Implement dynamic matrix generation',
           'Balance workload across parallel jobs',
           'Use job dependencies for optimal sequencing',
-          'Implement work-stealing for load balancing'
+          'Implement work-stealing for load balancing',
         ],
-        expectedImprovement: '25-40% better resource utilization'
+        expectedImprovement: '25-40% better resource utilization',
       });
     }
 
@@ -294,9 +299,9 @@ class GitHubActionsOptimizer {
           'Implement comprehensive retry mechanisms',
           'Add better error handling and recovery',
           'Use workflow status checks and notifications',
-          'Implement graceful degradation strategies'
+          'Implement graceful degradation strategies',
         ],
-        expectedImprovement: '15-25% improvement in reliability'
+        expectedImprovement: '15-25% improvement in reliability',
       });
     }
 
@@ -311,21 +316,21 @@ class GitHubActionsOptimizer {
 
     for (const rec of recommendations) {
       console.log(`\n🔧 Applying ${rec.type} optimizations...`);
-      
+
       try {
         const result = await this.applyOptimization(rec);
         results.push({
           type: rec.type,
           success: true,
           result,
-          message: `Successfully applied ${rec.type} optimizations`
+          message: `Successfully applied ${rec.type} optimizations`,
         });
       } catch (error) {
         results.push({
           type: rec.type,
           success: false,
           error: error.message,
-          message: `Failed to apply ${rec.type} optimizations`
+          message: `Failed to apply ${rec.type} optimizations`,
         });
       }
     }
@@ -362,11 +367,11 @@ class GitHubActionsOptimizer {
       matrixStrategy: {
         enabled: true,
         maxParallel: 6,
-        failFast: false
+        failFast: false,
       },
       graphqlBatching: true,
       artifactOptimization: true,
-      chunkingStrategy: 'adaptive'
+      chunkingStrategy: 'adaptive',
     };
 
     await this.saveOptimizationConfig('throughput', config);
@@ -380,7 +385,7 @@ class GitHubActionsOptimizer {
       compressionEnabled: true,
       multiRepoProcessing: true,
       resourcePooling: true,
-      costAwareScaling: true
+      costAwareScaling: true,
     };
 
     await this.saveOptimizationConfig('cost_efficiency', config);
@@ -393,7 +398,7 @@ class GitHubActionsOptimizer {
       aggressiveCaching: true,
       optimizedCheckout: true,
       templateWorkflows: true,
-      parallelSetup: true
+      parallelSetup: true,
     };
 
     await this.saveOptimizationConfig('setup_optimization', config);
@@ -406,7 +411,7 @@ class GitHubActionsOptimizer {
       workloadBalancing: true,
       jobDependencies: true,
       workStealing: true,
-      adaptiveParallelism: true
+      adaptiveParallelism: true,
     };
 
     await this.saveOptimizationConfig('parallelization', config);
@@ -418,15 +423,15 @@ class GitHubActionsOptimizer {
       retryMechanisms: {
         maxRetries: 3,
         exponentialBackoff: true,
-        retryableErrors: ['network', 'rate_limit', 'temporary']
+        retryableErrors: ['network', 'rate_limit', 'temporary'],
       },
       errorHandling: {
         comprehensive: true,
         recovery: true,
-        notifications: true
+        notifications: true,
       },
       gracefulDegradation: true,
-      statusChecks: true
+      statusChecks: true,
     };
 
     await this.saveOptimizationConfig('reliability', config);
@@ -441,7 +446,7 @@ class GitHubActionsOptimizer {
       const { data: jobs } = await this.octokit.rest.actions.listJobsForWorkflowRun({
         owner: 'bdougie',
         repo: 'jobs',
-        run_id: runId
+        run_id: runId,
       });
       return jobs.jobs;
     } catch (error) {
@@ -451,52 +456,55 @@ class GitHubActionsOptimizer {
 
   calculateSetupTime(jobs) {
     if (!jobs || jobs.length === 0) return 0;
-    
+
     // Estimate setup time as time from start to first actual processing step
-    const avgJobDuration = jobs.reduce((sum, job) => {
-      if (job.started_at && job.completed_at) {
-        return sum + (new Date(job.completed_at) - new Date(job.started_at));
-      }
-      return sum;
-    }, 0) / jobs.length;
-    
+    const avgJobDuration =
+      jobs.reduce((sum, job) => {
+        if (job.started_at && job.completed_at) {
+          return sum + (new Date(job.completed_at) - new Date(job.started_at));
+        }
+        return sum;
+      }, 0) / jobs.length;
+
     // Assume 20% of job time is setup
     return avgJobDuration * 0.2;
   }
 
   calculateProcessingTime(jobs) {
     if (!jobs || jobs.length === 0) return 0;
-    
-    const avgJobDuration = jobs.reduce((sum, job) => {
-      if (job.started_at && job.completed_at) {
-        return sum + (new Date(job.completed_at) - new Date(job.started_at));
-      }
-      return sum;
-    }, 0) / jobs.length;
-    
+
+    const avgJobDuration =
+      jobs.reduce((sum, job) => {
+        if (job.started_at && job.completed_at) {
+          return sum + (new Date(job.completed_at) - new Date(job.started_at));
+        }
+        return sum;
+      }, 0) / jobs.length;
+
     // Assume 80% of job time is processing
     return avgJobDuration * 0.8;
   }
 
   identifyBottlenecks(analysis) {
     const bottlenecks = [];
-    
+
     if (analysis.avgSetupTime > 180000) {
       bottlenecks.push({
         type: 'setup_time',
         severity: 'high',
-        description: 'Setup time is too high, affecting overall efficiency'
+        description: 'Setup time is too high, affecting overall efficiency',
       });
     }
-    
-    if (analysis.avgProcessingTime > 3600000) { // > 1 hour
+
+    if (analysis.avgProcessingTime > 3600000) {
+      // > 1 hour
       bottlenecks.push({
         type: 'processing_time',
         severity: 'medium',
-        description: 'Processing time could be optimized with better parallelization'
+        description: 'Processing time could be optimized with better parallelization',
       });
     }
-    
+
     return bottlenecks;
   }
 
@@ -507,15 +515,13 @@ class GitHubActionsOptimizer {
   }
 
   async saveOptimizationConfig(type, config) {
-    const { error } = await this.supabase
-      .from('optimization_configs')
-      .upsert({
-        processor_type: 'github_actions',
-        optimization_type: type,
-        configuration: config,
-        applied_at: new Date().toISOString(),
-        status: 'active'
-      });
+    const { error } = await this.supabase.from('optimization_configs').upsert({
+      processor_type: 'github_actions',
+      optimization_type: type,
+      configuration: config,
+      applied_at: new Date().toISOString(),
+      status: 'active',
+    });
 
     if (error) {
       throw new Error(`Failed to save optimization config: ${error.message}`);
@@ -532,16 +538,16 @@ class GitHubActionsOptimizer {
       results,
       summary: {
         totalOptimizations: recommendations.length,
-        successfulOptimizations: results.filter(r => r.success).length,
-        expectedImprovements: this.calculateExpectedImprovements(recommendations)
-      }
+        successfulOptimizations: results.filter((r) => r.success).length,
+        expectedImprovements: this.calculateExpectedImprovements(recommendations),
+      },
     };
 
     // Save report
     const fs = require('fs');
     const reportsDir = './optimization-reports';
     fs.mkdirSync(reportsDir, { recursive: true });
-    
+
     const reportPath = `${reportsDir}/github-actions-optimization-${Date.now()}.json`;
     fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
 
@@ -553,7 +559,9 @@ class GitHubActionsOptimizer {
    * Display methods
    */
   displayMetrics(metrics) {
-    console.log(`  ⏱️  Average Execution Time: ${Math.round(metrics.avgExecutionTime / 1000 / 60)}min`);
+    console.log(
+      `  ⏱️  Average Execution Time: ${Math.round(metrics.avgExecutionTime / 1000 / 60)}min`
+    );
     console.log(`  ✅ Success Rate: ${metrics.successRate.toFixed(1)}%`);
     console.log(`  💰 Cost Efficiency: ${Math.round(metrics.costEfficiency)} items/$`);
     console.log(`  🚀 Throughput: ${Math.round(metrics.throughput)} items/hour`);
@@ -563,12 +571,14 @@ class GitHubActionsOptimizer {
 
   displayWorkflowAnalysis(analysis) {
     console.log(`  🔧 Average Setup Time: ${Math.round(analysis.avgSetupTime / 1000)}s`);
-    console.log(`  ⚡ Average Processing Time: ${Math.round(analysis.avgProcessingTime / 1000 / 60)}min`);
+    console.log(
+      `  ⚡ Average Processing Time: ${Math.round(analysis.avgProcessingTime / 1000 / 60)}min`
+    );
     console.log(`  📊 Workflow Runs Analyzed: ${analysis.workflowRuns.length}`);
     console.log(`  ⚠️  Bottlenecks Identified: ${analysis.bottlenecks.length}`);
-    
+
     if (analysis.bottlenecks.length > 0) {
-      analysis.bottlenecks.forEach(bottleneck => {
+      analysis.bottlenecks.forEach((bottleneck) => {
         console.log(`     • ${bottleneck.type}: ${bottleneck.description}`);
       });
     }
@@ -580,12 +590,12 @@ class GitHubActionsOptimizer {
       console.log(`     Current: ${rec.current} → Target: ${rec.target}`);
       console.log(`     Expected: ${rec.expectedImprovement}`);
       console.log(`     Actions:`);
-      rec.actions.forEach(action => console.log(`       • ${action}`));
+      rec.actions.forEach((action) => console.log(`       • ${action}`));
     });
   }
 
   displayResults(results) {
-    results.forEach(result => {
+    results.forEach((result) => {
       const status = result.success ? '✅' : '❌';
       console.log(`  ${status} ${result.type}: ${result.message}`);
     });
@@ -596,7 +606,7 @@ class GitHubActionsOptimizer {
       throughput: '100-150% increase',
       costEfficiency: '50-70% improvement',
       setupTime: '40-60% reduction',
-      reliability: '15-25% improvement'
+      reliability: '15-25% improvement',
     };
   }
 }

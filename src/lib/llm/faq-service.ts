@@ -5,6 +5,7 @@
 
 import { openAIService, type LLMInsight } from './openai-service';
 import { cacheService } from './cache-service';
+import type { PullRequest } from '../types';
 // Dynamically import embeddings to avoid bundling heavy transformers library
 // import { generateEmbedding } from '../../../app/services/embeddings';
 
@@ -25,11 +26,50 @@ export interface FAQAnswer {
   timestamp: Date;
 }
 
+// Import types from existing interfaces
+interface PullRequestAuthor {
+  login?: string;
+}
+
+interface PullRequestData {
+  author?: PullRequestAuthor;
+  user?: PullRequestAuthor;
+  title?: string;
+  // Make it compatible with existing PullRequest type
+  id?: number;
+  number?: number;
+  state?: string;
+  created_at?: string;
+  updated_at?: string;
+  merged_at?: string | null;
+  closed_at?: string | null;
+  additions?: number;
+  deletions?: number;
+  changed_files?: number;
+  repository_owner?: string;
+  repository_name?: string;
+  html_url?: string;
+  [key: string]: unknown;
+}
+
+interface ContributorData {
+  [key: string]: unknown;
+}
+
+interface HealthData {
+  score?: number;
+  [key: string]: unknown;
+}
+
+interface ActivityData {
+  [key: string]: unknown;
+}
+
 export interface RepositoryData {
-  pullRequests?: any[];
-  contributors?: any[];
-  health?: any;
-  activity?: any;
+  pullRequests?: PullRequest[] | PullRequestData[];
+  contributors?: ContributorData[];
+  health?: HealthData;
+  activity?: ActivityData;
 }
 
 class FAQService {
@@ -174,7 +214,7 @@ class FAQService {
         timestamp: new Date(),
       };
     } catch (error) {
-      console.error(`Failed to generate LLM answer for ${question.id}:`, error);
+      console.error('Failed to generate LLM answer for %s:', error, question.id);
       return this.generateFallbackAnswer(question, owner, repo, timeRange, repositoryData);
     }
   }
@@ -221,7 +261,7 @@ Answer:`;
     if (category === 'contributors' && repositoryData.pullRequests) {
       const contributors = new Set(
         repositoryData.pullRequests.map(
-          (pr: any) => pr.author?.login || pr.user?.login || 'unknown'
+          (pr: PullRequest | PullRequestData) => pr.author?.login || pr.user?.login || 'unknown'
         )
       ).size;
       const contributorCounts = repositoryData.pullRequests.reduce(
@@ -255,13 +295,13 @@ Answer:`;
 
     if (category === 'development' && repositoryData.pullRequests) {
       const avgTitleLength =
-        repositoryData.pullRequests.reduce((sum, pr) => sum + pr.title.length, 0) /
+        repositoryData.pullRequests.reduce((sum, pr) => sum + (typeof pr.title === 'string' ? pr.title.length : 0), 0) /
         repositoryData.pullRequests.length;
       const featCount = repositoryData.pullRequests.filter((pr) =>
-        pr.title.toLowerCase().includes('feat')
+        typeof pr.title === 'string' && pr.title.toLowerCase().includes('feat')
       ).length;
       const fixCount = repositoryData.pullRequests.filter((pr) =>
-        pr.title.toLowerCase().includes('fix')
+        typeof pr.title === 'string' && pr.title.toLowerCase().includes('fix')
       ).length;
 
       data.push(`Average PR Title Length: ${avgTitleLength.toFixed(0)} characters`);
@@ -508,7 +548,7 @@ Answer:`;
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        console.error(`OpenAI API error: ${response.status}`);
+        console.error('OpenAI API error: %s', response.status);
         return null;
       }
 
@@ -569,7 +609,7 @@ Answer:`;
   /**
    * Generate hash from data for cache invalidation
    */
-  private generateDataHash(data: any): string {
+  private generateDataHash(data: unknown): string {
     const dataString = JSON.stringify(data);
     let hash = 0;
     for (let i = 0; i < dataString.length; i++) {

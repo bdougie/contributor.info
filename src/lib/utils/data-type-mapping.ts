@@ -92,12 +92,17 @@ export const ROLE_MAPPING = {
  */
 export const getUserRole = (
   role?: { role?: string },
-  user?: { isBot?: boolean; type?: string }
+  user?: { isBot?: boolean; type?: string; login?: string }
 ): string => {
   if (role?.role) return role.role;
 
   // Check various ways the bot flag might be set
-  if (user?.isBot || user?.type === 'Bot') {
+  if (user?.isBot) {
+    return ROLE_MAPPING.bot;
+  }
+
+  // For GitHub users with type field, check if it's "Bot"
+  if (user?.type === 'Bot') {
     return ROLE_MAPPING.bot;
   }
 

@@ -60,12 +60,12 @@ describe('Inngest Handler Integration Tests', () => {
     it('should handle GET requests with status page', async () => {
       const event = createMockEvent({ httpMethod: 'GET' });
       const context = createMockContext();
-      
+
       const response = await handler(event, context);
-      
+
       expect(response.statusCode).toBe(200);
       expect(response.headers?.['Content-Type']).toBe('application/json');
-      
+
       const body = JSON.parse(response.body);
       expect(body.message).toContain('Inngest');
       expect(body.functions).toBeInstanceOf(Array);
@@ -85,10 +85,10 @@ describe('Inngest Handler Integration Tests', () => {
         }),
       });
       const context = createMockContext();
-      
+
       // This might fail without proper Inngest setup, but we're testing that it doesn't crash
       const response = await handler(event, context);
-      
+
       expect(response).toBeDefined();
       expect(response.statusCode).toBeDefined();
     });
@@ -101,7 +101,7 @@ describe('Inngest Handler Integration Tests', () => {
       // Set production environment
       process.env.NODE_ENV = 'production';
       process.env.CONTEXT = 'production';
-      
+
       try {
         const module = await import('../../netlify/functions/inngest-prod.mts');
         handler = module.default || module.handler;
@@ -124,9 +124,9 @@ describe('Inngest Handler Integration Tests', () => {
     it('should handle GET requests with production status', async () => {
       const event = createMockEvent({ httpMethod: 'GET' });
       const context = createMockContext();
-      
+
       const response = await handler(event, context);
-      
+
       expect(response.statusCode).toBe(200);
       const body = JSON.parse(response.body);
       expect(body.environment?.isProduction).toBe(true);
@@ -143,7 +143,7 @@ describe('Inngest Handler Integration Tests', () => {
       ];
 
       const results = await Promise.allSettled(imports);
-      
+
       results.forEach((result, index) => {
         expect(result.status).toBe('fulfilled');
         if (result.status === 'rejected') {

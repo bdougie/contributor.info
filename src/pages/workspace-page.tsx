@@ -1,11 +1,15 @@
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useState, useEffect, lazy, Suspense, useMemo } from 'react';
+import { useState, useEffect, lazy, Suspense, useMemo, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import { getFallbackAvatar } from '@/lib/utils/avatar';
 import { useWorkspaceContributors } from '@/hooks/useWorkspaceContributors';
+import { useContributorGroups } from '@/hooks/useContributorGroups';
+import { TIME_PERIODS, timeHelpers } from '@/lib/constants/time-constants';
 import { WorkspaceDashboard, WorkspaceDashboardSkeleton } from '@/components/features/workspace';
 import { WorkspaceErrorBoundary } from '@/components/error-boundaries/workspace-error-boundary';
+import { WorkspaceAutoSync } from '@/components/features/workspace/WorkspaceAutoSync';
+import { useWorkspaceContext } from '@/contexts/WorkspaceContext';
 import {
   WorkspacePullRequestsTable,
   type PullRequest,
@@ -21,10 +25,15 @@ import {
   ContributorsList,
   type Contributor,
 } from '@/components/features/workspace/ContributorsList';
+import { ContributorsTable } from '@/components/features/workspace/ContributorsTable';
+import { ContributorGroupManager } from '@/components/features/workspace/ContributorGroupManager';
+import { ContributorNotesDialog } from '@/components/features/workspace/ContributorNotesDialog';
+import { ContributorProfileModal } from '@/components/features/workspace/ContributorProfileModal';
 import { AddRepositoryModal } from '@/components/features/workspace/AddRepositoryModal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -41,8 +50,6 @@ import {
   Search,
   Menu,
   Package,
-  Copy,
-  Check,
 } from '@/components/ui/icon';
 import {
   useReactTable,
@@ -64,8 +71,10 @@ import type {
   Repository,
   ActivityDataPoint,
 } from '@/components/features/workspace';
-import type { Workspace } from '@/types/workspace';
+import type { Workspace, WorkspaceMemberWithUser } from '@/types/workspace';
 import { WorkspaceService } from '@/services/workspace.service';
+import { WorkspaceSettings as WorkspaceSettingsComponent } from '@/components/features/workspace/settings/WorkspaceSettings';
+import { useWorkspacePRs } from '@/hooks/useWorkspacePRs';
 // Analytics imports disabled - will be implemented in issue #598
 // import { AnalyticsDashboard } from '@/components/features/workspace/AnalyticsDashboard';
 import { ActivityTable } from '@/components/features/workspace/ActivityTable';
@@ -77,6 +86,11 @@ const ContributorLeaderboard = lazy(() =>
     default: m.ContributorLeaderboard,
   }))
 );
+
+// Lazy load distribution charts
+import { LazyAssigneeDistributionChart } from '@/components/features/workspace/charts/AssigneeDistributionChart-lazy';
+import { LazyReviewerDistributionChart } from '@/components/features/workspace/charts/ReviewerDistributionChart-lazy';
+import { PRAuthorStatusChart as LazyPRAuthorStatusChart } from '@/components/features/workspace/charts/PRAuthorStatusChart-lazy';
 // import { WorkspaceExportService } from '@/services/workspace-export.service';
 // import type {
 //   AnalyticsData,
@@ -363,142 +377,49 @@ function WorkspacePRs({
   repositories,
   selectedRepositories,
   timeRange,
+  workspaceId,
+  workspace,
 }: {
   repositories: Repository[];
   selectedRepositories: string[];
   timeRange: TimeRange;
+  workspaceId: string;
+  workspace?: Workspace;
 }) {
-  const [pullRequests, setPullRequests] = useState<PullRequest[]>([]);
-  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  // Use the new hook for automatic PR syncing and caching
+  const { pullRequests, loading, error, lastSynced, isStale, refresh } = useWorkspacePRs({
+    repositories,
+    selectedRepositories,
+    workspaceId,
+    refreshInterval: 60, // Hourly refresh interval
+    maxStaleMinutes: 60, // Consider data stale after 60 minutes
+    autoSyncOnMount: true, // Auto-sync enabled with hourly refresh
+  });
+
+  // Log sync status for debugging
   useEffect(() => {
-    async function fetchPullRequests() {
-      if (repositories.length === 0) {
-        setPullRequests([]);
-        setLoading(false);
-        return;
-      }
-
-      try {
-        // Use utility function to filter repositories
-        const filteredRepos = filterRepositoriesBySelection(repositories, selectedRepositories);
-
-        const repoIds = filteredRepos.map((r) => r.id);
-        const { data, error } = await supabase
-          .from('pull_requests')
-          .select(
-            `
-            id,
-            github_id,
-            number,
-            title,
-            state,
-            created_at,
-            updated_at,
-            closed_at,
-            merged_at,
-            additions,
-            deletions,
-            changed_files,
-            commits,
-            html_url,
-            repository_id,
-            repositories!inner(
-              id,
-              name,
-              owner,
-              full_name
-            ),
-            contributors:author_id(
-              username,
-              avatar_url
-            )
-          `
-          )
-          .in('repository_id', repoIds)
-          .order('updated_at', { ascending: false })
-          .limit(100);
-
-        if (error) {
-          console.error('Error fetching pull requests:', error);
-          setPullRequests([]);
-        } else {
-          // Transform data to match PullRequest interface
-          // Note: Supabase returns single objects for relationships when using !inner
-          type PRData = {
-            id: string;
-            github_id: number;
-            number: number;
-            title: string;
-            state: string;
-            created_at: string;
-            updated_at: string;
-            closed_at: string | null;
-            merged_at: string | null;
-            additions: number | null;
-            deletions: number | null;
-            changed_files: number | null;
-            commits: number | null;
-            html_url: string;
-            repository_id: string;
-            repositories?: {
-              id: string;
-              name: string;
-              owner: string;
-              full_name: string;
-            };
-            contributors?: {
-              username: string;
-              avatar_url: string;
-            };
-          };
-
-          const transformedPRs: PullRequest[] = ((data || []) as unknown as PRData[]).map((pr) => ({
-            id: pr.id,
-            number: pr.number,
-            title: pr.title,
-            state: (() => {
-              if (pr.merged_at) return 'merged';
-              if (pr.state === 'closed') return 'closed';
-              return 'open';
-            })(),
-            repository: {
-              name: pr.repositories?.name || 'unknown',
-              owner: pr.repositories?.owner || 'unknown',
-              avatar_url: pr.repositories?.owner
-                ? `https://avatars.githubusercontent.com/${pr.repositories.owner}`
-                : getFallbackAvatar(),
-            },
-            author: {
-              username: pr.contributors?.username || 'unknown',
-              avatar_url: pr.contributors?.avatar_url || '',
-            },
-            created_at: pr.created_at,
-            updated_at: pr.updated_at,
-            closed_at: pr.closed_at || undefined,
-            merged_at: pr.merged_at || undefined,
-            comments_count: 0, // We don't have this data yet
-            commits_count: pr.commits || 0,
-            additions: pr.additions || 0,
-            deletions: pr.deletions || 0,
-            changed_files: pr.changed_files || 0,
-            labels: [], // We don't have this data yet
-            reviewers: [], // We don't have this data yet
-            url: pr.html_url,
-          }));
-          setPullRequests(transformedPRs);
-        }
-      } catch (err) {
-        console.error('Error:', err);
-        setPullRequests([]);
-      } finally {
-        setLoading(false);
-      }
+    if (lastSynced) {
+      const minutesAgo = ((Date.now() - lastSynced.getTime()) / (1000 * 60)).toFixed(1);
+      console.log(
+        `PR data last synced ${minutesAgo} minutes ago${isStale ? ' (stale)' : ' (fresh)'}`
+      );
     }
+  }, [lastSynced, isStale]);
 
-    fetchPullRequests();
-  }, [repositories, selectedRepositories]);
+  // Show error toast if sync fails
+  useEffect(() => {
+    if (error) {
+      toast.error('Failed to fetch pull requests', {
+        description: error,
+        action: {
+          label: 'Retry',
+          onClick: () => refresh(),
+        },
+      });
+    }
+  }, [error, refresh]);
 
   const handlePullRequestClick = (pr: PullRequest) => {
     window.open(pr.url, '_blank');
@@ -508,18 +429,70 @@ function WorkspacePRs({
     navigate(`/${owner}/${name}`);
   };
 
+  const [selectedReviewer, setSelectedReviewer] = useState<string | null>(null);
+
+  const handleReviewerClick = (reviewer: string) => {
+    setSelectedReviewer(selectedReviewer === reviewer ? null : reviewer);
+  };
+
+  // Filter PRs by selected reviewer
+  const filteredPullRequests = useMemo(() => {
+    if (!selectedReviewer) return pullRequests;
+
+    if (selectedReviewer === '__unreviewed__') {
+      return pullRequests.filter((pr) => !pr.reviewers || pr.reviewers.length === 0);
+    }
+
+    return pullRequests.filter((pr) => pr.reviewers?.some((r) => r.username === selectedReviewer));
+  }, [pullRequests, selectedReviewer]);
+
+  // Check if there are any PRs with reviewers
+  const hasReviewers = pullRequests.some((pr) => pr.reviewers && pr.reviewers.length > 0);
+
   return (
     <div className="space-y-6">
-      {/* PR Metrics and Trends */}
+      {/* Auto-sync indicator at top of tab */}
+      <div className="flex items-center justify-between px-1">
+        <WorkspaceAutoSync
+          workspaceId={workspaceId}
+          workspaceSlug={workspace?.slug || 'workspace'}
+          repositoryIds={repositories.map((r) => r.id).filter(Boolean)}
+          onSyncComplete={refresh}
+          syncIntervalMinutes={60}
+          className="text-sm text-muted-foreground"
+        />
+      </div>
+
+      {/* Metrics and Trends - first, always full width */}
       <WorkspaceMetricsAndTrends
         repositories={repositories}
         selectedRepositories={selectedRepositories}
         timeRange={timeRange}
       />
 
+      {/* Review Charts - PR Status and Distribution side by side */}
+      {hasReviewers && (
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* PR Author Status Chart - shows PRs grouped by author and their status */}
+          <LazyPRAuthorStatusChart
+            pullRequests={pullRequests}
+            onAuthorClick={handleReviewerClick}
+            title="Pull Request Author Status"
+            maxVisible={8}
+          />
+
+          {/* Reviewer Distribution Chart */}
+          <LazyReviewerDistributionChart
+            pullRequests={pullRequests}
+            onReviewerClick={handleReviewerClick}
+            maxVisible={8}
+          />
+        </div>
+      )}
+
       {/* PR Table */}
       <WorkspacePullRequestsTable
-        pullRequests={pullRequests}
+        pullRequests={filteredPullRequests}
         loading={loading}
         onPullRequestClick={handlePullRequestClick}
         onRepositoryClick={handleRepositoryClick}
@@ -580,6 +553,7 @@ function WorkspaceIssues({
             updated_at,
             closed_at,
             labels,
+            assignees,
             comments_count,
             repository_id,
             repositories(
@@ -620,6 +594,11 @@ function WorkspaceIssues({
             updated_at: string;
             closed_at: string | null;
             labels: IssueLabel[] | null;
+            assignees: Array<{
+              login?: string;
+              username?: string;
+              avatar_url?: string;
+            }> | null;
             comments_count: number | null;
             repository_id: string;
             repositories?: {
@@ -663,6 +642,12 @@ function WorkspaceIssues({
                     }))
                     .filter((l) => l.name) // Filter out labels without names
                 : [],
+              assignees: Array.isArray(issue.assignees)
+                ? issue.assignees.map((assignee) => ({
+                    login: assignee.login || assignee.username || 'unknown',
+                    avatar_url: assignee.avatar_url || '',
+                  }))
+                : [],
               // Improved URL construction with validation
               url:
                 issue.repositories?.full_name && issue.number
@@ -683,6 +668,8 @@ function WorkspaceIssues({
     fetchIssues();
   }, [repositories, selectedRepositories]);
 
+  const [selectedAssignee, setSelectedAssignee] = useState<string | null>(null);
+
   const handleIssueClick = (issue: Issue) => {
     // Only open if URL exists
     if (issue.url) {
@@ -693,6 +680,24 @@ function WorkspaceIssues({
   const handleRepositoryClick = (owner: string, name: string) => {
     navigate(`/${owner}/${name}`);
   };
+
+  const handleAssigneeClick = (assignee: string) => {
+    setSelectedAssignee(selectedAssignee === assignee ? null : assignee);
+  };
+
+  // Filter issues by selected assignee
+  const filteredIssues = useMemo(() => {
+    if (!selectedAssignee) return issues;
+
+    if (selectedAssignee === '__unassigned__') {
+      return issues.filter((issue) => !issue.assignees || issue.assignees.length === 0);
+    }
+
+    return issues.filter((issue) => issue.assignees?.some((a) => a.login === selectedAssignee));
+  }, [issues, selectedAssignee]);
+
+  // Check if there are any issues with assignees
+  const hasAssignees = issues.some((issue) => issue.assignees && issue.assignees.length > 0);
 
   // Display error message if there's an error
   if (error) {
@@ -712,16 +717,35 @@ function WorkspaceIssues({
 
   return (
     <div className="space-y-6">
-      {/* Issue Metrics and Trends */}
-      <WorkspaceIssueMetricsAndTrends
-        repositories={repositories}
-        selectedRepositories={selectedRepositories}
-        timeRange={timeRange}
-      />
+      {/* Conditionally render side-by-side or full width based on assignee data */}
+      {hasAssignees ? (
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Issue Metrics and Trends */}
+          <WorkspaceIssueMetricsAndTrends
+            repositories={repositories}
+            selectedRepositories={selectedRepositories}
+            timeRange={timeRange}
+          />
+
+          {/* Assignee Distribution Chart */}
+          <LazyAssigneeDistributionChart
+            issues={issues}
+            onAssigneeClick={handleAssigneeClick}
+            maxVisible={8}
+          />
+        </div>
+      ) : (
+        /* Full width Metrics and Trends when no assignees */
+        <WorkspaceIssueMetricsAndTrends
+          repositories={repositories}
+          selectedRepositories={selectedRepositories}
+          timeRange={timeRange}
+        />
+      )}
 
       {/* Issues Table */}
       <WorkspaceIssuesTable
-        issues={issues}
+        issues={filteredIssues}
         loading={loading}
         onIssueClick={handleIssueClick}
         onRepositoryClick={handleRepositoryClick}
@@ -734,17 +758,93 @@ function WorkspaceContributors({
   repositories,
   selectedRepositories,
   workspaceId,
+  userRole,
+  workspaceTier,
+  isLoggedIn,
+  currentUser,
 }: {
   repositories: Repository[];
   selectedRepositories: string[];
   workspaceId: string;
+  userRole?: import('@/types/workspace').WorkspaceRole;
+  workspaceTier?: import('@/types/workspace').WorkspaceTier;
+  isLoggedIn?: boolean;
+  currentUser?: User | null;
 }) {
-  const navigate = useNavigate();
+  // Navigate removed - no longer needed as profile modal handles internally
   const [showAddContributors, setShowAddContributors] = useState(false);
   const [selectedContributorsToAdd, setSelectedContributorsToAdd] = useState<string[]>([]);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+
+  // CRM State
+  const [showGroupManager, setShowGroupManager] = useState(false);
+  const [showNotesDialog, setShowNotesDialog] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [selectedContributor, setSelectedContributor] = useState<Contributor | null>(null);
+
+  // Unified selection state for table and modals
+  const [selectedContributorsForGroups, setSelectedContributorsForGroups] = useState<Set<string>>(
+    new Set()
+  );
+
+  // Group filtering state
+  const [selectedFilterGroup, setSelectedFilterGroup] = useState<string | null>(null);
+
+  // Use the contributor groups hook for real database operations
+  const {
+    groups,
+    groupMembers,
+    notes,
+    createGroup,
+    updateGroup,
+    deleteGroup,
+    addContributorToGroup,
+    removeContributorFromGroup,
+    upsertNote,
+    updateNoteById,
+    deleteNoteById,
+  } = useContributorGroups(workspaceId);
+
+  // Get the contributor groups map for filtering
+  // Build the map directly from groupMembers to ensure reactivity
+  const contributorGroupsByUsername = useMemo(() => {
+    const map = new Map<string, string[]>();
+    groupMembers.forEach((member) => {
+      const current = map.get(member.contributor_username) || [];
+      current.push(member.group_id);
+      map.set(member.contributor_username, current);
+    });
+    return map;
+  }, [groupMembers]);
+
+  // Transform notes to match ContributorNotesDialog interface
+  const transformedNotes = useMemo(() => {
+    return notes.map((note) => {
+      const createdBy = note.created_by as
+        | {
+            auth_user_id: string;
+            email: string;
+            display_name: string;
+          }
+        | string
+        | null;
+      const isObject = typeof createdBy === 'object' && createdBy !== null;
+
+      return {
+        ...note,
+        created_by: {
+          id: isObject ? createdBy.auth_user_id : createdBy || 'unknown',
+          email: isObject ? createdBy.email : 'unknown@example.com',
+          display_name: isObject
+            ? createdBy.display_name || createdBy.email?.split('@')[0]
+            : 'Unknown User',
+          avatar_url: undefined,
+        },
+      };
+    });
+  }, [notes]);
 
   const {
     contributors,
@@ -760,8 +860,30 @@ function WorkspaceContributors({
     selectedRepositories,
   });
 
+  // Create a Map indexed by contributor ID for the UI components
+  const contributorGroups = useMemo(() => {
+    const map = new Map<string, string[]>();
+
+    // Build a username to ID lookup
+    const usernameToId = new Map<string, string>();
+    contributors.forEach((contributor) => {
+      usernameToId.set(contributor.username, contributor.id);
+    });
+
+    // Transform the username-indexed map to ID-indexed map
+    contributorGroupsByUsername.forEach((groupIds, username) => {
+      const contributorId = usernameToId.get(username);
+      if (contributorId) {
+        map.set(contributorId, groupIds);
+      }
+    });
+
+    return map;
+  }, [contributorGroupsByUsername, contributors]);
+
   const handleContributorClick = (contributor: Contributor) => {
-    navigate(`/contributor/${contributor.username}`);
+    setSelectedContributor(contributor);
+    setShowProfileModal(true);
   };
 
   const handleTrackContributor = (contributorId: string) => {
@@ -797,6 +919,188 @@ function WorkspaceContributors({
   const handleCancelAdd = () => {
     setShowAddContributors(false);
     setSelectedContributorsToAdd([]);
+  };
+
+  // CRM Handlers
+  const handleAddToGroup = (contributorId: string) => {
+    const contributor = contributors.find((c) => c.id === contributorId);
+    if (contributor) {
+      setSelectedContributor(contributor);
+      // Ensure this contributor is in the selection
+      if (!selectedContributorsForGroups.has(contributorId)) {
+        setSelectedContributorsForGroups(
+          new Set([...selectedContributorsForGroups, contributorId])
+        );
+      }
+      setShowGroupManager(true);
+    }
+  };
+
+  const handleAddNote = (contributorId: string) => {
+    const contributor = contributors.find((c) => c.id === contributorId);
+    if (contributor) {
+      setSelectedContributor(contributor);
+      setShowNotesDialog(true);
+    }
+  };
+
+  const handleRemoveContributor = async (contributorId: string) => {
+    await removeContributorFromWorkspace(contributorId);
+  };
+
+  // CRM handler functions using the database hook
+  const handleCreateGroup = async (name: string, description: string) => {
+    try {
+      await createGroup(name, description);
+    } catch (error) {
+      console.error('Error creating group:', error);
+      toast.error('Failed to create group');
+    }
+  };
+
+  const handleUpdateGroup = async (groupId: string, name: string, description: string) => {
+    try {
+      await updateGroup(groupId, name, description);
+    } catch (error) {
+      console.error('Error updating group:', error);
+      toast.error('Failed to update group');
+    }
+  };
+
+  const handleDeleteGroup = async (groupId: string) => {
+    try {
+      await deleteGroup(groupId);
+    } catch (error) {
+      console.error('Error deleting group:', error);
+      toast.error('Failed to delete group');
+    }
+  };
+
+  const handleAddContributorToGroup = async (contributorId: string, groupId: string) => {
+    // Find the contributor by ID to get their username
+    const contributor = contributors.find((c) => c.id === contributorId);
+    if (!contributor) {
+      toast.error('Contributor not found');
+      return;
+    }
+
+    try {
+      await addContributorToGroup(contributor.username, groupId);
+    } catch (error) {
+      console.error('Error adding contributor to group:', error);
+      toast.error('Failed to add contributor to group');
+    }
+  };
+
+  const handleBulkAddContributorsToGroups = async (
+    contributorIds: string[],
+    groupIds: string[]
+  ) => {
+    if (contributorIds.length === 0 || groupIds.length === 0) {
+      toast.error('Please select contributors and groups');
+      return;
+    }
+
+    // Find contributors by IDs to get their usernames
+    const selectedContributors = contributors.filter((c) => contributorIds.includes(c.id));
+    if (selectedContributors.length !== contributorIds.length) {
+      toast.error('Some contributors not found');
+      return;
+    }
+
+    // Find the "new contributors" group (topinos) to remove from
+    const newContributorsGroup = groups.find(
+      (g) => g.name.toLowerCase().includes('new') || g.name.toLowerCase().includes('topinos')
+    );
+
+    try {
+      const promises = [];
+
+      for (const contributor of selectedContributors) {
+        // Add to selected groups
+        for (const groupId of groupIds) {
+          promises.push(addContributorToGroup(contributor.username, groupId));
+        }
+
+        // Remove from "new contributors" group if they're being added to other groups and currently in it
+        if (newContributorsGroup) {
+          const contributorGroupsList = contributorGroups.get(contributor.id) || [];
+          const isInNewGroup = contributorGroupsList.includes(newContributorsGroup.id);
+
+          if (isInNewGroup) {
+            promises.push(
+              removeContributorFromGroup(contributor.username, newContributorsGroup.id)
+            );
+          }
+        }
+      }
+
+      await Promise.all(promises);
+
+      const groupNames = groupIds
+        .map((id) => groups.find((g) => g.id === id)?.name)
+        .filter(Boolean);
+      let message = `Added ${selectedContributors.length} contributor${selectedContributors.length === 1 ? '' : 's'} to ${groupNames.length} group${groupNames.length === 1 ? '' : 's'}`;
+
+      if (newContributorsGroup) {
+        message += ` and removed from ${newContributorsGroup.name}`;
+      }
+
+      toast.success(message);
+    } catch (error) {
+      console.error('Error adding contributors to groups:', error);
+      toast.error('Failed to add contributors to groups');
+    }
+  };
+
+  const handleRemoveContributorFromGroup = async (contributorId: string, groupId: string) => {
+    // Find the contributor by ID to get their username
+    const contributor = contributors.find((c) => c.id === contributorId);
+    if (!contributor) {
+      toast.error('Contributor not found');
+      return;
+    }
+
+    try {
+      await removeContributorFromGroup(contributor.username, groupId);
+    } catch (error) {
+      console.error('Error removing contributor from group:', error);
+      toast.error('Failed to remove contributor from group');
+    }
+  };
+
+  const handleAddNoteToContributor = async (contributorId: string, note: string) => {
+    // Find the contributor by ID to get their username
+    const contributor = contributors.find((c) => c.id === contributorId);
+    if (!contributor) {
+      toast.error('Contributor not found');
+      return;
+    }
+
+    try {
+      await upsertNote(contributor.username, note);
+    } catch (error) {
+      console.error('Error saving note:', error);
+      toast.error('Failed to save note');
+    }
+  };
+
+  const handleUpdateNote = async (noteId: string, note: string) => {
+    try {
+      await updateNoteById(noteId, note);
+    } catch (error) {
+      console.error('Error updating note:', error);
+      toast.error('Failed to update note');
+    }
+  };
+
+  const handleDeleteNote = async (noteId: string) => {
+    try {
+      await deleteNoteById(noteId);
+    } catch (error) {
+      console.error('Error deleting note:', error);
+      toast.error('Failed to delete note');
+    }
   };
 
   // Define columns for the add contributors table
@@ -934,7 +1238,8 @@ function WorkspaceContributors({
     },
   ];
 
-  // Define columns for the view list (without checkbox)
+  // View columns and table are no longer needed - replaced by ContributorsTable component
+  /*
   const viewColumns: ColumnDef<Contributor>[] = [
     {
       accessorKey: 'username',
@@ -1038,6 +1343,7 @@ function WorkspaceContributors({
       },
     },
   ];
+  */
 
   const addTable = useReactTable({
     data: allAvailableContributors,
@@ -1059,25 +1365,24 @@ function WorkspaceContributors({
     },
   });
 
-  const viewTable = useReactTable({
-    data: contributors,
-    columns: viewColumns,
-    state: {
-      sorting,
-      globalFilter,
-    },
-    onSortingChange: setSorting,
-    onGlobalFilterChange: setGlobalFilter,
-    getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    initialState: {
-      pagination: {
-        pageSize: 10,
-      },
-    },
-  });
+  // Filter contributors by selected group
+  const filteredContributors = useMemo(() => {
+    if (!selectedFilterGroup) {
+      return contributors;
+    }
+
+    // Get all contributor usernames in the selected group
+    const usernamesInGroup = new Set(
+      groupMembers
+        .filter((member) => member.group_id === selectedFilterGroup)
+        .map((member) => member.contributor_username)
+    );
+
+    // Filter contributors whose usernames are in the group
+    return contributors.filter((contributor) => usernamesInGroup.has(contributor.username));
+  }, [contributors, selectedFilterGroup, groupMembers]);
+
+  // viewTable removed - functionality moved to ContributorsTable component
 
   // Show error state if there's an error
   if (error) {
@@ -1229,211 +1534,257 @@ function WorkspaceContributors({
         </Card>
       ) : (
         <div className="space-y-6">
-          {/* Contributor Leaderboard */}
-          <Suspense
-            fallback={
-              <Card>
-                <CardHeader>
-                  <CardTitle>Top Contributors</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center justify-between p-3 border rounded-lg"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-muted animate-pulse rounded-full" />
-                          <div className="space-y-1">
-                            <div className="h-4 w-24 bg-muted animate-pulse rounded" />
-                            <div className="h-3 w-32 bg-muted animate-pulse rounded" />
+          {/* Contributor Leaderboard - only show if more than 3 contributors */}
+          {filteredContributors.length > 3 && (
+            <Suspense
+              fallback={
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Top Contributors</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <div
+                          key={i}
+                          className="flex items-center justify-between p-3 border rounded-lg"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-muted animate-pulse rounded-full" />
+                            <div className="space-y-1">
+                              <div className="h-4 w-24 bg-muted animate-pulse rounded" />
+                              <div className="h-3 w-32 bg-muted animate-pulse rounded" />
+                            </div>
                           </div>
+                          <div className="h-5 w-12 bg-muted animate-pulse rounded" />
                         </div>
-                        <div className="h-5 w-12 bg-muted animate-pulse rounded" />
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            }
-          >
-            <ContributorLeaderboard
-              contributors={contributors.map((contributor) => ({
-                id: contributor.id,
-                username: contributor.username,
-                avatar_url: contributor.avatar_url,
-                contributions: contributor.stats.total_contributions,
-                pull_requests: contributor.contributions.pull_requests,
-                issues: contributor.contributions.issues,
-                reviews: contributor.contributions.reviews,
-                commits: contributor.contributions.commits,
-                trend: contributor.stats.contribution_trend,
-              }))}
-              loading={loading}
-              timeRange="30d"
-              maxDisplay={10}
-            />
-          </Suspense>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              }
+            >
+              <ContributorLeaderboard
+                contributors={filteredContributors.map((contributor) => ({
+                  id: contributor.id,
+                  username: contributor.username,
+                  avatar_url: contributor.avatar_url,
+                  contributions: contributor.stats.total_contributions,
+                  pull_requests: contributor.contributions.pull_requests,
+                  issues: contributor.contributions.issues,
+                  reviews: contributor.contributions.reviews,
+                  commits: contributor.contributions.commits,
+                  trend: contributor.stats.contribution_trend,
+                }))}
+                loading={loading}
+                timeRange="30d"
+                maxDisplay={10}
+                onContributorClick={(contributorStat) => {
+                  // Find the full contributor object by id
+                  const fullContributor = filteredContributors.find(
+                    (c) => c.id === contributorStat.id
+                  );
+                  if (fullContributor) {
+                    handleContributorClick(fullContributor);
+                  }
+                }}
+              />
+            </Suspense>
+          )}
 
-          {/* View Toggle */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <h2 className="text-lg font-semibold">All Contributors</h2>
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <div className="flex items-center rounded-lg border bg-muted/50 p-1">
+          {/* Group Filter - outside the card */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm text-muted-foreground">Groups:</span>
+            {groups.map((group) => {
+              const count = groupMembers.filter((m) => m.group_id === group.id).length;
+              const isSelected = selectedFilterGroup === group.id;
+
+              return (
                 <Button
-                  variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+                  key={group.id}
+                  variant={isSelected ? 'default' : 'secondary'}
                   size="sm"
-                  onClick={() => setViewMode('grid')}
-                  className="px-3 min-h-[44px] min-w-[44px]"
-                  title="Grid view"
+                  onClick={() => setSelectedFilterGroup(isSelected ? null : group.id)}
+                  className="h-7"
                 >
-                  <Package className="h-4 w-4" />
+                  {group.name}
+                  <Badge variant="outline" className="ml-1.5 px-1 h-4 text-xs">
+                    {count}
+                  </Badge>
                 </Button>
-                <Button
-                  variant={viewMode === 'list' ? 'secondary' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('list')}
-                  className="px-3 min-h-[44px] min-w-[44px]"
-                  title="List view"
-                >
-                  <Menu className="h-4 w-4" />
-                </Button>
-              </div>
-              <Button onClick={handleAddContributor} size="sm" className="min-h-[44px] px-4">
-                <Plus className="h-4 w-4 mr-1" />
-                <span className="hidden sm:inline">Add Contributors</span>
-                <span className="sm:hidden">Add</span>
+              );
+            })}
+            {selectedFilterGroup && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedFilterGroup(null)}
+                className="h-7 text-xs"
+              >
+                Clear filter
               </Button>
-            </div>
+            )}
           </div>
 
-          {viewMode === 'grid' ? (
-            <ContributorsList
-              contributors={contributors}
-              trackedContributors={workspaceContributorIds}
-              onTrackContributor={handleTrackContributor}
-              onUntrackContributor={handleUntrackContributor}
-              onContributorClick={handleContributorClick}
-              loading={loading}
-              view="grid"
-            />
-          ) : (
-            <Card>
-              <CardContent className="p-6">
-                {/* Search Input for List View */}
-                <div className="mb-4">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search contributors..."
-                      value={globalFilter ?? ''}
-                      onChange={(e) => setGlobalFilter(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
+          {/* Contributors Card with integrated controls */}
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <CardTitle>
+                    {selectedFilterGroup
+                      ? `${groups.find((g) => g.id === selectedFilterGroup)?.name || 'Group'} Contributors`
+                      : 'All Contributors'}
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {filteredContributors.length} {selectedFilterGroup ? 'filtered ' : ''}
+                    {filteredContributors.length === 1 ? 'contributor' : 'contributors'}
+                    {selectedFilterGroup && ` • ${contributors.length} total`}
+                  </p>
                 </div>
-
-                {/* Table */}
-                <div className="rounded-md border">
-                  <table className="w-full">
-                    <thead>
-                      {viewTable.getHeaderGroups().map((headerGroup) => (
-                        <tr key={headerGroup.id} className="border-b">
-                          {headerGroup.headers.map((header) => (
-                            <th
-                              key={header.id}
-                              className="px-4 py-3 text-left font-medium text-sm"
-                              style={{
-                                width: header.column.columnDef.size,
-                                minWidth: header.column.columnDef.size,
-                              }}
-                            >
-                              {flexRender(header.column.columnDef.header, header.getContext())}
-                            </th>
-                          ))}
-                        </tr>
-                      ))}
-                    </thead>
-                    <tbody>
-                      {viewTable.getRowModel().rows.length > 0 ? (
-                        viewTable.getRowModel().rows.map((row) => (
-                          <tr
-                            key={row.id}
-                            className="border-b hover:bg-muted/50 transition-colors cursor-pointer"
-                            onClick={() => handleContributorClick(row.original)}
-                          >
-                            {row.getVisibleCells().map((cell) => (
-                              <td
-                                key={cell.id}
-                                className="px-4 py-3"
-                                style={{
-                                  width: cell.column.columnDef.size,
-                                  minWidth: cell.column.columnDef.size,
-                                }}
-                              >
-                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                              </td>
-                            ))}
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td
-                            colSpan={viewColumns.length}
-                            className="px-4 py-8 text-center text-muted-foreground"
-                          >
-                            No contributors found
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Pagination */}
-                <div className="flex flex-col sm:flex-row items-center justify-between mt-4 gap-4">
-                  <div className="text-sm text-muted-foreground order-2 sm:order-1">
-                    Showing {viewTable.getState().pagination.pageIndex * 10 + 1} to{' '}
-                    {Math.min(
-                      (viewTable.getState().pagination.pageIndex + 1) * 10,
-                      contributors.length
-                    )}{' '}
-                    of {contributors.length} contributors
-                  </div>
-                  <div className="flex items-center gap-2 order-1 sm:order-2">
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center rounded-lg border bg-muted/50 p-1">
                     <Button
-                      variant="outline"
+                      variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
                       size="sm"
-                      onClick={() => viewTable.previousPage()}
-                      disabled={!viewTable.getCanPreviousPage()}
-                      className="min-h-[44px] px-3"
+                      onClick={() => setViewMode('grid')}
+                      className="px-3 min-h-[36px] min-w-[36px]"
+                      title="Grid view"
                     >
-                      <span className="hidden sm:inline">Previous</span>
-                      <span className="sm:hidden">‹</span>
+                      <Package className="h-4 w-4" />
                     </Button>
                     <Button
-                      variant="outline"
+                      variant={viewMode === 'list' ? 'secondary' : 'ghost'}
                       size="sm"
-                      onClick={() => viewTable.nextPage()}
-                      disabled={!viewTable.getCanNextPage()}
-                      className="min-h-[44px] px-3"
+                      onClick={() => setViewMode('list')}
+                      className="px-3 min-h-[36px] min-w-[36px]"
+                      title="Table view"
                     >
-                      <span className="hidden sm:inline">Next</span>
-                      <span className="sm:hidden">›</span>
+                      <Menu className="h-4 w-4" />
                     </Button>
                   </div>
+                  <Button
+                    onClick={() => setShowGroupManager(true)}
+                    size="sm"
+                    variant="outline"
+                    className="min-h-[36px] px-3"
+                  >
+                    <Users className="h-4 w-4 mr-1.5" />
+                    <span className="hidden sm:inline">Manage Groups</span>
+                    <span className="sm:hidden">Groups</span>
+                  </Button>
+                  <Button onClick={handleAddContributor} size="sm" className="min-h-[36px] px-3">
+                    <Plus className="h-4 w-4 mr-1.5" />
+                    <span className="hidden sm:inline">Add Contributors</span>
+                    <span className="sm:hidden">Add</span>
+                  </Button>
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              {viewMode === 'grid' ? (
+                <ContributorsList
+                  contributors={filteredContributors}
+                  trackedContributors={workspaceContributorIds}
+                  onTrackContributor={handleTrackContributor}
+                  onUntrackContributor={handleUntrackContributor}
+                  onContributorClick={handleContributorClick}
+                  onAddToGroup={handleAddToGroup}
+                  loading={loading}
+                  view="grid"
+                  showHeader={false} // We'll add this prop to hide the built-in header
+                />
+              ) : (
+                <ContributorsTable
+                  contributors={filteredContributors}
+                  groups={groups}
+                  contributorGroups={contributorGroups}
+                  loading={loading}
+                  onContributorClick={handleContributorClick}
+                  onAddToGroup={handleAddToGroup}
+                  onBulkAddToGroups={handleBulkAddContributorsToGroups}
+                  onAddNote={handleAddNote}
+                  onRemoveContributor={handleRemoveContributor}
+                  showHeader={false} // We'll add this prop to hide the built-in header
+                  selectedContributors={selectedContributorsForGroups}
+                  onSelectedContributorsChange={setSelectedContributorsForGroups}
+                  userRole={userRole}
+                  workspaceTier={workspaceTier}
+                  isLoggedIn={isLoggedIn}
+                />
+              )}
+            </CardContent>
+          </Card>
         </div>
       )}
+
+      {/* CRM Modals */}
+      <ContributorGroupManager
+        open={showGroupManager}
+        onOpenChange={(open) => {
+          setShowGroupManager(open);
+          // Clear selection when closing modal
+          if (!open) {
+            setSelectedContributorsForGroups(new Set());
+          }
+        }}
+        groups={groups}
+        contributors={contributors}
+        contributorGroups={contributorGroups}
+        selectedContributorId={selectedContributor?.id}
+        selectedContributorIds={selectedContributorsForGroups}
+        onCreateGroup={handleCreateGroup}
+        onUpdateGroup={handleUpdateGroup}
+        onDeleteGroup={handleDeleteGroup}
+        onAddContributorToGroup={handleAddContributorToGroup}
+        onRemoveContributorFromGroup={handleRemoveContributorFromGroup}
+        userRole={userRole}
+        workspaceTier={workspaceTier}
+        isLoggedIn={isLoggedIn}
+      />
+
+      <ContributorNotesDialog
+        open={showNotesDialog}
+        onOpenChange={setShowNotesDialog}
+        contributor={selectedContributor}
+        notes={transformedNotes}
+        loading={false}
+        currentUserId={currentUser?.id}
+        onAddNote={handleAddNoteToContributor}
+        onUpdateNote={handleUpdateNote}
+        onDeleteNote={handleDeleteNote}
+      />
+
+      <ContributorProfileModal
+        open={showProfileModal}
+        onOpenChange={setShowProfileModal}
+        contributor={selectedContributor}
+        groups={groups}
+        contributorGroups={contributorGroups.get(selectedContributor?.id || '') || []}
+        notes={transformedNotes}
+        workspaceId={workspaceId}
+        onManageGroups={() => {
+          setShowProfileModal(false);
+          // Pre-select the current contributor when opening group manager
+          if (selectedContributor) {
+            setSelectedContributorsForGroups(new Set([selectedContributor.id]));
+          }
+          setShowGroupManager(true);
+        }}
+        onAddNote={() => {
+          setShowProfileModal(false);
+          setShowNotesDialog(true);
+        }}
+        userRole={userRole}
+        workspaceTier={workspaceTier}
+        isLoggedIn={isLoggedIn}
+      />
     </div>
   );
 }
 
 interface WorkspaceActivityProps {
+  workspace?: Workspace | null;
   prData: Array<{
     id: string;
     title: string;
@@ -1508,9 +1859,11 @@ interface WorkspaceActivityProps {
   repositories: Repository[];
   loading?: boolean;
   error?: string | null;
+  onSyncComplete?: () => void;
 }
 
 function WorkspaceActivity({
+  workspace = null,
   prData = [],
   issueData = [],
   reviewData = [],
@@ -1520,6 +1873,7 @@ function WorkspaceActivity({
   repositories = [],
   loading = false,
   error = null,
+  onSyncComplete,
 }: WorkspaceActivityProps) {
   // Memoize the repository lookup map for better performance
   const repositoryMap = useMemo(() => {
@@ -1764,6 +2118,20 @@ function WorkspaceActivity({
 
   return (
     <div className="space-y-4">
+      {/* Auto-sync indicator at top of tab */}
+      {workspace && (
+        <div className="flex items-center justify-between px-1">
+          <WorkspaceAutoSync
+            workspaceId={workspace.id}
+            workspaceSlug={workspace.slug}
+            repositoryIds={repositories.map((r) => r.id).filter(Boolean)}
+            onSyncComplete={onSyncComplete}
+            syncIntervalMinutes={60}
+            className="text-sm text-muted-foreground"
+          />
+        </div>
+      )}
+
       {/* Activity Trend Chart */}
       <TrendChart
         title="Activity Trend"
@@ -1854,10 +2222,12 @@ function WorkspaceActivity({
       {/* Activity Feed Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Activity Feed</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Real-time feed of all activities across your workspace repositories
-          </p>
+          <div>
+            <CardTitle>Activity Feed</CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              Real-time feed of all activities across your workspace repositories
+            </p>
+          </div>
         </CardHeader>
         <CardContent>
           {error ? (
@@ -1874,474 +2244,12 @@ function WorkspaceActivity({
   );
 }
 
-function WorkspaceSettings({
-  workspace,
-  onWorkspaceUpdate,
-}: {
-  workspace: Workspace;
-  onWorkspaceUpdate: (updates: Partial<Workspace>) => void;
-}) {
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [isEditingSlug, setIsEditingSlug] = useState(false);
-  const [isEditingDescription, setIsEditingDescription] = useState(false);
-  const [workspaceName, setWorkspaceName] = useState(workspace.name);
-  const [workspaceSlug, setWorkspaceSlug] = useState(workspace.slug);
-  const [workspaceDescription, setWorkspaceDescription] = useState(workspace.description || '');
-  const [isSaving, setIsSaving] = useState(false);
-  const [copiedField, setCopiedField] = useState<string | null>(null);
-  const [slugError, setSlugError] = useState<string | null>(null);
-
-  const formatSlug = (value: string) => {
-    // Convert to lowercase, replace spaces with hyphens, remove special characters
-    return value
-      .toLowerCase()
-      .replace(/\s+/g, '-')
-      .replace(/[^a-z0-9-]/g, '')
-      .replace(/-+/g, '-')
-      .replace(/^-|-$/g, '');
-  };
-
-  const checkSlugUniqueness = async (slug: string) => {
-    if (!slug) return false;
-
-    const { data, error } = await supabase
-      .from('workspaces')
-      .select('id')
-      .eq('slug', slug)
-      .neq('id', workspace.id)
-      .maybeSingle();
-
-    return !data && !error;
-  };
-
-  const handleSaveName = async () => {
-    if (!workspaceName.trim()) {
-      toast.error('Workspace name cannot be empty');
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      const { error } = await supabase
-        .from('workspaces')
-        .update({ name: workspaceName.trim() })
-        .eq('id', workspace.id);
-
-      if (error) throw error;
-
-      // Update the workspace state immediately
-      onWorkspaceUpdate({ name: workspaceName.trim() });
-
-      toast.success('Workspace name updated successfully');
-      setIsEditingName(false);
-    } catch (error) {
-      console.error('Failed to update workspace name:', error);
-      toast.error('Failed to update workspace name');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleSaveSlug = async () => {
-    const formattedSlug = formatSlug(workspaceSlug);
-
-    if (!formattedSlug) {
-      toast.error('Slug cannot be empty');
-      return;
-    }
-
-    // Check if slug has actually changed
-    if (formattedSlug === workspace.slug) {
-      // No change, just exit edit mode
-      setIsEditingSlug(false);
-      return;
-    }
-
-    // Show warning about breaking links only if slug is different
-    const confirmed = window.confirm(
-      '⚠️ WARNING: Changing your workspace slug will break all existing external links!\n\n' +
-        `Current URL: /i/${workspace.slug}\n` +
-        `New URL: /i/${formattedSlug}\n\n` +
-        'All bookmarks, shared links, and external references will stop working.\n\n' +
-        'Are you sure you want to continue?'
-    );
-
-    if (!confirmed) {
-      setWorkspaceSlug(workspace.slug);
-      setIsEditingSlug(false);
-      return;
-    }
-
-    setIsSaving(true);
-    setSlugError(null);
-
-    try {
-      // Check if slug is unique
-      const isUnique = await checkSlugUniqueness(formattedSlug);
-
-      if (!isUnique) {
-        setSlugError('This slug is already taken. Please choose another.');
-        setIsSaving(false);
-        return;
-      }
-
-      const { error } = await supabase
-        .from('workspaces')
-        .update({ slug: formattedSlug })
-        .eq('id', workspace.id);
-
-      if (error) {
-        if (error.code === '23505') {
-          // Unique constraint violation
-          setSlugError('This slug is already taken. Please choose another.');
-        } else {
-          throw error;
-        }
-        return;
-      }
-
-      // Update the workspace state immediately
-      onWorkspaceUpdate({ slug: formattedSlug });
-
-      toast.success('Workspace slug updated successfully. Redirecting to new URL...');
-      setIsEditingSlug(false);
-
-      // Redirect to the new slug URL
-      setTimeout(() => {
-        window.location.href = `/i/${formattedSlug}/settings`;
-      }, 1500);
-    } catch (error) {
-      console.error('Failed to update workspace slug:', error);
-      toast.error('Failed to update workspace slug');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleCancelName = () => {
-    setWorkspaceName(workspace.name);
-    setIsEditingName(false);
-  };
-
-  const handleCancelSlug = () => {
-    setWorkspaceSlug(workspace.slug);
-    setIsEditingSlug(false);
-    setSlugError(null);
-  };
-
-  const handleSaveDescription = async () => {
-    const trimmedDescription = workspaceDescription.trim();
-
-    if (trimmedDescription.length > 500) {
-      toast.error('Description cannot exceed 500 characters');
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      const { error } = await supabase
-        .from('workspaces')
-        .update({ description: trimmedDescription || null })
-        .eq('id', workspace.id);
-
-      if (error) throw error;
-
-      // Update the workspace state immediately
-      onWorkspaceUpdate({ description: trimmedDescription || null });
-
-      toast.success('Workspace description updated successfully');
-      setIsEditingDescription(false);
-    } catch (error) {
-      console.error('Failed to update workspace description:', error);
-      toast.error('Failed to update workspace description');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleCancelDescription = () => {
-    setWorkspaceDescription(workspace.description || '');
-    setIsEditingDescription(false);
-  };
-
-  const handleCopy = async (value: string, field: string) => {
-    try {
-      await navigator.clipboard.writeText(value);
-      setCopiedField(field);
-      toast.success(`${field} copied to clipboard`);
-
-      // Reset the copied state after 2 seconds
-      setTimeout(() => {
-        setCopiedField(null);
-      }, 2000);
-    } catch (error) {
-      console.error('Failed to copy:', error);
-      toast.error('Failed to copy to clipboard');
-    }
-  };
-
-  return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>General Settings</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <label className="text-sm font-medium text-foreground">Workspace Name</label>
-            <div className="mt-2 flex items-center gap-2">
-              {isEditingName ? (
-                <>
-                  <input
-                    type="text"
-                    value={workspaceName}
-                    onChange={(e) => setWorkspaceName(e.target.value)}
-                    className="flex-1 px-3 py-2 text-sm border border-input bg-background rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                    placeholder="Enter workspace name"
-                    disabled={isSaving}
-                  />
-                  <Button onClick={handleSaveName} size="sm" disabled={isSaving}>
-                    {isSaving ? 'Saving...' : 'Save'}
-                  </Button>
-                  <Button
-                    onClick={handleCancelName}
-                    size="sm"
-                    variant="outline"
-                    disabled={isSaving}
-                  >
-                    Cancel
-                  </Button>
-                </>
-              ) : (
-                <div
-                  className="flex-1 flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded px-2 py-1 transition-colors"
-                  onClick={() => setIsEditingName(true)}
-                  title="Click to edit"
-                >
-                  <p className="text-sm">{workspace.name}</p>
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="text-muted-foreground"
-                  >
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                  </svg>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-foreground">Workspace Slug</label>
-            {isEditingSlug && (
-              <p className="text-xs text-muted-foreground mt-1">
-                ⚠️ Changing the slug will break all existing external links to this workspace
-              </p>
-            )}
-            <div className="mt-2 flex items-center gap-2">
-              {isEditingSlug ? (
-                <>
-                  <input
-                    type="text"
-                    value={workspaceSlug}
-                    onChange={(e) => {
-                      setWorkspaceSlug(e.target.value);
-                      setSlugError(null);
-                    }}
-                    className="flex-1 px-3 py-2 text-sm border border-input bg-background rounded-md focus:outline-none focus:ring-2 focus:ring-primary font-mono"
-                    placeholder="workspace-slug"
-                    disabled={isSaving}
-                  />
-                  <Button onClick={handleSaveSlug} size="sm" disabled={isSaving}>
-                    {isSaving ? 'Saving...' : 'Save'}
-                  </Button>
-                  <Button
-                    onClick={handleCancelSlug}
-                    size="sm"
-                    variant="outline"
-                    disabled={isSaving}
-                  >
-                    Cancel
-                  </Button>
-                </>
-              ) : (
-                <div className="flex-1 flex items-center gap-2">
-                  <div
-                    className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded px-2 py-1 transition-colors flex-1"
-                    onClick={() => setIsEditingSlug(true)}
-                    title="Click to edit"
-                  >
-                    <p className="text-sm font-mono">{workspace.slug}</p>
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="text-muted-foreground"
-                    >
-                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                    </svg>
-                  </div>
-                </div>
-              )}
-            </div>
-            {slugError && <p className="text-xs text-red-500 mt-2">{slugError}</p>}
-            {isEditingSlug && (
-              <p className="text-xs text-muted-foreground mt-2">
-                Preview: /i/{formatSlug(workspaceSlug) || 'workspace-slug'}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-foreground">Description</label>
-            <div className="mt-2">
-              {isEditingDescription ? (
-                <div className="space-y-2">
-                  <textarea
-                    value={workspaceDescription}
-                    onChange={(e) => setWorkspaceDescription(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-input bg-background rounded-md focus:outline-none focus:ring-2 focus:ring-primary resize-none"
-                    placeholder="Add a description to help others understand what this workspace is for"
-                    rows={3}
-                    maxLength={500}
-                    disabled={isSaving}
-                  />
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs text-muted-foreground">
-                      {workspaceDescription.length}/500 characters
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <Button onClick={handleSaveDescription} size="sm" disabled={isSaving}>
-                        {isSaving ? 'Saving...' : 'Save'}
-                      </Button>
-                      <Button
-                        onClick={handleCancelDescription}
-                        size="sm"
-                        variant="outline"
-                        disabled={isSaving}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div
-                  className="min-h-[60px] flex items-start gap-2 cursor-pointer hover:bg-muted/50 rounded px-2 py-2 transition-colors"
-                  onClick={() => setIsEditingDescription(true)}
-                  title="Click to edit"
-                >
-                  <div className="flex-1">
-                    {workspace.description ? (
-                      <p className="text-sm text-foreground leading-relaxed">
-                        {workspace.description}
-                      </p>
-                    ) : (
-                      <p className="text-sm text-muted-foreground italic">
-                        Add a description to help others understand what this workspace is for
-                      </p>
-                    )}
-                  </div>
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="text-muted-foreground mt-0.5 flex-shrink-0"
-                  >
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                  </svg>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="pt-4 border-t">
-            <p className="text-sm text-muted-foreground">
-              More settings coming soon: member management, repository settings, permissions, and
-              integrations.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Workspace Information</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Workspace ID</span>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-mono">{workspace.id}</span>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-6 w-6 p-0"
-                onClick={() => handleCopy(workspace.id, 'Workspace ID')}
-              >
-                {copiedField === 'Workspace ID' ? (
-                  <Check className="h-3 w-3" />
-                ) : (
-                  <Copy className="h-3 w-3" />
-                )}
-              </Button>
-            </div>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Workspace Slug</span>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-mono">{workspace.slug}</span>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-6 w-6 p-0"
-                onClick={() => handleCopy(workspace.slug, 'Workspace Slug')}
-              >
-                {copiedField === 'Workspace Slug' ? (
-                  <Check className="h-3 w-3" />
-                ) : (
-                  <Copy className="h-3 w-3" />
-                )}
-              </Button>
-            </div>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-sm text-muted-foreground">Tier</span>
-            <span className="text-sm capitalize">{workspace.tier}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-sm text-muted-foreground">Created</span>
-            <span className="text-sm">{new Date(workspace.created_at).toLocaleDateString()}</span>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
 function WorkspacePage() {
   const { workspaceId } = useParams<{ workspaceId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const { syncWithUrl } = useWorkspaceContext();
+
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [repositories, setRepositories] = useState<Repository[]>([]);
   const [metrics, setMetrics] = useState<WorkspaceMetrics | null>(null);
@@ -2359,65 +2267,118 @@ function WorkspacePage() {
   const [selectedRepositories, setSelectedRepositories] = useState<string[]>([]);
   const [addRepositoryModalOpen, setAddRepositoryModalOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentMember, setCurrentMember] = useState<WorkspaceMemberWithUser | null>(null);
+  const [memberCount, setMemberCount] = useState(0);
   const [isWorkspaceOwner, setIsWorkspaceOwner] = useState(false);
 
   // Determine active tab from URL
   const pathSegments = location.pathname.split('/');
   const activeTab = pathSegments[3] || 'overview';
 
-  useEffect(() => {
-    async function fetchWorkspace() {
-      if (!workspaceId) {
-        setError('No workspace ID provided');
+  // Extract fetchWorkspace as a reusable function
+  const fetchWorkspace = useCallback(async () => {
+    if (!workspaceId) {
+      setError('No workspace ID provided');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      // Get current user
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      setCurrentUser(user);
+
+      // Check if workspaceId is a UUID or a slug
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        workspaceId
+      );
+
+      // Fetch workspace details using either id or slug
+      const { data: workspaceData, error: wsError } = isUUID
+        ? await supabase
+            .from('workspaces')
+            .select('*')
+            .eq('is_active', true)
+            .eq('id', workspaceId)
+            .maybeSingle()
+        : await supabase
+            .from('workspaces')
+            .select('*')
+            .eq('is_active', true)
+            .eq('slug', workspaceId)
+            .maybeSingle();
+
+      if (wsError) {
+        console.error('Error fetching workspace:', wsError);
+        setError(`Failed to load workspace: ${wsError.message}`);
         setLoading(false);
         return;
       }
 
-      try {
-        // Get current user
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        setCurrentUser(user);
+      if (!workspaceData) {
+        setError('Workspace not found');
+        setLoading(false);
+        return;
+      }
 
-        // Check if workspaceId is a UUID or a slug
-        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-          workspaceId
-        );
+      // Check if current user is the workspace owner
+      if (user && workspaceData.owner_id === user.id) {
+        setIsWorkspaceOwner(true);
+      } else {
+        setIsWorkspaceOwner(false);
+      }
 
-        // Fetch workspace details using either id or slug
-        const { data: workspaceData, error: wsError } = isUUID
-          ? await supabase
-              .from('workspaces')
-              .select('*')
-              .eq('is_active', true)
-              .eq('id', workspaceId)
-              .maybeSingle()
-          : await supabase
-              .from('workspaces')
-              .select('*')
-              .eq('is_active', true)
-              .eq('slug', workspaceId)
-              .maybeSingle();
+      // Fetch current member info and member count
+      if (user) {
+        const { data: memberData } = await supabase
+          .from('workspace_members')
+          .select('*')
+          .eq('workspace_id', workspaceData.id)
+          .eq('user_id', user.id)
+          .maybeSingle();
 
-        if (wsError || !workspaceData) {
-          setError('Workspace not found');
-          setLoading(false);
-          return;
+        if (memberData) {
+          // Fetch user details for the current member
+          const { data: userData } = await supabase
+            .from('app_users')
+            .select('auth_user_id, email, display_name, avatar_url')
+            .eq('auth_user_id', user.id)
+            .maybeSingle();
+
+          const memberWithUser: WorkspaceMemberWithUser = {
+            ...memberData,
+            user: userData
+              ? {
+                  id: userData.auth_user_id,
+                  email: userData.email,
+                  display_name: userData.display_name || userData.email?.split('@')[0],
+                  avatar_url: userData.avatar_url,
+                }
+              : {
+                  id: user.id,
+                  email: user.email || '',
+                  display_name: user.email?.split('@')[0] || 'User',
+                  avatar_url: null,
+                },
+          };
+          setCurrentMember(memberWithUser);
         }
 
-        // Check if current user is the workspace owner
-        if (user && workspaceData.owner_id === user.id) {
-          setIsWorkspaceOwner(true);
-        } else {
-          setIsWorkspaceOwner(false);
-        }
+        const { count } = await supabase
+          .from('workspace_members')
+          .select('*', { count: 'exact', head: true })
+          .eq('workspace_id', workspaceData.id);
 
-        // Fetch repositories with their details (use the actual workspace ID)
-        const { data: repoData, error: repoError } = await supabase
-          .from('workspace_repositories')
-          .select(
-            `
+        setMemberCount(count || 0);
+      }
+
+      // Fetch repositories with their details (use the actual workspace ID)
+      const { data: repoData, error: repoError } = await supabase
+        .from('workspace_repositories')
+        .select(
+          `
             *,
             repositories (
               id,
@@ -2431,87 +2392,167 @@ function WorkspacePage() {
               open_issues_count
             )
           `
-          )
-          .eq('workspace_id', workspaceData.id);
+        )
+        .eq('workspace_id', workspaceData.id);
 
-        if (repoError) {
-          console.error('Error fetching repositories:', repoError);
+      if (repoError) {
+        console.error('Error fetching repositories:', repoError);
+      }
+
+      // Transform repository data to match the Repository interface
+      console.log('Fetched workspace repositories:', repoData?.length, repoData);
+      const transformedRepos: Repository[] = (repoData || [])
+        .filter((r) => r.repositories)
+        .map((r: WorkspaceRepository) => ({
+          id: r.repositories.id,
+          full_name: r.repositories.full_name,
+          owner: r.repositories.owner,
+          name: r.repositories.name,
+          description: r.repositories.description ?? undefined,
+          language: r.repositories.language ?? undefined,
+          stars: r.repositories.stargazers_count,
+          forks: r.repositories.forks_count,
+          open_prs: 0, // Will be populated from real data
+          open_issues: r.repositories.open_issues_count,
+          contributors: 0, // Will be populated from real data
+          last_activity: new Date().toISOString(),
+          is_pinned: r.is_pinned,
+          avatar_url: r.repositories?.owner
+            ? `https://avatars.githubusercontent.com/${r.repositories.owner}`
+            : getFallbackAvatar(),
+          html_url: `https://github.com/${r.repositories.full_name}`,
+        }));
+      console.log('Transformed repositories:', transformedRepos.length, transformedRepos);
+
+      // Fetch real data for metrics and trends
+      let mergedPRs: MergedPR[] = [];
+      let prDataForTrends: Array<{ created_at: string; state: string; commits?: number }> = [];
+      let issueDataForTrends: Array<{ created_at: string; state: string }> = [];
+      let totalPRCount = 0;
+      let totalCommitCount = 0;
+      let uniqueContributorCount = 0;
+
+      if (transformedRepos.length > 0) {
+        // Use utility function to filter repositories
+        const filteredRepos = filterRepositoriesBySelection(transformedRepos, selectedRepositories);
+        const repoIds = filteredRepos.map((r) => r.id);
+
+        // Calculate date range based on selected time range
+        // Fetch 2x the time range to calculate trends (current + previous period)
+        const daysToFetch = TIME_RANGE_DAYS[timeRange] * 2;
+        const startDate = new Date(Date.now() - daysToFetch * 24 * 60 * 60 * 1000);
+
+        // Ensure startDate is valid and not in the future
+        if (startDate.getTime() > Date.now()) {
+          console.warn('Start date is in the future, using 30 days ago as fallback');
+          startDate.setTime(Date.now() - timeHelpers.daysToMs(TIME_PERIODS.DEFAULT_METRICS_DAYS));
         }
 
-        // Transform repository data to match the Repository interface
-        const transformedRepos: Repository[] = (repoData || [])
-          .filter((r) => r.repositories)
-          .map((r: WorkspaceRepository) => ({
-            id: r.repositories.id,
-            full_name: r.repositories.full_name,
-            owner: r.repositories.owner,
-            name: r.repositories.name,
-            description: r.repositories.description ?? undefined,
-            language: r.repositories.language ?? undefined,
-            stars: r.repositories.stargazers_count,
-            forks: r.repositories.forks_count,
-            open_prs: 0, // Will be populated from real data
-            open_issues: r.repositories.open_issues_count,
-            contributors: 0, // Will be populated from real data
-            last_activity: new Date().toISOString(),
-            is_pinned: r.is_pinned,
-            avatar_url: r.repositories?.owner
-              ? `https://avatars.githubusercontent.com/${r.repositories.owner}`
-              : getFallbackAvatar(),
-            html_url: `https://github.com/${r.repositories.full_name}`,
-          }));
-
-        // Fetch real data for metrics and trends
-        let mergedPRs: MergedPR[] = [];
-        let prDataForTrends: Array<{ created_at: string; state: string; commits?: number }> = [];
-        let issueDataForTrends: Array<{ created_at: string; state: string }> = [];
-        let totalPRCount = 0;
-        let totalCommitCount = 0;
-        let uniqueContributorCount = 0;
-
-        if (transformedRepos.length > 0) {
-          // Use utility function to filter repositories
-          const filteredRepos = filterRepositoriesBySelection(
-            transformedRepos,
-            selectedRepositories
-          );
-          const repoIds = filteredRepos.map((r) => r.id);
-
-          // Calculate date range based on selected time range
-          // Fetch 2x the time range to calculate trends (current + previous period)
-          const daysToFetch = TIME_RANGE_DAYS[timeRange] * 2;
-          const startDate = new Date(Date.now() - daysToFetch * 24 * 60 * 60 * 1000);
-
-          // Ensure startDate is valid and not in the future
-          if (startDate.getTime() > Date.now()) {
-            console.warn('Start date is in the future, using 30 days ago as fallback');
-            startDate.setTime(Date.now() - 30 * 24 * 60 * 60 * 1000);
-          }
-
-          // Fetch PRs for activity data and metrics with more fields for activity tab
-          const { data: prData, error: prError } = await supabase
-            .from('pull_requests')
-            .select(
-              `id, title, number, merged_at, created_at, updated_at, additions, deletions, 
+        // Fetch PRs for activity data and metrics with more fields for activity tab
+        const { data: prData, error: prError } = await supabase
+          .from('pull_requests')
+          .select(
+            `id, title, number, merged_at, created_at, updated_at, additions, deletions, 
                changed_files, commits, state, author_id, repository_id, html_url,
                contributors!pull_requests_contributor_id_fkey(username, avatar_url)`
-            )
-            .in('repository_id', repoIds)
-            .or(
-              `created_at.gte.${startDate.toISOString()},merged_at.gte.${startDate.toISOString()}`
-            )
-            .order('created_at', { ascending: true });
+          )
+          .in('repository_id', repoIds)
+          .or(`created_at.gte.${startDate.toISOString()},merged_at.gte.${startDate.toISOString()}`)
+          .order('created_at', { ascending: true });
 
-          if (prError) {
-            console.error('Error fetching PR data:', prError);
+        if (prError) {
+          console.error('Error fetching PR data:', prError);
+        }
+
+        if (prData) {
+          // Format PR data for activity tab
+          const formattedPRs = prData.map((pr) => ({
+            ...pr,
+            author_login: (() => {
+              const contrib = pr.contributors as
+                | { username?: string; avatar_url?: string }
+                | { username?: string; avatar_url?: string }[]
+                | undefined;
+              if (Array.isArray(contrib)) {
+                return contrib[0]?.username || 'Unknown';
+              }
+              return contrib?.username || 'Unknown';
+            })(), // Use actual GitHub username
+            repository_name: transformedRepos.find((r) => r.id === pr.repository_id)?.full_name,
+          }));
+          setFullPRData(formattedPRs);
+
+          // Store for trend calculation with commits
+          prDataForTrends = prData.map((pr) => ({
+            created_at: pr.created_at,
+            state: pr.state,
+            commits: pr.commits || 0,
+          }));
+
+          // Count total PRs and aggregate commits for current period only
+          const currentPeriodStart = new Date();
+          currentPeriodStart.setDate(currentPeriodStart.getDate() - TIME_RANGE_DAYS[timeRange]);
+
+          const currentPeriodPRs = prData.filter((pr) => {
+            const prDate = new Date(pr.created_at);
+            return prDate >= currentPeriodStart;
+          });
+
+          totalPRCount = currentPeriodPRs.length;
+          totalCommitCount = currentPeriodPRs.reduce((sum, pr) => sum + (pr.commits || 0), 0);
+
+          // Get unique contributors from PRs
+          const prContributors = new Set(prData.map((pr) => pr.author_id).filter(Boolean));
+
+          // Filter for merged PRs for activity chart
+          mergedPRs = prData
+            .filter((pr) => pr.merged_at !== null)
+            .map((pr) => ({
+              merged_at: pr.merged_at,
+              additions: pr.additions || 0,
+              deletions: pr.deletions || 0,
+              changed_files: pr.changed_files || 0,
+              commits: pr.commits || 0,
+            }));
+
+          // If no merged PRs found, use open PRs for activity
+          if (mergedPRs.length === 0) {
+            const openPRActivity = prData
+              .filter((pr) => pr.state === 'open' && pr.created_at)
+              .map((pr) => ({
+                merged_at: pr.created_at,
+                additions: pr.additions || 0,
+                deletions: pr.deletions || 0,
+                changed_files: pr.changed_files || 0,
+                commits: pr.commits || 0,
+              }));
+
+            if (openPRActivity.length > 0) {
+              mergedPRs = openPRActivity;
+            }
           }
 
-          if (prData) {
-            // Format PR data for activity tab
-            const formattedPRs = prData.map((pr) => ({
-              ...pr,
+          // Fetch issues for metrics and trends with more fields for activity tab
+          const { data: issueData, error: issueError } = await supabase
+            .from('issues')
+            .select(
+              `id, title, number, created_at, closed_at, state, author_id, repository_id,
+                       contributors!issues_author_id_fkey(username, avatar_url)`
+            )
+            .in('repository_id', repoIds)
+            .gte('created_at', startDate.toISOString().split('T')[0]) // Use date only format (YYYY-MM-DD)
+            .order('created_at', { ascending: true });
+
+          if (issueError) {
+            console.error('Error fetching issue data:', issueError);
+          }
+
+          if (issueData) {
+            // Format issue data for activity tab
+            const formattedIssues = issueData.map((issue) => ({
+              ...issue,
               author_login: (() => {
-                const contrib = pr.contributors as
+                const contrib = issue.contributors as
                   | { username?: string; avatar_url?: string }
                   | { username?: string; avatar_url?: string }[]
                   | undefined;
@@ -2520,81 +2561,92 @@ function WorkspacePage() {
                 }
                 return contrib?.username || 'Unknown';
               })(), // Use actual GitHub username
-              repository_name: transformedRepos.find((r) => r.id === pr.repository_id)?.full_name,
+              repository_name: transformedRepos.find((r) => r.id === issue.repository_id)
+                ?.full_name,
             }));
-            setFullPRData(formattedPRs);
+            setFullIssueData(formattedIssues);
 
-            // Store for trend calculation with commits
-            prDataForTrends = prData.map((pr) => ({
-              created_at: pr.created_at,
-              state: pr.state,
-              commits: pr.commits || 0,
+            // Store for trend calculation
+            issueDataForTrends = issueData.map((issue) => ({
+              created_at: issue.created_at,
+              state: issue.state,
             }));
 
-            // Count total PRs and aggregate commits for current period only
-            const currentPeriodStart = new Date();
-            currentPeriodStart.setDate(currentPeriodStart.getDate() - TIME_RANGE_DAYS[timeRange]);
+            // Add issue contributors to the set
+            const issueContributors = new Set(
+              issueData.map((issue) => issue.author_id).filter(Boolean)
+            );
 
-            const currentPeriodPRs = prData.filter((pr) => {
-              const prDate = new Date(pr.created_at);
-              return prDate >= currentPeriodStart;
-            });
+            // Merge contributor sets
+            const allContributors = new Set([...prContributors, ...issueContributors]);
+            uniqueContributorCount = allContributors.size;
+          }
 
-            totalPRCount = currentPeriodPRs.length;
-            totalCommitCount = currentPeriodPRs.reduce((sum, pr) => sum + (pr.commits || 0), 0);
+          // Fetch reviews for activity tab
+          const { data: reviewData, error: reviewError } = await supabase
+            .from('reviews')
+            .select(
+              `id, pull_request_id, reviewer_id, state, body, submitted_at,
+                 pull_requests!inner(title, number, repository_id),
+                 contributors!fk_reviews_reviewer(username, avatar_url)`
+            )
+            .in('pull_requests.repository_id', repoIds)
+            .gte('submitted_at', startDate.toISOString())
+            .order('submitted_at', { ascending: false });
 
-            // Get unique contributors from PRs
-            const prContributors = new Set(prData.map((pr) => pr.author_id).filter(Boolean));
+          if (reviewError) {
+            console.error('Error fetching review data:', reviewError);
+          }
 
-            // Filter for merged PRs for activity chart
-            mergedPRs = prData
-              .filter((pr) => pr.merged_at !== null)
-              .map((pr) => ({
-                merged_at: pr.merged_at,
-                additions: pr.additions || 0,
-                deletions: pr.deletions || 0,
-                changed_files: pr.changed_files || 0,
-                commits: pr.commits || 0,
-              }));
+          if (reviewData && Array.isArray(reviewData)) {
+            // Type guard for review data validation
+            const isValidReview = (
+              review: unknown
+            ): review is {
+              id: string;
+              pull_request_id: string;
+              reviewer_id: string;
+              state: string;
+              body?: string;
+              submitted_at: string;
+              pull_requests?:
+                | {
+                    title: string;
+                    number: number;
+                    repository_id: string;
+                  }
+                | Array<{
+                    title: string;
+                    number: number;
+                    repository_id: string;
+                  }>;
+            } => {
+              return (
+                typeof review === 'object' &&
+                review !== null &&
+                'id' in review &&
+                'pull_request_id' in review &&
+                'reviewer_id' in review &&
+                'state' in review &&
+                'submitted_at' in review
+              );
+            };
 
-            // If no merged PRs found, use open PRs for activity
-            if (mergedPRs.length === 0) {
-              const openPRActivity = prData
-                .filter((pr) => pr.state === 'open' && pr.created_at)
-                .map((pr) => ({
-                  merged_at: pr.created_at,
-                  additions: pr.additions || 0,
-                  deletions: pr.deletions || 0,
-                  changed_files: pr.changed_files || 0,
-                  commits: pr.commits || 0,
-                }));
+            // Create a Map for O(1) repository lookups instead of O(n) find operations
+            const repoMap = new Map(transformedRepos.map((repo) => [repo.id, repo.full_name]));
 
-              if (openPRActivity.length > 0) {
-                mergedPRs = openPRActivity;
-              }
-            }
-
-            // Fetch issues for metrics and trends with more fields for activity tab
-            const { data: issueData, error: issueError } = await supabase
-              .from('issues')
-              .select(
-                `id, title, number, created_at, closed_at, state, author_id, repository_id,
-                       contributors!issues_author_id_fkey(username, avatar_url)`
-              )
-              .in('repository_id', repoIds)
-              .gte('created_at', startDate.toISOString().split('T')[0]) // Use date only format (YYYY-MM-DD)
-              .order('created_at', { ascending: true });
-
-            if (issueError) {
-              console.error('Error fetching issue data:', issueError);
-            }
-
-            if (issueData) {
-              // Format issue data for activity tab
-              const formattedIssues = issueData.map((issue) => ({
-                ...issue,
-                author_login: (() => {
-                  const contrib = issue.contributors as
+            const formattedReviews = reviewData.filter(isValidReview).map((r) => {
+              // Handle both single object and array cases
+              const pr = Array.isArray(r.pull_requests) ? r.pull_requests[0] : r.pull_requests;
+              return {
+                id: r.id,
+                pull_request_id: r.pull_request_id,
+                reviewer_id: r.reviewer_id,
+                state: r.state,
+                body: r.body,
+                submitted_at: r.submitted_at,
+                reviewer_login: (() => {
+                  const contrib = r.contributors as
                     | { username?: string; avatar_url?: string }
                     | { username?: string; avatar_url?: string }[]
                     | undefined;
@@ -2603,429 +2655,345 @@ function WorkspacePage() {
                   }
                   return contrib?.username || 'Unknown';
                 })(), // Use actual GitHub username
-                repository_name: transformedRepos.find((r) => r.id === issue.repository_id)
-                  ?.full_name,
-              }));
-              setFullIssueData(formattedIssues);
-
-              // Store for trend calculation
-              issueDataForTrends = issueData.map((issue) => ({
-                created_at: issue.created_at,
-                state: issue.state,
-              }));
-
-              // Add issue contributors to the set
-              const issueContributors = new Set(
-                issueData.map((issue) => issue.author_id).filter(Boolean)
-              );
-
-              // Merge contributor sets
-              const allContributors = new Set([...prContributors, ...issueContributors]);
-              uniqueContributorCount = allContributors.size;
-            }
-
-            // Fetch reviews for activity tab
-            const { data: reviewData, error: reviewError } = await supabase
-              .from('reviews')
-              .select(
-                `id, pull_request_id, reviewer_id, state, body, submitted_at,
-                 pull_requests!inner(title, number, repository_id),
-                 contributors!fk_reviews_reviewer(username, avatar_url)`
-              )
-              .in('pull_requests.repository_id', repoIds)
-              .gte('submitted_at', startDate.toISOString())
-              .order('submitted_at', { ascending: false });
-
-            if (reviewError) {
-              console.error('Error fetching review data:', reviewError);
-            }
-
-            if (reviewData && Array.isArray(reviewData)) {
-              // Type guard for review data validation
-              const isValidReview = (
-                review: unknown
-              ): review is {
-                id: string;
-                pull_request_id: string;
-                reviewer_id: string;
-                state: string;
-                body?: string;
-                submitted_at: string;
-                pull_requests?:
-                  | {
-                      title: string;
-                      number: number;
-                      repository_id: string;
-                    }
-                  | Array<{
-                      title: string;
-                      number: number;
-                      repository_id: string;
-                    }>;
-              } => {
-                return (
-                  typeof review === 'object' &&
-                  review !== null &&
-                  'id' in review &&
-                  'pull_request_id' in review &&
-                  'reviewer_id' in review &&
-                  'state' in review &&
-                  'submitted_at' in review
-                );
+                pr_title: pr?.title,
+                pr_number: pr?.number,
+                repository_id: pr?.repository_id,
+                repository_name: pr?.repository_id ? repoMap.get(pr.repository_id) : undefined,
               };
+            });
+            setFullReviewData(formattedReviews);
+          }
 
-              // Create a Map for O(1) repository lookups instead of O(n) find operations
-              const repoMap = new Map(transformedRepos.map((repo) => [repo.id, repo.full_name]));
-
-              const formattedReviews = reviewData.filter(isValidReview).map((r) => {
-                // Handle both single object and array cases
-                const pr = Array.isArray(r.pull_requests) ? r.pull_requests[0] : r.pull_requests;
-                return {
-                  id: r.id,
-                  pull_request_id: r.pull_request_id,
-                  reviewer_id: r.reviewer_id,
-                  state: r.state,
-                  body: r.body,
-                  submitted_at: r.submitted_at,
-                  reviewer_login: (() => {
-                    const contrib = r.contributors as
-                      | { username?: string; avatar_url?: string }
-                      | { username?: string; avatar_url?: string }[]
-                      | undefined;
-                    if (Array.isArray(contrib)) {
-                      return contrib[0]?.username || 'Unknown';
-                    }
-                    return contrib?.username || 'Unknown';
-                  })(), // Use actual GitHub username
-                  pr_title: pr?.title,
-                  pr_number: pr?.number,
-                  repository_id: pr?.repository_id,
-                  repository_name: pr?.repository_id ? repoMap.get(pr.repository_id) : undefined,
-                };
-              });
-              setFullReviewData(formattedReviews);
-            }
-
-            // Fetch comments for activity tab
-            const { data: commentData, error: commentError } = await supabase
-              .from('comments')
-              .select(
-                `id, pull_request_id, commenter_id, body, created_at, comment_type,
+          // Fetch comments for activity tab
+          const { data: commentData, error: commentError } = await supabase
+            .from('comments')
+            .select(
+              `id, pull_request_id, commenter_id, body, created_at, comment_type,
                  pull_requests!inner(title, number, repository_id),
                  contributors!fk_comments_commenter(username, avatar_url)`
-              )
-              .in('pull_requests.repository_id', repoIds)
-              .gte('created_at', startDate.toISOString())
-              .order('created_at', { ascending: false });
+            )
+            .in('pull_requests.repository_id', repoIds)
+            .gte('created_at', startDate.toISOString())
+            .order('created_at', { ascending: false });
 
-            if (commentError) {
-              console.error('Error fetching comment data:', commentError);
-            }
+          if (commentError) {
+            console.error('Error fetching comment data:', commentError);
+          }
 
-            if (commentData && Array.isArray(commentData)) {
-              // Type guard for comment data validation
-              const isValidComment = (
-                comment: unknown
-              ): comment is {
-                id: string;
-                pull_request_id: string;
-                commenter_id: string;
-                body: string;
-                created_at: string;
-                comment_type: string;
-                pull_requests?:
-                  | {
-                      title: string;
-                      number: number;
-                      repository_id: string;
-                    }
-                  | Array<{
-                      title: string;
-                      number: number;
-                      repository_id: string;
-                    }>;
-              } => {
-                return (
-                  typeof comment === 'object' &&
-                  comment !== null &&
-                  'id' in comment &&
-                  'pull_request_id' in comment &&
-                  'commenter_id' in comment &&
-                  'created_at' in comment
-                );
-              };
-
-              // Create a Map for O(1) repository lookups instead of O(n) find operations
-              const repoMap = new Map(transformedRepos.map((repo) => [repo.id, repo.full_name]));
-
-              const formattedComments = commentData.filter(isValidComment).map((c) => {
-                // Handle both single object and array cases
-                const pr = Array.isArray(c.pull_requests) ? c.pull_requests[0] : c.pull_requests;
-                return {
-                  id: c.id,
-                  pull_request_id: c.pull_request_id,
-                  commenter_id: c.commenter_id,
-                  body: c.body,
-                  created_at: c.created_at,
-                  comment_type: c.comment_type,
-                  commenter_login: (() => {
-                    const contrib = c.contributors as
-                      | { username?: string; avatar_url?: string }
-                      | { username?: string; avatar_url?: string }[]
-                      | undefined;
-                    if (Array.isArray(contrib)) {
-                      return contrib[0]?.username || 'Unknown';
-                    }
-                    return contrib?.username || 'Unknown';
-                  })(), // Use actual GitHub username
-                  pr_title: pr?.title,
-                  pr_number: pr?.number,
-                  repository_id: pr?.repository_id,
-                  repository_name: pr?.repository_id ? repoMap.get(pr.repository_id) : undefined,
-                };
-              });
-              setFullCommentData(formattedComments);
-            }
-
-            // Fetch individual star and fork events from github_events_cache
-            // For each repository, fetch its events
-            interface GitHubEvent {
-              event_id: string;
-              event_type: string;
-              actor_login: string;
-              repository_owner: string;
-              repository_name: string;
+          if (commentData && Array.isArray(commentData)) {
+            // Type guard for comment data validation
+            const isValidComment = (
+              comment: unknown
+            ): comment is {
+              id: string;
+              pull_request_id: string;
+              commenter_id: string;
+              body: string;
               created_at: string;
-              payload: unknown;
-            }
-            const allStarEvents: GitHubEvent[] = [];
-            const allForkEvents: GitHubEvent[] = [];
+              comment_type: string;
+              pull_requests?:
+                | {
+                    title: string;
+                    number: number;
+                    repository_id: string;
+                  }
+                | Array<{
+                    title: string;
+                    number: number;
+                    repository_id: string;
+                  }>;
+            } => {
+              return (
+                typeof comment === 'object' &&
+                comment !== null &&
+                'id' in comment &&
+                'pull_request_id' in comment &&
+                'commenter_id' in comment &&
+                'created_at' in comment
+              );
+            };
 
-            for (const repo of transformedRepos) {
-              const [owner, name] = repo.full_name.split('/');
+            // Create a Map for O(1) repository lookups instead of O(n) find operations
+            const repoMap = new Map(transformedRepos.map((repo) => [repo.id, repo.full_name]));
 
-              // Fetch star events for this specific repository
-              // Note: Removing date filter temporarily as events might have incorrect timestamps
-              const { data: starEvents, error: starError } = await supabase
-                .from('github_events_cache')
-                .select('*')
-                .eq('event_type', 'WatchEvent')
-                .eq('repository_owner', owner)
-                .eq('repository_name', name)
-                // .gte('created_at', startDate.toISOString()) // Commented out for debugging
-                .order('created_at', { ascending: false })
-                .limit(50); // Limit per repository
-
-              if (!starError && starEvents) {
-                allStarEvents.push(...starEvents);
-              }
-
-              // Fetch fork events for this specific repository
-              const { data: forkEvents, error: forkError } = await supabase
-                .from('github_events_cache')
-                .select('*')
-                .eq('event_type', 'ForkEvent')
-                .eq('repository_owner', owner)
-                .eq('repository_name', name)
-                // .gte('created_at', startDate.toISOString()) // Commented out for debugging
-                .order('created_at', { ascending: false })
-                .limit(50); // Limit per repository
-
-              if (!forkError && forkEvents) {
-                allForkEvents.push(...forkEvents);
-              }
-            }
-
-            // Format star events
-            const formattedStars = allStarEvents.map((event) => {
-              const payload = event.payload as { actor?: { login: string; avatar_url: string } };
+            const formattedComments = commentData.filter(isValidComment).map((c) => {
+              // Handle both single object and array cases
+              const pr = Array.isArray(c.pull_requests) ? c.pull_requests[0] : c.pull_requests;
               return {
-                id: event.event_id,
-                event_type: 'star' as const,
-                actor_login: event.actor_login,
-                actor_avatar:
-                  payload?.actor?.avatar_url ||
-                  (event.actor_login
-                    ? `https://avatars.githubusercontent.com/${event.actor_login}`
-                    : getFallbackAvatar()),
-                repository_name: `${event.repository_owner}/${event.repository_name}`,
-                captured_at: event.created_at,
+                id: c.id,
+                pull_request_id: c.pull_request_id,
+                commenter_id: c.commenter_id,
+                body: c.body,
+                created_at: c.created_at,
+                comment_type: c.comment_type,
+                commenter_login: (() => {
+                  const contrib = c.contributors as
+                    | { username?: string; avatar_url?: string }
+                    | { username?: string; avatar_url?: string }[]
+                    | undefined;
+                  if (Array.isArray(contrib)) {
+                    return contrib[0]?.username || 'Unknown';
+                  }
+                  return contrib?.username || 'Unknown';
+                })(), // Use actual GitHub username
+                pr_title: pr?.title,
+                pr_number: pr?.number,
+                repository_id: pr?.repository_id,
+                repository_name: pr?.repository_id ? repoMap.get(pr.repository_id) : undefined,
               };
             });
-            setFullStarData(formattedStars);
-
-            // Format fork events
-            const formattedForks = allForkEvents.map((event) => {
-              const payload = event.payload as { actor?: { login: string; avatar_url: string } };
-              return {
-                id: event.event_id,
-                event_type: 'fork' as const,
-                actor_login: event.actor_login,
-                actor_avatar:
-                  payload?.actor?.avatar_url ||
-                  (event.actor_login
-                    ? `https://avatars.githubusercontent.com/${event.actor_login}`
-                    : getFallbackAvatar()),
-                repository_name: `${event.repository_owner}/${event.repository_name}`,
-                captured_at: event.created_at,
-              };
-            });
-            setFullForkData(formattedForks);
+            setFullCommentData(formattedComments);
           }
+
+          // Fetch individual star and fork events from github_events_cache
+          // For each repository, fetch its events
+          interface GitHubEvent {
+            event_id: string;
+            event_type: string;
+            actor_login: string;
+            repository_owner: string;
+            repository_name: string;
+            created_at: string;
+            payload: unknown;
+          }
+          const allStarEvents: GitHubEvent[] = [];
+          const allForkEvents: GitHubEvent[] = [];
+
+          for (const repo of transformedRepos) {
+            const [owner, name] = repo.full_name.split('/');
+
+            // Fetch star events for this specific repository
+            // Note: Removing date filter temporarily as events might have incorrect timestamps
+            const { data: starEvents, error: starError } = await supabase
+              .from('github_events_cache')
+              .select('*')
+              .eq('event_type', 'WatchEvent')
+              .eq('repository_owner', owner)
+              .eq('repository_name', name)
+              // .gte('created_at', startDate.toISOString()) // Commented out for debugging
+              .order('created_at', { ascending: false })
+              .limit(50); // Limit per repository
+
+            if (!starError && starEvents) {
+              allStarEvents.push(...starEvents);
+            }
+
+            // Fetch fork events for this specific repository
+            const { data: forkEvents, error: forkError } = await supabase
+              .from('github_events_cache')
+              .select('*')
+              .eq('event_type', 'ForkEvent')
+              .eq('repository_owner', owner)
+              .eq('repository_name', name)
+              // .gte('created_at', startDate.toISOString()) // Commented out for debugging
+              .order('created_at', { ascending: false })
+              .limit(50); // Limit per repository
+
+            if (!forkError && forkEvents) {
+              allForkEvents.push(...forkEvents);
+            }
+          }
+
+          // Format star events
+          const formattedStars = allStarEvents.map((event) => {
+            const payload = event.payload as { actor?: { login: string; avatar_url: string } };
+            return {
+              id: event.event_id,
+              event_type: 'star' as const,
+              actor_login: event.actor_login,
+              actor_avatar:
+                payload?.actor?.avatar_url ||
+                (event.actor_login
+                  ? `https://avatars.githubusercontent.com/${event.actor_login}`
+                  : getFallbackAvatar()),
+              repository_name: `${event.repository_owner}/${event.repository_name}`,
+              captured_at: event.created_at,
+            };
+          });
+          setFullStarData(formattedStars);
+
+          // Format fork events
+          const formattedForks = allForkEvents.map((event) => {
+            const payload = event.payload as { actor?: { login: string; avatar_url: string } };
+            return {
+              id: event.event_id,
+              event_type: 'fork' as const,
+              actor_login: event.actor_login,
+              actor_avatar:
+                payload?.actor?.avatar_url ||
+                (event.actor_login
+                  ? `https://avatars.githubusercontent.com/${event.actor_login}`
+                  : getFallbackAvatar()),
+              repository_name: `${event.repository_owner}/${event.repository_name}`,
+              captured_at: event.created_at,
+            };
+          });
+          setFullForkData(formattedForks);
         }
+      }
 
-        // Batch query to get open PR and issue counts for all repos at once
-        if (transformedRepos.length > 0) {
-          const repoIds = transformedRepos.map((r) => r.id);
+      // Batch query to get open PR and issue counts for all repos at once
+      if (transformedRepos.length > 0) {
+        const repoIds = transformedRepos.map((r) => r.id);
 
-          // Get all open PRs for these repositories in a single query
-          const { data: openPRData } = await supabase
-            .from('pull_requests')
-            .select('repository_id')
-            .in('repository_id', repoIds)
-            .eq('state', 'open');
+        // Get all open PRs for these repositories in a single query
+        const { data: openPRData } = await supabase
+          .from('pull_requests')
+          .select('repository_id')
+          .in('repository_id', repoIds)
+          .eq('state', 'open');
 
-          // Count PRs per repository
-          const prCountMap = new Map<string, number>();
-          if (openPRData) {
-            openPRData.forEach((pr) => {
-              const count = prCountMap.get(pr.repository_id) || 0;
-              prCountMap.set(pr.repository_id, count + 1);
-            });
-          }
-
-          // Get all open issues for these repositories in a single query
-          const { data: openIssueData } = await supabase
-            .from('issues')
-            .select('repository_id')
-            .in('repository_id', repoIds)
-            .eq('state', 'open');
-
-          // Count issues per repository
-          const issueCountMap = new Map<string, number>();
-          if (openIssueData) {
-            openIssueData.forEach((issue) => {
-              const count = issueCountMap.get(issue.repository_id) || 0;
-              issueCountMap.set(issue.repository_id, count + 1);
-            });
-          }
-
-          // Update repositories with their PR and issue counts
-          transformedRepos.forEach((repo) => {
-            repo.open_prs = prCountMap.get(repo.id) || 0;
-            repo.open_issues = issueCountMap.get(repo.id) || 0;
+        // Count PRs per repository
+        const prCountMap = new Map<string, number>();
+        if (openPRData) {
+          openPRData.forEach((pr) => {
+            const count = prCountMap.get(pr.repository_id) || 0;
+            prCountMap.set(pr.repository_id, count + 1);
           });
         }
 
-        // Fetch contributor count from pull_requests table (repository_contributors table doesn't exist)
-        if (transformedRepos.length > 0) {
-          const repoIds = transformedRepos.map((r) => r.id);
+        // Get all open issues for these repositories in a single query
+        const { data: openIssueData } = await supabase
+          .from('issues')
+          .select('repository_id')
+          .in('repository_id', repoIds)
+          .eq('state', 'open');
 
-          // Get unique contributors from pull requests
-          const { data: prContributorData, error: prContributorError } = await supabase
-            .from('pull_requests')
-            .select('author_id')
-            .in('repository_id', repoIds)
-            .not('author_id', 'is', null);
-
-          if (prContributorError) {
-            console.error('Error fetching PR contributors:', prContributorError);
-          } else if (prContributorData && prContributorData.length > 0) {
-            // Get unique contributor IDs
-            const contributorIds = [...new Set(prContributorData.map((pr) => pr.author_id))];
-            uniqueContributorCount = Math.max(uniqueContributorCount, contributorIds.length);
-          }
+        // Count issues per repository
+        const issueCountMap = new Map<string, number>();
+        if (openIssueData) {
+          openIssueData.forEach((issue) => {
+            const count = issueCountMap.get(issue.repository_id) || 0;
+            issueCountMap.set(issue.repository_id, count + 1);
+          });
         }
 
-        setWorkspace(workspaceData);
-        setRepositories(transformedRepos);
-
-        // Count total issues from the current period only
-        const currentPeriodStart = new Date();
-        currentPeriodStart.setDate(currentPeriodStart.getDate() - TIME_RANGE_DAYS[timeRange]);
-
-        const currentPeriodIssues =
-          issueDataForTrends?.filter((issue) => {
-            const issueDate = new Date(issue.created_at);
-            return issueDate >= currentPeriodStart;
-          }) || [];
-
-        const totalIssueCount = currentPeriodIssues.length;
-
-        // Calculate metrics for the previous period for trend comparison
-        const daysInRange = TIME_RANGE_DAYS[timeRange];
-        const today = new Date();
-        const periodStart = new Date(today);
-        periodStart.setDate(today.getDate() - daysInRange);
-        const previousPeriodStart = new Date(periodStart);
-        previousPeriodStart.setDate(previousPeriodStart.getDate() - daysInRange);
-
-        // Filter data for previous period
-        const previousPRs =
-          prDataForTrends?.filter((pr) => {
-            const prDate = new Date(pr.created_at);
-            return prDate >= previousPeriodStart && prDate < periodStart;
-          }) || [];
-
-        const previousIssues =
-          issueDataForTrends?.filter((issue) => {
-            const issueDate = new Date(issue.created_at);
-            return issueDate >= previousPeriodStart && issueDate < periodStart;
-          }) || [];
-
-        // Calculate previous period metrics
-        const previousMetrics = {
-          starCount: transformedRepos.reduce((sum, repo) => sum + (repo.stars || 0), 0), // Stars don't change much, use current
-          prCount: previousPRs.length,
-          issueCount: previousIssues.length,
-          contributorCount: uniqueContributorCount, // Contributors are cumulative, trend will be 0
-          commitCount: previousPRs.reduce((sum, pr) => sum + (pr.commits || 0), 0),
-        };
-
-        // Generate metrics with real counts including commits and issues
-        const realMetrics = calculateRealMetrics(
-          transformedRepos,
-          totalPRCount,
-          uniqueContributorCount,
-          totalCommitCount,
-          totalIssueCount,
-          previousMetrics
-        );
-
-        // Generate trend data with real PR/issue data
-        const realTrendData = calculateRealTrendData(
-          TIME_RANGE_DAYS[timeRange],
-          prDataForTrends,
-          issueDataForTrends
-        );
-
-        // Generate activity data from PRs
-        const activityDataPoints = generateActivityDataFromPRs(
-          mergedPRs,
-          timeRange,
-          transformedRepos,
-          selectedRepositories
-        );
-
-        setMetrics(realMetrics);
-        setTrendData(realTrendData);
-        setActivityData(activityDataPoints);
-      } catch (err) {
-        setError('Failed to load workspace');
-        console.error('Error:', err);
-      } finally {
-        setLoading(false);
+        // Update repositories with their PR and issue counts
+        transformedRepos.forEach((repo) => {
+          repo.open_prs = prCountMap.get(repo.id) || 0;
+          repo.open_issues = issueCountMap.get(repo.id) || 0;
+        });
       }
-    }
 
+      // Fetch contributor count from pull_requests table (repository_contributors table doesn't exist)
+      if (transformedRepos.length > 0) {
+        const repoIds = transformedRepos.map((r) => r.id);
+
+        // Get unique contributors from pull requests
+        const { data: prContributorData, error: prContributorError } = await supabase
+          .from('pull_requests')
+          .select('author_id')
+          .in('repository_id', repoIds)
+          .not('author_id', 'is', null);
+
+        if (prContributorError) {
+          console.error('Error fetching PR contributors:', prContributorError);
+        } else if (prContributorData && prContributorData.length > 0) {
+          // Get unique contributor IDs
+          const contributorIds = [...new Set(prContributorData.map((pr) => pr.author_id))];
+          uniqueContributorCount = Math.max(uniqueContributorCount, contributorIds.length);
+        }
+      }
+
+      setWorkspace(workspaceData);
+      setRepositories(transformedRepos);
+
+      // Also ensure the workspace context is synced with the fetched data
+      if (workspaceData) {
+        syncWithUrl(workspaceData.slug || workspaceData.id);
+      }
+
+      // Count total issues from the current period only
+      const currentPeriodStart = new Date();
+      currentPeriodStart.setDate(currentPeriodStart.getDate() - TIME_RANGE_DAYS[timeRange]);
+
+      const currentPeriodIssues =
+        issueDataForTrends?.filter((issue) => {
+          const issueDate = new Date(issue.created_at);
+          return issueDate >= currentPeriodStart;
+        }) || [];
+
+      const totalIssueCount = currentPeriodIssues.length;
+
+      // Calculate metrics for the previous period for trend comparison
+      const daysInRange = TIME_RANGE_DAYS[timeRange];
+      const today = new Date();
+      const periodStart = new Date(today);
+      periodStart.setDate(today.getDate() - daysInRange);
+      const previousPeriodStart = new Date(periodStart);
+      previousPeriodStart.setDate(previousPeriodStart.getDate() - daysInRange);
+
+      // Filter data for previous period
+      const previousPRs =
+        prDataForTrends?.filter((pr) => {
+          const prDate = new Date(pr.created_at);
+          return prDate >= previousPeriodStart && prDate < periodStart;
+        }) || [];
+
+      const previousIssues =
+        issueDataForTrends?.filter((issue) => {
+          const issueDate = new Date(issue.created_at);
+          return issueDate >= previousPeriodStart && issueDate < periodStart;
+        }) || [];
+
+      // Calculate previous period metrics
+      const previousMetrics = {
+        starCount: transformedRepos.reduce((sum, repo) => sum + (repo.stars || 0), 0), // Stars don't change much, use current
+        prCount: previousPRs.length,
+        issueCount: previousIssues.length,
+        contributorCount: uniqueContributorCount, // Contributors are cumulative, trend will be 0
+        commitCount: previousPRs.reduce((sum, pr) => sum + (pr.commits || 0), 0),
+      };
+
+      // Generate metrics with real counts including commits and issues
+      const realMetrics = calculateRealMetrics(
+        transformedRepos,
+        totalPRCount,
+        uniqueContributorCount,
+        totalCommitCount,
+        totalIssueCount,
+        previousMetrics
+      );
+
+      // Generate trend data with real PR/issue data
+      const realTrendData = calculateRealTrendData(
+        TIME_RANGE_DAYS[timeRange],
+        prDataForTrends,
+        issueDataForTrends
+      );
+
+      // Generate activity data from PRs
+      const activityDataPoints = generateActivityDataFromPRs(
+        mergedPRs,
+        timeRange,
+        transformedRepos,
+        selectedRepositories
+      );
+
+      setMetrics(realMetrics);
+      setTrendData(realTrendData);
+      setActivityData(activityDataPoints);
+    } catch (err) {
+      setError('Failed to load workspace');
+      console.error('Error:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [workspaceId, timeRange, selectedRepositories, syncWithUrl]);
+
+  useEffect(() => {
+    // Sync the workspace dropdown with the current URL
+    if (workspaceId) {
+      syncWithUrl(workspaceId);
+    }
     fetchWorkspace();
-  }, [workspaceId, timeRange, selectedRepositories]);
+  }, [fetchWorkspace, workspaceId, syncWithUrl]);
 
   const handleTabChange = (value: string) => {
     if (value === 'overview') {
-      navigate(`/i/${workspaceId}`);
+      navigate(`/i/${workspace?.slug || workspaceId}`);
     } else {
-      navigate(`/i/${workspaceId}/${value}`);
+      navigate(`/i/${workspace?.slug || workspaceId}/${value}`);
     }
   };
 
@@ -3177,7 +3145,7 @@ function WorkspacePage() {
   };
 
   const handleUpgradeClick = () => {
-    toast.info('Upgrade to Pro coming soon!');
+    navigate('/billing');
   };
 
   const handleWorkspaceUpdate = (updates: Partial<Workspace>) => {
@@ -3360,6 +3328,8 @@ function WorkspacePage() {
                 repositories={repositories}
                 selectedRepositories={selectedRepositories}
                 timeRange={timeRange}
+                workspaceId={workspace.id}
+                workspace={workspace}
               />
             </div>
           </TabsContent>
@@ -3380,6 +3350,10 @@ function WorkspacePage() {
                 repositories={repositories}
                 selectedRepositories={selectedRepositories}
                 workspaceId={workspace.id}
+                userRole={currentMember?.role}
+                workspaceTier={workspace.tier}
+                isLoggedIn={!!currentUser}
+                currentUser={currentUser}
               />
             </div>
           </TabsContent>
@@ -3428,6 +3402,7 @@ function WorkspacePage() {
           <TabsContent value="activity" className="mt-6">
             <div className="container max-w-7xl mx-auto">
               <WorkspaceActivity
+                workspace={workspace}
                 prData={fullPRData}
                 issueData={fullIssueData}
                 reviewData={fullReviewData}
@@ -3437,13 +3412,33 @@ function WorkspacePage() {
                 repositories={repositories}
                 loading={loading}
                 error={error}
+                onSyncComplete={fetchWorkspace}
               />
             </div>
           </TabsContent>
 
           <TabsContent value="settings" className="mt-6">
             <div className="container max-w-7xl mx-auto">
-              <WorkspaceSettings workspace={workspace} onWorkspaceUpdate={handleWorkspaceUpdate} />
+              <WorkspaceSettingsComponent
+                workspace={workspace}
+                currentMember={
+                  currentMember || {
+                    id: '',
+                    workspace_id: workspace.id,
+                    user_id: currentUser?.id || '',
+                    role: isWorkspaceOwner ? 'owner' : 'contributor',
+                    accepted_at: null,
+                    invited_at: null,
+                    invited_by: null,
+                    notifications_enabled: true,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                    last_active_at: new Date().toISOString(),
+                  }
+                }
+                memberCount={memberCount}
+                onWorkspaceUpdate={handleWorkspaceUpdate}
+              />
             </div>
           </TabsContent>
         </Tabs>

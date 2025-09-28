@@ -97,7 +97,6 @@ async function handleInstallationCreated(event: InstallationEvent) {
       repository_selection: event.installation.repository_selection,
       repository_count: event.repositories?.length || 0,
     });
-
   } catch (error) {
     console.error('Error handling installation created:', error);
   }
@@ -121,7 +120,6 @@ async function handleInstallationDeleted(event: InstallationEvent) {
       account_type: event.installation.account.type,
       account_name: event.installation.account.login,
     });
-
   } catch (error) {
     console.error('Error handling installation deleted:', error);
   }
@@ -138,7 +136,6 @@ async function handleInstallationSuspended(event: InstallationEvent) {
         suspended_at: new Date().toISOString(),
       })
       .eq('installation_id', event.installation.id);
-
   } catch (error) {
     console.error('Error handling installation suspended:', error);
   }
@@ -155,7 +152,6 @@ async function handleInstallationUnsuspended(event: InstallationEvent) {
         suspended_at: null,
       })
       .eq('installation_id', event.installation.id);
-
   } catch (error) {
     console.error('Error handling installation unsuspended:', error);
   }
@@ -166,7 +162,7 @@ async function handleInstallationUnsuspended(event: InstallationEvent) {
  */
 async function handleNewPermissionsAccepted(event: InstallationEvent) {
   console.log('New permissions accepted for installation:', event.installation.id);
-  
+
   // Could trigger re-sync of data with new permissions
   await inngest.send({
     name: 'github.app.permissions_updated',
@@ -221,13 +217,11 @@ async function handleRepositoriesAdded(installation: any, repositories: any[]) {
 
       if (repoId) {
         // Link the repository to the installation
-        await supabase
-          .from('app_enabled_repositories')
-          .upsert({
-            installation_id: installationRecord.id,
-            repository_id: repoId,
-            enabled_at: new Date().toISOString(),
-          });
+        await supabase.from('app_enabled_repositories').upsert({
+          installation_id: installationRecord.id,
+          repository_id: repoId,
+          enabled_at: new Date().toISOString(),
+        });
 
         // Queue for data sync
         await inngest.send({
@@ -243,60 +237,62 @@ async function handleRepositoriesAdded(installation: any, repositories: any[]) {
         // Index git history and generate embeddings in the background
         try {
           const octokit = await githubAppAuth.getInstallationOctokit(installation.id);
-          
+
           // Index git history
           // Ensure owner is properly set before calling indexGitHistory
           if (!repo.owner?.login) {
             repo.owner = {
               login: repo.full_name.split('/')[0],
               id: 0,
-              type: 'User'
+              type: 'User',
             };
           }
-          indexGitHistory(repo, octokit).catch(error => {
+          indexGitHistory(repo, octokit).catch((error) => {
             console.error(`Failed to index git history for ${repo.full_name}:`, error);
           });
 
           // Generate embeddings for recent files
-          octokit.repos.listCommits({
-            owner: repo.owner?.login || repo.full_name.split('/')[0],
-            repo: repo.name,
-            per_page: 10,
-          }).then(async ({ data: commits }) => {
-            const files = new Set<string>();
-            
-            for (const commit of commits) {
-              try {
-                const { data: commitData } = await octokit.repos.getCommit({
-                  owner: repo.owner?.login || repo.full_name.split('/')[0],
-                  repo: repo.name,
-                  ref: commit.sha,
-                });
-                
-                commitData.files?.forEach(file => {
-                  if (file.filename) {
-                    files.add(file.filename);
-                  }
-                });
-              } catch (error) {
-                console.error(`Error fetching commit ${commit.sha}:`, error);
-              }
-            }
+          octokit.repos
+            .listCommits({
+              owner: repo.owner?.login || repo.full_name.split('/')[0],
+              repo: repo.name,
+              per_page: 10,
+            })
+            .then(async ({ data: commits }) => {
+              const files = new Set<string>();
 
-            if (files.size > 0) {
-              generateFileEmbeddings(repo, octokit, Array.from(files)).catch(error => {
-                console.error(`Failed to generate embeddings for ${repo.full_name}:`, error);
-              });
-            }
-          }).catch(error => {
-            console.error(`Failed to fetch commits for ${repo.full_name}:`, error);
-          });
+              for (const commit of commits) {
+                try {
+                  const { data: commitData } = await octokit.repos.getCommit({
+                    owner: repo.owner?.login || repo.full_name.split('/')[0],
+                    repo: repo.name,
+                    ref: commit.sha,
+                  });
+
+                  commitData.files?.forEach((file) => {
+                    if (file.filename) {
+                      files.add(file.filename);
+                    }
+                  });
+                } catch (error) {
+                  console.error(`Error fetching commit ${commit.sha}:`, error);
+                }
+              }
+
+              if (files.size > 0) {
+                generateFileEmbeddings(repo, octokit, Array.from(files)).catch((error) => {
+                  console.error(`Failed to generate embeddings for ${repo.full_name}:`, error);
+                });
+              }
+            })
+            .catch((error) => {
+              console.error(`Failed to fetch commits for ${repo.full_name}:`, error);
+            });
         } catch (error) {
           console.error(`Failed to get octokit client for installation ${installation.id}:`, error);
         }
       }
     }
-
   } catch (error) {
     console.error('Error handling repositories added:', error);
   }
@@ -332,7 +328,6 @@ async function handleRepositoriesRemoved(installation: any, repositories: any[])
           .eq('repository_id', repoRecord.id);
       }
     }
-
   } catch (error) {
     console.error('Error handling repositories removed:', error);
   }
@@ -345,16 +340,13 @@ async function trackInstallationMetrics(event: string, data: any) {
   try {
     // In production, send to analytics service
     console.log('Installation metric:', event, data);
-    
+
     // Could also store in database for dashboards
-    await supabase
-      .from('app_metrics')
-      .insert({
-        event_type: event,
-        event_data: data,
-        created_at: new Date().toISOString(),
-      });
-      
+    await supabase.from('app_metrics').insert({
+      event_type: event,
+      event_data: data,
+      created_at: new Date().toISOString(),
+    });
   } catch (error) {
     console.error('Error tracking metrics:', error);
   }

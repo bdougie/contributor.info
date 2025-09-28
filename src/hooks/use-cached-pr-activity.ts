@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { PullRequestActivity, PullRequest } from '@/lib/types';
+import { detectBot } from '@/lib/utils/bot-detection';
 
 // Cache interface
 interface ActivityCache {
@@ -49,8 +50,8 @@ function processActivities(pullRequests: PullRequest[]): PullRequestActivity[] {
     const owner = pr.repository_owner || repoUrl.split('github.com/')[1]?.split('/')[0] || '';
     const repo = pr.repository_name || repoUrl.split('github.com/')[1]?.split('/')[1] || '';
 
-    // Check if user is a bot
-    const isBot = pr.user.type === 'Bot' || pr.user.login.includes('[bot]');
+    // Check if user is a bot using centralized detection
+    const isBot = detectBot({ githubUser: pr.user }).isBot;
 
     // Add PR creation activity
     processedActivities.push({

@@ -15,7 +15,7 @@ export const RATE_LIMIT_CONFIG = {
 export class InngestQueueManager {
   private lastProcessedTimes: Map<string, number> = new Map();
   // Send Inngest events with proper error handling
-  private async safeSend(event: any): Promise<boolean> {
+  private async safeSend(event: { name: string; data: Record<string, unknown> }): Promise<boolean> {
     console.log('📤 [Inngest] Sending event:', event.name, event.data);
 
     try {
@@ -86,7 +86,7 @@ export class InngestQueueManager {
           });
           queuedCount++;
         } catch (err) {
-          console.warn(`Failed to queue PR ${pr.number}:`, err);
+          console.warn('Failed to queue PR %s:', err, pr.number);
         }
       }
 
@@ -245,7 +245,7 @@ export class InngestQueueManager {
         });
         queuedCount++;
       } catch (err) {
-        console.warn(`Failed to queue reviews for PR ${pr.number}:`, err);
+        console.warn('Failed to queue reviews for PR %s:', err, pr.number);
       }
     }
 
@@ -312,7 +312,7 @@ export class InngestQueueManager {
         });
         queuedCount++;
       } catch (err) {
-        console.warn(`Failed to queue comments for PR ${pr.number}:`, err);
+        console.warn('Failed to queue comments for PR %s:', err, pr.number);
       }
     }
 
@@ -368,7 +368,7 @@ export class InngestQueueManager {
           });
           queuedCount++;
         } catch (err) {
-          console.warn(`Failed to queue commit ${commit.sha}:`, err);
+          console.warn('Failed to queue commit %s:', err, commit.sha);
         }
       }
 
@@ -421,24 +421,24 @@ export class InngestQueueManager {
    * Clear the local tracking and show instructions for clearing Inngest queue
    */
   async clearAllJobs(): Promise<void> {
-    console.log(`
-🧹 To clear all Inngest jobs:
-
-For Development (local):
-  1. Stop the dev server (Ctrl+C)
-  2. Restart with: npm start
-  
-  Or restart just Inngest:
-  1. Stop: Ctrl+C on the inngest dev process
-  2. Restart: npx inngest-cli@latest dev -u http://127.0.0.1:8888/.netlify/functions/inngest
-
-For Production:
-  1. Go to your Inngest dashboard
-  2. Navigate to Functions
-  3. Cancel running functions manually
-
-Note: This method clears local tracking. To clear actual queued jobs, restart the dev server.
-    `);
+    console.log(
+      '\n🧹 To clear all Inngest jobs:\n' +
+        '\n' +
+        'For Development (local):\n' +
+        '  1. Stop the dev server (Ctrl+C)\n' +
+        '  2. Restart with: npm start\n' +
+        '  \n' +
+        '  Or restart just Inngest:\n' +
+        '  1. Stop: Ctrl+C on the inngest dev process\n' +
+        '  2. Restart: npx inngest-cli@latest dev -u http://127.0.0.1:8888/.netlify/functions/inngest\n' +
+        '\n' +
+        'For Production:\n' +
+        '  1. Go to your Inngest dashboard\n' +
+        '  2. Navigate to Functions\n' +
+        '  3. Cancel running functions manually\n' +
+        '\n' +
+        'Note: This method clears local tracking. To clear actual queued jobs, restart the dev server.'
+    );
 
     // Clear any local tracking if we add it in the future
     console.log('✅ Local queue tracking cleared');

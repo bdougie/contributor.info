@@ -9,15 +9,15 @@ import { formatContextComment } from '../services/comments';
  */
 export function containsIssuesCommand(commentBody: string): boolean {
   const normalizedBody = commentBody.toLowerCase().trim();
-  
+
   // Check if comment starts with .issues
   if (normalizedBody.startsWith('.issues')) {
     return true;
   }
-  
+
   // Check if .issues appears on its own line
   const lines = normalizedBody.split('\n');
-  return lines.some(line => line.trim().startsWith('.issues'));
+  return lines.some((line) => line.trim().startsWith('.issues'));
 }
 
 /**
@@ -35,7 +35,9 @@ export async function handleIssueCommentEvent(event: IssueCommentEvent) {
   }
 
   try {
-    console.log(`Processing .issues command on PR #${event.issue.number} in ${event.repository.full_name}`);
+    console.log(
+      `Processing .issues command on PR #${event.issue.number} in ${event.repository.full_name}`
+    );
 
     // Get installation token
     const installationId = event.installation?.id;
@@ -73,7 +75,11 @@ export async function handleIssueCommentEvent(event: IssueCommentEvent) {
 
     if (!pullRequest) {
       // PR might not be in our database yet
-      await postErrorComment(octokit, event, 'Pull request data not found. Please try again in a few moments.');
+      await postErrorComment(
+        octokit,
+        event,
+        'Pull request data not found. Please try again in a few moments.'
+      );
       return;
     }
 
@@ -81,7 +87,7 @@ export async function handleIssueCommentEvent(event: IssueCommentEvent) {
     const changedFiles: string[] = [];
     let page = 1;
     let hasMorePages = true;
-    
+
     while (hasMorePages) {
       const { data: files } = await octokit.pulls.listFiles({
         owner: event.repository.owner.login,
@@ -90,13 +96,13 @@ export async function handleIssueCommentEvent(event: IssueCommentEvent) {
         per_page: 100,
         page,
       });
-      
-      changedFiles.push(...files.map(f => f.filename));
-      
+
+      changedFiles.push(...files.map((f) => f.filename));
+
       // Check if there are more pages
       hasMorePages = files.length === 100;
       page++;
-      
+
       // Safety limit to prevent infinite loops
       if (page > 10) {
         console.warn(`PR #${event.issue.number} has more than 1000 files, stopping pagination`);
@@ -156,16 +162,19 @@ export async function handleIssueCommentEvent(event: IssueCommentEvent) {
         processing_time_ms: processingTime,
       })
       .eq('id', commandRecord.id);
-
   } catch (error) {
     console.error('Error handling issue comment event:', error);
-    
+
     // Try to post an error message
     try {
       const installationId = event.installation?.id;
       if (installationId) {
         const octokit = await githubAppAuth.getInstallationOctokit(installationId);
-        await postErrorComment(octokit, event, 'Sorry, an error occurred while processing your request.');
+        await postErrorComment(
+          octokit,
+          event,
+          'Sorry, an error occurred while processing your request.'
+        );
       }
     } catch (e) {
       console.error('Failed to post error comment:', e);

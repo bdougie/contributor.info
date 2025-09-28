@@ -38,6 +38,52 @@ export interface ActivityTableProps {
 type SortField = 'created_at' | 'type' | 'author' | 'repository';
 type SortOrder = 'asc' | 'desc';
 
+// Helper function to construct GitHub URL
+const getActivityUrl = (activity: ActivityItem): string => {
+  if (activity.url) return activity.url;
+
+  // Construct URL based on type if not provided
+  const [owner, repo] = activity.repository.split('/');
+  if (!owner || !repo) return '#';
+
+  // Try to extract number from existing URL if available, then from id, then from title
+  let number = '';
+
+  // First try to extract from URL if it exists
+  if (activity.url) {
+    const urlMatch = activity.url.match(/\/(?:pull|issues)\/(\d+)/);
+    if (urlMatch) {
+      number = urlMatch[1];
+    }
+  }
+
+  // If no number found and we have an id that looks like a number, use it
+  if (!number && activity.id && /^\d+$/.test(activity.id)) {
+    number = activity.id;
+  }
+
+  // Fall back to extracting from title as last resort
+  if (!number) {
+    const titleMatch = activity.title.match(/#(\d+)/);
+    number = titleMatch ? titleMatch[1] : '';
+  }
+
+  switch (activity.type) {
+    case 'pr':
+      return number
+        ? `https://github.com/${owner}/${repo}/pull/${number}`
+        : `https://github.com/${owner}/${repo}/pulls`;
+    case 'issue':
+      return number
+        ? `https://github.com/${owner}/${repo}/issues/${number}`
+        : `https://github.com/${owner}/${repo}/issues`;
+    case 'commit':
+      return `https://github.com/${owner}/${repo}/commits`;
+    default:
+      return `https://github.com/${owner}/${repo}`;
+  }
+};
+
 const TYPE_ICONS = {
   pr: GitPullRequest,
   issue: AlertCircle,
@@ -211,11 +257,11 @@ export function ActivityTable({
       </div>
 
       {/* Table with virtualization */}
-      <div className="rounded-md border w-full">
+      <div className="rounded-md border overflow-x-auto">
         {/* Table Header */}
-        <div className="border-b bg-muted/50">
+        <div className="border-b bg-muted/50 min-w-[1100px]">
           <div className="flex items-center px-4 py-3">
-            <div className="flex items-center gap-2 sm:gap-4 w-full overflow-x-auto">
+            <div className="flex items-center gap-3 w-full">
               <div className="flex-shrink-0 w-16 sm:w-24">
                 <Button
                   variant="ghost"
@@ -227,10 +273,10 @@ export function ActivityTable({
                   <SortIcon field="type" />
                 </Button>
               </div>
-              <div className="flex-1 min-w-[120px]">
+              <div className="flex-1 min-w-[250px]">
                 <span className="font-medium text-sm">Activity</span>
               </div>
-              <div className="hidden sm:block flex-shrink-0 w-24 sm:w-32">
+              <div className="hidden sm:block flex-shrink-0 w-40">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -252,8 +298,8 @@ export function ActivityTable({
                   <SortIcon field="repository" />
                 </Button>
               </div>
-              <div className="hidden sm:block flex-shrink-0 w-20">Status</div>
-              <div className="flex-shrink-0 w-20 sm:w-32">
+              <div className="hidden sm:block flex-shrink-0 w-36">Status</div>
+              <div className="flex-shrink-0 w-44">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -275,10 +321,9 @@ export function ActivityTable({
           ) : (
             <div
               ref={parentRef}
-              className="h-[600px] w-full overflow-auto"
+              className="h-[600px] overflow-auto"
               style={{
                 contain: 'strict',
-                width: '100%',
               }}
             >
               <div
@@ -311,8 +356,8 @@ export function ActivityTable({
                         transform: `translateY(${virtualItem.start}px)`,
                       }}
                     >
-                      <div className="flex items-center px-2 sm:px-4 py-2 border-b">
-                        <div className="flex items-center gap-2 sm:gap-4 w-full overflow-x-auto">
+                      <div className="flex items-center px-2 sm:px-4 py-2 border-b min-w-[1100px]">
+                        <div className="flex items-center gap-3 w-full">
                           {/* Type */}
                           <div className="flex-shrink-0 w-16 sm:w-24">
                             <TooltipProvider>
@@ -320,7 +365,7 @@ export function ActivityTable({
                                 <TooltipTrigger asChild>
                                   <Badge
                                     variant="secondary"
-                                    className={cn('gap-1 cursor-help', TYPE_COLORS[activity.type])}
+                                    className={cn('gap-1', TYPE_COLORS[activity.type])}
                                   >
                                     <Icon className="h-3 w-3" />
                                     {activity.type.toUpperCase()}
@@ -342,13 +387,18 @@ export function ActivityTable({
                           </div>
 
                           {/* Activity */}
-                          <div className="flex-1 min-w-[120px]">
+                          <div className="flex-1 min-w-[250px]">
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <p className="text-sm font-medium truncate cursor-help">
+                                  <a
+                                    href={getActivityUrl(activity)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-sm font-medium truncate cursor-pointer hover:text-primary hover:underline transition-colors block"
+                                  >
                                     {activity.title}
-                                  </p>
+                                  </a>
                                 </TooltipTrigger>
                                 <TooltipContent className="max-w-xs">
                                   <p className="font-semibold text-sm">{activity.title}</p>
@@ -363,38 +413,38 @@ export function ActivityTable({
                           </div>
 
                           {/* Author */}
-                          <div className="hidden sm:flex flex-shrink-0 w-24 sm:w-32 items-center gap-2">
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <div className="flex items-center gap-2 cursor-help">
-                                    <Avatar className="h-6 w-6">
-                                      <AvatarImage src={activity.author.avatar_url} />
-                                      <AvatarFallback>
-                                        {activity.author.username.slice(0, 2).toUpperCase()}
-                                      </AvatarFallback>
-                                    </Avatar>
-                                    <span className="text-sm truncate">
-                                      {activity.author.username}
-                                    </span>
-                                  </div>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="font-semibold">@{activity.author.username}</p>
-                                  <p className="text-xs">Contributor</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                          <div className="hidden sm:flex flex-shrink-0 w-40 items-center gap-2">
+                            <a
+                              href={`https://github.com/${activity.author.username}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+                            >
+                              <Avatar className="h-6 w-6">
+                                <AvatarImage src={activity.author.avatar_url} />
+                                <AvatarFallback>
+                                  {activity.author.username.slice(0, 2).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="text-sm truncate hover:text-primary transition-colors">
+                                {activity.author.username}
+                              </span>
+                            </a>
                           </div>
 
                           {/* Repository */}
-                          <div className="hidden md:block flex-shrink-0 min-w-[8rem]">
+                          <div className="hidden md:block flex-shrink-0 w-44">
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <p className="text-sm text-muted-foreground truncate cursor-help">
+                                  <a
+                                    href={`https://github.com/${activity.repository}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-sm text-muted-foreground truncate cursor-pointer hover:text-primary hover:underline transition-colors block"
+                                  >
                                     {activity.repository}
-                                  </p>
+                                  </a>
                                 </TooltipTrigger>
                                 <TooltipContent>
                                   <p className="font-semibold">{activity.repository}</p>
@@ -405,7 +455,7 @@ export function ActivityTable({
                           </div>
 
                           {/* Status */}
-                          <div className="hidden sm:block flex-shrink-0 w-20">
+                          <div className="hidden sm:block flex-shrink-0 w-36">
                             {activity.status && (
                               <TooltipProvider>
                                 <Tooltip>
@@ -413,7 +463,6 @@ export function ActivityTable({
                                     <Badge
                                       variant="secondary"
                                       className={cn(
-                                        'cursor-help',
                                         STATUS_COLORS[
                                           activity.status as keyof typeof STATUS_COLORS
                                         ] || ''
@@ -441,11 +490,11 @@ export function ActivityTable({
                           </div>
 
                           {/* Date */}
-                          <div className="flex-shrink-0 w-20 sm:w-32">
+                          <div className="flex-shrink-0 w-44">
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <p className="text-sm text-muted-foreground cursor-help">
+                                  <p className="text-sm text-muted-foreground">
                                     {formatDistanceToNow(parseISO(activity.created_at), {
                                       addSuffix: true,
                                     })}
@@ -463,13 +512,14 @@ export function ActivityTable({
 
                           {/* Link */}
                           <div className="w-8 sm:w-12">
-                            {activity.url && (
-                              <Button variant="ghost" size="sm" asChild>
-                                <a href={activity.url} target="_blank" rel="noopener noreferrer">
-                                  <ExternalLink className="h-4 w-4" />
-                                </a>
-                              </Button>
-                            )}
+                            <a
+                              href={getActivityUrl(activity)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer inline-flex items-center justify-center"
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                            </a>
                           </div>
                         </div>
                       </div>

@@ -30,7 +30,7 @@ export async function findContextualIssues(
   params: FindContextualIssuesParams
 ): Promise<ContextualItem[]> {
   const { pullRequestId, repositoryId, changedFiles, prTitle, prBody } = params;
-  
+
   // Generate embedding for the current PR
   const prText = prepareTextForEmbedding({
     id: pullRequestId,
@@ -38,21 +38,21 @@ export async function findContextualIssues(
     body: prBody,
     type: 'pull_request',
   });
-  
+
   const prEmbedding = await generateEmbedding(prText);
-  
+
   // Find similar issues using vector similarity
   const { data: similarIssues, error: issuesError } = await supabase.rpc('find_similar_issues', {
     query_embedding: prEmbedding,
     match_count: 30,
     repo_id: repositoryId,
   });
-  
+
   if (issuesError) {
     console.error('Error finding similar issues:', issuesError);
     throw new Error(`Failed to find similar issues: ${issuesError.message}`);
   }
-  
+
   // Find similar PRs using vector similarity
   const { data: similarPRs, error: prsError } = await supabase.rpc('find_similar_pull_requests', {
     query_embedding: prEmbedding,
@@ -60,26 +60,27 @@ export async function findContextualIssues(
     repo_id: repositoryId,
     exclude_pr_id: pullRequestId,
   });
-  
+
   if (prsError) {
     console.error('Error finding similar PRs:', prsError);
     throw new Error(`Failed to find similar PRs: ${prsError.message}`);
   }
-  
+
   // Process and score all items
   const contextualItems: ContextualItem[] = [];
-  
+
   // Process issues
   if (similarIssues) {
     for (const issue of similarIssues) {
       const fileOverlap = await calculateFileOverlap(issue.id, 'issue');
       const item = await processContextualItem(issue, fileOverlap, 'issue', prTitle);
-      if (item.similarity_score > 0.3) { // Threshold for relevance
+      if (item.similarity_score > 0.3) {
+        // Threshold for relevance
         contextualItems.push(item);
       }
     }
   }
-  
+
   // Process PRs
   if (similarPRs) {
     for (const pr of similarPRs) {
@@ -90,7 +91,7 @@ export async function findContextualIssues(
       }
     }
   }
-  
+
   // Sort by combined score and limit results
   return contextualItems
     .sort((a, b) => {
@@ -115,11 +116,11 @@ async function calculateFileOverlap(
       .select('id')
       .or(`body.ilike.*#${itemId}*,title.ilike.*#${itemId}*`)
       .limit(5);
-      
+
     if (!linkedPRs || linkedPRs.length === 0) {
       return 0;
     }
-    
+
     // Get files from linked PRs (simplified - in production, store PR files)
     return 0.2; // Default score for linked issues
   } else {
@@ -140,18 +141,18 @@ async function processContextualItem(
 ): Promise<ContextualItem> {
   const reasons: string[] = [];
   let relationship: ContextualItem['relationship'] = 'similar_changes';
-  
+
   // Determine relationship based on various factors
   if (type === 'issue' && item.state === 'open') {
     // Check if PR might fix this issue
     const titleLower = currentPRTitle.toLowerCase();
     const issueTitleLower = item.title.toLowerCase();
-    
+
     if (titleLower.includes('fix') || titleLower.includes('resolve')) {
       relationship = 'may_fix';
       reasons.push('PR title suggests a fix');
     }
-    
+
     if (item.similarity > 0.7) {
       reasons.push('High semantic similarity');
       if (relationship !== 'may_fix') {
@@ -165,24 +166,24 @@ async function processContextualItem(
     } else if (item.merged_at) {
       const mergedDate = new Date(item.merged_at);
       const daysAgo = (Date.now() - mergedDate.getTime()) / (1000 * 60 * 60 * 24);
-      
+
       if (daysAgo < 7) {
         relationship = 'related_work';
         reasons.push('Recently merged');
       }
     }
   }
-  
+
   // Add file overlap reason
   if (fileOverlapScore > 0.5) {
     reasons.push('Modifies similar files');
   }
-  
+
   // Add similarity reason
   if (item.similarity > 0.5) {
     reasons.push(`${Math.round(item.similarity * 100)}% content similarity`);
   }
-  
+
   return {
     id: item.id,
     type,

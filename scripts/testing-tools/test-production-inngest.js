@@ -7,7 +7,7 @@ dotenv.config();
 const inngest = new Inngest({
   id: 'contributor-info',
   isDev: false, // Production mode
-  eventKey: process.env.INNGEST_PRODUCTION_EVENT_KEY || process.env.INNGEST_EVENT_KEY
+  eventKey: process.env.INNGEST_PRODUCTION_EVENT_KEY || process.env.INNGEST_EVENT_KEY,
 });
 
 async function testProductionInngest() {
@@ -18,8 +18,8 @@ async function testProductionInngest() {
       name: 'test/prod.hello',
       data: {
         message: 'Testing production Inngest',
-        timestamp: new Date().toISOString()
-      }
+        timestamp: new Date().toISOString(),
+      },
     },
     {
       name: 'capture/repository.sync.graphql',
@@ -27,17 +27,17 @@ async function testProductionInngest() {
         repositoryId: 'f4b8c464-e506-5612-9ca8-0c96e7d8bbf0', // contributor.info
         days: 7,
         priority: 'medium',
-        reason: 'production-test'
-      }
+        reason: 'production-test',
+      },
     },
     {
       name: 'classify/repository.single',
       data: {
         repositoryId: 'f4b8c464-e506-5612-9ca8-0c96e7d8bbf0',
         owner: 'bdougie',
-        repo: 'contributor.info'
-      }
-    }
+        repo: 'contributor.info',
+      },
+    },
   ];
 
   console.log('Sending events to production Inngest...\n');

@@ -1,5 +1,5 @@
 import { supabase } from '../supabase';
-import { hybridQueueManager } from './hybrid-queue-manager';
+import { hybridQueueManager, type HybridJob } from './hybrid-queue-manager';
 import { jobStatusReporter } from './job-status-reporter';
 
 export interface RetryConfig {
@@ -8,12 +8,26 @@ export interface RetryConfig {
   backoffMultiplier: number;
 }
 
+interface RetryMetadata {
+  retry_count?: number;
+  last_retry_at?: string;
+  retry_history?: Array<{
+    attempt: number;
+    timestamp: string;
+    previous_error?: string;
+  }>;
+  time_range_days?: number;
+  max_items?: number;
+  repository_name?: string;
+  [key: string]: unknown;
+}
+
 export interface RetryableJob {
   id: string;
   job_type: string;
   repository_id: string;
   processor_type: 'inngest' | 'github_actions';
-  metadata: any;
+  metadata: RetryMetadata;
   error?: string;
   retry_count?: number;
   last_retry_at?: string;
@@ -136,7 +150,7 @@ export class AutoRetryService {
 
       // Validate job has repository_id (repository_name can be fetched if missing)
       if (!job.repository_id) {
-        console.error(`[AutoRetry] ❌ Job ${job.id} missing repository_id, cannot retry:`, {
+        console.error('[AutoRetry] ❌ Job %s missing repository_id, cannot retry:', job.id, {
           jobId: job.id,
           jobType: job.job_type,
           metadata: job.metadata,
@@ -183,7 +197,7 @@ export class AutoRetryService {
         },
       });
     } catch (error) {
-      console.error(`[AutoRetry] ❌ Error processing failed job ${job.id}:`, {
+      console.error('[AutoRetry] ❌ Error processing failed job %s:', job.id, {
         jobId: job.id,
         jobType: job.job_type,
         repositoryId: job.repository_id,
@@ -242,7 +256,7 @@ export class AutoRetryService {
   /**
    * Create a new job for retry
    */
-  private async createRetryJob(originalJob: RetryableJob): Promise<any> {
+  private async createRetryJob(originalJob: RetryableJob): Promise<HybridJob> {
     // Validate required fields before retry
     if (!originalJob.repository_id) {
       console.error('[AutoRetry] Cannot retry job without repository_id:', {

@@ -58,7 +58,7 @@ import { Menu, Search, ChevronDown } from '@/components/ui/icon';
 
 ## Adding New Icons
 
-1. **Update the icon list** in `/scripts/generate-icon-sprite.js`:
+1. **Update the icon list** (sprite generation script has been removed):
    ```javascript
    const USED_ICONS = [
      'activity', 'alert-circle', // ... existing icons
@@ -68,7 +68,7 @@ import { Menu, Search, ChevronDown } from '@/components/ui/icon';
 
 2. **Regenerate the sprite**:
    ```bash
-   node scripts/generate-icon-sprite.js
+   # Sprite generation script has been removed
    ```
 
 3. **Add the TypeScript export** (auto-generated but you can add manually if needed):
@@ -84,7 +84,7 @@ import { Menu, Search, ChevronDown } from '@/components/ui/icon';
 
 Run this command whenever you need to update the icon set:
 ```bash
-node scripts/generate-icon-sprite.js
+# Sprite generation script has been removed
 ```
 
 This will:
@@ -99,7 +99,7 @@ If you need to migrate more components from lucide-react:
 
 1. **Use the migration script**:
    ```bash
-   node scripts/migrate-to-svg-sprites.js
+   # Migration script has been removed after completion
    ```
 
 2. **Fix any duplicate semicolons** (if needed):
@@ -152,7 +152,7 @@ This ensures icons work in all modern browsers including:
 
 1. **Regenerate types**:
    ```bash
-   node scripts/generate-icon-sprite.js
+   # Sprite generation script has been removed
    ```
 
 2. **Restart TypeScript server**:
@@ -177,8 +177,8 @@ If you need icons not available in lucide:
 
 ## Related Files
 
-- `/scripts/generate-icon-sprite.js` - Sprite generation script
-- `/scripts/migrate-to-svg-sprites.js` - Migration helper
+- Sprite generation script has been removed
+- Migration scripts have been removed after completion
 - `/src/components/ui/icon.tsx` - Icon component
 - `/src/components/ui/svg-sprite-loader.tsx` - Sprite loader
 - `/src/types/icons.ts` - TypeScript definitions

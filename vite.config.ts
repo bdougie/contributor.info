@@ -13,13 +13,13 @@ export default defineConfig(() => ({
         if (url.searchParams.has('webp')) {
           return new URLSearchParams({
             format: 'webp',
-            quality: '80'
+            quality: '80',
           });
         }
         if (url.searchParams.has('avif')) {
           return new URLSearchParams({
-            format: 'avif', 
-            quality: '70'
+            format: 'avif',
+            quality: '70',
           });
         }
         // Auto-generate WebP versions for all static images
@@ -28,11 +28,11 @@ export default defineConfig(() => ({
             format: 'webp;png;jpg',
             quality: '80',
             w: url.searchParams.get('w') || '800',
-            h: url.searchParams.get('h') || '600'
+            h: url.searchParams.get('h') || '600',
           });
         }
         return new URLSearchParams();
-      }
+      },
     }),
     // Note: Netlify automatically provides Brotli and Gzip compression at the edge,
     // so we don't need vite-plugin-compression for production deployments
@@ -40,12 +40,12 @@ export default defineConfig(() => ({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      'react': path.resolve(__dirname, './node_modules/react'),
+      react: path.resolve(__dirname, './node_modules/react'),
       'react-dom': path.resolve(__dirname, './node_modules/react-dom'),
     },
     dedupe: ['react', 'react-dom'],
     // Narrow extensions list to reduce filesystem checks
-    extensions: ['.ts', '.tsx', '.js', '.jsx', '.json']
+    extensions: ['.ts', '.tsx', '.js', '.jsx', '.json'],
   },
   server: {
     // Warm up frequently used files for better dev performance
@@ -55,20 +55,20 @@ export default defineConfig(() => ({
         './src/App.tsx',
         './src/components/ui/**/*',
         './src/lib/supabase.ts',
-        './src/lib/github.ts'
-      ]
+        './src/lib/github.ts',
+      ],
     },
     // Proxy API calls to Netlify functions during development
     proxy: {
       '/api': {
         target: 'http://localhost:8888',
-        changeOrigin: true
+        changeOrigin: true,
       },
       '/.netlify/functions': {
         target: 'http://localhost:8888',
-        changeOrigin: true
-      }
-    }
+        changeOrigin: true,
+      },
+    },
   },
   optimizeDeps: {
     include: [
@@ -88,7 +88,7 @@ export default defineConfig(() => ({
       'recharts',
       'd3-scale',
       'd3-shape',
-      'uplot'
+      'uplot',
     ],
     exclude: [
       '@storybook/test',
@@ -97,7 +97,7 @@ export default defineConfig(() => ({
       '@testing-library/react',
       '@testing-library/jest-dom',
       '@xenova/transformers', // Exclude embeddings library
-      'onnxruntime-web' // Exclude ONNX runtime
+      'onnxruntime-web', // Exclude ONNX runtime
     ],
     // Remove force: true to avoid aggressive re-optimization
   },
@@ -107,7 +107,7 @@ export default defineConfig(() => ({
     commonjsOptions: {
       // Better handling of CommonJS modules (like some D3 packages)
       transformMixedEsModules: true,
-      strictRequires: 'auto'
+      strictRequires: 'auto',
     },
     rollupOptions: {
       // Conservative tree shaking optimization for better bundle size
@@ -121,7 +121,7 @@ export default defineConfig(() => ({
         generatedCode: {
           constBindings: true,
           objectShorthand: true,
-          arrowFunctions: true
+          arrowFunctions: true,
         },
         // Ensure proper file extensions for module recognition
         entryFileNames: `js/[name]-[hash].js`,
@@ -146,9 +146,7 @@ export default defineConfig(() => ({
         manualChunks: (id) => {
           if (id.includes('node_modules')) {
             // Core React libraries - loaded immediately
-            if (id.includes('react/') || 
-                id.includes('react-dom/') || 
-                id.includes('react-router')) {
+            if (id.includes('react/') || id.includes('react-dom/') || id.includes('react-router')) {
               return 'vendor-react-core';
             }
             // UI components that are used everywhere
@@ -173,21 +171,25 @@ export default defineConfig(() => ({
               return 'vendor-supabase';
             }
             // Small utilities bundled together
-            if (id.includes('clsx') || 
-                id.includes('tailwind-merge') || 
-                id.includes('class-variance-authority') ||
-                id.includes('date-fns')) {
+            if (
+              id.includes('clsx') ||
+              id.includes('tailwind-merge') ||
+              id.includes('class-variance-authority') ||
+              id.includes('date-fns')
+            ) {
               return 'vendor-utils';
             }
             // Markdown - now lazy loaded, keep in separate chunk
-            if (id.includes('react-markdown') || 
-                id.includes('markdown') || 
-                id.includes('remark') || 
-                id.includes('rehype') ||
-                id.includes('mdast') ||
-                id.includes('unist') ||
-                id.includes('micromark') ||
-                id.includes('hast')) {
+            if (
+              id.includes('react-markdown') ||
+              id.includes('markdown') ||
+              id.includes('remark') ||
+              id.includes('rehype') ||
+              id.includes('mdast') ||
+              id.includes('unist') ||
+              id.includes('micromark') ||
+              id.includes('hast')
+            ) {
               return 'vendor-markdown';
             }
             // Analytics - lazy loaded
@@ -218,7 +220,7 @@ export default defineConfig(() => ({
     // Optimize minification and target for better compression
     minify: 'esbuild',
     target: 'es2020', // Modern target with good compatibility
-    // Optimize chunk size warnings  
+    // Optimize chunk size warnings
     chunkSizeWarningLimit: 1300, // Increased to accommodate vendor-react bundle
     // Enable compression reporting
     reportCompressedSize: true,
@@ -244,22 +246,21 @@ export default defineConfig(() => ({
         });
         // Preload only critical chunks for initial render
         // Markdown, charts, and analytics will load on demand
-        return sorted.filter(dep => 
-          dep.includes('vendor-react-core') || 
-          dep.includes('vendor-ui') ||
-          dep.includes('vendor-utils') ||
-          dep.includes('index-')
+        return sorted.filter(
+          (dep) =>
+            dep.includes('vendor-react-core') ||
+            dep.includes('vendor-ui') ||
+            dep.includes('vendor-utils') ||
+            dep.includes('index-')
         );
-      }
+      },
     },
-    
+
     // Remove console/debugger in production and strip legal comments
     esbuild: {
-      drop: process.env.NODE_ENV === 'production' 
-        ? ['console', 'debugger'] 
-        : [],
-      legalComments: 'none'
-    }
+      drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : [],
+      legalComments: 'none',
+    },
   },
   css: {
     devSourcemap: true,

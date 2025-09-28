@@ -1,86 +1,36 @@
-import { Inngest } from 'inngest';
-import { env, serverEnv } from '../env';
+import { createDefaultClient } from './client-config';
+import type { Inngest } from 'inngest';
 
-// Detect development environment
-const isDevelopment = () => {
-  // Browser environment
-  if (typeof window !== 'undefined') {
-    return window.location.hostname === 'localhost' || env.DEV;
-  }
+// Lazy initialization to ensure browser context is available
+let _inngestClient: Inngest | null = null;
+let _clientInitialized = false;
 
-  // Server environment - check multiple indicators
-  const nodeEnv = process.env.NODE_ENV;
-  const netlifyContext = process.env.CONTEXT;
-
-  // Explicitly check for production context
-  if (netlifyContext === 'production' || nodeEnv === 'production') {
-    return false;
-  }
-
-  // Default to development for safety
-  return env.MODE === 'development' || nodeEnv !== 'production';
-};
-
-// Get event key safely based on context
-const getEventKey = () => {
-  // In browser context, we need the production event key for sending events
-  if (typeof window !== 'undefined') {
-    // Try to get a production event key from environment
-    const prodKey = env.VITE_INNGEST_EVENT_KEY;
-    if (prodKey) {
-      return prodKey;
+// Create the Inngest client using the shared configuration
+// This ensures consistency across all uses
+export const inngest = new Proxy({} as Inngest, {
+  get(_target, prop, receiver) {
+    if (!_clientInitialized) {
+      _inngestClient = createDefaultClient();
+      _clientInitialized = true;
     }
 
-    // Fall back to a placeholder, but warn that events won't work
-    console.warn(
-      '[Inngest] No production event key found for browser client. Event sending will fail.'
-    );
-    return 'browser-client-no-key';
-  }
+    // If client is null (disabled), return a no-op function for 'send'
+    if (!_inngestClient) {
+      if (prop === 'send') {
+        return async () => {
+          console.warn('• Inngest background jobs: Service disabled or configuration missing');
+          return { ids: [] };
+        };
+      }
+      // For other properties, return undefined or a no-op
+      return () => {
+        console.warn('• Inngest background jobs: Service disabled or configuration missing');
+      };
+    }
 
-  // Server context - prefer production keys to match production endpoint
-  const eventKey =
-    process.env.INNGEST_PRODUCTION_EVENT_KEY ||
-    serverEnv.INNGEST_EVENT_KEY ||
-    process.env.INNGEST_EVENT_KEY;
-
-  // In production, ensure we have a real key
-  if (!isDevelopment() && (!eventKey || eventKey === 'dev-key')) {
-    console.warn('[Inngest] Production environment detected but no valid event key found');
-  }
-
-  return eventKey || 'dev-key';
-};
-
-// Get signing key for production
-const getSigningKey = () => {
-  if (typeof window !== 'undefined') {
-    return undefined; // Not needed in browser
-  }
-
-  // Prefer production signing key to match production endpoint
-  const signingKey =
-    process.env.INNGEST_PRODUCTION_SIGNING_KEY ||
-    serverEnv.INNGEST_SIGNING_KEY ||
-    process.env.INNGEST_SIGNING_KEY;
-
-  // In production, we need a signing key
-  if (!isDevelopment() && !signingKey) {
-    console.warn('[Inngest] Production environment detected but no signing key found');
-  }
-
-  return signingKey;
-};
-
-// Create the Inngest client
-export const inngest = new Inngest({
-  id: env.INNGEST_APP_ID,
-  // Set to development mode for local testing
-  isDev: isDevelopment(),
-  // Add event key from environment (server-side only)
-  eventKey: getEventKey(),
-  // Add signing key for production verification
-  signingKey: getSigningKey(),
+    // Client is guaranteed to be non-null here
+    return Reflect.get(_inngestClient, prop, receiver);
+  },
 });
 
 // Define event schemas for type safety
@@ -141,6 +91,26 @@ export type DataCaptureEvents = {
       commitSha: string;
       priority: 'high' | 'medium' | 'low';
       batchId: string;
+    };
+  };
+  'capture/commits.initial': {
+    data: {
+      repositoryId: string;
+      repositoryName: string;
+      days: number;
+      priority: 'high' | 'medium' | 'low';
+      forceInitial: boolean;
+      reason: string;
+    };
+  };
+  'capture/commits.update': {
+    data: {
+      repositoryId: string;
+      repositoryName: string;
+      days: number;
+      priority: 'high' | 'medium' | 'low';
+      forceInitial: boolean;
+      reason: string;
     };
   };
   'capture/batch.completed': {

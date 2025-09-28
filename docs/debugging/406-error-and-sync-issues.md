@@ -54,33 +54,16 @@ if (data && data.length > 0) {
 
 ### Manual Sync Solutions
 
-#### 1. Sync a Single Repository
+**Note: The original manual sync scripts have been removed after system improvements. For manual syncing, use the Supabase dashboard or create new sync scripts as needed.**
 
-```bash
-node scripts/manual-sync-repository.js bdougie contributor.info
-```
+#### Previous Scripts (Now Removed)
 
-#### 2. Sync All Tracked Repositories
+The following scripts were previously available but have been removed:
+- `scripts/manual-sync-repository.js` - For syncing a single repository
+- `scripts/sync-all-tracked-repos.js` - For syncing all tracked repositories
+- `scripts/sync-bdougie-repos.js` - For direct GitHub data sync
 
-```bash
-node scripts/sync-all-tracked-repos.js
-```
-
-Options:
-- `--batch-size <number>` - Number of repos to sync in parallel (default: 5)
-- `--delay <ms>` - Delay between batches in milliseconds (default: 3000)
-
-Example:
-```bash
-node scripts/sync-all-tracked-repos.js --batch-size 10 --delay 5000
-```
-
-#### 3. Direct GitHub Data Sync
-
-For immediate results, use the direct sync script:
-```bash
-node scripts/sync-bdougie-repos.js
-```
+These scripts are no longer needed as the automatic sync system has been significantly improved.
 
 ### Automated Sync Methods
 

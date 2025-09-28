@@ -45,7 +45,7 @@ export function WidgetGallerySkeleton() {
                 <TabsTrigger value="preview">Preview</TabsTrigger>
                 <TabsTrigger value="code">Code</TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="preview" className="space-y-4">
                 <Card>
                   <CardContent className="p-6">
@@ -57,7 +57,7 @@ export function WidgetGallerySkeleton() {
                           <div className="h-3 bg-muted animate-pulse rounded w-24" />
                         </div>
                       </div>
-                      
+
                       <div className="grid grid-cols-2 gap-4">
                         {Array.from({ length: 4 }).map((_, i) => (
                           <div key={i} className="text-center p-3 border rounded">
@@ -70,15 +70,19 @@ export function WidgetGallerySkeleton() {
                   </CardContent>
                 </Card>
               </TabsContent>
-              
+
               <TabsContent value="code">
                 <Card>
                   <CardContent className="p-4">
                     <div className="bg-muted rounded p-4 space-y-2">
                       {Array.from({ length: 8 }).map((_, i) => (
-                        <div key={i} className="h-3 bg-background animate-pulse rounded w-full" style={{
-                          width: `${Math.random() * 40 + 60}%`
-                        }} />
+                        <div
+                          key={i}
+                          className="h-3 bg-background animate-pulse rounded w-full"
+                          style={{
+                            width: `${Math.random() * 40 + 60}%`,
+                          }}
+                        />
                       ))}
                     </div>
                   </CardContent>

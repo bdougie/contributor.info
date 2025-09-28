@@ -70,7 +70,9 @@ const generateHomeCard = (data) => {
     <text x="600" y="340" text-anchor="middle" font-size="24" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif">${safeSubtitle}</text>
     
     <!-- Stats section -->
-    ${stats ? `
+    ${
+      stats
+        ? `
       <g transform="translate(600, 440)">
         <!-- Repositories -->
         <g transform="translate(-300, 0)">
@@ -93,7 +95,9 @@ const generateHomeCard = (data) => {
           <text y="35" text-anchor="middle" font-size="16" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif">Pull Requests</text>
         </g>
       </g>
-    ` : ''}
+    `
+        : ''
+    }
     
     <!-- Footer -->
     <text x="600" y="580" text-anchor="middle" font-size="14" fill="#64748b" font-family="system-ui, -apple-system, sans-serif">contributor.info</text>
@@ -136,7 +140,9 @@ const generateRepoCard = (data) => {
     <text x="60" y="340" font-size="24" fill="#64748b" font-family="system-ui, -apple-system, sans-serif">${safeSubtitle}</text>
     
     <!-- Stats grid -->
-    ${stats ? `
+    ${
+      stats
+        ? `
       <g transform="translate(60, 440)">
         <!-- Weekly PR Volume -->
         <g>
@@ -159,13 +165,19 @@ const generateRepoCard = (data) => {
           <text x="20" y="40" font-size="14" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif">Total Pull Requests</text>
         </g>
       </g>
-    ` : ''}
+    `
+        : ''
+    }
     
     <!-- Contributor avatars visualization -->
     <g transform="translate(60, 550)">
-      ${[0, 1, 2, 3, 4].map(i => `
+      ${[0, 1, 2, 3, 4]
+        .map(
+          (i) => `
         <circle cx="${i * 35}" cy="20" r="18" fill="#374151" opacity="0.5"/>
-      `).join('')}
+      `
+        )
+        .join('')}
       <text x="185" y="25" font-size="14" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif">+${formatNumber((stats?.totalContributors || 10) - 5)} contributors</text>
     </g>
   </svg>`;
@@ -194,7 +206,9 @@ const generateUserCard = (data) => {
     <text x="600" y="370" text-anchor="middle" font-size="24" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif">${safeSubtitle}</text>
     
     <!-- Stats -->
-    ${stats ? `
+    ${
+      stats
+        ? `
       <g transform="translate(600, 460)">
         <!-- Repositories -->
         <g transform="translate(-200, 0)">
@@ -208,14 +222,16 @@ const generateUserCard = (data) => {
           <text y="30" text-anchor="middle" font-size="14" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif">Pull Requests</text>
         </g>
       </g>
-    ` : ''}
+    `
+        : ''
+    }
   </svg>`;
 };
 
 // Error card
 const generateErrorCard = (data) => {
   const { title, subtitle } = data;
-  
+
   return `<svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
     <rect width="1200" height="630" fill="#0f172a"/>
     <text x="600" y="300" text-anchor="middle" font-size="48" font-weight="600" fill="#ef4444" font-family="system-ui, -apple-system, sans-serif">${escapeHtml(title)}</text>
@@ -226,7 +242,7 @@ const generateErrorCard = (data) => {
 // Main export function
 export function generateSocialCard(data) {
   const { type = 'home' } = data;
-  
+
   switch (type) {
     case 'repo':
       return generateRepoCard(data);

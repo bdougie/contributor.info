@@ -4,7 +4,59 @@ This document outlines the recommended Row Level Security policies for the Contr
 
 ## Changelog
 
-### January 2025 - Security Advisory Fixes
+### January 2025 - Performance Optimization
+
+#### Service Role Optimization - Phase 2 (January 27, 2025)
+- **PERFORMANCE**: Optimized 30+ service role policies for backend operations
+- Wrapped all `auth.role()` calls in subqueries for single evaluation
+- Fixed high-priority tables: `reviews`, `organizations`, `repository_categories`, `web_vitals_events`, etc.
+- Consolidated duplicate service role policies in partitioned tables
+- **Impact**: 20-30% performance improvement for backend services
+- **Migration**: `20250127_fix_phase2_service_role_optimizations.sql`
+- **PR**: #822
+- Resolves Phase 2 of Issue #820
+
+#### RLS Auth Function Optimization - Phase 1 (January 27, 2025)
+- **PERFORMANCE**: Optimized 12 critical auth.uid() policies in high-traffic tables
+- Wrapped `auth.uid()` calls in subqueries for single evaluation
+- Fixed tables: `user_email_preferences`, `workspace_members`, `workspace_repositories`, etc.
+- **Impact**: 20-40% reduction in query evaluation overhead
+- **Migration**: `20250127_fix_phase1_auth_rls_initialization.sql`
+- **PR**: #821
+- Resolves Phase 1 of Issue #820
+
+#### Previous Auth Optimizations (January 27, 2025)
+- **PERFORMANCE**: Optimized 50+ RLS policies across 30+ tables
+- Wrapped all `auth.uid()`, `auth.role()`, and `auth.jwt()` calls in subqueries
+- Changed from row-by-row evaluation to once-per-statement evaluation
+- **Impact**: ~50% reduction in query evaluation overhead
+- **Migration**: `20250127_fix_rls_auth_initialization_actual.sql`
+- See `/docs/database/rls-performance-optimization.md` for full details
+
+### September 2025 - Security Advisory Fixes
+
+#### SECURITY DEFINER Removal (September 27, 2025)
+- **CRITICAL**: Removed SECURITY DEFINER from 11 remaining database views
+- Fixed views: `share_analytics_summary`, `admin_check`, `backfill_progress_summary`, `contributor_stats`, `issue_comments`, `pr_comments`, `progressive_capture_stats`, `recent_activity`, `daily_citation_summary`, `repository_performance_summary`, `web_vitals_summary`
+- Views now use SECURITY INVOKER (default) to properly enforce permissions based on the querying user
+- Eliminates privilege escalation vulnerabilities where views could bypass RLS policies
+- Resolves all remaining ERROR-level SECURITY DEFINER findings from Supabase security advisor
+
+#### Database Cleanup (September 27, 2025)
+- **CLEANUP**: Removed 11 empty and vulnerable database objects that were no longer in use
+- Dropped 10 views: `trending_repositories_30d`, `trending_repositories_24h`, `trending_repositories`, `top_cited_repositories`, `repository_top_contributors`, `repository_stats`, `job_statistics`, `job_retry_status`, `webhook_metrics`, `ai_platform_performance`
+- Dropped 1 table: `repository_spam_patterns`
+- These objects were confirmed empty (0 rows) and represented potential security vulnerabilities
+- Simplifies database schema and reduces attack surface
+
+#### Database View Security (January 2025)
+- **CRITICAL**: Removed SECURITY DEFINER from 21 database views
+- Views now use default SECURITY INVOKER for proper permission enforcement
+- Eliminates privilege escalation vulnerabilities where views ran with superuser privileges
+- Fixed remaining views: `admin_check`, `contributor_stats`, `recent_activity`, and others still in use
+- Resolves 21 ERROR-level security findings from Supabase security advisor
+
+#### RLS Policy Fixes (January 2025)
 - Enabled RLS on `rate_limit_tracking`, `data_capture_queue`, and `commits` tables
 - Added appropriate access policies following existing patterns:
   - `rate_limit_tracking`: Public read access, service role management
@@ -650,6 +702,44 @@ SET LOCAL role TO service_role;
 -- This should work (admin operation)
 INSERT INTO tracked_repositories (repository_id) 
 SELECT id FROM repositories LIMIT 1;
+```
+
+## Performance Best Practices
+
+### Auth Function Optimization
+
+Always wrap auth functions in subqueries to prevent row-by-row evaluation:
+
+```sql
+-- ❌ BAD: Evaluated for each row
+CREATE POLICY "user_policy" ON table_name
+USING (user_id = auth.uid());
+
+-- ✅ GOOD: Evaluated once per statement
+CREATE POLICY "user_policy" ON table_name
+USING (user_id = (select auth.uid()));
+```
+
+This applies to all auth functions:
+- `auth.uid()` → `(select auth.uid())`
+- `auth.role()` → `(select auth.role())`
+- `auth.jwt()` → `(select auth.jwt())`
+
+### Policy Consolidation
+
+Combine multiple permissive policies into single policies:
+
+```sql
+-- ❌ BAD: Multiple policies evaluated separately
+CREATE POLICY "owner_access" ON table FOR SELECT USING (owner_id = (select auth.uid()));
+CREATE POLICY "member_access" ON table FOR SELECT USING (EXISTS (...));
+
+-- ✅ GOOD: Single policy with OR condition
+CREATE POLICY "combined_access" ON table FOR SELECT
+USING (
+  owner_id = (select auth.uid()) OR
+  EXISTS (SELECT 1 FROM members WHERE user_id = (select auth.uid()))
+);
 ```
 
 ## Security Considerations

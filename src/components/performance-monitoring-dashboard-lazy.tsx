@@ -5,9 +5,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Activity, Database, Globe, Zap } from '@/components/ui/icon';
 
 // Lazy load the heavy performance monitoring dashboard
-const PerformanceMonitoringDashboardInner = lazy(() => 
-  import('./performance-monitoring-dashboard').then(module => ({
-    default: module.PerformanceMonitoringDashboard
+const PerformanceMonitoringDashboardInner = lazy(() =>
+  import('./performance-monitoring-dashboard').then((module) => ({
+    default: module.PerformanceMonitoringDashboard,
   }))
 );
 
@@ -49,7 +49,7 @@ function PerformanceMonitoringDashboardSkeleton() {
           <TabsTrigger value="apis">APIs</TabsTrigger>
           <TabsTrigger value="queue">Queue Status</TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="overview" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <Card>
@@ -65,7 +65,7 @@ function PerformanceMonitoringDashboardSkeleton() {
                 ))}
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader>
                 <CardTitle>Performance Metrics</CardTitle>

@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type { PullRequest } from '@/lib/types';
+import { detectBot } from '@/lib/utils/bot-detection';
 
 // This is a copy of the formatTimestamp function from use-pr-activity.ts
 // Since it's not exported, we recreate it here for testing
@@ -67,8 +68,8 @@ describe('use-pr-activity utilities', () => {
       };
 
       // Bot detection logic from the hook
-      const isBotUser1 = botUser.type === 'Bot' || botUser.login.includes('[bot]');
-      const isBotUser2 = normalUser.type === 'Bot' || normalUser.login.includes('[bot]');
+      const isBotUser1 = detectBot({ githubUser: botUser }).isBot;
+      const isBotUser2 = detectBot({ githubUser: normalUser }).isBot;
 
       expect(isBotUser1).toBe(true);
       expect(isBotUser2).toBe(false);

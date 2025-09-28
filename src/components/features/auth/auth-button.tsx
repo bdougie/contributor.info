@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { GithubIcon, LogOut, MessageSquare, Shield, Settings } from '@/components/ui/icon';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useNavigate } from 'react-router-dom';
+import { trackEvent, identifyUser } from '@/lib/posthog-lazy';
 import type { User } from '@supabase/supabase-js';
 
 export function AuthButton() {
@@ -20,6 +21,7 @@ export function AuthButton() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const hasTrackedView = useRef(false);
 
   useEffect(() => {
     // Check admin status for a user
@@ -115,6 +117,15 @@ export function AuthButton() {
         setUser(user);
         checkAdminStatus(user);
         setLoading(false);
+
+        // Track auth button view only once when component loads
+        if (!hasTrackedView.current) {
+          hasTrackedView.current = true;
+          trackEvent('auth_button_viewed', {
+            is_logged_in: !!user,
+            page_path: window.location.pathname,
+          });
+        }
       })
       .catch(() => {
         setError('Failed to get session');
@@ -124,10 +135,41 @@ export function AuthButton() {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       const user = session?.user ?? null;
       setUser(user);
       checkAdminStatus(user);
+
+      // Track authentication events
+      if (event === 'SIGNED_IN' && user) {
+        // Identify user in PostHog BEFORE tracking events
+        const githubId = user.user_metadata?.provider_id || user.user_metadata?.sub;
+        if (githubId) {
+          try {
+            await identifyUser(githubId, {
+              github_username: user.user_metadata?.user_name,
+              email: user.email,
+              created_at: user.created_at,
+              auth_provider: 'github',
+            });
+          } catch (identifyError) {
+            console.warn('Failed to identify user in PostHog:', identifyError);
+            // Continue with event tracking even if identification fails
+          }
+        }
+
+        // Track successful login after user identification
+        trackEvent('auth_completed', {
+          auth_provider: 'github',
+          user_id: user.id,
+          is_new_user: !user.last_sign_in_at || user.created_at === user.last_sign_in_at,
+        });
+      } else if (event === 'SIGNED_OUT') {
+        // Track logout
+        trackEvent('user_logout', {
+          page_path: window.location.pathname,
+        });
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -136,6 +178,13 @@ export function AuthButton() {
   const handleLogin = async () => {
     try {
       setError(null);
+
+      // Track auth start event
+      trackEvent('auth_started', {
+        auth_provider: 'github',
+        source: 'header',
+        page_path: window.location.pathname,
+      });
 
       // Get the correct redirect URL for the current environment
       const redirectTo = window.location.origin + window.location.pathname;
@@ -150,9 +199,21 @@ export function AuthButton() {
 
       if (signInError) {
         setError(signInError.message);
+        // Track auth failure
+        trackEvent('auth_failed', {
+          auth_provider: 'github',
+          error_message: signInError.message,
+          page_path: window.location.pathname,
+        });
       }
-    } catch (err) {
+    } catch {
       setError('Failed to initiate login');
+      // Track auth failure
+      trackEvent('auth_failed', {
+        auth_provider: 'github',
+        error_type: 'exception',
+        page_path: window.location.pathname,
+      });
     }
   };
 
@@ -164,7 +225,7 @@ export function AuthButton() {
       if (signOutError) {
         setError(signOutError.message);
       }
-    } catch (err) {
+    } catch {
       setError('Failed to log out');
     }
   };

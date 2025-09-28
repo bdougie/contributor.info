@@ -10,18 +10,18 @@ export function validateRepositoryName(fullName) {
   if (!fullName || typeof fullName !== 'string') {
     throw new Error('Invalid repository name: must be a non-empty string');
   }
-  
+
   // Repository names should be in format owner/repo
   const pattern = /^[a-zA-Z0-9][\w.-]*\/[a-zA-Z0-9][\w.-]*$/;
   if (!pattern.test(fullName)) {
     throw new Error(`Invalid repository name format: ${fullName}`);
   }
-  
+
   // Prevent excessively long names
   if (fullName.length > 100) {
     throw new Error('Repository name too long');
   }
-  
+
   return fullName;
 }
 
@@ -32,13 +32,13 @@ export function validateGitHubUsername(username) {
   if (!username || typeof username !== 'string') {
     throw new Error('Invalid username: must be a non-empty string');
   }
-  
+
   // GitHub username rules: alphanumeric, hyphens (not at start/end), max 39 chars
   const pattern = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,37}[a-zA-Z0-9])?$/;
   if (!pattern.test(username)) {
     throw new Error(`Invalid GitHub username: ${username}`);
   }
-  
+
   return username;
 }
 
@@ -60,7 +60,7 @@ export function validateWebhookPayload(payload, eventType) {
   if (!payload || typeof payload !== 'object') {
     throw new Error('Invalid payload: must be an object');
   }
-  
+
   // Check required fields based on event type
   switch (eventType) {
     case 'pull_request':
@@ -70,7 +70,7 @@ export function validateWebhookPayload(payload, eventType) {
       validateIssueNumber(payload.pull_request.number);
       validateRepositoryName(payload.repository.full_name);
       break;
-      
+
     case 'issues':
       if (!payload.issue || !payload.repository || !payload.action) {
         throw new Error('Missing required fields for issues event');
@@ -78,7 +78,7 @@ export function validateWebhookPayload(payload, eventType) {
       validateIssueNumber(payload.issue.number);
       validateRepositoryName(payload.repository.full_name);
       break;
-      
+
     case 'issue_comment':
       if (!payload.comment || !payload.issue || !payload.repository) {
         throw new Error('Missing required fields for issue_comment event');
@@ -86,22 +86,22 @@ export function validateWebhookPayload(payload, eventType) {
       validateIssueNumber(payload.issue.number);
       validateRepositoryName(payload.repository.full_name);
       break;
-      
+
     case 'installation':
       if (!payload.installation || !payload.action) {
         throw new Error('Missing required fields for installation event');
       }
       break;
-      
+
     case 'ping':
       // Ping events have minimal requirements
       break;
-      
+
     default:
       // Unknown event types are allowed but logged
       break;
   }
-  
+
   return true;
 }
 
@@ -111,16 +111,16 @@ export function validateWebhookPayload(payload, eventType) {
 export function sanitizeText(text, maxLength = 65535) {
   if (!text) return null;
   if (typeof text !== 'string') return null;
-  
+
   // Truncate to max length
   let sanitized = text.substring(0, maxLength);
-  
+
   // Remove null bytes
   sanitized = sanitized.replace(/\0/g, '');
-  
+
   // Normalize whitespace
   sanitized = sanitized.replace(/\s+/g, ' ').trim();
-  
+
   return sanitized;
 }
 
@@ -141,10 +141,10 @@ export function validateInstallationId(id) {
 export function createSafeError(error, context) {
   // Never expose internal error details in production
   const isProduction = process.env.NODE_ENV === 'production';
-  
+
   return {
     error: isProduction ? 'An error occurred processing the webhook' : error.message,
     context: context,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   };
 }

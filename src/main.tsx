@@ -4,6 +4,7 @@ import App from './App';
 import './index.css';
 import './styles/cls-fixes.css'; // Global CLS fixes
 import { MetaTagsProvider, SchemaMarkup } from './components/common/layout';
+import { ErrorBoundary } from '@/components/error-boundary';
 
 // Sentry removed - was causing React hooks conflicts
 
@@ -29,15 +30,18 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
     });
 
     // Listen for cache updates
-    swClient.on('CACHE_UPDATED', (event: any) => {
+    swClient.on('CACHE_UPDATED', (event: { type: 'CACHE_UPDATED'; url: string }) => {
       console.log('Cache updated for:', event.url);
       // Could trigger a subtle UI update here
     });
 
     // Listen for background sync
-    swClient.on('BACKGROUND_SYNC', (event: any) => {
-      console.log('Background sync:', event.status);
-    });
+    swClient.on(
+      'BACKGROUND_SYNC',
+      (event: { type: 'BACKGROUND_SYNC'; status: 'started' | 'completed' }) => {
+        console.log('Background sync:', event.status);
+      }
+    );
   });
 }
 
@@ -60,9 +64,11 @@ const root = createRoot(rootElement);
 // Render app without analytics
 root.render(
   <StrictMode>
-    <MetaTagsProvider>
-      <SchemaMarkup />
-      <App />
-    </MetaTagsProvider>
+    <ErrorBoundary context="Root Mount">
+      <MetaTagsProvider>
+        <SchemaMarkup />
+        <App />
+      </MetaTagsProvider>
+    </ErrorBoundary>
   </StrictMode>
 );

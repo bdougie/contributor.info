@@ -91,6 +91,9 @@ export async function fetchPRDataWithFallback(
             state,
             body,
             submitted_at,
+            pull_request_id,
+            reviewer_id,
+            author_id,
             contributors:reviewer_id(
               github_id,
               username,

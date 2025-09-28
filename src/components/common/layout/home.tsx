@@ -19,6 +19,7 @@ const CarouselLazy = lazy(() => import('@/components/ui/carousel-lazy'));
 export default function Home() {
   const navigate = useNavigate();
   const { isLoggedIn, loading: authLoading } = useAuth();
+
   const {
     workspaces,
     isLoading: workspaceLoading,

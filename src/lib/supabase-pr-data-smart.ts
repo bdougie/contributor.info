@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import type { PullRequest } from './types';
 import { trackDatabaseOperation } from './simple-logging';
+import { toDateOnlyString } from './utils/date-formatting';
 import {
   createSuccessResult,
   createNoDataResult,
@@ -134,7 +135,7 @@ export async function fetchPRDataSmart(
         `
         )
         .eq('repository_id', repoData.id)
-        .gte('created_at', since.toISOString())
+        .gte('created_at', toDateOnlyString(since))
         .order('created_at', { ascending: false })
         .limit(500); // Reasonable limit for UI display
 
@@ -163,12 +164,13 @@ export async function fetchPRDataSmart(
       if (triggerBackgroundSync && (isEmpty || isStale)) {
         try {
           await sendInngestEvent({
-            name: 'capture/repository.sync',
+            name: 'capture/repository.sync.graphql',
             data: {
-              owner,
-              repo,
+              repositoryId: repoData.id,
+              repositoryName: `${repoData.owner}/${repoData.name}`,
+              days: 30,
               priority: isEmpty ? 'high' : 'medium',
-              source: 'smart-fetch-stale-data',
+              reason: isEmpty ? 'smart-fetch-empty-repository' : 'smart-fetch-stale-data',
             },
           });
 

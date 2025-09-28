@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 interface RateLimitConfig {
   maxRequests: number;
@@ -14,7 +14,7 @@ interface RateLimitResult {
 }
 
 export class RateLimiter {
-  private supabase: any;
+  private supabase: SupabaseClient;
   private config: RateLimitConfig;
 
   constructor(supabaseUrl: string, supabaseKey: string, config: RateLimitConfig) {
@@ -37,7 +37,7 @@ export class RateLimiter {
         .from('rate_limits')
         .select('request_count, window_start, last_request')
         .eq('key', key)
-        .single();
+        .maybeSingle();
 
       if (fetchError && fetchError.code !== 'PGRST116') {
         // Error other than "not found"

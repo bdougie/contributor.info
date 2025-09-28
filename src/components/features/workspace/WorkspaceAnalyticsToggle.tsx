@@ -17,13 +17,16 @@ interface WorkspaceAnalyticsToggleProps {
  * Component that shows analytics dashboard when feature flag is enabled
  * This demonstrates how to use feature flags in production components
  */
-export function WorkspaceAnalyticsToggle({ workspaceId, className }: WorkspaceAnalyticsToggleProps) {
+export function WorkspaceAnalyticsToggle({
+  workspaceId,
+  className,
+}: WorkspaceAnalyticsToggleProps) {
   // Check if the feature flag is enabled
   const isAnalyticsEnabled = useFeatureFlag(FEATURE_FLAGS.ENABLE_WORKSPACE_ANALYTICS);
 
   // You can also use the component-based approach
   return (
-    <FeatureFlag 
+    <FeatureFlag
       flag={FEATURE_FLAGS.ENABLE_WORKSPACE_ANALYTICS}
       fallback={
         // Show a teaser when the feature is not enabled

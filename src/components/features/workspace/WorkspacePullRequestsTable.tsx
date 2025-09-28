@@ -31,6 +31,9 @@ import {
   ExternalLink,
 } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
+import { useWorkspaceFiltersStore, type PRState } from '@/lib/workspace-filters-store';
+import { PRFilters } from './filters/TableFilters';
+import { isBot, hasBotAuthors } from '@/lib/utils/bot-detection';
 
 export interface PullRequest {
   id: string;
@@ -45,6 +48,7 @@ export interface PullRequest {
   author: {
     username: string;
     avatar_url: string;
+    isBot?: boolean;
   };
   created_at: string;
   updated_at: string;
@@ -59,10 +63,16 @@ export interface PullRequest {
     name: string;
     color: string;
   }>;
-  reviewers: Array<{
+  reviewers?: Array<{
     username: string;
     avatar_url: string;
     approved: boolean;
+    state?: 'APPROVED' | 'CHANGES_REQUESTED' | 'COMMENTED' | 'PENDING' | 'DISMISSED';
+    submitted_at?: string;
+  }>;
+  requested_reviewers?: Array<{
+    username: string;
+    avatar_url: string;
   }>;
   url: string;
 }
@@ -115,6 +125,28 @@ export function WorkspacePullRequestsTable({
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
 
+  // Get filter state from store
+  const { prStates, prIncludeBots, togglePRState, setPRIncludeBots, resetPRFilters } =
+    useWorkspaceFiltersStore();
+
+  // Check if there are any bot PRs - using useMemo for performance
+  const hasBots = useMemo(() => {
+    return hasBotAuthors(pullRequests);
+  }, [pullRequests]);
+
+  // Filter pull requests based on state and bot settings
+  const filteredPullRequests = useMemo(() => {
+    return pullRequests.filter((pr) => {
+      // Filter by state
+      const stateMatch = prStates.includes(pr.state as PRState);
+
+      // Filter by bot status
+      const botMatch = prIncludeBots || !isBot(pr.author);
+
+      return stateMatch && botMatch;
+    });
+  }, [pullRequests, prStates, prIncludeBots]);
+
   const columns = useMemo<ColumnDef<PullRequest>[]>(
     () =>
       [
@@ -129,13 +161,15 @@ export function WorkspacePullRequestsTable({
               onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
             >
               State
-              {column.getIsSorted() === 'asc' ? (
-                <ChevronUp className="ml-2 h-4 w-4" />
-              ) : column.getIsSorted() === 'desc' ? (
-                <ChevronDown className="ml-2 h-4 w-4" />
-              ) : (
-                <ChevronsUpDown className="ml-2 h-4 w-4" />
-              )}
+              {(() => {
+                if (column.getIsSorted() === 'asc') {
+                  return <ChevronUp className="ml-2 h-4 w-4" />;
+                }
+                if (column.getIsSorted() === 'desc') {
+                  return <ChevronDown className="ml-2 h-4 w-4" />;
+                }
+                return <ChevronsUpDown className="ml-2 h-4 w-4" />;
+              })()}
             </Button>
           ),
           cell: ({ row }) => {
@@ -148,21 +182,43 @@ export function WorkspacePullRequestsTable({
             );
           },
         }),
+        columnHelper.accessor('number', {
+          size: 80,
+          minSize: 70,
+          header: 'Number',
+          cell: ({ row }) => {
+            const pr = row.original;
+            const repo = pr.repository;
+            const githubUrl = `https://github.com/${repo.owner}/${repo.name}/pull/${pr.number}`;
+            return (
+              <a
+                href={githubUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium hover:text-primary hover:underline transition-colors cursor-pointer"
+              >
+                #{pr.number}
+              </a>
+            );
+          },
+        }),
         columnHelper.accessor('title', {
           size: 350,
           minSize: 250,
-          header: 'Pull Request',
+          header: 'Title',
           cell: ({ row }) => {
             const pr = row.original;
+            const repo = pr.repository;
+            const githubUrl = `https://github.com/${repo.owner}/${repo.name}/pull/${pr.number}`;
             const truncatedTitle =
-              pr.title.length > 50 ? pr.title.substring(0, 50) + '...' : pr.title;
+              pr.title.length > 60 ? pr.title.substring(0, 60) + '...' : pr.title;
 
             return (
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <a
-                      href={pr.url}
+                      href={githubUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => {
@@ -171,16 +227,13 @@ export function WorkspacePullRequestsTable({
                           onPullRequestClick(pr);
                         }
                       }}
-                      className="font-medium hover:text-primary transition-colors text-left inline-flex items-center gap-1"
+                      className="font-medium hover:text-primary hover:underline transition-colors text-left block cursor-pointer"
                     >
                       <span className="line-clamp-1">{truncatedTitle}</span>
-                      <span className="text-muted-foreground">#{pr.number}</span>
                     </a>
                   </TooltipTrigger>
                   <TooltipContent className="max-w-md">
-                    <p>
-                      {pr.title} #{pr.number}
-                    </p>
+                    <p>{pr.title}</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -215,20 +268,36 @@ export function WorkspacePullRequestsTable({
           },
         }),
         columnHelper.accessor('author', {
-          size: 150,
-          minSize: 120,
+          size: 60,
+          minSize: 60,
           header: 'Author',
           cell: ({ row }) => {
             const author = row.original.author;
+            const repo = row.original.repository;
+            const authorFilterUrl = `https://github.com/${repo.owner}/${repo.name}/pulls?q=is%3Apr+author%3A${encodeURIComponent(author.username)}`;
+
             return (
-              <div className="flex items-center gap-2">
-                <img
-                  src={author.avatar_url}
-                  alt={author.username}
-                  className="h-6 w-6 rounded-full"
-                />
-                <span className="text-sm truncate">{author.username}</span>
-              </div>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <a
+                      href={authorFilterUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-block"
+                    >
+                      <img
+                        src={author.avatar_url}
+                        alt={author.username}
+                        className="h-6 w-6 rounded-full cursor-pointer hover:ring-2 hover:ring-primary transition-all"
+                      />
+                    </a>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{author.username}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             );
           },
         }),
@@ -243,30 +312,77 @@ export function WorkspacePullRequestsTable({
           },
         }),
         columnHelper.accessor('reviewers', {
-          size: 130,
-          minSize: 100,
-          header: 'Reviews',
+          size: 120,
+          minSize: 120,
+          header: 'Reviewers',
           cell: ({ row }) => {
             const reviewers = row.original.reviewers;
+            const repo = row.original.repository;
+
             if (!reviewers || reviewers.length === 0) {
-              return (
-                <div className="text-sm text-muted-foreground">
-                  <span>-</span>
-                </div>
-              );
+              return <span className="text-sm text-muted-foreground">-</span>;
             }
 
-            const approved = reviewers.filter((r) => r.approved).length;
-            const pending = reviewers.length - approved;
+            const maxVisible = 3;
+            const visibleReviewers = reviewers.slice(0, maxVisible);
+            const remainingCount = reviewers.length - maxVisible;
 
             return (
-              <div className="text-sm">
-                {approved > 0 && (
-                  <span className="text-green-600 dark:text-green-400">{approved} approved</span>
+              <>
+                {visibleReviewers.map((reviewer, index) => {
+                  const reviewerFilterUrl = `https://github.com/${repo.owner}/${repo.name}/pulls?q=is%3Apr+reviewed-by%3A${encodeURIComponent(reviewer.username)}`;
+
+                  return (
+                    <TooltipProvider key={reviewer.username}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <a
+                            href={reviewerFilterUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-block -ml-2 first:ml-0 first:ml-2"
+                            style={{ zIndex: maxVisible - index }}
+                          >
+                            <img
+                              src={reviewer.avatar_url}
+                              alt={reviewer.username}
+                              className={cn(
+                                'h-6 w-6 rounded-full border-2 hover:ring-2 hover:ring-primary transition-all',
+                                reviewer.approved ? 'border-green-500' : 'border-background'
+                              )}
+                            />
+                          </a>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>
+                            {reviewer.username} {reviewer.approved ? '(Approved)' : '(Pending)'}
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  );
+                })}
+                {remainingCount > 0 && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex h-6 w-6 -ml-2 rounded-full bg-muted border-2 border-background items-center justify-center cursor-default align-top">
+                          <span className="text-xs font-medium">+{remainingCount}</span>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <div className="space-y-1">
+                          {reviewers.slice(maxVisible).map((reviewer) => (
+                            <p key={reviewer.username}>
+                              {reviewer.username} {reviewer.approved ? '(Approved)' : '(Pending)'}
+                            </p>
+                          ))}
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 )}
-                {approved > 0 && pending > 0 && <span className="text-muted-foreground"> / </span>}
-                {pending > 0 && <span className="text-muted-foreground">{pending} pending</span>}
-              </div>
+              </>
             );
           },
         }),
@@ -281,13 +397,15 @@ export function WorkspacePullRequestsTable({
               onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
             >
               Created
-              {column.getIsSorted() === 'asc' ? (
-                <ChevronUp className="ml-2 h-4 w-4" />
-              ) : column.getIsSorted() === 'desc' ? (
-                <ChevronDown className="ml-2 h-4 w-4" />
-              ) : (
-                <ChevronsUpDown className="ml-2 h-4 w-4" />
-              )}
+              {(() => {
+                if (column.getIsSorted() === 'asc') {
+                  return <ChevronUp className="ml-2 h-4 w-4" />;
+                }
+                if (column.getIsSorted() === 'desc') {
+                  return <ChevronDown className="ml-2 h-4 w-4" />;
+                }
+                return <ChevronsUpDown className="ml-2 h-4 w-4" />;
+              })()}
             </Button>
           ),
           cell: ({ row }) => (
@@ -307,13 +425,15 @@ export function WorkspacePullRequestsTable({
               onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
             >
               Updated
-              {column.getIsSorted() === 'asc' ? (
-                <ChevronUp className="ml-2 h-4 w-4" />
-              ) : column.getIsSorted() === 'desc' ? (
-                <ChevronDown className="ml-2 h-4 w-4" />
-              ) : (
-                <ChevronsUpDown className="ml-2 h-4 w-4" />
-              )}
+              {(() => {
+                if (column.getIsSorted() === 'asc') {
+                  return <ChevronUp className="ml-2 h-4 w-4" />;
+                }
+                if (column.getIsSorted() === 'desc') {
+                  return <ChevronDown className="ml-2 h-4 w-4" />;
+                }
+                return <ChevronsUpDown className="ml-2 h-4 w-4" />;
+              })()}
             </Button>
           ),
           cell: ({ row }) => (
@@ -324,23 +444,28 @@ export function WorkspacePullRequestsTable({
         }),
         columnHelper.display({
           id: 'actions',
-          cell: ({ row }) => (
-            <a
-              href={row.original.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <ExternalLink className="h-4 w-4" />
-            </a>
-          ),
+          cell: ({ row }) => {
+            const pr = row.original;
+            const repo = pr.repository;
+            const githubUrl = `https://github.com/${repo.owner}/${repo.name}/pull/${pr.number}`;
+            return (
+              <a
+                href={githubUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              >
+                <ExternalLink className="h-4 w-4" />
+              </a>
+            );
+          },
         }),
       ] as ColumnDef<PullRequest>[],
     [onPullRequestClick, onRepositoryClick]
   );
 
   const table = useReactTable({
-    data: pullRequests,
+    data: filteredPullRequests,
     columns,
     state: {
       sorting,
@@ -381,19 +506,29 @@ export function WorkspacePullRequestsTable({
   return (
     <Card className={cn('w-full', className)}>
       <CardHeader>
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <CardTitle className="text-lg font-semibold">Pull Requests</CardTitle>
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <div className="relative flex-1 sm:flex-initial">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search pull requests..."
-                value={globalFilter ?? ''}
-                onChange={(e) => setGlobalFilter(e.target.value)}
-                className="pl-10 w-full sm:w-[300px] min-h-[44px]"
-              />
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <CardTitle className="text-lg font-semibold">Pull Requests</CardTitle>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="relative flex-1 sm:flex-initial">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search pull requests..."
+                  value={globalFilter ?? ''}
+                  onChange={(e) => setGlobalFilter(e.target.value)}
+                  className="pl-10 w-full sm:w-[300px] min-h-[44px]"
+                />
+              </div>
             </div>
           </div>
+          <PRFilters
+            selectedStates={prStates}
+            includeBots={prIncludeBots}
+            onToggleState={togglePRState}
+            onIncludeBotsChange={setPRIncludeBots}
+            onReset={resetPRFilters}
+            hasBots={hasBots}
+          />
         </div>
       </CardHeader>
       <CardContent>
@@ -407,79 +542,116 @@ export function WorkspacePullRequestsTable({
           </div>
         ) : (
           <>
-            <div className="rounded-md border">
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[800px] md:min-w-[1400px]">
-                  <thead>
-                    {table.getHeaderGroups().map((headerGroup) => (
-                      <tr key={headerGroup.id} className="border-b">
-                        {headerGroup.headers.map((header) => (
-                          <th
-                            key={header.id}
-                            className="px-4 py-3 text-left font-medium text-sm whitespace-nowrap"
-                            style={{
-                              width: header.column.columnDef.size,
-                              minWidth: header.column.columnDef.minSize,
-                            }}
-                          >
-                            {flexRender(header.column.columnDef.header, header.getContext())}
-                          </th>
-                        ))}
-                      </tr>
-                    ))}
-                  </thead>
-                  <tbody>
-                    {table.getRowModel().rows.map((row) => (
-                      <tr key={row.id} className="border-b hover:bg-muted/50 transition-colors">
-                        {row.getVisibleCells().map((cell) => (
-                          <td
-                            key={cell.id}
-                            className="px-4 py-4"
-                            style={{
-                              width: cell.column.columnDef.size,
-                              minWidth: cell.column.columnDef.minSize,
-                            }}
-                          >
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            {filteredPullRequests.length === 0 && globalFilter === '' ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <GitPullRequest className="h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-lg font-medium text-muted-foreground mb-2">
+                  No pull requests match your filters
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Try adjusting your filter settings or reset filters to see all pull requests
+                </p>
               </div>
-            </div>
+            ) : (
+              <div className="rounded-md border">
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[800px] md:min-w-[1400px]">
+                    <thead>
+                      {table.getHeaderGroups().map((headerGroup) => (
+                        <tr key={headerGroup.id} className="border-b">
+                          {headerGroup.headers.map((header) => (
+                            <th
+                              key={header.id}
+                              className="px-4 py-3 text-left font-medium text-sm whitespace-nowrap"
+                              style={{
+                                width: header.column.columnDef.size,
+                                minWidth: header.column.columnDef.minSize,
+                              }}
+                            >
+                              {flexRender(header.column.columnDef.header, header.getContext())}
+                            </th>
+                          ))}
+                        </tr>
+                      ))}
+                    </thead>
+                    <tbody>
+                      {table.getRowModel().rows.map((row) => (
+                        <tr key={row.id} className="border-b hover:bg-muted/50 transition-colors">
+                          {row.getVisibleCells().map((cell) => (
+                            <td
+                              key={cell.id}
+                              className="px-4 py-4"
+                              style={{
+                                width: cell.column.columnDef.size,
+                                minWidth: cell.column.columnDef.minSize,
+                              }}
+                            >
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
 
             {/* Pagination */}
-            <div className="flex flex-col sm:flex-row items-center justify-between mt-4 gap-4">
-              <div className="text-sm text-muted-foreground order-2 sm:order-1">
-                Showing {table.getState().pagination.pageIndex * 10 + 1} to{' '}
-                {Math.min((table.getState().pagination.pageIndex + 1) * 10, pullRequests.length)} of{' '}
-                {pullRequests.length} pull requests
+            {filteredPullRequests.length > 0 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between mt-4 gap-4">
+                <div className="text-sm text-muted-foreground order-2 sm:order-1">
+                  {filteredPullRequests.length > 0 ? (
+                    <>
+                      Showing {table.getState().pagination.pageIndex * 10 + 1} to{' '}
+                      {Math.min(
+                        (table.getState().pagination.pageIndex + 1) * 10,
+                        filteredPullRequests.length
+                      )}{' '}
+                      of {filteredPullRequests.length} pull requests
+                      {filteredPullRequests.length < pullRequests.length && (
+                        <span className="text-muted-foreground">
+                          {' '}
+                          (filtered from {pullRequests.length})
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      No pull requests found
+                      {pullRequests.length > 0 && (
+                        <span className="text-muted-foreground">
+                          {' '}
+                          (filtered from {pullRequests.length})
+                        </span>
+                      )}
+                    </>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 order-1 sm:order-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => table.previousPage()}
+                    disabled={!table.getCanPreviousPage()}
+                    className="min-h-[44px] px-3"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    <span className="hidden sm:inline ml-2">Previous</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => table.nextPage()}
+                    disabled={!table.getCanNextPage()}
+                    className="min-h-[44px] px-3"
+                  >
+                    <span className="hidden sm:inline mr-2">Next</span>
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
-              <div className="flex items-center gap-2 order-1 sm:order-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => table.previousPage()}
-                  disabled={!table.getCanPreviousPage()}
-                  className="min-h-[44px] px-3"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  <span className="hidden sm:inline ml-2">Previous</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => table.nextPage()}
-                  disabled={!table.getCanNextPage()}
-                  className="min-h-[44px] px-3"
-                >
-                  <span className="hidden sm:inline mr-2">Next</span>
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
+            )}
           </>
         )}
       </CardContent>

@@ -7,9 +7,9 @@ import { parseArgs } from 'util';
 const { values } = parseArgs({
   options: {
     'job-id': { type: 'string' },
-    'status': { type: 'string' },
-    'conclusion': { type: 'string' }
-  }
+    status: { type: 'string' },
+    conclusion: { type: 'string' },
+  },
 });
 
 const jobId = values['job-id'];
@@ -35,7 +35,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 async function reportJobStatus() {
   try {
     console.log(`Reporting job status for ${jobId}: ${status} (${conclusion})`);
-    
+
     // Map GitHub Actions status to our job status
     let jobStatus = 'processing';
     if (status === 'completed') {
@@ -50,7 +50,7 @@ async function reportJobStatus() {
           break;
       }
     }
-    
+
     // Update job status in database
     const { error } = await supabase
       .from('progressive_capture_jobs')
@@ -60,18 +60,21 @@ async function reportJobStatus() {
         metadata: {
           github_status: status,
           github_conclusion: conclusion,
-          workflow_run_url: process.env.GITHUB_SERVER_URL && process.env.GITHUB_REPOSITORY && process.env.GITHUB_RUN_ID
-            ? `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
-            : undefined
-        }
+          workflow_run_url:
+            process.env.GITHUB_SERVER_URL &&
+            process.env.GITHUB_REPOSITORY &&
+            process.env.GITHUB_RUN_ID
+              ? `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
+              : undefined,
+        },
       })
       .eq('id', jobId);
-    
+
     if (error) {
       console.error('Error updating job status:', error);
       process.exit(1);
     }
-    
+
     console.log('Job status reported successfully');
   } catch (error) {
     console.error('Failed to report job status:', error);

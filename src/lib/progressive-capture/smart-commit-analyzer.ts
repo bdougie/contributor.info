@@ -1,8 +1,19 @@
 import { supabase } from '../supabase';
+import type { GitHubPullRequest } from '../github';
+
+interface CommitRecord {
+  sha: string;
+  is_direct_commit: boolean;
+  authored_at: string;
+  contributors: {
+    username: string;
+    avatar_url: string;
+  } | null;
+}
 
 interface CommitPRAssociation {
   sha: string;
-  associatedPRs: any[];
+  associatedPRs: GitHubPullRequest[];
   isDirectCommit: boolean;
   analyzed_at: string;
 }
@@ -73,7 +84,7 @@ export class SmartCommitAnalyzer {
         analyzed_at: new Date().toISOString(),
       };
     } catch (error) {
-      console.error(`[Smart Commit] Failed to analyze commit ${sha}:`, error);
+      console.error('[Smart Commit] Failed to analyze commit %s:', error, sha);
       throw error;
     }
   }
@@ -151,10 +162,10 @@ export class SmartCommitAnalyzer {
           .eq('sha', result.sha);
 
         if (updateError) {
-          console.warn(`[Smart Commit] Failed to update commit ${result.sha}:`, updateError);
+          console.warn('[Smart Commit] Failed to update commit %s:', updateError, result.sha);
         }
       } catch (error) {
-        console.error(`[Smart Commit] Error storing result for commit ${result.sha}:`, error);
+        console.error('[Smart Commit] Error storing result for commit %s:', error, result.sha);
       }
     }
   }
@@ -163,7 +174,7 @@ export class SmartCommitAnalyzer {
    * Process a commit analysis job from the queue
    */
   async processCommitAnalysisJob(
-    job: { repository_id: string; resource_id: string; metadata: any },
+    job: { repository_id: string; resource_id: string; metadata: Record<string, unknown> },
     repoInfo: { owner: string; name: string }
   ): Promise<void> {
     const commitSha = job.resource_id;
@@ -175,7 +186,7 @@ export class SmartCommitAnalyzer {
       // Store the result in database
       await this.storeAnalysisResults(job.repository_id, [result]);
     } catch (error) {
-      console.error(`[Smart Commit] Failed to process job for commit ${commitSha}:`, error);
+      console.error('[Smart Commit] Failed to process job for commit %s:', error, commitSha);
       throw error;
     }
   }
@@ -228,8 +239,19 @@ export class SmartCommitAnalyzer {
         return { hasYoloCoders: false, yoloCoderStats: [] };
       }
 
+      // Map database results to CommitRecord format
+      const mappedCommits: CommitRecord[] = commits.map((commit: Record<string, unknown>) => ({
+        sha: commit.sha as string,
+        is_direct_commit: commit.is_direct_commit as boolean,
+        authored_at: commit.authored_at as string,
+        contributors: {
+          username: (commit['contributors!commits_author_id_fkey'] as { username: string; avatar_url: string })?.username || '',
+          avatar_url: (commit['contributors!commits_author_id_fkey'] as { username: string; avatar_url: string })?.avatar_url || ''
+        }
+      }));
+
       // Calculate YOLO coder stats from database
-      const contributorStats = this.calculateYoloCoderStats(commits);
+      const contributorStats = this.calculateYoloCoderStats(mappedCommits);
 
       return {
         hasYoloCoders: contributorStats.length > 0,
@@ -244,7 +266,7 @@ export class SmartCommitAnalyzer {
   /**
    * Calculate YOLO coder statistics from analyzed commits
    */
-  private calculateYoloCoderStats(commits: any[]): Array<{
+  private calculateYoloCoderStats(commits: CommitRecord[]): Array<{
     login: string;
     avatar_url: string;
     directCommits: number;
@@ -319,7 +341,7 @@ export class SmartCommitAnalyzer {
   /**
    * Extract the primary PR ID from associated PRs (usually the first one)
    */
-  private extractPrimaryPRId(associatedPRs: any[]): string | null {
+  private extractPrimaryPRId(associatedPRs: GitHubPullRequest[]): string | null {
     if (associatedPRs.length === 0) return null;
 
     // For commits associated with multiple PRs, use the earliest one

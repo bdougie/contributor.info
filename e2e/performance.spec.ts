@@ -32,13 +32,11 @@ test.describe('Performance and Loading', () => {
     // Look for loading indicators
     const loadingStates = ['loading', 'skeleton', 'spinner', 'Loading', 'Fetching'];
 
-    let hasLoadingState = false;
     for (const state of loadingStates) {
       if (
         (await page.locator(`text=${state}`).isVisible()) ||
         (await page.locator(`[class*="${state.toLowerCase()}"]`).isVisible())
       ) {
-        hasLoadingState = true;
         break;
       }
     }

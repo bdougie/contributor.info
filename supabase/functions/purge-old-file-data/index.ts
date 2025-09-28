@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
     // Create Supabase client with service role key for admin operations
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Calculate the cutoff date (30 days ago)
@@ -27,10 +27,14 @@ Deno.serve(async (req) => {
     cutoffDate.setDate(cutoffDate.getDate() - 30);
     const cutoffDateStr = cutoffDate.toISOString();
 
-    console.log("Purging file data older than %s", cutoffDateStr);
+    console.log('Purging file data older than %s', cutoffDateStr);
 
     // Purge old file contributors data
-    const { data: contributorsData, error: contributorsError, count: contributorsCount } = await supabase
+    const {
+      data: contributorsData,
+      error: contributorsError,
+      count: contributorsCount,
+    } = await supabase
       .from('file_contributors')
       .delete()
       .lt('last_commit_at', cutoffDateStr)
@@ -42,7 +46,11 @@ Deno.serve(async (req) => {
     }
 
     // Purge old file embeddings data
-    const { data: embeddingsData, error: embeddingsError, count: embeddingsCount } = await supabase
+    const {
+      data: embeddingsData,
+      error: embeddingsError,
+      count: embeddingsCount,
+    } = await supabase
       .from('file_embeddings')
       .delete()
       .lt('last_indexed_at', cutoffDateStr)
@@ -73,16 +81,13 @@ Deno.serve(async (req) => {
 
     console.log('Purge complete:', result);
 
-    return new Response(
-      JSON.stringify(result),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      }
-    );
+    return new Response(JSON.stringify(result), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200,
+    });
   } catch (error) {
     console.error('Error in purge function:', error);
-    
+
     const errorResult: PurgeResult = {
       purged: {
         file_contributors: 0,
@@ -91,12 +96,9 @@ Deno.serve(async (req) => {
       error: error.message || 'Unknown error occurred',
     };
 
-    return new Response(
-      JSON.stringify(errorResult),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
-      }
-    );
+    return new Response(JSON.stringify(errorResult), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500,
+    });
   }
 });

@@ -43,6 +43,16 @@ export interface IssueCommentsEventData {
   jobId?: string;
 }
 
+export interface CommitCaptureEventData {
+  repositoryId: string;
+  repositoryName: string;
+  days: number;
+  priority: 'critical' | 'high' | 'medium' | 'low';
+  forceInitial?: boolean;
+  maxCommits?: number;
+  jobId?: string;
+}
+
 /**
  * Helper function to validate repository sync event data
  */
@@ -81,8 +91,10 @@ export function mapQueueDataToEventData(
     jobId?: string;
     prNumbers?: number[];
     prNumber?: number;
+    forceInitial?: boolean;
+    maxCommits?: number;
   }
-): RepositorySyncEventData | PRDetailsEventData | PRReviewsEventData | PRCommentsEventData {
+): RepositorySyncEventData | PRDetailsEventData | PRReviewsEventData | PRCommentsEventData | CommitCaptureEventData {
   const baseData = {
     repositoryId: queueData.repositoryId,
     priority: 'medium' as const,
@@ -127,6 +139,16 @@ export function mapQueueDataToEventData(
         ...baseData,
         prNumber: queueData.prNumber,
       } as PRCommentsEventData;
+
+    case 'commits':
+    case 'commit-capture':
+      return {
+        ...baseData,
+        repositoryName: queueData.repositoryName,
+        days: queueData.timeRange ?? 7,
+        forceInitial: queueData.forceInitial,
+        maxCommits: queueData.maxCommits,
+      } as CommitCaptureEventData;
 
     default:
       throw new Error(`Unknown job type: ${jobType}`);

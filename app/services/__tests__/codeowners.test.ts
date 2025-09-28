@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { parseCodeOwners, matchFilesToOwners, calculateOwnershipPercentage, extractUsername } from '../codeowners';
+import {
+  parseCodeOwners,
+  matchFilesToOwners,
+  calculateOwnershipPercentage,
+  extractUsername,
+} from '../codeowners';
 
 describe('CODEOWNERS Parser', () => {
   describe('parseCodeOwners', () => {
@@ -10,9 +15,9 @@ describe('CODEOWNERS Parser', () => {
 *.ts @typescript-team @alice
 /docs/ @docs-team
 `;
-      
+
       const result = parseCodeOwners(content);
-      
+
       expect(result).toHaveLength(3);
       expect(result[0]).toEqual({
         pattern: '*.js',
@@ -39,7 +44,7 @@ describe('CODEOWNERS Parser', () => {
 
 # Another comment
 `;
-      
+
       const result = parseCodeOwners(content);
       expect(result).toHaveLength(1);
       expect(result[0].owners).toEqual(['@owner1']);
@@ -50,7 +55,7 @@ describe('CODEOWNERS Parser', () => {
 *.js @org/team-name
 *.ts @username
 `;
-      
+
       const result = parseCodeOwners(content);
       expect(result[0].isTeam).toEqual([true]);
       expect(result[1].isTeam).toEqual([false]);
@@ -68,7 +73,7 @@ describe('CODEOWNERS Parser', () => {
     it('should match files to their owners', () => {
       const files = ['index.js', 'src/app.ts', 'src/auth/login.ts'];
       const result = matchFilesToOwners(files, codeOwners);
-      
+
       expect(result.get('index.js')).toEqual(new Set(['@alice']));
       expect(result.get('src/app.ts')).toEqual(new Set(['@charlie']));
       expect(result.get('src/auth/login.ts')).toEqual(new Set(['@alice', '@bob']));
@@ -80,10 +85,10 @@ describe('CODEOWNERS Parser', () => {
         { pattern: '/src/', owners: ['@bob'], isTeam: [false] },
         { pattern: '/src/*.ts', owners: ['@charlie'], isTeam: [false] },
       ];
-      
+
       const files = ['src/index.ts'];
       const result = matchFilesToOwners(files, owners);
-      
+
       // The /src/*.ts pattern should win over /src/ and *.ts
       expect(result.get('src/index.ts')).toEqual(new Set(['@charlie']));
     });
@@ -96,9 +101,9 @@ describe('CODEOWNERS Parser', () => {
         ['file2.js', new Set(['@alice'])],
         ['file3.js', new Set(['@bob'])],
       ]);
-      
+
       const result = calculateOwnershipPercentage(fileOwners);
-      
+
       expect(result.get('@alice')).toBe(67); // 2 out of 3 files
       expect(result.get('@bob')).toBe(67); // 2 out of 3 files
     });
@@ -106,7 +111,7 @@ describe('CODEOWNERS Parser', () => {
     it('should handle empty file owners', () => {
       const fileOwners = new Map();
       const result = calculateOwnershipPercentage(fileOwners);
-      
+
       expect(result.size).toBe(0);
     });
   });

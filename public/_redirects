@@ -1,9 +1,0 @@
-# API routes - must come first
-/api/hello /.netlify/functions/hello 200
-/api/github/callback /.netlify/functions/github-callback 200
-
-# Note: GitHub webhooks now handled by Fly.io service at https://contributor-info-webhooks.fly.dev/webhook
-# Note: Private key management now handled via Fly.io secrets, not Netlify functions
-
-# SPA fallback - must come last
-/* /index.html 200

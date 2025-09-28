@@ -19,7 +19,7 @@ const colors = {
   yellow: '\x1b[33m',
   blue: '\x1b[34m',
   magenta: '\x1b[35m',
-  cyan: '\x1b[36m'
+  cyan: '\x1b[36m',
 };
 
 function colorize(text, color) {
@@ -61,7 +61,9 @@ async function checkPerformanceMonitoring() {
       console.log(colorize(`Found ${slowQueries.length} slow queries:`, 'yellow'));
       slowQueries.forEach((query, index) => {
         console.log(`  ${index + 1}. Mean time: ${Math.round(query.mean_exec_time)}ms`);
-        console.log(`     Calls: ${query.calls}, Cache hit: ${Math.round(query.hit_percent || 0)}%`);
+        console.log(
+          `     Calls: ${query.calls}, Cache hit: ${Math.round(query.hit_percent || 0)}%`
+        );
         console.log(`     Query: ${query.query.substring(0, 100)}...`);
         console.log('');
       });
@@ -72,8 +74,7 @@ async function checkPerformanceMonitoring() {
 
     // Get connection status
     console.log(colorize('🔗 Connection Pool Status', 'cyan'));
-    const { data: connStatus, error: connError } = await supabase
-      .rpc('get_connection_pool_status');
+    const { data: connStatus, error: connError } = await supabase.rpc('get_connection_pool_status');
 
     if (connError) {
       console.log(colorize('❌ Unable to fetch connection status:', 'red'), connError.message);
@@ -83,7 +84,7 @@ async function checkPerformanceMonitoring() {
       console.log(`Active connections: ${status.active_connections}`);
       console.log(`Idle connections: ${status.idle_connections}`);
       console.log(`Utilization: ${status.connection_utilization_percent}%`);
-      
+
       if (status.connection_utilization_percent > 80) {
         console.log(colorize('⚠️  High connection utilization detected!', 'yellow'));
       } else {
@@ -94,8 +95,7 @@ async function checkPerformanceMonitoring() {
 
     // Get database size stats
     console.log(colorize('💾 Database Size Statistics', 'cyan'));
-    const { data: sizeStats, error: sizeError } = await supabase
-      .rpc('get_database_size_stats');
+    const { data: sizeStats, error: sizeError } = await supabase.rpc('get_database_size_stats');
 
     if (sizeError) {
       console.log(colorize('❌ Unable to fetch database size:', 'red'), sizeError.message);
@@ -147,7 +147,9 @@ async function checkPerformanceMonitoring() {
         const totalReads = (table.seq_tup_read || 0) + (table.idx_tup_fetch || 0);
         console.log(`  ${i + 1}. ${table.tablename}`);
         console.log(`     Total reads: ${totalReads.toLocaleString()}`);
-        console.log(`     Inserts: ${table.n_tup_ins}, Updates: ${table.n_tup_upd}, Deletes: ${table.n_tup_del}`);
+        console.log(
+          `     Inserts: ${table.n_tup_ins}, Updates: ${table.n_tup_upd}, Deletes: ${table.n_tup_del}`
+        );
         console.log(`     Live tuples: ${table.n_live_tup}, Dead tuples: ${table.n_dead_tup}`);
       });
       console.log(colorize('✅ Table activity analysis completed', 'green'));
@@ -183,33 +185,33 @@ async function checkPerformanceMonitoring() {
     // Performance recommendations
     console.log(colorize('💡 Performance Recommendations', 'magenta'));
     console.log('='.repeat(30));
-    
+
     const recommendations = [];
-    
+
     if (slowQueries && slowQueries.length > 0) {
       recommendations.push('• Optimize slow queries identified above');
       recommendations.push('• Consider adding indexes for frequently queried columns');
     }
-    
+
     if (connStatus && connStatus[0]?.connection_utilization_percent > 70) {
       recommendations.push('• Monitor connection pool usage - approaching limits');
       recommendations.push('• Consider implementing connection pooling optimization');
     }
-    
-    if (indexStats && indexStats.some(idx => idx.idx_scan === 0)) {
+
+    if (indexStats && indexStats.some((idx) => idx.idx_scan === 0)) {
       recommendations.push('• Remove unused indexes to improve write performance');
     }
-    
-    if (tableStats && tableStats.some(table => table.n_dead_tup > table.n_live_tup * 0.1)) {
+
+    if (tableStats && tableStats.some((table) => table.n_dead_tup > table.n_live_tup * 0.1)) {
       recommendations.push('• Consider running VACUUM on tables with high dead tuple counts');
     }
-    
+
     if (recommendations.length === 0) {
       console.log(colorize('✅ No immediate performance concerns detected', 'green'));
     } else {
-      recommendations.forEach(rec => console.log(rec));
+      recommendations.forEach((rec) => console.log(rec));
     }
-    
+
     console.log('');
     console.log(colorize('📚 For more detailed analysis, check the monitoring views:', 'blue'));
     console.log('  • slow_queries - Queries taking >500ms');
@@ -217,7 +219,6 @@ async function checkPerformanceMonitoring() {
     console.log('  • index_usage_stats - Index effectiveness');
     console.log('  • table_activity_stats - Table operation statistics');
     console.log('  • connection_stats - Real-time connection monitoring');
-
   } catch (error) {
     console.error(colorize('❌ Error running performance monitoring:', 'red'), error);
   }
@@ -229,28 +230,25 @@ async function createPerformanceSnapshot() {
 
   try {
     // Get current performance metrics
-    const { data: queryStats } = await supabase
-      .from('query_performance_summary')
-      .select('*');
+    const { data: queryStats } = await supabase.from('query_performance_summary').select('*');
 
-    const { data: connStatus } = await supabase
-      .rpc('get_connection_pool_status');
+    const { data: connStatus } = await supabase.rpc('get_connection_pool_status');
 
-    const { data: sizeStats } = await supabase
-      .rpc('get_database_size_stats');
+    const { data: sizeStats } = await supabase.rpc('get_database_size_stats');
 
     // Calculate metrics
     const totalQueries = queryStats?.reduce((sum, q) => sum + q.calls, 0) || 0;
-    const slowQueriesCount = queryStats?.filter(q => q.mean_exec_time > 500).length || 0;
-    const avgQueryTime = queryStats?.length > 0 
-      ? queryStats.reduce((sum, q) => sum + q.mean_exec_time, 0) / queryStats.length 
-      : 0;
-    const maxQueryTime = queryStats?.length > 0 
-      ? Math.max(...queryStats.map(q => q.mean_exec_time)) 
-      : 0;
-    const avgCacheHitRatio = queryStats?.length > 0
-      ? queryStats.reduce((sum, q) => sum + (q.cache_hit_ratio || 0), 0) / queryStats.length
-      : 0;
+    const slowQueriesCount = queryStats?.filter((q) => q.mean_exec_time > 500).length || 0;
+    const avgQueryTime =
+      queryStats?.length > 0
+        ? queryStats.reduce((sum, q) => sum + q.mean_exec_time, 0) / queryStats.length
+        : 0;
+    const maxQueryTime =
+      queryStats?.length > 0 ? Math.max(...queryStats.map((q) => q.mean_exec_time)) : 0;
+    const avgCacheHitRatio =
+      queryStats?.length > 0
+        ? queryStats.reduce((sum, q) => sum + (q.cache_hit_ratio || 0), 0) / queryStats.length
+        : 0;
 
     // Insert snapshot
     const { data: snapshot, error } = await supabase
@@ -262,7 +260,7 @@ async function createPerformanceSnapshot() {
         max_query_time: maxQueryTime,
         cache_hit_ratio: avgCacheHitRatio,
         active_connections: connStatus?.[0]?.active_connections || 0,
-        database_size_bytes: sizeStats?.[0]?.size_bytes || 0
+        database_size_bytes: sizeStats?.[0]?.size_bytes || 0,
       })
       .select()
       .single();
@@ -278,7 +276,6 @@ async function createPerformanceSnapshot() {
       console.log(`Cache hit ratio: ${Math.round(avgCacheHitRatio)}%`);
       console.log(`Active connections: ${connStatus?.[0]?.active_connections || 0}`);
     }
-
   } catch (error) {
     console.error(colorize('❌ Error creating performance snapshot:', 'red'), error);
   }
@@ -290,7 +287,7 @@ async function resetQueryStats() {
 
   try {
     const { data, error } = await supabase.rpc('reset_query_stats');
-    
+
     if (error) {
       console.log(colorize('❌ Failed to reset query statistics:', 'red'), error.message);
     } else {

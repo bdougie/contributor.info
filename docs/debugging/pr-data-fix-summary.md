@@ -32,9 +32,9 @@ src/lib/progressive-capture/throttle-config.ts
 ```
 docs/debugging/pr-data-corruption-fix.md
 docs/debugging/pr-data-fix-summary.md
-scripts/fix-corrupted-pr-data.js
-scripts/fix-pr-7273.js
-scripts/verify-pr-data-fix.js
+scripts/fix-corrupted-pr-data.js (removed after successful fix)
+scripts/fix-pr-7273.js (removed after successful fix)
+scripts/verify-pr-data-fix.js (removed after successful fix)
 src/lib/progressive-capture/__tests__/throttle-config.test.ts
 src/lib/progressive-capture/__tests__/pr-data-corruption.test.ts
 src/lib/inngest/functions/__tests__/rate-limiting.test.ts
@@ -64,7 +64,7 @@ src/lib/inngest/functions/__tests__/rate-limiting.test.ts
 node scripts/verify-pr-data-fix.js
 
 # Fix corrupted data
-node scripts/fix-corrupted-pr-data.js
+node # Script removed after successful fix
 
 # Run tests
 npm test -- src/lib/progressive-capture/__tests__/*.test.ts --run

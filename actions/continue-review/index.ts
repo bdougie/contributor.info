@@ -1,11 +1,18 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
-import { exec } from 'child_process';
+import { exec, execFile } from 'child_process';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
 import { glob } from 'glob';
 import { getAuthenticatedOctokit } from './github-app-auth';
+import { analyzeCodebasePatterns } from './codebase-analyzer';
+import { generateEnhancedPrompt } from './enhanced-prompt-generator';
+import {
+  ReviewMetricsTracker,
+  parseReviewMetrics,
+  extractProjectType
+} from './review-metrics';
 
 interface Rule {
   file: string;
@@ -20,6 +27,137 @@ interface PRFile {
   patch?: string;
   additions: number;
   deletions: number;
+}
+
+/**
+ * Validates that a CLI path is safe to execute
+ * @param cliPath The path to validate
+ * @returns true if the path is safe, false otherwise
+ */
+function isValidCliPath(cliPath: string): boolean {
+  // Ensure the path doesn't contain dangerous characters
+  const dangerousPatterns = [';', '&&', '||', '`', '$', '>', '<', '|', '\n', '\r'];
+  for (const pattern of dangerousPatterns) {
+    if (cliPath.includes(pattern)) {
+      core.error(`CLI path contains dangerous character: ${pattern}`);
+      return false;
+    }
+  }
+
+  // Ensure the path is within expected locations
+  const validPrefixes = [
+    '/usr/local/bin/',
+    '/usr/bin/',
+    process.env.GITHUB_ACTION_PATH || process.cwd(),
+    'node_modules/.bin/'
+  ];
+
+  const isValidLocation = validPrefixes.some(prefix =>
+    cliPath.startsWith(prefix) || cliPath === 'cn'
+  );
+
+  if (!isValidLocation) {
+    core.error(`CLI path is not in a valid location: ${cliPath}`);
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Detects and validates the Continue CLI installation
+ * @returns Object with availability status and validated path
+ */
+async function detectContinueCLI(): Promise<{ available: boolean; path: string }> {
+  const isDebugMode = process.env.DEBUG_MODE === 'true';
+
+  if (isDebugMode) {
+    core.info('Starting Continue CLI detection...');
+  }
+
+  // First, try system-wide installation
+  const systemCheck = await new Promise<string | null>((resolve) => {
+    exec('which cn', (error, stdout) => {
+      if (!error && stdout.trim()) {
+        resolve(stdout.trim());
+      } else {
+        resolve(null);
+      }
+    });
+  });
+
+  if (systemCheck) {
+    if (isDebugMode) {
+      core.info(`System-wide Continue CLI found at: ${systemCheck}`);
+    }
+
+    // Verify it's executable
+    const versionCheck = await new Promise<boolean>((resolve) => {
+      exec('cn --version', (error, output) => {
+        if (!error) {
+          if (isDebugMode) {
+            core.info(`Continue CLI version: ${output.trim()}`);
+          }
+          resolve(true);
+        } else {
+          resolve(false);
+        }
+      });
+    });
+
+    if (versionCheck && isValidCliPath('cn')) {
+      return { available: true, path: 'cn' };
+    }
+  }
+
+  // Try local installation
+  const actionPath = process.env.GITHUB_ACTION_PATH || process.cwd();
+  const localPaths = [
+    `${actionPath}/node_modules/.bin/cn`,
+    `${process.cwd()}/node_modules/.bin/cn`,
+    './node_modules/.bin/cn'
+  ];
+
+  for (const localPath of localPaths) {
+    if (isDebugMode) {
+      core.info(`Checking local path: ${localPath}`);
+    }
+
+    const localCheck = await new Promise<boolean>((resolve) => {
+      exec(`${localPath} --version`, (error, output) => {
+        if (!error) {
+          if (isDebugMode) {
+            core.info(`Found Continue CLI at ${localPath}: ${output.trim()}`);
+          }
+          resolve(true);
+        } else {
+          resolve(false);
+        }
+      });
+    });
+
+    if (localCheck && isValidCliPath(localPath)) {
+      return { available: true, path: localPath };
+    }
+  }
+
+  // Check if package is installed but binary not accessible
+  if (isDebugMode) {
+    const packageCheck = await new Promise<boolean>((resolve) => {
+      exec('npm list @continuedev/cli 2>/dev/null', (error, output) => {
+        resolve(!error && output.includes('@continuedev/cli'));
+      });
+    });
+
+    if (packageCheck) {
+      core.warning('Continue CLI package is installed but binary not accessible');
+      core.info('PATH: ' + process.env.PATH);
+    } else {
+      core.error('Continue CLI is not installed');
+    }
+  }
+
+  return { available: false, path: '' };
 }
 
 interface ReviewContext {
@@ -129,15 +267,195 @@ function matchesPattern(filepath: string, pattern: string): boolean {
 }
 
 /**
- * Generate review using Continue CLI
+ * Generate enhanced review using Continue CLI with codebase analysis
  */
-async function generateReview(
+async function generateEnhancedReview(
   context: ReviewContext,
   continueConfig: string,
   continueApiKey: string,
   githubToken: string
-): Promise<string> {
-  // Build the review prompt with context awareness
+): Promise<{ review: string; metrics: any }> {
+  const startTime = Date.now();
+
+  try {
+    const isDebugMode = process.env.DEBUG_MODE === 'true';
+
+    // Phase 1: Analyze codebase patterns for enhanced context
+    if (isDebugMode) {
+      core.info('Analyzing codebase patterns for enhanced context...');
+    }
+    const projectContext = await analyzeCodebasePatterns(
+      context.pr.files.map(f => f.filename)
+    );
+
+    // Phase 2: Generate enhanced prompt with codebase insights
+    if (isDebugMode) {
+      core.info('Generating enhanced review prompt...');
+    }
+    const enhancedPrompt = generateEnhancedPrompt(context, projectContext);
+
+    if (isDebugMode) {
+      core.info(`Enhanced prompt length: ${enhancedPrompt.length} characters`);
+      core.info(`Detected patterns: ${projectContext.patterns.length}`);
+      core.info(`Project type: ${extractProjectType(
+        projectContext.conventions.dependencies.frameworks,
+        projectContext.conventions.dependencies.libraries
+      )}`);
+    }
+
+    // Write enhanced prompt to temp file
+    const tempFile = path.join('/tmp', `continue-enhanced-review-${Date.now()}.txt`);
+    await fs.writeFile(tempFile, enhancedPrompt);
+
+    try {
+      // Detect and validate Continue CLI
+      const cliDetection = await detectContinueCLI();
+
+      if (!cliDetection.available) {
+        throw new Error('Continue CLI could not be found or executed. Please check the action setup.');
+      }
+
+      const cliPath = cliDetection.path;
+
+      // Execute enhanced review with Continue CLI
+      const command = `${cliPath} --config ${continueConfig} -p @${tempFile} --allow Bash`;
+
+      if (isDebugMode) {
+        core.info(`Executing enhanced review: ${command}`);
+        core.info(`Continue API Key is set: ${continueApiKey ? 'Yes' : 'No'}`);
+        core.info(`GitHub Token is set: ${githubToken ? 'Yes' : 'No'}`);
+      } else {
+        core.info('Executing enhanced review with Continue CLI...');
+      }
+
+      const { stdout, stderr } = await new Promise<{ stdout: string; stderr: string }>(
+        (resolve, reject) => {
+          const childProcess = exec(
+            command,
+            {
+              env: {
+                ...process.env,
+                CONTINUE_API_KEY: continueApiKey,
+                GITHUB_TOKEN: githubToken,
+                GH_TOKEN: githubToken,
+              },
+              timeout: 420000, // 7 minutes (increased for enhanced analysis)
+              maxBuffer: 15 * 1024 * 1024, // 15MB buffer for larger responses
+            },
+            (error, stdout, stderr) => {
+              if (error) {
+                core.error(`Continue CLI error: ${error.message}`);
+                if (error.code === 'ETIMEDOUT') {
+                  core.error('Continue CLI execution timed out after 7 minutes');
+                }
+                if (error.signal) {
+                  core.error(`Process killed with signal: ${error.signal}`);
+                }
+                if (stderr) {
+                  core.error(`Continue CLI stderr: ${stderr}`);
+                }
+                reject(error);
+              } else {
+                if (isDebugMode) {
+                  core.info(`Enhanced review completed successfully`);
+                }
+                resolve({ stdout, stderr });
+              }
+            }
+          );
+
+          // Log PID for debugging
+          if (childProcess.pid && isDebugMode) {
+            core.info(`Continue CLI process started with PID: ${childProcess.pid}`);
+          }
+        }
+      );
+
+      if (stderr) {
+        core.warning(`Continue CLI stderr: ${stderr}`);
+      }
+
+      // Clean up temp file
+      await fs.unlink(tempFile).catch(() => {});
+
+      // Process the response
+      let review = stdout.trim();
+
+      // Remove ANSI codes
+      review = review.replace(/\x1b\[[0-9;]*m/g, '');
+
+      const processingTime = Math.round((Date.now() - startTime) / 1000);
+      if (isDebugMode) {
+        core.info(`Enhanced review processing time: ${processingTime}s`);
+      }
+
+      if (!review) {
+        core.warning('Continue CLI returned an empty response');
+        return {
+          review: 'Enhanced review analysis completed, but no specific feedback was generated. The code appears to follow established patterns.',
+          metrics: {
+            processingTime,
+            promptLength: enhancedPrompt.length,
+            responseLength: 0,
+            rulesApplied: context.rules.length,
+            patternsDetected: projectContext.patterns.length
+          }
+        };
+      }
+
+      return {
+        review,
+        metrics: {
+          processingTime,
+          promptLength: enhancedPrompt.length,
+          responseLength: review.length,
+          rulesApplied: context.rules.length,
+          patternsDetected: projectContext.patterns.length
+        }
+      };
+
+    } catch (error) {
+      // Clean up temp file
+      await fs.unlink(tempFile).catch(() => {});
+
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      core.error(`Enhanced review failed: ${errorMessage}`);
+
+      // Fallback to basic review message
+      return {
+        review: `Enhanced review analysis encountered an issue: ${errorMessage}. Please verify Continue CLI configuration.`,
+        metrics: {
+          processingTime: Math.round((Date.now() - startTime) / 1000),
+          promptLength: enhancedPrompt.length,
+          responseLength: 0,
+          rulesApplied: context.rules.length,
+          patternsDetected: projectContext.patterns.length
+        }
+      };
+    }
+
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    core.error(`Codebase analysis failed: ${errorMessage}`);
+
+    // Fallback to original review approach
+    core.info('Falling back to standard review approach...');
+    return generateStandardReview(context, continueConfig, continueApiKey, githubToken);
+  }
+}
+
+/**
+ * Fallback to standard review if enhanced analysis fails
+ */
+async function generateStandardReview(
+  context: ReviewContext,
+  continueConfig: string,
+  continueApiKey: string,
+  githubToken: string
+): Promise<{ review: string; metrics: any }> {
+  const startTime = Date.now();
+
+  // Use the original prompt generation logic as fallback
   let prompt = `You are reviewing a pull request. Please provide helpful, context-aware feedback.
 
 CONTEXT:
@@ -193,7 +511,7 @@ Please address the user's specific request while also checking for any significa
     }
   }
 
-  // Add code changes (truncate if too large)
+  // Add code changes
   prompt += '\nCode Changes\n';
   let diffContent = '';
 
@@ -203,7 +521,6 @@ Please address the user's specific request while also checking for any significa
     }
   }
 
-  // Truncate if too large (12KB limit)
   if (diffContent.length > 12000) {
     diffContent = diffContent.substring(0, 11000) + '\n... (diff truncated due to size)';
   }
@@ -215,35 +532,26 @@ Please address the user's specific request while also checking for any significa
   prompt += 'If the code looks good overall, acknowledge that while noting any minor suggestions.';
 
   // Write prompt to temp file for headless mode
-  const tempFile = path.join('/tmp', `continue-review-${Date.now()}.txt`);
+  const tempFile = path.join('/tmp', `continue-review-fallback-${Date.now()}.txt`);
   await fs.writeFile(tempFile, prompt);
 
   try {
-    // Call Continue CLI
-    core.info('Calling Continue CLI for review...');
-    core.info(`Using Continue config: ${continueConfig}`);
-    core.info(`Prompt length: ${prompt.length} characters`);
-    core.info(`Prompt file: ${tempFile}`);
+    // Call Continue CLI for fallback review
+    core.info('Fallback: Calling Continue CLI for standard review...');
 
-    // First check if Continue CLI is available
-    await new Promise<void>((resolve, reject) => {
-      exec('which cn', (error, stdout) => {
-        if (error) {
-          core.error('Continue CLI not found. Make sure @continuedev/cli is installed.');
-          reject(new Error('Continue CLI not found'));
-        } else {
-          core.info(`Continue CLI found at: ${stdout.trim()}`);
-          resolve();
-        }
-      });
-    });
+    // Detect and validate Continue CLI
+    const cliDetection = await detectContinueCLI();
 
-    // Use headless mode with -p flag and file input
-    // Allow Bash tool since the review bot needs it to access PR information via gh CLI
-    const command = `cn --config ${continueConfig} -p @${tempFile} --allow Bash`;
-    core.info(`Executing command: cn --config ${continueConfig} -p @${tempFile} --allow Bash`);
+    if (!cliDetection.available) {
+      throw new Error('Continue CLI not found for fallback review');
+    }
 
-    const { stdout, stderr } = await new Promise<{ stdout: string; stderr: string }>(
+    const cliPath = cliDetection.path;
+
+    // Execute Continue CLI with the prompt
+    const command = `${cliPath} --config ${continueConfig} -p @${tempFile} --allow Bash`;
+
+    const { stdout } = await new Promise<{ stdout: string; stderr: string }>(
       (resolve, reject) => {
         exec(
           command,
@@ -251,18 +559,16 @@ Please address the user's specific request while also checking for any significa
             env: {
               ...process.env,
               CONTINUE_API_KEY: continueApiKey,
-              GITHUB_TOKEN: githubToken, // Provide GitHub token for gh CLI
-              GH_TOKEN: githubToken, // gh CLI also looks for GH_TOKEN
+              GITHUB_TOKEN: githubToken,
+              GH_TOKEN: githubToken,
             },
-            timeout: 360000, // 6 minutes
-            maxBuffer: 10 * 1024 * 1024, // 10MB buffer for large responses
+            timeout: 360000,
+            maxBuffer: 10 * 1024 * 1024,
           },
           (error, stdout, stderr) => {
             if (error) {
-              core.error(`Continue CLI error: ${error.message}`);
               reject(error);
             } else {
-              core.info(`Continue CLI completed successfully`);
               resolve({ stdout, stderr });
             }
           }
@@ -270,102 +576,84 @@ Please address the user's specific request while also checking for any significa
       }
     );
 
-    if (stderr) {
-      core.warning(`Continue CLI stderr: ${stderr}`);
-    }
-
     // Clean up temp file
     await fs.unlink(tempFile).catch(() => {});
 
-    // Clean up the response
-    let review = stdout.trim();
-
-    core.info(`Raw Continue CLI output length: ${stdout.length} characters`);
-    core.info(`First 500 chars of output: ${stdout.substring(0, 500)}`);
-
-    // Remove ANSI codes
-    // eslint-disable-next-line no-control-regex
-    review = review.replace(/\x1b\[[0-9;]*m/g, '');
-
-    core.info(`Cleaned review length: ${review.length} characters`);
-
-    if (!review) {
-      core.warning('Continue CLI returned an empty response');
-      return 'Continue CLI returned an empty response. Please check the configuration.';
-    }
-
-    core.info(`Review content preview: ${review.substring(0, 200)}...`);
-    return review;
+    return {
+      review: stdout.trim() || 'Review completed but no output generated.',
+      metrics: {
+        processingTime: Math.round((Date.now() - startTime) / 1000),
+        promptLength: prompt.length,
+        responseLength: stdout.length,
+        rulesApplied: context.rules.length,
+        patternsDetected: 0
+      }
+    };
   } catch (error) {
-    // Clean up temp file
+    // Clean up temp file on error
     await fs.unlink(tempFile).catch(() => {});
 
-    const errorMessage = error instanceof Error ? error.message : String(error);
-
-    if (errorMessage.includes('not found') || errorMessage.includes('ENOENT')) {
-      return 'Continue CLI is not properly installed. Please ensure @continuedev/cli is installed globally.';
-    } else if (errorMessage.includes('config') || errorMessage.includes('assistant')) {
-      return `Continue configuration error. Please verify that the assistant '${continueConfig}' exists in Continue Hub.`;
-    } else if (errorMessage.includes('api') || errorMessage.includes('auth')) {
-      return 'Continue API authentication failed. Please check your CONTINUE_API_KEY.';
-    }
-
-    return `Failed to generate review. Error: ${errorMessage}`;
+    core.warning(`Fallback Continue CLI failed: ${error}`);
+    return {
+      review: 'Unable to generate review. Both enhanced and standard Continue CLI analysis failed.',
+      metrics: {
+        processingTime: Math.round((Date.now() - startTime) / 1000),
+        promptLength: prompt.length,
+        responseLength: 0,
+        rulesApplied: context.rules.length,
+        patternsDetected: 0
+      }
+    };
   }
 }
 
 /**
- * Post or update review comment
+ * Post or update review comment with enhanced formatting
  */
-async function postReview(
+async function postEnhancedReview(
   octokit: ReturnType<typeof github.getOctokit>,
   owner: string,
   repo: string,
   prNumber: number,
   review: string,
+  metricsTracker: ReviewMetricsTracker,
   isProgress: boolean = false,
   updateCommentId?: number
 ): Promise<number | undefined> {
   const marker = '<!-- continue-agent-review -->';
   const timestamp = new Date().toISOString();
 
-  core.info(`Posting review comment to PR #${prNumber} (isProgress: ${isProgress})`);
-  core.info(`Review length: ${review.length} characters`);
+  core.info(`Posting enhanced review comment to PR #${prNumber} (isProgress: ${isProgress})`);
 
   let body = '';
 
   if (isProgress) {
     body = review;
   } else {
-    // Check if this is a follow-up review (new comment after 1 hour)
-    const isFollowUp = updateCommentId === undefined && review.includes('Follow-up Review');
-    if (isFollowUp) {
-      body = '**📝 Follow-up Review**\n\n';
-    } else {
-      body = '**✅ Review Complete**\n\n';
-    }
+    // Add review content
     body += review;
+
+    // Add metrics summary
+    const metricsSummary = await metricsTracker.generateMetricsSummary();
+    body += metricsSummary;
+
     body += `\n\n---\n<!-- ${timestamp} | Powered by Continue (https://continue.dev) -->`;
   }
 
   body = `${marker}\n${body}`;
-  core.info(`Comment body length: ${body.length} characters`);
 
   try {
     if (updateCommentId) {
-      // Update existing comment
-      core.info(`Updating existing comment ${updateCommentId}`);
       await octokit.rest.issues.updateComment({
         owner,
         repo,
         comment_id: updateCommentId,
         body,
       });
-      core.info(`Successfully updated comment ${updateCommentId}`);
+      core.info(`Successfully updated enhanced comment ${updateCommentId}`);
       return updateCommentId;
     } else {
-      // Try to find existing comment
-      core.info(`Looking for existing comment with marker`);
+      // Find existing comment and update/create as needed
       const { data: comments } = await octokit.rest.issues.listComments({
         owner,
         repo,
@@ -373,66 +661,40 @@ async function postReview(
         per_page: 100,
       });
 
-      core.info(`Found ${comments.length} existing comments`);
-
-      // Find the most recent comment with our marker
       const continueComments = comments
         .filter((c) => c.body?.includes(marker))
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-      const existingComment = continueComments[0]; // Most recent Continue review comment
+      const existingComment = continueComments[0];
 
       if (existingComment) {
-        // Check if the comment is less than 1 hour old
         const commentAge = Date.now() - new Date(existingComment.created_at).getTime();
-        const oneHour = 60 * 60 * 1000; // 1 hour in milliseconds
+        const oneHour = 60 * 60 * 1000;
 
         if (commentAge < oneHour) {
-          // Update existing comment if it's less than 1 hour old
-          core.info(
-            `Updating existing comment ${existingComment.id} (${Math.round(commentAge / 1000 / 60)} minutes old)`
-          );
           await octokit.rest.issues.updateComment({
             owner,
             repo,
             comment_id: existingComment.id,
             body,
           });
-          core.info(`Successfully updated comment ${existingComment.id}`);
+          core.info(`Successfully updated existing enhanced comment ${existingComment.id}`);
           return existingComment.id;
-        } else {
-          // Create new comment if the existing one is older than 1 hour
-          core.info(
-            `Existing comment ${existingComment.id} is ${Math.round(commentAge / 1000 / 60)} minutes old, creating new comment for history`
-          );
-          const { data: newComment } = await octokit.rest.issues.createComment({
-            owner,
-            repo,
-            issue_number: prNumber,
-            body,
-          });
-          core.info(`Successfully created new comment ${newComment.id} (preserving history)`);
-          return newComment.id;
         }
-      } else {
-        // Create new comment
-        core.info(`Creating new comment on PR #${prNumber}`);
-        const { data: newComment } = await octokit.rest.issues.createComment({
-          owner,
-          repo,
-          issue_number: prNumber,
-          body,
-        });
-        core.info(`Successfully created comment ${newComment.id}`);
-        return newComment.id;
       }
+
+      // Create new comment
+      const { data: newComment } = await octokit.rest.issues.createComment({
+        owner,
+        repo,
+        issue_number: prNumber,
+        body,
+      });
+      core.info(`Successfully created enhanced comment ${newComment.id}`);
+      return newComment.id;
     }
   } catch (error) {
-    core.error(`Failed to post review: ${error}`);
-    if (error instanceof Error) {
-      core.error(`Error message: ${error.message}`);
-      core.error(`Error stack: ${error.stack}`);
-    }
+    core.error(`Failed to post enhanced review: ${error}`);
     throw error;
   }
 }
@@ -446,11 +708,21 @@ function extractCommand(comment: string): string | undefined {
 }
 
 /**
- * Main action entry point
+ * Main enhanced action entry point
  */
 async function run(): Promise<void> {
   try {
-    // Get inputs - in composite actions, inputs are passed as INPUT_ env vars
+    core.info('🚀 Starting Enhanced Continue Review Action...');
+
+    // Debug: Log environment and context
+    core.info('=== Debug Information ===');
+    core.info(`Action: ${process.env.GITHUB_ACTION}`);
+    core.info(`Event Name: ${process.env.GITHUB_EVENT_NAME}`);
+    core.info(`Workflow: ${process.env.GITHUB_WORKFLOW}`);
+    core.info(`Run ID: ${process.env.GITHUB_RUN_ID}`);
+    core.info(`Run Number: ${process.env.GITHUB_RUN_NUMBER}`);
+
+    // Get inputs
     const githubToken =
       process.env.INPUT_GITHUB_TOKEN || core.getInput('github-token', { required: true });
     const continueApiKey =
@@ -462,60 +734,90 @@ async function run(): Promise<void> {
 
     // Validate inputs
     if (!githubToken) {
-      throw new Error('github-token is required');
+      core.error('GitHub token is missing');
+      throw new Error('Required input missing: github-token');
     }
     if (!continueApiKey) {
-      throw new Error('continue-api-key is required');
+      core.error('Continue API key is missing');
+      throw new Error('Required input missing: continue-api-key');
     }
     if (!continueConfig) {
-      throw new Error('continue-config is required');
+      core.error('Continue config is missing');
+      throw new Error('Required input missing: continue-config');
     }
 
-    // Get context
     const context = github.context;
     const { owner, repo } = context.repo;
 
-    core.info(`Repository: ${owner}/${repo}`);
+    core.info(`Enhanced review for: ${owner}/${repo}`);
     core.info(`Event: ${context.eventName}`);
+    core.info(`Event Action: ${context.payload.action || 'N/A'}`);
     core.info(`Continue Config: ${continueConfig}`);
-    core.info(`Continue Org: ${continueOrg || 'not specified'}`);
 
-    // Determine PR number
+    // Initialize metrics tracker
+    const metricsTracker = new ReviewMetricsTracker();
+
+    // Initialize GitHub client early for reactions
+    core.info('Initializing GitHub client...');
+    const octokit = await getAuthenticatedOctokit(githubToken);
+    core.info('GitHub client initialized successfully');
+
+    // Determine PR number (using existing logic)
     let prNumber: number | undefined;
-
-    core.info(`Context payload: ${JSON.stringify(context.payload, null, 2).substring(0, 1000)}`);
 
     if (context.eventName === 'pull_request') {
       prNumber = context.payload.pull_request?.number;
-      core.info(`Pull request event, PR number: ${prNumber}`);
+      core.info(`Processing pull_request event for PR #${prNumber}`);
     } else if (context.eventName === 'issue_comment') {
+      core.info('Processing issue_comment event...');
       prNumber = context.payload.issue?.number;
-      core.info(`Issue comment event, issue number: ${prNumber}`);
 
-      // Only process if it's a PR comment with @continue-agent
+      // Debug logging for issue comment
+      core.info(`Issue number: ${prNumber}`);
+      core.info(`Is PR: ${context.payload.issue?.pull_request ? 'Yes' : 'No'}`);
+      core.info(`Comment ID: ${context.payload.comment?.id}`);
+      core.info(`Comment Author: ${context.payload.comment?.user?.login}`);
+
       if (!context.payload.issue?.pull_request) {
         core.info('Not a pull request comment, skipping');
         return;
       }
 
       const comment = context.payload.comment?.body || '';
+      core.info(`Comment body (first 200 chars): ${comment.substring(0, 200)}`);
+
       if (!comment.includes('@continue-agent')) {
         core.info('Comment does not mention @continue-agent, skipping');
         return;
       }
+
+      core.info('Found @continue-agent mention, proceeding with review...');
+
+      // Add 👀 reaction to confirm the bot is processing the request
+      const commentId = context.payload.comment?.id;
+      if (commentId) {
+        try {
+          core.info(`Adding reaction to comment ${commentId}...`);
+          await octokit.rest.reactions.createForIssueComment({
+            owner,
+            repo,
+            comment_id: commentId,
+            content: 'eyes'
+          });
+          core.info(`✅ Added 👀 reaction to comment ${commentId}`);
+        } catch (error) {
+          core.warning(`Failed to add reaction: ${error}`);
+          // Log more details about the error
+          if (error instanceof Error) {
+            core.warning(`Error message: ${error.message}`);
+            core.warning(`Error stack: ${error.stack}`);
+          }
+        }
+      }
     } else if (context.eventName === 'workflow_dispatch') {
-      // For manual workflow dispatch, need to find the PR for this branch
-      core.info('Workflow dispatch event - searching for associated PR');
-
-      // Initialize GitHub client early to search for PR
-      const octokit = await getAuthenticatedOctokit(githubToken, owner, repo);
-
-      // Get the current branch name
       const branch = context.ref.replace('refs/heads/', '');
-      core.info(`Current branch: ${branch}`);
 
       try {
-        // Search for open PRs from this branch
         const { data: prs } = await octokit.rest.pulls.list({
           owner,
           repo,
@@ -525,9 +827,6 @@ async function run(): Promise<void> {
 
         if (prs.length > 0) {
           prNumber = prs[0].number;
-          core.info(`Found PR #${prNumber} for branch ${branch}`);
-        } else {
-          core.warning(`No open PR found for branch ${branch}`);
         }
       } catch (error) {
         core.error(`Failed to search for PRs: ${error}`);
@@ -535,16 +834,10 @@ async function run(): Promise<void> {
     }
 
     if (!prNumber) {
-      core.error('Could not determine pull request number from context');
-      core.error(`Event name: ${context.eventName}`);
-      core.error(`Has PR in payload: ${!!context.payload.pull_request}`);
       throw new Error('Could not determine pull request number');
     }
 
-    core.info(`Processing PR #${prNumber}`);
-
-    // Initialize GitHub client with embedded App auth if available
-    const octokit = await getAuthenticatedOctokit(githubToken, owner, repo);
+    core.info(`Processing enhanced review for PR #${prNumber}`);
 
     // Get PR details
     const { data: pr } = await octokit.rest.pulls.get({
@@ -553,7 +846,6 @@ async function run(): Promise<void> {
       pull_number: prNumber,
     });
 
-    // Get PR diff
     const { data: files } = await octokit.rest.pulls.listFiles({
       owner,
       repo,
@@ -563,9 +855,9 @@ async function run(): Promise<void> {
 
     // Load rules
     const rules = await loadRules(files.map((f) => f.filename));
-    core.info(`Loaded ${rules.length} applicable rules`);
+    core.info(`Loaded ${rules.length} applicable rules for enhanced review`);
 
-    // Extract command from comment if present
+    // Extract command if present
     let command: string | undefined;
     if (context.eventName === 'issue_comment') {
       const commentBody = context.payload.comment?.body || '';
@@ -592,43 +884,73 @@ async function run(): Promise<void> {
     };
 
     // Post initial progress comment
-    core.info('Posting initial progress comment...');
-    const progressCommentId = await postReview(
+    core.info('Posting enhanced progress indicator...');
+    const progressCommentId = await postEnhancedReview(
       octokit,
       owner,
       repo,
       prNumber,
-      "🔄 **Review in progress...**\n\nI'm analyzing the changes in this pull request. This may take a moment.",
-      true // isProgress
+      "🔄 **Review in Progress**\n\n✨ Analyzing codebase patterns and conventions...\n📊 Generating contextual insights...\n🎯 Preparing strategic feedback...\n\n*This review considers your project's specific patterns and architecture.*",
+      metricsTracker,
+      true
     );
-    core.info(`Progress comment ID: ${progressCommentId}`);
 
-    // Generate review using Continue
-    core.info('Generating review with Continue CLI...');
-    const review = await generateReview(reviewContext, continueConfig, continueApiKey, githubToken);
-    core.info(`Generated review length: ${review.length} characters`);
+    // Generate enhanced review
+    core.info('Generating enhanced review with codebase analysis...');
+    const { review, metrics } = await generateEnhancedReview(
+      reviewContext,
+      continueConfig,
+      continueApiKey,
+      githubToken
+    );
 
-    // Post final review
-    core.info('Posting final review comment...');
-    await postReview(
+    // Parse review metrics
+    const reviewAnalysis = parseReviewMetrics(review);
+
+    // Record metrics
+    const reviewMetrics = {
+      timestamp: new Date().toISOString(),
+      repository: `${owner}/${repo}`,
+      prNumber: pr.number,
+      prAuthor: pr.user?.login || 'unknown',
+      filesChanged: files.length,
+      reviewerId: continueConfig,
+      metrics: {
+        ...metrics,
+        issuesFound: reviewAnalysis.issuesFound
+      },
+      context: {
+        hasCustomCommand: !!command,
+        projectType: 'Unknown', // Will be updated by metrics tracker
+        mainLanguages: files.map(f => path.extname(f.filename)).filter(Boolean)
+      }
+    };
+
+    await metricsTracker.recordReviewMetrics(reviewMetrics);
+
+    // Post final enhanced review
+    core.info('Posting final enhanced review...');
+    await postEnhancedReview(
       octokit,
       owner,
       repo,
       prNumber,
       review,
-      false, // isProgress
+      metricsTracker,
+      false,
       progressCommentId
     );
 
-    core.info('Review completed successfully');
+    core.info('🎉 Enhanced review completed successfully');
+
   } catch (error) {
     if (error instanceof Error) {
-      core.setFailed(error.message);
+      core.setFailed(`Enhanced review failed: ${error.message}`);
     } else {
-      core.setFailed('An unknown error occurred');
+      core.setFailed('An unknown error occurred during enhanced review');
     }
   }
 }
 
-// Run the action
+// Run the enhanced action
 run();

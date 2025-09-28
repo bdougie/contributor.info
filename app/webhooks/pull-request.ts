@@ -452,5 +452,4 @@ async function storePRSimilarityComment(data: StorePRSimilarityData) {
     console.error('Error storing PR similarity comment:', error);
   }
 }
-
 // (Phase 2) Local helper removed in favor of shared utility import.

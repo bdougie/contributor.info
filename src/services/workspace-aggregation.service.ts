@@ -13,6 +13,7 @@ import type {
 import { createSupabaseAdmin } from '@/lib/supabase-admin';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database';
+import { toDateOnlyString, toUTCTimestamp } from '../lib/utils/date-formatting';
 
 // Type definitions for aggregation
 type Repository = Database['public']['Tables']['repositories']['Row'];
@@ -413,8 +414,8 @@ export class WorkspaceAggregationService {
     const { data, error } = await this.supabase!.from('pull_requests')
       .select('state, draft, created_at, merged_at')
       .eq('repository_id', repositoryId)
-      .gte('created_at', periodStart.toISOString())
-      .lte('created_at', periodEnd.toISOString());
+      .gte('created_at', toUTCTimestamp(periodStart))
+      .lte('created_at', toUTCTimestamp(periodEnd));
 
     if (error) {
       console.error('Error fetching PR data:', error);
@@ -453,8 +454,8 @@ export class WorkspaceAggregationService {
     const { data, error } = await this.supabase!.from('issues')
       .select('state, created_at, closed_at')
       .eq('repository_id', repositoryId)
-      .gte('created_at', periodStart.toISOString())
-      .lte('created_at', periodEnd.toISOString());
+      .gte('created_at', toUTCTimestamp(periodStart))
+      .lte('created_at', toUTCTimestamp(periodEnd));
 
     if (error) {
       console.error('Error fetching issue data:', error);
@@ -504,8 +505,8 @@ export class WorkspaceAggregationService {
       `
       )
       .eq('repository_id', repositoryId)
-      .gte('created_at', periodStart.toISOString())
-      .lte('created_at', periodEnd.toISOString());
+      .gte('created_at', toUTCTimestamp(periodStart))
+      .lte('created_at', toUTCTimestamp(periodEnd));
 
     // Get issue contributors
     const { data: issueContributors } = await this.supabase!.from('issues')
@@ -519,8 +520,8 @@ export class WorkspaceAggregationService {
       `
       )
       .eq('repository_id', repositoryId)
-      .gte('created_at', periodStart.toISOString())
-      .lte('created_at', periodEnd.toISOString());
+      .gte('created_at', toUTCTimestamp(periodStart))
+      .lte('created_at', toUTCTimestamp(periodEnd));
 
     // Aggregate contributor stats
     const contributorMap = new Map<string, MetricsContributor>();
@@ -532,7 +533,7 @@ export class WorkspaceAggregationService {
       } else if (pr.contributors) {
         contributors = [pr.contributors];
       }
-      
+
       contributors.forEach((contributor) => {
         if (contributor && contributor.username) {
           const existing = contributorMap.get(contributor.username) || {
@@ -556,7 +557,7 @@ export class WorkspaceAggregationService {
       } else if (issue.contributors) {
         contributors = [issue.contributors];
       }
-      
+
       contributors.forEach((contributor) => {
         if (contributor && contributor.username) {
           const existing = contributorMap.get(contributor.username) || {
@@ -634,8 +635,8 @@ export class WorkspaceAggregationService {
     const { data } = await this.supabase!.from('workspace_metrics_history')
       .select('*')
       .eq('workspace_id', workspaceId)
-      .gte('metric_date', previousStart.toISOString().split('T')[0])
-      .lt('metric_date', previousEnd.toISOString().split('T')[0]);
+      .gte('metric_date', toDateOnlyString(previousStart))
+      .lt('metric_date', toDateOnlyString(previousEnd));
 
     if (!data || data.length === 0) return null;
 
@@ -938,7 +939,7 @@ export class WorkspaceAggregationService {
    * Queue history update for trend tracking
    */
   private async queueHistoryUpdate(workspaceId: string, aggregatedData: AggregatedData) {
-    const today = new Date().toISOString().split('T')[0];
+    const today = toDateOnlyString(new Date());
 
     const historyData = {
       workspace_id: workspaceId,

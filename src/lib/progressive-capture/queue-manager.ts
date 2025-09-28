@@ -27,7 +27,7 @@ export interface DataCaptureJob {
   completed_at?: string;
   next_retry_at?: string;
   last_error?: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export class DataCaptureQueueManager {
@@ -116,10 +116,10 @@ export class DataCaptureQueueManager {
           queuedCount++;
         } else if (insertError.code !== '23505') {
           // Ignore duplicate key errors
-          console.warn(`[Queue] Failed to queue PR ${pr.number}:`, insertError);
+          console.warn('[Queue] Failed to queue PR %s:', insertError, pr.number);
         }
       } catch (err) {
-        console.warn(`[Queue] Error queuing PR ${pr.number}:`, err);
+        console.warn('[Queue] Error queuing PR %s:', err, pr.number);
       }
     }
 
@@ -164,10 +164,10 @@ export class DataCaptureQueueManager {
           queuedCount++;
         } else if (error.code !== '23505') {
           // Ignore duplicate key errors
-          console.warn(`[Queue] Failed to queue commit ${sha}:`, error);
+          console.warn('[Queue] Failed to queue commit %s:', error, sha);
         }
       } catch (err) {
-        console.warn(`[Queue] Error queuing commit ${sha}:`, err);
+        console.warn('[Queue] Error queuing commit %s:', err, sha);
       }
     }
 
@@ -538,10 +538,10 @@ export class DataCaptureQueueManager {
           queuedCount++;
         } else if (insertError.code !== '23505') {
           // Ignore duplicate key errors
-          console.warn(`[Queue] Failed to queue reviews for PR ${pr.number}:`, insertError);
+          console.warn('[Queue] Failed to queue reviews for PR %s:', insertError, pr.number);
         }
       } catch (err) {
-        console.warn(`[Queue] Error queuing reviews for PR ${pr.number}:`, err);
+        console.warn('[Queue] Error queuing reviews for PR %s:', err, pr.number);
       }
     }
 
@@ -621,10 +621,10 @@ export class DataCaptureQueueManager {
           queuedCount++;
         } else if (insertError.code !== '23505') {
           // Ignore duplicate key errors
-          console.warn(`[Queue] Failed to queue comments for PR ${pr.number}:`, insertError);
+          console.warn('[Queue] Failed to queue comments for PR %s:', insertError, pr.number);
         }
       } catch (err) {
-        console.warn(`[Queue] Error queuing comments for PR ${pr.number}:`, err);
+        console.warn('[Queue] Error queuing comments for PR %s:', err, pr.number);
       }
     }
 
@@ -750,7 +750,7 @@ export class DataCaptureQueueManager {
           queuedCount++;
         } else if (insertError.code !== '23505') {
           // Ignore duplicate key errors
-          console.warn(`[Queue] Failed to queue issues for ${fullName}:`, insertError);
+          console.warn('[Queue] Failed to queue issues for %s:', insertError, fullName);
         }
       } catch (err) {
         console.warn('[Queue] Error queuing workspace issues:', err);

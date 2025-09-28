@@ -22,9 +22,12 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
 
-    // Complete isolation
+    // Complete isolation with React 18 compatibility
     isolate: true,
     fileParallelism: false,
+    sequence: {
+      shuffle: false,
+    },
 
     // Increased timeouts for complex async tests
     testTimeout: 15000,
@@ -37,6 +40,8 @@ export default defineConfig({
       forks: {
         singleFork: true,
         isolate: true,
+        // Ensure each test file runs in its own fork to avoid React conflicts
+        single: true,
       },
     },
 
@@ -74,6 +79,11 @@ export default defineConfig({
       'src/lib/inngest/functions/__tests__/event-flow.integration.test.ts',
       'src/lib/insights/health-metrics.test.ts',
       'src/lib/progressive-capture/__tests__/hybrid-queue-manager.test.ts',
+      // Tests with async patterns added in fix/repository-status-json-response PR
+      // These tests have been rewritten to use synchronous patterns
+      // 'src/hooks/__tests__/useWorkspacePRs.test.ts', // Fixed - now synchronous
+      // 'src/lib/insights/issue-metrics.test.ts', // Fixed - now synchronous
+      // 'src/lib/spam/__tests__/SpamDetectionService.test.ts', // Fixed - now synchronous
     ],
 
     // No coverage
@@ -95,6 +105,7 @@ export default defineConfig({
     threads: false,
     maxWorkers: 1,
     minWorkers: 1,
+    maxConcurrency: 1,
   },
 
   resolve: {

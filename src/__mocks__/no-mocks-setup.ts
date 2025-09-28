@@ -6,6 +6,30 @@ import '@testing-library/jest-dom';
 import { cleanup } from '@testing-library/react';
 import { afterEach, vi } from 'vitest';
 
+// Configure React 18 for testing and suppress warnings
+const originalError = console.error;
+const originalWarn = console.warn;
+console.error = (...args) => {
+  if (
+    typeof args[0] === 'string' &&
+    (args[0].includes('Should not already be working') ||
+      args[0].includes('ReactDOM.render is no longer supported') ||
+      args[0].includes('Warning:') ||
+      args[0].includes('React Router Future Flag Warning'))
+  ) {
+    return;
+  }
+  originalError.call(console, ...args);
+};
+
+// Suppress GoTrueClient multiple instances warning in tests
+console.warn = (...args) => {
+  if (typeof args[0] === 'string' && args[0].includes('Multiple GoTrueClient instances detected')) {
+    return;
+  }
+  originalWarn.call(console, ...args);
+};
+
 // Mock Path2D for uPlot (not available in jsdom)
 global.Path2D = class Path2D {
   closePath = vi.fn();
@@ -63,7 +87,12 @@ HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
   canvas: { width: 100, height: 100 },
 }));
 
-// Only cleanup DOM after each test, no mocks
-afterEach(() => {
-  cleanup();
+// Cleanup after each test
+afterEach(async () => {
+  // Ensure all React updates are flushed
+  await cleanup();
+  // Clear all timers to prevent leaks
+  vi.clearAllTimers();
+  // Reset all mocks
+  vi.clearAllMocks();
 });

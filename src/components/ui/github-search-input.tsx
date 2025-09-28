@@ -79,7 +79,7 @@ export function GitHubSearchInput({
     const shouldShowDropdown = results.length > 0 && inputValue.length > 1;
     setShowDropdown(shouldShowDropdown);
     setSelectedIndex(-1);
-    
+
     // Track search results viewed
     if (shouldShowDropdown && results.length > 0) {
       trackSearchResultsViewed(results.length, searchLocation);

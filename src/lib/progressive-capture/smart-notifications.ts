@@ -1,5 +1,6 @@
 import { supabase } from '../supabase';
 import { ProgressiveCaptureNotifications } from './ui-notifications';
+import type { HybridJob } from './hybrid-queue-manager';
 
 /**
  * Smart notification system that detects missing data and offers fixes
@@ -80,7 +81,7 @@ export class SmartDataNotifications {
 
       this.checkedRepositories.add(repoKey);
     } catch (error) {
-      console.error(`[Smart Notifications] Error checking ${repoKey}:`, error);
+      console.error('[Smart Notifications] Error checking %s:', error, repoKey);
     }
   }
 
@@ -240,7 +241,7 @@ export class SmartDataNotifications {
       this.queuedJobs.set(repoKey, Date.now());
 
       // Queue appropriate jobs based on what's missing using hybrid routing
-      const promises: Promise<any>[] = [];
+      const promises: Promise<HybridJob>[] = [];
 
       if (missingData.includes('recent PRs')) {
         if (import.meta.env?.DEV) {
@@ -288,7 +289,7 @@ export class SmartDataNotifications {
         console.log('✅ Auto-fix jobs queued for %s/%s:', owner, repo, results);
       }
     } catch (error) {
-      console.warn(`Could not auto-fix data for ${owner}/${repo}:`, error);
+      console.warn('Could not auto-fix data for %s/%s:', error, owner, repo);
     }
   }
 
@@ -482,7 +483,7 @@ export function setupSmartNotifications(): void {
       console.log('🔔 Smart data detection enabled');
 
       // Expose for debugging
-      (window as any).SmartDataNotifications = SmartDataNotifications;
+      (window as unknown as Record<string, unknown>).SmartDataNotifications = SmartDataNotifications;
     }
   }
 }

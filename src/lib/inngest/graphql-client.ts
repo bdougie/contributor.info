@@ -1,4 +1,5 @@
 import { graphql } from '@octokit/graphql';
+import { TimeWindowedCollection } from '../monitoring/memory-monitor';
 
 // GitHub token from server environment - this runs in Inngest functions (server context)
 // Note: In production Netlify functions, we need to ensure GITHUB_TOKEN is set as an env var
@@ -195,13 +196,116 @@ export interface RateLimitInfo {
   resetAt: string;
 }
 
+// GraphQL Actor type (can be User or Bot)
+interface GitHubActor {
+  login: string;
+  avatarUrl: string;
+  databaseId?: number;
+  name?: string;
+  email?: string;
+}
+
+// Comment types
+interface ReviewComment {
+  databaseId: number;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+  position: number;
+  outdated: boolean;
+  diffHunk: string;
+  path: string;
+  author: GitHubActor | null;
+  replyTo: {
+    databaseId: number;
+  } | null;
+  commit: {
+    oid: string;
+  };
+  originalCommit: {
+    oid: string;
+  } | null;
+}
+
+interface IssueComment {
+  databaseId: number;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+  author: GitHubActor | null;
+}
+
+// Review type
+interface PullRequestReview {
+  databaseId: number;
+  state: string;
+  body: string;
+  submittedAt: string;
+  author: GitHubActor | null;
+  commit: {
+    oid: string;
+  };
+  comments: {
+    nodes: ReviewComment[];
+  };
+}
+
+// Pull Request type
+interface PullRequestDetails {
+  id: string;
+  databaseId: number;
+  number: number;
+  title: string;
+  body: string;
+  state: string;
+  isDraft: boolean;
+  createdAt: string;
+  updatedAt: string;
+  closedAt: string | null;
+  mergedAt: string | null;
+  merged: boolean;
+  mergeable: 'CONFLICTING' | 'MERGEABLE' | 'UNKNOWN';
+  author: GitHubActor | null;
+  mergedBy: GitHubActor | null;
+  additions: number;
+  deletions: number;
+  changedFiles: number;
+  commits: {
+    totalCount: number;
+  };
+  baseRefName: string;
+  headRefName: string;
+  headRef: {
+    target: {
+      oid: string;
+    };
+  } | null;
+  reviews: {
+    totalCount: number;
+    nodes: PullRequestReview[];
+  };
+  comments: {
+    totalCount: number;
+    nodes: IssueComment[];
+  };
+}
+
 export interface GraphQLResponse {
-  repository: any;
+  repository: {
+    pullRequest?: PullRequestDetails;
+    pullRequests?: {
+      pageInfo: {
+        hasNextPage: boolean;
+        endCursor: string | null;
+      };
+      nodes: Array<Partial<PullRequestDetails> & { cursor?: string }>;
+    };
+  } | null;
   rateLimit?: RateLimitInfo;
 }
 
 export interface PRDetailsResponse extends GraphQLResponse {
-  pullRequest: any;
+  pullRequest: PullRequestDetails | undefined;
 }
 
 export interface PaginatedPRsResponse {
@@ -253,6 +357,19 @@ export class GraphQLClient {
     fallbackCount: 0,
   };
 
+  // Time-windowed collections to prevent memory leaks
+  private queryHistory: TimeWindowedCollection<{
+    query: string;
+    duration: number;
+    cost: number;
+    timestamp: number;
+  }>;
+  private errorHistory: TimeWindowedCollection<{
+    error: string;
+    query: string;
+    timestamp: number;
+  }>;
+
   constructor() {
     if (!GITHUB_TOKEN) {
       const env = process.env.NODE_ENV || 'unknown';
@@ -268,6 +385,10 @@ export class GraphQLClient {
         authorization: `token ${GITHUB_TOKEN}`,
       },
     });
+
+    // Initialize time-windowed collections with 1 hour window and max 500 items
+    this.queryHistory = new TimeWindowedCollection(3600000, 500);
+    this.errorHistory = new TimeWindowedCollection(3600000, 100);
   }
 
   /**
@@ -290,6 +411,14 @@ export class GraphQLClient {
       this.metrics.totalPointsUsed += result.rateLimit?.cost || 0;
       this.lastRateLimit = result.rateLimit || null;
 
+      // Store in time-windowed collection (bounded memory)
+      this.queryHistory.add({
+        query: `getPRDetails(${owner}/${repo}#${prNumber})`,
+        duration,
+        cost: result.rateLimit?.cost || 0,
+        timestamp: Date.now(),
+      });
+
       // Log performance
       console.log(
         '[GraphQL] PR #%s query completed in %sms (cost: %s points)',
@@ -300,27 +429,35 @@ export class GraphQLClient {
 
       // Warn if approaching rate limits
       if (result.rateLimit && result.rateLimit.remaining < 1000) {
-        console.warn(`[GraphQL] Rate limit low: ${result.rateLimit.remaining} points remaining`);
+        console.warn('[GraphQL] Rate limit low: %s points remaining', result.rateLimit.remaining);
       }
 
       return {
         ...result,
         pullRequest: result.repository?.pullRequest,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.metrics.fallbackCount++;
 
+      // Store error in time-windowed collection (bounded memory)
+      this.errorHistory.add({
+        error: error instanceof Error ? error.message : String(error),
+        query: `getPRDetails(${owner}/${repo}#${prNumber})`,
+        timestamp: Date.now(),
+      });
+
       // Enhanced error handling for GraphQL
-      if (error.message?.includes('rate limit')) {
+      const errorMessage = (error as Error).message;
+      if (errorMessage?.includes('rate limit')) {
         throw new Error(`GraphQL rate limit exceeded`);
       }
 
-      if (error.message?.includes('NOT_FOUND')) {
+      if (errorMessage?.includes('NOT_FOUND')) {
         throw new Error(`PR #${prNumber} not found in ${owner}/${repo}`);
       }
 
       // Log the error but don't modify it - let caller handle fallback
-      console.error(`[GraphQL] Query failed for ${owner}/${repo}#${prNumber}:`, error.message);
+      console.error('[GraphQL] Query failed for %s/%s#%s:', errorMessage, owner, repo, prNumber);
       throw error;
     }
   }
@@ -333,7 +470,7 @@ export class GraphQLClient {
     repo: string,
     since: string,
     limit: number = 100
-  ): Promise<any[]> {
+  ): Promise<Array<Partial<PullRequestDetails>>> {
     try {
       const result = (await this.client(GET_RECENT_PRS_QUERY, {
         owner,
@@ -344,6 +481,14 @@ export class GraphQLClient {
       this.metrics.queriesExecuted++;
       this.metrics.totalPointsUsed += result.rateLimit?.cost || 0;
       this.lastRateLimit = result.rateLimit || null;
+
+      // Store in time-windowed collection (bounded memory)
+      this.queryHistory.add({
+        query: `getRecentPRs(${owner}/${repo})`,
+        duration: 0, // Duration not tracked for this method yet
+        cost: result.rateLimit?.cost || 0,
+        timestamp: Date.now(),
+      });
 
       console.log(
         '[GraphQL] Recent PRs query for %s/%s (cost: %s points)',
@@ -356,15 +501,26 @@ export class GraphQLClient {
 
       // Filter PRs updated since the given date (client-side filtering)
       const sinceDate = new Date(since);
-      const filteredPRs = allPRs.filter((pr: any) => {
-        const updatedAt = new Date(pr.updatedAt);
+      const filteredPRs = allPRs.filter((pr) => {
+        const updatedAt = new Date(pr.updatedAt || '');
         return updatedAt >= sinceDate;
       });
 
       return filteredPRs;
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.metrics.fallbackCount++;
-      console.error(`[GraphQL] Recent PRs query failed for ${owner}/${repo}:`, error.message);
+
+      // Store error in time-windowed collection (bounded memory)
+      this.errorHistory.add({
+        error: error instanceof Error ? error.message : String(error),
+        query: `getRecentPRs(${owner}/${repo})`,
+        timestamp: Date.now(),
+      });
+
+      console.error(
+        `[GraphQL] Recent PRs query failed for ${owner}/${repo}:`,
+        (error as Error).message
+      );
       throw error;
     }
   }
@@ -379,7 +535,7 @@ export class GraphQLClient {
     pageSize: number = 25,
     cursor: string | null = null,
     direction: 'ASC' | 'DESC' = 'DESC'
-  ): Promise<any[]> {
+  ): Promise<Array<Partial<PullRequestDetails>>> {
     const PAGINATED_PRS_QUERY = `
       query GetPaginatedPRs($owner: String!, $repo: String!, $first: Int!, $after: String, $orderBy: IssueOrder!) {
         repository(owner: $owner, name: $repo) {
@@ -451,7 +607,16 @@ export class GraphQLClient {
       this.metrics.queriesExecuted++;
       if (response.rateLimit) {
         this.lastRateLimit = response.rateLimit;
+        this.metrics.totalPointsUsed += response.rateLimit.cost;
       }
+
+      // Store in time-windowed collection (bounded memory)
+      this.queryHistory.add({
+        query: `getRepositoryPRsPage(${owner}/${repo})`,
+        duration,
+        cost: response.rateLimit?.cost || 0,
+        timestamp: Date.now(),
+      });
 
       // Return PRs with cursor info
       const prs = response.repository.pullRequests.nodes;
@@ -463,8 +628,20 @@ export class GraphQLClient {
       }
 
       return prs;
-    } catch (error: any) {
-      console.error(`[GraphQL] Paginated PRs query failed for ${owner}/${repo}:`, error.message);
+    } catch (error: unknown) {
+      this.metrics.fallbackCount++;
+
+      // Store error in time-windowed collection (bounded memory)
+      this.errorHistory.add({
+        error: error instanceof Error ? error.message : String(error),
+        query: `getRepositoryPRsPage(${owner}/${repo})`,
+        timestamp: Date.now(),
+      });
+
+      console.error(
+        `[GraphQL] Paginated PRs query failed for ${owner}/${repo}:`,
+        (error as Error).message
+      );
       throw error;
     }
   }
@@ -480,6 +657,20 @@ export class GraphQLClient {
    * Get performance metrics
    */
   getMetrics() {
+    const recentQueries = this.queryHistory.getItems();
+    const recentErrors = this.errorHistory.getItems();
+
+    // Calculate recent metrics from time-windowed data
+    const recentDurations = recentQueries.map((q) => q.duration).filter((d) => d > 0);
+    const avgRecentDuration =
+      recentDurations.length > 0
+        ? recentDurations.reduce((a, b) => a + b, 0) / recentDurations.length
+        : 0;
+
+    const recentCosts = recentQueries.map((q) => q.cost);
+    const avgRecentCost =
+      recentCosts.length > 0 ? recentCosts.reduce((a, b) => a + b, 0) / recentCosts.length : 0;
+
     return {
       ...this.metrics,
       fallbackRate:
@@ -490,6 +681,16 @@ export class GraphQLClient {
         this.metrics.queriesExecuted > 0
           ? this.metrics.totalPointsUsed / this.metrics.queriesExecuted
           : 0,
+      recentMetrics: {
+        queryCount: recentQueries.length,
+        errorCount: recentErrors.length,
+        avgDuration: Math.round(avgRecentDuration),
+        avgCost: Math.round(avgRecentCost * 10) / 10,
+        memoryStats: {
+          queryHistory: this.queryHistory.getStats(),
+          errorHistory: this.errorHistory.getStats(),
+        },
+      },
     };
   }
 
@@ -502,6 +703,16 @@ export class GraphQLClient {
       totalPointsUsed: 0,
       fallbackCount: 0,
     };
+    this.queryHistory.clear();
+    this.errorHistory.clear();
+  }
+
+  /**
+   * Clean up resources (call when shutting down)
+   */
+  dispose() {
+    this.queryHistory.dispose();
+    this.errorHistory.dispose();
   }
 }
 

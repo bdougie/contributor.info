@@ -6,9 +6,9 @@ export default defineConfig({
     environment: 'node',
     coverage: {
       reporter: ['text', 'json', 'html'],
-      exclude: ['node_modules/', 'test/']
+      exclude: ['node_modules/', 'test/'],
     },
     testTimeout: 10000,
-    hookTimeout: 10000
-  }
+    hookTimeout: 10000,
+  },
 });

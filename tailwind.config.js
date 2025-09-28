@@ -69,7 +69,7 @@ export default {
       },
       boxShadow: {
         // Design system shadows for light mode depth
-        'card': '0px 2px 8px rgba(0, 0, 0, 0.04)',
+        card: '0px 2px 8px rgba(0, 0, 0, 0.04)',
         'card-hover': '0px 4px 12px rgba(0, 0, 0, 0.08)',
         'light-sm': '0px 1px 2px rgba(0, 0, 0, 0.05)',
         'light-md': '0px 4px 6px rgba(0, 0, 0, 0.07)',
@@ -193,8 +193,5 @@ export default {
       },
     },
   },
-  plugins: [
-    require('tailwindcss-animate'),
-    require('@tailwindcss/typography'),
-  ],
+  plugins: [require('tailwindcss-animate'), require('@tailwindcss/typography')],
 };

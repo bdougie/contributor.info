@@ -1,4 +1,4 @@
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 // Email template types
@@ -290,31 +290,40 @@ const getInvitationEmailHTML = (data: WorkspaceInvitationData) => `
                 
                 <p>As a <strong>${data.role}</strong>, you'll be able to:</p>
                 <ul style="margin: 16px 0; padding-left: 20px; color: var(--foreground);">
-                    ${data.role === 'admin' ? `
+                    ${
+                      data.role === 'admin'
+                        ? `
                         <li>Manage workspace members and invitations</li>
                         <li>Add and remove repositories</li>
                         <li>Configure workspace settings</li>
                         <li>View all workspace analytics and insights</li>
-                    ` : data.role === 'editor' ? `
+                    `
+                        : data.role === 'editor'
+                          ? `
                         <li>Add and remove repositories</li>
                         <li>Update workspace repositories</li>
                         <li>View all workspace analytics and insights</li>
-                    ` : `
+                    `
+                          : `
                         <li>View workspace repositories</li>
                         <li>Access analytics and insights</li>
                         <li>Monitor contributor activity</li>
-                    `}
+                    `
+                    }
                 </ul>
                 
                 <div class="expiry-notice">
-                    ⏰ This invitation expires on <strong>${new Date(data.expiresAt).toLocaleString('en-US', {
+                    ⏰ This invitation expires on <strong>${new Date(data.expiresAt).toLocaleString(
+                      'en-US',
+                      {
                         year: 'numeric',
                         month: 'long',
                         day: 'numeric',
                         hour: '2-digit',
                         minute: '2-digit',
-                        timeZoneName: 'short'
-                    })}</strong>
+                        timeZoneName: 'short',
+                      }
+                    )}</strong>
                 </div>
                 
                 <div class="cta-container">
@@ -360,28 +369,34 @@ Invited by: ${data.inviterName}
 Your role: ${data.role.toUpperCase()}
 
 As a ${data.role}, you'll be able to:
-${data.role === 'admin' ? `
+${
+  data.role === 'admin'
+    ? `
 • Manage workspace members and invitations
 • Add and remove repositories
 • Configure workspace settings
 • View all workspace analytics and insights
-` : data.role === 'editor' ? `
+`
+    : data.role === 'editor'
+      ? `
 • Add and remove repositories
 • Update workspace repositories
 • View all workspace analytics and insights
-` : `
+`
+      : `
 • View workspace repositories
 • Access analytics and insights
 • Monitor contributor activity
-`}
+`
+}
 
 ⏰ This invitation expires on ${new Date(data.expiresAt).toLocaleString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZoneName: 'short'
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  timeZoneName: 'short',
 })}
 
 Accept invitation:
@@ -398,15 +413,27 @@ Privacy policy: https://contributor.info/privacy
 GitHub: https://github.com/bdougie/contributor.info
 `;
 
+// CORS headers for development
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
+
 // Main function
 Deno.serve(async (req: Request) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: corsHeaders });
+  }
+
   try {
     // Only allow POST requests
     if (req.method !== 'POST') {
-      return new Response(
-        JSON.stringify({ error: 'Method not allowed' }),
-        { status: 405, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+        status: 405,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Get environment variables
@@ -416,22 +443,22 @@ Deno.serve(async (req: Request) => {
 
     if (!resendApiKey) {
       console.error('RESEND_API_KEY not configured');
-      return new Response(
-        JSON.stringify({ error: 'Email service not configured' }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Email service not configured' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Parse the request payload
     const payload = await req.json();
-    
+
     // Validate required fields
     if (!payload.invitationId) {
       console.error('Invalid payload: missing invitationId');
-      return new Response(
-        JSON.stringify({ error: 'Invalid payload: invitationId required' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Invalid payload: invitationId required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -439,7 +466,8 @@ Deno.serve(async (req: Request) => {
     // Fetch invitation details with related workspace and inviter information
     const { data: invitation, error: invitationError } = await supabase
       .from('workspace_invitations')
-      .select(`
+      .select(
+        `
         *,
         workspace:workspaces!workspace_id(
           id,
@@ -447,17 +475,18 @@ Deno.serve(async (req: Request) => {
           slug,
           owner_id
         )
-      `)
+      `
+      )
       .eq('id', payload.invitationId)
       .eq('status', 'pending')
       .single();
 
     if (invitationError || !invitation) {
       console.error('Failed to fetch invitation:', invitationError);
-      return new Response(
-        JSON.stringify({ error: 'Invitation not found or already processed' }),
-        { status: 404, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Invitation not found or already processed' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Fetch inviter details from auth.users
@@ -469,44 +498,45 @@ Deno.serve(async (req: Request) => {
 
     if (inviterError || !inviter) {
       console.error('Failed to fetch inviter details:', inviterError);
-      return new Response(
-        JSON.stringify({ error: 'Inviter information not found' }),
-        { status: 404, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Inviter information not found' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Extract inviter name
-    const inviterName = inviter.raw_user_meta_data?.name || 
-                       inviter.raw_user_meta_data?.full_name || 
-                       inviter.raw_user_meta_data?.user_name ||
-                       inviter.email?.split('@')[0] || 'A team member';
+    const inviterName =
+      inviter.raw_user_meta_data?.name ||
+      inviter.raw_user_meta_data?.full_name ||
+      inviter.raw_user_meta_data?.user_name ||
+      inviter.email?.split('@')[0] ||
+      'A team member';
 
     // Check if invitation is still valid (not expired)
     const expiresAt = new Date(invitation.expires_at);
     if (expiresAt < new Date()) {
       console.error('Invitation has expired');
-      return new Response(
-        JSON.stringify({ error: 'Invitation has expired' }),
-        { status: 410, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Invitation has expired' }), {
+        status: 410,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     console.log('Processing workspace invitation email for:', {
       recipientEmail: invitation.email,
       workspace: invitation.workspace.name,
       invitedBy: inviterName,
-      role: invitation.role
+      role: invitation.role,
     });
 
     // GDPR COMPLIANCE: Log processing activity
-    const { data: gdprLogId, error: gdprError } = await supabase
-      .rpc('log_gdpr_processing', {
-        p_user_id: invitation.invited_by,
-        p_purpose: 'workspace_invitation_email',
-        p_legal_basis: 'legitimate_interest',
-        p_data_categories: ['email', 'name', 'workspace_membership'],
-        p_notes: `Sending workspace invitation email to ${invitation.email} for workspace ${invitation.workspace.name}`
-      });
+    const { data: gdprLogId, error: gdprError } = await supabase.rpc('log_gdpr_processing', {
+      p_user_id: invitation.invited_by,
+      p_purpose: 'workspace_invitation_email',
+      p_legal_basis: 'legitimate_interest',
+      p_data_categories: ['email', 'name', 'workspace_membership'],
+      p_notes: `Sending workspace invitation email to ${invitation.email} for workspace ${invitation.workspace.name}`,
+    });
 
     if (gdprError) {
       console.warn('Failed to log GDPR processing:', gdprError);
@@ -522,7 +552,7 @@ Deno.serve(async (req: Request) => {
       inviterEmail: inviter.email || '',
       role: invitation.role,
       invitationToken: invitation.invitation_token,
-      expiresAt: invitation.expires_at
+      expiresAt: invitation.expires_at,
     };
 
     console.log('Sending workspace invitation email to:', invitation.email);
@@ -531,7 +561,7 @@ Deno.serve(async (req: Request) => {
     const emailResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${resendApiKey}`,
+        Authorization: `Bearer ${resendApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -543,8 +573,8 @@ Deno.serve(async (req: Request) => {
         tags: [
           { name: 'type', value: 'workspace_invitation' },
           { name: 'workspace_id', value: invitation.workspace.id },
-          { name: 'invitation_id', value: invitation.id }
-        ]
+          { name: 'invitation_id', value: invitation.id },
+        ],
       }),
     });
 
@@ -553,7 +583,7 @@ Deno.serve(async (req: Request) => {
       console.error('Resend API error:', {
         status: emailResponse.status,
         statusText: emailResponse.statusText,
-        error: errorText
+        error: errorText,
       });
       throw new Error(`Resend API error: ${emailResponse.status} ${errorText}`);
     }
@@ -563,50 +593,48 @@ Deno.serve(async (req: Request) => {
 
     // GDPR COMPLIANCE: Log the email send for audit trail
     try {
-      await supabase
-        .from('email_logs')
-        .insert({
-          user_id: invitation.invited_by,
-          email_type: 'workspace_invitation',
-          recipient_email: invitation.email,
-          resend_email_id: emailResult.id,
-          sent_at: new Date().toISOString(),
-          legal_basis: 'legitimate_interest',
-          gdpr_log_id: gdprLogId,
-          metadata: {
-            workspace_id: invitation.workspace.id,
-            workspace_name: invitation.workspace.name,
-            invitation_id: invitation.id,
-            inviter_name: inviterName,
-            role: invitation.role,
-            expires_at: invitation.expires_at
-          }
-        });
-      
+      await supabase.from('email_logs').insert({
+        user_id: invitation.invited_by,
+        email_type: 'workspace_invitation',
+        recipient_email: invitation.email,
+        resend_email_id: emailResult.id,
+        sent_at: new Date().toISOString(),
+        legal_basis: 'legitimate_interest',
+        gdpr_log_id: gdprLogId,
+        metadata: {
+          workspace_id: invitation.workspace.id,
+          workspace_name: invitation.workspace.name,
+          invitation_id: invitation.id,
+          inviter_name: inviterName,
+          role: invitation.role,
+          expires_at: invitation.expires_at,
+        },
+      });
+
       // Update invitation record to track that email was sent
       await supabase
         .from('workspace_invitations')
-        .update({ 
+        .update({
           metadata: {
             ...invitation.metadata,
             email_sent: true,
             email_sent_at: new Date().toISOString(),
-            resend_email_id: emailResult.id
-          }
+            resend_email_id: emailResult.id,
+          },
         })
         .eq('id', invitation.id);
-        
+
       // Mark GDPR processing as completed
       if (gdprLogId) {
         await supabase
           .from('gdpr_processing_log')
-          .update({ 
+          .update({
             processing_completed_at: new Date().toISOString(),
-            notes: `Workspace invitation email sent successfully via Resend (ID: ${emailResult.id})`
+            notes: `Workspace invitation email sent successfully via Resend (ID: ${emailResult.id})`,
           })
           .eq('id', gdprLogId);
       }
-        
+
       console.log('Email send logged successfully with GDPR compliance');
     } catch (logError) {
       // Don't fail the main function if logging fails, but warn about compliance
@@ -614,23 +642,22 @@ Deno.serve(async (req: Request) => {
     }
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         message: 'Workspace invitation email sent successfully',
-        email_id: emailResult.id 
+        email_id: emailResult.id,
       }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-
   } catch (error) {
     console.error('Error sending workspace invitation email:', error);
-    
+
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         error: 'Failed to send workspace invitation email',
-        details: error.message 
+        details: error.message,
       }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });

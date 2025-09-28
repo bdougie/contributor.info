@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
-import { Suspense, lazy, useEffect } from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 import { ThemeProvider } from '@/components/common/theming';
 import { Toaster } from '@/components/ui/sonner';
 import { ErrorBoundary } from '@/components/error-boundary';
@@ -7,6 +7,7 @@ import { PWAInstallPrompt } from '@/components/ui/pwa-install-prompt';
 import { OfflineNotification } from '@/components/common/OfflineNotification';
 import { WorkspaceProvider } from '@/contexts/WorkspaceContext';
 import { FeatureFlagsProvider } from '@/lib/feature-flags';
+import { useSubscriptionSync } from '@/hooks/use-subscription-sync';
 // Lazy load core components to reduce initial bundle
 const Layout = lazy(() =>
   import('@/components/common/layout').then((m) => ({ default: m.Layout }))
@@ -19,6 +20,7 @@ import { ProtectedRoute, AdminRoute } from '@/components/features/auth';
 import { initializeWebVitalsMonitoring } from '@/lib/web-vitals-monitoring';
 import { initializeLLMCitationTracking } from '@/lib/llm-citation-tracking';
 import { SVGSpriteInliner } from '@/components/ui/svg-sprite-loader';
+import { WorkspaceRedirect } from '@/components/WorkspaceRedirect';
 
 // Lazy load route components for better performance
 const RepoView = lazy(() => import('@/components/features/repository/repo-view'));
@@ -107,6 +109,11 @@ const TermsPage = lazy(() =>
 const WorkspacePage = lazy(() => import('@/pages/workspace-page'));
 const WorkspaceNewPage = lazy(() => import('@/pages/workspace-new-page'));
 const DemoWorkspacePage = lazy(() => import('@/pages/demo-workspace-page'));
+const WorkspaceRoutesWrapper = lazy(() =>
+  import('@/components/features/workspace/WorkspaceRoutesWrapper').then((m) => ({
+    default: m.WorkspaceRoutesWrapper,
+  }))
+);
 
 // Trending components
 const TrendingPageRoute = lazy(() =>
@@ -154,6 +161,18 @@ const ProfileRouter = lazy(() =>
   import('@/components/features/profile/profile-router').then((m) => ({ default: m.ProfileRouter }))
 );
 const WidgetsPage = lazy(() => import('@/pages/widgets'));
+
+// Billing components
+const BillingDashboard = lazy(() =>
+  import('@/pages/billing/BillingDashboard').then((m) => ({ default: m.BillingDashboard }))
+);
+
+// Invitation components
+const InvitationAcceptancePage = lazy(() =>
+  import('@/pages/invitation-acceptance-page').then((m) => ({
+    default: m.InvitationAcceptancePage,
+  }))
+);
 
 // Loading fallback component matching actual app structure
 const PageSkeleton = () => {
@@ -293,6 +312,9 @@ const PageSkeleton = () => {
 };
 
 function App() {
+  // Sync subscription status on app load
+  useSubscriptionSync();
+
   // Initialize Web Vitals monitoring with PostHog
   useEffect(() => {
     const vitalsMonitor = initializeWebVitalsMonitoring({
@@ -376,223 +398,282 @@ function App() {
           <Router>
             <WorkspaceProvider>
               <OfflineNotification />
-            <Suspense fallback={<PageSkeleton />}>
-              <Routes>
-                <Route path="/login" element={<LoginPage />} />
+              <Suspense fallback={<PageSkeleton />}>
+                <Routes>
+                  <Route path="/login" element={<LoginPage />} />
 
-                {/* Legacy Route Redirects - Resolves ~480 404 errors */}
-                {/* These routes are deprecated but still receive traffic from old links/bookmarks */}
-                <Route path="/signup" element={<Navigate to="/login" replace />} />
+                  {/* Legacy Route Redirects - Resolves ~480 404 errors */}
+                  {/* These routes are deprecated but still receive traffic from old links/bookmarks */}
+                  <Route path="/signup" element={<Navigate to="/login" replace />} />
 
-                <Route path="/" element={<Layout />}>
-                  <Route index element={<Home />} />
-                  <Route path="/trending" element={<TrendingPageRoute />} />
-                  <Route path="/i/demo" element={<DemoWorkspacePage />} />
-                  <Route path="/i/demo/:tab" element={<DemoWorkspacePage />} />
-                  <Route path="/i/:workspaceId" element={<WorkspacePage />} />
-                  <Route path="/i/:workspaceId/:tab" element={<WorkspacePage />} />
-                  <Route path="/workspaces/new" element={<WorkspaceNewPage />} />
-                  <Route path="/changelog" element={<ChangelogPage />} />
-                  <Route path="/docs" element={<DocsList />} />
-                  <Route path="/docs/:slug" element={<DocDetail />} />
-
-                  {/* Legacy Route Redirect - Old feedback page moved to docs */}
-                  <Route path="/search/feedback" element={<Navigate to="/docs" replace />} />
-                  <Route path="/widgets" element={<WidgetsPage />} />
-                  <Route path="/:owner/:repo/widgets" element={<WidgetsPage />} />
-                  <Route
-                    path="/settings"
-                    element={
-                      <ProtectedRoute>
-                        <SettingsPage />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route path="/privacy" element={<PrivacyPolicyPage />} />
-                  <Route path="/privacy/data-request" element={<DataRequestPage />} />
-                  <Route path="/terms" element={<TermsPage />} />
-
-                  {/* Debug routes with Layout */}
-                  <Route
-                    path="/dev"
-                    element={
-                      <ProtectedRoute>
-                        <DebugMenu />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/dev/test-insights"
-                    element={
-                      <ProtectedRoute>
-                        <TestInsights />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/dev/debug-auth"
-                    element={
-                      <ProtectedRoute>
-                        <DebugAuthPage />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route path="/dev/social-cards" element={<SocialCardPreview />} />
-                  <Route
-                    path="/dev/sync-test"
-                    element={
-                      <ProtectedRoute>
-                        <GitHubSyncDebug />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/dev/manual-backfill"
-                    element={
-                      <ProtectedRoute>
-                        <ManualBackfillDebug />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route path="/dev/shareable-charts" element={<ShareableChartsPreview />} />
-                  <Route
-                    path="/dev/dub-test"
-                    element={
-                      <ProtectedRoute>
-                        <DubTest />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/dev/capture-monitor"
-                    element={
-                      <ProtectedRoute>
-                        <CaptureHealthMonitor />
-                      </ProtectedRoute>
-                    }
-                  />
-
-                  {/* Admin routes - require admin privileges */}
-                  <Route
-                    path="/admin"
-                    element={
-                      <AdminRoute>
-                        <AdminMenu />
-                      </AdminRoute>
-                    }
-                  />
-                  <Route
-                    path="/admin/users"
-                    element={
-                      <AdminRoute>
-                        <UserManagement />
-                      </AdminRoute>
-                    }
-                  />
-                  <Route
-                    path="/admin/analytics"
-                    element={
-                      <AdminRoute>
-                        <AdminAnalyticsDashboard />
-                      </AdminRoute>
-                    }
-                  />
-                  <Route
-                    path="/admin/performance-monitoring"
-                    element={
-                      <AdminRoute>
-                        <PerformanceMonitoringDashboard />
-                      </AdminRoute>
-                    }
-                  />
-                  <Route
-                    path="/admin/bulk-add-repos"
-                    element={
-                      <AdminRoute>
-                        <BulkAddRepos />
-                      </AdminRoute>
-                    }
-                  />
-                  <Route
-                    path="/admin/spam"
-                    element={
-                      <AdminRoute>
-                        <SpamManagement />
-                      </AdminRoute>
-                    }
-                  />
-                  <Route
-                    path="/admin/spam-test"
-                    element={
-                      <AdminRoute>
-                        <SpamTestTool />
-                      </AdminRoute>
-                    }
-                  />
-                  <Route
-                    path="/admin/bulk-spam-analysis"
-                    element={
-                      <AdminRoute>
-                        <BulkSpamAnalysis />
-                      </AdminRoute>
-                    }
-                  />
-                  <Route
-                    path="/admin/maintainers"
-                    element={
-                      <AdminRoute>
-                        <MaintainerManagement />
-                      </AdminRoute>
-                    }
-                  />
-                  <Route
-                    path="/admin/confidence-analytics"
-                    element={
-                      <AdminRoute>
-                        <ConfidenceAnalyticsDashboard />
-                      </AdminRoute>
-                    }
-                  />
-                  <Route
-                    path="/admin/llm-citations"
-                    element={
-                      <AdminRoute>
-                        <LLMCitationDashboard />
-                      </AdminRoute>
-                    }
-                  />
-
-                  <Route path="/:owner/:repo" element={<RepoView />}>
-                    <Route path="" element={<ContributionsRoute />} />
-                    <Route path="activity" element={<ContributionsRoute />} />
-                    <Route path="contributions" element={<ContributionsRoute />} />
-                    <Route path="health" element={<LotteryFactorRoute />} />
-                    <Route path="distribution" element={<DistributionRoute />} />
-                    <Route path="feed" element={<FeedPage />} />
+                  <Route path="/" element={<Layout />}>
+                    <Route index element={<Home />} />
+                    <Route path="/trending" element={<TrendingPageRoute />} />
+                    {/* Workspace routes - protected by feature flag */}
+                    {/* Dynamic configuration to support both /i/ and /workspaces/ paths */}
+                    {['/i', '/workspaces'].map((basePath) => (
+                      <React.Fragment key={basePath}>
+                        <Route
+                          path={`${basePath}/demo`}
+                          element={
+                            <WorkspaceRoutesWrapper>
+                              <DemoWorkspacePage />
+                            </WorkspaceRoutesWrapper>
+                          }
+                        />
+                        <Route
+                          path={`${basePath}/demo/:tab`}
+                          element={
+                            <WorkspaceRoutesWrapper>
+                              <DemoWorkspacePage />
+                            </WorkspaceRoutesWrapper>
+                          }
+                        />
+                        <Route
+                          path={`${basePath}/:workspaceId`}
+                          element={
+                            <WorkspaceRoutesWrapper>
+                              <WorkspacePage />
+                            </WorkspaceRoutesWrapper>
+                          }
+                        />
+                        <Route
+                          path={`${basePath}/:workspaceId/:tab`}
+                          element={
+                            <WorkspaceRoutesWrapper>
+                              <WorkspacePage />
+                            </WorkspaceRoutesWrapper>
+                          }
+                        />
+                      </React.Fragment>
+                    ))}
                     <Route
-                      path="feed/spam"
+                      path="/workspaces/new"
+                      element={
+                        <WorkspaceRoutesWrapper>
+                          <WorkspaceNewPage />
+                        </WorkspaceRoutesWrapper>
+                      }
+                    />
+                    {/* Redirect common typos: singular to plural */}
+                    <Route
+                      path="/workspace/new"
+                      element={<Navigate to="/workspaces/new" replace />}
+                    />
+                    <Route path="/workspace/:id" element={<WorkspaceRedirect />} />
+                    <Route path="/workspace/:id/:tab" element={<WorkspaceRedirect includeTab />} />
+                    <Route path="/changelog" element={<ChangelogPage />} />
+                    <Route path="/docs" element={<DocsList />} />
+                    <Route path="/docs/:slug" element={<DocDetail />} />
+
+                    {/* Invitation acceptance route */}
+                    <Route path="/invitation/:token" element={<InvitationAcceptancePage />} />
+
+                    {/* Legacy Route Redirect - Old feedback page moved to docs */}
+                    <Route path="/search/feedback" element={<Navigate to="/docs" replace />} />
+                    <Route path="/widgets" element={<WidgetsPage />} />
+                    <Route path="/:owner/:repo/widgets" element={<WidgetsPage />} />
+                    <Route
+                      path="/settings"
                       element={
                         <ProtectedRoute>
-                          <SpamFeedPage />
+                          <SettingsPage />
                         </ProtectedRoute>
                       }
                     />
+                    <Route
+                      path="/billing"
+                      element={
+                        <ProtectedRoute>
+                          <BillingDashboard />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route path="/privacy" element={<PrivacyPolicyPage />} />
+                    <Route path="/privacy/data-request" element={<DataRequestPage />} />
+                    <Route path="/terms" element={<TermsPage />} />
+
+                    {/* Debug routes with Layout */}
+                    <Route
+                      path="/dev"
+                      element={
+                        <ProtectedRoute>
+                          <DebugMenu />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/dev/test-insights"
+                      element={
+                        <ProtectedRoute>
+                          <TestInsights />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/dev/debug-auth"
+                      element={
+                        <ProtectedRoute>
+                          <DebugAuthPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route path="/dev/social-cards" element={<SocialCardPreview />} />
+                    <Route
+                      path="/dev/sync-test"
+                      element={
+                        <ProtectedRoute>
+                          <GitHubSyncDebug />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/dev/manual-backfill"
+                      element={
+                        <ProtectedRoute>
+                          <ManualBackfillDebug />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route path="/dev/shareable-charts" element={<ShareableChartsPreview />} />
+                    <Route
+                      path="/dev/dub-test"
+                      element={
+                        <ProtectedRoute>
+                          <DubTest />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/dev/capture-monitor"
+                      element={
+                        <ProtectedRoute>
+                          <CaptureHealthMonitor />
+                        </ProtectedRoute>
+                      }
+                    />
+
+                    {/* Admin routes - require admin privileges */}
+                    <Route
+                      path="/admin"
+                      element={
+                        <AdminRoute>
+                          <AdminMenu />
+                        </AdminRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/users"
+                      element={
+                        <AdminRoute>
+                          <UserManagement />
+                        </AdminRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/analytics"
+                      element={
+                        <AdminRoute>
+                          <AdminAnalyticsDashboard />
+                        </AdminRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/performance-monitoring"
+                      element={
+                        <AdminRoute>
+                          <PerformanceMonitoringDashboard />
+                        </AdminRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/bulk-add-repos"
+                      element={
+                        <AdminRoute>
+                          <BulkAddRepos />
+                        </AdminRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/spam"
+                      element={
+                        <AdminRoute>
+                          <SpamManagement />
+                        </AdminRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/spam-test"
+                      element={
+                        <AdminRoute>
+                          <SpamTestTool />
+                        </AdminRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/bulk-spam-analysis"
+                      element={
+                        <AdminRoute>
+                          <BulkSpamAnalysis />
+                        </AdminRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/maintainers"
+                      element={
+                        <AdminRoute>
+                          <MaintainerManagement />
+                        </AdminRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/confidence-analytics"
+                      element={
+                        <AdminRoute>
+                          <ConfidenceAnalyticsDashboard />
+                        </AdminRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/llm-citations"
+                      element={
+                        <AdminRoute>
+                          <LLMCitationDashboard />
+                        </AdminRoute>
+                      }
+                    />
+
+                    <Route path="/:owner/:repo" element={<RepoView />}>
+                      <Route path="" element={<ContributionsRoute />} />
+                      <Route path="activity" element={<ContributionsRoute />} />
+                      <Route path="contributions" element={<ContributionsRoute />} />
+                      <Route path="health" element={<LotteryFactorRoute />} />
+                      <Route path="distribution" element={<DistributionRoute />} />
+                      <Route path="feed" element={<FeedPage />} />
+                      <Route
+                        path="feed/spam"
+                        element={
+                          <ProtectedRoute>
+                            <SpamFeedPage />
+                          </ProtectedRoute>
+                        }
+                      />
+                    </Route>
+
+                    {/* Profile view (user/org) - after repo routes to prevent intercepting repo patterns */}
+                    <Route path="/:username" element={<ProfileRouter />} />
+
+                    <Route path="*" element={<NotFound />} />
                   </Route>
-
-                  {/* Profile view (user/org) - after repo routes to prevent intercepting repo patterns */}
-                  <Route path="/:username" element={<ProfileRouter />} />
-
-                  <Route path="*" element={<NotFound />} />
-                </Route>
-              </Routes>
-            </Suspense>
-            <Toaster />
-            <PWAInstallPrompt
-              onInstall={() => console.log('PWA installed successfully!')}
-              onDismiss={() => console.log('PWA install prompt dismissed')}
-            />
-          </WorkspaceProvider>
-        </Router>
+                </Routes>
+              </Suspense>
+              <Toaster />
+              <PWAInstallPrompt
+                onInstall={() => console.log('PWA installed successfully!')}
+                onDismiss={() => console.log('PWA install prompt dismissed')}
+              />
+            </WorkspaceProvider>
+          </Router>
         </FeatureFlagsProvider>
       </ThemeProvider>
     </ErrorBoundary>

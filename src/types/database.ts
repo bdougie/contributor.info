@@ -26,7 +26,7 @@ export interface Database {
           commits: number;
           html_url: string;
           spam_score: number | null;
-          spam_flags: any | null;
+          spam_flags: Record<string, unknown> | null;
           is_spam: boolean;
           reviewed_by_admin: boolean;
           spam_detected_at: string | null;
@@ -40,6 +40,8 @@ export interface Database {
           display_name: string;
           avatar_url: string;
           profile_url: string;
+          discord_url: string | null;
+          linkedin_url: string | null;
           is_bot: boolean;
           first_seen_at: string;
           last_updated_at: string;

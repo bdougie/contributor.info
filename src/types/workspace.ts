@@ -8,8 +8,19 @@
 // =====================================================
 
 export type WorkspaceVisibility = 'public' | 'private';
-export type WorkspaceRole = 'owner' | 'admin' | 'editor' | 'viewer';
-export type WorkspaceTier = 'free' | 'pro' | 'enterprise';
+export type WorkspaceRole = 'owner' | 'admin' | 'maintainer' | 'contributor' | 'editor' | 'viewer';
+
+// Subscription tier enum for type safety
+export enum SubscriptionTier {
+  FREE = 'free',
+  PRO = 'pro',
+  TEAM = 'team',
+  ENTERPRISE = 'enterprise',
+}
+
+// Legacy type alias for backward compatibility
+export type WorkspaceTier = 'free' | 'pro' | 'team' | 'enterprise';
+
 export type InvitationStatus = 'pending' | 'accepted' | 'rejected' | 'expired';
 export type SubscriptionStatus = 'active' | 'canceled' | 'past_due' | 'trialing' | 'incomplete';
 export type BillingCycle = 'monthly' | 'yearly';
@@ -77,6 +88,15 @@ export interface WorkspaceWithStats extends Workspace {
     avatar_url?: string;
     display_name?: string;
   };
+}
+
+/**
+ * Workspace with details for invitation preview
+ */
+export interface WorkspaceWithDetails extends Workspace {
+  repository_count?: number;
+  member_count?: number;
+  status?: string;
 }
 
 // =====================================================
@@ -158,6 +178,18 @@ export interface WorkspaceMemberWithDetails extends WorkspaceMember {
     id: string;
     email: string;
     display_name?: string;
+  };
+}
+
+/**
+ * Member with basic user info (for API responses)
+ */
+export interface WorkspaceMemberWithUser extends WorkspaceMember {
+  user: {
+    id: string;
+    email: string;
+    display_name?: string;
+    avatar_url?: string;
   };
 }
 
@@ -321,6 +353,7 @@ export interface CreateWorkspaceRequest {
  */
 export interface UpdateWorkspaceRequest {
   name?: string;
+  slug?: string;
   description?: string;
   visibility?: WorkspaceVisibility;
   settings?: Partial<WorkspaceSettings>;
@@ -389,17 +422,43 @@ export interface WorkspaceActivity {
   workspace_id: string;
   user_id: string;
   action:
-    | 'created'
-    | 'updated'
-    | 'added_repo'
-    | 'removed_repo'
-    | 'added_member'
-    | 'removed_member'
-    | 'role_changed';
-  target_type?: 'workspace' | 'repository' | 'member';
-  target_id?: string;
-  metadata?: Record<string, unknown>;
+    | 'workspace_created'
+    | 'workspace_updated'
+    | 'repository_added'
+    | 'repository_removed'
+    | 'member_invited'
+    | 'member_joined'
+    | 'member_removed'
+    | 'member_left'
+    | 'role_changed'
+    | 'settings_updated'
+    | 'invitation_sent'
+    | 'invitation_accepted'
+    | 'invitation_declined';
+  details?: {
+    target_type?: 'workspace' | 'repository' | 'member' | 'invitation';
+    target_id?: string;
+    target_name?: string;
+    old_value?: string;
+    new_value?: string;
+    role?: WorkspaceRole;
+    repository_name?: string;
+    member_email?: string;
+    [key: string]: unknown;
+  };
   created_at: string;
+}
+
+/**
+ * Workspace activity with user details
+ */
+export interface WorkspaceActivityWithUser extends WorkspaceActivity {
+  user: {
+    id: string;
+    email: string;
+    avatar_url?: string;
+    display_name?: string;
+  };
 }
 
 // =====================================================
@@ -410,15 +469,23 @@ export interface WorkspaceActivity {
  * Check if a role has permission for an action
  */
 export const canEditWorkspace = (role: WorkspaceRole): boolean => {
-  return ['owner', 'admin'].includes(role);
+  return ['owner', 'maintainer'].includes(role);
 };
 
 export const canManageRepositories = (role: WorkspaceRole): boolean => {
-  return ['owner', 'admin', 'editor'].includes(role);
+  return ['owner', 'maintainer'].includes(role);
 };
 
 export const canManageMembers = (role: WorkspaceRole): boolean => {
-  return ['owner', 'admin'].includes(role);
+  return ['owner', 'maintainer'].includes(role);
+};
+
+export const canInviteContributors = (role: WorkspaceRole): boolean => {
+  return ['owner', 'maintainer'].includes(role);
+};
+
+export const canInviteMaintainers = (role: WorkspaceRole): boolean => {
+  return role === 'owner';
 };
 
 export const canViewWorkspace = (): boolean => {
@@ -432,6 +499,8 @@ export const getRoleDisplayName = (role: WorkspaceRole): string => {
   const roleNames: Record<WorkspaceRole, string> = {
     owner: 'Owner',
     admin: 'Admin',
+    maintainer: 'Maintainer',
+    contributor: 'Contributor',
     editor: 'Editor',
     viewer: 'Viewer',
   };
@@ -443,10 +512,12 @@ export const getRoleDisplayName = (role: WorkspaceRole): string => {
  */
 export const getRoleDescription = (role: WorkspaceRole): string => {
   const descriptions: Record<WorkspaceRole, string> = {
-    owner: 'Full control over the workspace',
-    admin: 'Can manage members and repositories',
-    editor: 'Can add and remove repositories',
-    viewer: 'Can view workspace content',
+    owner: 'Full control over the workspace, manage billing',
+    admin: 'Full administrative access to workspace',
+    maintainer: 'Can manage repositories and invite contributors',
+    contributor: 'View-only access to workspace content',
+    editor: 'Can edit workspace content and manage groups',
+    viewer: 'Read-only access to workspace',
   };
   return descriptions[role];
 };
@@ -631,7 +702,7 @@ export const getTierInfo = (
   badge: string;
   color: string;
 } => {
-  const tierInfo = {
+  const tierInfo: Record<WorkspaceTier, { name: string; badge: string; color: string }> = {
     free: {
       name: 'Free',
       badge: '🆓',
@@ -642,11 +713,16 @@ export const getTierInfo = (
       badge: '💎',
       color: 'blue',
     },
-    enterprise: {
-      name: 'Enterprise',
-      badge: '🔒',
+    team: {
+      name: 'Team',
+      badge: '👥',
       color: 'purple',
     },
+    enterprise: {
+      name: 'Enterprise',
+      badge: '🏢',
+      color: 'gold',
+    },
   };
-  return tierInfo[tier];
+  return tierInfo[tier] || tierInfo.free; // Default to free tier if unknown
 };

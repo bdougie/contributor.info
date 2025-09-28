@@ -18,7 +18,7 @@ if (typeof window !== 'undefined') {
     MODE: 'test',
     DEV: false,
     PROD: false,
-    SSR: false
+    SSR: false,
   };
 }
 

@@ -9,7 +9,7 @@ import { waitFor, screen } from '@storybook/test';
  * Enhanced error logging for test debugging
  */
 const logTestError = (context: string, error: Error, additionalInfo?: any) => {
-  console.error(`[Test Utils] ${context}:`, {
+  console.error('[Test Utils] %s:', context, {
     error: error.message,
     stack: error.stack,
     additionalInfo,

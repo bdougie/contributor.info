@@ -21,7 +21,7 @@ const results = {
   tests: false,
   build: false,
   typeCheck: false,
-  ci: false
+  ci: false,
 };
 
 function runCommand(command, args, description) {
@@ -30,7 +30,7 @@ function runCommand(command, args, description) {
     const child = spawn(command, args, {
       stdio: ['inherit', 'pipe', 'pipe'],
       cwd: process.cwd(),
-      env: { ...process.env, CI: 'true' }
+      env: { ...process.env, CI: 'true' },
     });
 
     let stdout = '';
@@ -65,27 +65,34 @@ function runCommand(command, args, description) {
 
 async function checkConfiguration() {
   console.log('📋 Configuration Check...');
-  
+
   try {
     // Check vitest.config.ts
     const vitestConfig = readFileSync('vitest.config.ts', 'utf8');
     const hasInlineDeps = vitestConfig.includes('inline:') && vitestConfig.includes('@nivo');
     const hasServerDeps = vitestConfig.includes('server:') && vitestConfig.includes('deps:');
-    
+
     console.log(`   📝 Vitest config has inline deps: ${hasInlineDeps ? '✅' : '❌'}`);
     console.log(`   📝 Vitest config has server deps: ${hasServerDeps ? '✅' : '❌'}`);
-    
+
     // Check mock files
-    const setupExists = readFileSync('src/__mocks__/setup.ts', 'utf8').includes('@nivo/scatterplot');
-    const nivoMockExists = readFileSync('src/__mocks__/@nivo/scatterplot.tsx', 'utf8').includes('ResponsiveScatterPlot');
-    
+    const setupExists = readFileSync('src/__mocks__/setup.ts', 'utf8').includes(
+      '@nivo/scatterplot'
+    );
+    const nivoMockExists = readFileSync('src/__mocks__/@nivo/scatterplot.tsx', 'utf8').includes(
+      'ResponsiveScatterPlot'
+    );
+
     console.log(`   📝 Setup mock exists: ${setupExists ? '✅' : '❌'}`);
     console.log(`   📝 @nivo mock exists: ${nivoMockExists ? '✅' : '❌'}`);
-    
+
     // Check wrapper component
-    const wrapperExists = readFileSync('src/components/features/activity/contributions-wrapper.tsx', 'utf8').includes('lazy');
+    const wrapperExists = readFileSync(
+      'src/components/features/activity/contributions-wrapper.tsx',
+      'utf8'
+    ).includes('lazy');
     console.log(`   📝 Wrapper component exists: ${wrapperExists ? '✅' : '❌'}`);
-    
+
     console.log('');
     return hasInlineDeps && hasServerDeps && setupExists && nivoMockExists && wrapperExists;
   } catch (error) {
@@ -108,9 +115,10 @@ async function main() {
 
   // Check test output for specific patterns
   if (testResult.success) {
-    const hasAllTests = testResult.stdout.includes('291 passed') || testResult.stdout.includes('289 passed');
+    const hasAllTests =
+      testResult.stdout.includes('291 passed') || testResult.stdout.includes('289 passed');
     const noEsModuleErrors = !testResult.stderr.includes('require() of ES Module');
-    
+
     console.log(`   📊 All tests passed: ${hasAllTests ? '✅' : '❌'}`);
     console.log(`   📊 No ES module errors: ${noEsModuleErrors ? '✅' : '❌'}`);
   }
@@ -124,7 +132,11 @@ async function main() {
   results.build = buildResult.success;
 
   // CI environment simulation
-  const ciResult = await runCommand('node', ['scripts/test-ci-environment.js'], 'CI environment simulation');
+  const ciResult = await runCommand(
+    'node',
+    ['scripts/test-ci-environment.js'],
+    'CI environment simulation'
+  );
   results.ci = ciResult.success;
 
   // Summary
@@ -136,7 +148,7 @@ async function main() {
   console.log(`CI Env:      ${results.ci ? '✅ PASS' : '❌ FAIL'}`);
 
   const allPassed = Object.values(results).every(Boolean);
-  
+
   if (allPassed) {
     console.log('\n🎉 ALL CHECKS PASSED! ES Module fix is working correctly.');
     console.log('The CI environment should now run tests successfully.');
@@ -146,7 +158,7 @@ async function main() {
   }
 }
 
-main().catch(error => {
+main().catch((error) => {
   console.error('❌ Verification script failed:', error);
   process.exit(1);
 });

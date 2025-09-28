@@ -11,9 +11,16 @@ if (typeof process !== 'undefined' && process.env) {
 
 // Mock import.meta.env for browser context
 if (typeof window !== 'undefined') {
-  (window as any).import = (window as any).import || {};
-  (window as any).import.meta = (window as any).import.meta || {};
-  (window as any).import.meta.env = {
+  const windowWithImport = window as typeof window & {
+    import?: {
+      meta?: {
+        env?: Record<string, unknown>;
+      };
+    };
+  };
+  windowWithImport.import = windowWithImport.import || {};
+  windowWithImport.import.meta = windowWithImport.import.meta || {};
+  windowWithImport.import.meta.env = {
     VITE_SUPABASE_URL: 'http://localhost:54321',
     VITE_SUPABASE_ANON_KEY: 'mock-anon-key',
     MODE: 'test',
@@ -47,7 +54,7 @@ global.IntersectionObserver = class IntersectionObserver {
   takeRecords() {
     return [];
   }
-} as any;
+} as typeof IntersectionObserver;
 
 // Setup before each test
 beforeEach(() => {

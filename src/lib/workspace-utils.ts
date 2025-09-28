@@ -57,6 +57,55 @@ export function getWorkspaceUrl(workspace: { id: string; slug?: string; name?: s
 }
 
 /**
+ * Get a reliable identifier for workspace navigation
+ * Prioritizes slug but falls back to ID if slug is missing
+ * @param workspace - Workspace object or undefined
+ * @param fallbackId - Optional fallback ID if workspace is undefined
+ * @returns Slug or ID for navigation
+ */
+export function getWorkspaceIdentifier(
+  workspace: { slug?: string; id: string } | undefined | null,
+  fallbackId?: string
+): string {
+  // If we have a workspace object
+  if (workspace) {
+    return workspace.slug || workspace.id;
+  }
+
+  // If we have a fallback ID
+  if (fallbackId) {
+    return fallbackId;
+  }
+
+  // This should not happen, but provides a safe fallback
+  console.error('No workspace identifier available');
+  return '';
+}
+
+/**
+ * Build a workspace route with proper slug/ID handling
+ * @param workspace - Workspace object or undefined
+ * @param path - Optional sub-path (e.g., 'settings', 'members')
+ * @param fallbackId - Optional fallback ID if workspace is undefined
+ * @returns Full route path
+ */
+export function buildWorkspaceRoute(
+  workspace: { slug?: string; id: string } | undefined | null,
+  path?: string,
+  fallbackId?: string
+): string {
+  const identifier = getWorkspaceIdentifier(workspace, fallbackId);
+
+  if (!identifier) {
+    // Return home route if no identifier available
+    return '/';
+  }
+
+  const basePath = `/i/${identifier}`;
+  return path ? `${basePath}/${path}` : basePath;
+}
+
+/**
  * Ensure workspace has a slug
  * @param workspace - The workspace object
  * @returns Workspace with slug guaranteed

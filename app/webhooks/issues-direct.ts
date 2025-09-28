@@ -24,10 +24,10 @@ async function getAuth() {
  */
 export async function handleIssueOpenedDirect(event: IssuesEvent) {
   console.log('🎯 handleIssueOpenedDirect called');
-  
+
   try {
     const { issue, repository, installation } = event;
-    
+
     console.log(`Processing opened issue #${issue.number} in ${repository.full_name}`);
     console.log(`  Repository GitHub ID: ${repository.id}`);
     console.log(`  Installation ID: ${installation?.id}`);
@@ -42,7 +42,7 @@ export async function handleIssueOpenedDirect(event: IssuesEvent) {
 
     console.log('📝 Getting auth module...');
     const auth = await getAuth();
-    
+
     console.log('📝 Getting installation Octokit...');
     const octokit = await auth.getInstallationOctokit(installationId);
     console.log('✅ Got installation Octokit');
@@ -66,7 +66,6 @@ export async function handleIssueOpenedDirect(event: IssuesEvent) {
 
     // Ensure repository is tracked for future use
     await ensureRepositoryTracked(repository);
-
   } catch (error) {
     console.error('Error handling issue opened event:', error);
   }
@@ -84,17 +83,17 @@ function formatIssueWelcomeComment(issue: any, repository: any, similarIssues: a
   if (similarIssues.length > 0) {
     comment += `### 🔗 Related Issues\n\n`;
     comment += `I found some issues that might be related:\n\n`;
-    
+
     for (const similar of similarIssues) {
       const stateEmoji = similar.state === 'open' ? '🟢' : '🔴';
       comment += `- ${stateEmoji} [#${similar.number} - ${similar.title}](${similar.html_url})`;
-      
+
       if (similar.similarity_reason) {
         comment += ` (${similar.similarity_reason})`;
       }
       comment += '\n';
     }
-    
+
     comment += '\n';
   }
 
@@ -121,12 +120,12 @@ async function findSimilarIssuesDirect(issue: any, repository: any): Promise<any
       .select('id')
       .eq('github_id', repository.id)
       .maybeSingle();
-    
+
     if (!dbRepo) {
       console.log('Repository not in database yet, no similar issues available');
       return [];
     }
-    
+
     // Look for similar issues
     const { data: issues } = await supabase
       .from('issues')
@@ -134,33 +133,34 @@ async function findSimilarIssuesDirect(issue: any, repository: any): Promise<any
       .eq('repository_id', dbRepo.id)
       .neq('number', issue.number) // Exclude the current issue
       .limit(50);
-    
+
     if (!issues || issues.length === 0) {
       return [];
     }
-    
+
     // Simple similarity matching
     const similar = [];
     const issueTitleLower = issue.title.toLowerCase();
     const issueBodyLower = (issue.body || '').toLowerCase();
-    
+
     for (const existingIssue of issues) {
       const titleLower = (existingIssue.title || '').toLowerCase();
       const bodyLower = (existingIssue.body || '').toLowerCase();
-      
+
       let similarityScore = 0;
       let similarity_reason = null;
-      
+
       // Check for similar titles
-      const titleWords = issueTitleLower.split(/\s+/).filter(w => w.length > 3);
-      const existingTitleWords = titleLower.split(/\s+/).filter(w => w.length > 3);
-      const commonWords = titleWords.filter(word => existingTitleWords.includes(word));
-      
+      const titleWords = issueTitleLower.split(/\s+/).filter((w) => w.length > 3);
+      const existingTitleWords = titleLower.split(/\s+/).filter((w) => w.length > 3);
+      const commonWords = titleWords.filter((word) => existingTitleWords.includes(word));
+
       if (commonWords.length >= 3) {
-        similarityScore = commonWords.length / Math.max(titleWords.length, existingTitleWords.length);
+        similarityScore =
+          commonWords.length / Math.max(titleWords.length, existingTitleWords.length);
         similarity_reason = 'similar title';
       }
-      
+
       // Check for common error messages or keywords
       const errorPatterns = [
         /error:\s*(.+)/i,
@@ -169,18 +169,18 @@ async function findSimilarIssuesDirect(issue: any, repository: any): Promise<any
         /cannot\s+(.+)/i,
         /unable to\s+(.+)/i,
       ];
-      
+
       for (const pattern of errorPatterns) {
         const issueMatch = issueBodyLower.match(pattern);
         const existingMatch = bodyLower.match(pattern);
-        
+
         if (issueMatch && existingMatch && issueMatch[1] === existingMatch[1]) {
           similarityScore = 0.8;
           similarity_reason = 'same error message';
           break;
         }
       }
-      
+
       if (similarityScore > 0.4) {
         similar.push({
           ...existingIssue,
@@ -189,12 +189,9 @@ async function findSimilarIssuesDirect(issue: any, repository: any): Promise<any
         });
       }
     }
-    
+
     // Sort by similarity and return top 3
-    return similar
-      .sort((a, b) => b.similarityScore - a.similarityScore)
-      .slice(0, 3);
-    
+    return similar.sort((a, b) => b.similarityScore - a.similarityScore).slice(0, 3);
   } catch (error) {
     console.error('Error finding similar issues:', error);
     return [];
@@ -212,12 +209,12 @@ async function ensureRepositoryTracked(repository: any) {
       .select('id, github_id')
       .eq('github_id', repository.id)
       .maybeSingle();
-    
+
     if (existing) {
       console.log(`Repository ${repository.full_name} already tracked`);
       return existing.id;
     }
-    
+
     // Check if repository exists with wrong GitHub ID
     const { data: wrongId } = await supabase
       .from('repositories')
@@ -225,28 +222,30 @@ async function ensureRepositoryTracked(repository: any) {
       .eq('owner', repository.owner.login)
       .eq('name', repository.name)
       .maybeSingle();
-    
+
     if (wrongId) {
-      console.log(`⚠️ Repository ${repository.full_name} has wrong GitHub ID: ${wrongId.github_id} vs ${repository.id}`);
-      
+      console.log(
+        `⚠️ Repository ${repository.full_name} has wrong GitHub ID: ${wrongId.github_id} vs ${repository.id}`
+      );
+
       // Update with correct GitHub ID
       const { error: updateError } = await supabase
         .from('repositories')
-        .update({ 
+        .update({
           github_id: repository.id,
-          last_updated_at: new Date().toISOString()
+          last_updated_at: new Date().toISOString(),
         })
         .eq('id', wrongId.id);
-      
+
       if (!updateError) {
         console.log(`✅ Fixed GitHub ID for ${repository.full_name}`);
       }
       return wrongId.id;
     }
-    
+
     // Repository doesn't exist, create it
     console.log(`Adding new repository ${repository.full_name} to database`);
-    
+
     const { data: newRepo, error } = await supabase
       .from('repositories')
       .insert({
@@ -266,15 +265,14 @@ async function ensureRepositoryTracked(repository: any) {
       })
       .select('id')
       .maybeSingle();
-    
+
     if (error) {
       console.error(`Failed to create repository: ${error.message}`);
       return null;
     }
-    
+
     console.log(`✅ Created repository ${repository.full_name} with GitHub ID ${repository.id}`);
     return newRepo.id;
-    
   } catch (error) {
     console.error('Error ensuring repository tracked:', error);
     return null;

@@ -3,6 +3,7 @@ import { supabase } from '../../supabase';
 import { getOctokit } from '../github-client';
 import { SyncLogger } from '../sync-logger';
 import { NonRetriableError } from 'inngest';
+import { detectBot } from '../../utils/bot-detection';
 
 // GitHub Issue from API
 interface GitHubIssue {
@@ -142,10 +143,10 @@ export const captureRepositoryIssues = inngest.createFunction(
 
         return issues;
       } catch (error: unknown) {
-        console.error(`Error fetching issues for ${repository.owner}/${repository.name}:`, error);
+        console.error('Error fetching issues for %s/%s:', error, repository.owner, repository.name);
         const apiError = error as { status?: number };
         if (apiError.status === 404) {
-          console.warn(`Repository ${repository.owner}/${repository.name} not found, skipping`);
+          console.warn('Repository %s/%s not found, skipping', repository.owner, repository.name);
           return [];
         }
         if (apiError.status === 403) {
@@ -183,7 +184,7 @@ export const captureRepositoryIssues = inngest.createFunction(
               github_id: issue.user.id,
               username: issue.user.login,
               avatar_url: issue.user.avatar_url,
-              is_bot: issue.user.type === 'Bot' || issue.user.login.includes('[bot]'),
+              is_bot: detectBot({ githubUser: issue.user }).isBot,
             })
             .select('id')
             .maybeSingle();
@@ -241,7 +242,7 @@ export const captureRepositoryIssues = inngest.createFunction(
         });
       }
 
-      console.log(`Queued ${issueCommentJobs.length} issue comment capture jobs`);
+      console.log('Queued %s issue comment capture jobs', issueCommentJobs.length);
       return issueCommentJobs.length;
     });
 

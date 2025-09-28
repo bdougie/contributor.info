@@ -1,6 +1,15 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useGitHubAuth } from './use-github-auth';
+import { handleApiResponse } from '@/lib/utils/api-helpers';
+
+// Type for track repository API response
+interface TrackRepositoryResponse {
+  success: boolean;
+  repositoryId?: string;
+  eventId?: string;
+  message?: string;
+}
 
 export interface TrackingState {
   status: 'checking' | 'not_tracked' | 'tracking' | 'tracked' | 'error' | 'timeout' | 'idle';
@@ -34,6 +43,7 @@ export function useRepositoryTracking({
   });
 
   const { isLoggedIn } = useGitHubAuth();
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Check if repository exists in database
   const checkRepository = useCallback(async () => {
@@ -122,7 +132,7 @@ export function useRepositoryTracking({
 
     try {
       // Call the tracking API endpoint
-      const response = await fetch('/.netlify/functions/api-track-repository', {
+      const response = await fetch('/api/track-repository', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -131,37 +141,19 @@ export function useRepositoryTracking({
         body: JSON.stringify({ owner, repo }),
       });
 
-      const result = await response.json();
+      const result = await handleApiResponse<TrackRepositoryResponse>(response, 'track-repository');
 
-      if (!response.ok) {
-        throw new Error(result.message || 'Failed to track repository');
+      // Clear any existing polling interval
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
       }
 
       // Start polling for repository creation
-      pollForRepository(owner, repo);
-
-      return { success: true, repositoryId: result.repositoryId };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to track repository';
-
-      setState({
-        status: 'error',
-        repository: null,
-        message: null,
-        error: errorMessage,
-      });
-
-      return { success: false, error: errorMessage };
-    }
-  }, [owner, repo, isLoggedIn]);
-
-  // Poll for repository creation after tracking
-  const pollForRepository = useCallback(
-    (owner: string, repo: string) => {
       let pollCount = 0;
       const maxPolls = 60; // 2 minutes max
 
-      const pollInterval = setInterval(async () => {
+      pollIntervalRef.current = setInterval(async () => {
         pollCount++;
 
         try {
@@ -173,7 +165,10 @@ export function useRepositoryTracking({
             .maybeSingle();
 
           if (repoData) {
-            clearInterval(pollInterval);
+            if (pollIntervalRef.current) {
+              clearInterval(pollIntervalRef.current);
+              pollIntervalRef.current = null;
+            }
 
             setState({
               status: 'tracked',
@@ -188,7 +183,10 @@ export function useRepositoryTracking({
           }
 
           if (pollCount >= maxPolls) {
-            clearInterval(pollInterval);
+            if (pollIntervalRef.current) {
+              clearInterval(pollIntervalRef.current);
+              pollIntervalRef.current = null;
+            }
             setState((prev) => ({
               ...prev,
               status: 'timeout',
@@ -201,11 +199,20 @@ export function useRepositoryTracking({
         }
       }, 2000);
 
-      // Clean up on unmount
-      return () => clearInterval(pollInterval);
-    },
-    [onTrackingComplete]
-  );
+      return { success: true, repositoryId: result?.repositoryId };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to track repository';
+
+      setState({
+        status: 'error',
+        repository: null,
+        message: null,
+        error: errorMessage,
+      });
+
+      return { success: false, error: errorMessage };
+    }
+  }, [owner, repo, isLoggedIn, state.status, onTrackingComplete]);
 
   // Check repository on mount and when owner/repo changes
   useEffect(() => {
@@ -234,6 +241,16 @@ export function useRepositoryTracking({
     }));
     trackRepository();
   }, [trackRepository]);
+
+  // Cleanup polling interval on unmount or when dependencies change
+  useEffect(() => {
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+    };
+  }, []);
 
   return {
     ...state,
