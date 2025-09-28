@@ -174,9 +174,29 @@ async function generateEnhancedReview(
         exec('which cn', (error, stdout) => {
           if (error) {
             core.error('Continue CLI not found. Make sure @continuedev/cli is installed.');
+            core.error(`Error details: ${error.message}`);
+            // Try to install it
+            core.info('Attempting to install Continue CLI...');
+            exec('npm list @continuedev/cli', (listError, listOutput) => {
+              if (listError) {
+                core.error('Continue CLI is not installed in node_modules');
+              } else {
+                core.info(`Continue CLI package found: ${listOutput}`);
+                // Check if it's in the PATH
+                exec('echo $PATH', (pathError, pathOutput) => {
+                  core.info(`Current PATH: ${pathOutput}`);
+                });
+              }
+            });
             reject(new Error('Continue CLI not found'));
           } else {
             core.info(`Continue CLI found at: ${stdout.trim()}`);
+            // Check version
+            exec('cn --version', (verError, verOutput) => {
+              if (!verError) {
+                core.info(`Continue CLI version: ${verOutput.trim()}`);
+              }
+            });
             resolve();
           }
         });
@@ -185,10 +205,12 @@ async function generateEnhancedReview(
       // Execute enhanced review with Continue CLI
       const command = `cn --config ${continueConfig} -p @${tempFile} --allow Bash`;
       core.info(`Executing enhanced review: cn --config ${continueConfig} -p @${tempFile} --allow Bash`);
+      core.info(`Continue API Key is set: ${continueApiKey ? 'Yes' : 'No'}`);
+      core.info(`GitHub Token is set: ${githubToken ? 'Yes' : 'No'}`);
 
       const { stdout, stderr } = await new Promise<{ stdout: string; stderr: string }>(
         (resolve, reject) => {
-          exec(
+          const childProcess = exec(
             command,
             {
               env: {
@@ -203,6 +225,15 @@ async function generateEnhancedReview(
             (error, stdout, stderr) => {
               if (error) {
                 core.error(`Continue CLI error: ${error.message}`);
+                if (error.code === 'ETIMEDOUT') {
+                  core.error('Continue CLI execution timed out after 7 minutes');
+                }
+                if (error.signal) {
+                  core.error(`Process killed with signal: ${error.signal}`);
+                }
+                if (stderr) {
+                  core.error(`Continue CLI stderr: ${stderr}`);
+                }
                 reject(error);
               } else {
                 core.info(`Enhanced review completed successfully`);
@@ -210,6 +241,11 @@ async function generateEnhancedReview(
               }
             }
           );
+
+          // Log PID for debugging
+          if (childProcess.pid) {
+            core.info(`Continue CLI process started with PID: ${childProcess.pid}`);
+          }
         }
       );
 
@@ -381,10 +417,12 @@ Please address the user's specific request while also checking for any significa
 
     // Check if Continue CLI is available
     await new Promise<void>((resolve, reject) => {
-      exec('which cn', (error) => {
+      exec('which cn', (error, stdout) => {
         if (error) {
+          core.error('Fallback: Continue CLI not found');
           reject(new Error('Continue CLI not found'));
         } else {
+          core.info(`Fallback: Continue CLI found at ${stdout.trim()}`);
           resolve();
         }
       });
@@ -556,6 +594,14 @@ async function run(): Promise<void> {
   try {
     core.info('🚀 Starting Enhanced Continue Review Action...');
 
+    // Debug: Log environment and context
+    core.info('=== Debug Information ===');
+    core.info(`Action: ${process.env.GITHUB_ACTION}`);
+    core.info(`Event Name: ${process.env.GITHUB_EVENT_NAME}`);
+    core.info(`Workflow: ${process.env.GITHUB_WORKFLOW}`);
+    core.info(`Run ID: ${process.env.GITHUB_RUN_ID}`);
+    core.info(`Run Number: ${process.env.GITHUB_RUN_NUMBER}`);
+
     // Get inputs
     const githubToken =
       process.env.INPUT_GITHUB_TOKEN || core.getInput('github-token', { required: true });
@@ -567,8 +613,17 @@ async function run(): Promise<void> {
       process.env.INPUT_CONTINUE_ORG || core.getInput('continue-org', { required: true });
 
     // Validate inputs
-    if (!githubToken || !continueApiKey || !continueConfig) {
-      throw new Error('Required inputs missing');
+    if (!githubToken) {
+      core.error('GitHub token is missing');
+      throw new Error('Required input missing: github-token');
+    }
+    if (!continueApiKey) {
+      core.error('Continue API key is missing');
+      throw new Error('Required input missing: continue-api-key');
+    }
+    if (!continueConfig) {
+      core.error('Continue config is missing');
+      throw new Error('Required input missing: continue-config');
     }
 
     const context = github.context;
@@ -576,44 +631,67 @@ async function run(): Promise<void> {
 
     core.info(`Enhanced review for: ${owner}/${repo}`);
     core.info(`Event: ${context.eventName}`);
+    core.info(`Event Action: ${context.payload.action || 'N/A'}`);
     core.info(`Continue Config: ${continueConfig}`);
 
     // Initialize metrics tracker
     const metricsTracker = new ReviewMetricsTracker();
 
     // Initialize GitHub client early for reactions
+    core.info('Initializing GitHub client...');
     const octokit = await getAuthenticatedOctokit(githubToken);
+    core.info('GitHub client initialized successfully');
 
     // Determine PR number (using existing logic)
     let prNumber: number | undefined;
 
     if (context.eventName === 'pull_request') {
       prNumber = context.payload.pull_request?.number;
+      core.info(`Processing pull_request event for PR #${prNumber}`);
     } else if (context.eventName === 'issue_comment') {
+      core.info('Processing issue_comment event...');
       prNumber = context.payload.issue?.number;
+
+      // Debug logging for issue comment
+      core.info(`Issue number: ${prNumber}`);
+      core.info(`Is PR: ${context.payload.issue?.pull_request ? 'Yes' : 'No'}`);
+      core.info(`Comment ID: ${context.payload.comment?.id}`);
+      core.info(`Comment Author: ${context.payload.comment?.user?.login}`);
+
       if (!context.payload.issue?.pull_request) {
         core.info('Not a pull request comment, skipping');
         return;
       }
+
       const comment = context.payload.comment?.body || '';
+      core.info(`Comment body (first 200 chars): ${comment.substring(0, 200)}`);
+
       if (!comment.includes('@continue-agent')) {
         core.info('Comment does not mention @continue-agent, skipping');
         return;
       }
 
+      core.info('Found @continue-agent mention, proceeding with review...');
+
       // Add 👀 reaction to confirm the bot is processing the request
       const commentId = context.payload.comment?.id;
       if (commentId) {
         try {
+          core.info(`Adding reaction to comment ${commentId}...`);
           await octokit.rest.reactions.createForIssueComment({
             owner,
             repo,
             comment_id: commentId,
             content: 'eyes'
           });
-          core.info(`Added 👀 reaction to comment ${commentId}`);
+          core.info(`✅ Added 👀 reaction to comment ${commentId}`);
         } catch (error) {
           core.warning(`Failed to add reaction: ${error}`);
+          // Log more details about the error
+          if (error instanceof Error) {
+            core.warning(`Error message: ${error.message}`);
+            core.warning(`Error stack: ${error.stack}`);
+          }
         }
       }
     } else if (context.eventName === 'workflow_dispatch') {
