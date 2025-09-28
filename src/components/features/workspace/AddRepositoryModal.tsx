@@ -317,28 +317,119 @@ export function AddRepositoryModal({
       // First, we need to ensure these repositories are tracked in our system
       const repoPromises = stagedRepos.map(async (repo) => {
         try {
-          // Always use the tracking API endpoint to ensure proper GitHub data handling
-          const trackResponse = await fetch('/api/track-repository', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            credentials: 'include',
-            body: JSON.stringify({
-              owner: repo.owner.login,
-              repo: repo.name,
-            }),
-          });
+          // First check if repository already exists in our database
+          const { data: existingRepo } = await supabase
+            .from('repositories')
+            .select('id')
+            .eq('owner', repo.owner.login)
+            .eq('name', repo.name)
+            .maybeSingle();
 
-          const trackResult = await trackResponse.json();
+          if (existingRepo) {
+            return existingRepo.id;
+          }
 
-          if (!trackResult.success) {
-            console.error('Track API error:', trackResult);
-            // If already tracked, that's OK - get the repository ID
-            if (trackResult.message?.includes('already being tracked')) {
-              // Wait a moment for database consistency
+          // Try to track via API endpoint for proper GitHub data
+          try {
+            const trackResponse = await fetch('/api/track-repository', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              credentials: 'include',
+              body: JSON.stringify({
+                owner: repo.owner.login,
+                repo: repo.name,
+              }),
+            });
+
+            const trackResult = await trackResponse.json();
+
+            if (trackResult.success) {
+              // If we have a repositoryId in the response, use it
+              if (trackResult.repositoryId) {
+                return trackResult.repositoryId;
+              }
+
+              // Otherwise, wait a moment for database consistency then fetch it
+              await new Promise(resolve => setTimeout(resolve, 1000));
+
+              const { data: newRepo } = await supabase
+                .from('repositories')
+                .select('id')
+                .eq('owner', repo.owner.login)
+                .eq('name', repo.name)
+                .maybeSingle();
+
+              if (newRepo) {
+                return newRepo.id;
+              }
+            } else if (trackResult.message?.includes('already being tracked')) {
+              // Repository is already tracked, get its ID
               await new Promise(resolve => setTimeout(resolve, 500));
 
+              const { data: trackedRepo } = await supabase
+                .from('repositories')
+                .select('id')
+                .eq('owner', repo.owner.login)
+                .eq('name', repo.name)
+                .maybeSingle();
+
+              if (trackedRepo) {
+                return trackedRepo.id;
+              }
+            }
+          } catch (apiError) {
+            console.warn('Track API failed, falling back to direct creation:', apiError);
+          }
+
+          // Fallback: Create repository directly if API fails (e.g., in development without GitHub token)
+          // Cast repo to any to access extended properties that might be available from the API
+          const extendedRepo = repo as any;
+
+          const { data: newRepo, error: createError } = await supabase
+            .from('repositories')
+            .insert({
+              github_id: repo.id,
+              full_name: repo.full_name,
+              name: repo.name,
+              owner: repo.owner.login,
+              description: repo.description || null,
+              language: repo.language || null,
+              stargazers_count: repo.stargazers_count || 0,
+              watchers_count: extendedRepo.watchers_count || extendedRepo.watchers || 0,
+              forks_count: repo.forks_count || 0,
+              open_issues_count: extendedRepo.open_issues_count || extendedRepo.open_issues || 0,
+              size: extendedRepo.size || 0,
+              is_tracked: true,
+              is_active: true,
+              // Add more GitHub data if available from extended properties
+              homepage: extendedRepo.homepage || null,
+              default_branch: extendedRepo.default_branch || 'main',
+              is_fork: extendedRepo.fork || false,
+              is_archived: extendedRepo.archived || false,
+              is_disabled: extendedRepo.disabled || false,
+              is_private: repo.private || false,
+              has_issues: extendedRepo.has_issues !== false,
+              has_projects: extendedRepo.has_projects !== false,
+              has_wiki: extendedRepo.has_wiki !== false,
+              has_pages: extendedRepo.has_pages || false,
+              has_downloads: extendedRepo.has_downloads !== false,
+              license: extendedRepo.license?.spdx_id || null,
+              topics: extendedRepo.topics || [],
+              github_created_at: extendedRepo.created_at || new Date().toISOString(),
+              github_updated_at: extendedRepo.updated_at || new Date().toISOString(),
+              github_pushed_at: repo.pushed_at || new Date().toISOString(),
+              first_tracked_at: new Date().toISOString(),
+              last_updated_at: new Date().toISOString(),
+            })
+            .select('id')
+            .maybeSingle();
+
+          if (createError) {
+            // Check if it's a duplicate key error
+            if (createError.code === '23505') {
+              // Repository was created by another process, try to fetch it
               const { data: existingRepo } = await supabase
                 .from('repositories')
                 .select('id')
@@ -350,32 +441,18 @@ export function AddRepositoryModal({
                 return existingRepo.id;
               }
             }
-            throw new Error(trackResult.message || `Failed to track ${repo.full_name}`);
+            console.error('%s %o', 'Error creating repository:', createError);
+            throw new Error(`Failed to add ${repo.full_name}: ${createError.message}`);
           }
-
-          // If we have a repositoryId in the response, use it
-          if (trackResult.repositoryId) {
-            return trackResult.repositoryId;
-          }
-
-          // Otherwise, wait a moment for database consistency then fetch it
-          await new Promise(resolve => setTimeout(resolve, 1000));
-
-          const { data: newRepo } = await supabase
-            .from('repositories')
-            .select('id')
-            .eq('owner', repo.owner.login)
-            .eq('name', repo.name)
-            .maybeSingle();
 
           if (!newRepo) {
-            throw new Error(`Repository ${repo.full_name} was tracked but not found in database`);
+            throw new Error(`Failed to create repository ${repo.full_name}`);
           }
 
           return newRepo.id;
         } catch (error) {
-          console.error('%s %o', 'Error tracking repository:', error);
-          throw new Error(`Failed to track ${repo.full_name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          console.error('%s %o', 'Error processing repository:', error);
+          throw new Error(`Failed to add ${repo.full_name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
       });
 
