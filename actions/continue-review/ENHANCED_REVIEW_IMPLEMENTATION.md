@@ -27,35 +27,39 @@ This implementation addresses GitHub issue #832 by significantly improving the c
 
 ## 🔧 Implementation Details
 
-### New Files Created
+### File Structure
 
-1. **`codebase-analyzer.ts`**
+1. **`index.ts`** (main entry point)
+   - Integrated enhanced review capabilities
+   - Intelligent fallback to standard Continue CLI if enhanced analysis fails
+   - Comprehensive error handling and logging
+   - Coordinates all review components
+
+2. **`codebase-analyzer.ts`**
    - Analyzes changed files and related patterns
    - Detects project frameworks and libraries
    - Identifies naming conventions and structure patterns
    - Extracts architectural patterns (React hooks, error handling, etc.)
 
-2. **`enhanced-prompt-generator.ts`**
+3. **`enhanced-prompt-generator.ts`**
    - Generates context-aware review prompts
    - Includes project-specific pattern insights
    - Provides strategic analysis framework
    - Maintains consistent output formatting
 
-3. **`review-metrics.ts`**
+4. **`review-metrics.ts`**
    - Tracks review quality metrics
    - Records processing time and analysis depth
    - Monitors suggestion implementation rates
    - Generates insights for continuous improvement
 
-4. **`enhanced-contextual-insights.md`** (new rule)
+5. **`enhanced-contextual-insights.md`** (review rule)
    - Defines standards for enhanced contextual reviews
    - Provides guidelines for strategic analysis
    - Ensures consistent quality across reviews
 
-5. **`index.ts`** (updated with enhanced capabilities)
-   - Main action logic with integrated enhanced review features
-   - Includes fallback to standard Continue CLI review if enhanced analysis fails
-   - Comprehensive error handling and logging
+6. **`github-app-auth.ts`**
+   - Handles GitHub App authentication for API access
 
 ### Enhanced Features
 
