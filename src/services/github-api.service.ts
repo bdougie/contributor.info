@@ -295,6 +295,8 @@ class GitHubAPIService {
     per_page?: number;
     page?: number;
     sha?: string;
+    since?: string;
+    until?: string;
   }) {
     return this.executeWithBackoff(async () => {
       const response = await this.octokit.rest.repos.listCommits({
@@ -303,6 +305,8 @@ class GitHubAPIService {
         per_page: options?.per_page || 30,
         page: options?.page || 1,
         sha: options?.sha,
+        since: options?.since,
+        until: options?.until,
       });
       return response.data;
     });
