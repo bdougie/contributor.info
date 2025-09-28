@@ -401,7 +401,6 @@ export function AddRepositoryModal({
               forks_count: repo.forks_count || 0,
               open_issues_count: extendedRepo.open_issues_count || extendedRepo.open_issues || 0,
               size: extendedRepo.size || 0,
-              is_tracked: true,
               is_active: true,
               // Add more GitHub data if available from extended properties
               homepage: extendedRepo.homepage || null,

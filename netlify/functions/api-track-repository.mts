@@ -281,9 +281,8 @@ export default async (req: Request, context: Context) => {
         // Repository already exists
         const existingRepo = existingRepos[0];
 
-        // Update repository with latest GitHub data and ensure it's marked as tracked
+        // Update repository with latest GitHub data
         const updateData: any = {
-          is_tracked: true,
           is_active: true,
           last_updated_at: new Date().toISOString(),
         };
@@ -434,7 +433,6 @@ export default async (req: Request, context: Context) => {
         github_pushed_at: githubData.pushed_at,
         first_tracked_at: new Date().toISOString(),
         last_updated_at: new Date().toISOString(),
-        is_tracked: true,
         is_active: true,
       };
 
