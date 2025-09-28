@@ -350,8 +350,10 @@ export default async (req: Request, context: Context) => {
           });
 
           // Send sync event for the existing repository
-          const result = await inngest.send([
-            {
+          // Handle each event separately to ensure repository sync succeeds even if commit capture fails
+          let syncResult;
+          try {
+            syncResult = await inngest.send({
               name: 'capture/repository.sync.graphql',
               data: {
                 repositoryId: existingRepo.id,
@@ -361,8 +363,16 @@ export default async (req: Request, context: Context) => {
                 priority: 'high',
                 reason: 'Re-tracking existing repository',
               },
-            },
-            {
+            });
+            console.log('Repository sync event sent successfully:', syncResult.ids);
+          } catch (syncError) {
+            console.error('Failed to send repository sync event:', syncError);
+            // Still continue - repository tracking can proceed without commit capture
+          }
+
+          // Try to send commit capture event separately
+          try {
+            const commitResult = await inngest.send({
               name: 'capture/commits.update',
               data: {
                 repositoryId: existingRepo.id,
@@ -372,12 +382,15 @@ export default async (req: Request, context: Context) => {
                 forceInitial: false,
                 reason: 'Re-tracking existing repository',
               },
-            },
-          ]);
-
-          console.log('Sync event sent for existing repository:', result.ids);
+            });
+            console.log('Commit capture event sent successfully:', commitResult.ids);
+          } catch (commitError) {
+            console.error('Failed to send commit capture event:', commitError);
+            // Log but don't fail the overall operation
+            console.log('Repository will be tracked but commit capture may be delayed');
+          }
         } catch (eventError) {
-          console.error('Failed to send sync event:', eventError);
+          console.error('Failed to send events:', eventError);
         }
 
         return new Response(
@@ -527,7 +540,8 @@ export default async (req: Request, context: Context) => {
         });
 
         // Send events through the SDK
-        const events = [
+        // Send critical events first, then optional ones
+        const criticalEvents = [
           {
             name: 'classify/repository.single',
             data: {
@@ -547,7 +561,15 @@ export default async (req: Request, context: Context) => {
               reason: 'Initial repository discovery',
             },
           },
-          {
+        ];
+
+        // Send critical events first (classification and repository sync)
+        const results = await inngest.send(criticalEvents);
+        console.log('Critical events sent successfully:', results.ids);
+
+        // Try to send commit capture event separately (non-critical)
+        try {
+          const commitEvent = {
             name: 'capture/commits.initial',
             data: {
               repositoryId: repository.id,
@@ -557,11 +579,15 @@ export default async (req: Request, context: Context) => {
               forceInitial: true,
               reason: 'Initial repository discovery',
             },
-          },
-        ];
+          };
 
-        const results = await inngest.send(events);
-        console.log('Inngest events sent successfully:', results.ids);
+          const commitResult = await inngest.send(commitEvent);
+          console.log('Commit capture event sent successfully:', commitResult.ids);
+        } catch (commitError) {
+          console.error('Failed to send commit capture event:', commitError);
+          console.log('Repository tracking will continue, but commit capture may be delayed');
+          // Don't fail the overall operation - repository tracking is more important
+        }
       } catch (eventError) {
         console.error('Failed to send Inngest events:', eventError);
         // Don't throw - events are non-critical for tracking success

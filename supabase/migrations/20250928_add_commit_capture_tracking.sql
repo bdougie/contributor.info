@@ -1,7 +1,7 @@
 -- Add columns for tracking commit capture status
 ALTER TABLE repositories
 ADD COLUMN IF NOT EXISTS last_commit_capture_at TIMESTAMP WITH TIME ZONE,
-ADD COLUMN IF NOT EXISTS commit_capture_status TEXT DEFAULT 'pending' CHECK (commit_capture_status IN ('pending', 'processing', 'completed', 'failed'));
+ADD COLUMN IF NOT EXISTS commit_capture_status TEXT NOT NULL DEFAULT 'pending' CHECK (commit_capture_status IN ('pending', 'processing', 'completed', 'failed'));
 
 -- Create index for efficient queries
 CREATE INDEX IF NOT EXISTS idx_repositories_commit_capture

@@ -132,7 +132,7 @@ export const env = {
   HYBRID_AUTO_ROLLBACK: getEnvVar('VITE_HYBRID_AUTO_ROLLBACK', 'HYBRID_AUTO_ROLLBACK'),
   HYBRID_MAX_ERROR_RATE: getEnvVar('VITE_HYBRID_MAX_ERROR_RATE', 'HYBRID_MAX_ERROR_RATE'),
 
-  // Commit capture configuration
+  // Commit capture configuration (keep as strings, parse at usage)
   VITE_COMMITS_INITIAL_DAYS: getEnvVar('VITE_COMMITS_INITIAL_DAYS'),
   VITE_COMMITS_UPDATE_DAYS: getEnvVar('VITE_COMMITS_UPDATE_DAYS'),
   VITE_COMMITS_MAX_PER_RUN: getEnvVar('VITE_COMMITS_MAX_PER_RUN'),
