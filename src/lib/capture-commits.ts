@@ -25,9 +25,10 @@ export async function captureCommits(
 ): Promise<{ success: boolean; count: number; error?: string }> {
   try {
     // Use provided Supabase client or default
-    const dbClient = (options?.supabaseUrl && options?.supabaseKey)
-      ? createClient(options.supabaseUrl, options.supabaseKey)
-      : supabase;
+    const dbClient =
+      options?.supabaseUrl && options?.supabaseKey
+        ? createClient(options.supabaseUrl, options.supabaseKey)
+        : supabase;
 
     // Get repository ID first
     const { data: repoData, error: repoError } = await dbClient
@@ -41,15 +42,15 @@ export async function captureCommits(
       return {
         success: false,
         count: 0,
-        error: `Repository not found: ${owner}/${repo}`
+        error: `Repository not found: ${owner}/${repo}`,
       };
     }
 
     // Configuration with defaults
-    const batchSize = options?.batchSize ||
-      parseInt(process.env.VITE_GITHUB_COMMITS_BATCH_SIZE || '100', 10);
-    const maxPages = options?.maxPages ||
-      parseInt(process.env.VITE_GITHUB_COMMITS_MAX_PAGES || '10', 10);
+    const batchSize =
+      options?.batchSize || parseInt(process.env.VITE_GITHUB_COMMITS_BATCH_SIZE || '100', 10);
+    const maxPages =
+      options?.maxPages || parseInt(process.env.VITE_GITHUB_COMMITS_MAX_PAGES || '10', 10);
 
     // Calculate date range - default to last 30 days
     const sinceDate = since || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
@@ -59,7 +60,9 @@ export async function captureCommits(
 
     if (!githubToken) {
       // Get token from authenticated user's session
-      const { data: { session } } = await dbClient.auth.getSession();
+      const {
+        data: { session },
+      } = await dbClient.auth.getSession();
       githubToken = session?.provider_token || undefined;
 
       if (!githubToken) {
@@ -72,12 +75,17 @@ export async function captureCommits(
       return {
         success: false,
         count: 0,
-        error: 'No GitHub token available. Please authenticate or provide a token.'
+        error: 'No GitHub token available. Please authenticate or provide a token.',
       };
     }
 
     // Fetch commits from GitHub
-    console.log('[Capture Commits] Fetching commits for %s/%s since %s', owner, repo, sinceDate.toISOString());
+    console.log(
+      '[Capture Commits] Fetching commits for %s/%s since %s',
+      owner,
+      repo,
+      sinceDate.toISOString()
+    );
     console.log('[Capture Commits] Batch size: %d, Max pages: %d', batchSize, maxPages);
 
     const githubApiService = new GitHubAPIService(githubToken);
@@ -91,7 +99,7 @@ export async function captureCommits(
       const commits = await githubApiService.fetchCommits(owner, repo, {
         since: sinceDate.toISOString(),
         per_page: batchSize,
-        page
+        page,
       });
 
       if (!commits || commits.length === 0) {
@@ -119,9 +127,7 @@ export async function captureCommits(
 
     // Get unique authors from commits to batch process
     const uniqueAuthors = Array.from(
-      new Set(commits
-        .filter(c => c.author?.login)
-        .map(c => c.author!.login))
+      new Set(commits.filter((c) => c.author?.login).map((c) => c.author!.login))
     );
 
     // Batch fetch existing contributors
@@ -134,24 +140,22 @@ export async function captureCommits(
         .in('username', uniqueAuthors);
 
       if (!fetchError && existingContributors) {
-        existingContributors.forEach(contrib => {
+        existingContributors.forEach((contrib) => {
           authorMap.set(contrib.username, contrib.id);
         });
       }
 
       // Prepare new contributors to insert (those not found in DB)
-      const newContributorUsernames = uniqueAuthors.filter(
-        username => !authorMap.has(username)
-      );
+      const newContributorUsernames = uniqueAuthors.filter((username) => !authorMap.has(username));
 
       if (newContributorUsernames.length > 0) {
         // Batch insert new contributors
-        const newContributors = newContributorUsernames.map(username => {
-          const commit = commits.find(c => c.author?.login === username);
+        const newContributors = newContributorUsernames.map((username) => {
+          const commit = commits.find((c) => c.author?.login === username);
           return {
             username,
             avatar_url: commit?.author?.avatar_url || '',
-            profile_url: commit?.author?.html_url || ''
+            profile_url: commit?.author?.html_url || '',
           };
         });
 
@@ -161,7 +165,7 @@ export async function captureCommits(
           .select('id, username');
 
         if (!insertError && insertedContributors) {
-          insertedContributors.forEach(contrib => {
+          insertedContributors.forEach((contrib) => {
             authorMap.set(contrib.username, contrib.id);
           });
         }
@@ -169,7 +173,7 @@ export async function captureCommits(
     }
 
     // Prepare commit records
-    const commitRecords = commits.map(commit => ({
+    const commitRecords = commits.map((commit) => ({
       repository_id: repoData.id,
       sha: commit.sha,
       author_id: commit.author ? authorMap.get(commit.author.login) : null,
@@ -177,38 +181,36 @@ export async function captureCommits(
       authored_at: commit.commit.author?.date || new Date().toISOString(),
       // Initially null - will be set by smart-commit-analyzer
       is_direct_commit: null,
-      pull_request_id: null
+      pull_request_id: null,
     }));
 
     // Insert commits (using upsert to handle duplicates)
-    const { error: insertError } = await dbClient
-      .from('commits')
-      .upsert(commitRecords, {
-        onConflict: 'repository_id,sha',
-        ignoreDuplicates: false
-      });
+    const { error: insertError } = await dbClient.from('commits').upsert(commitRecords, {
+      onConflict: 'repository_id,sha',
+      ignoreDuplicates: false,
+    });
 
     if (insertError) {
       console.error('[Capture Commits] Error inserting commits:', insertError);
       return {
         success: false,
         count: 0,
-        error: insertError.message
+        error: insertError.message,
       };
     }
 
     console.log('[Capture Commits] Successfully captured %d commits', commitRecords.length);
 
     // Queue commit analysis jobs with correct schema
-    const analysisJobs = commitRecords.map(commit => ({
+    const analysisJobs = commitRecords.map((commit) => ({
       repository_id: repoData.id,
       job_type: 'commit_pr_check',
       processor_type: 'smart-commit-analyzer',
       status: 'pending',
       metadata: {
         sha: commit.sha,
-        message: commit.message?.substring(0, 100) // Store first 100 chars for debugging
-      }
+        message: commit.message?.substring(0, 100), // Store first 100 chars for debugging
+      },
     }));
 
     const { error: jobError } = await dbClient
@@ -222,14 +224,14 @@ export async function captureCommits(
 
     return {
       success: true,
-      count: commitRecords.length
+      count: commitRecords.length,
     };
   } catch (error) {
     console.error('[Capture Commits] Unexpected error:', error);
     return {
       success: false,
       count: 0,
-      error: error instanceof Error ? error.message : String(error)
+      error: error instanceof Error ? error.message : String(error),
     };
   }
 }

@@ -144,7 +144,7 @@ class GitHubAPIService {
   }
 
   private async sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   async executeWithBackoff<T>(
@@ -173,7 +173,9 @@ class GitHubAPIService {
 
         // Parse rate limit headers from error response
         if (lastError.response?.headers) {
-          const rateLimitInfo = this.parseRateLimitHeaders(lastError.response.headers as Record<string, string>);
+          const rateLimitInfo = this.parseRateLimitHeaders(
+            lastError.response.headers as Record<string, string>
+          );
           if (rateLimitInfo) {
             this.rateLimitInfo = rateLimitInfo;
           }
@@ -192,10 +194,14 @@ class GitHubAPIService {
             const now = Date.now();
             const waitTime = Math.max(resetTime - now, delay);
 
-            console.log(`Rate limited. Waiting ${Math.ceil(waitTime / 1000)} seconds until reset...`);
+            console.log(
+              `Rate limited. Waiting ${Math.ceil(waitTime / 1000)} seconds until reset...`
+            );
             await this.sleep(waitTime);
           } else {
-            console.log(`Retrying after ${delay}ms (attempt ${attempt + 1}/${config.maxRetries})...`);
+            console.log(
+              `Retrying after ${delay}ms (attempt ${attempt + 1}/${config.maxRetries})...`
+            );
             await this.sleep(delay);
           }
         }
@@ -205,11 +211,15 @@ class GitHubAPIService {
     throw lastError || new Error('Operation failed after maximum retries');
   }
 
-  async fetchPullRequests(owner: string, repo: string, options?: {
-    state?: 'open' | 'closed' | 'all';
-    per_page?: number;
-    page?: number;
-  }) {
+  async fetchPullRequests(
+    owner: string,
+    repo: string,
+    options?: {
+      state?: 'open' | 'closed' | 'all';
+      per_page?: number;
+      page?: number;
+    }
+  ) {
     return this.executeWithBackoff(async () => {
       const response = await this.octokit.rest.pulls.list({
         owner,
@@ -265,10 +275,14 @@ class GitHubAPIService {
     });
   }
 
-  async fetchContributors(owner: string, repo: string, options?: {
-    per_page?: number;
-    page?: number;
-  }) {
+  async fetchContributors(
+    owner: string,
+    repo: string,
+    options?: {
+      per_page?: number;
+      page?: number;
+    }
+  ) {
     return this.executeWithBackoff(async () => {
       const response = await this.octokit.rest.repos.listContributors({
         owner,
@@ -280,11 +294,15 @@ class GitHubAPIService {
     });
   }
 
-  async fetchIssues(owner: string, repo: string, options?: {
-    state?: 'open' | 'closed' | 'all';
-    per_page?: number;
-    page?: number;
-  }) {
+  async fetchIssues(
+    owner: string,
+    repo: string,
+    options?: {
+      state?: 'open' | 'closed' | 'all';
+      per_page?: number;
+      page?: number;
+    }
+  ) {
     return this.executeWithBackoff(async () => {
       const response = await this.octokit.rest.issues.listForRepo({
         owner,
@@ -297,13 +315,17 @@ class GitHubAPIService {
     });
   }
 
-  async fetchCommits(owner: string, repo: string, options?: {
-    per_page?: number;
-    page?: number;
-    sha?: string;
-    since?: string;
-    until?: string;
-  }) {
+  async fetchCommits(
+    owner: string,
+    repo: string,
+    options?: {
+      per_page?: number;
+      page?: number;
+      sha?: string;
+      since?: string;
+      until?: string;
+    }
+  ) {
     return this.executeWithBackoff(async () => {
       const response = await this.octokit.rest.repos.listCommits({
         owner,
