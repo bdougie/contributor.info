@@ -1,4 +1,4 @@
-import { createSupabaseClient } from '@/lib/supabase';
+import { createSupabaseClient } from '../../src/lib/supabase';
 
 interface RepositoryValidation {
   isTracked: boolean;
@@ -112,4 +112,3 @@ export const CORS_HEADERS = {
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Credentials': 'true',
 };
-

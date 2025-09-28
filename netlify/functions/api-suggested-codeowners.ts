@@ -1,13 +1,13 @@
 import type { Context } from '@netlify/functions';
-import { createSupabaseClient } from '@/lib/supabase';
+import { createSupabaseClient } from '../src/lib/supabase';
 import {
   validateRepository,
   createNotFoundResponse,
   createErrorResponse,
   CORS_HEADERS,
 } from './lib/repository-validation';
-import { getApiConfig } from './lib/config';
 import { RateLimiter, getRateLimitKey, applyRateLimitHeaders } from './lib/rate-limiter';
+import { env } from '../src/lib/env';
 
 interface CodeOwnersSuggestion {
   pattern: string;
@@ -81,10 +81,15 @@ function generateCodeOwnersSuggestions(contributorStats: Map<string, Contributor
 }
 
 export default async (req: Request, context: Context) => {
-  const config = getApiConfig();
-  const limiter = new RateLimiter(config.supabase.url, config.supabase.serviceKey, {
-    maxRequests: config.rateLimit.maxRequests,
-    windowMs: config.rateLimit.windowMs,
+  const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
+  const supabaseKey =
+    process.env.SUPABASE_SERVICE_KEY ||
+    process.env.SUPABASE_ANON_KEY ||
+    process.env.VITE_SUPABASE_ANON_KEY ||
+    '';
+  const limiter = new RateLimiter(supabaseUrl, supabaseKey, {
+    maxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '60', 10),
+    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000', 10),
   });
 
   if (req.method === 'OPTIONS') return new Response('', { status: 200, headers: CORS_HEADERS });
@@ -148,13 +153,72 @@ export default async (req: Request, context: Context) => {
       return applyRateLimitHeaders(resp, rate);
     }
 
-    const suggestions = generateCodeOwnersSuggestions(contributorStats);
-    const codeOwnersContent = [
+    let suggestions = generateCodeOwnersSuggestions(contributorStats);
+    let codeOwnersContent = [
       '# CODEOWNERS file generated based on contribution analysis',
       '# Review and adjust these suggestions before using',
       '',
       ...suggestions.map((s) => `${s.pattern} ${s.owners.join(' ')} # ${s.reasoning} (confidence: ${(s.confidence * 100).toFixed(0)}%)`),
     ].join('\n');
+
+    // LLM fallback or augmentation when no suggestions or explicit request
+    const urlParams = new URL(req.url).searchParams;
+    const useLLM = urlParams.get('llm') === '1' || suggestions.length === 0;
+    const openAIKey = env.OPENAI_API_KEY;
+    if (useLLM && openAIKey) {
+      try {
+        const prompt = `You are helping generate a CODEOWNERS file for ${owner}/${repo}.
+We have these active contributor directories with contributions: ${Array.from(contributorStats.values())
+          .map((s) => `${s.username} -> [${Array.from(s.directories).slice(0, 10).join(', ')}]`)
+          .join('; ')}.
+Suggest up to 10 patterns with @user owners. Output lines in the format:
+/path/ @owner1 @owner2 # reasoning (confidence: 80%)`;
+
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${openAIKey}`,
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              { role: 'system', content: 'You are an expert at generating CODEOWNERS suggestions.' },
+              { role: 'user', content: prompt },
+            ],
+            temperature: 0.2,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const content = data?.choices?.[0]?.message?.content?.trim();
+          if (content) {
+            codeOwnersContent = `# CODEOWNERS suggestions (LLM-assisted)\n# Review before committing\n\n${content}`;
+            // If we had no suggestions before, create a minimal set from LLM content
+            if (suggestions.length === 0) {
+              suggestions = content
+                .split('\n')
+                .map((line: string) => line.trim())
+                .filter((line: string) => line && !line.startsWith('#'))
+                .map((line: string) => {
+                  const [pattern, ...owners] = line.split(/\s+/);
+                  return {
+                    pattern,
+                    owners: owners.filter((o) => o.startsWith('@')),
+                    confidence: 0.6,
+                    reasoning: 'LLM-assisted suggestion',
+                  } as CodeOwnersSuggestion;
+                });
+            }
+          }
+        } else {
+          console.error('OpenAI error:', await response.text());
+        }
+      } catch (e) {
+        console.error('LLM suggestion error:', e);
+      }
+    }
 
     const generatedAt = new Date().toISOString();
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
@@ -185,4 +249,3 @@ export default async (req: Request, context: Context) => {
 export const config = {
   path: '/api/repos/:owner/:repo/suggested-codeowners',
 };
-

@@ -1,12 +1,11 @@
 import type { Context } from '@netlify/functions';
-import { createSupabaseClient } from '@/lib/supabase';
+import { createSupabaseClient } from '../src/lib/supabase';
 import {
   validateRepository,
   createNotFoundResponse,
   createErrorResponse,
   CORS_HEADERS,
 } from './lib/repository-validation';
-import { getApiConfig } from './lib/config';
 import { RateLimiter, getRateLimitKey, applyRateLimitHeaders } from './lib/rate-limiter';
 
 interface TreeNode {
@@ -62,10 +61,15 @@ function processTreeData(data: FileTreeResponse): ProcessedTree {
 }
 
 export default async (req: Request, context: Context) => {
-  const config = getApiConfig();
-  const limiter = new RateLimiter(config.supabase.url, config.supabase.serviceKey, {
-    maxRequests: config.rateLimit.maxRequests,
-    windowMs: config.rateLimit.windowMs,
+  const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
+  const supabaseKey =
+    process.env.SUPABASE_SERVICE_KEY ||
+    process.env.SUPABASE_ANON_KEY ||
+    process.env.VITE_SUPABASE_ANON_KEY ||
+    '';
+  const limiter = new RateLimiter(supabaseUrl, supabaseKey, {
+    maxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '60', 10),
+    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000', 10),
   });
 
   if (req.method === 'OPTIONS') return new Response('', { status: 200, headers: CORS_HEADERS });
@@ -124,4 +128,3 @@ export default async (req: Request, context: Context) => {
 export const config = {
   path: '/api/repos/:owner/:repo/file-tree',
 };
-
