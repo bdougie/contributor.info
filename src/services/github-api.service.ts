@@ -1,4 +1,5 @@
 import { Octokit } from '@octokit/rest';
+import { throttling } from '@octokit/plugin-throttling';
 
 interface BackoffConfig {
   maxRetries?: number;
@@ -40,7 +41,8 @@ class GitHubAPIService {
   private rateLimitInfo: RateLimitInfo | null = null;
 
   constructor(auth?: string) {
-    this.octokit = new Octokit({
+    const MyOctokit = Octokit.plugin(throttling);
+    this.octokit = new MyOctokit({
       auth,
       throttle: {
         onRateLimit: (retryAfter: number, options: any) => {
@@ -87,11 +89,22 @@ class GitHubAPIService {
       return null;
     }
 
+    // Add null checks and safer type conversion
+    const parsedRemaining = remaining ? parseInt(remaining, 10) : 0;
+    const parsedReset = reset ? parseInt(reset, 10) : 0;
+    const parsedLimit = limit ? parseInt(limit, 10) : 0;
+    const parsedUsed = used ? parseInt(used, 10) : 0;
+
+    // Validate parsed values
+    if (isNaN(parsedRemaining) || isNaN(parsedReset) || isNaN(parsedLimit)) {
+      return null;
+    }
+
     return {
-      remaining: parseInt(remaining, 10),
-      reset: parseInt(reset, 10),
-      limit: parseInt(limit, 10),
-      used: parseInt(used || '0', 10),
+      remaining: parsedRemaining,
+      reset: parsedReset,
+      limit: parsedLimit,
+      used: parsedUsed,
     };
   }
 

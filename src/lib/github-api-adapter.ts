@@ -161,10 +161,19 @@ export class GitHubAPIAdapter {
 
 // Export singleton instance for default use
 let defaultAdapter: GitHubAPIAdapter | null = null;
+let currentAuth: string | undefined = undefined;
 
 export function getGitHubAPIAdapter(auth?: string): GitHubAPIAdapter {
-  if (!defaultAdapter || auth) {
+  // If auth is provided and different from current, create new instance
+  if (auth !== undefined && auth !== currentAuth) {
     defaultAdapter = new GitHubAPIAdapter(auth);
+    currentAuth = auth;
   }
+  // If no adapter exists yet, create one
+  else if (!defaultAdapter) {
+    defaultAdapter = new GitHubAPIAdapter(auth);
+    currentAuth = auth;
+  }
+
   return defaultAdapter;
 }

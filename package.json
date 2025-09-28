@@ -104,6 +104,7 @@
     "@nivo/scatterplot": "^0.88.0",
     "@octokit/auth-app": "^8.0.2",
     "@octokit/graphql": "^9.0.1",
+    "@octokit/plugin-throttling": "^11.0.1",
     "@octokit/rest": "^22.0.0",
     "@polar-sh/nextjs": "^0.4.6",
     "@polar-sh/sdk": "^0.34.16",

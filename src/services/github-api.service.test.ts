@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import GitHubAPIService from './github-api.service';
 
 // Mock Octokit to prevent real API calls
-vi.mock('@octokit/rest', () => ({
-  Octokit: vi.fn(() => ({
+vi.mock('@octokit/rest', () => {
+  const OctokitMock = vi.fn(() => ({
     rest: {
       pulls: {
         list: vi.fn(),
@@ -23,7 +23,18 @@ vi.mock('@octokit/rest', () => ({
         get: vi.fn(),
       },
     },
-  })),
+  }));
+
+  OctokitMock.plugin = vi.fn(() => OctokitMock);
+
+  return {
+    Octokit: OctokitMock,
+  };
+});
+
+// Mock throttling plugin
+vi.mock('@octokit/plugin-throttling', () => ({
+  throttling: vi.fn(),
 }));
 
 describe('GitHubAPIService', () => {
