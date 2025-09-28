@@ -396,7 +396,7 @@ async function postEnhancedReview(
   isProgress: boolean = false,
   updateCommentId?: number
 ): Promise<number | undefined> {
-  const marker = '<!-- continue-agent-enhanced-review -->';
+  const marker = '<!-- continue-agent-review -->';
   const timestamp = new Date().toISOString();
 
   core.info(`Posting enhanced review comment to PR #${prNumber} (isProgress: ${isProgress})`);
@@ -406,15 +406,14 @@ async function postEnhancedReview(
   if (isProgress) {
     body = review;
   } else {
-    // Add enhanced review header
-    body = '**🚀 Enhanced Code Review**\n\n';
+    // Add review content
     body += review;
 
     // Add metrics summary
     const metricsSummary = await metricsTracker.generateMetricsSummary();
     body += metricsSummary;
 
-    body += `\n\n---\n<!-- ${timestamp} | Enhanced by Continue AI (https://continue.dev) -->`;
+    body += `\n\n---\n<!-- ${timestamp} | Powered by Continue (https://continue.dev) -->`;
   }
 
   body = `${marker}\n${body}`;
@@ -612,7 +611,7 @@ async function run(): Promise<void> {
       owner,
       repo,
       prNumber,
-      "🔄 **Enhanced Review in Progress**\n\n✨ Analyzing codebase patterns and conventions...\n📊 Generating contextual insights...\n🎯 Preparing strategic feedback...\n\n*This enhanced review considers your project's specific patterns and architecture.*",
+      "🔄 **Review in Progress**\n\n✨ Analyzing codebase patterns and conventions...\n📊 Generating contextual insights...\n🎯 Preparing strategic feedback...\n\n*This review considers your project's specific patterns and architecture.*",
       metricsTracker,
       true
     );
