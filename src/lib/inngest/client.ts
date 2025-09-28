@@ -93,6 +93,26 @@ export type DataCaptureEvents = {
       batchId: string;
     };
   };
+  'capture/commits.initial': {
+    data: {
+      repositoryId: string;
+      repositoryName: string;
+      days: number;
+      priority: 'high' | 'medium' | 'low';
+      forceInitial: boolean;
+      reason: string;
+    };
+  };
+  'capture/commits.update': {
+    data: {
+      repositoryId: string;
+      repositoryName: string;
+      days: number;
+      priority: 'high' | 'medium' | 'low';
+      forceInitial: boolean;
+      reason: string;
+    };
+  };
   'capture/batch.completed': {
     data: {
       repositoryId: string;

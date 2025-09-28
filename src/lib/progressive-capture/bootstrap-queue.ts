@@ -1,5 +1,6 @@
 import { supabase } from '../supabase';
 import { ProgressiveCaptureNotifications } from './ui-notifications';
+import { CommitProcessor } from './commit-processor';
 
 // Lazy load Hybrid queue manager to avoid Buffer issues in browser
 async function getHybridQueueManager() {
@@ -55,7 +56,13 @@ export async function bootstrapDataCaptureQueue(): Promise<void> {
       }
     }
 
-    // 3. Queue additional historical processing for repositories with commits
+    // 3. Queue commit capture for repositories that need it
+    const commitsQueued = await CommitProcessor.queueStaleCommitCaptures(5);
+    if (commitsQueued > 0) {
+      console.log('[Bootstrap] Queued commit capture for %d repositories', commitsQueued);
+    }
+
+    // 4. Queue additional historical processing for repositories with commits
     const { data: reposWithCommits, error: commitsError } = await supabase
       .from('repositories')
       .select(
@@ -77,7 +84,7 @@ export async function bootstrapDataCaptureQueue(): Promise<void> {
       }
     }
 
-    // 4. Show queue statistics
+    // 5. Show queue statistics
     const stats = await manager.getHybridStats();
 
     // Show UI notification for bootstrap completion
@@ -95,6 +102,7 @@ export async function bootstrapDataCaptureQueue(): Promise<void> {
         '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
         '- Queued recent data jobs for %s stale repositories (→ Inngest)\n' +
         '- Queued historical data jobs for %s active repositories (→ GitHub Actions)\n' +
+        '- Queued commit capture for %s repositories\n' +
         '- Queued extended historical jobs for %s repositories with commits (→ GitHub Actions)\n' +
         '\n' +
         '📊 Queue Statistics:\n' +
@@ -105,6 +113,7 @@ export async function bootstrapDataCaptureQueue(): Promise<void> {
         '🎯 Smart Routing Active:\n' +
         '- Recent data (< 24 hours) → Inngest for real-time processing\n' +
         '- Historical data (> 24 hours) → GitHub Actions for cost-effective bulk processing\n' +
+        '- Commit capture with configurable time ranges (7 days initial, 1 day updates)\n' +
         '\n' +
         '📋 Next Steps:\n' +
         '1. Jobs will process automatically across both systems\n' +
@@ -113,6 +122,7 @@ export async function bootstrapDataCaptureQueue(): Promise<void> {
         '4. View routing analysis with: ProgressiveCapture.routingAnalysis()',
       staleRepos?.length || 0,
       activeRepos?.length || 0,
+      commitsQueued,
       reposWithCommits?.length || 0,
       stats.total.pending,
       stats.inngest.pending,
@@ -134,6 +144,8 @@ export async function analyzeDataGaps(): Promise<{
   emptyReviewsTable: boolean;
   emptyCommentsTable: boolean;
   emptyCommitsTable: boolean;
+  repositoriesNeedingCommits: number;
+  commitsNeedingAnalysis: number;
 }> {
   try {
     // Count repositories with stale data
@@ -162,12 +174,27 @@ export async function analyzeDataGaps(): Promise<{
       .from('commits')
       .select('*', { count: 'exact', head: true });
 
+    // Count repositories needing commit capture
+    const staleCommitThreshold = new Date(Date.now() - 24 * 60 * 60 * 1000); // 1 day
+    const { count: reposNeedingCommits } = await supabase
+      .from('repositories')
+      .select('*', { count: 'exact', head: true })
+      .or(`last_commit_capture_at.is.null,last_commit_capture_at.lt.${staleCommitThreshold.toISOString()}`);
+
+    // Count commits needing PR analysis
+    const { count: commitsNeedingAnalysis } = await supabase
+      .from('commits')
+      .select('*', { count: 'exact', head: true })
+      .is('is_direct_commit', null);
+
     const analysis = {
       repositoriesWithStaleData: staleRepoCount || 0,
       prsWithoutFileChanges: prsWithoutChanges || 0,
       emptyReviewsTable: (reviewCount || 0) === 0,
       emptyCommentsTable: (commentCount || 0) === 0,
       emptyCommitsTable: (commitCount || 0) === 0,
+      repositoriesNeedingCommits: reposNeedingCommits || 0,
+      commitsNeedingAnalysis: commitsNeedingAnalysis || 0,
     };
 
     return analysis;
@@ -179,6 +206,8 @@ export async function analyzeDataGaps(): Promise<{
       emptyReviewsTable: true,
       emptyCommentsTable: true,
       emptyCommitsTable: true,
+      repositoriesNeedingCommits: 0,
+      commitsNeedingAnalysis: 0,
     };
   }
 }

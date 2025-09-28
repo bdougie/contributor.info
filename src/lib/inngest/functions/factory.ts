@@ -1,5 +1,6 @@
 import { Inngest, NonRetriableError } from 'inngest';
 import { supabase } from '../../supabase';
+import { CommitProcessor } from '../../progressive-capture/commit-processor';
 
 /**
  * Factory function to create Inngest functions with a specific client instance.
@@ -398,6 +399,96 @@ export function createInngestFunctions(inngest: Inngest) {
     }
   );
 
+  // Capture Commits Initial function
+  const captureCommitsInitial = inngest.createFunction(
+    {
+      id: 'capture-commits-initial',
+      name: 'Initial Commit Capture',
+      concurrency: {
+        limit: 3,
+        key: 'event.data.repositoryId',
+      },
+      throttle: { limit: 50, period: '1m' },
+      retries: 2,
+    },
+    { event: 'capture/commits.initial' },
+    async ({ event, step }) => {
+      const { repositoryId, repositoryName, days = 7, priority, forceInitial, reason } = event.data;
+
+      if (!repositoryId || !repositoryName) {
+        throw new NonRetriableError('Missing required fields: repositoryId or repositoryName');
+      }
+
+      console.log('[Commits] Starting initial capture for %s for %s days', repositoryName, days);
+
+      // Process commits using the CommitProcessor
+      const result = await step.run('process-initial-commits', async () => {
+        return await CommitProcessor.processCommitsJob(repositoryId, {
+          repositoryName,
+          days,
+          forceInitial: forceInitial || true,
+          priority,
+          reason,
+        });
+      });
+
+      return {
+        success: result.success,
+        repositoryId,
+        repositoryName,
+        days,
+        priority,
+        reason,
+        error: result.error,
+      };
+    }
+  );
+
+  // Capture Commits Update function
+  const captureCommitsUpdate = inngest.createFunction(
+    {
+      id: 'capture-commits-update',
+      name: 'Update Commit Capture',
+      concurrency: {
+        limit: 5,
+        key: 'event.data.repositoryId',
+      },
+      throttle: { limit: 75, period: '1m' },
+      retries: 2,
+    },
+    { event: 'capture/commits.update' },
+    async ({ event, step }) => {
+      const { repositoryId, repositoryName, days = 1, priority, forceInitial, reason } = event.data;
+
+      if (!repositoryId || !repositoryName) {
+        throw new NonRetriableError('Missing required fields: repositoryId or repositoryName');
+      }
+
+      console.log('[Commits] Starting update capture for %s for %s days', repositoryName, days);
+
+      // Process commits using the CommitProcessor
+      const result = await step.run('process-update-commits', async () => {
+        return await CommitProcessor.processCommitsJob(repositoryId, {
+          repositoryName,
+          days,
+          forceInitial: forceInitial || false,
+          priority,
+          reason,
+        });
+      });
+
+      return {
+        success: result.success,
+        repositoryId,
+        repositoryName,
+        days,
+        priority,
+        reason,
+        error: result.error,
+      };
+    }
+  );
+
   // Return all functions
   return {
     captureRepositorySyncGraphQL,
@@ -412,5 +503,7 @@ export function createInngestFunctions(inngest: Inngest) {
     discoverNewRepository,
     captureIssueComments,
     captureRepositoryIssues,
+    captureCommitsInitial,
+    captureCommitsUpdate,
   };
 }

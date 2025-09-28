@@ -34,8 +34,10 @@ export class ProgressiveCaptureTrigger {
         '━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
         '\n🕐 Stale Data:\n' +
         '  • %s repositories with data older than 3 days\n' +
+        '  • %s repositories needing commit capture\n' +
         '\n📊 Missing Data:\n' +
         '  • %s PRs without file change data (additions/deletions)\n' +
+        '  • %s commits needing PR association analysis\n' +
         '  • Reviews table: %s\n' +
         '  • Comments table: %s\n' +
         '  • Commits table: %s\n' +
@@ -49,9 +51,12 @@ export class ProgressiveCaptureTrigger {
         '\n💡 Recommendations:\n' +
         '%s\n' +
         '%s\n' +
+        '%s\n' +
         '%s',
       gaps.repositoriesWithStaleData,
+      gaps.repositoriesNeedingCommits || 0,
       gaps.prsWithoutFileChanges,
+      gaps.commitsNeedingAnalysis || 0,
       gaps.emptyReviewsTable ? '❌ Empty' : '✅ Has data',
       gaps.emptyCommentsTable ? '❌ Empty' : '✅ Has data',
       gaps.emptyCommitsTable ? '❌ Empty' : '✅ Has data',
@@ -69,6 +74,9 @@ export class ProgressiveCaptureTrigger {
       gaps.prsWithoutFileChanges > 0
         ? '  • Run bootstrap to queue file change updates'
         : '  • ✅ File change data is complete',
+      (gaps.repositoriesNeedingCommits || 0) > 0
+        ? `  • ${gaps.repositoriesNeedingCommits} repos need commit capture (auto-scheduled)`
+        : '  • ✅ Commit capture is up to date',
       gaps.emptyReviewsTable
         ? '  • Consider queuing review data (lower priority)'
         : '  • ✅ Review data available'
