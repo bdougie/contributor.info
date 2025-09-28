@@ -1,5 +1,5 @@
 import { fetchPRDataWithFallback } from '../supabase-pr-data';
-import { toDateOnlyString, toUTCTimestamp } from '../utils/date-formatting';
+import { toUTCTimestamp } from '../utils/date-formatting';
 import type { PullRequest } from '../types';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
@@ -620,6 +620,8 @@ async function calculateStarForkConfidence(
 ): Promise<number> {
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - daysBack);
+  // Set to UTC midnight for consistent boundary
+  const utcMidnight = new Date(Date.UTC(cutoffDate.getFullYear(), cutoffDate.getMonth(), cutoffDate.getDate(), 0, 0, 0, 0));
 
   // Get star/fork events
   const { data: starForkEvents } = await supabase
@@ -628,14 +630,14 @@ async function calculateStarForkConfidence(
     .eq('repository_owner', owner)
     .eq('repository_name', repo)
     .in('event_type', ['WatchEvent', 'ForkEvent'])
-    .gte('created_at', toDateOnlyString(cutoffDate));
+    .gte('created_at', toUTCTimestamp(utcMidnight));
 
   // Get contributors
   const { data: contributorData } = await supabase
     .from('pull_requests')
     .select('contributors!inner(username)')
     .eq('repository_id', repositoryId)
-    .gte('created_at', toDateOnlyString(cutoffDate));
+    .gte('created_at', toUTCTimestamp(utcMidnight));
 
   const contributors = new Set(
     (contributorData as Array<{ contributors: Array<{ username: string }> }>)?.flatMap((c) => c.contributors?.map(contrib => contrib.username)).filter(Boolean) || []
@@ -644,7 +646,7 @@ async function calculateStarForkConfidence(
   console.log('[Confidence] Star/Fork data for %s/%s:', owner, repo, {
     starForkEvents: starForkEvents?.length || 0,
     contributors: contributors.size,
-    cutoffDate: toDateOnlyString(cutoffDate),
+    cutoffDate: toUTCTimestamp(utcMidnight),
   });
 
   if (!starForkEvents?.length) {
@@ -692,6 +694,8 @@ async function calculateStarForkConfidenceWithBreakdown(
 }> {
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - daysBack);
+  // Set to UTC midnight for consistent boundary
+  const utcMidnight = new Date(Date.UTC(cutoffDate.getFullYear(), cutoffDate.getMonth(), cutoffDate.getDate(), 0, 0, 0, 0));
 
   // Get star/fork events
   const { data: starForkEvents } = await supabase
@@ -700,14 +704,14 @@ async function calculateStarForkConfidenceWithBreakdown(
     .eq('repository_owner', owner)
     .eq('repository_name', repo)
     .in('event_type', ['WatchEvent', 'ForkEvent'])
-    .gte('created_at', toDateOnlyString(cutoffDate));
+    .gte('created_at', toUTCTimestamp(utcMidnight));
 
   // Get contributors
   const { data: contributorData } = await supabase
     .from('pull_requests')
     .select('contributors!inner(username)')
     .eq('repository_id', repositoryId)
-    .gte('created_at', toDateOnlyString(cutoffDate));
+    .gte('created_at', toUTCTimestamp(utcMidnight));
 
   const contributors = new Set(
     (contributorData as Array<{ contributors: Array<{ username: string }> }>)?.flatMap((c) => c.contributors?.map(contrib => contrib.username)).filter(Boolean) || []
@@ -764,6 +768,8 @@ async function calculateEngagementConfidence(
 ): Promise<number> {
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - daysBack);
+  // Set to UTC midnight for consistent boundary
+  const utcMidnight = new Date(Date.UTC(cutoffDate.getFullYear(), cutoffDate.getMonth(), cutoffDate.getDate(), 0, 0, 0, 0));
 
   // Get engagement events (issues, all comment types, reviews)
   const { data: engagementEvents } = await supabase
@@ -778,14 +784,14 @@ async function calculateEngagementConfidence(
       'PullRequestReviewCommentEvent',
       'CommitCommentEvent',
     ])
-    .gte('created_at', toDateOnlyString(cutoffDate));
+    .gte('created_at', toUTCTimestamp(utcMidnight));
 
   // Get PR contributors
   const { data: prContributors } = await supabase
     .from('pull_requests')
     .select('contributors!inner(username)')
     .eq('repository_id', repositoryId)
-    .gte('created_at', toDateOnlyString(cutoffDate));
+    .gte('created_at', toUTCTimestamp(utcMidnight));
 
   const contributors = new Set(
     (prContributors as Array<{ contributors: Array<{ username: string }> }>)?.flatMap((c) => c.contributors?.map(contrib => contrib.username)).filter(Boolean) || []
@@ -820,14 +826,14 @@ async function calculateRetentionConfidence(
       .from('pull_requests')
       .select('contributors!inner(username)')
       .eq('repository_id', repositoryId)
-      .gte('created_at', toDateOnlyString(currentPeriodStart)),
+      .gte('created_at', toUTCTimestamp(new Date(Date.UTC(currentPeriodStart.getFullYear(), currentPeriodStart.getMonth(), currentPeriodStart.getDate(), 0, 0, 0, 0)))),
 
     supabase
       .from('pull_requests')
       .select('contributors!inner(username)')
       .eq('repository_id', repositoryId)
-      .gte('created_at', toDateOnlyString(previousPeriodStart))
-      .lt('created_at', toDateOnlyString(currentPeriodStart)),
+      .gte('created_at', toUTCTimestamp(new Date(Date.UTC(previousPeriodStart.getFullYear(), previousPeriodStart.getMonth(), previousPeriodStart.getDate(), 0, 0, 0, 0))))
+      .lt('created_at', toUTCTimestamp(new Date(Date.UTC(currentPeriodStart.getFullYear(), currentPeriodStart.getMonth(), currentPeriodStart.getDate(), 0, 0, 0, 0)))),
   ]);
 
   const currentSet = new Set(
@@ -855,13 +861,15 @@ async function calculateQualityConfidence(
 ): Promise<number> {
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - daysBack);
+  // Set to UTC midnight for consistent boundary
+  const utcMidnight = new Date(Date.UTC(cutoffDate.getFullYear(), cutoffDate.getMonth(), cutoffDate.getDate(), 0, 0, 0, 0));
 
   // Get PR data with merge status
   const { data: pullRequests } = await supabase
     .from('pull_requests')
     .select('state, merged_at')
     .eq('repository_id', repositoryId)
-    .gte('created_at', toDateOnlyString(cutoffDate));
+    .gte('created_at', toUTCTimestamp(utcMidnight));
 
   if (!pullRequests?.length) {
     return 50; // Neutral score if no PR data
@@ -927,12 +935,14 @@ async function calculateBasicFallback(
     // Get recent contributor count
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - daysBack);
+    // Set to UTC midnight for consistent boundary
+    const utcMidnight = new Date(Date.UTC(cutoffDate.getFullYear(), cutoffDate.getMonth(), cutoffDate.getDate(), 0, 0, 0, 0));
 
     const { data: recentContributors } = await supabase
       .from('pull_requests')
       .select('author_id')
       .eq('repository_id', repoData.id)
-      .gte('created_at', toDateOnlyString(cutoffDate));
+      .gte('created_at', toUTCTimestamp(utcMidnight));
 
     const uniqueContributors = new Set(recentContributors?.map((c) => c.author_id) || []).size;
 

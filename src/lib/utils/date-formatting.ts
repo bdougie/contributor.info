@@ -49,7 +49,7 @@ export const toUTCTimestamp = (date: Date): string => {
 
 /**
  * Creates a date string formatted for database queries.
- * Automatically determines the appropriate format based on the use case.
+ * Format is determined by the dateOnly parameter.
  *
  * @param date - The date to format
  * @param dateOnly - Whether to return date-only (true) or full timestamp (false)
