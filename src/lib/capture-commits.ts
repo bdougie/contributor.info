@@ -17,6 +17,7 @@ export async function captureCommits(
   options?: {
     batchSize?: number;
     maxPages?: number;
+    githubToken?: string; // Optional token - will use user's session token if not provided
   }
 ): Promise<{ success: boolean; count: number; error?: string }> {
   try {
@@ -45,11 +46,33 @@ export async function captureCommits(
     // Calculate date range - default to last 30 days
     const sinceDate = since || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
+    // Get GitHub token - use provided token or get from user's session
+    let githubToken = options?.githubToken;
+
+    if (!githubToken) {
+      // Get token from authenticated user's session
+      const { data: { session } } = await supabase.auth.getSession();
+      githubToken = session?.provider_token || undefined;
+
+      if (!githubToken) {
+        // Fallback to environment variable for server-side usage
+        githubToken = process.env.VITE_GITHUB_TOKEN;
+      }
+    }
+
+    if (!githubToken) {
+      return {
+        success: false,
+        count: 0,
+        error: 'No GitHub token available. Please authenticate or provide a token.'
+      };
+    }
+
     // Fetch commits from GitHub
     console.log('[Capture Commits] Fetching commits for %s/%s since %s', owner, repo, sinceDate.toISOString());
     console.log('[Capture Commits] Batch size: %d, Max pages: %d', batchSize, maxPages);
 
-    const githubApiService = new GitHubAPIService(process.env.VITE_GITHUB_TOKEN);
+    const githubApiService = new GitHubAPIService(githubToken);
 
     // Fetch multiple pages if needed
     let allCommits: GitHubCommit[] = [];
