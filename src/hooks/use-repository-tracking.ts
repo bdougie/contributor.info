@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useGitHubAuth } from './use-github-auth';
 import { handleApiResponse } from '@/lib/utils/api-helpers';
+import { createRepositoryFallback } from '@/lib/utils/repository-helpers';
 
 // Type for track repository API response
 interface TrackRepositoryResponse {
@@ -148,38 +149,13 @@ export function useRepositoryTracking({
         console.info('Track API unavailable (likely missing GitHub token), using direct database creation');
 
         // Fallback: Create repository directly in the database
-        // Generate a temporary github_id for local development (negative to avoid conflicts)
-        const tempGithubId = -Math.floor(Math.random() * 1000000000);
-
-        const { data: newRepo, error: createError } = await supabase
-          .from('repositories')
-          .insert({
-            github_id: tempGithubId,
-            owner,
-            name: repo,
-            full_name: `${owner}/${repo}`,
-            is_active: true,
-          })
-          .select('id')
-          .single();
+        const { data: newRepo, error: createError } = await createRepositoryFallback(owner, repo);
 
         if (createError) {
-          // Check if repository already exists
-          const { data: existingRepo } = await supabase
-            .from('repositories')
-            .select('id')
-            .eq('owner', owner)
-            .eq('name', repo)
-            .maybeSingle();
-
-          if (existingRepo) {
-            result = { success: true, repositoryId: existingRepo.id };
-          } else {
-            throw createError;
-          }
-        } else {
-          result = { success: true, repositoryId: newRepo.id };
+          throw createError;
         }
+
+        result = { success: true, repositoryId: newRepo?.id };
       } else {
         result = await handleApiResponse<TrackRepositoryResponse>(response, 'track-repository');
       }

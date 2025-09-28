@@ -6,7 +6,7 @@ import { useGitHubAuth } from '@/hooks/use-github-auth';
 import { toast } from 'sonner';
 import { trackEvent } from '@/lib/posthog-lazy';
 import { handleApiResponse } from '@/lib/utils/api-helpers';
-import { supabase } from '@/lib/supabase';
+import { createRepositoryFallback } from '@/lib/utils/repository-helpers';
 
 // Type for track repository API response
 interface TrackRepositoryResponse {
@@ -138,36 +138,13 @@ export function RepositoryTrackingCard({
         console.info('Track API unavailable (likely missing GitHub token), using direct database creation');
 
         // Fallback: Create repository directly in the database
-        // Generate a temporary github_id for local development (negative to avoid conflicts)
-        const tempGithubId = -Math.floor(Math.random() * 1000000000);
-
-        const { error: createError } = await supabase
-          .from('repositories')
-          .insert({
-            github_id: tempGithubId,
-            owner,
-            name: repo,
-            full_name: `${owner}/${repo}`,
-            is_active: true,
-          });
+        const { error: createError } = await createRepositoryFallback(owner, repo);
 
         if (createError) {
-          // Check if repository already exists
-          const { data: existingRepo } = await supabase
-            .from('repositories')
-            .select('id')
-            .eq('owner', owner)
-            .eq('name', repo)
-            .maybeSingle();
-
-          if (existingRepo) {
-            result = { success: true };
-          } else {
-            throw createError;
-          }
-        } else {
-          result = { success: true };
+          throw createError;
         }
+
+        result = { success: true };
       } else {
         result = await handleApiResponse<TrackRepositoryResponse>(response, 'track-repository');
       }

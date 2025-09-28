@@ -21,6 +21,11 @@ import type { Workspace } from '@/types/workspace';
 import type { GitHubRepository } from '@/lib/github';
 import type { User } from '@supabase/supabase-js';
 import { z } from 'zod';
+import {
+  createRepositoryFallback,
+  waitForRepository,
+  type ExtendedGitHubRepository
+} from '@/lib/utils/repository-helpers';
 
 // Use mock supabase in Storybook if available
 interface WindowWithMocks extends Window {
@@ -357,32 +362,20 @@ export function AddRepositoryModal({
                 return trackResult.repositoryId;
               }
 
-              // Otherwise, wait a moment for database consistency then fetch it
-              await new Promise(resolve => setTimeout(resolve, 1000));
-
-              const { data: newRepo } = await supabase
-                .from('repositories')
-                .select('id')
-                .eq('owner', repo.owner.login)
-                .eq('name', repo.name)
-                .maybeSingle();
-
-              if (newRepo) {
-                return newRepo.id;
+              // Otherwise, wait for repository to be created with exponential backoff
+              try {
+                const repoId = await waitForRepository(repo.owner.login, repo.name);
+                return repoId;
+              } catch (error) {
+                console.error('Failed to find repository after tracking:', error);
               }
             } else if (trackResult.message?.includes('already being tracked')) {
-              // Repository is already tracked, get its ID
-              await new Promise(resolve => setTimeout(resolve, 500));
-
-              const { data: trackedRepo } = await supabase
-                .from('repositories')
-                .select('id')
-                .eq('owner', repo.owner.login)
-                .eq('name', repo.name)
-                .maybeSingle();
-
-              if (trackedRepo) {
-                return trackedRepo.id;
+              // Repository is already tracked, wait for it with exponential backoff
+              try {
+                const repoId = await waitForRepository(repo.owner.login, repo.name);
+                return repoId;
+              } catch (error) {
+                console.error('Failed to find already tracked repository:', error);
               }
             }
           } catch (apiError) {
@@ -394,86 +387,18 @@ export function AddRepositoryModal({
           }
 
           // Fallback: Create repository directly if API fails (e.g., in development without GitHub token)
-          // Extended repository properties that may be available from GitHub API
-          interface ExtendedGitHubRepository extends GitHubRepository {
-            watchers_count?: number;
-            watchers?: number;
-            open_issues_count?: number;
-            open_issues?: number;
-            size?: number;
-            homepage?: string | null;
-            default_branch?: string;
-            fork?: boolean;
-            archived?: boolean;
-            disabled?: boolean;
-            has_issues?: boolean;
-            has_projects?: boolean;
-            has_wiki?: boolean;
-            has_pages?: boolean;
-            has_downloads?: boolean;
-            license?: { spdx_id?: string };
-            topics?: string[];
-            created_at?: string;
-            updated_at?: string;
-          }
-
           const extendedRepo = repo as ExtendedGitHubRepository;
 
-          const { data: newRepo, error: createError } = await supabase
-            .from('repositories')
-            .insert({
-              github_id: repo.id || -Math.floor(Math.random() * 1000000000),
-              full_name: repo.full_name,
-              name: repo.name,
-              owner: repo.owner.login,
-              description: repo.description || null,
-              language: repo.language || null,
-              stargazers_count: repo.stargazers_count || 0,
-              watchers_count: extendedRepo.watchers_count || extendedRepo.watchers || 0,
-              forks_count: repo.forks_count || 0,
-              open_issues_count: extendedRepo.open_issues_count || extendedRepo.open_issues || 0,
-              size: extendedRepo.size || 0,
-              is_active: true,
-              // Add more GitHub data if available from extended properties
-              homepage: extendedRepo.homepage || null,
-              default_branch: extendedRepo.default_branch || 'main',
-              is_fork: extendedRepo.fork || false,
-              is_archived: extendedRepo.archived || false,
-              is_disabled: extendedRepo.disabled || false,
-              is_private: repo.private || false,
-              has_issues: extendedRepo.has_issues !== false,
-              has_projects: extendedRepo.has_projects !== false,
-              has_wiki: extendedRepo.has_wiki !== false,
-              has_pages: extendedRepo.has_pages || false,
-              has_downloads: extendedRepo.has_downloads !== false,
-              license: extendedRepo.license?.spdx_id || null,
-              topics: extendedRepo.topics || [],
-              github_created_at: extendedRepo.created_at || new Date().toISOString(),
-              github_updated_at: extendedRepo.updated_at || new Date().toISOString(),
-              github_pushed_at: repo.pushed_at || new Date().toISOString(),
-              first_tracked_at: new Date().toISOString(),
-              last_updated_at: new Date().toISOString(),
-            })
-            .select('id')
-            .maybeSingle();
+          const { data: newRepo, error: createError } = await createRepositoryFallback(
+            repo.owner.login,
+            repo.name,
+            extendedRepo
+          );
 
           if (createError) {
-            // Check if it's a duplicate key error
-            if (createError.code === '23505') {
-              // Repository was created by another process, try to fetch it
-              const { data: existingRepo } = await supabase
-                .from('repositories')
-                .select('id')
-                .eq('owner', repo.owner.login)
-                .eq('name', repo.name)
-                .maybeSingle();
-
-              if (existingRepo) {
-                return existingRepo.id;
-              }
-            }
-            console.error('%s %o', 'Error creating repository:', createError);
-            throw new Error(`Failed to add ${repo.full_name}: ${createError.message}`);
+            const errorMessage = createError instanceof Error ? createError.message : 'Unknown error';
+            console.error(`Error creating repository ${repo.full_name}:`, createError);
+            throw new Error(`Failed to add ${repo.full_name}: ${errorMessage}`);
           }
 
           if (!newRepo) {
