@@ -106,32 +106,32 @@ ${command ? `\n## Specific Review Request\n"${command}"\n` : ''}
 
 ## Review Output Format
 
-Structure your review as follows:
+Provide clear, actionable feedback without unnecessary headers or formatting:
 
-### 🎯 Strategic Insights
-- Key architectural considerations
-- Performance impact analysis
-- Security implications
-- Integration concerns
+**Strategic Insights**
+- Architectural considerations and system impact
+- Performance implications with specific concerns
+- Security vulnerabilities with context
+- Integration effects on other components
 
-### 🔍 Code Quality Analysis
-- Pattern consistency assessment
-- Type safety review
-- Error handling evaluation
-- Testing recommendations
+**Code Quality Assessment**
+- Pattern consistency with existing codebase
+- Type safety and interface usage
+- Error handling and edge cases
+- Testing coverage recommendations
 
-### ✅ Specific Issues Found
-For each issue, provide:
-1. **File and line number**
-2. **Issue description** with context
-3. **Why it's a problem**
-4. **Suggested fix** with code example when possible
-5. **Priority level** (High/Medium/Low)
+**Specific Issues**
+For each issue found:
+- File and line number reference
+- Clear description of the problem
+- Explanation of why it matters
+- Concrete fix with code example
+- Priority: High/Medium/Low
 
-### 📊 Summary
-- Overall assessment (Looks good / Needs changes / Major concerns)
-- Number of issues by priority
-- Recommended next steps
+**Summary Assessment**
+- Overall code quality evaluation
+- Critical issues that block merge
+- Recommendations for improvement
 
 ---
 
@@ -143,7 +143,7 @@ For each issue, provide:
   let diffContent = '';
   for (const file of pr.files) {
     if (file.patch) {
-      diffContent += `\n## File: ${file.filename}\n\`\`\`diff\n${file.patch}\n\`\`\`\n`;
+      diffContent += `\n**File: ${file.filename}**\n\`\`\`diff\n${file.patch}\n\`\`\`\n`;
     }
   }
 
@@ -160,7 +160,9 @@ For each issue, provide:
 
 Please provide a comprehensive, actionable review that helps improve code quality while respecting the established patterns and conventions of this ${repository} codebase.
 
-Focus on issues that matter for functionality, security, maintainability, and consistency with established patterns.`;
+Focus on issues that matter for functionality, security, maintainability, and consistency with established patterns.
+
+IMPORTANT: Do not use markdown headers (# ## ###) in your response. Use only bold text (**text**) for emphasis and structure your feedback clearly with bullet points and paragraphs.`;
 
   return prompt;
 }

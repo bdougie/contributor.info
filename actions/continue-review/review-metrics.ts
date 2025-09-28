@@ -172,23 +172,21 @@ export class ReviewMetricsTracker {
     const insights = await this.getReviewInsights();
 
     if (insights.totalReviews === 0) {
-      return '\n---\n*📊 Review Metrics: This is the first review for this repository*';
+      return '\n---\n*Review Metrics: This is the first review for this repository*';
     }
 
-    let summary = '\n---\n### 📊 Review Metrics\n';
-    summary += `- **Total Reviews**: ${insights.totalReviews}\n`;
-    summary += `- **Average Processing Time**: ${insights.averageProcessingTime}s\n`;
-    summary += `- **Average Issues Found**: ${insights.averageIssuesFound}\n`;
+    let summary = '\n---\n**Review Metrics**\n';
+    summary += `- Total Reviews: ${insights.totalReviews}\n`;
+    summary += `- Average Processing Time: ${insights.averageProcessingTime}s\n`;
+    summary += `- Average Issues Found: ${insights.averageIssuesFound}\n`;
 
     if (insights.effectivenessRate > 0) {
-      summary += `- **Implementation Rate**: ${(insights.effectivenessRate * 100).toFixed(0)}%\n`;
+      summary += `- Implementation Rate: ${(insights.effectivenessRate * 100).toFixed(0)}%\n`;
     }
 
     if (insights.commonPatterns.length > 0) {
-      summary += `- **Common Project Types**: ${insights.commonPatterns.join(', ')}\n`;
+      summary += `- Common Project Types: ${insights.commonPatterns.join(', ')}\n`;
     }
-
-    summary += '\n*📈 Continuous improvement through data-driven reviews*';
 
     return summary;
   }
