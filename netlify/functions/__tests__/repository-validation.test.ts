@@ -157,6 +157,10 @@ describe('Repository Validation Tests', () => {
       expect(result.isTracked).toBe(true);
       expect(mockFrom).toHaveBeenCalledWith('tracked_repositories');
       expect(mockSelect).toHaveBeenCalledWith('id, is_active');
+
+      // Assert that Supabase receives lowercase values
+      expect(mockEq).toHaveBeenCalledWith('owner', 'owner');
+      expect(mockEq).toHaveBeenCalledWith('name', 'repo');
     });
   });
 
