@@ -10,6 +10,7 @@ import type {
   TrendDataset,
   AnalyticsData,
 } from '@/components/features/workspace/AnalyticsDashboard';
+import { toDateOnlyString, toUTCTimestamp } from '../lib/utils/date-formatting';
 
 export type ExportFormat = 'csv' | 'json' | 'pdf';
 
@@ -199,13 +200,13 @@ export class WorkspaceExportService {
   private static async exportToJSON(data: AnalyticsData, options: ExportOptions): Promise<Blob> {
     const exportData: Record<string, unknown> = {
       workspace: options.workspaceName,
-      exportDate: new Date().toISOString(),
+      exportDate: toUTCTimestamp(new Date()),
     };
 
     if (options.dateRange) {
       exportData.dateRange = {
-        start: options.dateRange.start.toISOString(),
-        end: options.dateRange.end.toISOString(),
+        start: toUTCTimestamp(options.dateRange.start),
+        end: toUTCTimestamp(options.dateRange.end),
       };
     }
 
@@ -259,7 +260,7 @@ export class WorkspaceExportService {
    * Generate filename based on format and timestamp
    */
   static generateFilename(workspaceName: string, format: ExportFormat): string {
-    const timestamp = new Date().toISOString().split('T')[0];
+    const timestamp = toDateOnlyString(new Date());
     const sanitizedName = workspaceName.replace(/[^a-z0-9]/gi, '-').toLowerCase();
     return `${sanitizedName}-analytics-${timestamp}.${format}`;
   }

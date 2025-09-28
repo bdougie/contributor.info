@@ -6,6 +6,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database';
 import { createSupabaseAdmin } from '@/lib/supabase-admin';
+import { toDateOnlyString, toUTCTimestamp } from '../lib/utils/date-formatting';
 
 // Types for event-based metrics
 export interface EventMetrics {
@@ -139,8 +140,8 @@ class WorkspaceEventsService {
 
       const { data, error } = await this.supabase.rpc('get_workspace_repository_event_summaries', {
         p_workspace_id: workspaceId,
-        p_start_date: ranges.currentStart.toISOString(),
-        p_end_date: ranges.currentEnd.toISOString(),
+        p_start_date: toUTCTimestamp(ranges.currentStart),
+        p_end_date: toUTCTimestamp(ranges.currentEnd),
       });
 
       if (error) throw error;
@@ -263,8 +264,8 @@ class WorkspaceEventsService {
       .select('*')
       .or(orConditions)
       .in('event_type', ['WatchEvent', 'ForkEvent'])
-      .gte('created_at', startDate.toISOString())
-      .lte('created_at', endDate.toISOString())
+      .gte('created_at', toUTCTimestamp(startDate))
+      .lte('created_at', toUTCTimestamp(endDate))
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -289,8 +290,8 @@ class WorkspaceEventsService {
       .from('github_events_cache')
       .select('event_type, created_at, repository_owner, repository_name')
       .or(orConditions)
-      .gte('created_at', startDate.toISOString())
-      .lte('created_at', endDate.toISOString())
+      .gte('created_at', toUTCTimestamp(startDate))
+      .lte('created_at', toUTCTimestamp(endDate))
       .order('created_at', { ascending: true });
 
     if (error) throw error;
@@ -420,7 +421,7 @@ class WorkspaceEventsService {
     // Group events by date
     const dailyData = events.reduce(
       (acc, event) => {
-        const date = new Date(event.created_at).toISOString().split('T')[0];
+        const date = toDateOnlyString(new Date(event.created_at));
         if (!acc[date]) {
           acc[date] = { stars: 0, forks: 0, totalActivity: 0 };
         }
