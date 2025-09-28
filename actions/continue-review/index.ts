@@ -515,6 +515,9 @@ async function run(): Promise<void> {
     // Initialize metrics tracker
     const metricsTracker = new ReviewMetricsTracker();
 
+    // Initialize GitHub client early for reactions
+    const octokit = await getAuthenticatedOctokit(githubToken);
+
     // Determine PR number (using existing logic)
     let prNumber: number | undefined;
 
@@ -531,8 +534,23 @@ async function run(): Promise<void> {
         core.info('Comment does not mention @continue-agent, skipping');
         return;
       }
+
+      // Add 👀 reaction to confirm the bot is processing the request
+      const commentId = context.payload.comment?.id;
+      if (commentId) {
+        try {
+          await octokit.rest.reactions.createForIssueComment({
+            owner,
+            repo,
+            comment_id: commentId,
+            content: 'eyes'
+          });
+          core.info(`Added 👀 reaction to comment ${commentId}`);
+        } catch (error) {
+          core.warning(`Failed to add reaction: ${error}`);
+        }
+      }
     } else if (context.eventName === 'workflow_dispatch') {
-      const octokit = await getAuthenticatedOctokit(githubToken);
       const branch = context.ref.replace('refs/heads/', '');
 
       try {
@@ -556,9 +574,6 @@ async function run(): Promise<void> {
     }
 
     core.info(`Processing enhanced review for PR #${prNumber}`);
-
-    // Initialize GitHub client
-    const octokit = await getAuthenticatedOctokit(githubToken);
 
     // Get PR details
     const { data: pr } = await octokit.rest.pulls.get({
