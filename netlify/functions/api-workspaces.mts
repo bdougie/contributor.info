@@ -4,7 +4,7 @@ import type {
   CreateWorkspaceRequest, 
   UpdateWorkspaceRequest
 } from '../../src/types/workspace';
-import { sanitizeSearchInput, sanitizePaginationParams } from './lib/sanitization.mjs';
+import { sanitizeSearchInput, sanitizePaginationParams } from './lib/sanitization.mts';
 
 // Initialize Supabase client - Use server-only env vars
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';

@@ -10,20 +10,20 @@ import {
   validateUpdateWorkspace,
   formatValidationErrors 
 } from '../../src/lib/validations/workspace';
-import { getApiConfig, validateConfig } from './lib/config.mjs';
-import { handlePreflight, applyCorsHeaders } from './lib/cors.mjs';
+import { getApiConfig, validateConfig } from './lib/config.mts';
+import { handlePreflight, applyCorsHeaders } from './lib/cors.mts';
 import { 
   ErrorResponses, 
   createErrorResponse, 
   handleUnknownError,
   ValidationErrorDetail 
-} from './lib/errors.mjs';
+} from './lib/errors.mts';
 import { 
   RateLimiter, 
   getRateLimitKey, 
   applyRateLimitHeaders 
-} from './lib/rate-limiter.mjs';
-import { sanitizeSearchInput, sanitizePaginationParams } from './lib/sanitization.mjs';
+} from './lib/rate-limiter.mts';
+import { sanitizeSearchInput, sanitizePaginationParams } from './lib/sanitization.mts';
 
 // Initialize configuration
 let config: ReturnType<typeof getApiConfig>;

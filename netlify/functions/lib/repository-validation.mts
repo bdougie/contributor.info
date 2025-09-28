@@ -132,5 +132,6 @@ export const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Credentials': 'true',
+  // NOTE: Credentials removed for security - cannot use credentials with wildcard origin
+  // 'Access-Control-Allow-Credentials': 'true', // SECURITY: Violates CORS spec with wildcard origin
 };

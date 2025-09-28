@@ -212,7 +212,15 @@ export default async (req: Request, context: Context) => {
       .limit(1)
       .maybeSingle();
 
-    if (repoError || !repository) {
+    if (repoError) {
+      // Database error - return 500, not 404
+      return createErrorResponse(
+        `Database error: ${repoError.message}`,
+        500
+      );
+    }
+
+    if (!repository) {
       return createNotFoundResponse(owner, repo);
     }
 
