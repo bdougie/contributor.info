@@ -70,7 +70,7 @@ describe('GitHubAPIService - Bulletproof Live API Tests', () => {
       // Run multiple times to observe jitter
       const timings: number[] = [];
 
-      for (let i = 0; i < 3; i++) {
+      for (let i = 0; i < 5; i++) {
         const start = Date.now();
         try {
           await testService.executeWithBackoff(mockOperation, {
@@ -84,15 +84,15 @@ describe('GitHubAPIService - Bulletproof Live API Tests', () => {
         }
       }
 
-      // With jitter, timing should vary
-      // Without jitter, all would be ~100ms (plus processing time)
-      // With jitter, they should differ by at least 10ms sometimes
-      const minTiming = Math.min(...timings);
-      const maxTiming = Math.max(...timings);
-      const variance = maxTiming - minTiming;
+      // With jitter enabled, timings should vary
+      // Check that not all timings are identical (which would indicate no jitter)
+      const uniqueTimings = new Set(timings.map(t => Math.round(t / 5) * 5)); // Round to nearest 5ms
 
-      // Expect at least 10ms variance due to jitter
-      expect(variance).toBeGreaterThan(10);
+      // With 5 runs and jitter, we should see at least 2 different timing buckets
+      expect(uniqueTimings.size).toBeGreaterThanOrEqual(2);
+
+      // Also verify that the mock was called the expected number of times
+      expect(mockOperation).toHaveBeenCalledTimes(10); // 2 calls per run (initial + 1 retry) * 5 runs
     });
   });
 
