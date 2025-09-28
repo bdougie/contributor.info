@@ -106,32 +106,35 @@ ${command ? `\n## Specific Review Request\n"${command}"\n` : ''}
 
 ## Review Output Format
 
-Provide clear, actionable feedback without unnecessary headers or formatting:
+Structure your review with clear markdown formatting (use ## and ### headers, but never # h1):
 
-**Strategic Insights**
-- Architectural considerations and system impact
+## Strategic Insights
+- Key architectural considerations and system impact
 - Performance implications with specific concerns
 - Security vulnerabilities with context
 - Integration effects on other components
 
-**Code Quality Assessment**
+## Code Quality Analysis
 - Pattern consistency with existing codebase
 - Type safety and interface usage
 - Error handling and edge cases
 - Testing coverage recommendations
 
-**Specific Issues**
-For each issue found:
-- File and line number reference
-- Clear description of the problem
-- Explanation of why it matters
-- Concrete fix with code example
-- Priority: High/Medium/Low
+## Issues Found
 
-**Summary Assessment**
-- Overall code quality evaluation
-- Critical issues that block merge
-- Recommendations for improvement
+For each issue, use ### headers with clear structure:
+
+### 1. Issue Title
+**Priority**: High/Medium/Low
+**File**: `path/to/file.ts:line`
+**Problem**: Clear description of the issue
+**Why it matters**: Explanation of impact
+**Fix**: Concrete solution with code example
+
+## Recommendations
+- Overall assessment and next steps
+- Critical issues that need immediate attention
+- Suggestions for improvement
 
 ---
 
@@ -143,7 +146,7 @@ For each issue found:
   let diffContent = '';
   for (const file of pr.files) {
     if (file.patch) {
-      diffContent += `\n**File: ${file.filename}**\n\`\`\`diff\n${file.patch}\n\`\`\`\n`;
+      diffContent += `\n## File: ${file.filename}\n\`\`\`diff\n${file.patch}\n\`\`\`\n`;
     }
   }
 
@@ -162,7 +165,7 @@ Please provide a comprehensive, actionable review that helps improve code qualit
 
 Focus on issues that matter for functionality, security, maintainability, and consistency with established patterns.
 
-IMPORTANT: Do not use markdown headers (# ## ###) in your response. Use only bold text (**text**) for emphasis and structure your feedback clearly with bullet points and paragraphs.`;
+IMPORTANT: Use proper markdown formatting with ## and ### headers for clear structure. Never use # (h1 headers) - start with ## for main sections and ### for specific issues.`;
 
   return prompt;
 }

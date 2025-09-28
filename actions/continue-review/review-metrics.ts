@@ -175,7 +175,7 @@ export class ReviewMetricsTracker {
       return '\n---\n*Review Metrics: This is the first review for this repository*';
     }
 
-    let summary = '\n---\n**Review Metrics**\n';
+    let summary = '\n---\n## Review Metrics\n';
     summary += `- Total Reviews: ${insights.totalReviews}\n`;
     summary += `- Average Processing Time: ${insights.averageProcessingTime}s\n`;
     summary += `- Average Issues Found: ${insights.averageIssuesFound}\n`;
