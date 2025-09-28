@@ -33,7 +33,7 @@ describe('RateLimiter', () => {
       const mockQuery = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({
+        maybeSingle: vi.fn().mockResolvedValue({
           data: null,
           error: { code: 'PGRST116' }, // Not found
         }),
@@ -62,7 +62,7 @@ describe('RateLimiter', () => {
       const mockQuery = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({
+        maybeSingle: vi.fn().mockResolvedValue({
           data: {
             request_count: 5,
             window_start: new Date(now - 30000).toISOString(),
@@ -96,7 +96,7 @@ describe('RateLimiter', () => {
       const mockQuery = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({
+        maybeSingle: vi.fn().mockResolvedValue({
           data: {
             request_count: 10,
             window_start: new Date(windowStart).toISOString(),
@@ -123,7 +123,7 @@ describe('RateLimiter', () => {
       const mockQuery = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({
+        maybeSingle: vi.fn().mockResolvedValue({
           data: {
             request_count: 10,
             window_start: new Date(oldWindowStart).toISOString(),
@@ -154,7 +154,7 @@ describe('RateLimiter', () => {
       const mockQuery = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockRejectedValue(new Error('Database error')),
+        maybeSingle: vi.fn().mockRejectedValue(new Error('Database error')),
       };
 
       mockSupabase.from.mockReturnValue(mockQuery);

@@ -41,7 +41,7 @@ t=<timestamp> s=<signature>
 
 ## GitHub Webhook Security
 
-The `api-workspaces-webhook-hybrid` function verifies GitHub webhooks similarly.
+GitHub webhook handlers verify signatures using the same HMAC-SHA256 pattern.
 
 **Required Environment Variable:**
 ```bash
