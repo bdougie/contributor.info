@@ -2,12 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Users, Copy } from '@/components/ui/icon';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import {
   Select,
@@ -16,8 +14,8 @@ import {
   SelectItem,
   SelectValue,
 } from '@/components/ui/select';
-import { fetchCodeOwners, fetchFileTree, fetchSuggestedCodeOwners, suggestReviewers, fetchRecentPullRequests, type MinimalPR } from '@/services/reviewer-suggestions.service';
-import type { Repository } from '@/types/github';
+import { fetchCodeOwners, fetchFileTree, fetchSuggestedCodeOwners, suggestReviewers, fetchRecentPullRequests, fetchPRsWithoutReviewers, type MinimalPR } from '@/services/reviewer-suggestions.service';
+import type { Repository } from '@/components/features/workspace/RepositoryList';
 
 interface ReviewerSuggestionsModalProps {
   open: boolean;
@@ -37,7 +35,6 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
   const [error, setError] = useState<string | null>(null);
 
   // Suggest Reviewers state
-  const [fileList, setFileList] = useState('');
   const [prUrl, setPrUrl] = useState('');
   const [useAI, setUseAI] = useState(true);
   type ReviewerSuggestionDTO = {
@@ -75,6 +72,7 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
   >(null);
   const [fileTree, setFileTree] = useState<{ files: string[]; directories: string[] } | null>(null);
   const [pullRequests, setPullRequests] = useState<MinimalPR[]>([]);
+  const [prsWithoutReviewers, setPrsWithoutReviewers] = useState<MinimalPR[]>([]);
   const [selectedPR, setSelectedPR] = useState<string>('');
 
   useEffect(() => {
@@ -89,40 +87,21 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
   }, [open]);
 
   useEffect(() => {
-    // Load recent PRs when active repository changes
+    // Load recent PRs and PRs without reviewers when active repository changes
     (async () => {
       if (!active?.id) return;
-      const prs = await fetchRecentPullRequests(active.id, 25);
+      const [prs, prsNoReviewers] = await Promise.all([
+        fetchRecentPullRequests(active.id, 25),
+        fetchPRsWithoutReviewers(active.id, 10),
+      ]);
       setPullRequests(prs);
+      setPrsWithoutReviewers(prsNoReviewers);
     })();
   }, [active?.id]);
 
   const owner = active?.owner || active?.full_name?.split('/')[0] || '';
   const repo = active?.name || active?.full_name?.split('/')[1] || '';
 
-  const handleSuggest = async () => {
-    if (!owner || !repo) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const files = fileList
-        .split('\n')
-        .map((s) => s.trim())
-        .filter(Boolean);
-      const res = await suggestReviewers(
-        owner,
-        repo,
-        files.length ? files : undefined,
-        undefined,
-        prUrl || undefined
-      );
-      setSuggestions(res);
-    } catch (e: any) {
-      setError(e?.message || 'Failed to get suggestions');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleLoadCodeowners = async () => {
     if (!owner || !repo) return;
@@ -179,33 +158,106 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
               ))}
             </SelectContent>
           </Select>
-          {pullRequests.length > 0 && (
-            <>
-              <span className="text-sm text-muted-foreground">Pull Request</span>
-              <Select
-                value={selectedPR}
-                onValueChange={(v) => {
-                  setSelectedPR(v);
-                  const num = Number(v);
-                  if (owner && repo && Number.isFinite(num)) {
-                    setPrUrl(`https://github.com/${owner}/${repo}/pull/${num}`);
-                  }
-                }}
-              >
-                <SelectTrigger className="w-[320px]">
-                  <SelectValue placeholder="Select PR (recent)" />
-                </SelectTrigger>
-                <SelectContent>
-                  {pullRequests.map((pr) => (
-                    <SelectItem key={pr.github_number} value={String(pr.github_number)}>
-                      #{pr.github_number} · {pr.title?.slice(0, 50) || 'Untitled'}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </>
-          )}
         </div>
+
+        {/* PRs without reviewers section */}
+        {prsWithoutReviewers.length > 0 && (
+          <div className="mb-6 p-4 border rounded-lg bg-amber-50/50 dark:bg-amber-950/20">
+            <div className="flex items-center gap-2 mb-3">
+              <Users className="h-4 w-4 text-amber-600" />
+              <h3 className="font-medium text-amber-800 dark:text-amber-200">
+                PRs Needing Reviewers ({prsWithoutReviewers.length})
+              </h3>
+            </div>
+            <div className="space-y-2">
+              {prsWithoutReviewers.slice(0, 5).map((pr) => (
+                <div
+                  key={pr.number}
+                  className="flex items-center gap-3 p-2 bg-white dark:bg-amber-950/40 rounded border hover:bg-amber-50 dark:hover:bg-amber-950/60 transition-colors cursor-pointer"
+                  onClick={async () => {
+                    setSelectedPR(String(pr.number));
+                    const prUrl = `https://github.com/${owner}/${repo}/pull/${pr.number}`;
+                    setPrUrl(prUrl);
+                    setTab('reviewers');
+
+                    // Automatically trigger reviewer suggestions
+                    if (owner && repo) {
+                      setLoading(true);
+                      setError(null);
+                      try {
+                        const res = await suggestReviewers(owner, repo, undefined, undefined, prUrl);
+                        setSuggestions(res);
+                      } catch (e: any) {
+                        setError(e?.message || 'Failed to get suggestions');
+                      } finally {
+                        setLoading(false);
+                      }
+                    }
+                  }}
+                >
+                  <Avatar className="h-6 w-6">
+                    {pr.author?.avatar_url ? (
+                      <AvatarImage src={pr.author.avatar_url} alt={pr.author.username} />
+                    ) : (
+                      <AvatarFallback>{pr.author?.username?.[0]?.toUpperCase() || '?'}</AvatarFallback>
+                    )}
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate">
+                      #{pr.number} · {pr.title}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      by @{pr.author?.username} · {new Date(pr.created_at).toLocaleDateString()}
+                    </div>
+                  </div>
+                  <Button size="sm" variant="outline" className="shrink-0">
+                    {loading && selectedPR === String(pr.number) ? (
+                      <>
+                        <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                        Analyzing...
+                      </>
+                    ) : (
+                      'Get Reviewers'
+                    )}
+                  </Button>
+                </div>
+              ))}
+              {prsWithoutReviewers.length > 5 && (
+                <div className="text-xs text-muted-foreground text-center pt-2">
+                  ... and {prsWithoutReviewers.length - 5} more PRs needing reviewers
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Original PR selection for manual entry */}
+        {pullRequests.length > 0 && (
+          <div className="flex items-center gap-3 mb-4">
+            <span className="text-sm text-muted-foreground">Or select any open PR</span>
+            <Select
+              value={selectedPR}
+              onValueChange={(v) => {
+                setSelectedPR(v);
+                const num = Number(v);
+                if (owner && repo && Number.isFinite(num)) {
+                  setPrUrl(`https://github.com/${owner}/${repo}/pull/${num}`);
+                }
+              }}
+            >
+              <SelectTrigger className="w-[320px]">
+                <SelectValue placeholder="Select open PR (recent)" />
+              </SelectTrigger>
+              <SelectContent>
+                {pullRequests.map((pr) => (
+                  <SelectItem key={pr.number} value={String(pr.number)}>
+                    #{pr.number} · {pr.title?.slice(0, 50) || 'Untitled'}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
           <TabsList>
@@ -215,36 +267,34 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
           </TabsList>
 
           <TabsContent value="reviewers" className="mt-4 space-y-4">
-            <div className="grid gap-3">
-              <div>
-                <div className="text-sm font-medium">Pull Request URL</div>
-                <Textarea
-                  className="mt-2 h-10"
-                  placeholder="https://github.com/owner/repo/pull/123"
-                  value={prUrl}
-                  onChange={(e) => setPrUrl(e.target.value)}
-                />
+            {selectedPR && (
+              <div className="p-3 bg-muted/50 rounded-lg">
+                <div className="text-sm font-medium">Selected PR #{selectedPR}</div>
                 <div className="text-xs text-muted-foreground mt-1">
-                  Paste a PR URL to auto-analyze changed files, or enter files manually below.
+                  {prUrl && `${prUrl.split('/').slice(-3, -1).join('/')} • `}
+                  Analyzing changed files for reviewer suggestions
                 </div>
               </div>
-              <div>
-                <div className="text-sm font-medium">Changed files (one per line)</div>
-                <Textarea
-                  className="mt-2 h-32"
-                  placeholder="src/components/Button.tsx\nsrc/pages/home.tsx"
-                  value={fileList}
-                  onChange={(e) => setFileList(e.target.value)}
-                />
+            )}
+            {!selectedPR && !loading && (
+              <div className="text-center py-8 text-muted-foreground">
+                <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p>Select a PR above to get reviewer suggestions</p>
               </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button onClick={handleSuggest} disabled={loading || (!fileList.trim() && !prUrl.trim())}>
-                {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Get Suggestions
-              </Button>
-              {error && <span className="text-sm text-red-500">{error}</span>}
-              {suggestions && (
+            )}
+            {loading && (
+              <div className="text-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">Analyzing PR and suggesting reviewers...</p>
+              </div>
+            )}
+            {error && (
+              <div className="text-center py-4">
+                <span className="text-sm text-red-500">{error}</span>
+              </div>
+            )}
+            {suggestions && (
+              <div className="flex items-center gap-2 mb-4">
                 <Button
                   variant="secondary"
                   onClick={() =>
@@ -254,48 +304,67 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
                   }
                   title="Copy primary reviewers"
                 >
-                  <Copy className="h-4 w-4 mr-2" /> Copy primary
+                  <Copy className="h-4 w-4 mr-2" /> Copy primary reviewers
                 </Button>
-              )}
-            </div>
+                <span className="text-xs text-muted-foreground">
+                  Analyzed {suggestions.filesAnalyzed} files in {suggestions.directoriesAffected} directories
+                </span>
+              </div>
+            )}
             {suggestions && (
               <div className="space-y-6">
                 {(['primary', 'secondary', 'additional'] as const).map((group) => (
                   <div key={group}>
-                    <h4 className="font-semibold capitalize">{group}</h4>
-                    <ScrollArea className="h-auto max-h-72 rounded border">
-                      <div className="p-2 space-y-2">
-                        {suggestions.suggestions[group].length === 0 && (
-                          <p className="text-sm text-muted-foreground">No suggestions.</p>
-                        )}
+                    <h4 className="font-semibold capitalize text-base mb-3">{group} Reviewers</h4>
+                    {suggestions.suggestions[group].length === 0 ? (
+                      <p className="text-sm text-muted-foreground py-4">No {group} suggestions.</p>
+                    ) : (
+                      <div className="grid gap-3">
                         {suggestions.suggestions[group].map((s) => (
-                          <div key={s.username} className="flex items-center gap-3 rounded border p-2">
-                            <Avatar className="h-6 w-6">
+                          <div key={s.username} className="flex items-center gap-4 p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
+                            <Avatar className="h-10 w-10">
                               {s.avatarUrl ? (
                                 <AvatarImage src={s.avatarUrl} alt={s.username} />
                               ) : (
                                 <AvatarFallback>{s.username[0]?.toUpperCase()}</AvatarFallback>
                               )}
                             </Avatar>
-                            <span className="font-medium">@{s.username}</span>
-                            <Badge variant="secondary">Score {s.score}</Badge>
-                            <div className="text-xs text-muted-foreground ml-auto truncate max-w-[40%]">
-                              {s.reasoning.slice(0, 2).join(' • ')}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="font-medium">@{s.username}</span>
+                                <Badge variant="secondary" className="text-xs">
+                                  Score {s.score}
+                                </Badge>
+                                {s.recentActivity && (
+                                  <Badge variant="outline" className="text-xs text-green-600">
+                                    Recently Active
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                {s.reasoning.slice(0, 2).join(' • ')}
+                              </div>
+                              {s.relevantFiles.length > 0 && (
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  Files: {s.relevantFiles.slice(0, 3).join(', ')}
+                                  {s.relevantFiles.length > 3 && ` +${s.relevantFiles.length - 3} more`}
+                                </div>
+                              )}
                             </div>
                             <Button
-                              size="icon"
-                              variant="ghost"
-                              className="ml-1"
+                              size="sm"
+                              variant="outline"
                               onClick={() => navigator.clipboard.writeText(s.username)}
                               title="Copy username"
                               aria-label={`Copy @${s.username}`}
                             >
-                              <Copy className="h-4 w-4" />
+                              <Copy className="h-4 w-4 mr-1" />
+                              Copy
                             </Button>
                           </div>
                         ))}
                       </div>
-                    </ScrollArea>
+                    )}
                   </div>
                 ))}
               </div>

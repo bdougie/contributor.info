@@ -1,4 +1,3 @@
-import type { Repository } from '@/types/github';
 import { supabase } from '@/lib/supabase';
 
 export interface ReviewerSuggestionDTO {
@@ -52,7 +51,7 @@ export async function fetchFileTree(owner: string, repo: string) {
 }
 
 export type MinimalPR = {
-  github_number: number;
+  number: number;
   title: string;
   state: 'open' | 'closed' | 'merged';
   created_at: string;
@@ -63,9 +62,10 @@ export async function fetchRecentPullRequests(repositoryId: string, limit = 25):
   const { data, error } = await supabase
     .from('pull_requests')
     .select(
-      `github_number, title, state, created_at, author:contributors!author_id (username, avatar_url)`
+      `number, title, state, created_at, author:contributors!author_id (username, avatar_url)`
     )
     .eq('repository_id', repositoryId)
+    .eq('state', 'open')
     .order('created_at', { ascending: false })
     .limit(limit);
   if (error) {
@@ -74,10 +74,46 @@ export async function fetchRecentPullRequests(repositoryId: string, limit = 25):
   }
 
   return (data || []).map((row: any) => ({
-    github_number: row.github_number,
+    number: row.number,
     title: row.title,
     state: row.state,
     created_at: row.created_at,
     author: Array.isArray(row.author) ? row.author[0] : row.author || null,
   }));
+}
+
+export async function fetchPRsWithoutReviewers(repositoryId: string, limit = 25): Promise<MinimalPR[]> {
+  const { data, error } = await supabase
+    .from('pull_requests')
+    .select(`
+      number,
+      title,
+      state,
+      created_at,
+      author:contributors!author_id (username, avatar_url),
+      reviews!pull_request_id (id)
+    `)
+    .eq('repository_id', repositoryId)
+    .eq('state', 'open')
+    .order('created_at', { ascending: false })
+    .limit(limit * 2); // Fetch more to filter out those with reviews
+
+  if (error) {
+    console.error('Failed to fetch pull requests without reviewers:', error);
+    return [];
+  }
+
+  // Filter to only PRs without any reviews
+  const prsWithoutReviews = (data || [])
+    .filter((row: any) => !row.reviews || row.reviews.length === 0)
+    .slice(0, limit)
+    .map((row: any) => ({
+      number: row.number,
+      title: row.title,
+      state: row.state,
+      created_at: row.created_at,
+      author: Array.isArray(row.author) ? row.author[0] : row.author || null,
+    }));
+
+  return prsWithoutReviews;
 }
