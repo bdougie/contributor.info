@@ -7,6 +7,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database';
 import { createSupabaseAdmin } from '@/lib/supabase-admin';
 import { toDateOnlyString, toUTCTimestamp } from '../lib/utils/date-formatting';
+import { TIME_PERIODS, timeHelpers } from '@/lib/constants/time-constants';
 
 // Types for event-based metrics
 export interface EventMetrics {
@@ -312,8 +313,8 @@ class WorkspaceEventsService {
     const previousCount = previousEvents.length;
 
     // Calculate velocity (events per day)
-    const periodDays = Math.ceil(
-      (ranges.currentEnd.getTime() - ranges.currentStart.getTime()) / (1000 * 60 * 60 * 24)
+    const periodDays = timeHelpers.msToDays(
+      ranges.currentEnd.getTime() - ranges.currentStart.getTime()
     );
     const velocity = currentCount / periodDays;
 
@@ -336,11 +337,10 @@ class WorkspaceEventsService {
     }
 
     // Calculate week/month breakdowns
-    const now = new Date();
-    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-    const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    const twoMonthsAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+    const oneWeekAgo = timeHelpers.daysAgo(TIME_PERIODS.ONE_WEEK);
+    const twoWeeksAgo = timeHelpers.daysAgo(TIME_PERIODS.TWO_WEEKS);
+    const oneMonthAgo = timeHelpers.daysAgo(TIME_PERIODS.ONE_MONTH);
+    const twoMonthsAgo = timeHelpers.daysAgo(TIME_PERIODS.TWO_MONTHS);
 
     const thisWeek = currentEvents.filter((e) => new Date(e.created_at) >= oneWeekAgo).length;
     const lastWeek = currentEvents.filter((e) => {
@@ -396,8 +396,7 @@ class WorkspaceEventsService {
     }
 
     // Calculate activity score (0-100) based on recent activity
-    const now = new Date();
-    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const oneDayAgo = timeHelpers.daysAgo(TIME_PERIODS.ONE_DAY);
     const recentEvents = events.filter((e) => new Date(e.created_at) >= oneDayAgo).length;
     const activityScore = Math.min(
       100,

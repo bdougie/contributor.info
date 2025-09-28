@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { supabase } from '@/lib/supabase';
+import { TIME_PERIODS, timeHelpers, MILLISECONDS_PER_HOUR } from '@/lib/constants/time-constants';
 
 // Mock Supabase
 vi.mock('@/lib/supabase', () => ({
@@ -58,13 +59,13 @@ describe('Workspace Page API Fixes', () => {
       vi.mocked(supabase.from).mockImplementation(mockFrom);
 
       // Simulate the date calculation logic from workspace-page.tsx
-      const daysToFetch = 30;
-      const startDate = new Date(Date.now() - daysToFetch * 24 * 60 * 60 * 1000);
+      const daysToFetch = TIME_PERIODS.DEFAULT_METRICS_DAYS;
+      const startDate = timeHelpers.daysAgo(daysToFetch);
 
       // Ensure startDate is valid and not in the future (fix applied)
       if (startDate.getTime() > Date.now()) {
         console.warn('Start date is in the future, using 30 days ago as fallback');
-        startDate.setTime(Date.now() - 30 * 24 * 60 * 60 * 1000);
+        startDate.setTime(Date.now() - timeHelpers.daysToMs(TIME_PERIODS.DEFAULT_METRICS_DAYS));
       }
 
       // Make the query like workspace-page.tsx does
@@ -93,20 +94,20 @@ describe('Workspace Page API Fixes', () => {
     it('should fallback to 30 days when start date is in the future', () => {
       // Simulate a scenario where TIME_RANGE_DAYS might produce future date
       const futureDays = -10; // Negative days would create future date
-      const startDate = new Date(Date.now() - futureDays * 24 * 60 * 60 * 1000);
+      const startDate = new Date(Date.now() - timeHelpers.daysToMs(futureDays));
 
       // Apply the fix
       if (startDate.getTime() > Date.now()) {
         console.warn('Start date is in the future, using 30 days ago as fallback');
-        startDate.setTime(Date.now() - 30 * 24 * 60 * 60 * 1000);
+        startDate.setTime(Date.now() - timeHelpers.daysToMs(TIME_PERIODS.DEFAULT_METRICS_DAYS));
       }
 
       // Verify the date is now in the past
       expect(startDate.getTime()).toBeLessThan(Date.now());
 
       // Verify it's approximately 30 days ago (within 1 hour tolerance)
-      const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
-      const tolerance = 60 * 60 * 1000; // 1 hour
+      const thirtyDaysAgo = Date.now() - timeHelpers.daysToMs(TIME_PERIODS.DEFAULT_METRICS_DAYS);
+      const tolerance = MILLISECONDS_PER_HOUR; // 1 hour
       expect(Math.abs(startDate.getTime() - thirtyDaysAgo)).toBeLessThan(tolerance);
     });
   });
