@@ -1,0 +1,195 @@
+#!/usr/bin/env tsx
+/**
+ * Script to populate commits for a repository
+ * Usage: npm run populate-commits [owner] [repo]
+ * Example: npm run populate-commits continuedev continue
+ */
+
+import * as dotenv from 'dotenv';
+import { createClient } from '@supabase/supabase-js';
+
+// Load environment variables BEFORE any other imports
+dotenv.config();
+
+const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+const githubToken = process.env.VITE_GITHUB_TOKEN;
+
+if (!supabaseUrl || !supabaseKey) {
+  console.error('❌ Missing Supabase credentials. Please check your .env file');
+  process.exit(1);
+}
+
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+// Import after env variables are loaded
+async function importDynamically() {
+  const { default: GitHubAPIService } = await import('../src/services/github-api.service');
+  return GitHubAPIService;
+}
+
+async function captureCommits(
+  owner: string,
+  repo: string,
+  since?: Date
+): Promise<{ success: boolean; count: number; error?: string }> {
+  try {
+    // Get repository ID first
+    const { data: repoData, error: repoError } = await supabase
+      .from('repositories')
+      .select('id')
+      .eq('owner', owner)
+      .eq('name', repo)
+      .maybeSingle();
+
+    if (repoError || !repoData) {
+      return {
+        success: false,
+        count: 0,
+        error: `Repository not found: ${owner}/${repo}`
+      };
+    }
+
+    // Calculate date range - default to last 30 days
+    const sinceDate = since || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+    // Fetch commits from GitHub
+    console.log(`[Capture Commits] Fetching commits for ${owner}/${repo} since ${sinceDate.toISOString()}`);
+
+    const GitHubAPIService = await importDynamically();
+    const githubApiService = new GitHubAPIService(githubToken);
+    const commits = await githubApiService.fetchCommits(owner, repo, {
+      since: sinceDate.toISOString(),
+      per_page: 100
+    });
+
+    if (!commits || commits.length === 0) {
+      console.log(`[Capture Commits] No commits found for ${owner}/${repo}`);
+      return { success: true, count: 0 };
+    }
+
+    console.log(`[Capture Commits] Found ${commits.length} commits to process`);
+
+    // Get or create contributor records for commit authors
+    const authorMap = new Map<string, string>();
+
+    for (const commit of commits) {
+      if (commit.author && !authorMap.has(commit.author.login)) {
+        // Check if contributor exists
+        const { data: contributor, error: contribError } = await supabase
+          .from('contributors')
+          .select('id')
+          .eq('username', commit.author.login)
+          .maybeSingle();
+
+        if (!contribError && contributor) {
+          authorMap.set(commit.author.login, contributor.id);
+        } else if (!contribError) {
+          // Create contributor if doesn't exist
+          const { data: newContributor, error: insertError } = await supabase
+            .from('contributors')
+            .insert({
+              username: commit.author.login,
+              avatar_url: commit.author.avatar_url || '',
+              profile_url: commit.author.html_url || ''
+            })
+            .select('id')
+            .single();
+
+          if (!insertError && newContributor) {
+            authorMap.set(commit.author.login, newContributor.id);
+          }
+        }
+      }
+    }
+
+    // Prepare commit records
+    const commitRecords = commits.map((commit: any) => ({
+      repository_id: repoData.id,
+      sha: commit.sha,
+      author_id: commit.author ? authorMap.get(commit.author.login) : null,
+      message: commit.commit.message,
+      authored_at: commit.commit.author?.date || new Date().toISOString(),
+      // Initially null - will be set by smart-commit-analyzer
+      is_direct_commit: null,
+      pull_request_id: null
+    }));
+
+    // Insert commits (using upsert to handle duplicates)
+    const { error: insertError } = await supabase
+      .from('commits')
+      .upsert(commitRecords, {
+        onConflict: 'repository_id,sha',
+        ignoreDuplicates: false
+      });
+
+    if (insertError) {
+      console.error('[Capture Commits] Error inserting commits:', insertError);
+      return {
+        success: false,
+        count: 0,
+        error: insertError.message
+      };
+    }
+
+    console.log(`[Capture Commits] Successfully captured ${commitRecords.length} commits`);
+
+    // Queue commit analysis jobs
+    const analysisJobs = commitRecords.map((commit: any) => ({
+      repository_id: repoData.id,
+      job_type: 'commit_pr_check',
+      resource_id: commit.sha,
+      priority: 'medium',
+      status: 'pending',
+      metadata: {
+        message: commit.message?.substring(0, 100) // Store first 100 chars for debugging
+      }
+    }));
+
+    const { error: jobError } = await supabase
+      .from('progressive_capture_jobs')
+      .upsert(analysisJobs, {
+        onConflict: 'repository_id,job_type,resource_id',
+        ignoreDuplicates: true
+      });
+
+    if (jobError) {
+      console.warn('[Capture Commits] Warning: Could not queue analysis jobs:', jobError);
+      // Don't fail the whole operation if job queuing fails
+    }
+
+    return {
+      success: true,
+      count: commitRecords.length
+    };
+  } catch (error) {
+    console.error('[Capture Commits] Unexpected error:', error);
+    return {
+      success: false,
+      count: 0,
+      error: error instanceof Error ? error.message : String(error)
+    };
+  }
+}
+
+async function main() {
+  const args = process.argv.slice(2);
+  const owner = args[0] || 'continuedev';
+  const repo = args[1] || 'continue';
+
+  console.log(`Starting to populate commits for ${owner}/${repo}...`);
+
+  // Fetch last 7 days of commits
+  const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+  const result = await captureCommits(owner, repo, since);
+
+  if (result.success) {
+    console.log(`✅ Successfully captured ${result.count} commits for ${owner}/${repo}`);
+  } else {
+    console.error(`❌ Failed to capture commits: ${result.error}`);
+    process.exit(1);
+  }
+}
+
+main().catch(console.error);
