@@ -1,7 +1,7 @@
 # Postmortem: Repository Tracking System Failure
 
-**Date of Incident**: January 2025
-**Date of Resolution**: January 28, 2025
+**Date of Incident**: September 2025
+**Date of Resolution**: September 28, 2025
 **Author**: Engineering Team
 **Severity**: High - Core functionality broken for unknown period
 
@@ -12,9 +12,9 @@ The repository tracking system, a critical feature that allows users to add repo
 ## Timeline
 
 - **Unknown Date**: Repository tracking began failing silently
-- **January 27, 2025**: Issues discovered during routine development
-- **January 28, 2025**: Root causes identified and fixes implemented in PR #834
-- **January 28, 2025**: Additional security fixes applied for console logging patterns
+- **September 27, 2025**: Issues discovered during routine development
+- **September 28, 2025**: Root causes identified and fixes implemented in PR #834
+- **September 28, 2025**: Additional security fixes applied for console logging patterns
 
 ## Impact
 
@@ -290,4 +290,4 @@ This postmortem has been reviewed and approved by:
 - Product Owner: _________________
 - DevOps/SRE: _________________
 
-**Next Review Date**: February 28, 2025
+**Next Review Date**: October 28, 2025
