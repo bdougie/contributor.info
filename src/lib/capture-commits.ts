@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { createClient } from '@supabase/supabase-js';
 import GitHubAPIService from '../services/github-api.service';
 import type { RestEndpointMethodTypes } from '@octokit/rest';
 
@@ -18,11 +19,18 @@ export async function captureCommits(
     batchSize?: number;
     maxPages?: number;
     githubToken?: string; // Optional token - will use user's session token if not provided
+    supabaseUrl?: string; // Optional for scripts using service role
+    supabaseKey?: string; // Optional for scripts using service role
   }
 ): Promise<{ success: boolean; count: number; error?: string }> {
   try {
+    // Use provided Supabase client or default
+    const dbClient = (options?.supabaseUrl && options?.supabaseKey)
+      ? createClient(options.supabaseUrl, options.supabaseKey)
+      : supabase;
+
     // Get repository ID first
-    const { data: repoData, error: repoError } = await supabase
+    const { data: repoData, error: repoError } = await dbClient
       .from('repositories')
       .select('id')
       .eq('owner', owner)
@@ -51,7 +59,7 @@ export async function captureCommits(
 
     if (!githubToken) {
       // Get token from authenticated user's session
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session } } = await dbClient.auth.getSession();
       githubToken = session?.provider_token || undefined;
 
       if (!githubToken) {
@@ -120,7 +128,7 @@ export async function captureCommits(
     const authorMap = new Map<string, string>();
 
     if (uniqueAuthors.length > 0) {
-      const { data: existingContributors, error: fetchError } = await supabase
+      const { data: existingContributors, error: fetchError } = await dbClient
         .from('contributors')
         .select('id, username')
         .in('username', uniqueAuthors);
@@ -147,7 +155,7 @@ export async function captureCommits(
           };
         });
 
-        const { data: insertedContributors, error: insertError } = await supabase
+        const { data: insertedContributors, error: insertError } = await dbClient
           .from('contributors')
           .insert(newContributors)
           .select('id, username');
@@ -173,7 +181,7 @@ export async function captureCommits(
     }));
 
     // Insert commits (using upsert to handle duplicates)
-    const { error: insertError } = await supabase
+    const { error: insertError } = await dbClient
       .from('commits')
       .upsert(commitRecords, {
         onConflict: 'repository_id,sha',
@@ -203,7 +211,7 @@ export async function captureCommits(
       }
     }));
 
-    const { error: jobError } = await supabase
+    const { error: jobError } = await dbClient
       .from('progressive_capture_jobs')
       .insert(analysisJobs);
 
