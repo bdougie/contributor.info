@@ -1,22 +1,29 @@
-import { describe, it, expect, beforeEach, jest } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type { Context } from '@netlify/functions';
 import handler from '../api-workspaces.mts';
 
 // Mock Supabase
-jest.mock('@supabase/supabase-js', () => ({
-  createClient: jest.fn(() => ({
+vi.mock('@supabase/supabase-js', () => ({
+  createClient: vi.fn(() => ({
     auth: {
-      getUser: jest.fn().mockResolvedValue({
+      getUser: vi.fn().mockResolvedValue({
         data: { user: { id: 'test-user-id' } },
         error: null,
       }),
     },
-    from: jest.fn(() => ({
-      insert: jest.fn(),
-      select: jest.fn(),
-      single: jest.fn(),
+    from: vi.fn(() => ({
+      insert: vi.fn().mockResolvedValue({ data: { id: 'new-workspace-id' }, error: null }),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+      range: vi.fn().mockResolvedValue({ data: [], error: null, count: 0 }),
+      single: vi.fn().mockResolvedValue({ data: null, error: null }),
+      delete: vi.fn().mockResolvedValue({ error: null }),
     })),
-    rpc: jest.fn(),
+    rpc: vi.fn().mockResolvedValue({
+      data: 'generated-slug-123',
+      error: null,
+    }),
   })),
 }));
 

@@ -17,7 +17,8 @@ describe('Suggest Reviewers API Tests', () => {
   beforeEach(() => {
     // Setup Supabase mocks with proper query chain
     const mockMaybeSingle = vi.fn();
-    const mockEq2 = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
+    const mockEq3 = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
+    const mockEq2 = vi.fn().mockReturnValue({ eq: mockEq3 });
     const mockEq = vi.fn().mockReturnValue({ eq: mockEq2 });
     const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
     mockFrom = vi.fn().mockReturnValue({ select: mockSelect });
@@ -34,8 +35,8 @@ describe('Suggest Reviewers API Tests', () => {
     // Mock environment variables
     process.env.GITHUB_TOKEN = 'test-github-token';
 
-    // Reset fetch mock
-    (global.fetch as any).mockReset();
+    // Setup fetch mock
+    global.fetch = vi.fn();
   });
 
   afterEach(() => {

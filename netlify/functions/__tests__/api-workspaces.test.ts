@@ -22,7 +22,10 @@ describe('Workspace API Integration Tests', () => {
   beforeEach(() => {
     // Reset mocks
     mockAuth = {
-      getUser: vi.fn(),
+      getUser: vi.fn().mockResolvedValue({
+        data: { user: null },
+        error: null
+      }),
     };
 
     mockFrom = vi.fn();
@@ -598,7 +601,7 @@ describe('Workspace API Integration Tests', () => {
       const response = await handler(request, {} as any);
 
       expect(response.status).toBe(200);
-      expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*');
+      expect(response.headers.get('Access-Control-Allow-Origin')).toBe('https://contributor.info');
       expect(response.headers.get('Access-Control-Allow-Methods')).toContain('GET');
       expect(response.headers.get('Access-Control-Allow-Methods')).toContain('POST');
     });
@@ -612,7 +615,7 @@ describe('Workspace API Integration Tests', () => {
 
       const response = await handler(request, {} as any);
 
-      expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*');
+      expect(response.headers.get('Access-Control-Allow-Origin')).toBe('https://contributor.info');
       expect(response.headers.get('Access-Control-Allow-Headers')).toContain('Content-Type');
     });
   });
