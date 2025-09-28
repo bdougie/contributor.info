@@ -7,6 +7,8 @@ import {
   createDateRange,
   getDateDaysAgo,
   formatByType,
+  formatDatesInBulk,
+  clearDateCache,
   type DateFormatType
 } from './date-formatting';
 
@@ -39,6 +41,22 @@ describe('Date Formatting Utilities', () => {
       const midnightDate = new Date('2025-01-27T00:00:00.000Z');
       expect(toDateOnlyString(midnightDate)).toBe('2025-01-27');
     });
+
+    it('should throw error for invalid dates', () => {
+      expect(() => toDateOnlyString(null as any)).toThrow('Invalid date provided to toDateOnlyString');
+      expect(() => toDateOnlyString(undefined as any)).toThrow('Invalid date provided to toDateOnlyString');
+      expect(() => toDateOnlyString('invalid' as any)).toThrow('Invalid date provided to toDateOnlyString');
+      expect(() => toDateOnlyString(new Date('invalid'))).toThrow('Invalid date provided to toDateOnlyString');
+      expect(() => toDateOnlyString({} as any)).toThrow('Invalid date provided to toDateOnlyString');
+    });
+
+    it('should use local date methods to avoid timezone issues', () => {
+      // Test with a date that crosses day boundary in some timezones
+      const edgeDate = new Date(2025, 0, 27, 23, 59, 59); // Local time
+      const result = toDateOnlyString(edgeDate);
+      // Should match the local date regardless of timezone
+      expect(result).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    });
   });
 
   describe('toUTCTimestamp', () => {
@@ -49,6 +67,11 @@ describe('Date Formatting Utilities', () => {
     it('should preserve milliseconds in timestamp', () => {
       const dateWithMs = new Date('2025-01-27T14:30:00.123Z');
       expect(toUTCTimestamp(dateWithMs)).toBe('2025-01-27T14:30:00.123Z');
+    });
+
+    it('should throw error for invalid dates', () => {
+      expect(() => toUTCTimestamp(null as any)).toThrow('Invalid date provided to toUTCTimestamp');
+      expect(() => toUTCTimestamp(new Date('invalid'))).toThrow('Invalid date provided to toUTCTimestamp');
     });
   });
 
@@ -118,6 +141,21 @@ describe('Date Formatting Utilities', () => {
       expect(range.start).toBe('2025-01-27');
       expect(range.end).toBe('2025-01-27');
     });
+
+    it('should throw error when startDate is after endDate', () => {
+      const startDate = new Date('2025-01-31T00:00:00.000Z');
+      const endDate = new Date('2025-01-01T00:00:00.000Z');
+
+      expect(() => createDateRange(startDate, endDate)).toThrow('Invalid date range');
+    });
+
+    it('should throw error for invalid dates', () => {
+      const validDate = new Date('2025-01-01');
+      const invalidDate = new Date('invalid');
+
+      expect(() => createDateRange(invalidDate, validDate)).toThrow('Invalid date provided');
+      expect(() => createDateRange(validDate, invalidDate)).toThrow('Invalid date provided');
+    });
   });
 
   describe('getDateDaysAgo', () => {
@@ -140,6 +178,15 @@ describe('Date Formatting Utilities', () => {
     it('should handle large day values', () => {
       // Account for leap years - 2024 is a leap year
       expect(getDateDaysAgo(365)).toBe('2024-01-28');
+    });
+
+    it('should throw error for invalid days parameter', () => {
+      expect(() => getDateDaysAgo(-1)).toThrow('Invalid days parameter');
+      expect(() => getDateDaysAgo(null as any)).toThrow('Invalid days parameter');
+      expect(() => getDateDaysAgo(undefined as any)).toThrow('Invalid days parameter');
+      expect(() => getDateDaysAgo('10' as any)).toThrow('Invalid days parameter');
+      expect(() => getDateDaysAgo(Infinity)).toThrow('Invalid days parameter');
+      expect(() => getDateDaysAgo(NaN)).toThrow('Invalid days parameter');
     });
   });
 
@@ -197,6 +244,76 @@ describe('Date Formatting Utilities', () => {
 
       // Should process 1000 dates in under 50ms
       expect(endTime - startTime).toBeLessThan(50);
+    });
+  });
+
+  describe('formatDatesInBulk', () => {
+    beforeEach(() => {
+      clearDateCache();
+    });
+
+    it('should format multiple dates efficiently with caching', () => {
+      const dates = Array.from({ length: 100 }, (_, i) =>
+        new Date(2025, 0, (i % 10) + 1) // Only 10 unique dates
+      );
+
+      const startTime = performance.now();
+      const results = formatDatesInBulk(dates, true);
+      const endTime = performance.now();
+
+      expect(results).toHaveLength(100);
+      expect(results[0]).toBe('2025-01-01');
+      expect(endTime - startTime).toBeLessThan(10); // Should be very fast with caching
+    });
+
+    it('should cache repeated dates for performance', () => {
+      const sameDate = new Date('2025-01-15');
+      const dates = Array(1000).fill(sameDate);
+
+      const startTime = performance.now();
+      const results = formatDatesInBulk(dates, true);
+      const endTime = performance.now();
+
+      expect(results.every(r => r === '2025-01-15')).toBe(true);
+      expect(endTime - startTime).toBeLessThan(5); // Very fast due to caching
+    });
+
+    it('should handle mixed date-only and timestamp formatting', () => {
+      const dates = [new Date('2025-01-01'), new Date('2025-01-02')];
+
+      const dateOnlyResults = formatDatesInBulk(dates, true);
+      expect(dateOnlyResults).toEqual(['2025-01-01', '2025-01-02']);
+
+      const timestampResults = formatDatesInBulk(dates, false);
+      expect(timestampResults[0]).toMatch(/^2025-01-01T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+    });
+
+    it('should clear cache when it exceeds size limit', () => {
+      // Create more than CACHE_SIZE_LIMIT (1000) unique dates
+      const dates = Array.from({ length: 1100 }, (_, i) =>
+        new Date(2020 + Math.floor(i / 365), 0, (i % 365) + 1)
+      );
+
+      // Format all dates - cache should auto-clear
+      const results = formatDatesInBulk(dates, true);
+
+      expect(results).toHaveLength(1100);
+      // Cache should have been cleared and work normally
+      expect(results[1099]).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    });
+  });
+
+  describe('Edge cases with invalid input types', () => {
+    it('should handle edge cases in formatByType', () => {
+      const invalidDate = new Date('invalid');
+
+      expect(() => formatByType(invalidDate, 'date-only')).toThrow('Invalid date provided');
+      expect(() => formatByType(null as any, 'date-only')).toThrow('Invalid date provided');
+    });
+
+    it('should validate dates in createDateForDBQuery', () => {
+      expect(() => createDateForDBQuery(null as any)).toThrow('Invalid date provided');
+      expect(() => createDateForDBQuery(new Date('invalid'))).toThrow('Invalid date provided');
     });
   });
 });
