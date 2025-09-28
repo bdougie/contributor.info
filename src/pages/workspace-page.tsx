@@ -380,12 +380,14 @@ function WorkspacePRs({
   timeRange,
   workspaceId,
   workspace,
+  setReviewerModalOpen,
 }: {
   repositories: Repository[];
   selectedRepositories: string[];
   timeRange: TimeRange;
   workspaceId: string;
   workspace?: Workspace;
+  setReviewerModalOpen: (open: boolean) => void;
 }) {
   const navigate = useNavigate();
 
@@ -462,6 +464,9 @@ function WorkspacePRs({
           syncIntervalMinutes={60}
           className="text-sm text-muted-foreground"
         />
+        <Button onClick={() => setReviewerModalOpen(true)} size="sm" variant="outline">
+          CODEOWNERS
+        </Button>
       </div>
 
       {/* Metrics and Trends - first, always full width */}
@@ -3261,9 +3266,6 @@ function WorkspacePage() {
                 onSelectionChange={setSelectedRepositories}
                 className="w-[200px]"
               />
-              <Button onClick={() => setReviewerModalOpen(true)} size="sm" variant="outline">
-                Reviewer Suggestions
-              </Button>
             </div>
           </div>
         </div>
@@ -3304,15 +3306,17 @@ function WorkspacePage() {
             </TabsTrigger>
           </TabsList>
 
+          {/* Reviewer Suggestions Modal - Available on all tabs */}
+          {repositories.length > 0 && (
+            <ReviewerSuggestionsModal
+              open={reviewerModalOpen}
+              onOpenChange={setReviewerModalOpen}
+              repositories={repositories.map((r) => ({ id: r.id, name: r.name, owner: r.owner, full_name: r.full_name }))}
+            />
+          )}
+
           <TabsContent value="overview" className="mt-6 space-y-4">
             <div className="container max-w-7xl mx-auto">
-              {repositories.length > 0 && (
-                <ReviewerSuggestionsModal
-                  open={reviewerModalOpen}
-                  onOpenChange={setReviewerModalOpen}
-                  repositories={repositories.map((r) => ({ id: r.id, name: r.name, owner: r.owner, full_name: r.full_name }))}
-                />
-              )}
               <WorkspaceDashboard
                 workspaceId={workspace.id}
                 workspaceName=""
@@ -3339,6 +3343,7 @@ function WorkspacePage() {
                 timeRange={timeRange}
                 workspaceId={workspace.id}
                 workspace={workspace}
+                setReviewerModalOpen={setReviewerModalOpen}
               />
             </div>
           </TabsContent>
