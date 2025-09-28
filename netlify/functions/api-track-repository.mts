@@ -268,7 +268,7 @@ export default async (req: Request, context: Context) => {
       // Step 1: Check if repository already exists in database
       const { data: existingRepos, error: checkError } = await supabase
         .from('repositories')
-        .select('id, owner, name')
+        .select('id, owner, name, github_id')
         .eq('owner', owner)
         .eq('name', repo);
 
@@ -278,8 +278,54 @@ export default async (req: Request, context: Context) => {
       }
 
       if (existingRepos && existingRepos.length > 0) {
-        // Repository already exists - still send sync event
+        // Repository already exists
         const existingRepo = existingRepos[0];
+
+        // Update repository with latest GitHub data
+        const updateData: any = {
+          is_active: true,
+          last_updated_at: new Date().toISOString(),
+        };
+
+        // If github_id is missing or we have fresh GitHub data, update it
+        if ((!existingRepo.github_id || githubData) && githubData) {
+          Object.assign(updateData, {
+            github_id: githubData.id,
+            full_name: githubData.full_name,
+            description: githubData.description,
+            homepage: githubData.homepage,
+            language: githubData.language,
+            stargazers_count: githubData.stargazers_count,
+            watchers_count: githubData.watchers_count,
+            forks_count: githubData.forks_count,
+            open_issues_count: githubData.open_issues_count,
+            size: githubData.size,
+            default_branch: githubData.default_branch,
+            is_fork: githubData.fork,
+            is_archived: githubData.archived,
+            is_disabled: githubData.disabled,
+            is_private: githubData.private,
+            has_issues: githubData.has_issues,
+            has_projects: githubData.has_projects,
+            has_wiki: githubData.has_wiki,
+            has_pages: githubData.has_pages,
+            has_downloads: githubData.has_downloads,
+            license: githubData.license?.spdx_id || null,
+            topics: githubData.topics || [],
+            github_created_at: githubData.created_at,
+            github_updated_at: githubData.updated_at,
+            github_pushed_at: githubData.pushed_at,
+          });
+        }
+
+        const { error: updateError } = await supabase
+          .from('repositories')
+          .update(updateData)
+          .eq('id', existingRepo.id);
+
+        if (updateError) {
+          console.error('Failed to update repository with GitHub data:', updateError);
+        }
 
         // Send sync event for existing repository
         try {
