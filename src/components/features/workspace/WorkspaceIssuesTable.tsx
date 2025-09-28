@@ -18,6 +18,17 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
   Circle,
   CheckCircle2,
   XCircle,
@@ -29,6 +40,8 @@ import {
   ChevronDown,
   ExternalLink,
   MessageSquare,
+  Plus,
+  Sparkles,
 } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 import { useWorkspaceFiltersStore, type IssueState } from '@/lib/workspace-filters-store';
@@ -114,6 +127,11 @@ export function WorkspaceIssuesTable({
   const [sorting, setSorting] = useState<SortingState>([{ id: 'updated_at', desc: true }]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [selectedIssueForSimilar, setSelectedIssueForSimilar] = useState<Issue | null>(null);
+  const [newIssueTitle, setNewIssueTitle] = useState('');
+  const [newIssueBody, setNewIssueBody] = useState('');
+  const [selectedRepo, setSelectedRepo] = useState('');
   // Get filter state from store
   const {
     issueStates,
@@ -482,6 +500,27 @@ export function WorkspaceIssuesTable({
           size: 100,
         }),
         columnHelper.display({
+          id: 'similar',
+          cell: ({ row }) => (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedIssueForSimilar(row.original)}
+                    className="h-8 px-2"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Find similar issues</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ),
+          size: 50,
+        }),
+        columnHelper.display({
           id: 'actions',
           cell: ({ row }) =>
             row.original.url ? (
@@ -549,7 +588,105 @@ export function WorkspaceIssuesTable({
       <CardHeader>
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between">
-            <CardTitle className="hidden sm:block">Issues</CardTitle>
+            <div className="flex items-center gap-3">
+              <CardTitle className="hidden sm:block">Issues</CardTitle>
+              <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+                <DialogTrigger asChild>
+                  <Button size="sm" variant="outline">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Issue
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[525px]">
+                  <DialogHeader>
+                    <DialogTitle>Create New Issue</DialogTitle>
+                    <DialogDescription>
+                      Create a new issue in one of your workspace repositories.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="repo" className="text-right">
+                        Repository
+                      </Label>
+                      <select
+                        id="repo"
+                        value={selectedRepo}
+                        onChange={(e) => setSelectedRepo(e.target.value)}
+                        className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      >
+                        <option value="">Select a repository...</option>
+                        {Array.from(new Set(issues.map((i) => `${i.repository.owner}/${i.repository.name}`))).map(
+                          (repo) => (
+                            <option key={repo} value={repo}>
+                              {repo}
+                            </option>
+                          )
+                        )}
+                      </select>
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="title" className="text-right">
+                        Title
+                      </Label>
+                      <Input
+                        id="title"
+                        value={newIssueTitle}
+                        onChange={(e) => setNewIssueTitle(e.target.value)}
+                        className="col-span-3"
+                        placeholder="Issue title..."
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-start gap-4">
+                      <Label htmlFor="body" className="text-right pt-2">
+                        Description
+                      </Label>
+                      <Textarea
+                        id="body"
+                        value={newIssueBody}
+                        onChange={(e) => setNewIssueBody(e.target.value)}
+                        className="col-span-3"
+                        placeholder="Describe the issue..."
+                        rows={5}
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setShowCreateDialog(false);
+                        setNewIssueTitle('');
+                        setNewIssueBody('');
+                        setSelectedRepo('');
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        if (selectedRepo && newIssueTitle) {
+                          const [owner, name] = selectedRepo.split('/');
+                          window.open(
+                            `https://github.com/${owner}/${name}/issues/new?title=${encodeURIComponent(
+                              newIssueTitle
+                            )}&body=${encodeURIComponent(newIssueBody)}`,
+                            '_blank'
+                          );
+                          setShowCreateDialog(false);
+                          setNewIssueTitle('');
+                          setNewIssueBody('');
+                          setSelectedRepo('');
+                        }
+                      }}
+                      disabled={!selectedRepo || !newIssueTitle}
+                    >
+                      Create on GitHub
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <div className="relative flex-1 sm:flex-initial">
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -693,6 +830,33 @@ export function WorkspaceIssuesTable({
           </>
         )}
       </CardContent>
+
+      {/* Similar Issues Dialog */}
+      {selectedIssueForSimilar && (
+        <Dialog open={!!selectedIssueForSimilar} onOpenChange={() => setSelectedIssueForSimilar(null)}>
+          <DialogContent className="sm:max-w-[625px]">
+            <DialogHeader>
+              <DialogTitle>Similar Issues</DialogTitle>
+              <DialogDescription>
+                Issues similar to: "{selectedIssueForSimilar.title}"
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <div className="space-y-3">
+                <div className="flex items-center justify-center py-8 text-muted-foreground">
+                  <Sparkles className="h-5 w-5 mr-2" />
+                  <span>Similarity analysis will be available after embeddings are computed</span>
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setSelectedIssueForSimilar(null)}>
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </Card>
   );
 }
