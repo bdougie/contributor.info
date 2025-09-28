@@ -1,5 +1,5 @@
 import type { Context } from '@netlify/functions';
-import { createSupabaseClient } from '../../src/lib/supabase';
+import { createSupabaseClient } from '@/lib/supabase';
 import {
   validateRepository,
   createNotFoundResponse,

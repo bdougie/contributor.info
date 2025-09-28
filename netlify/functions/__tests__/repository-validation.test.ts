@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 
 // Mock Supabase before importing
-vi.mock('../../../src/lib/supabase', () => ({
+vi.mock('@/lib/supabase', () => ({
   createSupabaseClient: vi.fn(() => ({
     from: vi.fn(),
   })),
 }));
 
-import { createSupabaseClient } from '../../../src/lib/supabase';
+import { createSupabaseClient } from '@/lib/supabase';
 import {
   validateRepository,
   createNotFoundResponse,
