@@ -1,4 +1,5 @@
 import type { Repository } from '@/types/github';
+import { supabase } from '@/lib/supabase';
 
 export interface ReviewerSuggestionDTO {
   username: string;
@@ -48,4 +49,35 @@ export async function fetchFileTree(owner: string, repo: string) {
   const res = await fetch(`/api/repos/${owner}/${repo}/file-tree`);
   if (!res.ok) throw new Error(`Failed to fetch file tree: ${res.status}`);
   return res.json() as Promise<{ files: string[]; directories: string[]; totalSize: number; truncated: boolean }>;
+}
+
+export type MinimalPR = {
+  github_number: number;
+  title: string;
+  state: 'open' | 'closed' | 'merged';
+  created_at: string;
+  author?: { username: string; avatar_url?: string } | null;
+};
+
+export async function fetchRecentPullRequests(repositoryId: string, limit = 25): Promise<MinimalPR[]> {
+  const { data, error } = await supabase
+    .from('pull_requests')
+    .select(
+      `github_number, title, state, created_at, author:contributors!author_id (username, avatar_url)`
+    )
+    .eq('repository_id', repositoryId)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) {
+    console.error('Failed to fetch pull requests:', error);
+    return [];
+  }
+
+  return (data || []).map((row: any) => ({
+    github_number: row.github_number,
+    title: row.title,
+    state: row.state,
+    created_at: row.created_at,
+    author: Array.isArray(row.author) ? row.author[0] : row.author || null,
+  }));
 }

@@ -16,7 +16,7 @@ import {
   SelectItem,
   SelectValue,
 } from '@/components/ui/select';
-import { fetchCodeOwners, fetchFileTree, fetchSuggestedCodeOwners, suggestReviewers } from '@/services/reviewer-suggestions.service';
+import { fetchCodeOwners, fetchFileTree, fetchSuggestedCodeOwners, suggestReviewers, fetchRecentPullRequests, type MinimalPR } from '@/services/reviewer-suggestions.service';
 import type { Repository } from '@/types/github';
 
 interface ReviewerSuggestionsModalProps {
@@ -74,6 +74,8 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
     { suggestions: Array<{ pattern: string; owners: string[]; confidence: number; reasoning: string }>; codeOwnersContent: string } | null
   >(null);
   const [fileTree, setFileTree] = useState<{ files: string[]; directories: string[] } | null>(null);
+  const [pullRequests, setPullRequests] = useState<MinimalPR[]>([]);
+  const [selectedPR, setSelectedPR] = useState<string>('');
 
   useEffect(() => {
     if (!open) return;
@@ -85,6 +87,15 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
       // initialize
     }
   }, [open]);
+
+  useEffect(() => {
+    // Load recent PRs when active repository changes
+    (async () => {
+      if (!active?.id) return;
+      const prs = await fetchRecentPullRequests(active.id, 25);
+      setPullRequests(prs);
+    })();
+  }, [active?.id]);
 
   const owner = active?.owner || active?.full_name?.split('/')[0] || '';
   const repo = active?.name || active?.full_name?.split('/')[1] || '';
@@ -168,6 +179,32 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
               ))}
             </SelectContent>
           </Select>
+          {pullRequests.length > 0 && (
+            <>
+              <span className="text-sm text-muted-foreground">Pull Request</span>
+              <Select
+                value={selectedPR}
+                onValueChange={(v) => {
+                  setSelectedPR(v);
+                  const num = Number(v);
+                  if (owner && repo && Number.isFinite(num)) {
+                    setPrUrl(`https://github.com/${owner}/${repo}/pull/${num}`);
+                  }
+                }}
+              >
+                <SelectTrigger className="w-[320px]">
+                  <SelectValue placeholder="Select PR (recent)" />
+                </SelectTrigger>
+                <SelectContent>
+                  {pullRequests.map((pr) => (
+                    <SelectItem key={pr.github_number} value={String(pr.github_number)}>
+                      #{pr.github_number} · {pr.title?.slice(0, 50) || 'Untitled'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </>
+          )}
         </div>
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
