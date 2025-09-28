@@ -422,7 +422,7 @@ export function AddRepositoryModal({
           const { data: newRepo, error: createError } = await supabase
             .from('repositories')
             .insert({
-              github_id: repo.id,
+              github_id: repo.id || -Math.floor(Math.random() * 1000000000),
               full_name: repo.full_name,
               name: repo.name,
               owner: repo.owner.login,

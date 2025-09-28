@@ -148,9 +148,13 @@ export function useRepositoryTracking({
         console.info('Track API unavailable (likely missing GitHub token), using direct database creation');
 
         // Fallback: Create repository directly in the database
+        // Generate a temporary github_id for local development (negative to avoid conflicts)
+        const tempGithubId = -Math.floor(Math.random() * 1000000000);
+
         const { data: newRepo, error: createError } = await supabase
           .from('repositories')
           .insert({
+            github_id: tempGithubId,
             owner,
             name: repo,
             full_name: `${owner}/${repo}`,
