@@ -169,26 +169,51 @@ async function generateEnhancedReview(
     await fs.writeFile(tempFile, enhancedPrompt);
 
     try {
-      // Verify Continue CLI availability
-      await new Promise<void>((resolve, reject) => {
+      // Verify Continue CLI availability with proper sequential checks
+      let cliPath = 'cn'; // Default to global installation
+      const cliAvailable = await new Promise<boolean>((resolve) => {
         exec('which cn', (error, stdout) => {
           if (error) {
-            core.error('Continue CLI not found. Make sure @continuedev/cli is installed.');
-            core.error(`Error details: ${error.message}`);
-            // Try to install it
-            core.info('Attempting to install Continue CLI...');
-            exec('npm list @continuedev/cli', (listError, listOutput) => {
-              if (listError) {
-                core.error('Continue CLI is not installed in node_modules');
+            core.warning('Continue CLI not found in PATH, checking local installation...');
+            // Check if it's installed locally
+            exec('ls -la node_modules/.bin/cn 2>/dev/null', (lsError, lsOutput) => {
+              if (!lsError && lsOutput) {
+                core.info('Continue CLI found in local node_modules');
+                // Try to use the local version
+                exec('./node_modules/.bin/cn --version', (verError, verOutput) => {
+                  if (!verError) {
+                    core.info(`Local Continue CLI version: ${verOutput.trim()}`);
+                    cliPath = './node_modules/.bin/cn';
+                    resolve(true);
+                  } else {
+                    core.error('Local Continue CLI exists but cannot be executed');
+                    resolve(false);
+                  }
+                });
               } else {
-                core.info(`Continue CLI package found: ${listOutput}`);
-                // Check if it's in the PATH
-                exec('echo $PATH', (pathError, pathOutput) => {
-                  core.info(`Current PATH: ${pathOutput}`);
+                // Check if the package is installed
+                exec('npm list @continuedev/cli 2>/dev/null', (listError, listOutput) => {
+                  if (!listError && listOutput.includes('@continuedev/cli')) {
+                    core.warning('Continue CLI package is installed but binary not accessible');
+                    core.info('PATH: ' + process.env.PATH);
+                    // Try one more time with the full path
+                    const actionPath = process.env.GITHUB_ACTION_PATH || process.cwd();
+                    exec(`${actionPath}/node_modules/.bin/cn --version`, (finalError, finalOutput) => {
+                      if (!finalError) {
+                        core.info(`Continue CLI found with full path: ${finalOutput.trim()}`);
+                        cliPath = `${actionPath}/node_modules/.bin/cn`;
+                        resolve(true);
+                      } else {
+                        resolve(false);
+                      }
+                    });
+                  } else {
+                    core.error('Continue CLI is not installed');
+                    resolve(false);
+                  }
                 });
               }
             });
-            reject(new Error('Continue CLI not found'));
           } else {
             core.info(`Continue CLI found at: ${stdout.trim()}`);
             // Check version
@@ -196,15 +221,19 @@ async function generateEnhancedReview(
               if (!verError) {
                 core.info(`Continue CLI version: ${verOutput.trim()}`);
               }
+              resolve(true);
             });
-            resolve();
           }
         });
       });
 
+      if (!cliAvailable) {
+        throw new Error('Continue CLI could not be found or executed. Please check the action setup.');
+      }
+
       // Execute enhanced review with Continue CLI
-      const command = `cn --config ${continueConfig} -p @${tempFile} --allow Bash`;
-      core.info(`Executing enhanced review: cn --config ${continueConfig} -p @${tempFile} --allow Bash`);
+      const command = `${cliPath} --config ${continueConfig} -p @${tempFile} --allow Bash`;
+      core.info(`Executing enhanced review: ${command}`);
       core.info(`Continue API Key is set: ${continueApiKey ? 'Yes' : 'No'}`);
       core.info(`GitHub Token is set: ${githubToken ? 'Yes' : 'No'}`);
 
@@ -415,21 +444,36 @@ Please address the user's specific request while also checking for any significa
     // Call Continue CLI for fallback review
     core.info('Fallback: Calling Continue CLI for standard review...');
 
-    // Check if Continue CLI is available
-    await new Promise<void>((resolve, reject) => {
+    // Check if Continue CLI is available (use same robust check)
+    let cliPath = 'cn';
+    const cliAvailable = await new Promise<boolean>((resolve) => {
       exec('which cn', (error, stdout) => {
         if (error) {
-          core.error('Fallback: Continue CLI not found');
-          reject(new Error('Continue CLI not found'));
+          // Try local installation
+          const actionPath = process.env.GITHUB_ACTION_PATH || process.cwd();
+          exec(`${actionPath}/node_modules/.bin/cn --version`, (localError) => {
+            if (!localError) {
+              cliPath = `${actionPath}/node_modules/.bin/cn`;
+              core.info(`Fallback: Using local Continue CLI at ${cliPath}`);
+              resolve(true);
+            } else {
+              core.error('Fallback: Continue CLI not found');
+              resolve(false);
+            }
+          });
         } else {
           core.info(`Fallback: Continue CLI found at ${stdout.trim()}`);
-          resolve();
+          resolve(true);
         }
       });
     });
 
+    if (!cliAvailable) {
+      throw new Error('Continue CLI not found for fallback review');
+    }
+
     // Execute Continue CLI with the prompt
-    const command = `cn --config ${continueConfig} -p @${tempFile} --allow Bash`;
+    const command = `${cliPath} --config ${continueConfig} -p @${tempFile} --allow Bash`;
 
     const { stdout } = await new Promise<{ stdout: string; stderr: string }>(
       (resolve, reject) => {
