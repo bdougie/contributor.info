@@ -1,6 +1,8 @@
 import { PullRequest, Repository, Issue } from '../types/github';
 import { supabase } from '../../src/lib/supabase';
 import { githubAppAuth } from '../lib/auth';
+import { embeddingService } from './embedding-service';
+import { similarityCache } from './similarity-cache';
 
 export interface SimilarIssue {
   issue: Issue;
@@ -9,15 +11,33 @@ export interface SimilarIssue {
   relationship: 'implements' | 'fixes' | 'relates_to' | 'similar';
 }
 
+export interface SimilarityOptions {
+  useSemantic?: boolean;
+  maxResults?: number;
+  minScore?: number;
+  batchProcess?: boolean;
+  onProgress?: (processed: number, total: number) => void;
+}
+
 /**
- * Find issues similar to a pull request
+ * Find issues similar to a pull request with batch processing and caching
  */
 export async function findSimilarIssues(
   pullRequest: PullRequest,
-  repository: Repository
+  repository: Repository,
+  options: SimilarityOptions = {}
 ): Promise<SimilarIssue[]> {
+  const {
+    useSemantic = true,
+    maxResults = 10,
+    minScore = 0.3,
+    batchProcess = true,
+    onProgress,
+  } = options;
+
   try {
     const similarIssues: SimilarIssue[] = [];
+    const startTime = Date.now();
 
     // 1. Check for explicitly mentioned issues in PR body
     const mentionedIssues = extractMentionedIssues(pullRequest.body || '');
@@ -53,29 +73,142 @@ export async function findSimilarIssues(
       }
     }
 
-    // 4. Calculate similarity for each issue
     const allIssues = [...(dbIssues || []), ...githubIssues];
+    const totalIssues = allIssues.length;
 
-    for (const issue of allIssues) {
-      const similarity = await calculateIssueSimilarity(pullRequest, issue, mentionedIssues);
+    // 4. Use semantic similarity if enabled and available
+    if (useSemantic && embeddingService.isAvailable() && batchProcess) {
+      const batchResults = await processBatchSimilarity(
+        pullRequest,
+        allIssues,
+        repository.id,
+        { onProgress, minScore }
+      );
 
-      if (similarity.score > 0.3) {
-        // Threshold for relevance
-        similarIssues.push({
-          issue: issue as Issue,
-          similarityScore: similarity.score,
-          reasons: similarity.reasons,
-          relationship: similarity.relationship,
-        });
+      for (const result of batchResults) {
+        if (result.score >= minScore) {
+          similarIssues.push(result);
+        }
+      }
+    } else {
+      // Fall back to text-based similarity
+      let processed = 0;
+      for (const issue of allIssues) {
+        const similarity = await calculateIssueSimilarity(pullRequest, issue, mentionedIssues);
+
+        if (similarity.score >= minScore) {
+          similarIssues.push({
+            issue: issue as Issue,
+            similarityScore: similarity.score,
+            reasons: similarity.reasons,
+            relationship: similarity.relationship,
+          });
+        }
+
+        processed++;
+        if (onProgress) {
+          onProgress(processed, totalIssues);
+        }
       }
     }
 
     // 5. Sort by similarity score and return top matches
-    return similarIssues.sort((a, b) => b.similarityScore - a.similarityScore).slice(0, 5);
+    const results = similarIssues
+      .sort((a, b) => b.similarityScore - a.similarityScore)
+      .slice(0, maxResults);
+
+    // Log performance metrics
+    const processingTime = Date.now() - startTime;
+    console.log(`Similarity search completed in ${processingTime}ms`, {
+      totalIssues,
+      semanticSearch: useSemantic && embeddingService.isAvailable(),
+      cacheStats: similarityCache.getStats(),
+    });
+
+    return results;
   } catch (error) {
     console.error('Error finding similar issues:', error);
     return [];
   }
+}
+
+/**
+ * Process similarity in batches using embeddings
+ */
+async function processBatchSimilarity(
+  pullRequest: PullRequest,
+  issues: any[],
+  repositoryId: string,
+  options: { onProgress?: (processed: number, total: number) => void; minScore: number }
+): Promise<SimilarIssue[]> {
+  const results: SimilarIssue[] = [];
+
+  // Prepare PR embedding
+  const prEmbedding = await embeddingService.generateEmbedding({
+    id: pullRequest.id.toString(),
+    title: pullRequest.title,
+    body: pullRequest.body,
+    type: 'pull_request',
+    repositoryId,
+  });
+
+  if (!prEmbedding) {
+    console.warn('Could not generate PR embedding, falling back to text similarity');
+    return [];
+  }
+
+  // Prepare issue items for batch processing
+  const issueItems = issues.map((issue) => ({
+    id: issue.id?.toString() || issue.number?.toString(),
+    title: issue.title,
+    body: issue.body,
+    type: 'issue' as const,
+    repositoryId,
+  }));
+
+  // Get embeddings in batch
+  const batchResults = await embeddingService.generateBatchEmbeddings(issueItems, {
+    returnPartial: true,
+    onProgress: options.onProgress,
+  });
+
+  // Calculate similarities
+  for (let i = 0; i < issues.length; i++) {
+    const issue = issues[i];
+    const embeddingResult = batchResults.find((r) => r.itemId === issueItems[i].id);
+
+    if (embeddingResult?.embedding) {
+      const semanticScore = embeddingService.calculateSimilarity(
+        prEmbedding,
+        embeddingResult.embedding
+      );
+
+      // Combine with traditional scoring
+      const mentionedIssues = extractMentionedIssues(pullRequest.body || '');
+      const traditionalSimilarity = await calculateIssueSimilarity(
+        pullRequest,
+        issue,
+        mentionedIssues
+      );
+
+      // Weighted combination: 70% semantic, 30% traditional
+      const combinedScore = semanticScore * 0.7 + traditionalSimilarity.score * 0.3;
+
+      if (combinedScore >= options.minScore) {
+        results.push({
+          issue: issue as Issue,
+          similarityScore: combinedScore,
+          reasons: [
+            ...traditionalSimilarity.reasons,
+            semanticScore > 0.7 ? 'High semantic similarity' : undefined,
+          ].filter(Boolean) as string[],
+          relationship: traditionalSimilarity.relationship,
+        });
+      }
+    }
+  }
+
+  return results;
 }
 
 /**
