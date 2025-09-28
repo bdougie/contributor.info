@@ -15,22 +15,10 @@ describe('Suggest Reviewers API Tests', () => {
   let mockFrom: any;
 
   beforeEach(() => {
-    // Setup Supabase mocks with proper query chain
-    const mockMaybeSingle = vi.fn();
-    const mockEq3 = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
-    const mockEq2 = vi.fn().mockReturnValue({ eq: mockEq3 });
-    const mockEq = vi.fn().mockReturnValue({ eq: mockEq2 });
-    const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
-    mockFrom = vi.fn().mockReturnValue({ select: mockSelect });
+    // Setup default Supabase mock
+    mockFrom = vi.fn();
     mockSupabase = { from: mockFrom };
-
     (createSupabaseClient as any).mockReturnValue(mockSupabase);
-
-    // Mock tracked repository
-    mockMaybeSingle.mockResolvedValue({
-      data: { id: 1, is_active: true },
-      error: null,
-    });
 
     // Mock environment variables
     process.env.GITHUB_TOKEN = 'test-github-token';
@@ -72,6 +60,18 @@ describe('Suggest Reviewers API Tests', () => {
   });
 
   describe('Request body validation', () => {
+    beforeEach(() => {
+      // Mock repository validation for body validation tests
+      const mockMaybeSingle = vi.fn().mockResolvedValue({
+        data: { id: 1, is_active: true },
+        error: null
+      });
+      const mockEq2 = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
+      const mockEq = vi.fn().mockReturnValue({ eq: mockEq2 });
+      const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
+      mockFrom.mockReturnValue({ select: mockSelect });
+    });
+
     it('should reject requests without files array', async () => {
       const request = new Request('https://test.com/api/repos/owner/repo/suggest-reviewers', {
         method: 'POST',
@@ -117,53 +117,87 @@ describe('Suggest Reviewers API Tests', () => {
 
   describe('Reviewer suggestions', () => {
     beforeEach(() => {
-      // Mock contribution data query
-      const mockLimit = vi.fn().mockResolvedValue({
-        data: [
-          {
-            contributor: {
-              username: 'developer1',
-              avatar_url: 'https://github.com/developer1.png',
-            },
-            additions: 100,
-            deletions: 50,
-            commits: 10,
-            files_changed: ['src/components/auth.tsx', 'src/lib/utils.ts'],
-            last_contributed_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days ago
-          },
-          {
-            contributor: {
-              username: 'developer2',
-              avatar_url: 'https://github.com/developer2.png',
-            },
-            additions: 200,
-            deletions: 30,
-            commits: 15,
-            files_changed: ['src/components/auth.tsx', 'tests/auth.test.ts'],
-            last_contributed_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(), // 10 days ago
-          },
-        ],
-        error: null,
-      });
+      let queryCount = 0;
 
-      const mockOrder = vi.fn().mockReturnValue({ limit: mockLimit });
-      const mockGte = vi.fn().mockReturnValue({ order: mockOrder });
-      const mockEq = vi.fn().mockReturnValue({ gte: mockGte });
-      const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
-
-      // Override the from mock to return contributions query chain
+      // Override the from mock to handle all tables
       mockFrom.mockImplementation((table: string) => {
-        if (table === 'github_contributions') {
+        // For tracked_repositories table (validation)
+        if (table === 'tracked_repositories') {
+          queryCount++;
+          const mockMaybeSingle = vi.fn().mockResolvedValue({
+            data: { id: 1, is_active: true },
+            error: null,
+          });
+          const mockEq2 = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
+          const mockEq = vi.fn().mockReturnValue({ eq: mockEq2 });
+          const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
           return { select: mockSelect };
         }
-        // For tracked_repositories table
-        const mockMaybeSingle = vi.fn().mockResolvedValue({
-          data: { id: 1, is_active: true },
-          error: null,
-        });
-        const mockEqRepo = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
-        const mockSelectRepo = vi.fn().mockReturnValue({ eq: mockEqRepo });
-        return { select: mockSelectRepo };
+
+        // For repositories table (getting repository ID)
+        if (table === 'repositories') {
+          const mockMaybeSingle = vi.fn().mockResolvedValue({
+            data: { id: 'repo-123' },
+            error: null,
+          });
+          const mockLimit = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
+          const mockEq2 = vi.fn().mockReturnValue({ limit: mockLimit });
+          const mockEq = vi.fn().mockReturnValue({ eq: mockEq2 });
+          const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
+          return { select: mockSelect };
+        }
+
+        // For github_contributions table
+        if (table === 'github_contributions') {
+          const mockLimit = vi.fn().mockResolvedValue({
+            data: [
+              {
+                contributor: {
+                  username: 'developer1',
+                  avatar_url: 'https://github.com/developer1.png',
+                },
+                additions: 100,
+                deletions: 50,
+                commits: 10,
+                files_changed: ['src/components/auth.tsx', 'src/lib/utils.ts'],
+                last_contributed_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days ago
+              },
+              {
+                contributor: {
+                  username: 'developer2',
+                  avatar_url: 'https://github.com/developer2.png',
+                },
+                additions: 200,
+                deletions: 30,
+                commits: 15,
+                files_changed: ['src/components/auth.tsx', 'tests/auth.test.ts'],
+                last_contributed_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(), // 10 days ago
+              },
+            ],
+            error: null,
+          });
+
+          const mockOrder = vi.fn().mockReturnValue({ limit: mockLimit });
+          const mockGte = vi.fn().mockReturnValue({ order: mockOrder });
+          const mockEq = vi.fn().mockReturnValue({ gte: mockGte });
+          const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
+          return { select: mockSelect };
+        }
+
+        // For codeowners table (mock empty result by default)
+        if (table === 'codeowners') {
+          const mockMaybeSingle = vi.fn().mockResolvedValue({
+            data: null,
+            error: null,
+          });
+          const mockLimit = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
+          const mockOrder = vi.fn().mockReturnValue({ limit: mockLimit });
+          const mockEq = vi.fn().mockReturnValue({ order: mockOrder });
+          const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
+          return { select: mockSelect };
+        }
+
+        throw new Error(`Unexpected table: ${table}`);
       });
     });
 
@@ -225,13 +259,63 @@ describe('Suggest Reviewers API Tests', () => {
     });
 
     it('should include CODEOWNERS in suggestions when available', async () => {
-      // Mock CODEOWNERS fetch
-      (global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({
-          content: Buffer.from('src/components/ @codeowner1 @codeowner2').toString('base64'),
-          path: '.github/CODEOWNERS',
-        }),
+      // Override the from mock to include CODEOWNERS data
+      mockFrom.mockImplementation((table: string) => {
+        // For tracked_repositories table (validation)
+        if (table === 'tracked_repositories') {
+          const mockMaybeSingle = vi.fn().mockResolvedValue({
+            data: { id: 1, is_active: true },
+            error: null,
+          });
+          const mockEq2 = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
+          const mockEq = vi.fn().mockReturnValue({ eq: mockEq2 });
+          const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
+          return { select: mockSelect };
+        }
+
+        // For repositories table (getting repository ID)
+        if (table === 'repositories') {
+          const mockMaybeSingle = vi.fn().mockResolvedValue({
+            data: { id: 'repo-123' },
+            error: null,
+          });
+          const mockLimit = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
+          const mockEq2 = vi.fn().mockReturnValue({ limit: mockLimit });
+          const mockEq = vi.fn().mockReturnValue({ eq: mockEq2 });
+          const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
+          return { select: mockSelect };
+        }
+
+        // For codeowners table - return CODEOWNERS content
+        if (table === 'codeowners') {
+          const mockMaybeSingle = vi.fn().mockResolvedValue({
+            data: {
+              content: 'src/components/ @codeowner1 @codeowner2',
+              file_path: '.github/CODEOWNERS',
+            },
+            error: null,
+          });
+          const mockLimit = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
+          const mockOrder = vi.fn().mockReturnValue({ limit: mockLimit });
+          const mockEq = vi.fn().mockReturnValue({ order: mockOrder });
+          const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
+          return { select: mockSelect };
+        }
+
+        // For github_contributions table
+        if (table === 'github_contributions') {
+          const mockLimit = vi.fn().mockResolvedValue({
+            data: [],
+            error: null,
+          });
+          const mockOrder = vi.fn().mockReturnValue({ limit: mockLimit });
+          const mockGte = vi.fn().mockReturnValue({ order: mockOrder });
+          const mockEq = vi.fn().mockReturnValue({ gte: mockGte });
+          const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
+          return { select: mockSelect };
+        }
+
+        throw new Error(`Unexpected table: ${table}`);
       });
 
       const request = new Request('https://test.com/api/repos/owner/repo/suggest-reviewers', {
@@ -279,7 +363,7 @@ describe('Suggest Reviewers API Tests', () => {
     });
 
     it('should handle contribution data fetch errors', async () => {
-      // Mock database error
+      // Mock database error for contributions
       const mockLimit = vi.fn().mockResolvedValue({
         data: null,
         error: { message: 'Database connection failed' },
@@ -291,17 +375,50 @@ describe('Suggest Reviewers API Tests', () => {
       const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
 
       mockFrom.mockImplementation((table: string) => {
+        // For tracked_repositories table (validation)
+        if (table === 'tracked_repositories') {
+          const mockMaybeSingle = vi.fn().mockResolvedValue({
+            data: { id: 1, is_active: true },
+            error: null,
+          });
+          const mockEq2 = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
+          const mockEq = vi.fn().mockReturnValue({ eq: mockEq2 });
+          const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
+          return { select: mockSelect };
+        }
+
+        // For repositories table
+        if (table === 'repositories') {
+          const mockMaybeSingle = vi.fn().mockResolvedValue({
+            data: { id: 'repo-123' },
+            error: null,
+          });
+          const mockLimit = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
+          const mockEq2 = vi.fn().mockReturnValue({ limit: mockLimit });
+          const mockEq = vi.fn().mockReturnValue({ eq: mockEq2 });
+          const mockSelectLocal = vi.fn().mockReturnValue({ eq: mockEq });
+          return { select: mockSelectLocal };
+        }
+
+        // For github_contributions table - return error
         if (table === 'github_contributions') {
           return { select: mockSelect };
         }
-        // For tracked_repositories table
-        const mockMaybeSingle = vi.fn().mockResolvedValue({
-          data: { id: 1, is_active: true },
-          error: null,
-        });
-        const mockEqRepo = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
-        const mockSelectRepo = vi.fn().mockReturnValue({ eq: mockEqRepo });
-        return { select: mockSelectRepo };
+
+        // For codeowners table
+        if (table === 'codeowners') {
+          const mockMaybeSingle = vi.fn().mockResolvedValue({
+            data: null,
+            error: null,
+          });
+          const mockLimitLocal = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
+          const mockOrderLocal = vi.fn().mockReturnValue({ limit: mockLimitLocal });
+          const mockEqLocal = vi.fn().mockReturnValue({ order: mockOrderLocal });
+          const mockSelectLocal = vi.fn().mockReturnValue({ eq: mockEqLocal });
+          return { select: mockSelectLocal };
+        }
+
+        throw new Error(`Unexpected table: ${table}`);
       });
 
       const request = new Request('https://test.com/api/repos/owner/repo/suggest-reviewers', {
@@ -323,25 +440,57 @@ describe('Suggest Reviewers API Tests', () => {
 
   describe('File analysis', () => {
     beforeEach(() => {
-      // Mock empty contribution data for these tests
-      const mockLimit = vi.fn().mockResolvedValue({ data: [], error: null });
-      const mockOrder = vi.fn().mockReturnValue({ limit: mockLimit });
-      const mockGte = vi.fn().mockReturnValue({ order: mockOrder });
-      const mockEq = vi.fn().mockReturnValue({ gte: mockGte });
-      const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
-
+      // Mock all required tables for file analysis tests
       mockFrom.mockImplementation((table: string) => {
-        if (table === 'github_contributions') {
+        // For tracked_repositories table (validation)
+        if (table === 'tracked_repositories') {
+          const mockMaybeSingle = vi.fn().mockResolvedValue({
+            data: { id: 1, is_active: true },
+            error: null,
+          });
+          const mockEq2 = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
+          const mockEq = vi.fn().mockReturnValue({ eq: mockEq2 });
+          const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
           return { select: mockSelect };
         }
-        // For tracked_repositories table
-        const mockMaybeSingle = vi.fn().mockResolvedValue({
-          data: { id: 1, is_active: true },
-          error: null,
-        });
-        const mockEqRepo = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
-        const mockSelectRepo = vi.fn().mockReturnValue({ eq: mockEqRepo });
-        return { select: mockSelectRepo };
+
+        // For repositories table
+        if (table === 'repositories') {
+          const mockMaybeSingle = vi.fn().mockResolvedValue({
+            data: { id: 'repo-123' },
+            error: null,
+          });
+          const mockLimit = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
+          const mockEq2 = vi.fn().mockReturnValue({ limit: mockLimit });
+          const mockEq = vi.fn().mockReturnValue({ eq: mockEq2 });
+          const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
+          return { select: mockSelect };
+        }
+
+        // For github_contributions table - empty data for file analysis tests
+        if (table === 'github_contributions') {
+          const mockLimit = vi.fn().mockResolvedValue({ data: [], error: null });
+          const mockOrder = vi.fn().mockReturnValue({ limit: mockLimit });
+          const mockGte = vi.fn().mockReturnValue({ order: mockOrder });
+          const mockEq = vi.fn().mockReturnValue({ gte: mockGte });
+          const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
+          return { select: mockSelect };
+        }
+
+        // For codeowners table
+        if (table === 'codeowners') {
+          const mockMaybeSingle = vi.fn().mockResolvedValue({
+            data: null,
+            error: null,
+          });
+          const mockLimit = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
+          const mockOrder = vi.fn().mockReturnValue({ limit: mockLimit });
+          const mockEq = vi.fn().mockReturnValue({ order: mockOrder });
+          const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
+          return { select: mockSelect };
+        }
+
+        throw new Error(`Unexpected table: ${table}`);
       });
     });
 
