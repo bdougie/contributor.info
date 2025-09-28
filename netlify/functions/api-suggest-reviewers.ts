@@ -1,5 +1,5 @@
 import type { Context } from '@netlify/functions';
-import { createSupabaseClient } from '../src/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 import {
   validateRepository,
   createNotFoundResponse,
@@ -39,8 +39,7 @@ async function analyzePRFiles(files: string[]): Promise<PullRequestFiles> {
   return { files, directories, fileTypes };
 }
 
-async function getContributorScores(owner: string, repo: string, prFiles: PullRequestFiles): Promise<Map<string, ReviewerSuggestion>> {
-  const supabase = createSupabaseClient();
+async function getContributorScores(owner: string, repo: string, prFiles: PullRequestFiles, supabase: ReturnType<typeof createClient>): Promise<Map<string, ReviewerSuggestion>> {
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const { data, error } = await supabase
     .from('github_contributions')
@@ -143,6 +142,12 @@ export default async (req: Request, context: Context) => {
     process.env.SUPABASE_ANON_KEY ||
     process.env.VITE_SUPABASE_ANON_KEY ||
     '';
+
+  if (!supabaseUrl || !supabaseKey) {
+    return createErrorResponse('Missing Supabase configuration', 500);
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseKey);
   const limiter = new RateLimiter(supabaseUrl, supabaseKey, {
     maxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '60', 10),
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000', 10),
@@ -163,7 +168,7 @@ export default async (req: Request, context: Context) => {
     let owner = parts[apiIndex + 2];
     let repo = parts[apiIndex + 3];
 
-    const validation = await validateRepository(owner, repo);
+    const validation = await validateRepository(owner, repo, supabase);
     if (!validation.isTracked) return createNotFoundResponse(owner, repo, validation.trackingUrl);
     if (validation.error) return createErrorResponse(validation.error);
 
@@ -205,7 +210,6 @@ export default async (req: Request, context: Context) => {
     }
 
     const prFiles = await analyzePRFiles(files);
-    const supabase = createSupabaseClient();
     const { data: repository, error: repoError } = await supabase
       .from('repositories')
       .select('id')
@@ -214,7 +218,7 @@ export default async (req: Request, context: Context) => {
       .maybeSingle();
     if (repoError || !repository) return createNotFoundResponse(owner, repo);
 
-    const reviewerMap = await getContributorScores(owner, repo, prFiles);
+    const reviewerMap = await getContributorScores(owner, repo, prFiles, supabase);
 
     let codeOwners: string[] = [];
     const { data: coData } = await supabase

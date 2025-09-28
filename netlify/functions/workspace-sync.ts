@@ -1,11 +1,19 @@
 import type { Handler } from '@netlify/functions';
 import { Inngest } from 'inngest';
 
-const inngest = new Inngest({
-  id: process.env.INNGEST_APP_ID || 'contributor-info',
-  eventKey: process.env.INNGEST_EVENT_KEY || process.env.INNGEST_PRODUCTION_EVENT_KEY || '',
-  isDev: process.env.NODE_ENV === 'development' || process.env.NETLIFY_DEV === 'true',
-});
+// Initialize Inngest client with fallback to prevent empty eventKey
+function createInngestClient() {
+  const eventKey = process.env.INNGEST_EVENT_KEY || process.env.INNGEST_PRODUCTION_EVENT_KEY;
+  if (!eventKey) {
+    throw new Error('Missing INNGEST_EVENT_KEY or INNGEST_PRODUCTION_EVENT_KEY environment variable');
+  }
+
+  return new Inngest({
+    id: process.env.INNGEST_APP_ID || 'contributor-info',
+    eventKey,
+    isDev: process.env.NODE_ENV === 'development' || process.env.NETLIFY_DEV === 'true',
+  });
+}
 
 // Simple in-memory rate limiting (resets on function cold start)
 // In production, consider using a distributed cache like Redis
@@ -97,9 +105,17 @@ export const handler: Handler = async (event) => {
   }
 
   try {
+    console.log('[workspace-sync] Request received:', {
+      method: event.httpMethod,
+      body: event.body,
+      headers: event.headers
+    });
+
     // Parse request body
     const body = JSON.parse(event.body || '{}');
     const { repositoryIds, workspaceId } = body;
+
+    console.log('[workspace-sync] Parsed body:', { repositoryIds, workspaceId });
 
     // Validate required fields
     if (!repositoryIds || !Array.isArray(repositoryIds) || repositoryIds.length === 0) {
@@ -138,10 +154,13 @@ export const handler: Handler = async (event) => {
       }
     }
 
-    // Check for Inngest event key
-    const eventKey = process.env.INNGEST_EVENT_KEY || process.env.INNGEST_PRODUCTION_EVENT_KEY;
-    if (!eventKey) {
-      console.error('[workspace-sync] Missing Inngest event key in environment');
+    // Initialize Inngest client
+    let inngest;
+    try {
+      inngest = createInngestClient();
+      console.log('[workspace-sync] Inngest client initialized successfully');
+    } catch (error) {
+      console.error('[workspace-sync] Failed to initialize Inngest client:', error);
       return {
         statusCode: 503,
         body: JSON.stringify({
@@ -152,10 +171,12 @@ export const handler: Handler = async (event) => {
     }
 
     // Send sync events for each repository
+    console.log('[workspace-sync] Sending sync events for repositories:', repositoryIds);
     const results = await Promise.allSettled(
       repositoryIds.map(async (repoId: string) => {
         try {
-          await inngest.send({
+          console.log(`[workspace-sync] Sending event for repository: ${repoId}`);
+          const eventData = {
             name: 'capture/repository.sync.graphql',
             data: {
               repositoryId: repoId,
@@ -163,7 +184,12 @@ export const handler: Handler = async (event) => {
               priority: 'high' as const,
               reason: `Manual workspace sync ${workspaceId ? `for workspace ${workspaceId}` : ''}`,
             },
-          });
+          };
+          console.log(`[workspace-sync] Event data:`, eventData);
+
+          const result = await inngest.send(eventData);
+          console.log(`[workspace-sync] Event sent successfully for ${repoId}:`, result);
+
           return { repositoryId: repoId, status: 'success' };
         } catch (error) {
           console.error(`[workspace-sync] Failed to sync repository ${repoId}:`, error);

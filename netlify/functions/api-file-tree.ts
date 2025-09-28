@@ -1,5 +1,6 @@
+// Fixed import paths for Netlify Functions build
 import type { Context } from '@netlify/functions';
-import { createSupabaseClient } from '../src/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 import {
   validateRepository,
   createNotFoundResponse,
@@ -91,7 +92,18 @@ export default async (req: Request, context: Context) => {
     if (!validation.isTracked) return createNotFoundResponse(owner, repo, validation.trackingUrl);
     if (validation.error) return createErrorResponse(validation.error);
 
-    const supabase = createSupabaseClient();
+    const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
+    const supabaseKey =
+      process.env.SUPABASE_SERVICE_KEY ||
+      process.env.SUPABASE_ANON_KEY ||
+      process.env.VITE_SUPABASE_ANON_KEY ||
+      '';
+
+    if (!supabaseUrl || !supabaseKey) {
+      return createErrorResponse('Missing Supabase configuration', 500);
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
     const { data: repository } = await supabase
       .from('repositories')
       .select('default_branch')

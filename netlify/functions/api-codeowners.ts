@@ -1,5 +1,5 @@
 import type { Context } from '@netlify/functions';
-import { createSupabaseClient } from '../src/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 import {
   validateRepository,
   createNotFoundResponse,
@@ -16,10 +16,10 @@ interface CodeOwnersResponse {
 }
 
 async function fetchCodeOwnersFromDatabase(
-  repositoryId: string
+  repositoryId: string,
+  supabase: ReturnType<typeof createClient>
 ): Promise<CodeOwnersResponse> {
   try {
-    const supabase = createSupabaseClient();
     const { data, error } = await supabase
       .from('codeowners')
       .select('content, file_path, updated_at')
@@ -51,6 +51,12 @@ export default async (req: Request, context: Context) => {
     process.env.SUPABASE_ANON_KEY ||
     process.env.VITE_SUPABASE_ANON_KEY ||
     '';
+
+  if (!supabaseUrl || !supabaseKey) {
+    return createErrorResponse('Missing Supabase configuration', 500);
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseKey);
   const limiter = new RateLimiter(supabaseUrl, supabaseKey, {
     maxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '60', 10),
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000', 10),
@@ -79,7 +85,7 @@ export default async (req: Request, context: Context) => {
     const owner = parts[apiIndex + 2];
     const repo = parts[apiIndex + 3];
 
-    const validation = await validateRepository(owner, repo);
+    const validation = await validateRepository(owner, repo, supabase);
     if (!validation.isTracked) {
       return createNotFoundResponse(owner, repo, validation.trackingUrl);
     }
@@ -87,7 +93,6 @@ export default async (req: Request, context: Context) => {
       return createErrorResponse(validation.error);
     }
 
-    const supabase = createSupabaseClient();
     const { data: repository, error: repoError } = await supabase
       .from('repositories')
       .select('id')
@@ -98,7 +103,7 @@ export default async (req: Request, context: Context) => {
       return createNotFoundResponse(owner, repo);
     }
 
-    const codeOwnersData = await fetchCodeOwnersFromDatabase(repository.id);
+    const codeOwnersData = await fetchCodeOwnersFromDatabase(repository.id, supabase);
     if (!codeOwnersData.exists) {
       const resp = new Response(
         JSON.stringify({

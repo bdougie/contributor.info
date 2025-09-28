@@ -1,5 +1,6 @@
+// Fixed import paths for Netlify Functions build
 import type { Context } from '@netlify/functions';
-import { createSupabaseClient } from '../src/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 import {
   validateRepository,
   createNotFoundResponse,
@@ -7,13 +8,28 @@ import {
   CORS_HEADERS,
 } from './lib/repository-validation';
 import { RateLimiter, getRateLimitKey, applyRateLimitHeaders } from './lib/rate-limiter';
-import { env } from '../src/lib/env';
 
 interface CodeOwnersSuggestion {
   pattern: string;
   owners: string[];
   confidence: number;
   reasoning: string;
+}
+
+// Helper function to create Supabase client
+function createSupabaseClient() {
+  const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
+  const supabaseKey =
+    process.env.SUPABASE_SERVICE_KEY ||
+    process.env.SUPABASE_ANON_KEY ||
+    process.env.VITE_SUPABASE_ANON_KEY ||
+    '';
+
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error('Missing Supabase configuration');
+  }
+
+  return createClient(supabaseUrl, supabaseKey);
 }
 
 interface ContributorStats {
@@ -164,7 +180,7 @@ export default async (req: Request, context: Context) => {
     // LLM fallback or augmentation when no suggestions or explicit request
     const urlParams = new URL(req.url).searchParams;
     const useLLM = urlParams.get('llm') === '1' || suggestions.length === 0;
-    const openAIKey = env.OPENAI_API_KEY;
+    const openAIKey = process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
     if (useLLM && openAIKey) {
       try {
         const prompt = `You are helping generate a CODEOWNERS file for ${owner}/${repo}.

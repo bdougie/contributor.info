@@ -1,4 +1,4 @@
-import { createSupabaseClient } from '../../src/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 
 interface RepositoryValidation {
   isTracked: boolean;
@@ -9,7 +9,8 @@ interface RepositoryValidation {
 
 export async function validateRepository(
   owner: string,
-  repo: string
+  repo: string,
+  supabase?: ReturnType<typeof createClient>
 ): Promise<RepositoryValidation> {
   const isValidRepoName = (name: string): boolean => /^[a-zA-Z0-9._-]+$/.test(name);
 
@@ -31,7 +32,14 @@ export async function validateRepository(
   }
 
   try {
-    const supabase = createSupabaseClient();
+    if (!supabase) {
+      return {
+        isTracked: false,
+        exists: false,
+        error: 'Supabase client not provided',
+      };
+    }
+
     const { data, error } = await supabase
       .from('tracked_repositories')
       .select('id, is_active')
