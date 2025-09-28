@@ -28,6 +28,12 @@ interface GitHubError extends Error {
   };
 }
 
+interface ThrottleOptions {
+  method: string;
+  url: string;
+  [key: string]: unknown;
+}
+
 class GitHubAPIService {
   private octokit: Octokit;
   private defaultConfig: Required<BackoffConfig> = {
@@ -45,14 +51,14 @@ class GitHubAPIService {
     this.octokit = new MyOctokit({
       auth,
       throttle: {
-        onRateLimit: (retryAfter: number, options: any) => {
+        onRateLimit: (retryAfter: number, options: ThrottleOptions) => {
           console.warn(`Rate limit detected, retrying after ${retryAfter} seconds`, {
             method: options.method,
             url: options.url,
           });
           return true;
         },
-        onSecondaryRateLimit: (retryAfter: number, options: any) => {
+        onSecondaryRateLimit: (retryAfter: number, options: ThrottleOptions) => {
           console.warn(`Secondary rate limit detected, retrying after ${retryAfter} seconds`, {
             method: options.method,
             url: options.url,
@@ -154,7 +160,7 @@ class GitHubAPIService {
 
         // Update rate limit info from successful response if available
         if (typeof result === 'object' && result !== null && 'headers' in result) {
-          const headers = (result as any).headers;
+          const headers = (result as { headers: Record<string, string | undefined> }).headers;
           const rateLimitInfo = this.parseRateLimitHeaders(headers);
           if (rateLimitInfo) {
             this.rateLimitInfo = rateLimitInfo;

@@ -15,9 +15,9 @@ type GitHubCommit = RestEndpointMethodTypes['repos']['listCommits']['response'][
 // Load environment variables BEFORE any other imports
 dotenv.config();
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
-const githubToken = process.env.VITE_GITHUB_TOKEN;
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+const githubToken = process.env.GITHUB_TOKEN || process.env.GITHUB_APP_TOKEN;
 
 if (!supabaseUrl || !supabaseKey) {
   console.error('❌ Missing Supabase credentials. Please check your .env file');
@@ -109,35 +109,53 @@ async function captureCommits(
 
     console.log('[Capture Commits] Found %d commits to process', commits.length);
 
-    // Get or create contributor records for commit authors
+    // Get unique authors from commits to batch process
+    const uniqueAuthors = Array.from(
+      new Set(commits
+        .filter(c => c.author?.login)
+        .map(c => c.author!.login))
+    );
+
+    // Batch fetch existing contributors
     const authorMap = new Map<string, string>();
 
-    for (const commit of commits) {
-      if (commit.author && !authorMap.has(commit.author.login)) {
-        // Check if contributor exists
-        const { data: contributor, error: contribError } = await supabase
+    if (uniqueAuthors.length > 0) {
+      const { data: existingContributors, error: fetchError } = await supabase
+        .from('contributors')
+        .select('id, username')
+        .in('username', uniqueAuthors);
+
+      if (!fetchError && existingContributors) {
+        existingContributors.forEach(contrib => {
+          authorMap.set(contrib.username, contrib.id);
+        });
+      }
+
+      // Prepare new contributors to insert (those not found in DB)
+      const newContributorUsernames = uniqueAuthors.filter(
+        username => !authorMap.has(username)
+      );
+
+      if (newContributorUsernames.length > 0) {
+        // Batch insert new contributors
+        const newContributors = newContributorUsernames.map(username => {
+          const commit = commits.find(c => c.author?.login === username);
+          return {
+            username,
+            avatar_url: commit?.author?.avatar_url || '',
+            profile_url: commit?.author?.html_url || ''
+          };
+        });
+
+        const { data: insertedContributors, error: insertError } = await supabase
           .from('contributors')
-          .select('id')
-          .eq('username', commit.author.login)
-          .maybeSingle();
+          .insert(newContributors)
+          .select('id, username');
 
-        if (!contribError && contributor) {
-          authorMap.set(commit.author.login, contributor.id);
-        } else if (!contribError) {
-          // Create contributor if doesn't exist
-          const { data: newContributor, error: insertError } = await supabase
-            .from('contributors')
-            .insert({
-              username: commit.author.login,
-              avatar_url: commit.author.avatar_url || '',
-              profile_url: commit.author.html_url || ''
-            })
-            .select('id')
-            .maybeSingle();
-
-          if (!insertError && newContributor) {
-            authorMap.set(commit.author.login, newContributor.id);
-          }
+        if (!insertError && insertedContributors) {
+          insertedContributors.forEach(contrib => {
+            authorMap.set(contrib.username, contrib.id);
+          });
         }
       }
     }
@@ -173,24 +191,21 @@ async function captureCommits(
 
     console.log('[Capture Commits] Successfully captured %d commits', commitRecords.length);
 
-    // Queue commit analysis jobs
+    // Queue commit analysis jobs with correct schema
     const analysisJobs = commitRecords.map((commit) => ({
       repository_id: repoData.id,
       job_type: 'commit_pr_check',
-      resource_id: commit.sha,
-      priority: 'medium',
+      processor_type: 'smart-commit-analyzer',
       status: 'pending',
       metadata: {
+        sha: commit.sha,
         message: commit.message?.substring(0, 100) // Store first 100 chars for debugging
       }
     }));
 
     const { error: jobError } = await supabase
       .from('progressive_capture_jobs')
-      .upsert(analysisJobs, {
-        onConflict: 'repository_id,job_type,resource_id',
-        ignoreDuplicates: true
-      });
+      .insert(analysisJobs);
 
     if (jobError) {
       console.warn('[Capture Commits] Warning: Could not queue analysis jobs:', jobError);
