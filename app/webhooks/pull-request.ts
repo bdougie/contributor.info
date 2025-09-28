@@ -5,11 +5,11 @@ import { formatPRComment, formatMinimalPRComment } from '../services/comments';
 import { findSimilarIssues, SimilarIssue } from '../services/similarity';
 import { suggestReviewers, ReviewerSuggestion } from '../services/reviewers';
 import { supabase } from '../../src/lib/supabase';
-import { 
-  fetchContributorConfig, 
+import {
+  fetchContributorConfig,
   isFeatureEnabled,
   isUserExcluded,
-  generateCodeOwnersSuggestion
+  generateCodeOwnersSuggestion,
 } from '../services/contributor-config';
 
 /**
@@ -32,7 +32,14 @@ export async function handlePullRequestEvent(event: PullRequestEvent) {
   }
 
   try {
-    console.log("Processing PR #%s in ${event.repository.full_name}", event.pull_request.number);
+    console.log('Processing PR #%s in ${event.repository.full_name}', event.pull_request.number);
+
+    // Ensure contributor record early so subsequent operations have author UUID
+    const authorId = await ensureContributorForWebhook(event.pull_request.user);
+    if (!authorId) {
+      console.error('Failed to ensure contributor for PR author');
+      return;
+    }
 
     // Check if we should comment on this PR
     const shouldComment = await checkIfShouldComment(event);
@@ -59,7 +66,7 @@ export async function handlePullRequestEvent(event: PullRequestEvent) {
 
     // Check if PR author is excluded
     if (isUserExcluded(config, event.pull_request.user.login, 'author')) {
-      console.log("PR author %s is excluded from comments", event.pull_request.user.login);
+      console.log('PR author %s is excluded from comments', event.pull_request.user.login);
       return;
     }
 
@@ -69,24 +76,20 @@ export async function handlePullRequestEvent(event: PullRequestEvent) {
       return;
     }
 
-    // Generate insights in parallel (only fetch what's enabled)
-    const insightsPromises = [
-      generatePRInsights(event.pull_request, event.repository),
-    ];
+    // Generate insights in parallel with explicit typing to avoid heterogeneous array type issues
+    const contributorInsightsPromise = generatePRInsights(event.pull_request, event.repository);
+    const similarIssuesPromise = isFeatureEnabled(config, 'similar_issues')
+      ? findSimilarIssues(event.pull_request, event.repository)
+      : Promise.resolve([] as SimilarIssue[]);
+    const reviewerSuggestionsResultPromise = isFeatureEnabled(config, 'reviewer_suggestions')
+      ? suggestReviewers(event.pull_request, event.repository, installationId)
+      : Promise.resolve({ suggestions: [], hasCodeOwners: false });
 
-    if (isFeatureEnabled(config, 'similar_issues')) {
-      insightsPromises.push(findSimilarIssues(event.pull_request, event.repository));
-    } else {
-      insightsPromises.push(Promise.resolve([]));
-    }
-
-    if (isFeatureEnabled(config, 'reviewer_suggestions')) {
-      insightsPromises.push(suggestReviewers(event.pull_request, event.repository, installationId));
-    } else {
-      insightsPromises.push(Promise.resolve({ suggestions: [], hasCodeOwners: false }));
-    }
-
-    const [contributorInsights, similarIssues, reviewerSuggestionsResult] = await Promise.all(insightsPromises);
+    const [contributorInsights, similarIssues, reviewerSuggestionsResult] = await Promise.all([
+      contributorInsightsPromise,
+      similarIssuesPromise,
+      reviewerSuggestionsResultPromise,
+    ]);
 
     // Extract suggestions and hasCodeOwners flag
     const hasCodeOwners = reviewerSuggestionsResult?.hasCodeOwners || false;
@@ -94,29 +97,30 @@ export async function handlePullRequestEvent(event: PullRequestEvent) {
 
     // Filter out excluded reviewers
     const filteredReviewers = reviewerSuggestions.filter(
-      reviewer => !isUserExcluded(config, reviewer.login, 'reviewer')
+      (reviewer: any) => !isUserExcluded(config, reviewer.login, 'reviewer')
     );
 
     // Format the comment based on style preference
-    const comment = config.comment_style === 'minimal' 
-      ? formatMinimalPRComment({
-          pullRequest: event.pull_request,
-          repository: event.repository,
-          contributorInsights,
-          similarIssues,
-          reviewerSuggestions: filteredReviewers,
-          hasCodeOwners,
-          config,
-        })
-      : formatPRComment({
-          pullRequest: event.pull_request,
-          repository: event.repository,
-          contributorInsights,
-          similarIssues,
-          reviewerSuggestions: filteredReviewers,
-          hasCodeOwners,
-          config,
-        });
+    const comment =
+      config.comment_style === 'minimal'
+        ? formatMinimalPRComment({
+            pullRequest: event.pull_request,
+            repository: event.repository,
+            contributorInsights,
+            similarIssues,
+            reviewerSuggestions: filteredReviewers,
+            hasCodeOwners,
+            config,
+          })
+        : formatPRComment({
+            pullRequest: event.pull_request,
+            repository: event.repository,
+            contributorInsights,
+            similarIssues,
+            reviewerSuggestions: filteredReviewers,
+            hasCodeOwners,
+            config,
+          });
 
     // Post the comment
     const { data: postedComment } = await octokit.issues.createComment({
@@ -126,7 +130,7 @@ export async function handlePullRequestEvent(event: PullRequestEvent) {
       body: comment,
     });
 
-    console.log("Posted comment %s on PR #${event.pull_request.number}", postedComment.id);
+    console.log('Posted comment %s on PR #${event.pull_request.number}', postedComment.id);
 
     // Store insights in database
     await storePRInsights({
@@ -137,7 +141,6 @@ export async function handlePullRequestEvent(event: PullRequestEvent) {
       reviewerSuggestions,
       commentId: postedComment.id,
     });
-
   } catch (error) {
     console.error('Error handling pull request event:', error);
     // Don't throw - we don't want GitHub to retry
@@ -149,7 +152,10 @@ export async function handlePullRequestEvent(event: PullRequestEvent) {
  */
 async function handlePROpened(event: PullRequestEvent) {
   try {
-    console.log("Processing opened PR #%s in ${event.repository.full_name}", event.pull_request.number);
+    console.log(
+      'Processing opened PR #%s in ${event.repository.full_name}',
+      event.pull_request.number
+    );
 
     // Check if we should comment on this PR
     const shouldComment = await checkIfShouldComment(event);
@@ -176,7 +182,7 @@ async function handlePROpened(event: PullRequestEvent) {
 
     // Check if PR author is excluded
     if (isUserExcluded(config, event.pull_request.user.login, 'author')) {
-      console.log("PR author %s is excluded from comments", event.pull_request.user.login);
+      console.log('PR author %s is excluded from comments', event.pull_request.user.login);
       return;
     }
 
@@ -212,7 +218,10 @@ async function handlePROpened(event: PullRequestEvent) {
       body: comment,
     });
 
-    console.log("Posted similarity comment %s on PR #${event.pull_request.number}", postedComment.id);
+    console.log(
+      'Posted similarity comment %s on PR #${event.pull_request.number}',
+      postedComment.id
+    );
 
     // Store basic tracking info (lightweight compared to full insights)
     await storePRSimilarityComment({
@@ -221,7 +230,6 @@ async function handlePROpened(event: PullRequestEvent) {
       similarIssues,
       commentId: postedComment.id,
     });
-
   } catch (error) {
     console.error('Error handling PR opened event:', error);
     // Don't throw - we don't want GitHub to retry
@@ -297,37 +305,45 @@ async function storePRInsights(data: StorePRInsightsData) {
       return;
     }
 
-    // Store the PR if it doesn't exist
+    // Ensure contributor for this PR (again in case storePRInsights used independently)
+    const contributorId = await ensureContributorForWebhook(data.pullRequest.user);
+    if (!contributorId) {
+      console.error('Unable to store insights: contributor not ensured');
+      return;
+    }
+
+    // Store the PR with author_id
     const { data: pr } = await supabase
       .from('pull_requests')
-      .upsert({
-        github_id: data.pullRequest.id,
-        repository_id: repo.id,
-        number: data.pullRequest.number,
-        title: data.pullRequest.title,
-        state: data.pullRequest.state,
-        created_at: data.pullRequest.created_at,
-        updated_at: data.pullRequest.updated_at,
-      })
+      .upsert(
+        {
+          github_id: data.pullRequest.id,
+          repository_id: repo.id,
+          number: data.pullRequest.number,
+          title: data.pullRequest.title,
+          state: data.pullRequest.state,
+          author_id: contributorId,
+          created_at: data.pullRequest.created_at,
+          updated_at: data.pullRequest.updated_at,
+        },
+        { onConflict: 'github_id' }
+      )
       .select('id')
       .maybeSingle();
 
     if (!pr) return;
 
     // Store the insights
-    await supabase
-      .from('pr_insights')
-      .upsert({
-        pull_request_id: pr.id,
-        github_pr_id: data.pullRequest.id,
-        contributor_stats: data.contributorInsights,
-        suggested_reviewers: data.reviewerSuggestions,
-        similar_issues: data.similarIssues,
-        comment_posted: true,
-        comment_id: data.commentId,
-        generated_at: new Date().toISOString(),
-      });
-
+    await supabase.from('pr_insights').upsert({
+      pull_request_id: pr.id,
+      github_pr_id: data.pullRequest.id,
+      contributor_stats: data.contributorInsights,
+      suggested_reviewers: data.reviewerSuggestions,
+      similar_issues: data.similarIssues,
+      comment_posted: true,
+      comment_id: data.commentId,
+      generated_at: new Date().toISOString(),
+    });
   } catch (error) {
     console.error('Error storing PR insights:', error);
   }
@@ -336,18 +352,26 @@ async function storePRInsights(data: StorePRInsightsData) {
 /**
  * Format simple similarity comment for PR opened events
  */
-function formatSimplePRSimilarityComment(similarIssues: SimilarIssue[], pullRequest: PullRequest): string {
+function formatSimplePRSimilarityComment(
+  similarIssues: SimilarIssue[],
+  pullRequest: PullRequest
+): string {
   let comment = '## 🔗 Related Issues\n\n';
   comment += 'I found the following issues that may be related to this PR:\n\n';
 
   for (const similar of similarIssues) {
     const stateEmoji = similar.issue.state === 'open' ? '🟢' : '🔴';
-    const relationshipEmoji = similar.relationship === 'fixes' ? '🔧' : 
-                            similar.relationship === 'implements' ? '⚡' :
-                            similar.relationship === 'relates_to' ? '🔗' : '💭';
-    
+    const relationshipEmoji =
+      similar.relationship === 'fixes'
+        ? '🔧'
+        : similar.relationship === 'implements'
+          ? '⚡'
+          : similar.relationship === 'relates_to'
+            ? '🔗'
+            : '💭';
+
     comment += `- ${stateEmoji} ${relationshipEmoji} [#${similar.issue.number} - ${similar.issue.title}](${similar.issue.html_url}) `;
-    
+
     if (similar.reasons.length > 0) {
       comment += `(${similar.reasons.join(', ')})\n`;
     } else {
@@ -386,37 +410,77 @@ async function storePRSimilarityComment(data: StorePRSimilarityData) {
       return;
     }
 
-    // Store the PR if it doesn't exist
+    const contributorId = await ensureContributorForWebhook(data.pullRequest.user);
+    if (!contributorId) {
+      console.error('Unable to store similarity comment: contributor not ensured');
+      return;
+    }
+
+    // Store the PR with author_id if it doesn't exist
     const { data: pr } = await supabase
       .from('pull_requests')
-      .upsert({
-        github_id: data.pullRequest.id,
-        repository_id: repo.id,
-        number: data.pullRequest.number,
-        title: data.pullRequest.title,
-        state: data.pullRequest.state,
-        created_at: data.pullRequest.created_at,
-        updated_at: data.pullRequest.updated_at,
-      })
+      .upsert(
+        {
+          github_id: data.pullRequest.id,
+          repository_id: repo.id,
+          number: data.pullRequest.number,
+          title: data.pullRequest.title,
+          state: data.pullRequest.state,
+          author_id: contributorId,
+          created_at: data.pullRequest.created_at,
+          updated_at: data.pullRequest.updated_at,
+        },
+        { onConflict: 'github_id' }
+      )
       .select('id')
       .maybeSingle();
 
     if (!pr) return;
 
     // Store basic similarity tracking (lighter than full insights)
-    await supabase
-      .from('pr_insights')
-      .upsert({
-        pull_request_id: pr.id,
-        github_pr_id: data.pullRequest.id,
-        similar_issues: data.similarIssues,
-        comment_posted: false,
-        comment_id: data.commentId,
-        generated_at: new Date().toISOString(),
-        comment_type: 'similarity', // Mark as similarity-only comment
-      });
-
+    await supabase.from('pr_insights').upsert({
+      pull_request_id: pr.id,
+      github_pr_id: data.pullRequest.id,
+      similar_issues: data.similarIssues,
+      comment_posted: false,
+      comment_id: data.commentId,
+      generated_at: new Date().toISOString(),
+      comment_type: 'similarity', // Mark as similarity-only comment
+    });
   } catch (error) {
     console.error('Error storing PR similarity comment:', error);
+  }
+}
+
+// Local helper (Phase 1). Will be replaced by shared utility in Phase 2.
+async function ensureContributorForWebhook(githubUser: any): Promise<string | null> {
+  if (!githubUser || !githubUser.id || !githubUser.login) return null;
+  try {
+    const { data, error } = await supabase
+      .from('contributors')
+      .upsert(
+        {
+          github_id: githubUser.id,
+          username: githubUser.login,
+          display_name: githubUser.name || githubUser.login,
+          avatar_url: githubUser.avatar_url,
+          profile_url: githubUser.html_url,
+          is_bot: githubUser.type === 'Bot',
+          is_active: true,
+          first_seen_at: new Date().toISOString(),
+          last_updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'github_id' }
+      )
+      .select('id')
+      .maybeSingle();
+    if (error) {
+      console.error('Error ensuring contributor:', error.message);
+      return null;
+    }
+    return data?.id || null;
+  } catch (e: any) {
+    console.error('Unexpected ensureContributor error:', e.message);
+    return null;
   }
 }
