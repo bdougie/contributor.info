@@ -5,7 +5,7 @@ import {
   createNotFoundResponse,
   createErrorResponse,
   CORS_HEADERS,
-} from './lib/repository-validation';
+} from './lib/repository-validation.mjs';
 
 interface ReviewerSuggestion {
   username: string;
