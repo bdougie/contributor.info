@@ -1,5 +1,9 @@
 import { supabase } from './supabase';
 import GitHubAPIService from '../services/github-api.service';
+import type { RestEndpointMethodTypes } from '@octokit/rest';
+
+// Type for GitHub commit from the API
+type GitHubCommit = RestEndpointMethodTypes['repos']['listCommits']['response']['data'][0];
 
 /**
  * Fetches commits from GitHub and stores them in the database
@@ -42,13 +46,13 @@ export async function captureCommits(
     const sinceDate = since || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
     // Fetch commits from GitHub
-    console.log(`[Capture Commits] Fetching commits for ${owner}/${repo} since ${sinceDate.toISOString()}`);
-    console.log(`[Capture Commits] Batch size: ${batchSize}, Max pages: ${maxPages}`);
+    console.log('[Capture Commits] Fetching commits for %s/%s since %s', owner, repo, sinceDate.toISOString());
+    console.log('[Capture Commits] Batch size: %d, Max pages: %d', batchSize, maxPages);
 
     const githubApiService = new GitHubAPIService(process.env.VITE_GITHUB_TOKEN);
 
     // Fetch multiple pages if needed
-    let allCommits: any[] = [];
+    let allCommits: GitHubCommit[] = [];
     let page = 1;
     let hasMore = true;
 
@@ -63,7 +67,7 @@ export async function captureCommits(
         hasMore = false;
       } else {
         allCommits = allCommits.concat(commits);
-        console.log(`[Capture Commits] Fetched page ${page} with ${commits.length} commits`);
+        console.log('[Capture Commits] Fetched page %d with %d commits', page, commits.length);
 
         // GitHub API returns less than per_page when no more results
         if (commits.length < batchSize) {
@@ -76,11 +80,11 @@ export async function captureCommits(
     const commits = allCommits;
 
     if (!commits || commits.length === 0) {
-      console.log(`[Capture Commits] No commits found for ${owner}/${repo}`);
+      console.log('[Capture Commits] No commits found for %s/%s', owner, repo);
       return { success: true, count: 0 };
     }
 
-    console.log(`[Capture Commits] Found ${commits.length} commits to process`);
+    console.log('[Capture Commits] Found %d commits to process', commits.length);
 
     // Get or create contributor records for commit authors
     const authorMap = new Map<string, string>();
@@ -106,7 +110,7 @@ export async function captureCommits(
               profile_url: commit.author.html_url || ''
             })
             .select('id')
-            .single();
+            .maybeSingle();
 
           if (!insertError && newContributor) {
             authorMap.set(commit.author.login, newContributor.id);
@@ -144,7 +148,7 @@ export async function captureCommits(
       };
     }
 
-    console.log(`[Capture Commits] Successfully captured ${commitRecords.length} commits`);
+    console.log('[Capture Commits] Successfully captured %d commits', commitRecords.length);
 
     // Queue commit analysis jobs
     const analysisJobs = commitRecords.map(commit => ({

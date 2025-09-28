@@ -7,6 +7,10 @@
 
 import * as dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
+import type { RestEndpointMethodTypes } from '@octokit/rest';
+
+// Type for GitHub commit from the API
+type GitHubCommit = RestEndpointMethodTypes['repos']['listCommits']['response']['data'][0];
 
 // Load environment variables BEFORE any other imports
 dotenv.config();
@@ -64,14 +68,14 @@ async function captureCommits(
     const sinceDate = since || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
     // Fetch commits from GitHub
-    console.log(`[Capture Commits] Fetching commits for ${owner}/${repo} since ${sinceDate.toISOString()}`);
-    console.log(`[Capture Commits] Batch size: ${batchSize}, Max pages: ${maxPages}`);
+    console.log('[Capture Commits] Fetching commits for %s/%s since %s', owner, repo, sinceDate.toISOString());
+    console.log('[Capture Commits] Batch size: %d, Max pages: %d', batchSize, maxPages);
 
     const GitHubAPIService = await importDynamically();
     const githubApiService = new GitHubAPIService(githubToken);
 
     // Fetch multiple pages if needed
-    let allCommits: any[] = [];
+    let allCommits: GitHubCommit[] = [];
     let page = 1;
     let hasMore = true;
 
@@ -86,7 +90,7 @@ async function captureCommits(
         hasMore = false;
       } else {
         allCommits = allCommits.concat(commits);
-        console.log(`[Capture Commits] Fetched page ${page} with ${commits.length} commits`);
+        console.log('[Capture Commits] Fetched page %d with %d commits', page, commits.length);
 
         // GitHub API returns less than per_page when no more results
         if (commits.length < batchSize) {
@@ -99,11 +103,11 @@ async function captureCommits(
     const commits = allCommits;
 
     if (!commits || commits.length === 0) {
-      console.log(`[Capture Commits] No commits found for ${owner}/${repo}`);
+      console.log('[Capture Commits] No commits found for %s/%s', owner, repo);
       return { success: true, count: 0 };
     }
 
-    console.log(`[Capture Commits] Found ${commits.length} commits to process`);
+    console.log('[Capture Commits] Found %d commits to process', commits.length);
 
     // Get or create contributor records for commit authors
     const authorMap = new Map<string, string>();
@@ -129,7 +133,7 @@ async function captureCommits(
               profile_url: commit.author.html_url || ''
             })
             .select('id')
-            .single();
+            .maybeSingle();
 
           if (!insertError && newContributor) {
             authorMap.set(commit.author.login, newContributor.id);
@@ -139,7 +143,7 @@ async function captureCommits(
     }
 
     // Prepare commit records
-    const commitRecords = commits.map((commit: any) => ({
+    const commitRecords = commits.map((commit: GitHubCommit) => ({
       repository_id: repoData.id,
       sha: commit.sha,
       author_id: commit.author ? authorMap.get(commit.author.login) : null,
@@ -167,10 +171,10 @@ async function captureCommits(
       };
     }
 
-    console.log(`[Capture Commits] Successfully captured ${commitRecords.length} commits`);
+    console.log('[Capture Commits] Successfully captured %d commits', commitRecords.length);
 
     // Queue commit analysis jobs
-    const analysisJobs = commitRecords.map((commit: any) => ({
+    const analysisJobs = commitRecords.map((commit) => ({
       repository_id: repoData.id,
       job_type: 'commit_pr_check',
       resource_id: commit.sha,
@@ -212,7 +216,7 @@ async function main() {
   const owner = args[0] || 'continuedev';
   const repo = args[1] || 'continue';
 
-  console.log(`Starting to populate commits for ${owner}/${repo}...`);
+  console.log('Starting to populate commits for %s/%s...', owner, repo);
 
   // Fetch last 7 days of commits
   const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
@@ -220,7 +224,7 @@ async function main() {
   const result = await captureCommits(owner, repo, since);
 
   if (result.success) {
-    console.log(`✅ Successfully captured ${result.count} commits for ${owner}/${repo}`);
+    console.log('✅ Successfully captured %d commits for %s/%s', result.count, owner, repo);
   } else {
     console.error(`❌ Failed to capture commits: ${result.error}`);
     process.exit(1);
