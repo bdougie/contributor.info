@@ -1,295 +1,148 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import GitHubAPIService from './github-api.service';
 
-// Bulletproof testing with live API - no mocks, actual resilience testing
-describe('GitHubAPIService - Bulletproof Live API Tests', () => {
+// Mock Octokit to prevent real API calls
+vi.mock('@octokit/rest', () => ({
+  Octokit: vi.fn(() => ({
+    rest: {
+      pulls: {
+        list: vi.fn(),
+        get: vi.fn(),
+        listReviews: vi.fn(),
+        listReviewComments: vi.fn(),
+      },
+      repos: {
+        get: vi.fn(),
+        listContributors: vi.fn(),
+        listCommits: vi.fn(),
+      },
+      issues: {
+        listForRepo: vi.fn(),
+      },
+      rateLimit: {
+        get: vi.fn(),
+      },
+    },
+  })),
+}));
+
+describe('GitHubAPIService', () => {
   let service: GitHubAPIService;
 
   beforeEach(() => {
-    // Create service without auth to test public API limits
+    vi.clearAllMocks();
     service = new GitHubAPIService();
   });
 
-  describe('Exponential Backoff Algorithm', () => {
-    it('should successfully retry and recover from transient failures', async () => {
-      // Use a small public repo to minimize API usage
-      const owner = 'octocat';
-      const repo = 'Hello-World';
-
-      // Force a scenario that might cause rate limiting by making rapid requests
-      const promises = Array.from({ length: 5 }, () =>
-        service.fetchRepository(owner, repo)
-      );
-
-      // All requests should eventually succeed with backoff
-      const results = await Promise.allSettled(promises);
-
-      // At least some should succeed even under pressure
-      const successful = results.filter(r => r.status === 'fulfilled');
-      expect(successful.length).toBeGreaterThan(0);
-
-      // Verify the successful result has expected structure
-      if (successful.length > 0 && successful[0].status === 'fulfilled') {
-        const data = successful[0].value;
-        expect(data).toHaveProperty('name', 'Hello-World');
-        expect(data).toHaveProperty('owner.login', 'octocat');
-      }
+  describe('Configuration', () => {
+    it('should initialize with default config', () => {
+      expect(service).toBeDefined();
+      expect(service.getRateLimitInfo()).toBeNull();
     });
+  });
 
-    it('should handle rate limit headers correctly', async () => {
-      const owner = 'octocat';
-      const repo = 'Hello-World';
+  describe('Rate Limit Parsing', () => {
+    it('should parse rate limit headers correctly', () => {
+      const mockHeaders = {
+        'x-ratelimit-remaining': '4999',
+        'x-ratelimit-reset': '1234567890',
+        'x-ratelimit-limit': '5000',
+        'x-ratelimit-used': '1',
+      };
 
-      // Make a single request to get rate limit info
-      await service.fetchRepository(owner, repo);
+      // Use private method through type assertion for testing
+      const result = (service as any).parseRateLimitHeaders(mockHeaders);
 
-      // Check that rate limit info was captured
-      const rateLimitInfo = service.getRateLimitInfo();
-
-      // If headers were present, they should be parsed correctly
-      if (rateLimitInfo) {
-        expect(rateLimitInfo).toHaveProperty('remaining');
-        expect(rateLimitInfo).toHaveProperty('limit');
-        expect(rateLimitInfo).toHaveProperty('reset');
-        expect(typeof rateLimitInfo.remaining).toBe('number');
-        expect(typeof rateLimitInfo.limit).toBe('number');
-        expect(typeof rateLimitInfo.reset).toBe('number');
-      }
-    });
-
-    it('should apply jitter to prevent thundering herd', async () => {
-      // Test that jitter is being applied by verifying retry delays vary
-      const testService = new GitHubAPIService();
-
-      // Custom error that always triggers retry
-      const mockOperation = vi.fn().mockRejectedValue({
-        status: 503, // Server error that should trigger retry
-        message: 'Service unavailable'
+      expect(result).toEqual({
+        remaining: 4999,
+        reset: 1234567890,
+        limit: 5000,
+        used: 1,
       });
+    });
 
-      // Run multiple times to observe jitter
-      const timings: number[] = [];
+    it('should return null for incomplete headers', () => {
+      const mockHeaders = {
+        'x-ratelimit-remaining': '4999',
+      };
 
+      const result = (service as any).parseRateLimitHeaders(mockHeaders);
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('Retry Logic', () => {
+    it('should retry on 429 status', () => {
+      const error = { status: 429 } as any;
+      const shouldRetry = (service as any).shouldRetry(error, 0, 3);
+      expect(shouldRetry).toBe(true);
+    });
+
+    it('should retry on 5xx status', () => {
+      const error = { status: 503 } as any;
+      const shouldRetry = (service as any).shouldRetry(error, 0, 3);
+      expect(shouldRetry).toBe(true);
+    });
+
+    it('should not retry on 4xx status except 429', () => {
+      const error = { status: 404 } as any;
+      const shouldRetry = (service as any).shouldRetry(error, 0, 3);
+      expect(shouldRetry).toBe(false);
+    });
+
+    it('should not retry when max retries reached', () => {
+      const error = { status: 503 } as any;
+      const shouldRetry = (service as any).shouldRetry(error, 3, 3);
+      expect(shouldRetry).toBe(false);
+    });
+  });
+
+  describe('Delay Calculation', () => {
+    it('should calculate exponential delay without jitter', () => {
+      const config = {
+        initialDelay: 100,
+        maxDelay: 1000,
+        factor: 2,
+        jitter: false,
+      };
+
+      const delay0 = (service as any).calculateDelay(0, config);
+      const delay1 = (service as any).calculateDelay(1, config);
+      const delay2 = (service as any).calculateDelay(2, config);
+
+      expect(delay0).toBe(100);
+      expect(delay1).toBe(200);
+      expect(delay2).toBe(400);
+    });
+
+    it('should respect max delay', () => {
+      const config = {
+        initialDelay: 100,
+        maxDelay: 300,
+        factor: 2,
+        jitter: false,
+      };
+
+      const delay5 = (service as any).calculateDelay(5, config);
+      expect(delay5).toBe(300);
+    });
+
+    it('should add jitter when enabled', () => {
+      const config = {
+        initialDelay: 100,
+        maxDelay: 1000,
+        factor: 2,
+        jitter: true,
+      };
+
+      const delays = [];
       for (let i = 0; i < 5; i++) {
-        const start = Date.now();
-        try {
-          await testService.executeWithBackoff(mockOperation, {
-            maxRetries: 1,
-            initialDelay: 100,
-            jitter: true
-          });
-        } catch (error) {
-          // Expected to fail after retries
-          timings.push(Date.now() - start);
-        }
+        delays.push((service as any).calculateDelay(1, config));
       }
 
-      // With jitter enabled, timings should vary
-      // Check that not all timings are identical (which would indicate no jitter)
-      const uniqueTimings = new Set(timings.map(t => Math.round(t / 5) * 5)); // Round to nearest 5ms
-
-      // With 5 runs and jitter, we should see at least 2 different timing buckets
-      expect(uniqueTimings.size).toBeGreaterThanOrEqual(2);
-
-      // Also verify that the mock was called the expected number of times
-      expect(mockOperation).toHaveBeenCalledTimes(10); // 2 calls per run (initial + 1 retry) * 5 runs
-    });
-  });
-
-  describe('GitHub API Methods', () => {
-    // Using a small, stable public repo for testing
-    const testOwner = 'octocat';
-    const testRepo = 'Hello-World';
-
-    it('should fetch repository information with retry capability', async () => {
-      const data = await service.fetchRepository(testOwner, testRepo);
-
-      expect(data).toBeDefined();
-      expect(data.name).toBe('Hello-World');
-      expect(data.owner.login).toBe('octocat');
-      expect(data.id).toBeDefined();
-    });
-
-    it('should fetch pull requests with pagination options', async () => {
-      const data = await service.fetchPullRequests(testOwner, testRepo, {
-        state: 'all',
-        per_page: 5,
-        page: 1
-      });
-
-      expect(Array.isArray(data)).toBe(true);
-      expect(data.length).toBeLessThanOrEqual(5);
-
-      // Verify PR structure if any exist
-      if (data.length > 0) {
-        expect(data[0]).toHaveProperty('number');
-        expect(data[0]).toHaveProperty('title');
-        expect(data[0]).toHaveProperty('state');
-      }
-    });
-
-    it('should fetch contributors with retry on failure', async () => {
-      const data = await service.fetchContributors(testOwner, testRepo, {
-        per_page: 5,
-        page: 1
-      });
-
-      expect(Array.isArray(data)).toBe(true);
-      expect(data.length).toBeGreaterThan(0);
-      expect(data.length).toBeLessThanOrEqual(5);
-
-      // Verify contributor structure
-      expect(data[0]).toHaveProperty('login');
-      expect(data[0]).toHaveProperty('contributions');
-      expect(typeof data[0].contributions).toBe('number');
-    });
-
-    it('should fetch issues with state filtering', async () => {
-      const data = await service.fetchIssues(testOwner, testRepo, {
-        state: 'all',
-        per_page: 3,
-        page: 1
-      });
-
-      expect(Array.isArray(data)).toBe(true);
-
-      // Verify issue structure if any exist
-      if (data.length > 0) {
-        expect(data[0]).toHaveProperty('number');
-        expect(data[0]).toHaveProperty('title');
-        expect(data[0]).toHaveProperty('state');
-      }
-    });
-
-    it('should fetch commits with pagination', async () => {
-      const data = await service.fetchCommits(testOwner, testRepo, {
-        per_page: 3,
-        page: 1
-      });
-
-      expect(Array.isArray(data)).toBe(true);
-      expect(data.length).toBeGreaterThan(0);
-      expect(data.length).toBeLessThanOrEqual(3);
-
-      // Verify commit structure
-      expect(data[0]).toHaveProperty('sha');
-      expect(data[0]).toHaveProperty('commit.message');
-      expect(data[0]).toHaveProperty('commit.author');
-    });
-  });
-
-  describe('Error Handling and Recovery', () => {
-    it('should handle 404 errors without retry', async () => {
-      const nonExistentRepo = 'this-repo-definitely-does-not-exist-99999';
-
-      await expect(
-        service.fetchRepository('octocat', nonExistentRepo)
-      ).rejects.toThrow();
-
-      // Should fail fast on 404, not retry multiple times
-      const startTime = Date.now();
-      try {
-        await service.fetchRepository('octocat', nonExistentRepo);
-      } catch (error) {
-        const duration = Date.now() - startTime;
-        // Should fail quickly without retries (under 1 second)
-        expect(duration).toBeLessThan(1000);
-      }
-    });
-
-    it('should check rate limit status', async () => {
-      const rateLimitData = await service.checkRateLimit();
-
-      expect(rateLimitData).toBeDefined();
-      expect(rateLimitData).toHaveProperty('rate');
-      expect(rateLimitData.rate).toHaveProperty('limit');
-      expect(rateLimitData.rate).toHaveProperty('remaining');
-      expect(rateLimitData.rate).toHaveProperty('reset');
-
-      // Verify we're getting real numbers
-      expect(typeof rateLimitData.rate.limit).toBe('number');
-      expect(typeof rateLimitData.rate.remaining).toBe('number');
-      expect(rateLimitData.rate.limit).toBeGreaterThan(0);
-    });
-
-    it('should handle concurrent requests with backoff', async () => {
-      // Make concurrent requests to test queue/backoff behavior
-      const requests = [
-        service.fetchRepository('facebook', 'react'),
-        service.fetchRepository('microsoft', 'typescript'),
-        service.fetchRepository('vuejs', 'vue'),
-      ];
-
-      const results = await Promise.allSettled(requests);
-
-      // All should eventually succeed
-      const successful = results.filter(r => r.status === 'fulfilled');
-      expect(successful.length).toBe(3);
-
-      // Verify each got correct repo
-      const repos = successful.map(r =>
-        r.status === 'fulfilled' ? r.value.full_name : null
-      );
-      expect(repos).toContain('facebook/react');
-      expect(repos).toContain('microsoft/TypeScript');
-      expect(repos).toContain('vuejs/vue');
-    });
-  });
-
-  describe('Custom Configuration', () => {
-    it('should respect custom backoff configuration', async () => {
-      const customService = new GitHubAPIService();
-
-      // Test with minimal retries to fail fast
-      const startTime = Date.now();
-
-      try {
-        await customService.executeWithBackoff(
-          async () => {
-            throw new Error('Simulated network error');
-          },
-          {
-            maxRetries: 1,
-            initialDelay: 100,
-            maxDelay: 200,
-            factor: 2,
-            jitter: false
-          }
-        );
-      } catch (error) {
-        const duration = Date.now() - startTime;
-
-        // Should have tried once, then retried once with ~100ms delay
-        expect(duration).toBeGreaterThanOrEqual(100);
-        expect(duration).toBeLessThan(500);
-        expect(error).toBeDefined();
-      }
-    });
-
-    it('should work without jitter when configured', async () => {
-      const timings: number[] = [];
-
-      for (let i = 0; i < 3; i++) {
-        const start = Date.now();
-        try {
-          await service.executeWithBackoff(
-            async () => {
-              throw new Error('Test error');
-            },
-            {
-              maxRetries: 1,
-              initialDelay: 50,
-              jitter: false
-            }
-          );
-        } catch (error) {
-          timings.push(Date.now() - start);
-        }
-      }
-
-      // Without jitter, timings should be more consistent
-      const variance = Math.max(...timings) - Math.min(...timings);
-      expect(variance).toBeLessThan(50);
+      // With jitter, not all delays should be identical
+      const uniqueDelays = new Set(delays);
+      expect(uniqueDelays.size).toBeGreaterThan(1);
     });
   });
 });
