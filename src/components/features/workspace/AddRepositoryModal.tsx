@@ -343,6 +343,12 @@ export function AddRepositoryModal({
               }),
             });
 
+            // Check if API is unavailable (common in local dev without GitHub token)
+            if (trackResponse.status === 503) {
+              console.log('Track API unavailable (likely missing GitHub token), using direct database creation');
+              throw new Error('API unavailable - using fallback');
+            }
+
             const trackResult = await trackResponse.json();
 
             if (trackResult.success) {
@@ -380,12 +386,38 @@ export function AddRepositoryModal({
               }
             }
           } catch (apiError) {
-            console.warn('Track API failed, falling back to direct creation:', apiError);
+            // In local development without GitHub token, this is expected
+            const errorMessage = apiError instanceof Error ? apiError.message : 'Unknown error';
+            if (errorMessage !== 'API unavailable - using fallback') {
+              console.info('Track API unavailable, using direct database creation instead');
+            }
           }
 
           // Fallback: Create repository directly if API fails (e.g., in development without GitHub token)
-          // Cast repo to any to access extended properties that might be available from the API
-          const extendedRepo = repo as any;
+          // Extended repository properties that may be available from GitHub API
+          interface ExtendedGitHubRepository extends GitHubRepository {
+            watchers_count?: number;
+            watchers?: number;
+            open_issues_count?: number;
+            open_issues?: number;
+            size?: number;
+            homepage?: string | null;
+            default_branch?: string;
+            fork?: boolean;
+            archived?: boolean;
+            disabled?: boolean;
+            has_issues?: boolean;
+            has_projects?: boolean;
+            has_wiki?: boolean;
+            has_pages?: boolean;
+            has_downloads?: boolean;
+            license?: { spdx_id?: string };
+            topics?: string[];
+            created_at?: string;
+            updated_at?: string;
+          }
+
+          const extendedRepo = repo as ExtendedGitHubRepository;
 
           const { data: newRepo, error: createError } = await supabase
             .from('repositories')
