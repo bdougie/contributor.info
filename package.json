@@ -96,6 +96,7 @@
     "eval:aggressive": "tsx scripts/utilities/run-maintainer-eval.ts --config aggressive",
     "recover:chunks": "node scripts/github-actions/recover-stuck-chunks.js",
     "similarity:check": "tsx scripts/actions-similarity.ts",
+    "populate-commits": "tsx scripts/populate-commits.ts",
     "postinstall": "node scripts/setup/install-husky.js"
   },
   "dependencies": {
