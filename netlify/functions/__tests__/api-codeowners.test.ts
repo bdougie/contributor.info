@@ -31,8 +31,8 @@ describe('CODEOWNERS API Tests', () => {
     // Mock environment variables
     process.env.GITHUB_TOKEN = 'test-github-token';
 
-    // Reset fetch mock
-    (global.fetch as any).mockReset();
+    // Mock global fetch
+    global.fetch = vi.fn();
   });
 
   afterEach(() => {

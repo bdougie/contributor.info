@@ -213,11 +213,11 @@ export default async (req: Request, context: Context) => {
       return createErrorResponse(validation.error);
     }
 
-    // Get repository ID from database
+    // Get repository data from database
     const supabase = createSupabaseClient();
     const { data: repository, error: repoError } = await supabase
       .from('repositories')
-      .select('id')
+      .select('id, default_branch')
       .eq('owner', owner.toLowerCase())
       .eq('name', repo.toLowerCase())
       .limit(1)
@@ -227,8 +227,11 @@ export default async (req: Request, context: Context) => {
       return createNotFoundResponse(owner, repo);
     }
 
+    // Use actual default branch if no branch specified
+    const actualBranch = branch || repository.default_branch || 'main';
+
     // Fetch file tree from database
-    const processedTree = await fetchFileTreeFromDatabase(repository.id, branch);
+    const processedTree = await fetchFileTreeFromDatabase(repository.id, actualBranch);
 
     if (!processedTree) {
       return createErrorResponse('File tree data not available for this repository', 404);

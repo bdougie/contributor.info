@@ -88,18 +88,20 @@ export default async (req: Request, context: Context) => {
     // Validate repository is tracked
     const validation = await validateRepository(owner, repo);
 
-    if (!validation.isTracked) {
-      return createNotFoundResponse(owner, repo, validation.trackingUrl);
+    // Check for database errors first (return 500)
+    if (validation.error && validation.error.includes('Database error')) {
+      return createErrorResponse(validation.error, 500);
     }
 
-    if (validation.error) {
-      return createErrorResponse(validation.error);
+    // Then check if repository is not tracked (return 404)
+    if (!validation.isTracked) {
+      return createNotFoundResponse(owner, repo, validation.trackingUrl);
     }
 
     // Get repository ID from database
     const supabase = createSupabaseClient();
     const { data: repository, error: repoError } = await supabase
-      .from('repositories')
+      .from('tracked_repositories')
       .select('id')
       .eq('owner', owner.toLowerCase())
       .eq('name', repo.toLowerCase())

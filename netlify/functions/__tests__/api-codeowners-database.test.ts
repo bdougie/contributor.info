@@ -44,21 +44,15 @@ describe('CODEOWNERS API Database Tests', () => {
 
   describe('Database error handling', () => {
     it('should return 500 for database errors, not 404', async () => {
-      // Mock repository query to return database error
-      const mockRepositoryQuery = {
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              limit: vi.fn().mockReturnValue({
-                maybeSingle: vi.fn().mockResolvedValue({
-                  data: null,
-                  error: { message: 'Database connection failed' }
-                })
-              })
-            })
-          })
-        })
-      };
+      // Mock repository query to return database error (simplified chain)
+      const mockMaybeSingle = vi.fn().mockResolvedValue({
+        data: null,
+        error: { message: 'Database connection failed' }
+      });
+      const mockEq2 = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
+      const mockEq = vi.fn().mockReturnValue({ eq: mockEq2 });
+      const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
+      const mockRepositoryQuery = { select: mockSelect };
 
       mockFrom.mockReturnValue(mockRepositoryQuery);
 
@@ -75,20 +69,14 @@ describe('CODEOWNERS API Database Tests', () => {
 
     it('should return 404 for repository not found (not database error)', async () => {
       // Mock repository query to return no data (but no error)
-      const mockRepositoryQuery = {
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              limit: vi.fn().mockReturnValue({
-                maybeSingle: vi.fn().mockResolvedValue({
-                  data: null,
-                  error: null
-                })
-              })
-            })
-          })
-        })
-      };
+      const mockMaybeSingle = vi.fn().mockResolvedValue({
+        data: null,
+        error: null
+      });
+      const mockEq2 = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
+      const mockEq = vi.fn().mockReturnValue({ eq: mockEq2 });
+      const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
+      const mockRepositoryQuery = { select: mockSelect };
 
       mockFrom.mockReturnValue(mockRepositoryQuery);
 
@@ -100,51 +88,40 @@ describe('CODEOWNERS API Database Tests', () => {
       const data = await response.json();
 
       expect(response.status).toBe(404);
-      expect(data.exists).toBe(false);
+      expect(data.error).toBe('Repository not found');
     });
   });
 
   describe('Database queries', () => {
     it('should query repositories table first', async () => {
       // Mock successful repository lookup
-      const mockRepositoryQuery = {
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              limit: vi.fn().mockReturnValue({
-                maybeSingle: vi.fn().mockResolvedValue({
-                  data: { id: 'repo-123' },
-                  error: null
-                })
-              })
-            })
-          })
-        })
-      };
+      const mockMaybeSingle = vi.fn().mockResolvedValue({
+        data: { id: 'repo-123' },
+        error: null
+      });
+      const mockEq2 = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
+      const mockEq = vi.fn().mockReturnValue({ eq: mockEq2 });
+      const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
+      const mockRepositoryQuery = { select: mockSelect };
 
       // Mock codeowners table query
-      const mockCodeownersQuery = {
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            order: vi.fn().mockReturnValue({
-              limit: vi.fn().mockReturnValue({
-                maybeSingle: vi.fn().mockResolvedValue({
-                  data: {
-                    content: '# CODEOWNERS\n/src/ @dev1 @dev2',
-                    file_path: '.github/CODEOWNERS',
-                    fetched_at: '2023-01-01T00:00:00Z'
-                  },
-                  error: null
-                })
-              })
-            })
-          })
-        })
-      };
+      const mockCodeownersMaybeSingle = vi.fn().mockResolvedValue({
+        data: {
+          content: '# CODEOWNERS\n/src/ @dev1 @dev2',
+          file_path: '.github/CODEOWNERS',
+          fetched_at: '2023-01-01T00:00:00Z'
+        },
+        error: null
+      });
+      const mockLimit = vi.fn().mockReturnValue({ maybeSingle: mockCodeownersMaybeSingle });
+      const mockOrder = vi.fn().mockReturnValue({ limit: mockLimit });
+      const mockCodeownersEq = vi.fn().mockReturnValue({ order: mockOrder });
+      const mockCodeownersSelect = vi.fn().mockReturnValue({ eq: mockCodeownersEq });
+      const mockCodeownersQuery = { select: mockCodeownersSelect };
 
       // Setup from mock to return different queries based on table name
       mockFrom.mockImplementation((tableName: string) => {
-        if (tableName === 'repositories') return mockRepositoryQuery;
+        if (tableName === 'tracked_repositories') return mockRepositoryQuery;
         if (tableName === 'codeowners') return mockCodeownersQuery;
         throw new Error(`Unexpected table: ${tableName}`);
       });
@@ -162,7 +139,7 @@ describe('CODEOWNERS API Database Tests', () => {
       expect(data.path).toBe('.github/CODEOWNERS');
 
       // Verify correct database queries were made
-      expect(mockFrom).toHaveBeenCalledWith('repositories');
+      expect(mockFrom).toHaveBeenCalledWith('tracked_repositories');
       expect(mockFrom).toHaveBeenCalledWith('codeowners');
     });
 
@@ -170,41 +147,28 @@ describe('CODEOWNERS API Database Tests', () => {
       const repositoryId = 'test-repo-123';
 
       // Mock repository lookup
-      const mockRepositoryQuery = {
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              limit: vi.fn().mockReturnValue({
-                maybeSingle: vi.fn().mockResolvedValue({
-                  data: { id: repositoryId },
-                  error: null
-                })
-              })
-            })
-          })
-        })
-      };
+      const mockMaybeSingle = vi.fn().mockResolvedValue({
+        data: { id: repositoryId },
+        error: null
+      });
+      const mockEq2 = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
+      const mockEq = vi.fn().mockReturnValue({ eq: mockEq2 });
+      const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
+      const mockRepositoryQuery = { select: mockSelect };
 
       // Mock codeowners query
-      const mockEqSpy = vi.fn().mockReturnValue({
-        order: vi.fn().mockReturnValue({
-          limit: vi.fn().mockReturnValue({
-            maybeSingle: vi.fn().mockResolvedValue({
-              data: null,
-              error: null
-            })
-          })
-        })
+      const mockCodeownersMaybeSingle = vi.fn().mockResolvedValue({
+        data: null,
+        error: null
       });
-
-      const mockCodeownersQuery = {
-        select: vi.fn().mockReturnValue({
-          eq: mockEqSpy
-        })
-      };
+      const mockLimit = vi.fn().mockReturnValue({ maybeSingle: mockCodeownersMaybeSingle });
+      const mockOrder = vi.fn().mockReturnValue({ limit: mockLimit });
+      const mockEqSpy = vi.fn().mockReturnValue({ order: mockOrder });
+      const mockCodeownersSelect = vi.fn().mockReturnValue({ eq: mockEqSpy });
+      const mockCodeownersQuery = { select: mockCodeownersSelect };
 
       mockFrom.mockImplementation((tableName: string) => {
-        if (tableName === 'repositories') return mockRepositoryQuery;
+        if (tableName === 'tracked_repositories') return mockRepositoryQuery;
         if (tableName === 'codeowners') return mockCodeownersQuery;
         throw new Error(`Unexpected table: ${tableName}`);
       });
