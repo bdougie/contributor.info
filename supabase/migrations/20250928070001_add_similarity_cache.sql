@@ -184,3 +184,39 @@ COMMENT ON COLUMN similarity_cache.access_count IS 'Number of times this cache e
 COMMENT ON TABLE embedding_jobs IS 'Tracks batch embedding generation jobs';
 COMMENT ON FUNCTION cleanup_expired_cache() IS 'Removes cache entries that have exceeded their TTL';
 COMMENT ON FUNCTION get_cache_statistics() IS 'Returns aggregate statistics about the cache';
+
+-- Function to find similar issues using vector similarity
+CREATE OR REPLACE FUNCTION find_similar_issues(
+    target_issue_id UUID,
+    limit_count INTEGER DEFAULT 5
+)
+RETURNS TABLE (
+    issue_id UUID,
+    title TEXT,
+    state TEXT,
+    number INTEGER,
+    similarity_score FLOAT
+) AS $$
+BEGIN
+    RETURN QUERY
+    WITH target_embedding AS (
+        SELECT embedding
+        FROM issues
+        WHERE id = target_issue_id
+        AND embedding IS NOT NULL
+        LIMIT 1
+    )
+    SELECT
+        i.id AS issue_id,
+        i.title,
+        i.state,
+        i.number,
+        1 - (i.embedding <=> te.embedding) AS similarity_score
+    FROM issues i
+    CROSS JOIN target_embedding te
+    WHERE i.id != target_issue_id
+    AND i.embedding IS NOT NULL
+    ORDER BY i.embedding <=> te.embedding
+    LIMIT limit_count;
+END;
+$$ LANGUAGE plpgsql;

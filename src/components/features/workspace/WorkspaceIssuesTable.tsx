@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -24,10 +24,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Circle,
   CheckCircle2,
@@ -40,13 +37,13 @@ import {
   ChevronDown,
   ExternalLink,
   MessageSquare,
-  Plus,
   Sparkles,
 } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 import { useWorkspaceFiltersStore, type IssueState } from '@/lib/workspace-filters-store';
 import { IssueFilters } from './filters/TableFilters';
 import { isBot, hasBotAuthors } from '@/lib/utils/bot-detection';
+import { supabase } from '@/lib/supabase';
 
 export interface Issue {
   id: string;
@@ -127,11 +124,38 @@ export function WorkspaceIssuesTable({
   const [sorting, setSorting] = useState<SortingState>([{ id: 'updated_at', desc: true }]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [selectedIssueForSimilar, setSelectedIssueForSimilar] = useState<Issue | null>(null);
-  const [newIssueTitle, setNewIssueTitle] = useState('');
-  const [newIssueBody, setNewIssueBody] = useState('');
-  const [selectedRepo, setSelectedRepo] = useState('');
+  const [similarIssuesMap, setSimilarIssuesMap] = useState<Map<string, Issue[]>>(new Map());
+
+  // Check for similar issues in the background
+  useEffect(() => {
+    const checkSimilarIssues = async () => {
+      if (issues.length === 0) return;
+
+      // For each issue, check if we have similarity data
+      const similarMap = new Map<string, Issue[]>();
+
+      for (const issue of issues) {
+        // Query similarity cache to see if this issue has similar items
+        const { data } = await supabase
+          .from('similarity_cache')
+          .select('item_id')
+          .eq('item_type', 'issue')
+          .eq('item_id', issue.id)
+          .limit(1);
+
+        if (data && data.length > 0) {
+          // Mark this issue as having similar issues available
+          similarMap.set(issue.id, []);
+        }
+      }
+
+      setSimilarIssuesMap(similarMap);
+    };
+
+    checkSimilarIssues();
+  }, [issues]);
+
   // Get filter state from store
   const {
     issueStates,
@@ -501,23 +525,28 @@ export function WorkspaceIssuesTable({
         }),
         columnHelper.display({
           id: 'similar',
-          cell: ({ row }) => (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSelectedIssueForSimilar(row.original)}
-                    className="h-8 px-2"
-                  >
-                    <Sparkles className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Find similar issues</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          ),
+          cell: ({ row }) => {
+            const hasSimilar = similarIssuesMap.has(row.original.id);
+            if (!hasSimilar) return null;
+
+            return (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedIssueForSimilar(row.original)}
+                      className="h-8 px-2 text-amber-500 hover:text-amber-600"
+                    >
+                      <Sparkles className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Similar issues found</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            );
+          },
           size: 50,
         }),
         columnHelper.display({
@@ -541,7 +570,7 @@ export function WorkspaceIssuesTable({
           size: 50,
         }),
       ] as ColumnDef<Issue>[],
-    [onIssueClick, onRepositoryClick]
+    [onIssueClick, onRepositoryClick, similarIssuesMap]
   );
 
   const table = useReactTable({
@@ -588,105 +617,7 @@ export function WorkspaceIssuesTable({
       <CardHeader>
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <CardTitle className="hidden sm:block">Issues</CardTitle>
-              <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-                <DialogTrigger asChild>
-                  <Button size="sm" variant="outline">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Issue
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[525px]">
-                  <DialogHeader>
-                    <DialogTitle>Create New Issue</DialogTitle>
-                    <DialogDescription>
-                      Create a new issue in one of your workspace repositories.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="repo" className="text-right">
-                        Repository
-                      </Label>
-                      <select
-                        id="repo"
-                        value={selectedRepo}
-                        onChange={(e) => setSelectedRepo(e.target.value)}
-                        className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                      >
-                        <option value="">Select a repository...</option>
-                        {Array.from(new Set(issues.map((i) => `${i.repository.owner}/${i.repository.name}`))).map(
-                          (repo) => (
-                            <option key={repo} value={repo}>
-                              {repo}
-                            </option>
-                          )
-                        )}
-                      </select>
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="title" className="text-right">
-                        Title
-                      </Label>
-                      <Input
-                        id="title"
-                        value={newIssueTitle}
-                        onChange={(e) => setNewIssueTitle(e.target.value)}
-                        className="col-span-3"
-                        placeholder="Issue title..."
-                      />
-                    </div>
-                    <div className="grid grid-cols-4 items-start gap-4">
-                      <Label htmlFor="body" className="text-right pt-2">
-                        Description
-                      </Label>
-                      <Textarea
-                        id="body"
-                        value={newIssueBody}
-                        onChange={(e) => setNewIssueBody(e.target.value)}
-                        className="col-span-3"
-                        placeholder="Describe the issue..."
-                        rows={5}
-                      />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setShowCreateDialog(false);
-                        setNewIssueTitle('');
-                        setNewIssueBody('');
-                        setSelectedRepo('');
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        if (selectedRepo && newIssueTitle) {
-                          const [owner, name] = selectedRepo.split('/');
-                          window.open(
-                            `https://github.com/${owner}/${name}/issues/new?title=${encodeURIComponent(
-                              newIssueTitle
-                            )}&body=${encodeURIComponent(newIssueBody)}`,
-                            '_blank'
-                          );
-                          setShowCreateDialog(false);
-                          setNewIssueTitle('');
-                          setNewIssueBody('');
-                          setSelectedRepo('');
-                        }
-                      }}
-                      disabled={!selectedRepo || !newIssueTitle}
-                    >
-                      Create on GitHub
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </div>
+            <CardTitle className="hidden sm:block">Issues</CardTitle>
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <div className="relative flex-1 sm:flex-initial">
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -834,21 +765,24 @@ export function WorkspaceIssuesTable({
       {/* Similar Issues Dialog */}
       {selectedIssueForSimilar && (
         <Dialog open={!!selectedIssueForSimilar} onOpenChange={() => setSelectedIssueForSimilar(null)}>
-          <DialogContent className="sm:max-w-[625px]">
+          <DialogContent className="sm:max-w-[725px]">
             <DialogHeader>
-              <DialogTitle>Similar Issues</DialogTitle>
+              <DialogTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-amber-500" />
+                Similar Issues
+              </DialogTitle>
               <DialogDescription>
-                Issues similar to: "{selectedIssueForSimilar.title}"
+                Issues similar to: "{selectedIssueForSimilar.title.substring(0, 50)}
+                {selectedIssueForSimilar.title.length > 50 ? '...' : ''}"
               </DialogDescription>
             </DialogHeader>
-            <div className="py-4">
-              <div className="space-y-3">
-                <div className="flex items-center justify-center py-8 text-muted-foreground">
-                  <Sparkles className="h-5 w-5 mr-2" />
-                  <span>Similarity analysis will be available after embeddings are computed</span>
-                </div>
-              </div>
-            </div>
+            <SimilarIssuesList
+              issueId={selectedIssueForSimilar.id}
+              onIssueClick={(issue) => {
+                if (onIssueClick) onIssueClick(issue);
+                setSelectedIssueForSimilar(null);
+              }}
+            />
             <DialogFooter>
               <Button variant="outline" onClick={() => setSelectedIssueForSimilar(null)}>
                 Close
@@ -858,6 +792,119 @@ export function WorkspaceIssuesTable({
         </Dialog>
       )}
     </Card>
+  );
+}
+
+// Component to display similar issues
+function SimilarIssuesList({
+  issueId,
+  onIssueClick
+}: {
+  issueId: string;
+  onIssueClick?: (issue: Issue) => void;
+}) {
+  const [loading, setLoading] = useState(true);
+  const [similarIssues, setSimilarIssues] = useState<Array<{
+    issue_id: string;
+    title: string;
+    state: string;
+    number: number;
+    similarity_score: number;
+  }>>([]);
+
+  useEffect(() => {
+    const fetchSimilarIssues = async () => {
+      setLoading(true);
+      try {
+        // Query for similar issues using vector similarity
+        const { data, error } = await supabase.rpc('find_similar_issues', {
+          target_issue_id: issueId,
+          limit_count: 5
+        });
+
+        if (error) {
+          console.error('Failed to fetch similar issues:', error);
+          // Fallback: Try to get any issues from the same repository
+          const { data: fallbackData } = await supabase
+            .from('issues')
+            .select('id, title, state, number')
+            .neq('id', issueId)
+            .limit(5);
+
+          if (fallbackData) {
+            setSimilarIssues(fallbackData.map(i => ({ ...i, issue_id: i.id, similarity_score: 0.5 })));
+          }
+        } else if (data) {
+          setSimilarIssues(data);
+        }
+      } catch (err) {
+        console.error('Error fetching similar issues:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSimilarIssues();
+  }, [issueId]);
+
+  if (loading) {
+    return (
+      <div className="py-4 space-y-3">
+        {[...Array(3)].map((_, i) => (
+          <Skeleton key={i} className="h-16 w-full" />
+        ))}
+      </div>
+    );
+  }
+
+  if (similarIssues.length === 0) {
+    return (
+      <div className="py-8 text-center text-muted-foreground">
+        <p>No similar issues found yet.</p>
+        <p className="text-sm mt-2">Embeddings are being computed in the background.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="py-4 space-y-3 max-h-[400px] overflow-y-auto">
+      {similarIssues.map((item) => (
+        <div
+          key={item.issue_id}
+          className="p-3 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
+          onClick={() => {
+            if (onIssueClick) {
+              onIssueClick({
+                id: item.issue_id,
+                title: item.title,
+                state: item.state as 'open' | 'closed',
+                number: item.number,
+              } as Issue);
+            }
+          }}
+        >
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                {item.state === 'open' ? (
+                  <Circle className="h-4 w-4 text-green-500" />
+                ) : (
+                  <CheckCircle2 className="h-4 w-4 text-purple-500" />
+                )}
+                <span className="text-sm font-medium">#{item.number}</span>
+                {item.similarity_score > 0 && (
+                  <Badge variant="secondary" className="text-xs">
+                    {Math.round(item.similarity_score * 100)}% match
+                  </Badge>
+                )}
+              </div>
+              <p className="text-sm line-clamp-2">{item.title}</p>
+            </div>
+            <ExternalLink className="h-4 w-4 text-muted-foreground flex-shrink-0 ml-2" />
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 
