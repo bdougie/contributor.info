@@ -288,11 +288,10 @@ const handleRetry = () => {
 
 **Hybrid Job Processing Architecture (January 2025)**:
 - **Inngest Webhook Router** (`inngest-hybrid`): Intelligently categorizes and routes Inngest events
-- **GitHub Webhook Router** (`api-workspaces-webhook-hybrid`): Handles high-volume GitHub webhook events
-- **Background Jobs Table**: Comprehensive tracking of all long-running jobs
+- **Background Jobs Table**: Comprehensive tracking of long-running jobs
 - **Supabase Edge Functions**:
   - `process-job`: Handles long-running Inngest and sync-router jobs (150s timeout)
-  - `process-webhook`: Processes GitHub webhooks affecting many workspaces
+  - `process-webhook`: Processes GitHub webhooks with extended timeouts
 
 **Benefits**:
 - Prevents API overwhelm with intelligent queuing
