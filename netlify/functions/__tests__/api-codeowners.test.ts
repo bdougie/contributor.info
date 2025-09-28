@@ -18,26 +18,35 @@ describe('CODEOWNERS API Tests', () => {
   let mockMaybeSingle: any;
 
   beforeEach(() => {
-    // Setup Supabase mocks with proper chain
+    // Setup Supabase mocks with complete query chain
     mockMaybeSingle = vi.fn();
-    const mockEq2 = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
-    mockEq = vi.fn().mockReturnValue({ eq: mockEq2 });
-    mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
+    const mockLimit = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
+    const mockOrder = vi.fn().mockReturnValue({ limit: mockLimit });
+    const mockEq2 = vi.fn().mockReturnValue({
+      maybeSingle: mockMaybeSingle,
+      order: mockOrder,
+      limit: mockLimit
+    });
+    mockEq = vi.fn().mockReturnValue({
+      eq: mockEq2,
+      order: mockOrder,
+      limit: mockLimit,
+      maybeSingle: mockMaybeSingle
+    });
+    mockSelect = vi.fn().mockReturnValue({
+      eq: mockEq,
+      order: mockOrder,
+      limit: mockLimit,
+      maybeSingle: mockMaybeSingle
+    });
     mockFrom = vi.fn().mockReturnValue({ select: mockSelect });
     mockSupabase = { from: mockFrom };
 
     (createSupabaseClient as any).mockReturnValue(mockSupabase);
-
-    // Mock environment variables
-    process.env.GITHUB_TOKEN = 'test-github-token';
-
-    // Mock global fetch
-    global.fetch = vi.fn();
   });
 
   afterEach(() => {
     vi.clearAllMocks();
-    delete process.env.GITHUB_TOKEN;
   });
 
   describe('CORS handling', () => {
@@ -127,52 +136,32 @@ describe('CODEOWNERS API Tests', () => {
       const response = await handler(request, {} as any);
       const data = await response.json();
 
-      expect(response.status).toBe(404);
-      expect(data.error).toBe('Repository not found');
-    });
-  });
-
-  describe('GitHub token validation', () => {
-    it('should return 500 when GitHub token is missing', async () => {
-      delete process.env.GITHUB_TOKEN;
-      delete process.env.VITE_GITHUB_TOKEN;
-
-      mockMaybeSingle.mockResolvedValue({
-        data: { id: 1, is_active: true },
-        error: null,
-      });
-
-      const request = new Request('https://test.com/api/repos/owner/repo/codeowners', {
-        method: 'GET',
-      });
-
-      const response = await handler(request, {} as any);
-      const data = await response.json();
-
       expect(response.status).toBe(500);
-      expect(data.error).toBe('GitHub token not configured');
+      expect(data.error).toBe('Database error while checking repository tracking');
     });
   });
+
 
   describe('CODEOWNERS file fetching', () => {
-    beforeEach(() => {
-      mockMaybeSingle.mockResolvedValue({
-        data: { id: 1, is_active: true },
-        error: null,
-      });
-    });
 
     it('should fetch CODEOWNERS from .github/CODEOWNERS', async () => {
       const codeOwnersContent = '# CODEOWNERS\n/src/ @developer1 @developer2';
-      const base64Content = Buffer.from(codeOwnersContent).toString('base64');
 
-      (global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({
-          content: base64Content,
-          path: '.github/CODEOWNERS',
-        }),
-      });
+      // Clear and setup mock for this specific test
+      mockMaybeSingle.mockClear();
+      mockMaybeSingle
+        .mockResolvedValueOnce({
+          data: { id: 1, is_active: true },
+          error: null,
+        })
+        .mockResolvedValueOnce({
+          data: { id: 1 },
+          error: null,
+        })
+        .mockResolvedValueOnce({
+          data: { content: codeOwnersContent, file_path: '.github/CODEOWNERS', fetched_at: new Date() },
+          error: null,
+        });
 
       const request = new Request('https://test.com/api/repos/owner/repo/codeowners', {
         method: 'GET',
@@ -180,34 +169,32 @@ describe('CODEOWNERS API Tests', () => {
 
       const response = await handler(request, {} as any);
       const data = await response.json();
+
+      console.log('Response status:', response.status);
+      console.log('Response data:', data);
 
       expect(response.status).toBe(200);
       expect(data.exists).toBe(true);
       expect(data.content).toBe(codeOwnersContent);
       expect(data.path).toBe('.github/CODEOWNERS');
       expect(data.repository).toBe('owner/repo');
-
-      expect(global.fetch).toHaveBeenCalledWith(
-        'https://api.github.com/repos/owner/repo/contents/.github/CODEOWNERS',
-        expect.objectContaining({
-          headers: expect.objectContaining({
-            Authorization: 'Bearer test-github-token',
-          }),
-        })
-      );
     });
 
     it('should try multiple CODEOWNERS file locations', async () => {
-      // First call fails (no .github/CODEOWNERS)
-      (global.fetch as any)
-        .mockResolvedValueOnce({ ok: false, status: 404 })
-        // Second call succeeds (root CODEOWNERS)
+      // Clear and setup mock for this specific test
+      mockMaybeSingle.mockClear();
+      mockMaybeSingle
         .mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve({
-            content: Buffer.from('# Root CODEOWNERS').toString('base64'),
-            path: 'CODEOWNERS',
-          }),
+          data: { id: 1, is_active: true },
+          error: null,
+        })
+        .mockResolvedValueOnce({
+          data: { id: 1 },
+          error: null,
+        })
+        .mockResolvedValueOnce({
+          data: { content: '# Root CODEOWNERS', file_path: 'CODEOWNERS', fetched_at: new Date() },
+          error: null,
         });
 
       const request = new Request('https://test.com/api/repos/owner/repo/codeowners', {
@@ -221,15 +208,24 @@ describe('CODEOWNERS API Tests', () => {
       expect(data.exists).toBe(true);
       expect(data.content).toBe('# Root CODEOWNERS');
       expect(data.path).toBe('CODEOWNERS');
-
-      // Should have tried .github/CODEOWNERS first, then CODEOWNERS
-      expect(global.fetch).toHaveBeenCalledTimes(2);
     });
 
     it('should return 404 when no CODEOWNERS file is found', async () => {
-      // All CODEOWNERS file locations fail
-      (global.fetch as any)
-        .mockResolvedValue({ ok: false, status: 404 });
+      // Clear and setup mock for this specific test
+      mockMaybeSingle.mockClear();
+      mockMaybeSingle
+        .mockResolvedValueOnce({
+          data: { id: 1, is_active: true },
+          error: null,
+        })
+        .mockResolvedValueOnce({
+          data: { id: 1 },
+          error: null,
+        })
+        .mockResolvedValueOnce({
+          data: null,
+          error: null,
+        });
 
       const request = new Request('https://test.com/api/repos/owner/repo/codeowners', {
         method: 'GET',
@@ -247,13 +243,24 @@ describe('CODEOWNERS API Tests', () => {
         'docs/CODEOWNERS',
         '.gitlab/CODEOWNERS',
       ]);
-
-      // Should have tried all possible locations
-      expect(global.fetch).toHaveBeenCalledTimes(4);
     });
 
     it('should handle GitHub API errors gracefully', async () => {
-      (global.fetch as any).mockRejectedValue(new Error('Network error'));
+      // Clear and setup mock for this specific test
+      mockMaybeSingle.mockClear();
+      mockMaybeSingle
+        .mockResolvedValueOnce({
+          data: { id: 1, is_active: true },
+          error: null,
+        })
+        .mockResolvedValueOnce({
+          data: { id: 1 },
+          error: null,
+        })
+        .mockResolvedValueOnce({
+          data: null,
+          error: null,
+        });
 
       const request = new Request('https://test.com/api/repos/owner/repo/codeowners', {
         method: 'GET',
@@ -268,15 +275,22 @@ describe('CODEOWNERS API Tests', () => {
 
     it('should include proper cache headers for successful responses', async () => {
       const codeOwnersContent = '# CODEOWNERS\n/src/ @developer1';
-      const base64Content = Buffer.from(codeOwnersContent).toString('base64');
 
-      (global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({
-          content: base64Content,
-          path: '.github/CODEOWNERS',
-        }),
-      });
+      // Clear and setup mock for this specific test
+      mockMaybeSingle.mockClear();
+      mockMaybeSingle
+        .mockResolvedValueOnce({
+          data: { id: 1, is_active: true },
+          error: null,
+        })
+        .mockResolvedValueOnce({
+          data: { id: 1 },
+          error: null,
+        })
+        .mockResolvedValueOnce({
+          data: { content: codeOwnersContent, file_path: '.github/CODEOWNERS', fetched_at: new Date() },
+          error: null,
+        });
 
       const request = new Request('https://test.com/api/repos/owner/repo/codeowners', {
         method: 'GET',

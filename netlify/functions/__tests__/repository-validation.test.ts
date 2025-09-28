@@ -20,12 +20,13 @@ describe('Repository Validation Tests', () => {
   let mockFrom: any;
   let mockSelect: any;
   let mockEq: any;
+  let mockEq2: any;
   let mockMaybeSingle: any;
 
   beforeEach(() => {
     // Setup Supabase mocks with proper query chain
     mockMaybeSingle = vi.fn();
-    const mockEq2 = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
+    mockEq2 = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
     mockEq = vi.fn().mockReturnValue({ eq: mockEq2 });
     mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
     mockFrom = vi.fn().mockReturnValue({ select: mockSelect });
@@ -160,7 +161,7 @@ describe('Repository Validation Tests', () => {
 
       // Assert that Supabase receives lowercase values
       expect(mockEq).toHaveBeenCalledWith('owner', 'owner');
-      expect(mockEq).toHaveBeenCalledWith('name', 'repo');
+      expect(mockEq2).toHaveBeenCalledWith('name', 'repo');
     });
   });
 
