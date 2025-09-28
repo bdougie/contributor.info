@@ -397,7 +397,7 @@ export function AddRepositoryModal({
 
           if (createError) {
             const errorMessage = createError instanceof Error ? createError.message : 'Unknown error';
-            console.error(`Error creating repository ${repo.full_name}:`, createError);
+            console.error('Error creating repository %s:', repo.full_name, createError);
             throw new Error(`Failed to add ${repo.full_name}: ${errorMessage}`);
           }
 
