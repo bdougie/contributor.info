@@ -1,6 +1,6 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
-import { exec } from 'child_process';
+import { exec, execFile } from 'child_process';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
@@ -451,16 +451,20 @@ Please address the user's specific request while also checking for any significa
         if (error) {
           // Try local installation
           const actionPath = process.env.GITHUB_ACTION_PATH || process.cwd();
-          exec(`${actionPath}/node_modules/.bin/cn --version`, (localError) => {
-            if (!localError) {
-              cliPath = `${actionPath}/node_modules/.bin/cn`;
-              core.info(`Fallback: Using local Continue CLI at ${cliPath}`);
-              resolve(true);
-            } else {
-              core.error('Fallback: Continue CLI not found');
-              resolve(false);
+          execFile(
+            `${actionPath}/node_modules/.bin/cn`,
+            ['--version'],
+            (localError) => {
+              if (!localError) {
+                cliPath = `${actionPath}/node_modules/.bin/cn`;
+                core.info(`Fallback: Using local Continue CLI at ${cliPath}`);
+                resolve(true);
+              } else {
+                core.error('Fallback: Continue CLI not found');
+                resolve(false);
+              }
             }
-          });
+          );
         } else {
           core.info(`Fallback: Continue CLI found at ${stdout.trim()}`);
           resolve(true);
