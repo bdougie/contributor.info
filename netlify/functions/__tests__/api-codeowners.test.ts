@@ -170,9 +170,6 @@ describe('CODEOWNERS API Tests', () => {
       const response = await handler(request, {} as any);
       const data = await response.json();
 
-      console.log('Response status:', response.status);
-      console.log('Response data:', data);
-
       expect(response.status).toBe(200);
       expect(data.exists).toBe(true);
       expect(data.content).toBe(codeOwnersContent);
