@@ -212,23 +212,22 @@ class WorkspaceEventsService {
    * Private helper methods
    */
   private getDateRanges(timeRange: string, now: Date) {
-    const ranges = {
-      currentEnd: now,
-      currentStart: new Date(),
-      previousEnd: new Date(),
-      previousStart: new Date(),
-    };
-
     const days = this.getTimeRangeDays(timeRange);
 
-    // Current period
-    ranges.currentStart.setDate(now.getDate() - days);
+    // Current period: from (now - days) to now
+    const currentEnd = now;
+    const currentStart = new Date(now.getTime() - timeHelpers.daysToMs(days));
 
-    // Previous period (same duration, ending when current period starts)
-    ranges.previousEnd = new Date(ranges.currentStart);
-    ranges.previousStart.setDate(ranges.previousEnd.getDate() - days);
+    // Previous period: same duration, ending when current period starts
+    const previousEnd = new Date(currentStart);
+    const previousStart = new Date(currentStart.getTime() - timeHelpers.daysToMs(days));
 
-    return ranges;
+    return {
+      currentEnd,
+      currentStart,
+      previousEnd,
+      previousStart,
+    };
   }
 
   private getTimeRangeDays(timeRange: string): number {

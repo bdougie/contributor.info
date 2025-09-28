@@ -178,8 +178,32 @@ export const externalUrls = {
 
 /**
  * Builds a URL with query parameters
+ * Handles both absolute and relative URLs
  */
 export function buildUrlWithParams(baseUrl: string, params: Record<string, string | number | boolean | undefined>): string {
+  // Check if it's a relative URL (doesn't start with http:// or https://)
+  const isRelative = !baseUrl.startsWith('http://') && !baseUrl.startsWith('https://');
+
+  if (isRelative) {
+    // For relative URLs, build the query string separately
+    const searchParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined) {
+        searchParams.append(key, String(value));
+      }
+    });
+
+    const queryString = searchParams.toString();
+    if (!queryString) {
+      return baseUrl;
+    }
+
+    // Append query string to relative URL
+    const separator = baseUrl.includes('?') ? '&' : '?';
+    return `${baseUrl}${separator}${queryString}`;
+  }
+
+  // For absolute URLs, use URL constructor
   const url = new URL(baseUrl);
   Object.entries(params).forEach(([key, value]) => {
     if (value !== undefined) {
