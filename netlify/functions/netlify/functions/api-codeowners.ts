@@ -1,4 +1,5 @@
 import type { Context } from '@netlify/functions';
+import { createSupabaseClient } from '../../src/lib/supabase';
 import {
   validateRepository,
   createNotFoundResponse,
@@ -13,53 +14,48 @@ interface CodeOwnersResponse {
   error?: string;
 }
 
-async function fetchCodeOwners(
-  owner: string,
-  repo: string,
-  token: string
+async function fetchCodeOwnersFromDatabase(
+  repositoryId: string
 ): Promise<CodeOwnersResponse> {
-  // Check multiple possible locations for CODEOWNERS file
-  const possiblePaths = [
-    '.github/CODEOWNERS',
-    'CODEOWNERS',
-    'docs/CODEOWNERS',
-    '.gitlab/CODEOWNERS',
-  ];
+  try {
+    const supabase = createSupabaseClient();
 
-  for (const path of possiblePaths) {
-    try {
-      const response = await fetch(
-        `https://api.github.com/repos/${owner}/${repo}/contents/${path}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: 'application/vnd.github.v3+json',
-          },
-        }
-      );
+    // Fetch CODEOWNERS data from database
+    const { data, error } = await supabase
+      .from('codeowners')
+      .select('content, file_path, fetched_at')
+      .eq('repository_id', repositoryId)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-      if (response.ok) {
-        const data = await response.json();
-
-        // Decode base64 content
-        if (data.content) {
-          const content = Buffer.from(data.content, 'base64').toString('utf-8');
-          return {
-            content,
-            exists: true,
-            path: data.path,
-          };
-        }
-      }
-    } catch (error) {
-      console.error(`Error fetching CODEOWNERS from ${path}:`, error);
+    if (error) {
+      console.error('Database error fetching CODEOWNERS:', error);
+      return {
+        exists: false,
+        error: 'Failed to fetch CODEOWNERS from database',
+      };
     }
-  }
 
-  return {
-    exists: false,
-    error: 'No CODEOWNERS file found in repository',
-  };
+    if (!data) {
+      return {
+        exists: false,
+        error: 'No CODEOWNERS file found in repository',
+      };
+    }
+
+    return {
+      content: data.content,
+      exists: true,
+      path: data.file_path,
+    };
+  } catch (error) {
+    console.error('Error fetching CODEOWNERS from database:', error);
+    return {
+      exists: false,
+      error: 'Failed to fetch CODEOWNERS from database',
+    };
+  }
 }
 
 export default async (req: Request, context: Context) => {
@@ -100,20 +96,28 @@ export default async (req: Request, context: Context) => {
       return createErrorResponse(validation.error);
     }
 
-    // Get GitHub token from environment
-    const token = process.env.GITHUB_TOKEN || process.env.VITE_GITHUB_TOKEN;
-    if (!token) {
-      return createErrorResponse('GitHub token not configured', 500);
+    // Get repository ID from database
+    const supabase = createSupabaseClient();
+    const { data: repository, error: repoError } = await supabase
+      .from('repositories')
+      .select('id')
+      .eq('owner', owner.toLowerCase())
+      .eq('name', repo.toLowerCase())
+      .limit(1)
+      .maybeSingle();
+
+    if (repoError || !repository) {
+      return createNotFoundResponse(owner, repo);
     }
 
-    // Fetch CODEOWNERS file
-    const codeOwnersData = await fetchCodeOwners(owner, repo, token);
+    // Fetch CODEOWNERS file from database
+    const codeOwnersData = await fetchCodeOwnersFromDatabase(repository.id);
 
     if (!codeOwnersData.exists) {
       return new Response(
         JSON.stringify({
           exists: false,
-          message: codeOwnersData.error || 'No CODEOWNERS file found',
+          message: codeOwnersData.error || 'No CODEOWNERS file found in repository',
           checkedPaths: [
             '.github/CODEOWNERS',
             'CODEOWNERS',

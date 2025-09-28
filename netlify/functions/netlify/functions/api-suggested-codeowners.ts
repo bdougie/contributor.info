@@ -202,6 +202,52 @@ export default async (req: Request, context: Context) => {
       return createErrorResponse(validation.error);
     }
 
+    // Get repository ID from database
+    const supabase = createSupabaseClient();
+    const { data: repository, error: repoError } = await supabase
+      .from('repositories')
+      .select('id')
+      .eq('owner', owner.toLowerCase())
+      .eq('name', repo.toLowerCase())
+      .limit(1)
+      .maybeSingle();
+
+    if (repoError || !repository) {
+      return createNotFoundResponse(owner, repo);
+    }
+
+    // Check for cached suggestions first
+    const { data: cachedSuggestions, error: cacheError } = await supabase
+      .from('codeowners_suggestions')
+      .select('suggestions, generated_content, total_contributors, generated_at')
+      .eq('repository_id', repository.id)
+      .gt('expires_at', new Date().toISOString())
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!cacheError && cachedSuggestions) {
+      // Return cached suggestions if they exist and haven't expired
+      return new Response(
+        JSON.stringify({
+          suggestions: cachedSuggestions.suggestions,
+          codeOwnersContent: cachedSuggestions.generated_content,
+          repository: `${owner}/${repo}`,
+          totalContributors: cachedSuggestions.total_contributors,
+          generatedAt: cachedSuggestions.generated_at,
+          cached: true,
+        }),
+        {
+          status: 200,
+          headers: {
+            ...CORS_HEADERS,
+            'Content-Type': 'application/json',
+            'Cache-Control': 'public, max-age=3600', // Cache for 1 hour
+          },
+        }
+      );
+    }
+
     // Analyze contributions
     const contributorStats = await analyzeContributions(owner, repo);
 
@@ -235,13 +281,35 @@ export default async (req: Request, context: Context) => {
       ),
     ].join('\n');
 
+    // Store suggestions in cache for future use
+    const generatedAt = new Date().toISOString();
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour from now
+
+    try {
+      await supabase
+        .from('codeowners_suggestions')
+        .upsert({
+          repository_id: repository.id,
+          suggestions,
+          generated_content: codeOwnersContent,
+          total_contributors: contributorStats.size,
+          generated_at: generatedAt,
+          expires_at: expiresAt,
+        }, {
+          onConflict: 'repository_id'
+        });
+    } catch (cacheStoreError) {
+      console.error('Failed to cache suggestions:', cacheStoreError);
+      // Don't fail the request if caching fails
+    }
+
     return new Response(
       JSON.stringify({
         suggestions,
         codeOwnersContent,
         repository: `${owner}/${repo}`,
         totalContributors: contributorStats.size,
-        generatedAt: new Date().toISOString(),
+        generatedAt,
       }),
       {
         status: 200,

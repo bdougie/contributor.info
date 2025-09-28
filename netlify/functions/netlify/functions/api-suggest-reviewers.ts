@@ -168,37 +168,31 @@ async function getContributorScores(
   return reviewerMap;
 }
 
-async function fetchCodeOwnersFromGitHub(
-  owner: string,
-  repo: string,
-  token: string
+async function fetchCodeOwnersFromDatabase(
+  repositoryId: string
 ): Promise<string | null> {
-  const possiblePaths = ['.github/CODEOWNERS', 'CODEOWNERS'];
+  try {
+    const supabase = createSupabaseClient();
 
-  for (const path of possiblePaths) {
-    try {
-      const response = await fetch(
-        `https://api.github.com/repos/${owner}/${repo}/contents/${path}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: 'application/vnd.github.v3+json',
-          },
-        }
-      );
+    // Fetch CODEOWNERS data from database
+    const { data, error } = await supabase
+      .from('codeowners')
+      .select('content')
+      .eq('repository_id', repositoryId)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.content) {
-          return Buffer.from(data.content, 'base64').toString('utf-8');
-        }
-      }
-    } catch (error) {
-      console.error(`Error fetching CODEOWNERS from ${path}:`, error);
+    if (error) {
+      console.error('Database error fetching CODEOWNERS:', error);
+      return null;
     }
-  }
 
-  return null;
+    return data?.content || null;
+  } catch (error) {
+    console.error('Error fetching CODEOWNERS from database:', error);
+    return null;
+  }
 }
 
 function parseCodeOwners(content: string, prFiles: PullRequestFiles): Set<string> {
@@ -298,35 +292,46 @@ export default async (req: Request, context: Context) => {
     // Analyze PR files
     const prFiles = await analyzePRFiles(files);
 
+    // Get repository ID from database
+    const supabase = createSupabaseClient();
+    const { data: repository, error: repoError } = await supabase
+      .from('repositories')
+      .select('id')
+      .eq('owner', owner.toLowerCase())
+      .eq('name', repo.toLowerCase())
+      .limit(1)
+      .maybeSingle();
+
+    if (repoError || !repository) {
+      return createNotFoundResponse(owner, repo);
+    }
+
     // Get contributor scores
     const reviewerMap = await getContributorScores(owner, repo, prFiles);
 
-    // Check CODEOWNERS file
-    const token = process.env.GITHUB_TOKEN || process.env.VITE_GITHUB_TOKEN;
+    // Check CODEOWNERS file from database
     let codeOwners: string[] = [];
+    const codeOwnersContent = await fetchCodeOwnersFromDatabase(repository.id);
 
-    if (token) {
-      const codeOwnersContent = await fetchCodeOwnersFromGitHub(owner, repo, token);
-      if (codeOwnersContent) {
-        const codeOwnerSet = parseCodeOwners(codeOwnersContent, prFiles);
-        codeOwners = Array.from(codeOwnerSet);
+    if (codeOwnersContent) {
+      const codeOwnerSet = parseCodeOwners(codeOwnersContent, prFiles);
+      codeOwners = Array.from(codeOwnerSet);
 
-        // Boost scores for code owners
-        for (const codeOwner of codeOwners) {
-          if (reviewerMap.has(codeOwner)) {
-            const reviewer = reviewerMap.get(codeOwner)!;
-            reviewer.score += 20;
-            reviewer.reasoning.unshift('Listed in CODEOWNERS');
-          } else {
-            // Add code owner even if not in recent contributors
-            reviewerMap.set(codeOwner, {
-              username: codeOwner,
-              score: 20,
-              reasoning: ['Listed in CODEOWNERS'],
-              relevantFiles: [],
-              recentActivity: false,
-            });
-          }
+      // Boost scores for code owners
+      for (const codeOwner of codeOwners) {
+        if (reviewerMap.has(codeOwner)) {
+          const reviewer = reviewerMap.get(codeOwner)!;
+          reviewer.score += 20;
+          reviewer.reasoning.unshift('Listed in CODEOWNERS');
+        } else {
+          // Add code owner even if not in recent contributors
+          reviewerMap.set(codeOwner, {
+            username: codeOwner,
+            score: 20,
+            reasoning: ['Listed in CODEOWNERS'],
+            relevantFiles: [],
+            recentActivity: false,
+          });
         }
       }
     }

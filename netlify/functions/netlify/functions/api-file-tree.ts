@@ -1,4 +1,5 @@
 import type { Context } from '@netlify/functions';
+import { createSupabaseClient } from '../../src/lib/supabase';
 import {
   validateRepository,
   createNotFoundResponse,
@@ -30,69 +31,45 @@ interface ProcessedTree {
   truncated: boolean;
 }
 
-async function fetchFileTree(
-  owner: string,
-  repo: string,
-  token: string,
+async function fetchFileTreeFromDatabase(
+  repositoryId: string,
   branch = 'main'
-): Promise<ProcessedTree> {
+): Promise<ProcessedTree | null> {
   try {
-    // First, try to get the default branch
-    const repoResponse = await fetch(
-      `https://api.github.com/repos/${owner}/${repo}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/vnd.github.v3+json',
-        },
-      }
-    );
+    const supabase = createSupabaseClient();
 
-    if (!repoResponse.ok) {
-      throw new Error(`Failed to fetch repository info: ${repoResponse.status}`);
+    // Fetch file tree data from database
+    const { data, error } = await supabase
+      .from('repository_file_trees')
+      .select('tree_data, total_files, total_directories, total_size, truncated')
+      .eq('repository_id', repositoryId)
+      .eq('branch', branch)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Database error fetching file tree:', error);
+      return null;
     }
 
-    const repoData = await repoResponse.json();
-    const defaultBranch = repoData.default_branch || branch;
-
-    // Get the tree for the default branch
-    const treeResponse = await fetch(
-      `https://api.github.com/repos/${owner}/${repo}/git/trees/${defaultBranch}?recursive=1`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/vnd.github.v3+json',
-        },
-      }
-    );
-
-    if (!treeResponse.ok) {
-      // Fallback to 'master' if 'main' fails
-      if (defaultBranch === 'main') {
-        const masterResponse = await fetch(
-          `https://api.github.com/repos/${owner}/${repo}/git/trees/master?recursive=1`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              Accept: 'application/vnd.github.v3+json',
-            },
-          }
-        );
-
-        if (masterResponse.ok) {
-          const data: FileTreeResponse = await masterResponse.json();
-          return processTreeData(data);
-        }
-      }
-
-      throw new Error(`Failed to fetch file tree: ${treeResponse.status}`);
+    if (!data || !data.tree_data) {
+      return null;
     }
 
-    const data: FileTreeResponse = await treeResponse.json();
-    return processTreeData(data);
+    // Convert stored JSON back to ProcessedTree format
+    const treeData = data.tree_data as any;
+
+    return {
+      files: treeData.files || [],
+      directories: treeData.directories || [],
+      filesByDirectory: new Map(Object.entries(treeData.filesByDirectory || {})),
+      totalSize: data.total_size || 0,
+      truncated: data.truncated || false,
+    };
   } catch (error) {
-    console.error('Error fetching file tree:', error);
-    throw error;
+    console.error('Error fetching file tree from database:', error);
+    return null;
   }
 }
 
@@ -236,14 +213,26 @@ export default async (req: Request, context: Context) => {
       return createErrorResponse(validation.error);
     }
 
-    // Get GitHub token from environment
-    const token = process.env.GITHUB_TOKEN || process.env.VITE_GITHUB_TOKEN;
-    if (!token) {
-      return createErrorResponse('GitHub token not configured', 500);
+    // Get repository ID from database
+    const supabase = createSupabaseClient();
+    const { data: repository, error: repoError } = await supabase
+      .from('repositories')
+      .select('id')
+      .eq('owner', owner.toLowerCase())
+      .eq('name', repo.toLowerCase())
+      .limit(1)
+      .maybeSingle();
+
+    if (repoError || !repository) {
+      return createNotFoundResponse(owner, repo);
     }
 
-    // Fetch file tree
-    const processedTree = await fetchFileTree(owner, repo, token, branch);
+    // Fetch file tree from database
+    const processedTree = await fetchFileTreeFromDatabase(repository.id, branch);
+
+    if (!processedTree) {
+      return createErrorResponse('File tree data not available for this repository', 404);
+    }
 
     // Prepare response based on format
     let responseData: any = {
