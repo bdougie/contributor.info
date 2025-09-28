@@ -141,7 +141,44 @@ export function useRepositoryTracking({
         body: JSON.stringify({ owner, repo }),
       });
 
-      const result = await handleApiResponse<TrackRepositoryResponse>(response, 'track-repository');
+      // Check if API is unavailable (common in local dev without GitHub token)
+      let result: TrackRepositoryResponse | null = null;
+
+      if (response.status === 503) {
+        console.info('Track API unavailable (likely missing GitHub token), using direct database creation');
+
+        // Fallback: Create repository directly in the database
+        const { data: newRepo, error: createError } = await supabase
+          .from('repositories')
+          .insert({
+            owner,
+            name: repo,
+            full_name: `${owner}/${repo}`,
+            is_active: true,
+          })
+          .select('id')
+          .single();
+
+        if (createError) {
+          // Check if repository already exists
+          const { data: existingRepo } = await supabase
+            .from('repositories')
+            .select('id')
+            .eq('owner', owner)
+            .eq('name', repo)
+            .maybeSingle();
+
+          if (existingRepo) {
+            result = { success: true, repositoryId: existingRepo.id };
+          } else {
+            throw createError;
+          }
+        } else {
+          result = { success: true, repositoryId: newRepo.id };
+        }
+      } else {
+        result = await handleApiResponse<TrackRepositoryResponse>(response, 'track-repository');
+      }
 
       // Clear any existing polling interval
       if (pollIntervalRef.current) {
