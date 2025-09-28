@@ -21,7 +21,24 @@ import { Link } from 'react-router-dom';
 import { logAdminAction, useAdminGitHubId } from '@/hooks/use-admin-auth';
 
 interface PRAnalysisResult {
-  pr: any;
+  pr: {
+    id?: string | number;
+    number: number;
+    title: string;
+    body?: string;
+    user?: { login: string };
+    author?: { username?: string };
+    author_id?: string | number;
+    html_url: string;
+    created_at: string;
+    additions?: number;
+    deletions?: number;
+    repository?: {
+      owner?: string;
+      name?: string;
+    };
+    [key: string]: unknown;
+  };
   spamScore: number;
   detectionReasons: string[];
   currentDbScore?: number;
@@ -569,7 +586,7 @@ export function SpamTestTool() {
         adminGitHubId,
         'manual_spam_classification',
         'pull_request',
-        result.pr.id,
+        typeof result.pr.id === 'string' ? result.pr.id : String(result.pr.id || 'unknown'),
         {
           pr_url: result.pr.html_url,
           original_score: result.spamScore,
@@ -792,7 +809,7 @@ export function SpamTestTool() {
                   <div>
                     <span className="text-sm text-muted-foreground">Changes</span>
                     <div className="text-sm">
-                      +{result.pr.additions} -{result.pr.deletions}
+                      +{String(result.pr.additions || 0)} -{String(result.pr.deletions || 0)}
                     </div>
                   </div>
                 </div>
@@ -829,7 +846,7 @@ export function SpamTestTool() {
                   <div>
                     <span className="text-sm text-muted-foreground">PR Description:</span>
                     <div className="mt-1 p-3 bg-muted rounded-md text-sm max-h-32 overflow-y-auto">
-                      {result.pr.body}
+                      {String(result.pr.body || 'No description provided')}
                     </div>
                   </div>
                 )}

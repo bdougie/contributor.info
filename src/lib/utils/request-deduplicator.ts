@@ -8,7 +8,7 @@
  * Philosophy: Invisible to users, seamless integration with existing patterns
  */
 
-interface PendingRequest<T = any> {
+interface PendingRequest<T = unknown> {
   key: string;
   promise: Promise<T>;
   timestamp: number;
@@ -22,7 +22,7 @@ interface RequestOptions {
   /** Whether this request supports abortion */
   abortable?: boolean;
   /** Custom key generator for cache key */
-  keyGenerator?: (...args: any[]) => string;
+  keyGenerator?: (...args: unknown[]) => string;
 }
 
 /**
@@ -53,7 +53,7 @@ export class RequestDeduplicator {
       existing.subscribers++;
 
       try {
-        return await existing.promise;
+        return await existing.promise as T;
       } finally {
         // Decrement subscriber count
         existing.subscribers--;
@@ -95,11 +95,11 @@ export class RequestDeduplicator {
    */
   static generateKey = {
     /** Generate key for repository-based requests */
-    repository: (owner: string, repo: string, ...params: any[]): string =>
+    repository: (owner: string, repo: string, ...params: unknown[]): string =>
       `repo:${owner}/${repo}:${params.join(':')}`,
 
     /** Generate key for user-based requests */
-    user: (username: string, ...params: any[]): string => `user:${username}:${params.join(':')}`,
+    user: (username: string, ...params: unknown[]): string => `user:${username}:${params.join(':')}`,
 
     /** Generate key for progressive loading stages */
     progressiveStage: (
@@ -111,7 +111,7 @@ export class RequestDeduplicator {
     ): string => `progressive:${stage}:${owner}/${repo}:${timeRange}:${includeBots}`,
 
     /** Generate custom key with prefix */
-    custom: (prefix: string, ...params: any[]): string => `${prefix}:${params.join(':')}`,
+    custom: (prefix: string, ...params: unknown[]): string => `${prefix}:${params.join(':')}`,
   };
 
   /**
@@ -210,7 +210,7 @@ export function useRequestDeduplication() {
  * Higher-order function to wrap existing data fetchers with deduplication
  * Perfect for integrating with existing fetchPRDataSmart and similar functions
  */
-export function withRequestDeduplication<TArgs extends any[], TResult>(
+export function withRequestDeduplication<TArgs extends unknown[], TResult>(
   fetcher: (...args: TArgs) => Promise<TResult>,
   keyGenerator: (...args: TArgs) => string,
   options: RequestOptions = {}
