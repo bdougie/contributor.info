@@ -218,6 +218,47 @@ Suggest up to 10 patterns with @user owners. Output lines in the format:
       } catch (e) {
         console.error('LLM suggestion error:', e);
       }
+    } else if (useLLM) {
+      // No OPENAI key in Netlify, but Supabase Edge Functions may have it
+      try {
+        const client = createSupabaseClient();
+        const payload = {
+          owner,
+          repo,
+          contributors: Array.from(contributorStats.values()).map((s) => ({
+            username: s.username,
+            contributions: s.contributions,
+            files: s.files.slice(0, 50),
+            directories: Array.from(s.directories).slice(0, 50),
+          })),
+        };
+        const { data: fnData, error: fnError } = await (client as any).functions.invoke('codeowners-llm', {
+          body: payload,
+        });
+        if (!fnError && fnData?.content) {
+          const content = String(fnData.content);
+          codeOwnersContent = `# CODEOWNERS suggestions (LLM-assisted via Supabase)\n# Review before committing\n\n${content}`;
+          if (suggestions.length === 0) {
+            suggestions = content
+              .split('\n')
+              .map((line: string) => line.trim())
+              .filter((line: string) => line && !line.startsWith('#'))
+              .map((line: string) => {
+                const [pattern, ...owners] = line.split(/\s+/);
+                return {
+                  pattern,
+                  owners: owners.filter((o) => o.startsWith('@')),
+                  confidence: 0.6,
+                  reasoning: 'LLM-assisted suggestion',
+                } as CodeOwnersSuggestion;
+              });
+          }
+        } else if (fnError) {
+          console.error('codeowners-llm edge function error:', fnError);
+        }
+      } catch (e) {
+        console.error('Failed to invoke codeowners-llm edge function:', e);
+      }
     }
 
     const generatedAt = new Date().toISOString();
