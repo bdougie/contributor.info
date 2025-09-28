@@ -3,14 +3,14 @@
         xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">
   
   <url>
-    <loc>https://contributor.info/zml/zml</loc>
+    <loc>https://contributor.info/vitejs/vite</loc>
     <news:news>
       <news:publication>
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-09-25T23:41:59.226Z</news:publication_date>
-      <news:title>zml/zml - Contributor Updates</news:title>
+      <news:publication_date>2025-09-27T12:49:28.894Z</news:publication_date>
+      <news:title>vitejs/vite - Contributor Updates</news:title>
     </news:news>
   </url>
 </urlset>
