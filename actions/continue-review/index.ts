@@ -29,6 +29,137 @@ interface PRFile {
   deletions: number;
 }
 
+/**
+ * Validates that a CLI path is safe to execute
+ * @param cliPath The path to validate
+ * @returns true if the path is safe, false otherwise
+ */
+function isValidCliPath(cliPath: string): boolean {
+  // Ensure the path doesn't contain dangerous characters
+  const dangerousPatterns = [';', '&&', '||', '`', '$', '>', '<', '|', '\n', '\r'];
+  for (const pattern of dangerousPatterns) {
+    if (cliPath.includes(pattern)) {
+      core.error(`CLI path contains dangerous character: ${pattern}`);
+      return false;
+    }
+  }
+
+  // Ensure the path is within expected locations
+  const validPrefixes = [
+    '/usr/local/bin/',
+    '/usr/bin/',
+    process.env.GITHUB_ACTION_PATH || process.cwd(),
+    'node_modules/.bin/'
+  ];
+
+  const isValidLocation = validPrefixes.some(prefix =>
+    cliPath.startsWith(prefix) || cliPath === 'cn'
+  );
+
+  if (!isValidLocation) {
+    core.error(`CLI path is not in a valid location: ${cliPath}`);
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Detects and validates the Continue CLI installation
+ * @returns Object with availability status and validated path
+ */
+async function detectContinueCLI(): Promise<{ available: boolean; path: string }> {
+  const isDebugMode = process.env.DEBUG_MODE === 'true';
+
+  if (isDebugMode) {
+    core.info('Starting Continue CLI detection...');
+  }
+
+  // First, try system-wide installation
+  const systemCheck = await new Promise<string | null>((resolve) => {
+    exec('which cn', (error, stdout) => {
+      if (!error && stdout.trim()) {
+        resolve(stdout.trim());
+      } else {
+        resolve(null);
+      }
+    });
+  });
+
+  if (systemCheck) {
+    if (isDebugMode) {
+      core.info(`System-wide Continue CLI found at: ${systemCheck}`);
+    }
+
+    // Verify it's executable
+    const versionCheck = await new Promise<boolean>((resolve) => {
+      exec('cn --version', (error, output) => {
+        if (!error) {
+          if (isDebugMode) {
+            core.info(`Continue CLI version: ${output.trim()}`);
+          }
+          resolve(true);
+        } else {
+          resolve(false);
+        }
+      });
+    });
+
+    if (versionCheck && isValidCliPath('cn')) {
+      return { available: true, path: 'cn' };
+    }
+  }
+
+  // Try local installation
+  const actionPath = process.env.GITHUB_ACTION_PATH || process.cwd();
+  const localPaths = [
+    `${actionPath}/node_modules/.bin/cn`,
+    `${process.cwd()}/node_modules/.bin/cn`,
+    './node_modules/.bin/cn'
+  ];
+
+  for (const localPath of localPaths) {
+    if (isDebugMode) {
+      core.info(`Checking local path: ${localPath}`);
+    }
+
+    const localCheck = await new Promise<boolean>((resolve) => {
+      exec(`${localPath} --version`, (error, output) => {
+        if (!error) {
+          if (isDebugMode) {
+            core.info(`Found Continue CLI at ${localPath}: ${output.trim()}`);
+          }
+          resolve(true);
+        } else {
+          resolve(false);
+        }
+      });
+    });
+
+    if (localCheck && isValidCliPath(localPath)) {
+      return { available: true, path: localPath };
+    }
+  }
+
+  // Check if package is installed but binary not accessible
+  if (isDebugMode) {
+    const packageCheck = await new Promise<boolean>((resolve) => {
+      exec('npm list @continuedev/cli 2>/dev/null', (error, output) => {
+        resolve(!error && output.includes('@continuedev/cli'));
+      });
+    });
+
+    if (packageCheck) {
+      core.warning('Continue CLI package is installed but binary not accessible');
+      core.info('PATH: ' + process.env.PATH);
+    } else {
+      core.error('Continue CLI is not installed');
+    }
+  }
+
+  return { available: false, path: '' };
+}
+
 interface ReviewContext {
   pr: {
     number: number;
@@ -147,95 +278,55 @@ async function generateEnhancedReview(
   const startTime = Date.now();
 
   try {
+    const isDebugMode = process.env.DEBUG_MODE === 'true';
+
     // Phase 1: Analyze codebase patterns for enhanced context
-    core.info('Analyzing codebase patterns for enhanced context...');
+    if (isDebugMode) {
+      core.info('Analyzing codebase patterns for enhanced context...');
+    }
     const projectContext = await analyzeCodebasePatterns(
       context.pr.files.map(f => f.filename)
     );
 
     // Phase 2: Generate enhanced prompt with codebase insights
-    core.info('Generating enhanced review prompt...');
+    if (isDebugMode) {
+      core.info('Generating enhanced review prompt...');
+    }
     const enhancedPrompt = generateEnhancedPrompt(context, projectContext);
 
-    core.info(`Enhanced prompt length: ${enhancedPrompt.length} characters`);
-    core.info(`Detected patterns: ${projectContext.patterns.length}`);
-    core.info(`Project type: ${extractProjectType(
-      projectContext.conventions.dependencies.frameworks,
-      projectContext.conventions.dependencies.libraries
-    )}`);
+    if (isDebugMode) {
+      core.info(`Enhanced prompt length: ${enhancedPrompt.length} characters`);
+      core.info(`Detected patterns: ${projectContext.patterns.length}`);
+      core.info(`Project type: ${extractProjectType(
+        projectContext.conventions.dependencies.frameworks,
+        projectContext.conventions.dependencies.libraries
+      )}`);
+    }
 
     // Write enhanced prompt to temp file
     const tempFile = path.join('/tmp', `continue-enhanced-review-${Date.now()}.txt`);
     await fs.writeFile(tempFile, enhancedPrompt);
 
     try {
-      // Verify Continue CLI availability with proper sequential checks
-      let cliPath = 'cn'; // Default to global installation
-      const cliAvailable = await new Promise<boolean>((resolve) => {
-        exec('which cn', (error, stdout) => {
-          if (error) {
-            core.warning('Continue CLI not found in PATH, checking local installation...');
-            // Check if it's installed locally
-            exec('ls -la node_modules/.bin/cn 2>/dev/null', (lsError, lsOutput) => {
-              if (!lsError && lsOutput) {
-                core.info('Continue CLI found in local node_modules');
-                // Try to use the local version
-                exec('./node_modules/.bin/cn --version', (verError, verOutput) => {
-                  if (!verError) {
-                    core.info(`Local Continue CLI version: ${verOutput.trim()}`);
-                    cliPath = './node_modules/.bin/cn';
-                    resolve(true);
-                  } else {
-                    core.error('Local Continue CLI exists but cannot be executed');
-                    resolve(false);
-                  }
-                });
-              } else {
-                // Check if the package is installed
-                exec('npm list @continuedev/cli 2>/dev/null', (listError, listOutput) => {
-                  if (!listError && listOutput.includes('@continuedev/cli')) {
-                    core.warning('Continue CLI package is installed but binary not accessible');
-                    core.info('PATH: ' + process.env.PATH);
-                    // Try one more time with the full path
-                    const actionPath = process.env.GITHUB_ACTION_PATH || process.cwd();
-                    exec(`${actionPath}/node_modules/.bin/cn --version`, (finalError, finalOutput) => {
-                      if (!finalError) {
-                        core.info(`Continue CLI found with full path: ${finalOutput.trim()}`);
-                        cliPath = `${actionPath}/node_modules/.bin/cn`;
-                        resolve(true);
-                      } else {
-                        resolve(false);
-                      }
-                    });
-                  } else {
-                    core.error('Continue CLI is not installed');
-                    resolve(false);
-                  }
-                });
-              }
-            });
-          } else {
-            core.info(`Continue CLI found at: ${stdout.trim()}`);
-            // Check version
-            exec('cn --version', (verError, verOutput) => {
-              if (!verError) {
-                core.info(`Continue CLI version: ${verOutput.trim()}`);
-              }
-              resolve(true);
-            });
-          }
-        });
-      });
+      // Detect and validate Continue CLI
+      const cliDetection = await detectContinueCLI();
 
-      if (!cliAvailable) {
+      if (!cliDetection.available) {
         throw new Error('Continue CLI could not be found or executed. Please check the action setup.');
       }
 
+      const cliPath = cliDetection.path;
+
       // Execute enhanced review with Continue CLI
       const command = `${cliPath} --config ${continueConfig} -p @${tempFile} --allow Bash`;
-      core.info(`Executing enhanced review: ${command}`);
-      core.info(`Continue API Key is set: ${continueApiKey ? 'Yes' : 'No'}`);
-      core.info(`GitHub Token is set: ${githubToken ? 'Yes' : 'No'}`);
+
+      if (isDebugMode) {
+        core.info(`Executing enhanced review: ${command}`);
+        core.info(`Continue API Key is set: ${continueApiKey ? 'Yes' : 'No'}`);
+        core.info(`GitHub Token is set: ${githubToken ? 'Yes' : 'No'}`);
+      } else {
+        core.info('Executing enhanced review with Continue CLI...');
+      }
 
       const { stdout, stderr } = await new Promise<{ stdout: string; stderr: string }>(
         (resolve, reject) => {
@@ -265,14 +356,16 @@ async function generateEnhancedReview(
                 }
                 reject(error);
               } else {
-                core.info(`Enhanced review completed successfully`);
+                if (isDebugMode) {
+                  core.info(`Enhanced review completed successfully`);
+                }
                 resolve({ stdout, stderr });
               }
             }
           );
 
           // Log PID for debugging
-          if (childProcess.pid) {
+          if (childProcess.pid && isDebugMode) {
             core.info(`Continue CLI process started with PID: ${childProcess.pid}`);
           }
         }
@@ -292,7 +385,9 @@ async function generateEnhancedReview(
       review = review.replace(/\x1b\[[0-9;]*m/g, '');
 
       const processingTime = Math.round((Date.now() - startTime) / 1000);
-      core.info(`Enhanced review processing time: ${processingTime}s`);
+      if (isDebugMode) {
+        core.info(`Enhanced review processing time: ${processingTime}s`);
+      }
 
       if (!review) {
         core.warning('Continue CLI returned an empty response');
@@ -444,37 +539,14 @@ Please address the user's specific request while also checking for any significa
     // Call Continue CLI for fallback review
     core.info('Fallback: Calling Continue CLI for standard review...');
 
-    // Check if Continue CLI is available (use same robust check)
-    let cliPath = 'cn';
-    const cliAvailable = await new Promise<boolean>((resolve) => {
-      exec('which cn', (error, stdout) => {
-        if (error) {
-          // Try local installation
-          const actionPath = process.env.GITHUB_ACTION_PATH || process.cwd();
-          execFile(
-            `${actionPath}/node_modules/.bin/cn`,
-            ['--version'],
-            (localError) => {
-              if (!localError) {
-                cliPath = `${actionPath}/node_modules/.bin/cn`;
-                core.info(`Fallback: Using local Continue CLI at ${cliPath}`);
-                resolve(true);
-              } else {
-                core.error('Fallback: Continue CLI not found');
-                resolve(false);
-              }
-            }
-          );
-        } else {
-          core.info(`Fallback: Continue CLI found at ${stdout.trim()}`);
-          resolve(true);
-        }
-      });
-    });
+    // Detect and validate Continue CLI
+    const cliDetection = await detectContinueCLI();
 
-    if (!cliAvailable) {
+    if (!cliDetection.available) {
       throw new Error('Continue CLI not found for fallback review');
     }
+
+    const cliPath = cliDetection.path;
 
     // Execute Continue CLI with the prompt
     const command = `${cliPath} --config ${continueConfig} -p @${tempFile} --allow Bash`;

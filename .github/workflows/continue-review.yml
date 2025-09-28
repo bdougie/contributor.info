@@ -34,7 +34,9 @@ jobs:
           echo "Action: ${{ github.event.action }}"
           echo "Is PR Comment: ${{ github.event.issue.pull_request != null }}"
           if [ "${{ github.event_name }}" = "issue_comment" ]; then
-            echo "Comment Body: ${{ github.event.comment.body }}"
+            # Safely log comment preview without command injection risk
+            COMMENT_BODY='${{ github.event.comment.body }}'
+            echo "Comment Preview (first 100 chars): ${COMMENT_BODY:0:100}..."
             echo "Comment Author: ${{ github.event.comment.user.login }}"
             echo "Contains @continue-agent: ${{ contains(github.event.comment.body, '@continue-agent') }}"
           fi
