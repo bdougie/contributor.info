@@ -1,11 +1,11 @@
 import type { Context } from '@netlify/functions';
-import { createSupabaseClient } from '@/lib/supabase';
+import { createSupabaseClient } from '../../src/lib/supabase.js';
 import {
   validateRepository,
   createNotFoundResponse,
   createErrorResponse,
   CORS_HEADERS,
-} from './lib/repository-validation.mjs';
+} from './lib/repository-validation.mts';
 
 interface TreeNode {
   path: string;

@@ -1,4 +1,4 @@
-import { createSupabaseClient } from '@/lib/supabase';
+import { createSupabaseClient } from '../../../src/lib/supabase.js';
 
 interface RepositoryValidation {
   isTracked: boolean;
