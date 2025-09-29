@@ -28,14 +28,6 @@ jobs:
           echo "✅ Continue CLI installed"
           cn --version
 
-      - name: Load PostHog GitHub Agent
-        env:
-          CONTINUE_API_KEY: ${{ secrets.CONTINUE_API_KEY }}
-        run: |
-          echo "🤖 Loading PostHog GitHub Continuous AI Agent..."
-          cn --config continuedev/awesome-models-posthog-gh
-          echo "✅ Agent loaded successfully"
-
       - name: Run PostHog Analysis and Create GitHub Issues
         id: analysis
         env:
