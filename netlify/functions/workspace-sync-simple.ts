@@ -54,7 +54,7 @@ function checkRateLimit(workspaceId: string): {
   };
 }
 
-export const handler: Handler = async (event, context) => {
+export const handler: Handler = async (event) => {
   // Handle CORS preflight
   if (event.httpMethod === 'OPTIONS') {
     return {
@@ -140,7 +140,7 @@ export const handler: Handler = async (event, context) => {
             })
             .eq('id', repoId)
             .select('owner, name')
-            .single();
+            .maybeSingle();
 
           if (error) {
             throw new Error(`Database error: ${error.message}`);
