@@ -1,6 +1,6 @@
 # Postmortem: Workspace Data Display - RLS Policy Issue
 
-**Date:** January 29, 2025
+**Date:** September 29, 2025
 **Severity:** High (Complete data loss for anonymous users)
 **Duration:** Unknown → Fixed
 **Status:** Resolved
