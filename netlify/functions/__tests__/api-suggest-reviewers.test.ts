@@ -89,12 +89,23 @@ describe('Suggest Reviewers API Tests', () => {
         // For tracked_repositories table - always return the same valid repository
         if (table === 'tracked_repositories') {
           const mockMaybeSingle = vi.fn().mockResolvedValue({
-            data: { id: 'repo-123', is_active: true },
+            data: { id: 'repo-123', tracking_enabled: true },
             error: null,
           });
           const mockEq2 = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
           const mockEq = vi.fn().mockReturnValue({ eq: mockEq2 });
           const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
+          return { select: mockSelect };
+        }
+
+        // For repositories table - return consistent repository data
+        if (table === 'repositories') {
+          const mockMaybeSingle = vi.fn().mockResolvedValue({
+            data: { id: 'repo-123', full_name: 'owner/repo' },
+            error: null,
+          });
+          const mockOr = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
+          const mockSelect = vi.fn().mockReturnValue({ or: mockOr });
           return { select: mockSelect };
         }
 
@@ -120,7 +131,8 @@ describe('Suggest Reviewers API Tests', () => {
       const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error).toBe('Please provide an array of files changed in the PR');
+      expect(data.error).toBeDefined();
+      expect(data.error.userMessage).toBe('Please provide a list of changed files or a valid PR URL.');
     });
 
     it('should reject requests with empty files array', async () => {
@@ -134,7 +146,8 @@ describe('Suggest Reviewers API Tests', () => {
       const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error).toBe('Please provide an array of files changed in the PR');
+      expect(data.error).toBeDefined();
+      expect(data.error.userMessage).toBe('Please provide a list of changed files or a valid PR URL.');
     });
 
     it('should reject requests with invalid files format', async () => {
@@ -148,7 +161,8 @@ describe('Suggest Reviewers API Tests', () => {
       const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error).toBe('Please provide an array of files changed in the PR');
+      expect(data.error).toBeDefined();
+      expect(data.error.userMessage).toBe('Please provide a list of changed files or a valid PR URL.');
     });
   });
 
@@ -159,7 +173,30 @@ describe('Suggest Reviewers API Tests', () => {
         // For tracked_repositories table - return consistent repository data
         if (table === 'tracked_repositories') {
           const mockMaybeSingle = vi.fn().mockResolvedValue({
-            data: { id: 'repo-123', is_active: true },
+            data: { id: 'repo-123', tracking_enabled: true },
+            error: null,
+          });
+          const mockEq2 = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
+          const mockEq = vi.fn().mockReturnValue({ eq: mockEq2 });
+          const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
+          return { select: mockSelect };
+        }
+
+        // For repositories table - return consistent repository data
+        if (table === 'repositories') {
+          const mockMaybeSingle = vi.fn().mockResolvedValue({
+            data: { id: 'repo-123', full_name: 'owner/repo' },
+            error: null,
+          });
+          const mockOr = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
+          const mockSelect = vi.fn().mockReturnValue({ or: mockOr });
+          return { select: mockSelect };
+        }
+
+        // For pull_requests table - for fallback PR author lookup
+        if (table === 'pull_requests') {
+          const mockMaybeSingle = vi.fn().mockResolvedValue({
+            data: null, // No PR found (simulating PR not in database)
             error: null,
           });
           const mockEq2 = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
@@ -232,6 +269,19 @@ describe('Suggest Reviewers API Tests', () => {
           return { select: mockSelect };
         }
 
+        // For commits table (fallback contributor suggestions)
+        if (table === 'commits') {
+          const mockLimit = vi.fn().mockResolvedValue({
+            data: [],
+            error: null,
+          });
+          const mockNot = vi.fn().mockReturnValue({ limit: mockLimit });
+          const mockGte = vi.fn().mockReturnValue({ not: mockNot });
+          const mockEq = vi.fn().mockReturnValue({ gte: mockGte });
+          const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
+          return { select: mockSelect };
+        }
+
         throw new Error(`Unexpected table: ${table}`);
       });
     });
@@ -250,13 +300,15 @@ describe('Suggest Reviewers API Tests', () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data.repository).toBe('owner/repo');
-      expect(data.filesAnalyzed).toBe(2);
-      expect(data.suggestions).toBeDefined();
-      expect(Array.isArray(data.suggestions)).toBe(true);
+      expect(data.success).toBe(true);
+      expect(data.data).toBeDefined();
+      expect(data.data.repository).toBe('owner/repo');
+      expect(data.data.filesAnalyzed).toBe(2);
+      expect(data.data.suggestions).toBeDefined();
+      expect(Array.isArray(data.data.suggestions)).toBe(true);
 
       // Should include developers who worked on similar files
-      const allSuggestions = data.suggestions;
+      const allSuggestions = data.data.suggestions;
 
       expect(allSuggestions.some((s: any) => s.handle === 'developer1')).toBe(true);
       expect(allSuggestions.some((s: any) => s.handle === 'developer2')).toBe(true);
@@ -277,7 +329,7 @@ describe('Suggest Reviewers API Tests', () => {
 
       expect(response.status).toBe(200);
 
-      const allSuggestions = data.suggestions;
+      const allSuggestions = data.data?.suggestions || [];
 
       // Should not include the PR author
       expect(allSuggestions.some((s: any) => s.handle === 'developer1')).toBe(false);
@@ -290,7 +342,30 @@ describe('Suggest Reviewers API Tests', () => {
         // For tracked_repositories table
         if (table === 'tracked_repositories') {
           const mockMaybeSingle = vi.fn().mockResolvedValue({
-            data: { id: 'repo-123', is_active: true },
+            data: { id: 'repo-123', tracking_enabled: true },
+            error: null,
+          });
+          const mockEq2 = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
+          const mockEq = vi.fn().mockReturnValue({ eq: mockEq2 });
+          const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
+          return { select: mockSelect };
+        }
+
+        // For repositories table
+        if (table === 'repositories') {
+          const mockMaybeSingle = vi.fn().mockResolvedValue({
+            data: { id: 'repo-123', full_name: 'owner/repo' },
+            error: null,
+          });
+          const mockOr = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
+          const mockSelect = vi.fn().mockReturnValue({ or: mockOr });
+          return { select: mockSelect };
+        }
+
+        // For pull_requests table
+        if (table === 'pull_requests') {
+          const mockMaybeSingle = vi.fn().mockResolvedValue({
+            data: null,
             error: null,
           });
           const mockEq2 = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
@@ -328,6 +403,19 @@ describe('Suggest Reviewers API Tests', () => {
           return { select: mockSelect };
         }
 
+        // For commits table
+        if (table === 'commits') {
+          const mockLimit = vi.fn().mockResolvedValue({
+            data: [],
+            error: null,
+          });
+          const mockNot = vi.fn().mockReturnValue({ limit: mockLimit });
+          const mockGte = vi.fn().mockReturnValue({ not: mockNot });
+          const mockEq = vi.fn().mockReturnValue({ gte: mockGte });
+          const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
+          return { select: mockSelect };
+        }
+
         throw new Error(`Unexpected table: ${table}`);
       });
 
@@ -344,11 +432,14 @@ describe('Suggest Reviewers API Tests', () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data.codeOwners).toEqual(['codeowner1', 'codeowner2']);
+      expect(data.success).toBe(true);
+      expect(data.data).toBeDefined();
+      expect(data.data.codeOwners).toEqual(['codeowner1', 'codeowner2']);
 
       // CODEOWNERS should be in suggestions
-      expect(data.suggestions.length).toBeGreaterThan(0);
-      const suggestionHandles = data.suggestions.map((s: any) => s.handle);
+      expect(data.data.suggestions).toBeDefined();
+      expect(data.data.suggestions.length).toBeGreaterThan(0);
+      const suggestionHandles = data.data.suggestions.map((s: any) => s.handle);
       expect(suggestionHandles).toContain('codeowner1');
       expect(suggestionHandles).toContain('codeowner2');
     });
@@ -370,9 +461,11 @@ describe('Suggest Reviewers API Tests', () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data.codeOwners).toEqual([]);
+      expect(data.success).toBe(true);
+      expect(data.data).toBeDefined();
+      expect(data.data.codeOwners).toEqual([]);
       // Should still provide suggestions based on contribution data
-      expect(data.suggestions).toBeDefined();
+      expect(data.data.suggestions).toBeDefined();
     });
 
     it('should return a specific error when GitHub file fetch fails', async () => {
@@ -396,8 +489,9 @@ describe('Suggest Reviewers API Tests', () => {
       const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error).toBe(
-        'Failed to fetch files from the provided PR URL. The URL may be invalid, the repository may be private, or the GitHub API may be inaccessible.'
+      expect(data.error).toBeDefined();
+      expect(data.error.userMessage).toBe(
+        'Unable to fetch changed files from the provided PR URL. Please check the URL and try again.'
       );
     });
 
@@ -417,7 +511,30 @@ describe('Suggest Reviewers API Tests', () => {
         // For tracked_repositories table
         if (table === 'tracked_repositories') {
           const mockMaybeSingle = vi.fn().mockResolvedValue({
-            data: { id: 'repo-123', is_active: true },
+            data: { id: 'repo-123', tracking_enabled: true },
+            error: null,
+          });
+          const mockEq2 = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
+          const mockEq = vi.fn().mockReturnValue({ eq: mockEq2 });
+          const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
+          return { select: mockSelect };
+        }
+
+        // For repositories table
+        if (table === 'repositories') {
+          const mockMaybeSingle = vi.fn().mockResolvedValue({
+            data: { id: 'repo-123', full_name: 'owner/repo' },
+            error: null,
+          });
+          const mockOr = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
+          const mockSelect = vi.fn().mockReturnValue({ or: mockOr });
+          return { select: mockSelect };
+        }
+
+        // For pull_requests table
+        if (table === 'pull_requests') {
+          const mockMaybeSingle = vi.fn().mockResolvedValue({
+            data: null,
             error: null,
           });
           const mockEq2 = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
@@ -460,7 +577,8 @@ describe('Suggest Reviewers API Tests', () => {
       const data = await response.json();
 
       expect(response.status).toBe(500);
-      expect(data.error).toContain('Internal server error');
+      expect(data.error).toBeDefined();
+      expect(data.error.message).toContain('Failed to fetch review data');
     });
   });
 
@@ -471,7 +589,30 @@ describe('Suggest Reviewers API Tests', () => {
         // For tracked_repositories table
         if (table === 'tracked_repositories') {
           const mockMaybeSingle = vi.fn().mockResolvedValue({
-            data: { id: 'repo-123', is_active: true },
+            data: { id: 'repo-123', tracking_enabled: true },
+            error: null,
+          });
+          const mockEq2 = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
+          const mockEq = vi.fn().mockReturnValue({ eq: mockEq2 });
+          const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
+          return { select: mockSelect };
+        }
+
+        // For repositories table
+        if (table === 'repositories') {
+          const mockMaybeSingle = vi.fn().mockResolvedValue({
+            data: { id: 'repo-123', full_name: 'owner/repo' },
+            error: null,
+          });
+          const mockOr = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
+          const mockSelect = vi.fn().mockReturnValue({ or: mockOr });
+          return { select: mockSelect };
+        }
+
+        // For pull_requests table
+        if (table === 'pull_requests') {
+          const mockMaybeSingle = vi.fn().mockResolvedValue({
+            data: null,
             error: null,
           });
           const mockEq2 = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
@@ -503,6 +644,19 @@ describe('Suggest Reviewers API Tests', () => {
           return { select: mockSelect };
         }
 
+        // For commits table
+        if (table === 'commits') {
+          const mockLimit = vi.fn().mockResolvedValue({
+            data: [],
+            error: null,
+          });
+          const mockNot = vi.fn().mockReturnValue({ limit: mockLimit });
+          const mockGte = vi.fn().mockReturnValue({ not: mockNot });
+          const mockEq = vi.fn().mockReturnValue({ gte: mockGte });
+          const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
+          return { select: mockSelect };
+        }
+
         throw new Error(`Unexpected table: ${table}`);
       });
     });
@@ -526,8 +680,10 @@ describe('Suggest Reviewers API Tests', () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data.filesAnalyzed).toBe(4);
-      expect(data.directoriesAffected).toBeGreaterThan(0); // Should detect multiple directories
+      expect(data.success).toBe(true);
+      expect(data.data).toBeDefined();
+      expect(data.data.filesAnalyzed).toBe(4);
+      expect(data.data.directoriesAffected).toBeGreaterThan(0); // Should detect multiple directories
     });
 
     it('should handle malformed JSON gracefully', async () => {
@@ -541,7 +697,8 @@ describe('Suggest Reviewers API Tests', () => {
       const data = await response.json();
 
       expect(response.status).toBe(500);
-      expect(data.error).toContain('Internal server error');
+      expect(data.error).toBeDefined();
+      expect(data.error.message).toContain('Internal server error');
     });
   });
 });
