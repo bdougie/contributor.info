@@ -88,8 +88,7 @@ class PRReviewsCaptureScript extends BaseCaptureScript {
         // Ensure review author exists and get UUID
         let reviewAuthorId = null;
         if (review.user) {
-          const reviewAuthor = await ensureContributor(this.supabase, review.user);
-          reviewAuthorId = reviewAuthor?.id || null;
+          reviewAuthorId = await ensureContributor(this.supabase, review.user);
         }
 
         const reviewRecord = {

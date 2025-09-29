@@ -81,11 +81,10 @@ class PRDetailsCaptureScript extends BaseCaptureScript {
       });
 
       // Ensure contributors exist and get their UUIDs
-      const authorContributor = await ensureContributor(this.supabase, prData.user);
+      const authorContributorId = await ensureContributor(this.supabase, prData.user);
       let mergedByContributorId = null;
       if (prData.merged_by) {
-        const mergedByContributor = await ensureMergedByContributor(this.supabase, prData.merged_by, this.repositoryName);
-        mergedByContributorId = mergedByContributor?.id || null;
+        mergedByContributorId = await ensureMergedByContributor(this.supabase, prData.merged_by);
       }
 
       // Prepare data for database
@@ -101,7 +100,7 @@ class PRDetailsCaptureScript extends BaseCaptureScript {
         deletions: prData.deletions,
         changed_files: prData.changed_files,
         commits: prData.commits,
-        author_id: authorContributor.id, // Now using contributor UUID
+        author_id: authorContributorId, // Now using contributor UUID
         created_at: prData.created_at,
         updated_at: prData.updated_at,
         closed_at: prData.closed_at,
