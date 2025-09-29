@@ -182,7 +182,7 @@ export class GitHubActionsQueueManager {
         return;
       }
 
-      const data = await response.json() as GitHubWorkflowRunsResponse;
+      const data = (await response.json()) as GitHubWorkflowRunsResponse;
 
       // Try to find a run that matches our job
       // This is a heuristic - in production, you might want to pass a unique identifier

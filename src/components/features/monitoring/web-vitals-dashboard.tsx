@@ -162,7 +162,10 @@ export function WebVitalsDashboard({ repository }: { repository?: string }) {
         </div>
 
         {/* Time Range Selector */}
-        <Tabs value={timeRange} onValueChange={(v) => setTimeRange(v as '1h' | '24h' | '7d' | '30d')}>
+        <Tabs
+          value={timeRange}
+          onValueChange={(v) => setTimeRange(v as '1h' | '24h' | '7d' | '30d')}
+        >
           <TabsList>
             <TabsTrigger value="1h">1 Hour</TabsTrigger>
             <TabsTrigger value="24h">24 Hours</TabsTrigger>
@@ -208,7 +211,10 @@ export function WebVitalsDashboard({ repository }: { repository?: string }) {
       </Card>
 
       {/* Metrics Details */}
-      <Tabs value={selectedMetric} onValueChange={(v) => setSelectedMetric(v as 'LCP' | 'INP' | 'CLS' | 'FCP' | 'TTFB')}>
+      <Tabs
+        value={selectedMetric}
+        onValueChange={(v) => setSelectedMetric(v as 'LCP' | 'INP' | 'CLS' | 'FCP' | 'TTFB')}
+      >
         <TabsList className="grid grid-cols-5 w-full">
           <TabsTrigger value="LCP">LCP</TabsTrigger>
           <TabsTrigger value="INP">INP</TabsTrigger>
@@ -346,7 +352,11 @@ export function WebVitalsDashboard({ repository }: { repository?: string }) {
                   // Transform data for uPlot LineChart
                   const timestamps = historicalData.map((d) => {
                     const time = d.time;
-                    if (typeof time === 'string' || typeof time === 'number' || time instanceof Date) {
+                    if (
+                      typeof time === 'string' ||
+                      typeof time === 'number' ||
+                      time instanceof Date
+                    ) {
                       return new Date(time).getTime() / 1000;
                     }
                     return 0;

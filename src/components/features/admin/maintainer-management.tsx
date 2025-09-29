@@ -458,7 +458,12 @@ export function MaintainerManagement() {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={filterRole} onValueChange={(value: 'all' | 'owner' | 'maintainer' | 'contributor' | 'bot') => setFilterRole(value)}>
+            <Select
+              value={filterRole}
+              onValueChange={(value: 'all' | 'owner' | 'maintainer' | 'contributor' | 'bot') =>
+                setFilterRole(value)
+              }
+            >
               <SelectTrigger>
                 <SelectValue placeholder="All roles" />
               </SelectTrigger>
@@ -472,7 +477,9 @@ export function MaintainerManagement() {
             </Select>
             <Select
               value={filterConfidence}
-              onValueChange={(value: 'all' | 'high' | 'medium' | 'low') => setFilterConfidence(value)}
+              onValueChange={(value: 'all' | 'high' | 'medium' | 'low') =>
+                setFilterConfidence(value)
+              }
             >
               <SelectTrigger>
                 <SelectValue placeholder="All confidence" />
@@ -484,7 +491,10 @@ export function MaintainerManagement() {
                 <SelectItem value="low">Low (&lt;50%)</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={filterOverride} onValueChange={(value: 'all' | 'manual' | 'algorithm') => setFilterOverride(value)}>
+            <Select
+              value={filterOverride}
+              onValueChange={(value: 'all' | 'manual' | 'algorithm') => setFilterOverride(value)}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="All sources" />
               </SelectTrigger>

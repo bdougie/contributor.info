@@ -57,10 +57,14 @@ export async function syncPullRequestReviewers(
       includeClosedPRs = true,
       maxClosedDays = 30,
       updateDatabase = true,
-      useLocalBackoff = false
+      useLocalBackoff = false,
     } = options;
 
-    console.log('Syncing PR reviewers for %s/%s', owner, repo, { includeClosedPRs, maxClosedDays, useLocalBackoff });
+    console.log('Syncing PR reviewers for %s/%s', owner, repo, {
+      includeClosedPRs,
+      maxClosedDays,
+      useLocalBackoff,
+    });
 
     // Use local exponential backoff if specified or if edge function fails
     if (useLocalBackoff) {

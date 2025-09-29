@@ -258,7 +258,7 @@ class OpenAIService {
         }
       }
 
-      const data = await response.json() as OpenAIResponse;
+      const data = (await response.json()) as OpenAIResponse;
 
       if (!data.choices || data.choices.length === 0) {
         throw new Error('No response from OpenAI');
@@ -279,7 +279,10 @@ class OpenAIService {
   /**
    * Build prompt for health assessment
    */
-  private buildHealthPrompt(healthData: HealthData, repoInfo: { owner: string; repo: string }): string {
+  private buildHealthPrompt(
+    healthData: HealthData,
+    repoInfo: { owner: string; repo: string }
+  ): string {
     return `Analyze the health of repository ${repoInfo.owner}/${repoInfo.repo}:
 
 Health Score: ${healthData.score}/100 (${healthData.trend})
@@ -302,7 +305,10 @@ Include insights about development workflow effectiveness, review patterns, and 
   /**
    * Build prompt for recommendations
    */
-  private buildRecommendationPrompt(data: RecommendationData, repoInfo: { owner: string; repo: string }): string {
+  private buildRecommendationPrompt(
+    data: RecommendationData,
+    repoInfo: { owner: string; repo: string }
+  ): string {
     return `Based on ${repoInfo.owner}/${repoInfo.repo} repository data, provide 3 specific, actionable recommendations:
 
 Health: ${data.health.score}/100

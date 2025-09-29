@@ -53,7 +53,7 @@ export class RequestDeduplicator {
       existing.subscribers++;
 
       try {
-        return await existing.promise as T;
+        return (await existing.promise) as T;
       } finally {
         // Decrement subscriber count
         existing.subscribers--;
@@ -99,7 +99,8 @@ export class RequestDeduplicator {
       `repo:${owner}/${repo}:${params.join(':')}`,
 
     /** Generate key for user-based requests */
-    user: (username: string, ...params: unknown[]): string => `user:${username}:${params.join(':')}`,
+    user: (username: string, ...params: unknown[]): string =>
+      `user:${username}:${params.join(':')}`,
 
     /** Generate key for progressive loading stages */
     progressiveStage: (

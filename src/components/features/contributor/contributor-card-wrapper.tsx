@@ -47,7 +47,12 @@ export function ContributorCard(props: ContributorCardProps) {
     return <IconComponent className={className} />;
   };
 
-  const renderAvatar = ({ src, alt, fallback, className }: {
+  const renderAvatar = ({
+    src,
+    alt,
+    fallback,
+    className,
+  }: {
     src?: string;
     alt?: string;
     fallback?: string;
@@ -59,7 +64,12 @@ export function ContributorCard(props: ContributorCardProps) {
     </Avatar>
   );
 
-  const renderTooltip = ({ trigger, content, side, className }: {
+  const renderTooltip = ({
+    trigger,
+    content,
+    side,
+    className,
+  }: {
     trigger: React.ReactNode;
     content: {
       title: string;
@@ -79,18 +89,23 @@ export function ContributorCard(props: ContributorCardProps) {
           <div className="space-y-1">
             <div className="font-medium">{content.title}</div>
             <div className="text-xs space-y-1">
-              {content.items.map((item: {
-                iconName: string;
-                count: number;
-                label: string;
-              }, index: number) => (
-                <div key={index} className="flex items-center gap-2">
-                  {renderIcon(item.iconName, 'h-3 w-3')}
-                  <span>
-                    {item.count} {item.label}
-                  </span>
-                </div>
-              ))}
+              {content.items.map(
+                (
+                  item: {
+                    iconName: string;
+                    count: number;
+                    label: string;
+                  },
+                  index: number
+                ) => (
+                  <div key={index} className="flex items-center gap-2">
+                    {renderIcon(item.iconName, 'h-3 w-3')}
+                    <span>
+                      {item.count} {item.label}
+                    </span>
+                  </div>
+                )
+              )}
             </div>
           </div>
         </TooltipContent>
@@ -98,7 +113,11 @@ export function ContributorCard(props: ContributorCardProps) {
     </TooltipProvider>
   );
 
-  const renderBadge = ({ children, variant, className }: {
+  const renderBadge = ({
+    children,
+    variant,
+    className,
+  }: {
     children: React.ReactNode;
     variant?: 'default' | 'secondary' | 'destructive' | 'outline';
     className?: string;

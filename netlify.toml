@@ -194,6 +194,30 @@
   force = true
 
 [[redirects]]
+  from = "/api/repos/*/*/codeowners"
+  to = "/.netlify/functions/api-codeowners"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/repos/*/*/suggest-reviewers"
+  to = "/.netlify/functions/api-suggest-reviewers"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/repos/*/*/suggested-codeowners"
+  to = "/.netlify/functions/api-suggested-codeowners"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/repos/*/*/file-tree"
+  to = "/.netlify/functions/api-file-tree"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/api/webhook/backfill-complete"
   to = "/.netlify/functions/webhook-backfill-complete"
   status = 200

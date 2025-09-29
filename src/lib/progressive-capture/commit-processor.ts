@@ -40,19 +40,16 @@ export class CommitProcessor {
       if (repoError || !repo) {
         return {
           success: false,
-          error: `Repository not found: ${repoError?.message}`
+          error: `Repository not found: ${repoError?.message}`,
         };
       }
 
       const config = this.getTimeRangeConfig();
 
       // Determine time range based on whether this is initial or incremental capture
-      const isInitialCapture = !repo.last_commit_capture_at ||
-        metadata?.force_initial === true;
+      const isInitialCapture = !repo.last_commit_capture_at || metadata?.force_initial === true;
 
-      const daysToCapture = isInitialCapture ?
-        config.initialDays :
-        config.updateDays;
+      const daysToCapture = isInitialCapture ? config.initialDays : config.updateDays;
 
       // Calculate since date
       const since = new Date(Date.now() - daysToCapture * 24 * 60 * 60 * 1000);
@@ -74,7 +71,7 @@ export class CommitProcessor {
       if (!result.success) {
         return {
           success: false,
-          error: result.error
+          error: result.error,
         };
       }
 
@@ -83,7 +80,7 @@ export class CommitProcessor {
         .from('repositories')
         .update({
           last_commit_capture_at: new Date().toISOString(),
-          commit_capture_status: 'completed'
+          commit_capture_status: 'completed',
         })
         .eq('id', repositoryId);
 
@@ -99,26 +96,22 @@ export class CommitProcessor {
           .limit(100);
 
         if (commitsNeedingAnalysis && commitsNeedingAnalysis.length > 0) {
-          const shas = commitsNeedingAnalysis.map(c => c.sha);
+          const shas = commitsNeedingAnalysis.map((c) => c.sha);
           const analysisQueued = await queueManager.queueCommitPRAnalysis(
             repositoryId,
             shas,
             'medium'
           );
 
-          console.log(
-            '[CommitProcessor] Queued %d commits for PR analysis',
-            analysisQueued
-          );
+          console.log('[CommitProcessor] Queued %d commits for PR analysis', analysisQueued);
         }
       }
 
       // Show success notification
       if (result.count > 0) {
-        ProgressiveCaptureNotifications.showProcessingComplete(
-          `${repo.owner}/${repo.name}`,
-          [`${result.count} commits captured`]
-        );
+        ProgressiveCaptureNotifications.showProcessingComplete(`${repo.owner}/${repo.name}`, [
+          `${result.count} commits captured`,
+        ]);
       }
 
       console.log(
@@ -150,9 +143,7 @@ export class CommitProcessor {
       const config = this.getTimeRangeConfig();
 
       // Estimate API calls based on time range
-      const daysToCapture = forceInitial ?
-        config.initialDays :
-        config.updateDays;
+      const daysToCapture = forceInitial ? config.initialDays : config.updateDays;
 
       // Rough estimate: 1 API call per 100 commits
       const estimatedApiCalls = Math.ceil(
@@ -191,20 +182,18 @@ export class CommitProcessor {
   /**
    * Queue commit capture for repositories with stale or missing commit data
    */
-  static async queueStaleCommitCaptures(
-    maxRepositories = 10
-  ): Promise<number> {
+  static async queueStaleCommitCaptures(maxRepositories = 10): Promise<number> {
     try {
       const config = this.getTimeRangeConfig();
-      const staleThreshold = new Date(
-        Date.now() - config.updateDays * 24 * 60 * 60 * 1000
-      );
+      const staleThreshold = new Date(Date.now() - config.updateDays * 24 * 60 * 60 * 1000);
 
       // Find repositories that need commit capture
       const { data: repositories, error } = await supabase
         .from('repositories')
         .select('id, owner, name, last_commit_capture_at')
-        .or(`last_commit_capture_at.is.null,last_commit_capture_at.lt.${staleThreshold.toISOString()}`)
+        .or(
+          `last_commit_capture_at.is.null,last_commit_capture_at.lt.${staleThreshold.toISOString()}`
+        )
         .order('last_commit_capture_at', { ascending: true, nullsFirst: true })
         .limit(maxRepositories);
 
@@ -217,11 +206,7 @@ export class CommitProcessor {
         const isInitial = !repo.last_commit_capture_at;
         const priority = isInitial ? 'high' : 'medium';
 
-        const queued = await this.queueCommitCapture(
-          repo.id,
-          priority,
-          isInitial
-        );
+        const queued = await this.queueCommitCapture(repo.id, priority, isInitial);
 
         if (queued) {
           queuedCount++;
@@ -229,10 +214,7 @@ export class CommitProcessor {
       }
 
       if (queuedCount > 0) {
-        console.log(
-          '[CommitProcessor] Queued commit capture for %d repositories',
-          queuedCount
-        );
+        console.log('[CommitProcessor] Queued commit capture for %d repositories', queuedCount);
       }
 
       return queuedCount;

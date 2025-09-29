@@ -1,18 +1,19 @@
 import type { Context } from '@netlify/functions';
-import { createSupabaseClient } from '../../src/lib/supabase.js';
+import { createClient } from '@supabase/supabase-js';
 import {
   validateRepository,
   createNotFoundResponse,
   createErrorResponse,
   CORS_HEADERS,
-} from './lib/repository-validation.mts';
+} from './lib/repository-validation.ts';
+import { RateLimiter, getRateLimitKey, applyRateLimitHeaders } from './lib/rate-limiter.mts';
 
 interface TreeNode {
   path: string;
   mode: string;
   type: 'blob' | 'tree';
-  sha: string;
   size?: number;
+  sha: string;
   url: string;
 }
 
@@ -33,11 +34,10 @@ interface ProcessedTree {
 
 async function fetchFileTreeFromDatabase(
   repositoryId: string,
-  branch = 'main'
+  branch = 'main',
+  supabase: ReturnType<typeof createClient>
 ): Promise<ProcessedTree | null> {
   try {
-    const supabase = createSupabaseClient();
-
     // Fetch file tree data from database
     const { data, error } = await supabase
       .from('repository_file_trees')
@@ -172,69 +172,141 @@ function buildHierarchicalStructure(processedTree: ProcessedTree) {
 }
 
 export default async (req: Request, context: Context) => {
-  // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    return new Response('', {
-      status: 200,
-      headers: CORS_HEADERS,
-    });
+  const supabaseUrl = process.env.SUPABASE_URL || '';
+  const supabaseKey =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_ANON_KEY ||
+    '';
+
+  if (!supabaseUrl || !supabaseKey) {
+    return createErrorResponse('Missing Supabase configuration', 500);
   }
 
+  const supabase = createClient(supabaseUrl, supabaseKey);
+  const limiter = new RateLimiter(supabaseUrl, supabaseKey, {
+    maxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '60', 10),
+    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000', 10),
+  });
+
+  if (req.method === 'OPTIONS') {
+    return new Response('', { status: 200, headers: CORS_HEADERS });
+  }
   if (req.method !== 'GET') {
     return createErrorResponse('Method not allowed', 405);
   }
 
   try {
-    // Extract owner and repo from URL path
-    const url = new URL(req.url);
-    const pathParts = url.pathname.split('/');
-
-    // Expected path: /api/repos/:owner/:repo/file-tree
-    const apiIndex = pathParts.findIndex(part => part === 'api');
-    if (apiIndex === -1 || pathParts.length < apiIndex + 5) {
-      return createErrorResponse('Invalid API path format');
+    const rateKey = getRateLimitKey(req);
+    const rate = await limiter.checkLimit(rateKey);
+    if (!rate.allowed) {
+      return applyRateLimitHeaders(createErrorResponse('Rate limit exceeded', 429), rate);
     }
 
-    const owner = pathParts[apiIndex + 2];
-    const repo = pathParts[apiIndex + 3];
+    const url = new URL(req.url);
+    const parts = url.pathname.split('/');
+    const apiIndex = parts.findIndex((p) => p === 'api');
+    if (apiIndex === -1 || parts.length < apiIndex + 5) {
+      return createErrorResponse('Invalid API path format');
+    }
+    const owner = parts[apiIndex + 2];
+    const repo = parts[apiIndex + 3];
 
     // Get query parameters
     const branch = url.searchParams.get('branch') || undefined;
     const format = url.searchParams.get('format') || 'flat'; // 'flat' or 'hierarchical'
 
-    // Validate repository is tracked
     const validation = await validateRepository(owner, repo);
-
     if (!validation.isTracked) {
       return createNotFoundResponse(owner, repo, validation.trackingUrl);
     }
-
     if (validation.error) {
       return createErrorResponse(validation.error);
     }
 
-    // Get repository data from database
-    const supabase = createSupabaseClient();
     const { data: repository, error: repoError } = await supabase
       .from('repositories')
       .select('id, default_branch')
-      .eq('owner', owner.toLowerCase())
-      .eq('name', repo.toLowerCase())
-      .limit(1)
+      .or(`and(owner.eq.${owner},name.eq.${repo}),full_name.eq.${owner}/${repo}`)
       .maybeSingle();
 
     if (repoError || !repository) {
       return createNotFoundResponse(owner, repo);
     }
 
-    // Use actual default branch if no branch specified
     const actualBranch = branch || repository.default_branch || 'main';
 
-    // Fetch file tree from database
-    const processedTree = await fetchFileTreeFromDatabase(repository.id, actualBranch);
+    // First try to fetch from database
+    let processedTree = await fetchFileTreeFromDatabase(repository.id, actualBranch, supabase);
 
+    // If not in database, fetch from GitHub API
     if (!processedTree) {
-      return createErrorResponse('File tree data not available for this repository', 404);
+      const ghToken = process.env.GITHUB_TOKEN || process.env.VITE_GITHUB_TOKEN || '';
+
+      // Log for debugging (remove in production)
+      console.log('Fetching tree for:', `${owner}/${repo}`, 'branch:', actualBranch);
+
+      const headers: HeadersInit = { Accept: 'application/vnd.github+json' };
+
+      // Only add authorization if token exists and is not empty
+      if (ghToken && ghToken.trim() !== '') {
+        headers['Authorization'] = `Bearer ${ghToken}`;
+        console.log('Using GitHub token for authentication');
+      } else {
+        console.log('No GitHub token available, using unauthenticated request');
+      }
+
+      const treeResp = await fetch(
+        `https://api.github.com/repos/${owner}/${repo}/git/trees/${actualBranch}?recursive=1`,
+        { headers }
+      );
+
+      if (!treeResp.ok) {
+        // More detailed error information
+        const errorDetails = await treeResp.text().catch(() => treeResp.statusText);
+        console.error('GitHub API error:', treeResp.status, errorDetails);
+
+        if (treeResp.status === 401 && ghToken) {
+          // Only show auth error if we actually tried to use a token
+          console.error('GitHub token appears to be invalid or expired');
+          // Try again without token
+          console.log('Retrying without authentication...');
+          const retryHeaders: HeadersInit = { Accept: 'application/vnd.github+json' };
+          const retryResp = await fetch(
+            `https://api.github.com/repos/${owner}/${repo}/git/trees/${actualBranch}?recursive=1`,
+            { headers: retryHeaders }
+          );
+
+          if (retryResp.ok) {
+            const data = (await retryResp.json()) as FileTreeResponse;
+            processedTree = processTreeData(data);
+          } else {
+            return applyRateLimitHeaders(
+              createErrorResponse('GitHub authentication failed. Token may be expired.', 401),
+              rate
+            );
+          }
+        } else if (treeResp.status === 404) {
+          return applyRateLimitHeaders(
+            createErrorResponse(`Repository or branch not found: ${owner}/${repo}@${actualBranch}`, 404),
+            rate
+          );
+        } else if (treeResp.status === 403) {
+          return applyRateLimitHeaders(
+            createErrorResponse('GitHub API rate limit exceeded. Please try again later.', 403),
+            rate
+          );
+        } else {
+          return applyRateLimitHeaders(
+            createErrorResponse(`Failed to fetch repository tree: ${errorDetails}`, treeResp.status),
+            rate
+          );
+        }
+      }
+
+      if (!processedTree && treeResp.ok) {
+        const data = (await treeResp.json()) as FileTreeResponse;
+        processedTree = processTreeData(data);
+      }
     }
 
     // Prepare response based on format
@@ -280,7 +352,7 @@ export default async (req: Request, context: Context) => {
         : 0,
     };
 
-    return new Response(
+    const resp = new Response(
       JSON.stringify(responseData, null, 2),
       {
         status: 200,
@@ -291,6 +363,7 @@ export default async (req: Request, context: Context) => {
         },
       }
     );
+    return applyRateLimitHeaders(resp, rate);
   } catch (error) {
     console.error('Error in api-file-tree:', error);
     return createErrorResponse(
