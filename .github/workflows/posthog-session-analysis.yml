@@ -1,0 +1,61 @@
+name: PostHog Session Analysis with Continue CLI Agent
+
+on:
+  schedule:
+    - cron: "0 6 * * *" # Run at 6 AM UTC daily
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Install Continue CLI
+        run: |
+          npm install -g @continuedev/cli
+          echo "✅ Continue CLI installed"
+          cn --version
+
+      - name: Authenticate with Continue CLI
+        run: |
+          # Set Continue API key
+          export CONTINUE_API_KEY="${{ secrets.CONTINUE_API_KEY }}"
+          # Login to Continue CLI
+          if ! cn auth login --api-key "$CONTINUE_API_KEY"; then
+            echo "❌ Failed to authenticate with Continue CLI"
+            exit 1
+          fi
+          echo "✅ Continue CLI authenticated"
+
+      - name: Load PostHog GitHub Agent
+        run: |
+          echo "🤖 Loading PostHog GitHub Continuous AI Agent..."
+          cn --config continuedev/awesome-models-posthog-gh
+          echo "✅ Agent loaded successfully"
+
+      - name: Run PostHog Analysis and Create GitHub Issues
+        run: |
+          echo "🎬 Starting automated PostHog session analysis..."
+
+          # Run the agent with the simple prompt
+          cn -p "Tell me about my PostHog session recordings and create GitHub issues based on the problems."
+
+          echo "✅ Analysis and issue creation completed"
+
+      - name: Summary
+        run: |
+          echo "✅ PostHog analysis workflow completed!"
+          echo "📊 Check the artifacts for detailed analysis results"
+          echo "🐛 Check your repository issues for newly created UX issues"
+          echo "🤖 Agent automatically handled both analysis and issue creation"
