@@ -28,15 +28,19 @@ export async function suggestReviewers(
   prAuthor?: string,
   prUrl?: string
 ) {
+  const body = { files, prAuthor, prUrl };
+  console.log('Sending reviewer suggestion request:', body);
+
   const res = await fetch(`/api/repos/${owner}/${repo}/suggest-reviewers`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ files, prAuthor, prUrl }),
+    body: JSON.stringify(body),
   });
   if (!res.ok) {
     let errorMessage = `Failed to suggest reviewers (${res.status})`;
     try {
       const errorData = await res.json();
+      console.log('Error response from API:', errorData);
       if (errorData.error) errorMessage = errorData.error;
     } catch {
       // If response is not JSON, use status text

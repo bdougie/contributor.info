@@ -144,24 +144,32 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex items-center gap-3 mb-4">
-          <span className="text-sm text-muted-foreground">Repository</span>
-          <Select value={active?.id || ''} onValueChange={setActiveRepo}>
-            <SelectTrigger className="w-[280px]">
-              <SelectValue placeholder="Select repository" />
-            </SelectTrigger>
-            <SelectContent>
-              {repositories.map((r) => (
-                <SelectItem key={r.id} value={r.id}>
-                  {r.full_name || `${r.owner}/${r.name}`}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="w-full">
+          <div className="flex items-center justify-between gap-4 mb-4">
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-muted-foreground">Repository</span>
+              <Select value={active?.id || ''} onValueChange={setActiveRepo}>
+                <SelectTrigger className="w-[280px]">
+                  <SelectValue placeholder="Select repository" />
+                </SelectTrigger>
+                <SelectContent>
+                  {repositories.map((r) => (
+                    <SelectItem key={r.id} value={r.id}>
+                      {r.full_name || `${r.owner}/${r.name}`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <TabsList>
+              <TabsTrigger value="reviewers">Suggest Reviewers</TabsTrigger>
+              <TabsTrigger value="codeowners">CODEOWNERS</TabsTrigger>
+              <TabsTrigger value="generate">Generate CODEOWNERS</TabsTrigger>
+            </TabsList>
+          </div>
 
-        {/* PRs without reviewers section */}
-        {prsWithoutReviewers.length > 0 && (
+          {/* PRs without reviewers section - only show in reviewers tab */}
+          {tab === 'reviewers' && prsWithoutReviewers.length > 0 && (
           <div className="mb-6 p-4 border rounded-lg bg-amber-50/50 dark:bg-amber-950/20">
             <div className="flex items-center gap-2 mb-3">
               <Users className="h-4 w-4 text-amber-600" />
@@ -266,10 +274,10 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
               )}
             </div>
           </div>
-        )}
+          )}
 
-        {/* Original PR selection for manual entry */}
-        {pullRequests.length > 0 && (
+          {/* Original PR selection for manual entry - only show in reviewers tab */}
+          {tab === 'reviewers' && pullRequests.length > 0 && (
           <div className="flex items-center gap-3 mb-4">
             <span className="text-sm text-muted-foreground">Or select any open PR</span>
             <Select
@@ -327,16 +335,9 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
               </Button>
             )}
           </div>
-        )}
+          )}
 
-        <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
-          <TabsList>
-            <TabsTrigger value="reviewers">Suggest Reviewers</TabsTrigger>
-            <TabsTrigger value="codeowners">CODEOWNERS</TabsTrigger>
-            <TabsTrigger value="generate">Generate CODEOWNERS</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="reviewers" className="mt-4 space-y-4">
+          <TabsContent value="reviewers" className="mt-4 space-y-4 min-h-[400px]">
             {selectedPR && (
               <div className="p-3 bg-muted/50 rounded-lg">
                 <div className="text-sm font-medium">Selected PR #{selectedPR}</div>
@@ -441,7 +442,7 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
             )}
           </TabsContent>
 
-          <TabsContent value="codeowners" className="mt-4 space-y-3">
+          <TabsContent value="codeowners" className="mt-4 space-y-3 min-h-[400px]">
             <div className="flex items-center gap-2">
               <Button onClick={handleLoadCodeowners} disabled={loading} variant="outline">
                 {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
@@ -452,16 +453,24 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
               )}
             </div>
             {error && <span className="text-sm text-red-500">{error}</span>}
-            {codeowners && (
+            {codeowners ? (
               <ScrollArea className="h-72 rounded border">
                 <pre className="p-3 bg-muted/30 text-xs whitespace-pre-wrap">
                   {codeowners.content || codeowners.message}
                 </pre>
               </ScrollArea>
+            ) : !loading && (
+              <div className="flex items-center justify-center h-72 rounded border border-dashed">
+                <div className="text-center text-muted-foreground">
+                  <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">Click "Load CODEOWNERS" to view the file</p>
+                  <p className="text-xs mt-1">This will fetch the CODEOWNERS file from the repository</p>
+                </div>
+              </div>
             )}
           </TabsContent>
 
-          <TabsContent value="generate" className="mt-4 space-y-3">
+          <TabsContent value="generate" className="mt-4 space-y-3 min-h-[400px]">
             <div className="flex items-center gap-4">
               <Button onClick={handleGenerate} disabled={loading}>
                 {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
@@ -478,7 +487,7 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
                 {fileTree.directories.length} directories, {fileTree.files.length} files
               </div>
             )}
-            {generated && (
+            {generated ? (
               <div className="grid gap-2">
                 <ScrollArea className="h-48 rounded border">
                   <div className="p-2 space-y-2">
@@ -501,6 +510,14 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
                       {generated.codeOwnersContent}
                     </pre>
                   </ScrollArea>
+                </div>
+              </div>
+            ) : !loading && (
+              <div className="flex items-center justify-center h-72 rounded border border-dashed">
+                <div className="text-center text-muted-foreground">
+                  <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">Generate CODEOWNERS suggestions</p>
+                  <p className="text-xs mt-1">AI will analyze your repository structure and suggest ownership patterns</p>
                 </div>
               </div>
             )}
