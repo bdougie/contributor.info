@@ -220,7 +220,17 @@ export default async (req: Request, context: Context) => {
             `https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}/files?per_page=100&page=${page}`,
             { headers }
           );
-          if (!r.ok) break;
+          if (!r.ok) {
+            console.error(`Failed to fetch PR files: ${r.status} ${r.statusText}`);
+            // If we're on the first page and it fails, we should error out
+            if (page === 1) {
+              return createErrorResponse(
+                `Failed to fetch PR files from GitHub. Status: ${r.status}. Please provide the files array directly or ensure the PR exists and is accessible.`,
+                400
+              );
+            }
+            break;
+          }
           const arr = await r.json();
           const pageFiles = Array.isArray(arr) ? arr.map((f: any) => f.filename).filter(Boolean) : [];
           collected.push(...pageFiles);

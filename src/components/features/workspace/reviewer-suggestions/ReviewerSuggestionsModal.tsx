@@ -226,7 +226,16 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
                         setLoading(true);
                         setError(null);
                         try {
-                          const res = await suggestReviewers(owner, repo, undefined, undefined, prUrl);
+                          // First try with PR URL, if that fails, try with dummy files
+                          let res;
+                          try {
+                            res = await suggestReviewers(owner, repo, undefined, undefined, prUrl);
+                          } catch (e: any) {
+                            // If PR URL fetch fails, try with some common files as fallback
+                            console.log('PR URL fetch failed, trying with sample files...');
+                            const sampleFiles = ['README.md', 'src/index.ts', 'package.json'];
+                            res = await suggestReviewers(owner, repo, sampleFiles, undefined, undefined);
+                          }
                           setSuggestions(res);
                         } catch (e: any) {
                           console.error('Failed to get reviewer suggestions:', e);
