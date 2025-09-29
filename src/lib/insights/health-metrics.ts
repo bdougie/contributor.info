@@ -183,7 +183,8 @@ export async function calculateHealthMetrics(
 
     // 3. Review Coverage Factor
     const prsWithReviews = pullRequests.filter(
-      (pr: GitHubPullRequest | PullRequest) => 'reviews' in pr && pr.reviews && pr.reviews.length > 0
+      (pr: GitHubPullRequest | PullRequest) =>
+        'reviews' in pr && pr.reviews && pr.reviews.length > 0
     ).length;
 
     const reviewCoverage =
@@ -236,7 +237,9 @@ export async function calculateHealthMetrics(
     });
 
     // 5. Response Time Factor
-    const openPRs = pullRequests.filter((pr: GitHubPullRequest | PullRequest) => pr.state === 'open');
+    const openPRs = pullRequests.filter(
+      (pr: GitHubPullRequest | PullRequest) => pr.state === 'open'
+    );
     const oldOpenPRs = openPRs.filter((pr: GitHubPullRequest | PullRequest) => {
       const created = new Date(pr.created_at);
       const daysOpen = (now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24);
@@ -621,7 +624,9 @@ async function calculateStarForkConfidence(
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - daysBack);
   // Set to UTC midnight for consistent boundary
-  const utcMidnight = new Date(Date.UTC(cutoffDate.getFullYear(), cutoffDate.getMonth(), cutoffDate.getDate(), 0, 0, 0, 0));
+  const utcMidnight = new Date(
+    Date.UTC(cutoffDate.getFullYear(), cutoffDate.getMonth(), cutoffDate.getDate(), 0, 0, 0, 0)
+  );
 
   // Get star/fork events
   const { data: starForkEvents } = await supabase
@@ -640,7 +645,9 @@ async function calculateStarForkConfidence(
     .gte('created_at', toUTCTimestamp(utcMidnight));
 
   const contributors = new Set(
-    (contributorData as Array<{ contributors: Array<{ username: string }> }>)?.flatMap((c) => c.contributors?.map(contrib => contrib.username)).filter(Boolean) || []
+    (contributorData as Array<{ contributors: Array<{ username: string }> }>)
+      ?.flatMap((c) => c.contributors?.map((contrib) => contrib.username))
+      .filter(Boolean) || []
   );
 
   console.log('[Confidence] Star/Fork data for %s/%s:', owner, repo, {
@@ -660,10 +667,14 @@ async function calculateStarForkConfidence(
 
   // Separate and weight differently
   const stargazers = new Set(
-    (starForkEvents as Array<{ actor_login: string; event_type: string }>).filter((e) => e.event_type === 'WatchEvent').map((e) => e.actor_login)
+    (starForkEvents as Array<{ actor_login: string; event_type: string }>)
+      .filter((e) => e.event_type === 'WatchEvent')
+      .map((e) => e.actor_login)
   );
   const forkers = new Set(
-    (starForkEvents as Array<{ actor_login: string; event_type: string }>).filter((e) => e.event_type === 'ForkEvent').map((e) => e.actor_login)
+    (starForkEvents as Array<{ actor_login: string; event_type: string }>)
+      .filter((e) => e.event_type === 'ForkEvent')
+      .map((e) => e.actor_login)
   );
 
   const stargazersWhoContributed = Array.from(stargazers).filter((u) => contributors.has(u)).length;
@@ -695,7 +706,9 @@ async function calculateStarForkConfidenceWithBreakdown(
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - daysBack);
   // Set to UTC midnight for consistent boundary
-  const utcMidnight = new Date(Date.UTC(cutoffDate.getFullYear(), cutoffDate.getMonth(), cutoffDate.getDate(), 0, 0, 0, 0));
+  const utcMidnight = new Date(
+    Date.UTC(cutoffDate.getFullYear(), cutoffDate.getMonth(), cutoffDate.getDate(), 0, 0, 0, 0)
+  );
 
   // Get star/fork events
   const { data: starForkEvents } = await supabase
@@ -714,7 +727,9 @@ async function calculateStarForkConfidenceWithBreakdown(
     .gte('created_at', toUTCTimestamp(utcMidnight));
 
   const contributors = new Set(
-    (contributorData as Array<{ contributors: Array<{ username: string }> }>)?.flatMap((c) => c.contributors?.map(contrib => contrib.username)).filter(Boolean) || []
+    (contributorData as Array<{ contributors: Array<{ username: string }> }>)
+      ?.flatMap((c) => c.contributors?.map((contrib) => contrib.username))
+      .filter(Boolean) || []
   );
 
   if (!starForkEvents?.length) {
@@ -729,10 +744,14 @@ async function calculateStarForkConfidenceWithBreakdown(
 
   // Separate and weight differently
   const stargazers = new Set(
-    (starForkEvents as Array<{ actor_login: string; event_type: string }>).filter((e) => e.event_type === 'WatchEvent').map((e) => e.actor_login)
+    (starForkEvents as Array<{ actor_login: string; event_type: string }>)
+      .filter((e) => e.event_type === 'WatchEvent')
+      .map((e) => e.actor_login)
   );
   const forkers = new Set(
-    (starForkEvents as Array<{ actor_login: string; event_type: string }>).filter((e) => e.event_type === 'ForkEvent').map((e) => e.actor_login)
+    (starForkEvents as Array<{ actor_login: string; event_type: string }>)
+      .filter((e) => e.event_type === 'ForkEvent')
+      .map((e) => e.actor_login)
   );
 
   const stargazersWhoContributed = Array.from(stargazers).filter((u) => contributors.has(u)).length;
@@ -769,7 +788,9 @@ async function calculateEngagementConfidence(
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - daysBack);
   // Set to UTC midnight for consistent boundary
-  const utcMidnight = new Date(Date.UTC(cutoffDate.getFullYear(), cutoffDate.getMonth(), cutoffDate.getDate(), 0, 0, 0, 0));
+  const utcMidnight = new Date(
+    Date.UTC(cutoffDate.getFullYear(), cutoffDate.getMonth(), cutoffDate.getDate(), 0, 0, 0, 0)
+  );
 
   // Get engagement events (issues, all comment types, reviews)
   const { data: engagementEvents } = await supabase
@@ -794,10 +815,16 @@ async function calculateEngagementConfidence(
     .gte('created_at', toUTCTimestamp(utcMidnight));
 
   const contributors = new Set(
-    (prContributors as Array<{ contributors: Array<{ username: string }> }>)?.flatMap((c) => c.contributors?.map(contrib => contrib.username)).filter(Boolean) || []
+    (prContributors as Array<{ contributors: Array<{ username: string }> }>)
+      ?.flatMap((c) => c.contributors?.map((contrib) => contrib.username))
+      .filter(Boolean) || []
   );
 
-  const engagers = new Set((engagementEvents as Array<{ actor_login: string; event_type: string }>)?.map((e) => e.actor_login).filter(Boolean) || []);
+  const engagers = new Set(
+    (engagementEvents as Array<{ actor_login: string; event_type: string }>)
+      ?.map((e) => e.actor_login)
+      .filter(Boolean) || []
+  );
   const engagersWhoContributed = Array.from(engagers).filter((u) => contributors.has(u)).length;
 
   return engagers.size > 0 ? (engagersWhoContributed / engagers.size) * 100 : 0;
@@ -826,21 +853,70 @@ async function calculateRetentionConfidence(
       .from('pull_requests')
       .select('contributors!inner(username)')
       .eq('repository_id', repositoryId)
-      .gte('created_at', toUTCTimestamp(new Date(Date.UTC(currentPeriodStart.getFullYear(), currentPeriodStart.getMonth(), currentPeriodStart.getDate(), 0, 0, 0, 0)))),
+      .gte(
+        'created_at',
+        toUTCTimestamp(
+          new Date(
+            Date.UTC(
+              currentPeriodStart.getFullYear(),
+              currentPeriodStart.getMonth(),
+              currentPeriodStart.getDate(),
+              0,
+              0,
+              0,
+              0
+            )
+          )
+        )
+      ),
 
     supabase
       .from('pull_requests')
       .select('contributors!inner(username)')
       .eq('repository_id', repositoryId)
-      .gte('created_at', toUTCTimestamp(new Date(Date.UTC(previousPeriodStart.getFullYear(), previousPeriodStart.getMonth(), previousPeriodStart.getDate(), 0, 0, 0, 0))))
-      .lt('created_at', toUTCTimestamp(new Date(Date.UTC(currentPeriodStart.getFullYear(), currentPeriodStart.getMonth(), currentPeriodStart.getDate(), 0, 0, 0, 0)))),
+      .gte(
+        'created_at',
+        toUTCTimestamp(
+          new Date(
+            Date.UTC(
+              previousPeriodStart.getFullYear(),
+              previousPeriodStart.getMonth(),
+              previousPeriodStart.getDate(),
+              0,
+              0,
+              0,
+              0
+            )
+          )
+        )
+      )
+      .lt(
+        'created_at',
+        toUTCTimestamp(
+          new Date(
+            Date.UTC(
+              currentPeriodStart.getFullYear(),
+              currentPeriodStart.getMonth(),
+              currentPeriodStart.getDate(),
+              0,
+              0,
+              0,
+              0
+            )
+          )
+        )
+      ),
   ]);
 
   const currentSet = new Set(
-    (currentContributors.data as Array<{ contributors: Array<{ username: string }> }>)?.flatMap((c) => c.contributors?.map(contrib => contrib.username)).filter(Boolean) || []
+    (currentContributors.data as Array<{ contributors: Array<{ username: string }> }>)
+      ?.flatMap((c) => c.contributors?.map((contrib) => contrib.username))
+      .filter(Boolean) || []
   );
   const previousSet = new Set(
-    (previousContributors.data as Array<{ contributors: Array<{ username: string }> }>)?.flatMap((c) => c.contributors?.map(contrib => contrib.username)).filter(Boolean) || []
+    (previousContributors.data as Array<{ contributors: Array<{ username: string }> }>)
+      ?.flatMap((c) => c.contributors?.map((contrib) => contrib.username))
+      .filter(Boolean) || []
   );
 
   // Calculate retention rate
@@ -862,7 +938,9 @@ async function calculateQualityConfidence(
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - daysBack);
   // Set to UTC midnight for consistent boundary
-  const utcMidnight = new Date(Date.UTC(cutoffDate.getFullYear(), cutoffDate.getMonth(), cutoffDate.getDate(), 0, 0, 0, 0));
+  const utcMidnight = new Date(
+    Date.UTC(cutoffDate.getFullYear(), cutoffDate.getMonth(), cutoffDate.getDate(), 0, 0, 0, 0)
+  );
 
   // Get PR data with merge status
   const { data: pullRequests } = await supabase
@@ -936,7 +1014,9 @@ async function calculateBasicFallback(
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - daysBack);
     // Set to UTC midnight for consistent boundary
-    const utcMidnight = new Date(Date.UTC(cutoffDate.getFullYear(), cutoffDate.getMonth(), cutoffDate.getDate(), 0, 0, 0, 0));
+    const utcMidnight = new Date(
+      Date.UTC(cutoffDate.getFullYear(), cutoffDate.getMonth(), cutoffDate.getDate(), 0, 0, 0, 0)
+    );
 
     const { data: recentContributors } = await supabase
       .from('pull_requests')

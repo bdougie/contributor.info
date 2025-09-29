@@ -94,7 +94,12 @@ export function mapQueueDataToEventData(
     forceInitial?: boolean;
     maxCommits?: number;
   }
-): RepositorySyncEventData | PRDetailsEventData | PRReviewsEventData | PRCommentsEventData | CommitCaptureEventData {
+):
+  | RepositorySyncEventData
+  | PRDetailsEventData
+  | PRReviewsEventData
+  | PRCommentsEventData
+  | CommitCaptureEventData {
   const baseData = {
     repositoryId: queueData.repositoryId,
     priority: 'medium' as const,

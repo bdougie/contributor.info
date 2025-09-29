@@ -672,7 +672,9 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
   };
 
   const data = getScatterData();
-  const botCount = safeStats.pullRequests.filter((pr) => detectBot({ githubUser: pr.user }).isBot).length;
+  const botCount = safeStats.pullRequests.filter(
+    (pr) => detectBot({ githubUser: pr.user }).isBot
+  ).length;
   const hasBots = botCount > 0;
 
   // Show placeholder when repository is not tracked

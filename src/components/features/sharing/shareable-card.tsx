@@ -161,7 +161,11 @@ export function ShareableCard({
     }
   };
 
-  const trackShareEvent = async (action: string, type: string, metadata?: Record<string, unknown>) => {
+  const trackShareEvent = async (
+    action: string,
+    type: string,
+    metadata?: Record<string, unknown>
+  ) => {
     try {
       await trackAnalytics({
         original_url: window.location.href,

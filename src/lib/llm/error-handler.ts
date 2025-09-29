@@ -39,7 +39,10 @@ class LLMErrorHandler {
   /**
    * Process and categorize errors from LLM operations
    */
-  handleError(error: Error | { message?: string; code?: string | number; name?: string }, context: string): LLMError {
+  handleError(
+    error: Error | { message?: string; code?: string | number; name?: string },
+    context: string
+  ): LLMError {
     const llmError = this.categorizeError(error, context);
 
     if (this.config.logErrors) {
@@ -52,7 +55,10 @@ class LLMErrorHandler {
   /**
    * Categorize error based on type and provide appropriate handling
    */
-  private categorizeError(error: Error | { message?: string; code?: string | number; name?: string }, context: string): LLMError {
+  private categorizeError(
+    error: Error | { message?: string; code?: string | number; name?: string },
+    context: string
+  ): LLMError {
     const timestamp = new Date();
 
     // OpenAI API specific errors
@@ -109,7 +115,10 @@ class LLMErrorHandler {
 
     // API errors (non-auth, non-rate-limit)
     const errorCode = 'code' in error ? error.code : undefined;
-    if (error.message?.includes('API error') || (errorCode && typeof errorCode === 'number' && errorCode >= 400)) {
+    if (
+      error.message?.includes('API error') ||
+      (errorCode && typeof errorCode === 'number' && errorCode >= 400)
+    ) {
       return {
         type: 'api_error',
         message: `API error in ${context}: ${error.message}`,

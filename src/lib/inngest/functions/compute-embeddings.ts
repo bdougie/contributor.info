@@ -161,11 +161,13 @@ export const computeEmbeddings = inngest.createFunction(
           // Call OpenAI API for batch embeddings
           const apiKey = process.env.VITE_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
           if (!apiKey) {
-            throw new Error('OpenAI API key not configured - check VITE_OPENAI_API_KEY or OPENAI_API_KEY environment variables');
+            throw new Error(
+              'OpenAI API key not configured - check VITE_OPENAI_API_KEY or OPENAI_API_KEY environment variables'
+            );
           }
 
-          const texts = batch.map(
-            (item) => `[${item.type.toUpperCase()}] ${item.title} ${item.body || ''}`.substring(0, 2000)
+          const texts = batch.map((item) =>
+            `[${item.type.toUpperCase()}] ${item.title} ${item.body || ''}`.substring(0, 2000)
           );
 
           const response = await fetch('https://api.openai.com/v1/embeddings', {

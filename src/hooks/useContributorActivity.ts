@@ -22,8 +22,6 @@ interface RepositoryData {
   full_name: string;
 }
 
-
-
 interface UseContributorActivityOptions {
   contributorUsername: string | undefined;
   workspaceId: string | undefined;
@@ -242,7 +240,9 @@ export function useContributorActivity({
 
           reviews.data.forEach((review) => {
             // Handle both single object and array cases
-            const pullRequest = Array.isArray(review.pull_requests) ? review.pull_requests[0] : review.pull_requests;
+            const pullRequest = Array.isArray(review.pull_requests)
+              ? review.pull_requests[0]
+              : review.pull_requests;
             if (pullRequest?.repository_id) {
               const repository = repoMap.get(pullRequest.repository_id);
               if (repository) {

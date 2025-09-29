@@ -152,7 +152,9 @@ For each issue, use ### headers with clear structure:
 
   // Truncate if too large (15KB limit, increased from 12KB for better context)
   if (diffContent.length > 15000) {
-    diffContent = diffContent.substring(0, 14000) + '\n```\n\n... (diff truncated due to size - focus on critical files)';
+    diffContent =
+      diffContent.substring(0, 14000) +
+      '\n```\n\n... (diff truncated due to size - focus on critical files)';
   }
 
   prompt += diffContent;
@@ -197,9 +199,9 @@ function generatePatternInsights(patterns: any[], conventions: any): string {
 
   // Import patterns
   const topImports = patterns
-    .filter(p => p.type === 'import' && p.frequency > 1)
+    .filter((p) => p.type === 'import' && p.frequency > 1)
     .slice(0, 5)
-    .map(p => `- \`${p.pattern}\` (used ${p.frequency} times)`)
+    .map((p) => `- \`${p.pattern}\` (used ${p.frequency} times)`)
     .join('\n');
 
   if (topImports) {
@@ -231,9 +233,9 @@ function generatePatternInsights(patterns: any[], conventions: any): string {
  */
 function generateQualityStandards(rules: Rule[]): string {
   const keyRules = rules
-    .filter(rule => rule.description)
+    .filter((rule) => rule.description)
     .slice(0, 5)
-    .map(rule => `- **${rule.description}**: Key project requirement`)
+    .map((rule) => `- **${rule.description}**: Key project requirement`)
     .join('\n');
 
   return keyRules || 'Standard code quality practices apply';
@@ -243,11 +245,13 @@ function generateQualityStandards(rules: Rule[]): string {
  * Get the most common item from an array
  */
 function getMostCommon(arr: string[]): string {
-  const counts = arr.reduce((acc, item) => {
-    acc[item] = (acc[item] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  const counts = arr.reduce(
+    (acc, item) => {
+      acc[item] = (acc[item] || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>
+  );
 
-  return Object.entries(counts)
-    .sort(([,a], [,b]) => b - a)[0]?.[0] || 'mixed';
+  return Object.entries(counts).sort(([, a], [, b]) => b - a)[0]?.[0] || 'mixed';
 }

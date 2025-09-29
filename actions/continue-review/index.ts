@@ -8,11 +8,7 @@ import { glob } from 'glob';
 import { getAuthenticatedOctokit } from './github-app-auth';
 import { analyzeCodebasePatterns } from './codebase-analyzer';
 import { generateEnhancedPrompt } from './enhanced-prompt-generator';
-import {
-  ReviewMetricsTracker,
-  parseReviewMetrics,
-  extractProjectType
-} from './review-metrics';
+import { ReviewMetricsTracker, parseReviewMetrics, extractProjectType } from './review-metrics';
 
 interface Rule {
   file: string;
@@ -49,11 +45,11 @@ function isValidCliPath(cliPath: string): boolean {
     '/usr/local/bin/',
     '/usr/bin/',
     process.env.GITHUB_ACTION_PATH || process.cwd(),
-    'node_modules/.bin/'
+    'node_modules/.bin/',
   ];
 
-  const isValidLocation = validPrefixes.some(prefix =>
-    cliPath.startsWith(prefix) || cliPath === 'cn'
+  const isValidLocation = validPrefixes.some(
+    (prefix) => cliPath.startsWith(prefix) || cliPath === 'cn'
   );
 
   if (!isValidLocation) {
@@ -115,7 +111,7 @@ async function detectContinueCLI(): Promise<{ available: boolean; path: string }
   const localPaths = [
     `${actionPath}/node_modules/.bin/cn`,
     `${process.cwd()}/node_modules/.bin/cn`,
-    './node_modules/.bin/cn'
+    './node_modules/.bin/cn',
   ];
 
   for (const localPath of localPaths) {
@@ -284,9 +280,7 @@ async function generateEnhancedReview(
     if (isDebugMode) {
       core.info('Analyzing codebase patterns for enhanced context...');
     }
-    const projectContext = await analyzeCodebasePatterns(
-      context.pr.files.map(f => f.filename)
-    );
+    const projectContext = await analyzeCodebasePatterns(context.pr.files.map((f) => f.filename));
 
     // Phase 2: Generate enhanced prompt with codebase insights
     if (isDebugMode) {
@@ -297,10 +291,12 @@ async function generateEnhancedReview(
     if (isDebugMode) {
       core.info(`Enhanced prompt length: ${enhancedPrompt.length} characters`);
       core.info(`Detected patterns: ${projectContext.patterns.length}`);
-      core.info(`Project type: ${extractProjectType(
-        projectContext.conventions.dependencies.frameworks,
-        projectContext.conventions.dependencies.libraries
-      )}`);
+      core.info(
+        `Project type: ${extractProjectType(
+          projectContext.conventions.dependencies.frameworks,
+          projectContext.conventions.dependencies.libraries
+        )}`
+      );
     }
 
     // Write enhanced prompt to temp file
@@ -312,7 +308,9 @@ async function generateEnhancedReview(
       const cliDetection = await detectContinueCLI();
 
       if (!cliDetection.available) {
-        throw new Error('Continue CLI could not be found or executed. Please check the action setup.');
+        throw new Error(
+          'Continue CLI could not be found or executed. Please check the action setup.'
+        );
       }
 
       const cliPath = cliDetection.path;
@@ -392,14 +390,15 @@ async function generateEnhancedReview(
       if (!review) {
         core.warning('Continue CLI returned an empty response');
         return {
-          review: 'Enhanced review analysis completed, but no specific feedback was generated. The code appears to follow established patterns.',
+          review:
+            'Enhanced review analysis completed, but no specific feedback was generated. The code appears to follow established patterns.',
           metrics: {
             processingTime,
             promptLength: enhancedPrompt.length,
             responseLength: 0,
             rulesApplied: context.rules.length,
-            patternsDetected: projectContext.patterns.length
-          }
+            patternsDetected: projectContext.patterns.length,
+          },
         };
       }
 
@@ -410,10 +409,9 @@ async function generateEnhancedReview(
           promptLength: enhancedPrompt.length,
           responseLength: review.length,
           rulesApplied: context.rules.length,
-          patternsDetected: projectContext.patterns.length
-        }
+          patternsDetected: projectContext.patterns.length,
+        },
       };
-
     } catch (error) {
       // Clean up temp file
       await fs.unlink(tempFile).catch(() => {});
@@ -429,11 +427,10 @@ async function generateEnhancedReview(
           promptLength: enhancedPrompt.length,
           responseLength: 0,
           rulesApplied: context.rules.length,
-          patternsDetected: projectContext.patterns.length
-        }
+          patternsDetected: projectContext.patterns.length,
+        },
       };
     }
-
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     core.error(`Codebase analysis failed: ${errorMessage}`);
@@ -551,30 +548,28 @@ Please address the user's specific request while also checking for any significa
     // Execute Continue CLI with the prompt
     const command = `${cliPath} --config ${continueConfig} -p @${tempFile} --allow Bash`;
 
-    const { stdout } = await new Promise<{ stdout: string; stderr: string }>(
-      (resolve, reject) => {
-        exec(
-          command,
-          {
-            env: {
-              ...process.env,
-              CONTINUE_API_KEY: continueApiKey,
-              GITHUB_TOKEN: githubToken,
-              GH_TOKEN: githubToken,
-            },
-            timeout: 360000,
-            maxBuffer: 10 * 1024 * 1024,
+    const { stdout } = await new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
+      exec(
+        command,
+        {
+          env: {
+            ...process.env,
+            CONTINUE_API_KEY: continueApiKey,
+            GITHUB_TOKEN: githubToken,
+            GH_TOKEN: githubToken,
           },
-          (error, stdout, stderr) => {
-            if (error) {
-              reject(error);
-            } else {
-              resolve({ stdout, stderr });
-            }
+          timeout: 360000,
+          maxBuffer: 10 * 1024 * 1024,
+        },
+        (error, stdout, stderr) => {
+          if (error) {
+            reject(error);
+          } else {
+            resolve({ stdout, stderr });
           }
-        );
-      }
-    );
+        }
+      );
+    });
 
     // Clean up temp file
     await fs.unlink(tempFile).catch(() => {});
@@ -586,8 +581,8 @@ Please address the user's specific request while also checking for any significa
         promptLength: prompt.length,
         responseLength: stdout.length,
         rulesApplied: context.rules.length,
-        patternsDetected: 0
-      }
+        patternsDetected: 0,
+      },
     };
   } catch (error) {
     // Clean up temp file on error
@@ -601,8 +596,8 @@ Please address the user's specific request while also checking for any significa
         promptLength: prompt.length,
         responseLength: 0,
         rulesApplied: context.rules.length,
-        patternsDetected: 0
-      }
+        patternsDetected: 0,
+      },
     };
   }
 }
@@ -802,7 +797,7 @@ async function run(): Promise<void> {
             owner,
             repo,
             comment_id: commentId,
-            content: 'eyes'
+            content: 'eyes',
           });
           core.info(`✅ Added 👀 reaction to comment ${commentId}`);
         } catch (error) {
@@ -917,13 +912,13 @@ async function run(): Promise<void> {
       reviewerId: continueConfig,
       metrics: {
         ...metrics,
-        issuesFound: reviewAnalysis.issuesFound
+        issuesFound: reviewAnalysis.issuesFound,
       },
       context: {
         hasCustomCommand: !!command,
         projectType: 'Unknown', // Will be updated by metrics tracker
-        mainLanguages: files.map(f => path.extname(f.filename)).filter(Boolean)
-      }
+        mainLanguages: files.map((f) => path.extname(f.filename)).filter(Boolean),
+      },
     };
 
     await metricsTracker.recordReviewMetrics(reviewMetrics);
@@ -942,7 +937,6 @@ async function run(): Promise<void> {
     );
 
     core.info('🎉 Enhanced review completed successfully');
-
   } catch (error) {
     if (error instanceof Error) {
       core.setFailed(`Enhanced review failed: ${error.message}`);

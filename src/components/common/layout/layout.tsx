@@ -55,6 +55,12 @@ export default function Layout() {
     return path === '/' || /^\/[^/]+\/[^/]+/.test(path);
   };
 
+  // Check if current page is a workspace page (where we show switcher inline)
+  const isWorkspacePage = () => {
+    const path = location.pathname;
+    return path.startsWith('/w/') || path.startsWith('/workspace');
+  };
+
   // Preload command palette on hover
   const handlePreloadCommandPalette = useCallback(() => {
     if (!commandPalettePreloaded && !commandPaletteOpen) {
@@ -247,8 +253,8 @@ export default function Layout() {
                     Create Workspace
                   </Button>
                 )}
-                {!onboardingLoading && !needsOnboarding && (
-                  // Show workspace switcher for users with workspaces
+                {!onboardingLoading && !needsOnboarding && !isWorkspacePage() && (
+                  // Show workspace switcher for users with workspaces (not on workspace pages)
                   <div onMouseEnter={handlePreloadCommandPalette}>
                     <WorkspaceSwitcher
                       className="min-w-[150px]"
