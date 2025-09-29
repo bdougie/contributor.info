@@ -6,7 +6,7 @@ import {
   createErrorResponse,
   CORS_HEADERS,
 } from './lib/repository-validation.ts';
-import { RateLimiter, getRateLimitKey, applyRateLimitHeaders } from './lib/rate-limiter.mjs';
+import { RateLimiter, getRateLimitKey, applyRateLimitHeaders } from './lib/rate-limiter.mts';
 
 interface CodeOwnerSuggestion {
   pattern: string;
@@ -221,11 +221,10 @@ async function generateCodeOwnersSuggestions(
 }
 
 export default async (req: Request, context: Context) => {
-  const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
+  const supabaseUrl = process.env.SUPABASE_URL || '';
   const supabaseKey =
-    process.env.SUPABASE_SERVICE_KEY ||
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
     process.env.SUPABASE_ANON_KEY ||
-    process.env.VITE_SUPABASE_ANON_KEY ||
     '';
 
   if (!supabaseUrl || !supabaseKey) {

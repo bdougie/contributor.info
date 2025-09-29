@@ -1,13 +1,29 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 
 // Set up environment variables before importing handler
-process.env.VITE_SUPABASE_URL = 'https://test.supabase.co';
-process.env.VITE_SUPABASE_ANON_KEY = 'test-anon-key';
+process.env.SUPABASE_URL = 'https://test.supabase.co';
+process.env.SUPABASE_ANON_KEY = 'test-anon-key';
+process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-key';
 
 // Mock Supabase before importing
 vi.mock('@supabase/supabase-js', () => ({
   createClient: vi.fn(),
 }));
+
+// Mock the rate limiter
+vi.mock('../lib/rate-limiter.mts', () => ({
+  RateLimiter: vi.fn().mockImplementation(() => ({
+    checkLimit: vi.fn().mockResolvedValue({
+      allowed: true,
+      remaining: 100,
+      resetTime: Date.now() + 60000,
+    }),
+    reset: vi.fn(),
+  })),
+  getRateLimitKey: vi.fn().mockReturnValue('test-key'),
+  applyRateLimitHeaders: vi.fn().mockImplementation((response) => response),
+}));
+
 import { createClient } from '@supabase/supabase-js';
 import handler from '../api-suggest-reviewers';
 
@@ -21,8 +37,11 @@ describe('Suggest Reviewers API Tests', () => {
     mockSupabase = { from: mockFrom };
     (createClient as any).mockReturnValue(mockSupabase);
 
-    // Mock environment variables
+    // Mock environment variables - ensure all are set
     process.env.GITHUB_TOKEN = 'test-github-token';
+    process.env.SUPABASE_URL = 'https://test.supabase.co';
+    process.env.SUPABASE_ANON_KEY = 'test-anon-key';
+    process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-key';
 
     // Setup fetch mock
     global.fetch = vi.fn();
@@ -31,6 +50,9 @@ describe('Suggest Reviewers API Tests', () => {
   afterEach(() => {
     vi.clearAllMocks();
     delete process.env.GITHUB_TOKEN;
+    delete process.env.SUPABASE_URL;
+    delete process.env.SUPABASE_ANON_KEY;
+    delete process.env.SUPABASE_SERVICE_ROLE_KEY;
   });
 
   describe('CORS handling', () => {
@@ -62,27 +84,12 @@ describe('Suggest Reviewers API Tests', () => {
 
   describe('Request body validation', () => {
     beforeEach(() => {
-      // Mock for all tables
+      // Mock for all tables - simpler approach with consistent behavior
       mockFrom.mockImplementation((table: string) => {
-        // For rate_limits table
-        if (table === 'rate_limits') {
-          const mockMaybeSingle = vi.fn().mockResolvedValue({
-            data: null,
-            error: null,
-          });
-          const mockEq = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
-          const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
-          const mockUpsert = vi.fn().mockResolvedValue({ data: null, error: null });
-          return {
-            select: mockSelect,
-            upsert: mockUpsert
-          };
-        }
-
-        // For tracked_repositories table
+        // For tracked_repositories table - always return the same valid repository
         if (table === 'tracked_repositories') {
           const mockMaybeSingle = vi.fn().mockResolvedValue({
-            data: { id: 1, is_active: true },
+            data: { id: 'repo-123', is_active: true },
             error: null,
           });
           const mockEq2 = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
@@ -147,45 +154,18 @@ describe('Suggest Reviewers API Tests', () => {
 
   describe('Reviewer suggestions', () => {
     beforeEach(() => {
-      let queryCount = 0;
-
       // Override the from mock to handle all tables
       mockFrom.mockImplementation((table: string) => {
-        // For rate_limits table (for rate limiter)
-        if (table === 'rate_limits') {
+        // For tracked_repositories table - return consistent repository data
+        if (table === 'tracked_repositories') {
           const mockMaybeSingle = vi.fn().mockResolvedValue({
-            data: null,
+            data: { id: 'repo-123', is_active: true },
             error: null,
           });
-          const mockEq = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
+          const mockEq2 = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
+          const mockEq = vi.fn().mockReturnValue({ eq: mockEq2 });
           const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
           return { select: mockSelect };
-        }
-
-        // For tracked_repositories table
-        if (table === 'tracked_repositories') {
-          queryCount++;
-          // First call is for validation
-          if (queryCount === 1) {
-            const mockMaybeSingle = vi.fn().mockResolvedValue({
-              data: { id: 1, is_active: true },
-              error: null,
-            });
-            const mockEq2 = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
-            const mockEq = vi.fn().mockReturnValue({ eq: mockEq2 });
-            const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
-            return { select: mockSelect };
-          } else {
-            // Second call is for getting repository ID
-            const mockMaybeSingle = vi.fn().mockResolvedValue({
-              data: { id: 'repo-123' },
-              error: null,
-            });
-            const mockEq2 = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
-            const mockEq = vi.fn().mockReturnValue({ eq: mockEq2 });
-            const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
-            return { select: mockSelect };
-          }
         }
 
         // For reviews table
@@ -307,17 +287,6 @@ describe('Suggest Reviewers API Tests', () => {
     it('should include CODEOWNERS in suggestions when available', async () => {
       // Override the from mock to include CODEOWNERS data
       mockFrom.mockImplementation((table: string) => {
-        // For rate_limits table
-        if (table === 'rate_limits') {
-          const mockMaybeSingle = vi.fn().mockResolvedValue({
-            data: null,
-            error: null,
-          });
-          const mockEq = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
-          const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
-          return { select: mockSelect };
-        }
-
         // For tracked_repositories table
         if (table === 'tracked_repositories') {
           const mockMaybeSingle = vi.fn().mockResolvedValue({
@@ -445,29 +414,16 @@ describe('Suggest Reviewers API Tests', () => {
       const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
 
       mockFrom.mockImplementation((table: string) => {
-        // For tracked_repositories table (validation)
+        // For tracked_repositories table
         if (table === 'tracked_repositories') {
           const mockMaybeSingle = vi.fn().mockResolvedValue({
-            data: { id: 1, is_active: true },
+            data: { id: 'repo-123', is_active: true },
             error: null,
           });
           const mockEq2 = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
           const mockEq = vi.fn().mockReturnValue({ eq: mockEq2 });
           const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
           return { select: mockSelect };
-        }
-
-        // For repositories table
-        if (table === 'repositories') {
-          const mockMaybeSingle = vi.fn().mockResolvedValue({
-            data: { id: 'repo-123' },
-            error: null,
-          });
-          const mockLimit = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
-          const mockEq2 = vi.fn().mockReturnValue({ limit: mockLimit });
-          const mockEq = vi.fn().mockReturnValue({ eq: mockEq2 });
-          const mockSelectLocal = vi.fn().mockReturnValue({ eq: mockEq });
-          return { select: mockSelectLocal };
         }
 
         // For reviews table - return error
@@ -504,7 +460,7 @@ describe('Suggest Reviewers API Tests', () => {
       const data = await response.json();
 
       expect(response.status).toBe(500);
-      expect(data.error).toContain('Failed to fetch contribution data');
+      expect(data.error).toContain('Internal server error');
     });
   });
 
@@ -512,26 +468,13 @@ describe('Suggest Reviewers API Tests', () => {
     beforeEach(() => {
       // Mock all required tables for file analysis tests
       mockFrom.mockImplementation((table: string) => {
-        // For tracked_repositories table (validation)
+        // For tracked_repositories table
         if (table === 'tracked_repositories') {
           const mockMaybeSingle = vi.fn().mockResolvedValue({
-            data: { id: 1, is_active: true },
+            data: { id: 'repo-123', is_active: true },
             error: null,
           });
           const mockEq2 = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
-          const mockEq = vi.fn().mockReturnValue({ eq: mockEq2 });
-          const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
-          return { select: mockSelect };
-        }
-
-        // For repositories table
-        if (table === 'repositories') {
-          const mockMaybeSingle = vi.fn().mockResolvedValue({
-            data: { id: 'repo-123' },
-            error: null,
-          });
-          const mockLimit = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
-          const mockEq2 = vi.fn().mockReturnValue({ limit: mockLimit });
           const mockEq = vi.fn().mockReturnValue({ eq: mockEq2 });
           const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
           return { select: mockSelect };

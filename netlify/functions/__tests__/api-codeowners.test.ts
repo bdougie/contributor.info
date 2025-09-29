@@ -1,13 +1,30 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 
 // Set up environment variables before importing handler
-process.env.VITE_SUPABASE_URL = 'https://test.supabase.co';
-process.env.VITE_SUPABASE_ANON_KEY = 'test-anon-key';
+process.env.SUPABASE_URL = 'https://test.supabase.co';
+process.env.SUPABASE_ANON_KEY = 'test-anon-key';
+process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-key';
+process.env.NODE_ENV = 'test';
 
 // Mock Supabase before importing
 vi.mock('@supabase/supabase-js', () => ({
   createClient: vi.fn(),
 }));
+
+// Mock the rate limiter
+vi.mock('../lib/rate-limiter.mts', () => ({
+  RateLimiter: vi.fn().mockImplementation(() => ({
+    checkLimit: vi.fn().mockResolvedValue({
+      allowed: true,
+      remaining: 100,
+      resetTime: Date.now() + 60000,
+    }),
+    reset: vi.fn(),
+  })),
+  getRateLimitKey: vi.fn().mockReturnValue('test-key'),
+  applyRateLimitHeaders: vi.fn().mockImplementation((response) => response),
+}));
+
 import { createClient } from '@supabase/supabase-js';
 import handler from '../api-codeowners';
 

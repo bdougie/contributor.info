@@ -6,8 +6,8 @@ import {
   createNotFoundResponse,
   createErrorResponse,
   CORS_HEADERS,
-} from './lib/repository-validation.mjs';
-import { RateLimiter, getRateLimitKey, applyRateLimitHeaders } from './lib/rate-limiter.mjs';
+} from './lib/repository-validation.ts';
+import { RateLimiter, getRateLimitKey, applyRateLimitHeaders } from './lib/rate-limiter.mts';
 
 interface CodeOwnersSuggestion {
   pattern: string;
@@ -18,11 +18,10 @@ interface CodeOwnersSuggestion {
 
 // Helper function to create Supabase client
 function createSupabaseClient() {
-  const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
+  const supabaseUrl = process.env.SUPABASE_URL || '';
   const supabaseKey =
-    process.env.SUPABASE_SERVICE_KEY ||
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
     process.env.SUPABASE_ANON_KEY ||
-    process.env.VITE_SUPABASE_ANON_KEY ||
     '';
 
   if (!supabaseUrl || !supabaseKey) {
@@ -97,11 +96,10 @@ function generateCodeOwnersSuggestions(contributorStats: Map<string, Contributor
 }
 
 export default async (req: Request, context: Context) => {
-  const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
+  const supabaseUrl = process.env.SUPABASE_URL || '';
   const supabaseKey =
-    process.env.SUPABASE_SERVICE_KEY ||
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
     process.env.SUPABASE_ANON_KEY ||
-    process.env.VITE_SUPABASE_ANON_KEY ||
     '';
   const limiter = new RateLimiter(supabaseUrl, supabaseKey, {
     maxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '60', 10),
