@@ -337,7 +337,11 @@ function parseCodeOwners(content: string, prFiles: PullRequestFiles): Set<string
           break;
         }
       } else if (pattern.includes('*')) {
-        const regex = new RegExp('^' + pattern.replace(/^\//, '').replace(/\./g, '\\.').replace(/\*/g, '.*') + '$');
+        const escapedPattern = pattern
+          .replace(/^\//, '')
+          .replace(/[.*+?^${}()|[\]\\]/g, '\\$&') // Escape all regex special characters
+          .replace(/\\\*/g, '.*'); // Then replace escaped * with .*
+        const regex = new RegExp('^' + escapedPattern + '$');
         if (regex.test(f)) {
           matches = true;
           break;
@@ -429,8 +433,13 @@ export default async (req: Request, context: Context) => {
     let { files, prAuthor, prUrl } = body || {};
 
     // If PR URL is provided, fetch files and author from GitHub
-    if (typeof prUrl === 'string' && prUrl.includes('github.com')) {
-      const m = prUrl.match(/github\.com\/(.*?)\/(.*?)\/pull\/(\d+)/i);
+    if (typeof prUrl === 'string') {
+      try {
+        const url = new URL(prUrl);
+        if (url.hostname !== 'github.com' && url.hostname !== 'www.github.com') {
+          throw new Error('Invalid GitHub URL');
+        }
+        const m = url.pathname.match(/^\/([^\/]+)\/([^\/]+)\/pull\/(\d+)/i);
       if (m) {
         owner = m[1];
         repo = m[2];
@@ -520,6 +529,9 @@ export default async (req: Request, context: Context) => {
           files = collected;
         }
       }
+      } catch (e) {
+        console.warn('Failed to parse PR URL:', e);
+      }
     }
 
     if (!files || !Array.isArray(files) || files.length === 0) {
@@ -588,8 +600,13 @@ export default async (req: Request, context: Context) => {
     }
 
     // If we still don't have a PR author but have a PR URL, try to get it from the database
-    if (!prAuthor && typeof prUrl === 'string' && prUrl.includes('github.com')) {
-      const prMatch = prUrl.match(/\/pull\/(\d+)/);
+    if (!prAuthor && typeof prUrl === 'string') {
+      try {
+        const url = new URL(prUrl);
+        if (url.hostname !== 'github.com' && url.hostname !== 'www.github.com') {
+          throw new Error('Invalid GitHub URL');
+        }
+        const prMatch = url.pathname.match(/\/pull\/(\d+)/);
       if (prMatch) {
         const prNumber = parseInt(prMatch[1], 10);
         console.log(`Attempting to fetch PR author from database for PR #${prNumber}`);
@@ -608,6 +625,9 @@ export default async (req: Request, context: Context) => {
         } else {
           console.warn(`Could not find PR #${prNumber} in database`);
         }
+      }
+      } catch (e) {
+        console.warn('Failed to parse PR URL for author lookup:', e);
       }
     }
 

@@ -83,7 +83,8 @@ Contributors by directories: ${contribStr}`;
       },
     });
   } catch (e) {
-    return json({ error: 'Unexpected error', details: String(e) }, 500);
+    console.error('Error in codeowners-llm function:', e);
+    return json({ error: 'An unexpected error occurred' }, 500);
   }
 });
 
