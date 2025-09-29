@@ -81,7 +81,7 @@ class PRDetailsCaptureScript extends BaseCaptureScript {
       });
 
       // Ensure contributors exist and get their UUIDs
-      const authorContributor = await ensureContributor(this.supabase, prData.user, this.repositoryName);
+      const authorContributor = await ensureContributor(this.supabase, prData.user);
       let mergedByContributorId = null;
       if (prData.merged_by) {
         const mergedByContributor = await ensureMergedByContributor(this.supabase, prData.merged_by, this.repositoryName);
