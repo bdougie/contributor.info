@@ -22,25 +22,20 @@ jobs:
         with:
           node-version: "18"
 
-      - name: Install Continue CLI
-        run: |
-          npm install -g @continuedev/cli
-          echo "✅ Continue CLI installed"
-          cn --version
-
       - name: Run PostHog Analysis and Create GitHub Issues
         id: analysis
         env:
           CONTINUE_API_KEY: ${{ secrets.CONTINUE_API_KEY }}
           POSTHOG_AUTH_HEADER: ${{ secrets.POSTHOG_AUTH_HEADER }}
           POSTHOG_PERSONAL_API_KEY: ${{ secrets.POSTHOG_PERSONAL_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GH_PAT: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "🎬 Starting automated PostHog session analysis..."
 
           # Run the agent with the simple prompt and capture output
           set +e  # Don't exit on error
-          OUTPUT=$(cn --config continuedev/awesome-models-posthog-gh -p "Tell me about my PostHog session recordings and create GitHub issues based on the problems." 2>&1)
+          OUTPUT=$(npx @continuedev/cli --config continuedev/awesome-models-posthog-gh -p "Tell me about my PostHog session recordings and create GitHub issues based on the problems." 2>&1)
           EXIT_CODE=$?
           set -e  # Re-enable exit on error
 
