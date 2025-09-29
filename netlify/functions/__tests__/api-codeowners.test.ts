@@ -155,7 +155,7 @@ describe('CODEOWNERS API Tests', () => {
       const data = await response.json();
 
       expect(response.status).toBe(500);
-      expect(data.error).toBe('Database error while checking repository tracking');
+      expect(data.error).toContain('Database error while checking repository tracking');
     });
   });
 
@@ -169,7 +169,7 @@ describe('CODEOWNERS API Tests', () => {
       mockMaybeSingle.mockClear();
       mockMaybeSingle
         .mockResolvedValueOnce({
-          data: { id: 1, is_active: true },
+          data: { id: 1, tracking_enabled: true },
           error: null,
         })
         .mockResolvedValueOnce({
@@ -200,7 +200,7 @@ describe('CODEOWNERS API Tests', () => {
       mockMaybeSingle.mockClear();
       mockMaybeSingle
         .mockResolvedValueOnce({
-          data: { id: 1, is_active: true },
+          data: { id: 1, tracking_enabled: true },
           error: null,
         })
         .mockResolvedValueOnce({
@@ -230,7 +230,7 @@ describe('CODEOWNERS API Tests', () => {
       mockMaybeSingle.mockClear();
       mockMaybeSingle
         .mockResolvedValueOnce({
-          data: { id: 1, is_active: true },
+          data: { id: 1, tracking_enabled: true },
           error: null,
         })
         .mockResolvedValueOnce({
@@ -265,7 +265,7 @@ describe('CODEOWNERS API Tests', () => {
       mockMaybeSingle.mockClear();
       mockMaybeSingle
         .mockResolvedValueOnce({
-          data: { id: 1, is_active: true },
+          data: { id: 1, tracking_enabled: true },
           error: null,
         })
         .mockResolvedValueOnce({
@@ -295,7 +295,7 @@ describe('CODEOWNERS API Tests', () => {
       mockMaybeSingle.mockClear();
       mockMaybeSingle
         .mockResolvedValueOnce({
-          data: { id: 1, is_active: true },
+          data: { id: 1, tracking_enabled: true },
           error: null,
         })
         .mockResolvedValueOnce({

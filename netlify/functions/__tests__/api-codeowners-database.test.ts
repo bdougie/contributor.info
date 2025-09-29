@@ -100,7 +100,7 @@ describe('CODEOWNERS API Database Tests', () => {
 
       // Mock repository validation (first query)
       const mockValidationMaybeSingle = vi.fn().mockResolvedValue({
-        data: { id: 1, is_active: true },
+        data: { id: 1, tracking_enabled: true },
         error: null
       });
       const mockValidationEq2 = vi.fn().mockReturnValue({ maybeSingle: mockValidationMaybeSingle });
@@ -168,7 +168,7 @@ describe('CODEOWNERS API Database Tests', () => {
 
       // Mock repository validation (first query)
       const mockValidationMaybeSingle = vi.fn().mockResolvedValue({
-        data: { id: 1, is_active: true },
+        data: { id: 1, tracking_enabled: true },
         error: null
       });
       const mockValidationEq2 = vi.fn().mockReturnValue({ maybeSingle: mockValidationMaybeSingle });

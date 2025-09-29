@@ -125,7 +125,7 @@ describe('Repository Validation Tests', () => {
 
     it('should return tracked for active tracked repository', async () => {
       mockMaybeSingle.mockResolvedValue({
-        data: { id: 1, is_active: true },
+        data: { id: 1, tracking_enabled: true },
         error: null,
       });
 
@@ -148,7 +148,7 @@ describe('Repository Validation Tests', () => {
 
     it('should normalize repository names to lowercase', async () => {
       mockMaybeSingle.mockResolvedValue({
-        data: { id: 1, is_active: true },
+        data: { id: 1, tracking_enabled: true },
         error: null,
       });
 
@@ -157,11 +157,11 @@ describe('Repository Validation Tests', () => {
       // Verify the function was called and worked correctly
       expect(result.isTracked).toBe(true);
       expect(mockFrom).toHaveBeenCalledWith('tracked_repositories');
-      expect(mockSelect).toHaveBeenCalledWith('id, is_active');
+      expect(mockSelect).toHaveBeenCalledWith('id, tracking_enabled');
 
       // Assert that Supabase receives lowercase values
-      expect(mockEq).toHaveBeenCalledWith('owner', 'owner');
-      expect(mockEq2).toHaveBeenCalledWith('name', 'repo');
+      expect(mockEq).toHaveBeenCalledWith('organization_name', 'owner');
+      expect(mockEq2).toHaveBeenCalledWith('repository_name', 'repo');
     });
   });
 
@@ -233,7 +233,7 @@ describe('Repository Validation Tests', () => {
       ];
 
       mockMaybeSingle.mockResolvedValue({
-        data: { id: 1, is_active: true },
+        data: { id: 1, tracking_enabled: true },
         error: null,
       });
 
