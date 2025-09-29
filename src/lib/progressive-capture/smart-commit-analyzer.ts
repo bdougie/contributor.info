@@ -245,9 +245,21 @@ export class SmartCommitAnalyzer {
         is_direct_commit: commit.is_direct_commit as boolean,
         authored_at: commit.authored_at as string,
         contributors: {
-          username: (commit['contributors!commits_author_id_fkey'] as { username: string; avatar_url: string })?.username || '',
-          avatar_url: (commit['contributors!commits_author_id_fkey'] as { username: string; avatar_url: string })?.avatar_url || ''
-        }
+          username:
+            (
+              commit['contributors!commits_author_id_fkey'] as {
+                username: string;
+                avatar_url: string;
+              }
+            )?.username || '',
+          avatar_url:
+            (
+              commit['contributors!commits_author_id_fkey'] as {
+                username: string;
+                avatar_url: string;
+              }
+            )?.avatar_url || '',
+        },
       }));
 
       // Calculate YOLO coder stats from database

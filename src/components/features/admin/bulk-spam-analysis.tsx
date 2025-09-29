@@ -351,23 +351,25 @@ export function BulkSpamAnalysis() {
 
       // Update bulk jobs with detailed results
       if (result.results) {
-        const newJobs: BulkAnalysisJob[] = result.results.map((repoResult: {
-          repository_id: string;
-          repository_name: string;
-          error?: string;
-          processed?: number;
-          errors?: number;
-        }) => ({
-          repository_id: repoResult.repository_id,
-          repository_name: repoResult.repository_name,
-          status: repoResult.error ? 'failed' : 'completed',
-          processed: repoResult.processed || 0,
-          total: repoResult.processed || 0,
-          errors: repoResult.errors || 0,
-          started_at: new Date().toISOString(),
-          completed_at: new Date().toISOString(),
-          error_message: repoResult.error,
-        }));
+        const newJobs: BulkAnalysisJob[] = result.results.map(
+          (repoResult: {
+            repository_id: string;
+            repository_name: string;
+            error?: string;
+            processed?: number;
+            errors?: number;
+          }) => ({
+            repository_id: repoResult.repository_id,
+            repository_name: repoResult.repository_name,
+            status: repoResult.error ? 'failed' : 'completed',
+            processed: repoResult.processed || 0,
+            total: repoResult.processed || 0,
+            errors: repoResult.errors || 0,
+            started_at: new Date().toISOString(),
+            completed_at: new Date().toISOString(),
+            error_message: repoResult.error,
+          })
+        );
         setBulkJobs((prev) => [...prev, ...newJobs]);
       }
 
@@ -579,7 +581,12 @@ export function BulkSpamAnalysis() {
                 />
               </div>
             </div>
-            <Select value={filterStatus} onValueChange={(value: 'all' | 'pending' | 'analyzed' | 'partial') => setFilterStatus(value)}>
+            <Select
+              value={filterStatus}
+              onValueChange={(value: 'all' | 'pending' | 'analyzed' | 'partial') =>
+                setFilterStatus(value)
+              }
+            >
               <SelectTrigger className="w-full sm:w-[200px]">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>

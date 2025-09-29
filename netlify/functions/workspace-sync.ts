@@ -5,7 +5,9 @@ import { Inngest } from 'inngest';
 function createInngestClient() {
   const eventKey = process.env.INNGEST_EVENT_KEY || process.env.INNGEST_PRODUCTION_EVENT_KEY;
   if (!eventKey) {
-    throw new Error('Missing INNGEST_EVENT_KEY or INNGEST_PRODUCTION_EVENT_KEY environment variable');
+    throw new Error(
+      'Missing INNGEST_EVENT_KEY or INNGEST_PRODUCTION_EVENT_KEY environment variable'
+    );
   }
 
   return new Inngest({
@@ -107,8 +109,10 @@ export const handler: Handler = async (event) => {
   try {
     console.log('[workspace-sync] Request received:', {
       method: event.httpMethod,
-      body: event.body,
-      headers: event.headers
+      bodyLength: event.body?.length || 0,
+      // Redact sensitive headers
+      hasAuth: !!event.headers?.authorization,
+      hasCookie: !!event.headers?.cookie,
     });
 
     // Parse request body

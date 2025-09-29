@@ -25,7 +25,7 @@ export interface TrackedRepository {
   id: string;
   owner: string;
   name: string;
-  is_active?: boolean;  // Optional since it might not be available
+  is_active?: boolean; // Optional since it might not be available
   tracking_status?: 'active' | 'inactive' | null;
 }
 
@@ -55,40 +55,40 @@ export function createMockQueryBuilder<T = unknown>(
   const mockSingle = vi.fn().mockResolvedValue(response);
   const mockLimit = vi.fn().mockReturnValue({
     maybeSingle: mockMaybeSingle,
-    single: mockSingle
+    single: mockSingle,
   });
   const mockOrder = vi.fn().mockReturnValue({
     limit: mockLimit,
     maybeSingle: mockMaybeSingle,
-    single: mockSingle
+    single: mockSingle,
   });
   const mockEq = vi.fn().mockReturnValue({
     eq: vi.fn().mockReturnValue({
       maybeSingle: mockMaybeSingle,
       single: mockSingle,
       order: mockOrder,
-      limit: mockLimit
+      limit: mockLimit,
     }),
     neq: vi.fn().mockReturnValue({
       maybeSingle: mockMaybeSingle,
-      single: mockSingle
+      single: mockSingle,
     }),
     order: mockOrder,
     limit: mockLimit,
     maybeSingle: mockMaybeSingle,
-    single: mockSingle
+    single: mockSingle,
   });
   const mockSelect = vi.fn().mockReturnValue({
     eq: mockEq,
     neq: vi.fn().mockReturnValue({
       eq: mockEq,
       maybeSingle: mockMaybeSingle,
-      single: mockSingle
+      single: mockSingle,
     }),
     order: mockOrder,
     limit: mockLimit,
     maybeSingle: mockMaybeSingle,
-    single: mockSingle
+    single: mockSingle,
   });
 
   return {
@@ -97,7 +97,7 @@ export function createMockQueryBuilder<T = unknown>(
     order: mockOrder,
     limit: mockLimit,
     maybeSingle: mockMaybeSingle,
-    single: mockSingle
+    single: mockSingle,
   };
 }
 

@@ -50,16 +50,22 @@ export interface ContributorNote {
   note_content?: string;
   created_at: string;
   updated_at: string;
-  created_by: {
-    auth_user_id: string | null;
-    email: string;
-    display_name: string;
-  } | string | null;
-  updated_by: {
-    auth_user_id: string | null;
-    email: string;
-    display_name: string;
-  } | string | null;
+  created_by:
+    | {
+        auth_user_id: string | null;
+        email: string;
+        display_name: string;
+      }
+    | string
+    | null;
+  updated_by:
+    | {
+        auth_user_id: string | null;
+        email: string;
+        display_name: string;
+      }
+    | string
+    | null;
 }
 
 export function useContributorGroups(workspaceId: string | undefined) {
@@ -113,7 +119,7 @@ export function useContributorGroups(workspaceId: string | undefined) {
         if (note.updated_by) userIds.add(note.updated_by);
       });
 
-      let userMap = new Map<string, AppUser>();
+      const userMap = new Map<string, AppUser>();
       if (userIds.size > 0) {
         const { data: usersData } = await supabase
           .from('app_users')
@@ -141,12 +147,12 @@ export function useContributorGroups(workspaceId: string | undefined) {
           created_by: createdByUser || {
             auth_user_id: note.created_by,
             email: 'unknown',
-            display_name: 'Unknown user'
+            display_name: 'Unknown user',
           },
           updated_by: updatedByUser || {
             auth_user_id: note.updated_by,
             email: 'unknown',
-            display_name: 'Unknown user'
+            display_name: 'Unknown user',
           },
         } as ContributorNote;
       });
@@ -353,7 +359,7 @@ export function useContributorGroups(workspaceId: string | undefined) {
       const userInfo = userData || {
         auth_user_id: user.id,
         email: user.email || 'unknown',
-        display_name: user.email?.split('@')[0] || 'Unknown user'
+        display_name: user.email?.split('@')[0] || 'Unknown user',
       };
 
       const mappedNote = {
@@ -365,7 +371,9 @@ export function useContributorGroups(workspaceId: string | undefined) {
       };
 
       // Check if note exists in local state
-      const existingNoteIndex = notes.findIndex((n) => n.contributor_username === contributorUsername);
+      const existingNoteIndex = notes.findIndex(
+        (n) => n.contributor_username === contributorUsername
+      );
 
       if (existingNoteIndex >= 0) {
         setNotes((prev) => {
@@ -438,7 +446,7 @@ export function useContributorGroups(workspaceId: string | undefined) {
       const userInfo = userData || {
         auth_user_id: user.id,
         email: user.email || 'unknown',
-        display_name: user.email?.split('@')[0] || 'Unknown user'
+        display_name: user.email?.split('@')[0] || 'Unknown user',
       };
 
       const mappedNote = {
@@ -450,9 +458,7 @@ export function useContributorGroups(workspaceId: string | undefined) {
       };
 
       // Update the note in local state with properly mapped data
-      setNotes((prev) =>
-        prev.map((n) => (n.id === noteId ? mappedNote : n))
-      );
+      setNotes((prev) => prev.map((n) => (n.id === noteId ? mappedNote : n)));
 
       toast.success('Note updated successfully');
       return mappedNote;
@@ -461,17 +467,14 @@ export function useContributorGroups(workspaceId: string | undefined) {
   );
 
   // Delete a note by ID (for ContributorNotesDialog)
-  const deleteNoteById = useCallback(
-    async (noteId: string) => {
-      const { error } = await supabase.from('contributor_notes').delete().eq('id', noteId);
+  const deleteNoteById = useCallback(async (noteId: string) => {
+    const { error } = await supabase.from('contributor_notes').delete().eq('id', noteId);
 
-      if (error) throw error;
+    if (error) throw error;
 
-      setNotes((prev) => prev.filter((n) => n.id !== noteId));
-      toast.success('Note deleted successfully');
-    },
-    []
-  );
+    setNotes((prev) => prev.filter((n) => n.id !== noteId));
+    toast.success('Note deleted successfully');
+  }, []);
 
   // Get contributor's groups as a Map for easy lookup
   const getContributorGroupsMap = useCallback(() => {

@@ -25,11 +25,7 @@ export class APIErrorHandler {
     };
   }
 
-  static createResponse<T>(
-    data?: T,
-    error?: APIError,
-    requestId?: string
-  ): APIResponse<T> {
+  static createResponse<T>(data?: T, error?: APIError, requestId?: string): APIResponse<T> {
     return {
       success: !error,
       data,
@@ -75,7 +71,12 @@ export class APIErrorHandler {
     );
   }
 
-  static handleValidationError(field: string, value: unknown, expectedFormat: string, requestId: string): APIError {
+  static handleValidationError(
+    field: string,
+    value: unknown,
+    expectedFormat: string,
+    requestId: string
+  ): APIError {
     return this.createError(
       'VALIDATION_ERROR',
       'validation',
@@ -88,8 +89,8 @@ export class APIErrorHandler {
           field,
           expectedFormat,
           received: typeof value,
-          value: value
-        }
+          value: value,
+        },
       }
     );
   }
@@ -106,7 +107,7 @@ export class APIErrorHandler {
         {
           requestId,
           retryable: false,
-          details: { operation, status: err.status }
+          details: { operation, status: err.status },
         }
       );
     }
@@ -120,7 +121,7 @@ export class APIErrorHandler {
         {
           requestId,
           retryable: true,
-          details: { operation, status: err.status }
+          details: { operation, status: err.status },
         }
       );
     }
@@ -133,7 +134,7 @@ export class APIErrorHandler {
       {
         requestId,
         retryable: true,
-        details: { operation, status: err.status }
+        details: { operation, status: err.status },
       }
     );
   }

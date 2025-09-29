@@ -9,7 +9,7 @@ import {
   formatByType,
   formatDatesInBulk,
   clearDateCache,
-  type DateFormatType
+  type DateFormatType,
 } from './date-formatting';
 
 describe('Date Formatting Utilities', () => {
@@ -43,11 +43,21 @@ describe('Date Formatting Utilities', () => {
     });
 
     it('should throw error for invalid dates', () => {
-      expect(() => toDateOnlyString(null as any)).toThrow('Invalid date provided to toDateOnlyString');
-      expect(() => toDateOnlyString(undefined as any)).toThrow('Invalid date provided to toDateOnlyString');
-      expect(() => toDateOnlyString('invalid' as any)).toThrow('Invalid date provided to toDateOnlyString');
-      expect(() => toDateOnlyString(new Date('invalid'))).toThrow('Invalid date provided to toDateOnlyString');
-      expect(() => toDateOnlyString({} as any)).toThrow('Invalid date provided to toDateOnlyString');
+      expect(() => toDateOnlyString(null as any)).toThrow(
+        'Invalid date provided to toDateOnlyString'
+      );
+      expect(() => toDateOnlyString(undefined as any)).toThrow(
+        'Invalid date provided to toDateOnlyString'
+      );
+      expect(() => toDateOnlyString('invalid' as any)).toThrow(
+        'Invalid date provided to toDateOnlyString'
+      );
+      expect(() => toDateOnlyString(new Date('invalid'))).toThrow(
+        'Invalid date provided to toDateOnlyString'
+      );
+      expect(() => toDateOnlyString({} as any)).toThrow(
+        'Invalid date provided to toDateOnlyString'
+      );
     });
 
     it('should use local date methods to avoid timezone issues', () => {
@@ -71,7 +81,9 @@ describe('Date Formatting Utilities', () => {
 
     it('should throw error for invalid dates', () => {
       expect(() => toUTCTimestamp(null as any)).toThrow('Invalid date provided to toUTCTimestamp');
-      expect(() => toUTCTimestamp(new Date('invalid'))).toThrow('Invalid date provided to toUTCTimestamp');
+      expect(() => toUTCTimestamp(new Date('invalid'))).toThrow(
+        'Invalid date provided to toUTCTimestamp'
+      );
     });
   });
 
@@ -234,12 +246,10 @@ describe('Date Formatting Utilities', () => {
 
   describe('Performance considerations', () => {
     it('should handle bulk date formatting efficiently', () => {
-      const dates = Array.from({ length: 1000 }, (_, i) =>
-        new Date(2025, 0, i % 28 + 1)
-      );
+      const dates = Array.from({ length: 1000 }, (_, i) => new Date(2025, 0, (i % 28) + 1));
 
       const startTime = performance.now();
-      dates.forEach(date => toDateOnlyString(date));
+      dates.forEach((date) => toDateOnlyString(date));
       const endTime = performance.now();
 
       // Should process 1000 dates in under 50ms
@@ -253,8 +263,9 @@ describe('Date Formatting Utilities', () => {
     });
 
     it('should format multiple dates efficiently with caching', () => {
-      const dates = Array.from({ length: 100 }, (_, i) =>
-        new Date(2025, 0, (i % 10) + 1) // Only 10 unique dates
+      const dates = Array.from(
+        { length: 100 },
+        (_, i) => new Date(2025, 0, (i % 10) + 1) // Only 10 unique dates
       );
 
       const startTime = performance.now();
@@ -274,7 +285,7 @@ describe('Date Formatting Utilities', () => {
       const results = formatDatesInBulk(dates, true);
       const endTime = performance.now();
 
-      expect(results.every(r => r === '2025-01-15')).toBe(true);
+      expect(results.every((r) => r === '2025-01-15')).toBe(true);
       expect(endTime - startTime).toBeLessThan(5); // Very fast due to caching
     });
 
@@ -290,8 +301,9 @@ describe('Date Formatting Utilities', () => {
 
     it('should clear cache when it exceeds size limit', () => {
       // Create more than CACHE_SIZE_LIMIT (1000) unique dates
-      const dates = Array.from({ length: 1100 }, (_, i) =>
-        new Date(2020 + Math.floor(i / 365), 0, (i % 365) + 1)
+      const dates = Array.from(
+        { length: 1100 },
+        (_, i) => new Date(2020 + Math.floor(i / 365), 0, (i % 365) + 1)
       );
 
       // Format all dates - cache should auto-clear

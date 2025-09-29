@@ -36,10 +36,25 @@ export async function fetchCodeOwners(owner: string, repo: string, forceRefresh 
   }>;
 }
 
-export async function fetchSuggestedCodeOwners(owner: string, repo: string, opts?: { llm?: boolean }) {
-  const res = await fetch(`/api/repos/${owner}/${repo}/suggested-codeowners${opts?.llm ? '?llm=1' : ''}`);
+export async function fetchSuggestedCodeOwners(
+  owner: string,
+  repo: string,
+  opts?: { llm?: boolean }
+) {
+  const res = await fetch(
+    `/api/repos/${owner}/${repo}/suggested-codeowners${opts?.llm ? '?llm=1' : ''}`
+  );
   if (!res.ok) throw new Error(`Failed to fetch suggested CODEOWNERS: ${res.status}`);
-  return res.json() as Promise<{ suggestions: Array<{ pattern: string; owners: string[]; confidence: number; reasoning: string }>; codeOwnersContent: string; cached?: boolean }>;
+  return res.json() as Promise<{
+    suggestions: Array<{
+      pattern: string;
+      owners: string[];
+      confidence: number;
+      reasoning: string;
+    }>;
+    codeOwnersContent: string;
+    cached?: boolean;
+  }>;
 }
 
 export async function suggestReviewers(
@@ -78,7 +93,7 @@ export async function suggestReviewers(
         retryable: error.retryable,
         requestId: error.requestId,
         suggestions: error.details?.suggestion ? [error.details.suggestion] : [],
-        action: error.details?.action
+        action: error.details?.action,
       };
 
       throw userError;
@@ -101,23 +116,27 @@ export async function suggestReviewers(
 
     // Network or parsing errors
     if (error instanceof TypeError && error.message.includes('fetch')) {
-      const networkError = new Error('Unable to connect to the service. Please check your internet connection and try again.');
+      const networkError = new Error(
+        'Unable to connect to the service. Please check your internet connection and try again.'
+      );
       networkError.name = 'NETWORK_ERROR';
       (networkError as any).details = {
         category: 'network',
         retryable: true,
-        suggestions: ['Check your internet connection', 'Try refreshing the page']
+        suggestions: ['Check your internet connection', 'Try refreshing the page'],
       };
       throw networkError;
     }
 
     // Generic fallback
-    const genericError = new Error('An unexpected error occurred while fetching reviewer suggestions.');
+    const genericError = new Error(
+      'An unexpected error occurred while fetching reviewer suggestions.'
+    );
     genericError.name = 'UNKNOWN_ERROR';
     (genericError as any).details = {
       category: 'unknown',
       retryable: true,
-      suggestions: ['Try again in a moment', 'Contact support if the problem persists']
+      suggestions: ['Try again in a moment', 'Contact support if the problem persists'],
     };
     throw genericError;
   }
@@ -126,7 +145,12 @@ export async function suggestReviewers(
 export async function fetchFileTree(owner: string, repo: string) {
   const res = await fetch(`/api/repos/${owner}/${repo}/file-tree`);
   if (!res.ok) throw new Error(`Failed to fetch file tree: ${res.status}`);
-  return res.json() as Promise<{ files: string[]; directories: string[]; totalSize: number; truncated: boolean }>;
+  return res.json() as Promise<{
+    files: string[];
+    directories: string[];
+    totalSize: number;
+    truncated: boolean;
+  }>;
 }
 
 export type MinimalPR = {
@@ -137,7 +161,10 @@ export type MinimalPR = {
   author?: { username: string; avatar_url?: string } | null;
 };
 
-export async function fetchRecentPullRequests(repositoryId: string, limit = 25): Promise<MinimalPR[]> {
+export async function fetchRecentPullRequests(
+  repositoryId: string,
+  limit = 25
+): Promise<MinimalPR[]> {
   const { data, error } = await supabase
     .from('pull_requests')
     .select(
@@ -152,7 +179,10 @@ export async function fetchRecentPullRequests(repositoryId: string, limit = 25):
   return (data || []) as unknown as MinimalPR[];
 }
 
-export async function fetchPRsWithoutReviewers(repositoryId: string, limit = 10): Promise<MinimalPR[]> {
+export async function fetchPRsWithoutReviewers(
+  repositoryId: string,
+  limit = 10
+): Promise<MinimalPR[]> {
   // Fetch open PRs with their actual IDs
   const { data: prs, error: prError } = await supabase
     .from('pull_requests')
@@ -168,7 +198,7 @@ export async function fetchPRsWithoutReviewers(repositoryId: string, limit = 10)
   if (!prs || prs.length === 0) return [];
 
   // Get PR IDs (the actual UUID ids from the database)
-  const prIds = prs.map(pr => pr.id);
+  const prIds = prs.map((pr) => pr.id);
 
   // Fetch reviews for these PRs
   const { data: reviews, error: reviewError } = await supabase
@@ -179,9 +209,9 @@ export async function fetchPRsWithoutReviewers(repositoryId: string, limit = 10)
   if (reviewError) throw reviewError;
 
   // Filter out PRs that have reviews
-  const prsWithReviews = new Set((reviews || []).map(r => r.pull_request_id));
+  const prsWithReviews = new Set((reviews || []).map((r) => r.pull_request_id));
   const prsWithoutReviews = prs
-    .filter(pr => !prsWithReviews.has(pr.id))
+    .filter((pr) => !prsWithReviews.has(pr.id))
     .slice(0, limit)
     .map(({ id, ...pr }) => pr); // Remove the id field from the result
 

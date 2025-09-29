@@ -540,15 +540,19 @@ export function DistributionTreemapEnhanced({
               {data.pr && typeof data.pr === 'object' && (
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">
-                    Size: +{(() => {
+                    Size: +
+                    {(() => {
                       const pr = data.pr as Record<string, unknown>;
                       const additions = typeof pr.additions === 'number' ? pr.additions : 0;
                       return additions;
-                    })()} -{(() => {
+                    })()}{' '}
+                    -
+                    {(() => {
                       const pr = data.pr as Record<string, unknown>;
                       const deletions = typeof pr.deletions === 'number' ? pr.deletions : 0;
                       return deletions;
-                    })()} lines
+                    })()}{' '}
+                    lines
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {(() => {
@@ -571,7 +575,8 @@ export function DistributionTreemapEnhanced({
                 <>
                   <p className="font-semibold text-sm">{name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {typeof data.value === 'number' ? data.value : 0} PRs from remaining contributors
+                    {typeof data.value === 'number' ? data.value : 0} PRs from remaining
+                    contributors
                   </p>
                 </>
               ) : (

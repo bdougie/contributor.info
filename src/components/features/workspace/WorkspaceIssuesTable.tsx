@@ -133,7 +133,7 @@ export function WorkspaceIssuesTable({
       if (issues.length === 0) return;
 
       // Batch query all issue IDs at once to avoid N+1 query problem
-      const issueIds = issues.map(issue => issue.id);
+      const issueIds = issues.map((issue) => issue.id);
       const similarMap = new Map<string, Issue[]>();
 
       try {
@@ -151,7 +151,7 @@ export function WorkspaceIssuesTable({
 
         if (data && data.length > 0) {
           // Create a Set for O(1) lookup performance
-          const cachedIssueIds = new Set(data.map(item => item.item_id));
+          const cachedIssueIds = new Set(data.map((item) => item.item_id));
 
           // Mark issues that have similar items available
           for (const issue of issues) {
@@ -778,7 +778,10 @@ export function WorkspaceIssuesTable({
 
       {/* Similar Issues Dialog */}
       {selectedIssueForSimilar && (
-        <Dialog open={!!selectedIssueForSimilar} onOpenChange={() => setSelectedIssueForSimilar(null)}>
+        <Dialog
+          open={!!selectedIssueForSimilar}
+          onOpenChange={() => setSelectedIssueForSimilar(null)}
+        >
           <DialogContent className="sm:max-w-[725px]">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
@@ -812,19 +815,21 @@ export function WorkspaceIssuesTable({
 // Component to display similar issues
 function SimilarIssuesList({
   issueId,
-  onIssueClick
+  onIssueClick,
 }: {
   issueId: string;
   onIssueClick?: (issue: Issue) => void;
 }) {
   const [loading, setLoading] = useState(true);
-  const [similarIssues, setSimilarIssues] = useState<Array<{
-    issue_id: string;
-    title: string;
-    state: string;
-    number: number;
-    similarity_score: number;
-  }>>([]);
+  const [similarIssues, setSimilarIssues] = useState<
+    Array<{
+      issue_id: string;
+      title: string;
+      state: string;
+      number: number;
+      similarity_score: number;
+    }>
+  >([]);
 
   useEffect(() => {
     const fetchSimilarIssues = async () => {
@@ -833,7 +838,7 @@ function SimilarIssuesList({
         // Query for similar issues using vector similarity
         const { data, error } = await supabase.rpc('find_similar_issues', {
           target_issue_id: issueId,
-          limit_count: 5
+          limit_count: 5,
         });
 
         if (error) {
@@ -846,7 +851,9 @@ function SimilarIssuesList({
             .limit(5);
 
           if (fallbackData) {
-            setSimilarIssues(fallbackData.map(i => ({ ...i, issue_id: i.id, similarity_score: 0.5 })));
+            setSimilarIssues(
+              fallbackData.map((i) => ({ ...i, issue_id: i.id, similarity_score: 0.5 }))
+            );
           }
         } else if (data) {
           setSimilarIssues(data);

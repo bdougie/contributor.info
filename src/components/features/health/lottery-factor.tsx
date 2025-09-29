@@ -251,7 +251,11 @@ export function LotteryFactorContent({
                       pullRequests: 0, // YOLO coders bypass PRs
                       percentage: 0, // Not applicable for direct commits
                     }}
-                    role={detectBot({ githubUser: coder }).isBot ? 'bot' : getContributorRole(coder.login, index)}
+                    role={
+                      detectBot({ githubUser: coder }).isBot
+                        ? 'bot'
+                        : getContributorRole(coder.login, index)
+                    }
                   >
                     <OptimizedAvatar
                       src={coder.avatar_url}
@@ -265,7 +269,9 @@ export function LotteryFactorContent({
                   <div>
                     <p className="font-medium">{coder.login}</p>
                     <p className="text-sm text-muted-foreground">
-                      {detectBot({ githubUser: coder }).isBot ? 'bot' : getContributorRole(coder.login, index)}
+                      {detectBot({ githubUser: coder }).isBot
+                        ? 'bot'
+                        : getContributorRole(coder.login, index)}
                     </p>
                   </div>
                 </div>
@@ -575,7 +581,9 @@ export default function LotteryFactor() {
     setLocalIncludeBots(includeBots);
   }, [includeBots]);
 
-  const botCount = stats.pullRequests.filter((pr) => detectBot({ githubUser: pr.user }).isBot).length;
+  const botCount = stats.pullRequests.filter(
+    (pr) => detectBot({ githubUser: pr.user }).isBot
+  ).length;
   const hasBots = botCount > 0;
   // YOLO Coders button should only be visible if there are YOLO pushes
   const showYoloButton = directCommitsData?.hasYoloCoders === true;

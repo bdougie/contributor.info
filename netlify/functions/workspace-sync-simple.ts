@@ -111,9 +111,7 @@ export const handler: Handler = async (event, context) => {
     // Initialize Supabase client
     const supabaseUrl = process.env.SUPABASE_URL || '';
     const supabaseKey =
-      process.env.SUPABASE_SERVICE_ROLE_KEY ||
-      process.env.SUPABASE_ANON_KEY ||
-      '';
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '';
 
     if (!supabaseUrl || !supabaseKey) {
       console.error('Missing Supabase configuration');
@@ -181,14 +179,12 @@ export const handler: Handler = async (event, context) => {
     // Log workspace sync event if workspace provided
     if (workspaceId && successCount > 0) {
       try {
-        await supabase
-          .from('workspace_sync_logs')
-          .insert({
-            workspace_id: workspaceId,
-            repositories_synced: successCount,
-            sync_type: 'manual',
-            created_at: new Date().toISOString(),
-          });
+        await supabase.from('workspace_sync_logs').insert({
+          workspace_id: workspaceId,
+          repositories_synced: successCount,
+          sync_type: 'manual',
+          created_at: new Date().toISOString(),
+        });
       } catch (error) {
         console.error('[workspace-sync] Failed to log sync event:', error);
       }

@@ -9,6 +9,7 @@ import {
 import { RateLimiter, getRateLimitKey, applyRateLimitHeaders } from './lib/rate-limiter.mts';
 import { APIErrorHandler } from './lib/error-handler';
 import { generateRequestId, APIResponse } from '../../src/lib/api/error-types';
+import { ReviewerCache } from './lib/reviewer-cache.mts';
 
 interface ReviewerSuggestion {
   handle: string;
@@ -397,6 +398,13 @@ export default async (req: Request, context: Context) => {
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000', 10),
   });
 
+  // Initialize cache with 30-minute TTL
+  const cache = new ReviewerCache(
+    supabaseUrl,
+    supabaseKey,
+    parseInt(process.env.REVIEWER_CACHE_TTL_MINUTES || '30', 10)
+  );
+
   if (req.method === 'OPTIONS') return new Response('', { status: 200, headers: CORS_HEADERS });
   if (req.method !== 'POST') return createErrorResponse('Method not allowed', 405);
 
@@ -631,6 +639,28 @@ export default async (req: Request, context: Context) => {
       }
     }
 
+    // Check cache first
+    const cacheKey = files;
+    const cachedData = await cache.get(repository.id, cacheKey, prAuthor);
+
+    if (cachedData) {
+      console.log(`Returning cached reviewer suggestions for ${owner}/${repo}`);
+
+      // Return cached response with cache hit header
+      const resp = new Response(
+        JSON.stringify(cachedData),
+        {
+          status: 200,
+          headers: {
+            ...CORS_HEADERS,
+            'Content-Type': 'application/json',
+            'X-Cache-Status': 'hit'
+          }
+        }
+      );
+      return applyRateLimitHeaders(resp, rate);
+    }
+
     // Get reviewer suggestions from history
     let suggestions = await getReviewerSuggestionsFromHistory(repository.id, prFiles, prAuthor, supabase);
 
@@ -716,9 +746,19 @@ export default async (req: Request, context: Context) => {
       requestId
     );
 
+    // Store in cache for future requests
+    await cache.set(repository.id, cacheKey, responseData, prAuthor);
+
     const resp = new Response(
       JSON.stringify(responseData),
-      { status: 200, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } }
+      {
+        status: 200,
+        headers: {
+          ...CORS_HEADERS,
+          'Content-Type': 'application/json',
+          'X-Cache-Status': 'miss'
+        }
+      }
     );
 
     return applyRateLimitHeaders(resp, rate);

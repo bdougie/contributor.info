@@ -113,9 +113,9 @@ describe('Suggest Reviewers API Tests', () => {
         return {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
-              maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null })
-            })
-          })
+              maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+            }),
+          }),
         };
       });
     });
@@ -132,7 +132,9 @@ describe('Suggest Reviewers API Tests', () => {
 
       expect(response.status).toBe(400);
       expect(data.error).toBeDefined();
-      expect(data.error.userMessage).toBe('Please provide a list of changed files or a valid PR URL.');
+      expect(data.error.userMessage).toBe(
+        'Please provide a list of changed files or a valid PR URL.'
+      );
     });
 
     it('should reject requests with empty files array', async () => {
@@ -147,7 +149,9 @@ describe('Suggest Reviewers API Tests', () => {
 
       expect(response.status).toBe(400);
       expect(data.error).toBeDefined();
-      expect(data.error.userMessage).toBe('Please provide a list of changed files or a valid PR URL.');
+      expect(data.error.userMessage).toBe(
+        'Please provide a list of changed files or a valid PR URL.'
+      );
     });
 
     it('should reject requests with invalid files format', async () => {
@@ -162,7 +166,9 @@ describe('Suggest Reviewers API Tests', () => {
 
       expect(response.status).toBe(400);
       expect(data.error).toBeDefined();
-      expect(data.error.userMessage).toBe('Please provide a list of changed files or a valid PR URL.');
+      expect(data.error.userMessage).toBe(
+        'Please provide a list of changed files or a valid PR URL.'
+      );
     });
   });
 
@@ -225,7 +231,7 @@ describe('Suggest Reviewers API Tests', () => {
                   additions: 100,
                   deletions: 50,
                   merged_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-                }
+                },
               },
               {
                 id: 'review-2',
@@ -243,7 +249,7 @@ describe('Suggest Reviewers API Tests', () => {
                   additions: 200,
                   deletions: 30,
                   merged_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-                }
+                },
               },
             ],
             error: null,

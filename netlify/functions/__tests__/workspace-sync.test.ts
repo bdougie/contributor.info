@@ -9,10 +9,12 @@ vi.mock('@supabase/supabase-js', () => ({
       update: vi.fn(() => ({
         eq: vi.fn(() => ({
           select: vi.fn(() => ({
-            single: vi.fn(() => Promise.resolve({
-              data: { owner: 'test-owner', name: 'test-repo' },
-              error: null,
-            })),
+            single: vi.fn(() =>
+              Promise.resolve({
+                data: { owner: 'test-owner', name: 'test-repo' },
+                error: null,
+              })
+            ),
           })),
         })),
       })),

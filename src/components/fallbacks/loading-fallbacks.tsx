@@ -200,11 +200,12 @@ export function EnhancementDataFallback({ message, showPartialData, partialData 
                   ? 'YOLO coders detected'
                   : 'No YOLO coders found'}
               </p>
-              {partialData.directCommitsData.yoloCoderStats && partialData.directCommitsData.yoloCoderStats.length > 0 && (
-                <p className="text-xs text-gray-500 mt-1">
-                  Top: {partialData.directCommitsData.yoloCoderStats?.[0]?.login || 'N/A'}
-                </p>
-              )}
+              {partialData.directCommitsData.yoloCoderStats &&
+                partialData.directCommitsData.yoloCoderStats.length > 0 && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Top: {partialData.directCommitsData.yoloCoderStats?.[0]?.login || 'N/A'}
+                  </p>
+                )}
             </div>
           ) : (
             <div className="space-y-2">

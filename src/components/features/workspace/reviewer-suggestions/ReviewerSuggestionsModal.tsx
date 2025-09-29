@@ -17,7 +17,7 @@ import {
   suggestReviewers,
   fetchRecentPullRequests,
   fetchPRsWithoutReviewers,
-  type MinimalPR
+  type MinimalPR,
 } from '@/services/reviewer-suggestions.service';
 import type { Repository } from '@/components/features/workspace/RepositoryList';
 
@@ -27,7 +27,11 @@ interface ReviewerSuggestionsModalProps {
   repositories: Array<Pick<Repository, 'id' | 'name' | 'owner' | 'full_name'>>;
 }
 
-export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: ReviewerSuggestionsModalProps) {
+export function ReviewerSuggestionsModal({
+  open,
+  onOpenChange,
+  repositories,
+}: ReviewerSuggestionsModalProps) {
   const [activeRepo, setActiveRepo] = useState<string>('');
   const active = useMemo(
     () => repositories.find((r) => r.id === activeRepo) || repositories[0],
@@ -64,9 +68,12 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
   const [suggestions, setSuggestions] = useState<SuggestionsResponse | null>(null);
 
   // CODEOWNERS state (read-only for reference)
-  const [codeowners, setCodeowners] = useState<
-    { exists: boolean; content?: string; path?: string; message?: string } | null
-  >(null);
+  const [codeowners, setCodeowners] = useState<{
+    exists: boolean;
+    content?: string;
+    path?: string;
+    message?: string;
+  } | null>(null);
 
   const [pullRequests, setPullRequests] = useState<MinimalPR[]>([]);
   const [prsWithoutReviewers, setPrsWithoutReviewers] = useState<MinimalPR[]>([]);
@@ -185,7 +192,7 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
                   <div className="p-3 bg-muted/50 rounded-lg">
                     <div className="text-sm font-medium">PR #{selectedPR}</div>
                     <div className="text-xs text-muted-foreground mt-1">
-                      {prUrl && `${prUrl.split('/').slice(-3, -1).join('/')} • `}
+                      {prUrl && `${prUrl.split('/').slice(-4, -2).join('/')} • `}
                       Analysis complete
                     </div>
                   </div>
@@ -211,7 +218,9 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
             <div className="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/20 p-4">
               <div className="flex items-start gap-3">
                 <div className="flex-1">
-                  <h4 className="font-medium text-red-800 dark:text-red-200 mb-1">Failed to get reviewer suggestions</h4>
+                  <h4 className="font-medium text-red-800 dark:text-red-200 mb-1">
+                    Failed to get reviewer suggestions
+                  </h4>
                   <p className="text-sm text-red-600 dark:text-red-300">{error}</p>
                 </div>
               </div>
@@ -240,7 +249,9 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
                           {pr.author?.avatar_url ? (
                             <AvatarImage src={pr.author.avatar_url} alt={pr.author.username} />
                           ) : (
-                            <AvatarFallback>{pr.author?.username?.[0]?.toUpperCase() || '?'}</AvatarFallback>
+                            <AvatarFallback>
+                              {pr.author?.username?.[0]?.toUpperCase() || '?'}
+                            </AvatarFallback>
                           )}
                         </Avatar>
                         <div className="flex-1 min-w-0">
@@ -248,7 +259,8 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
                             #{pr.number} · {pr.title}
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            by @{pr.author?.username} · {new Date(pr.created_at).toLocaleDateString()}
+                            by @{pr.author?.username} ·{' '}
+                            {new Date(pr.created_at).toLocaleDateString()}
                           </div>
                         </div>
                         <Button
@@ -334,7 +346,10 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
                     variant="secondary"
                     onClick={() =>
                       navigator.clipboard.writeText(
-                        suggestions.suggestions.slice(0, 3).map((s: ReviewerSuggestionDTO) => `@${s.handle}`).join(' ')
+                        suggestions.suggestions
+                          .slice(0, 3)
+                          .map((s: ReviewerSuggestionDTO) => `@${s.handle}`)
+                          .join(' ')
                       )
                     }
                     title="Copy top reviewers"
@@ -342,23 +357,29 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
                     <Copy className="h-4 w-4 mr-2" /> Copy top reviewers
                   </Button>
                   <span className="text-xs text-muted-foreground">
-                    Analyzed {suggestions.filesAnalyzed} files in {suggestions.directoriesAffected} directories
+                    Analyzed {suggestions.filesAnalyzed} files in {suggestions.directoriesAffected}{' '}
+                    directories
                   </span>
                 </div>
 
                 <h4 className="font-semibold text-base mb-3">Suggested Reviewers</h4>
                 {suggestions.suggestions.length === 0 ? (
                   <div className="py-6 text-center">
-                    <p className="text-sm text-muted-foreground mb-2">No reviewer suggestions available</p>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      No reviewer suggestions available
+                    </p>
                     <p className="text-xs text-muted-foreground">
-                      This could be due to insufficient review history in the last 90 days.
-                      Consider manually assigning reviewers based on code ownership or expertise.
+                      This could be due to insufficient review history in the last 90 days. Consider
+                      manually assigning reviewers based on code ownership or expertise.
                     </p>
                   </div>
                 ) : (
                   <div className="grid gap-3">
                     {suggestions.suggestions.map((s) => (
-                      <div key={s.handle} className="flex items-center gap-4 p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
+                      <div
+                        key={s.handle}
+                        className="flex items-center gap-4 p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                      >
                         <Avatar className="h-10 w-10">
                           {s.metadata?.avatarUrl ? (
                             <AvatarImage src={s.metadata.avatarUrl} alt={s.handle} />
@@ -388,9 +409,7 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
                               </Badge>
                             )}
                           </div>
-                          <div className="text-sm text-muted-foreground">
-                            {s.reason}
-                          </div>
+                          <div className="text-sm text-muted-foreground">{s.reason}</div>
                           {s.metadata?.reviewCount && (
                             <div className="text-xs text-muted-foreground mt-1">
                               {s.metadata.reviewCount} recent reviews • {s.signals?.join(', ')}

@@ -46,7 +46,7 @@ export class GitHubAPIAdapter {
         const since = new Date();
         since.setDate(since.getDate() - maxClosedDays);
 
-        closedPRs = closedPRs.filter(pr => {
+        closedPRs = closedPRs.filter((pr) => {
           if (!pr.closed_at && !pr.merged_at) return false;
           const closedDate = new Date(pr.closed_at || pr.merged_at || '');
           return closedDate >= since;
@@ -74,11 +74,12 @@ export class GitHubAPIAdapter {
               username: pr.user?.login || 'unknown',
               avatar_url: pr.user?.avatar_url || '',
             },
-            requested_reviewers: pr.requested_reviewers?.map(r => ({
-              username: 'login' in r ? r.login : '',
-              avatar_url: 'avatar_url' in r ? r.avatar_url : '',
-            })) || [],
-            reviewers: reviews.map(review => ({
+            requested_reviewers:
+              pr.requested_reviewers?.map((r) => ({
+                username: 'login' in r ? r.login : '',
+                avatar_url: 'avatar_url' in r ? r.avatar_url : '',
+              })) || [],
+            reviewers: reviews.map((review) => ({
               username: review.user?.login || '',
               avatar_url: review.user?.avatar_url || '',
               approved: review.state === 'APPROVED',
@@ -129,18 +130,26 @@ export class GitHubAPIAdapter {
   /**
    * Fetch contributors with exponential backoff
    */
-  async fetchContributors(owner: string, repo: string, options?: { per_page?: number; page?: number }) {
+  async fetchContributors(
+    owner: string,
+    repo: string,
+    options?: { per_page?: number; page?: number }
+  ) {
     return this.service.fetchContributors(owner, repo, options);
   }
 
   /**
    * Fetch issues with exponential backoff
    */
-  async fetchIssues(owner: string, repo: string, options?: {
-    state?: 'open' | 'closed' | 'all';
-    per_page?: number;
-    page?: number;
-  }) {
+  async fetchIssues(
+    owner: string,
+    repo: string,
+    options?: {
+      state?: 'open' | 'closed' | 'all';
+      per_page?: number;
+      page?: number;
+    }
+  ) {
     return this.service.fetchIssues(owner, repo, options);
   }
 

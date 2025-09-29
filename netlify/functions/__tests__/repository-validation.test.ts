@@ -61,7 +61,9 @@ describe('Repository Validation Tests', () => {
 
       expect(result.isTracked).toBe(false);
       expect(result.exists).toBe(false);
-      expect(result.error).toBe('Invalid repository format. Names can only contain letters, numbers, dots, underscores, and hyphens');
+      expect(result.error).toBe(
+        'Invalid repository format. Names can only contain letters, numbers, dots, underscores, and hyphens'
+      );
     });
 
     it('should reject repository names that are too long', async () => {
@@ -105,7 +107,9 @@ describe('Repository Validation Tests', () => {
 
       expect(result.isTracked).toBe(false);
       expect(result.exists).toBe(true);
-      expect(result.error).toBe('Repository owner/repo is not tracked. Please track it first at https://contributor.info/owner/repo');
+      expect(result.error).toBe(
+        'Repository owner/repo is not tracked. Please track it first at https://contributor.info/owner/repo'
+      );
       expect(result.trackingUrl).toBe('https://contributor.info/owner/repo');
     });
 
@@ -119,7 +123,9 @@ describe('Repository Validation Tests', () => {
 
       expect(result.isTracked).toBe(false);
       expect(result.exists).toBe(true);
-      expect(result.error).toBe('Repository owner/repo tracking is inactive. Please reactivate it at https://contributor.info/owner/repo');
+      expect(result.error).toBe(
+        'Repository owner/repo tracking is inactive. Please reactivate it at https://contributor.info/owner/repo'
+      );
       expect(result.trackingUrl).toBe('https://contributor.info/owner/repo');
     });
 

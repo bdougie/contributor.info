@@ -27,16 +27,18 @@ export async function validateRepository(
   }
 
   if (owner.length > 39 || repo.length > 100) {
-    return { isTracked: false, exists: false, error: 'Repository or organization name is too long' };
+    return {
+      isTracked: false,
+      exists: false,
+      error: 'Repository or organization name is too long',
+    };
   }
 
   try {
     // Create Supabase client
     const supabaseUrl = process.env.SUPABASE_URL || '';
     const supabaseKey =
-      process.env.SUPABASE_SERVICE_ROLE_KEY ||
-      process.env.SUPABASE_ANON_KEY ||
-      '';
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '';
 
     if (!supabaseUrl || !supabaseKey) {
       return {
@@ -51,8 +53,8 @@ export async function validateRepository(
     const { data, error } = await supabase
       .from('tracked_repositories')
       .select('id, tracking_enabled')
-      .eq('organization_name', owner.toLowerCase())
-      .eq('repository_name', repo.toLowerCase())
+      .ilike('organization_name', owner)
+      .ilike('repository_name', repo)
       .maybeSingle();
 
     if (error) {
@@ -114,16 +116,13 @@ export function createNotFoundResponse(owner: string, repo: string, trackingUrl?
 }
 
 export function createErrorResponse(error: string, status = 400) {
-  return new Response(
-    JSON.stringify({ error, success: false }),
-    {
-      status,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
-    }
-  );
+  return new Response(JSON.stringify({ error, success: false }), {
+    status,
+    headers: {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*',
+    },
+  });
 }
 
 export const CORS_HEADERS = {

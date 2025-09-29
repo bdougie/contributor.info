@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 
 // Set up environment variables before importing handler
-process.env.VITE_SUPABASE_URL = 'https://test.supabase.co';
-process.env.VITE_SUPABASE_ANON_KEY = 'test-anon-key';
+process.env.SUPABASE_URL = 'https://test.supabase.co';
+process.env.SUPABASE_ANON_KEY = 'test-anon-key';
 
 // Mock Supabase before importing
 vi.mock('@supabase/supabase-js', () => ({
@@ -48,7 +48,7 @@ describe('CODEOWNERS API Database Tests', () => {
       // Mock repository query to return database error (simplified chain)
       const mockMaybeSingle = vi.fn().mockResolvedValue({
         data: null,
-        error: { message: 'Database connection failed' }
+        error: { message: 'Database connection failed' },
       });
       const mockEq2 = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
       const mockEq = vi.fn().mockReturnValue({ eq: mockEq2 });
@@ -72,7 +72,7 @@ describe('CODEOWNERS API Database Tests', () => {
       // Mock repository query to return no data (but no error)
       const mockMaybeSingle = vi.fn().mockResolvedValue({
         data: null,
-        error: null
+        error: null,
       });
       const mockEq2 = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
       const mockEq = vi.fn().mockReturnValue({ eq: mockEq2 });
@@ -101,7 +101,7 @@ describe('CODEOWNERS API Database Tests', () => {
       // Mock repository validation (first query)
       const mockValidationMaybeSingle = vi.fn().mockResolvedValue({
         data: { id: 1, tracking_enabled: true },
-        error: null
+        error: null,
       });
       const mockValidationEq2 = vi.fn().mockReturnValue({ maybeSingle: mockValidationMaybeSingle });
       const mockValidationEq = vi.fn().mockReturnValue({ eq: mockValidationEq2 });
@@ -111,9 +111,11 @@ describe('CODEOWNERS API Database Tests', () => {
       // Mock repository lookup (second query)
       const mockRepositoryMaybeSingle = vi.fn().mockResolvedValue({
         data: { id: 'repo-123' },
-        error: null
+        error: null,
       });
-      const mockRepositoryLimit = vi.fn().mockReturnValue({ maybeSingle: mockRepositoryMaybeSingle });
+      const mockRepositoryLimit = vi
+        .fn()
+        .mockReturnValue({ maybeSingle: mockRepositoryMaybeSingle });
       const mockRepositoryEq2 = vi.fn().mockReturnValue({ limit: mockRepositoryLimit });
       const mockRepositoryEq = vi.fn().mockReturnValue({ eq: mockRepositoryEq2 });
       const mockRepositorySelect = vi.fn().mockReturnValue({ eq: mockRepositoryEq });
@@ -124,9 +126,9 @@ describe('CODEOWNERS API Database Tests', () => {
         data: {
           content: '# CODEOWNERS\n/src/ @dev1 @dev2',
           file_path: '.github/CODEOWNERS',
-          fetched_at: '2023-01-01T00:00:00Z'
+          fetched_at: '2023-01-01T00:00:00Z',
         },
-        error: null
+        error: null,
       });
       const mockLimit = vi.fn().mockReturnValue({ maybeSingle: mockCodeownersMaybeSingle });
       const mockOrder = vi.fn().mockReturnValue({ limit: mockLimit });
@@ -169,7 +171,7 @@ describe('CODEOWNERS API Database Tests', () => {
       // Mock repository validation (first query)
       const mockValidationMaybeSingle = vi.fn().mockResolvedValue({
         data: { id: 1, tracking_enabled: true },
-        error: null
+        error: null,
       });
       const mockValidationEq2 = vi.fn().mockReturnValue({ maybeSingle: mockValidationMaybeSingle });
       const mockValidationEq = vi.fn().mockReturnValue({ eq: mockValidationEq2 });
@@ -179,9 +181,11 @@ describe('CODEOWNERS API Database Tests', () => {
       // Mock repository lookup (second query)
       const mockRepositoryMaybeSingle = vi.fn().mockResolvedValue({
         data: { id: repositoryId },
-        error: null
+        error: null,
       });
-      const mockRepositoryLimit = vi.fn().mockReturnValue({ maybeSingle: mockRepositoryMaybeSingle });
+      const mockRepositoryLimit = vi
+        .fn()
+        .mockReturnValue({ maybeSingle: mockRepositoryMaybeSingle });
       const mockRepositoryEq2 = vi.fn().mockReturnValue({ limit: mockRepositoryLimit });
       const mockRepositoryEq = vi.fn().mockReturnValue({ eq: mockRepositoryEq2 });
       const mockRepositorySelect = vi.fn().mockReturnValue({ eq: mockRepositoryEq });
@@ -190,7 +194,7 @@ describe('CODEOWNERS API Database Tests', () => {
       // Mock codeowners query
       const mockCodeownersMaybeSingle = vi.fn().mockResolvedValue({
         data: null,
-        error: null
+        error: null,
       });
       const mockLimit = vi.fn().mockReturnValue({ maybeSingle: mockCodeownersMaybeSingle });
       const mockOrder = vi.fn().mockReturnValue({ limit: mockLimit });

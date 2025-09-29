@@ -179,7 +179,9 @@ export async function analyzeDataGaps(): Promise<{
     const { count: reposNeedingCommits } = await supabase
       .from('repositories')
       .select('*', { count: 'exact', head: true })
-      .or(`last_commit_capture_at.is.null,last_commit_capture_at.lt.${staleCommitThreshold.toISOString()}`);
+      .or(
+        `last_commit_capture_at.is.null,last_commit_capture_at.lt.${staleCommitThreshold.toISOString()}`
+      );
 
     // Count commits needing PR analysis
     const { count: commitsNeedingAnalysis } = await supabase

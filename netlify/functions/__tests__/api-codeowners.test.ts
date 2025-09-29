@@ -43,19 +43,19 @@ describe('CODEOWNERS API Tests', () => {
     const mockEq2 = vi.fn().mockReturnValue({
       maybeSingle: mockMaybeSingle,
       order: mockOrder,
-      limit: mockLimit
+      limit: mockLimit,
     });
     mockEq = vi.fn().mockReturnValue({
       eq: mockEq2,
       order: mockOrder,
       limit: mockLimit,
-      maybeSingle: mockMaybeSingle
+      maybeSingle: mockMaybeSingle,
     });
     mockSelect = vi.fn().mockReturnValue({
       eq: mockEq,
       order: mockOrder,
       limit: mockLimit,
-      maybeSingle: mockMaybeSingle
+      maybeSingle: mockMaybeSingle,
     });
     mockFrom = vi.fn().mockReturnValue({ select: mockSelect });
     mockSupabase = { from: mockFrom };
@@ -159,9 +159,7 @@ describe('CODEOWNERS API Tests', () => {
     });
   });
 
-
   describe('CODEOWNERS file fetching', () => {
-
     it('should fetch CODEOWNERS from .github/CODEOWNERS', async () => {
       const codeOwnersContent = '# CODEOWNERS\n/src/ @developer1 @developer2';
 
@@ -177,7 +175,11 @@ describe('CODEOWNERS API Tests', () => {
           error: null,
         })
         .mockResolvedValueOnce({
-          data: { content: codeOwnersContent, file_path: '.github/CODEOWNERS', fetched_at: new Date() },
+          data: {
+            content: codeOwnersContent,
+            file_path: '.github/CODEOWNERS',
+            fetched_at: new Date(),
+          },
           error: null,
         });
 
@@ -303,7 +305,11 @@ describe('CODEOWNERS API Tests', () => {
           error: null,
         })
         .mockResolvedValueOnce({
-          data: { content: codeOwnersContent, file_path: '.github/CODEOWNERS', fetched_at: new Date() },
+          data: {
+            content: codeOwnersContent,
+            file_path: '.github/CODEOWNERS',
+            fetched_at: new Date(),
+          },
           error: null,
         });
 

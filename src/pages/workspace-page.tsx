@@ -3319,7 +3319,12 @@ function WorkspacePage() {
             <ReviewerSuggestionsModal
               open={reviewerModalOpen}
               onOpenChange={setReviewerModalOpen}
-              repositories={repositories.map((r) => ({ id: r.id, name: r.name, owner: r.owner, full_name: r.full_name }))}
+              repositories={repositories.map((r) => ({
+                id: r.id,
+                name: r.name,
+                owner: r.owner,
+                full_name: r.full_name,
+              }))}
             />
           )}
 

@@ -6,7 +6,14 @@ export interface APIError {
   timestamp: string;
   requestId: string;
   retryable: boolean;
-  category: 'validation' | 'authentication' | 'authorization' | 'not_found' | 'rate_limit' | 'server_error' | 'external_api';
+  category:
+    | 'validation'
+    | 'authentication'
+    | 'authorization'
+    | 'not_found'
+    | 'rate_limit'
+    | 'server_error'
+    | 'external_api';
 }
 
 export interface APIResponse<T = unknown> {
