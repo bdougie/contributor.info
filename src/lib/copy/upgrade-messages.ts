@@ -28,7 +28,8 @@ export const UPGRADE_MESSAGES = {
 
   GROUP_ASSIGNMENT: {
     title: 'Admin Access Required',
-    description: 'Only workspace owners, admins, maintainers, and editors can assign contributors to groups.',
+    description:
+      'Only workspace owners, admins, maintainers, and editors can assign contributors to groups.',
     actionText: 'Contact Admin',
     actionType: 'contact' as const,
   },

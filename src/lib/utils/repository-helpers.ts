@@ -83,7 +83,8 @@ export async function createRepositoryFallback(
 
     if (error) {
       // Check if repository already exists
-      if (error.code === '23505') { // Unique violation
+      if (error.code === '23505') {
+        // Unique violation
         const { data: existingRepo } = await supabase
           .from('repositories')
           .select('id')
@@ -134,7 +135,7 @@ export async function waitForRepository(
 
     // Exponential backoff with max delay of 2 seconds
     const delay = Math.min(100 * Math.pow(1.5, attempt), 2000);
-    await new Promise(resolve => setTimeout(resolve, delay));
+    await new Promise((resolve) => setTimeout(resolve, delay));
   }
 
   throw new Error(`Repository creation timeout for ${owner}/${name} after ${maxAttempts} attempts`);

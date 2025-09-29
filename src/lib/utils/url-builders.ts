@@ -51,8 +51,7 @@ export const githubUrls = {
   commit: (owner: string, repo: string, sha: string) =>
     `${API_PATHS.GITHUB_WEB}/${validateGitHubName(owner)}/${validateRepoName(repo)}/commit/${sha}`,
 
-  user: (username: string) =>
-    `${API_PATHS.GITHUB_WEB}/${validateGitHubName(username)}`,
+  user: (username: string) => `${API_PATHS.GITHUB_WEB}/${validateGitHubName(username)}`,
 
   file: (owner: string, repo: string, branch: string, path: string) =>
     `${API_PATHS.GITHUB_WEB}/${validateGitHubName(owner)}/${validateRepoName(repo)}/blob/${branch}/${path}`,
@@ -78,8 +77,7 @@ export const githubApiUrls = {
   repo: (owner: string, repo: string) =>
     `${API_PATHS.GITHUB_BASE}/repos/${validateGitHubName(owner)}/${validateRepoName(repo)}`,
 
-  repos: (owner: string) =>
-    `${API_PATHS.GITHUB_BASE}/users/${validateGitHubName(owner)}/repos`,
+  repos: (owner: string) => `${API_PATHS.GITHUB_BASE}/users/${validateGitHubName(owner)}/repos`,
 
   // Issues and PRs
   issues: (owner: string, repo: string) =>
@@ -114,22 +112,17 @@ export const githubApiUrls = {
     `${API_PATHS.GITHUB_BASE}/repos/${validateGitHubName(owner)}/${validateRepoName(repo)}/releases`,
 
   // Users
-  user: (username: string) =>
-    `${API_PATHS.GITHUB_BASE}/users/${validateGitHubName(username)}`,
+  user: (username: string) => `${API_PATHS.GITHUB_BASE}/users/${validateGitHubName(username)}`,
 
   // Rate limit
-  rateLimit: () =>
-    `${API_PATHS.GITHUB_BASE}/rate_limit`,
+  rateLimit: () => `${API_PATHS.GITHUB_BASE}/rate_limit`,
 
   // Search
-  searchRepos: () =>
-    `${API_PATHS.GITHUB_BASE}/search/repositories`,
+  searchRepos: () => `${API_PATHS.GITHUB_BASE}/search/repositories`,
 
-  searchIssues: () =>
-    `${API_PATHS.GITHUB_BASE}/search/issues`,
+  searchIssues: () => `${API_PATHS.GITHUB_BASE}/search/issues`,
 
-  searchUsers: () =>
-    `${API_PATHS.GITHUB_BASE}/search/users`,
+  searchUsers: () => `${API_PATHS.GITHUB_BASE}/search/users`,
 } as const;
 
 /**
@@ -137,16 +130,14 @@ export const githubApiUrls = {
  */
 export const appUrls = {
   // User pages
-  userProfile: (username: string) =>
-    `/user/${validateGitHubName(username)}`,
+  userProfile: (username: string) => `/user/${validateGitHubName(username)}`,
 
   // Repository pages
   repository: (owner: string, repo: string) =>
     `/repo/${validateGitHubName(owner)}/${validateRepoName(repo)}`,
 
   // Workspace pages
-  workspace: (workspaceId: string) =>
-    `/workspace/${workspaceId}`,
+  workspace: (workspaceId: string) => `/workspace/${workspaceId}`,
 
   // Settings
   settings: () => '/settings',
@@ -172,15 +163,17 @@ export const externalUrls = {
     `https://pypi.org/project/${encodeURIComponent(packageName)}`,
 
   // Docker Hub
-  dockerImage: (image: string) =>
-    `https://hub.docker.com/r/${encodeURIComponent(image)}`,
+  dockerImage: (image: string) => `https://hub.docker.com/r/${encodeURIComponent(image)}`,
 } as const;
 
 /**
  * Builds a URL with query parameters
  * Handles both absolute and relative URLs
  */
-export function buildUrlWithParams(baseUrl: string, params: Record<string, string | number | boolean | undefined>): string {
+export function buildUrlWithParams(
+  baseUrl: string,
+  params: Record<string, string | number | boolean | undefined>
+): string {
   // Check if it's a relative URL (doesn't start with http:// or https://)
   const isRelative = !baseUrl.startsWith('http://') && !baseUrl.startsWith('https://');
 

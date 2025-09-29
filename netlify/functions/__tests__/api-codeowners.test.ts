@@ -1,13 +1,31 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 
+// Set up environment variables before importing handler
+process.env.SUPABASE_URL = 'https://test.supabase.co';
+process.env.SUPABASE_ANON_KEY = 'test-anon-key';
+process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-key';
+process.env.NODE_ENV = 'test';
+
 // Mock Supabase before importing
-vi.mock('../../src/lib/supabase.js', () => ({
-  createSupabaseClient: vi.fn(() => ({
-    from: vi.fn(),
-  })),
+vi.mock('@supabase/supabase-js', () => ({
+  createClient: vi.fn(),
 }));
 
-import { createSupabaseClient } from '../../src/lib/supabase.js';
+// Mock the rate limiter
+vi.mock('../lib/rate-limiter.mts', () => ({
+  RateLimiter: vi.fn().mockImplementation(() => ({
+    checkLimit: vi.fn().mockResolvedValue({
+      allowed: true,
+      remaining: 100,
+      resetTime: Date.now() + 60000,
+    }),
+    reset: vi.fn(),
+  })),
+  getRateLimitKey: vi.fn().mockReturnValue('test-key'),
+  applyRateLimitHeaders: vi.fn().mockImplementation((response) => response),
+}));
+
+import { createClient } from '@supabase/supabase-js';
 import handler from '../api-codeowners';
 
 describe('CODEOWNERS API Tests', () => {
@@ -25,24 +43,24 @@ describe('CODEOWNERS API Tests', () => {
     const mockEq2 = vi.fn().mockReturnValue({
       maybeSingle: mockMaybeSingle,
       order: mockOrder,
-      limit: mockLimit
+      limit: mockLimit,
     });
     mockEq = vi.fn().mockReturnValue({
       eq: mockEq2,
       order: mockOrder,
       limit: mockLimit,
-      maybeSingle: mockMaybeSingle
+      maybeSingle: mockMaybeSingle,
     });
     mockSelect = vi.fn().mockReturnValue({
       eq: mockEq,
       order: mockOrder,
       limit: mockLimit,
-      maybeSingle: mockMaybeSingle
+      maybeSingle: mockMaybeSingle,
     });
     mockFrom = vi.fn().mockReturnValue({ select: mockSelect });
     mockSupabase = { from: mockFrom };
 
-    (createSupabaseClient as any).mockReturnValue(mockSupabase);
+    (createClient as any).mockReturnValue(mockSupabase);
   });
 
   afterEach(() => {
@@ -137,13 +155,11 @@ describe('CODEOWNERS API Tests', () => {
       const data = await response.json();
 
       expect(response.status).toBe(500);
-      expect(data.error).toBe('Database error while checking repository tracking');
+      expect(data.error).toContain('Database error while checking repository tracking');
     });
   });
 
-
   describe('CODEOWNERS file fetching', () => {
-
     it('should fetch CODEOWNERS from .github/CODEOWNERS', async () => {
       const codeOwnersContent = '# CODEOWNERS\n/src/ @developer1 @developer2';
 
@@ -151,7 +167,7 @@ describe('CODEOWNERS API Tests', () => {
       mockMaybeSingle.mockClear();
       mockMaybeSingle
         .mockResolvedValueOnce({
-          data: { id: 1, is_active: true },
+          data: { id: 1, tracking_enabled: true },
           error: null,
         })
         .mockResolvedValueOnce({
@@ -159,7 +175,11 @@ describe('CODEOWNERS API Tests', () => {
           error: null,
         })
         .mockResolvedValueOnce({
-          data: { content: codeOwnersContent, file_path: '.github/CODEOWNERS', fetched_at: new Date() },
+          data: {
+            content: codeOwnersContent,
+            file_path: '.github/CODEOWNERS',
+            fetched_at: new Date(),
+          },
           error: null,
         });
 
@@ -182,7 +202,7 @@ describe('CODEOWNERS API Tests', () => {
       mockMaybeSingle.mockClear();
       mockMaybeSingle
         .mockResolvedValueOnce({
-          data: { id: 1, is_active: true },
+          data: { id: 1, tracking_enabled: true },
           error: null,
         })
         .mockResolvedValueOnce({
@@ -212,7 +232,7 @@ describe('CODEOWNERS API Tests', () => {
       mockMaybeSingle.mockClear();
       mockMaybeSingle
         .mockResolvedValueOnce({
-          data: { id: 1, is_active: true },
+          data: { id: 1, tracking_enabled: true },
           error: null,
         })
         .mockResolvedValueOnce({
@@ -247,7 +267,7 @@ describe('CODEOWNERS API Tests', () => {
       mockMaybeSingle.mockClear();
       mockMaybeSingle
         .mockResolvedValueOnce({
-          data: { id: 1, is_active: true },
+          data: { id: 1, tracking_enabled: true },
           error: null,
         })
         .mockResolvedValueOnce({
@@ -277,7 +297,7 @@ describe('CODEOWNERS API Tests', () => {
       mockMaybeSingle.mockClear();
       mockMaybeSingle
         .mockResolvedValueOnce({
-          data: { id: 1, is_active: true },
+          data: { id: 1, tracking_enabled: true },
           error: null,
         })
         .mockResolvedValueOnce({
@@ -285,7 +305,11 @@ describe('CODEOWNERS API Tests', () => {
           error: null,
         })
         .mockResolvedValueOnce({
-          data: { content: codeOwnersContent, file_path: '.github/CODEOWNERS', fetched_at: new Date() },
+          data: {
+            content: codeOwnersContent,
+            file_path: '.github/CODEOWNERS',
+            fetched_at: new Date(),
+          },
           error: null,
         });
 

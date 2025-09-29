@@ -150,7 +150,10 @@ describe('syncPullRequestReviewers', () => {
 
     const result = await syncPullRequestReviewers('owner', 'repo');
 
-    expect(console.error).toHaveBeenCalledWith('Error syncing PR reviewers via edge function:', mockError);
+    expect(console.error).toHaveBeenCalledWith(
+      'Error syncing PR reviewers via edge function:',
+      mockError
+    );
     expect(result).toEqual([]); // Should return empty array on error
   });
 

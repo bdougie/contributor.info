@@ -92,7 +92,7 @@ function ContributorCard({
             <button
               onClick={onAddToGroup || onClick}
               className="hover:opacity-80 transition-opacity"
-              title={onAddToGroup ? "Add to group" : "View profile"}
+              title={onAddToGroup ? 'Add to group' : 'View profile'}
             >
               <img
                 src={contributor.avatar_url}
@@ -100,10 +100,7 @@ function ContributorCard({
                 className="h-12 w-12 rounded-full cursor-pointer"
               />
             </button>
-            <button
-              onClick={onClick}
-              className="text-left hover:opacity-80 transition-opacity"
-            >
+            <button onClick={onClick} className="text-left hover:opacity-80 transition-opacity">
               <p className="font-semibold">{contributor.name || contributor.username}</p>
               <p className="text-sm text-muted-foreground">@{contributor.username}</p>
             </button>

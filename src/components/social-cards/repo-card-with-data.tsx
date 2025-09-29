@@ -66,9 +66,7 @@ export default function RepoCardWithData() {
 
 function processPullRequestData(pullRequests: PullRequest[]) {
   // Filter out bots
-  const filteredPRs = pullRequests.filter(
-    (pr) => !detectBot({ githubUser: pr.user }).isBot
-  );
+  const filteredPRs = pullRequests.filter((pr) => !detectBot({ githubUser: pr.user }).isBot);
 
   // Get unique contributors
   const contributorMap = new Map<

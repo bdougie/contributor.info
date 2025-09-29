@@ -24,7 +24,7 @@ import { z } from 'zod';
 import {
   createRepositoryFallback,
   waitForRepository,
-  type ExtendedGitHubRepository
+  type ExtendedGitHubRepository,
 } from '@/lib/utils/repository-helpers';
 
 // Use mock supabase in Storybook if available
@@ -350,7 +350,9 @@ export function AddRepositoryModal({
 
             // Check if API is unavailable (common in local dev without GitHub token)
             if (trackResponse.status === 503) {
-              console.log('Track API unavailable (likely missing GitHub token), using direct database creation');
+              console.log(
+                'Track API unavailable (likely missing GitHub token), using direct database creation'
+              );
               throw new Error('API unavailable - using fallback');
             }
 
@@ -396,7 +398,8 @@ export function AddRepositoryModal({
           );
 
           if (createError) {
-            const errorMessage = createError instanceof Error ? createError.message : 'Unknown error';
+            const errorMessage =
+              createError instanceof Error ? createError.message : 'Unknown error';
             console.error('Error creating repository %s:', repo.full_name, createError);
             throw new Error(`Failed to add ${repo.full_name}: ${errorMessage}`);
           }
@@ -421,16 +424,15 @@ export function AddRepositoryModal({
 
       // Now add all repositories to the workspace
       let successCount = 0;
-      const errors: string[] = failedRepos.map(r => `Failed to process ${r.full_name}`);
+      const errors: string[] = failedRepos.map((r) => `Failed to process ${r.full_name}`);
 
       // Create a map of successful repository IDs to their staged repos
-      const successfulRepos = repositoryIds.map(id => {
-        const index = repositoryResults.findIndex(r => r === id);
+      const successfulRepos = repositoryIds.map((id) => {
+        const index = repositoryResults.findIndex((r) => r === id);
         return { id, repo: stagedRepos[index] };
       });
 
       for (const { id: repoId, repo: stagedRepo } of successfulRepos) {
-
         const response = await WorkspaceService.addRepositoryToWorkspace(workspaceId, user.id, {
           repository_id: repoId,
           notes: stagedRepo.notes,

@@ -116,7 +116,7 @@ export const createDateRange = (
 
   return {
     start: createDateForDBQuery(startDate, dateOnly),
-    end: createDateForDBQuery(endDate, dateOnly)
+    end: createDateForDBQuery(endDate, dateOnly),
   };
 };
 
@@ -183,7 +183,7 @@ export const formatDatesInBulk = (dates: Date[], dateOnly: boolean = true): stri
     dateCache.clear();
   }
 
-  return dates.map(date => {
+  return dates.map((date) => {
     const cacheKey = `${date.getTime()}_${dateOnly}`;
 
     if (dateCache.has(cacheKey)) {

@@ -42,7 +42,10 @@ export function TestSocialLinks() {
   return (
     <div className="p-8">
       <h1 className="text-2xl font-bold mb-4">Test Social Links Fetching</h1>
-      <p className="mb-4">Click the button below to open the contributor profile modal and test the "Fetch from GitHub" button.</p>
+      <p className="mb-4">
+        Click the button below to open the contributor profile modal and test the "Fetch from
+        GitHub" button.
+      </p>
 
       <button
         onClick={() => setOpen(true)}

@@ -295,13 +295,15 @@ Answer:`;
 
     if (category === 'development' && repositoryData.pullRequests) {
       const avgTitleLength =
-        repositoryData.pullRequests.reduce((sum, pr) => sum + (typeof pr.title === 'string' ? pr.title.length : 0), 0) /
-        repositoryData.pullRequests.length;
-      const featCount = repositoryData.pullRequests.filter((pr) =>
-        typeof pr.title === 'string' && pr.title.toLowerCase().includes('feat')
+        repositoryData.pullRequests.reduce(
+          (sum, pr) => sum + (typeof pr.title === 'string' ? pr.title.length : 0),
+          0
+        ) / repositoryData.pullRequests.length;
+      const featCount = repositoryData.pullRequests.filter(
+        (pr) => typeof pr.title === 'string' && pr.title.toLowerCase().includes('feat')
       ).length;
-      const fixCount = repositoryData.pullRequests.filter((pr) =>
-        typeof pr.title === 'string' && pr.title.toLowerCase().includes('fix')
+      const fixCount = repositoryData.pullRequests.filter(
+        (pr) => typeof pr.title === 'string' && pr.title.toLowerCase().includes('fix')
       ).length;
 
       data.push(`Average PR Title Length: ${avgTitleLength.toFixed(0)} characters`);

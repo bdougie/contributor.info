@@ -326,7 +326,10 @@ export class JobStatusReporter {
   /**
    * Get recent job history for a repository
    */
-  async getRepositoryJobHistory(repositoryId: string, limit: number = 10): Promise<JobHistoryItem[]> {
+  async getRepositoryJobHistory(
+    repositoryId: string,
+    limit: number = 10
+  ): Promise<JobHistoryItem[]> {
     try {
       const { data: jobs } = await supabase
         .from('progressive_capture_jobs')

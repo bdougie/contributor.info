@@ -58,7 +58,7 @@ export class ReviewMetricsTracker {
       // Add new review
       const reviewRecord: ReviewQualityTracking = {
         reviewId,
-        metrics
+        metrics,
       };
 
       existingMetrics.push(reviewRecord);
@@ -69,14 +69,10 @@ export class ReviewMetricsTracker {
       }
 
       // Save updated metrics
-      await fs.writeFile(
-        this.metricsFile,
-        JSON.stringify(existingMetrics, null, 2)
-      );
+      await fs.writeFile(this.metricsFile, JSON.stringify(existingMetrics, null, 2));
 
       core.info(`Recorded review metrics with ID: ${reviewId}`);
       return reviewId;
-
     } catch (error) {
       core.warning(`Failed to record review metrics: ${error}`);
       return reviewId;
@@ -89,14 +85,11 @@ export class ReviewMetricsTracker {
   ): Promise<void> {
     try {
       const metrics = await this.loadMetrics();
-      const review = metrics.find(r => r.reviewId === reviewId);
+      const review = metrics.find((r) => r.reviewId === reviewId);
 
       if (review) {
         review.effectiveness = effectiveness;
-        await fs.writeFile(
-          this.metricsFile,
-          JSON.stringify(metrics, null, 2)
-        );
+        await fs.writeFile(this.metricsFile, JSON.stringify(metrics, null, 2));
         core.info(`Updated effectiveness for review ${reviewId}`);
       }
     } catch (error) {
@@ -120,29 +113,32 @@ export class ReviewMetricsTracker {
           averageProcessingTime: 0,
           averageIssuesFound: 0,
           effectivenessRate: 0,
-          commonPatterns: []
+          commonPatterns: [],
         };
       }
 
       const totalReviews = metrics.length;
-      const averageProcessingTime = metrics.reduce((sum, m) =>
-        sum + m.metrics.metrics.processingTime, 0) / totalReviews;
+      const averageProcessingTime =
+        metrics.reduce((sum, m) => sum + m.metrics.metrics.processingTime, 0) / totalReviews;
 
-      const averageIssuesFound = metrics.reduce((sum, m) => {
-        const issues = m.metrics.metrics.issuesFound;
-        return sum + issues.high + issues.medium + issues.low;
-      }, 0) / totalReviews;
+      const averageIssuesFound =
+        metrics.reduce((sum, m) => {
+          const issues = m.metrics.metrics.issuesFound;
+          return sum + issues.high + issues.medium + issues.low;
+        }, 0) / totalReviews;
 
-      const reviewsWithEffectiveness = metrics.filter(m => m.effectiveness);
-      const effectivenessRate = reviewsWithEffectiveness.length > 0
-        ? reviewsWithEffectiveness.reduce((sum, m) => {
-            const rate = m.effectiveness!.implementedSuggestions /
-                        Math.max(m.effectiveness!.totalSuggestions, 1);
-            return sum + rate;
-          }, 0) / reviewsWithEffectiveness.length
-        : 0;
+      const reviewsWithEffectiveness = metrics.filter((m) => m.effectiveness);
+      const effectivenessRate =
+        reviewsWithEffectiveness.length > 0
+          ? reviewsWithEffectiveness.reduce((sum, m) => {
+              const rate =
+                m.effectiveness!.implementedSuggestions /
+                Math.max(m.effectiveness!.totalSuggestions, 1);
+              return sum + rate;
+            }, 0) / reviewsWithEffectiveness.length
+          : 0;
 
-      const projectTypes = metrics.map(m => m.metrics.context.projectType);
+      const projectTypes = metrics.map((m) => m.metrics.context.projectType);
       const commonPatterns = this.getMostCommon(projectTypes, 5);
 
       return {
@@ -150,9 +146,8 @@ export class ReviewMetricsTracker {
         averageProcessingTime: Math.round(averageProcessingTime),
         averageIssuesFound: Math.round(averageIssuesFound * 10) / 10,
         effectivenessRate: Math.round(effectivenessRate * 100) / 100,
-        commonPatterns
+        commonPatterns,
       };
-
     } catch (error) {
       core.warning(`Failed to generate review insights: ${error}`);
       return {
@@ -160,7 +155,7 @@ export class ReviewMetricsTracker {
         averageProcessingTime: 0,
         averageIssuesFound: 0,
         effectivenessRate: 0,
-        commonPatterns: []
+        commonPatterns: [],
       };
     }
   }
@@ -207,13 +202,16 @@ export class ReviewMetricsTracker {
   }
 
   private getMostCommon(arr: string[], limit: number): string[] {
-    const counts = arr.reduce((acc, item) => {
-      acc[item] = (acc[item] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const counts = arr.reduce(
+      (acc, item) => {
+        acc[item] = (acc[item] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
 
     return Object.entries(counts)
-      .sort(([,a], [,b]) => b - a)
+      .sort(([, a], [, b]) => b - a)
       .slice(0, limit)
       .map(([item]) => item);
   }
@@ -243,10 +241,10 @@ export function parseReviewMetrics(reviewText: string): {
     /^\d+\./gm, // numbered lists
     /^[-*]\s/gm, // bullet points
     /### .*Issue/gi, // section headers
-    /\*\*Suggestion\*\*/gi // explicit suggestions
+    /\*\*Suggestion\*\*/gi, // explicit suggestions
   ];
 
-  suggestionPatterns.forEach(pattern => {
+  suggestionPatterns.forEach((pattern) => {
     const matches = reviewText.match(pattern);
     if (matches) {
       totalSuggestions = Math.max(totalSuggestions, matches.length);
@@ -255,17 +253,14 @@ export function parseReviewMetrics(reviewText: string): {
 
   return {
     issuesFound,
-    totalSuggestions
+    totalSuggestions,
   };
 }
 
 /**
  * Extract project type from context
  */
-export function extractProjectType(
-  frameworks: string[],
-  libraries: string[]
-): string {
+export function extractProjectType(frameworks: string[], libraries: string[]): string {
   if (frameworks.includes('React')) {
     if (frameworks.includes('Next.js')) return 'Next.js Application';
     return 'React Application';
