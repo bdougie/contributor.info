@@ -150,11 +150,11 @@ export async function fetchRecentPullRequests(repositoryId: string, limit = 25):
 }
 
 export async function fetchPRsWithoutReviewers(repositoryId: string, limit = 10): Promise<MinimalPR[]> {
-  // Fetch open PRs
+  // Fetch open PRs with their actual IDs
   const { data: prs, error: prError } = await supabase
     .from('pull_requests')
     .select(
-      `number, title, state, created_at, author:contributors!author_id (username, avatar_url)`
+      `id, number, title, state, created_at, author:contributors!author_id (username, avatar_url)`
     )
     .eq('repository_id', repositoryId)
     .eq('state', 'open')
@@ -164,8 +164,8 @@ export async function fetchPRsWithoutReviewers(repositoryId: string, limit = 10)
   if (prError) throw prError;
   if (!prs || prs.length === 0) return [];
 
-  // Get PR IDs
-  const prIds = prs.map(pr => `${repositoryId}#${pr.number}`);
+  // Get PR IDs (the actual UUID ids from the database)
+  const prIds = prs.map(pr => pr.id);
 
   // Fetch reviews for these PRs
   const { data: reviews, error: reviewError } = await supabase
@@ -178,8 +178,9 @@ export async function fetchPRsWithoutReviewers(repositoryId: string, limit = 10)
   // Filter out PRs that have reviews
   const prsWithReviews = new Set((reviews || []).map(r => r.pull_request_id));
   const prsWithoutReviews = prs
-    .filter(pr => !prsWithReviews.has(`${repositoryId}#${pr.number}`))
-    .slice(0, limit);
+    .filter(pr => !prsWithReviews.has(pr.id))
+    .slice(0, limit)
+    .map(({ id, ...pr }) => pr); // Remove the id field from the result
 
   return prsWithoutReviews as unknown as MinimalPR[];
 }
