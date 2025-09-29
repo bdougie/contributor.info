@@ -279,6 +279,7 @@ function parseCodeOwners(content: string, prFiles: PullRequestFiles): Set<string
   return owners;
 }
 
+// Trigger rebuild with database schema fixes
 export default async (req: Request, context: Context) => {
   const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
   const supabaseKey =
