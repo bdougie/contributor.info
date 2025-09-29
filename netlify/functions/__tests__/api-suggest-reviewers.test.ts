@@ -1,13 +1,14 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 
-// Mock Supabase before importing
-vi.mock('../../src/lib/supabase.js', () => ({
-  createSupabaseClient: vi.fn(() => ({
-    from: vi.fn(),
-  })),
-}));
+// Set up environment variables before importing handler
+process.env.VITE_SUPABASE_URL = 'https://test.supabase.co';
+process.env.VITE_SUPABASE_ANON_KEY = 'test-anon-key';
 
-import { createSupabaseClient } from '../../src/lib/supabase.js';
+// Mock Supabase before importing
+vi.mock('@supabase/supabase-js', () => ({
+  createClient: vi.fn(),
+}));
+import { createClient } from '@supabase/supabase-js';
 import handler from '../api-suggest-reviewers';
 
 describe('Suggest Reviewers API Tests', () => {
@@ -18,7 +19,7 @@ describe('Suggest Reviewers API Tests', () => {
     // Setup default Supabase mock
     mockFrom = vi.fn();
     mockSupabase = { from: mockFrom };
-    (createSupabaseClient as any).mockReturnValue(mockSupabase);
+    (createClient as any).mockReturnValue(mockSupabase);
 
     // Mock environment variables
     process.env.GITHUB_TOKEN = 'test-github-token';
