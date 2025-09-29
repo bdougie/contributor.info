@@ -168,15 +168,16 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
             </TabsList>
           </div>
 
-          {/* PRs without reviewers section - only show in reviewers tab */}
-          {tab === 'reviewers' && prsWithoutReviewers.length > 0 && (
-          <div className="mb-6 p-4 border rounded-lg bg-amber-50/50 dark:bg-amber-950/20">
+          {/* PRs without reviewers section - show header always when there are PRs, but list only when not loading */}
+          {tab === 'reviewers' && prsWithoutReviewers.length > 0 && !suggestions && !error && (
+          <div className={`mb-6 p-4 border rounded-lg ${loading ? 'bg-muted/50' : 'bg-amber-50/50 dark:bg-amber-950/20'}`}>
             <div className="flex items-center gap-2 mb-3">
-              <Users className="h-4 w-4 text-amber-600" />
-              <h3 className="font-medium text-amber-800 dark:text-amber-200">
+              <Users className={`h-4 w-4 ${loading ? 'text-muted-foreground' : 'text-amber-600'}`} />
+              <h3 className={`font-medium ${loading ? 'text-foreground' : 'text-amber-800 dark:text-amber-200'}`}>
                 PRs Needing Reviewers ({prsWithoutReviewers.length})
               </h3>
             </div>
+            {!loading ? (
             <div className="space-y-2">
               {prsWithoutReviewers.slice(0, 5).map((pr) => (
                 <div
@@ -273,11 +274,19 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
                 </div>
               )}
             </div>
+            ) : (
+              <div className="flex justify-center py-4">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Analyzing PR #{selectedPR}...</span>
+                </div>
+              </div>
+            )}
           </div>
           )}
 
-          {/* Original PR selection for manual entry - only show in reviewers tab */}
-          {tab === 'reviewers' && pullRequests.length > 0 && (
+          {/* Original PR selection for manual entry - only show in reviewers tab when not loading and no suggestions/errors */}
+          {tab === 'reviewers' && pullRequests.length > 0 && !loading && !suggestions && !error && (
           <div className="flex items-center gap-3 mb-4">
             <span className="text-sm text-muted-foreground">Or select any open PR</span>
             <Select
@@ -337,31 +346,42 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
           </div>
           )}
 
-          <TabsContent value="reviewers" className="mt-4 space-y-4 min-h-[400px]">
-            {selectedPR && (
-              <div className="p-3 bg-muted/50 rounded-lg">
-                <div className="text-sm font-medium">Selected PR #{selectedPR}</div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  {prUrl && `${prUrl.split('/').slice(-3, -1).join('/')} • `}
-                  Analyzing changed files for reviewer suggestions
+          <TabsContent value="reviewers" className={`mt-4 space-y-4 ${suggestions || error ? 'h-[400px] overflow-y-auto' : ''}`}>
+            {(suggestions || error) && (
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex-1">
+                  {selectedPR && (
+                    <div className="p-3 bg-muted/50 rounded-lg">
+                      <div className="text-sm font-medium">PR #{selectedPR}</div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {prUrl && `${prUrl.split('/').slice(-3, -1).join('/')} • `}
+                        {error ? 'Failed to analyze' : 'Analysis complete'}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
-            {!selectedPR && !loading && (
-              <div className="text-center py-8 text-muted-foreground">
-                <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p>Select a PR above to get reviewer suggestions</p>
-              </div>
-            )}
-            {loading && (
-              <div className="text-center py-8">
-                <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">Analyzing PR and suggesting reviewers...</p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setSuggestions(null);
+                    setError(null);
+                    setSelectedPR('');
+                    setPrUrl('');
+                  }}
+                >
+                  Back to PRs
+                </Button>
               </div>
             )}
             {error && (
-              <div className="text-center py-4">
-                <span className="text-sm text-red-500">{error}</span>
+              <div className="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/20 p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex-1">
+                    <h4 className="font-medium text-red-800 dark:text-red-200 mb-1">Failed to get reviewer suggestions</h4>
+                    <p className="text-sm text-red-600 dark:text-red-300">{error}</p>
+                  </div>
+                </div>
               </div>
             )}
             {suggestions && (
@@ -442,7 +462,7 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
             )}
           </TabsContent>
 
-          <TabsContent value="codeowners" className="mt-4 space-y-3 min-h-[400px]">
+          <TabsContent value="codeowners" className="mt-4 space-y-3 h-[400px] overflow-y-auto">
             <div className="flex items-center gap-2">
               <Button onClick={handleLoadCodeowners} disabled={loading} variant="outline">
                 {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
@@ -454,23 +474,22 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
             </div>
             {error && <span className="text-sm text-red-500">{error}</span>}
             {codeowners ? (
-              <ScrollArea className="h-72 rounded border">
+              <ScrollArea className="h-64 rounded border">
                 <pre className="p-3 bg-muted/30 text-xs whitespace-pre-wrap">
                   {codeowners.content || codeowners.message}
                 </pre>
               </ScrollArea>
             ) : !loading && (
-              <div className="flex items-center justify-center h-72 rounded border border-dashed">
+              <div className="flex items-center justify-center h-64 rounded border border-dashed">
                 <div className="text-center text-muted-foreground">
                   <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">Click "Load CODEOWNERS" to view the file</p>
-                  <p className="text-xs mt-1">This will fetch the CODEOWNERS file from the repository</p>
+                  <p className="text-sm">No CODEOWNERS file loaded</p>
                 </div>
               </div>
             )}
           </TabsContent>
 
-          <TabsContent value="generate" className="mt-4 space-y-3 min-h-[400px]">
+          <TabsContent value="generate" className="mt-4 space-y-3 h-[400px] overflow-y-auto">
             <div className="flex items-center gap-4">
               <Button onClick={handleGenerate} disabled={loading}>
                 {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
@@ -489,7 +508,7 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
             )}
             {generated ? (
               <div className="grid gap-2">
-                <ScrollArea className="h-48 rounded border">
+                <ScrollArea className="h-40 rounded border">
                   <div className="p-2 space-y-2">
                     {generated.suggestions.map((s, idx) => (
                       <div key={idx} className="border rounded p-2 text-sm">
@@ -505,7 +524,7 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
                 </ScrollArea>
                 <div>
                   <h4 className="font-semibold mt-2">Generated CODEOWNERS</h4>
-                  <ScrollArea className="h-72 rounded border">
+                  <ScrollArea className="h-64 rounded border">
                     <pre className="p-3 bg-muted/30 text-xs whitespace-pre-wrap">
                       {generated.codeOwnersContent}
                     </pre>
@@ -513,11 +532,10 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
                 </div>
               </div>
             ) : !loading && (
-              <div className="flex items-center justify-center h-72 rounded border border-dashed">
+              <div className="flex items-center justify-center h-64 rounded border border-dashed">
                 <div className="text-center text-muted-foreground">
                   <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">Generate CODEOWNERS suggestions</p>
-                  <p className="text-xs mt-1">AI will analyze your repository structure and suggest ownership patterns</p>
+                  <p className="text-sm">No suggestions generated</p>
                 </div>
               </div>
             )}
