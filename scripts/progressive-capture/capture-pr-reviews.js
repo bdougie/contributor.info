@@ -1,4 +1,5 @@
 import { BaseCaptureScript } from './lib/base-capture.js';
+import { ensureContributor } from './lib/contributor-utils.js';
 import dotenv from 'dotenv';
 
 // Load environment variables
@@ -84,15 +85,20 @@ class PRReviewsCaptureScript extends BaseCaptureScript {
 
       // Process reviews
       for (const review of reviews) {
+        // Ensure review author exists and get UUID
+        let reviewAuthorId = null;
+        if (review.user) {
+          const reviewAuthor = await ensureContributor(this.supabase, review.user, this.repositoryName);
+          reviewAuthorId = reviewAuthor?.id || null;
+        }
+
         const reviewRecord = {
           repository_id: this.repositoryId,
           github_id: review.id,
           pull_request_number: pr.number,
           state: review.state,
           body: review.body,
-          author_id: review.user?.id,
-          author_login: review.user?.login,
-          author_avatar_url: review.user?.avatar_url,
+          author_id: reviewAuthorId, // Now using contributor UUID
           submitted_at: review.submitted_at,
           commit_id: review.commit_id,
           html_url: review.html_url,

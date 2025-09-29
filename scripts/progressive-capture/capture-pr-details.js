@@ -1,4 +1,5 @@
 import { BaseCaptureScript } from './lib/base-capture.js';
+import { ensureContributor, ensureMergedByContributor } from './lib/contributor-utils.js';
 import dotenv from 'dotenv';
 
 // Load environment variables
@@ -79,6 +80,14 @@ class PRDetailsCaptureScript extends BaseCaptureScript {
         per_page: 100,
       });
 
+      // Ensure contributors exist and get their UUIDs
+      const authorContributor = await ensureContributor(this.supabase, prData.user, this.repositoryName);
+      let mergedByContributorId = null;
+      if (prData.merged_by) {
+        const mergedByContributor = await ensureMergedByContributor(this.supabase, prData.merged_by, this.repositoryName);
+        mergedByContributorId = mergedByContributor?.id || null;
+      }
+
       // Prepare data for database
       const prRecord = {
         repository_id: this.repositoryId,
@@ -92,17 +101,14 @@ class PRDetailsCaptureScript extends BaseCaptureScript {
         deletions: prData.deletions,
         changed_files: prData.changed_files,
         commits: prData.commits,
-        author_id: prData.user.id,
-        author_login: prData.user.login,
-        author_avatar_url: prData.user.avatar_url,
+        author_id: authorContributor.id, // Now using contributor UUID
         created_at: prData.created_at,
         updated_at: prData.updated_at,
         closed_at: prData.closed_at,
         merged_at: prData.merged_at,
         merged: prData.merged,
         mergeable: prData.mergeable,
-        merged_by_id: prData.merged_by?.id,
-        merged_by_login: prData.merged_by?.login,
+        merged_by_id: mergedByContributorId, // Now using contributor UUID
         base_ref: prData.base.ref,
         head_ref: prData.head.ref,
         head_sha: prData.head.sha,
