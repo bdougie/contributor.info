@@ -38,7 +38,7 @@ export function WorkspaceSyncButton({
       setSyncProgress('Starting sync...');
 
       // Call the server-side API endpoint to trigger sync
-      const response = await fetch('/.netlify/functions/workspace-sync', {
+      const response = await fetch('/.netlify/functions/workspace-sync-simple', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

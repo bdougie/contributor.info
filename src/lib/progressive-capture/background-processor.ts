@@ -168,7 +168,9 @@ export function startBackgroundProcessing(): void {
     });
 
     // Expose processor to global scope for debugging
-    (window as any).BackgroundProcessor = BackgroundProcessor;
+    (
+      window as typeof window & { BackgroundProcessor?: typeof BackgroundProcessor }
+    ).BackgroundProcessor = BackgroundProcessor;
   }
 }
 

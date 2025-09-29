@@ -76,8 +76,14 @@ class PostHogOpenAIService {
   private baseUrl = 'https://api.openai.com/v1';
   private config: LLMServiceConfig;
   private posthogConfig: PostHogConfig;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private posthogClient: any = null; // Will be dynamically imported
+
+  private posthogClient: {
+    capture: (data: {
+      distinctId: string;
+      event: string;
+      properties: Record<string, unknown>;
+    }) => void;
+  } | null = null; // Will be dynamically imported
 
   constructor() {
     // Handle both Vite and Node.js environments
@@ -127,7 +133,13 @@ class PostHogOpenAIService {
         throw new Error('posthog-node not available');
       }
 
-      this.posthogClient = posthogModule;
+      this.posthogClient = posthogModule as {
+        capture: (data: {
+          distinctId: string;
+          event: string;
+          properties: Record<string, unknown>;
+        }) => void;
+      };
       console.log('PostHog LLM analytics initialized');
     } catch (error) {
       console.warn('PostHog not available - install posthog-node for LLM tracking:', error);
@@ -378,7 +390,7 @@ class PostHogOpenAIService {
 
       // Track the error
       if (this.isTrackingEnabled() && metadata) {
-        this.trackLLMError(error, metadata, prompt);
+        this.trackLLMError(error as Error, metadata, prompt);
       }
 
       if (error instanceof Error && error.name === 'AbortError') {
@@ -505,8 +517,8 @@ class PostHogOpenAIService {
           repository: metadata.repository,
           conversation_id: metadata.conversationId,
           trace_id: metadata.traceId,
+          groups: metadata.organizationId ? { organization: metadata.organizationId } : undefined,
         },
-        groups: metadata.organizationId ? { organization: metadata.organizationId } : undefined,
       });
     } catch (error) {
       console.warn('Failed to track LLM call:', error);
@@ -516,8 +528,12 @@ class PostHogOpenAIService {
   /**
    * Track LLM errors
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private trackLLMError(error: any, metadata: LLMCallMetadata, prompt: string): void {
+
+  private trackLLMError(
+    error: Error | { message?: string; code?: string | number },
+    metadata: LLMCallMetadata,
+    prompt: string
+  ): void {
     if (!this.posthogClient) return;
 
     try {
@@ -532,8 +548,8 @@ class PostHogOpenAIService {
           conversation_id: metadata.conversationId,
           trace_id: metadata.traceId,
           $ai_input: this.posthogConfig.enablePrivacyMode ? '[REDACTED]' : prompt,
+          groups: metadata.organizationId ? { organization: metadata.organizationId } : undefined,
         },
-        groups: metadata.organizationId ? { organization: metadata.organizationId } : undefined,
       });
     } catch (trackError) {
       console.warn('Failed to track LLM error:', trackError);

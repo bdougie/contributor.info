@@ -39,7 +39,10 @@ class LLMErrorHandler {
   /**
    * Process and categorize errors from LLM operations
    */
-  handleError(error: any, context: string): LLMError {
+  handleError(
+    error: Error | { message?: string; code?: string | number; name?: string },
+    context: string
+  ): LLMError {
     const llmError = this.categorizeError(error, context);
 
     if (this.config.logErrors) {
@@ -52,7 +55,10 @@ class LLMErrorHandler {
   /**
    * Categorize error based on type and provide appropriate handling
    */
-  private categorizeError(error: any, context: string): LLMError {
+  private categorizeError(
+    error: Error | { message?: string; code?: string | number; name?: string },
+    context: string
+  ): LLMError {
     const timestamp = new Date();
 
     // OpenAI API specific errors
@@ -108,12 +114,16 @@ class LLMErrorHandler {
     }
 
     // API errors (non-auth, non-rate-limit)
-    if (error.message?.includes('API error') || (error.code && error.code >= 400)) {
+    const errorCode = 'code' in error ? error.code : undefined;
+    if (
+      error.message?.includes('API error') ||
+      (errorCode && typeof errorCode === 'number' && errorCode >= 400)
+    ) {
       return {
         type: 'api_error',
         message: `API error in ${context}: ${error.message}`,
-        code: error.code,
-        retryable: error.code >= 500, // Server errors are retryable
+        code: errorCode,
+        retryable: typeof errorCode === 'number' && errorCode >= 500, // Server errors are retryable
         fallbackAvailable: true,
         userMessage: 'AI service temporarily unavailable. Using alternative insights.',
         timestamp,
@@ -230,7 +240,7 @@ export const createErrorBoundaryProps = () => ({
   },
 });
 
-export const withErrorHandling = <T extends any[], R>(
+export const withErrorHandling = <T extends unknown[], R>(
   fn: (...args: T) => Promise<R>,
   context: string,
   fallbackFn?: (...args: T) => R
@@ -238,11 +248,11 @@ export const withErrorHandling = <T extends any[], R>(
   return async (...args: T): Promise<R | null> => {
     let attemptCount = 0;
 
-    while (attemptCount <= llmErrorHandler['config'].maxRetries) {
+    while (attemptCount <= (llmErrorHandler as any).config.maxRetries) {
       try {
         return await fn(...args);
       } catch (error) {
-        const llmError = llmErrorHandler.handleError(error, context);
+        const llmError = llmErrorHandler.handleError(error as Error, context);
 
         if (llmErrorHandler.shouldRetry(llmError, attemptCount)) {
           attemptCount++;

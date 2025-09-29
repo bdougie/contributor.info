@@ -22,6 +22,25 @@ export interface ContributorGroupMember {
   added_by: string | null;
 }
 
+interface AppUser {
+  auth_user_id: string;
+  email: string;
+  display_name: string;
+}
+
+interface NoteDbRecord {
+  id: string;
+  contributorId?: string;
+  workspace_id?: string;
+  contributor_username?: string;
+  note?: string;
+  note_content?: string;
+  created_at: string;
+  updated_at: string;
+  created_by: string | null;
+  updated_by: string | null;
+}
+
 export interface ContributorNote {
   id: string;
   contributorId?: string;
@@ -31,8 +50,22 @@ export interface ContributorNote {
   note_content?: string;
   created_at: string;
   updated_at: string;
-  created_by: string | null;
-  updated_by: string | null;
+  created_by:
+    | {
+        auth_user_id: string | null;
+        email: string;
+        display_name: string;
+      }
+    | string
+    | null;
+  updated_by:
+    | {
+        auth_user_id: string | null;
+        email: string;
+        display_name: string;
+      }
+    | string
+    | null;
 }
 
 export function useContributorGroups(workspaceId: string | undefined) {
@@ -81,12 +114,12 @@ export function useContributorGroups(workspaceId: string | undefined) {
 
       // Fetch user information for notes authors
       const userIds = new Set<string>();
-      (notesData || []).forEach((note: any) => {
+      (notesData || []).forEach((note: NoteDbRecord) => {
         if (note.created_by) userIds.add(note.created_by);
         if (note.updated_by) userIds.add(note.updated_by);
       });
 
-      let userMap = new Map<string, any>();
+      const userMap = new Map<string, AppUser>();
       if (userIds.size > 0) {
         const { data: usersData } = await supabase
           .from('app_users')
@@ -94,7 +127,7 @@ export function useContributorGroups(workspaceId: string | undefined) {
           .in('auth_user_id', Array.from(userIds));
 
         if (usersData) {
-          usersData.forEach((user: any) => {
+          usersData.forEach((user: AppUser) => {
             userMap.set(user.auth_user_id, user);
           });
         }
@@ -103,25 +136,25 @@ export function useContributorGroups(workspaceId: string | undefined) {
       const mappedGroups = groupsData || [];
 
       // Map notes to match expected interface
-      const mappedNotes = (notesData || []).map((note: any) => {
-        const createdByUser = userMap.get(note.created_by);
-        const updatedByUser = userMap.get(note.updated_by);
+      const mappedNotes = (notesData || []).map((note: NoteDbRecord) => {
+        const createdByUser = note.created_by ? userMap.get(note.created_by) : null;
+        const updatedByUser = note.updated_by ? userMap.get(note.updated_by) : null;
 
         return {
           ...note,
-          note: note.note_content,
+          note: note.note_content ?? note.note ?? '',
           contributorId: note.contributor_username,
           created_by: createdByUser || {
             auth_user_id: note.created_by,
             email: 'unknown',
-            display_name: 'Unknown user'
+            display_name: 'Unknown user',
           },
           updated_by: updatedByUser || {
             auth_user_id: note.updated_by,
             email: 'unknown',
-            display_name: 'Unknown user'
+            display_name: 'Unknown user',
           },
-        };
+        } as ContributorNote;
       });
 
       setGroups(mappedGroups);
@@ -326,7 +359,7 @@ export function useContributorGroups(workspaceId: string | undefined) {
       const userInfo = userData || {
         auth_user_id: user.id,
         email: user.email || 'unknown',
-        display_name: user.email?.split('@')[0] || 'Unknown user'
+        display_name: user.email?.split('@')[0] || 'Unknown user',
       };
 
       const mappedNote = {
@@ -338,17 +371,19 @@ export function useContributorGroups(workspaceId: string | undefined) {
       };
 
       // Check if note exists in local state
-      const existingNoteIndex = notes.findIndex((n) => n.contributor_username === contributorUsername);
+      const existingNoteIndex = notes.findIndex(
+        (n) => n.contributor_username === contributorUsername
+      );
 
       if (existingNoteIndex >= 0) {
         setNotes((prev) => {
           const updated = [...prev];
-          updated[existingNoteIndex] = mappedNote as any;
+          updated[existingNoteIndex] = mappedNote;
           return updated;
         });
         toast.success('Note updated successfully');
       } else {
-        setNotes((prev) => [...prev, mappedNote as any]);
+        setNotes((prev) => [...prev, mappedNote]);
         toast.success('Note added successfully');
       }
 
@@ -411,7 +446,7 @@ export function useContributorGroups(workspaceId: string | undefined) {
       const userInfo = userData || {
         auth_user_id: user.id,
         email: user.email || 'unknown',
-        display_name: user.email?.split('@')[0] || 'Unknown user'
+        display_name: user.email?.split('@')[0] || 'Unknown user',
       };
 
       const mappedNote = {
@@ -423,9 +458,7 @@ export function useContributorGroups(workspaceId: string | undefined) {
       };
 
       // Update the note in local state with properly mapped data
-      setNotes((prev) =>
-        prev.map((n) => (n.id === noteId ? mappedNote as any : n))
-      );
+      setNotes((prev) => prev.map((n) => (n.id === noteId ? mappedNote : n)));
 
       toast.success('Note updated successfully');
       return mappedNote;
@@ -434,17 +467,14 @@ export function useContributorGroups(workspaceId: string | undefined) {
   );
 
   // Delete a note by ID (for ContributorNotesDialog)
-  const deleteNoteById = useCallback(
-    async (noteId: string) => {
-      const { error } = await supabase.from('contributor_notes').delete().eq('id', noteId);
+  const deleteNoteById = useCallback(async (noteId: string) => {
+    const { error } = await supabase.from('contributor_notes').delete().eq('id', noteId);
 
-      if (error) throw error;
+    if (error) throw error;
 
-      setNotes((prev) => prev.filter((n) => n.id !== noteId));
-      toast.success('Note deleted successfully');
-    },
-    []
-  );
+    setNotes((prev) => prev.filter((n) => n.id !== noteId));
+    toast.success('Note deleted successfully');
+  }, []);
 
   // Get contributor's groups as a Map for easy lookup
   const getContributorGroupsMap = useCallback(() => {

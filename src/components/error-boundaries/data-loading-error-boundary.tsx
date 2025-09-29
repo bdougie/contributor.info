@@ -1,4 +1,4 @@
-import { Component, ReactNode } from 'react';
+import { Component, ReactNode, ErrorInfo } from 'react';
 import { AlertCircle, RefreshCw, Clock, Wifi, Shield, AlertTriangle } from '@/components/ui/icon';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -14,9 +14,9 @@ interface Props {
   children: ReactNode;
   stage: LoadingStage;
   onRetry?: () => void;
-  onRecoveryAction?: (action: RecoveryAction, context?: any) => void;
-  onError?: (error: LoadingError, errorInfo: any) => void;
-  fallbackData?: any;
+  onRecoveryAction?: (action: RecoveryAction, context?: Record<string, unknown>) => void;
+  onError?: (error: LoadingError, errorInfo: ErrorInfo) => void;
+  fallbackData?: ReactNode | (() => ReactNode);
   enableGracefulDegradation?: boolean;
 }
 
@@ -78,7 +78,7 @@ export class DataLoadingErrorBoundary extends Component<Props, State> {
     };
   }
 
-  componentDidCatch(error: Error, errorInfo: any) {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     const loadingError = error as LoadingError;
 
     console.error(`DataLoadingErrorBoundary (${this.props.stage}):`, error, errorInfo);
@@ -175,7 +175,7 @@ export class DataLoadingErrorBoundary extends Component<Props, State> {
     this.props.onRetry?.();
   };
 
-  handleRecoveryAction = (action: RecoveryAction, context?: any) => {
+  handleRecoveryAction = (action: RecoveryAction, context?: Record<string, unknown>) => {
     switch (action) {
       case 'retry':
         this.handleRetry();
@@ -407,7 +407,7 @@ export function withDataLoadingErrorBoundary<P extends object>(
   stage: LoadingStage,
   options: {
     enableGracefulDegradation?: boolean;
-    onError?: (error: LoadingError, errorInfo: any) => void;
+    onError?: (error: LoadingError, errorInfo: ErrorInfo) => void;
     onRetry?: () => void;
   } = {}
 ) {

@@ -78,7 +78,9 @@ export default function FilteredPRActivity() {
     );
   }
 
-  const hasBots = activities.some((activity) => activity.user.isBot || detectBot({ username: activity.user.name }).isBot);
+  const hasBots = activities.some(
+    (activity) => activity.user.isBot || detectBot({ username: activity.user.name }).isBot
+  );
 
   return (
     <Card>

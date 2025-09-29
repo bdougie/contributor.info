@@ -321,7 +321,9 @@ export function ConfidenceAnalyticsDashboard() {
               </div>
               <Select
                 value={confidenceFilter}
-                onValueChange={(value: any) => setConfidenceFilter(value)}
+                onValueChange={(value: 'all' | 'low' | 'medium' | 'high') =>
+                  setConfidenceFilter(value)
+                }
               >
                 <SelectTrigger className="w-32">
                   <Filter className="h-4 w-4 mr-2" />

@@ -27,7 +27,7 @@ export interface DataCaptureJob {
   completed_at?: string;
   next_retry_at?: string;
   last_error?: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export class DataCaptureQueueManager {

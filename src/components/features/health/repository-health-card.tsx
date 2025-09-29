@@ -132,7 +132,9 @@ export function RepositoryHealthCard() {
     confidenceSyncStatus.isComplete,
   ]);
 
-  const botCount = stats.pullRequests.filter((pr) => detectBot({ githubUser: pr.user }).isBot).length;
+  const botCount = stats.pullRequests.filter(
+    (pr) => detectBot({ githubUser: pr.user }).isBot
+  ).length;
   const hasBots = botCount > 0;
   // YOLO Coders button should only be visible if there are YOLO pushes
   const showYoloButton = directCommitsData?.hasYoloCoders === true;

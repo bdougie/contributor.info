@@ -15,7 +15,7 @@ Instead of trying to fetch all missing data at once (which would trigger rate li
 - ❌ File changes (additions/deletions) - ALL PRs show 0
 - ❌ Recent PRs (last 5 days) - Cache is stale
 - ❌ PR reviews and comments - Tables empty
-- ❌ Individual commits - New table empty
+- ❌ Recent commits - Integrated with progressive capture
 - ❌ Recent activity - No data newer than 6 days
 
 ## Progressive Capture Architecture
@@ -25,7 +25,7 @@ Instead of trying to fetch all missing data at once (which would trigger rate li
 ```typescript
 interface DataCaptureJob {
   id: string;
-  type: 'pr_details' | 'reviews' | 'comments' | 'commits' | 'recent_prs';
+  type: 'pr_details' | 'reviews' | 'comments' | 'commits' | 'recent_prs' | 'commit_pr_check';
   priority: 'critical' | 'high' | 'medium' | 'low';
   repository_id: string;
   resource_id?: string; // PR number, commit SHA, etc.
@@ -119,15 +119,45 @@ class ProgressiveDataCapture {
    ORDER BY pr.created_at DESC;
    ```
 
-### Phase 3: Commit History (Long-term)
+### Phase 2.5: Commit Capture (Integrated)
 **Goal**: Enable YOLO coder detection and commit analysis
+
+**Priority**: 🟡 High (Auto-scheduled)
+**Timeline**: Immediate (integrated with repository tracking)
+**API Calls**: ~10-15/week per repository
+
+**Auto-triggered when**:
+- New repository is tracked (initial 7-day capture)
+- Daily incremental updates (last 24 hours)
+- Bootstrap detects stale commit data
+
+**Features**:
+1. **Configurable Time Ranges**
+   - Initial capture: 7 days (configurable via `VITE_COMMITS_INITIAL_DAYS`)
+   - Incremental updates: 1 day (configurable via `VITE_COMMITS_UPDATE_DAYS`)
+   - Maximum commits per run: 1,000 (configurable via `VITE_COMMITS_MAX_PER_RUN`)
+
+2. **Smart API Management**
+   - Batch size: 100 commits per API call
+   - Max pages: 10 per capture session
+   - Automatic commit PR analysis queuing
+
+3. **Database Tracking**
+   ```sql
+   -- Added to repositories table
+   ALTER TABLE repositories ADD COLUMN last_commit_capture_at TIMESTAMPTZ;
+   ALTER TABLE repositories ADD COLUMN commit_capture_status TEXT DEFAULT 'pending';
+   ```
+
+### Phase 3: Historical Data (Long-term)
+**Goal**: Complete historical data for advanced analytics
 
 **Priority**: 🟢 Medium
 **Timeline**: 2-4 weeks
 **API Calls**: ~1000/hour during maintenance windows
 
-1. **Recent Commits** (Last 90 days)
-2. **Historical Commits** (Older data, lowest priority)
+1. **Extended Commit History** (>7 days for active repositories)
+2. **Legacy PR Data** (Older repositories without recent activity)
 
 ## Queue Management Strategy
 
@@ -207,7 +237,7 @@ class RateLimitManager {
 -- Create queue table for managing data capture jobs
 CREATE TABLE data_capture_queue (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    type TEXT NOT NULL CHECK (type IN ('pr_details', 'reviews', 'comments', 'commits', 'recent_prs')),
+    type TEXT NOT NULL CHECK (type IN ('pr_details', 'reviews', 'comments', 'commits', 'recent_prs', 'commit_pr_check', 'ai_summary', 'issues', 'workspace_issues')),
     priority TEXT NOT NULL CHECK (priority IN ('critical', 'high', 'medium', 'low')),
     repository_id UUID NOT NULL REFERENCES repositories(id) ON DELETE CASCADE,
     resource_id TEXT, -- PR number, commit SHA, etc.

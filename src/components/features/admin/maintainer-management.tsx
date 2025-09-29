@@ -458,7 +458,12 @@ export function MaintainerManagement() {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={filterRole} onValueChange={(value: any) => setFilterRole(value)}>
+            <Select
+              value={filterRole}
+              onValueChange={(value: 'all' | 'owner' | 'maintainer' | 'contributor' | 'bot') =>
+                setFilterRole(value)
+              }
+            >
               <SelectTrigger>
                 <SelectValue placeholder="All roles" />
               </SelectTrigger>
@@ -472,7 +477,9 @@ export function MaintainerManagement() {
             </Select>
             <Select
               value={filterConfidence}
-              onValueChange={(value: any) => setFilterConfidence(value)}
+              onValueChange={(value: 'all' | 'high' | 'medium' | 'low') =>
+                setFilterConfidence(value)
+              }
             >
               <SelectTrigger>
                 <SelectValue placeholder="All confidence" />
@@ -484,7 +491,10 @@ export function MaintainerManagement() {
                 <SelectItem value="low">Low (&lt;50%)</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={filterOverride} onValueChange={(value: any) => setFilterOverride(value)}>
+            <Select
+              value={filterOverride}
+              onValueChange={(value: 'all' | 'manual' | 'algorithm') => setFilterOverride(value)}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="All sources" />
               </SelectTrigger>
@@ -606,7 +616,7 @@ export function MaintainerManagement() {
                     <div className="flex items-center gap-2">
                       <Select
                         value={contributor.role}
-                        onValueChange={(newRole: any) => {
+                        onValueChange={(newRole: string) => {
                           setRoleChangeDialog({
                             isOpen: true,
                             contributor,
@@ -653,7 +663,7 @@ export function MaintainerManagement() {
           onConfirm={(reason, lock) => {
             updateContributorRole(
               roleChangeDialog.contributor!,
-              roleChangeDialog.newRole as any,
+              roleChangeDialog.newRole as 'owner' | 'maintainer' | 'contributor' | 'bot',
               reason,
               lock
             );

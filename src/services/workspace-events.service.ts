@@ -6,6 +6,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database';
 import { createSupabaseAdmin } from '@/lib/supabase-admin';
+import { toDateOnlyString, toUTCTimestamp } from '../lib/utils/date-formatting';
+import { TIME_PERIODS, timeHelpers } from '@/lib/constants/time-constants';
 
 // Types for event-based metrics
 export interface EventMetrics {
@@ -139,8 +141,8 @@ class WorkspaceEventsService {
 
       const { data, error } = await this.supabase.rpc('get_workspace_repository_event_summaries', {
         p_workspace_id: workspaceId,
-        p_start_date: ranges.currentStart.toISOString(),
-        p_end_date: ranges.currentEnd.toISOString(),
+        p_start_date: toUTCTimestamp(ranges.currentStart),
+        p_end_date: toUTCTimestamp(ranges.currentEnd),
       });
 
       if (error) throw error;
@@ -210,23 +212,22 @@ class WorkspaceEventsService {
    * Private helper methods
    */
   private getDateRanges(timeRange: string, now: Date) {
-    const ranges = {
-      currentEnd: now,
-      currentStart: new Date(),
-      previousEnd: new Date(),
-      previousStart: new Date(),
-    };
-
     const days = this.getTimeRangeDays(timeRange);
 
-    // Current period
-    ranges.currentStart.setDate(now.getDate() - days);
+    // Current period: from (now - days) to now
+    const currentEnd = now;
+    const currentStart = new Date(now.getTime() - timeHelpers.daysToMs(days));
 
-    // Previous period (same duration, ending when current period starts)
-    ranges.previousEnd = new Date(ranges.currentStart);
-    ranges.previousStart.setDate(ranges.previousEnd.getDate() - days);
+    // Previous period: same duration, ending when current period starts
+    const previousEnd = new Date(currentStart);
+    const previousStart = new Date(currentStart.getTime() - timeHelpers.daysToMs(days));
 
-    return ranges;
+    return {
+      currentEnd,
+      currentStart,
+      previousEnd,
+      previousStart,
+    };
   }
 
   private getTimeRangeDays(timeRange: string): number {
@@ -263,8 +264,8 @@ class WorkspaceEventsService {
       .select('*')
       .or(orConditions)
       .in('event_type', ['WatchEvent', 'ForkEvent'])
-      .gte('created_at', startDate.toISOString())
-      .lte('created_at', endDate.toISOString())
+      .gte('created_at', toUTCTimestamp(startDate))
+      .lte('created_at', toUTCTimestamp(endDate))
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -289,8 +290,8 @@ class WorkspaceEventsService {
       .from('github_events_cache')
       .select('event_type, created_at, repository_owner, repository_name')
       .or(orConditions)
-      .gte('created_at', startDate.toISOString())
-      .lte('created_at', endDate.toISOString())
+      .gte('created_at', toUTCTimestamp(startDate))
+      .lte('created_at', toUTCTimestamp(endDate))
       .order('created_at', { ascending: true });
 
     if (error) throw error;
@@ -311,8 +312,8 @@ class WorkspaceEventsService {
     const previousCount = previousEvents.length;
 
     // Calculate velocity (events per day)
-    const periodDays = Math.ceil(
-      (ranges.currentEnd.getTime() - ranges.currentStart.getTime()) / (1000 * 60 * 60 * 24)
+    const periodDays = timeHelpers.msToDays(
+      ranges.currentEnd.getTime() - ranges.currentStart.getTime()
     );
     const velocity = currentCount / periodDays;
 
@@ -335,11 +336,10 @@ class WorkspaceEventsService {
     }
 
     // Calculate week/month breakdowns
-    const now = new Date();
-    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-    const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    const twoMonthsAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+    const oneWeekAgo = timeHelpers.daysAgo(TIME_PERIODS.ONE_WEEK);
+    const twoWeeksAgo = timeHelpers.daysAgo(TIME_PERIODS.TWO_WEEKS);
+    const oneMonthAgo = timeHelpers.daysAgo(TIME_PERIODS.ONE_MONTH);
+    const twoMonthsAgo = timeHelpers.daysAgo(TIME_PERIODS.TWO_MONTHS);
 
     const thisWeek = currentEvents.filter((e) => new Date(e.created_at) >= oneWeekAgo).length;
     const lastWeek = currentEvents.filter((e) => {
@@ -395,8 +395,7 @@ class WorkspaceEventsService {
     }
 
     // Calculate activity score (0-100) based on recent activity
-    const now = new Date();
-    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const oneDayAgo = timeHelpers.daysAgo(TIME_PERIODS.ONE_DAY);
     const recentEvents = events.filter((e) => new Date(e.created_at) >= oneDayAgo).length;
     const activityScore = Math.min(
       100,
@@ -420,7 +419,7 @@ class WorkspaceEventsService {
     // Group events by date
     const dailyData = events.reduce(
       (acc, event) => {
-        const date = new Date(event.created_at).toISOString().split('T')[0];
+        const date = toDateOnlyString(new Date(event.created_at));
         if (!acc[date]) {
           acc[date] = { stars: 0, forks: 0, totalActivity: 0 };
         }

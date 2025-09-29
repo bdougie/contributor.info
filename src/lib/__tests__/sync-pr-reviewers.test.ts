@@ -10,6 +10,13 @@ vi.mock('@/lib/supabase', () => ({
   },
 }));
 
+// Mock the github-api-adapter to prevent real API calls
+vi.mock('@/lib/github-api-adapter', () => ({
+  getGitHubAPIAdapter: vi.fn(() => ({
+    fetchPullRequestsWithReviewers: vi.fn().mockResolvedValue([]),
+  })),
+}));
+
 import { supabase } from '@/lib/supabase';
 
 describe('syncPullRequestReviewers', () => {
@@ -88,6 +95,7 @@ describe('syncPullRequestReviewers', () => {
       {
         includeClosedPRs: true,
         maxClosedDays: 30,
+        useLocalBackoff: false,
       }
     );
     expect(console.log).toHaveBeenCalledWith(
@@ -142,7 +150,10 @@ describe('syncPullRequestReviewers', () => {
 
     const result = await syncPullRequestReviewers('owner', 'repo');
 
-    expect(console.error).toHaveBeenCalledWith('Error syncing PR reviewers:', mockError);
+    expect(console.error).toHaveBeenCalledWith(
+      'Error syncing PR reviewers via edge function:',
+      mockError
+    );
     expect(result).toEqual([]); // Should return empty array on error
   });
 

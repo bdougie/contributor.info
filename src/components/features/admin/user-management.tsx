@@ -245,7 +245,10 @@ export function UserManagement() {
                 />
               </div>
             </div>
-            <Select value={filterRole} onValueChange={(value: any) => setFilterRole(value)}>
+            <Select
+              value={filterRole}
+              onValueChange={(value: 'all' | 'admin' | 'user') => setFilterRole(value)}
+            >
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Filter by role" />
               </SelectTrigger>
@@ -255,7 +258,10 @@ export function UserManagement() {
                 <SelectItem value="user">Users</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={filterStatus} onValueChange={(value: any) => setFilterStatus(value)}>
+            <Select
+              value={filterStatus}
+              onValueChange={(value: 'all' | 'active' | 'inactive') => setFilterStatus(value)}
+            >
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>

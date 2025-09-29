@@ -12,7 +12,7 @@ import type { DataResult } from '@/lib/errors/repository-errors';
 import { UnifiedSyncButton } from '@/components/features/repository/unified-sync-button';
 
 interface DataStateIndicatorProps {
-  status: DataResult<any>['status'];
+  status: DataResult<unknown>['status'];
   message?: string;
   metadata?: {
     isStale?: boolean;

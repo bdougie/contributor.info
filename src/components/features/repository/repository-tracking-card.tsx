@@ -131,6 +131,7 @@ export function RepositoryTrackingCard({
       });
 
       const result = await handleApiResponse<TrackRepositoryResponse>(response, 'track-repository');
+
       console.log('Track repository response: %o', result);
 
       // Check if tracking was successful

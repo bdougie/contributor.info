@@ -12,7 +12,28 @@ interface FallbackProps {
   stage: LoadingStage;
   message?: string;
   showPartialData?: boolean;
-  partialData?: any;
+  partialData?: {
+    prCount?: number;
+    contributorCount?: number;
+    topContributors?: Array<{ login?: string; avatar_url?: string; contributions?: number }>;
+    stats?: {
+      totalPRs?: number;
+      mergedPRs?: number;
+      pullRequests?: Array<{ id: number; title: string; number: number; html_url: string }>;
+    };
+    lotteryFactor?: {
+      score?: number;
+      rating?: string;
+      riskLevel?: string;
+    };
+    directCommitsData?: {
+      totalCommits?: number;
+      contributors?: number;
+      recentActivity?: boolean;
+      hasYoloCoders?: boolean;
+      yoloCoderStats?: Array<{ login: string; directCommitPercentage: number }>;
+    };
+  };
 }
 
 /**
@@ -59,9 +80,9 @@ export function CriticalDataFallback({ message, partialData }: FallbackProps) {
             <CardTitle className="text-sm font-medium">Top Contributors</CardTitle>
           </CardHeader>
           <CardContent>
-            {partialData?.topContributors?.length > 0 ? (
+            {partialData?.topContributors && partialData.topContributors.length > 0 ? (
               <div className="flex -space-x-2">
-                {partialData.topContributors.slice(0, 5).map((contributor: any, i: number) => (
+                {partialData.topContributors.slice(0, 5).map((contributor, i: number) => (
                   <div
                     key={i}
                     className="h-8 w-8 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center text-xs font-medium"
@@ -179,11 +200,12 @@ export function EnhancementDataFallback({ message, showPartialData, partialData 
                   ? 'YOLO coders detected'
                   : 'No YOLO coders found'}
               </p>
-              {partialData.directCommitsData.yoloCoderStats?.length > 0 && (
-                <p className="text-xs text-gray-500 mt-1">
-                  Top: {partialData.directCommitsData.yoloCoderStats[0].login}
-                </p>
-              )}
+              {partialData.directCommitsData.yoloCoderStats &&
+                partialData.directCommitsData.yoloCoderStats.length > 0 && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Top: {partialData.directCommitsData.yoloCoderStats?.[0]?.login || 'N/A'}
+                  </p>
+                )}
             </div>
           ) : (
             <div className="space-y-2">

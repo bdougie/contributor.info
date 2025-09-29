@@ -5,6 +5,7 @@ import type { User } from '@supabase/supabase-js';
 import { getFallbackAvatar } from '@/lib/utils/avatar';
 import { useWorkspaceContributors } from '@/hooks/useWorkspaceContributors';
 import { useContributorGroups } from '@/hooks/useContributorGroups';
+import { TIME_PERIODS, timeHelpers } from '@/lib/constants/time-constants';
 import { WorkspaceDashboard, WorkspaceDashboardSkeleton } from '@/components/features/workspace';
 import { WorkspaceErrorBoundary } from '@/components/error-boundaries/workspace-error-boundary';
 import { WorkspaceAutoSync } from '@/components/features/workspace/WorkspaceAutoSync';
@@ -19,6 +20,7 @@ import {
 } from '@/components/features/workspace/WorkspaceIssuesTable';
 import { RepositoryFilter } from '@/components/features/workspace/RepositoryFilter';
 import { WorkspaceMetricsAndTrends } from '@/components/features/workspace/WorkspaceMetricsAndTrends';
+import { WorkspaceSwitcher } from '@/components/navigation/WorkspaceSwitcher';
 import { WorkspaceIssueMetricsAndTrends } from '@/components/features/workspace/WorkspaceIssueMetricsAndTrends';
 import {
   ContributorsList,
@@ -32,6 +34,7 @@ import { AddRepositoryModal } from '@/components/features/workspace/AddRepositor
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
+import { ReviewerSuggestionsModal } from '@/components/features/workspace/reviewer-suggestions/ReviewerSuggestionsModal';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -378,12 +381,14 @@ function WorkspacePRs({
   timeRange,
   workspaceId,
   workspace,
+  setReviewerModalOpen,
 }: {
   repositories: Repository[];
   selectedRepositories: string[];
   timeRange: TimeRange;
   workspaceId: string;
   workspace?: Workspace;
+  setReviewerModalOpen: (open: boolean) => void;
 }) {
   const navigate = useNavigate();
 
@@ -460,6 +465,9 @@ function WorkspacePRs({
           syncIntervalMinutes={60}
           className="text-sm text-muted-foreground"
         />
+        <Button onClick={() => setReviewerModalOpen(true)} size="sm" variant="outline">
+          CODEOWNERS
+        </Button>
       </div>
 
       {/* Metrics and Trends - first, always full width */}
@@ -2269,6 +2277,7 @@ function WorkspacePage() {
   const [currentMember, setCurrentMember] = useState<WorkspaceMemberWithUser | null>(null);
   const [memberCount, setMemberCount] = useState(0);
   const [isWorkspaceOwner, setIsWorkspaceOwner] = useState(false);
+  const [reviewerModalOpen, setReviewerModalOpen] = useState(false);
 
   // Determine active tab from URL
   const pathSegments = location.pathname.split('/');
@@ -2444,7 +2453,7 @@ function WorkspacePage() {
         // Ensure startDate is valid and not in the future
         if (startDate.getTime() > Date.now()) {
           console.warn('Start date is in the future, using 30 days ago as fallback');
-          startDate.setTime(Date.now() - 30 * 24 * 60 * 60 * 1000);
+          startDate.setTime(Date.now() - timeHelpers.daysToMs(TIME_PERIODS.DEFAULT_METRICS_DAYS));
         }
 
         // Fetch PRs for activity data and metrics with more fields for activity tab
@@ -3237,6 +3246,13 @@ function WorkspacePage() {
               )}
             </div>
             <div className="flex items-center gap-2">
+              <WorkspaceSwitcher
+                className="min-w-[150px]"
+                onOpenCommandPalette={() => {
+                  // Command palette can be opened from here if needed
+                  console.log('Open command palette from workspace page');
+                }}
+              />
               <TimeRangeSelector
                 value={timeRange}
                 onChange={setTimeRange}
@@ -3258,9 +3274,6 @@ function WorkspacePage() {
                 onSelectionChange={setSelectedRepositories}
                 className="w-[200px]"
               />
-              <Button onClick={handleSettingsClick} size="sm" variant="outline">
-                <Settings className="h-4 w-4" />
-              </Button>
             </div>
           </div>
         </div>
@@ -3301,6 +3314,20 @@ function WorkspacePage() {
             </TabsTrigger>
           </TabsList>
 
+          {/* Reviewer Suggestions Modal - Available on all tabs */}
+          {repositories.length > 0 && (
+            <ReviewerSuggestionsModal
+              open={reviewerModalOpen}
+              onOpenChange={setReviewerModalOpen}
+              repositories={repositories.map((r) => ({
+                id: r.id,
+                name: r.name,
+                owner: r.owner,
+                full_name: r.full_name,
+              }))}
+            />
+          )}
+
           <TabsContent value="overview" className="mt-6 space-y-4">
             <div className="container max-w-7xl mx-auto">
               <WorkspaceDashboard
@@ -3329,6 +3356,7 @@ function WorkspacePage() {
                 timeRange={timeRange}
                 workspaceId={workspace.id}
                 workspace={workspace}
+                setReviewerModalOpen={setReviewerModalOpen}
               />
             </div>
           </TabsContent>

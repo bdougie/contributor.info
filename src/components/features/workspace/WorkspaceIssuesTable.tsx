@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -18,6 +18,14 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
   Circle,
   CheckCircle2,
   XCircle,
@@ -29,11 +37,13 @@ import {
   ChevronDown,
   ExternalLink,
   MessageSquare,
+  Sparkles,
 } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 import { useWorkspaceFiltersStore, type IssueState } from '@/lib/workspace-filters-store';
 import { IssueFilters } from './filters/TableFilters';
 import { isBot, hasBotAuthors } from '@/lib/utils/bot-detection';
+import { supabase } from '@/lib/supabase';
 
 export interface Issue {
   id: string;
@@ -114,6 +124,52 @@ export function WorkspaceIssuesTable({
   const [sorting, setSorting] = useState<SortingState>([{ id: 'updated_at', desc: true }]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
+  const [selectedIssueForSimilar, setSelectedIssueForSimilar] = useState<Issue | null>(null);
+  const [similarIssuesMap, setSimilarIssuesMap] = useState<Map<string, Issue[]>>(new Map());
+
+  // Check for similar issues in the background (optimized batch query)
+  useEffect(() => {
+    const checkSimilarIssues = async () => {
+      if (issues.length === 0) return;
+
+      // Batch query all issue IDs at once to avoid N+1 query problem
+      const issueIds = issues.map((issue) => issue.id);
+      const similarMap = new Map<string, Issue[]>();
+
+      try {
+        // Single query to check which issues have similarity data
+        const { data, error } = await supabase
+          .from('similarity_cache')
+          .select('item_id')
+          .eq('item_type', 'issue')
+          .in('item_id', issueIds);
+
+        if (error) {
+          console.error('Error checking similarity cache:', error);
+          return;
+        }
+
+        if (data && data.length > 0) {
+          // Create a Set for O(1) lookup performance
+          const cachedIssueIds = new Set(data.map((item) => item.item_id));
+
+          // Mark issues that have similar items available
+          for (const issue of issues) {
+            if (cachedIssueIds.has(issue.id)) {
+              similarMap.set(issue.id, []);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Failed to check similar issues:', error);
+      }
+
+      setSimilarIssuesMap(similarMap);
+    };
+
+    checkSimilarIssues();
+  }, [issues]);
+
   // Get filter state from store
   const {
     issueStates,
@@ -482,6 +538,32 @@ export function WorkspaceIssuesTable({
           size: 100,
         }),
         columnHelper.display({
+          id: 'similar',
+          cell: ({ row }) => {
+            const hasSimilar = similarIssuesMap.has(row.original.id);
+            if (!hasSimilar) return null;
+
+            return (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedIssueForSimilar(row.original)}
+                      className="h-8 px-2 text-amber-500 hover:text-amber-600"
+                    >
+                      <Sparkles className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Similar issues found</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            );
+          },
+          size: 50,
+        }),
+        columnHelper.display({
           id: 'actions',
           cell: ({ row }) =>
             row.original.url ? (
@@ -502,7 +584,7 @@ export function WorkspaceIssuesTable({
           size: 50,
         }),
       ] as ColumnDef<Issue>[],
-    [onIssueClick, onRepositoryClick]
+    [onIssueClick, onRepositoryClick, similarIssuesMap]
   );
 
   const table = useReactTable({
@@ -693,7 +775,157 @@ export function WorkspaceIssuesTable({
           </>
         )}
       </CardContent>
+
+      {/* Similar Issues Dialog */}
+      {selectedIssueForSimilar && (
+        <Dialog
+          open={!!selectedIssueForSimilar}
+          onOpenChange={() => setSelectedIssueForSimilar(null)}
+        >
+          <DialogContent className="sm:max-w-[725px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-amber-500" />
+                Similar Issues
+              </DialogTitle>
+              <DialogDescription>
+                Issues similar to: "{selectedIssueForSimilar.title.substring(0, 50)}
+                {selectedIssueForSimilar.title.length > 50 ? '...' : ''}"
+              </DialogDescription>
+            </DialogHeader>
+            <SimilarIssuesList
+              issueId={selectedIssueForSimilar.id}
+              onIssueClick={(issue) => {
+                if (onIssueClick) onIssueClick(issue);
+                setSelectedIssueForSimilar(null);
+              }}
+            />
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setSelectedIssueForSimilar(null)}>
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </Card>
+  );
+}
+
+// Component to display similar issues
+function SimilarIssuesList({
+  issueId,
+  onIssueClick,
+}: {
+  issueId: string;
+  onIssueClick?: (issue: Issue) => void;
+}) {
+  const [loading, setLoading] = useState(true);
+  const [similarIssues, setSimilarIssues] = useState<
+    Array<{
+      issue_id: string;
+      title: string;
+      state: string;
+      number: number;
+      similarity_score: number;
+    }>
+  >([]);
+
+  useEffect(() => {
+    const fetchSimilarIssues = async () => {
+      setLoading(true);
+      try {
+        // Query for similar issues using vector similarity
+        const { data, error } = await supabase.rpc('find_similar_issues', {
+          target_issue_id: issueId,
+          limit_count: 5,
+        });
+
+        if (error) {
+          console.error('Failed to fetch similar issues:', error);
+          // Fallback: Try to get any issues from the same repository
+          const { data: fallbackData } = await supabase
+            .from('issues')
+            .select('id, title, state, number')
+            .neq('id', issueId)
+            .limit(5);
+
+          if (fallbackData) {
+            setSimilarIssues(
+              fallbackData.map((i) => ({ ...i, issue_id: i.id, similarity_score: 0.5 }))
+            );
+          }
+        } else if (data) {
+          setSimilarIssues(data);
+        }
+      } catch (err) {
+        console.error('Error fetching similar issues:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSimilarIssues();
+  }, [issueId]);
+
+  if (loading) {
+    return (
+      <div className="py-4 space-y-3">
+        {[...Array(3)].map((_, i) => (
+          <Skeleton key={i} className="h-16 w-full" />
+        ))}
+      </div>
+    );
+  }
+
+  if (similarIssues.length === 0) {
+    return (
+      <div className="py-8 text-center text-muted-foreground">
+        <p>No similar issues found yet.</p>
+        <p className="text-sm mt-2">Embeddings are being computed in the background.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="py-4 space-y-3 max-h-[400px] overflow-y-auto">
+      {similarIssues.map((item) => (
+        <div
+          key={item.issue_id}
+          className="p-3 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
+          onClick={() => {
+            if (onIssueClick) {
+              onIssueClick({
+                id: item.issue_id,
+                title: item.title,
+                state: item.state as 'open' | 'closed',
+                number: item.number,
+              } as Issue);
+            }
+          }}
+        >
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                {item.state === 'open' ? (
+                  <Circle className="h-4 w-4 text-green-500" />
+                ) : (
+                  <CheckCircle2 className="h-4 w-4 text-purple-500" />
+                )}
+                <span className="text-sm font-medium">#{item.number}</span>
+                {item.similarity_score > 0 && (
+                  <Badge variant="secondary" className="text-xs">
+                    {Math.round(item.similarity_score * 100)}% match
+                  </Badge>
+                )}
+              </div>
+              <p className="text-sm line-clamp-2">{item.title}</p>
+            </div>
+            <ExternalLink className="h-4 w-4 text-muted-foreground flex-shrink-0 ml-2" />
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 

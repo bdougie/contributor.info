@@ -268,7 +268,7 @@ export default async (req: Request, context: Context) => {
       // Step 1: Check if repository already exists in database
       const { data: existingRepos, error: checkError } = await supabase
         .from('repositories')
-        .select('id, owner, name')
+        .select('id, owner, name, github_id')
         .eq('owner', owner)
         .eq('name', repo);
 
@@ -278,8 +278,54 @@ export default async (req: Request, context: Context) => {
       }
 
       if (existingRepos && existingRepos.length > 0) {
-        // Repository already exists - still send sync event
+        // Repository already exists
         const existingRepo = existingRepos[0];
+
+        // Update repository with latest GitHub data
+        const updateData: any = {
+          is_active: true,
+          last_updated_at: new Date().toISOString(),
+        };
+
+        // If github_id is missing or we have fresh GitHub data, update it
+        if ((!existingRepo.github_id || githubData) && githubData) {
+          Object.assign(updateData, {
+            github_id: githubData.id,
+            full_name: githubData.full_name,
+            description: githubData.description,
+            homepage: githubData.homepage,
+            language: githubData.language,
+            stargazers_count: githubData.stargazers_count,
+            watchers_count: githubData.watchers_count,
+            forks_count: githubData.forks_count,
+            open_issues_count: githubData.open_issues_count,
+            size: githubData.size,
+            default_branch: githubData.default_branch,
+            is_fork: githubData.fork,
+            is_archived: githubData.archived,
+            is_disabled: githubData.disabled,
+            is_private: githubData.private,
+            has_issues: githubData.has_issues,
+            has_projects: githubData.has_projects,
+            has_wiki: githubData.has_wiki,
+            has_pages: githubData.has_pages,
+            has_downloads: githubData.has_downloads,
+            license: githubData.license?.spdx_id || null,
+            topics: githubData.topics || [],
+            github_created_at: githubData.created_at,
+            github_updated_at: githubData.updated_at,
+            github_pushed_at: githubData.pushed_at,
+          });
+        }
+
+        const { error: updateError } = await supabase
+          .from('repositories')
+          .update(updateData)
+          .eq('id', existingRepo.id);
+
+        if (updateError) {
+          console.error('Failed to update repository with GitHub data:', updateError);
+        }
 
         // Send sync event for existing repository
         try {
@@ -304,21 +350,47 @@ export default async (req: Request, context: Context) => {
           });
 
           // Send sync event for the existing repository
-          const result = await inngest.send({
-            name: 'capture/repository.sync.graphql',
-            data: {
-              repositoryId: existingRepo.id,
-              owner: existingRepo.owner,
-              name: existingRepo.name,
-              days: 30,
-              priority: 'high',
-              reason: 'Re-tracking existing repository',
-            },
-          });
+          // Handle each event separately to ensure repository sync succeeds even if commit capture fails
+          let syncResult;
+          try {
+            syncResult = await inngest.send({
+              name: 'capture/repository.sync.graphql',
+              data: {
+                repositoryId: existingRepo.id,
+                owner: existingRepo.owner,
+                name: existingRepo.name,
+                days: 30,
+                priority: 'high',
+                reason: 'Re-tracking existing repository',
+              },
+            });
+            console.log('Repository sync event sent successfully:', syncResult.ids);
+          } catch (syncError) {
+            console.error('Failed to send repository sync event:', syncError);
+            // Still continue - repository tracking can proceed without commit capture
+          }
 
-          console.log('Sync event sent for existing repository:', result.ids);
+          // Try to send commit capture event separately
+          try {
+            const commitResult = await inngest.send({
+              name: 'capture/commits.update',
+              data: {
+                repositoryId: existingRepo.id,
+                repositoryName: `${existingRepo.owner}/${existingRepo.name}`,
+                days: 1, // Incremental update for existing repos
+                priority: 'medium',
+                forceInitial: false,
+                reason: 'Re-tracking existing repository',
+              },
+            });
+            console.log('Commit capture event sent successfully:', commitResult.ids);
+          } catch (commitError) {
+            console.error('Failed to send commit capture event:', commitError);
+            // Log but don't fail the overall operation
+            console.log('Repository will be tracked but commit capture may be delayed');
+          }
         } catch (eventError) {
-          console.error('Failed to send sync event:', eventError);
+          console.error('Failed to send events:', eventError);
         }
 
         return new Response(
@@ -468,7 +540,8 @@ export default async (req: Request, context: Context) => {
         });
 
         // Send events through the SDK
-        const events = [
+        // Send critical events first, then optional ones
+        const criticalEvents = [
           {
             name: 'classify/repository.single',
             data: {
@@ -490,8 +563,31 @@ export default async (req: Request, context: Context) => {
           },
         ];
 
-        const results = await inngest.send(events);
-        console.log('Inngest events sent successfully:', results.ids);
+        // Send critical events first (classification and repository sync)
+        const results = await inngest.send(criticalEvents);
+        console.log('Critical events sent successfully:', results.ids);
+
+        // Try to send commit capture event separately (non-critical)
+        try {
+          const commitEvent = {
+            name: 'capture/commits.initial',
+            data: {
+              repositoryId: repository.id,
+              repositoryName: `${repository.owner}/${repository.name}`,
+              days: 7, // Initial capture for 7 days as per configuration
+              priority: 'high',
+              forceInitial: true,
+              reason: 'Initial repository discovery',
+            },
+          };
+
+          const commitResult = await inngest.send(commitEvent);
+          console.log('Commit capture event sent successfully:', commitResult.ids);
+        } catch (commitError) {
+          console.error('Failed to send commit capture event:', commitError);
+          console.log('Repository tracking will continue, but commit capture may be delayed');
+          // Don't fail the overall operation - repository tracking is more important
+        }
       } catch (eventError) {
         console.error('Failed to send Inngest events:', eventError);
         // Don't throw - events are non-critical for tracking success

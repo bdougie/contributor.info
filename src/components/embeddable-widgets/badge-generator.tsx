@@ -105,7 +105,7 @@ const BADGE_PRESETS = {
 };
 
 // Security functions for safe SVG generation
-function escapeXml(text: any): string {
+function escapeXml(text: string | number | boolean): string {
   if (typeof text !== 'string') {
     text = String(text);
   }

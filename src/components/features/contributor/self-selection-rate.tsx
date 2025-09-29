@@ -78,7 +78,9 @@ export function SelfSelectionRate({
       // Check if we got meaningful data
       const hasRealData =
         currentData &&
-        ((currentData as any).total_contributors > 0 || (currentData as any).total_prs > 0);
+        ((currentData as { total_contributors: number; total_prs: number }).total_contributors >
+          0 ||
+          (currentData as { total_contributors: number; total_prs: number }).total_prs > 0);
 
       if (hasRealData) {
         // Fetch previous period stats for comparison

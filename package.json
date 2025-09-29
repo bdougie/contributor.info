@@ -97,6 +97,7 @@
     "eval:aggressive": "tsx scripts/utilities/run-maintainer-eval.ts --config aggressive",
     "recover:chunks": "node scripts/github-actions/recover-stuck-chunks.js",
     "similarity:check": "tsx scripts/actions-similarity.ts",
+    "populate-commits": "tsx scripts/populate-commits.ts",
     "postinstall": "node scripts/setup/install-husky.js"
   },
   "dependencies": {
@@ -105,6 +106,7 @@
     "@nivo/scatterplot": "^0.88.0",
     "@octokit/auth-app": "^8.0.2",
     "@octokit/graphql": "^9.0.1",
+    "@octokit/plugin-throttling": "^11.0.1",
     "@octokit/rest": "^22.0.0",
     "@polar-sh/nextjs": "^0.4.6",
     "@polar-sh/sdk": "^0.34.16",

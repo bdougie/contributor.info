@@ -3,6 +3,59 @@
  * Uses VITE_OPENAI_API_KEY environment variable
  */
 
+// Type definitions for better type safety
+interface HealthData {
+  score: number;
+  trend: string;
+  factors: Array<{
+    name: string;
+    score: number;
+    status: string;
+    description: string;
+  }>;
+  recommendations: string[];
+}
+
+interface TrendData {
+  metric: string;
+  change: number;
+}
+
+interface ActivityData {
+  weeklyVelocity?: number;
+  contributors?: number;
+}
+
+interface RecommendationData {
+  health: {
+    score: number;
+  };
+  trends: TrendData[];
+  activity: ActivityData;
+}
+
+interface PRData {
+  merged_at: string | null;
+  additions: number;
+  deletions: number;
+  [key: string]: unknown;
+}
+
+interface OpenAIResponse {
+  choices: Array<{
+    message: {
+      content: string;
+    };
+  }>;
+}
+
+interface HealthFactor {
+  name: string;
+  score: number;
+  status: string;
+  description: string;
+}
+
 export interface LLMInsight {
   type: 'health' | 'recommendation' | 'pattern' | 'trend';
   content: string;
@@ -64,17 +117,7 @@ class OpenAIService {
    * Generate health assessment insight from repository metrics
    */
   async generateHealthInsight(
-    healthData: {
-      score: number;
-      trend: string;
-      factors: Array<{
-        name: string;
-        score: number;
-        status: string;
-        description: string;
-      }>;
-      recommendations: string[];
-    },
+    healthData: HealthData,
     repoInfo: { owner: string; repo: string }
   ): Promise<LLMInsight | null> {
     if (!this.isAvailable()) {
@@ -103,11 +146,7 @@ class OpenAIService {
    * Generate actionable recommendations based on repository data
    */
   async generateRecommendations(
-    data: {
-      health: any;
-      trends: any[];
-      activity: any;
-    },
+    data: RecommendationData,
     repoInfo: { owner: string; repo: string }
   ): Promise<LLMInsight | null> {
     if (!this.isAvailable()) {
@@ -136,7 +175,7 @@ class OpenAIService {
    * Analyze PR patterns and contributor behavior
    */
   async analyzePRPatterns(
-    prData: any[],
+    prData: PRData[],
     repoInfo: { owner: string; repo: string }
   ): Promise<LLMInsight | null> {
     if (!this.isAvailable()) {
@@ -219,7 +258,7 @@ class OpenAIService {
         }
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as OpenAIResponse;
 
       if (!data.choices || data.choices.length === 0) {
         throw new Error('No response from OpenAI');
@@ -240,13 +279,16 @@ class OpenAIService {
   /**
    * Build prompt for health assessment
    */
-  private buildHealthPrompt(healthData: any, repoInfo: { owner: string; repo: string }): string {
+  private buildHealthPrompt(
+    healthData: HealthData,
+    repoInfo: { owner: string; repo: string }
+  ): string {
     return `Analyze the health of repository ${repoInfo.owner}/${repoInfo.repo}:
 
 Health Score: ${healthData.score}/100 (${healthData.trend})
 
 Factors:
-${healthData.factors.map((f: any) => `- ${f.name}: ${f.score}/100 (${f.status}) - ${f.description}`).join('\n')}
+${healthData.factors.map((f: HealthFactor) => `- ${f.name}: ${f.score}/100 (${f.status}) - ${f.description}`).join('\n')}
 
 Current Recommendations:
 ${healthData.recommendations.map((r: string) => `- ${r}`).join('\n')}
@@ -263,12 +305,15 @@ Include insights about development workflow effectiveness, review patterns, and 
   /**
    * Build prompt for recommendations
    */
-  private buildRecommendationPrompt(data: any, repoInfo: { owner: string; repo: string }): string {
+  private buildRecommendationPrompt(
+    data: RecommendationData,
+    repoInfo: { owner: string; repo: string }
+  ): string {
     return `Based on ${repoInfo.owner}/${repoInfo.repo} repository data, provide 3 specific, actionable recommendations:
 
 Health: ${data.health.score}/100
-Trends: ${data.trends.map((t: any) => `${t.metric}: ${t.change > 0 ? '+' : ''}${t.change}%`).join(', ')}
-Activity: ${data.activity.weeklyVelocity} PRs/week
+Trends: ${data.trends.map((t: TrendData) => `${t.metric}: ${t.change > 0 ? '+' : ''}${t.change}%`).join(', ')}
+Activity: ${data.activity.weeklyVelocity || 0} PRs/week
 
 Analyze workflow patterns and provide recommendations for:
 1. Process improvements based on development patterns
@@ -281,7 +326,7 @@ Focus on specific, measurable steps that address both metrics and development wo
   /**
    * Build prompt for pattern analysis
    */
-  private buildPatternPrompt(prData: any[], repoInfo: { owner: string; repo: string }): string {
+  private buildPatternPrompt(prData: PRData[], repoInfo: { owner: string; repo: string }): string {
     const totalPRs = prData.length;
     const merged = prData.filter((pr) => pr.merged_at).length;
     const avgSize = prData.reduce((sum, pr) => sum + (pr.additions + pr.deletions), 0) / totalPRs;
