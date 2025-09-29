@@ -210,7 +210,35 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
                       by @{pr.author?.username} · {new Date(pr.created_at).toLocaleDateString()}
                     </div>
                   </div>
-                  <Button size="sm" variant="outline" className="shrink-0">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="shrink-0"
+                    onClick={async (e) => {
+                      e.stopPropagation(); // Prevent triggering the card's onClick
+                      setSelectedPR(String(pr.number));
+                      const prUrl = `https://github.com/${owner}/${repo}/pull/${pr.number}`;
+                      setPrUrl(prUrl);
+                      setTab('reviewers');
+
+                      // Trigger reviewer suggestions
+                      if (owner && repo) {
+                        setLoading(true);
+                        setError(null);
+                        try {
+                          const res = await suggestReviewers(owner, repo, undefined, undefined, prUrl);
+                          setSuggestions(res);
+                        } catch (e: any) {
+                          console.error('Failed to get reviewer suggestions:', e);
+                          const errorMessage = e?.message || 'Failed to get suggestions';
+                          setError(`Error: ${errorMessage}. Please ensure the repository is tracked and try again.`);
+                        } finally {
+                          setLoading(false);
+                        }
+                      }
+                    }}
+                    disabled={loading && selectedPR === String(pr.number)}
+                  >
                     {loading && selectedPR === String(pr.number) ? (
                       <>
                         <Loader2 className="h-3 w-3 animate-spin mr-1" />
@@ -256,6 +284,39 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
                 ))}
               </SelectContent>
             </Select>
+            {selectedPR && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={async () => {
+                  setTab('reviewers');
+                  if (owner && repo && selectedPR) {
+                    setLoading(true);
+                    setError(null);
+                    try {
+                      const res = await suggestReviewers(owner, repo, undefined, undefined, prUrl);
+                      setSuggestions(res);
+                    } catch (e: any) {
+                      console.error('Failed to get reviewer suggestions:', e);
+                      const errorMessage = e?.message || 'Failed to get suggestions';
+                      setError(`Error: ${errorMessage}. Please ensure the repository is tracked and try again.`);
+                    } finally {
+                      setLoading(false);
+                    }
+                  }
+                }}
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                    Analyzing...
+                  </>
+                ) : (
+                  'Get Reviewers'
+                )}
+              </Button>
+            )}
           </div>
         )}
 

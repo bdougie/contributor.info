@@ -33,7 +33,17 @@ export async function suggestReviewers(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ files, prAuthor, prUrl }),
   });
-  if (!res.ok) throw new Error(`Failed to suggest reviewers: ${res.status}`);
+  if (!res.ok) {
+    let errorMessage = `Failed to suggest reviewers (${res.status})`;
+    try {
+      const errorData = await res.json();
+      if (errorData.error) errorMessage = errorData.error;
+    } catch {
+      // If response is not JSON, use status text
+      if (res.statusText) errorMessage = `${errorMessage}: ${res.statusText}`;
+    }
+    throw new Error(errorMessage);
+  }
   return res.json() as Promise<{
     suggestions: { primary: ReviewerSuggestionDTO[]; secondary: ReviewerSuggestionDTO[]; additional: ReviewerSuggestionDTO[] };
     codeOwners: string[];
