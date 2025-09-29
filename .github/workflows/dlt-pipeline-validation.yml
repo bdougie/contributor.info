@@ -1,0 +1,70 @@
+name: Data Pipeline Validation with dlt MCP
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  # schedule:
+  #   - cron: "0 8 * * *" # Daily at 8 AM UTC
+
+jobs:
+  validate-pipeline:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Install dlt
+        run: |
+          pip install dlt
+          echo "✅ dlt installed"
+
+      - name: Install Continue CLI
+        run: |
+          npm install -g @continuedev/cli
+          echo "✅ Continue CLI installed"
+
+      - name: Validate Pipeline Schema
+        env:
+          CONTINUE_API_KEY: ${{ secrets.CONTINUE_API_KEY }}
+        run: |
+          echo "🔍 Validating pipeline schema..."
+          cn --config dlthub/dlt-assistant \
+             -p "Inspect the pipeline schema and verify all required tables
+                 and columns are present. Flag any missing or unexpected changes."
+
+      - name: Check Pipeline Health
+        env:
+          CONTINUE_API_KEY: ${{ secrets.CONTINUE_API_KEY }}
+        run: |
+          echo "📊 Checking pipeline health..."
+          cn --config dlthub/dlt-assistant \
+             -p "Analyze the last pipeline run for errors or warnings.
+                 Report any issues that need attention."
+
+      - name: Comment Pipeline Report on PR
+        env:
+          CONTINUE_API_KEY: ${{ secrets.CONTINUE_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if: always() && github.event_name == 'pull_request'
+        run: |
+          REPORT=$(cn --config dlthub/dlt-assistant \
+             -p "Generate a concise summary (200 words or less) of:
+                 - Pipeline schemas and row counts
+                 - Any load errors or warnings
+                 - Performance metrics (timing, file sizes)
+                 - Recommended improvements")
+
+          gh pr comment ${{ github.event.pull_request.number }} --body "$REPORT"
