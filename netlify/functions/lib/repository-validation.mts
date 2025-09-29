@@ -44,7 +44,7 @@ export async function validateRepository(
 
     const { data, error } = await supabase
       .from('tracked_repositories')
-      .select('id')
+      .select('id, is_active')
       .eq('owner', owner.toLowerCase())
       .eq('name', repo.toLowerCase())
       .maybeSingle();
@@ -65,6 +65,17 @@ export async function validateRepository(
         isTracked: false,
         exists: true,
         error: `Repository ${owner}/${repo} is not tracked. Please track it first at ${trackingUrl}`,
+        trackingUrl,
+      };
+    }
+
+    // Check if repository is active
+    if (!data.is_active) {
+      const trackingUrl = `https://contributor.info/${owner}/${repo}`;
+      return {
+        isTracked: false,
+        exists: true,
+        error: `Repository ${owner}/${repo} tracking is inactive. Please reactivate it at ${trackingUrl}`,
         trackingUrl,
       };
     }

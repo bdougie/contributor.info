@@ -313,9 +313,19 @@ export default async (req: Request, context: Context) => {
     let owner = parts[apiIndex + 2];
     let repo = parts[apiIndex + 3];
 
-    const validation = await validateRepository(owner, repo, supabase);
+    const validation = await validateRepository(owner, repo);
+    if (validation.error) {
+      // Return 500 for database errors, 404 for not tracked
+      if (validation.error.includes('Database error')) {
+        return createErrorResponse(validation.error, 500);
+      }
+      // Not tracked, return 404
+      if (!validation.isTracked) {
+        return createNotFoundResponse(owner, repo, validation.trackingUrl);
+      }
+      return createErrorResponse(validation.error, 400);
+    }
     if (!validation.isTracked) return createNotFoundResponse(owner, repo, validation.trackingUrl);
-    if (validation.error) return createErrorResponse(validation.error);
 
     const body = await req.json();
     let { files, prAuthor, prUrl } = body || {};
@@ -344,6 +354,8 @@ export default async (req: Request, context: Context) => {
           headers['Authorization'] = `Bearer ${ghToken}`;
         }
 
+        console.log(`Attempting to fetch files for PR: ${prUrl}`);
+
         // Fetch PR files (paginated)
         const collected: string[] = [];
         for (let page = 1; page <= 3; page++) {
@@ -352,7 +364,8 @@ export default async (req: Request, context: Context) => {
             { headers }
           );
           if (!r.ok) {
-            console.error(`Failed to fetch PR files: ${r.status} ${r.statusText}`);
+            const errorBody = await r.text();
+            console.error(`Failed to fetch PR files: ${r.status} ${r.statusText}. Body: ${errorBody}`);
 
             // Try without auth if 401
             if (r.status === 401 && ghToken) {
@@ -391,7 +404,13 @@ export default async (req: Request, context: Context) => {
     }
 
     if (!files || !Array.isArray(files) || files.length === 0) {
-      return createErrorResponse('Please provide a PR URL or an array of files changed in the PR');
+      if (prUrl) {
+        return createErrorResponse(
+          'Failed to fetch files from the provided PR URL. The URL may be invalid, the repository may be private, or the GitHub API may be inaccessible.',
+          400
+        );
+      }
+      return createErrorResponse('Please provide an array of files changed in the PR', 400);
     }
 
     const prFiles = await analyzePRFiles(files);
@@ -400,8 +419,8 @@ export default async (req: Request, context: Context) => {
     const { data: repository, error: repoError } = await supabase
       .from('tracked_repositories')
       .select('id')
-      .eq('organization_name', owner.toLowerCase())
-      .eq('repository_name', repo.toLowerCase())
+      .eq('owner', owner.toLowerCase())
+      .eq('name', repo.toLowerCase())
       .maybeSingle();
 
     if (repoError) {

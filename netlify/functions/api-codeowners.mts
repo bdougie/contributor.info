@@ -85,12 +85,20 @@ export default async (req: Request, context: Context) => {
     const owner = parts[apiIndex + 2];
     const repo = parts[apiIndex + 3];
 
-    const validation = await validateRepository(owner, repo, supabase);
+    const validation = await validateRepository(owner, repo);
+    if (validation.error) {
+      // Return 500 for database errors, 404 for not tracked
+      if (validation.error.includes('Database error')) {
+        return createErrorResponse(validation.error, 500);
+      }
+      // Not tracked, return 404
+      if (!validation.isTracked) {
+        return createNotFoundResponse(owner, repo, validation.trackingUrl);
+      }
+      return createErrorResponse(validation.error, 400);
+    }
     if (!validation.isTracked) {
       return createNotFoundResponse(owner, repo, validation.trackingUrl);
-    }
-    if (validation.error) {
-      return createErrorResponse(validation.error);
     }
 
     const { data: repository, error: repoError } = await supabase

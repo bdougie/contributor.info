@@ -62,15 +62,44 @@ describe('Suggest Reviewers API Tests', () => {
 
   describe('Request body validation', () => {
     beforeEach(() => {
-      // Mock repository validation for body validation tests
-      const mockMaybeSingle = vi.fn().mockResolvedValue({
-        data: { id: 1, is_active: true },
-        error: null
+      // Mock for all tables
+      mockFrom.mockImplementation((table: string) => {
+        // For rate_limits table
+        if (table === 'rate_limits') {
+          const mockMaybeSingle = vi.fn().mockResolvedValue({
+            data: null,
+            error: null,
+          });
+          const mockEq = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
+          const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
+          const mockUpsert = vi.fn().mockResolvedValue({ data: null, error: null });
+          return {
+            select: mockSelect,
+            upsert: mockUpsert
+          };
+        }
+
+        // For tracked_repositories table
+        if (table === 'tracked_repositories') {
+          const mockMaybeSingle = vi.fn().mockResolvedValue({
+            data: { id: 1, is_active: true },
+            error: null,
+          });
+          const mockEq2 = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
+          const mockEq = vi.fn().mockReturnValue({ eq: mockEq2 });
+          const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
+          return { select: mockSelect };
+        }
+
+        // Default for unknown tables
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null })
+            })
+          })
+        };
       });
-      const mockEq2 = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
-      const mockEq = vi.fn().mockReturnValue({ eq: mockEq2 });
-      const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
-      mockFrom.mockReturnValue({ select: mockSelect });
     });
 
     it('should reject requests without files array', async () => {
@@ -122,57 +151,82 @@ describe('Suggest Reviewers API Tests', () => {
 
       // Override the from mock to handle all tables
       mockFrom.mockImplementation((table: string) => {
-        // For tracked_repositories table (validation)
+        // For rate_limits table (for rate limiter)
+        if (table === 'rate_limits') {
+          const mockMaybeSingle = vi.fn().mockResolvedValue({
+            data: null,
+            error: null,
+          });
+          const mockEq = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
+          const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
+          return { select: mockSelect };
+        }
+
+        // For tracked_repositories table
         if (table === 'tracked_repositories') {
           queryCount++;
-          const mockMaybeSingle = vi.fn().mockResolvedValue({
-            data: { id: 1, is_active: true },
-            error: null,
-          });
-          const mockEq2 = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
-          const mockEq = vi.fn().mockReturnValue({ eq: mockEq2 });
-          const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
-          return { select: mockSelect };
+          // First call is for validation
+          if (queryCount === 1) {
+            const mockMaybeSingle = vi.fn().mockResolvedValue({
+              data: { id: 1, is_active: true },
+              error: null,
+            });
+            const mockEq2 = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
+            const mockEq = vi.fn().mockReturnValue({ eq: mockEq2 });
+            const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
+            return { select: mockSelect };
+          } else {
+            // Second call is for getting repository ID
+            const mockMaybeSingle = vi.fn().mockResolvedValue({
+              data: { id: 'repo-123' },
+              error: null,
+            });
+            const mockEq2 = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
+            const mockEq = vi.fn().mockReturnValue({ eq: mockEq2 });
+            const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
+            return { select: mockSelect };
+          }
         }
 
-        // For repositories table (getting repository ID)
-        if (table === 'repositories') {
-          const mockMaybeSingle = vi.fn().mockResolvedValue({
-            data: { id: 'repo-123' },
-            error: null,
-          });
-          const mockLimit = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
-          const mockEq2 = vi.fn().mockReturnValue({ limit: mockLimit });
-          const mockEq = vi.fn().mockReturnValue({ eq: mockEq2 });
-          const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
-          return { select: mockSelect };
-        }
-
-        // For github_contributions table
-        if (table === 'github_contributions') {
+        // For reviews table
+        if (table === 'reviews') {
           const mockLimit = vi.fn().mockResolvedValue({
             data: [
               {
-                contributor: {
+                id: 'review-1',
+                state: 'APPROVED',
+                submitted_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+                pull_request_id: 'pr-1',
+                reviewer: {
                   username: 'developer1',
                   avatar_url: 'https://github.com/developer1.png',
                 },
-                additions: 100,
-                deletions: 50,
-                commits: 10,
-                files_changed: ['src/components/auth.tsx', 'src/lib/utils.ts'],
-                last_contributed_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days ago
+                pull_request: {
+                  id: 'pr-1',
+                  title: 'Fix auth component',
+                  files_changed: 5,
+                  additions: 100,
+                  deletions: 50,
+                  merged_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+                }
               },
               {
-                contributor: {
+                id: 'review-2',
+                state: 'APPROVED',
+                submitted_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+                pull_request_id: 'pr-2',
+                reviewer: {
                   username: 'developer2',
                   avatar_url: 'https://github.com/developer2.png',
                 },
-                additions: 200,
-                deletions: 30,
-                commits: 15,
-                files_changed: ['src/components/auth.tsx', 'tests/auth.test.ts'],
-                last_contributed_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(), // 10 days ago
+                pull_request: {
+                  id: 'pr-2',
+                  title: 'Add auth tests',
+                  files_changed: 3,
+                  additions: 200,
+                  deletions: 30,
+                  merged_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+                }
               },
             ],
             error: null,
@@ -218,19 +272,14 @@ describe('Suggest Reviewers API Tests', () => {
       expect(response.status).toBe(200);
       expect(data.repository).toBe('owner/repo');
       expect(data.filesAnalyzed).toBe(2);
-      expect(data.suggestions.primary).toBeDefined();
-      expect(data.suggestions.secondary).toBeDefined();
-      expect(data.suggestions.additional).toBeDefined();
+      expect(data.suggestions).toBeDefined();
+      expect(Array.isArray(data.suggestions)).toBe(true);
 
       // Should include developers who worked on similar files
-      const allSuggestions = [
-        ...data.suggestions.primary,
-        ...data.suggestions.secondary,
-        ...data.suggestions.additional,
-      ];
+      const allSuggestions = data.suggestions;
 
-      expect(allSuggestions.some((s: any) => s.username === 'developer1')).toBe(true);
-      expect(allSuggestions.some((s: any) => s.username === 'developer2')).toBe(true);
+      expect(allSuggestions.some((s: any) => s.handle === 'developer1')).toBe(true);
+      expect(allSuggestions.some((s: any) => s.handle === 'developer2')).toBe(true);
     });
 
     it('should exclude PR author from suggestions', async () => {
@@ -248,40 +297,34 @@ describe('Suggest Reviewers API Tests', () => {
 
       expect(response.status).toBe(200);
 
-      const allSuggestions = [
-        ...data.suggestions.primary,
-        ...data.suggestions.secondary,
-        ...data.suggestions.additional,
-      ];
+      const allSuggestions = data.suggestions;
 
       // Should not include the PR author
-      expect(allSuggestions.some((s: any) => s.username === 'developer1')).toBe(false);
-      expect(allSuggestions.some((s: any) => s.username === 'developer2')).toBe(true);
+      expect(allSuggestions.some((s: any) => s.handle === 'developer1')).toBe(false);
+      expect(allSuggestions.some((s: any) => s.handle === 'developer2')).toBe(true);
     });
 
     it('should include CODEOWNERS in suggestions when available', async () => {
       // Override the from mock to include CODEOWNERS data
       mockFrom.mockImplementation((table: string) => {
-        // For tracked_repositories table (validation)
-        if (table === 'tracked_repositories') {
+        // For rate_limits table
+        if (table === 'rate_limits') {
           const mockMaybeSingle = vi.fn().mockResolvedValue({
-            data: { id: 1, is_active: true },
+            data: null,
             error: null,
           });
-          const mockEq2 = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
-          const mockEq = vi.fn().mockReturnValue({ eq: mockEq2 });
+          const mockEq = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
           const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
           return { select: mockSelect };
         }
 
-        // For repositories table (getting repository ID)
-        if (table === 'repositories') {
+        // For tracked_repositories table
+        if (table === 'tracked_repositories') {
           const mockMaybeSingle = vi.fn().mockResolvedValue({
-            data: { id: 'repo-123' },
+            data: { id: 'repo-123', is_active: true },
             error: null,
           });
-          const mockLimit = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
-          const mockEq2 = vi.fn().mockReturnValue({ limit: mockLimit });
+          const mockEq2 = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
           const mockEq = vi.fn().mockReturnValue({ eq: mockEq2 });
           const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
           return { select: mockSelect };
@@ -303,8 +346,8 @@ describe('Suggest Reviewers API Tests', () => {
           return { select: mockSelect };
         }
 
-        // For github_contributions table
-        if (table === 'github_contributions') {
+        // For reviews table
+        if (table === 'reviews') {
           const mockLimit = vi.fn().mockResolvedValue({
             data: [],
             error: null,
@@ -334,11 +377,11 @@ describe('Suggest Reviewers API Tests', () => {
       expect(response.status).toBe(200);
       expect(data.codeOwners).toEqual(['codeowner1', 'codeowner2']);
 
-      // CODEOWNERS should get high priority (primary suggestions)
-      expect(data.suggestions.primary.length).toBeGreaterThan(0);
-      const primaryUsernames = data.suggestions.primary.map((s: any) => s.username);
-      expect(primaryUsernames).toContain('codeowner1');
-      expect(primaryUsernames).toContain('codeowner2');
+      // CODEOWNERS should be in suggestions
+      expect(data.suggestions.length).toBeGreaterThan(0);
+      const suggestionHandles = data.suggestions.map((s: any) => s.handle);
+      expect(suggestionHandles).toContain('codeowner1');
+      expect(suggestionHandles).toContain('codeowner2');
     });
 
     it('should handle missing GitHub token gracefully', async () => {
@@ -361,6 +404,32 @@ describe('Suggest Reviewers API Tests', () => {
       expect(data.codeOwners).toEqual([]);
       // Should still provide suggestions based on contribution data
       expect(data.suggestions).toBeDefined();
+    });
+
+    it('should return a specific error when GitHub file fetch fails', async () => {
+      // Mock fetch to simulate GitHub API failure
+      (global.fetch as any).mockResolvedValue({
+        ok: false,
+        status: 404,
+        statusText: 'Not Found',
+        text: async () => '{"message": "Not Found"}',
+      });
+
+      const request = new Request('https://test.com/api/repos/owner/repo/suggest-reviewers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prUrl: 'https://github.com/owner/repo/pull/123',
+        }),
+      });
+
+      const response = await handler(request, {} as any);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.error).toBe(
+        'Failed to fetch files from the provided PR URL. The URL may be invalid, the repository may be private, or the GitHub API may be inaccessible.'
+      );
     });
 
     it('should handle contribution data fetch errors', async () => {
@@ -401,8 +470,8 @@ describe('Suggest Reviewers API Tests', () => {
           return { select: mockSelectLocal };
         }
 
-        // For github_contributions table - return error
-        if (table === 'github_contributions') {
+        // For reviews table - return error
+        if (table === 'reviews') {
           return { select: mockSelect };
         }
 
@@ -468,8 +537,8 @@ describe('Suggest Reviewers API Tests', () => {
           return { select: mockSelect };
         }
 
-        // For github_contributions table - empty data for file analysis tests
-        if (table === 'github_contributions') {
+        // For reviews table - empty data for file analysis tests
+        if (table === 'reviews') {
           const mockLimit = vi.fn().mockResolvedValue({ data: [], error: null });
           const mockOrder = vi.fn().mockReturnValue({ limit: mockLimit });
           const mockGte = vi.fn().mockReturnValue({ order: mockOrder });

@@ -9,8 +9,7 @@ interface RepositoryValidation {
 
 export async function validateRepository(
   owner: string,
-  repo: string,
-  supabase?: ReturnType<typeof createClient>
+  repo: string
 ): Promise<RepositoryValidation> {
   const isValidRepoName = (name: string): boolean => /^[a-zA-Z0-9._-]+$/.test(name);
 
@@ -32,19 +31,29 @@ export async function validateRepository(
   }
 
   try {
-    if (!supabase) {
+    // Create Supabase client
+    const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
+    const supabaseKey =
+      process.env.SUPABASE_SERVICE_KEY ||
+      process.env.SUPABASE_ANON_KEY ||
+      process.env.VITE_SUPABASE_ANON_KEY ||
+      '';
+
+    if (!supabaseUrl || !supabaseKey) {
       return {
         isTracked: false,
         exists: false,
-        error: 'Supabase client not provided',
+        error: 'Missing Supabase configuration',
       };
     }
 
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
     const { data, error } = await supabase
       .from('tracked_repositories')
-      .select('id')
-      .eq('organization_name', owner.toLowerCase())
-      .eq('repository_name', repo.toLowerCase())
+      .select('id, is_active')
+      .eq('owner', owner.toLowerCase())
+      .eq('name', repo.toLowerCase())
       .maybeSingle();
 
     if (error) {
@@ -62,6 +71,17 @@ export async function validateRepository(
         isTracked: false,
         exists: true,
         error: `Repository ${owner}/${repo} is not tracked. Please track it first at ${trackingUrl}`,
+        trackingUrl,
+      };
+    }
+
+    // Check if repository is active
+    if (!data.is_active) {
+      const trackingUrl = `https://contributor.info/${owner}/${repo}`;
+      return {
+        isTracked: false,
+        exists: true,
+        error: `Repository ${owner}/${repo} tracking is inactive. Please reactivate it at ${trackingUrl}`,
         trackingUrl,
       };
     }
@@ -108,5 +128,6 @@ export const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Credentials': 'true',
+  // NOTE: Credentials removed for security - cannot use credentials with wildcard origin
+  // 'Access-Control-Allow-Credentials': 'true', // SECURITY: Violates CORS spec with wildcard origin
 };
