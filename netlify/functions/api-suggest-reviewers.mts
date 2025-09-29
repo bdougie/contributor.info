@@ -6,7 +6,7 @@ import {
   createErrorResponse,
   CORS_HEADERS,
 } from './lib/repository-validation.ts';
-import { RateLimiter, getRateLimitKey, applyRateLimitHeaders } from './lib/rate-limiter.mjs';
+import { RateLimiter, getRateLimitKey, applyRateLimitHeaders } from './lib/rate-limiter.mts';
 
 interface ReviewerSuggestion {
   handle: string;
@@ -73,7 +73,7 @@ async function getReviewerSuggestionsFromHistory(
       pull_request:pull_requests!inner(
         id,
         title,
-        files_changed,
+        changed_files,
         additions,
         deletions,
         merged_at
@@ -86,7 +86,7 @@ async function getReviewerSuggestionsFromHistory(
 
   if (reviewError) {
     console.error('Failed to fetch review data:', reviewError);
-    return suggestions;
+    throw new Error(`Failed to fetch review data: ${reviewError.message}`);
   }
 
   // Analyze review patterns
@@ -288,6 +288,8 @@ export default async (req: Request, context: Context) => {
     '';
 
   if (!supabaseUrl || !supabaseKey) {
+    console.error('Missing Supabase configuration');
+    console.error('Available env vars:', Object.keys(process.env).filter(k => k.includes('SUPABASE')));
     return createErrorResponse('Missing Supabase configuration', 500);
   }
 
@@ -313,8 +315,10 @@ export default async (req: Request, context: Context) => {
     let owner = parts[apiIndex + 2];
     let repo = parts[apiIndex + 3];
 
+    console.log(`Validating repository: ${owner}/${repo}`);
     const validation = await validateRepository(owner, repo);
     if (validation.error) {
+      console.error('Validation error:', validation.error);
       // Return 500 for database errors, 404 for not tracked
       if (validation.error.includes('Database error')) {
         return createErrorResponse(validation.error, 500);
@@ -419,8 +423,8 @@ export default async (req: Request, context: Context) => {
     const { data: repository, error: repoError } = await supabase
       .from('tracked_repositories')
       .select('id')
-      .eq('owner', owner.toLowerCase())
-      .eq('name', repo.toLowerCase())
+      .eq('organization_name', owner.toLowerCase())
+      .eq('repository_name', repo.toLowerCase())
       .maybeSingle();
 
     if (repoError) {

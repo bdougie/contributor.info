@@ -44,9 +44,9 @@ export async function validateRepository(
 
     const { data, error } = await supabase
       .from('tracked_repositories')
-      .select('id, is_active')
-      .eq('owner', owner.toLowerCase())
-      .eq('name', repo.toLowerCase())
+      .select('id, tracking_enabled')
+      .eq('organization_name', owner.toLowerCase())
+      .eq('repository_name', repo.toLowerCase())
       .maybeSingle();
 
     if (error) {
@@ -70,7 +70,7 @@ export async function validateRepository(
     }
 
     // Check if repository is active
-    if (!data.is_active) {
+    if (!data.tracking_enabled) {
       const trackingUrl = `https://contributor.info/${owner}/${repo}`;
       return {
         isTracked: false,
