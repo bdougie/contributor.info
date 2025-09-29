@@ -223,7 +223,7 @@ async function fetchPullRequests(owner, name, repositoryId, days = SEED_DATA_DAY
     );
 
     // Ensure contributors exist and get their UUIDs
-    const authorContributor = await ensureContributor(supabase, detailedPR.user, `${owner}/${name}`);
+    const authorContributorId = await ensureContributor(supabase, detailedPR.user, `${owner}/${name}`);
     
     pullRequests.push({
       github_id: detailedPR.id,
@@ -232,7 +232,7 @@ async function fetchPullRequests(owner, name, repositoryId, days = SEED_DATA_DAY
       title: detailedPR.title,
       body: detailedPR.body,
       state: detailedPR.state,
-      author_id: authorContributor.id, // Now using contributor UUID
+      author_id: authorContributorId, // Now using contributor UUID
       created_at: detailedPR.created_at,
       updated_at: detailedPR.updated_at,
       closed_at: detailedPR.closed_at,
@@ -262,8 +262,7 @@ async function fetchPullRequests(owner, name, repositoryId, days = SEED_DATA_DAY
         // Ensure review author exists and get UUID
         let reviewAuthorId = null;
         if (review.user) {
-          const reviewAuthor = await ensureContributor(supabase, review.user, `${owner}/${name}`);
-          reviewAuthorId = reviewAuthor.id;
+          reviewAuthorId = await ensureContributor(supabase, review.user, `${owner}/${name}`);
         }
 
         reviews.push({
@@ -295,8 +294,7 @@ async function fetchPullRequests(owner, name, repositoryId, days = SEED_DATA_DAY
         // Ensure comment author exists and get UUID
         let commenterId = null;
         if (comment.user) {
-          const commenter = await ensureContributor(supabase, comment.user, `${owner}/${name}`);
-          commenterId = commenter.id;
+          commenterId = await ensureContributor(supabase, comment.user, `${owner}/${name}`);
         }
 
         comments.push({

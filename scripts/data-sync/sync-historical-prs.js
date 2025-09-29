@@ -128,8 +128,7 @@ async function syncHistoricalPRs() {
         // Ensure author exists using shared utility (handles github_id properly)
         let authorId = null;
         if (pr.user) {
-          const authorContributor = await ensureContributor(supabase, pr.user, repositoryName);
-          authorId = authorContributor?.id || null;
+          authorId = await ensureContributor(supabase, pr.user, repositoryName);
         }
 
         // Prepare PR data

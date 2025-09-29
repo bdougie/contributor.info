@@ -80,8 +80,7 @@ class PRCommentsCaptureScript extends BaseCaptureScript {
         // Ensure comment author exists and get UUID
         let commentAuthorId = null;
         if (comment.user) {
-          const commentAuthor = await ensureContributor(this.supabase, comment.user, this.repositoryName);
-          commentAuthorId = commentAuthor?.id || null;
+          commentAuthorId = await ensureContributor(this.supabase, comment.user, this.repositoryName);
         }
 
         const commentRecord = {
@@ -89,7 +88,7 @@ class PRCommentsCaptureScript extends BaseCaptureScript {
           github_id: comment.id,
           pull_request_number: pr.number,
           body: comment.body,
-          author_id: commentAuthorId, // Now using contributor UUID
+          commenter_id: commentAuthorId, // Now using contributor UUID
           created_at: comment.created_at,
           updated_at: comment.updated_at,
           html_url: comment.html_url,
