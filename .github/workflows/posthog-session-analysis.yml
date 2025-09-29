@@ -1,0 +1,93 @@
+name: PostHog Session Analysis with Continue CLI Agent
+
+on:
+  schedule:
+    - cron: "0 6 * * *" # Run at 6 AM UTC daily
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Install Continue CLI
+        run: |
+          npm install -g @continuedev/cli
+          echo "✅ Continue CLI installed"
+          cn --version
+
+      - name: Authenticate with Continue CLI
+        run: |
+          # Set Continue API key
+          export CONTINUE_API_KEY="${{ secrets.CONTINUE_API_KEY }}"
+          # Login to Continue CLI
+          if ! cn auth login --api-key "$CONTINUE_API_KEY"; then
+            echo "❌ Failed to authenticate with Continue CLI"
+            exit 1
+          fi
+          echo "✅ Continue CLI authenticated"
+
+      - name: Load PostHog GitHub Agent
+        run: |
+          echo "🤖 Loading PostHog GitHub Continuous AI Agent..."
+          cn --config continuedev/awesome-models-posthog-gh
+          echo "✅ Agent loaded successfully"
+
+      - name: Run PostHog Analysis and Create GitHub Issues
+        id: analysis
+        run: |
+          echo "🎬 Starting automated PostHog session analysis..."
+
+          # Run the agent with the simple prompt and capture output
+          OUTPUT=$(cn -p "Tell me about my PostHog session recordings and create GitHub issues based on the problems." 2>&1)
+
+          echo "$OUTPUT"
+          echo "✅ Analysis and issue creation completed"
+
+          # Save output for PR comment
+          echo "$OUTPUT" > analysis-results.txt
+
+          # Create summary
+          echo "SUMMARY<<EOF" >> $GITHUB_OUTPUT
+          echo "## 📊 PostHog Session Analysis Results" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "\`\`\`" >> $GITHUB_OUTPUT
+          echo "$OUTPUT" >> $GITHUB_OUTPUT
+          echo "\`\`\`" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "✅ Analysis completed at $(date)" >> $GITHUB_OUTPUT
+          echo "🐛 Check repository issues for newly created UX problems" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request' || github.event.pull_request.number
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const summary = `${{ steps.analysis.outputs.SUMMARY }}`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            });
+
+      - name: Summary
+        run: |
+          echo "✅ PostHog analysis workflow completed!"
+          echo "📊 Check the artifacts for detailed analysis results"
+          echo "🐛 Check your repository issues for newly created UX issues"
+          echo "🤖 Agent automatically handled both analysis and issue creation"
