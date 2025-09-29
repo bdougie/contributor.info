@@ -116,7 +116,9 @@ export function ReviewerSuggestionsModal({
   // Load CODEOWNERS when repository changes
   useEffect(() => {
     if (owner && repo) {
-      handleLoadCodeowners();
+      handleLoadCodeowners().catch((err) => {
+        console.log('[CODEOWNERS] Failed to load, will continue without:', err.message);
+      });
     }
   }, [owner, repo]);
 
