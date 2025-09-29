@@ -40,42 +40,111 @@ interface ContributorStats {
 
 async function analyzeContributions(owner: string, repo: string): Promise<Map<string, ContributorStats>> {
   const supabase = createSupabaseClient();
-  const { data, error } = await supabase
-    .from('github_contributions')
-    .select(
-      `contributor:github_contributors!inner(username,avatar_url), additions, deletions, commits, files_changed`
-    )
-    .eq('repository_id', `${owner}/${repo}`.toLowerCase())
-    .order('commits', { ascending: false })
-    .limit(100);
 
-  if (error) throw new Error(error.message);
+  // First try the repositories table
+  const { data: repository } = await supabase
+    .from('repositories')
+    .select('id')
+    .or(`and(owner.eq.${owner},name.eq.${repo}),full_name.eq.${owner}/${repo}`)
+    .maybeSingle();
+
+  if (!repository) {
+    throw new Error(`Repository ${owner}/${repo} not found in database`);
+  }
+
+  // Try to get recent commits and contributors
+  const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: commits, error } = await supabase
+    .from('commits')
+    .select(`
+      author:contributors!author_id(username, avatar_url),
+      message,
+      committed_date
+    `)
+    .eq('repository_id', repository.id)
+    .gte('committed_date', ninetyDaysAgo)
+    .order('committed_date', { ascending: false })
+    .limit(500);
+
+  if (error) {
+    console.error('Error fetching commits:', error);
+    // Fall back to empty map rather than throwing
+    return new Map<string, ContributorStats>();
+  }
 
   const contributorMap = new Map<string, ContributorStats>();
-  for (const c of data || []) {
-    const username = c.contributor?.username;
+
+  // Process commits to build contributor stats
+  for (const commit of commits || []) {
+    const username = commit.author?.username;
     if (!username) continue;
+
     if (!contributorMap.has(username)) {
-      contributorMap.set(username, { username, contributions: 0, files: [], directories: new Set() });
+      contributorMap.set(username, {
+        username,
+        contributions: 0,
+        files: [],
+        directories: new Set()
+      });
     }
+
     const stats = contributorMap.get(username)!;
-    stats.contributions += c.commits || 0;
-    if (Array.isArray(c.files_changed)) {
-      for (const f of c.files_changed) {
-        if (typeof f === 'string') {
-          stats.files.push(f);
-          const dir = f.substring(0, f.lastIndexOf('/'));
-          if (dir) stats.directories.add(dir);
+    stats.contributions += 1;
+
+    // Try to extract file paths from commit messages (basic heuristic)
+    const message = commit.message || '';
+    const fileMatches = message.match(/(\w+\/[\w\/.]+\.\w+)/g) || [];
+    for (const file of fileMatches) {
+      stats.files.push(file);
+      const dir = file.substring(0, file.lastIndexOf('/'));
+      if (dir) stats.directories.add(dir);
+    }
+  }
+
+  // If we have no data, try to fetch from GitHub API
+  if (contributorMap.size === 0) {
+    const ghToken = process.env.GITHUB_TOKEN || process.env.VITE_GITHUB_TOKEN || '';
+    if (ghToken) {
+      try {
+        const headers: HeadersInit = {
+          Accept: 'application/vnd.github+json',
+          Authorization: `Bearer ${ghToken}`,
+        };
+
+        const resp = await fetch(
+          `https://api.github.com/repos/${owner}/${repo}/contributors?per_page=30`,
+          { headers }
+        );
+
+        if (resp.ok) {
+          const contributors = await resp.json();
+          for (const contrib of contributors) {
+            if (contrib.login) {
+              contributorMap.set(contrib.login, {
+                username: contrib.login,
+                contributions: contrib.contributions || 0,
+                files: [],
+                directories: new Set(['src', 'lib', 'components', 'api']), // Common dirs
+              });
+            }
+          }
         }
+      } catch (e) {
+        console.error('Failed to fetch from GitHub:', e);
       }
     }
   }
+
   return contributorMap;
 }
 
-function generateCodeOwnersSuggestions(contributorStats: Map<string, ContributorStats>): CodeOwnersSuggestion[] {
+function generateCodeOwnersSuggestions(
+  contributorStats: Map<string, ContributorStats>,
+  existingTeams?: string[]
+): CodeOwnersSuggestion[] {
   const suggestions: CodeOwnersSuggestion[] = [];
   const directoryOwnership = new Map<string, { owners: string[]; total: number }>();
+
   for (const [username, stats] of contributorStats) {
     for (const dir of stats.directories) {
       const rec = directoryOwnership.get(dir) || { owners: [], total: 0 };
@@ -84,14 +153,36 @@ function generateCodeOwnersSuggestions(contributorStats: Map<string, Contributor
       directoryOwnership.set(dir, rec);
     }
   }
+
+  // Add team suggestions if provided (from existing CODEOWNERS analysis)
+  if (existingTeams && existingTeams.length > 0) {
+    // Add a suggestion for common directories with teams
+    suggestions.push({
+      pattern: '/*',
+      owners: existingTeams,
+      confidence: 0.85,
+      reasoning: 'Existing team ownership pattern detected'
+    });
+  }
+
   for (const [dir, rec] of directoryOwnership) {
     const sorted = rec.owners.sort((a, b) => (contributorStats.get(b)!.contributions - contributorStats.get(a)!.contributions));
-    const top = sorted.slice(0, 3).map((u) => `@${u}`);
+    const top = sorted.slice(0, 3).map((u) => {
+      // Handle both individual users and preserve team format
+      return u.includes('/') ? `@${u}` : `@${u}`;
+    });
+
     if (top.length > 0) {
       const confidence = Math.min(0.9, (rec.total / 100) * 0.3 + 0.3);
-      suggestions.push({ pattern: `/${dir}/`, owners: top, confidence, reasoning: `Top ${top.length} contributor(s) to this directory` });
+      suggestions.push({
+        pattern: `/${dir}/`,
+        owners: top,
+        confidence,
+        reasoning: `Top ${top.length} contributor(s) to this directory`
+      });
     }
   }
+
   return suggestions.sort((a, b) => b.confidence - a.confidence);
 }
 
@@ -158,8 +249,34 @@ export default async (req: Request, context: Context) => {
       return applyRateLimitHeaders(resp, rate);
     }
 
+    // Check for existing CODEOWNERS to extract teams
+    let existingTeams: string[] = [];
+    try {
+      const { data: codeowners } = await supabase
+        .from('codeowners')
+        .select('content')
+        .eq('repository_id', repository.id)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (codeowners?.content) {
+        // Extract team handles (format: @org/team) from existing CODEOWNERS
+        const teamPattern = /@([a-zA-Z0-9-]+\/[a-zA-Z0-9-]+)/g;
+        const matches = codeowners.content.match(teamPattern);
+        if (matches) {
+          existingTeams = [...new Set(matches)]; // Unique teams
+          console.log(`Found existing teams in CODEOWNERS: ${existingTeams.join(', ')}`);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to fetch existing CODEOWNERS:', e);
+    }
+
     const contributorStats = await analyzeContributions(owner, repo);
-    if (contributorStats.size === 0) {
+
+    // Even if no individual contributors, we can still suggest teams
+    if (contributorStats.size === 0 && existingTeams.length === 0) {
       const resp = new Response(
         JSON.stringify({ suggestions: [], message: 'No contribution data available for analysis', repository: `${owner}/${repo}` }),
         { status: 200, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } }
@@ -167,7 +284,7 @@ export default async (req: Request, context: Context) => {
       return applyRateLimitHeaders(resp, rate);
     }
 
-    let suggestions = generateCodeOwnersSuggestions(contributorStats);
+    let suggestions = generateCodeOwnersSuggestions(contributorStats, existingTeams);
     let codeOwnersContent = [
       '# CODEOWNERS file generated based on contribution analysis',
       '# Review and adjust these suggestions before using',
@@ -182,11 +299,13 @@ export default async (req: Request, context: Context) => {
     if (useLLM && openAIKey) {
       try {
         const prompt = `You are helping generate a CODEOWNERS file for ${owner}/${repo}.
-We have these active contributor directories with contributions: ${Array.from(contributorStats.values())
+${existingTeams.length > 0 ? `Existing team owners: ${existingTeams.join(', ')}` : ''}
+We have these active contributors: ${Array.from(contributorStats.values())
           .map((s) => `${s.username} -> [${Array.from(s.directories).slice(0, 10).join(', ')}]`)
           .join('; ')}.
-Suggest up to 10 patterns with @user owners. Output lines in the format:
-/path/ @owner1 @owner2 # reasoning (confidence: 80%)`;
+Suggest up to 10 patterns with owners (both @user and @org/team format). Include existing teams where appropriate.
+Output lines in the format:
+/path/ @owner1 @owner2 @org/team # reasoning (confidence: 80%)`;
 
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',

@@ -14,8 +14,11 @@ export interface ReviewerSuggestionDTO {
   };
 }
 
-export async function fetchCodeOwners(owner: string, repo: string) {
-  const res = await fetch(`/api/repos/${owner}/${repo}/codeowners`);
+export async function fetchCodeOwners(owner: string, repo: string, forceRefresh = false) {
+  const url = forceRefresh
+    ? `/api/repos/${owner}/${repo}/codeowners?refresh=true`
+    : `/api/repos/${owner}/${repo}/codeowners`;
+  const res = await fetch(url);
   if (!res.ok) throw new Error(`Failed to fetch CODEOWNERS: ${res.status}`);
   return res.json() as Promise<{
     exists: boolean;

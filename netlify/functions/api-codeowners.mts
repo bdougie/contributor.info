@@ -120,20 +120,79 @@ export default async (req: Request, context: Context) => {
       return createNotFoundResponse(owner, repo);
     }
 
-    const codeOwnersData = await fetchCodeOwnersFromDatabase(repository.id, supabase);
-    if (!codeOwnersData.exists) {
-      const resp = new Response(
-        JSON.stringify({
-          exists: false,
-          message: codeOwnersData.error || 'No CODEOWNERS file found in repository',
-          checkedPaths: ['.github/CODEOWNERS', 'CODEOWNERS', 'docs/CODEOWNERS', '.gitlab/CODEOWNERS'],
-        }),
-        {
-          status: 404,
-          headers: { ...CORS_HEADERS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300' },
+    // First check database
+    let codeOwnersData = await fetchCodeOwnersFromDatabase(repository.id, supabase);
+
+    // If not in database or force refresh requested, fetch from GitHub
+    const forceRefresh = url.searchParams.get('refresh') === 'true';
+    if (!codeOwnersData.exists || forceRefresh) {
+      // Try to fetch from GitHub
+      const ghToken = process.env.GITHUB_TOKEN || process.env.VITE_GITHUB_TOKEN || '';
+      const headers: HeadersInit = { Accept: 'application/vnd.github+json' };
+      if (ghToken) headers['Authorization'] = `Bearer ${ghToken}`;
+
+      const paths = ['.github/CODEOWNERS', 'CODEOWNERS', 'docs/CODEOWNERS', '.gitlab/CODEOWNERS'];
+      let foundContent: string | null = null;
+      let foundPath: string | null = null;
+
+      for (const path of paths) {
+        try {
+          const resp = await fetch(
+            `https://api.github.com/repos/${owner}/${repo}/contents/${path}`,
+            { headers }
+          );
+
+          if (resp.ok) {
+            const data = await resp.json();
+            if (data.content) {
+              foundContent = Buffer.from(data.content, 'base64').toString('utf-8');
+              foundPath = path;
+
+              // Save to database for future use
+              const { error: insertError } = await supabase
+                .from('codeowners')
+                .upsert({
+                  id: crypto.randomUUID(),
+                  repository_id: repository.id,
+                  file_path: path,
+                  content: foundContent,
+                  sha: data.sha,
+                  fetched_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                })
+                .select()
+                .single();
+
+              if (insertError) {
+                console.error('Failed to save CODEOWNERS to database:', insertError);
+              } else {
+                console.log(`Saved CODEOWNERS for ${owner}/${repo} to database`);
+              }
+
+              break;
+            }
+          }
+        } catch (e) {
+          // Continue to next path
         }
-      );
-      return rate ? applyRateLimitHeaders(resp, rate) : resp;
+      }
+
+      if (foundContent && foundPath) {
+        codeOwnersData = { exists: true, content: foundContent, path: foundPath };
+      } else if (!codeOwnersData.exists) {
+        const resp = new Response(
+          JSON.stringify({
+            exists: false,
+            message: 'No CODEOWNERS file found in repository',
+            checkedPaths: paths,
+          }),
+          {
+            status: 404,
+            headers: { ...CORS_HEADERS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300' },
+          }
+        );
+        return rate ? applyRateLimitHeaders(resp, rate) : resp;
+      }
     }
 
     const resp = new Response(

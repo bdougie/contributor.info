@@ -215,7 +215,7 @@ export default async (req: Request, context: Context) => {
     const branch = url.searchParams.get('branch') || undefined;
     const format = url.searchParams.get('format') || 'flat'; // 'flat' or 'hierarchical'
 
-    const validation = await validateRepository(owner, repo, supabase);
+    const validation = await validateRepository(owner, repo);
     if (!validation.isTracked) {
       return createNotFoundResponse(owner, repo, validation.trackingUrl);
     }
@@ -224,10 +224,9 @@ export default async (req: Request, context: Context) => {
     }
 
     const { data: repository, error: repoError } = await supabase
-      .from('tracked_repositories')
+      .from('repositories')
       .select('id, default_branch')
-      .eq('organization_name', owner.toLowerCase())
-      .eq('repository_name', repo.toLowerCase())
+      .or(`and(owner.eq.${owner},name.eq.${repo}),full_name.eq.${owner}/${repo}`)
       .maybeSingle();
 
     if (repoError || !repository) {
@@ -242,8 +241,19 @@ export default async (req: Request, context: Context) => {
     // If not in database, fetch from GitHub API
     if (!processedTree) {
       const ghToken = process.env.GITHUB_TOKEN || process.env.VITE_GITHUB_TOKEN || '';
+
+      // Log for debugging (remove in production)
+      console.log('Fetching tree for:', `${owner}/${repo}`, 'branch:', actualBranch);
+
       const headers: HeadersInit = { Accept: 'application/vnd.github+json' };
-      if (ghToken) headers['Authorization'] = `Bearer ${ghToken}`;
+
+      // Only add authorization if token exists and is not empty
+      if (ghToken && ghToken.trim() !== '') {
+        headers['Authorization'] = `Bearer ${ghToken}`;
+        console.log('Using GitHub token for authentication');
+      } else {
+        console.log('No GitHub token available, using unauthenticated request');
+      }
 
       const treeResp = await fetch(
         `https://api.github.com/repos/${owner}/${repo}/git/trees/${actualBranch}?recursive=1`,
@@ -251,14 +261,52 @@ export default async (req: Request, context: Context) => {
       );
 
       if (!treeResp.ok) {
-        return applyRateLimitHeaders(
-          createErrorResponse(`Failed to fetch repository tree: ${treeResp.statusText}`, 502),
-          rate
-        );
+        // More detailed error information
+        const errorDetails = await treeResp.text().catch(() => treeResp.statusText);
+        console.error('GitHub API error:', treeResp.status, errorDetails);
+
+        if (treeResp.status === 401 && ghToken) {
+          // Only show auth error if we actually tried to use a token
+          console.error('GitHub token appears to be invalid or expired');
+          // Try again without token
+          console.log('Retrying without authentication...');
+          const retryHeaders: HeadersInit = { Accept: 'application/vnd.github+json' };
+          const retryResp = await fetch(
+            `https://api.github.com/repos/${owner}/${repo}/git/trees/${actualBranch}?recursive=1`,
+            { headers: retryHeaders }
+          );
+
+          if (retryResp.ok) {
+            const data = (await retryResp.json()) as FileTreeResponse;
+            processedTree = processTreeData(data);
+          } else {
+            return applyRateLimitHeaders(
+              createErrorResponse('GitHub authentication failed. Token may be expired.', 401),
+              rate
+            );
+          }
+        } else if (treeResp.status === 404) {
+          return applyRateLimitHeaders(
+            createErrorResponse(`Repository or branch not found: ${owner}/${repo}@${actualBranch}`, 404),
+            rate
+          );
+        } else if (treeResp.status === 403) {
+          return applyRateLimitHeaders(
+            createErrorResponse('GitHub API rate limit exceeded. Please try again later.', 403),
+            rate
+          );
+        } else {
+          return applyRateLimitHeaders(
+            createErrorResponse(`Failed to fetch repository tree: ${errorDetails}`, treeResp.status),
+            rate
+          );
+        }
       }
 
-      const data = (await treeResp.json()) as FileTreeResponse;
-      processedTree = processTreeData(data);
+      if (!processedTree && treeResp.ok) {
+        const data = (await treeResp.json()) as FileTreeResponse;
+        processedTree = processTreeData(data);
+      }
     }
 
     // Prepare response based on format

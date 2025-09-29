@@ -54,6 +54,15 @@ async function analyzePRFiles(files: string[]): Promise<PullRequestFiles> {
   return { files, directories, fileTypes };
 }
 
+/**
+ * Analyzes review history to suggest appropriate reviewers.
+ * Returns empty array if:
+ * - No recent PRs exist in the last 90 days
+ * - No reviews found for recent PRs
+ * - All reviewers are the PR author
+ *
+ * Includes fallback to active contributors if < 3 reviewers found.
+ */
 async function getReviewerSuggestionsFromHistory(
   repositoryId: string,
   prFiles: PullRequestFiles,
@@ -63,7 +72,8 @@ async function getReviewerSuggestionsFromHistory(
   const suggestions: ReviewerSuggestion[] = [];
   const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
 
-  // Get review history for this repository
+  // Get recent reviews and their associated PRs
+  // This approach finds PRs that have recent review activity, not just recent creation
   const { data: reviewData, error: reviewError } = await supabase
     .from('reviews')
     .select(`
@@ -75,10 +85,7 @@ async function getReviewerSuggestionsFromHistory(
       pull_request:pull_requests!inner(
         id,
         title,
-        changed_files,
-        additions,
-        deletions,
-        merged_at
+        repository_id
       )
     `)
     .eq('pull_request.repository_id', repositoryId)
@@ -89,6 +96,22 @@ async function getReviewerSuggestionsFromHistory(
   if (reviewError) {
     console.error('Failed to fetch review data:', reviewError);
     throw new Error(`Failed to fetch review data: ${reviewError.message}`);
+  }
+
+  if (!reviewData || reviewData.length === 0) {
+    console.log('No recent reviews found for repository');
+    return [];
+  }
+
+  // Extract unique PR IDs and build PR data map
+  const prMap = new Map<string, { id: string; title: string }>();
+  for (const review of reviewData) {
+    if (review.pull_request && !prMap.has(review.pull_request.id)) {
+      prMap.set(review.pull_request.id, {
+        id: review.pull_request.id,
+        title: review.pull_request.title || ''
+      });
+    }
   }
 
   // Analyze review patterns
@@ -122,8 +145,9 @@ async function getReviewerSuggestionsFromHistory(
       stats.lastReviewDate = reviewDate;
     }
 
-    // Analyze PR title for expertise areas
-    const prTitle = review.pull_request?.title || '';
+    // Get the PR data for this review
+    const pr = review.pull_request || prMap.get(review.pull_request_id);
+    const prTitle = pr?.title || '';
     const titleLower = prTitle.toLowerCase();
 
     // Extract expertise areas from PR titles
@@ -236,6 +260,59 @@ async function getReviewerSuggestionsFromHistory(
   // Sort by score
   suggestions.sort((a, b) => (b.metadata?.score || 0) - (a.metadata?.score || 0));
 
+  // If we have few suggestions, add active contributors as fallback
+  if (suggestions.length < 3) {
+    console.log('Adding active contributors as fallback suggestions');
+
+    // Get active contributors from recent commits
+    const { data: activeContributors, error: contribError } = await supabase
+      .from('commits')
+      .select(`
+        author:contributors!author_id(username, avatar_url)
+      `)
+      .eq('repository_id', repositoryId)
+      .gte('committed_date', ninetyDaysAgo)
+      .not('author_id', 'is', null)
+      .limit(50);
+
+    if (!contribError && activeContributors) {
+      const contributorActivity = new Map<string, { count: number; avatarUrl?: string }>();
+
+      for (const commit of activeContributors) {
+        const username = commit.author?.username;
+        if (!username || username === prAuthor) continue;
+
+        // Skip if already in suggestions
+        if (suggestions.some(s => s.handle === username)) continue;
+
+        const activity = contributorActivity.get(username) || { count: 0, avatarUrl: commit.author?.avatar_url };
+        activity.count++;
+        contributorActivity.set(username, activity);
+      }
+
+      // Add top active contributors who aren't already reviewers
+      const activeContribs = Array.from(contributorActivity.entries())
+        .filter(([username]) => !reviewerStats.has(username))
+        .sort((a, b) => b[1].count - a[1].count)
+        .slice(0, Math.max(0, 5 - suggestions.length));
+
+      for (const [username, activity] of activeContribs) {
+        suggestions.push({
+          handle: username,
+          reason: `${username} is an active contributor with ${activity.count} recent commits`,
+          confidence: 0.4,
+          signals: ['Active contributor', `${activity.count} recent commits`],
+          metadata: {
+            avatarUrl: activity.avatarUrl,
+            reviewCount: 0,
+            lastReviewDate: new Date().toISOString(),
+            score: activity.count * 2,
+          },
+        });
+      }
+    }
+  }
+
   return suggestions;
 }
 
@@ -274,7 +351,13 @@ function parseCodeOwners(content: string, prFiles: PullRequestFiles): Set<string
     }
 
     if (matches) {
-      fileOwners.forEach((o) => owners.add(o.substring(1)));
+      fileOwners.forEach((o) => {
+        // Remove @ and keep both individual handles and org/team format
+        const owner = o.substring(1);
+        // For teams (org/team format), we'll keep them as-is for now
+        // In a production system, we'd resolve team members via GitHub API
+        owners.add(owner);
+      });
     }
   }
 
@@ -345,7 +428,7 @@ export default async (req: Request, context: Context) => {
     const body = await req.json();
     let { files, prAuthor, prUrl } = body || {};
 
-    // If PR URL is provided, fetch files from GitHub
+    // If PR URL is provided, fetch files and author from GitHub
     if (typeof prUrl === 'string' && prUrl.includes('github.com')) {
       const m = prUrl.match(/github\.com\/(.*?)\/(.*?)\/pull\/(\d+)/i);
       if (m) {
@@ -369,7 +452,28 @@ export default async (req: Request, context: Context) => {
           headers['Authorization'] = `Bearer ${ghToken}`;
         }
 
-        console.log(`Attempting to fetch files for PR: ${prUrl}`);
+        console.log(`Attempting to fetch PR details and files for: ${prUrl}`);
+
+        // Fetch PR details first to get the author
+        if (!prAuthor) {
+          try {
+            const prDetailsResp = await fetch(
+              `https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}`,
+              { headers }
+            );
+
+            if (prDetailsResp.ok) {
+              const prDetails = await prDetailsResp.json();
+              // Get the author's username from the PR
+              prAuthor = prDetails.user?.login;
+              console.log(`PR author extracted: ${prAuthor}`);
+            } else {
+              console.warn(`Could not fetch PR details (${prDetailsResp.status}). Proceeding without author.`);
+            }
+          } catch (e) {
+            console.warn('Failed to fetch PR author:', e);
+          }
+        }
 
         // Fetch PR files (paginated)
         const collected: string[] = [];
@@ -445,12 +549,12 @@ export default async (req: Request, context: Context) => {
 
     const prFiles = await analyzePRFiles(files);
 
-    // Get repository ID
+    // Get repository ID from the repositories table (not tracked_repositories)
+    // This is what pull_requests table references
     const { data: repository, error: repoError } = await supabase
-      .from('tracked_repositories')
+      .from('repositories')
       .select('id')
-      .eq('organization_name', owner.toLowerCase())
-      .eq('repository_name', repo.toLowerCase())
+      .or(`and(owner.eq.${owner},name.eq.${repo}),full_name.eq.${owner}/${repo}`)
       .maybeSingle();
 
     if (repoError) {
@@ -463,16 +567,17 @@ export default async (req: Request, context: Context) => {
 
     if (!repository) {
       const error = APIErrorHandler.createError(
-        'REPOSITORY_NOT_TRACKED',
+        'REPOSITORY_NOT_FOUND',
         'not_found',
-        `Repository ${owner}/${repo} is not tracked`,
-        `Repository ${owner}/${repo} needs to be added before using this feature.`,
+        `Repository ${owner}/${repo} not found in database`,
+        `Repository ${owner}/${repo} needs to be tracked and have data synchronized before using this feature.`,
         {
           requestId,
           retryable: false,
           details: {
             trackingUrl: `https://contributor.info/${owner}/${repo}`,
-            action: 'track_repository'
+            action: 'track_repository',
+            suggestion: 'Please ensure the repository is tracked and has completed initial data sync'
           }
         }
       );
@@ -480,6 +585,30 @@ export default async (req: Request, context: Context) => {
         JSON.stringify(APIErrorHandler.createResponse(null, error, requestId)),
         { status: 404, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } }
       );
+    }
+
+    // If we still don't have a PR author but have a PR URL, try to get it from the database
+    if (!prAuthor && typeof prUrl === 'string' && prUrl.includes('github.com')) {
+      const prMatch = prUrl.match(/\/pull\/(\d+)/);
+      if (prMatch) {
+        const prNumber = parseInt(prMatch[1], 10);
+        console.log(`Attempting to fetch PR author from database for PR #${prNumber}`);
+
+        // Try to get the PR author from the database
+        const { data: prData, error: prError } = await supabase
+          .from('pull_requests')
+          .select('author:contributors!author_id(username)')
+          .eq('repository_id', repository.id)
+          .eq('number', prNumber)
+          .maybeSingle();
+
+        if (prData?.author?.username) {
+          prAuthor = prData.author.username;
+          console.log(`PR author found in database: ${prAuthor}`);
+        } else {
+          console.warn(`Could not find PR #${prNumber} in database`);
+        }
+      }
     }
 
     // Get reviewer suggestions from history
@@ -499,28 +628,51 @@ export default async (req: Request, context: Context) => {
       const codeOwnerSet = parseCodeOwners(coData.content, prFiles);
       codeOwners = Array.from(codeOwnerSet);
 
-      // Add code owners to suggestions with high priority
+      // Add code owners to suggestions with high priority (but exclude PR author)
       for (const codeOwner of codeOwners) {
-        const existingIndex = suggestions.findIndex(s => s.handle === codeOwner);
-        if (existingIndex >= 0) {
-          // Boost existing reviewer who is also a code owner
-          suggestions[existingIndex].signals.unshift('code_owner');
-          suggestions[existingIndex].reason = `${codeOwner} is a code owner and ${suggestions[existingIndex].reason}`;
-          suggestions[existingIndex].confidence = Math.min(suggestions[existingIndex].confidence + 0.2, 0.99);
-          if (suggestions[existingIndex].metadata) {
-            suggestions[existingIndex].metadata!.score += 25;
-          }
-        } else {
-          // Add new code owner
+        // Skip if code owner is the PR author
+        if (codeOwner === prAuthor) {
+          console.log(`Skipping code owner ${codeOwner} as they are the PR author`);
+          continue;
+        }
+
+        // Check if it's a team (contains /)
+        const isTeam = codeOwner.includes('/');
+
+        if (isTeam) {
+          // Add team as a special suggestion
           suggestions.unshift({
             handle: codeOwner,
-            reason: `${codeOwner} is listed as a code owner for the modified files`,
-            confidence: 0.9,
-            signals: ['code_owner'],
+            reason: `Team @${codeOwner} is listed as a code owner for the modified files`,
+            confidence: 0.95,
+            signals: ['code_owner', 'team'],
             metadata: {
-              score: 25,
+              score: 30,
             },
           });
+        } else {
+          // Handle individual code owner
+          const existingIndex = suggestions.findIndex(s => s.handle === codeOwner);
+          if (existingIndex >= 0) {
+            // Boost existing reviewer who is also a code owner
+            suggestions[existingIndex].signals.unshift('code_owner');
+            suggestions[existingIndex].reason = `${codeOwner} is a code owner and ${suggestions[existingIndex].reason}`;
+            suggestions[existingIndex].confidence = Math.min(suggestions[existingIndex].confidence + 0.2, 0.99);
+            if (suggestions[existingIndex].metadata) {
+              suggestions[existingIndex].metadata!.score += 25;
+            }
+          } else {
+            // Add new individual code owner
+            suggestions.unshift({
+              handle: codeOwner,
+              reason: `${codeOwner} is listed as a code owner for the modified files`,
+              confidence: 0.9,
+              signals: ['code_owner'],
+              metadata: {
+                score: 25,
+              },
+            });
+          }
         }
       }
     }
