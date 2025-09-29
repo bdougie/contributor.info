@@ -107,28 +107,94 @@ We discovered that RLS with public read access **does not** interfere with the a
 - **Second search**: App logic requires login (not database restriction)
 - **Key insight**: The login requirement is enforced by the React app, not the database
 
-### RLS Policy Strategy
+### Standard RLS Policy Patterns
 
+The contributor.info project follows these standard RLS policy patterns for consistent security across all tables:
+
+#### Pattern 1: Core Data Tables (Contributors, Repositories, Pull Requests)
 ```sql
--- 1. Enable RLS on all tables
+-- 1. Enable RLS
 ALTER TABLE table_name ENABLE ROW LEVEL SECURITY;
 
--- 2. Allow public read access
-CREATE POLICY "public_read_tablename"
+-- 2. Public read access (preserves progressive onboarding)
+CREATE POLICY "public_read_table_name"
 ON table_name FOR SELECT
 USING (true);
 
--- 3. Restrict writes to authenticated users
-CREATE POLICY "auth_write_tablename"
-ON table_name FOR INSERT/UPDATE
-TO authenticated
+-- 3. Authenticated users can write
+CREATE POLICY "service_and_auth_insert_table_name"
+ON table_name FOR INSERT
+TO authenticated, service_role
 WITH CHECK (true);
 
--- 4. Admin operations for service role
-CREATE POLICY "service_admin_tablename"
+CREATE POLICY "service_and_auth_update_table_name"
+ON table_name FOR UPDATE
+TO authenticated, service_role
+USING (true)
+WITH CHECK (true);
+
+-- 4. Only service role can delete (for cleanup)
+CREATE POLICY "service_delete_table_name"
 ON table_name FOR DELETE
 TO service_role
 USING (true);
+```
+
+#### Pattern 2: User Management Tables (Workspaces, Members)
+```sql
+-- Enable RLS
+ALTER TABLE workspace_table ENABLE ROW LEVEL SECURITY;
+
+-- Users can only see their own workspaces/data
+CREATE POLICY "user_read_own_workspace_table"
+ON workspace_table FOR SELECT
+TO authenticated
+USING (auth.uid() = owner_id OR auth.uid() IN (
+    SELECT user_id FROM workspace_members 
+    WHERE workspace_id = workspace_table.workspace_id
+));
+
+-- Users can only modify their own data
+CREATE POLICY "user_write_own_workspace_table"
+ON workspace_table FOR INSERT/UPDATE
+TO authenticated
+WITH CHECK (auth.uid() = owner_id);
+```
+
+#### Pattern 3: System/Admin Tables (Logs, Metrics, Configuration)
+```sql
+-- Enable RLS
+ALTER TABLE system_table ENABLE ROW LEVEL SECURITY;
+
+-- Only service role can access system tables
+CREATE POLICY "service_manage_system_table"
+ON system_table FOR ALL
+TO service_role
+USING (true)
+WITH CHECK (true);
+
+-- Optional: Allow authenticated users to read status/logs
+CREATE POLICY "auth_read_system_table"
+ON system_table FOR SELECT
+TO authenticated
+USING (true);
+```
+
+#### Pattern 4: Tracking/Analytics Tables
+```sql
+-- Enable RLS
+ALTER TABLE tracking_table ENABLE ROW LEVEL SECURITY;
+
+-- Public read for transparency
+CREATE POLICY "public_read_tracking_table"
+ON tracking_table FOR SELECT
+USING (true);
+
+-- Only service role can write tracking data
+CREATE POLICY "service_write_tracking_table"
+ON tracking_table FOR INSERT/UPDATE
+TO service_role
+WITH CHECK (true);
 ```
 
 ### Applying RLS Policies
@@ -139,7 +205,33 @@ USING (true);
 
 ### Testing RLS Implementation
 
-We created a test script to verify RLS behavior:
+#### Automated RLS Policy Tests
+
+We created comprehensive SQL-based tests to verify RLS behavior across all tables:
+
+**Location**: `supabase/tests/rls-policy-tests.sql`
+
+**Test Coverage**:
+- ✅ RLS enabled on all core tables (10+ tables)
+- ✅ Public read access policies exist and work
+- ✅ Anonymous users cannot write to any table
+- ✅ Service role can read/write/delete all data
+- ✅ Policy coverage verification (minimum 2 policies per table)
+- ✅ Comprehensive reporting of policy status
+
+**Running the Tests**:
+```sql
+-- Via Supabase Dashboard SQL Editor
+-- Copy and paste: supabase/tests/rls-policy-tests.sql
+-- Expected: All tests pass with ✅ messages
+
+-- Via Supabase CLI
+psql -d your_database -f supabase/tests/rls-policy-tests.sql
+```
+
+#### Manual RLS Testing
+
+For additional verification, you can test RLS behavior programmatically:
 
 ```javascript
 // test-rls-access.js
@@ -156,6 +248,21 @@ const { error: writeError } = await supabase
   .insert({ ... });
 // ❌ Should fail - no write access without auth
 ```
+
+#### Test Results Interpretation
+
+**Success Indicators**:
+- All core tables show "✅ RLS Enabled"
+- Public read policies exist for all core tables
+- Anonymous read access works for contributors, repositories, pull_requests
+- Anonymous write access fails with `insufficient_privilege` error
+- Service role can perform all operations
+
+**Failure Indicators**:
+- Any table shows "❌ RLS Disabled"
+- Missing public read policies
+- Anonymous users can write data (security vulnerability)
+- Service role cannot access system tables
 
 ## Testing & Verification
 
