@@ -5,7 +5,7 @@ import {
   createNotFoundResponse,
   createErrorResponse,
   CORS_HEADERS,
-} from './lib/repository-validation.mjs';
+} from './lib/repository-validation.ts';
 import { RateLimiter, getRateLimitKey, applyRateLimitHeaders } from './lib/rate-limiter.mjs';
 
 interface CodeOwnersResponse {

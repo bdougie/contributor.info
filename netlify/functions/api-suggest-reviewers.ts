@@ -5,7 +5,7 @@ import {
   createNotFoundResponse,
   createErrorResponse,
   CORS_HEADERS,
-} from './lib/repository-validation.mts';
+} from './lib/repository-validation.ts';
 import { RateLimiter, getRateLimitKey, applyRateLimitHeaders } from './lib/rate-limiter.mjs';
 
 interface ReviewerSuggestion {
@@ -39,48 +39,71 @@ async function analyzePRFiles(files: string[]): Promise<PullRequestFiles> {
   return { files, directories, fileTypes };
 }
 
-async function getContributorScores(owner: string, repo: string, prFiles: PullRequestFiles, supabase: ReturnType<typeof createClient>): Promise<Map<string, ReviewerSuggestion>> {
+async function getContributorScores(owner: string, repo: string, prFiles: PullRequestFiles, supabase: ReturnType<typeof createClient>, repositoryId: string): Promise<Map<string, ReviewerSuggestion>> {
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+
+  // Get file contributors for this repository
   const { data, error } = await supabase
-    .from('github_contributions')
-    .select(`contributor:github_contributors!inner(username,avatar_url), additions, deletions, commits, files_changed, last_contributed_at`)
-    .eq('repository_id', `${owner}/${repo}`.toLowerCase())
-    .gte('last_contributed_at', thirtyDaysAgo)
-    .order('commits', { ascending: false })
-    .limit(50);
-  if (error) throw new Error('Failed to fetch contribution data');
+    .from('file_contributors')
+    .select(`
+      file_path,
+      contributor_id,
+      commit_count,
+      additions,
+      deletions,
+      last_commit_at,
+      contributor:contributors!inner(username, avatar_url)
+    `)
+    .eq('repository_id', repositoryId)
+    .gte('last_commit_at', thirtyDaysAgo)
+    .order('commit_count', { ascending: false })
+    .limit(100);
+
+  if (error) {
+    console.error('Failed to fetch contributor data:', error);
+    throw new Error('Failed to fetch contribution data');
+  }
 
   const reviewerMap = new Map<string, ReviewerSuggestion>();
+
   for (const c of data || []) {
     const username = c.contributor?.username;
     if (!username) continue;
+
     const relevantFiles: string[] = [];
     const reasoning: string[] = [];
     let score = 0;
-    if (Array.isArray(c.files_changed)) {
-      for (const f of c.files_changed) {
-        if (typeof f !== 'string') continue;
-        if (prFiles.files.includes(f)) {
-          relevantFiles.push(f);
-          score += 10;
-          if (!reasoning.includes('Has modified the same files')) reasoning.push('Has modified the same files');
-        }
-        const dir = f.substring(0, f.lastIndexOf('/'));
-        if (dir && prFiles.directories.has(dir)) {
-          score += 5;
-          if (!reasoning.includes('Familiar with affected directories')) reasoning.push('Familiar with affected directories');
-        }
-        const ext = f.substring(f.lastIndexOf('.') + 1);
-        if (ext && prFiles.fileTypes.has(ext)) {
-          score += 2;
-          const reason = `Experience with .${ext} files`;
-          if (!reasoning.includes(reason)) reasoning.push(reason);
-        }
+
+    // Check if contributor worked on same files
+    const filePath = c.file_path;
+    if (filePath && prFiles.files.includes(filePath)) {
+      relevantFiles.push(filePath);
+      score += 10;
+      if (!reasoning.includes('Has modified the same files')) reasoning.push('Has modified the same files');
+    }
+
+    // Check if contributor worked in same directories
+    if (filePath) {
+      const dir = filePath.substring(0, filePath.lastIndexOf('/'));
+      if (dir && prFiles.directories.has(dir)) {
+        score += 5;
+        if (!reasoning.includes('Familiar with affected directories')) reasoning.push('Familiar with affected directories');
+      }
+
+      // Check file type experience
+      const ext = filePath.substring(filePath.lastIndexOf('.') + 1);
+      if (ext && prFiles.fileTypes.has(ext)) {
+        score += 2;
+        const reason = `Experience with .${ext} files`;
+        if (!reasoning.includes(reason)) reasoning.push(reason);
       }
     }
-    const last = c.last_contributed_at ? new Date(c.last_contributed_at) : null;
+
+    // Check recency of contributions
+    const last = c.last_commit_at ? new Date(c.last_commit_at) : null;
     const days = last ? (Date.now() - last.getTime()) / 86400000 : 999;
     const recentActivity = days < 7;
+
     if (recentActivity) {
       score += 5;
       reasoning.push('Active in the past week');
@@ -88,13 +111,17 @@ async function getContributorScores(owner: string, repo: string, prFiles: PullRe
       score += 2;
       reasoning.push('Active in the past month');
     }
-    score += Math.min(c.commits || 0, 10);
+
+    // Add score based on commit count (capped at 10)
+    score += Math.min(c.commit_count || 0, 10);
+
     if (score > 0) {
       const existing = reviewerMap.get(username);
       if (existing) {
         existing.score += score;
         existing.reasoning = [...new Set([...existing.reasoning, ...reasoning])];
         existing.relevantFiles = [...new Set([...existing.relevantFiles, ...relevantFiles])].slice(0, 5);
+        existing.recentActivity = existing.recentActivity || recentActivity;
       } else {
         reviewerMap.set(username, {
           username,
@@ -213,12 +240,18 @@ export default async (req: Request, context: Context) => {
     const { data: repository, error: repoError } = await supabase
       .from('tracked_repositories')
       .select('id')
-      .eq('owner', owner.toLowerCase())
-      .eq('name', repo.toLowerCase())
+      .eq('organization_name', owner.toLowerCase())
+      .eq('repository_name', repo.toLowerCase())
       .maybeSingle();
-    if (repoError || !repository) return createNotFoundResponse(owner, repo);
+    if (repoError) {
+      console.error('Database error:', repoError);
+      return createErrorResponse(`Database error: ${repoError.message}`, 500);
+    }
+    if (!repository) {
+      return createNotFoundResponse(owner, repo);
+    }
 
-    const reviewerMap = await getContributorScores(owner, repo, prFiles, supabase);
+    const reviewerMap = await getContributorScores(owner, repo, prFiles, supabase, repository.id);
 
     let codeOwners: string[] = [];
     const { data: coData } = await supabase

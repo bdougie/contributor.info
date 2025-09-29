@@ -43,8 +43,8 @@ export async function validateRepository(
     const { data, error } = await supabase
       .from('tracked_repositories')
       .select('id')
-      .eq('owner', owner.toLowerCase())
-      .eq('name', repo.toLowerCase())
+      .eq('organization_name', owner.toLowerCase())
+      .eq('repository_name', repo.toLowerCase())
       .maybeSingle();
 
     if (error) {
