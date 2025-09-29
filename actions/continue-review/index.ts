@@ -345,7 +345,7 @@ async function generateEnhancedReview(
             (error, stdout, stderr) => {
               if (error) {
                 core.error(`Continue CLI error: ${error.message}`);
-                if (error.code === 'ETIMEDOUT') {
+                if (error.code && error.code.toString() === 'ETIMEDOUT') {
                   core.error('Continue CLI execution timed out after 7 minutes');
                 }
                 if (error.signal) {
@@ -527,7 +527,12 @@ Please address the user's specific request while also checking for any significa
 
   prompt += diffContent;
   prompt += '\n\nYour Review\n';
-  prompt += 'Please provide constructive feedback on the code changes.\n';
+  prompt += 'IMPORTANT: Start your review with a clear TLDR recommendation at the very top:\n\n';
+  prompt += '## 🎯 TLDR\n';
+  prompt += '**Recommendation**: [Choose one: MERGE ✅ | DON\'T MERGE ❌ | MERGE AFTER CHANGES 🔄]\n';
+  prompt += '**Summary**: [One or two lines explaining the main reason for this recommendation]\n\n';
+  prompt += '---\n\n';
+  prompt += 'Then provide constructive feedback on the code changes.\n';
   prompt += 'Focus on issues that matter for functionality, security, and maintainability.\n';
   prompt += 'If the code looks good overall, acknowledge that while noting any minor suggestions.';
 
@@ -632,10 +637,6 @@ async function postEnhancedReview(
   } else {
     // Add review content
     body += review;
-
-    // Add metrics summary
-    const metricsSummary = await metricsTracker.generateMetricsSummary();
-    body += metricsSummary;
 
     body += `\n\n---\n<!-- ${timestamp} | Powered by Continue (https://continue.dev) -->`;
   }

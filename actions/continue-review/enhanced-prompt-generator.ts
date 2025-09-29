@@ -108,6 +108,16 @@ ${command ? `\n## Specific Review Request\n"${command}"\n` : ''}
 
 Structure your review with clear markdown formatting (use ## and ### headers, but never # h1):
 
+**START WITH A TLDR RECOMMENDATION AT THE VERY TOP:**
+
+## 🎯 TLDR
+**Recommendation**: [MERGE ✅ | DON'T MERGE ❌ | MERGE AFTER CHANGES 🔄]
+**Summary**: [One or two lines explaining the main reason for this recommendation]
+
+---
+
+Then continue with the detailed review:
+
 ## Strategic Insights
 - Key architectural considerations and system impact
 - Performance implications with specific concerns
