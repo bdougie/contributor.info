@@ -1,7 +1,11 @@
 // Backfill PR Statistics
 // This function fetches missing additions, deletions, and changed_files for existing PRs
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+// Declare Deno for TypeScript type-check in non-Deno build environments
+// (Supabase Edge Functions provide Deno at runtime)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+declare const Deno: any;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -17,7 +21,7 @@ interface PRToUpdate {
   html_url: string;
 }
 
-Deno.serve(async (req) => {
+Deno.serve(async (req: Request) => {
   // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -121,24 +125,66 @@ Deno.serve(async (req) => {
 
           const detailedPR = await response.json();
 
-          // Update the PR with detailed stats
+          // Ensure contributor exists and capture UUID if possible
+          let contributorId: string | null = null
+          if (detailedPR.user?.id) {
+            try {
+              const { data: existingContributor } = await supabase
+                .from('contributors')
+                .select('id')
+                .eq('github_id', detailedPR.user.id)
+                .maybeSingle()
+
+              if (existingContributor?.id) {
+                contributorId = existingContributor.id
+              } else {
+                const { data: newContributor, error: contributorError } = await supabase
+                  .from('contributors')
+                  .upsert({
+                    github_id: detailedPR.user.id,
+                    username: detailedPR.user.login,
+                    display_name: detailedPR.user.name || detailedPR.user.login,
+                    avatar_url: detailedPR.user.avatar_url,
+                    profile_url: detailedPR.user.html_url,
+                    is_bot: detailedPR.user.type === 'Bot',
+                    is_active: true,
+                    first_seen_at: new Date().toISOString(),
+                    last_updated_at: new Date().toISOString()
+                  }, { onConflict: 'github_id' })
+                  .select('id')
+                  .maybeSingle()
+                if (contributorError) {
+                  console.warn(`[Backfill] Failed to upsert contributor ${detailedPR.user.login}:`, contributorError.message)
+                } else {
+                  contributorId = newContributor?.id || null
+                }
+              }
+            } catch (cErr) {
+              console.warn('[Backfill] Error ensuring contributor:', cErr)
+            }
+          }
+
+          // Build update payload
+          const updateData: Record<string, any> = {
+            additions: detailedPR.additions || 0,
+            deletions: detailedPR.deletions || 0,
+            changed_files: detailedPR.changed_files || 0,
+            commits: detailedPR.commits || 0
+          }
+          if (contributorId) {
+            updateData.author_id = contributorId
+          }
+
           const { error: updateError } = await supabase
             .from('pull_requests')
-            .update({
-              additions: detailedPR.additions || 0,
-              deletions: detailedPR.deletions || 0,
-              changed_files: detailedPR.changed_files || 0,
-              commits: detailedPR.commits || 0,
-            })
-            .eq('id', pr.id);
+            .update(updateData)
+            .eq('id', pr.id)
 
           if (updateError) {
             console.error(`[Backfill] Error updating PR ${pr.number}:`, updateError);
             totalErrors++;
           } else {
-            console.log(
-              `[Backfill] Updated PR ${repo.owner}/${repo.name}#${pr.number}: +${detailedPR.additions}/-${detailedPR.deletions}, ${detailedPR.changed_files} files`
-            );
+            console.log(`[Backfill] Updated PR ${repo.owner}/${repo.name}#${pr.number}: +${detailedPR.additions}/-${detailedPR.deletions}, ${detailedPR.changed_files} files${contributorId ? ' (author ensured)' : ''}`);
             totalProcessed++;
           }
 
@@ -173,13 +219,13 @@ Deno.serve(async (req) => {
         'Content-Type': 'application/json',
       },
     });
-  } catch (error) {
-    console.error('[Backfill] Unexpected error:', error);
+  } catch (error: any) {
+    console.error('[Backfill] Unexpected error:', error)
 
     return new Response(
       JSON.stringify({
         error: 'Internal server error',
-        details: error.message,
+        details: (error && error.message) ? error.message : 'unknown'
       }),
       {
         status: 500,
