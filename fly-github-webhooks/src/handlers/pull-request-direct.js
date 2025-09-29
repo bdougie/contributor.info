@@ -1,4 +1,7 @@
 import Logger from '../utils/logger.js';
+// Phase 2: reuse shared contributor utility via dynamic import path (not TypeScript here)
+// We intentionally avoid relative traversal into app/; progressive scripts own shared utils.
+import { ensureContributor as sharedEnsureContributor } from '../../../scripts/progressive-capture/lib/contributor-utils.js';
 
 /**
  * Direct PR opened handler
@@ -74,50 +77,57 @@ async function checkIfFirstPR(username, repo, octokit) {
   }
 }
 
+// Wrap shared ensureContributor to keep logging behavior
+async function ensureContributor(supabase, githubUser, logger) {
+  const id = await sharedEnsureContributor(supabase, githubUser);
+  if (!id) logger.error('Failed upserting contributor %s', githubUser?.login);
+  return id;
+}
+
 async function trackPullRequest(pr, repo, supabase, logger) {
   try {
-    // First ensure the repository is tracked
-    await supabase.from('repositories').upsert(
-      {
-        github_id: repo.id,
-        owner: repo.owner.login,
-        name: repo.name,
-        full_name: repo.full_name,
-        description: repo.description,
-        is_private: repo.private,
-        html_url: repo.html_url,
-        created_at: repo.created_at,
-        updated_at: repo.updated_at,
-      },
-      {
-        onConflict: 'github_id',
-      }
-    );
+    // Ensure repository (return internal UUID)
+    const { data: repoData, error: repoError } = await supabase
+      .from('repositories')
+      .upsert(
+        {
+          github_id: repo.id,
+          owner: repo.owner.login,
+          name: repo.name,
+          full_name: repo.full_name,
+          description: repo.description,
+          is_private: repo.private,
+          html_url: repo.html_url,
+          github_created_at: repo.created_at,
+          github_updated_at: repo.updated_at,
+        },
+        { onConflict: 'github_id' }
+      )
+      .select('id')
+      .maybeSingle();
 
-    // Track the contributor
-    await supabase.from('contributors').upsert(
-      {
-        github_id: pr.user.id,
-        username: pr.user.login,
-        avatar_url: pr.user.avatar_url,
-        html_url: pr.user.html_url,
-        is_bot: pr.user.type === 'Bot',
-      },
-      {
-        onConflict: 'github_id',
-      }
-    );
+    if (repoError || !repoData) {
+      logger.error('Failed to ensure repository record: %s', repoError?.message);
+      return;
+    }
 
-    // Track the PR
-    await supabase.from('pull_requests').upsert(
+    // Ensure contributor and get internal UUID
+    const contributorId = await ensureContributor(supabase, pr.user, logger);
+    if (!contributorId) {
+      logger.error('Could not determine contributor UUID, aborting PR track');
+      return;
+    }
+
+    // Upsert PR with proper foreign keys
+    const { error: prError } = await supabase.from('pull_requests').upsert(
       {
         github_id: pr.id,
-        repository_id: repo.id,
+        repository_id: repoData.id,
         number: pr.number,
         title: pr.title,
         body: pr.body,
-        state: pr.state,
-        author_id: pr.user.id,
+        state: (pr.state || '').toLowerCase(),
+        author_id: contributorId,
         created_at: pr.created_at,
         updated_at: pr.updated_at,
         html_url: pr.html_url,
@@ -130,11 +140,13 @@ async function trackPullRequest(pr, repo, supabase, logger) {
         merged: false,
         merged_at: null,
       },
-      {
-        onConflict: 'github_id',
-      }
+      { onConflict: 'github_id' }
     );
 
+    if (prError) {
+      logger.error('Failed to upsert PR #%s: %s', pr.number, prError.message);
+      return;
+    }
     logger.info('✅ Tracked PR #%s in database', pr.number);
   } catch (error) {
     logger.error('Error tracking PR in database:', error);
