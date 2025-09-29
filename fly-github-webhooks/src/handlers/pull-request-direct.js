@@ -1,7 +1,6 @@
 import Logger from '../utils/logger.js';
 // Phase 2: reuse shared contributor utility via dynamic import path (not TypeScript here)
 // We intentionally avoid relative traversal into app/; progressive scripts own shared utils.
-import { ensureContributor as sharedEnsureContributor } from '../../../scripts/progressive-capture/lib/contributor-utils.js';
 
 /**
  * Direct PR opened handler
@@ -77,11 +76,59 @@ async function checkIfFirstPR(username, repo, octokit) {
   }
 }
 
-// Wrap shared ensureContributor to keep logging behavior
+// Inline ensureContributor logic (from scripts/progressive-capture/lib/contributor-utils.js)
 async function ensureContributor(supabase, githubUser, logger) {
-  const id = await sharedEnsureContributor(supabase, githubUser);
-  if (!id) logger.error('Failed upserting contributor %s', githubUser?.login);
-  return id;
+  if (!githubUser || !githubUser.id || !githubUser.login) return null;
+
+  try {
+    // First check if contributor already exists
+    const { data: existingContributor } = await supabase
+      .from('contributors')
+      .select('id, first_seen_at')
+      .eq('github_id', githubUser.id)
+      .maybeSingle();
+
+    const now = new Date().toISOString();
+    const contributorData = {
+      github_id: githubUser.id,
+      username: githubUser.login,
+      display_name: githubUser.name || githubUser.login,
+      email: githubUser.email || null,
+      avatar_url: githubUser.avatar_url || null,
+      profile_url: githubUser.html_url || `https://github.com/${githubUser.login}`,
+      bio: githubUser.bio || null,
+      company: githubUser.company || null,
+      location: githubUser.location || null,
+      blog: githubUser.blog || null,
+      public_repos: githubUser.public_repos || 0,
+      followers: githubUser.followers || 0,
+      following: githubUser.following || 0,
+      github_created_at: githubUser.created_at || now,
+      is_bot: githubUser.type === 'Bot' || (githubUser.login || '').includes('[bot]'),
+      is_active: true,
+      last_updated_at: now,
+    };
+
+    // Only set first_seen_at for new contributors
+    if (!existingContributor) {
+      contributorData.first_seen_at = now;
+    }
+
+    const { data: contributor, error } = await supabase
+      .from('contributors')
+      .upsert(contributorData, { onConflict: 'github_id' })
+      .select('id')
+      .maybeSingle();
+
+    if (error) {
+      logger.error('ensureContributor upsert error: %s', error.message);
+      return null;
+    }
+    return contributor?.id || null;
+  } catch (e) {
+    logger.error('ensureContributor unexpected error: %s', e);
+    return null;
+  }
 }
 
 async function trackPullRequest(pr, repo, supabase, logger) {
@@ -107,7 +154,10 @@ async function trackPullRequest(pr, repo, supabase, logger) {
       .maybeSingle();
 
     if (repoError || !repoData || !repoData.id) {
-      logger.error('Failed to ensure repository record: %s', repoError?.message || 'No ID returned');
+      logger.error(
+        'Failed to ensure repository record: %s',
+        repoError?.message || 'No ID returned'
+      );
       return;
     }
 
