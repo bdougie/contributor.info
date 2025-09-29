@@ -28,18 +28,9 @@ jobs:
           echo "✅ Continue CLI installed"
           cn --version
 
-      - name: Authenticate with Continue CLI
-        run: |
-          # Set Continue API key
-          export CONTINUE_API_KEY="${{ secrets.CONTINUE_API_KEY }}"
-          # Login to Continue CLI
-          if ! cn auth login --api-key "$CONTINUE_API_KEY"; then
-            echo "❌ Failed to authenticate with Continue CLI"
-            exit 1
-          fi
-          echo "✅ Continue CLI authenticated"
-
       - name: Load PostHog GitHub Agent
+        env:
+          CONTINUE_API_KEY: ${{ secrets.CONTINUE_API_KEY }}
         run: |
           echo "🤖 Loading PostHog GitHub Continuous AI Agent..."
           cn --config continuedev/awesome-models-posthog-gh
@@ -47,6 +38,8 @@ jobs:
 
       - name: Run PostHog Analysis and Create GitHub Issues
         id: analysis
+        env:
+          CONTINUE_API_KEY: ${{ secrets.CONTINUE_API_KEY }}
         run: |
           echo "🎬 Starting automated PostHog session analysis..."
 
