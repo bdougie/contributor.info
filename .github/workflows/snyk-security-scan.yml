@@ -24,17 +24,13 @@ jobs:
       - name: Run Snyk Security Scan
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-          CONTINUE_API_KEY: ${{ secrets.CONTINUE_API_KEY }}
         run: |
           echo "🔒 Running Snyk security scan..."
 
           # Install Snyk CLI
           npm install -g snyk
 
-          # Authenticate with Snyk
-          snyk auth $SNYK_TOKEN
-
-          # Run Snyk test and capture results
+          # Run Snyk test (SNYK_TOKEN is automatically used from env)
           snyk test --json > snyk-results.json || true
 
           echo "✅ Snyk scan completed"
