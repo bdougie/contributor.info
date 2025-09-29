@@ -74,78 +74,78 @@ USING (true);
 -- =====================================================
 -- STEP 3: WRITE ACCESS (For Data Sync via Inngest/Service Role)
 -- =====================================================
--- All tables allow writes from anon, authenticated, and service_role
--- This ensures Inngest functions using service_role can write data
+-- Only authenticated and service_role can write data
+-- Anonymous users have read-only access for security
 
 -- Contributors - Allow service role and authenticated users to modify
 CREATE POLICY "service_and_auth_insert_contributors"
 ON contributors FOR INSERT
-TO anon, authenticated, service_role
+TO authenticated, service_role
 WITH CHECK (true);
 
 CREATE POLICY "service_and_auth_update_contributors"
 ON contributors FOR UPDATE
-TO anon, authenticated, service_role
+TO authenticated, service_role
 USING (true)
 WITH CHECK (true);
 
 -- Repositories - Allow service role and authenticated users to modify
 CREATE POLICY "service_and_auth_insert_repositories"
 ON repositories FOR INSERT
-TO anon, authenticated, service_role
+TO authenticated, service_role
 WITH CHECK (true);
 
 CREATE POLICY "service_and_auth_update_repositories"
 ON repositories FOR UPDATE
-TO anon, authenticated, service_role
+TO authenticated, service_role
 USING (true)
 WITH CHECK (true);
 
 -- Pull Requests - Allow service role and authenticated users to modify
 CREATE POLICY "service_and_auth_insert_pull_requests"
 ON pull_requests FOR INSERT
-TO anon, authenticated, service_role
+TO authenticated, service_role
 WITH CHECK (true);
 
 CREATE POLICY "service_and_auth_update_pull_requests"
 ON pull_requests FOR UPDATE
-TO anon, authenticated, service_role
+TO authenticated, service_role
 USING (true)
 WITH CHECK (true);
 
 -- Reviews - Allow service role and authenticated users to modify
 CREATE POLICY "service_and_auth_insert_reviews"
 ON reviews FOR INSERT
-TO anon, authenticated, service_role
+TO authenticated, service_role
 WITH CHECK (true);
 
 CREATE POLICY "service_and_auth_update_reviews"
 ON reviews FOR UPDATE
-TO anon, authenticated, service_role
+TO authenticated, service_role
 USING (true)
 WITH CHECK (true);
 
 -- Comments - Allow service role and authenticated users to modify
 CREATE POLICY "service_and_auth_insert_comments"
 ON comments FOR INSERT
-TO anon, authenticated, service_role
+TO authenticated, service_role
 WITH CHECK (true);
 
 CREATE POLICY "service_and_auth_update_comments"
 ON comments FOR UPDATE
-TO anon, authenticated, service_role
+TO authenticated, service_role
 USING (true)
 WITH CHECK (true);
 
 -- Organizations - Allow service role and authenticated users to modify
 CREATE POLICY "service_and_auth_insert_organizations"
 ON organizations FOR INSERT
-TO anon, authenticated, service_role
+TO authenticated, service_role
 WITH CHECK (true);
 
 CREATE POLICY "service_and_auth_update_organizations"
 ON organizations FOR UPDATE
-TO anon, authenticated, service_role
+TO authenticated, service_role
 USING (true)
 WITH CHECK (true);
 
@@ -159,24 +159,24 @@ WITH CHECK (true);
 -- Monthly Rankings - Allow service role and authenticated users to modify
 CREATE POLICY "service_and_auth_insert_monthly_rankings"
 ON monthly_rankings FOR INSERT
-TO anon, authenticated, service_role
+TO authenticated, service_role
 WITH CHECK (true);
 
 CREATE POLICY "service_and_auth_update_monthly_rankings"
 ON monthly_rankings FOR UPDATE
-TO anon, authenticated, service_role
+TO authenticated, service_role
 USING (true)
 WITH CHECK (true);
 
 -- Daily Activity - Allow service role and authenticated users to modify
 CREATE POLICY "service_and_auth_insert_daily_activity_snapshots"
 ON daily_activity_snapshots FOR INSERT
-TO anon, authenticated, service_role
+TO authenticated, service_role
 WITH CHECK (true);
 
 CREATE POLICY "service_and_auth_update_daily_activity_snapshots"
 ON daily_activity_snapshots FOR UPDATE
-TO anon, authenticated, service_role
+TO authenticated, service_role
 USING (true)
 WITH CHECK (true);
 
