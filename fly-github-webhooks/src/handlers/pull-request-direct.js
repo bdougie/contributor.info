@@ -106,8 +106,8 @@ async function trackPullRequest(pr, repo, supabase, logger) {
       .select('id')
       .maybeSingle();
 
-    if (repoError || !repoData) {
-      logger.error('Failed to ensure repository record: %s', repoError?.message);
+    if (repoError || !repoData || !repoData.id) {
+      logger.error('Failed to ensure repository record: %s', repoError?.message || 'No ID returned');
       return;
     }
 
@@ -126,7 +126,7 @@ async function trackPullRequest(pr, repo, supabase, logger) {
         number: pr.number,
         title: pr.title,
         body: pr.body,
-        state: (pr.state || '').toLowerCase(),
+        state: (pr.state || 'open').toLowerCase(),
         author_id: contributorId,
         created_at: pr.created_at,
         updated_at: pr.updated_at,

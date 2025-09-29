@@ -77,19 +77,15 @@ export async function handlePullRequestEvent(event: PullRequestEvent) {
       return;
     }
 
-    // Generate insights in parallel with explicit typing to avoid heterogeneous array type issues
-    const contributorInsightsPromise = generatePRInsights(event.pull_request, event.repository);
-    const similarIssuesPromise = isFeatureEnabled(config, 'similar_issues')
-      ? findSimilarIssues(event.pull_request, event.repository)
-      : Promise.resolve([] as SimilarIssue[]);
-    const reviewerSuggestionsResultPromise = isFeatureEnabled(config, 'reviewer_suggestions')
-      ? suggestReviewers(event.pull_request, event.repository, installationId)
-      : Promise.resolve({ suggestions: [], hasCodeOwners: false });
-
+    // Generate insights in parallel
     const [contributorInsights, similarIssues, reviewerSuggestionsResult] = await Promise.all([
-      contributorInsightsPromise,
-      similarIssuesPromise,
-      reviewerSuggestionsResultPromise,
+      generatePRInsights(event.pull_request, event.repository),
+      isFeatureEnabled(config, 'similar_issues')
+        ? findSimilarIssues(event.pull_request, event.repository)
+        : Promise.resolve([] as SimilarIssue[]),
+      isFeatureEnabled(config, 'reviewer_suggestions')
+        ? suggestReviewers(event.pull_request, event.repository, installationId)
+        : Promise.resolve({ suggestions: [], hasCodeOwners: false })
     ]);
 
     // Extract suggestions and hasCodeOwners flag
@@ -98,7 +94,7 @@ export async function handlePullRequestEvent(event: PullRequestEvent) {
 
     // Filter out excluded reviewers
     const filteredReviewers = reviewerSuggestions.filter(
-      (reviewer: any) => !isUserExcluded(config, reviewer.login, 'reviewer')
+      (reviewer: ReviewerSuggestion) => !isUserExcluded(config, reviewer.login, 'reviewer')
     );
 
     // Format the comment based on style preference
