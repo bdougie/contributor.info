@@ -30,12 +30,17 @@ export async function ensureContributorForWebhook(
     const supabaseAdmin = createSupabaseAdmin();
     const now = new Date().toISOString();
     
+
     // Check if contributor already exists to preserve first_seen_at
-    const { data: existing } = await supabaseAdmin
+    const { data: existing, error: selectError } = await supabaseAdmin
       .from('contributors')
       .select('id, first_seen_at')
       .eq('github_id', githubUser.id)
       .maybeSingle();
+    if (selectError) {
+      console.error('ensureContributorForWebhook pre-select error:', selectError.message);
+      return null;
+    }
 
     const contributorData = {
       github_id: githubUser.id,
