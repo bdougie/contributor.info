@@ -1,18 +1,35 @@
 import { supabase } from '@/lib/supabase';
 
 export interface ReviewerSuggestionDTO {
-  username: string;
-  avatarUrl?: string;
-  score: number;
-  reasoning: string[];
-  relevantFiles: string[];
-  recentActivity: boolean;
+  handle: string;
+  reason: string;
+  confidence: number;
+  signals: string[];
+  metadata?: {
+    avatarUrl?: string;
+    reviewCount?: number;
+    lastReviewDate?: string;
+    score: number;
+  };
 }
 
 export async function fetchCodeOwners(owner: string, repo: string) {
   const res = await fetch(`/api/repos/${owner}/${repo}/codeowners`);
   if (!res.ok) throw new Error(`Failed to fetch CODEOWNERS: ${res.status}`);
-  return res.json() as Promise<{ exists: boolean; content?: string; path?: string; message?: string }>;
+  return res.json() as Promise<{
+    exists: boolean;
+    content?: string;
+    path?: string;
+    message?: string;
+    source?: 'github' | 'database' | 'none';
+    suggestions?: Array<{
+      pattern: string;
+      owners: string[];
+      confidence: number;
+      reasoning: string;
+    }>;
+    suggestedContent?: string;
+  }>;
 }
 
 export async function fetchSuggestedCodeOwners(owner: string, repo: string, opts?: { llm?: boolean }) {
@@ -49,7 +66,7 @@ export async function suggestReviewers(
     throw new Error(errorMessage);
   }
   return res.json() as Promise<{
-    suggestions: { primary: ReviewerSuggestionDTO[]; secondary: ReviewerSuggestionDTO[]; additional: ReviewerSuggestionDTO[] };
+    suggestions: ReviewerSuggestionDTO[];
     codeOwners: string[];
     repository: string;
     filesAnalyzed: number;
@@ -130,4 +147,17 @@ export async function fetchPRsWithoutReviewers(repositoryId: string, limit = 25)
     }));
 
   return prsWithoutReviews;
+}
+
+// Legacy compatibility helper to convert new format to old format if needed
+export function groupSuggestionsByPriority(suggestions: ReviewerSuggestionDTO[]): {
+  primary: ReviewerSuggestionDTO[];
+  secondary: ReviewerSuggestionDTO[];
+  additional: ReviewerSuggestionDTO[];
+} {
+  const primary = suggestions.filter(s => s.confidence >= 0.8).slice(0, 3);
+  const secondary = suggestions.filter(s => s.confidence >= 0.5 && s.confidence < 0.8).slice(0, 3);
+  const additional = suggestions.filter(s => s.confidence < 0.5).slice(0, 5);
+
+  return { primary, secondary, additional };
 }

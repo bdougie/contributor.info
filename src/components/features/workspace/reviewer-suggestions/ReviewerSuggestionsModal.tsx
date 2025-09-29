@@ -38,20 +38,20 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
   const [prUrl, setPrUrl] = useState('');
   const [useAI, setUseAI] = useState(true);
   type ReviewerSuggestionDTO = {
-    username: string;
-    avatarUrl?: string;
-    score: number;
-    reasoning: string[];
-    relevantFiles: string[];
-    recentActivity: boolean;
+    handle: string;
+    reason: string;
+    confidence: number;
+    signals: string[];
+    metadata?: {
+      avatarUrl?: string;
+      reviewCount?: number;
+      lastReviewDate?: string;
+      score: number;
+    };
   };
 
   type SuggestionsResponse = {
-    suggestions: {
-      primary: ReviewerSuggestionDTO[];
-      secondary: ReviewerSuggestionDTO[];
-      additional: ReviewerSuggestionDTO[];
-    };
+    suggestions: ReviewerSuggestionDTO[];
     codeOwners: string[];
     repository: string;
     filesAnalyzed: number;
@@ -370,74 +370,74 @@ export function ReviewerSuggestionsModal({ open, onOpenChange, repositories }: R
                   variant="secondary"
                   onClick={() =>
                     navigator.clipboard.writeText(
-                      suggestions.suggestions.primary.map((s) => `@${s.username}`).join(' ')
+                      suggestions.suggestions.slice(0, 3).map((s: ReviewerSuggestionDTO) => `@${s.handle}`).join(' ')
                     )
                   }
-                  title="Copy primary reviewers"
+                  title="Copy top reviewers"
                 >
-                  <Copy className="h-4 w-4 mr-2" /> Copy primary reviewers
+                  <Copy className="h-4 w-4 mr-2" /> Copy top reviewers
                 </Button>
                 <span className="text-xs text-muted-foreground">
                   Analyzed {suggestions.filesAnalyzed} files in {suggestions.directoriesAffected} directories
                 </span>
               </div>
             )}
-            {suggestions && (
-              <div className="space-y-6">
-                {(['primary', 'secondary', 'additional'] as const).map((group) => (
-                  <div key={group}>
-                    <h4 className="font-semibold capitalize text-base mb-3">{group} Reviewers</h4>
-                    {suggestions.suggestions[group].length === 0 ? (
-                      <p className="text-sm text-muted-foreground py-4">No {group} suggestions.</p>
-                    ) : (
-                      <div className="grid gap-3">
-                        {suggestions.suggestions[group].map((s) => (
-                          <div key={s.username} className="flex items-center gap-4 p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
-                            <Avatar className="h-10 w-10">
-                              {s.avatarUrl ? (
-                                <AvatarImage src={s.avatarUrl} alt={s.username} />
-                              ) : (
-                                <AvatarFallback>{s.username[0]?.toUpperCase()}</AvatarFallback>
-                              )}
-                            </Avatar>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="font-medium">@{s.username}</span>
-                                <Badge variant="secondary" className="text-xs">
-                                  Score {s.score}
-                                </Badge>
-                                {s.recentActivity && (
-                                  <Badge variant="outline" className="text-xs text-green-600">
-                                    Recently Active
-                                  </Badge>
-                                )}
-                              </div>
-                              <div className="text-sm text-muted-foreground">
-                                {s.reasoning.slice(0, 2).join(' • ')}
-                              </div>
-                              {s.relevantFiles.length > 0 && (
-                                <div className="text-xs text-muted-foreground mt-1">
-                                  Files: {s.relevantFiles.slice(0, 3).join(', ')}
-                                  {s.relevantFiles.length > 3 && ` +${s.relevantFiles.length - 3} more`}
-                                </div>
-                              )}
-                            </div>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => navigator.clipboard.writeText(s.username)}
-                              title="Copy username"
-                              aria-label={`Copy @${s.username}`}
-                            >
-                              <Copy className="h-4 w-4 mr-1" />
-                              Copy
-                            </Button>
+            {suggestions && suggestions.suggestions && (
+              <div className="space-y-4">
+                <h4 className="font-semibold text-base mb-3">Suggested Reviewers</h4>
+                {suggestions.suggestions.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-4">No reviewer suggestions available.</p>
+                ) : (
+                  <div className="grid gap-3">
+                    {suggestions.suggestions.map((s) => (
+                      <div key={s.handle} className="flex items-center gap-4 p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
+                        <Avatar className="h-10 w-10">
+                          {s.metadata?.avatarUrl ? (
+                            <AvatarImage src={s.metadata.avatarUrl} alt={s.handle} />
+                          ) : (
+                            <AvatarFallback>{s.handle[0]?.toUpperCase()}</AvatarFallback>
+                          )}
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-medium">@{s.handle}</span>
+                            <Badge variant="secondary" className="text-xs">
+                              {Math.round(s.confidence * 100)}% confidence
+                            </Badge>
+                            {s.signals?.includes('recently_active') && (
+                              <Badge variant="outline" className="text-xs text-green-600">
+                                Recently Active
+                              </Badge>
+                            )}
+                            {s.signals?.includes('code_owner') && (
+                              <Badge variant="default" className="text-xs">
+                                Code Owner
+                              </Badge>
+                            )}
                           </div>
-                        ))}
+                          <div className="text-sm text-muted-foreground">
+                            {s.reason}
+                          </div>
+                          {s.metadata?.reviewCount && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {s.metadata.reviewCount} recent reviews • {s.signals?.join(', ')}
+                            </div>
+                          )}
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => navigator.clipboard.writeText(s.handle)}
+                          title="Copy username"
+                          aria-label={`Copy @${s.handle}`}
+                        >
+                          <Copy className="h-4 w-4 mr-1" />
+                          Copy
+                        </Button>
                       </div>
-                    )}
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
             )}
           </TabsContent>
