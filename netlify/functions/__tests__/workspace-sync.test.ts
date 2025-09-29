@@ -1,4 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+// Set up environment variables before importing handler
+process.env.SUPABASE_URL = 'https://test.supabase.co';
+process.env.SUPABASE_ANON_KEY = 'test-anon-key';
+process.env.NODE_ENV = 'test';
+
 import { handler } from '../workspace-sync-simple';
 import type { HandlerEvent, HandlerContext } from '@netlify/functions';
 
@@ -9,7 +15,7 @@ vi.mock('@supabase/supabase-js', () => ({
       update: vi.fn(() => ({
         eq: vi.fn(() => ({
           select: vi.fn(() => ({
-            single: vi.fn(() =>
+            maybeSingle: vi.fn(() =>
               Promise.resolve({
                 data: { owner: 'test-owner', name: 'test-repo' },
                 error: null,
