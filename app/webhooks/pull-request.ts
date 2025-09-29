@@ -5,6 +5,7 @@ import { formatPRComment, formatMinimalPRComment } from '../services/comments';
 import { findSimilarIssues, SimilarIssue } from '../services/similarity';
 import { suggestReviewers, ReviewerSuggestion } from '../services/reviewers';
 import { supabase } from '../../src/lib/supabase';
+import { ensureContributorForWebhook } from '../lib/webhook-contributor-utils';
 import {
   fetchContributorConfig,
   isFeatureEnabled,
@@ -33,6 +34,13 @@ export async function handlePullRequestEvent(event: PullRequestEvent) {
 
   try {
     console.log('Processing PR #%s in ${event.repository.full_name}', event.pull_request.number);
+
+    // Ensure contributor record early so subsequent operations have author UUID
+    const authorId = await ensureContributorForWebhook(event.pull_request.user);
+    if (!authorId) {
+      console.error('Failed to ensure contributor for PR author');
+      return;
+    }
 
     // Check if we should comment on this PR
     const shouldComment = await checkIfShouldComment(event);
@@ -69,23 +77,20 @@ export async function handlePullRequestEvent(event: PullRequestEvent) {
       return;
     }
 
-    // Generate insights in parallel (only fetch what's enabled)
-    const insightsPromises = [generatePRInsights(event.pull_request, event.repository)];
+    // Generate insights in parallel with explicit typing to avoid heterogeneous array type issues
+    const contributorInsightsPromise = generatePRInsights(event.pull_request, event.repository);
+    const similarIssuesPromise = isFeatureEnabled(config, 'similar_issues')
+      ? findSimilarIssues(event.pull_request, event.repository)
+      : Promise.resolve([] as SimilarIssue[]);
+    const reviewerSuggestionsResultPromise = isFeatureEnabled(config, 'reviewer_suggestions')
+      ? suggestReviewers(event.pull_request, event.repository, installationId)
+      : Promise.resolve({ suggestions: [], hasCodeOwners: false });
 
-    if (isFeatureEnabled(config, 'similar_issues')) {
-      insightsPromises.push(findSimilarIssues(event.pull_request, event.repository));
-    } else {
-      insightsPromises.push(Promise.resolve([]));
-    }
-
-    if (isFeatureEnabled(config, 'reviewer_suggestions')) {
-      insightsPromises.push(suggestReviewers(event.pull_request, event.repository, installationId));
-    } else {
-      insightsPromises.push(Promise.resolve({ suggestions: [], hasCodeOwners: false }));
-    }
-
-    const [contributorInsights, similarIssues, reviewerSuggestionsResult] =
-      await Promise.all(insightsPromises);
+    const [contributorInsights, similarIssues, reviewerSuggestionsResult] = await Promise.all([
+      contributorInsightsPromise,
+      similarIssuesPromise,
+      reviewerSuggestionsResultPromise,
+    ]);
 
     // Extract suggestions and hasCodeOwners flag
     const hasCodeOwners = reviewerSuggestionsResult?.hasCodeOwners || false;
@@ -93,7 +98,7 @@ export async function handlePullRequestEvent(event: PullRequestEvent) {
 
     // Filter out excluded reviewers
     const filteredReviewers = reviewerSuggestions.filter(
-      (reviewer) => !isUserExcluded(config, reviewer.login, 'reviewer')
+      (reviewer: any) => !isUserExcluded(config, reviewer.login, 'reviewer')
     );
 
     // Format the comment based on style preference
@@ -301,18 +306,29 @@ async function storePRInsights(data: StorePRInsightsData) {
       return;
     }
 
-    // Store the PR if it doesn't exist
+    // Ensure contributor for this PR (again in case storePRInsights used independently)
+    const contributorId = await ensureContributorForWebhook(data.pullRequest.user);
+    if (!contributorId) {
+      console.error('Unable to store insights: contributor not ensured');
+      return;
+    }
+
+    // Store the PR with author_id
     const { data: pr } = await supabase
       .from('pull_requests')
-      .upsert({
-        github_id: data.pullRequest.id,
-        repository_id: repo.id,
-        number: data.pullRequest.number,
-        title: data.pullRequest.title,
-        state: data.pullRequest.state,
-        created_at: data.pullRequest.created_at,
-        updated_at: data.pullRequest.updated_at,
-      })
+      .upsert(
+        {
+          github_id: data.pullRequest.id,
+          repository_id: repo.id,
+          number: data.pullRequest.number,
+          title: data.pullRequest.title,
+          state: data.pullRequest.state,
+          author_id: contributorId,
+          created_at: data.pullRequest.created_at,
+          updated_at: data.pullRequest.updated_at,
+        },
+        { onConflict: 'github_id' }
+      )
       .select('id')
       .maybeSingle();
 
@@ -395,18 +411,28 @@ async function storePRSimilarityComment(data: StorePRSimilarityData) {
       return;
     }
 
-    // Store the PR if it doesn't exist
+    const contributorId = await ensureContributorForWebhook(data.pullRequest.user);
+    if (!contributorId) {
+      console.error('Unable to store similarity comment: contributor not ensured');
+      return;
+    }
+
+    // Store the PR with author_id if it doesn't exist
     const { data: pr } = await supabase
       .from('pull_requests')
-      .upsert({
-        github_id: data.pullRequest.id,
-        repository_id: repo.id,
-        number: data.pullRequest.number,
-        title: data.pullRequest.title,
-        state: data.pullRequest.state,
-        created_at: data.pullRequest.created_at,
-        updated_at: data.pullRequest.updated_at,
-      })
+      .upsert(
+        {
+          github_id: data.pullRequest.id,
+          repository_id: repo.id,
+          number: data.pullRequest.number,
+          title: data.pullRequest.title,
+          state: data.pullRequest.state,
+          author_id: contributorId,
+          created_at: data.pullRequest.created_at,
+          updated_at: data.pullRequest.updated_at,
+        },
+        { onConflict: 'github_id' }
+      )
       .select('id')
       .maybeSingle();
 
@@ -426,3 +452,4 @@ async function storePRSimilarityComment(data: StorePRSimilarityData) {
     console.error('Error storing PR similarity comment:', error);
   }
 }
+// (Phase 2) Local helper removed in favor of shared utility import.
