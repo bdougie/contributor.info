@@ -44,9 +44,19 @@ jobs:
           echo "🎬 Starting automated PostHog session analysis..."
 
           # Run the agent with the simple prompt and capture output
+          set +e  # Don't exit on error
           OUTPUT=$(cn -p "Tell me about my PostHog session recordings and create GitHub issues based on the problems." 2>&1)
+          EXIT_CODE=$?
+          set -e  # Re-enable exit on error
 
           echo "$OUTPUT"
+
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "❌ Continue CLI failed with exit code $EXIT_CODE"
+            echo "Output: $OUTPUT"
+            exit $EXIT_CODE
+          fi
+
           echo "✅ Analysis and issue creation completed"
 
           # Save output for PR comment
