@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { APIResponse } from '@/lib/api/error-types';
 
 export interface ReviewerSuggestionDTO {
   handle: string;
@@ -44,35 +45,79 @@ export async function suggestReviewers(
   files?: string[],
   prAuthor?: string,
   prUrl?: string
-) {
+): Promise<{
+  suggestions: ReviewerSuggestionDTO[];
+  codeOwners: string[];
+  repository: string;
+  filesAnalyzed: number;
+  directoriesAffected: number;
+  generatedAt: string;
+}> {
   const body = { files, prAuthor, prUrl };
-  console.log('Sending reviewer suggestion request:', body);
 
-  const res = await fetch(`/api/repos/${owner}/${repo}/suggest-reviewers`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    let errorMessage = `Failed to suggest reviewers (${res.status})`;
-    try {
-      const errorData = await res.json();
-      console.log('Error response from API:', errorData);
-      if (errorData.error) errorMessage = errorData.error;
-    } catch {
-      // If response is not JSON, use status text
-      if (res.statusText) errorMessage = `${errorMessage}: ${res.statusText}`;
+  try {
+    const res = await fetch(`/api/repos/${owner}/${repo}/suggest-reviewers`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    const responseData: APIResponse = await res.json();
+
+    if (!responseData.success || responseData.error) {
+      const error = responseData.error!;
+
+      // Create user-friendly error with actionable information
+      const userError = new Error(error.userMessage);
+      userError.name = error.code;
+      (userError as any).details = {
+        category: error.category,
+        retryable: error.retryable,
+        requestId: error.requestId,
+        suggestions: error.details?.suggestion ? [error.details.suggestion] : [],
+        action: error.details?.action
+      };
+
+      throw userError;
     }
-    throw new Error(errorMessage);
+
+    return responseData.data as {
+      suggestions: ReviewerSuggestionDTO[];
+      codeOwners: string[];
+      repository: string;
+      filesAnalyzed: number;
+      directoriesAffected: number;
+      generatedAt: string;
+    };
+  } catch (error) {
+    // Enhanced error handling for different scenarios
+    if (error instanceof Error && (error as any).details) {
+      // This is our structured error - re-throw with context
+      throw error;
+    }
+
+    // Network or parsing errors
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      const networkError = new Error('Unable to connect to the service. Please check your internet connection and try again.');
+      networkError.name = 'NETWORK_ERROR';
+      (networkError as any).details = {
+        category: 'network',
+        retryable: true,
+        suggestions: ['Check your internet connection', 'Try refreshing the page']
+      };
+      throw networkError;
+    }
+
+    // Generic fallback
+    const genericError = new Error('An unexpected error occurred while fetching reviewer suggestions.');
+    genericError.name = 'UNKNOWN_ERROR';
+    (genericError as any).details = {
+      category: 'unknown',
+      retryable: true,
+      suggestions: ['Try again in a moment', 'Contact support if the problem persists']
+    };
+    throw genericError;
   }
-  return res.json() as Promise<{
-    suggestions: ReviewerSuggestionDTO[];
-    codeOwners: string[];
-    repository: string;
-    filesAnalyzed: number;
-    directoriesAffected: number;
-    generatedAt: string;
-  }>;
 }
 
 export async function fetchFileTree(owner: string, repo: string) {
@@ -99,65 +144,42 @@ export async function fetchRecentPullRequests(repositoryId: string, limit = 25):
     .eq('state', 'open')
     .order('created_at', { ascending: false })
     .limit(limit);
-  if (error) {
-    console.error('Failed to fetch pull requests:', error);
-    return [];
-  }
 
-  return (data || []).map((row: any) => ({
-    number: row.number,
-    title: row.title,
-    state: row.state,
-    created_at: row.created_at,
-    author: Array.isArray(row.author) ? row.author[0] : row.author || null,
-  }));
+  if (error) throw error;
+  return (data || []) as unknown as MinimalPR[];
 }
 
-export async function fetchPRsWithoutReviewers(repositoryId: string, limit = 25): Promise<MinimalPR[]> {
-  const { data, error } = await supabase
+export async function fetchPRsWithoutReviewers(repositoryId: string, limit = 10): Promise<MinimalPR[]> {
+  // Fetch open PRs
+  const { data: prs, error: prError } = await supabase
     .from('pull_requests')
-    .select(`
-      number,
-      title,
-      state,
-      created_at,
-      author:contributors!author_id (username, avatar_url),
-      reviews!pull_request_id (id)
-    `)
+    .select(
+      `number, title, state, created_at, author:contributors!author_id (username, avatar_url)`
+    )
     .eq('repository_id', repositoryId)
     .eq('state', 'open')
     .order('created_at', { ascending: false })
-    .limit(limit * 2); // Fetch more to filter out those with reviews
+    .limit(limit * 2); // Fetch more to account for filtering
 
-  if (error) {
-    console.error('Failed to fetch pull requests without reviewers:', error);
-    return [];
-  }
+  if (prError) throw prError;
+  if (!prs || prs.length === 0) return [];
 
-  // Filter to only PRs without any reviews
-  const prsWithoutReviews = (data || [])
-    .filter((row: any) => !row.reviews || row.reviews.length === 0)
-    .slice(0, limit)
-    .map((row: any) => ({
-      number: row.number,
-      title: row.title,
-      state: row.state,
-      created_at: row.created_at,
-      author: Array.isArray(row.author) ? row.author[0] : row.author || null,
-    }));
+  // Get PR IDs
+  const prIds = prs.map(pr => `${repositoryId}#${pr.number}`);
 
-  return prsWithoutReviews;
-}
+  // Fetch reviews for these PRs
+  const { data: reviews, error: reviewError } = await supabase
+    .from('reviews')
+    .select('pull_request_id')
+    .in('pull_request_id', prIds);
 
-// Legacy compatibility helper to convert new format to old format if needed
-export function groupSuggestionsByPriority(suggestions: ReviewerSuggestionDTO[]): {
-  primary: ReviewerSuggestionDTO[];
-  secondary: ReviewerSuggestionDTO[];
-  additional: ReviewerSuggestionDTO[];
-} {
-  const primary = suggestions.filter(s => s.confidence >= 0.8).slice(0, 3);
-  const secondary = suggestions.filter(s => s.confidence >= 0.5 && s.confidence < 0.8).slice(0, 3);
-  const additional = suggestions.filter(s => s.confidence < 0.5).slice(0, 5);
+  if (reviewError) throw reviewError;
 
-  return { primary, secondary, additional };
+  // Filter out PRs that have reviews
+  const prsWithReviews = new Set((reviews || []).map(r => r.pull_request_id));
+  const prsWithoutReviews = prs
+    .filter(pr => !prsWithReviews.has(`${repositoryId}#${pr.number}`))
+    .slice(0, limit);
+
+  return prsWithoutReviews as unknown as MinimalPR[];
 }

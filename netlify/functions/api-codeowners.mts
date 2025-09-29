@@ -108,8 +108,8 @@ export default async (req: Request, context: Context) => {
     const { data: repository, error: repoError } = await supabase
       .from('tracked_repositories')
       .select('id')
-      .eq('owner', owner.toLowerCase())
-      .eq('name', repo.toLowerCase())
+      .eq('organization_name', owner.toLowerCase())
+      .eq('repository_name', repo.toLowerCase())
       .limit(1)
       .maybeSingle();
     if (repoError || !repository) {

@@ -7,6 +7,8 @@ import {
   CORS_HEADERS,
 } from './lib/repository-validation.ts';
 import { RateLimiter, getRateLimitKey, applyRateLimitHeaders } from './lib/rate-limiter.mts';
+import { APIErrorHandler } from './lib/error-handler';
+import { generateRequestId, APIResponse } from '../../src/lib/api/error-types';
 
 interface ReviewerSuggestion {
   handle: string;
@@ -281,6 +283,7 @@ function parseCodeOwners(content: string, prFiles: PullRequestFiles): Set<string
 
 // Trigger rebuild with database schema fixes
 export default async (req: Request, context: Context) => {
+  const requestId = generateRequestId();
   const supabaseUrl = process.env.SUPABASE_URL || '';
   const supabaseKey =
     process.env.SUPABASE_SERVICE_ROLE_KEY ||
@@ -288,9 +291,17 @@ export default async (req: Request, context: Context) => {
     '';
 
   if (!supabaseUrl || !supabaseKey) {
-    console.error('Missing Supabase configuration');
-    console.error('Available env vars:', Object.keys(process.env).filter(k => k.includes('SUPABASE')));
-    return createErrorResponse('Missing Supabase configuration', 500);
+    const error = APIErrorHandler.createError(
+      'CONFIG_ERROR',
+      'server_error',
+      'Missing Supabase configuration',
+      'Service configuration error. Please contact support.',
+      { requestId, retryable: false }
+    );
+    return new Response(
+      JSON.stringify(APIErrorHandler.createResponse(null, error, requestId)),
+      { status: 500, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } }
+    );
   }
 
   const supabase = createClient(supabaseUrl, supabaseKey);
@@ -408,13 +419,28 @@ export default async (req: Request, context: Context) => {
     }
 
     if (!files || !Array.isArray(files) || files.length === 0) {
-      if (prUrl) {
-        return createErrorResponse(
-          'Failed to fetch files from the provided PR URL. The URL may be invalid, the repository may be private, or the GitHub API may be inaccessible.',
-          400
-        );
-      }
-      return createErrorResponse('Please provide an array of files changed in the PR', 400);
+      const error = APIErrorHandler.createError(
+        'INVALID_FILES_PARAMETER',
+        'validation',
+        'Missing or invalid files parameter',
+        prUrl
+          ? 'Unable to fetch changed files from the provided PR URL. Please check the URL and try again.'
+          : 'Please provide a list of changed files or a valid PR URL.',
+        {
+          requestId,
+          retryable: false,
+          details: {
+            expectedFormat: 'Array of file paths',
+            received: typeof files,
+            prUrl: prUrl || null
+          }
+        }
+      );
+
+      return new Response(
+        JSON.stringify(APIErrorHandler.createResponse(null, error, requestId)),
+        { status: 400, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } }
+      );
     }
 
     const prFiles = await analyzePRFiles(files);
@@ -428,12 +454,32 @@ export default async (req: Request, context: Context) => {
       .maybeSingle();
 
     if (repoError) {
-      console.error('Database error:', repoError);
-      return createErrorResponse(`Database error: ${repoError.message}`, 500);
+      const error = APIErrorHandler.handleDatabaseError(repoError, 'repository lookup', requestId);
+      return new Response(
+        JSON.stringify(APIErrorHandler.createResponse(null, error, requestId)),
+        { status: 500, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } }
+      );
     }
 
     if (!repository) {
-      return createNotFoundResponse(owner, repo);
+      const error = APIErrorHandler.createError(
+        'REPOSITORY_NOT_TRACKED',
+        'not_found',
+        `Repository ${owner}/${repo} is not tracked`,
+        `Repository ${owner}/${repo} needs to be added before using this feature.`,
+        {
+          requestId,
+          retryable: false,
+          details: {
+            trackingUrl: `https://contributor.info/${owner}/${repo}`,
+            action: 'track_repository'
+          }
+        }
+      );
+      return new Response(
+        JSON.stringify(APIErrorHandler.createResponse(null, error, requestId)),
+        { status: 404, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Get reviewer suggestions from history
@@ -485,22 +531,53 @@ export default async (req: Request, context: Context) => {
     // Take top suggestions
     const topSuggestions = suggestions.slice(0, 10);
 
-    const resp = new Response(
-      JSON.stringify({
+    const responseData = APIErrorHandler.createResponse(
+      {
         suggestions: topSuggestions,
         codeOwners,
         repository: `${owner}/${repo}`,
         filesAnalyzed: files.length,
         directoriesAffected: prFiles.directories.size,
         generatedAt: new Date().toISOString(),
-      }),
+      },
+      undefined,
+      requestId
+    );
+
+    const resp = new Response(
+      JSON.stringify(responseData),
       { status: 200, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } }
     );
 
     return applyRateLimitHeaders(resp, rate);
   } catch (error) {
-    console.error('Error in api-suggest-reviewers:', error);
-    return createErrorResponse(`Internal server error: ${error instanceof Error ? error.message : 'Unknown error'}`, 500);
+    const apiError = APIErrorHandler.createError(
+      'INTERNAL_SERVER_ERROR',
+      'server_error',
+      `Internal server error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      'An unexpected error occurred. Please try again or contact support if the problem persists.',
+      {
+        requestId,
+        retryable: true,
+        details: {
+          endpoint: 'suggest-reviewers',
+          timestamp: new Date().toISOString()
+        }
+      }
+    );
+
+    console.error('API Error:', {
+      requestId,
+      endpoint: 'suggest-reviewers',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      timestamp: new Date().toISOString()
+    });
+
+    return new Response(
+      JSON.stringify(APIErrorHandler.createResponse(null, apiError, requestId)),
+      { status: 500, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } }
+    );
   }
 };
 
