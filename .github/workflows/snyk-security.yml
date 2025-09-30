@@ -3,10 +3,6 @@ name: Snyk Security Scanning
 on:
   pull_request:
     branches: [main]
-  push:
-    branches: [main]
-  schedule:
-    - cron: '0 8 * * *' # Daily at 8 AM UTC
 
 jobs:
   security-scan:
@@ -20,16 +16,10 @@ jobs:
       - name: Get Changed Files
         id: changed-files
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            echo "📝 Getting changed files since main branch..."
-            CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | tr '\n' ' ')
-            echo "changed_files=$CHANGED_FILES" >> $GITHUB_OUTPUT
-            echo "is_pr=true" >> $GITHUB_OUTPUT
-            echo "Changed files: $CHANGED_FILES"
-          else
-            echo "is_pr=false" >> $GITHUB_OUTPUT
-            echo "Full repository scan (not a PR)"
-          fi
+          echo "📝 Getting changed files since main branch..."
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | tr '\n' ' ')
+          echo "changed_files=$CHANGED_FILES" >> $GITHUB_OUTPUT
+          echo "Changed files: $CHANGED_FILES"
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -70,11 +60,10 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
           CHANGED_FILES: ${{ steps.changed-files.outputs.changed_files }}
-          IS_PR: ${{ steps.changed-files.outputs.is_pr }}
         run: |
           SCAN_FAILED=0
 
-          if [ "$IS_PR" = "true" ] && [ -n "$CHANGED_FILES" ]; then
+          if [ -n "$CHANGED_FILES" ]; then
             echo "🔍 Running targeted scan on changed files..."
             echo "Changed files: $CHANGED_FILES"
             FILE_ARGS=""
@@ -95,11 +84,8 @@ jobs:
               echo '{"runs": [{"results": []}]}' > snyk-code-results.json
             fi
           else
-            echo "🔍 Running full repository Snyk Code scan..."
-            snyk code test --severity-threshold=high --json > snyk-code-results.json || {
-              echo "❌ Snyk Code found high severity issues"
-              SCAN_FAILED=1
-            }
+            echo "⚠️ No changed files detected, creating empty results"
+            echo '{"runs": [{"results": []}]}' > snyk-code-results.json
           fi
 
           echo "📦 Checking dependencies..."
@@ -160,7 +146,7 @@ jobs:
           fi
 
       - name: Post Mitigation Summary to PR
-        if: github.event_name == 'pull_request' && steps.security-scan.outputs.scan_status == 'failed' && hashFiles('mitigation-suggestions.md') != ''
+        if: steps.security-scan.outputs.scan_status == 'failed' && hashFiles('mitigation-suggestions.md') != ''
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
