@@ -14,6 +14,22 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetch all history for git diff
+
+      - name: Get Changed Files
+        id: changed-files
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "📝 Getting changed files since main branch..."
+            CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | tr '\n' ' ')
+            echo "changed_files=$CHANGED_FILES" >> $GITHUB_OUTPUT
+            echo "is_pr=true" >> $GITHUB_OUTPUT
+            echo "Changed files: $CHANGED_FILES"
+          else
+            echo "is_pr=false" >> $GITHUB_OUTPUT
+            echo "Full repository scan (not a PR)"
+          fi
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -41,18 +57,28 @@ jobs:
         env:
           CONTINUE_API_KEY: ${{ secrets.CONTINUE_API_KEY }}
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          CHANGED_FILES: ${{ steps.changed-files.outputs.changed_files }}
+          IS_PR: ${{ steps.changed-files.outputs.is_pr }}
         run: |
           set -e  # Exit on any error
 
+          if [ "$IS_PR" = "true" ]; then
+            SCAN_SCOPE="Focus only on these changed files: $CHANGED_FILES"
+            echo "🔍 Running targeted scan on changed files..."
+          else
+            SCAN_SCOPE="Scan the entire repository"
+            echo "🔍 Running full repository scan..."
+          fi
+
           echo "🔍 Running code vulnerability scan..."
-          if ! cn -p "Run Snyk Code scan with severity high on this repo. Fail if any high issues are present. snyk is auth'd through the cli already" --auto; then
+          if ! cn -p "Run Snyk Code scan with severity high. $SCAN_SCOPE. Fail if any high issues are present. snyk is auth'd through the cli already" --auto; then
             echo "❌ Error: Snyk Code scan failed or found high severity issues"
             exit 1
           fi
           echo "✅ Code vulnerability scan completed"
 
           echo "📦 Checking dependencies..."
-          if ! cn -p "Run Snyk Open Source on this repo. Fail on fixable high issues. snyk is auth'd through the cli already" --auto; then
+          if ! cn -p "Run Snyk Open Source scan. $SCAN_SCOPE. Fail on fixable high issues. snyk is auth'd through the cli already" --auto; then
             echo "❌ Error: Snyk Open Source scan failed or found fixable high severity issues"
             exit 1
           fi
