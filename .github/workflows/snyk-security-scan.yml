@@ -36,6 +36,7 @@ jobs:
         continue-on-error: true
         env:
           CONTINUE_API_KEY: ${{ secrets.CONTINUE_API_KEY }}
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
           echo "🔍 Running security scan with Continue CLI..."
           echo "📋 Using Snyk MCP for vulnerability detection"
