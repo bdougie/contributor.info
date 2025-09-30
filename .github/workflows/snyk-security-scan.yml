@@ -42,7 +42,7 @@ jobs:
           echo ""
 
           # Run scan and show output in real-time while saving to file
-          cn -p "Run Snyk Code scan with severity high on this repo. Fail if any high issues are present." 2>&1 | tee scan-results.txt || {
+          cn -p "Scan this repository for high severity vulnerabilities using Snyk Code. Report all findings." 2>&1 | tee scan-results.txt || {
             echo "Scan completed with findings" | tee -a scan-results.txt
           }
 
