@@ -25,23 +25,48 @@ jobs:
           npm install -g @continuedev/cli
           echo "✅ Continue CLI installed"
 
+      - name: Validate Secrets
+        run: |
+          if [ -z "${{ secrets.CONTINUE_API_KEY }}" ]; then
+            echo "❌ Error: CONTINUE_API_KEY secret is not set"
+            exit 1
+          fi
+          if [ -z "${{ secrets.SNYK_TOKEN }}" ]; then
+            echo "❌ Error: SNYK_TOKEN secret is not set"
+            exit 1
+          fi
+          echo "✅ Required secrets are configured"
+
       - name: Authenticate Continue CLI
         env:
           CONTINUE_API_KEY: ${{ secrets.CONTINUE_API_KEY }}
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
-          cn auth login --api-key "$CONTINUE_API_KEY"
+          if ! cn auth login --api-key "$CONTINUE_API_KEY"; then
+            echo "❌ Error: Failed to authenticate with Continue CLI"
+            exit 1
+          fi
           echo "✅ Continue CLI authenticated"
 
       - name: Run Security Scans
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
+          set -e  # Exit on any error
+
           echo "🔍 Running code vulnerability scan..."
-          cn -p "Run Snyk Code scan with severity high on this repo. Fail if any high issues are present." --auto
+          if ! cn -p "Run Snyk Code scan with severity high on this repo. Fail if any high issues are present." --auto; then
+            echo "❌ Error: Snyk Code scan failed or found high severity issues"
+            exit 1
+          fi
+          echo "✅ Code vulnerability scan completed"
 
           echo "📦 Checking dependencies..."
-          cn -p "Run Snyk Open Source on this repo. Fail on fixable high issues." --auto
+          if ! cn -p "Run Snyk Open Source on this repo. Fail on fixable high issues." --auto; then
+            echo "❌ Error: Snyk Open Source scan failed or found fixable high severity issues"
+            exit 1
+          fi
+          echo "✅ Dependency scan completed"
 
       - name: Generate Security Report
         if: always()
