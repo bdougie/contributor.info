@@ -23,51 +23,61 @@ When triggered, it:
 3. Generates review using Continue CLI
 4. Updates the comment with final review
 
-## Environment Variables
+## Architecture: Centralized Service
 
-Add these to your Fly.io secrets:
+This is a **centralized GitHub App service** - you (the app owner) run the webhook server and provide Continue reviews for all users:
+
+- **Users**: Just install the contributor-info GitHub App on their repositories
+- **You**: Configure Continue API key and review settings once for everyone
+- **No user setup**: Users don't need Continue accounts, API keys, or configuration
+
+This model provides:
+- ✅ Zero configuration for end users
+- ✅ Consistent review quality across all repositories
+- ✅ Centralized cost management and rate limiting
+- ✅ Single source of truth for review rules
+
+## Environment Variables (App Owner Only)
+
+Configure these once in your Fly.io secrets:
 
 ```bash
-# Required
+# Required - your Continue API key
 CONTINUE_API_KEY=your_continue_api_key
 
-# Optional (defaults shown)
+# Optional - customize the review configuration (defaults shown)
 CONTINUE_ORG=continuedev
 CONTINUE_CONFIG=continuedev/review-bot
 ```
 
-### Using Custom Continue Configurations
+### Customizing Review Configuration
 
-The `CONTINUE_CONFIG` variable accepts two formats:
+As the app owner, you can customize the Continue configuration for all users:
 
-1. **Hub Configuration** (default): `continuedev/review-bot`
-   - References a configuration from Continue Hub
-   - Format: `organization/config-name`
-   - Example: `CONTINUE_CONFIG=your-org/your-config`
-
-2. **Local Config File**: `/path/to/config.yaml`
-   - Path to a custom `config.yaml` file
-   - Must be accessible within the Docker container
-   - Example: `CONTINUE_CONFIG=/app/config/review-config.yaml`
-
-To use your own configuration:
-
+**Option 1: Use a hub configuration** (easiest)
 ```bash
-# Option 1: Use a hub configuration
 fly secrets set CONTINUE_CONFIG=your-org/custom-review-bot
+```
+- Create custom configurations at [Continue Hub](https://hub.continue.dev)
+- Format: `organization/config-name`
+- No Dockerfile changes needed
 
-# Option 2: Mount a custom config file (requires Dockerfile changes)
-# Add to Dockerfile: COPY your-config.yaml /app/config/review-config.yaml
-# Then set: fly secrets set CONTINUE_CONFIG=/app/config/review-config.yaml
+**Option 2: Mount a local config file** (advanced)
+```bash
+# 1. Add to Dockerfile
+COPY your-config.yaml /app/config/review-config.yaml
+
+# 2. Set the path
+fly secrets set CONTINUE_CONFIG=/app/config/review-config.yaml
 ```
 
-The configuration file supports:
-- Custom AI model selection (Claude, GPT-4, etc.)
+Your configuration controls review behavior for all users:
+- AI model selection (Claude, GPT-4, etc.)
 - Review rules and patterns
 - Tool permissions and restrictions
-- Custom prompts and behaviors
+- Custom prompts and review focus areas
 
-See [Continue config.yaml documentation](https://docs.continue.dev/reference/config) for full configuration options.
+See [Continue config.yaml documentation](https://docs.continue.dev/reference/config) for configuration options.
 
 ## Deployment
 
@@ -99,14 +109,16 @@ curl https://your-app.fly.dev/health
 ### Test on contributor.info
 
 1. Open a PR on this repository
-2. Should see a Continue review comment automatically
-3. Or comment with `@continue-agent check for security issues`
+2. Should see a Continue review comment automatically posted by the bot
+3. Or comment with `@continue-agent check for security issues` for on-demand reviews
 
 ### Test on gh-datapipe (Private Repo)
 
 1. Install the contributor-info GitHub App on `open-source-ready/gh-datapipe`
 2. Open a PR
-3. Continue review should work with private repo access
+3. Continue review should work automatically with private repo access
+
+**Note**: End users only need to install the GitHub App - no Continue setup required. The webhook server handles all Continue API interactions.
 
 ## Project Rules
 
