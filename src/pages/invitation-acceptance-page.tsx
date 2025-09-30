@@ -43,6 +43,14 @@ export const InvitationAcceptancePage: React.FC = () => {
   const validateInvitation = async () => {
     try {
       setLoading(true);
+      setError(null); // Clear any previous errors
+
+      // Validate token format first (basic UUID check)
+      if (!token || token.length < 32) {
+        console.error('Invalid token format:', token);
+        setError('invalid');
+        return;
+      }
 
       // Check if user is authenticated
       const {
@@ -58,23 +66,52 @@ export const InvitationAcceptancePage: React.FC = () => {
       const result = await WorkspaceService.validateInvitation(token!);
 
       if (!result.success || !result.data) {
-        // Determine error type based on the error message
-        if (result.error?.includes('expired')) {
+        // Determine error type based on the error message and status code
+        console.error('Invitation validation failed:', {
+          error: result.error,
+          statusCode: result.statusCode,
+          token: token.substring(0, 8) + '...', // Log first 8 chars for debugging
+        });
+
+        if (result.statusCode === 404 || result.error?.includes('not found')) {
+          setError('not-found');
+        } else if (result.statusCode === 410 || result.error?.includes('expired')) {
           setError('expired');
+        } else if (result.error?.includes('already been accepted')) {
+          setError('already-accepted');
         } else if (result.error?.includes('already a member')) {
           setError('already-member');
-        } else if (result.error?.includes('not found')) {
-          setError('not-found');
+        } else if (result.error?.includes('declined')) {
+          setError('declined');
         } else {
           setError('invalid');
         }
         return;
       }
 
+      // Successful validation
+      console.log('Invitation validated successfully:', {
+        workspaceName: result.data.workspace.name,
+        role: result.data.role,
+        expiresAt: result.data.expiresAt,
+      });
+
       setInvitation(result.data);
     } catch (err) {
       console.error('Error validating invitation:', err);
-      setError('invalid');
+
+      // Provide more specific error handling
+      if (err instanceof Error) {
+        if (err.message.includes('NetworkError') || err.message.includes('fetch')) {
+          setError('network-error');
+        } else if (err.message.includes('timeout')) {
+          setError('timeout');
+        } else {
+          setError('invalid');
+        }
+      } else {
+        setError('invalid');
+      }
     } finally {
       setLoading(false);
     }
@@ -247,9 +284,12 @@ export const InvitationAcceptancePage: React.FC = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
+        <div className="text-center max-w-md mx-auto px-4">
           <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Validating invitation...</p>
+          <h2 className="text-lg font-semibold mb-2">Validating invitation...</h2>
+          <p className="text-muted-foreground text-sm">
+            Please wait while we verify your workspace invitation.
+          </p>
         </div>
       </div>
     );
@@ -262,7 +302,9 @@ export const InvitationAcceptancePage: React.FC = () => {
         <div className="max-w-2xl mx-auto space-y-8">
           <div className="text-center">
             <h1 className="text-3xl font-bold tracking-tight">Workspace Invitation</h1>
-            <p className="mt-2 text-muted-foreground">You've been invited to join a workspace</p>
+            <p className="mt-2 text-muted-foreground">
+              You've been invited to join <strong>{invitation.workspace.name}</strong>
+            </p>
           </div>
 
           <InvitationPreview
@@ -276,6 +318,11 @@ export const InvitationAcceptancePage: React.FC = () => {
             onDecline={handleDecline}
             isProcessing={processing}
           />
+
+          {/* Additional security notice */}
+          <div className="text-center text-sm text-muted-foreground bg-muted/20 rounded-lg p-4">
+            🔒 This invitation is secure and can only be used by the email address it was sent to.
+          </div>
         </div>
       </div>
     );
