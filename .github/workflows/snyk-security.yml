@@ -45,14 +45,14 @@ jobs:
           set -e  # Exit on any error
 
           echo "🔍 Running code vulnerability scan..."
-          if ! cn -p "Run Snyk Code scan with severity high on this repo. Fail if any high issues are present. Note: Snyk CLI is already authenticated via SNYK_TOKEN environment variable." --auto; then
+          if ! cn -p "Run Snyk Code scan with severity high on this repo. Fail if any high issues are present. snyk is auth'd through the cli already" --auto; then
             echo "❌ Error: Snyk Code scan failed or found high severity issues"
             exit 1
           fi
           echo "✅ Code vulnerability scan completed"
 
           echo "📦 Checking dependencies..."
-          if ! cn -p "Run Snyk Open Source on this repo. Fail on fixable high issues. Note: Snyk CLI is already authenticated via SNYK_TOKEN environment variable." --auto; then
+          if ! cn -p "Run Snyk Open Source on this repo. Fail on fixable high issues. snyk is auth'd through the cli already" --auto; then
             echo "❌ Error: Snyk Open Source scan failed or found fixable high severity issues"
             exit 1
           fi
