@@ -70,18 +70,28 @@ jobs:
 
       - name: Generate Security Report
         if: always()
+        continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
-          cn -p "Generate a markdown security report summarizing:
-                 - Total vulnerabilities by severity
-                 - Top 3 critical issues (if any)
-                 - Recommended next steps
-                 Save to scan-results.md" --auto
+          echo "📊 Generating security report..."
+          cn -p "Generate a markdown security report summarizing total vulnerabilities by severity, top 3 critical issues if any, and recommended next steps. Save the report to scan-results.md file." --auto || {
+            echo "⚠️ Warning: Could not generate security report via Continue CLI"
+            echo "Manual review of security scan results recommended"
+            exit 0
+          }
+
+          if [ -f scan-results.md ]; then
+            echo "✅ Security report generated successfully"
+          else
+            echo "⚠️ Warning: scan-results.md was not created"
+          fi
 
       - name: Upload Security Report
         if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: security-scan-results
           path: scan-results.md
+          if-no-files-found: warn
