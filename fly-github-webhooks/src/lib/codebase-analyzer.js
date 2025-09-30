@@ -1,57 +1,37 @@
-import * as fs from 'fs/promises';
-import * as path from 'path';
+import { readFile } from 'fs/promises';
+import { basename, dirname, extname } from 'path';
 import { glob } from 'glob';
-import * as core from '@actions/core';
-
-export interface CodebasePattern {
-  type: 'import' | 'component' | 'function' | 'type' | 'constant';
-  pattern: string;
-  frequency: number;
-  examples: string[];
-  fileTypes: string[];
-}
-
-export interface ProjectContext {
-  patterns: CodebasePattern[];
-  conventions: {
-    naming: { files: string[]; functions: string[]; types: string[] };
-    structure: { directories: string[]; testPatterns: string[] };
-    dependencies: { frameworks: string[]; libraries: string[] };
-  };
-  architecture: {
-    componentPatterns: string[];
-    dataFlowPatterns: string[];
-    errorHandlingPatterns: string[];
-  };
-}
 
 /**
  * Analyze codebase to understand patterns and conventions
+ * @param {string[]} changedFiles - Array of changed file paths
+ * @param {object} logger - Logger instance
+ * @returns {Promise<object>} Project context with patterns, conventions, and architecture
  */
-export async function analyzeCodebasePatterns(changedFiles: string[]): Promise<ProjectContext> {
-  core.info('Analyzing codebase patterns for enhanced context...');
+export async function analyzeCodebasePatterns(changedFiles, logger) {
+  logger.info('Analyzing codebase patterns for enhanced context...');
 
-  const patterns: CodebasePattern[] = [];
+  const patterns = [];
   const conventions = {
-    naming: { files: [] as string[], functions: [] as string[], types: [] as string[] },
-    structure: { directories: [] as string[], testPatterns: [] as string[] },
-    dependencies: { frameworks: [] as string[], libraries: [] as string[] },
+    naming: { files: [], functions: [], types: [] },
+    structure: { directories: [], testPatterns: [] },
+    dependencies: { frameworks: [], libraries: [] },
   };
   const architecture = {
-    componentPatterns: [] as string[],
-    dataFlowPatterns: [] as string[],
-    errorHandlingPatterns: [] as string[],
+    componentPatterns: [],
+    dataFlowPatterns: [],
+    errorHandlingPatterns: [],
   };
 
   try {
     // Analyze related files to understand patterns
-    const relatedFiles = await findRelatedFiles(changedFiles);
+    const relatedFiles = await findRelatedFiles(changedFiles, logger);
 
     // Extract patterns from existing code
     for (const file of relatedFiles.slice(0, 50)) {
       // Limit to prevent timeout
       try {
-        const content = await fs.readFile(file, 'utf-8');
+        const content = await readFile(file, 'utf-8');
 
         // Analyze imports to understand dependencies
         const imports = extractImportPatterns(content, file);
@@ -69,20 +49,20 @@ export async function analyzeCodebasePatterns(changedFiles: string[]): Promise<P
         conventions.naming.functions.push(...namingPatterns.functions);
         conventions.naming.types.push(...namingPatterns.types);
       } catch (error) {
-        core.debug(`Failed to analyze ${file}: ${error}`);
+        logger.debug('Failed to analyze %s: %s', file, error.message);
       }
     }
 
     // Analyze project structure
-    conventions.structure = await analyzeProjectStructure();
+    conventions.structure = await analyzeProjectStructure(logger);
 
     // Analyze package.json for framework/library patterns
-    conventions.dependencies = await analyzeDependencies();
+    conventions.dependencies = await analyzeDependencies(logger);
 
     // Remove duplicates and get most common patterns
     const uniquePatterns = deduplicatePatterns(patterns);
 
-    core.info(`Found ${uniquePatterns.length} codebase patterns for context`);
+    logger.info('Found %d codebase patterns for context', uniquePatterns.length);
 
     return {
       patterns: uniquePatterns,
@@ -90,18 +70,18 @@ export async function analyzeCodebasePatterns(changedFiles: string[]): Promise<P
       architecture,
     };
   } catch (error) {
-    core.warning(`Failed to analyze codebase patterns: ${error}`);
+    logger.warn('Failed to analyze codebase patterns: %s', error.message);
     return {
       patterns: [],
       conventions: {
-        naming: { files: [] as string[], functions: [] as string[], types: [] as string[] },
-        structure: { directories: [] as string[], testPatterns: [] as string[] },
-        dependencies: { frameworks: [] as string[], libraries: [] as string[] },
+        naming: { files: [], functions: [], types: [] },
+        structure: { directories: [], testPatterns: [] },
+        dependencies: { frameworks: [], libraries: [] },
       },
       architecture: {
-        componentPatterns: [] as string[],
-        dataFlowPatterns: [] as string[],
-        errorHandlingPatterns: [] as string[],
+        componentPatterns: [],
+        dataFlowPatterns: [],
+        errorHandlingPatterns: [],
       },
     };
   }
@@ -110,15 +90,15 @@ export async function analyzeCodebasePatterns(changedFiles: string[]): Promise<P
 /**
  * Find files related to the changed files for pattern analysis
  */
-async function findRelatedFiles(changedFiles: string[]): Promise<string[]> {
-  const relatedFiles = new Set<string>();
+async function findRelatedFiles(changedFiles, logger) {
+  const relatedFiles = new Set();
 
   for (const file of changedFiles) {
     // Add the file itself
     relatedFiles.add(file);
 
     // Find files in the same directory
-    const dir = path.dirname(file);
+    const dir = dirname(file);
     try {
       const siblingFiles = await glob(`${dir}/*.{ts,tsx,js,jsx}`, {
         ignore: ['node_modules/**', '**/*.test.*', '**/*.spec.*'],
@@ -127,11 +107,11 @@ async function findRelatedFiles(changedFiles: string[]): Promise<string[]> {
         relatedFiles.add(f);
       }
     } catch (error) {
-      core.debug(`Failed to find sibling files for ${dir}: ${error}`);
+      logger.debug('Failed to find sibling files for %s: %s', dir, error.message);
     }
 
     // Find test files
-    const baseName = path.basename(file, path.extname(file));
+    const baseName = basename(file, extname(file));
     try {
       const testFiles = await glob(`**/${baseName}.{test,spec}.{ts,tsx,js,jsx}`, {
         ignore: ['node_modules/**'],
@@ -140,7 +120,7 @@ async function findRelatedFiles(changedFiles: string[]): Promise<string[]> {
         relatedFiles.add(f);
       }
     } catch (error) {
-      core.debug(`Failed to find test files for ${baseName}: ${error}`);
+      logger.debug('Failed to find test files for %s: %s', baseName, error.message);
     }
   }
 
@@ -150,14 +130,13 @@ async function findRelatedFiles(changedFiles: string[]): Promise<string[]> {
 /**
  * Extract import patterns from file content
  */
-function extractImportPatterns(content: string, filepath: string): CodebasePattern[] {
-  const patterns: CodebasePattern[] = [];
-  // Updated regex to handle type-only imports (import type { ... } from ...)
+function extractImportPatterns(content, filepath) {
+  const patterns = [];
   const importRegex =
     /import\s+(?:type\s+)?(?:{[^}]+}|\*\s+as\s+\w+|\w+)?\s*(?:,\s*(?:type\s+)?{[^}]+})?\s*from\s+['"`]([^'"`]+)['"`]/g;
 
   let match;
-  const imports = new Map<string, number>();
+  const imports = new Map();
 
   while ((match = importRegex.exec(content)) !== null) {
     const importPath = match[1];
@@ -170,7 +149,7 @@ function extractImportPatterns(content: string, filepath: string): CodebasePatte
       pattern,
       frequency,
       examples: [filepath],
-      fileTypes: [path.extname(filepath)],
+      fileTypes: [extname(filepath)],
     });
   });
 
@@ -180,8 +159,8 @@ function extractImportPatterns(content: string, filepath: string): CodebasePatte
 /**
  * Extract React component patterns
  */
-function extractComponentPatterns(content: string, filepath: string): string[] {
-  const patterns: string[] = [];
+function extractComponentPatterns(content, filepath) {
+  const patterns = [];
 
   // Check for common React patterns
   if (content.includes('useState')) patterns.push('React Hooks (useState)');
@@ -211,18 +190,11 @@ function extractComponentPatterns(content: string, filepath: string): string[] {
 /**
  * Extract naming convention patterns
  */
-function extractNamingPatterns(
-  content: string,
-  filepath: string
-): {
-  files: string[];
-  functions: string[];
-  types: string[];
-} {
-  const patterns = { files: [] as string[], functions: [] as string[], types: [] as string[] };
+function extractNamingPatterns(content, filepath) {
+  const patterns = { files: [], functions: [], types: [] };
 
   // File naming pattern
-  const fileName = path.basename(filepath, path.extname(filepath));
+  const fileName = basename(filepath, extname(filepath));
   if (fileName.includes('-')) patterns.files.push('kebab-case');
   if (fileName.includes('_')) patterns.files.push('snake_case');
   if (/^[a-z][a-zA-Z0-9]*$/.test(fileName)) patterns.files.push('camelCase');
@@ -251,17 +223,14 @@ function extractNamingPatterns(
 /**
  * Analyze project directory structure
  */
-async function analyzeProjectStructure(): Promise<{
-  directories: string[];
-  testPatterns: string[];
-}> {
+async function analyzeProjectStructure(logger) {
   try {
     const directories = await glob('*/', { ignore: ['node_modules/', '.git/', 'dist/', 'build/'] });
     const testFiles = await glob('**/*.{test,spec}.{ts,tsx,js,jsx}', {
       ignore: ['node_modules/**'],
     });
 
-    const testPatterns: string[] = [];
+    const testPatterns = [];
     testFiles.forEach((file) => {
       if (file.includes('__tests__')) testPatterns.push('__tests__ directory');
       if (file.includes('.test.')) testPatterns.push('.test.* files');
@@ -273,17 +242,17 @@ async function analyzeProjectStructure(): Promise<{
       testPatterns: Array.from(new Set(testPatterns)),
     };
   } catch (error) {
-    core.debug(`Failed to analyze project structure: ${error}`);
-    return { directories: [] as string[], testPatterns: [] as string[] };
+    logger.debug('Failed to analyze project structure: %s', error.message);
+    return { directories: [], testPatterns: [] };
   }
 }
 
 /**
  * Analyze package.json for framework and library patterns
  */
-async function analyzeDependencies(): Promise<{ frameworks: string[]; libraries: string[] }> {
+async function analyzeDependencies(logger) {
   try {
-    const packageJson = await fs.readFile('package.json', 'utf-8');
+    const packageJson = await readFile('package.json', 'utf-8');
     const pkg = JSON.parse(packageJson);
 
     const allDeps = {
@@ -291,8 +260,8 @@ async function analyzeDependencies(): Promise<{ frameworks: string[]; libraries:
       ...pkg.devDependencies,
     };
 
-    const frameworks: string[] = [];
-    const libraries: string[] = [];
+    const frameworks = [];
+    const libraries = [];
 
     // Identify frameworks
     if (allDeps.react) frameworks.push('React');
@@ -317,21 +286,21 @@ async function analyzeDependencies(): Promise<{ frameworks: string[]; libraries:
 
     return { frameworks, libraries };
   } catch (error) {
-    core.debug(`Failed to analyze dependencies: ${error}`);
-    return { frameworks: [] as string[], libraries: [] as string[] };
+    logger.debug('Failed to analyze dependencies: %s', error.message);
+    return { frameworks: [], libraries: [] };
   }
 }
 
 /**
  * Remove duplicate patterns and sort by frequency
  */
-function deduplicatePatterns(patterns: CodebasePattern[]): CodebasePattern[] {
-  const patternMap = new Map<string, CodebasePattern>();
+function deduplicatePatterns(patterns) {
+  const patternMap = new Map();
 
   patterns.forEach((pattern) => {
     const key = `${pattern.type}:${pattern.pattern}`;
     if (patternMap.has(key)) {
-      const existing = patternMap.get(key)!;
+      const existing = patternMap.get(key);
       existing.frequency += pattern.frequency;
       existing.examples.push(...pattern.examples);
       existing.fileTypes.push(...pattern.fileTypes);

@@ -4,14 +4,17 @@ FROM node:20-alpine
 # Set working directory
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy package files from fly-github-webhooks
+COPY fly-github-webhooks/package*.json ./
 
 # Install production dependencies only
 RUN npm ci --only=production && npm cache clean --force
 
-# Copy application code
-COPY src ./src
+# Copy fly-github-webhooks source
+COPY fly-github-webhooks/src ./src
+
+# Copy app directory (needed for handlers that reference app/services)
+COPY app ./app
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \

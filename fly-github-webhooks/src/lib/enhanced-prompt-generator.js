@@ -1,40 +1,10 @@
-import { ProjectContext } from './codebase-analyzer';
-
-interface ReviewContext {
-  pr: {
-    number: number;
-    title: string;
-    body: string;
-    author: string;
-    files: PRFile[];
-  };
-  rules: Rule[];
-  command?: string;
-  repository: string;
-}
-
-interface PRFile {
-  filename: string;
-  patch?: string;
-  additions: number;
-  deletions: number;
-}
-
-interface Rule {
-  file: string;
-  globs: string;
-  description?: string;
-  alwaysApply?: boolean;
-  content: string;
-}
-
 /**
  * Generate enhanced, context-aware review prompt
+ * @param {object} context - Review context with PR details, rules, etc.
+ * @param {object} projectContext - Project context from codebase analyzer
+ * @returns {string} Enhanced prompt for Continue CLI
  */
-export function generateEnhancedPrompt(
-  context: ReviewContext,
-  projectContext: ProjectContext
-): string {
+export function generateEnhancedPrompt(context, projectContext) {
   const { pr, rules, command, repository } = context;
   const { patterns, conventions, architecture } = projectContext;
 
@@ -185,7 +155,7 @@ IMPORTANT: Use proper markdown formatting with ## and ### headers for clear stru
 /**
  * Infer project type based on dependencies and patterns
  */
-function inferProjectType(conventions: any, architecture: any): string {
+function inferProjectType(conventions, architecture) {
   const { frameworks, libraries } = conventions.dependencies;
 
   if (frameworks.includes('React')) {
@@ -204,7 +174,7 @@ function inferProjectType(conventions: any, architecture: any): string {
 /**
  * Generate insights about established code patterns
  */
-function generatePatternInsights(patterns: any[], conventions: any): string {
+function generatePatternInsights(patterns, conventions) {
   let insights = '';
 
   // Import patterns
@@ -241,7 +211,7 @@ function generatePatternInsights(patterns: any[], conventions: any): string {
 /**
  * Generate quality standards from rules
  */
-function generateQualityStandards(rules: Rule[]): string {
+function generateQualityStandards(rules) {
   const keyRules = rules
     .filter((rule) => rule.description)
     .slice(0, 5)
@@ -254,14 +224,11 @@ function generateQualityStandards(rules: Rule[]): string {
 /**
  * Get the most common item from an array
  */
-function getMostCommon(arr: string[]): string {
-  const counts = arr.reduce(
-    (acc, item) => {
-      acc[item] = (acc[item] || 0) + 1;
-      return acc;
-    },
-    {} as Record<string, number>
-  );
+function getMostCommon(arr) {
+  const counts = arr.reduce((acc, item) => {
+    acc[item] = (acc[item] || 0) + 1;
+    return acc;
+  }, {});
 
   return Object.entries(counts).sort(([, a], [, b]) => b - a)[0]?.[0] || 'mixed';
 }

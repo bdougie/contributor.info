@@ -92,6 +92,7 @@ import { handleIssueOpenedDirect } from './handlers/issues-direct.js';
 import { handleIssueCommentEvent } from './handlers/issue-comment.js';
 import { handleInstallationEvent } from './handlers/installation.js';
 import { handleLabeledEvent } from './handlers/labeled.js';
+import { handleContinueReview, handleContinueReviewComment } from './handlers/continue-review.js';
 
 // Metrics tracking
 const metrics = {
@@ -222,6 +223,13 @@ app.post('/webhook', webhookLimiter, async (req, res) => {
             );
           }
 
+          // Run Continue review in parallel (non-blocking)
+          if (['opened', 'synchronize', 'ready_for_review'].includes(payload.action)) {
+            handleContinueReview(payload, githubApp, supabase, logger).catch((err) =>
+              logger.error('Continue review failed:', err)
+            );
+          }
+
           // Process other PR handlers
           if (payload.action === 'opened' || payload.action === 'ready_for_review') {
             // Use the new handler with reviewer suggestions
@@ -246,6 +254,13 @@ app.post('/webhook', webhookLimiter, async (req, res) => {
 
         case 'issue_comment':
           logger.info('💬 Issue comment %s on #%d', payload.action, payload.issue?.number);
+
+          // Handle Continue review comments (@continue-agent) in parallel
+          handleContinueReviewComment(payload, githubApp, supabase, logger).catch((err) =>
+            logger.error('Continue review comment failed:', err)
+          );
+
+          // Handle other comment commands
           await handleIssueCommentEvent(payload, githubApp, supabase, logger);
           break;
 
@@ -281,9 +296,10 @@ app.post('/webhook', webhookLimiter, async (req, res) => {
     metrics.webhooksFailed++;
 
     // Still return 200 to prevent GitHub retries
+    // Sanitize error message in production to avoid exposing internal details
     res.status(200).json({
       message: 'Webhook received with errors',
-      error: error.message,
+      error: process.env.NODE_ENV === 'production' ? 'Internal processing error' : error.message,
     });
   }
 });
