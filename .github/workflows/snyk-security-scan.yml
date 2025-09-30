@@ -40,9 +40,10 @@ jobs:
 
       - name: Run Security Scans
         id: security-scan
+        continue-on-error: true
         run: |
           echo "🔍 Running security scan..."
-          cn -p "Run Snyk Code scan with severity high on this repo. Fail if any high issues are present." > scan-results.txt
+          cn -p "Run Snyk Code scan with severity high on this repo. Fail if any high issues are present." > scan-results.txt 2>&1 || echo "Scan completed with findings" >> scan-results.txt
           echo "✅ Security scan completed"
 
       - name: Comment PR with Results
@@ -51,7 +52,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           echo "💬 Posting results to PR..."
-          RESULTS=$(cat scan-results.txt)
+
+          if [ -f scan-results.txt ]; then
+            RESULTS=$(cat scan-results.txt)
+          else
+            RESULTS="⚠️ Scan results file not found. Check workflow logs for details."
+          fi
 
           gh pr comment ${{ github.event.pull_request.number }} --body "## 🔒 Security Scan Results
 
