@@ -526,8 +526,10 @@ Please address the user's specific request while also checking for any significa
   prompt += '\n\nYour Review\n';
   prompt += 'IMPORTANT: Start your review with a clear TLDR recommendation at the very top:\n\n';
   prompt += '## 🎯 TLDR\n';
-  prompt += '**Recommendation**: [Choose one: MERGE ✅ | DON\'T MERGE ❌ | MERGE AFTER CHANGES 🔄]\n';
-  prompt += '**Summary**: [One or two lines explaining the main reason for this recommendation]\n\n';
+  prompt +=
+    "**Recommendation**: [Choose one: MERGE ✅ | DON'T MERGE ❌ | MERGE AFTER CHANGES 🔄]\n";
+  prompt +=
+    '**Summary**: [One or two lines explaining the main reason for this recommendation]\n\n';
   prompt += '---\n\n';
   prompt += 'Then provide constructive feedback on the code changes.\n';
   prompt += 'Focus on issues that matter for functionality, security, and maintainability.\n';

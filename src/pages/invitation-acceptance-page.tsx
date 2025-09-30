@@ -47,7 +47,7 @@ export const InvitationAcceptancePage: React.FC = () => {
 
       // Validate token format first (basic UUID check)
       if (!token || token.length < 32) {
-        console.error('Invalid token format:', token);
+        console.error('Invalid token format:', token ? token.substring(0, 8) + '...' : 'n/a');
         setError('invalid');
         return;
       }
