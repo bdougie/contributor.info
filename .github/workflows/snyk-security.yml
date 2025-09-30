@@ -144,7 +144,7 @@ jobs:
             # Use Continue CLI to generate mitigation suggestions
             PROMPT="Analyze these Snyk security findings and provide specific, actionable mitigation steps for each issue. Focus on: 1) Root cause, 2) Immediate fix, 3) Long-term prevention. Findings: $FINDINGS_SUMMARY. Provide clear, prioritized recommendations."
 
-            cn -p "$PROMPT" --auto > mitigation-suggestions.md || {
+            cn --config continuedev/snyk-continuous-ai -p "$PROMPT" --auto > mitigation-suggestions.md || {
               echo "⚠️ Warning: Could not generate AI suggestions"
               exit 0
             }
@@ -157,6 +157,43 @@ jobs:
             fi
           else
             echo "⚠️ No findings to analyze"
+          fi
+
+      - name: Post Mitigation Summary to PR
+        if: github.event_name == 'pull_request' && steps.security-scan.outputs.scan_status == 'failed' && hashFiles('mitigation-suggestions.md') != ''
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -f mitigation-suggestions.md ]; then
+            echo "💬 Posting mitigation summary to PR..."
+
+            # Create PR comment with mitigation suggestions
+            cat > pr-comment.md <<'EOF'
+          ## 🛡️ Snyk Mitigation Summary
+
+          Snyk has identified security issues in this PR. Here are AI-generated mitigation recommendations:
+
+          EOF
+
+            cat mitigation-suggestions.md >> pr-comment.md
+
+            cat >> pr-comment.md <<EOF
+
+          ---
+          **Scan Details:**
+          - 📊 Full report available in workflow artifacts
+          - 🔍 Review the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for complete details
+          - 🤖 Generated with Continue CLI + Snyk
+
+          _This is an automated security analysis. Please review and address the findings before merging._
+          EOF
+
+            gh pr comment ${{ github.event.pull_request.number }} --body-file pr-comment.md
+
+            echo "✅ Mitigation summary posted to PR"
+          else
+            echo "⚠️ No mitigation suggestions file found"
           fi
 
       - name: Generate Security Report
