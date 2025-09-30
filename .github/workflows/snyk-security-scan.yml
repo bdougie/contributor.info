@@ -37,9 +37,18 @@ jobs:
         env:
           CONTINUE_API_KEY: ${{ secrets.CONTINUE_API_KEY }}
         run: |
-          echo "🔍 Running security scan..."
-          cn -p "Run Snyk Code scan with severity high on this repo. Fail if any high issues are present." > scan-results.txt 2>&1 || echo "Scan completed with findings" >> scan-results.txt
+          echo "🔍 Running security scan with Continue CLI..."
+          echo "📋 Using Snyk MCP for vulnerability detection"
+          echo ""
+
+          # Run scan and show output in real-time while saving to file
+          cn -p "Run Snyk Code scan with severity high on this repo. Fail if any high issues are present." 2>&1 | tee scan-results.txt || {
+            echo "Scan completed with findings" | tee -a scan-results.txt
+          }
+
+          echo ""
           echo "✅ Security scan completed"
+          echo "📊 Results will be posted as PR comment"
 
       - name: Comment PR with Results
         if: always() && github.event_name == 'pull_request'
