@@ -31,16 +31,11 @@ jobs:
           npm install -g @continuedev/cli
           echo "✅ Continue CLI installed"
 
-      - name: Authenticate Continue CLI
-        env:
-          CONTINUE_API_KEY: ${{ secrets.CONTINUE_API_KEY }}
-        run: |
-          cn auth login --api-key "$CONTINUE_API_KEY"
-          echo "✅ Continue CLI authenticated"
-
       - name: Run Security Scans
         id: security-scan
         continue-on-error: true
+        env:
+          CONTINUE_API_KEY: ${{ secrets.CONTINUE_API_KEY }}
         run: |
           echo "🔍 Running security scan..."
           cn -p "Run Snyk Code scan with severity high on this repo. Fail if any high issues are present." > scan-results.txt 2>&1 || echo "Scan completed with findings" >> scan-results.txt
