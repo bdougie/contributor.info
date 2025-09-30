@@ -90,3 +90,4 @@ supabase/seed.sql.temp
 /check-*.js
 /manual-*.js
 /get-*.js
+scan-results.txt

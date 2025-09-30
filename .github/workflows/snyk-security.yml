@@ -1,0 +1,62 @@
+name: Security Scanning with Snyk MCP
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 8 * * *' # Daily at 8 AM UTC
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Continue CLI
+        run: |
+          npm install -g @continuedev/cli
+          echo "✅ Continue CLI installed"
+
+      - name: Authenticate Continue CLI
+        env:
+          CONTINUE_API_KEY: ${{ secrets.CONTINUE_API_KEY }}
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          cn auth login --api-key "$CONTINUE_API_KEY"
+          echo "✅ Continue CLI authenticated"
+
+      - name: Run Security Scans
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          echo "🔍 Running code vulnerability scan..."
+          cn -p "Run Snyk Code scan with severity high on this repo. Fail if any high issues are present." --auto
+
+          echo "📦 Checking dependencies..."
+          cn -p "Run Snyk Open Source on this repo. Fail on fixable high issues." --auto
+
+      - name: Generate Security Report
+        if: always()
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          cn -p "Generate a markdown security report summarizing:
+                 - Total vulnerabilities by severity
+                 - Top 3 critical issues (if any)
+                 - Recommended next steps
+                 Save to scan-results.md" --auto
+
+      - name: Upload Security Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-scan-results
+          path: scan-results.md
