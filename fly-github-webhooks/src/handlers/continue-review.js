@@ -10,10 +10,10 @@ const execAsync = promisify(exec);
 /**
  * Continue Review Handler
  * Handles AI-powered code reviews using Continue Agent
- * Triggers on PR opened/synchronize/ready_for_review and @continue-agent comments
+ * Triggers on PR opened/synchronize/ready_for_review and @contributor-info comments
  */
 
-const CONTINUE_MARKER = '<!-- continue-agent-review -->';
+const CONTINUE_MARKER = '<!-- contributor-info-review -->';
 
 export async function handleContinueReview(payload, githubApp, supabase, parentLogger) {
   const logger = parentLogger ? parentLogger.child('ContinueReview') : new Logger('ContinueReview');
@@ -82,7 +82,7 @@ export async function handleContinueReview(payload, githubApp, supabase, parentL
 }
 
 /**
- * Handle issue comment events for @continue-agent commands
+ * Handle issue comment events for @contributor-info commands
  */
 export async function handleContinueReviewComment(payload, githubApp, supabase, parentLogger) {
   const logger = parentLogger
@@ -96,12 +96,12 @@ export async function handleContinueReviewComment(payload, githubApp, supabase, 
     return { success: true, skipped: true };
   }
 
-  // Check for @continue-agent mention
-  if (!comment.body.includes('@continue-agent')) {
+  // Check for @contributor-info mention
+  if (!comment.body.includes('@contributor-info')) {
     return { success: true, skipped: true };
   }
 
-  logger.info('Processing @continue-agent comment on PR #%s', issue.number);
+  logger.info('Processing @contributor-info comment on PR #%s', issue.number);
 
   try {
     const octokit = await githubApp.getInstallationOctokit(installation.id);
@@ -137,7 +137,7 @@ export async function handleContinueReviewComment(payload, githubApp, supabase, 
     const rules = await loadRules(octokit, repo, files, logger);
 
     // Extract command
-    const commandMatch = comment.body.match(/@continue-agent\s+(.+)/);
+    const commandMatch = comment.body.match(/@contributor-info\s+(.+)/);
     const command = commandMatch ? commandMatch[1].trim() : undefined;
 
     // Generate review with command

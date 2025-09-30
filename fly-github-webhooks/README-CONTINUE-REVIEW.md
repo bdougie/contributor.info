@@ -5,7 +5,7 @@ AI-powered code reviews using Continue Agent, integrated into the contributor.in
 ## Features
 
 - 🤖 Automated AI code reviews on every PR
-- 💬 Interactive reviews via `@continue-agent` comments
+- 💬 Interactive reviews via `@contributor-info` comments
 - 📝 Custom rules from `.continue/rules/*.md`
 - 🔐 GitHub App authentication for private repos
 - ⚡ Runs in parallel with other webhook handlers
@@ -15,7 +15,7 @@ AI-powered code reviews using Continue Agent, integrated into the contributor.in
 The continue-review handler is integrated into `fly-github-webhooks/src/server.js` and triggers on:
 
 1. **Pull Request Events**: `opened`, `synchronize`, `ready_for_review`
-2. **Issue Comment Events**: Comments containing `@continue-agent`
+2. **Issue Comment Events**: Comments containing `@contributor-info`
 
 When triggered, it:
 1. Posts a progress comment
@@ -110,7 +110,7 @@ curl https://your-app.fly.dev/health
 
 1. Open a PR on this repository
 2. Should see a Continue review comment automatically posted by the bot
-3. Or comment with `@continue-agent check for security issues` for on-demand reviews
+3. Or comment with `@contributor-info check for security issues` for on-demand reviews
 
 ### Test on gh-datapipe (Private Repo)
 
@@ -144,9 +144,9 @@ Rules are automatically loaded and applied based on file glob patterns.
 Trigger specific reviews with PR comments:
 
 ```
-@continue-agent check for security issues
-@continue-agent review the TypeScript types
-@continue-agent suggest performance improvements
+@contributor-info check for security issues
+@contributor-info review the TypeScript types
+@contributor-info suggest performance improvements
 ```
 
 ## Architecture
