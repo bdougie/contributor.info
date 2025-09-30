@@ -127,9 +127,6 @@ export async function handleContinueReviewComment(payload, githubApp, supabase, 
       pull_number: issue.number,
     });
 
-    // Post progress comment
-    const progressCommentId = await postProgressComment(octokit, repo, issue.number, logger);
-
     // Get PR files
     const files = await getPRFiles(octokit, repo, issue.number, logger);
 
@@ -157,8 +154,8 @@ export async function handleContinueReviewComment(payload, githubApp, supabase, 
       logger
     );
 
-    // Post final review
-    await postFinalReview(octokit, repo, issue.number, review, progressCommentId, logger);
+    // Post as reply comment (not sticky, conversational)
+    await postReplyComment(octokit, repo, issue.number, review, command, logger);
 
     logger.info('✅ Posted Continue review from comment on PR #%s', issue.number);
 
@@ -479,6 +476,34 @@ ${review}
     }
   } catch (error) {
     logger.error('Failed to post review:', error.message);
+    throw error;
+  }
+}
+
+/**
+ * Post reply comment (for @continue-agent mentions)
+ * Creates a new comment thread rather than editing sticky comment
+ */
+async function postReplyComment(octokit, repo, prNumber, review, command, logger) {
+  const timestamp = new Date().toISOString();
+  const commandText = command ? `\n**Request**: ${command}\n` : '';
+  const body = `${CONTINUE_MARKER}
+${commandText}
+${review}
+
+---
+<!-- ${timestamp} | Powered by Continue (https://continue.dev) -->`;
+
+  try {
+    const { data: comment } = await octokit.rest.issues.createComment({
+      owner: repo.owner.login,
+      repo: repo.name,
+      issue_number: prNumber,
+      body,
+    });
+    logger.info('Posted reply comment %d', comment.id);
+  } catch (error) {
+    logger.error('Failed to post reply comment:', error.message);
     throw error;
   }
 }
