@@ -1,10 +1,12 @@
 name: Continue Agent Code Review
-on:
-  pull_request:
-    types: [opened, synchronize, ready_for_review]
-  issue_comment:
-    types: [created]
-  workflow_dispatch: # Allow manual testing
+# DISABLED: Using centralized webhook handler instead (fly-github-webhooks)
+# To re-enable, uncomment the 'on:' section below
+# on:
+#   pull_request:
+#     types: [opened, synchronize, ready_for_review]
+#   issue_comment:
+#     types: [created]
+#   workflow_dispatch: # Allow manual testing
 
 permissions:
   contents: read

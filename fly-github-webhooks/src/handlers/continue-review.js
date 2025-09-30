@@ -4,6 +4,9 @@ import { promisify } from 'util';
 import { writeFile, unlink } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join } from 'path';
+import { analyzeCodebasePatterns } from '../lib/codebase-analyzer.js';
+import { generateEnhancedPrompt } from '../lib/enhanced-prompt-generator.js';
+import { parseReviewMetrics, extractProjectType, logReviewMetrics } from '../lib/review-metrics.js';
 
 const execAsync = promisify(exec);
 
@@ -76,7 +79,7 @@ export async function handleContinueReview(payload, githubApp, supabase, parentL
 
     return { success: true, reviewed: true };
   } catch (error) {
-    logger.error('Error handling Continue review:', error);
+    logger.error('Error handling Continue review: %s', error.message);
     return { success: false, error: error.message };
   }
 }
@@ -161,7 +164,7 @@ export async function handleContinueReviewComment(payload, githubApp, supabase, 
 
     return { success: true, reviewed: true };
   } catch (error) {
-    logger.error('Error handling Continue review comment:', error);
+    logger.error('Error handling Continue review comment: %s', error.message);
     return { success: false, error: error.message };
   }
 }
@@ -190,7 +193,7 @@ async function postProgressComment(octokit, repo, prNumber, logger) {
     logger.info('Posted progress comment %d', comment.id);
     return comment.id;
   } catch (error) {
-    logger.warn('Failed to post progress comment:', error.message);
+    logger.warn('Failed to post progress comment: %s', error.message);
     return undefined;
   }
 }
@@ -237,11 +240,13 @@ async function loadRules(octokit, repo, files, logger) {
 
   try {
     // Get rules directory contents
-    const { data: contents } = await octokit.rest.repos.getContent({
-      owner: repo.owner.login,
-      repo: repo.name,
-      path: '.continue/rules',
-    }).catch(() => ({ data: [] }));
+    const { data: contents } = await octokit.rest.repos
+      .getContent({
+        owner: repo.owner.login,
+        repo: repo.name,
+        path: '.continue/rules',
+      })
+      .catch(() => ({ data: [] }));
 
     if (!Array.isArray(contents)) {
       return rules;
@@ -266,13 +271,13 @@ async function loadRules(octokit, repo, files, logger) {
           rules.push(rule);
         }
       } catch (error) {
-        logger.warn('Failed to load rule %s:', file.name, error.message);
+        logger.warn('Failed to load rule %s: %s', file.name, error.message);
       }
     }
 
     logger.info('Loaded %d applicable rules', rules.length);
   } catch (error) {
-    logger.warn('Failed to load rules:', error.message);
+    logger.warn('Failed to load rules: %s', error.message);
   }
 
   return rules;
@@ -306,9 +311,7 @@ function parseRule(filename, content, changedFiles) {
 
     // Check if rule applies
     if (!alwaysApply) {
-      const applies = changedFiles.some((file) =>
-        matchesGlob(file.filename, globs)
-      );
+      const applies = changedFiles.some((file) => matchesGlob(file.filename, globs));
 
       if (!applies) {
         return null;
@@ -341,68 +344,32 @@ function matchesGlob(filepath, pattern) {
 }
 
 /**
- * Generate review using Continue CLI
+ * Generate enhanced review using Continue CLI with codebase analysis
  */
 async function generateReview(context, logger) {
   const startTime = Date.now();
 
   try {
-    // Build prompt
-    let prompt = `You are reviewing a pull request. Provide helpful, context-aware feedback.
+    // Phase 1: Analyze codebase patterns for enhanced context
+    logger.info('Analyzing codebase patterns...');
+    const projectContext = await analyzeCodebasePatterns(
+      context.pr.files.map((f) => f.filename),
+      logger
+    );
 
-CONTEXT:
-- Repository: ${context.repository}
-- PR Title: ${context.pr.title}
-- Files Changed: ${context.pr.files.length}
-- Author: ${context.pr.author}
+    // Phase 2: Generate enhanced prompt with codebase insights
+    logger.info('Generating enhanced review prompt...');
+    const prompt = generateEnhancedPrompt(context, projectContext);
 
-REVIEW APPROACH:
-1. Understand what this PR is trying to accomplish
-2. Check for actual issues that affect functionality
-3. Be constructive and suggest solutions
-
-FOCUS ON:
-- Bugs that will cause failures
-- Security vulnerabilities
-- Breaking changes
-- Performance issues with real impact
-- Missing tests for new features
-
-SKIP:
-- Style and formatting (handled by linters)
-- Alternative approaches unless current is broken
-
-PR Description: ${context.pr.body || 'No description provided'}
-`;
-
-    if (context.command) {
-      prompt = `User Request: "${context.command}"\n\n${prompt}`;
-    }
-
-    // Add rules
-    if (context.rules.length > 0) {
-      prompt += '\n\nProject Rules:\n';
-      for (const rule of context.rules) {
-        prompt += `### ${rule.description || rule.file}\n${rule.content}\n\n`;
-      }
-    }
-
-    // Add code changes
-    prompt += '\nCode Changes:\n';
-    let diffContent = '';
-
-    for (const file of context.pr.files) {
-      if (file.patch) {
-        diffContent += `\n=== ${file.filename} ===\n${file.patch}\n`;
-      }
-    }
-
-    if (diffContent.length > 12000) {
-      diffContent = diffContent.substring(0, 11000) + '\n... (truncated)';
-    }
-
-    prompt += diffContent;
-    prompt += '\n\nProvide your review with a TLDR at the top.';
+    logger.info('Enhanced prompt generated (%d chars)', prompt.length);
+    logger.info('Detected %d patterns', projectContext.patterns.length);
+    logger.info(
+      'Project type: %s',
+      extractProjectType(
+        projectContext.conventions.dependencies.frameworks,
+        projectContext.conventions.dependencies.libraries
+      )
+    );
 
     // Write prompt to temp file
     const tempFile = join(tmpdir(), `continue-review-${Date.now()}.txt`);
@@ -424,10 +391,12 @@ PR Description: ${context.pr.body || 'No description provided'}
     });
 
     // Clean up temp file
-    await unlink(tempFile).catch(() => {});
+    await unlink(tempFile).catch((error) => {
+      logger.warn('Failed to cleanup temp file: %s', error.message);
+    });
 
     if (stderr) {
-      logger.warn('Continue CLI stderr:', stderr);
+      logger.warn('Continue CLI stderr: %s', stderr);
     }
 
     // Remove ANSI codes
@@ -436,9 +405,46 @@ PR Description: ${context.pr.body || 'No description provided'}
     const processingTime = Math.round((Date.now() - startTime) / 1000);
     logger.info('Review generated in %ds', processingTime);
 
+    // Phase 3: Parse and log review metrics
+    const reviewAnalysis = parseReviewMetrics(review);
+
+    const metrics = {
+      timestamp: new Date().toISOString(),
+      repository: context.repository,
+      prNumber: context.pr.number,
+      prAuthor: context.pr.author,
+      filesChanged: context.pr.files.length,
+      reviewerId: 'continue-agent',
+      metrics: {
+        processingTime,
+        promptLength: prompt.length,
+        responseLength: review.length,
+        rulesApplied: context.rules.length,
+        patternsDetected: projectContext.patterns.length,
+        issuesFound: reviewAnalysis.issuesFound,
+      },
+      context: {
+        hasCustomCommand: !!context.command,
+        projectType: extractProjectType(
+          projectContext.conventions.dependencies.frameworks,
+          projectContext.conventions.dependencies.libraries
+        ),
+        mainLanguages: [
+          ...new Set(
+            context.pr.files.map((f) => {
+              const ext = f.filename.split('.').pop();
+              return ext;
+            })
+          ),
+        ],
+      },
+    };
+
+    logReviewMetrics(metrics, logger);
+
     return review || 'Review completed but no specific feedback was generated.';
   } catch (error) {
-    logger.error('Failed to generate review:', error.message);
+    logger.error('Failed to generate review: %s', error.message);
     throw error;
   }
 }
@@ -475,7 +481,7 @@ ${review}
       logger.info('Posted comment %d', comment.id);
     }
   } catch (error) {
-    logger.error('Failed to post review:', error.message);
+    logger.error('Failed to post review: %s', error.message);
     throw error;
   }
 }
@@ -503,7 +509,7 @@ ${review}
     });
     logger.info('Posted reply comment %d', comment.id);
   } catch (error) {
-    logger.error('Failed to post reply comment:', error.message);
+    logger.error('Failed to post reply comment: %s', error.message);
     throw error;
   }
 }

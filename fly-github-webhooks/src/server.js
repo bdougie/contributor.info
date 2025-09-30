@@ -296,9 +296,10 @@ app.post('/webhook', webhookLimiter, async (req, res) => {
     metrics.webhooksFailed++;
 
     // Still return 200 to prevent GitHub retries
+    // Sanitize error message in production to avoid exposing internal details
     res.status(200).json({
       message: 'Webhook received with errors',
-      error: error.message,
+      error: process.env.NODE_ENV === 'production' ? 'Internal processing error' : error.message,
     });
   }
 });
