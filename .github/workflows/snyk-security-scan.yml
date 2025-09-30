@@ -1,0 +1,61 @@
+name: Snyk Security Scan with Continue
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Run Snyk Security Scan
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          echo "🔒 Running Snyk security scan..."
+
+          # Install Snyk CLI
+          npm install -g snyk
+
+          # Run Snyk test (SNYK_TOKEN is automatically used from env)
+          snyk test --json > snyk-results.json || true
+
+          echo "✅ Snyk scan completed"
+
+      - name: Analyze Results with Continue
+        if: always()
+        env:
+          CONTINUE_API_KEY: ${{ secrets.CONTINUE_API_KEY }}
+          CONTINUE_ORG: 'bdougie-test'
+          CONTINUE_CONFIG: 'bdougie-test/review-bot'
+        run: |
+          echo "🤖 Analyzing Snyk results with Continue AI..."
+
+          # Use Continue CLI with review-bot config to analyze Snyk results
+          npx @continuedev/cli --config bdougie-test/review-bot -p "Analyze the Snyk security scan results in snyk-results.json and summarize the most critical vulnerabilities that need immediate attention."
+
+      - name: Upload Snyk Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: snyk-results
+          path: snyk-results.json
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "✅ Snyk security scan workflow completed"
+          echo "📊 Check artifacts for detailed results"
