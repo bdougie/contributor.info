@@ -1,4 +1,3 @@
-import { generateIssueEmbedding } from '../../../app/services/issue-similarity.js';
 import Logger from '../utils/logger.js';
 
 /**
@@ -282,43 +281,12 @@ async function runPerformanceCheck(pr, repo, octokit, logger) {
 
 /**
  * Find similar issues using embeddings
+ * TODO: Re-enable once issue-similarity service is available in webhook context
  */
 async function findSimilarIssues(repoFullName, prTitle, prBody, supabase, logger) {
-  try {
-    // Generate embedding for the PR
-    const prEmbedding = await generateIssueEmbedding(prTitle, prBody || '');
-
-    // Query database for the repository
-    const { data: repo } = await supabase
-      .from('repositories')
-      .select('id')
-      .eq('full_name', repoFullName)
-      .single();
-
-    if (!repo) {
-      logger.info('Repository %s not found in database', repoFullName);
-      return [];
-    }
-
-    // Find similar issues using vector similarity
-    const { data: similarIssues, error } = await supabase.rpc('find_similar_issues', {
-      query_embedding: prEmbedding,
-      match_count: 5,
-      repo_id: repo.id,
-      similarity_threshold: 0.7,
-      exclude_issue_id: null,
-    });
-
-    if (error) {
-      logger.error('Error finding similar issues:', error);
-      return [];
-    }
-
-    return similarIssues || [];
-  } catch (error) {
-    logger.error('Error in findSimilarIssues:', error);
-    return [];
-  }
+  // Temporarily disabled - similarity check requires ML dependencies not available in webhook server
+  logger.info('Similarity check temporarily disabled for webhook server');
+  return [];
 }
 
 /**
