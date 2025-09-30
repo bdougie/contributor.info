@@ -11,6 +11,7 @@
     "test:run": "vitest run"
   },
   "dependencies": {
+    "@continuedev/cli": "^1.4.44",
     "@octokit/app": "^15.1.0",
     "@octokit/webhooks": "^13.3.0",
     "@supabase/supabase-js": "^2.46.2",
