@@ -36,6 +36,39 @@ CONTINUE_ORG=continuedev
 CONTINUE_CONFIG=continuedev/review-bot
 ```
 
+### Using Custom Continue Configurations
+
+The `CONTINUE_CONFIG` variable accepts two formats:
+
+1. **Hub Configuration** (default): `continuedev/review-bot`
+   - References a configuration from Continue Hub
+   - Format: `organization/config-name`
+   - Example: `CONTINUE_CONFIG=your-org/your-config`
+
+2. **Local Config File**: `/path/to/config.yaml`
+   - Path to a custom `config.yaml` file
+   - Must be accessible within the Docker container
+   - Example: `CONTINUE_CONFIG=/app/config/review-config.yaml`
+
+To use your own configuration:
+
+```bash
+# Option 1: Use a hub configuration
+fly secrets set CONTINUE_CONFIG=your-org/custom-review-bot
+
+# Option 2: Mount a custom config file (requires Dockerfile changes)
+# Add to Dockerfile: COPY your-config.yaml /app/config/review-config.yaml
+# Then set: fly secrets set CONTINUE_CONFIG=/app/config/review-config.yaml
+```
+
+The configuration file supports:
+- Custom AI model selection (Claude, GPT-4, etc.)
+- Review rules and patterns
+- Tool permissions and restrictions
+- Custom prompts and behaviors
+
+See [Continue config.yaml documentation](https://docs.continue.dev/reference/config) for full configuration options.
+
 ## Deployment
 
 ### 1. Set Fly.io Secrets
