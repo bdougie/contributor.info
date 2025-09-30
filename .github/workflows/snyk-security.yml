@@ -41,13 +41,21 @@ jobs:
           npm install -g snyk
           echo "✅ Snyk CLI installed"
 
+      - name: Install Continue CLI
+        run: |
+          npm install -g @continuedev/cli
+          echo "✅ Continue CLI installed"
+
       - name: Validate Secrets
         run: |
           if [ -z "${{ secrets.SNYK_TOKEN }}" ]; then
             echo "❌ Error: SNYK_TOKEN secret is not set"
             exit 1
           fi
-          echo "✅ Required secrets are configured"
+          if [ -z "${{ secrets.CONTINUE_API_KEY }}" ]; then
+            echo "⚠️ Warning: CONTINUE_API_KEY not set - AI mitigation suggestions will be skipped"
+          fi
+          echo "✅ Required secrets validated"
 
       - name: Authenticate Snyk
         env:
@@ -57,12 +65,14 @@ jobs:
           echo "✅ Snyk authenticated"
 
       - name: Run Security Scans
+        id: security-scan
+        continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
           CHANGED_FILES: ${{ steps.changed-files.outputs.changed_files }}
           IS_PR: ${{ steps.changed-files.outputs.is_pr }}
         run: |
-          set -e  # Exit on any error
+          SCAN_FAILED=0
 
           if [ "$IS_PR" = "true" ] && [ -n "$CHANGED_FILES" ]; then
             echo "🔍 Running targeted scan on changed files..."
@@ -76,28 +86,78 @@ jobs:
 
             if [ -n "$FILE_ARGS" ]; then
               echo "🔍 Running Snyk Code scan on changed files..."
-              snyk code test $FILE_ARGS --severity-threshold=high || {
+              snyk code test $FILE_ARGS --severity-threshold=high --json > snyk-code-results.json || {
                 echo "❌ Snyk Code found high severity issues in changed files"
-                exit 1
+                SCAN_FAILED=1
               }
             else
               echo "⚠️ No scannable code files changed, skipping Snyk Code scan"
+              echo '{"runs": [{"results": []}]}' > snyk-code-results.json
             fi
           else
             echo "🔍 Running full repository Snyk Code scan..."
-            snyk code test --severity-threshold=high || {
+            snyk code test --severity-threshold=high --json > snyk-code-results.json || {
               echo "❌ Snyk Code found high severity issues"
-              exit 1
+              SCAN_FAILED=1
             }
           fi
-          echo "✅ Code vulnerability scan completed"
 
           echo "📦 Checking dependencies..."
-          snyk test --severity-threshold=high || {
+          snyk test --severity-threshold=high --json > snyk-oss-results.json || {
             echo "❌ Snyk Open Source found high severity issues"
-            exit 1
+            SCAN_FAILED=1
           }
-          echo "✅ Dependency scan completed"
+
+          if [ $SCAN_FAILED -eq 1 ]; then
+            echo "scan_status=failed" >> $GITHUB_OUTPUT
+            echo "⚠️ Scans completed with issues - continuing to generate mitigation suggestions"
+          else
+            echo "scan_status=passed" >> $GITHUB_OUTPUT
+            echo "✅ All security scans passed"
+          fi
+
+      - name: Generate AI Mitigation Suggestions
+        if: always() && steps.security-scan.outputs.scan_status == 'failed'
+        continue-on-error: true
+        env:
+          CONTINUE_API_KEY: ${{ secrets.CONTINUE_API_KEY }}
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          echo "🤖 Generating AI-powered mitigation suggestions..."
+
+          # Create a summary of findings for Continue CLI
+          FINDINGS_SUMMARY=$(cat snyk-code-results.json snyk-oss-results.json | jq -r '
+            if .runs then
+              .runs[0].results[] | "Code Issue: \(.message.text) in \(.locations[0].physicalLocation.artifactLocation.uri) (Severity: \(.level))"
+            elif .vulnerabilities then
+              .vulnerabilities[] | "Dependency Issue: \(.title) in \(.packageName)@\(.version) (Severity: \(.severity))"
+            else
+              empty
+            end
+          ' | head -20)
+
+          if [ -n "$FINDINGS_SUMMARY" ]; then
+            echo "📋 Security findings to analyze:"
+            echo "$FINDINGS_SUMMARY"
+            echo ""
+
+            # Use Continue CLI to generate mitigation suggestions
+            PROMPT="Analyze these Snyk security findings and provide specific, actionable mitigation steps for each issue. Focus on: 1) Root cause, 2) Immediate fix, 3) Long-term prevention. Findings: $FINDINGS_SUMMARY. Provide clear, prioritized recommendations."
+
+            cn -p "$PROMPT" --auto > mitigation-suggestions.md || {
+              echo "⚠️ Warning: Could not generate AI suggestions"
+              exit 0
+            }
+
+            if [ -f mitigation-suggestions.md ]; then
+              echo "✅ AI mitigation suggestions generated"
+              echo ""
+              echo "--- Mitigation Suggestions ---"
+              cat mitigation-suggestions.md
+            fi
+          else
+            echo "⚠️ No findings to analyze"
+          fi
 
       - name: Generate Security Report
         if: always()
@@ -112,12 +172,30 @@ jobs:
             echo "**Date:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
             echo "**Branch:** ${{ github.ref_name }}"
             echo "**Commit:** ${{ github.sha }}"
+            echo "**Status:** ${{ steps.security-scan.outputs.scan_status }}"
             echo ""
-            echo "## Snyk Code Scan"
-            snyk code test --json | jq -r '.runs[0].results[] | "- **\(.level | ascii_upcase)**: \(.message.text) in \(.locations[0].physicalLocation.artifactLocation.uri)"' || echo "No issues found or scan failed"
+
+            echo "## Snyk Code Scan Results"
+            if [ -f snyk-code-results.json ]; then
+              jq -r '.runs[0].results[] | "- **\(.level | ascii_upcase)**: \(.message.text) in \(.locations[0].physicalLocation.artifactLocation.uri)"' snyk-code-results.json || echo "No code issues found"
+            else
+              echo "No scan results available"
+            fi
             echo ""
-            echo "## Snyk Open Source Scan"
-            snyk test --json | jq -r '.vulnerabilities[] | "- **\(.severity | ascii_upcase)**: \(.title) (\(.packageName)@\(.version))"' || echo "No issues found or scan failed"
+
+            echo "## Snyk Open Source Scan Results"
+            if [ -f snyk-oss-results.json ]; then
+              jq -r '.vulnerabilities[] | "- **\(.severity | ascii_upcase)**: \(.title) (\(.packageName)@\(.version))"' snyk-oss-results.json || echo "No dependency issues found"
+            else
+              echo "No scan results available"
+            fi
+            echo ""
+
+            if [ -f mitigation-suggestions.md ]; then
+              echo "## AI-Powered Mitigation Suggestions"
+              echo ""
+              cat mitigation-suggestions.md
+            fi
           } > scan-results.md
 
           if [ -f scan-results.md ]; then
@@ -133,5 +211,16 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: security-scan-results
-          path: scan-results.md
+          path: |
+            scan-results.md
+            snyk-code-results.json
+            snyk-oss-results.json
+            mitigation-suggestions.md
           if-no-files-found: warn
+
+      - name: Fail if Security Issues Found
+        if: steps.security-scan.outputs.scan_status == 'failed'
+        run: |
+          echo "❌ Security scan failed - high severity issues found"
+          echo "📋 Review the security report artifact for details and mitigation suggestions"
+          exit 1
