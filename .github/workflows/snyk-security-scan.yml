@@ -1,8 +1,13 @@
-name: Snyk Security Scan with Continue
+name: Security Scanning with Snyk MCP
 
 on:
   pull_request:
+    branches: [main]
+  push:
+    branches: [main]
   workflow_dispatch:
+  schedule:
+    - cron: "0 8 * * *" # Daily at 8 AM UTC
 
 permissions:
   contents: read
@@ -21,41 +26,42 @@ jobs:
         with:
           node-version: "18"
 
-      - name: Run Snyk Security Scan
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      - name: Install Continue CLI
         run: |
-          echo "🔒 Running Snyk security scan..."
+          npm install -g @continuedev/cli
+          echo "✅ Continue CLI installed"
 
-          # Install Snyk CLI
-          npm install -g snyk
-
-          # Run Snyk test (SNYK_TOKEN is automatically used from env)
-          snyk test --json > snyk-results.json || true
-
-          echo "✅ Snyk scan completed"
-
-      - name: Analyze Results with Continue
-        if: always()
+      - name: Authenticate Continue CLI
         env:
           CONTINUE_API_KEY: ${{ secrets.CONTINUE_API_KEY }}
-          CONTINUE_ORG: 'bdougie-test'
-          CONTINUE_CONFIG: 'bdougie-test/review-bot'
         run: |
-          echo "🤖 Analyzing Snyk results with Continue AI..."
+          cn auth login --api-key "$CONTINUE_API_KEY"
+          echo "✅ Continue CLI authenticated"
 
-          # Use Continue CLI with review-bot config to analyze Snyk results
-          npx @continuedev/cli --config bdougie-test/review-bot -p "Analyze the Snyk security scan results in snyk-results.json and summarize the most critical vulnerabilities that need immediate attention."
+      - name: Run Security Scans
+        id: security-scan
+        run: |
+          echo "🔍 Running security scan..."
+          cn -p "Run Snyk Code scan with severity high on this repo. Fail if any high issues are present." > scan-results.txt
+          echo "✅ Security scan completed"
 
-      - name: Upload Snyk Results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: snyk-results
-          path: snyk-results.json
+      - name: Comment PR with Results
+        if: always() && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "💬 Posting results to PR..."
+          RESULTS=$(cat scan-results.txt)
+
+          gh pr comment ${{ github.event.pull_request.number }} --body "## 🔒 Security Scan Results
+
+          $RESULTS
+
+          ---
+          *Scan performed by Continue CLI with Snyk MCP*"
 
       - name: Summary
         if: always()
         run: |
-          echo "✅ Snyk security scan workflow completed"
-          echo "📊 Check artifacts for detailed results"
+          echo "✅ Security scan workflow completed"
+          echo "📊 Results posted to PR comment"
