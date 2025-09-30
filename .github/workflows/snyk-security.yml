@@ -36,70 +36,93 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Install Continue CLI
+      - name: Install Snyk CLI
         run: |
-          npm install -g @continuedev/cli
-          echo "✅ Continue CLI installed"
+          npm install -g snyk
+          echo "✅ Snyk CLI installed"
 
       - name: Validate Secrets
         run: |
-          if [ -z "${{ secrets.CONTINUE_API_KEY }}" ]; then
-            echo "❌ Error: CONTINUE_API_KEY secret is not set"
-            exit 1
-          fi
           if [ -z "${{ secrets.SNYK_TOKEN }}" ]; then
             echo "❌ Error: SNYK_TOKEN secret is not set"
             exit 1
           fi
           echo "✅ Required secrets are configured"
 
+      - name: Authenticate Snyk
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          snyk auth "$SNYK_TOKEN"
+          echo "✅ Snyk authenticated"
+
       - name: Run Security Scans
         env:
-          CONTINUE_API_KEY: ${{ secrets.CONTINUE_API_KEY }}
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
           CHANGED_FILES: ${{ steps.changed-files.outputs.changed_files }}
           IS_PR: ${{ steps.changed-files.outputs.is_pr }}
         run: |
           set -e  # Exit on any error
 
-          if [ "$IS_PR" = "true" ]; then
-            SCAN_SCOPE="Focus only on these changed files: $CHANGED_FILES"
+          if [ "$IS_PR" = "true" ] && [ -n "$CHANGED_FILES" ]; then
             echo "🔍 Running targeted scan on changed files..."
-          else
-            SCAN_SCOPE="Scan the entire repository"
-            echo "🔍 Running full repository scan..."
-          fi
+            echo "Changed files: $CHANGED_FILES"
+            FILE_ARGS=""
+            for file in $CHANGED_FILES; do
+              if [[ "$file" =~ \.(js|jsx|ts|tsx|py|java|go|rb)$ ]]; then
+                FILE_ARGS="$FILE_ARGS --file=$file"
+              fi
+            done
 
-          echo "🔍 Running code vulnerability scan..."
-          if ! cn -p "Use snyk mcp to run Snyk Code scan with severity high. $SCAN_SCOPE. Fail if any high issues are present. Do not check authentication - snyk is already authenticated." --auto; then
-            echo "❌ Error: Snyk Code scan failed or found high severity issues"
-            exit 1
+            if [ -n "$FILE_ARGS" ]; then
+              echo "🔍 Running Snyk Code scan on changed files..."
+              snyk code test $FILE_ARGS --severity-threshold=high || {
+                echo "❌ Snyk Code found high severity issues in changed files"
+                exit 1
+              }
+            else
+              echo "⚠️ No scannable code files changed, skipping Snyk Code scan"
+            fi
+          else
+            echo "🔍 Running full repository Snyk Code scan..."
+            snyk code test --severity-threshold=high || {
+              echo "❌ Snyk Code found high severity issues"
+              exit 1
+            }
           fi
           echo "✅ Code vulnerability scan completed"
 
           echo "📦 Checking dependencies..."
-          if ! cn -p "Use snyk mcp to run Snyk Open Source scan. $SCAN_SCOPE. Fail on fixable high issues. Do not check authentication - snyk is already authenticated." --auto; then
-            echo "❌ Error: Snyk Open Source scan failed or found fixable high severity issues"
+          snyk test --severity-threshold=high || {
+            echo "❌ Snyk Open Source found high severity issues"
             exit 1
-          fi
+          }
           echo "✅ Dependency scan completed"
 
       - name: Generate Security Report
         if: always()
         continue-on-error: true
         env:
-          CONTINUE_API_KEY: ${{ secrets.CONTINUE_API_KEY }}
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
           echo "📊 Generating security report..."
-          cn -p "Generate a markdown security report summarizing total vulnerabilities by severity, top 3 critical issues if any, and recommended next steps. Save the report to scan-results.md file." --auto || {
-            echo "⚠️ Warning: Could not generate security report via Continue CLI"
-            echo "Manual review of security scan results recommended"
-            exit 0
-          }
+          {
+            echo "# Security Scan Report"
+            echo ""
+            echo "**Date:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+            echo "**Branch:** ${{ github.ref_name }}"
+            echo "**Commit:** ${{ github.sha }}"
+            echo ""
+            echo "## Snyk Code Scan"
+            snyk code test --json | jq -r '.runs[0].results[] | "- **\(.level | ascii_upcase)**: \(.message.text) in \(.locations[0].physicalLocation.artifactLocation.uri)"' || echo "No issues found or scan failed"
+            echo ""
+            echo "## Snyk Open Source Scan"
+            snyk test --json | jq -r '.vulnerabilities[] | "- **\(.severity | ascii_upcase)**: \(.title) (\(.packageName)@\(.version))"' || echo "No issues found or scan failed"
+          } > scan-results.md
 
           if [ -f scan-results.md ]; then
             echo "✅ Security report generated successfully"
+            cat scan-results.md
           else
             echo "⚠️ Warning: scan-results.md was not created"
           fi
