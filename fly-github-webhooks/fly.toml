@@ -5,6 +5,9 @@ kill_signal = "SIGINT"
 kill_timeout = 5
 
 [build]
+  dockerfile = "fly-github-webhooks/Dockerfile"
+  build_args = {}
+  [build.args]
 
 [env]
   NODE_ENV = "production"
