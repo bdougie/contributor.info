@@ -1,5 +1,5 @@
 import { inngest } from '../client';
-import { supabase } from '../../supabase';
+import { supabase } from '../supabase-server';
 
 /**
  * Updates comments and reviews for existing PRs that may have new activity

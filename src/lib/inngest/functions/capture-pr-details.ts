@@ -1,5 +1,5 @@
 import { inngest } from '../client';
-import { supabase } from '../../supabase';
+import { supabase } from '../supabase-server';
 import { makeGitHubRequest } from '../github-client';
 import type { GitHubPullRequest } from '../types';
 import { SyncLogger } from '../sync-logger';

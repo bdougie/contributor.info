@@ -39,10 +39,10 @@ _If you would like to work an issue, please read the [TRIAGE.md](/TRIAGE.md)_
 
 ## 📋 Prerequisites
 
-- **Node.js** (v20 or later)
-- **npm** (v10 or later)
-- **Docker Desktop** (for local Supabase development)
-- **GitHub account** with Personal Access Token
+- **Node.js** v20 or later (see `.nvmrc`)
+- **npm** v10 or later
+- **Docker Desktop** (optional, for local Supabase development)
+- **GitHub account** with Personal Access Token (for GitHub API access)
 - **Git** configured with your GitHub credentials
 
 ## 🗄️ Database Setup
@@ -116,100 +116,37 @@ Our database includes:
 
 ### Writing New Migrations
 
-When creating database schema changes, follow these guidelines to ensure migrations work in both production and local development environments:
+### Working with Migrations
 
-1. **Use the Migration Template**
-   ```bash
-   # Copy the template for new migrations
-   cp supabase/migrations/TEMPLATE.sql supabase/migrations/$(date +%Y%m%d%H%M%S)_your_migration_name.sql
-   ```
+```bash
+# Apply all migrations to local database
+npm run supabase:reset
 
-2. **Key Patterns for Local Compatibility**
+# Check migration status
+npm run supabase:status
 
-   **Auth Dependencies** - Wrap auth-dependent code in conditional checks:
-   ```sql
-   DO $$
-   BEGIN
-     IF EXISTS (SELECT 1 FROM information_schema.schemata WHERE schema_name = 'auth') THEN
-       -- Your auth-dependent code here
-       CREATE POLICY "Users can view own data" ON your_table
-         FOR SELECT
-         USING (auth.uid() = user_id);
-     END IF;
-   END $$;
-   ```
+# Generate seed data for testing
+npm run db:seed
+npm run db:seed:quick  # Faster, smaller dataset
+```
 
-   **Role Creation** - Create roles if they don't exist:
-   ```sql
-   DO $$
-   BEGIN
-     IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN
-       CREATE ROLE service_role;
-     END IF;
-   END $$;
-   ```
+### Creating New Migrations
 
-   **Extensions** - Make extensions optional:
-   ```sql
-   CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-   
-   -- For extensions that might not be available locally (like pg_cron)
-   DO $$
-   BEGIN
-     IF EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = 'pg_cron') THEN
-       CREATE EXTENSION IF NOT EXISTS pg_cron;
-     ELSE
-       RAISE NOTICE 'pg_cron not available - skipping';
-     END IF;
-   END $$;
-   ```
+For schema changes, create new migration files with timestamps:
 
-   **Idempotent Operations** - Always use IF EXISTS/IF NOT EXISTS:
-   ```sql
-   CREATE TABLE IF NOT EXISTS your_table (...);
-   CREATE INDEX IF NOT EXISTS idx_your_index ON your_table(column);
-   DROP TRIGGER IF EXISTS your_trigger ON your_table;
-   ```
+```bash
+# Create new migration file
+npx supabase migration new your_migration_name
 
-3. **Validate Your Migration**
-   ```bash
-   # Check for environment-specific dependencies
-   node scripts/migrations/analyze-migrations.js
-   
-   # Validate migrations for local compatibility
-   node scripts/migrations/validate-migrations.js
-   
-   # Generate local-safe versions
-   node scripts/migrations/generate-local-safe.js
-   ```
+# Write your SQL changes using idempotent patterns
+CREATE TABLE IF NOT EXISTS your_table (...);
+CREATE INDEX IF NOT EXISTS idx_name ON table(column);
 
-4. **Test Locally**
-   ```bash
-   # Reset local database with new migration
-   npm run supabase:reset
-   
-   # Or apply just your migration
-   npx supabase db push
-   ```
+# Test locally
+npm run supabase:reset
+```
 
-### Migration CI/CD Pipeline
-
-All migrations are automatically validated when you create a PR:
-
-1. **Validation Workflow** - Checks for environment-specific dependencies
-2. **Local-Safe Generation** - Creates compatible versions for local development
-3. **Test on Fresh Database** - Ensures migrations run cleanly
-4. **Auto-Sync** - When merged, local-safe versions are automatically generated
-
-### Migration Organization
-
-Migrations are organized into categories:
-- **Core Schema** - Tables, indexes, functions
-- **Auth & RLS** - Authentication and security policies
-- **Extensions** - PostgreSQL extensions and features
-- **Seed Data** - Initial data and configurations
-
-### Troubleshooting Migration Issues
+### Best Practices
 
 | Issue | Solution |
 |-------|----------|
@@ -223,10 +160,18 @@ Migrations are organized into categories:
 > **💡 Quick Fix**: Most local development migration issues are resolved by using our automated consolidated migration approach. Run `npm run db:setup` for a clean start.
 
 For detailed documentation, see:
-- [Migration Template](./supabase/migrations/TEMPLATE.sql) - Complete examples
-- [Database Migrations Guide](./docs/setup/DATABASE_MIGRATIONS.md) - Full documentation
-- [Migration Scripts](./scripts/migrations/) - Analysis and fix tools
+
+- Always use `IF EXISTS` / `IF NOT EXISTS` for idempotency
+- Test migrations locally before pushing
+- Keep migrations small and focused
+- Document complex schema changes
+
+**📚 Detailed Documentation:**
+- [Database Migrations Guide](./docs/setup/DATABASE_MIGRATIONS.md)
+- [Migration Scripts](./scripts/migrations/)
+- [Supabase Setup](./docs/supabase/)
 - [Local Migration Automation](./supabase/migrations-local/README.md) - Consolidated migration approach with troubleshooting
+
 
 ## 🔧 Environment Variables
 
@@ -253,11 +198,12 @@ VITE_GITHUB_TOKEN=ghp_your_github_personal_access_token
 
 ### Getting Your GitHub Token
 
-1. Go to GitHub Settings → Developer settings → Personal access tokens
-2. Generate new token with these scopes:
+1. Go to [GitHub Settings → Developer settings → Personal access tokens](https://github.com/settings/tokens)
+2. Generate a new token (classic) with these scopes:
    - `public_repo` - Access public repositories
    - `read:org` - Read organization data
    - `read:user` - Read user profile data
+3. Copy the token and add it to your `.env.local` file as `VITE_GITHUB_TOKEN`
 
 ## 🏗️ Development Workflow
 
@@ -305,13 +251,15 @@ npm run db:setup         # Complete database setup with consolidated migration
 npm run dev              # Start development server
 
 # Development
-npm run dev              # Start development server
-npm run build            # Build for production
+npm run dev              # Start Vite dev server (port 5173)
+npm start                # Full stack: Vite + Netlify + Inngest
+npm run build            # Type-check + build + copy CSP headers
 npm run preview          # Preview production build
 
 # Environment Management
 npm run env:local        # Switch to local Supabase
 npm run env:production   # Switch to production database
+
 
 # Database Management (using npx, no global install needed)
 npm run db:setup                    # Complete setup (start + consolidated migration)
@@ -324,11 +272,12 @@ npm run supabase:status             # Check Supabase status
 npm run supabase:migrate            # Apply migrations
 
 # Code Quality
-npm run lint                 # Run ESLint
-npm run typecheck:functions  # TypeScript check for functions
-npm test                     # Run tests
-npm run test:watch           # Run tests in watch mode
-npm run test:ui              # Run tests with UI
+npm run lint             # Run ESLint
+npm run lint:fix         # Fix auto-fixable issues
+npm run format:check     # Check Prettier formatting
+npm run format           # Format all files
+npm run typecheck        # TypeScript type checking
+npm run verify:csp       # Verify CSP hash after HTML changes
 ```
 
 ### 3. Platform-Specific Notes
@@ -380,66 +329,116 @@ export function useContributorData(repoUrl: string) {
 ### Running Tests
 
 ```bash
-npm test                 # Run all tests
+# Unit Tests (Vitest)
+npm test                 # Run all unit tests
 npm run test:watch       # Watch mode
 npm run test:ui          # Visual test runner
+
+# E2E Tests (Playwright)
+npm run test:e2e         # Run all E2E tests
+npm run test:e2e:ui      # Interactive mode
+npm run test:e2e:headed  # See browser
+
+# Storybook Tests
+npm run storybook        # Start dev server
+npm run test-storybook   # Interaction tests
+npm run test-storybook-a11y  # Accessibility tests
 ```
 
 ### Writing Tests
 
-**⚠️ CRITICAL: No Async/Await in Unit Tests!**
+**Testing Philosophy**: Write simple, focused tests that run quickly and reliably.
 
-Our project follows **bulletproof testing guidelines** to prevent CI hangs:
+#### Unit Tests (Vitest)
 
-- **❌ FORBIDDEN**: `async/await`, `waitFor()`, `Promise` patterns in unit tests
-- **✅ REQUIRED**: Synchronous patterns only - tests must complete immediately
-- **📋 ESLint Rules**: Automatic enforcement prevents async patterns in test files
+For utilities, hooks, and components:
 
-Follow these patterns:
-
-```typescript
-// ❌ FORBIDDEN - Will cause CI to hang
-it('should load data', async () => {
-  const result = await fetchData();
-  expect(result).toBe('data');
-});
-
-// ✅ CORRECT - Synchronous with mocks
-it('should load data', () => {
-  const mockResult = { data: 'expected' };
-  vi.spyOn(dataService, 'fetchData').mockReturnValue(Promise.resolve(mockResult));
-  
-  expect(mockResult.data).toBe('expected');
-});
-```
-
-**Test Types**:
-- **Unit tests**: For utilities and pure functions (synchronous only)
-- **Component tests**: For React components using Testing Library (synchronous only)  
-- **Integration tests**: Move complex async flows to E2E tests
-- **Database tests**: Mock Supabase calls, test logic synchronously
-
-**📚 Full Guidelines**: See [docs/testing/BULLETPROOF_TESTING_GUIDELINES.md](docs/testing/BULLETPROOF_TESTING_GUIDELINES.md)
-
-Example test:
 ```typescript
 import { render, screen } from '@testing-library/react';
+import { describe, it, expect } from 'vitest';
 import { ContributorCard } from './contributor-card';
 
-test('displays contributor information', () => {
-  const contributor = {
-    login: 'testuser',
-    avatar_url: 'https://example.com/avatar.jpg',
-    pullRequests: 10,
-    percentage: 25.5
-  };
+describe('ContributorCard', () => {
+  it('displays contributor information', () => {
+    const contributor = {
+      login: 'testuser',
+      avatar_url: 'https://example.com/avatar.jpg',
+      pullRequests: 10,
+      percentage: 25.5
+    };
 
-  render(<ContributorCard contributor={contributor} />);
-  
-  expect(screen.getByText('testuser')).toBeInTheDocument();
-  expect(screen.getByText('10 PRs')).toBeInTheDocument();
+    render(<ContributorCard contributor={contributor} />);
+    
+    expect(screen.getByText('testuser')).toBeInTheDocument();
+    expect(screen.getByText('10 PRs')).toBeInTheDocument();
+  });
 });
 ```
+
+**Unit Test Guidelines**:
+- Keep tests synchronous when possible
+- Mock external dependencies (API calls, Supabase)
+- Test one thing per test
+- Use descriptive test names
+- Place tests next to source files: `component.test.tsx`
+
+#### E2E Tests (Playwright)
+
+For critical user flows:
+
+```typescript
+import { test, expect } from '@playwright/test';
+
+test('user can search for repositories', async ({ page }) => {
+  await page.goto('http://localhost:5173');
+  
+  const searchInput = page.getByPlaceholder('Search repositories');
+  await searchInput.fill('react');
+  await searchInput.press('Enter');
+  
+  await expect(page.getByText('facebook/react')).toBeVisible();
+});
+```
+
+**E2E Test Guidelines**:
+- Focus on critical user paths only
+- Keep tests stable and deterministic
+- Use data-testid for reliable selectors
+- Tests live in `e2e/` directory
+
+#### Storybook Tests
+
+For component interactions and accessibility:
+
+```typescript
+import type { Meta, StoryObj } from '@storybook/react';
+import { expect, userEvent, within } from '@storybook/test';
+import { Button } from './button';
+
+const meta: Meta<typeof Button> = {
+  component: Button,
+  title: 'UI/Button',
+};
+
+export default meta;
+type Story = StoryObj<typeof Button>;
+
+export const Clickable: Story = {
+  args: { children: 'Click me' },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const button = canvas.getByRole('button');
+    
+    await userEvent.click(button);
+    await expect(button).toBeInTheDocument();
+  },
+};
+```
+
+**📚 Testing Documentation**:
+- [Bulletproof Testing Guidelines](./docs/testing/BULLETPROOF_TESTING_GUIDELINES.md)
+- [Testing Best Practices](./docs/testing/testing-best-practices.md)
+- [E2E Testing Philosophy](./docs/testing/e2e-minimal-testing-philosophy.md)
 
 ## 📝 Submitting Changes
 
@@ -468,14 +467,10 @@ test('displays contributor information', () => {
 3. **Test your changes**
    ```bash
    npm run build            # Ensure it builds
-   npm test                 # Run tests
+   npm test                 # Run unit tests
+   npm run test:e2e         # Run E2E tests (if UI changes)
    npm run lint             # Check code style
-   ```
-
-4. **Test with local database**
-   ```bash
-   npm run supabase:reset   # Reset local database
-   # Test your feature thoroughly
+   npm run typecheck        # Check TypeScript
    ```
 
 ### 3. Commit Guidelines
@@ -497,17 +492,26 @@ chore: update dependencies
    ```
 
 2. **Create a Pull Request**
-   - Use a descriptive title
-   - Reference related issues with `Closes #123` or `Fixes #123`
-   - Describe what you changed and why
-   - Include screenshots for UI changes
+   - Use a clear, descriptive title following [Conventional Commits](https://www.conventionalcommits.org/)
+   - Reference related issues: `Closes #123` or `Fixes #123`
+   - Describe what changed and why
+   - Include screenshots/videos for UI changes
+   - Add test plan or testing notes
 
-3. **PR Template Checklist**
-   - [ ] Tests pass locally
-   - [ ] Code follows project style guidelines
+3. **PR Checklist**
+   - [ ] All tests pass (`npm test` and `npm run test:e2e`)
+   - [ ] Code follows project style (`npm run lint` passes)
+   - [ ] TypeScript has no errors (`npm run typecheck`)
+   - [ ] Build succeeds (`npm run build`)
    - [ ] Self-review completed
-   - [ ] Documentation updated if needed
-   - [ ] Database migrations tested (if applicable)
+   - [ ] Documentation updated (if needed)
+   - [ ] Screenshots added (for UI changes)
+
+4. **Review Process**
+   - CI checks must pass (build, tests, lint)
+   - At least one maintainer approval required
+   - Address review feedback promptly
+   - Keep PR scope focused and manageable
 
 ## 🐛 Reporting Issues
 
@@ -555,20 +559,42 @@ For security vulnerabilities, please email security@contributor.info instead of 
 
 ## 📚 Additional Resources
 
-- **[Local Development Guide](./docs/setup/LOCAL_DEVELOPMENT.md)** - Complete local setup instructions
-- **[Windows Setup Guide](./docs/setup/WINDOWS_SETUP.md)** - Windows-specific development guide
-- **[Supabase Setup Guide](./supabase/DEV_SETUP.md)** - Database development environment
-- **[Migration Documentation](./supabase/MIGRATION_GUIDE.md)** - Database schema changes
-- **[API Documentation](./supabase/README.md)** - Database schema and API reference
-- **[Security Policies](./supabase/RLS_POLICIES.md)** - Row Level Security configuration
-- **[Project Planning](./tasks/)** - PRDs and task documentation
+### Setup & Development
+- [Local Development Guide](./docs/setup/LOCAL_DEVELOPMENT.md) - Complete setup instructions
+- [Windows Setup Guide](./docs/setup/WINDOWS_SETUP.md) - Windows-specific setup
+- [Seed Data Guide](./docs/setup/SEED_DATA.md) - Generate test data
 
-## 🤝 Community
+### Database & Supabase
+- [Supabase Dev Setup](./docs/supabase/DEV_SETUP.md) - Database environment
+- [Migration Guide](./docs/supabase/MIGRATION_GUIDE.md) - Schema changes
+- [RLS Policies](./docs/supabase/RLS_POLICIES.md) - Security configuration
+- [Supabase Quick Reference](./docs/supabase/QUICK_REFERENCE.md) - Common patterns
 
-- **Discussions**: Use GitHub Discussions for questions and ideas
-- **Issues**: Report bugs and request features
-- **Pull Requests**: Contribute code improvements
-- **Discord**: Join our community chat (link in repo)
+### Testing
+- [Testing Best Practices](./docs/testing/testing-best-practices.md)
+- [Bulletproof Testing Guidelines](./docs/testing/BULLETPROOF_TESTING_GUIDELINES.md)
+- [E2E Testing Philosophy](./docs/testing/e2e-minimal-testing-philosophy.md)
+- [Storybook Guide](./docs/testing/chromatic-readme.md)
+
+### Architecture & Design
+- [Architecture Overview](./docs/setup/ARCHITECTURE_2025-06-26.md)
+- [Data Fetching Strategy](./docs/data-fetching/)
+- [Performance Optimization](./docs/performance/)
+- [Security Guidelines](./docs/security/)
+
+## 🤝 Community & Support
+
+- **[GitHub Discussions](https://github.com/bdougie/contributor.info/discussions)** - Ask questions, share ideas
+- **[Issues](https://github.com/bdougie/contributor.info/issues)** - Report bugs, request features
+- **[TRIAGE.md](./TRIAGE.md)** - How to pick up issues and get started
+- **Pull Requests** - Contribute code improvements
+
+### Getting Help
+
+- Check existing [documentation](./docs/)
+- Search [closed issues](https://github.com/bdougie/contributor.info/issues?q=is%3Aissue+is%3Aclosed)
+- Ask in [Discussions](https://github.com/bdougie/contributor.info/discussions)
+- Ping maintainers in your PR if stuck
 
 ## 📄 License
 

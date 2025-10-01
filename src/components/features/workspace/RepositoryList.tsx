@@ -24,6 +24,7 @@ import {
   Target,
   MoreHorizontal,
   Settings,
+  Sparkles,
 } from '@/components/ui/icon';
 import {
   DropdownMenu,
@@ -68,9 +69,17 @@ export interface RepositoryListProps {
   onPinToggle?: (repo: Repository) => void;
   onRemove?: (repo: Repository) => void;
   onAddRepository?: () => void;
+  onGitHubAppModalOpen?: (repo: Repository) => void;
   showActions?: boolean;
   className?: string;
   emptyMessage?: string;
+  repoStatuses?: Map<
+    string,
+    {
+      isInstalled: boolean;
+      installationId?: string;
+    }
+  >;
 }
 
 // Removed columnHelper to avoid type issues
@@ -102,9 +111,11 @@ export function RepositoryList({
   onPinToggle,
   onRemove,
   onAddRepository,
+  onGitHubAppModalOpen,
   showActions = true,
   className,
   emptyMessage = 'No repositories in this workspace yet',
+  repoStatuses,
 }: RepositoryListProps) {
   const [globalFilter, setGlobalFilter] = useState('');
   const [sorting, setSorting] = useState<SortingState>([
@@ -130,6 +141,9 @@ export function RepositoryList({
         },
         cell: ({ row }) => {
           const repo = row.original;
+          const status = repoStatuses?.get(repo.id);
+          const isInstalled = status?.isInstalled ?? false;
+
           return (
             <div className="flex items-center gap-2 sm:gap-3">
               <div className="relative flex-shrink-0">
@@ -150,6 +164,27 @@ export function RepositoryList({
                   <span className="font-medium truncate text-sm sm:text-base">
                     {repo.full_name}
                   </span>
+                  {repoStatuses && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onGitHubAppModalOpen?.(repo);
+                      }}
+                      title={
+                        isInstalled
+                          ? 'GitHub App installed - Real-time similarity enabled'
+                          : 'Click to install GitHub App for real-time similarity'
+                      }
+                      className="flex-shrink-0 hover:opacity-80 transition-opacity"
+                    >
+                      <Sparkles
+                        className={cn(
+                          'h-3.5 w-3.5',
+                          isInstalled ? 'text-amber-500 fill-amber-500' : 'text-muted-foreground'
+                        )}
+                      />
+                    </button>
+                  )}
                   {repo.language && (
                     <Badge
                       variant="outline"
@@ -298,7 +333,7 @@ export function RepositoryList({
     }
 
     return cols;
-  }, [showActions, onPinToggle, onRemove, onRepositoryClick]);
+  }, [showActions, onPinToggle, onRemove, onRepositoryClick, repoStatuses, onGitHubAppModalOpen]);
 
   const table = useReactTable({
     data: repositories,

@@ -1,10 +1,10 @@
 #!/bin/sh
 
-# Get list of staged TypeScript files
-STAGED_TS_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx)$')
+# Get list of staged files
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM)
 
-# Only run TypeScript check if there are staged TypeScript files
-if [ -n "$STAGED_TS_FILES" ]; then
+# Check if any staged files are TypeScript files
+if echo "$STAGED_FILES" | grep -qE '\.(ts|tsx)$'; then
   echo "🔍 Running TypeScript type check on staged files..."
 
   # Run full type check (needed because TypeScript needs to check dependencies)
