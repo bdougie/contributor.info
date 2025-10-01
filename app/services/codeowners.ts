@@ -1,5 +1,5 @@
 import { Octokit } from '@octokit/rest';
-import minimatch from 'minimatch';
+import { minimatch } from 'minimatch';
 
 export interface CodeOwner {
   pattern: string;
@@ -155,7 +155,11 @@ export function matchFilesToOwners(
 function matchesPattern(filePath: string, pattern: string): boolean {
   // Handle directory ownership (pattern ending with /)
   if (pattern.endsWith('/')) {
-    const dir = pattern.slice(0, -1);
+    // Remove trailing slash and leading slash (if present)
+    let dir = pattern.slice(0, -1);
+    if (dir.startsWith('/')) {
+      dir = dir.slice(1);
+    }
     return filePath.startsWith(dir + '/') || filePath === dir;
   }
 
