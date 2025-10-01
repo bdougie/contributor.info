@@ -14,11 +14,33 @@ export interface ReviewerSuggestionDTO {
   };
 }
 
+interface ErrorDetails {
+  category: string;
+  retryable: boolean;
+  requestId?: string;
+  suggestions?: string[];
+  action?: string;
+}
+
+interface DetailedError extends Error {
+  details: ErrorDetails;
+}
+
 export async function fetchCodeOwners(owner: string, repo: string, forceRefresh = false) {
   const url = forceRefresh
     ? `/api/repos/${owner}/${repo}/codeowners?refresh=true`
     : `/api/repos/${owner}/${repo}/codeowners`;
   const res = await fetch(url);
+
+  // 404 is expected when repository isn't tracked - return a valid response
+  if (res.status === 404) {
+    return {
+      exists: false,
+      message: 'Repository not tracked or CODEOWNERS file not found',
+      source: 'none' as const,
+    };
+  }
+
   if (!res.ok) throw new Error(`Failed to fetch CODEOWNERS: ${res.status}`);
   return res.json() as Promise<{
     exists: boolean;
@@ -86,14 +108,20 @@ export async function suggestReviewers(
       const error = responseData.error!;
 
       // Create user-friendly error with actionable information
-      const userError = new Error(error.userMessage);
+      const userError = new Error(error.userMessage) as DetailedError;
       userError.name = error.code;
-      (userError as any).details = {
+      userError.details = {
         category: error.category,
         retryable: error.retryable,
         requestId: error.requestId,
-        suggestions: error.details?.suggestion ? [error.details.suggestion] : [],
-        action: error.details?.action,
+        suggestions:
+          error.details?.suggestion && typeof error.details.suggestion === 'string'
+            ? [error.details.suggestion]
+            : [],
+        action:
+          error.details?.action && typeof error.details.action === 'string'
+            ? error.details.action
+            : undefined,
       };
 
       throw userError;
@@ -109,7 +137,7 @@ export async function suggestReviewers(
     };
   } catch (error) {
     // Enhanced error handling for different scenarios
-    if (error instanceof Error && (error as any).details) {
+    if (error instanceof Error && 'details' in error) {
       // This is our structured error - re-throw with context
       throw error;
     }
@@ -118,9 +146,9 @@ export async function suggestReviewers(
     if (error instanceof TypeError && error.message.includes('fetch')) {
       const networkError = new Error(
         'Unable to connect to the service. Please check your internet connection and try again.'
-      );
+      ) as DetailedError;
       networkError.name = 'NETWORK_ERROR';
-      (networkError as any).details = {
+      networkError.details = {
         category: 'network',
         retryable: true,
         suggestions: ['Check your internet connection', 'Try refreshing the page'],
@@ -131,9 +159,9 @@ export async function suggestReviewers(
     // Generic fallback
     const genericError = new Error(
       'An unexpected error occurred while fetching reviewer suggestions.'
-    );
+    ) as DetailedError;
     genericError.name = 'UNKNOWN_ERROR';
-    (genericError as any).details = {
+    genericError.details = {
       category: 'unknown',
       retryable: true,
       suggestions: ['Try again in a moment', 'Contact support if the problem persists'],
@@ -213,7 +241,7 @@ export async function fetchPRsWithoutReviewers(
   const prsWithoutReviews = prs
     .filter((pr) => !prsWithReviews.has(pr.id))
     .slice(0, limit)
-    .map(({ id, ...pr }) => pr); // Remove the id field from the result
+    .map(({ id: _id, ...rest }) => rest); // Omit the internal id field
 
   return prsWithoutReviews as unknown as MinimalPR[];
 }

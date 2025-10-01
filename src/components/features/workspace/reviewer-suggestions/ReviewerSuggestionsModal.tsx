@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -102,23 +102,24 @@ export function ReviewerSuggestionsModal({
   const owner = active?.owner || active?.full_name?.split('/')[0] || '';
   const repo = active?.name || active?.full_name?.split('/')[1] || '';
 
-  const handleLoadCodeowners = async () => {
+  const handleLoadCodeowners = useCallback(async () => {
     if (!owner || !repo) return;
     try {
       const co = await fetchCodeOwners(owner, repo);
       setCodeowners(co);
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('Failed to fetch CODEOWNERS:', e);
       setCodeowners({ exists: false, message: 'Failed to fetch CODEOWNERS' });
     }
-  };
+  }, [owner, repo]);
 
   // Load CODEOWNERS when repository changes
   useEffect(() => {
-    if (owner && repo) {
-      handleLoadCodeowners();
-    }
-  }, [owner, repo]);
+    handleLoadCodeowners().catch((err: unknown) => {
+      const message = err instanceof Error ? err.message : String(err);
+      console.log('[CODEOWNERS] Failed to load, will continue without:', message);
+    });
+  }, [handleLoadCodeowners]);
 
   const handleGetReviewers = async (prNumber: number) => {
     setSelectedPR(String(prNumber));
@@ -131,9 +132,9 @@ export function ReviewerSuggestionsModal({
       try {
         const res = await suggestReviewers(owner, repo, undefined, undefined, prUrl);
         setSuggestions(res);
-      } catch (e: any) {
+      } catch (e: unknown) {
         console.error('Failed to get reviewer suggestions:', e);
-        const errorMessage = e?.message || 'Failed to get suggestions';
+        const errorMessage = e instanceof Error ? e.message : 'Failed to get suggestions';
         setError(`Error: ${errorMessage}. Please ensure the repository is tracked and try again.`);
       } finally {
         setLoading(false);
