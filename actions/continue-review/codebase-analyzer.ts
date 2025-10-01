@@ -14,9 +14,9 @@ export interface CodebasePattern {
 export interface ProjectContext {
   patterns: CodebasePattern[];
   conventions: {
-    naming: { files: string[], functions: string[], types: string[] };
-    structure: { directories: string[], testPatterns: string[] };
-    dependencies: { frameworks: string[], libraries: string[] };
+    naming: { files: string[]; functions: string[]; types: string[] };
+    structure: { directories: string[]; testPatterns: string[] };
+    dependencies: { frameworks: string[]; libraries: string[] };
   };
   architecture: {
     componentPatterns: string[];
@@ -35,12 +35,12 @@ export async function analyzeCodebasePatterns(changedFiles: string[]): Promise<P
   const conventions = {
     naming: { files: [] as string[], functions: [] as string[], types: [] as string[] },
     structure: { directories: [] as string[], testPatterns: [] as string[] },
-    dependencies: { frameworks: [] as string[], libraries: [] as string[] }
+    dependencies: { frameworks: [] as string[], libraries: [] as string[] },
   };
   const architecture = {
     componentPatterns: [] as string[],
     dataFlowPatterns: [] as string[],
-    errorHandlingPatterns: [] as string[]
+    errorHandlingPatterns: [] as string[],
   };
 
   try {
@@ -48,7 +48,8 @@ export async function analyzeCodebasePatterns(changedFiles: string[]): Promise<P
     const relatedFiles = await findRelatedFiles(changedFiles);
 
     // Extract patterns from existing code
-    for (const file of relatedFiles.slice(0, 50)) { // Limit to prevent timeout
+    for (const file of relatedFiles.slice(0, 50)) {
+      // Limit to prevent timeout
       try {
         const content = await fs.readFile(file, 'utf-8');
 
@@ -67,7 +68,6 @@ export async function analyzeCodebasePatterns(changedFiles: string[]): Promise<P
         conventions.naming.files.push(...namingPatterns.files);
         conventions.naming.functions.push(...namingPatterns.functions);
         conventions.naming.types.push(...namingPatterns.types);
-
       } catch (error) {
         core.debug(`Failed to analyze ${file}: ${error}`);
       }
@@ -87,9 +87,8 @@ export async function analyzeCodebasePatterns(changedFiles: string[]): Promise<P
     return {
       patterns: uniquePatterns,
       conventions,
-      architecture
+      architecture,
     };
-
   } catch (error) {
     core.warning(`Failed to analyze codebase patterns: ${error}`);
     return {
@@ -97,13 +96,13 @@ export async function analyzeCodebasePatterns(changedFiles: string[]): Promise<P
       conventions: {
         naming: { files: [] as string[], functions: [] as string[], types: [] as string[] },
         structure: { directories: [] as string[], testPatterns: [] as string[] },
-        dependencies: { frameworks: [] as string[], libraries: [] as string[] }
+        dependencies: { frameworks: [] as string[], libraries: [] as string[] },
       },
       architecture: {
         componentPatterns: [] as string[],
         dataFlowPatterns: [] as string[],
-        errorHandlingPatterns: [] as string[]
-      }
+        errorHandlingPatterns: [] as string[],
+      },
     };
   }
 }
@@ -122,7 +121,7 @@ async function findRelatedFiles(changedFiles: string[]): Promise<string[]> {
     const dir = path.dirname(file);
     try {
       const siblingFiles = await glob(`${dir}/*.{ts,tsx,js,jsx}`, {
-        ignore: ['node_modules/**', '**/*.test.*', '**/*.spec.*']
+        ignore: ['node_modules/**', '**/*.test.*', '**/*.spec.*'],
       });
       for (const f of siblingFiles) {
         relatedFiles.add(f);
@@ -135,7 +134,7 @@ async function findRelatedFiles(changedFiles: string[]): Promise<string[]> {
     const baseName = path.basename(file, path.extname(file));
     try {
       const testFiles = await glob(`**/${baseName}.{test,spec}.{ts,tsx,js,jsx}`, {
-        ignore: ['node_modules/**']
+        ignore: ['node_modules/**'],
       });
       for (const f of testFiles) {
         relatedFiles.add(f);
@@ -154,7 +153,8 @@ async function findRelatedFiles(changedFiles: string[]): Promise<string[]> {
 function extractImportPatterns(content: string, filepath: string): CodebasePattern[] {
   const patterns: CodebasePattern[] = [];
   // Updated regex to handle type-only imports (import type { ... } from ...)
-  const importRegex = /import\s+(?:type\s+)?(?:{[^}]+}|\*\s+as\s+\w+|\w+)?\s*(?:,\s*(?:type\s+)?{[^}]+})?\s*from\s+['"`]([^'"`]+)['"`]/g;
+  const importRegex =
+    /import\s+(?:type\s+)?(?:{[^}]+}|\*\s+as\s+\w+|\w+)?\s*(?:,\s*(?:type\s+)?{[^}]+})?\s*from\s+['"`]([^'"`]+)['"`]/g;
 
   let match;
   const imports = new Map<string, number>();
@@ -170,7 +170,7 @@ function extractImportPatterns(content: string, filepath: string): CodebasePatte
       pattern,
       frequency,
       examples: [filepath],
-      fileTypes: [path.extname(filepath)]
+      fileTypes: [path.extname(filepath)],
     });
   });
 
@@ -200,7 +200,8 @@ function extractComponentPatterns(content: string, filepath: string): string[] {
   if (content.includes('as const')) patterns.push('TypeScript const assertions');
 
   // Check for error handling patterns
-  if (content.includes('try {') || content.includes('catch (')) patterns.push('Try-catch error handling');
+  if (content.includes('try {') || content.includes('catch ('))
+    patterns.push('Try-catch error handling');
   if (content.includes('throw new Error')) patterns.push('Error throwing');
   if (content.includes('ErrorBoundary')) patterns.push('React Error Boundaries');
 
@@ -210,7 +211,10 @@ function extractComponentPatterns(content: string, filepath: string): string[] {
 /**
  * Extract naming convention patterns
  */
-function extractNamingPatterns(content: string, filepath: string): {
+function extractNamingPatterns(
+  content: string,
+  filepath: string
+): {
   files: string[];
   functions: string[];
   types: string[];
@@ -247,21 +251,26 @@ function extractNamingPatterns(content: string, filepath: string): {
 /**
  * Analyze project directory structure
  */
-async function analyzeProjectStructure(): Promise<{ directories: string[]; testPatterns: string[] }> {
+async function analyzeProjectStructure(): Promise<{
+  directories: string[];
+  testPatterns: string[];
+}> {
   try {
     const directories = await glob('*/', { ignore: ['node_modules/', '.git/', 'dist/', 'build/'] });
-    const testFiles = await glob('**/*.{test,spec}.{ts,tsx,js,jsx}', { ignore: ['node_modules/**'] });
+    const testFiles = await glob('**/*.{test,spec}.{ts,tsx,js,jsx}', {
+      ignore: ['node_modules/**'],
+    });
 
     const testPatterns: string[] = [];
-    testFiles.forEach(file => {
+    testFiles.forEach((file) => {
       if (file.includes('__tests__')) testPatterns.push('__tests__ directory');
       if (file.includes('.test.')) testPatterns.push('.test.* files');
       if (file.includes('.spec.')) testPatterns.push('.spec.* files');
     });
 
     return {
-      directories: directories.map(d => d.replace('/', '')),
-      testPatterns: Array.from(new Set(testPatterns))
+      directories: directories.map((d) => d.replace('/', '')),
+      testPatterns: Array.from(new Set(testPatterns)),
     };
   } catch (error) {
     core.debug(`Failed to analyze project structure: ${error}`);
@@ -279,7 +288,7 @@ async function analyzeDependencies(): Promise<{ frameworks: string[]; libraries:
 
     const allDeps = {
       ...pkg.dependencies,
-      ...pkg.devDependencies
+      ...pkg.devDependencies,
     };
 
     const frameworks: string[] = [];
@@ -319,7 +328,7 @@ async function analyzeDependencies(): Promise<{ frameworks: string[]; libraries:
 function deduplicatePatterns(patterns: CodebasePattern[]): CodebasePattern[] {
   const patternMap = new Map<string, CodebasePattern>();
 
-  patterns.forEach(pattern => {
+  patterns.forEach((pattern) => {
     const key = `${pattern.type}:${pattern.pattern}`;
     if (patternMap.has(key)) {
       const existing = patternMap.get(key)!;

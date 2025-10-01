@@ -48,8 +48,13 @@ export default defineConfig({
     // No mocks - only DOM cleanup
     setupFiles: ['./src/__mocks__/no-mocks-setup.ts'],
 
-    // Run all tests including netlify functions
-    include: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'netlify/functions/**/*.test.ts'],
+    // Run all tests including netlify functions and app folder
+    include: [
+      'src/**/*.test.ts',
+      'src/**/*.test.tsx',
+      'netlify/functions/**/*.test.ts',
+      'app/**/*.test.ts',
+    ],
 
     // Exclude tests that cause hanging due to mock issues
     exclude: [

@@ -17,6 +17,15 @@ export interface EmbeddingItem {
 }
 
 /**
+ * Type for the embedding pipeline output tensor
+ * @xenova/transformers returns a tensor-like object with data or tolist() method
+ */
+interface EmbeddingTensor {
+  data?: number[] | Float32Array;
+  tolist?: () => number[][];
+}
+
+/**
  * Get or initialize the embedding pipeline
  */
 async function getEmbeddingPipeline() {
@@ -35,14 +44,20 @@ export async function generateEmbedding(text: string): Promise<number[]> {
   try {
     const embedder = await getEmbeddingPipeline();
 
-    // Generate embeddings - pass empty options object to satisfy TypeScript
-    const output = (await embedder(text, {} as any)) as any;
+    // Generate embeddings - transformers.js requires 2 parameters minimum
+    // We pass undefined for options to use defaults, and cast to our tensor interface
+    // @ts-expect-error - transformers.js has complex union types that are hard to satisfy
+    const output = (await embedder(text, undefined)) as EmbeddingTensor;
 
-    // Extract data from the tensor
-    const embeddings = output.data || output.tolist?.()?.[0] || [];
+    // Extract data from the tensor with proper type checking
+    if (output.data) {
+      return Array.from(output.data);
+    } else if (output.tolist) {
+      const list = output.tolist();
+      return list[0] || [];
+    }
 
-    // Convert to array and return
-    return Array.from(embeddings);
+    throw new Error('Unexpected embedding output format');
   } catch (error) {
     console.error('Error generating embedding: %s', error);
     throw error;

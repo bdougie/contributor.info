@@ -125,16 +125,21 @@ export function ProgressiveRepoViewWithErrorBoundaries() {
                 </div>
               ) : (
                 <div className="flex -space-x-2">
-                  {progressiveData.basicInfo?.topContributors.map((contributor: { login: string; avatar_url: string }, i: number) => (
-                    <Avatar key={contributor.login} className="h-8 w-8 border-2 border-background">
-                      <AvatarImage
-                        src={`${contributor.avatar_url}?s=64`}
-                        alt={contributor.login}
-                        loading={i < 3 ? 'eager' : 'lazy'}
-                      />
-                      <AvatarFallback>{contributor.login[0]}</AvatarFallback>
-                    </Avatar>
-                  ))}
+                  {progressiveData.basicInfo?.topContributors.map(
+                    (contributor: { login: string; avatar_url: string }, i: number) => (
+                      <Avatar
+                        key={contributor.login}
+                        className="h-8 w-8 border-2 border-background"
+                      >
+                        <AvatarImage
+                          src={`${contributor.avatar_url}?s=64`}
+                          alt={contributor.login}
+                          loading={i < 3 ? 'eager' : 'lazy'}
+                        />
+                        <AvatarFallback>{contributor.login[0]}</AvatarFallback>
+                      </Avatar>
+                    )
+                  )}
                 </div>
               )}
             </CardContent>
@@ -150,25 +155,32 @@ export function ProgressiveRepoViewWithErrorBoundaries() {
         fallbackData={
           <FullDataFallback
             stage="full"
-            partialData={progressiveData.basicInfo ? {
-              prCount: progressiveData.basicInfo.prCount,
-              contributorCount: progressiveData.basicInfo.contributorCount,
-              topContributors: progressiveData.basicInfo.topContributors.map(c => ({
-                login: c.login,
-                avatar_url: c.avatar_url,
-                contributions: c.contributions
-              })),
-              stats: {
-                totalPRs: progressiveData.stats?.pullRequests?.length || 0,
-                mergedPRs: progressiveData.stats?.pullRequests?.filter(pr => pr.merged_at)?.length || 0,
-                pullRequests: progressiveData.stats?.pullRequests?.map(pr => ({
-                  id: pr.id,
-                  title: pr.title,
-                  number: pr.number,
-                  html_url: pr.html_url || ''
-                })) || []
-              }
-            } : undefined}
+            partialData={
+              progressiveData.basicInfo
+                ? {
+                    prCount: progressiveData.basicInfo.prCount,
+                    contributorCount: progressiveData.basicInfo.contributorCount,
+                    topContributors: progressiveData.basicInfo.topContributors.map((c) => ({
+                      login: c.login,
+                      avatar_url: c.avatar_url,
+                      contributions: c.contributions,
+                    })),
+                    stats: {
+                      totalPRs: progressiveData.stats?.pullRequests?.length || 0,
+                      mergedPRs:
+                        progressiveData.stats?.pullRequests?.filter((pr) => pr.merged_at)?.length ||
+                        0,
+                      pullRequests:
+                        progressiveData.stats?.pullRequests?.map((pr) => ({
+                          id: pr.id,
+                          title: pr.title,
+                          number: pr.number,
+                          html_url: pr.html_url || '',
+                        })) || [],
+                    },
+                  }
+                : undefined
+            }
             message={progressiveData.stageErrors.full?.userMessage}
           />
         }
@@ -247,8 +259,8 @@ export function ProgressiveRepoViewWithErrorBoundaries() {
                       contributors: 0,
                       recentActivity: true,
                       hasYoloCoders: progressiveData.directCommitsData.hasYoloCoders,
-                      yoloCoderStats: progressiveData.directCommitsData.yoloCoderStats
-                    }
+                      yoloCoderStats: progressiveData.directCommitsData.yoloCoderStats,
+                    },
                   }
                 : undefined
             }

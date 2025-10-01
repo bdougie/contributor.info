@@ -85,11 +85,7 @@ export function useWorkspacePermissions(
 
     // Get base UI permissions from the service
     const basePermissions = userRole
-      ? WorkspacePermissionService.getUIPermissions(
-          userRole,
-          workspaceWithDefaults,
-          memberCount
-        )
+      ? WorkspacePermissionService.getUIPermissions(userRole, workspaceWithDefaults, memberCount)
       : {
           canAddRepository: false,
           canRemoveRepository: false,

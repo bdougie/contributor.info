@@ -76,8 +76,14 @@ class PostHogOpenAIService {
   private baseUrl = 'https://api.openai.com/v1';
   private config: LLMServiceConfig;
   private posthogConfig: PostHogConfig;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private posthogClient: { capture: (data: { distinctId: string; event: string; properties: Record<string, unknown> }) => void } | null = null; // Will be dynamically imported
+
+  private posthogClient: {
+    capture: (data: {
+      distinctId: string;
+      event: string;
+      properties: Record<string, unknown>;
+    }) => void;
+  } | null = null; // Will be dynamically imported
 
   constructor() {
     // Handle both Vite and Node.js environments
@@ -127,7 +133,13 @@ class PostHogOpenAIService {
         throw new Error('posthog-node not available');
       }
 
-      this.posthogClient = posthogModule as { capture: (data: { distinctId: string; event: string; properties: Record<string, unknown> }) => void };
+      this.posthogClient = posthogModule as {
+        capture: (data: {
+          distinctId: string;
+          event: string;
+          properties: Record<string, unknown>;
+        }) => void;
+      };
       console.log('PostHog LLM analytics initialized');
     } catch (error) {
       console.warn('PostHog not available - install posthog-node for LLM tracking:', error);
@@ -516,8 +528,12 @@ class PostHogOpenAIService {
   /**
    * Track LLM errors
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private trackLLMError(error: Error | { message?: string; code?: string | number }, metadata: LLMCallMetadata, prompt: string): void {
+
+  private trackLLMError(
+    error: Error | { message?: string; code?: string | number },
+    metadata: LLMCallMetadata,
+    prompt: string
+  ): void {
     if (!this.posthogClient) return;
 
     try {

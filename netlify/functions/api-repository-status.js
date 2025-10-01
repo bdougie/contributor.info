@@ -78,8 +78,8 @@ exports.handler = async (event, context) => {
     const { data, error } = await supabase
       .from('repositories')
       .select('id')
-      .eq('owner', owner)
-      .eq('name', repo)
+      .eq('organization_name', owner)
+      .eq('repository_name', repo)
       .maybeSingle();
 
     if (error) {

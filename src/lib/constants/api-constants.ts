@@ -74,7 +74,7 @@ export const CONTENT_TYPES = {
 // Headers
 export const DEFAULT_HEADERS = {
   'Content-Type': CONTENT_TYPES.JSON,
-  'Accept': CONTENT_TYPES.JSON,
+  Accept: CONTENT_TYPES.JSON,
 } as const;
 
 // WebSocket events

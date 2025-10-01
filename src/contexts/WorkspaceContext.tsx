@@ -55,11 +55,15 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     refetch,
   } = useUserWorkspaces();
 
-  // Add slugs to workspaces
-  const workspaces = rawWorkspaces.map((ws) => ({
-    ...ws,
-    slug: ws.slug || generateWorkspaceSlug(ws.name),
-  }));
+  // Add slugs to workspaces - memoized to prevent infinite render loops
+  const workspaces = useMemo(
+    () =>
+      rawWorkspaces.map((ws) => ({
+        ...ws,
+        slug: ws.slug || generateWorkspaceSlug(ws.name),
+      })),
+    [rawWorkspaces]
+  );
 
   // Get workspace ID from URL if on a workspace page
   const urlWorkspaceId = params.workspaceId;

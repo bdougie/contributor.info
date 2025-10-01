@@ -6,15 +6,7 @@
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Crown,
-  LogIn,
-  Users,
-  Shield,
-  Settings,
-  Database,
-  BarChart3,
-} from '@/components/ui/icon';
+import { Crown, LogIn, Users, Shield, Settings, Database, BarChart3 } from '@/components/ui/icon';
 type IconComponent = (props: React.SVGProps<SVGSVGElement>) => JSX.Element;
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -72,7 +64,9 @@ function getActionIcon(actionType?: string, fallback?: IconComponent): IconCompo
 /**
  * Get appropriate button variant based on action type
  */
-function getButtonVariant(actionType?: string): 'default' | 'outline' | 'secondary' | 'destructive' {
+function getButtonVariant(
+  actionType?: string
+): 'default' | 'outline' | 'secondary' | 'destructive' {
   switch (actionType) {
     case 'upgrade':
       return 'default';
@@ -101,9 +95,10 @@ export function PermissionUpgradeCTA({
     if (!showAction) return null;
 
     // Add orange styling for login buttons
-    const buttonClassName = message.actionType === 'login'
-      ? 'bg-orange-600 hover:bg-orange-700 text-white border-orange-600'
-      : '';
+    const buttonClassName =
+      message.actionType === 'login'
+        ? 'bg-orange-600 hover:bg-orange-700 text-white border-orange-600'
+        : '';
 
     if (message.actionHref && !onAction) {
       return (
@@ -196,20 +191,12 @@ export function PermissionUpgradeCTA({
           </div>
           <div className="flex-1">
             <CardTitle
-              className={cn(
-                'text-base',
-                size === 'sm' && 'text-sm',
-                size === 'lg' && 'text-lg'
-              )}
+              className={cn('text-base', size === 'sm' && 'text-sm', size === 'lg' && 'text-lg')}
             >
               {message.title}
             </CardTitle>
             <CardDescription
-              className={cn(
-                'mt-1',
-                size === 'sm' && 'text-xs',
-                size === 'lg' && 'text-sm'
-              )}
+              className={cn('mt-1', size === 'sm' && 'text-xs', size === 'lg' && 'text-sm')}
             >
               {message.description}
             </CardDescription>

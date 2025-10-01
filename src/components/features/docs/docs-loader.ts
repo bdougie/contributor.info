@@ -69,6 +69,12 @@ export const DOCS_METADATA: DocsMetadata[] = [
     description: 'Finding and exploring GitHub repositories',
     category: 'feature',
   },
+  {
+    file: 'github-app-setup.md',
+    title: 'GitHub App Installation',
+    description: 'Enable real-time similarity search and enhanced repository insights',
+    category: 'feature',
+  },
   // Insights
   {
     file: 'insight-pr-activity.md',

@@ -20,6 +20,7 @@ import {
 } from '@/components/features/workspace/WorkspaceIssuesTable';
 import { RepositoryFilter } from '@/components/features/workspace/RepositoryFilter';
 import { WorkspaceMetricsAndTrends } from '@/components/features/workspace/WorkspaceMetricsAndTrends';
+import { WorkspaceSwitcher } from '@/components/navigation/WorkspaceSwitcher';
 import { WorkspaceIssueMetricsAndTrends } from '@/components/features/workspace/WorkspaceIssueMetricsAndTrends';
 import {
   ContributorsList,
@@ -33,6 +34,9 @@ import { AddRepositoryModal } from '@/components/features/workspace/AddRepositor
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
+import { ReviewerSuggestionsModal } from '@/components/features/workspace/reviewer-suggestions/ReviewerSuggestionsModal';
+import { GitHubAppInstallModal } from '@/components/features/github-app/github-app-install-modal';
+import { useWorkspaceGitHubAppStatus } from '@/hooks/use-workspace-github-app-status';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -50,6 +54,7 @@ import {
   Search,
   Menu,
   Package,
+  Sparkles,
 } from '@/components/ui/icon';
 import {
   useReactTable,
@@ -379,12 +384,16 @@ function WorkspacePRs({
   timeRange,
   workspaceId,
   workspace,
+  setReviewerModalOpen,
+  onGitHubAppModalOpen,
 }: {
   repositories: Repository[];
   selectedRepositories: string[];
   timeRange: TimeRange;
   workspaceId: string;
   workspace?: Workspace;
+  setReviewerModalOpen: (open: boolean) => void;
+  onGitHubAppModalOpen: (repo: Repository) => void;
 }) {
   const navigate = useNavigate();
 
@@ -449,6 +458,8 @@ function WorkspacePRs({
   // Check if there are any PRs with reviewers
   const hasReviewers = pullRequests.some((pr) => pr.reviewers && pr.reviewers.length > 0);
 
+  const ctaRepo = repositories[0]; // Use first repo for modal context
+
   return (
     <div className="space-y-6">
       {/* Auto-sync indicator at top of tab */}
@@ -461,6 +472,22 @@ function WorkspacePRs({
           syncIntervalMinutes={60}
           className="text-sm text-muted-foreground"
         />
+        <div className="flex items-center gap-2">
+          <Button onClick={() => setReviewerModalOpen(true)} size="sm" variant="outline">
+            CODEOWNERS
+          </Button>
+          {ctaRepo && (
+            <Button
+              onClick={() => onGitHubAppModalOpen(ctaRepo)}
+              size="sm"
+              variant="outline"
+              className="gap-2"
+            >
+              <Sparkles className="w-4 h-4 text-amber-500" />
+              Similarity
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Metrics and Trends - first, always full width */}
@@ -513,10 +540,12 @@ function WorkspaceIssues({
   repositories,
   selectedRepositories,
   timeRange,
+  onGitHubAppModalOpen,
 }: {
   repositories: Repository[];
   selectedRepositories: string[];
   timeRange: TimeRange;
+  onGitHubAppModalOpen: (repo: Repository) => void;
 }) {
   const [issues, setIssues] = useState<Issue[]>([]);
   const [loading, setLoading] = useState(true);
@@ -715,8 +744,27 @@ function WorkspaceIssues({
     );
   }
 
+  const ctaRepo = repositories[0]; // Use first repo for context
+
   return (
     <div className="space-y-6">
+      {/* Action buttons at top */}
+      {ctaRepo && (
+        <div className="flex items-center justify-end px-1">
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => onGitHubAppModalOpen(ctaRepo)}
+              size="sm"
+              variant="outline"
+              className="gap-2"
+            >
+              <Sparkles className="w-4 h-4 text-amber-500" />
+              Similarity
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Conditionally render side-by-side or full width based on assignee data */}
       {hasAssignees ? (
         <div className="grid gap-6 lg:grid-cols-2">
@@ -2270,10 +2318,38 @@ function WorkspacePage() {
   const [currentMember, setCurrentMember] = useState<WorkspaceMemberWithUser | null>(null);
   const [memberCount, setMemberCount] = useState(0);
   const [isWorkspaceOwner, setIsWorkspaceOwner] = useState(false);
+  const [reviewerModalOpen, setReviewerModalOpen] = useState(false);
+  const [githubAppModalOpen, setGithubAppModalOpen] = useState(false);
+  const [selectedRepoForModal, setSelectedRepoForModal] = useState<Repository | null>(null);
+
+  // Check GitHub App installation status across all workspace repos
+  const repositoryIds = useMemo(
+    () => repositories.map((r) => r.id).filter(Boolean),
+    [repositories]
+  );
+  const appStatus = useWorkspaceGitHubAppStatus(repositoryIds);
 
   // Determine active tab from URL
   const pathSegments = location.pathname.split('/');
   const activeTab = pathSegments[3] || 'overview';
+
+  // Development environment check - log helpful message about Netlify dev server
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      console.log(
+        '%c🚀 Workspace Page - Development Mode',
+        'background: #2563eb; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;',
+        '\n\n' +
+          '📋 API endpoints require Netlify Dev server to be running.\n' +
+          '   Run: npm start\n\n' +
+          '   This starts:\n' +
+          '   • Vite dev server (port 5174)\n' +
+          '   • Netlify Functions (port 8888)\n' +
+          '   • Inngest dev server\n\n' +
+          '❌ If you see 500 errors, make sure all services are running.\n'
+      );
+    }
+  }, []);
 
   // Extract fetchWorkspace as a reusable function
   const fetchWorkspace = useCallback(async () => {
@@ -3140,6 +3216,11 @@ function WorkspacePage() {
     navigate(`/${repo.full_name}`);
   };
 
+  const handleGitHubAppModalOpen = (repo: Repository) => {
+    setSelectedRepoForModal(repo);
+    setGithubAppModalOpen(true);
+  };
+
   const handleSettingsClick = () => {
     toast.info('Workspace settings coming soon!');
   };
@@ -3238,6 +3319,13 @@ function WorkspacePage() {
               )}
             </div>
             <div className="flex items-center gap-2">
+              <WorkspaceSwitcher
+                className="min-w-[150px]"
+                onOpenCommandPalette={() => {
+                  // Command palette can be opened from here if needed
+                  console.log('Open command palette from workspace page');
+                }}
+              />
               <TimeRangeSelector
                 value={timeRange}
                 onChange={setTimeRange}
@@ -3259,9 +3347,6 @@ function WorkspacePage() {
                 onSelectionChange={setSelectedRepositories}
                 className="w-[200px]"
               />
-              <Button onClick={handleSettingsClick} size="sm" variant="outline">
-                <Settings className="h-4 w-4" />
-              </Button>
             </div>
           </div>
         </div>
@@ -3302,6 +3387,37 @@ function WorkspacePage() {
             </TabsTrigger>
           </TabsList>
 
+          {/* Reviewer Suggestions Modal - Available on all tabs */}
+          {repositories.length > 0 && (
+            <ReviewerSuggestionsModal
+              open={reviewerModalOpen}
+              onOpenChange={setReviewerModalOpen}
+              repositories={repositories.map((r) => ({
+                id: r.id,
+                name: r.name,
+                owner: r.owner,
+                full_name: r.full_name,
+              }))}
+            />
+          )}
+
+          {/* GitHub App Install Modal - Available on all tabs */}
+          {selectedRepoForModal && (
+            <GitHubAppInstallModal
+              open={githubAppModalOpen}
+              onOpenChange={setGithubAppModalOpen}
+              repository={{
+                id: selectedRepoForModal.id,
+                full_name: selectedRepoForModal.full_name,
+                owner: selectedRepoForModal.owner,
+                name: selectedRepoForModal.name,
+              }}
+              isInstalled={
+                appStatus.repoStatuses?.get(selectedRepoForModal.id)?.isInstalled ?? false
+              }
+            />
+          )}
+
           <TabsContent value="overview" className="mt-6 space-y-4">
             <div className="container max-w-7xl mx-auto">
               <WorkspaceDashboard
@@ -3316,8 +3432,10 @@ function WorkspacePage() {
                 onAddRepository={isWorkspaceOwner ? handleAddRepository : undefined}
                 onRemoveRepository={isWorkspaceOwner ? handleRemoveRepository : undefined}
                 onRepositoryClick={handleRepositoryClick}
+                onGitHubAppModalOpen={handleGitHubAppModalOpen}
                 onSettingsClick={handleSettingsClick}
                 onUpgradeClick={handleUpgradeClick}
+                repoStatuses={appStatus.repoStatuses}
               />
             </div>
           </TabsContent>
@@ -3330,6 +3448,8 @@ function WorkspacePage() {
                 timeRange={timeRange}
                 workspaceId={workspace.id}
                 workspace={workspace}
+                setReviewerModalOpen={setReviewerModalOpen}
+                onGitHubAppModalOpen={handleGitHubAppModalOpen}
               />
             </div>
           </TabsContent>
@@ -3340,6 +3460,7 @@ function WorkspacePage() {
                 repositories={repositories}
                 selectedRepositories={selectedRepositories}
                 timeRange={timeRange}
+                onGitHubAppModalOpen={handleGitHubAppModalOpen}
               />
             </div>
           </TabsContent>

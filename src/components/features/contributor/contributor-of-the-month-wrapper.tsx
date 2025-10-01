@@ -25,7 +25,12 @@ const iconMap = {
 };
 
 export function ContributorOfTheMonth(props: ContributorOfTheMonthProps) {
-  const renderCard = ({ children, className, role, ariaLabelledBy }: {
+  const renderCard = ({
+    children,
+    className,
+    role,
+    ariaLabelledBy,
+  }: {
     children: React.ReactNode;
     className?: string;
     role?: string;
@@ -36,30 +41,40 @@ export function ContributorOfTheMonth(props: ContributorOfTheMonthProps) {
     </Card>
   );
 
-  const renderCardHeader = ({ children }: { children: React.ReactNode }) => <CardHeader>{children}</CardHeader>;
-
-  const renderCardContent = ({ children, className }: {
-    children: React.ReactNode;
-    className?: string;
-  }) => (
-    <CardContent className={className}>{children}</CardContent>
+  const renderCardHeader = ({ children }: { children: React.ReactNode }) => (
+    <CardHeader>{children}</CardHeader>
   );
 
-  const renderCardTitle = ({ children, id }: {
+  const renderCardContent = ({
+    children,
+    className,
+  }: {
     children: React.ReactNode;
-    id?: string;
-  }) => <CardTitle id={id}>{children}</CardTitle>;
+    className?: string;
+  }) => <CardContent className={className}>{children}</CardContent>;
+
+  const renderCardTitle = ({ children, id }: { children: React.ReactNode; id?: string }) => (
+    <CardTitle id={id}>{children}</CardTitle>
+  );
 
   const renderCardDescription = ({ children }: { children: React.ReactNode }) => (
     <CardDescription>{children}</CardDescription>
   );
 
-  const renderBadge = ({ children, variant }: {
+  const renderBadge = ({
+    children,
+    variant,
+  }: {
     children: React.ReactNode;
     variant?: 'default' | 'secondary' | 'destructive' | 'outline';
   }) => <Badge variant={variant}>{children}</Badge>;
 
-  const renderIcon = ({ name, className, ariaLabel, role }: {
+  const renderIcon = ({
+    name,
+    className,
+    ariaLabel,
+    role,
+  }: {
     name: string;
     className?: string;
     ariaLabel?: string;
@@ -71,15 +86,21 @@ export function ContributorOfTheMonth(props: ContributorOfTheMonthProps) {
     return <IconComponent className={className} aria-label={ariaLabel} role={role} />;
   };
 
-  const renderContributorCard = ({ contributor, isWinner, showRank }: {
+  const renderContributorCard = ({
+    contributor,
+    isWinner,
+    showRank,
+  }: {
     contributor: MonthlyContributor;
     isWinner?: boolean;
     showRank?: boolean;
-  }) => (
-    <ContributorCard contributor={contributor} isWinner={isWinner} showRank={showRank} />
-  );
+  }) => <ContributorCard contributor={contributor} isWinner={isWinner} showRank={showRank} />;
 
-  const renderSkeleton = ({ className, phase, contributorCount }: {
+  const renderSkeleton = ({
+    className,
+    phase,
+    contributorCount,
+  }: {
     className?: string;
     phase: string;
     contributorCount: number;
@@ -91,7 +112,11 @@ export function ContributorOfTheMonth(props: ContributorOfTheMonthProps) {
     />
   );
 
-  const renderEmptyState = ({ type, message, className }: {
+  const renderEmptyState = ({
+    type,
+    message,
+    className,
+  }: {
     type: string;
     message?: string;
     className?: string;
@@ -103,7 +128,12 @@ export function ContributorOfTheMonth(props: ContributorOfTheMonthProps) {
     />
   );
 
-  const renderMinimalActivity = ({ contributors, month, year, className }: {
+  const renderMinimalActivity = ({
+    contributors,
+    month,
+    year,
+    className,
+  }: {
     contributors?: Array<{
       login: string;
       avatar_url: string;

@@ -483,7 +483,8 @@ export function setupSmartNotifications(): void {
       console.log('🔔 Smart data detection enabled');
 
       // Expose for debugging
-      (window as unknown as Record<string, unknown>).SmartDataNotifications = SmartDataNotifications;
+      (window as unknown as Record<string, unknown>).SmartDataNotifications =
+        SmartDataNotifications;
     }
   }
 }
