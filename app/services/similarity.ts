@@ -1,4 +1,4 @@
-import { PullRequest, Repository, Issue } from '../types/github';
+import { PullRequest, Repository, Issue, DatabaseIssue } from '../types/github';
 import { supabase } from '../../src/lib/supabase';
 import { githubAppAuth } from '../lib/auth';
 import { embeddingService } from './embedding-service';
@@ -137,7 +137,7 @@ export async function findSimilarIssues(
  */
 async function processBatchSimilarity(
   pullRequest: PullRequest,
-  issues: any[],
+  issues: Array<Issue | DatabaseIssue>,
   repositoryId: string,
   options: { onProgress?: (processed: number, total: number) => void; minScore: number }
 ): Promise<SimilarIssue[]> {
@@ -216,7 +216,7 @@ async function processBatchSimilarity(
  */
 async function calculateIssueSimilarity(
   pr: PullRequest,
-  issue: any,
+  issue: Issue | DatabaseIssue,
   mentionedIssues: number[]
 ): Promise<{
   score: number;
@@ -254,7 +254,7 @@ async function calculateIssueSimilarity(
 
   // 3. Label overlap
   const prLabels = pr.labels.map((l) => l.name);
-  const issueLabels = issue.labels?.map((l: any) => l.name) || [];
+  const issueLabels = issue.labels?.map((l) => l.name) || [];
   const commonLabels = prLabels.filter((l) => issueLabels.includes(l));
 
   if (commonLabels.length > 0) {

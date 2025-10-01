@@ -1,9 +1,24 @@
-import { InstallationEvent, InstallationRepositoriesEvent } from '../types/github';
+import {
+  InstallationEvent,
+  InstallationRepositoriesEvent,
+  Installation,
+  Repository,
+} from '../types/github';
 import { supabase } from '../../src/lib/supabase';
 import { inngest } from '../../src/lib/inngest/client';
 import { githubAppAuth } from '../lib/auth';
 import { indexGitHistory } from '../services/git-history';
 import { generateFileEmbeddings } from '../services/file-embeddings';
+
+interface RepositoryBasic {
+  id: number;
+  name: string;
+  full_name: string;
+  private: boolean;
+  owner?: {
+    login: string;
+  };
+}
 
 /**
  * Handle GitHub App installation events
@@ -176,7 +191,10 @@ async function handleNewPermissionsAccepted(event: InstallationEvent) {
 /**
  * Handle repositories being added to an installation
  */
-async function handleRepositoriesAdded(installation: any, repositories: any[]) {
+async function handleRepositoriesAdded(
+  installation: Installation,
+  repositories: RepositoryBasic[]
+) {
   try {
     // Get the installation record
     const { data: installationRecord } = await supabase
@@ -301,7 +319,10 @@ async function handleRepositoriesAdded(installation: any, repositories: any[]) {
 /**
  * Handle repositories being removed from an installation
  */
-async function handleRepositoriesRemoved(installation: any, repositories: any[]) {
+async function handleRepositoriesRemoved(
+  installation: Installation,
+  repositories: RepositoryBasic[]
+) {
   try {
     // Get the installation record
     const { data: installationRecord } = await supabase
@@ -336,7 +357,7 @@ async function handleRepositoriesRemoved(installation: any, repositories: any[])
 /**
  * Track installation metrics
  */
-async function trackInstallationMetrics(event: string, data: any) {
+async function trackInstallationMetrics(event: string, data: Record<string, unknown>) {
   try {
     // In production, send to analytics service
     console.log('Installation metric:', event, data);

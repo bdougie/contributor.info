@@ -1,7 +1,8 @@
 import { supabase } from '../../src/lib/supabase';
+import type { GitHubAppAuth } from '../lib/auth';
 
 // Lazy load auth to avoid initialization errors
-let githubAppAuth: any = null;
+let githubAppAuth: GitHubAppAuth | null = null;
 
 async function getAuth() {
   if (!githubAppAuth) {
@@ -146,7 +147,11 @@ export async function handleLabeledEvent(event: LabeledEvent) {
 /**
  * Format a comment for when the contributor.info label is added
  */
-function formatLabeledComment(itemType: string, item: any, repository: any): string {
+function formatLabeledComment(
+  itemType: string,
+  item: LabeledEvent['issue'] | LabeledEvent['pull_request'],
+  repository: LabeledEvent['repository']
+): string {
   const emoji = itemType === 'issue' ? '🎯' : '🚀';
   const typeLabel = itemType === 'issue' ? 'Issue' : 'PR';
 
@@ -169,7 +174,7 @@ function formatLabeledComment(itemType: string, item: any, repository: any): str
 /**
  * Ensure repository is tracked in database
  */
-async function ensureRepositoryTracked(repo: any) {
+async function ensureRepositoryTracked(repo: LabeledEvent['repository']): Promise<string | null> {
   try {
     // Check if repository exists
     const { data: existing } = await supabase
@@ -215,7 +220,11 @@ async function ensureRepositoryTracked(repo: any) {
 /**
  * Queue the item for background processing
  */
-async function queueForProcessing(itemType: string, item: any, repository: any) {
+async function queueForProcessing(
+  itemType: string,
+  item: LabeledEvent['issue'] | LabeledEvent['pull_request'],
+  repository: LabeledEvent['repository']
+) {
   try {
     // Store the item metadata for processing
     const metadata = {
