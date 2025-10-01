@@ -80,11 +80,44 @@ After updating webhook, test with a small repo:
 
 ---
 
+## Automated Monitoring (Added Oct 1, 2025)
+
+To prevent future webhook misconfiguration issues:
+
+**Automated Stuck Job Cleanup:**
+- Runs every 15 minutes via pg_cron
+- Automatically marks jobs stuck >10 minutes as failed
+- Logs warnings when >10 jobs are stuck
+
+**Health Check Endpoint:**
+```bash
+curl https://egcxzonpmmcirmgqdrla.supabase.co/functions/v1/health-inngest
+```
+
+**Health check monitors:**
+- Stuck jobs (>5 minutes in processing)
+- Recent completions (last hour)
+- Failure rates (last 2 hours)
+- Returns HTTP 503 if critical issues detected
+
+**Query stuck jobs manually:**
+```sql
+SELECT * FROM stuck_jobs_monitor;
+-- or
+SELECT * FROM get_stuck_job_summary();
+```
+
+---
+
 ## Quick Reference
 
 **Netlify Function URLs:**
 - Production: `https://contributor.info/.netlify/functions/inngest-prod`
 - Preview: `http://main--contributor-info.netlify.app/.netlify/functions/inngest-prod`
+
+**Health Checks:**
+- Inngest health: `https://egcxzonpmmcirmgqdrla.supabase.co/functions/v1/health-inngest`
+- Cleanup status: Check `stuck_jobs_monitor` view
 
 **Site Details:**
 - Site ID: `49290020-1b2d-42c0-b1c9-ed386355493e`
