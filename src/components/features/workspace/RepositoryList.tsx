@@ -142,6 +142,20 @@ export function RepositoryList({
           const status = repoStatuses?.get(repo.id);
           const isInstalled = status?.isInstalled ?? false;
 
+          // Debug logging
+          if (repoStatuses && repo.full_name === 'bdougie/contributor.info') {
+            console.log('🔎 RepositoryList sparkle check for bdougie/contributor.info:', {
+              repoId: repo.id,
+              status,
+              isInstalled,
+              allStatuses: Array.from(repoStatuses.entries()).map(([id, s]) => ({
+                id,
+                isInstalled: s.isInstalled,
+                matches: id === repo.id,
+              })),
+            });
+          }
+
           return (
             <div className="flex items-center gap-2 sm:gap-3">
               <div className="relative flex-shrink-0">

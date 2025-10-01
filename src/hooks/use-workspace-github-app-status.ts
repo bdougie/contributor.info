@@ -84,6 +84,16 @@ export function useWorkspaceGitHubAppStatus(repositoryIds: string[]) {
         return;
       }
 
+      console.log('🔍 GitHub App Status Check:', {
+        repositoryIds,
+        enabledReposCount: enabledRepos?.length || 0,
+        enabledRepos: enabledRepos?.map((r) => ({
+          repository_id: r.repository_id,
+          hasInstallation: !!r.installation,
+          installation: r.installation,
+        })),
+      });
+
       // Build map of repo statuses
       const repoStatuses = new Map<string, { isInstalled: boolean; installationId?: string }>();
       const installedRepoIds = new Set<string>();
@@ -95,6 +105,10 @@ export function useWorkspaceGitHubAppStatus(repositoryIds: string[]) {
             : repo.installation;
 
           if (installation && !installation.deleted_at && !installation.suspended_at) {
+            console.log('✅ Repo marked as installed:', {
+              repository_id: repo.repository_id,
+              installation_id: installation.installation_id,
+            });
             repoStatuses.set(repo.repository_id, {
               isInstalled: true,
               installationId: installation.installation_id?.toString(),
