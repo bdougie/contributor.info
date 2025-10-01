@@ -1,5 +1,5 @@
 import { inngest } from '../client';
-import { supabase } from '../../supabase';
+import { supabase } from '../supabase-server';
 import type { GitHubPullRequest } from '../types';
 import { RATE_LIMIT_CONFIG } from '../queue-manager';
 import { getPRState } from '../../utils/state-mapping';

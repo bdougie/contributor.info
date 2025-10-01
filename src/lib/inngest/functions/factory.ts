@@ -1,5 +1,5 @@
 import { Inngest, NonRetriableError } from 'inngest';
-import { supabase } from '../../supabase';
+import { supabase } from '../supabase-server';
 import { CommitProcessor } from '../../progressive-capture/commit-processor';
 
 /**

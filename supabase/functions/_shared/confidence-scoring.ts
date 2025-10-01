@@ -59,7 +59,12 @@ export async function getContributorMetrics(
     .eq('repository_name', repositoryName)
     .order('created_at', { ascending: true });
 
-  if (error || !events || events.length === 0) {
+  if (error) {
+    console.error('Failed to fetch events for contributor %s: %s', userId, error.message);
+    throw new Error(`Failed to fetch events for ${userId}: ${error.message}`);
+  }
+
+  if (!events || events.length === 0) {
     return null;
   }
 
@@ -204,13 +209,18 @@ export async function updateContributorRole(
   const role = determineRole(confidenceScore.overall, metrics);
 
   // Get current role for comparison
-  const { data: currentRole } = await supabase
+  const { data: currentRole, error: fetchError } = await supabase
     .from('contributor_roles')
     .select('*')
     .eq('user_id', metrics.userId)
     .eq('repository_owner', metrics.repositoryOwner)
     .eq('repository_name', metrics.repositoryName)
     .maybeSingle();
+
+  if (fetchError) {
+    console.error('Error fetching current role for %s: %s', metrics.userId, fetchError.message);
+    throw new Error(`Failed to fetch current role: ${fetchError.message}`);
+  }
 
   const roleData = {
     user_id: metrics.userId,
@@ -233,8 +243,8 @@ export async function updateContributorRole(
     .maybeSingle();
 
   if (error) {
-    console.error('Error updating role:', error);
-    return;
+    console.error('Error updating role for %s: %s', metrics.userId, error.message);
+    throw new Error(`Failed to update contributor role: ${error.message}`);
   }
 
   // Log significant changes
@@ -266,23 +276,47 @@ export async function batchUpdateConfidenceScores(
   repositoryName: string
 ) {
   // Get all contributors with events
-  const { data: contributors } = await supabase
+  const { data: contributors, error } = await supabase
     .from('github_events_cache')
     .select('actor_login')
     .eq('repository_owner', repositoryOwner)
     .eq('repository_name', repositoryName)
     .not('actor_login', 'is', null);
 
-  if (!contributors) return;
+  if (error) {
+    console.error('Failed to fetch contributors for confidence scoring: %s', error.message);
+    throw new Error(`Failed to fetch contributors: ${error.message}`);
+  }
+
+  if (!contributors || contributors.length === 0) {
+    console.log('No contributors found for %s/%s', repositoryOwner, repositoryName);
+    return;
+  }
 
   const uniqueContributors = [...new Set(contributors.map((c) => c.actor_login))];
+  console.log('Updating confidence scores for %s contributors in %s/%s', uniqueContributors.length, repositoryOwner, repositoryName);
+
+  let successCount = 0;
+  let errorCount = 0;
 
   for (const userId of uniqueContributors) {
-    const metrics = await getContributorMetrics(supabase, userId, repositoryOwner, repositoryName);
+    try {
+      const metrics = await getContributorMetrics(supabase, userId, repositoryOwner, repositoryName);
 
-    if (metrics) {
-      const confidenceScore = calculateConfidenceScore(metrics);
-      await updateContributorRole(supabase, metrics, confidenceScore);
+      if (metrics) {
+        const confidenceScore = calculateConfidenceScore(metrics);
+        await updateContributorRole(supabase, metrics, confidenceScore);
+        successCount++;
+      }
+    } catch (error: unknown) {
+      console.error('Failed to update contributor role for %s: %s', userId, error instanceof Error ? error.message : 'Unknown error');
+      errorCount++;
     }
+  }
+
+  console.log('Confidence scoring complete: %s successful, %s failed', successCount, errorCount);
+
+  if (errorCount > 0 && successCount === 0) {
+    throw new Error(`Failed to update any contributor roles (${errorCount} errors)`);
   }
 }
