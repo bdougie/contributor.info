@@ -35,8 +35,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { ReviewerSuggestionsModal } from '@/components/features/workspace/reviewer-suggestions/ReviewerSuggestionsModal';
-// TODO: Uncomment when issue #833 is completed
-// import { GitHubAppInstallCTA } from '@/components/features/github-app/github-app-install-cta';
+import { GitHubAppInstallCTA } from '@/components/features/github-app/github-app-install-cta';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -454,9 +453,7 @@ function WorkspacePRs({
 
   // Check if there are any PRs with reviewers
   const hasReviewers = pullRequests.some((pr) => pr.reviewers && pr.reviewers.length > 0);
-
-  // TODO: Uncomment when issue #833 is completed
-  // const firstRepo = repositories[0];
+  const firstRepo = repositories[0];
 
   return (
     <div className="space-y-6">
@@ -477,7 +474,6 @@ function WorkspacePRs({
         </div>
       </div>
 
-      {/* TODO: Uncomment when issue #833 webhook features are fully implemented
       {firstRepo && (
         <GitHubAppInstallCTA
           repository={{
@@ -488,7 +484,6 @@ function WorkspacePRs({
           }}
         />
       )}
-      */}
 
       {/* Metrics and Trends - first, always full width */}
       <WorkspaceMetricsAndTrends
@@ -742,12 +737,10 @@ function WorkspaceIssues({
     );
   }
 
-  // TODO: Uncomment when issue #833 is completed
-  // const firstRepo = repositories[0];
+  const firstRepo = repositories[0];
 
   return (
     <div className="space-y-6">
-      {/* TODO: Uncomment when issue #833 webhook features are fully implemented
       {firstRepo && (
         <GitHubAppInstallCTA
           repository={{
@@ -758,7 +751,6 @@ function WorkspaceIssues({
           }}
         />
       )}
-      */}
 
       {/* Conditionally render side-by-side or full width based on assignee data */}
       {hasAssignees ? (
