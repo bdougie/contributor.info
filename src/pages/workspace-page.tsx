@@ -395,7 +395,10 @@ function WorkspacePRs({
   const navigate = useNavigate();
 
   // Check GitHub App installation status across all repos
-  const repositoryIds = repositories.map((r) => r.id).filter(Boolean);
+  const repositoryIds = useMemo(
+    () => repositories.map((r) => r.id).filter(Boolean),
+    [repositories]
+  );
   const appStatus = useWorkspaceGitHubAppStatus(repositoryIds);
 
   // Use the new hook for automatic PR syncing and caching
@@ -554,7 +557,10 @@ function WorkspaceIssues({
   const navigate = useNavigate();
 
   // Check GitHub App installation status across all repos
-  const repositoryIds = repositories.map((r) => r.id).filter(Boolean);
+  const repositoryIds = useMemo(
+    () => repositories.map((r) => r.id).filter(Boolean),
+    [repositories]
+  );
   const appStatus = useWorkspaceGitHubAppStatus(repositoryIds);
 
   useEffect(() => {
@@ -2322,7 +2328,10 @@ function WorkspacePage() {
   const [reviewerModalOpen, setReviewerModalOpen] = useState(false);
 
   // Check GitHub App installation status across all workspace repos
-  const repositoryIds = repositories.map((r) => r.id).filter(Boolean);
+  const repositoryIds = useMemo(
+    () => repositories.map((r) => r.id).filter(Boolean),
+    [repositories]
+  );
   const appStatus = useWorkspaceGitHubAppStatus(repositoryIds);
 
   // Determine active tab from URL
