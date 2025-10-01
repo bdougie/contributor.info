@@ -11,6 +11,7 @@ import {
   isUserExcluded,
   generateCodeOwnersSuggestion,
 } from '../services/contributor-config';
+import { handlePRCheckRuns } from './pr-check-runs';
 
 /**
  * Handle pull request webhook events
@@ -26,9 +27,11 @@ export async function handlePullRequestEvent(event: PullRequestEvent) {
     return;
   }
 
-  // Handle opened events with simple similarity comments
+  // Handle opened events with simple similarity comments + Check Runs
   if (event.action === 'opened') {
-    return handlePROpened(event);
+    // Run Check Runs and comments in parallel (dual feedback system)
+    await Promise.all([handlePROpened(event), handlePRCheckRuns(event)]);
+    return;
   }
 
   try {
@@ -118,25 +121,33 @@ export async function handlePullRequestEvent(event: PullRequestEvent) {
             config,
           });
 
-    // Post the comment
-    const { data: postedComment } = await octokit.issues.createComment({
-      owner: event.repository.owner.login,
-      repo: event.repository.name,
-      issue_number: event.pull_request.number,
-      body: comment,
-    });
+    // Post the comment and run Check Runs in parallel (dual feedback system)
+    const [commentResult] = await Promise.allSettled([
+      octokit.issues.createComment({
+        owner: event.repository.owner.login,
+        repo: event.repository.name,
+        issue_number: event.pull_request.number,
+        body: comment,
+      }),
+      handlePRCheckRuns(event),
+    ]);
 
-    console.log('Posted comment %s on PR #${event.pull_request.number}', postedComment.id);
+    if (commentResult.status === 'fulfilled') {
+      const postedComment = commentResult.value.data;
+      console.log('Posted comment %s on PR #${event.pull_request.number}', postedComment.id);
 
-    // Store insights in database
-    await storePRInsights({
-      pullRequest: event.pull_request,
-      repository: event.repository,
-      contributorInsights,
-      similarIssues,
-      reviewerSuggestions,
-      commentId: postedComment.id,
-    });
+      // Store insights in database
+      await storePRInsights({
+        pullRequest: event.pull_request,
+        repository: event.repository,
+        contributorInsights,
+        similarIssues,
+        reviewerSuggestions,
+        commentId: postedComment.id,
+      });
+    } else {
+      console.error('Failed to post comment: %o', commentResult.reason);
+    }
   } catch (error) {
     console.error('Error handling pull request event:', error);
     // Don't throw - we don't want GitHub to retry
