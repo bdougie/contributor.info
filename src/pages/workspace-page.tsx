@@ -2319,6 +2319,24 @@ function WorkspacePage() {
   const pathSegments = location.pathname.split('/');
   const activeTab = pathSegments[3] || 'overview';
 
+  // Development environment check - log helpful message about Netlify dev server
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      console.log(
+        '%c🚀 Workspace Page - Development Mode',
+        'background: #2563eb; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;',
+        '\n\n' +
+          '📋 API endpoints require Netlify Dev server to be running.\n' +
+          '   Run: npm start\n\n' +
+          '   This starts:\n' +
+          '   • Vite dev server (port 5174)\n' +
+          '   • Netlify Functions (port 8888)\n' +
+          '   • Inngest dev server\n\n' +
+          '❌ If you see 500 errors, make sure all services are running.\n'
+      );
+    }
+  }, []);
+
   // Extract fetchWorkspace as a reusable function
   const fetchWorkspace = useCallback(async () => {
     if (!workspaceId) {
