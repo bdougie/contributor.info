@@ -3,12 +3,10 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
   CheckCircle,
-  Zap,
   Database,
   Brain,
   RefreshCw,
   Shield,
-  Github,
   ChevronRight,
 } from '@/components/ui/icon';
 import { useGitHubAppStatus } from '@/hooks/use-github-app-status';
@@ -51,7 +49,9 @@ export function GitHubAppInstallCTA({ repository, className = '' }: GitHubAppIns
   // If already installed, show success state
   if (appStatus.isInstalled) {
     return (
-      <Card className={`bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800 ${className}`}>
+      <Card
+        className={`bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800 ${className}`}
+      >
         <CardContent className="p-4">
           <div className="flex items-center gap-2">
             <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
@@ -69,12 +69,11 @@ export function GitHubAppInstallCTA({ repository, className = '' }: GitHubAppIns
 
   // Installation prompt
   return (
-    <Card className={`bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800 ${className}`}>
+    <Card
+      className={`bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800 ${className}`}
+    >
       <CardHeader>
         <div className="flex items-start gap-4">
-          <div className="flex-shrink-0 p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
-            <Zap className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-          </div>
           <div className="flex-1">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
               Enable Real-time Similarity Search
@@ -84,18 +83,9 @@ export function GitHubAppInstallCTA({ repository, className = '' }: GitHubAppIns
               coverage.
             </p>
 
-            {!showBenefits ? (
-              <button
-                onClick={() => setShowBenefits(true)}
-                className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm font-medium inline-flex items-center gap-1"
-              >
-                See all benefits
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            ) : (
+            {showBenefits && (
               <ul className="space-y-2 mb-4">
                 <li className="flex items-start gap-2 text-sm">
-                  <Zap className="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5" />
                   <span>
                     <strong>10x faster</strong> similarity searches (&lt; 500ms)
                   </span>
@@ -127,28 +117,21 @@ export function GitHubAppInstallCTA({ repository, className = '' }: GitHubAppIns
               </ul>
             )}
 
-            <div className="flex flex-wrap gap-3 mt-4">
-              <a
-                href={getInstallUrl()}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Github className="w-4 h-4" />
-                Install GitHub App
-              </a>
-              <Button
-                variant="outline"
-                onClick={() =>
-                  window.open(
-                    '/docs/github-app-setup',
-                    '_blank',
-                    'noopener,noreferrer'
-                  )
-                }
-              >
-                Learn More
+            <div className="flex items-center gap-4 mt-4">
+              <Button asChild>
+                <a href={getInstallUrl()} target="_blank" rel="noopener noreferrer">
+                  Install GitHub App
+                </a>
               </Button>
+              {!showBenefits && (
+                <button
+                  onClick={() => setShowBenefits(true)}
+                  className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm font-medium inline-flex items-center gap-1"
+                >
+                  See all benefits
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              )}
             </div>
           </div>
         </div>
