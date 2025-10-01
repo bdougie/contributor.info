@@ -4,6 +4,7 @@ import { GraphQLClient } from '../graphql-client';
 import type { NonRetriableError } from 'inngest';
 import { getThrottleHours, QUEUE_CONFIG } from '../../progressive-capture/throttle-config';
 import { getPRState } from '../../utils/state-mapping';
+import { updateJobStatus } from '../helpers/job-status-updater';
 
 // Rate limiting constants for GraphQL (more generous)
 const MAX_PRS_PER_SYNC = QUEUE_CONFIG.maxPrsPerSync || 150; // Higher than REST due to efficiency
@@ -108,365 +109,382 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
   },
   { event: 'capture/repository.sync.graphql' },
   async ({ event, step }) => {
-    const { repositoryId, days, priority, reason } = event.data;
+    const { repositoryId, days, priority, reason, jobId } = event.data;
 
-    // Validate repositoryId first
-    if (!repositoryId) {
-      console.error('Missing repositoryId in event data:', event.data);
-      throw new Error(`Missing required field: repositoryId`) as NonRetriableError;
-    }
-
-    const effectiveDays = Math.min(days || DEFAULT_DAYS_LIMIT, DEFAULT_DAYS_LIMIT);
-
-    // Step 1: Check if repository has active backfill
-    const hasActiveBackfill = await step.run('check-active-backfill', async () => {
-      const { data } = await supabase
-        .from('progressive_backfill_state')
-        .select('status')
-        .eq('repository_id', repositoryId)
-        .eq('status', 'active')
-        .maybeSingle();
-
-      return !!data;
-    });
-
-    // Step 2: Get repository details and check if it was recently processed
-    const repository = await step.run('get-repository', async () => {
-      const { data, error } = await supabase
-        .from('repositories')
-        .select('owner, name, last_updated_at')
-        .eq('id', repositoryId)
-        .maybeSingle();
-
-      if (error || !data) {
-        throw new Error(`Repository not found: ${repositoryId}`) as NonRetriableError;
+    try {
+      // Validate repositoryId first
+      if (!repositoryId) {
+        console.error('Missing repositoryId in event data:', event.data);
+        throw new Error(`Missing required field: repositoryId`) as NonRetriableError;
       }
 
-      // Check if repository was synced recently (skip based on reason and data completeness)
-      if (data.last_updated_at && !hasActiveBackfill) {
-        const lastSyncTime = new Date(data.last_updated_at).getTime();
-        const hoursSinceSync = (Date.now() - lastSyncTime) / (1000 * 60 * 60);
+      const effectiveDays = Math.min(days || DEFAULT_DAYS_LIMIT, DEFAULT_DAYS_LIMIT);
 
-        // Get throttle threshold based on reason
-        const throttleHours = getThrottleHours(reason);
-
-        // Check if we have actual data (PRs with reviews/comments)
-        const { data: prData } = await supabase
-          .from('pull_requests')
-          .select('id')
+      // Step 1: Check if repository has active backfill
+      const hasActiveBackfill = await step.run('check-active-backfill', async () => {
+        const { data } = await supabase
+          .from('progressive_backfill_state')
+          .select('status')
           .eq('repository_id', repositoryId)
-          .limit(10); // Check first 10 PRs
+          .eq('status', 'active')
+          .maybeSingle();
 
-        const { count: reviewCount } = await supabase
-          .from('reviews')
+        return !!data;
+      });
+
+      // Step 2: Get repository details and check if it was recently processed
+      const repository = await step.run('get-repository', async () => {
+        const { data, error } = await supabase
+          .from('repositories')
+          .select('owner, name, last_updated_at')
+          .eq('id', repositoryId)
+          .maybeSingle();
+
+        if (error || !data) {
+          throw new Error(`Repository not found: ${repositoryId}`) as NonRetriableError;
+        }
+
+        // Check if repository was synced recently (skip based on reason and data completeness)
+        if (data.last_updated_at && !hasActiveBackfill) {
+          const lastSyncTime = new Date(data.last_updated_at).getTime();
+          const hoursSinceSync = (Date.now() - lastSyncTime) / (1000 * 60 * 60);
+
+          // Get throttle threshold based on reason
+          const throttleHours = getThrottleHours(reason);
+
+          // Check if we have actual data (PRs with reviews/comments)
+          const { data: prData } = await supabase
+            .from('pull_requests')
+            .select('id')
+            .eq('repository_id', repositoryId)
+            .limit(10); // Check first 10 PRs
+
+          const { count: reviewCount } = await supabase
+            .from('reviews')
+            .select('*', { count: 'exact', head: true })
+            .eq('repository_id', repositoryId);
+
+          // Only check comments if we have PRs to check
+          let commentCount = 0;
+          if (prData && prData.length > 0) {
+            const commentResult = await supabase
+              .from('comments')
+              .select('*', { count: 'exact', head: true })
+              .in(
+                'pull_request_id',
+                prData.map((pr) => pr.id)
+              );
+            commentCount = commentResult.count || 0;
+          }
+
+          const hasCompleteData =
+            prData && prData.length > 0 && ((reviewCount || 0) > 0 || commentCount > 0);
+
+          // If data is incomplete, be more lenient with throttling
+          const effectiveThrottleHours = hasCompleteData
+            ? throttleHours
+            : Math.min(throttleHours, 0.083); // 5 min max if no data
+
+          // Only skip if we're within the throttle window
+          if (hoursSinceSync < effectiveThrottleHours) {
+            // But still allow if it's been less than 5 minutes and we have NO data at all
+            if (!hasCompleteData && hoursSinceSync < 0.083) {
+              console.log(
+                'Repository %s/%s has no engagement data - allowing immediate sync',
+                data.owner,
+                data.name
+              );
+            } else {
+              const timeAgo =
+                hoursSinceSync < 1
+                  ? `${Math.round(hoursSinceSync * 60)} minutes`
+                  : `${Math.round(hoursSinceSync)} hours`;
+              const dataStatus = hasCompleteData ? 'has complete data' : 'has incomplete data';
+              throw new Error(
+                `Repository ${data.owner}/${data.name} was synced ${timeAgo} ago and ${dataStatus}. Skipping to prevent excessive API usage.`
+              ) as NonRetriableError;
+            }
+          }
+
+          console.log(
+            'Repository %s/%s sync allowed - reason: %s, last sync: %sh ago, has data: %s',
+            data.owner,
+            data.name,
+            reason,
+            hoursSinceSync.toFixed(2),
+            hasCompleteData
+          );
+        }
+
+        return data;
+      });
+
+      // Step 2: Check repository size before proceeding
+      await step.run('check-repository-size', async () => {
+        const { count: prCount } = await supabase
+          .from('pull_requests')
           .select('*', { count: 'exact', head: true })
           .eq('repository_id', repositoryId);
 
-        // Only check comments if we have PRs to check
-        let commentCount = 0;
-        if (prData && prData.length > 0) {
-          const commentResult = await supabase
-            .from('comments')
-            .select('*', { count: 'exact', head: true })
-            .in(
-              'pull_request_id',
-              prData.map((pr) => pr.id)
-            );
-          commentCount = commentResult.count || 0;
+        if (prCount && prCount > LARGE_REPO_THRESHOLD) {
+          console.warn(
+            `Large repository detected: ${repository.owner}/${repository.name} has ${prCount} PRs`
+          );
         }
 
-        const hasCompleteData =
-          prData && prData.length > 0 && ((reviewCount || 0) > 0 || commentCount > 0);
+        return { prCount: prCount || 0 };
+      });
 
-        // If data is incomplete, be more lenient with throttling
-        const effectiveThrottleHours = hasCompleteData
-          ? throttleHours
-          : Math.min(throttleHours, 0.083); // 5 min max if no data
+      // Step 3: Fetch recent PRs from GitHub using GraphQL
+      const recentPRs = await step.run('fetch-recent-prs-graphql', async () => {
+        const since = new Date(Date.now() - effectiveDays * 24 * 60 * 60 * 1000).toISOString();
 
-        // Only skip if we're within the throttle window
-        if (hoursSinceSync < effectiveThrottleHours) {
-          // But still allow if it's been less than 5 minutes and we have NO data at all
-          if (!hasCompleteData && hoursSinceSync < 0.083) {
+        try {
+          const client = getGraphQLClient();
+          const prs = await client.getRecentPRs(
+            repository.owner,
+            repository.name,
+            since,
+            MAX_PRS_PER_SYNC
+          );
+
+          console.log(
+            '✅ GraphQL recent PRs query successful for %s/%s (%s PRs found)',
+            repository.owner,
+            repository.name,
+            prs.length
+          );
+
+          // Log and monitor rate limit info
+          const rateLimit = client.getRateLimit();
+          if (rateLimit) {
             console.log(
-              'Repository %s/%s has no engagement data - allowing immediate sync',
-              data.owner,
-              data.name
+              '📊 GraphQL rate limit: %s/%s remaining (cost: %s points)',
+              rateLimit.remaining,
+              rateLimit.limit,
+              rateLimit.cost
             );
-          } else {
-            const timeAgo =
-              hoursSinceSync < 1
-                ? `${Math.round(hoursSinceSync * 60)} minutes`
-                : `${Math.round(hoursSinceSync)} hours`;
-            const dataStatus = hasCompleteData ? 'has complete data' : 'has incomplete data';
+
+            // Track rate limit usage with telemetry
+            const { queueTelemetry } = await import('../../progressive-capture/queue-telemetry');
+            // Default to 1 hour reset if not provided
+            const resetTime = new Date(Date.now() + 3600 * 1000);
+            queueTelemetry.trackRateLimit(
+              'graphql',
+              rateLimit.remaining,
+              rateLimit.limit,
+              resetTime
+            );
+          }
+
+          return prs.slice(0, MAX_PRS_PER_SYNC); // Ensure we don't exceed our limit
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : '';
+          if (errorMessage.includes('NOT_FOUND')) {
             throw new Error(
-              `Repository ${data.owner}/${data.name} was synced ${timeAgo} ago and ${dataStatus}. Skipping to prevent excessive API usage.`
+              `Repository ${repository.owner}/${repository.name} not found`
             ) as NonRetriableError;
           }
-        }
-
-        console.log(
-          'Repository %s/%s sync allowed - reason: %s, last sync: %sh ago, has data: %s',
-          data.owner,
-          data.name,
-          reason,
-          hoursSinceSync.toFixed(2),
-          hasCompleteData
-        );
-      }
-
-      return data;
-    });
-
-    // Step 2: Check repository size before proceeding
-    await step.run('check-repository-size', async () => {
-      const { count: prCount } = await supabase
-        .from('pull_requests')
-        .select('*', { count: 'exact', head: true })
-        .eq('repository_id', repositoryId);
-
-      if (prCount && prCount > LARGE_REPO_THRESHOLD) {
-        console.warn(
-          `Large repository detected: ${repository.owner}/${repository.name} has ${prCount} PRs`
-        );
-      }
-
-      return { prCount: prCount || 0 };
-    });
-
-    // Step 3: Fetch recent PRs from GitHub using GraphQL
-    const recentPRs = await step.run('fetch-recent-prs-graphql', async () => {
-      const since = new Date(Date.now() - effectiveDays * 24 * 60 * 60 * 1000).toISOString();
-
-      try {
-        const client = getGraphQLClient();
-        const prs = await client.getRecentPRs(
-          repository.owner,
-          repository.name,
-          since,
-          MAX_PRS_PER_SYNC
-        );
-
-        console.log(
-          '✅ GraphQL recent PRs query successful for %s/%s (%s PRs found)',
-          repository.owner,
-          repository.name,
-          prs.length
-        );
-
-        // Log and monitor rate limit info
-        const rateLimit = client.getRateLimit();
-        if (rateLimit) {
-          console.log(
-            '📊 GraphQL rate limit: %s/%s remaining (cost: %s points)',
-            rateLimit.remaining,
-            rateLimit.limit,
-            rateLimit.cost
-          );
-
-          // Track rate limit usage with telemetry
-          const { queueTelemetry } = await import('../../progressive-capture/queue-telemetry');
-          // Default to 1 hour reset if not provided
-          const resetTime = new Date(Date.now() + 3600 * 1000);
-          queueTelemetry.trackRateLimit('graphql', rateLimit.remaining, rateLimit.limit, resetTime);
-        }
-
-        return prs.slice(0, MAX_PRS_PER_SYNC); // Ensure we don't exceed our limit
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : '';
-        if (errorMessage.includes('NOT_FOUND')) {
-          throw new Error(
-            `Repository ${repository.owner}/${repository.name} not found`
-          ) as NonRetriableError;
-        }
-        if (errorMessage.includes('rate limit')) {
-          throw new Error(
-            `GraphQL rate limit hit for ${repository.owner}/${repository.name}. Please try again later.`
-          );
-        }
-
-        console.warn(
-          `GraphQL failed for ${repository.owner}/${repository.name}, this will trigger fallback to REST`
-        );
-        throw error;
-      }
-    });
-
-    // Step 4: Store PRs in database
-    const storedPRs = await step.run('store-prs', async () => {
-      if (recentPRs.length === 0) {
-        return [];
-      }
-
-      // First, ensure all contributors exist and get their UUIDs
-      const contributorPromises = recentPRs.map((pr) =>
-        ensureContributorExists(pr.author as GitHubUser)
-      );
-      const contributorIds = await Promise.all(contributorPromises);
-
-      // Then create PRs with proper UUIDs
-      const prsToStore = recentPRs.map((pr, index) => ({
-        github_id: pr.databaseId?.toString() || '0',
-        repository_id: repositoryId,
-        repository_full_name: `${repository.owner}/${repository.name}`,
-        number: pr.number,
-        title: pr.title,
-        body: null, // Basic PR list doesn't include body
-        state: getPRState({ state: pr.state || '', merged: pr.merged }),
-        author_id: contributorIds[index], // Now this is a proper UUID
-        created_at: pr.createdAt,
-        updated_at: pr.updatedAt,
-        closed_at: pr.closedAt,
-        merged_at: pr.mergedAt,
-        draft: pr.isDraft || false,
-        merged: pr.merged || false,
-        additions: pr.additions || 0,
-        deletions: pr.deletions || 0,
-        changed_files: pr.changedFiles || 0,
-        commits: pr.commits?.totalCount || 0,
-        base_branch: pr.baseRefName || 'main',
-        head_branch: pr.headRefName || 'unknown',
-        html_url: `https://github.com/${repository.owner}/${repository.name}/pull/${pr.number}`,
-      }));
-
-      const { data, error } = await supabase
-        .from('pull_requests')
-        .upsert(prsToStore, {
-          onConflict: 'github_id',
-          ignoreDuplicates: false,
-        })
-        .select('id, number');
-
-      if (error) {
-        throw new Error(`Failed to store PRs: ${error.message}`);
-      }
-
-      return data || [];
-    });
-
-    // Step 5: Prepare GraphQL job queue data (no nested steps)
-    const jobsToQueue = await step.run('prepare-graphql-job-queue', async () => {
-      interface JobData {
-        name: string;
-        data: {
-          repositoryId: string;
-          prNumber: string;
-          prId: string;
-          priority: string;
-        };
-      }
-      const jobs: JobData[] = [];
-
-      // Higher limit for GraphQL detail jobs due to efficiency
-      const MAX_DETAIL_JOBS = 50; // Higher than REST due to single-query efficiency
-
-      let detailJobsQueued = 0;
-
-      for (const pr of storedPRs) {
-        // Queue comprehensive GraphQL jobs for PRs that likely need more data
-        const prData = recentPRs.find((p) => p.number === pr.number);
-
-        if (!prData) continue;
-
-        // Check if this PR needs comment/review data
-        const { count: existingComments } = await supabase
-          .from('comments')
-          .select('*', { count: 'exact', head: true })
-          .eq('pull_request_id', pr.id);
-
-        const { count: existingReviews } = await supabase
-          .from('reviews')
-          .select('*', { count: 'exact', head: true })
-          .eq('pull_request_id', pr.id);
-
-        // Queue if: PR is open, has recent activity, or has no comments/reviews yet
-        const isOpen = prData.state === 'OPEN';
-        const hasNoComments = (existingComments || 0) === 0;
-        const hasNoReviews = (existingReviews || 0) === 0;
-        const isRecent =
-          new Date(prData.updatedAt || '').getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000;
-
-        if (
-          detailJobsQueued < MAX_DETAIL_JOBS &&
-          (isOpen || hasNoComments || hasNoReviews || isRecent)
-        ) {
-          jobs.push({
-            name: 'capture/pr.details.graphql',
-            data: {
-              repositoryId,
-              prNumber: pr.number.toString(),
-              prId: pr.id,
-              priority: isOpen ? 'high' : priority,
-            },
-          });
-          detailJobsQueued++;
-        }
-
-        if (detailJobsQueued >= MAX_DETAIL_JOBS) {
-          console.log(
-            'Reached GraphQL job queue limit (%s) for %s/%s',
-            MAX_DETAIL_JOBS,
-            repository.owner,
-            repository.name
-          );
-          break;
-        }
-      }
-
-      return jobs;
-    });
-
-    // Step 6: Send GraphQL events for queued jobs
-    // Note: step.sendEvent must be called outside of step.run to avoid nested step tooling
-    let detailsQueued = 0;
-    for (const job of jobsToQueue) {
-      await step.sendEvent(`pr-details-graphql-${detailsQueued}`, job);
-      detailsQueued++;
-    }
-
-    const queuedJobs = {
-      details: detailsQueued,
-    };
-
-    // Step 7: Update repository sync timestamp
-    await step.run('update-sync-timestamp', async () => {
-      const { error } = await supabase
-        .from('repositories')
-        .update({
-          last_updated_at: new Date().toISOString(),
-        })
-        .eq('id', repositoryId);
-
-      if (error) {
-        console.warn('Failed to update repository sync timestamp: %s', error.message);
-      }
-    });
-
-    // Get final metrics
-    const client = getGraphQLClient();
-    const metrics = client.getMetrics();
-    const rateLimit = client.getRateLimit();
-
-    return {
-      success: true,
-      repositoryId,
-      repository: `${repository.owner}/${repository.name}`,
-      method: 'graphql',
-      prsFound: recentPRs.length,
-      prsStored: storedPRs.length,
-      jobsQueued: queuedJobs,
-      reason,
-      efficiency: {
-        totalPointsUsed: metrics.totalPointsUsed,
-        averagePointsPerQuery: metrics.averagePointsPerQuery,
-        fallbackRate: `${metrics.fallbackRate.toFixed(1)}%`,
-      },
-      rateLimit: rateLimit
-        ? {
-            remaining: rateLimit.remaining,
-            limit: rateLimit.limit,
-            resetAt: rateLimit.resetAt,
+          if (errorMessage.includes('rate limit')) {
+            throw new Error(
+              `GraphQL rate limit hit for ${repository.owner}/${repository.name}. Please try again later.`
+            );
           }
-        : null,
-    };
+
+          console.warn(
+            `GraphQL failed for ${repository.owner}/${repository.name}, this will trigger fallback to REST`
+          );
+          throw error;
+        }
+      });
+
+      // Step 4: Store PRs in database
+      const storedPRs = await step.run('store-prs', async () => {
+        if (recentPRs.length === 0) {
+          return [];
+        }
+
+        // First, ensure all contributors exist and get their UUIDs
+        const contributorPromises = recentPRs.map((pr) =>
+          ensureContributorExists(pr.author as GitHubUser)
+        );
+        const contributorIds = await Promise.all(contributorPromises);
+
+        // Then create PRs with proper UUIDs
+        const prsToStore = recentPRs.map((pr, index) => ({
+          github_id: pr.databaseId?.toString() || '0',
+          repository_id: repositoryId,
+          repository_full_name: `${repository.owner}/${repository.name}`,
+          number: pr.number,
+          title: pr.title,
+          body: null, // Basic PR list doesn't include body
+          state: getPRState({ state: pr.state || '', merged: pr.merged }),
+          author_id: contributorIds[index], // Now this is a proper UUID
+          created_at: pr.createdAt,
+          updated_at: pr.updatedAt,
+          closed_at: pr.closedAt,
+          merged_at: pr.mergedAt,
+          draft: pr.isDraft || false,
+          merged: pr.merged || false,
+          additions: pr.additions || 0,
+          deletions: pr.deletions || 0,
+          changed_files: pr.changedFiles || 0,
+          commits: pr.commits?.totalCount || 0,
+          base_branch: pr.baseRefName || 'main',
+          head_branch: pr.headRefName || 'unknown',
+          html_url: `https://github.com/${repository.owner}/${repository.name}/pull/${pr.number}`,
+        }));
+
+        const { data, error } = await supabase
+          .from('pull_requests')
+          .upsert(prsToStore, {
+            onConflict: 'github_id',
+            ignoreDuplicates: false,
+          })
+          .select('id, number');
+
+        if (error) {
+          throw new Error(`Failed to store PRs: ${error.message}`);
+        }
+
+        return data || [];
+      });
+
+      // Step 5: Prepare GraphQL job queue data (no nested steps)
+      const jobsToQueue = await step.run('prepare-graphql-job-queue', async () => {
+        interface JobData {
+          name: string;
+          data: {
+            repositoryId: string;
+            prNumber: string;
+            prId: string;
+            priority: string;
+          };
+        }
+        const jobs: JobData[] = [];
+
+        // Higher limit for GraphQL detail jobs due to efficiency
+        const MAX_DETAIL_JOBS = 50; // Higher than REST due to single-query efficiency
+
+        let detailJobsQueued = 0;
+
+        for (const pr of storedPRs) {
+          // Queue comprehensive GraphQL jobs for PRs that likely need more data
+          const prData = recentPRs.find((p) => p.number === pr.number);
+
+          if (!prData) continue;
+
+          // Check if this PR needs comment/review data
+          const { count: existingComments } = await supabase
+            .from('comments')
+            .select('*', { count: 'exact', head: true })
+            .eq('pull_request_id', pr.id);
+
+          const { count: existingReviews } = await supabase
+            .from('reviews')
+            .select('*', { count: 'exact', head: true })
+            .eq('pull_request_id', pr.id);
+
+          // Queue if: PR is open, has recent activity, or has no comments/reviews yet
+          const isOpen = prData.state === 'OPEN';
+          const hasNoComments = (existingComments || 0) === 0;
+          const hasNoReviews = (existingReviews || 0) === 0;
+          const isRecent =
+            new Date(prData.updatedAt || '').getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000;
+
+          if (
+            detailJobsQueued < MAX_DETAIL_JOBS &&
+            (isOpen || hasNoComments || hasNoReviews || isRecent)
+          ) {
+            jobs.push({
+              name: 'capture/pr.details.graphql',
+              data: {
+                repositoryId,
+                prNumber: pr.number.toString(),
+                prId: pr.id,
+                priority: isOpen ? 'high' : priority,
+              },
+            });
+            detailJobsQueued++;
+          }
+
+          if (detailJobsQueued >= MAX_DETAIL_JOBS) {
+            console.log(
+              'Reached GraphQL job queue limit (%s) for %s/%s',
+              MAX_DETAIL_JOBS,
+              repository.owner,
+              repository.name
+            );
+            break;
+          }
+        }
+
+        return jobs;
+      });
+
+      // Step 6: Send GraphQL events for queued jobs
+      // Note: step.sendEvent must be called outside of step.run to avoid nested step tooling
+      let detailsQueued = 0;
+      for (const job of jobsToQueue) {
+        await step.sendEvent(`pr-details-graphql-${detailsQueued}`, job);
+        detailsQueued++;
+      }
+
+      const queuedJobs = {
+        details: detailsQueued,
+      };
+
+      // Step 7: Update repository sync timestamp
+      await step.run('update-sync-timestamp', async () => {
+        const { error } = await supabase
+          .from('repositories')
+          .update({
+            last_updated_at: new Date().toISOString(),
+          })
+          .eq('id', repositoryId);
+
+        if (error) {
+          console.warn('Failed to update repository sync timestamp: %s', error.message);
+        }
+      });
+
+      // Get final metrics
+      const client = getGraphQLClient();
+      const metrics = client.getMetrics();
+      const rateLimit = client.getRateLimit();
+
+      // Update job status to completed
+      await step.run('update-job-status', async () => {
+        await updateJobStatus(jobId, 'completed');
+      });
+
+      return {
+        success: true,
+        repositoryId,
+        repository: `${repository.owner}/${repository.name}`,
+        method: 'graphql',
+        prsFound: recentPRs.length,
+        prsStored: storedPRs.length,
+        jobsQueued: queuedJobs,
+        reason,
+        efficiency: {
+          totalPointsUsed: metrics.totalPointsUsed,
+          averagePointsPerQuery: metrics.averagePointsPerQuery,
+          fallbackRate: `${metrics.fallbackRate.toFixed(1)}%`,
+        },
+        rateLimit: rateLimit
+          ? {
+              remaining: rateLimit.remaining,
+              limit: rateLimit.limit,
+              resetAt: rateLimit.resetAt,
+            }
+          : null,
+      };
+    } catch (error) {
+      // Mark job as failed before re-throwing
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      await updateJobStatus(jobId, 'failed', errorMessage);
+      throw error;
+    }
   }
 );
