@@ -35,6 +35,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { ReviewerSuggestionsModal } from '@/components/features/workspace/reviewer-suggestions/ReviewerSuggestionsModal';
+// TODO: Uncomment when issue #833 is completed
+// import { GitHubAppInstallCTA } from '@/components/features/github-app/github-app-install-cta';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -453,6 +455,9 @@ function WorkspacePRs({
   // Check if there are any PRs with reviewers
   const hasReviewers = pullRequests.some((pr) => pr.reviewers && pr.reviewers.length > 0);
 
+  // TODO: Uncomment when issue #833 is completed
+  // const firstRepo = repositories[0];
+
   return (
     <div className="space-y-6">
       {/* Auto-sync indicator at top of tab */}
@@ -465,10 +470,25 @@ function WorkspacePRs({
           syncIntervalMinutes={60}
           className="text-sm text-muted-foreground"
         />
-        <Button onClick={() => setReviewerModalOpen(true)} size="sm" variant="outline">
-          CODEOWNERS
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => setReviewerModalOpen(true)} size="sm" variant="outline">
+            CODEOWNERS
+          </Button>
+        </div>
       </div>
+
+      {/* TODO: Uncomment when issue #833 webhook features are fully implemented
+      {firstRepo && (
+        <GitHubAppInstallCTA
+          repository={{
+            id: firstRepo.id,
+            full_name: firstRepo.full_name,
+            owner: firstRepo.owner,
+            name: firstRepo.name,
+          }}
+        />
+      )}
+      */}
 
       {/* Metrics and Trends - first, always full width */}
       <WorkspaceMetricsAndTrends
@@ -722,8 +742,24 @@ function WorkspaceIssues({
     );
   }
 
+  // TODO: Uncomment when issue #833 is completed
+  // const firstRepo = repositories[0];
+
   return (
     <div className="space-y-6">
+      {/* TODO: Uncomment when issue #833 webhook features are fully implemented
+      {firstRepo && (
+        <GitHubAppInstallCTA
+          repository={{
+            id: firstRepo.id,
+            full_name: firstRepo.full_name,
+            owner: firstRepo.owner,
+            name: firstRepo.name,
+          }}
+        />
+      )}
+      */}
+
       {/* Conditionally render side-by-side or full width based on assignee data */}
       {hasAssignees ? (
         <div className="grid gap-6 lg:grid-cols-2">
