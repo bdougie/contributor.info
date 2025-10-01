@@ -4,14 +4,19 @@ import { createIssueComment } from '../services/github-api';
 import { webhookDataService } from '../services/webhook/data-service';
 import { embeddingQueueService } from '../services/webhook/embedding-queue';
 import { webhookSimilarityService } from '../services/webhook/similarity-updater';
+import { eventRouter } from './event-router';
 import { supabase } from '../../src/lib/supabase';
 
 /**
- * Handle issue webhook events
+ * Handle issue webhook events with routing and prioritization
  */
 export async function handleIssuesEvent(event: IssuesEvent) {
   console.log('Issue %s: #${event.issue.number} in ${event.repository.full_name}', event.action);
 
+  // Route event through EventRouter for prioritization and debouncing
+  await eventRouter.routeEvent(event);
+
+  // Process event based on action
   switch (event.action) {
     case 'opened':
       await handleIssueOpened(event);

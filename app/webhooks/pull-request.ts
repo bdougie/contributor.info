@@ -14,15 +14,19 @@ import {
 import { handlePRCheckRuns } from './pr-check-runs';
 import { webhookDataService } from '../services/webhook/data-service';
 import { webhookSimilarityService } from '../services/webhook/similarity-updater';
+import { eventRouter } from './event-router';
 
 /**
- * Handle pull request webhook events
+ * Handle pull request webhook events with routing and prioritization
  */
 export async function handlePullRequestEvent(event: PullRequestEvent) {
   // Handle opened, edited, synchronize events
   if (!['opened', 'ready_for_review', 'edited', 'synchronize'].includes(event.action)) {
     return;
   }
+
+  // Route event through EventRouter for prioritization and debouncing
+  await eventRouter.routeEvent(event);
 
   // Skip if PR is still a draft (for opened events)
   if (event.action === 'opened' && event.pull_request.draft) {
