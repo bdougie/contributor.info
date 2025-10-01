@@ -11,18 +11,6 @@
  * service tokens, and other sensitive configuration.
  */
 
-// Type for import.meta.env
-interface ImportMetaEnv {
-  DEV?: boolean;
-  PROD?: boolean;
-  MODE?: string;
-  [key: string]: string | boolean | undefined;
-}
-
-interface ImportMeta {
-  env?: ImportMetaEnv;
-}
-
 // Detect runtime environment
 const isServer = typeof window === 'undefined';
 const isBrowser = typeof window !== 'undefined';
@@ -49,50 +37,21 @@ function getEnvVar(viteKey: string, serverKey?: string): string {
     return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
   }
 
-  if (isBrowser) {
-    // Browser: ONLY access VITE_* prefixed variables for security
-    // NEVER read non-prefixed variables as they may contain secrets
+  // Use process.env for all contexts (browser and server)
+  // This avoids import.meta which causes issues in serverless/CJS bundling
+  if (!hasProcess) return '';
 
-    // 1. Try import.meta.env first (Vite's way)
-    const metaEnv = (typeof import.meta !== 'undefined' && (import.meta as ImportMeta).env) || {};
-    const metaValue = metaEnv[viteKey];
-    if (typeof metaValue === 'string' && metaValue) {
-      return metaValue;
-    }
+  // Try VITE_* prefixed key first
+  const primaryValue = process.env[viteKey];
+  if (primaryValue) return primaryValue;
 
-    // 2. Try window.env (for runtime injection) - VITE_* keys only
-    const windowEnv = (window as Window & { env?: Record<string, string> }).env || {};
-    const windowValue = windowEnv[viteKey];
-    if (typeof windowValue === 'string' && windowValue) {
-      return windowValue;
-    }
-
-    // 3. Try process.env as fallback (some bundlers expose this) - VITE_* keys only
-    if (hasProcess) {
-      const processValue = process.env[viteKey];
-      if (typeof processValue === 'string' && processValue) {
-        return processValue;
-      }
-    }
-
-    // Do NOT check for non-prefixed variables in browser context
-    // This prevents accidental exposure of server secrets
-
-    return '';
-  } else {
-    // Server: Use process.env only (import.meta.env not available in CommonJS/Netlify Functions)
-    if (!hasProcess) return '';
-
-    const primaryValue = process.env[viteKey];
-    if (primaryValue) return primaryValue;
-
-    if (serverKey) {
-      const secondaryValue = process.env[serverKey];
-      if (secondaryValue) return secondaryValue;
-    }
-
-    return '';
+  // In server context, also try non-prefixed key
+  if (isServer && serverKey) {
+    const secondaryValue = process.env[serverKey];
+    if (secondaryValue) return secondaryValue;
   }
+
+  return '';
 }
 
 /**
@@ -148,27 +107,16 @@ export const env = {
   BUILD_ID: getEnvVar('VITE_BUILD_ID', 'BUILD_ID'),
 
   // Development mode detection
+  // Use process.env to avoid import.meta issues in serverless
   get DEV() {
-    if (isBrowser) {
-      const metaEnv = (typeof import.meta !== 'undefined' && (import.meta as ImportMeta).env) || {};
-      return metaEnv.DEV || false;
-    }
     return hasProcess && process.env.NODE_ENV === 'development';
   },
 
   get PROD() {
-    if (isBrowser) {
-      const metaEnv = (typeof import.meta !== 'undefined' && (import.meta as ImportMeta).env) || {};
-      return metaEnv.PROD || false;
-    }
     return hasProcess && process.env.NODE_ENV === 'production';
   },
 
   get MODE() {
-    if (isBrowser) {
-      const metaEnv = (typeof import.meta !== 'undefined' && (import.meta as ImportMeta).env) || {};
-      return metaEnv.MODE || 'development';
-    }
     return hasProcess ? process.env.NODE_ENV || 'development' : 'development';
   },
 
