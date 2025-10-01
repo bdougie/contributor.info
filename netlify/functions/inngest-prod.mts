@@ -1,28 +1,48 @@
 // Production Inngest function for contributor.info
-import { Inngest } from "inngest";
-import { serve } from "inngest/lambda";
-import type { Context } from "@netlify/functions";
+import { Inngest } from 'inngest';
+import { serve } from 'inngest/lambda';
+import type { Context } from '@netlify/functions';
 
-// Import factory functions for consistent client usage
-import { createInngestFunctions } from "../../src/lib/inngest/functions/factory";
+// Import real Inngest function implementations
+import {
+  capturePrDetails,
+  capturePrDetailsGraphQL,
+  capturePrReviews,
+  capturePrComments,
+  captureRepositorySync,
+  captureRepositorySyncGraphQL,
+  classifyRepositorySize,
+  classifySingleRepository,
+} from '../../src/lib/inngest/functions/index';
+import { discoverNewRepository } from '../../src/lib/inngest/functions/discover-new-repository';
+import { captureIssueComments } from '../../src/lib/inngest/functions/capture-issue-comments';
+import { captureRepositoryIssues } from '../../src/lib/inngest/functions/capture-repository-issues';
+import { updatePrActivity } from '../../src/lib/inngest/functions/update-pr-activity';
 
 // Environment detection - treat deploy previews as production for signing
 const isProduction = () => {
   const context = process.env.CONTEXT;
   const nodeEnv = process.env.NODE_ENV;
-  
+
   // Deploy previews should use production mode for proper signing
-  return context === 'production' || 
-         context === 'deploy-preview' || 
-         nodeEnv === 'production' ||
-         process.env.NETLIFY === 'true'; // All Netlify environments use production mode
+  return (
+    context === 'production' ||
+    context === 'deploy-preview' ||
+    nodeEnv === 'production' ||
+    process.env.NETLIFY === 'true'
+  ); // All Netlify environments use production mode
 };
 
 // Get production environment variables
 const getProductionEnvVar = (key: string, fallbackKey?: string): string => {
   // For production, use production-specific keys first
   if (isProduction()) {
-    return process.env[`INNGEST_PRODUCTION_${key}`] || process.env[key] || (fallbackKey ? process.env[fallbackKey] : '') || '';
+    return (
+      process.env[`INNGEST_PRODUCTION_${key}`] ||
+      process.env[key] ||
+      (fallbackKey ? process.env[fallbackKey] : '') ||
+      ''
+    );
   }
   // For preview/dev, use existing keys
   return process.env[key] || (fallbackKey ? process.env[fallbackKey] : '') || '';
@@ -34,7 +54,7 @@ if (!process.env.GITHUB_TOKEN && process.env.VITE_GITHUB_TOKEN) {
 }
 
 // Create Inngest client for production
-const inngest = new Inngest({ 
+const inngest = new Inngest({
   id: process.env.VITE_INNGEST_APP_ID || 'contributor-info',
   isDev: false, // Force production mode for proper request signing
   eventKey: getProductionEnvVar('EVENT_KEY', 'INNGEST_EVENT_KEY'),
@@ -51,28 +71,25 @@ console.log('Inngest Production Configuration:', {
   hasGithubToken: !!process.env.GITHUB_TOKEN || !!process.env.VITE_GITHUB_TOKEN,
 });
 
-// Create functions using the factory with production client
-const functions = createInngestFunctions(inngest);
-
-// Create the serve handler
+// Create the serve handler with real function implementations
 const inngestHandler = serve({
   client: inngest,
   functions: [
-    // All factory-created functions
-    functions.captureRepositorySyncGraphQL,
-    functions.capturePrDetails,
-    functions.capturePrDetailsGraphQL,
-    functions.capturePrReviews,
-    functions.capturePrComments,
-    functions.captureRepositorySync,
-    functions.classifyRepositorySize,
-    functions.classifySingleRepository,
-    functions.updatePrActivity,
-    functions.discoverNewRepository,
-    functions.captureIssueComments,
-    functions.captureRepositoryIssues,
+    // Real implementations that update job status
+    captureRepositorySyncGraphQL,
+    capturePrDetails,
+    capturePrDetailsGraphQL,
+    capturePrReviews,
+    capturePrComments,
+    captureRepositorySync,
+    classifyRepositorySize,
+    classifySingleRepository,
+    updatePrActivity,
+    discoverNewRepository,
+    captureIssueComments,
+    captureRepositoryIssues,
   ],
-  servePath: "/.netlify/functions/inngest-prod"
+  servePath: '/.netlify/functions/inngest-prod',
 });
 
 // Create the main handler function
