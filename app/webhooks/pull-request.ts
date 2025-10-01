@@ -12,6 +12,7 @@ import {
   generateCodeOwnersSuggestion,
 } from '../services/contributor-config';
 import { handlePRCheckRuns } from './pr-check-runs';
+import { webhookDataService } from '../services/webhook/data-service';
 
 /**
  * Handle pull request webhook events
@@ -300,38 +301,20 @@ interface StorePRInsightsData {
 
 async function storePRInsights(data: StorePRInsightsData) {
   try {
-    // First, ensure the repository exists in our database
-    const { data: repo } = await supabase
-      .from('repositories')
-      .select('id')
-      .eq('github_id', data.repository.id)
-      .maybeSingle();
-
-    if (!repo) {
+    // Use shared service to ensure repository exists
+    const repoId = await webhookDataService.ensureRepository(data.repository);
+    if (!repoId) {
       // Repository not tracked yet, skip storing insights
       return;
     }
 
-    // Store the PR if it doesn't exist
-    const { data: pr } = await supabase
-      .from('pull_requests')
-      .upsert({
-        github_id: data.pullRequest.id,
-        repository_id: repo.id,
-        number: data.pullRequest.number,
-        title: data.pullRequest.title,
-        state: data.pullRequest.state,
-        created_at: data.pullRequest.created_at,
-        updated_at: data.pullRequest.updated_at,
-      })
-      .select('id')
-      .maybeSingle();
-
-    if (!pr) return;
+    // Use shared service to store PR
+    const prId = await webhookDataService.storePR(data.pullRequest, repoId);
+    if (!prId) return;
 
     // Store the insights
     await supabase.from('pr_insights').upsert({
-      pull_request_id: pr.id,
+      pull_request_id: prId,
       github_pr_id: data.pullRequest.id,
       contributor_stats: data.contributorInsights,
       suggested_reviewers: data.reviewerSuggestions,
@@ -394,38 +377,20 @@ interface StorePRSimilarityData {
 
 async function storePRSimilarityComment(data: StorePRSimilarityData) {
   try {
-    // First, ensure the repository exists in our database
-    const { data: repo } = await supabase
-      .from('repositories')
-      .select('id')
-      .eq('github_id', data.repository.id)
-      .maybeSingle();
-
-    if (!repo) {
+    // Use shared service to ensure repository exists
+    const repoId = await webhookDataService.ensureRepository(data.repository);
+    if (!repoId) {
       // Repository not tracked yet, skip storing
       return;
     }
 
-    // Store the PR if it doesn't exist
-    const { data: pr } = await supabase
-      .from('pull_requests')
-      .upsert({
-        github_id: data.pullRequest.id,
-        repository_id: repo.id,
-        number: data.pullRequest.number,
-        title: data.pullRequest.title,
-        state: data.pullRequest.state,
-        created_at: data.pullRequest.created_at,
-        updated_at: data.pullRequest.updated_at,
-      })
-      .select('id')
-      .maybeSingle();
-
-    if (!pr) return;
+    // Use shared service to store PR
+    const prId = await webhookDataService.storePR(data.pullRequest, repoId);
+    if (!prId) return;
 
     // Store basic similarity tracking (lighter than full insights)
     await supabase.from('pr_insights').upsert({
-      pull_request_id: pr.id,
+      pull_request_id: prId,
       github_pr_id: data.pullRequest.id,
       similar_issues: data.similarIssues,
       comment_posted: false,

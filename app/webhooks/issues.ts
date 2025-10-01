@@ -1,8 +1,8 @@
 import { IssuesEvent } from '../types/github';
-import { supabase } from '../../src/lib/supabase';
-import { inngest } from '../../src/lib/inngest/client';
 import { processNewIssue, formatSimilarIssuesComment } from '../services/issue-similarity';
 import { createIssueComment } from '../services/github-api';
+import { webhookDataService } from '../services/webhook/data-service';
+import { embeddingQueueService } from '../services/webhook/embedding-queue';
 
 /**
  * Handle issue webhook events
@@ -39,68 +39,28 @@ export async function handleIssuesEvent(event: IssuesEvent) {
  */
 async function handleIssueOpened(event: IssuesEvent) {
   try {
-    // Check if repository exists in our database
-    const { data: repository } = await supabase
-      .from('repositories')
-      .select('id')
-      .eq('github_id', event.repository.id)
-      .maybeSingle();
-
-    if (!repository) {
+    // Use shared service to check repository
+    const repoId = await webhookDataService.ensureRepository(event.repository);
+    if (!repoId) {
       console.log('Repository not tracked, skipping issue storage');
       return;
     }
 
-    // Get or create contributor
-    const { data: contributor } = await supabase
-      .from('contributors')
-      .upsert({
-        github_id: event.issue.user.id,
-        github_login: event.issue.user.login,
-        avatar_url: event.issue.user.avatar_url,
-        html_url: event.issue.user.html_url,
-        type: event.issue.user.type,
-      })
-      .select('id')
-      .maybeSingle();
-
-    // Store the issue
-    const { data: issueData } = await supabase
-      .from('issues')
-      .upsert({
-        github_id: event.issue.id,
-        repository_id: repository.id,
-        number: event.issue.number,
-        title: event.issue.title,
-        body: event.issue.body,
-        state: event.issue.state,
-        author_id: contributor?.id,
-        created_at: event.issue.created_at,
-        updated_at: event.issue.updated_at,
-        labels: event.issue.labels,
-        assignees: event.issue.assignees.map((a) => ({
-          id: a.id,
-          login: a.login,
-        })),
-        comments_count: event.issue.comments,
-        is_pull_request: !!event.issue.pull_request,
-      })
-      .select('id')
-      .maybeSingle();
-
-    // Process issue for similarity and generate embeddings
-    if (!issueData) {
+    // Use shared service to store issue (includes contributor upsert)
+    const issueId = await webhookDataService.storeIssue(event.issue, repoId);
+    if (!issueId) {
       console.error('Failed to create issue record in database');
       return;
     }
 
+    // Process issue for similarity
     const similarIssues = await processNewIssue({
-      id: issueData.id,
+      id: issueId,
       github_id: event.issue.id,
       number: event.issue.number,
       title: event.issue.title,
       body: event.issue.body,
-      repository_id: repository.id,
+      repository_id: repoId,
       html_url: event.issue.html_url,
     });
 
@@ -117,16 +77,8 @@ async function handleIssueOpened(event: IssuesEvent) {
       }
     }
 
-    // Queue for additional analysis
-    await inngest.send({
-      name: 'github.issue.analyze',
-      data: {
-        issue_id: event.issue.id,
-        issue_number: event.issue.number,
-        repository_id: repository.id,
-        repository_name: event.repository.full_name,
-      },
-    });
+    // Use shared service to queue embedding generation
+    await embeddingQueueService.queueIssueEmbedding(issueId, repoId, 'high');
   } catch (error) {
     console.error('Error handling issue opened:', error);
     // Re-throw to allow webhook retry
@@ -139,16 +91,13 @@ async function handleIssueOpened(event: IssuesEvent) {
  */
 async function handleIssueClosed(event: IssuesEvent) {
   try {
-    // Update issue state
-    await supabase
-      .from('issues')
-      .update({
-        state: 'closed',
-        closed_at: event.issue.closed_at,
-        closed_by_id: event.sender.id,
-        updated_at: event.issue.updated_at,
-      })
-      .eq('github_id', event.issue.id);
+    // Use shared service to update issue state
+    await webhookDataService.updateIssueState(
+      event.issue.id,
+      'closed',
+      event.issue.closed_at,
+      event.sender.id
+    );
 
     // Check if closed by a PR
     if (event.issue.closed_at) {
@@ -164,15 +113,8 @@ async function handleIssueClosed(event: IssuesEvent) {
  */
 async function handleIssueReopened(event: IssuesEvent) {
   try {
-    await supabase
-      .from('issues')
-      .update({
-        state: 'open',
-        closed_at: null,
-        closed_by_id: null,
-        updated_at: event.issue.updated_at,
-      })
-      .eq('github_id', event.issue.id);
+    // Use shared service to update issue state
+    await webhookDataService.updateIssueState(event.issue.id, 'open', null, null);
   } catch (error) {
     console.error('Error handling issue reopened: %s', error);
   }
@@ -183,23 +125,18 @@ async function handleIssueReopened(event: IssuesEvent) {
  */
 async function handleIssueEdited(event: IssuesEvent) {
   try {
-    await supabase
-      .from('issues')
-      .update({
-        title: event.issue.title,
-        body: event.issue.body,
-        updated_at: event.issue.updated_at,
-      })
-      .eq('github_id', event.issue.id);
-
-    // Re-calculate similarities if title or body changed significantly
-    await inngest.send({
-      name: 'github.issue.recalculate_similarity',
-      data: {
-        issue_id: event.issue.id,
-        repository_id: event.repository.id,
-      },
+    // Use shared service to update issue metadata
+    await webhookDataService.updateIssueMetadata(event.issue.id, {
+      title: event.issue.title,
+      body: event.issue.body,
+      updated_at: event.issue.updated_at,
     });
+
+    // Use shared service to queue similarity recalculation
+    const repoId = await webhookDataService.ensureRepository(event.repository);
+    if (repoId) {
+      await embeddingQueueService.queueSimilarityRecalculation(repoId, 'issue_edited');
+    }
   } catch (error) {
     console.error('Error handling issue edited: %s', error);
   }
@@ -210,13 +147,11 @@ async function handleIssueEdited(event: IssuesEvent) {
  */
 async function handleIssueLabeled(event: IssuesEvent) {
   try {
-    await supabase
-      .from('issues')
-      .update({
-        labels: event.issue.labels,
-        updated_at: event.issue.updated_at,
-      })
-      .eq('github_id', event.issue.id);
+    // Use shared service to update issue metadata
+    await webhookDataService.updateIssueMetadata(event.issue.id, {
+      labels: event.issue.labels,
+      updated_at: event.issue.updated_at,
+    });
   } catch (error) {
     console.error('Error handling issue labeled: %s', error);
   }
@@ -227,16 +162,14 @@ async function handleIssueLabeled(event: IssuesEvent) {
  */
 async function handleIssueAssigned(event: IssuesEvent) {
   try {
-    await supabase
-      .from('issues')
-      .update({
-        assignees: event.issue.assignees.map((a) => ({
-          id: a.id,
-          login: a.login,
-        })),
-        updated_at: event.issue.updated_at,
-      })
-      .eq('github_id', event.issue.id);
+    // Use shared service to update issue metadata
+    await webhookDataService.updateIssueMetadata(event.issue.id, {
+      assignees: event.issue.assignees.map((a) => ({
+        id: a.id,
+        login: a.login,
+      })),
+      updated_at: event.issue.updated_at,
+    });
   } catch (error) {
     console.error('Error handling issue assigned: %s', error);
   }
