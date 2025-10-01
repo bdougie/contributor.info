@@ -25,7 +25,7 @@ _If you would like to work an issue, please read the [TRIAGE.md](/TRIAGE.md)_
    # Choose your development approach:
    # Option A: Local Supabase (recommended for contributors)
    npm run env:local
-   npm run supabase:start
+   npm run db:setup  # Automated setup with consolidated migration
    
    # Option B: Production database (maintainers only)
    npm run env:production
@@ -112,7 +112,9 @@ Our database includes:
 
 ## 🗃️ Database Migrations
 
-Database migrations are located in `supabase/migrations/` and are applied automatically when you reset or start local Supabase.
+> **🚀 For Local Development**: We recommend using the **consolidated migration approach** (`npm run db:setup` or `npm run supabase:migrate:consolidated`) which eliminates migration ordering issues. See [`supabase/migrations-local/README.md`](./supabase/migrations-local/README.md) for details.
+
+### Writing New Migrations
 
 ### Working with Migrations
 
@@ -146,6 +148,19 @@ npm run supabase:reset
 
 ### Best Practices
 
+| Issue | Solution |
+|-------|----------|
+| Migration ordering issues | Use consolidated migration: `npm run supabase:migrate:consolidated` |
+| "relation does not exist" errors | Switch to consolidated approach to avoid dependency issues |
+| "auth schema not found" | Migration uses auth functions - wrap in conditional checks |
+| "role does not exist" | Create roles conditionally before granting permissions |
+| "extension not available" | Use IF NOT EXISTS and handle pg_cron specially |
+| "multiple migration matches" | Migrations aren't idempotent - add IF EXISTS checks |
+
+> **💡 Quick Fix**: Most local development migration issues are resolved by using our automated consolidated migration approach. Run `npm run db:setup` for a clean start.
+
+For detailed documentation, see:
+
 - Always use `IF EXISTS` / `IF NOT EXISTS` for idempotency
 - Test migrations locally before pushing
 - Keep migrations small and focused
@@ -155,6 +170,8 @@ npm run supabase:reset
 - [Database Migrations Guide](./docs/setup/DATABASE_MIGRATIONS.md)
 - [Migration Scripts](./scripts/migrations/)
 - [Supabase Setup](./docs/supabase/)
+- [Local Migration Automation](./supabase/migrations-local/README.md) - Consolidated migration approach with troubleshooting
+
 
 ## 🔧 Environment Variables
 
@@ -228,6 +245,11 @@ contributor.info/
 ### 2. Development Commands
 
 ```bash
+# Quick Start (Recommended for New Contributors)
+npm run env:local        # Switch to local environment
+npm run db:setup         # Complete database setup with consolidated migration
+npm run dev              # Start development server
+
 # Development
 npm run dev              # Start Vite dev server (port 5173)
 npm start                # Full stack: Vite + Netlify + Inngest
@@ -238,25 +260,16 @@ npm run preview          # Preview production build
 npm run env:local        # Switch to local Supabase
 npm run env:production   # Switch to production database
 
-# Database Management
-npm run supabase:start   # Start local Supabase (Docker required)
-npm run supabase:stop    # Stop local Supabase
-npm run supabase:reset   # Reset database with migrations
-npm run supabase:status  # Check Supabase status
-npm run db:seed          # Generate seed data for testing
-npm run db:seed:quick    # Quick seed (3 days, 1 repo)
 
-# Testing
-npm test                 # Run unit tests (Vitest)
-npm run test:watch       # Watch mode
-npm run test:ui          # Visual test runner
-npm run test:e2e         # E2E tests (Playwright)
-npm run test:e2e:ui      # E2E with UI
-
-# Storybook
-npm run storybook        # Start Storybook dev server
-npm run build-storybook  # Build static Storybook
-npm run test-storybook   # Run interaction tests
+# Database Management (using npx, no global install needed)
+npm run db:setup                    # Complete setup (start + consolidated migration)
+npm run supabase:migrate:consolidated  # Use consolidated migration (recommended)
+npm run supabase:migrate:local      # Basic local migration
+npm run supabase:start              # Start local Supabase
+npm run supabase:stop               # Stop local Supabase
+npm run supabase:reset              # Reset database with migrations
+npm run supabase:status             # Check Supabase status
+npm run supabase:migrate            # Apply migrations
 
 # Code Quality
 npm run lint             # Run ESLint
