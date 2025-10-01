@@ -35,7 +35,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { ReviewerSuggestionsModal } from '@/components/features/workspace/reviewer-suggestions/ReviewerSuggestionsModal';
-import { GitHubAppInstallCTA } from '@/components/features/github-app/github-app-install-cta';
+import { GitHubAppInstallModal } from '@/components/features/github-app/github-app-install-modal';
 import { useWorkspaceGitHubAppStatus } from '@/hooks/use-workspace-github-app-status';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -54,6 +54,7 @@ import {
   Search,
   Menu,
   Package,
+  Sparkles,
 } from '@/components/ui/icon';
 import {
   useReactTable,
@@ -384,6 +385,7 @@ function WorkspacePRs({
   workspaceId,
   workspace,
   setReviewerModalOpen,
+  setGithubAppModalOpen,
 }: {
   repositories: Repository[];
   selectedRepositories: string[];
@@ -391,15 +393,9 @@ function WorkspacePRs({
   workspaceId: string;
   workspace?: Workspace;
   setReviewerModalOpen: (open: boolean) => void;
+  setGithubAppModalOpen: (open: boolean) => void;
 }) {
   const navigate = useNavigate();
-
-  // Check GitHub App installation status across all repos
-  const repositoryIds = useMemo(
-    () => repositories.map((r) => r.id).filter(Boolean),
-    [repositories]
-  );
-  const appStatus = useWorkspaceGitHubAppStatus(repositoryIds);
 
   // Use the new hook for automatic PR syncing and caching
   const { pullRequests, loading, error, lastSynced, isStale, refresh } = useWorkspacePRs({
@@ -462,9 +458,7 @@ function WorkspacePRs({
   // Check if there are any PRs with reviewers
   const hasReviewers = pullRequests.some((pr) => pr.reviewers && pr.reviewers.length > 0);
 
-  // Show CTA only if NO repos have the app installed
-  const showCTA = !appStatus.loading && !appStatus.hasAnyInstalled && repositories.length > 0;
-  const ctaRepo = repositories[0]; // Show CTA with first repo for context
+  const ctaRepo = repositories[0]; // Use first repo for modal context
 
   return (
     <div className="space-y-6">
@@ -482,19 +476,19 @@ function WorkspacePRs({
           <Button onClick={() => setReviewerModalOpen(true)} size="sm" variant="outline">
             CODEOWNERS
           </Button>
+          {ctaRepo && (
+            <Button
+              onClick={() => setGithubAppModalOpen(true)}
+              size="sm"
+              variant="outline"
+              className="gap-2"
+            >
+              <Sparkles className="w-4 h-4 text-amber-500" />
+              Similarity
+            </Button>
+          )}
         </div>
       </div>
-
-      {showCTA && ctaRepo && (
-        <GitHubAppInstallCTA
-          repository={{
-            id: ctaRepo.id,
-            full_name: ctaRepo.full_name,
-            owner: ctaRepo.owner,
-            name: ctaRepo.name,
-          }}
-        />
-      )}
 
       {/* Metrics and Trends - first, always full width */}
       <WorkspaceMetricsAndTrends
@@ -546,22 +540,17 @@ function WorkspaceIssues({
   repositories,
   selectedRepositories,
   timeRange,
+  setGithubAppModalOpen,
 }: {
   repositories: Repository[];
   selectedRepositories: string[];
   timeRange: TimeRange;
+  setGithubAppModalOpen: (open: boolean) => void;
 }) {
   const [issues, setIssues] = useState<Issue[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
-
-  // Check GitHub App installation status across all repos
-  const repositoryIds = useMemo(
-    () => repositories.map((r) => r.id).filter(Boolean),
-    [repositories]
-  );
-  const appStatus = useWorkspaceGitHubAppStatus(repositoryIds);
 
   useEffect(() => {
     async function fetchIssues() {
@@ -755,21 +744,25 @@ function WorkspaceIssues({
     );
   }
 
-  // Show CTA only if NO repos have the app installed
-  const showCTA = !appStatus.loading && !appStatus.hasAnyInstalled && repositories.length > 0;
-  const ctaRepo = repositories[0]; // Show CTA with first repo for context
+  const ctaRepo = repositories[0]; // Use first repo for context
 
   return (
     <div className="space-y-6">
-      {showCTA && ctaRepo && (
-        <GitHubAppInstallCTA
-          repository={{
-            id: ctaRepo.id,
-            full_name: ctaRepo.full_name,
-            owner: ctaRepo.owner,
-            name: ctaRepo.name,
-          }}
-        />
+      {/* Action buttons at top */}
+      {ctaRepo && (
+        <div className="flex items-center justify-end px-1">
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => setGithubAppModalOpen(true)}
+              size="sm"
+              variant="outline"
+              className="gap-2"
+            >
+              <Sparkles className="w-4 h-4 text-amber-500" />
+              Similarity
+            </Button>
+          </div>
+        </div>
       )}
 
       {/* Conditionally render side-by-side or full width based on assignee data */}
@@ -2326,6 +2319,7 @@ function WorkspacePage() {
   const [memberCount, setMemberCount] = useState(0);
   const [isWorkspaceOwner, setIsWorkspaceOwner] = useState(false);
   const [reviewerModalOpen, setReviewerModalOpen] = useState(false);
+  const [githubAppModalOpen, setGithubAppModalOpen] = useState(false);
 
   // Check GitHub App installation status across all workspace repos
   const repositoryIds = useMemo(
@@ -3401,6 +3395,21 @@ function WorkspacePage() {
             />
           )}
 
+          {/* GitHub App Install Modal - Available on all tabs */}
+          {repositories.length > 0 && (
+            <GitHubAppInstallModal
+              open={githubAppModalOpen}
+              onOpenChange={setGithubAppModalOpen}
+              repository={{
+                id: repositories[0].id,
+                full_name: repositories[0].full_name,
+                owner: repositories[0].owner,
+                name: repositories[0].name,
+              }}
+              isInstalled={appStatus.hasAnyInstalled}
+            />
+          )}
+
           <TabsContent value="overview" className="mt-6 space-y-4">
             <div className="container max-w-7xl mx-auto">
               <WorkspaceDashboard
@@ -3431,6 +3440,7 @@ function WorkspacePage() {
                 workspaceId={workspace.id}
                 workspace={workspace}
                 setReviewerModalOpen={setReviewerModalOpen}
+                setGithubAppModalOpen={setGithubAppModalOpen}
               />
             </div>
           </TabsContent>
@@ -3441,6 +3451,7 @@ function WorkspacePage() {
                 repositories={repositories}
                 selectedRepositories={selectedRepositories}
                 timeRange={timeRange}
+                setGithubAppModalOpen={setGithubAppModalOpen}
               />
             </div>
           </TabsContent>
