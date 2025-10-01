@@ -1,4 +1,5 @@
 // Production Inngest function for contributor.info
+// Force rebuild: 2025-10-01 to clear Netlify cache
 import { Inngest } from 'inngest';
 import { serve } from 'inngest/lambda';
 import type { Context } from '@netlify/functions';
