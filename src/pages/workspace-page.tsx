@@ -2320,6 +2320,7 @@ function WorkspacePage() {
   const [isWorkspaceOwner, setIsWorkspaceOwner] = useState(false);
   const [reviewerModalOpen, setReviewerModalOpen] = useState(false);
   const [githubAppModalOpen, setGithubAppModalOpen] = useState(false);
+  const [selectedRepoForModal, setSelectedRepoForModal] = useState<Repository | null>(null);
 
   // Check GitHub App installation status across all workspace repos
   const repositoryIds = useMemo(
@@ -3215,6 +3216,11 @@ function WorkspacePage() {
     navigate(`/${repo.full_name}`);
   };
 
+  const handleGitHubAppModalOpen = (repo: Repository) => {
+    setSelectedRepoForModal(repo);
+    setGithubAppModalOpen(true);
+  };
+
   const handleSettingsClick = () => {
     toast.info('Workspace settings coming soon!');
   };
@@ -3396,17 +3402,19 @@ function WorkspacePage() {
           )}
 
           {/* GitHub App Install Modal - Available on all tabs */}
-          {repositories.length > 0 && (
+          {selectedRepoForModal && (
             <GitHubAppInstallModal
               open={githubAppModalOpen}
               onOpenChange={setGithubAppModalOpen}
               repository={{
-                id: repositories[0].id,
-                full_name: repositories[0].full_name,
-                owner: repositories[0].owner,
-                name: repositories[0].name,
+                id: selectedRepoForModal.id,
+                full_name: selectedRepoForModal.full_name,
+                owner: selectedRepoForModal.owner,
+                name: selectedRepoForModal.name,
               }}
-              isInstalled={appStatus.hasAnyInstalled}
+              isInstalled={
+                appStatus.repoStatuses?.get(selectedRepoForModal.id)?.isInstalled ?? false
+              }
             />
           )}
 
@@ -3424,6 +3432,7 @@ function WorkspacePage() {
                 onAddRepository={isWorkspaceOwner ? handleAddRepository : undefined}
                 onRemoveRepository={isWorkspaceOwner ? handleRemoveRepository : undefined}
                 onRepositoryClick={handleRepositoryClick}
+                onGitHubAppModalOpen={handleGitHubAppModalOpen}
                 onSettingsClick={handleSettingsClick}
                 onUpgradeClick={handleUpgradeClick}
                 repoStatuses={appStatus.repoStatuses}

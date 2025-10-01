@@ -69,6 +69,7 @@ export interface RepositoryListProps {
   onPinToggle?: (repo: Repository) => void;
   onRemove?: (repo: Repository) => void;
   onAddRepository?: () => void;
+  onGitHubAppModalOpen?: (repo: Repository) => void;
   showActions?: boolean;
   className?: string;
   emptyMessage?: string;
@@ -110,6 +111,7 @@ export function RepositoryList({
   onPinToggle,
   onRemove,
   onAddRepository,
+  onGitHubAppModalOpen,
   showActions = true,
   className,
   emptyMessage = 'No repositories in this workspace yet',
@@ -163,21 +165,17 @@ export function RepositoryList({
                     {repo.full_name}
                   </span>
                   {repoStatuses && (
-                    <a
-                      href={
-                        isInstalled
-                          ? `https://github.com/apps/contributor-info/installations/new`
-                          : `https://github.com/apps/contributor-info/installations/new`
-                      }
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onGitHubAppModalOpen?.(repo);
+                      }}
                       title={
                         isInstalled
                           ? 'GitHub App installed - Real-time similarity enabled'
                           : 'Click to install GitHub App for real-time similarity'
                       }
-                      className="flex-shrink-0"
+                      className="flex-shrink-0 hover:opacity-80 transition-opacity"
                     >
                       <Sparkles
                         className={cn(
@@ -185,7 +183,7 @@ export function RepositoryList({
                           isInstalled ? 'text-amber-500 fill-amber-500' : 'text-muted-foreground'
                         )}
                       />
-                    </a>
+                    </button>
                   )}
                   {repo.language && (
                     <Badge
@@ -335,7 +333,7 @@ export function RepositoryList({
     }
 
     return cols;
-  }, [showActions, onPinToggle, onRemove, onRepositoryClick, repoStatuses]);
+  }, [showActions, onPinToggle, onRemove, onRepositoryClick, repoStatuses, onGitHubAppModalOpen]);
 
   const table = useReactTable({
     data: repositories,

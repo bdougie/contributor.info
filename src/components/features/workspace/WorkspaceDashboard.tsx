@@ -40,6 +40,7 @@ export interface WorkspaceDashboardProps {
   onAddRepository?: () => void;
   onRemoveRepository?: (repo: Repository) => void;
   onRepositoryClick?: (repo: Repository) => void;
+  onGitHubAppModalOpen?: (repo: Repository) => void;
   onSettingsClick?: () => void;
   onUpgradeClick?: () => void;
   className?: string;
@@ -70,6 +71,7 @@ export function WorkspaceDashboard({
   onAddRepository,
   onRemoveRepository,
   onRepositoryClick,
+  onGitHubAppModalOpen,
   className,
   children,
   repoStatuses,
@@ -174,6 +176,7 @@ export function WorkspaceDashboard({
         onPinToggle={handlePinToggle}
         onRemove={onRemoveRepository}
         onAddRepository={onAddRepository}
+        onGitHubAppModalOpen={onGitHubAppModalOpen}
         repoStatuses={repoStatuses}
         emptyMessage={
           repositories.length === 0
