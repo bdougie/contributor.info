@@ -148,7 +148,7 @@ const GET_PR_DETAILS_QUERY = `
 const GET_RECENT_PRS_QUERY = `
   query GetRecentPRs($owner: String!, $repo: String!, $first: Int!) {
     repository(owner: $owner, name: $repo) {
-      pullRequests(first: $first, orderBy: {field: UPDATED_AT, direction: DESC}) {
+      pullRequests(first: $first, orderBy: {field: CREATED_AT, direction: DESC}) {
         totalCount
         nodes {
           databaseId
@@ -499,11 +499,11 @@ export class GraphQLClient {
 
       const allPRs = result.repository?.pullRequests?.nodes || [];
 
-      // Filter PRs updated since the given date (client-side filtering)
+      // Filter PRs created since the given date (client-side filtering)
       const sinceDate = new Date(since);
       const filteredPRs = allPRs.filter((pr) => {
-        const updatedAt = new Date(pr.updatedAt || '');
-        return updatedAt >= sinceDate;
+        const createdAt = new Date(pr.createdAt || '');
+        return createdAt >= sinceDate;
       });
 
       return filteredPRs;
