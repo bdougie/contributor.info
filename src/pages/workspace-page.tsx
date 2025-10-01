@@ -385,7 +385,7 @@ function WorkspacePRs({
   workspaceId,
   workspace,
   setReviewerModalOpen,
-  setGithubAppModalOpen,
+  onGitHubAppModalOpen,
 }: {
   repositories: Repository[];
   selectedRepositories: string[];
@@ -393,7 +393,7 @@ function WorkspacePRs({
   workspaceId: string;
   workspace?: Workspace;
   setReviewerModalOpen: (open: boolean) => void;
-  setGithubAppModalOpen: (open: boolean) => void;
+  onGitHubAppModalOpen: (repo: Repository) => void;
 }) {
   const navigate = useNavigate();
 
@@ -478,7 +478,7 @@ function WorkspacePRs({
           </Button>
           {ctaRepo && (
             <Button
-              onClick={() => setGithubAppModalOpen(true)}
+              onClick={() => onGitHubAppModalOpen(ctaRepo)}
               size="sm"
               variant="outline"
               className="gap-2"
@@ -540,12 +540,12 @@ function WorkspaceIssues({
   repositories,
   selectedRepositories,
   timeRange,
-  setGithubAppModalOpen,
+  onGitHubAppModalOpen,
 }: {
   repositories: Repository[];
   selectedRepositories: string[];
   timeRange: TimeRange;
-  setGithubAppModalOpen: (open: boolean) => void;
+  onGitHubAppModalOpen: (repo: Repository) => void;
 }) {
   const [issues, setIssues] = useState<Issue[]>([]);
   const [loading, setLoading] = useState(true);
@@ -753,7 +753,7 @@ function WorkspaceIssues({
         <div className="flex items-center justify-end px-1">
           <div className="flex items-center gap-2">
             <Button
-              onClick={() => setGithubAppModalOpen(true)}
+              onClick={() => onGitHubAppModalOpen(ctaRepo)}
               size="sm"
               variant="outline"
               className="gap-2"
@@ -3449,7 +3449,7 @@ function WorkspacePage() {
                 workspaceId={workspace.id}
                 workspace={workspace}
                 setReviewerModalOpen={setReviewerModalOpen}
-                setGithubAppModalOpen={setGithubAppModalOpen}
+                onGitHubAppModalOpen={handleGitHubAppModalOpen}
               />
             </div>
           </TabsContent>
@@ -3460,7 +3460,7 @@ function WorkspacePage() {
                 repositories={repositories}
                 selectedRepositories={selectedRepositories}
                 timeRange={timeRange}
-                setGithubAppModalOpen={setGithubAppModalOpen}
+                onGitHubAppModalOpen={handleGitHubAppModalOpen}
               />
             </div>
           </TabsContent>
