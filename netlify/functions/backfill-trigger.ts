@@ -62,6 +62,15 @@ export const handler: Handler = async (event) => {
       };
     }
 
+    // Log request details for diagnostics
+    console.log('[backfill-trigger] Processing request:', {
+      repository: body.repository,
+      days: body.days || 30,
+      force: body.force || false,
+      hasCallbackUrl: Boolean(body.callback_url),
+      timestamp: new Date().toISOString(),
+    });
+
     // Trigger backfill via the server client
     const result = await manualBackfillServerClient.triggerBackfill({
       repository: body.repository,
@@ -70,15 +79,31 @@ export const handler: Handler = async (event) => {
       callback_url: body.callback_url,
     });
 
+    console.log('[backfill-trigger] Success:', {
+      job_id: result.job_id,
+      repository: body.repository,
+      status: result.status,
+    });
+
     return {
       statusCode: 202,
       headers,
       body: JSON.stringify(result),
     };
   } catch (error) {
-    console.error('[backfill-trigger] Error:', error);
-
+    // Enhanced error logging for diagnostics
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : undefined;
+
+    console.error('[backfill-trigger] Detailed error:', {
+      error: errorMessage,
+      stack: errorStack,
+      repository: JSON.parse(event.body || '{}').repository,
+      timestamp: new Date().toISOString(),
+      ghDatapipeUrl: process.env.GH_DATPIPE_API_URL || 'https://gh-datapipe.fly.dev',
+      hasApiKey: Boolean(process.env.GH_DATPIPE_KEY),
+    });
+
     let statusCode = 500;
     let errorCode = 'INTERNAL_ERROR';
 
@@ -92,6 +117,9 @@ export const handler: Handler = async (event) => {
     } else if (errorMessage.includes('timeout')) {
       statusCode = 504;
       errorCode = 'TIMEOUT';
+    } else if (errorMessage.includes('not configured')) {
+      statusCode = 503;
+      errorCode = 'SERVICE_UNAVAILABLE';
     }
 
     return {
@@ -102,6 +130,11 @@ export const handler: Handler = async (event) => {
         message: `Failed to trigger backfill: ${errorMessage}`,
         code: errorCode,
         service: 'backfill-trigger',
+        diagnostic: {
+          hasGhDatapipeKey: Boolean(process.env.GH_DATPIPE_KEY),
+          ghDatapipeUrl: process.env.GH_DATPIPE_API_URL || 'default',
+          timestamp: new Date().toISOString(),
+        },
       }),
     };
   }

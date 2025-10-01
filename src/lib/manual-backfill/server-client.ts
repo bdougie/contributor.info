@@ -39,28 +39,84 @@ class ManualBackfillServerClient {
       request.callback_url ||
       (process.env.BASE_URL || 'https://contributor.info') + '/api/webhook/backfill-complete';
 
-    const response = await fetch(`${this.apiUrl}/api/backfill/trigger`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify({
-        ...request,
-        callback_url: webhookUrl,
-      }),
+    const requestUrl = `${this.apiUrl}/api/backfill/trigger`;
+    const requestPayload = {
+      ...request,
+      callback_url: webhookUrl,
+    };
+
+    console.log('[ManualBackfillServerClient] Initiating backfill request:', {
+      url: requestUrl,
+      repository: request.repository,
+      days: request.days,
+      hasApiKey: Boolean(this.apiKey),
+      timestamp: new Date().toISOString(),
     });
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Unknown error' }));
-      console.error('[ManualBackfillServerClient] Failed to trigger backfill:', error);
-      throw new Error(`Failed to trigger backfill: ${error.message || response.statusText}`);
-    }
+    try {
+      const response = await fetch(requestUrl, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify(requestPayload),
+      });
 
-    const result = await response.json();
-    console.log(
-      '[ManualBackfillServerClient] Triggered backfill job %s for %s',
-      result.job_id,
-      request.repository
-    );
-    return result;
+      // Log response details for diagnostics
+      console.log('[ManualBackfillServerClient] Response received:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+        headers: Object.fromEntries(response.headers.entries()),
+      });
+
+      if (!response.ok) {
+        // Try to get detailed error information
+        let errorDetails = { message: 'Unknown error' };
+        const contentType = response.headers.get('content-type');
+
+        try {
+          if (contentType?.includes('application/json')) {
+            errorDetails = await response.json();
+          } else {
+            const textError = await response.text();
+            errorDetails = { message: textError || response.statusText };
+          }
+        } catch (parseError) {
+          console.error('[ManualBackfillServerClient] Failed to parse error response:', parseError);
+        }
+
+        console.error('[ManualBackfillServerClient] Request failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorDetails,
+          repository: request.repository,
+          url: requestUrl,
+        });
+
+        throw new Error(
+          `Failed to trigger backfill: ${errorDetails.message || response.statusText}`
+        );
+      }
+
+      const result = await response.json();
+      console.log('[ManualBackfillServerClient] Success:', {
+        job_id: result.job_id,
+        repository: request.repository,
+        status: result.status,
+      });
+
+      return result;
+    } catch (error) {
+      // Log fetch-level errors (network issues, etc.)
+      console.error('[ManualBackfillServerClient] Fetch error:', {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        repository: request.repository,
+        url: requestUrl,
+        apiUrl: this.apiUrl,
+      });
+
+      throw error;
+    }
   }
 
   /**
