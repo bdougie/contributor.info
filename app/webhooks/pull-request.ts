@@ -13,13 +13,14 @@ import {
 } from '../services/contributor-config';
 import { handlePRCheckRuns } from './pr-check-runs';
 import { webhookDataService } from '../services/webhook/data-service';
+import { webhookSimilarityService } from '../services/webhook/similarity-updater';
 
 /**
  * Handle pull request webhook events
  */
 export async function handlePullRequestEvent(event: PullRequestEvent) {
-  // Only process opened and ready_for_review events
-  if (!['opened', 'ready_for_review'].includes(event.action)) {
+  // Handle opened, edited, synchronize events
+  if (!['opened', 'ready_for_review', 'edited', 'synchronize'].includes(event.action)) {
     return;
   }
 
@@ -32,6 +33,12 @@ export async function handlePullRequestEvent(event: PullRequestEvent) {
   if (event.action === 'opened') {
     // Run Check Runs and comments in parallel (dual feedback system)
     await Promise.all([handlePROpened(event), handlePRCheckRuns(event)]);
+    return;
+  }
+
+  // Handle edited/synchronize events with real-time similarity updates
+  if (event.action === 'edited' || event.action === 'synchronize') {
+    await handlePRSimilarityUpdate(event);
     return;
   }
 
@@ -238,8 +245,58 @@ async function handlePROpened(event: PullRequestEvent) {
       similarIssues,
       commentId: postedComment.id,
     });
+
+    // Trigger real-time similarity updates for repository
+    const repoId = await webhookDataService.ensureRepository(event.repository);
+    if (repoId) {
+      await webhookSimilarityService.handlePREvent('opened', event.pull_request, event.repository);
+    }
   } catch (error) {
     console.error('Error handling PR opened event:', error);
+    // Don't throw - we don't want GitHub to retry
+  }
+}
+
+/**
+ * Handle PR edited/synchronize events with real-time similarity updates
+ */
+async function handlePRSimilarityUpdate(event: PullRequestEvent) {
+  try {
+    console.log(
+      'Processing PR %s event #%s in ${event.repository.full_name}',
+      event.action,
+      event.pull_request.number
+    );
+
+    // Store/update PR data
+    const repoId = await webhookDataService.ensureRepository(event.repository);
+    if (!repoId) {
+      console.log('Repository not tracked, skipping similarity update');
+      return;
+    }
+
+    // Update PR in database
+    await webhookDataService.storePR(event.pull_request, repoId);
+
+    // Trigger real-time similarity recalculation
+    const updatedSimilarities = await webhookSimilarityService.handlePREvent(
+      event.action as 'edited' | 'synchronize',
+      event.pull_request,
+      event.repository
+    );
+
+    console.log(
+      'Updated similarities for PR #%d: %d similar issues found',
+      event.pull_request.number,
+      updatedSimilarities.length
+    );
+
+    // Update Check Runs with new similarity data (if Check Runs exist)
+    if (updatedSimilarities.length > 0) {
+      await handlePRCheckRuns(event);
+    }
+  } catch (error) {
+    console.error('Error handling PR similarity update:', error);
     // Don't throw - we don't want GitHub to retry
   }
 }

@@ -3,6 +3,8 @@ import { processNewIssue, formatSimilarIssuesComment } from '../services/issue-s
 import { createIssueComment } from '../services/github-api';
 import { webhookDataService } from '../services/webhook/data-service';
 import { embeddingQueueService } from '../services/webhook/embedding-queue';
+import { webhookSimilarityService } from '../services/webhook/similarity-updater';
+import { supabase } from '../../src/lib/supabase';
 
 /**
  * Handle issue webhook events
@@ -79,6 +81,9 @@ async function handleIssueOpened(event: IssuesEvent) {
 
     // Use shared service to queue embedding generation
     await embeddingQueueService.queueIssueEmbedding(issueId, repoId, 'high');
+
+    // Trigger real-time similarity recalculation for all open PRs
+    await webhookSimilarityService.handleIssueEvent('opened', event.issue, repoId);
   } catch (error) {
     console.error('Error handling issue opened:', error);
     // Re-throw to allow webhook retry
@@ -103,6 +108,12 @@ async function handleIssueClosed(event: IssuesEvent) {
     if (event.issue.closed_at) {
       await checkIfClosedByPR(event.issue, event.repository);
     }
+
+    // Trigger similarity recalculation to update closed status
+    const repoId = await webhookDataService.ensureRepository(event.repository);
+    if (repoId) {
+      await webhookSimilarityService.handleIssueEvent('closed', event.issue, repoId);
+    }
   } catch (error) {
     console.error('Error handling issue closed: %o', error);
   }
@@ -115,6 +126,12 @@ async function handleIssueReopened(event: IssuesEvent) {
   try {
     // Use shared service to update issue state
     await webhookDataService.updateIssueState(event.issue.id, 'open', null, null);
+
+    // Trigger similarity recalculation to update reopened status
+    const repoId = await webhookDataService.ensureRepository(event.repository);
+    if (repoId) {
+      await webhookSimilarityService.handleIssueEvent('reopened', event.issue, repoId);
+    }
   } catch (error) {
     console.error('Error handling issue reopened: %s', error);
   }
@@ -136,6 +153,9 @@ async function handleIssueEdited(event: IssuesEvent) {
     const repoId = await webhookDataService.ensureRepository(event.repository);
     if (repoId) {
       await embeddingQueueService.queueSimilarityRecalculation(repoId, 'issue_edited');
+
+      // Trigger real-time similarity recalculation with cache invalidation
+      await webhookSimilarityService.handleIssueEvent('edited', event.issue, repoId);
     }
   } catch (error) {
     console.error('Error handling issue edited: %s', error);
