@@ -24,6 +24,7 @@ import {
   Target,
   MoreHorizontal,
   Settings,
+  Sparkles,
 } from '@/components/ui/icon';
 import {
   DropdownMenu,
@@ -71,6 +72,13 @@ export interface RepositoryListProps {
   showActions?: boolean;
   className?: string;
   emptyMessage?: string;
+  repoStatuses?: Map<
+    string,
+    {
+      isInstalled: boolean;
+      installationId?: string;
+    }
+  >;
 }
 
 // Removed columnHelper to avoid type issues
@@ -105,6 +113,7 @@ export function RepositoryList({
   showActions = true,
   className,
   emptyMessage = 'No repositories in this workspace yet',
+  repoStatuses,
 }: RepositoryListProps) {
   const [globalFilter, setGlobalFilter] = useState('');
   const [sorting, setSorting] = useState<SortingState>([
@@ -130,6 +139,9 @@ export function RepositoryList({
         },
         cell: ({ row }) => {
           const repo = row.original;
+          const status = repoStatuses?.get(repo.id);
+          const isInstalled = status?.isInstalled ?? false;
+
           return (
             <div className="flex items-center gap-2 sm:gap-3">
               <div className="relative flex-shrink-0">
@@ -150,6 +162,31 @@ export function RepositoryList({
                   <span className="font-medium truncate text-sm sm:text-base">
                     {repo.full_name}
                   </span>
+                  {repoStatuses && (
+                    <a
+                      href={
+                        isInstalled
+                          ? `https://github.com/apps/contributor-info/installations/new`
+                          : `https://github.com/apps/contributor-info/installations/new`
+                      }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      title={
+                        isInstalled
+                          ? 'GitHub App installed - Real-time similarity enabled'
+                          : 'Click to install GitHub App for real-time similarity'
+                      }
+                      className="flex-shrink-0"
+                    >
+                      <Sparkles
+                        className={cn(
+                          'h-3.5 w-3.5',
+                          isInstalled ? 'text-amber-500 fill-amber-500' : 'text-muted-foreground'
+                        )}
+                      />
+                    </a>
+                  )}
                   {repo.language && (
                     <Badge
                       variant="outline"
@@ -298,7 +335,7 @@ export function RepositoryList({
     }
 
     return cols;
-  }, [showActions, onPinToggle, onRemove, onRepositoryClick]);
+  }, [showActions, onPinToggle, onRemove, onRepositoryClick, repoStatuses]);
 
   const table = useReactTable({
     data: repositories,

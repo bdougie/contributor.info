@@ -36,6 +36,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { ReviewerSuggestionsModal } from '@/components/features/workspace/reviewer-suggestions/ReviewerSuggestionsModal';
 import { GitHubAppInstallCTA } from '@/components/features/github-app/github-app-install-cta';
+import { useWorkspaceGitHubAppStatus } from '@/hooks/use-workspace-github-app-status';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -393,6 +394,10 @@ function WorkspacePRs({
 }) {
   const navigate = useNavigate();
 
+  // Check GitHub App installation status across all repos
+  const repositoryIds = repositories.map((r) => r.id).filter(Boolean);
+  const appStatus = useWorkspaceGitHubAppStatus(repositoryIds);
+
   // Use the new hook for automatic PR syncing and caching
   const { pullRequests, loading, error, lastSynced, isStale, refresh } = useWorkspacePRs({
     repositories,
@@ -453,7 +458,10 @@ function WorkspacePRs({
 
   // Check if there are any PRs with reviewers
   const hasReviewers = pullRequests.some((pr) => pr.reviewers && pr.reviewers.length > 0);
-  const firstRepo = repositories[0];
+
+  // Show CTA only if NO repos have the app installed
+  const showCTA = !appStatus.loading && !appStatus.hasAnyInstalled && repositories.length > 0;
+  const ctaRepo = repositories[0]; // Show CTA with first repo for context
 
   return (
     <div className="space-y-6">
@@ -474,13 +482,13 @@ function WorkspacePRs({
         </div>
       </div>
 
-      {firstRepo && (
+      {showCTA && ctaRepo && (
         <GitHubAppInstallCTA
           repository={{
-            id: firstRepo.id,
-            full_name: firstRepo.full_name,
-            owner: firstRepo.owner,
-            name: firstRepo.name,
+            id: ctaRepo.id,
+            full_name: ctaRepo.full_name,
+            owner: ctaRepo.owner,
+            name: ctaRepo.name,
           }}
         />
       )}
@@ -544,6 +552,10 @@ function WorkspaceIssues({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+
+  // Check GitHub App installation status across all repos
+  const repositoryIds = repositories.map((r) => r.id).filter(Boolean);
+  const appStatus = useWorkspaceGitHubAppStatus(repositoryIds);
 
   useEffect(() => {
     async function fetchIssues() {
@@ -737,17 +749,19 @@ function WorkspaceIssues({
     );
   }
 
-  const firstRepo = repositories[0];
+  // Show CTA only if NO repos have the app installed
+  const showCTA = !appStatus.loading && !appStatus.hasAnyInstalled && repositories.length > 0;
+  const ctaRepo = repositories[0]; // Show CTA with first repo for context
 
   return (
     <div className="space-y-6">
-      {firstRepo && (
+      {showCTA && ctaRepo && (
         <GitHubAppInstallCTA
           repository={{
-            id: firstRepo.id,
-            full_name: firstRepo.full_name,
-            owner: firstRepo.owner,
-            name: firstRepo.name,
+            id: ctaRepo.id,
+            full_name: ctaRepo.full_name,
+            owner: ctaRepo.owner,
+            name: ctaRepo.name,
           }}
         />
       )}
@@ -2307,6 +2321,10 @@ function WorkspacePage() {
   const [isWorkspaceOwner, setIsWorkspaceOwner] = useState(false);
   const [reviewerModalOpen, setReviewerModalOpen] = useState(false);
 
+  // Check GitHub App installation status across all workspace repos
+  const repositoryIds = repositories.map((r) => r.id).filter(Boolean);
+  const appStatus = useWorkspaceGitHubAppStatus(repositoryIds);
+
   // Determine active tab from URL
   const pathSegments = location.pathname.split('/');
   const activeTab = pathSegments[3] || 'overview';
@@ -3390,6 +3408,7 @@ function WorkspacePage() {
                 onRepositoryClick={handleRepositoryClick}
                 onSettingsClick={handleSettingsClick}
                 onUpgradeClick={handleUpgradeClick}
+                repoStatuses={appStatus.repoStatuses}
               />
             </div>
           </TabsContent>
