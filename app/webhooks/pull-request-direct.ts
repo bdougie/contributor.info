@@ -1,4 +1,11 @@
-import { PullRequestEvent } from '../types/github';
+import {
+  PullRequestEvent,
+  Repository,
+  PullRequest,
+  SimilarIssueResult,
+  ReviewerSuggestion,
+  WebhookCommentData,
+} from '../types/github';
 import { formatMinimalPRComment } from '../services/comments';
 import { suggestReviewers } from '../services/reviewers';
 import {
@@ -7,9 +14,10 @@ import {
   isUserExcluded,
 } from '../services/contributor-config';
 import { supabase } from '../../src/lib/supabase';
+import type { GitHubAppAuth } from '../lib/auth';
 
 // Lazy load auth to avoid initialization errors
-let githubAppAuth: any = null;
+let githubAppAuth: GitHubAppAuth | null = null;
 
 async function getAuth() {
   if (!githubAppAuth) {
@@ -205,7 +213,10 @@ export async function handlePROpenedDirect(event: PullRequestEvent) {
 /**
  * Find similar issues using repository info directly from webhook
  */
-async function findSimilarIssuesDirect(pr: any, repo: any): Promise<any[]> {
+async function findSimilarIssuesDirect(
+  pr: PullRequest,
+  repo: Repository
+): Promise<SimilarIssueResult[]> {
   try {
     // First check if repository is in database
     const { data: dbRepo } = await supabase
@@ -290,7 +301,7 @@ async function findSimilarIssuesDirect(pr: any, repo: any): Promise<any[]> {
 /**
  * Ensure repository is tracked in database with correct GitHub ID
  */
-async function ensureRepositoryTracked(repo: any) {
+async function ensureRepositoryTracked(repo: Repository): Promise<string | null> {
   try {
     // Check if repository exists with correct GitHub ID
     const { data: existing } = await supabase
@@ -371,13 +382,7 @@ async function ensureRepositoryTracked(repo: any) {
 /**
  * Track webhook comment for analytics
  */
-async function trackWebhookComment(data: {
-  pullRequest: any;
-  repository: any;
-  similarIssues: any[];
-  reviewerSuggestions: any[];
-  commentId: number;
-}) {
+async function trackWebhookComment(data: WebhookCommentData & { commentId: number }) {
   try {
     // Store webhook activity for analytics
     await supabase.from('webhook_activities').insert({
