@@ -35,14 +35,8 @@ COPY webhooks-server/package*.json ./
 # Install production dependencies only
 RUN npm ci --production
 
-# Copy built files from builder
+# Copy built files from builder (includes compiled app/ and src/ modules)
 COPY --from=builder /app/webhooks-server/dist ./dist
-
-# Copy app/ directory (runtime dependency)
-COPY app/ ./app/
-
-# Copy src/ directory (runtime dependency)
-COPY src/ ./src/
 
 # Expose port
 EXPOSE 8080

@@ -110,13 +110,7 @@ WHERE aer.repository_id = 'your-repo-id'
 
 #### Test Steps
 
-1. **Enable Webhook Logging**
-   ```typescript
-   // Set in environment or PostHog
-   ENABLE_WEBHOOK_DEBUG=true
-   ```
-
-2. **Create Test Issue**
+1. **Create Test Issue**
    - Go to GitHub repository
    - Create new issue with descriptive content:
      ```
@@ -126,7 +120,7 @@ WHERE aer.repository_id = 'your-repo-id'
             menu overlaps content and is difficult to close."
      ```
 
-3. **Verify Webhook Delivery**
+2. **Verify Webhook Delivery**
    - Go to: GitHub → Settings → Developer settings → GitHub Apps
    - Select "contributor-info" app
    - Click "Advanced" tab

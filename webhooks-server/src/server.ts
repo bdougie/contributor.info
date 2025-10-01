@@ -28,8 +28,6 @@ const PORT = process.env.PORT || 8080;
 // Middleware
 app.use(helmet());
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
-app.use(express.raw({ type: 'application/json', limit: '10mb' }));
 
 // Rate limiting for webhook endpoint
 const webhookLimiter = rateLimit({
@@ -84,66 +82,71 @@ function verifyWebhookSignature(payload: Buffer, signature: string | undefined):
 /**
  * Main webhook endpoint
  */
-app.post('/webhook', webhookLimiter, async (req, res) => {
-  metrics.webhooksReceived++;
+app.post(
+  '/webhook',
+  webhookLimiter,
+  express.raw({ type: 'application/json', limit: '10mb' }),
+  async (req, res) => {
+    metrics.webhooksReceived++;
 
-  try {
-    // Verify webhook signature
-    const signature = req.headers['x-hub-signature-256'] as string;
-    const payload = req.body;
+    try {
+      // Verify webhook signature
+      const signature = req.headers['x-hub-signature-256'] as string;
+      const payload = req.body;
 
-    if (!verifyWebhookSignature(payload, signature)) {
-      console.error('❌ Invalid webhook signature');
+      if (!verifyWebhookSignature(payload, signature)) {
+        console.error('❌ Invalid webhook signature');
+        metrics.webhooksFailed++;
+        return res.status(401).json({ error: 'Invalid signature' });
+      }
+
+      // Parse payload
+      const event = JSON.parse(payload.toString());
+      const eventType = req.headers['x-github-event'] as string;
+      const deliveryId = req.headers['x-github-delivery'] as string;
+
+      console.log('📥 Webhook received: %s (ID: %s)', eventType, deliveryId);
+
+      // Route to appropriate handler
+      let result;
+      switch (eventType) {
+        case 'pull_request':
+          result = await handlePullRequestEvent(event);
+          // Also run Check Runs (they're called internally in pull-request.ts now)
+          break;
+
+        case 'issues':
+          result = await handleIssuesEvent(event);
+          break;
+
+        default:
+          console.log('ℹ️ Unhandled event type: %s', eventType);
+          return res.status(200).json({
+            status: 'ignored',
+            message: `Event type ${eventType} not handled`,
+          });
+      }
+
+      metrics.webhooksProcessed++;
+      console.log('✅ Webhook processed: %s', eventType);
+
+      res.status(200).json({
+        status: 'success',
+        event: eventType,
+        delivery_id: deliveryId,
+        result,
+      });
+    } catch (error) {
       metrics.webhooksFailed++;
-      return res.status(401).json({ error: 'Invalid signature' });
+      console.error('❌ Webhook processing error:', error);
+
+      res.status(500).json({
+        error: 'Webhook processing failed',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      });
     }
-
-    // Parse payload
-    const event = JSON.parse(payload.toString());
-    const eventType = req.headers['x-github-event'] as string;
-    const deliveryId = req.headers['x-github-delivery'] as string;
-
-    console.log('📥 Webhook received: %s (ID: %s)', eventType, deliveryId);
-
-    // Route to appropriate handler
-    let result;
-    switch (eventType) {
-      case 'pull_request':
-        result = await handlePullRequestEvent(event);
-        // Also run Check Runs (they're called internally in pull-request.ts now)
-        break;
-
-      case 'issues':
-        result = await handleIssuesEvent(event);
-        break;
-
-      default:
-        console.log('ℹ️ Unhandled event type: %s', eventType);
-        return res.status(200).json({
-          status: 'ignored',
-          message: `Event type ${eventType} not handled`,
-        });
-    }
-
-    metrics.webhooksProcessed++;
-    console.log('✅ Webhook processed: %s', eventType);
-
-    res.status(200).json({
-      status: 'success',
-      event: eventType,
-      delivery_id: deliveryId,
-      result,
-    });
-  } catch (error) {
-    metrics.webhooksFailed++;
-    console.error('❌ Webhook processing error:', error);
-
-    res.status(500).json({
-      error: 'Webhook processing failed',
-      message: error instanceof Error ? error.message : 'Unknown error',
-    });
   }
-});
+);
 
 /**
  * Health check endpoint

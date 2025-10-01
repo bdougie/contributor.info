@@ -20,8 +20,8 @@ import type { Octokit } from '@octokit/rest';
 export async function handlePRCheckRuns(event: PullRequestEvent): Promise<void> {
   const { pull_request: pr, repository: repo, installation, action } = event;
 
-  // Only process on PR opened, synchronize, or ready_for_review
-  if (!['opened', 'synchronize', 'ready_for_review'].includes(action)) {
+  // Only process on PR opened, synchronize, edited, or ready_for_review
+  if (!['opened', 'synchronize', 'edited', 'ready_for_review'].includes(action)) {
     console.log('Skipping check runs for action: %s', action);
     return;
   }
@@ -146,7 +146,7 @@ async function runSimilarityCheck(
         // Add annotation for high similarity
         if (similarity >= 80) {
           annotations.push({
-            path: '.github',
+            path: 'README.md',
             start_line: 1,
             end_line: 1,
             annotation_level: 'warning',
@@ -310,8 +310,8 @@ async function analyzePerformanceImpact(
   const recommendations: string[] = [];
 
   try {
-    // Get PR files
-    const { data: files } = await octokit.rest.pulls.listFiles({
+    // Get PR files with pagination
+    const files = await octokit.paginate(octokit.rest.pulls.listFiles, {
       owner: repo.owner.login,
       repo: repo.name,
       pull_number: pr.number,

@@ -75,15 +75,15 @@ export class EventRouter {
       // Extract event metadata
       const metadata = this.extractMetadata(event);
 
+      // Classify priority first (needed for debounce logic)
+      const priority = await this.classifyPriority(event);
+      metadata.priority = priority.priority;
+
       // Check if event should be debounced
       if (this.shouldDebounce(metadata)) {
         await this.debounceEvent(event, metadata);
         return;
       }
-
-      // Classify priority
-      const priority = await this.classifyPriority(event);
-      metadata.priority = priority.priority;
 
       console.log(
         '📨 Routing event: %s %s (priority: %s, score: %d)',
@@ -360,17 +360,26 @@ export class EventRouter {
     console.log('🔄 Processing %d queued events', this.retryQueue.length);
 
     // Process one event at a time to avoid hitting rate limits again
-    const { event } = this.retryQueue.shift()!;
+    const retryItem = this.retryQueue.shift()!;
 
     try {
-      await this.routeEvent(event);
+      await this.routeEvent(retryItem.event);
       // Success - mark as no longer rate limited
       this.rateLimitStatus.isLimited = false;
     } catch (error) {
       if (this.isRateLimitError(error)) {
-        // Still rate limited, put back in queue
-        this.retryQueue.unshift({ event, retryCount: 0 });
-        console.warn('⚠️  Still rate limited, will retry later');
+        // Still rate limited, put back in queue with incremented retry count
+        retryItem.retryCount++;
+        if (retryItem.retryCount >= this.MAX_RETRIES) {
+          console.error('❌ Max retries reached for event, dropping');
+          return;
+        }
+        this.retryQueue.unshift(retryItem);
+        console.warn(
+          '⚠️  Still rate limited, will retry later (attempt %d/%d)',
+          retryItem.retryCount,
+          this.MAX_RETRIES
+        );
       } else {
         console.error('❌ Error processing retry:', error);
       }

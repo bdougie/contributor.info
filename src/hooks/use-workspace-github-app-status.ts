@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 
 export interface WorkspaceGitHubAppStatus {
@@ -35,8 +35,18 @@ export function useWorkspaceGitHubAppStatus(repositoryIds: string[]) {
     uninstalledRepoIds: [],
   });
 
+  // Track latest request to prevent stale async responses from overwriting state
+  const latestRequestRef = useRef<string>('');
+
   const checkInstallationStatus = useCallback(async () => {
+    // Create unique request ID for this call
+    const requestId = `${Date.now()}-${Math.random()}`;
+    latestRequestRef.current = requestId;
+
     if (!repositoryIds || repositoryIds.length === 0) {
+      // Guard: Only update if this is still the latest request
+      if (latestRequestRef.current !== requestId) return;
+
       setStatus({
         hasAnyInstalled: false,
         allInstalled: false,
@@ -73,6 +83,9 @@ export function useWorkspaceGitHubAppStatus(repositoryIds: string[]) {
 
       if (error) {
         console.error('Error checking GitHub App status for workspace:', error);
+        // Guard: Only update if this is still the latest request
+        if (latestRequestRef.current !== requestId) return;
+
         setStatus({
           hasAnyInstalled: false,
           allInstalled: false,
@@ -117,6 +130,9 @@ export function useWorkspaceGitHubAppStatus(repositoryIds: string[]) {
       const hasAnyInstalled = installedRepoIds.size > 0;
       const allInstalled = installedRepoIds.size === repositoryIds.length;
 
+      // Guard: Only update if this is still the latest request
+      if (latestRequestRef.current !== requestId) return;
+
       setStatus({
         hasAnyInstalled,
         allInstalled,
@@ -127,6 +143,9 @@ export function useWorkspaceGitHubAppStatus(repositoryIds: string[]) {
       });
     } catch (error) {
       console.error('GitHub App status check error:', error);
+      // Guard: Only update if this is still the latest request
+      if (latestRequestRef.current !== requestId) return;
+
       setStatus({
         hasAnyInstalled: false,
         allInstalled: false,

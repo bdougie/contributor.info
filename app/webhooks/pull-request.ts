@@ -355,16 +355,15 @@ async function handlePRSimilarityUpdate(event: PullRequestEvent) {
     await similarityMetricsService.trackSimilarityUpdate(
       event.pull_request.id,
       event.repository.id,
-      event.action === 'edited' ? 'pr_edited' : 'pr_edited',
+      event.action === 'edited' ? 'pr_edited' : 'pr_synchronized',
       0, // previousCount - would need to track this
       updatedSimilarities.length,
       updateTimeMs
     );
 
-    // Update Check Runs with new similarity data (if Check Runs exist)
-    if (updatedSimilarities.length > 0) {
-      await handlePRCheckRuns(event);
-    }
+    // Update Check Runs with new similarity data
+    // Note: handlePRCheckRuns will run for these events now
+    await handlePRCheckRuns(event);
 
     // Track successful processing
     await webhookMetricsService.trackWebhookProcessing({

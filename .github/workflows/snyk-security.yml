@@ -1,10 +1,9 @@
 name: Snyk Security Scanning
 
 on:
-  # Temporarily disabled on PRs - needs debugging
-  # pull_request:
-  #   branches: [main]
-  workflow_dispatch: # Manual trigger only
+  pull_request:
+    branches: [main]
+  workflow_dispatch: # Manual trigger for on-demand scans
 
 jobs:
   security-scan:

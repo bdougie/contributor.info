@@ -147,11 +147,7 @@ export class WebhookSimilarityService {
    */
   async invalidatePRCache(prId: string): Promise<void> {
     try {
-      await supabase
-        .from('similarity_cache')
-        .delete()
-        .eq('item_type', 'pull_request')
-        .eq('item_id', prId);
+      await supabase.from('pr_similarities').delete().eq('pr_id', prId);
 
       console.log('Invalidated cache for PR: %s', prId);
     } catch (error) {

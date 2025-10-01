@@ -28,8 +28,9 @@ describe('CheckRunManager', () => {
       '123abc'
     );
 
-    console.log = vi.fn();
-    console.error = vi.fn();
+    // Spy on console methods instead of overwriting to allow restoration
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   describe('create', () => {
