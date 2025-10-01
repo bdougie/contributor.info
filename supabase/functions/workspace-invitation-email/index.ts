@@ -157,14 +157,15 @@ const getInvitationEmailHTML = (data: WorkspaceInvitationData) => `
             opacity: 0.9;
         }
         
-        .cta-button-accept {
-            background: var(--success);
+                .cta-button-primary {
+            background: var(--primary);
             color: white;
         }
         
-        .cta-button-decline {
-            background: var(--danger);
-            color: white;
+        .cta-button-secondary {
+            background: transparent;
+            color: var(--primary);
+            border: 1px solid var(--primary);
         }
         
         .expiry-notice {
@@ -326,14 +327,15 @@ const getInvitationEmailHTML = (data: WorkspaceInvitationData) => `
                     )}</strong>
                 </div>
                 
-                <div class="cta-container">
-                    <a href="https://contributor.info/workspace/invitation/accept?token=${data.invitationToken}" class="cta-button cta-button-accept">
-                        Accept Invitation
-                    </a>
-                    <a href="https://contributor.info/workspace/invitation/decline?token=${data.invitationToken}" class="cta-button cta-button-decline">
-                        Decline
+                                <div class="cta-container">
+                    <a href="https://contributor.info/invitation/${data.invitationToken}" class="cta-button cta-button-primary">
+                        View Invitation
                     </a>
                 </div>
+                
+                <p style="text-align: center; margin-top: 16px; font-size: 14px; color: var(--muted);">
+                    Click the button above to review the invitation details and choose to accept or decline.
+                </p>
                 
                 <div class="security-notice">
                     🔒 This invitation link is unique and secure. Do not share it with others.
@@ -399,11 +401,10 @@ ${
   timeZoneName: 'short',
 })}
 
-Accept invitation:
-https://contributor.info/workspace/invitation/accept?token=${data.invitationToken}
+View invitation:
+https://contributor.info/invitation/${data.invitationToken}
 
-Decline invitation:
-https://contributor.info/workspace/invitation/decline?token=${data.invitationToken}
+Click the link above to review the invitation details and choose to accept or decline.
 
 🔒 This invitation link is unique and secure. Do not share it with others.
 
