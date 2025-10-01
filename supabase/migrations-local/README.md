@@ -25,29 +25,7 @@ The automation provides a clean solution to GitHub issue #503 (migration orderin
 
 - **`setup-local.mjs`**: Cross-platform automation script with file management
 - **`001_production_based_consolidated.sql`**: Production-based consolidated migration (700+ lines)
-- **`archive/`**: Historical migration files recovered from commit `8b2b64681e554b392c21673cbf1bb928ec105c20`
-  - Contains 62 migration files that were previously deleted
-  - Includes `archive-info.json` with restoration metadata
-  - Serves as historical reference for migration evolution
 - **`README.md`**: This documentation
-
-## Archive Directory
-
-The `archive/` directory contains migration files that were deleted in commit `8b2b64681e554b392c21673cbf1bb928ec105c20` but have been restored for historical preservation. These files include:
-
-- **Trending capture migrations** (20250824_enhance_trending_capture.sql)
-- **Subscription system** (20250824_subscription_system.sql) 
-- **PR corruption detection** (20250826_add_pr_corruption_detection_index.sql)
-- **Workspace owner/member fixes** (20250826_fix_workspace_owner_member.sql)
-- **And 58 other historical migrations** covering the full evolution of the schema
-
-### Archive Metadata
-
-The `archive-info.json` file contains:
-- Original commit hash and restoration details
-- Complete list of 62 restored files
-- Timestamp and restoration reason
-- Migration count and metadata
 
 ## Migration Flow
 
