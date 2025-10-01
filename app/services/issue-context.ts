@@ -1,6 +1,17 @@
 import { supabase } from '../../src/lib/supabase';
 import { generateEmbedding, prepareTextForEmbedding } from './embeddings';
 
+interface SimilarItem {
+  id: string;
+  number: number;
+  title: string;
+  state: string;
+  similarity: number;
+  created_at: string;
+  html_url?: string;
+  merged_at?: string;
+}
+
 export interface ContextualItem {
   id: string;
   type: 'issue' | 'pull_request';
@@ -134,7 +145,7 @@ async function calculateFileOverlap(
  * Process a contextual item and determine its relationship
  */
 async function processContextualItem(
-  item: any,
+  item: SimilarItem,
   fileOverlapScore: number,
   type: 'issue' | 'pull_request',
   currentPRTitle: string

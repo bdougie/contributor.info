@@ -1,8 +1,9 @@
-import { IssueCommentEvent } from '../types/github';
+import { IssueCommentEvent, User } from '../types/github';
 import { githubAppAuth } from '../lib/auth';
 import { supabase } from '../../src/lib/supabase';
 import { findContextualIssues } from '../services/issue-context';
 import { formatContextComment } from '../services/comments';
+import type { Octokit } from '@octokit/rest';
 
 /**
  * Check if a comment contains the .issues command
@@ -185,7 +186,7 @@ export async function handleIssueCommentEvent(event: IssueCommentEvent) {
 /**
  * Post an error comment
  */
-async function postErrorComment(octokit: any, event: IssueCommentEvent, message: string) {
+async function postErrorComment(octokit: Octokit, event: IssueCommentEvent, message: string) {
   await octokit.issues.createComment({
     owner: event.repository.owner.login,
     repo: event.repository.name,
@@ -197,7 +198,7 @@ async function postErrorComment(octokit: any, event: IssueCommentEvent, message:
 /**
  * Get or create contributor from user data
  */
-async function getOrCreateContributor(user: any): Promise<string | null> {
+async function getOrCreateContributor(user: User): Promise<string | null> {
   try {
     const { data: contributor } = await supabase
       .from('contributors')

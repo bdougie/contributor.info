@@ -1,4 +1,4 @@
-import { IssuesEvent } from '../types/github';
+import { IssuesEvent, Issue, Repository, DatabaseIssue } from '../types/github';
 import { processNewIssue, formatSimilarIssuesComment } from '../services/issue-similarity';
 import { createIssueComment } from '../services/github-api';
 import { webhookDataService } from '../services/webhook/data-service';
@@ -203,7 +203,7 @@ async function handleIssueAssigned(event: IssuesEvent) {
 /**
  * Check if an issue might be a duplicate
  */
-async function checkForDuplicateIssues(issue: any, repositoryId: string) {
+async function checkForDuplicateIssues(issue: Issue, repositoryId: string) {
   try {
     // Get recent issues with similar titles
     const { data: recentIssues } = await supabase
@@ -238,7 +238,7 @@ async function checkForDuplicateIssues(issue: any, repositoryId: string) {
 /**
  * Check if issue was closed by a PR
  */
-async function checkIfClosedByPR(issue: any, repository: any) {
+async function checkIfClosedByPR(issue: Issue, repository: Repository) {
   try {
     // Look for PRs that mention this issue
     const { data: linkedPRs } = await supabase

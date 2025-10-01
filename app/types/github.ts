@@ -2,7 +2,7 @@
  * GitHub webhook event types and payloads
  */
 
-export interface WebhookEvent<T = any> {
+export interface WebhookEvent<T = unknown> {
   id: string;
   name: string;
   payload: T;
@@ -61,7 +61,7 @@ export interface PullRequest {
   assignee: User | null;
   assignees: User[];
   requested_reviewers: User[];
-  requested_teams: any[];
+  requested_teams: Team[];
   labels: Label[];
   draft: boolean;
   head: {
@@ -77,7 +77,7 @@ export interface PullRequest {
     repo: Repository;
   };
   author_association: string;
-  auto_merge: any | null;
+  auto_merge: AutoMerge | null;
   additions: number;
   deletions: number;
   changed_files: number;
@@ -218,4 +218,68 @@ export interface IssueCommentEvent {
   repository: Repository;
   installation?: Installation;
   sender: User;
+}
+
+// Additional supporting types
+export interface Team {
+  id: number;
+  node_id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  privacy: string;
+  url: string;
+  html_url: string;
+}
+
+export interface AutoMerge {
+  enabled_by: User;
+  merge_method: 'merge' | 'squash' | 'rebase';
+  commit_title: string;
+  commit_message: string;
+}
+
+// Reviewer suggestion type
+export interface ReviewerSuggestion {
+  login: string;
+  contributions?: number;
+  reasons: string[];
+  lastActive?: string;
+}
+
+// Similar issue result type
+export interface SimilarIssueResult {
+  issue: Issue;
+  similarityScore: number;
+  reasons: string[];
+  relationship: 'fixes' | 'implements' | 'relates_to' | 'similar';
+  state?: string;
+  similarity_reason?: string;
+}
+
+// Database issue type (from webhook storage)
+export interface DatabaseIssue {
+  id: string;
+  github_id: number;
+  repository_id: string;
+  number: number;
+  title: string;
+  body: string | null;
+  state: 'open' | 'closed';
+  html_url: string;
+  created_at: string;
+  updated_at: string;
+  closed_at: string | null;
+  labels?: Label[];
+  assignees?: User[];
+  linked_pr_id?: string;
+}
+
+// Track webhook comment data
+export interface WebhookCommentData {
+  pullRequest: PullRequest;
+  repository: Repository;
+  similarIssues: SimilarIssueResult[];
+  reviewerSuggestions: ReviewerSuggestion[];
+  commentId?: number;
 }

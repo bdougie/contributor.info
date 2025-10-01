@@ -1,8 +1,9 @@
-import { IssuesEvent } from '../types/github';
+import { IssuesEvent, Repository, Issue, SimilarIssueResult } from '../types/github';
 import { supabase } from '../../src/lib/supabase';
+import type { GitHubAppAuth } from '../lib/auth';
 
 // Lazy load auth to avoid initialization errors
-let githubAppAuth: any = null;
+let githubAppAuth: GitHubAppAuth | null = null;
 
 async function getAuth() {
   if (!githubAppAuth) {
@@ -74,7 +75,11 @@ export async function handleIssueOpenedDirect(event: IssuesEvent) {
 /**
  * Format a welcome comment for new issues
  */
-function formatIssueWelcomeComment(issue: any, repository: any, similarIssues: any[]): string {
+function formatIssueWelcomeComment(
+  issue: Issue,
+  repository: Repository,
+  similarIssues: SimilarIssueResult[]
+): string {
   let comment = `## 👋 Welcome!\n\n`;
   comment += `Thanks for opening this issue in **${repository.full_name}**! `;
   comment += `I'm here to help connect your issue with relevant information.\n\n`;
@@ -112,7 +117,10 @@ function formatIssueWelcomeComment(issue: any, repository: any, similarIssues: a
 /**
  * Find similar issues using repository info directly
  */
-async function findSimilarIssuesDirect(issue: any, repository: any): Promise<any[]> {
+async function findSimilarIssuesDirect(
+  issue: Issue,
+  repository: Repository
+): Promise<SimilarIssueResult[]> {
   try {
     // Check if repository is in database
     const { data: dbRepo } = await supabase
@@ -201,7 +209,7 @@ async function findSimilarIssuesDirect(issue: any, repository: any): Promise<any
 /**
  * Ensure repository is tracked in database
  */
-async function ensureRepositoryTracked(repository: any) {
+async function ensureRepositoryTracked(repository: Repository): Promise<string | null> {
   try {
     // Check if repository exists with correct GitHub ID
     const { data: existing } = await supabase

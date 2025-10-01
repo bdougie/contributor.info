@@ -289,8 +289,8 @@ export class EmbeddingService {
           throw error;
         }
 
-        const data = await response.json();
-        return data.data.map((item: any) => item.embedding || null);
+        const data = await response.json() as { data: Array<{ embedding: number[] | null }> };
+        return data.data.map((item) => item.embedding || null);
       },
       {
         ...this.retryConfig,
