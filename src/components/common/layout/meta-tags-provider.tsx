@@ -74,10 +74,16 @@ export function SocialMetaTags({
       
       if (image === 'social-cards/repo') {
         // For repo cards, extract owner/repo from URL
-        const pathMatch = urlPath.match(/\/([^\/]+)\/([^\/]+)(?:\/|$)/);
+        // Handle URLs like: /{owner}/{repo}, /{owner}/{repo}/, /{owner}/{repo}/tab
+        const pathMatch = urlPath.match(/\/([^\/]+)\/([^\/]+)(?:\/.*)?$/);
         if (pathMatch) {
           const [, owner, repo] = pathMatch;
-          imageUrl = `${socialCardsBaseUrl}/social-cards/repo?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}`;
+          // Validate that we have reasonable owner/repo names (not empty, not query params)
+          if (owner && repo && !owner.includes('?') && !repo.includes('?')) {
+            imageUrl = `${socialCardsBaseUrl}/social-cards/repo?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}`;
+          } else {
+            imageUrl = `${socialCardsBaseUrl}/social-cards/home`;
+          }
         } else {
           imageUrl = `${socialCardsBaseUrl}/social-cards/home`;
         }
@@ -85,10 +91,15 @@ export function SocialMetaTags({
         // For user cards, extract username from URL (pattern: /{username})
         // Need to differentiate from repo URLs which have two path segments
         const pathSegments = urlPath.split('/').filter(Boolean);
-        if (pathSegments.length === 1) {
-          // Single path segment = user profile
+        if (pathSegments.length === 1 && pathSegments[0]) {
+          // Single path segment = user/org profile
           const username = pathSegments[0];
-          imageUrl = `${socialCardsBaseUrl}/social-cards/user?username=${encodeURIComponent(username)}`;
+          // Validate username (no query params, reasonable length)
+          if (!username.includes('?') && username.length > 0 && username.length < 100) {
+            imageUrl = `${socialCardsBaseUrl}/social-cards/user?username=${encodeURIComponent(username)}`;
+          } else {
+            imageUrl = `${socialCardsBaseUrl}/social-cards/home`;
+          }
         } else {
           // Multiple segments or no match - fallback to home
           imageUrl = `${socialCardsBaseUrl}/social-cards/home`;
