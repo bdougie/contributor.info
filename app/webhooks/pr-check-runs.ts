@@ -1,4 +1,4 @@
-import type { PullRequestEvent } from '../types/github';
+import type { PullRequestEvent, PullRequest, Repository } from '../types/github';
 import { githubAppAuth } from '../lib/auth';
 import { findSimilarIssues } from '../services/similarity';
 import { CheckRunManager } from '../services/check-runs/check-run-manager';
@@ -75,8 +75,8 @@ export async function handlePRCheckRuns(event: PullRequestEvent): Promise<void> 
  * NOW ENABLED with ML-powered similarity from app/services/similarity.ts
  */
 async function runSimilarityCheck(
-  pr: any,
-  repo: any,
+  pr: PullRequest,
+  repo: Repository,
   octokit: Octokit
 ): Promise<{ similar_issues: number; conclusion: string }> {
   const checkRunName = 'Similarity Analysis';
@@ -192,8 +192,8 @@ async function runSimilarityCheck(
  * Run performance check and post results as GitHub Check Run
  */
 async function runPerformanceCheck(
-  pr: any,
-  repo: any,
+  pr: PullRequest,
+  repo: Repository,
   octokit: Octokit
 ): Promise<{ has_risks: boolean; conclusion: string }> {
   const checkRunName = 'Performance Impact Analysis';
@@ -302,8 +302,8 @@ interface PerformanceAnalysis {
 }
 
 async function analyzePerformanceImpact(
-  pr: any,
-  repo: any,
+  pr: PullRequest,
+  repo: Repository,
   octokit: Octokit
 ): Promise<PerformanceAnalysis> {
   const risks: PerformanceRisk[] = [];

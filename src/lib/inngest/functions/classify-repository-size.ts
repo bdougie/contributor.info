@@ -35,10 +35,7 @@ export const classifyRepositorySize = inngest.createFunction(
   ],
   async ({ step }) => {
     // Initialize classifier
-    const githubToken =
-      import.meta.env?.VITE_GITHUB_TOKEN ||
-      process.env.VITE_GITHUB_TOKEN ||
-      process.env.GITHUB_TOKEN;
+    const githubToken = process.env.VITE_GITHUB_TOKEN || process.env.GITHUB_TOKEN;
     if (!githubToken) {
       throw new NonRetriableError('GitHub token not configured');
     }
@@ -158,10 +155,7 @@ export const classifySingleRepository = inngest.createFunction(
     }
 
     // Initialize classifier
-    const githubToken =
-      import.meta.env?.VITE_GITHUB_TOKEN ||
-      process.env.VITE_GITHUB_TOKEN ||
-      process.env.GITHUB_TOKEN;
+    const githubToken = process.env.VITE_GITHUB_TOKEN || process.env.GITHUB_TOKEN;
     if (!githubToken) {
       throw new NonRetriableError('GitHub token not configured');
     }

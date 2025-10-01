@@ -75,8 +75,9 @@ export async function ensureContributorForWebhook(
       return null;
     }
     return data?.id || null;
-  } catch (e: any) {
-    console.error('ensureContributorForWebhook unexpected error:', e?.message || e);
+  } catch (e) {
+    const error = e as Error;
+    console.error('ensureContributorForWebhook unexpected error:', error?.message || error);
     return null;
   }
 }

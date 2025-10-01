@@ -1,6 +1,17 @@
 import { supabase } from '../../src/lib/supabase';
 import { PullRequest, Repository } from '../types/github';
 
+interface PullRequestWithReviews {
+  id: string;
+  state: string;
+  created_at: string;
+  merged_at: string | null;
+  reviews: Array<{
+    state: 'APPROVED' | 'CHANGES_REQUESTED' | 'COMMENTED';
+    submitted_at: string;
+  }>;
+}
+
 export interface ContributorInsights {
   login: string;
   name?: string;
@@ -67,17 +78,17 @@ export async function generatePRInsights(
     }
 
     // Calculate metrics
-    const prs = contributor.pull_requests || [];
-    const mergedPRs = prs.filter((pr: any) => pr.merged_at).length;
+    const prs = (contributor.pull_requests || []) as PullRequestWithReviews[];
+    const mergedPRs = prs.filter((pr) => pr.merged_at).length;
     const totalPRs = prs.length;
     const reviewsGiven = contributor.reviews?.length || 0;
     const commentsLeft = contributor.comments?.length || 0;
 
     // Calculate first-time approval rate
-    const prsWithReviews = prs.filter((pr: any) => pr.reviews?.length > 0);
-    const firstTimeApprovals = prsWithReviews.filter((pr: any) => {
-      const approvals = pr.reviews.filter((r: any) => r.state === 'APPROVED');
-      const changes = pr.reviews.filter((r: any) => r.state === 'CHANGES_REQUESTED');
+    const prsWithReviews = prs.filter((pr) => pr.reviews?.length > 0);
+    const firstTimeApprovals = prsWithReviews.filter((pr) => {
+      const approvals = pr.reviews.filter((r) => r.state === 'APPROVED');
+      const changes = pr.reviews.filter((r) => r.state === 'CHANGES_REQUESTED');
       return approvals.length > 0 && changes.length === 0;
     }).length;
 

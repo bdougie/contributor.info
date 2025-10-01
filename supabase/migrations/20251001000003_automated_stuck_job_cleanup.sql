@@ -60,7 +60,7 @@ BEGIN
   SELECT
     COUNT(*)::BIGINT as total_stuck,
     COALESCE(MAX(EXTRACT(EPOCH FROM (NOW() - started_at))/60), 0)::NUMERIC as oldest_age_minutes,
-    (COUNT(*) > 10 OR MAX(EXTRACT(EPOCH FROM (NOW() - started_at))/60) > 30)::BOOLEAN as needs_attention
+    (COUNT(*) > 10 OR COALESCE(MAX(EXTRACT(EPOCH FROM (NOW() - started_at))/60), 0) > 30)::BOOLEAN as needs_attention
   FROM progressive_capture_jobs
   WHERE status = 'processing'
     AND started_at < NOW() - INTERVAL '5 minutes';

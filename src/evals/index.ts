@@ -100,8 +100,8 @@ export async function runBenchmark() {
   return runner.runBenchmarkComparison(configs);
 }
 
-// CLI interface
-async function main() {
+// CLI interface - exported for programmatic use
+export async function main() {
   const args = process.argv.slice(2);
   const command = args[0] || 'run';
   const configName = (args[1] as keyof typeof DEFAULT_CONFIGS) || 'standard';
@@ -152,11 +152,9 @@ export { MaintainerClassifier } from './runners/maintainer-classifier';
 export { GroundTruthExtractor } from './datasets/ground-truth-extractor';
 export { EvaluationMetricsCalculator } from './metrics/evaluation-metrics';
 
-// Run CLI if this file is executed directly
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-
-if (process.argv[1] === __filename) {
-  main().catch(console.error);
-}
+// CLI auto-execution removed to prevent import.meta issues in production builds
+// The main() function is exported for programmatic use
+//
+// To run CLI locally, create a wrapper script:
+//   import { main } from './evals/index.ts';
+//   main().catch(console.error);

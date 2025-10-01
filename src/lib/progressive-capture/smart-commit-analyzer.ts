@@ -40,7 +40,7 @@ export class SmartCommitAnalyzer {
 
   constructor() {
     // Try to get GitHub token from environment
-    this.token = import.meta.env.VITE_GITHUB_TOKEN || null;
+    this.token = process.env.VITE_GITHUB_TOKEN || process.env.GITHUB_TOKEN || null;
   }
 
   /**
