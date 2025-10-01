@@ -153,10 +153,12 @@ export { GroundTruthExtractor } from './datasets/ground-truth-extractor';
 export { EvaluationMetricsCalculator } from './metrics/evaluation-metrics';
 
 // Run CLI if this file is executed directly
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-
-if (process.argv[1] === __filename) {
-  main().catch(console.error);
+// Only works in ES modules, not in bundled serverless environments
+if (typeof import.meta !== 'undefined' && import.meta.url) {
+  import('url').then(({ fileURLToPath }) => {
+    const __filename = fileURLToPath(import.meta.url);
+    if (process.argv[1] === __filename) {
+      main().catch(console.error);
+    }
+  });
 }
