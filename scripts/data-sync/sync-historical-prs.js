@@ -2,6 +2,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { Octokit } from '@octokit/rest';
+import { ensureContributor } from '../progressive-capture/lib/contributor-utils.js';
 import { parseArgs } from 'util';
 
 // Parse command line arguments
@@ -79,51 +80,9 @@ async function updateProgress(processed, total, currentItem) {
   }
 }
 
-async function ensureContributorExists(username) {
-  try {
-    // Check if contributor exists
-    const { data: existing } = await supabase
-      .from('contributors')
-      .select('id')
-      .eq('username', username)
-      .single();
-
-    if (existing) return existing.id;
-
-    // Fetch contributor data from GitHub
-    const { data: user } = await octokit.users.getByUsername({ username });
-
-    // Insert contributor
-    const { data: newContributor, error } = await supabase
-      .from('contributors')
-      .insert({
-        username: user.login,
-        avatar_url: user.avatar_url,
-        github_id: user.id.toString(),
-        profile_data: {
-          name: user.name,
-          company: user.company,
-          blog: user.blog,
-          location: user.location,
-          email: user.email,
-          bio: user.bio,
-          twitter_username: user.twitter_username,
-        },
-      })
-      .select('id')
-      .single();
-
-    if (error) {
-      console.error(`Failed to create contributor ${username}:`, error);
-      return null;
-    }
-
-    return newContributor.id;
-  } catch (error) {
-    console.error(`Failed to ensure contributor ${username}:`, error);
-    return null;
-  }
-}
+/**
+ * Process and store PRs with proper contributor UUIDs
+ */
 
 async function syncHistoricalPRs() {
   try {
@@ -166,8 +125,11 @@ async function syncHistoricalPRs() {
 
     for (const pr of pulls.slice(0, maxItems)) {
       try {
-        // Ensure author exists
-        const authorId = pr.user ? await ensureContributorExists(pr.user.login) : null;
+        // Ensure author exists using shared utility (handles github_id properly)
+        let authorId = null;
+        if (pr.user) {
+          authorId = await ensureContributor(supabase, pr.user);
+        }
 
         // Prepare PR data
         const prData = {

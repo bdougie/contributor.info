@@ -1,4 +1,5 @@
 import { BaseCaptureScript } from './lib/base-capture.js';
+import { ensureContributor } from './lib/contributor-utils.js';
 import dotenv from 'dotenv';
 
 // Load environment variables
@@ -76,14 +77,18 @@ class PRCommentsCaptureScript extends BaseCaptureScript {
 
       // Process issue comments
       for (const comment of issueComments) {
+        // Ensure comment author exists and get UUID
+        let commentAuthorId = null;
+        if (comment.user) {
+          commentAuthorId = await ensureContributor(this.supabase, comment.user);
+        }
+
         const commentRecord = {
           repository_id: this.repositoryId,
           github_id: comment.id,
           pull_request_number: pr.number,
           body: comment.body,
-          author_id: comment.user?.id,
-          author_login: comment.user?.login,
-          author_avatar_url: comment.user?.avatar_url,
+          commenter_id: commentAuthorId, // Now using contributor UUID
           created_at: comment.created_at,
           updated_at: comment.updated_at,
           html_url: comment.html_url,

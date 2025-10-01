@@ -86,23 +86,16 @@ export async function handlePullRequestEvent(event: PullRequestEvent) {
       return;
     }
 
-    // Generate insights in parallel (only fetch what's enabled)
-    const insightsPromises = [generatePRInsights(event.pull_request, event.repository)];
-
-    if (isFeatureEnabled(config, 'similar_issues')) {
-      insightsPromises.push(findSimilarIssues(event.pull_request, event.repository));
-    } else {
-      insightsPromises.push(Promise.resolve([]));
-    }
-
-    if (isFeatureEnabled(config, 'reviewer_suggestions')) {
-      insightsPromises.push(suggestReviewers(event.pull_request, event.repository, installationId));
-    } else {
-      insightsPromises.push(Promise.resolve({ suggestions: [], hasCodeOwners: false }));
-    }
-
-    const [contributorInsights, similarIssues, reviewerSuggestionsResult] =
-      await Promise.all(insightsPromises);
+    // Generate insights in parallel
+    const [contributorInsights, similarIssues, reviewerSuggestionsResult] = await Promise.all([
+      generatePRInsights(event.pull_request, event.repository),
+      isFeatureEnabled(config, 'similar_issues')
+        ? findSimilarIssues(event.pull_request, event.repository)
+        : Promise.resolve([] as SimilarIssue[]),
+      isFeatureEnabled(config, 'reviewer_suggestions')
+        ? suggestReviewers(event.pull_request, event.repository, installationId)
+        : Promise.resolve({ suggestions: [], hasCodeOwners: false })
+    ]);
 
     // Extract suggestions and hasCodeOwners flag
     const hasCodeOwners = reviewerSuggestionsResult?.hasCodeOwners || false;
@@ -110,7 +103,7 @@ export async function handlePullRequestEvent(event: PullRequestEvent) {
 
     // Filter out excluded reviewers
     const filteredReviewers = reviewerSuggestions.filter(
-      (reviewer) => !isUserExcluded(config, reviewer.login, 'reviewer')
+      (reviewer: ReviewerSuggestion) => !isUserExcluded(config, reviewer.login, 'reviewer')
     );
 
     // Format the comment based on style preference
@@ -461,7 +454,7 @@ async function storePRInsights(data: StorePRInsightsData) {
       return;
     }
 
-    // Use shared service to store PR
+    // Use shared service to store PR (handles contributor resolution internally)
     const prId = await webhookDataService.storePR(data.pullRequest, repoId);
     if (!prId) return;
 
@@ -537,7 +530,7 @@ async function storePRSimilarityComment(data: StorePRSimilarityData) {
       return;
     }
 
-    // Use shared service to store PR
+    // Use shared service to store PR (handles contributor resolution internally)
     const prId = await webhookDataService.storePR(data.pullRequest, repoId);
     if (!prId) return;
 
@@ -555,3 +548,4 @@ async function storePRSimilarityComment(data: StorePRSimilarityData) {
     console.error('Error storing PR similarity comment:', error);
   }
 }
+// (Phase 2) Local helper removed in favor of shared utility import.

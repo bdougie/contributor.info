@@ -71,49 +71,76 @@ export class WebhookDataService {
   /**
    * Store or update an issue in the database
    * Note: Operations are sequenced to ensure consistency
+   *
+   * Implements graceful degradation: if contributor resolution fails,
+   * issue is still stored for later recovery/backfill
    */
   async storeIssue(issue: Issue, repoId: string): Promise<string | null> {
     try {
-      // Get author ID (atomic upsert)
-      const authorId = await this.upsertContributor(issue.user);
-      if (!authorId) {
-        console.error('Failed to upsert contributor for issue: %s', issue.id);
-        return null;
+      // Attempt to get author ID (atomic upsert)
+      let authorId: string | null = null;
+      try {
+        authorId = await this.upsertContributor(issue.user);
+        if (!authorId) {
+          console.warn(
+            'Failed to upsert contributor for issue %s (author: %s). Issue will be stored without author_id for later recovery.',
+            issue.id,
+            issue.user?.login
+          );
+        }
+      } catch (contributorError) {
+        console.error(
+          'Error upserting contributor for issue %s: %o. Issue will be stored without author_id.',
+          issue.id,
+          contributorError
+        );
+        // Continue to store issue even if contributor fails
       }
 
-      // Store issue (atomic upsert)
-      const { data: issueData, error } = await supabase
+      // Store issue (atomic upsert) - with or without author_id
+      const issueData: Record<string, unknown> = {
+        github_id: issue.id,
+        repository_id: repoId,
+        number: issue.number,
+        title: issue.title,
+        body: issue.body,
+        state: issue.state,
+        created_at: issue.created_at,
+        updated_at: issue.updated_at,
+        labels: issue.labels,
+        assignees:
+          issue.assignees?.map((a) => ({
+            id: a.id,
+            login: a.login,
+          })) || [],
+        comments_count: issue.comments || 0,
+        is_pull_request: !!issue.pull_request,
+      };
+
+      // Only include author_id if successfully resolved
+      if (authorId) {
+        issueData.author_id = authorId;
+      }
+
+      const { data: storedIssue, error } = await supabase
         .from('issues')
-        .upsert({
-          github_id: issue.id,
-          repository_id: repoId,
-          number: issue.number,
-          title: issue.title,
-          body: issue.body,
-          state: issue.state,
-          author_id: authorId,
-          created_at: issue.created_at,
-          updated_at: issue.updated_at,
-          labels: issue.labels,
-          assignees:
-            issue.assignees?.map((a) => ({
-              id: a.id,
-              login: a.login,
-            })) || [],
-          comments_count: issue.comments || 0,
-          is_pull_request: !!issue.pull_request,
-        })
+        .upsert(issueData)
         .select('id')
         .maybeSingle();
 
       if (error) {
-        console.error('Error upserting issue: %o', error);
+        console.error('Error upserting issue %s: %o', issue.id, error);
         throw error;
       }
 
-      return issueData?.id || null;
+      if (!storedIssue?.id) {
+        console.error('Issue %s stored but no ID returned', issue.id);
+        return null;
+      }
+
+      return storedIssue.id;
     } catch (error) {
-      console.error('Error storing issue: %o', error);
+      console.error('Error storing issue %s: %o', issue.id, error);
       throw error;
     }
   }
@@ -121,46 +148,73 @@ export class WebhookDataService {
   /**
    * Store or update a pull request in the database
    * Note: Operations are sequenced to ensure consistency
+   *
+   * Implements graceful degradation: if contributor resolution fails,
+   * PR is still stored for later recovery/backfill
    */
   async storePR(pr: PullRequest, repoId: string): Promise<string | null> {
     try {
-      // Get author ID (atomic upsert)
-      const authorId = await this.upsertContributor(pr.user);
-      if (!authorId) {
-        console.error('Failed to upsert contributor for PR: %s', pr.id);
-        return null;
+      // Attempt to get author ID (atomic upsert)
+      let authorId: string | null = null;
+      try {
+        authorId = await this.upsertContributor(pr.user);
+        if (!authorId) {
+          console.warn(
+            'Failed to upsert contributor for PR %s (author: %s). PR will be stored without author_id for later recovery.',
+            pr.id,
+            pr.user?.login
+          );
+        }
+      } catch (contributorError) {
+        console.error(
+          'Error upserting contributor for PR %s: %o. PR will be stored without author_id.',
+          pr.id,
+          contributorError
+        );
+        // Continue to store PR even if contributor fails
       }
 
-      // Store PR (atomic upsert)
-      const { data: prData, error } = await supabase
+      // Store PR (atomic upsert) - with or without author_id
+      const prData: Record<string, unknown> = {
+        github_id: pr.id,
+        repository_id: repoId,
+        number: pr.number,
+        title: pr.title,
+        body: pr.body,
+        state: pr.state,
+        created_at: pr.created_at,
+        updated_at: pr.updated_at,
+        merged_at: pr.merged_at,
+        draft: pr.draft,
+        head_sha: pr.head?.sha,
+        base_branch: pr.base?.ref,
+        head_branch: pr.head?.ref,
+      };
+
+      // Only include author_id if successfully resolved
+      if (authorId) {
+        prData.author_id = authorId;
+      }
+
+      const { data: storedPR, error } = await supabase
         .from('pull_requests')
-        .upsert({
-          github_id: pr.id,
-          repository_id: repoId,
-          number: pr.number,
-          title: pr.title,
-          body: pr.body,
-          state: pr.state,
-          author_id: authorId,
-          created_at: pr.created_at,
-          updated_at: pr.updated_at,
-          merged_at: pr.merged_at,
-          draft: pr.draft,
-          head_sha: pr.head?.sha,
-          base_branch: pr.base?.ref,
-          head_branch: pr.head?.ref,
-        })
+        .upsert(prData)
         .select('id')
         .maybeSingle();
 
       if (error) {
-        console.error('Error upserting pull request: %o', error);
+        console.error('Error upserting pull request %s: %o', pr.id, error);
         throw error;
       }
 
-      return prData?.id || null;
+      if (!storedPR?.id) {
+        console.error('Pull request %s stored but no ID returned', pr.id);
+        return null;
+      }
+
+      return storedPR.id;
     } catch (error) {
-      console.error('Error storing pull request: %o', error);
+      console.error('Error storing pull request %s: %o', pr.id, error);
       throw error;
     }
   }
