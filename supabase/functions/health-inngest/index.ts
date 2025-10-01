@@ -68,8 +68,16 @@ serve(async (req: Request) => {
     };
 
     // Check 1: Stuck jobs
-    const { data: stuckJobsData } = await supabase.rpc('get_stuck_job_summary');
-    if (stuckJobsData && stuckJobsData.length > 0) {
+    const { data: stuckJobsData, error: stuckJobsError } = await supabase.rpc('get_stuck_job_summary');
+
+    if (stuckJobsError) {
+      result.healthy = false;
+      result.status = 'critical';
+      result.checks.stuck_jobs.healthy = false;
+      result.recommendations.push(
+        '🚨 Failed to query stuck jobs from database. Check database connectivity and RPC function.'
+      );
+    } else if (stuckJobsData && stuckJobsData.length > 0) {
       const stuckSummary = stuckJobsData[0];
       result.checks.stuck_jobs = {
         healthy: !stuckSummary.needs_attention,
