@@ -78,11 +78,11 @@ export const InvitationAcceptancePage: React.FC = () => {
         } else if (result.statusCode === 410 || result.error?.includes('expired')) {
           setError('expired');
         } else if (result.error?.includes('already been accepted')) {
-          setError('already-accepted');
+          setError('already-member');
         } else if (result.error?.includes('already a member')) {
           setError('already-member');
         } else if (result.error?.includes('declined')) {
-          setError('declined');
+          setError('invalid');
         } else {
           setError('invalid');
         }
@@ -103,9 +103,9 @@ export const InvitationAcceptancePage: React.FC = () => {
       // Provide more specific error handling
       if (err instanceof Error) {
         if (err.message.includes('NetworkError') || err.message.includes('fetch')) {
-          setError('network-error');
+          setError('invalid');
         } else if (err.message.includes('timeout')) {
-          setError('timeout');
+          setError('invalid');
         } else {
           setError('invalid');
         }
