@@ -276,19 +276,25 @@ export default function OrgView() {
         <div className="flex items-center gap-3">
           <div className="org-avatar-container">
             {/* Use cached avatar URL immediately if available, fall back to orgData */}
-            {cachedAvatarUrl || orgData?.avatar_url ? (
-              <OrganizationAvatar
-                src={cachedAvatarUrl || orgData?.avatar_url || ''}
-                alt={orgData?.name || org || ''}
-                size={48}
-                priority={true}
-                lazy={false} // Always load immediately for org avatar
-              />
-            ) : (
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-md flex items-center justify-center text-white font-bold text-lg">
-                {org?.charAt(0)?.toUpperCase() || '?'}
-              </div>
-            )}
+            {(() => {
+              const avatarSrc = cachedAvatarUrl || orgData?.avatar_url;
+              const altText = orgData?.name || org || '';
+              const fallbackInitial = org?.charAt(0)?.toUpperCase() || '?';
+
+              return avatarSrc ? (
+                <OrganizationAvatar
+                  src={avatarSrc}
+                  alt={altText}
+                  size={48}
+                  priority={true}
+                  lazy={false} // Always load immediately for org avatar
+                />
+              ) : (
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-md flex items-center justify-center text-white font-bold text-lg">
+                  {fallbackInitial}
+                </div>
+              );
+            })()}
           </div>
           <div>
             <h1 className="text-3xl font-bold">{orgData?.name || org}</h1>

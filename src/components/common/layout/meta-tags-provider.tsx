@@ -21,7 +21,7 @@ interface MetaTagsProviderProps {
 }
 
 export function MetaTagsProvider({ children }: MetaTagsProviderProps) {
-  const setSocialMeta = (_meta: SocialMeta) => {
+  const setSocialMeta = () => {
     // This will be handled by individual components using the Helmet component
     // We keep this context for potential future state management needs
   };
@@ -61,21 +61,18 @@ export function SocialMetaTags({
   let imageUrl = image;
   let fallbackImageUrl = image;
 
-  // Use Fly.io service URL (with fallback to production domain when deployed)
-  const socialCardsBaseUrl =
-    process.env.NODE_ENV === 'production'
-      ? 'https://contributor-info-social-cards.fly.dev'
-      : 'https://contributor-info-social-cards.fly.dev'; // Always use Fly.io in production
+  // Use Fly.io service URL for all environments
+  const socialCardsBaseUrl = 'https://contributor-info-social-cards.fly.dev';
 
   if (!image.startsWith('http')) {
     // Check if it's a social card path - use Fly.io service for generation
     if (image.includes('social-cards/')) {
       const urlPath = currentUrl.replace(/^https?:\/\/[^\/]+/, '');
-      
+
       if (image === 'social-cards/repo') {
         // For repo cards, extract owner/repo from URL
         // Handle URLs like: /{owner}/{repo}, /{owner}/{repo}/, /{owner}/{repo}/tab
-        const pathMatch = urlPath.match(/\/([^\/]+)\/([^\/]+)(?:\/.*)?$/);
+        const pathMatch = urlPath.match(/\/([^/]+)\/([^/]+)(?:\/.*)?$/);
         if (pathMatch) {
           const [, owner, repo] = pathMatch;
           // Validate that we have reasonable owner/repo names (not empty, not query params)

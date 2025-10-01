@@ -279,19 +279,25 @@ export default function UserView() {
         <div className="flex items-center gap-3">
           <div className="user-avatar-container">
             {/* Use cached avatar URL immediately if available, fall back to userData */}
-            {cachedAvatarUrl || userData?.avatar_url ? (
-              <UserAvatar
-                src={cachedAvatarUrl || userData?.avatar_url || ''}
-                alt={userData?.name || username || ''}
-                size={48}
-                priority={true}
-                lazy={false} // Always load immediately for user avatar
-              />
-            ) : (
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                {username?.charAt(0)?.toUpperCase() || '?'}
-              </div>
-            )}
+            {(() => {
+              const avatarSrc = cachedAvatarUrl || userData?.avatar_url;
+              const altText = userData?.name || username || '';
+              const fallbackInitial = username?.charAt(0)?.toUpperCase() || '?';
+
+              return avatarSrc ? (
+                <UserAvatar
+                  src={avatarSrc}
+                  alt={altText}
+                  size={48}
+                  priority={true}
+                  lazy={false} // Always load immediately for user avatar
+                />
+              ) : (
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                  {fallbackInitial}
+                </div>
+              );
+            })()}
           </div>
           <div>
             <h1 className="text-3xl font-bold">{userData?.name || username}</h1>
