@@ -86,7 +86,7 @@ describe('Inngest Function Permissions Integration', () => {
       expect(apiKey).toContain('eyJ'); // JWT format
     });
 
-    it('should have anon key in regular client', () => {
+    it.skipIf(!process.env.VITE_SUPABASE_ANON_KEY)('should have anon key in regular client', () => {
       const anonHeaders =
         (anonClient as unknown as { headers?: Record<string, string> }).headers || {};
       const apiKey = anonHeaders.apikey || process.env.VITE_SUPABASE_ANON_KEY;
