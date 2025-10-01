@@ -1,6 +1,6 @@
 import { inngest } from '../client';
 import { RepositorySizeClassifier } from '../../repository-size-classifier';
-import { supabase } from '../../supabase';
+import { supabase } from '../supabase-server';
 import { NonRetriableError } from 'inngest';
 
 // Type for tracked repository with nested repository data

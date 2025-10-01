@@ -489,28 +489,13 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Fetch inviter details from auth.users
-    const { data: inviter, error: inviterError } = await supabase
-      .from('auth.users')
-      .select('email, raw_user_meta_data')
-      .eq('id', invitation.invited_by)
-      .single();
+    // Fetch inviter details using RPC function (can't query auth.users directly)
+    const { data: inviterEmail, error: inviterError } = await supabase.rpc('get_user_email', {
+      user_id: invitation.invited_by
+    });
 
-    if (inviterError || !inviter) {
-      console.error('Failed to fetch inviter details:', inviterError);
-      return new Response(JSON.stringify({ error: 'Inviter information not found' }), {
-        status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Extract inviter name
-    const inviterName =
-      inviter.raw_user_meta_data?.name ||
-      inviter.raw_user_meta_data?.full_name ||
-      inviter.raw_user_meta_data?.user_name ||
-      inviter.email?.split('@')[0] ||
-      'A team member';
+    // Extract inviter name - use email or fallback
+    const inviterName = inviterEmail ? inviterEmail.split('@')[0] : 'A team member';
 
     // Check if invitation is still valid (not expired)
     const expiresAt = new Date(invitation.expires_at);
@@ -549,7 +534,7 @@ Deno.serve(async (req: Request) => {
       workspaceName: invitation.workspace.name,
       workspaceSlug: invitation.workspace.slug,
       inviterName: inviterName,
-      inviterEmail: inviter.email || '',
+      inviterEmail: inviterEmail || '',
       role: invitation.role,
       invitationToken: invitation.invitation_token,
       expiresAt: invitation.expires_at,

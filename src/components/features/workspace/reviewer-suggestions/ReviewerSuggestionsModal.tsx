@@ -115,11 +115,13 @@ export function ReviewerSuggestionsModal({
 
   // Load CODEOWNERS when repository changes
   useEffect(() => {
-    handleLoadCodeowners().catch((err: unknown) => {
-      const message = err instanceof Error ? err.message : String(err);
-      console.log('[CODEOWNERS] Failed to load, will continue without:', message);
-    });
-  }, [handleLoadCodeowners]);
+    if (owner && repo) {
+      handleLoadCodeowners().catch((err: unknown) => {
+        const message = err instanceof Error ? err.message : String(err);
+        console.log('[CODEOWNERS] Failed to load, will continue without:', message);
+      });
+    }
+  }, [owner, repo, handleLoadCodeowners]);
 
   const handleGetReviewers = async (prNumber: number) => {
     setSelectedPR(String(prNumber));
