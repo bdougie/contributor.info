@@ -500,6 +500,8 @@ export class GraphQLClient {
       const allPRs = result.repository?.pullRequests?.nodes || [];
 
       // Filter PRs created since the given date (client-side filtering)
+      // Note: Changed from updatedAt to createdAt to match CREATED_AT ordering
+      // This ensures we don't miss newly created PRs when older PRs have recent updates
       const sinceDate = new Date(since);
       const filteredPRs = allPRs.filter((pr) => {
         const createdAt = new Date(pr.createdAt || '');
