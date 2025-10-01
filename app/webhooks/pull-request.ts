@@ -15,6 +15,8 @@ import { handlePRCheckRuns } from './pr-check-runs';
 import { webhookDataService } from '../services/webhook/data-service';
 import { webhookSimilarityService } from '../services/webhook/similarity-updater';
 import { eventRouter } from './event-router';
+import { webhookMetricsService } from '../services/webhook-metrics';
+import { similarityMetricsService } from '../services/similarity-metrics';
 
 /**
  * Handle pull request webhook events with routing and prioritization
@@ -170,6 +172,8 @@ export async function handlePullRequestEvent(event: PullRequestEvent) {
  * Handle PR opened events with simple similarity comments
  */
 async function handlePROpened(event: PullRequestEvent) {
+  const startTime = Date.now();
+
   try {
     console.log(
       'Processing opened PR #%s in ${event.repository.full_name}',
@@ -218,11 +222,35 @@ async function handlePROpened(event: PullRequestEvent) {
     }
 
     // Find similar issues using existing similarity service
+    const searchStartTime = Date.now();
     const similarIssues = await findSimilarIssues(event.pull_request, event.repository);
+    const searchTimeMs = Date.now() - searchStartTime;
+
+    // Track similarity search metrics
+    await similarityMetricsService.trackPrediction({
+      prId: event.pull_request.id,
+      prNumber: event.pull_request.number,
+      repositoryId: event.repository.id,
+      predictedIssues: similarIssues,
+      predictedAt: new Date().toISOString(),
+      confidence: similarIssues[0]?.similarityScore || 0,
+    });
 
     // Only comment if we found similar issues
     if (similarIssues.length === 0) {
       console.log('No similar issues found for PR');
+
+      // Track webhook completion (no results)
+      await webhookMetricsService.trackWebhookProcessing({
+        eventType: 'pull_request',
+        action: 'opened',
+        priority: 'high',
+        processingTimeMs: Date.now() - startTime,
+        repositoryId: event.repository.id,
+        installationId,
+        cached: false,
+      });
+
       return;
     }
 
@@ -255,8 +283,32 @@ async function handlePROpened(event: PullRequestEvent) {
     if (repoId) {
       await webhookSimilarityService.handlePREvent('opened', event.pull_request, event.repository);
     }
+
+    // Track successful webhook processing
+    await webhookMetricsService.trackWebhookProcessing({
+      eventType: 'pull_request',
+      action: 'opened',
+      priority: 'high',
+      processingTimeMs: Date.now() - startTime,
+      repositoryId: event.repository.id,
+      installationId,
+      cached: false,
+    });
   } catch (error) {
     console.error('Error handling PR opened event:', error);
+
+    // Track error
+    await webhookMetricsService.trackWebhookProcessing({
+      eventType: 'pull_request',
+      action: 'opened',
+      priority: 'high',
+      processingTimeMs: Date.now() - startTime,
+      repositoryId: event.repository.id,
+      installationId: event.installation?.id,
+      cached: false,
+      error: error instanceof Error ? error.message : String(error),
+    });
+
     // Don't throw - we don't want GitHub to retry
   }
 }
@@ -265,6 +317,8 @@ async function handlePROpened(event: PullRequestEvent) {
  * Handle PR edited/synchronize events with real-time similarity updates
  */
 async function handlePRSimilarityUpdate(event: PullRequestEvent) {
+  const startTime = Date.now();
+
   try {
     console.log(
       'Processing PR %s event #%s in ${event.repository.full_name}',
@@ -283,11 +337,13 @@ async function handlePRSimilarityUpdate(event: PullRequestEvent) {
     await webhookDataService.storePR(event.pull_request, repoId);
 
     // Trigger real-time similarity recalculation
+    const updateStartTime = Date.now();
     const updatedSimilarities = await webhookSimilarityService.handlePREvent(
       event.action as 'edited' | 'synchronize',
       event.pull_request,
       event.repository
     );
+    const updateTimeMs = Date.now() - updateStartTime;
 
     console.log(
       'Updated similarities for PR #%d: %d similar issues found',
@@ -295,12 +351,46 @@ async function handlePRSimilarityUpdate(event: PullRequestEvent) {
       updatedSimilarities.length
     );
 
+    // Track similarity update
+    await similarityMetricsService.trackSimilarityUpdate(
+      event.pull_request.id,
+      event.repository.id,
+      event.action === 'edited' ? 'pr_edited' : 'pr_edited',
+      0, // previousCount - would need to track this
+      updatedSimilarities.length,
+      updateTimeMs
+    );
+
     // Update Check Runs with new similarity data (if Check Runs exist)
     if (updatedSimilarities.length > 0) {
       await handlePRCheckRuns(event);
     }
+
+    // Track successful processing
+    await webhookMetricsService.trackWebhookProcessing({
+      eventType: 'pull_request',
+      action: event.action,
+      priority: 'medium',
+      processingTimeMs: Date.now() - startTime,
+      repositoryId: event.repository.id,
+      installationId: event.installation?.id,
+      cached: false,
+    });
   } catch (error) {
     console.error('Error handling PR similarity update:', error);
+
+    // Track error
+    await webhookMetricsService.trackWebhookProcessing({
+      eventType: 'pull_request',
+      action: event.action,
+      priority: 'medium',
+      processingTimeMs: Date.now() - startTime,
+      repositoryId: event.repository.id,
+      installationId: event.installation?.id,
+      cached: false,
+      error: error instanceof Error ? error.message : String(error),
+    });
+
     // Don't throw - we don't want GitHub to retry
   }
 }
