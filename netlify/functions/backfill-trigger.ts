@@ -35,9 +35,29 @@ export const handler: Handler = async (event) => {
     };
   }
 
+  // Parse request body outside try-catch for error logging
+  let body: { repository?: string; days?: number; force?: boolean; callback_url?: string } = {};
+  let parseError: Error | null = null;
+
   try {
-    // Parse request body
-    const body = JSON.parse(event.body || '{}');
+    body = JSON.parse(event.body || '{}');
+  } catch (error) {
+    parseError = error instanceof Error ? error : new Error('Invalid JSON');
+  }
+
+  try {
+    // Check for JSON parse error
+    if (parseError) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          error: 'Bad request',
+          message: 'Invalid JSON in request body',
+          details: parseError.message,
+        }),
+      };
+    }
 
     if (!body.repository) {
       return {
@@ -98,7 +118,7 @@ export const handler: Handler = async (event) => {
     console.error('[backfill-trigger] Detailed error:', {
       error: errorMessage,
       stack: errorStack,
-      repository: JSON.parse(event.body || '{}').repository,
+      repository: body.repository, // Safe to access now
       timestamp: new Date().toISOString(),
       ghDatapipeUrl: process.env.GH_DATPIPE_API_URL || 'https://gh-datapipe.fly.dev',
       hasApiKey: Boolean(process.env.GH_DATPIPE_KEY),
