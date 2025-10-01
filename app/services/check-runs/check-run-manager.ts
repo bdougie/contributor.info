@@ -110,7 +110,10 @@ export class CheckRunManager {
               title: params.output.title,
               summary: params.output.summary,
               text: params.output.text,
-              annotations: params.output.annotations?.slice(0, 50), // GitHub limits to 50
+              // GitHub limits to 50 annotations, handle undefined/null safely
+              annotations: params.output.annotations
+                ? params.output.annotations.slice(0, 50)
+                : undefined,
             }
           : undefined,
       });

@@ -177,9 +177,17 @@ export class EventRouter {
 
     // Schedule new debounced processing
     const timer = setTimeout(async () => {
-      console.log('⏰ Processing debounced event: %s', metadata.eventId);
-      this.debouncedEvents.delete(metadata.eventId);
-      await this.processEvent(event, metadata);
+      const eventId = metadata.eventId;
+      try {
+        console.log('⏰ Processing debounced event: %s', eventId);
+        await this.processEvent(event, metadata);
+      } catch (error) {
+        console.error('Error processing debounced event %s:', error, eventId);
+        // Timer will still be cleaned up in finally block
+      } finally {
+        // Always cleanup timer reference to prevent memory leak
+        this.debouncedEvents.delete(eventId);
+      }
     }, this.DEBOUNCE_WINDOW);
 
     // Store debounced event
