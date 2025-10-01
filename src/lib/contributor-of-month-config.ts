@@ -2,15 +2,15 @@
  * Business logic for ContributorOfTheMonth component
  * Pure functions with no React dependencies
  */
-import type { ContributorRanking } from '@/lib/types';
+import type { ContributorRanking, MonthlyContributor } from '@/lib/types';
 
 export type ComponentState =
   | { type: 'loading' }
   | { type: 'error'; message: string }
   | { type: 'no_activity' }
-  | { type: 'minimal_activity'; contributors: any[]; month: string; year: number }
-  | { type: 'winner_phase'; ranking: ContributorRanking; topContributors: any[] }
-  | { type: 'leaderboard_phase'; ranking: ContributorRanking; topContributors: any[] };
+  | { type: 'minimal_activity'; contributors: MonthlyContributor[]; month: string; year: number }
+  | { type: 'winner_phase'; ranking: ContributorRanking; topContributors: MonthlyContributor[] }
+  | { type: 'leaderboard_phase'; ranking: ContributorRanking; topContributors: MonthlyContributor[] };
 
 export interface DisplayContent {
   title: string;
@@ -105,7 +105,7 @@ export function getDisplayContent(
  */
 export function getWinnerDisplayContent(
   ranking: ContributorRanking,
-  topContributors: any[]
+  topContributors: MonthlyContributor[]
 ): WinnerDisplayContent {
   return {
     sectionTitle: 'Winner Display',
@@ -120,7 +120,7 @@ export function getWinnerDisplayContent(
  */
 export function getLeaderboardDisplayContent(
   ranking: ContributorRanking,
-  topContributors: any[]
+  topContributors: MonthlyContributor[]
 ): LeaderboardDisplayContent {
   const activeCount = `${topContributors.length} active contributor${topContributors.length !== 1 ? 's' : ''}`;
   const moreContributorsText =
