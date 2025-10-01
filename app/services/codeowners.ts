@@ -1,5 +1,7 @@
 import { Octokit } from '@octokit/rest';
-import { minimatch } from 'minimatch';
+import * as minimatchLib from 'minimatch';
+
+const minimatch = minimatchLib.minimatch || minimatchLib.default || minimatchLib;
 
 export interface CodeOwner {
   pattern: string;

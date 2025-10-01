@@ -9,23 +9,28 @@ vi.mock('../../lib/auth', () => ({
   },
 }));
 
-vi.mock('../../../src/lib/supabase', () => ({
-  supabase: {
-    from: vi.fn(() => ({
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          single: vi.fn(),
-          maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null })),
-        })),
-      })),
-      upsert: vi.fn(() => ({
+vi.mock('../../../src/lib/supabase', () => {
+  const createChain = () => {
+    const chain = {
+      single: vi.fn(() => Promise.resolve({ data: null, error: null })),
+      maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null })),
+    };
+    return chain;
+  };
+
+  return {
+    supabase: {
+      from: vi.fn(() => ({
         select: vi.fn(() => ({
-          single: vi.fn(),
+          eq: vi.fn(() => createChain()),
+        })),
+        upsert: vi.fn(() => ({
+          select: vi.fn(() => createChain()),
         })),
       })),
-    })),
-  },
-}));
+    },
+  };
+});
 
 vi.mock('../../services/contributor-config', () => ({
   fetchContributorConfig: vi.fn(),
@@ -50,11 +55,17 @@ vi.mock('../../services/webhook/similarity-updater', () => ({
   },
 }));
 
-vi.mock('../event-router', () => ({
-  eventRouter: {
-    routeEvent: vi.fn(),
-  },
-}));
+vi.mock('../event-router', () => {
+  const mockEventRouter = {
+    routeEvent: vi.fn(() => Promise.resolve()),
+  };
+  return {
+    eventRouter: mockEventRouter,
+    EventRouter: {
+      getInstance: vi.fn(() => mockEventRouter),
+    },
+  };
+});
 
 vi.mock('../../services/webhook-metrics', () => ({
   webhookMetricsService: {

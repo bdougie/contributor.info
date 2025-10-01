@@ -11,11 +11,13 @@ vi.mock('../../services/webhook-metrics', () => ({
   },
 }));
 
-vi.mock('../../services/event-priority', () => ({
-  eventPriorityService: {
-    classifyEvent: vi.fn(() => Promise.resolve({ priority: 'medium', score: 45, reasons: [] })),
-  },
-}));
+vi.mock('../../services/event-priority', async (importOriginal) => {
+  return {
+    eventPriorityService: {
+      classifyEvent: vi.fn(() => Promise.resolve({ priority: 'medium', score: 45, reasons: [] })),
+    },
+  };
+});
 
 describe('EventRouter', () => {
   let router: EventRouter;
