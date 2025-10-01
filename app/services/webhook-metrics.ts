@@ -266,6 +266,65 @@ export class WebhookMetricsService {
   }
 
   /**
+   * Track memory and cache size metrics
+   */
+  async trackMemoryMetrics(metrics: {
+    service: 'event-router' | 'similarity-cache';
+    recentEventsCount?: number;
+    debouncedEventsCount?: number;
+    retryQueueLength?: number;
+    prSimilaritiesCount?: number;
+    similarityCacheCount?: number;
+    maxLimits?: {
+      maxPRSimilarities?: number;
+      maxSimilarityCache?: number;
+      maxRecentEvents?: number;
+      maxDebouncedEvents?: number;
+      maxRetryQueue?: number;
+    };
+  }): Promise<void> {
+    if (!this.posthog.isEnabled()) return;
+
+    const distinctId = `memory-${metrics.service}`;
+
+    await this.posthog.capture(distinctId, 'memory_metrics', {
+      // Service identifier
+      service: metrics.service,
+
+      // Cache sizes
+      recent_events_count: metrics.recentEventsCount,
+      debounced_events_count: metrics.debouncedEventsCount,
+      retry_queue_length: metrics.retryQueueLength,
+      pr_similarities_count: metrics.prSimilaritiesCount,
+      similarity_cache_count: metrics.similarityCacheCount,
+
+      // Limits
+      max_pr_similarities: metrics.maxLimits?.maxPRSimilarities,
+      max_similarity_cache: metrics.maxLimits?.maxSimilarityCache,
+      max_recent_events: metrics.maxLimits?.maxRecentEvents,
+      max_debounced_events: metrics.maxLimits?.maxDebouncedEvents,
+      max_retry_queue: metrics.maxLimits?.maxRetryQueue,
+
+      // Utilization percentages
+      pr_similarities_utilization:
+        metrics.prSimilaritiesCount && metrics.maxLimits?.maxPRSimilarities
+          ? (metrics.prSimilaritiesCount / metrics.maxLimits.maxPRSimilarities) * 100
+          : 0,
+      similarity_cache_utilization:
+        metrics.similarityCacheCount && metrics.maxLimits?.maxSimilarityCache
+          ? (metrics.similarityCacheCount / metrics.maxLimits.maxSimilarityCache) * 100
+          : 0,
+      recent_events_utilization:
+        metrics.recentEventsCount && metrics.maxLimits?.maxRecentEvents
+          ? (metrics.recentEventsCount / metrics.maxLimits.maxRecentEvents) * 100
+          : 0,
+
+      // Feature flag
+      feature: 'memory-monitoring',
+    });
+  }
+
+  /**
    * Check if tracking is enabled
    */
   isTrackingEnabled(): boolean {

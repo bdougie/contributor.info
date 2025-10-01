@@ -4,11 +4,56 @@ import { findSimilarIssues, SimilarIssue } from '../similarity';
 import { similarityCache } from '../similarity-cache';
 import { embeddingService } from '../embedding-service';
 import { githubAppAuth } from '../../lib/auth';
+import { webhookMetricsService } from '../webhook-metrics';
 
 interface SimilarityUpdateOptions {
   forceRecalculate?: boolean;
   maxResults?: number;
   minScore?: number;
+}
+
+/**
+ * Database row types - what Supabase actually returns
+ * These may be partial compared to full GitHub API types
+ */
+type DatabasePullRequest = Pick<
+  PullRequest,
+  'id' | 'number' | 'title' | 'body' | 'state' | 'created_at' | 'updated_at' | 'head'
+> & {
+  repository_id?: string;
+};
+
+type DatabaseRepository = Pick<Repository, 'id' | 'name' | 'full_name' | 'owner'> & {
+  github_id?: number;
+};
+
+/**
+ * Type guard to ensure database PR has required fields for similarity
+ */
+function isValidPRForSimilarity(pr: unknown): pr is PullRequest {
+  const p = pr as Partial<PullRequest>;
+  return !!(
+    p &&
+    typeof p.id === 'number' &&
+    typeof p.number === 'number' &&
+    typeof p.title === 'string' &&
+    p.head &&
+    typeof p.head.sha === 'string'
+  );
+}
+
+/**
+ * Type guard to ensure database repository has required fields
+ */
+function isValidRepository(repo: unknown): repo is Repository {
+  const r = repo as Partial<Repository>;
+  return !!(
+    r &&
+    (typeof r.id === 'number' || typeof r.id === 'string') &&
+    typeof r.name === 'string' &&
+    r.owner &&
+    typeof r.owner.login === 'string'
+  );
 }
 
 /**
@@ -19,17 +64,176 @@ interface SimilarityUpdateOptions {
  * - Uses cached embeddings for fast lookups
  * - Invalidates stale cache entries
  * - Updates Check Runs with new similarity data
+ * - Implements cache size limits to prevent unbounded growth
  */
 export class WebhookSimilarityService {
   private static instance: WebhookSimilarityService;
 
-  private constructor() {}
+  // Cache size limits to prevent unbounded memory growth
+  private readonly MAX_PR_SIMILARITIES_CACHE = 1000;
+  private readonly MAX_SIMILARITY_CACHE = 5000;
+  private readonly CACHE_CLEANUP_INTERVAL = 3600000; // 1 hour
+  private cleanupTimer: NodeJS.Timeout | null = null;
+
+  private constructor() {
+    // Start periodic cache cleanup
+    this.startCacheCleanup();
+  }
 
   static getInstance(): WebhookSimilarityService {
     if (!WebhookSimilarityService.instance) {
       WebhookSimilarityService.instance = new WebhookSimilarityService();
     }
     return WebhookSimilarityService.instance;
+  }
+
+  /**
+   * Start periodic cache cleanup to prevent unbounded growth
+   */
+  private startCacheCleanup(): void {
+    this.cleanupTimer = setInterval(() => {
+      this.cleanupOldCacheEntries().catch((error) => {
+        console.error('Error during cache cleanup:', error);
+      });
+    }, this.CACHE_CLEANUP_INTERVAL);
+  }
+
+  /**
+   * Stop cache cleanup (useful for testing/shutdown)
+   */
+  stopCacheCleanup(): void {
+    if (this.cleanupTimer) {
+      clearInterval(this.cleanupTimer);
+      this.cleanupTimer = null;
+    }
+  }
+
+  /**
+   * Clean up old cache entries to enforce size limits
+   * Removes oldest entries when cache size exceeds limits
+   */
+  async cleanupOldCacheEntries(): Promise<void> {
+    try {
+      console.log('🧹 Running cache cleanup...');
+
+      // Clean up pr_similarities cache - keep only most recent entries
+      const { data: prSimilaritiesCount } = await supabase
+        .from('pr_similarities')
+        .select('pull_request_id', { count: 'exact', head: true });
+
+      if (prSimilaritiesCount && prSimilaritiesCount > this.MAX_PR_SIMILARITIES_CACHE) {
+        // Delete oldest entries beyond limit
+        const entriesToDelete = prSimilaritiesCount - this.MAX_PR_SIMILARITIES_CACHE;
+
+        // Get IDs of oldest entries
+        const { data: oldestEntries } = await supabase
+          .from('pr_similarities')
+          .select('pull_request_id')
+          .order('calculated_at', { ascending: true })
+          .limit(entriesToDelete);
+
+        if (oldestEntries && oldestEntries.length > 0) {
+          const idsToDelete = oldestEntries.map((e) => e.pull_request_id);
+          await supabase.from('pr_similarities').delete().in('pull_request_id', idsToDelete);
+
+          console.log('Deleted %d old pr_similarities entries', oldestEntries.length);
+        }
+      }
+
+      // Clean up similarity_cache - keep only most recent entries
+      const { data: similarityCacheCount } = await supabase
+        .from('similarity_cache')
+        .select('id', { count: 'exact', head: true });
+
+      if (similarityCacheCount && similarityCacheCount > this.MAX_SIMILARITY_CACHE) {
+        // Delete oldest entries beyond limit
+        const entriesToDelete = similarityCacheCount - this.MAX_SIMILARITY_CACHE;
+
+        // Get IDs of oldest entries
+        const { data: oldestEntries } = await supabase
+          .from('similarity_cache')
+          .select('id')
+          .order('cached_at', { ascending: true })
+          .limit(entriesToDelete);
+
+        if (oldestEntries && oldestEntries.length > 0) {
+          const idsToDelete = oldestEntries.map((e) => e.id);
+          await supabase.from('similarity_cache').delete().in('id', idsToDelete);
+
+          console.log('Deleted %d old similarity_cache entries', oldestEntries.length);
+        }
+      }
+
+      // Also clean up entries older than 7 days (stale cache)
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+      await supabase.from('pr_similarities').delete().lt('calculated_at', sevenDaysAgo);
+
+      await supabase.from('similarity_cache').delete().lt('cached_at', sevenDaysAgo);
+
+      console.log('✅ Cache cleanup complete');
+
+      // Track memory metrics after cleanup
+      await this.trackMemoryMetrics();
+    } catch (error) {
+      console.error('Error cleaning up cache:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Track current cache memory usage to PostHog
+   */
+  private async trackMemoryMetrics(): Promise<void> {
+    const stats = await this.getCacheStats();
+
+    await webhookMetricsService.trackMemoryMetrics({
+      service: 'similarity-cache',
+      prSimilaritiesCount: stats.prSimilaritiesCount,
+      similarityCacheCount: stats.similarityCacheCount,
+      maxLimits: {
+        maxPRSimilarities: stats.limits.maxPRSimilarities,
+        maxSimilarityCache: stats.limits.maxSimilarityCache,
+      },
+    });
+  }
+
+  /**
+   * Get current cache statistics
+   */
+  async getCacheStats(): Promise<{
+    prSimilaritiesCount: number;
+    similarityCacheCount: number;
+    limits: {
+      maxPRSimilarities: number;
+      maxSimilarityCache: number;
+    };
+  }> {
+    try {
+      const [prResult, similarityResult] = await Promise.all([
+        supabase.from('pr_similarities').select('pull_request_id', { count: 'exact', head: true }),
+        supabase.from('similarity_cache').select('id', { count: 'exact', head: true }),
+      ]);
+
+      return {
+        prSimilaritiesCount: prResult.count || 0,
+        similarityCacheCount: similarityResult.count || 0,
+        limits: {
+          maxPRSimilarities: this.MAX_PR_SIMILARITIES_CACHE,
+          maxSimilarityCache: this.MAX_SIMILARITY_CACHE,
+        },
+      };
+    } catch (error) {
+      console.error('Error getting cache stats:', error);
+      return {
+        prSimilaritiesCount: 0,
+        similarityCacheCount: 0,
+        limits: {
+          maxPRSimilarities: this.MAX_PR_SIMILARITIES_CACHE,
+          maxSimilarityCache: this.MAX_SIMILARITY_CACHE,
+        },
+      };
+    }
   }
 
   /**
@@ -71,15 +275,23 @@ export class WebhookSimilarityService {
 
       console.log('Found %d open PRs to recalculate', openPRs.length);
 
+      // Validate repository data
+      if (!isValidRepository(repository)) {
+        console.error('Invalid repository data from database');
+        return;
+      }
+
       // Recalculate similarities for each PR
       let updatedCount = 0;
       for (const pr of openPRs) {
         try {
-          const similarities = await this.updatePRSimilarities(
-            pr as PullRequest,
-            repository as Repository,
-            options
-          );
+          // Validate PR data before processing
+          if (!isValidPRForSimilarity(pr)) {
+            console.warn('Skipping PR with invalid data: %s', pr.id);
+            continue;
+          }
+
+          const similarities = await this.updatePRSimilarities(pr, repository, options);
 
           if (similarities.length > 0) {
             // Store updated similarities
@@ -216,8 +428,25 @@ export class WebhookSimilarityService {
 
       if (!data) return null;
 
+      // Validate that similar_issues has the expected structure
+      if (!Array.isArray(data.similar_issues)) {
+        console.warn('Invalid cached similarities format for PR: %s', prId);
+        return null;
+      }
+
+      // Type-safe casting after validation
+      const similarities = data.similar_issues.filter((item): item is SimilarIssue => {
+        return !!(
+          item &&
+          typeof item === 'object' &&
+          'issue' in item &&
+          'similarityScore' in item &&
+          typeof item.similarityScore === 'number'
+        );
+      });
+
       return {
-        similarities: data.similar_issues as SimilarIssue[],
+        similarities,
         cached_at: new Date(data.calculated_at),
       };
     } catch (error) {

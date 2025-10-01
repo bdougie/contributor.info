@@ -2,6 +2,7 @@ import type { IssuesEvent, PullRequestEvent } from '../types/github';
 import { eventPriorityService, EventPriority } from '../services/event-priority';
 import { embeddingQueueService } from '../services/webhook/embedding-queue';
 import { supabase } from '../../src/lib/supabase';
+import { webhookMetricsService } from '../services/webhook-metrics';
 
 export type WebhookEvent = IssuesEvent | PullRequestEvent;
 
@@ -55,9 +56,46 @@ export class EventRouter {
   private readonly MAX_RETRIES = 3;
   private readonly INITIAL_BACKOFF = 2000; // 2 seconds
 
+  // Memory monitoring
+  private readonly MEMORY_TRACKING_INTERVAL = 300000; // 5 minutes
+  private memoryTrackingTimer: NodeJS.Timeout | null = null;
+
   private constructor() {
     // Cleanup old events periodically
     setInterval(() => this.cleanupOldEvents(), 60000); // Every minute
+
+    // Track memory metrics periodically
+    this.startMemoryTracking();
+  }
+
+  /**
+   * Start periodic memory tracking
+   */
+  private startMemoryTracking(): void {
+    this.memoryTrackingTimer = setInterval(() => {
+      this.trackMemoryMetrics().catch((error) => {
+        console.error('Error tracking memory metrics:', error);
+      });
+    }, this.MEMORY_TRACKING_INTERVAL);
+  }
+
+  /**
+   * Track current memory usage to PostHog
+   */
+  private async trackMemoryMetrics(): Promise<void> {
+    const stats = this.getStats();
+
+    await webhookMetricsService.trackMemoryMetrics({
+      service: 'event-router',
+      recentEventsCount: stats.recentEventsCount,
+      debouncedEventsCount: stats.debouncedEventsCount,
+      retryQueueLength: stats.retryQueueLength,
+      maxLimits: {
+        maxRecentEvents: this.MAX_RECENT_EVENTS,
+        maxDebouncedEvents: this.MAX_DEBOUNCED_EVENTS,
+        maxRetryQueue: this.MAX_RETRY_QUEUE,
+      },
+    });
   }
 
   static getInstance(): EventRouter {
@@ -352,7 +390,11 @@ export class EventRouter {
     );
 
     setTimeout(async () => {
-      await this.processRetryQueue();
+      try {
+        await this.processRetryQueue();
+      } catch (error) {
+        console.error('Error processing retry queue:', error);
+      }
     }, retryDelay);
   }
 
@@ -433,6 +475,12 @@ export class EventRouter {
     // Cancel all debounced timers
     for (const debounced of this.debouncedEvents.values()) {
       clearTimeout(debounced.timer);
+    }
+
+    // Stop memory tracking
+    if (this.memoryTrackingTimer) {
+      clearInterval(this.memoryTrackingTimer);
+      this.memoryTrackingTimer = null;
     }
 
     this.recentEvents.clear();
