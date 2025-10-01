@@ -40,10 +40,18 @@ export interface WorkspaceDashboardProps {
   onAddRepository?: () => void;
   onRemoveRepository?: (repo: Repository) => void;
   onRepositoryClick?: (repo: Repository) => void;
+  onGitHubAppModalOpen?: (repo: Repository) => void;
   onSettingsClick?: () => void;
   onUpgradeClick?: () => void;
   className?: string;
   children?: React.ReactNode; // Allow passing additional content like Rising Stars chart
+  repoStatuses?: Map<
+    string,
+    {
+      isInstalled: boolean;
+      installationId?: string;
+    }
+  >;
 }
 
 // Time range labels for trend comparison
@@ -63,8 +71,10 @@ export function WorkspaceDashboard({
   onAddRepository,
   onRemoveRepository,
   onRepositoryClick,
+  onGitHubAppModalOpen,
   className,
   children,
+  repoStatuses,
 }: WorkspaceDashboardProps) {
   const [pinnedRepos, setPinnedRepos] = useState<Set<string>>(
     new Set(repositories.filter((r) => r.is_pinned).map((r) => r.id))
@@ -166,6 +176,8 @@ export function WorkspaceDashboard({
         onPinToggle={handlePinToggle}
         onRemove={onRemoveRepository}
         onAddRepository={onAddRepository}
+        onGitHubAppModalOpen={onGitHubAppModalOpen}
+        repoStatuses={repoStatuses}
         emptyMessage={
           repositories.length === 0
             ? 'No repositories in this workspace yet. Add your first repository to start tracking activity.'

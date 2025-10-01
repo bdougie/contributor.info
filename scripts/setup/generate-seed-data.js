@@ -8,6 +8,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { Octokit } from '@octokit/rest';
+import { ensureContributor } from '../progressive-capture/lib/contributor-utils.js';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -221,6 +222,9 @@ async function fetchPullRequests(owner, name, repositoryId, days = SEED_DATA_DAY
       })
     );
 
+    // Ensure contributors exist and get their UUIDs
+    const authorContributorId = await ensureContributor(supabase, detailedPR.user);
+    
     pullRequests.push({
       github_id: detailedPR.id,
       repository_id: repositoryId,
@@ -228,7 +232,7 @@ async function fetchPullRequests(owner, name, repositoryId, days = SEED_DATA_DAY
       title: detailedPR.title,
       body: detailedPR.body,
       state: detailedPR.state,
-      author_id: detailedPR.user.id,
+      author_id: authorContributorId, // Now using contributor UUID
       created_at: detailedPR.created_at,
       updated_at: detailedPR.updated_at,
       closed_at: detailedPR.closed_at,
@@ -255,10 +259,16 @@ async function fetchPullRequests(owner, name, repositoryId, days = SEED_DATA_DAY
       );
 
       for (const review of prReviews) {
+        // Ensure review author exists and get UUID
+        let reviewAuthorId = null;
+        if (review.user) {
+          reviewAuthorId = await ensureContributor(supabase, review.user);
+        }
+
         reviews.push({
           github_id: review.id,
           pull_request_id: detailedPR.id,
-          author_id: review.user?.id,
+          author_id: reviewAuthorId, // Now using contributor UUID
           state: review.state,
           body: review.body,
           submitted_at: review.submitted_at,
@@ -281,11 +291,17 @@ async function fetchPullRequests(owner, name, repositoryId, days = SEED_DATA_DAY
       );
 
       for (const comment of prComments) {
+        // Ensure comment author exists and get UUID
+        let commenterId = null;
+        if (comment.user) {
+          commenterId = await ensureContributor(supabase, comment.user);
+        }
+
         comments.push({
           github_id: comment.id,
           pull_request_id: detailedPR.id,
           repository_id: repositoryId,
-          commenter_id: comment.user?.id,
+          commenter_id: commenterId, // Now using contributor UUID
           body: comment.body,
           created_at: comment.created_at,
           updated_at: comment.updated_at,

@@ -1,5 +1,5 @@
 import { inngest } from '../client';
-import { supabase } from '../../supabase';
+import { supabase } from '../supabase-server';
 import { GraphQLClient } from '../graphql-client';
 import type { NonRetriableError } from 'inngest';
 import { getMergeableStatus } from '../../utils/performance-helpers';

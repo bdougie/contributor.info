@@ -3,7 +3,7 @@ import {
   getItemsNeedingEmbeddings,
   generateAndStoreEmbeddings,
 } from '../../../../app/services/embeddings';
-import { supabase } from '../../supabase';
+import { supabase } from '../supabase-server';
 
 /**
  * Generate embeddings for issues and PRs in a repository

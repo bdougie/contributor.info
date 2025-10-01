@@ -1,5 +1,5 @@
 import { inngest } from '../client';
-import { supabase } from '../../supabase';
+import { supabase } from '../supabase-server';
 import { NonRetriableError } from 'inngest';
 
 interface EmbeddingJobData {
@@ -47,7 +47,7 @@ export const computeEmbeddings = inngest.createFunction(
           items_processed: 0,
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error || !job) {
         throw new NonRetriableError('Failed to create embedding job');
