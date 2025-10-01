@@ -1,5 +1,5 @@
 import { inngest } from '../client';
-import { supabase } from '../../supabase';
+import { supabase } from '../supabase-server';
 import { GraphQLClient } from '../graphql-client';
 import type { NonRetriableError } from 'inngest';
 import { getThrottleHours, QUEUE_CONFIG } from '../../progressive-capture/throttle-config';
@@ -41,6 +41,7 @@ interface GitHubUser {
 
 async function ensureContributorExists(githubUser: GitHubUser): Promise<string | null> {
   if (!githubUser || !githubUser.databaseId) {
+    console.warn('Missing github user data or databaseId');
     return null;
   }
 
@@ -77,13 +78,20 @@ async function ensureContributorExists(githubUser: GitHubUser): Promise<string |
     .maybeSingle();
 
   if (error) {
-    console.error('Error upserting contributor:', error);
-    return null;
+    console.error(
+      'Error upserting contributor %s (ID: %s): %s',
+      githubUser.login,
+      githubUser.databaseId,
+      error.message
+    );
+    throw new Error(`Failed to upsert contributor ${githubUser.login}: ${error.message}`);
   }
 
   if (!data) {
-    return null;
+    console.error('No data returned after upserting contributor %s', githubUser.login);
+    throw new Error(`No data returned for contributor ${githubUser.login}`);
   }
+
   return data.id;
 }
 

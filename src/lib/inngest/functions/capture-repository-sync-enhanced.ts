@@ -1,5 +1,5 @@
 import { inngest } from '../client';
-import { supabase } from '../../supabase';
+import { supabase } from '../supabase-server';
 import { NonRetriableError } from 'inngest';
 import { getGraphQLClient } from '../graphql-client';
 import { RATE_LIMIT_CONFIG } from '../queue-manager';

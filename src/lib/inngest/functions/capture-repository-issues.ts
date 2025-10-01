@@ -1,5 +1,5 @@
 import { inngest } from '../client';
-import { supabase } from '../../supabase';
+import { supabase } from '../supabase-server';
 import { getOctokit } from '../github-client';
 import { SyncLogger } from '../sync-logger';
 import { NonRetriableError } from 'inngest';
