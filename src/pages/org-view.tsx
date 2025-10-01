@@ -18,6 +18,7 @@ import { useOrgRepos } from '@/hooks/use-org-repos';
 import { humanizeNumber } from '@/lib/utils';
 import { OrganizationAvatar } from '@/components/ui/organization-avatar';
 import { Breadcrumbs } from '@/components/common/layout/breadcrumbs';
+import { SocialMetaTags } from '@/components/common/layout';
 import { avatarCache } from '@/lib/avatar-cache';
 
 interface RepositoryWithTracking {
@@ -253,8 +254,20 @@ export default function OrgView() {
     );
   }
 
+  // Generate dynamic meta tags for the organization profile
+  const orgTitle = `${orgData?.name || org} - Open Source Organization`;
+  const orgDescription = `Explore ${orgData?.name || org}'s open source repositories and contribution activity. Discover their collaborative projects and development impact.`;
+  const orgUrl = `https://contributor.info/${org}`;
+
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
+      <SocialMetaTags
+        title={orgTitle}
+        description={orgDescription}
+        url={orgUrl}
+        type="article"
+        image="social-cards/user"
+      />
       {/* Breadcrumbs */}
       <Breadcrumbs />
 

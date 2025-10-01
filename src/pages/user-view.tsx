@@ -17,6 +17,7 @@ import { useUserRepos } from '@/hooks/use-user-repos';
 import { humanizeNumber } from '@/lib/utils';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { Breadcrumbs } from '@/components/common/layout/breadcrumbs';
+import { SocialMetaTags } from '@/components/common/layout';
 import { avatarCache } from '@/lib/avatar-cache';
 
 interface RepositoryWithTracking {
@@ -256,8 +257,20 @@ export default function UserView() {
     );
   }
 
+  // Generate dynamic meta tags for the user profile
+  const userTitle = `${userData?.name || username} - Open Source Contributor`;
+  const userDescription = `View ${userData?.name || username}'s contribution history and open source project insights. Discover their collaborative repositories and development activity.`;
+  const userUrl = `https://contributor.info/${username}`;
+
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
+      <SocialMetaTags
+        title={userTitle}
+        description={userDescription}
+        url={userUrl}
+        type="article"
+        image="social-cards/user"
+      />
       {/* Breadcrumbs */}
       <Breadcrumbs />
 

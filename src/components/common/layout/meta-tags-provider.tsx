@@ -70,30 +70,27 @@ export function SocialMetaTags({
   if (!image.startsWith('http')) {
     // Check if it's a social card path - use Fly.io service for generation
     if (image.includes('social-cards/')) {
-      // Extract parameters from image path for dynamic generation
-      const isRepoCard = image.includes('repo-');
-      const isUserCard = image.includes('user-');
-
-      if (isRepoCard) {
-        // For repo cards, try to extract owner/repo from URL
-        const urlPath = currentUrl.replace(/^https?:\/\/[^\/]+/, '');
-        const pathMatch = urlPath.match(/\/([^\/]+)\/([^\/]+)/);
-
+      const urlPath = currentUrl.replace(/^https?:\/\/[^\/]+/, '');
+      
+      if (image === 'social-cards/repo') {
+        // For repo cards, extract owner/repo from URL
+        const pathMatch = urlPath.match(/\/([^\/]+)\/([^\/]+)(?:\/|$)/);
         if (pathMatch) {
           const [, owner, repo] = pathMatch;
           imageUrl = `${socialCardsBaseUrl}/social-cards/repo?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}`;
         } else {
           imageUrl = `${socialCardsBaseUrl}/social-cards/home`;
         }
-      } else if (isUserCard) {
-        // For user cards, extract username from URL
-        const urlPath = currentUrl.replace(/^https?:\/\/[^\/]+/, '');
-        const userMatch = urlPath.match(/\/user\/([^\/]+)/);
-
-        if (userMatch) {
-          const [, username] = userMatch;
+      } else if (image === 'social-cards/user') {
+        // For user cards, extract username from URL (pattern: /{username})
+        // Need to differentiate from repo URLs which have two path segments
+        const pathSegments = urlPath.split('/').filter(Boolean);
+        if (pathSegments.length === 1) {
+          // Single path segment = user profile
+          const username = pathSegments[0];
           imageUrl = `${socialCardsBaseUrl}/social-cards/user?username=${encodeURIComponent(username)}`;
         } else {
+          // Multiple segments or no match - fallback to home
           imageUrl = `${socialCardsBaseUrl}/social-cards/home`;
         }
       } else {
@@ -102,7 +99,7 @@ export function SocialMetaTags({
       }
 
       // Use local static fallback as backup
-      fallbackImageUrl = `https://contributor.info${image.replace('social-cards/', '/')}`;
+      fallbackImageUrl = `https://contributor.info/social.webp`;
     } else {
       imageUrl = `https://contributor.info${image}`;
       fallbackImageUrl = `https://contributor.info${image.replace('.webp', '.png')}`;
