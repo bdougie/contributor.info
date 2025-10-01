@@ -100,7 +100,7 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
     id: 'capture-repository-sync-graphql',
     name: 'Sync Recent Repository PRs (GraphQL)',
     concurrency: {
-      limit: 5, // Higher than REST due to better rate limits
+      limit: 10, // Increased to prevent queue backlog
       key: 'event.data.repositoryId',
     },
     throttle: { limit: 75, period: '1m' }, // More generous than REST
