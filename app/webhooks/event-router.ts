@@ -40,6 +40,11 @@ export class EventRouter {
   private readonly DEBOUNCE_WINDOW = 5000; // 5 seconds
   private readonly EVENT_HISTORY_TTL = 60000; // 1 minute
 
+  // Memory bounds to prevent unbounded growth
+  private readonly MAX_RECENT_EVENTS = 1000;
+  private readonly MAX_DEBOUNCED_EVENTS = 100;
+  private readonly MAX_RETRY_QUEUE = 50;
+
   // Rate limiting: Track API calls and backoff
   private rateLimitStatus = {
     remaining: 5000,
@@ -175,6 +180,19 @@ export class EventRouter {
       clearTimeout(existing.timer);
     }
 
+    // Enforce memory bounds for debounced events
+    if (this.debouncedEvents.size >= this.MAX_DEBOUNCED_EVENTS) {
+      const firstKey = this.debouncedEvents.keys().next().value;
+      if (firstKey) {
+        const oldEvent = this.debouncedEvents.get(firstKey);
+        if (oldEvent) {
+          clearTimeout(oldEvent.timer);
+        }
+        this.debouncedEvents.delete(firstKey);
+        console.warn('⚠️  Debounced events limit reached, evicting oldest entry');
+      }
+    }
+
     // Schedule new debounced processing
     const timer = setTimeout(async () => {
       const eventId = metadata.eventId;
@@ -253,9 +271,17 @@ export class EventRouter {
   }
 
   /**
-   * Track event in recent events
+   * Track event in recent events with memory bounds
    */
   private trackEvent(metadata: EventMetadata): void {
+    // Enforce memory bounds by removing oldest entry when limit reached
+    if (this.recentEvents.size >= this.MAX_RECENT_EVENTS) {
+      const firstKey = this.recentEvents.keys().next().value;
+      if (firstKey) {
+        this.recentEvents.delete(firstKey);
+        console.warn('⚠️  Recent events limit reached, evicting oldest entry');
+      }
+    }
     this.recentEvents.set(metadata.eventId, metadata);
   }
 
@@ -305,6 +331,11 @@ export class EventRouter {
         return;
       }
     } else {
+      // Enforce memory bounds for retry queue
+      if (this.retryQueue.length >= this.MAX_RETRY_QUEUE) {
+        console.warn('⚠️  Retry queue limit reached, dropping oldest retry');
+        this.retryQueue.shift();
+      }
       this.retryQueue.push({ event, retryCount: 0 });
     }
 

@@ -43,12 +43,11 @@ export async function handlePRCheckRuns(event: PullRequestEvent): Promise<void> 
     }
 
     const octokit = await githubAppAuth.getInstallationOctokit(installationId);
-    const checkRunManager = new CheckRunManager(octokit);
 
     // Run checks in parallel
     const [similarityResult, performanceResult] = await Promise.allSettled([
-      runSimilarityCheck(pr, repo, checkRunManager, octokit),
-      runPerformanceCheck(pr, repo, checkRunManager, octokit),
+      runSimilarityCheck(pr, repo, octokit),
+      runPerformanceCheck(pr, repo, octokit),
     ]);
 
     // Log results
@@ -78,15 +77,13 @@ export async function handlePRCheckRuns(event: PullRequestEvent): Promise<void> 
 async function runSimilarityCheck(
   pr: any,
   repo: any,
-  checkRunManager: CheckRunManager,
   octokit: Octokit
 ): Promise<{ similar_issues: number; conclusion: string }> {
   const checkRunName = 'Similarity Analysis';
+  const checkRunManager = new CheckRunManager(octokit, repo.owner.login, repo.name, pr.head.sha);
 
   // Create check run
-  const checkRun = await checkRunManager.create({
-    owner: repo.owner.login,
-    repo: repo.name,
+  const checkRunId = await checkRunManager.create({
     name: checkRunName,
     head_sha: pr.head.sha,
     status: 'in_progress',
@@ -175,18 +172,7 @@ async function runSimilarityCheck(
     }
 
     // Complete check run with results
-    await checkRunManager.complete(
-      checkRun.id,
-      repo.owner.login,
-      repo.name,
-      {
-        title: checkRunName,
-        summary,
-        text,
-        annotations,
-      },
-      conclusion
-    );
+    await checkRunManager.complete(checkRunId, conclusion, summary);
 
     console.log(
       '✅ Similarity check completed for PR #%s: %s similar issues',
@@ -196,13 +182,7 @@ async function runSimilarityCheck(
     return { similar_issues: similarIssues.length, conclusion };
   } catch (error) {
     // Fail check run with error
-    await checkRunManager.fail(
-      checkRun.id,
-      repo.owner.login,
-      repo.name,
-      checkRunName,
-      error as Error
-    );
+    await checkRunManager.fail(checkRunId, (error as Error).message);
 
     throw error;
   }
@@ -214,15 +194,13 @@ async function runSimilarityCheck(
 async function runPerformanceCheck(
   pr: any,
   repo: any,
-  checkRunManager: CheckRunManager,
   octokit: Octokit
 ): Promise<{ has_risks: boolean; conclusion: string }> {
   const checkRunName = 'Performance Impact Analysis';
+  const checkRunManager = new CheckRunManager(octokit, repo.owner.login, repo.name, pr.head.sha);
 
   // Create check run
-  const checkRun = await checkRunManager.create({
-    owner: repo.owner.login,
-    repo: repo.name,
+  const checkRunId = await checkRunManager.create({
     name: checkRunName,
     head_sha: pr.head.sha,
     status: 'in_progress',
@@ -292,30 +270,13 @@ async function runPerformanceCheck(
     }
 
     // Complete check run with results
-    await checkRunManager.complete(
-      checkRun.id,
-      repo.owner.login,
-      repo.name,
-      {
-        title: checkRunName,
-        summary,
-        text,
-        annotations,
-      },
-      conclusion
-    );
+    await checkRunManager.complete(checkRunId, conclusion, summary);
 
     console.log('✅ Performance check completed for PR #%s', pr.number);
     return { has_risks: performanceAnalysis.hasRisks, conclusion };
   } catch (error) {
     // Fail check run with error
-    await checkRunManager.fail(
-      checkRun.id,
-      repo.owner.login,
-      repo.name,
-      checkRunName,
-      error as Error
-    );
+    await checkRunManager.fail(checkRunId, (error as Error).message);
 
     throw error;
   }

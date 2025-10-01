@@ -3,15 +3,6 @@ import type { Octokit } from '@octokit/rest';
 /**
  * GitHub Check Run API wrapper types
  */
-export interface CheckRunParams {
-  owner: string;
-  repo: string;
-  name: string;
-  head_sha: string;
-  status?: 'queued' | 'in_progress' | 'completed';
-  started_at?: string;
-}
-
 export interface CheckRunUpdate {
   status?: 'queued' | 'in_progress' | 'completed';
   conclusion?:
@@ -42,14 +33,6 @@ export interface CheckRunAnnotation {
   title?: string;
 }
 
-export interface CheckRun {
-  id: number;
-  name: string;
-  status: string;
-  conclusion: string | null;
-  html_url: string;
-}
-
 /**
  * CheckRunManager - Reusable GitHub Check Runs API wrapper
  *
@@ -57,31 +40,33 @@ export interface CheckRun {
  * used by both similarity and performance checks.
  */
 export class CheckRunManager {
-  constructor(private octokit: Octokit) {}
+  constructor(
+    private octokit: Octokit,
+    private owner: string,
+    private repo: string,
+    private headSha: string
+  ) {}
 
   /**
    * Create a new Check Run
    */
-  async create(params: CheckRunParams): Promise<CheckRun> {
+  async create(params: {
+    name: string;
+    head_sha: string;
+    status?: 'queued' | 'in_progress' | 'completed';
+  }): Promise<number> {
     try {
       const { data: checkRun } = await this.octokit.rest.checks.create({
-        owner: params.owner,
-        repo: params.repo,
+        owner: this.owner,
+        repo: this.repo,
         name: params.name,
         head_sha: params.head_sha,
         status: params.status || 'in_progress',
-        started_at: params.started_at || new Date().toISOString(),
       });
 
       console.log('Created Check Run: %s (ID: %s)', params.name, checkRun.id);
 
-      return {
-        id: checkRun.id,
-        name: checkRun.name,
-        status: checkRun.status,
-        conclusion: checkRun.conclusion,
-        html_url: checkRun.html_url,
-      };
+      return checkRun.id;
     } catch (error) {
       console.error('Error creating Check Run: %o', error);
       throw error;
@@ -91,16 +76,11 @@ export class CheckRunManager {
   /**
    * Update an existing Check Run
    */
-  async update(
-    checkRunId: number,
-    owner: string,
-    repo: string,
-    params: CheckRunUpdate
-  ): Promise<void> {
+  async update(checkRunId: number, params: CheckRunUpdate): Promise<void> {
     try {
       await this.octokit.rest.checks.update({
-        owner,
-        repo,
+        owner: this.owner,
+        repo: this.repo,
         check_run_id: checkRunId,
         status: params.status,
         conclusion: params.conclusion,
@@ -130,37 +110,31 @@ export class CheckRunManager {
    */
   async complete(
     checkRunId: number,
-    owner: string,
-    repo: string,
-    output: CheckRunOutput,
-    conclusion: 'success' | 'neutral' | 'failure' = 'success'
+    conclusion: 'success' | 'neutral' | 'failure',
+    summary: string
   ): Promise<void> {
-    await this.update(checkRunId, owner, repo, {
+    await this.update(checkRunId, {
       status: 'completed',
       conclusion,
       completed_at: new Date().toISOString(),
-      output,
+      output: {
+        title: 'Check Complete',
+        summary,
+      },
     });
   }
 
   /**
    * Fail a Check Run with error details
    */
-  async fail(
-    checkRunId: number,
-    owner: string,
-    repo: string,
-    title: string,
-    error: Error
-  ): Promise<void> {
-    await this.update(checkRunId, owner, repo, {
+  async fail(checkRunId: number, summary: string): Promise<void> {
+    await this.update(checkRunId, {
       status: 'completed',
       conclusion: 'failure',
       completed_at: new Date().toISOString(),
       output: {
-        title,
-        summary: 'Check failed',
-        text: `An error occurred:\n\n\`\`\`\n${error.message}\n\`\`\``,
+        title: 'Check Failed',
+        summary,
       },
     });
   }
@@ -168,23 +142,18 @@ export class CheckRunManager {
   /**
    * Add annotations to a Check Run (for warnings/errors)
    */
-  async addAnnotations(
-    checkRunId: number,
-    owner: string,
-    repo: string,
-    annotations: CheckRunAnnotation[]
-  ): Promise<void> {
+  async addAnnotations(checkRunId: number, annotations: CheckRunAnnotation[]): Promise<void> {
     try {
       // GitHub API allows updating annotations by updating the check run
       // We'll need to get current output and merge annotations
       const { data: checkRun } = await this.octokit.rest.checks.get({
-        owner,
-        repo,
+        owner: this.owner,
+        repo: this.repo,
         check_run_id: checkRunId,
       });
 
       if (checkRun.output) {
-        await this.update(checkRunId, owner, repo, {
+        await this.update(checkRunId, {
           output: {
             title: checkRun.output.title || 'Check Run',
             summary: checkRun.output.summary || '',
