@@ -153,12 +153,9 @@ export { GroundTruthExtractor } from './datasets/ground-truth-extractor';
 export { EvaluationMetricsCalculator } from './metrics/evaluation-metrics';
 
 // Run CLI if this file is executed directly
-// Only works in ES modules, not in bundled serverless environments
-if (typeof import.meta !== 'undefined' && import.meta.url) {
-  import('url').then(({ fileURLToPath }) => {
-    const __filename = fileURLToPath(import.meta.url);
-    if (process.argv[1] === __filename) {
-      main().catch(console.error);
-    }
-  });
+// Disabled in production builds to avoid import.meta issues in bundled environments
+// To run CLI: node -r esbuild-register src/evals/index.ts
+// eslint-disable-next-line no-constant-condition
+if (false) {
+  main().catch(console.error);
 }
