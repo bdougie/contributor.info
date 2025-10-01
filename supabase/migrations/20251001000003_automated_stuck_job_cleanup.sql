@@ -33,11 +33,7 @@ SELECT
   COUNT(*) as stuck_count,
   MIN(started_at) as oldest_stuck_job,
   EXTRACT(EPOCH FROM (NOW() - MIN(started_at)))/60 as oldest_age_minutes,
-  ARRAY_AGG(
-    metadata->>'repository_name'
-    ORDER BY started_at
-    LIMIT 5
-  ) as affected_repositories
+  ARRAY_AGG(metadata->>'repository_name' ORDER BY started_at) FILTER (WHERE metadata->>'repository_name' IS NOT NULL) as affected_repositories
 FROM progressive_capture_jobs
 WHERE status = 'processing'
   AND started_at < NOW() - INTERVAL '5 minutes'
