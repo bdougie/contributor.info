@@ -1,0 +1,6 @@
+{
+  "config": {
+    "nodeModuleFormat": "cjs",
+    "external": ["@aws-sdk/*"]
+  }
+}

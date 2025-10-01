@@ -1,10 +1,9 @@
 // Production Inngest function for contributor.info
-// Force rebuild: 2025-10-01 to clear Netlify cache
 import { Inngest } from 'inngest';
 import { serve } from 'inngest/lambda';
 import type { Context } from '@netlify/functions';
 
-// Import real Inngest function implementations
+// Import real Inngest function implementations (without embeddings to avoid import.meta issues)
 import {
   capturePrDetails,
   capturePrDetailsGraphQL,
@@ -14,7 +13,7 @@ import {
   captureRepositorySyncGraphQL,
   classifyRepositorySize,
   classifySingleRepository,
-} from '../../src/lib/inngest/functions/index';
+} from '../../src/lib/inngest/functions/index-without-embeddings';
 import { discoverNewRepository } from '../../src/lib/inngest/functions/discover-new-repository';
 import { captureIssueComments } from '../../src/lib/inngest/functions/capture-issue-comments';
 import { captureRepositoryIssues } from '../../src/lib/inngest/functions/capture-repository-issues';
