@@ -339,9 +339,17 @@ export class EventRouter {
       this.retryQueue.push({ event, retryCount: 0 });
     }
 
-    // Schedule retry with exponential backoff
-    const retryDelay = this.INITIAL_BACKOFF * Math.pow(2, existingRetry?.retryCount || 0);
-    console.log('⏳ Scheduling retry in %dms', retryDelay);
+    // Schedule retry with exponential backoff + jitter
+    // Jitter prevents thundering herd when multiple events are rate limited
+    const baseDelay = this.INITIAL_BACKOFF * Math.pow(2, existingRetry?.retryCount || 0);
+    const jitter = Math.random() * 1000; // 0-1000ms random jitter
+    const retryDelay = baseDelay + jitter;
+    console.log(
+      '⏳ Scheduling retry in %dms (base: %dms + jitter: %dms)',
+      retryDelay,
+      baseDelay,
+      jitter
+    );
 
     setTimeout(async () => {
       await this.processRetryQueue();

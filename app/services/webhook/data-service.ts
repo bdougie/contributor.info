@@ -4,7 +4,14 @@ import type {
   User as GitHubUser,
   Issue,
   PullRequest,
+  Label,
 } from '../../types/github';
+
+// Type for issue assignees stored in database
+interface IssueAssignee {
+  id: number;
+  login: string;
+}
 
 /**
  * WebhookDataService - Shared data operations for webhook handlers
@@ -63,13 +70,19 @@ export class WebhookDataService {
 
   /**
    * Store or update an issue in the database
+   * Note: Operations are sequenced to ensure consistency
    */
   async storeIssue(issue: Issue, repoId: string): Promise<string | null> {
     try {
-      // Get author ID
+      // Get author ID (atomic upsert)
       const authorId = await this.upsertContributor(issue.user);
+      if (!authorId) {
+        console.error('Failed to upsert contributor for issue: %s', issue.id);
+        return null;
+      }
 
-      const { data: issueData } = await supabase
+      // Store issue (atomic upsert)
+      const { data: issueData, error } = await supabase
         .from('issues')
         .upsert({
           github_id: issue.id,
@@ -93,6 +106,11 @@ export class WebhookDataService {
         .select('id')
         .maybeSingle();
 
+      if (error) {
+        console.error('Error upserting issue: %o', error);
+        throw error;
+      }
+
       return issueData?.id || null;
     } catch (error) {
       console.error('Error storing issue: %o', error);
@@ -102,13 +120,19 @@ export class WebhookDataService {
 
   /**
    * Store or update a pull request in the database
+   * Note: Operations are sequenced to ensure consistency
    */
   async storePR(pr: PullRequest, repoId: string): Promise<string | null> {
     try {
-      // Get author ID
+      // Get author ID (atomic upsert)
       const authorId = await this.upsertContributor(pr.user);
+      if (!authorId) {
+        console.error('Failed to upsert contributor for PR: %s', pr.id);
+        return null;
+      }
 
-      const { data: prData } = await supabase
+      // Store PR (atomic upsert)
+      const { data: prData, error } = await supabase
         .from('pull_requests')
         .upsert({
           github_id: pr.id,
@@ -128,6 +152,11 @@ export class WebhookDataService {
         })
         .select('id')
         .maybeSingle();
+
+      if (error) {
+        console.error('Error upserting pull request: %o', error);
+        throw error;
+      }
 
       return prData?.id || null;
     } catch (error) {
@@ -169,8 +198,8 @@ export class WebhookDataService {
     updates: {
       title?: string;
       body?: string;
-      labels?: unknown[];
-      assignees?: unknown[];
+      labels?: Label[];
+      assignees?: IssueAssignee[];
       updated_at?: string;
     }
   ): Promise<void> {

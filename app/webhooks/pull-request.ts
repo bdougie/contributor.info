@@ -49,7 +49,7 @@ export async function handlePullRequestEvent(event: PullRequestEvent) {
   }
 
   try {
-    console.log('Processing PR #%s in ${event.repository.full_name}', event.pull_request.number);
+    console.log('Processing PR #%d in %s', event.pull_request.number, event.repository.full_name);
 
     // Check if we should comment on this PR
     const shouldComment = await checkIfShouldComment(event);
@@ -148,7 +148,7 @@ export async function handlePullRequestEvent(event: PullRequestEvent) {
 
     if (commentResult.status === 'fulfilled') {
       const postedComment = commentResult.value.data;
-      console.log('Posted comment %s on PR #${event.pull_request.number}', postedComment.id);
+      console.log('Posted comment %d on PR #%d', postedComment.id, event.pull_request.number);
 
       // Store insights in database
       await storePRInsights({
@@ -176,8 +176,9 @@ async function handlePROpened(event: PullRequestEvent) {
 
   try {
     console.log(
-      'Processing opened PR #%s in ${event.repository.full_name}',
-      event.pull_request.number
+      'Processing opened PR #%d in %s',
+      event.pull_request.number,
+      event.repository.full_name
     );
 
     // Check if we should comment on this PR
@@ -266,8 +267,9 @@ async function handlePROpened(event: PullRequestEvent) {
     });
 
     console.log(
-      'Posted similarity comment %s on PR #${event.pull_request.number}',
-      postedComment.id
+      'Posted similarity comment %d on PR #%d',
+      postedComment.id,
+      event.pull_request.number
     );
 
     // Store basic tracking info (lightweight compared to full insights)
@@ -321,9 +323,10 @@ async function handlePRSimilarityUpdate(event: PullRequestEvent) {
 
   try {
     console.log(
-      'Processing PR %s event #%s in ${event.repository.full_name}',
+      'Processing PR %s event #%d in %s',
       event.action,
-      event.pull_request.number
+      event.pull_request.number,
+      event.repository.full_name
     );
 
     // Store/update PR data

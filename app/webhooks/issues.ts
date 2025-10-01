@@ -11,7 +11,7 @@ import { supabase } from '../../src/lib/supabase';
  * Handle issue webhook events with routing and prioritization
  */
 export async function handleIssuesEvent(event: IssuesEvent) {
-  console.log('Issue %s: #${event.issue.number} in ${event.repository.full_name}', event.action);
+  console.log('Issue %s: #%d in %s', event.action, event.issue.number, event.repository.full_name);
 
   // Route event through EventRouter for prioritization and debouncing
   await eventRouter.routeEvent(event);
