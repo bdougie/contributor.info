@@ -1,8 +1,7 @@
 name: Snyk Security Scanning
 
 on:
-  pull_request:
-    branches: [main]
+  workflow_dispatch: # Manual trigger for on-demand scans
 
 jobs:
   security-scan:
