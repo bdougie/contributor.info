@@ -23,21 +23,14 @@ interface QueueMetrics {
 class QueueTelemetry {
   private validationErrors: QueueValidationError[] = [];
   private metrics: QueueMetrics[] = [];
-  private flushInterval: NodeJS.Timeout | null = null;
-  private readonly FLUSH_INTERVAL = QUEUE_CONFIG.telemetryFlushInterval;
   private readonly BATCH_SIZE = QUEUE_CONFIG.batchSize;
 
   constructor() {
-    // Start periodic flush
-    if (typeof window !== 'undefined') {
-      this.startPeriodicFlush();
-    }
-  }
-
-  private startPeriodicFlush() {
-    this.flushInterval = setInterval(() => {
-      this.flush();
-    }, this.FLUSH_INTERVAL);
+    // IMPORTANT: Client-side telemetry flushing is disabled
+    // The queue_metrics table is restricted to service_role for security
+    // (see migration 20250127_phase3_secure_system_tables.sql)
+    // Telemetry should only be written server-side by Inngest/Edge Functions
+    // Keep in-memory tracking for debugging, but don't flush to database
   }
 
   /**
@@ -117,8 +110,14 @@ class QueueTelemetry {
 
   /**
    * Persist validation error to database for monitoring
+   * DISABLED: Client-side writes blocked by RLS - only log to console
    */
   private async persistValidationError(error: QueueValidationError) {
+    // Skip database writes from client-side (RLS prevents it anyway)
+    if (typeof window !== 'undefined') {
+      return;
+    }
+
     try {
       await supabase.from('queue_validation_errors').insert({
         job_id: error.jobId,
@@ -135,6 +134,7 @@ class QueueTelemetry {
 
   /**
    * Persist rate limit warning for monitoring
+   * DISABLED: Client-side writes blocked by RLS - only log to console
    */
   private async persistRateLimitWarning(data: {
     endpoint: string;
@@ -143,6 +143,11 @@ class QueueTelemetry {
     limit: number;
     resetAt: Date;
   }) {
+    // Skip database writes from client-side (RLS prevents it anyway)
+    if (typeof window !== 'undefined') {
+      return;
+    }
+
     try {
       await supabase.from('rate_limit_warnings').insert({
         endpoint: data.endpoint,
@@ -159,9 +164,20 @@ class QueueTelemetry {
 
   /**
    * Flush accumulated telemetry data
+   * DISABLED: Client-side flushing removed due to RLS restrictions
+   * Metrics are kept in-memory for debugging but not persisted from browser
    */
   async flush() {
-    // Batch insert metrics if any
+    // Skip database writes from client-side
+    if (typeof window !== 'undefined') {
+      // Just clear old data from memory
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      this.metrics = this.metrics.filter((m) => m.timestamp > oneHourAgo);
+      this.validationErrors = this.validationErrors.filter((e) => e.timestamp > oneHourAgo);
+      return;
+    }
+
+    // Server-side: Batch insert metrics if any
     if (this.metrics.length > 0) {
       const metricsToFlush = [...this.metrics];
       this.metrics = [];
@@ -184,7 +200,7 @@ class QueueTelemetry {
       }
     }
 
-    // Clear old validation errors from memory (they're already persisted)
+    // Clear old validation errors from memory
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
     this.validationErrors = this.validationErrors.filter((e) => e.timestamp > oneHourAgo);
   }
@@ -208,12 +224,9 @@ class QueueTelemetry {
 
   /**
    * Cleanup on unmount
+   * Note: Periodic flushing disabled, so this just does a final flush
    */
   destroy() {
-    if (this.flushInterval) {
-      clearInterval(this.flushInterval);
-      this.flushInterval = null;
-    }
     this.flush(); // Final flush
   }
 }

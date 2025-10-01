@@ -137,13 +137,23 @@ export function mapQueueDataToEventData(
       } as PRReviewsEventData;
 
     case 'comments':
-      if (!queueData.prNumber) {
-        throw new Error('prNumber is required for PR comments events');
+      // Comments can be queued for general capture (no specific PR)
+      // or for a specific PR (with prNumber)
+      // When no prNumber provided, this will trigger repository-wide comment discovery
+      if (queueData.prNumber) {
+        return {
+          ...baseData,
+          prNumber: queueData.prNumber,
+        } as PRCommentsEventData;
       }
-      return {
+      // For general comment capture, convert to repository sync
+      return validateRepositorySyncEventData({
         ...baseData,
-        prNumber: queueData.prNumber,
-      } as PRCommentsEventData;
+        repositoryName: queueData.repositoryName,
+        days: queueData.timeRange ?? 7,
+        reason: queueData.triggerSource ?? 'comment-discovery',
+        maxItems: queueData.maxItems,
+      });
 
     case 'commits':
     case 'commit-capture':
