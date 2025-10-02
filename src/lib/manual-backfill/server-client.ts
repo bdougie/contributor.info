@@ -12,14 +12,17 @@ class ManualBackfillServerClient {
 
   constructor() {
     // Require environment variables for API configuration (no hardcoded fallbacks for security)
-    this.apiUrl = process.env.GH_DATPIPE_API_URL || '';
-    this.apiKey = process.env.GH_DATPIPE_KEY || '';
+    const apiUrl = process.env.GH_DATPIPE_API_URL;
+    const apiKey = process.env.GH_DATPIPE_KEY;
 
-    if (!this.apiUrl || !this.apiKey) {
-      console.error(
+    if (!apiUrl || !apiKey) {
+      throw new Error(
         '[ManualBackfillServerClient] GH_DATPIPE_API_URL and GH_DATPIPE_KEY must be configured'
       );
     }
+
+    this.apiUrl = apiUrl;
+    this.apiKey = apiKey;
   }
 
   private getHeaders(): HeadersInit {
