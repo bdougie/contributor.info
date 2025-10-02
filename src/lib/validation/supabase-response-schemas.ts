@@ -83,7 +83,7 @@ export const supabasePullRequestWithRelationsSchema = z.object({
   commits: z.number().nullable(),
   html_url: z.string().url('Invalid HTML URL').nullable(),
   repository_id: z.string().uuid(),
-  author_id: z.string().uuid(),
+  author_id: z.string().uuid().nullable(),
   // Nested contributor from author_id join
   contributors: supabaseContributorNestedSchema,
   // Nested reviews array with contributors

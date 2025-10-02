@@ -17,6 +17,7 @@ import { useUserRepos } from '@/hooks/use-user-repos';
 import { humanizeNumber } from '@/lib/utils';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { Breadcrumbs } from '@/components/common/layout/breadcrumbs';
+import { SocialMetaTags } from '@/components/common/layout';
 import { avatarCache } from '@/lib/avatar-cache';
 
 interface RepositoryWithTracking {
@@ -256,8 +257,20 @@ export default function UserView() {
     );
   }
 
+  // Generate dynamic meta tags for the user profile
+  const userTitle = `${userData?.name || username} - Open Source Contributor`;
+  const userDescription = `View ${userData?.name || username}'s contribution history and open source project insights. Discover their collaborative repositories and development activity.`;
+  const userUrl = `https://contributor.info/${username}`;
+
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
+      <SocialMetaTags
+        title={userTitle}
+        description={userDescription}
+        url={userUrl}
+        type="article"
+        image="social-cards/user"
+      />
       {/* Breadcrumbs */}
       <Breadcrumbs />
 
@@ -266,19 +279,25 @@ export default function UserView() {
         <div className="flex items-center gap-3">
           <div className="user-avatar-container">
             {/* Use cached avatar URL immediately if available, fall back to userData */}
-            {cachedAvatarUrl || userData?.avatar_url ? (
-              <UserAvatar
-                src={cachedAvatarUrl || userData?.avatar_url || ''}
-                alt={userData?.name || username || ''}
-                size={48}
-                priority={true}
-                lazy={false} // Always load immediately for user avatar
-              />
-            ) : (
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                {username?.charAt(0)?.toUpperCase() || '?'}
-              </div>
-            )}
+            {(() => {
+              const avatarSrc = cachedAvatarUrl || userData?.avatar_url;
+              const altText = userData?.name || username || '';
+              const fallbackInitial = username?.charAt(0)?.toUpperCase() || '?';
+
+              return avatarSrc ? (
+                <UserAvatar
+                  src={avatarSrc}
+                  alt={altText}
+                  size={48}
+                  priority={true}
+                  lazy={false} // Always load immediately for user avatar
+                />
+              ) : (
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                  {fallbackInitial}
+                </div>
+              );
+            })()}
           </div>
           <div>
             <h1 className="text-3xl font-bold">{userData?.name || username}</h1>

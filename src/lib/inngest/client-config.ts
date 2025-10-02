@@ -17,7 +17,16 @@ export interface InngestClientConfig {
 export const isDevelopment = (): boolean => {
   // Browser environment
   if (typeof window !== 'undefined') {
-    return window.location.hostname === 'localhost' || env.DEV;
+    // Check if we're on localhost/127.0.0.1
+    const isLocalhost =
+      window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+    // In production domains (netlify.app, contributor.info, etc), it's NOT development
+    if (!isLocalhost) {
+      return false;
+    }
+
+    return isLocalhost || env.DEV;
   }
 
   // Server environment - check multiple indicators
@@ -29,8 +38,8 @@ export const isDevelopment = (): boolean => {
     return false;
   }
 
-  // Default to development for safety
-  return env.MODE === 'development' || nodeEnv !== 'production';
+  // Only return true for development if explicitly set
+  return env.MODE === 'development' || nodeEnv === 'development';
 };
 
 /**
@@ -123,24 +132,45 @@ export const createDefaultClient = (): Inngest | null => {
     return null;
   }
 
-  // In browser context during development, add local baseUrl
-  if (typeof window !== 'undefined' && isDevelopment()) {
+  // In browser context during LOCAL development ONLY, add local baseUrl
+  if (typeof window !== 'undefined') {
+    const isLocalhost =
+      window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+    if (isLocalhost && isDevelopment()) {
+      // Only use local baseUrl when actually on localhost IN BROWSER CONTEXT
+      return new Inngest({
+        ...config,
+        eventKey: config.eventKey || undefined, // Convert null to undefined for Inngest
+        baseUrl: 'http://127.0.0.1:8288',
+      });
+    }
+
+    // Browser in production - no baseUrl override
+    if (!config.eventKey || config.eventKey === 'dev-key') {
+      console.warn('• Inngest background jobs: Service disabled or configuration missing');
+      return null;
+    }
+
     return new Inngest({
       ...config,
       eventKey: config.eventKey || undefined, // Convert null to undefined for Inngest
-      baseUrl: 'http://127.0.0.1:8288',
     });
   }
 
-  // For production or server context
+  // For server context (including Netlify functions)
+  // NEVER use localhost baseUrl in server context as it won't be reachable
+  // Let Inngest SDK determine the correct URL based on environment
   if (!config.eventKey || (!isDevelopment() && config.eventKey === 'dev-key')) {
     console.warn('• Inngest background jobs: Service disabled or configuration missing');
     return null;
   }
 
+  // Don't specify baseUrl for server context - let Inngest SDK handle it
   return new Inngest({
     ...config,
     eventKey: config.eventKey || undefined, // Convert null to undefined for Inngest
+    // NO baseUrl here - this allows Inngest SDK to use cloud endpoints correctly
   });
 };
 
@@ -149,11 +179,28 @@ export const createDefaultClient = (): Inngest | null => {
  * This always uses development mode and local keys
  */
 export const createLocalClient = (): Inngest => {
-  return new Inngest({
+  // Only use baseUrl in browser context, not in server/function context
+  const config: {
+    id: string;
+    isDev: boolean;
+    eventKey: string;
+    baseUrl?: string;
+  } = {
     id: process.env.VITE_INNGEST_APP_ID || 'contributor-info',
     isDev: true, // Always dev mode for local
     eventKey: process.env.INNGEST_EVENT_KEY || 'local-dev-key',
-    // Don't use signing key in dev mode - it causes sync issues
-    // signingKey: process.env.INNGEST_SIGNING_KEY,
-  });
+  };
+
+  // Only add baseUrl when in browser context on localhost
+  // Never in server/Netlify function context as it won't be reachable
+  if (
+    typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ) {
+    config.baseUrl = 'http://127.0.0.1:8288';
+  }
+  // For server context (including Netlify functions), don't specify baseUrl
+  // Let the Inngest SDK use its default behavior
+
+  return new Inngest(config);
 };

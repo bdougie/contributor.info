@@ -21,7 +21,7 @@ interface MetaTagsProviderProps {
 }
 
 export function MetaTagsProvider({ children }: MetaTagsProviderProps) {
-  const setSocialMeta = (_meta: SocialMeta) => {
+  const setSocialMeta = () => {
     // This will be handled by individual components using the Helmet component
     // We keep this context for potential future state management needs
   };
@@ -61,39 +61,44 @@ export function SocialMetaTags({
   let imageUrl = image;
   let fallbackImageUrl = image;
 
-  // Use Fly.io service URL (with fallback to production domain when deployed)
-  const socialCardsBaseUrl =
-    process.env.NODE_ENV === 'production'
-      ? 'https://contributor-info-social-cards.fly.dev'
-      : 'https://contributor-info-social-cards.fly.dev'; // Always use Fly.io in production
+  // Use Fly.io service URL for all environments
+  const socialCardsBaseUrl = 'https://contributor-info-social-cards.fly.dev';
 
   if (!image.startsWith('http')) {
     // Check if it's a social card path - use Fly.io service for generation
     if (image.includes('social-cards/')) {
-      // Extract parameters from image path for dynamic generation
-      const isRepoCard = image.includes('repo-');
-      const isUserCard = image.includes('user-');
+      const urlPath = currentUrl.replace(/^https?:\/\/[^\/]+/, '');
 
-      if (isRepoCard) {
-        // For repo cards, try to extract owner/repo from URL
-        const urlPath = currentUrl.replace(/^https?:\/\/[^\/]+/, '');
-        const pathMatch = urlPath.match(/\/([^\/]+)\/([^\/]+)/);
-
+      if (image === 'social-cards/repo') {
+        // For repo cards, extract owner/repo from URL
+        // Handle URLs like: /{owner}/{repo}, /{owner}/{repo}/, /{owner}/{repo}/tab
+        const pathMatch = urlPath.match(/\/([^/]+)\/([^/]+)(?:\/.*)?$/);
         if (pathMatch) {
           const [, owner, repo] = pathMatch;
-          imageUrl = `${socialCardsBaseUrl}/social-cards/repo?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}`;
+          // Validate that we have reasonable owner/repo names (not empty, not query params)
+          if (owner && repo && !owner.includes('?') && !repo.includes('?')) {
+            imageUrl = `${socialCardsBaseUrl}/social-cards/repo?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}`;
+          } else {
+            imageUrl = `${socialCardsBaseUrl}/social-cards/home`;
+          }
         } else {
           imageUrl = `${socialCardsBaseUrl}/social-cards/home`;
         }
-      } else if (isUserCard) {
-        // For user cards, extract username from URL
-        const urlPath = currentUrl.replace(/^https?:\/\/[^\/]+/, '');
-        const userMatch = urlPath.match(/\/user\/([^\/]+)/);
-
-        if (userMatch) {
-          const [, username] = userMatch;
-          imageUrl = `${socialCardsBaseUrl}/social-cards/user?username=${encodeURIComponent(username)}`;
+      } else if (image === 'social-cards/user') {
+        // For user cards, extract username from URL (pattern: /{username})
+        // Need to differentiate from repo URLs which have two path segments
+        const pathSegments = urlPath.split('/').filter(Boolean);
+        if (pathSegments.length === 1 && pathSegments[0]) {
+          // Single path segment = user/org profile
+          const username = pathSegments[0];
+          // Validate username (no query params, reasonable length)
+          if (!username.includes('?') && username.length > 0 && username.length < 100) {
+            imageUrl = `${socialCardsBaseUrl}/social-cards/user?username=${encodeURIComponent(username)}`;
+          } else {
+            imageUrl = `${socialCardsBaseUrl}/social-cards/home`;
+          }
         } else {
+          // Multiple segments or no match - fallback to home
           imageUrl = `${socialCardsBaseUrl}/social-cards/home`;
         }
       } else {
@@ -102,7 +107,7 @@ export function SocialMetaTags({
       }
 
       // Use local static fallback as backup
-      fallbackImageUrl = `https://contributor.info${image.replace('social-cards/', '/')}`;
+      fallbackImageUrl = `https://contributor.info/social.webp`;
     } else {
       imageUrl = `https://contributor.info${image}`;
       fallbackImageUrl = `https://contributor.info${image.replace('.webp', '.png')}`;

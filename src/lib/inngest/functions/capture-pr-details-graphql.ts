@@ -262,6 +262,7 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
         .upsert(
           {
             repository_id: repositoryId,
+            repository_full_name: `${repository.owner}/${repository.name}`,
             github_id: pullRequest.databaseId,
             number: pullRequest.number,
             title: pullRequest.title,
