@@ -12,14 +12,19 @@ class ManualBackfillServerClient {
 
   constructor() {
     // Require environment variables for API configuration (no hardcoded fallbacks for security)
-    this.apiUrl = process.env.GH_DATPIPE_API_URL || '';
-    this.apiKey = process.env.GH_DATPIPE_KEY || '';
+    const apiUrl = process.env.GH_DATPIPE_API_URL;
+    const apiKey = process.env.GH_DATPIPE_KEY;
 
-    if (!this.apiUrl || !this.apiKey) {
-      console.error(
-        '[ManualBackfillServerClient] GH_DATPIPE_API_URL and GH_DATPIPE_KEY must be configured'
-      );
+    if (!apiUrl) {
+      throw new Error('GH_DATPIPE_API_URL environment variable is required');
     }
+
+    if (!apiKey) {
+      throw new Error('GH_DATPIPE_KEY environment variable is required');
+    }
+
+    this.apiUrl = apiUrl;
+    this.apiKey = apiKey;
   }
 
   private getHeaders(): HeadersInit {
@@ -212,8 +217,27 @@ class ManualBackfillServerClient {
   }
 }
 
-// Export singleton instance
-export const manualBackfillServerClient = new ManualBackfillServerClient();
+// Export singleton instance - lazy initialization to avoid errors in test environments
+let _instance: ManualBackfillServerClient | null = null;
+
+export const manualBackfillServerClient = {
+  get instance(): ManualBackfillServerClient {
+    if (!_instance) {
+      _instance = new ManualBackfillServerClient();
+    }
+    return _instance;
+  },
+
+  // Delegate methods to the instance
+  triggerBackfill: (request: BackfillRequest) =>
+    manualBackfillServerClient.instance.triggerBackfill(request),
+  getJobStatus: (jobId: string) => manualBackfillServerClient.instance.getJobStatus(jobId),
+  listJobs: (status?: string, limit = 10) =>
+    manualBackfillServerClient.instance.listJobs(status, limit),
+  cancelJob: (jobId: string) => manualBackfillServerClient.instance.cancelJob(jobId),
+  checkHealth: () => manualBackfillServerClient.instance.checkHealth(),
+  isConfigured: () => manualBackfillServerClient.instance.isConfigured(),
+};
 
 // Export class for testing
 export { ManualBackfillServerClient };

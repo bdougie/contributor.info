@@ -1,12 +1,20 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { ManualBackfillServerClient } from '../server-client';
 
 // Mock environment variables
 vi.stubEnv('GH_DATPIPE_API_URL', 'https://test-api.example.com');
 vi.stubEnv('GH_DATPIPE_KEY', 'test-key-123');
 
 describe('ManualBackfillClient', () => {
+  let originalEnv: NodeJS.ProcessEnv;
+
   beforeEach(() => {
+    originalEnv = { ...process.env };
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    process.env = originalEnv;
   });
 
   describe('getHeaders', () => {
@@ -105,6 +113,33 @@ describe('ManualBackfillClient', () => {
       expect(mockStatus.progress).toBeGreaterThanOrEqual(0);
       expect(mockStatus.progress).toBeLessThanOrEqual(100);
       expect(mockStatus.data.repository).toBeDefined();
+    });
+  });
+
+  describe('ManualBackfillServerClient constructor', () => {
+    it('should throw error when GH_DATPIPE_API_URL is missing', () => {
+      delete process.env.GH_DATPIPE_API_URL;
+      process.env.GH_DATPIPE_KEY = 'test-key';
+
+      expect(() => new ManualBackfillServerClient()).toThrow(
+        'GH_DATPIPE_API_URL environment variable is required'
+      );
+    });
+
+    it('should throw error when GH_DATPIPE_KEY is missing', () => {
+      process.env.GH_DATPIPE_API_URL = 'https://test-api.example.com';
+      delete process.env.GH_DATPIPE_KEY;
+
+      expect(() => new ManualBackfillServerClient()).toThrow(
+        'GH_DATPIPE_KEY environment variable is required'
+      );
+    });
+
+    it('should create instance successfully when both env vars are provided', () => {
+      process.env.GH_DATPIPE_API_URL = 'https://test-api.example.com';
+      process.env.GH_DATPIPE_KEY = 'test-key';
+
+      expect(() => new ManualBackfillServerClient()).not.toThrow();
     });
   });
 });
