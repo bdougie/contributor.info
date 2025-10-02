@@ -1,5 +1,13 @@
 import { graphql } from 'https://esm.sh/@octokit/graphql@7.0.2';
 
+// Export NonRetriableError for use in other files
+export class NonRetriableError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'NonRetriableError';
+  }
+}
+
 // GitHub token from server environment
 const GITHUB_TOKEN = Deno.env.get('GITHUB_TOKEN') || Deno.env.get('VITE_GITHUB_TOKEN') || '';
 
