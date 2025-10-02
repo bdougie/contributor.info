@@ -176,13 +176,13 @@ export async function batchProcessPRsForSpam(
         changed_files,
         created_at,
         html_url,
-        author:contributors!fk_pull_requests_author(
-          id,
-          github_id,
-          username,
-          created_at,
-          first_seen_at
-        ),
+                  author:contributors!author_id(
+            id,
+            github_id,
+            username,
+            created_at,
+            first_seen_at
+          ),
         repository:repositories(
           full_name
         )

@@ -1,8 +1,342 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { SpamDetectionService } from '../../../src/lib/spam/SpamDetectionService.ts';
-import { PullRequestData } from '../../../src/lib/spam/types.ts';
-import { batchProcessPRsForSpam } from '../_shared/spam-detection-integration.ts';
+
+// Self-contained spam detection types and logic
+interface PullRequestData {
+  id: string;
+  title: string;
+  body?: string;
+  number: number;
+  additions: number;
+  deletions: number;
+  changed_files: number;
+  created_at: string;
+  html_url: string;
+  author: {
+    id: number;
+    login: string;
+    created_at?: string;
+    public_repos?: number;
+    followers?: number;
+    following?: number;
+    bio?: string;
+    company?: string;
+    location?: string;
+  };
+  repository: {
+    full_name: string;
+  };
+}
+
+interface SpamDetectionResult {
+  spam_score: number;
+  is_spam: boolean;
+  flags: any;
+  detected_at: string;
+  confidence: number;
+  reasons: string[];
+}
+
+// Spam thresholds
+const SPAM_THRESHOLDS = {
+  LEGITIMATE: 25,
+  WARNING: 50,
+  LIKELY_SPAM: 75,
+  DEFINITE_SPAM: 90,
+} as const;
+
+// Self-contained spam detection service
+class SpamDetectionService {
+  async detectSpam(pr: PullRequestData): Promise<SpamDetectionResult> {
+    const startTime = Date.now();
+
+    try {
+      if (!pr || !pr.author) {
+        throw new Error('Invalid PR data: missing required fields');
+      }
+
+      // Analyze different aspects
+      const contentScore = this.analyzeContent(pr);
+      const accountScore = this.analyzeAccount(pr);
+      const prScore = this.analyzePRCharacteristics(pr);
+
+      // Calculate composite score
+      const spamScore = Math.min(
+        Math.round(contentScore * 0.4 + accountScore * 0.4 + prScore * 0.2),
+        100
+      );
+
+      const isSpam = spamScore >= SPAM_THRESHOLDS.LIKELY_SPAM;
+      const confidence = this.calculateConfidence(spamScore);
+      const reasons = this.generateReasons(pr, spamScore);
+
+      return {
+        spam_score: spamScore,
+        is_spam: isSpam,
+        flags: { content_score: contentScore, account_score: accountScore, pr_score: prScore },
+        detected_at: new Date().toISOString(),
+        confidence,
+        reasons,
+      };
+    } catch (error) {
+      console.error('Error during spam detection:', error);
+      return {
+        spam_score: 0,
+        is_spam: false,
+        flags: {},
+        detected_at: new Date().toISOString(),
+        confidence: 0,
+        reasons: ['Error during spam detection'],
+      };
+    }
+  }
+
+  private analyzeContent(pr: PullRequestData): number {
+    const description = pr.body || '';
+    const title = pr.title || '';
+    let score = 0;
+
+    // Empty or very short description
+    if (description.length === 0) score += 40;
+    else if (description.length < 10) score += 30;
+    else if (description.length < 20) score += 20;
+
+    // Check for spam patterns
+    const spamPatterns = [
+      /^(fix|update|add|remove|change)\s*$/i,
+      /hacktoberfest/i,
+      /please merge/i,
+      /first contribution/i,
+      /beginner friendly/i,
+    ];
+
+    const text = `${title} ${description}`.toLowerCase();
+    const matchedPatterns = spamPatterns.filter(pattern => pattern.test(text));
+    score += matchedPatterns.length * 15;
+
+    // Very generic titles
+    if (/^(fix|update|add|remove|change|test)\s*\.?$/i.test(title)) {
+      score += 25;
+    }
+
+    return Math.min(score, 100);
+  }
+
+  private analyzeAccount(pr: PullRequestData): number {
+    let score = 0;
+    const author = pr.author;
+
+    // Account age analysis
+    if (author.created_at) {
+      const accountAge = (new Date().getTime() - new Date(author.created_at).getTime()) / (1000 * 60 * 60 * 24);
+      if (accountAge <= 7) score += 50;
+      else if (accountAge <= 30) score += 30;
+      else if (accountAge <= 90) score += 15;
+    }
+
+    // Profile completeness
+    const hasProfile = author.bio || author.company || author.location;
+    if (!hasProfile) score += 20;
+
+    // Repository and follower counts (if available)
+    if (author.public_repos !== undefined && author.public_repos === 0) score += 15;
+    if (author.followers !== undefined && author.followers === 0) score += 10;
+
+    return Math.min(score, 100);
+  }
+
+  private analyzePRCharacteristics(pr: PullRequestData): number {
+    let score = 0;
+    const totalChanges = pr.additions + pr.deletions;
+    const descriptionLength = (pr.body || '').length;
+
+    // Single file changes with no context
+    if (pr.changed_files === 1 && descriptionLength < 20) {
+      score += 30;
+    }
+
+    // Large changes with inadequate description
+    if (totalChanges > 100 && descriptionLength < 50) {
+      score += 25;
+    }
+
+    // Very large PRs (often spam)
+    if (pr.changed_files > 20) {
+      score += 20;
+    }
+
+    return Math.min(score, 100);
+  }
+
+  private calculateConfidence(spamScore: number): number {
+    if (spamScore > 80 || spamScore < 20) return 0.8;
+    if (spamScore > 70 || spamScore < 30) return 0.7;
+    return 0.6;
+  }
+
+  private generateReasons(pr: PullRequestData, spamScore: number): string[] {
+    const reasons: string[] = [];
+
+    if ((pr.body || '').length === 0) {
+      reasons.push('Empty description');
+    } else if ((pr.body || '').length < 10) {
+      reasons.push('Very short description');
+    }
+
+    if (/^(fix|update|add|remove|change|test)\s*\.?$/i.test(pr.title)) {
+      reasons.push('Generic title');
+    }
+
+    if (pr.author.created_at) {
+      const accountAge = (new Date().getTime() - new Date(pr.author.created_at).getTime()) / (1000 * 60 * 60 * 24);
+      if (accountAge <= 7) {
+        reasons.push(`Very new account (${Math.round(accountAge)} days old)`);
+      } else if (accountAge <= 30) {
+        reasons.push(`New account (${Math.round(accountAge)} days old)`);
+      }
+    }
+
+    if (pr.changed_files === 1 && (pr.body || '').length < 20) {
+      reasons.push('Single file change with no context');
+    }
+
+    if (spamScore >= SPAM_THRESHOLDS.LIKELY_SPAM) {
+      reasons.push('Multiple spam indicators detected');
+    }
+
+    return reasons.length > 0 ? reasons : ['Automated analysis completed'];
+  }
+}
+
+// Batch processing function
+async function batchProcessPRsForSpam(
+  supabase: any,
+  repositoryId: string,
+  limit: number = 100
+): Promise<{ processed: number; errors: number }> {
+  const spamService = new SpamDetectionService();
+  let processed = 0;
+  let errors = 0;
+  let offset = 0;
+  const batchSize = 10;
+
+  console.log(`[Spam Detection] Starting batch processing for repository ${repositoryId}`);
+
+  while (true) {
+    // Fetch PRs without spam scores - Fix the foreign key reference
+    const { data: prs, error: fetchError } = await supabase
+      .from('pull_requests')
+      .select(`
+        id,
+        github_id,
+        number,
+        title,
+        body,
+        additions,
+        deletions,
+        changed_files,
+        created_at,
+        html_url,
+        author:contributors!author_id(
+          id,
+          github_id,
+          username,
+          created_at,
+          first_seen_at
+        ),
+        repository:repositories(
+          full_name
+        )
+      `)
+      .eq('repository_id', repositoryId)
+      .is('spam_score', null)
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (fetchError) {
+      console.error(`[Spam Detection] Error fetching PRs:`, fetchError);
+      break;
+    }
+
+    if (!prs || prs.length === 0) {
+      break;
+    }
+
+    // Process PRs in concurrent batches
+    for (let i = 0; i < prs.length; i += batchSize) {
+      const batch = prs.slice(i, i + batchSize);
+      const batchPromises = batch.map(async (pr: any) => {
+        try {
+          // Convert to spam detection format
+          const prData: PullRequestData = {
+            id: pr.id,
+            title: pr.title,
+            body: pr.body || '',
+            number: pr.number,
+            additions: pr.additions,
+            deletions: pr.deletions,
+            changed_files: pr.changed_files,
+            created_at: pr.created_at,
+            html_url: pr.html_url,
+            author: {
+              id: pr.author.github_id,
+              login: pr.author.username,
+              created_at: pr.author.created_at || pr.author.first_seen_at,
+            },
+            repository: {
+              full_name: pr.repository.full_name,
+            },
+          };
+
+          // Run spam detection
+          const spamResult = await spamService.detectSpam(prData);
+
+          // Update PR with spam detection results
+          const { error: updateError } = await supabase
+            .from('pull_requests')
+            .update({
+              spam_score: spamResult.spam_score,
+              spam_flags: spamResult.flags,
+              is_spam: spamResult.is_spam,
+              spam_detected_at: spamResult.detected_at,
+            })
+            .eq('id', pr.id);
+
+          if (updateError) {
+            console.error(`[Spam Detection] Error updating PR ${pr.number}:`, updateError);
+            return { success: false, prNumber: pr.number };
+          } else {
+            return { success: true, prNumber: pr.number };
+          }
+        } catch (error) {
+          console.error(`[Spam Detection] Error processing PR ${pr.number}:`, error);
+          return { success: false, prNumber: pr.number };
+        }
+      });
+
+      const results = await Promise.all(batchPromises);
+      results.forEach((result) => {
+        if (result.success) {
+          processed++;
+        } else {
+          errors++;
+        }
+      });
+
+      console.log(
+        `[Spam Detection] Batch complete. Total processed: ${processed}, errors: ${errors}`
+      );
+    }
+
+    offset += limit;
+  }
+
+  console.log(
+    `[Spam Detection] Batch processing complete. Processed: ${processed}, Errors: ${errors}`
+  );
+
+  return { processed, errors };
+}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -66,7 +400,7 @@ serve(async (req) => {
     if (pr_id) {
       console.log('[Spam Detection] Analyzing single PR: %s', pr_id);
 
-      // Fetch PR data with all necessary joins
+            // Fetch PR data with corrected foreign key reference
       const { data: pr, error: prError } = await supabase
         .from('pull_requests')
         .select(
@@ -82,7 +416,7 @@ serve(async (req) => {
           created_at,
           html_url,
           spam_score,
-          author:contributors!fk_pull_requests_author(
+          author:contributors!author_id(
             id,
             github_id,
             username,
