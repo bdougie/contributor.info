@@ -1,8 +1,7 @@
-// Inngest handler for Supabase Edge Functions with real implementations
+// Inngest handler for Supabase Edge Functions with FULL implementations
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import { Inngest, InngestCommHandler } from 'https://esm.sh/inngest@3.16.1';
-import { getSupabaseClient, ensureContributorExists, getPRState, SYNC_RATE_LIMITS, QUEUE_CONFIG } from './database-helpers.ts';
-import { GraphQLClient, NonRetriableError } from './graphql-client.ts';
+import { Inngest, InngestCommHandler, NonRetriableError } from 'https://esm.sh/inngest@3.16.1';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 // CORS headers for Inngest
 const corsHeaders = {
@@ -19,7 +18,7 @@ const INNGEST_EVENT_KEY = Deno.env.get('INNGEST_EVENT_KEY') ||
 const INNGEST_SIGNING_KEY = Deno.env.get('INNGEST_SIGNING_KEY') ||
                             Deno.env.get('INNGEST_PRODUCTION_SIGNING_KEY') || '';
 
-console.log('🚀 Inngest Edge Function Started');
+console.log('🚀 Inngest Edge Function Started with FULL implementations');
 console.log('Configuration:', {
   appId: INNGEST_APP_ID,
   hasEventKey: !!INNGEST_EVENT_KEY,
@@ -32,275 +31,885 @@ const inngest = new Inngest({
   eventKey: INNGEST_EVENT_KEY,
 });
 
-// GraphQL client instance
-let graphqlClient: GraphQLClient | null = null;
-
-function getGraphQLClient(): GraphQLClient {
-  if (!graphqlClient) {
-    graphqlClient = new GraphQLClient();
+// Supabase client
+let supabaseClient: any = null;
+function getSupabaseClient() {
+  if (!supabaseClient) {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Missing Supabase configuration');
+    }
+    supabaseClient = createClient(supabaseUrl, supabaseKey);
   }
-  return graphqlClient;
+  return supabaseClient;
 }
 
-// Create Inngest function for repository sync (GraphQL)
-const captureRepositorySyncGraphQL = inngest.createFunction(
-  {
-    id: "capture-repository-sync-graphql",
-    name: "Sync Recent Repository PRs (GraphQL)",
-    concurrency: {
-      limit: 5,
-      key: "event.data.repositoryId",
+// GitHub API helper
+async function githubRequest(path: string, token?: string): Promise<any> {
+  const githubToken = token || Deno.env.get('GITHUB_TOKEN') || Deno.env.get('VITE_GITHUB_TOKEN');
+  if (!githubToken) {
+    throw new NonRetriableError('GitHub token not configured');
+  }
+
+  const response = await fetch(`https://api.github.com${path}`, {
+    headers: {
+      'Authorization': `Bearer ${githubToken}`,
+      'Accept': 'application/vnd.github.v3+json',
     },
-    throttle: { limit: 75, period: "1m" },
-    retries: 2,
-  },
-  { event: "capture/repository.sync.graphql" },
-  async ({ event, step }: any) => {
-    const { repositoryId, days, priority, reason } = event.data;
+  });
 
-    if (!repositoryId) {
-      throw new NonRetriableError(`Missing required field: repositoryId`);
+  if (response.status === 404) {
+    throw new NonRetriableError(`Resource not found: ${path}`);
+  }
+
+  if (response.status === 403) {
+    const remaining = response.headers.get('x-ratelimit-remaining');
+    if (remaining === '0') {
+      throw new Error('GitHub rate limit exceeded');
     }
+    throw new NonRetriableError('GitHub API forbidden');
+  }
 
-    const effectiveDays = Math.min(days || QUEUE_CONFIG.defaultDaysLimit, QUEUE_CONFIG.defaultDaysLimit);
-    const supabase = getSupabaseClient();
+  if (!response.ok) {
+    throw new Error(`GitHub API error: ${response.status}`);
+  }
 
-    // Step 1: Get repository details and check if it was recently processed
-    const repository = await step.run("get-repository", async () => {
-      const { data, error } = await supabase
+  return response.json();
+}
+
+// GraphQL helper
+async function githubGraphQL(query: string, variables: Record<string, any> = {}, token?: string): Promise<any> {
+  const githubToken = token || Deno.env.get('GITHUB_TOKEN') || Deno.env.get('VITE_GITHUB_TOKEN');
+  if (!githubToken) {
+    throw new NonRetriableError('GitHub token not configured');
+  }
+
+  const response = await fetch('https://api.github.com/graphql', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${githubToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ query, variables }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`GitHub GraphQL error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  if (data.errors) {
+    throw new Error(`GraphQL errors: ${JSON.stringify(data.errors)}`);
+  }
+
+  return data.data;
+}
+
+// Helper to ensure contributor exists
+async function ensureContributor(supabase: any, username: string, avatarUrl?: string): Promise<string> {
+  // Check if contributor exists
+  const { data: existing } = await supabase
+    .from('contributors')
+    .select('id')
+    .eq('github_username', username)
+    .single();
+
+  if (existing) {
+    return existing.id;
+  }
+
+  // Create new contributor
+  const { data: newContributor, error } = await supabase
+    .from('contributors')
+    .insert({
+      github_username: username,
+      avatar_url: avatarUrl,
+    })
+    .select('id')
+    .single();
+
+  if (error) {
+    console.error(`Failed to create contributor ${username}:`, error);
+    // Try to get existing one again in case of race condition
+    const { data: retry } = await supabase
+      .from('contributors')
+      .select('id')
+      .eq('github_username', username)
+      .single();
+    if (retry) return retry.id;
+    throw error;
+  }
+
+  return newContributor.id;
+}
+
+// 1. capture-pr-details - REST API version
+const capturePrDetails = inngest.createFunction(
+  {
+    id: 'capture-pr-details',
+    name: 'Capture PR Details',
+    retries: 2
+  },
+  { event: 'capture/pr.details' },
+  async ({ event, step }) => {
+    const { owner, repo, pr_number, github_token } = event.data;
+
+    const prData = await step.run('fetch-pr', async () => {
+      const pr = await githubRequest(
+        `/repos/${owner}/${repo}/pulls/${pr_number}`,
+        github_token
+      );
+      return pr;
+    });
+
+    await step.run('store-pr', async () => {
+      const supabase = getSupabaseClient();
+
+      // Ensure author exists
+      const authorId = await ensureContributor(supabase, prData.user.login, prData.user.avatar_url);
+
+      // Get repository ID
+      const { data: repoData } = await supabase
         .from('repositories')
-        .select('owner, name, last_updated_at')
-        .eq('id', repositoryId)
+        .select('id')
+        .eq('full_name', `${owner}/${repo}`)
         .single();
 
-      if (error || !data) {
-        throw new NonRetriableError(`Repository not found: ${repositoryId}`);
+      if (!repoData) {
+        // Create repository if it doesn't exist
+        const { data: newRepo } = await supabase
+          .from('repositories')
+          .insert({
+            full_name: `${owner}/${repo}`,
+            owner,
+            name: repo
+          })
+          .select('id')
+          .single();
+        repoData.id = newRepo.id;
       }
 
-      // Check if repository was synced recently
-      if (data.last_updated_at) {
-        const lastSyncTime = new Date(data.last_updated_at).getTime();
-        const hoursSinceSync = (Date.now() - lastSyncTime) / (1000 * 60 * 60);
+      // Store PR data
+      const { error } = await supabase
+        .from('pull_requests')
+        .upsert({
+          pr_number: prData.number,
+          repository_id: repoData.id,
+          repository_full_name: `${owner}/${repo}`,
+          title: prData.title,
+          body: prData.body,
+          state: prData.state,
+          author_id: authorId,
+          additions: prData.additions || 0,
+          deletions: prData.deletions || 0,
+          changed_files: prData.changed_files || 0,
+          created_at: prData.created_at,
+          updated_at: prData.updated_at,
+          closed_at: prData.closed_at,
+          merged_at: prData.merged_at,
+          is_draft: prData.draft || false,
+        });
 
-        let minHoursBetweenSyncs = SYNC_RATE_LIMITS.DEFAULT;
+      if (error) throw error;
+    });
 
-        if (reason === 'scheduled') {
-          minHoursBetweenSyncs = SYNC_RATE_LIMITS.SCHEDULED;
-        } else if (reason === 'pr-activity') {
-          minHoursBetweenSyncs = SYNC_RATE_LIMITS.PR_ACTIVITY;
-        } else if (reason === 'manual') {
-          minHoursBetweenSyncs = SYNC_RATE_LIMITS.MANUAL;
-        } else if (reason === 'auto-fix') {
-          minHoursBetweenSyncs = SYNC_RATE_LIMITS.AUTO_FIX;
+    return { pr_number: prData.number, status: 'captured' };
+  }
+);
+
+// 2. capture-pr-details-graphql - GraphQL version
+const capturePrDetailsGraphQL = inngest.createFunction(
+  {
+    id: 'capture-pr-details-graphql',
+    name: 'Capture PR Details (GraphQL)',
+    retries: 2
+  },
+  { event: 'capture/pr.details.graphql' },
+  async ({ event, step }) => {
+    const { owner, repo, pr_number, github_token } = event.data;
+
+    const prData = await step.run('fetch-pr-graphql', async () => {
+      const query = `
+        query($owner: String!, $repo: String!, $number: Int!) {
+          repository(owner: $owner, name: $repo) {
+            pullRequest(number: $number) {
+              number
+              title
+              body
+              state
+              createdAt
+              updatedAt
+              closedAt
+              mergedAt
+              isDraft
+              additions
+              deletions
+              changedFiles
+              author {
+                login
+                avatarUrl
+              }
+              reviews(first: 100) {
+                nodes {
+                  id
+                  state
+                  body
+                  submittedAt
+                  author {
+                    login
+                    avatarUrl
+                  }
+                }
+              }
+              comments(first: 100) {
+                nodes {
+                  id
+                  body
+                  createdAt
+                  author {
+                    login
+                    avatarUrl
+                  }
+                }
+              }
+            }
+          }
         }
+      `;
 
-        if (hoursSinceSync < minHoursBetweenSyncs) {
-          const timeDisplay = hoursSinceSync < 1
-            ? `${Math.round(hoursSinceSync * 60)} minute${Math.round(hoursSinceSync * 60) !== 1 ? 's' : ''}`
-            : `${Math.round(hoursSinceSync * 10) / 10} hour${Math.round(hoursSinceSync * 10) / 10 !== 1 ? 's' : ''}`;
+      const data = await githubGraphQL(query, { owner, repo, number: pr_number }, github_token);
+      return data.repository.pullRequest;
+    });
 
-          throw new NonRetriableError(`Repository ${data.owner}/${data.name} was synced ${timeDisplay} ago. Minimum ${minHoursBetweenSyncs} hours between syncs for ${reason || 'default'} sync.`);
+    await step.run('store-comprehensive-pr-data', async () => {
+      const supabase = getSupabaseClient();
+
+      // Ensure author exists
+      const authorId = await ensureContributor(
+        supabase,
+        prData.author.login,
+        prData.author.avatarUrl
+      );
+
+      // Get or create repository
+      const { data: repoData } = await supabase
+        .from('repositories')
+        .select('id')
+        .eq('full_name', `${owner}/${repo}`)
+        .single();
+
+      const repositoryId = repoData?.id || (await supabase
+        .from('repositories')
+        .insert({ full_name: `${owner}/${repo}`, owner, name: repo })
+        .select('id')
+        .single()).data.id;
+
+      // Store PR
+      await supabase.from('pull_requests').upsert({
+        pr_number: prData.number,
+        repository_id: repositoryId,
+        repository_full_name: `${owner}/${repo}`,
+        title: prData.title,
+        body: prData.body,
+        state: prData.state,
+        author_id: authorId,
+        additions: prData.additions || 0,
+        deletions: prData.deletions || 0,
+        changed_files: prData.changedFiles || 0,
+        created_at: prData.createdAt,
+        updated_at: prData.updatedAt,
+        closed_at: prData.closedAt,
+        merged_at: prData.mergedAt,
+        is_draft: prData.isDraft || false,
+      });
+
+      // Store reviews
+      for (const review of prData.reviews.nodes) {
+        if (review.author) {
+          const reviewerId = await ensureContributor(
+            supabase,
+            review.author.login,
+            review.author.avatarUrl
+          );
+
+          await supabase.from('pr_reviews').upsert({
+            review_id: review.id,
+            pr_number: prData.number,
+            repository_full_name: `${owner}/${repo}`,
+            reviewer_id: reviewerId,
+            state: review.state,
+            body: review.body,
+            submitted_at: review.submittedAt,
+          });
         }
       }
 
+      // Store comments
+      for (const comment of prData.comments.nodes) {
+        if (comment.author) {
+          const commenterId = await ensureContributor(
+            supabase,
+            comment.author.login,
+            comment.author.avatarUrl
+          );
+
+          await supabase.from('pr_comments').upsert({
+            comment_id: comment.id,
+            pr_number: prData.number,
+            repository_full_name: `${owner}/${repo}`,
+            author_id: commenterId,
+            body: comment.body,
+            created_at: comment.createdAt,
+          });
+        }
+      }
+    });
+
+    return { pr_number: prData.number, status: 'captured_with_reviews_and_comments' };
+  }
+);
+
+// 3. capture-pr-reviews
+const capturePrReviews = inngest.createFunction(
+  {
+    id: 'capture-pr-reviews',
+    name: 'Capture PR Reviews',
+    retries: 2
+  },
+  { event: 'capture/pr.reviews' },
+  async ({ event, step }) => {
+    const { owner, repo, pr_number, github_token } = event.data;
+
+    const reviews = await step.run('fetch-reviews', async () => {
+      const data = await githubRequest(
+        `/repos/${owner}/${repo}/pulls/${pr_number}/reviews`,
+        github_token
+      );
       return data;
     });
 
-    // Step 2: Fetch recent PRs from GitHub using GraphQL
-    const recentPRs = await step.run("fetch-recent-prs-graphql", async () => {
-      const since = new Date(Date.now() - effectiveDays * 24 * 60 * 60 * 1000).toISOString();
-
-      try {
-        const prs = await getGraphQLClient().getRecentPRs(
-          repository.owner,
-          repository.name,
-          since,
-          QUEUE_CONFIG.maxPrsPerSync
-        );
-
-        console.log('✅ GraphQL recent PRs query successful for %s/%s (%d PRs found)', repository.owner, repository.name, prs.length);
-
-        return prs.slice(0, QUEUE_CONFIG.maxPrsPerSync);
-      } catch (error: any) {
-        if (error.message?.includes('NOT_FOUND')) {
-          throw new NonRetriableError(`Repository ${repository.owner}/${repository.name} not found`);
-        }
-        if (error.message?.includes('rate limit')) {
-          throw new Error(`GraphQL rate limit hit for ${repository.owner}/${repository.name}. Please try again later.`);
-        }
-        throw error;
-      }
-    });
-
-    // Step 3: Store PRs in database
-    const storedPRs = await step.run("store-prs", async () => {
-      if (recentPRs.length === 0) {
-        return [];
-      }
-
-      // First, ensure all contributors exist and get their UUIDs
-      const contributorPromises = recentPRs.map((pr: any) => ensureContributorExists(pr.author));
-      const contributorIds = await Promise.all(contributorPromises);
-
-      // Then create PRs with proper UUIDs
-      const prsToStore = recentPRs.map((pr: any, index: number) => ({
-        github_id: pr.databaseId.toString(),
-        repository_id: repositoryId,
-        number: pr.number,
-        title: pr.title,
-        body: pr.body || null,
-        state: getPRState(pr),
-        author_id: contributorIds[index],
-        created_at: pr.createdAt,
-        updated_at: pr.updatedAt,
-        closed_at: pr.closedAt,
-        merged_at: pr.mergedAt,
-        draft: pr.isDraft || false,
-        merged: pr.merged || false,
-        additions: pr.additions || 0,
-        deletions: pr.deletions || 0,
-        changed_files: pr.changedFiles || 0,
-        commits: pr.commits?.totalCount || 0,
-        base_branch: pr.baseRefName || 'main',
-        head_branch: pr.headRefName || 'unknown',
-      }));
-
-      const { data, error } = await supabase
-        .from('pull_requests')
-        .upsert(prsToStore, {
-          onConflict: 'github_id',
-          ignoreDuplicates: false,
-        })
-        .select('id, number');
-
-      if (error) {
-        throw new Error(`Failed to store PRs: ${error.message}`);
-      }
-
-      return data || [];
-    });
-
-    // Step 4: Update repository sync timestamp
-    await step.run("update-sync-timestamp", async () => {
-      const { error } = await supabase
-        .from('repositories')
-        .update({
-          last_updated_at: new Date().toISOString(),
-        })
-        .eq('id', repositoryId);
-
-      if (error) {
-        console.warn(`Failed to update repository sync timestamp: ${error.message}`);
-      }
-    });
-
-    const metrics = getGraphQLClient().getMetrics();
-    const rateLimit = getGraphQLClient().getRateLimit();
-
-    return {
-      success: true,
-      repositoryId,
-      repository: `${repository.owner}/${repository.name}`,
-      method: 'graphql',
-      prsFound: recentPRs.length,
-      prsStored: storedPRs.length,
-      reason,
-      efficiency: {
-        totalPointsUsed: metrics.totalPointsUsed,
-        averagePointsPerQuery: metrics.averagePointsPerQuery,
-        fallbackRate: `${metrics.fallbackRate.toFixed(1)}%`
-      },
-      rateLimit: rateLimit ? {
-        remaining: rateLimit.remaining,
-        limit: rateLimit.limit,
-        resetAt: rateLimit.resetAt
-      } : null
-    };
-  }
-);
-
-// Create Inngest function for single repository classification
-const classifySingleRepository = inngest.createFunction(
-  {
-    id: 'classify-single-repository',
-    name: 'Classify Single Repository',
-    retries: 3,
-  },
-  { event: 'classify/repository.single' },
-  async ({ event, step }: any) => {
-    const { repositoryId, owner, repo } = event.data;
-
-    if (!repositoryId || !owner || !repo) {
-      throw new NonRetriableError(`Missing required fields: repositoryId=${repositoryId}, owner=${owner}, repo=${repo}`);
-    }
-
-    const githubToken = Deno.env.get('VITE_GITHUB_TOKEN') || Deno.env.get('GITHUB_TOKEN');
-    if (!githubToken) {
-      throw new Error('GitHub token not configured');
-    }
-
-    // Step 1: Classify and update the repository
-    const classification = await step.run('classify-repository', async () => {
-      console.log('Classifying repository: %s/%s', owner, repo);
+    await step.run('store-reviews', async () => {
       const supabase = getSupabaseClient();
 
-      try {
-        // For now, just mark as 'unknown' - full implementation would use RepositorySizeClassifier
+      for (const review of reviews) {
+        const reviewerId = await ensureContributor(
+          supabase,
+          review.user.login,
+          review.user.avatar_url
+        );
+
         const { error } = await supabase
-          .from('repositories')
-          .update({ size_class: 'medium' })
-          .eq('id', repositoryId);
+          .from('pr_reviews')
+          .upsert({
+            review_id: review.id.toString(),
+            pr_number,
+            repository_full_name: `${owner}/${repo}`,
+            reviewer_id: reviewerId,
+            state: review.state,
+            body: review.body,
+            submitted_at: review.submitted_at,
+          });
 
         if (error) {
-          throw error;
+          console.error('Failed to store review:', error);
         }
+      }
+    });
 
-        console.log('Repository %s/%s classified as: medium', owner, repo);
-        return 'medium';
-      } catch (error: any) {
-        console.error(`Failed to classify repository ${owner}/${repo}:`, error);
-        throw error;
+    return { pr_number, reviews_count: reviews.length };
+  }
+);
+
+// 4. capture-pr-comments
+const capturePrComments = inngest.createFunction(
+  {
+    id: 'capture-pr-comments',
+    name: 'Capture PR Comments',
+    retries: 2
+  },
+  { event: 'capture/pr.comments' },
+  async ({ event, step }) => {
+    const { owner, repo, pr_number, github_token } = event.data;
+
+    const [reviewComments, issueComments] = await step.run('fetch-all-comments', async () => {
+      const [revComments, issComments] = await Promise.all([
+        githubRequest(`/repos/${owner}/${repo}/pulls/${pr_number}/comments`, github_token),
+        githubRequest(`/repos/${owner}/${repo}/issues/${pr_number}/comments`, github_token),
+      ]);
+      return [revComments, issComments];
+    });
+
+    await step.run('store-comments', async () => {
+      const supabase = getSupabaseClient();
+      const allComments = [...reviewComments, ...issueComments];
+
+      for (const comment of allComments) {
+        const authorId = await ensureContributor(
+          supabase,
+          comment.user.login,
+          comment.user.avatar_url
+        );
+
+        const { error } = await supabase
+          .from('pr_comments')
+          .upsert({
+            comment_id: comment.id.toString(),
+            pr_number,
+            repository_full_name: `${owner}/${repo}`,
+            author_id: authorId,
+            body: comment.body,
+            created_at: comment.created_at,
+            updated_at: comment.updated_at,
+          });
+
+        if (error) {
+          console.error('Failed to store comment:', error);
+        }
       }
     });
 
     return {
-      success: true,
-      repositoryId,
-      repository: `${owner}/${repo}`,
-      classification,
-      timestamp: new Date().toISOString()
+      pr_number,
+      comments_count: reviewComments.length + issueComments.length
     };
   }
 );
 
-// Create stub functions for other operations
-const stubs = [
-  'capture-pr-details',
-  'capture-pr-details-graphql',
-  'capture-pr-reviews',
-  'capture-pr-comments',
-  'capture-issue-comments',
-  'capture-repository-issues',
-  'capture-repository-sync',
-  'update-pr-activity',
-  'discover-new-repository',
-  'classify-repository-size',
-].map((id) =>
-  inngest.createFunction(
-    { id, name: id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) },
-    { event: id.replace(/-/g, '.') },
-    async ({ event }: any) => {
-      console.log(`Stub function ${id} called with:`, event.data);
-      return { success: true, message: 'Function not yet migrated to Edge' };
+// 5. capture-issue-comments
+const captureIssueComments = inngest.createFunction(
+  {
+    id: 'capture-issue-comments',
+    name: 'Capture Issue Comments',
+    retries: 2
+  },
+  { event: 'capture/issue.comments' },
+  async ({ event, step }) => {
+    const { owner, repo, issue_number, github_token } = event.data;
+
+    const comments = await step.run('fetch-issue-comments', async () => {
+      const data = await githubRequest(
+        `/repos/${owner}/${repo}/issues/${issue_number}/comments`,
+        github_token
+      );
+      return data;
+    });
+
+    await step.run('store-issue-comments', async () => {
+      const supabase = getSupabaseClient();
+
+      for (const comment of comments) {
+        const authorId = await ensureContributor(
+          supabase,
+          comment.user.login,
+          comment.user.avatar_url
+        );
+
+        const { error } = await supabase
+          .from('issue_comments')
+          .upsert({
+            comment_id: comment.id.toString(),
+            issue_number,
+            repository_full_name: `${owner}/${repo}`,
+            author_id: authorId,
+            body: comment.body,
+            created_at: comment.created_at,
+            updated_at: comment.updated_at,
+          });
+
+        if (error) {
+          console.error('Failed to store issue comment:', error);
+        }
+      }
+    });
+
+    return { issue_number, comments_count: comments.length };
+  }
+);
+
+// 6. capture-repository-issues
+const captureRepositoryIssues = inngest.createFunction(
+  {
+    id: 'capture-repository-issues',
+    name: 'Capture Repository Issues',
+    retries: 2
+  },
+  { event: 'capture/repository.issues' },
+  async ({ event, step }) => {
+    const { owner, repo, github_token, state = 'all' } = event.data;
+
+    const issues = await step.run('fetch-issues', async () => {
+      const data = await githubRequest(
+        `/repos/${owner}/${repo}/issues?state=${state}&per_page=100`,
+        github_token
+      );
+      // Filter out pull requests (they also appear in issues API)
+      return data.filter((issue: any) => !('pull_request' in issue));
+    });
+
+    await step.run('store-issues', async () => {
+      const supabase = getSupabaseClient();
+
+      // Get repository ID
+      const { data: repoData } = await supabase
+        .from('repositories')
+        .select('id')
+        .eq('full_name', `${owner}/${repo}`)
+        .single();
+
+      const repositoryId = repoData?.id || (await supabase
+        .from('repositories')
+        .insert({ full_name: `${owner}/${repo}`, owner, name: repo })
+        .select('id')
+        .single()).data.id;
+
+      for (const issue of issues) {
+        const authorId = await ensureContributor(
+          supabase,
+          issue.user.login,
+          issue.user.avatar_url
+        );
+
+        const { error } = await supabase
+          .from('issues')
+          .upsert({
+            issue_number: issue.number,
+            repository_id: repositoryId,
+            repository_full_name: `${owner}/${repo}`,
+            title: issue.title,
+            body: issue.body,
+            state: issue.state,
+            author_id: authorId,
+            labels: issue.labels.map((l: any) => l.name),
+            created_at: issue.created_at,
+            updated_at: issue.updated_at,
+            closed_at: issue.closed_at,
+          });
+
+        if (error) {
+          console.error('Failed to store issue:', error);
+        }
+      }
+    });
+
+    return { repository: `${owner}/${repo}`, issues_count: issues.length };
+  }
+);
+
+// 7. capture-repository-sync - REST API repository sync
+const captureRepositorySync = inngest.createFunction(
+  {
+    id: 'capture-repository-sync',
+    name: 'Capture Repository Sync',
+    retries: 2
+  },
+  { event: 'capture/repository.sync' },
+  async ({ event, step }) => {
+    const { owner, repo, github_token } = event.data;
+
+    // Fetch repository metadata
+    const repoData = await step.run('fetch-repository', async () => {
+      const data = await githubRequest(`/repos/${owner}/${repo}`, github_token);
+      return data;
+    });
+
+    // Store repository
+    const repositoryId = await step.run('store-repository', async () => {
+      const supabase = getSupabaseClient();
+
+      const { data, error } = await supabase
+        .from('repositories')
+        .upsert({
+          full_name: repoData.full_name,
+          name: repoData.name,
+          owner: repoData.owner.login,
+          description: repoData.description,
+          stars: repoData.stargazers_count,
+          forks: repoData.forks_count,
+          open_issues: repoData.open_issues_count,
+          language: repoData.language,
+          created_at: repoData.created_at,
+          updated_at: repoData.updated_at,
+          pushed_at: repoData.pushed_at,
+          is_private: repoData.private,
+          is_archived: repoData.archived,
+          default_branch: repoData.default_branch,
+          topics: repoData.topics,
+        })
+        .select('id')
+        .single();
+
+      if (error) throw error;
+      return data.id;
+    });
+
+    // Fetch and store recent PRs
+    await step.run('sync-recent-prs', async () => {
+      const prs = await githubRequest(
+        `/repos/${owner}/${repo}/pulls?state=all&per_page=30&sort=updated&direction=desc`,
+        github_token
+      );
+
+      const supabase = getSupabaseClient();
+
+      for (const pr of prs) {
+        const authorId = await ensureContributor(
+          supabase,
+          pr.user.login,
+          pr.user.avatar_url
+        );
+
+        await supabase.from('pull_requests').upsert({
+          pr_number: pr.number,
+          repository_id: repositoryId,
+          repository_full_name: `${owner}/${repo}`,
+          title: pr.title,
+          body: pr.body,
+          state: pr.state,
+          author_id: authorId,
+          additions: pr.additions || 0,
+          deletions: pr.deletions || 0,
+          changed_files: pr.changed_files || 0,
+          created_at: pr.created_at,
+          updated_at: pr.updated_at,
+          closed_at: pr.closed_at,
+          merged_at: pr.merged_at,
+          is_draft: pr.draft || false,
+        });
+      }
+    });
+
+    return { repository: repoData.full_name, status: 'synced' };
+  }
+);
+
+// 8. update-pr-activity
+const updatePrActivity = inngest.createFunction(
+  {
+    id: 'update-pr-activity',
+    name: 'Update PR Activity',
+    retries: 2
+  },
+  { event: 'capture/pr.activity.update' },
+  async ({ event, step }) => {
+    const { owner, repo, pr_number } = event.data;
+
+    const metrics = await step.run('calculate-activity-metrics', async () => {
+      const supabase = getSupabaseClient();
+
+      // Get PR data
+      const { data: pr } = await supabase
+        .from('pull_requests')
+        .select('*')
+        .eq('pr_number', pr_number)
+        .eq('repository_full_name', `${owner}/${repo}`)
+        .single();
+
+      if (!pr) {
+        throw new NonRetriableError('PR not found in database');
+      }
+
+      // Count reviews and comments
+      const [{ count: reviewCount }, { count: commentCount }] = await Promise.all([
+        supabase
+          .from('pr_reviews')
+          .select('*', { count: 'exact', head: true })
+          .eq('pr_number', pr_number)
+          .eq('repository_full_name', `${owner}/${repo}`),
+        supabase
+          .from('pr_comments')
+          .select('*', { count: 'exact', head: true })
+          .eq('pr_number', pr_number)
+          .eq('repository_full_name', `${owner}/${repo}`),
+      ]);
+
+      // Calculate activity score
+      const activityScore = (reviewCount || 0) * 3 + (commentCount || 0) * 2 + (pr.additions + pr.deletions) / 100;
+
+      // Update PR with activity metrics
+      const { error } = await supabase
+        .from('pull_requests')
+        .update({
+          review_count: reviewCount || 0,
+          comment_count: commentCount || 0,
+          activity_score: activityScore,
+          last_activity_at: new Date().toISOString(),
+        })
+        .eq('pr_number', pr_number)
+        .eq('repository_full_name', `${owner}/${repo}`);
+
+      if (error) throw error;
+
+      return { reviewCount, commentCount, activityScore };
+    });
+
+    return { pr_number, status: 'activity_updated', metrics };
+  }
+);
+
+// 9. discover-new-repository
+const discoverNewRepository = inngest.createFunction(
+  {
+    id: 'discover-new-repository',
+    name: 'Discover New Repository',
+    retries: 2
+  },
+  { event: 'capture/repository.discover' },
+  async ({ event, step }) => {
+    const { owner, repo, github_token } = event.data;
+
+    // Check if repository exists
+    const exists = await step.run('check-repository-exists', async () => {
+      const supabase = getSupabaseClient();
+      const { data } = await supabase
+        .from('repositories')
+        .select('full_name')
+        .eq('full_name', `${owner}/${repo}`)
+        .single();
+
+      return !!data;
+    });
+
+    if (exists) {
+      return { repository: `${owner}/${repo}`, status: 'already_tracked' };
     }
-  )
+
+    // Fetch and store repository
+    const repoData = await step.run('discover-repository', async () => {
+      const data = await githubRequest(`/repos/${owner}/${repo}`, github_token);
+      return data;
+    });
+
+    await step.run('store-new-repository', async () => {
+      const supabase = getSupabaseClient();
+
+      const { error } = await supabase
+        .from('repositories')
+        .insert({
+          full_name: repoData.full_name,
+          name: repoData.name,
+          owner: repoData.owner.login,
+          description: repoData.description,
+          stars: repoData.stargazers_count,
+          forks: repoData.forks_count,
+          open_issues: repoData.open_issues_count,
+          language: repoData.language,
+          created_at: repoData.created_at,
+          updated_at: repoData.updated_at,
+          pushed_at: repoData.pushed_at,
+          is_private: repoData.private,
+          is_archived: repoData.archived,
+          default_branch: repoData.default_branch,
+          topics: repoData.topics,
+          is_tracked: true,
+          discovered_at: new Date().toISOString(),
+        });
+
+      if (error && !error.message.includes('duplicate')) {
+        throw error;
+      }
+    });
+
+    // Trigger initial sync
+    await step.sendEvent('trigger-initial-sync', {
+      name: 'capture/repository.sync',
+      data: { owner, repo, github_token },
+    });
+
+    return { repository: repoData.full_name, status: 'discovered_and_tracking' };
+  }
+);
+
+// 10. classify-repository-size
+const classifyRepositorySize = inngest.createFunction(
+  {
+    id: 'classify-repository-size',
+    name: 'Classify Repository Size (Batch)',
+    retries: 2
+  },
+  { event: 'capture/repository.classify.batch' },
+  async ({ event, step }) => {
+    const { repositories, github_token } = event.data;
+
+    const results = await step.run('classify-repositories', async () => {
+      const supabase = getSupabaseClient();
+      const classifications = [];
+
+      for (const repoFullName of repositories) {
+        const [owner, repo] = repoFullName.split('/');
+
+        try {
+          // Fetch repository stats
+          const repoData = await githubRequest(`/repos/${owner}/${repo}`, github_token);
+
+          // Classify based on stars, forks, and activity
+          let size_class = 'small';
+          if (repoData.stargazers_count > 10000 || repoData.forks_count > 2000) {
+            size_class = 'large';
+          } else if (repoData.stargazers_count > 1000 || repoData.forks_count > 200) {
+            size_class = 'medium';
+          }
+
+          // Calculate activity level
+          const lastPushDate = new Date(repoData.pushed_at);
+          const daysSinceLastPush = Math.floor(
+            (Date.now() - lastPushDate.getTime()) / (1000 * 60 * 60 * 24)
+          );
+
+          const activity_level = daysSinceLastPush < 7 ? 'high' :
+                                daysSinceLastPush < 30 ? 'medium' :
+                                daysSinceLastPush < 90 ? 'low' : 'dormant';
+
+          // Update repository classification
+          await supabase
+            .from('repositories')
+            .update({
+              size_class,
+              activity_level,
+              stars: repoData.stargazers_count,
+              forks: repoData.forks_count,
+              open_issues: repoData.open_issues_count,
+              classified_at: new Date().toISOString(),
+            })
+            .eq('full_name', repoFullName);
+
+          classifications.push({
+            repository: repoFullName,
+            size_class,
+            activity_level,
+            stars: repoData.stargazers_count,
+          });
+        } catch (error: any) {
+          console.error(`Failed to classify ${repoFullName}:`, error);
+          classifications.push({
+            repository: repoFullName,
+            error: error.message,
+          });
+        }
+      }
+
+      return classifications;
+    });
+
+    return {
+      classified_count: results.length,
+      classifications: results,
+    };
+  }
 );
 
 // Define our functions registry
 const functions = [
-  captureRepositorySyncGraphQL,
-  classifySingleRepository,
-  ...stubs,
+  capturePrDetails,
+  capturePrDetailsGraphQL,
+  capturePrReviews,
+  capturePrComments,
+  captureIssueComments,
+  captureRepositoryIssues,
+  captureRepositorySync,
+  updatePrActivity,
+  discoverNewRepository,
+  classifyRepositorySize,
 ];
 
 // Create Inngest handler
@@ -315,7 +924,7 @@ const handler = new InngestCommHandler({
 });
 
 // Main HTTP handler
-serve(async (req: Request) => {
+serve(async (req) => {
   const url = new URL(req.url);
   const method = req.method;
 
@@ -340,6 +949,25 @@ serve(async (req: Request) => {
     });
   }
 
+  // Handle GET health check
+  if (method === 'GET' && url.pathname === '/') {
+    return new Response(
+      JSON.stringify({
+        status: 'healthy',
+        message: 'Inngest Edge Function with FULL implementations',
+        functions: functions.map(f => f.id),
+        timestamp: new Date().toISOString(),
+      }),
+      {
+        status: 200,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+  }
+
   try {
     // Use Inngest handler for all other requests
     const response = await handler.POST(req);
@@ -356,15 +984,19 @@ serve(async (req: Request) => {
     });
   } catch (error: any) {
     console.error('❌ Error processing request:', error);
-    return new Response(JSON.stringify({
-      error: 'Failed to process request',
-      message: error.message
-    }), {
-      status: 500,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json',
-      },
-    });
+
+    return new Response(
+      JSON.stringify({
+        error: 'Failed to process request',
+        message: error.message,
+      }),
+      {
+        status: 500,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
   }
 });
