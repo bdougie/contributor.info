@@ -104,19 +104,21 @@
   status = 200
   force = true
 
-# Inngest endpoint - using Netlify function with working implementations
-# Note: Supabase Edge Function migration incomplete (only has stubs)
+# Inngest endpoint - migrated to Supabase Edge Function (stub implementation)
+# Full function migration to be completed in follow-up work
 [[redirects]]
   from = "/api/inngest"
-  to = "/.netlify/functions/inngest"
+  to = "https://egcxzonpmmcirmgqdrla.supabase.co/functions/v1/inngest-prod"
   status = 200
   force = true
+  headers = {X-Forwarded-Host = "contributor.info"}
 
 [[redirects]]
   from = "/api/inngest-sync"
-  to = "/.netlify/functions/inngest"
+  to = "https://egcxzonpmmcirmgqdrla.supabase.co/functions/v1/inngest-prod"
   status = 200
   force = true
+  headers = {X-Forwarded-Host = "contributor.info"}
 
 [[redirects]]
   from = "/api/hello"
