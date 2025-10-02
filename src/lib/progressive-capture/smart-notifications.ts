@@ -1,4 +1,5 @@
 import { supabase } from '../supabase';
+import { env } from '../env';
 import { ProgressiveCaptureNotifications } from './ui-notifications';
 import type { HybridJob } from './hybrid-queue-manager';
 
@@ -18,13 +19,13 @@ export class SmartDataNotifications {
   static async checkRepositoryAndNotify(owner: string, repo: string): Promise<void> {
     const repoKey = `${owner}/${repo}`;
 
-    if (import.meta.env?.DEV) {
+    if (env.DEV) {
       console.log('🔍 Smart detection checking: %s', repoKey);
     }
 
     // Don't check the same repo repeatedly
     if (this.checkedRepositories.has(repoKey)) {
-      if (import.meta.env?.DEV) {
+      if (env.DEV) {
         console.log('⏭️ Skipping %s - already checked', repoKey);
       }
       return;
@@ -33,7 +34,7 @@ export class SmartDataNotifications {
     // Check cooldown
     const lastNotification = this.notificationCooldown.get(repoKey);
     if (lastNotification && Date.now() - lastNotification < this.COOLDOWN_DURATION) {
-      if (import.meta.env?.DEV) {
+      if (env.DEV) {
         console.log('⏭️ Skipping %s - in cooldown period', repoKey);
       }
       return;
@@ -49,13 +50,13 @@ export class SmartDataNotifications {
         .maybeSingle();
 
       if (repoError || !repoData) {
-        if (import.meta.env?.DEV) {
+        if (env.DEV) {
           console.log('❌ Repository %s not found in database:', repoKey, repoError?.message);
         }
         return;
       }
 
-      if (import.meta.env?.DEV) {
+      if (env.DEV) {
         console.log('✅ Found %s in database:', repoKey, {
           id: repoData.id,
           last_updated_at: repoData.last_updated_at,
@@ -65,7 +66,7 @@ export class SmartDataNotifications {
       // Check for missing data
       const missingData = await this.analyzeMissingData(repoData.id, repoData.last_updated_at);
 
-      if (import.meta.env?.DEV) {
+      if (env.DEV) {
         console.log('📊 Missing data analysis for %s:', repoKey, missingData);
       }
 
@@ -74,7 +75,7 @@ export class SmartDataNotifications {
         await this.autoFixMissingData(owner, repo, repoData.id, missingData);
         this.notificationCooldown.set(repoKey, Date.now());
       } else {
-        if (import.meta.env?.DEV) {
+        if (env.DEV) {
           console.log('✅ No missing data detected for %s', repoKey);
         }
       }
@@ -217,7 +218,7 @@ export class SmartDataNotifications {
       // Check if we recently queued jobs for this repository to prevent hot reload duplicates
       const lastQueued = this.queuedJobs.get(repoKey);
       if (lastQueued && Date.now() - lastQueued < this.QUEUE_COOLDOWN) {
-        if (import.meta.env?.DEV) {
+        if (env.DEV) {
           console.log(
             `⏭️ Skipping ${repoKey} - jobs were queued recently (${Math.floor((Date.now() - lastQueued) / 1000)}s ago)`
           );
@@ -227,7 +228,7 @@ export class SmartDataNotifications {
 
       const { hybridQueueManager } = await import('./hybrid-queue-manager');
 
-      if (import.meta.env?.DEV) {
+      if (env.DEV) {
         console.log('🔧 Auto-fixing missing data for %s/%s:', owner, repo, missingData);
       }
 
@@ -244,7 +245,7 @@ export class SmartDataNotifications {
       const promises: Promise<HybridJob>[] = [];
 
       if (missingData.includes('recent PRs')) {
-        if (import.meta.env?.DEV) {
+        if (env.DEV) {
           console.log(
             '⏳ Queuing recent PRs job for %s/%s with priority: %s',
             owner,
@@ -261,7 +262,7 @@ export class SmartDataNotifications {
         missingData.includes('comments') ||
         missingData.includes('commit analysis')
       ) {
-        if (import.meta.env?.DEV) {
+        if (env.DEV) {
           console.log(
             '⏳ Queuing historical data job for %s/%s with priority: %s',
             owner,
@@ -285,7 +286,7 @@ export class SmartDataNotifications {
       const results = await Promise.all(promises);
 
       // Log in development only
-      if (import.meta.env?.DEV) {
+      if (env.DEV) {
         console.log('✅ Auto-fix jobs queued for %s/%s:', owner, repo, results);
       }
     } catch (error) {
@@ -372,7 +373,7 @@ export class SmartDataNotifications {
     this.checkedRepositories.delete(repoKey);
     this.notificationCooldown.delete(repoKey);
 
-    if (import.meta.env?.DEV) {
+    if (env.DEV) {
       console.log('🔄 Force checking %s (bypassing cooldown and already-checked status)', repoKey);
     }
 
@@ -403,15 +404,15 @@ export function setupSmartNotifications(): void {
     const checkCurrentRoute = () => {
       const path = window.location.pathname;
 
-      if (import.meta.env?.DEV) {
+      if (env.DEV) {
         console.log('🔍 Route detection checking path: %s', path);
       }
 
       // Check for workspace routes first
-      const workspaceMatch = path.match(/^\/i\/([^\/]+)/);
+      const workspaceMatch = path.match(/^\/i\/([^/]+)/);
       if (workspaceMatch) {
         const [, workspaceSlug] = workspaceMatch;
-        if (import.meta.env?.DEV) {
+        if (env.DEV) {
           console.log('📁 Workspace detected: %s - skipping repository detection', workspaceSlug);
         }
         // Don't try to detect repositories for workspace routes
@@ -419,7 +420,7 @@ export function setupSmartNotifications(): void {
       }
 
       // Match patterns like /kubernetes/kubernetes or /owner/repo/contributions
-      const match = path.match(/\/([^\/]+)\/([^\/]+)(?:\/|$)/);
+      const match = path.match(/\/([^/]+)\/([^/]+)(?:\/|$)/);
 
       // Exclude non-repository routes using Set for better performance
       const EXCLUDED_ROUTE_PREFIXES = new Set([
@@ -442,7 +443,7 @@ export function setupSmartNotifications(): void {
       if (match && !EXCLUDED_ROUTE_PREFIXES.has(match[1])) {
         const [, owner, repo] = match;
 
-        if (import.meta.env?.DEV) {
+        if (env.DEV) {
           console.log(
             `✅ Repository detected: ${owner}/${repo} - scheduling auto-detection in 3 seconds`
           );
@@ -453,7 +454,7 @@ export function setupSmartNotifications(): void {
           SmartDataNotifications.checkRepositoryAndNotify(owner, repo);
         }, 3000);
       } else {
-        if (import.meta.env?.DEV) {
+        if (env.DEV) {
           console.log('⏭️ Path %s does not match repository pattern or is excluded', path);
         }
       }
@@ -479,7 +480,7 @@ export function setupSmartNotifications(): void {
       setTimeout(checkCurrentRoute, 100);
     };
 
-    if (import.meta.env?.DEV) {
+    if (env.DEV) {
       console.log('🔔 Smart data detection enabled');
 
       // Expose for debugging

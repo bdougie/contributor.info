@@ -5,13 +5,9 @@
 
 // Helper to safely access environment variables
 const getEnvNumber = (key: string, defaultValue: number): number => {
+  // Use process.env only to avoid import.meta issues in serverless/CJS bundling
   if (typeof process !== 'undefined' && process.env[key]) {
     return Number(process.env[key]);
-  }
-  // @ts-ignore - import.meta.env may not exist in all environments
-  if (typeof import.meta !== 'undefined' && import.meta.env?.[key]) {
-    // @ts-ignore
-    return Number(import.meta.env[key]);
   }
   return defaultValue;
 };

@@ -17,6 +17,20 @@ const isBrowser = typeof window !== 'undefined';
 const hasProcess = typeof process !== 'undefined' && process.env;
 
 /**
+ * Safely access import.meta.env without causing fileURLToPath errors
+ * Returns undefined if import.meta is not available (serverless/CJS)
+ */
+function safeGetImportMetaEnv(key: string): string | boolean | undefined {
+  // Use indirect eval to prevent esbuild from transforming import.meta
+  try {
+    const importMeta = (0, eval)('import.meta');
+    return importMeta?.env?.[key];
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * Universal environment access that works in both client and server contexts
  * In browser: Only accesses VITE_* prefixed variables (safe)
  * In server: Can access both VITE_* and server-only variables
@@ -26,6 +40,7 @@ function getEnvVar(viteKey: string, serverKey?: string): string {
   if (!viteKey.startsWith('VITE_')) {
     console.error('🚨 SECURITY WARNING: Env key "%s" must start with VITE_ prefix', viteKey);
   }
+
   // For tests, provide default local Supabase values
   const isTest = hasProcess && (process.env.NODE_ENV === 'test' || process.env.VITEST === 'true');
 
@@ -37,21 +52,36 @@ function getEnvVar(viteKey: string, serverKey?: string): string {
     return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
   }
 
-  // Use process.env for all contexts (browser and server)
-  // This avoids import.meta which causes issues in serverless/CJS bundling
-  if (!hasProcess) return '';
+  if (isBrowser) {
+    // Browser: Try import.meta.env first (Vite's preferred method)
+    const metaValue = safeGetImportMetaEnv(viteKey);
+    if (metaValue !== undefined) {
+      return typeof metaValue === 'string' ? metaValue : String(metaValue);
+    }
 
-  // Try VITE_* prefixed key first
-  const primaryValue = process.env[viteKey];
-  if (primaryValue) return primaryValue;
+    // Fallback to process.env if available (some bundlers expose this)
+    if (hasProcess) {
+      const processValue = process.env[viteKey];
+      if (processValue) return processValue;
+    }
 
-  // In server context, also try non-prefixed key
-  if (isServer && serverKey) {
-    const secondaryValue = process.env[serverKey];
-    if (secondaryValue) return secondaryValue;
+    return '';
+  } else {
+    // Server: Use process.env only (import.meta.env not available in CommonJS)
+    if (!hasProcess) return '';
+
+    // Try VITE_* prefixed key first
+    const primaryValue = process.env[viteKey];
+    if (primaryValue) return primaryValue;
+
+    // Also try non-prefixed key in server context
+    if (serverKey) {
+      const secondaryValue = process.env[serverKey];
+      if (secondaryValue) return secondaryValue;
+    }
+
+    return '';
   }
-
-  return '';
 }
 
 /**
@@ -107,16 +137,27 @@ export const env = {
   BUILD_ID: getEnvVar('VITE_BUILD_ID', 'BUILD_ID'),
 
   // Development mode detection
-  // Use process.env to avoid import.meta issues in serverless
   get DEV() {
+    if (isBrowser) {
+      const metaDev = safeGetImportMetaEnv('DEV');
+      if (metaDev !== undefined) return metaDev === true || metaDev === 'true';
+    }
     return hasProcess && process.env.NODE_ENV === 'development';
   },
 
   get PROD() {
+    if (isBrowser) {
+      const metaProd = safeGetImportMetaEnv('PROD');
+      if (metaProd !== undefined) return metaProd === true || metaProd === 'true';
+    }
     return hasProcess && process.env.NODE_ENV === 'production';
   },
 
   get MODE() {
+    if (isBrowser) {
+      const metaMode = safeGetImportMetaEnv('MODE');
+      if (metaMode) return metaMode;
+    }
     return hasProcess ? process.env.NODE_ENV || 'development' : 'development';
   },
 
