@@ -23,6 +23,12 @@ interface AdminMenuItemProps {
   variant?: 'default' | 'warning' | 'success';
 }
 
+function getVariantClasses(variant: 'default' | 'warning' | 'success'): string {
+  if (variant === 'warning') return 'bg-amber-100 text-amber-600';
+  if (variant === 'success') return 'bg-green-100 text-green-600';
+  return 'bg-blue-100 text-blue-600';
+}
+
 function AdminMenuItem({
   title,
   description,
@@ -36,15 +42,7 @@ function AdminMenuItem({
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div
-              className={`p-2 rounded-lg ${
-                variant === 'warning'
-                  ? 'bg-amber-100 text-amber-600'
-                  : variant === 'success'
-                    ? 'bg-green-100 text-green-600'
-                    : 'bg-blue-100 text-blue-600'
-              }`}
-            >
+            <div className={`p-2 rounded-lg ${getVariantClasses(variant)}`}>
               <Icon className="h-5 w-5" />
             </div>
             <CardTitle className="text-lg">{title}</CardTitle>
@@ -139,6 +137,14 @@ export function AdminMenu() {
       description: 'Bulk repository operations, sync management, and data integrity tools.',
       icon: GitBranch,
       href: '/admin/bulk-add-repos',
+    },
+    {
+      title: 'Failed Jobs Monitor',
+      description:
+        'View and troubleshoot failed background jobs. Monitor job health and retry failures.',
+      icon: AlertTriangle,
+      href: '/admin/failed-jobs',
+      variant: 'warning' as const,
     },
   ];
 

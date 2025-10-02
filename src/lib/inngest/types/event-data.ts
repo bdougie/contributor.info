@@ -8,31 +8,55 @@ export interface RepositorySyncEventData {
   repositoryName: string;
   days: number;
   priority: 'critical' | 'high' | 'medium' | 'low';
+  priorityScore?: number;
   reason: string;
   jobId?: string;
   maxItems?: number;
+  metadata?: {
+    isWorkspaceRepo?: boolean;
+    workspaceCount?: number;
+    originalPriority?: string;
+  };
 }
 
 export interface PRDetailsEventData {
   repositoryId: string;
   prNumbers: number[];
   priority: 'critical' | 'high' | 'medium' | 'low';
+  priorityScore?: number;
   reason: string;
   jobId?: string;
+  metadata?: {
+    isWorkspaceRepo?: boolean;
+    workspaceCount?: number;
+    originalPriority?: string;
+  };
 }
 
 export interface PRReviewsEventData {
   repositoryId: string;
   prNumber: number;
   priority: 'critical' | 'high' | 'medium' | 'low';
+  priorityScore?: number;
   jobId?: string;
+  metadata?: {
+    isWorkspaceRepo?: boolean;
+    workspaceCount?: number;
+    originalPriority?: string;
+  };
 }
 
 export interface PRCommentsEventData {
   repositoryId: string;
   prNumber: number;
   priority: 'critical' | 'high' | 'medium' | 'low';
+  priorityScore?: number;
   jobId?: string;
+  metadata?: {
+    isWorkspaceRepo?: boolean;
+    workspaceCount?: number;
+    originalPriority?: string;
+  };
 }
 
 export interface IssueCommentsEventData {
@@ -40,7 +64,13 @@ export interface IssueCommentsEventData {
   issueNumber: number;
   issueId: string;
   priority: 'critical' | 'high' | 'medium' | 'low';
+  priorityScore?: number;
   jobId?: string;
+  metadata?: {
+    isWorkspaceRepo?: boolean;
+    workspaceCount?: number;
+    originalPriority?: string;
+  };
 }
 
 export interface CommitCaptureEventData {
@@ -48,9 +78,15 @@ export interface CommitCaptureEventData {
   repositoryName: string;
   days: number;
   priority: 'critical' | 'high' | 'medium' | 'low';
+  priorityScore?: number;
   forceInitial?: boolean;
   maxCommits?: number;
   jobId?: string;
+  metadata?: {
+    isWorkspaceRepo?: boolean;
+    workspaceCount?: number;
+    originalPriority?: string;
+  };
 }
 
 /**
@@ -93,6 +129,7 @@ export function mapQueueDataToEventData(
     prNumber?: number;
     forceInitial?: boolean;
     maxCommits?: number;
+    metadata?: Record<string, unknown>;
   }
 ):
   | RepositorySyncEventData
@@ -100,10 +137,22 @@ export function mapQueueDataToEventData(
   | PRReviewsEventData
   | PRCommentsEventData
   | CommitCaptureEventData {
+  // Extract priority information from metadata
+  const priority =
+    (queueData.metadata?.priority as 'critical' | 'high' | 'medium' | 'low') || 'medium';
+  const priorityScore = queueData.metadata?.priorityScore as number | undefined;
+  const metadata = {
+    isWorkspaceRepo: queueData.metadata?.isWorkspaceRepo as boolean | undefined,
+    workspaceCount: queueData.metadata?.workspaceCount as number | undefined,
+    originalPriority: queueData.metadata?.originalPriority as string | undefined,
+  };
+
   const baseData = {
     repositoryId: queueData.repositoryId,
-    priority: 'medium' as const,
+    priority,
+    priorityScore,
     jobId: queueData.jobId,
+    metadata,
   };
 
   switch (jobType) {
