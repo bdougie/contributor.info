@@ -71,14 +71,14 @@ CREATE POLICY "Allow service role to manage spam detections" ON spam_detections
   USING (true);
 
 -- Allow admins to insert/update spam detections
--- Note: This assumes there's an admin system in place. Adjust as needed.
+-- Use the app_users table which has the is_admin column
 CREATE POLICY "Allow admins to manage spam detections" ON spam_detections
   FOR ALL TO authenticated
   USING (
     EXISTS (
-      SELECT 1 FROM contributors 
-      WHERE contributors.id = auth.uid() 
-      AND contributors.admin_level > 0
+      SELECT 1 FROM app_users 
+      WHERE app_users.auth_user_id = auth.uid() 
+      AND app_users.is_admin = TRUE
     )
   );
 

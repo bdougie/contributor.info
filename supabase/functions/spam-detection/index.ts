@@ -237,7 +237,7 @@ async function batchProcessPRsForSpam(
         changed_files,
         created_at,
         html_url,
-        author:contributors!author_id(
+        author:contributors!pull_requests_author_id_fkey(
           id,
           github_id,
           username,
@@ -416,7 +416,7 @@ serve(async (req) => {
           created_at,
           html_url,
           spam_score,
-          author:contributors!author_id(
+          author:contributors!pull_requests_author_id_fkey(
             id,
             github_id,
             username,
