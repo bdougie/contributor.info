@@ -1,5 +1,34 @@
 import type { Context } from '@netlify/functions';
 
+/**
+ * Blocked owner names that are app routes, not GitHub organizations
+ * These should never be treated as repository identifiers
+ */
+const BLOCKED_OWNERS = new Set([
+  'social-cards',
+  'api',
+  'dev',
+  'admin',
+  'docs',
+  'feed',
+  'workspace',
+  'workspaces',
+  'settings',
+  'auth',
+  'callback',
+  'trending',
+  'changelog',
+  'terms',
+  'privacy',
+  'faq',
+  'debug',
+  'health',
+  'status',
+  'assets',
+  'public',
+  'static',
+]);
+
 export default async (req: Request, context: Context) => {
   // CORS headers
   const corsHeaders = {
@@ -47,6 +76,25 @@ export default async (req: Request, context: Context) => {
           success: false,
           error: 'Missing owner or repo',
           message: 'Please provide both owner and repo parameters',
+        }),
+        {
+          status: 400,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+    }
+
+    // Block app routes that aren't GitHub repositories
+    if (BLOCKED_OWNERS.has(owner.toLowerCase())) {
+      console.warn(`Blocked tracking attempt for app route: ${owner}/${repo}`);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Invalid repository',
+          message: `'${owner}' is a reserved path and cannot be tracked as a repository`,
         }),
         {
           status: 400,
