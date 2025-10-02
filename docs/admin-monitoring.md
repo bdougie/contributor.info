@@ -13,12 +13,12 @@ Admin tooling and monitoring for the priority queue system. This allows administ
 ### 1. Failed Jobs Dashboard (`/admin/failed-jobs`)
 
 **Features:**
-- List of all failed jobs from `background_jobs` table
+- List of all failed jobs from `progressive_capture_jobs` table
 - Filter by:
   - Job type (capture/pr.reviews, capture/pr.comments, etc.)
   - Date range
   - Repository
-  - Processing mode (netlify vs supabase)
+  - Processor type (inngest vs github_actions)
 - Display:
   - Job ID
   - Type
@@ -26,7 +26,7 @@ Admin tooling and monitoring for the priority queue system. This allows administ
   - Repository name
   - Failed timestamp
   - Retry count
-  - Processing mode
+  - Processor type
 
 **Actions:**
 - View job details (payload, error stack)
@@ -37,8 +37,8 @@ Admin tooling and monitoring for the priority queue system. This allows administ
 
 **Metrics to Track:**
 - Total jobs processed (last 24h, 7d, 30d)
-- Success rate by processing mode
-- Average processing time by mode
+- Success rate by processor type
+- Average processing time by processor type
 - Failed jobs by repository
 - Most common error types
 
@@ -56,10 +56,9 @@ Admin tooling and monitoring for the priority queue system. This allows administ
 -- Already exists in background_jobs table:
 - id: uuid
 - type: text (job type)
-- status: text ('pending', 'processing', 'completed', 'failed')
+- status: text ('queued', 'processing', 'completed', 'failed', 'cancelled')
 - error: text (error message)
 - repository_id: uuid
-- processing_mode: text ('netlify' or 'supabase')
 - retry_count: integer
 - max_retries: integer
 - failed_at: timestamp
@@ -80,9 +79,9 @@ CREATE TABLE inngest_rollout_config (
 ## Implementation Steps
 
 ### Step 1: Create Failed Jobs Page Component
-- [ ] Create `src/components/features/admin/failed-jobs-dashboard.tsx`
-- [ ] Query `background_jobs` WHERE status = 'failed'
-- [ ] Display in data table with filters
+- [x] Create `src/components/features/admin/failed-jobs-dashboard.tsx`
+- [x] Query `progressive_capture_jobs` WHERE status = 'failed'
+- [x] Display in data table with filters
 - [ ] Add retry action buttons
 
 ### Step 2: Add to Admin Menu
@@ -98,7 +97,7 @@ CREATE TABLE inngest_rollout_config (
 
 ### Step 4: Add Monitoring Dashboard
 - [ ] Success rate charts
-- [ ] Processing time comparison (Netlify vs Supabase)
+- [ ] Processing time comparison (Inngest vs GitHub Actions)
 - [ ] Error type breakdown
 - [ ] Repository failure heatmap
 
