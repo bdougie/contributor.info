@@ -31,12 +31,12 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get gh-datapipe configuration
-    const ghDatapipeUrl = Deno.env.get('GH_DATPIPE_API_URL') || 'https://gh-datapipe.fly.dev';
+    // Get gh-datapipe configuration (require env vars, no hardcoded fallbacks for security)
+    const ghDatapipeUrl = Deno.env.get('GH_DATPIPE_API_URL');
     const ghDatapipeKey = Deno.env.get('GH_DATPIPE_KEY');
 
-    if (!ghDatapipeKey) {
-      throw new Error('GH_DATPIPE_KEY not configured');
+    if (!ghDatapipeUrl || !ghDatapipeKey) {
+      throw new Error('GH_DATPIPE_API_URL and GH_DATPIPE_KEY must be configured');
     }
 
     // Step 1: Verify repository exists and is tracked
