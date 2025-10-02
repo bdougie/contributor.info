@@ -61,8 +61,7 @@
   node_bundler = "esbuild"
 
 # Inngest functions need longer timeouts for processing
-[functions.inngest-prod]
-  node_bundler = "esbuild"
+# Note: inngest-prod migrated to Supabase Edge Functions (see docs/infrastructure/inngest-supabase-migration.md)
 
 [functions.inngest]
   node_bundler = "esbuild"
@@ -105,17 +104,23 @@
   status = 200
   force = true
 
+# Inngest endpoint - migrated to Supabase Edge Function (stub implementation)
+# Full function migration to be completed in follow-up work
+# NOTE: Netlify redirects don't support environment variables.
+# To update the Supabase URL, replace "egcxzonpmmcirmgqdrla" with your project ID
 [[redirects]]
   from = "/api/inngest"
-  to = "/.netlify/functions/inngest-prod"
+  to = "https://egcxzonpmmcirmgqdrla.supabase.co/functions/v1/inngest-prod"
   status = 200
   force = true
+  headers = {X-Forwarded-Host = "contributor.info"}
 
 [[redirects]]
   from = "/api/inngest-sync"
-  to = "/.netlify/functions/inngest-prod"
+  to = "https://egcxzonpmmcirmgqdrla.supabase.co/functions/v1/inngest-prod"
   status = 200
   force = true
+  headers = {X-Forwarded-Host = "contributor.info"}
 
 [[redirects]]
   from = "/api/hello"
@@ -130,6 +135,8 @@
   force = true
 
 # Queue event endpoint - migrated to Supabase Edge Function for better timeout handling
+# NOTE: Netlify redirects don't support environment variables.
+# To update the Supabase URL, replace "egcxzonpmmcirmgqdrla" with your project ID
 [[redirects]]
   from = "/api/queue-event"
   to = "https://egcxzonpmmcirmgqdrla.supabase.co/functions/v1/queue-event"

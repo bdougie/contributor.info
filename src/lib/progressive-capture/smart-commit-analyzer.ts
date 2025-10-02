@@ -39,8 +39,11 @@ export class SmartCommitAnalyzer {
   private token: string | null = null;
 
   constructor() {
-    // Try to get GitHub token from environment
-    this.token = process.env.VITE_GITHUB_TOKEN || process.env.GITHUB_TOKEN || null;
+    // Try to get GitHub token from environment (safely handle browser vs Node)
+    this.token =
+      (typeof process !== 'undefined' && process.env?.VITE_GITHUB_TOKEN) ||
+      (typeof process !== 'undefined' && process.env?.GITHUB_TOKEN) ||
+      null;
   }
 
   /**

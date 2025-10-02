@@ -3,7 +3,7 @@ import { Inngest } from 'inngest';
 import { serve } from 'inngest/lambda';
 import type { Context } from '@netlify/functions';
 
-// Import real Inngest function implementations
+// Import real Inngest function implementations (without embeddings to avoid import.meta issues)
 import {
   capturePrDetails,
   capturePrDetailsGraphQL,
@@ -13,11 +13,11 @@ import {
   captureRepositorySyncGraphQL,
   classifyRepositorySize,
   classifySingleRepository,
-} from '../../src/lib/inngest/functions/index';
-import { discoverNewRepository } from '../../src/lib/inngest/functions/discover-new-repository';
-import { captureIssueComments } from '../../src/lib/inngest/functions/capture-issue-comments';
-import { captureRepositoryIssues } from '../../src/lib/inngest/functions/capture-repository-issues';
-import { updatePrActivity } from '../../src/lib/inngest/functions/update-pr-activity';
+  captureIssueComments,
+  captureRepositoryIssues,
+  updatePrActivity,
+  discoverNewRepository,
+} from '../../src/lib/inngest/functions/index-without-embeddings';
 
 // Environment detection - treat deploy previews as production for signing
 const isProduction = () => {
