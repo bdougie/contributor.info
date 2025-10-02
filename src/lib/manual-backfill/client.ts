@@ -46,12 +46,14 @@ class ManualBackfillClient {
   private apiKey: string;
 
   constructor() {
-    // Use server-side environment variables for API configuration
-    this.apiUrl = process.env.GH_DATPIPE_API_URL || 'https://gh-datapipe.fly.dev';
+    // Require environment variables for API configuration (no hardcoded fallbacks for security)
+    this.apiUrl = process.env.GH_DATPIPE_API_URL || '';
     this.apiKey = process.env.GH_DATPIPE_KEY || '';
 
-    if (!this.apiKey) {
-      console.warn('GH_DATPIPE_KEY not configured. Manual backfill will not work.');
+    if (!this.apiUrl || !this.apiKey) {
+      console.warn(
+        'GH_DATPIPE_API_URL and GH_DATPIPE_KEY must be configured. Manual backfill will not work.'
+      );
     }
   }
 
@@ -66,6 +68,10 @@ class ManualBackfillClient {
    * Trigger a manual backfill for a repository
    */
   async triggerBackfill(request: BackfillRequest): Promise<BackfillResponse> {
+    if (!this.apiUrl || !this.apiKey) {
+      throw new Error('GH_DATPIPE_API_URL and GH_DATPIPE_KEY must be configured');
+    }
+
     const response = await fetch(`${this.apiUrl}/api/backfill/trigger`, {
       method: 'POST',
       headers: this.getHeaders(),
