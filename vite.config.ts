@@ -1,11 +1,39 @@
 import path from 'path';
 import react from '@vitejs/plugin-react-swc';
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import { imagetools } from 'vite-imagetools';
 
-export default defineConfig(() => ({
-  base: '/',
-  plugins: [
+export default defineConfig(({ mode }) => {
+  // Load env file based on mode
+  const env = loadEnv(mode, process.cwd(), '');
+
+  return {
+    base: '/',
+    // Define process.env.VITE_* for browser compatibility
+    define: {
+      'process.env.VITE_SUPABASE_URL': JSON.stringify(env.VITE_SUPABASE_URL),
+      'process.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(env.VITE_SUPABASE_ANON_KEY),
+      'process.env.VITE_GITHUB_TOKEN': JSON.stringify(env.VITE_GITHUB_TOKEN),
+      'process.env.VITE_INNGEST_APP_ID': JSON.stringify(env.VITE_INNGEST_APP_ID),
+      'process.env.VITE_INNGEST_EVENT_KEY': JSON.stringify(env.VITE_INNGEST_EVENT_KEY),
+      'process.env.VITE_OPENAI_API_KEY': JSON.stringify(env.VITE_OPENAI_API_KEY),
+      'process.env.VITE_POSTHOG_KEY': JSON.stringify(env.VITE_POSTHOG_KEY),
+      'process.env.VITE_POSTHOG_HOST': JSON.stringify(env.VITE_POSTHOG_HOST),
+      'process.env.VITE_SENTRY_DSN': JSON.stringify(env.VITE_SENTRY_DSN),
+      'process.env.VITE_DUB_CO_KEY': JSON.stringify(env.VITE_DUB_CO_KEY),
+      'process.env.VITE_DUB_DOMAIN_DEV': JSON.stringify(env.VITE_DUB_DOMAIN_DEV),
+      'process.env.VITE_DUB_DOMAIN_PROD': JSON.stringify(env.VITE_DUB_DOMAIN_PROD),
+      'process.env.VITE_RESEND_API_KEY': JSON.stringify(env.VITE_RESEND_API_KEY),
+      'process.env.VITE_POLAR_ACCESS_TOKEN': JSON.stringify(env.VITE_POLAR_ACCESS_TOKEN),
+      'process.env.VITE_POLAR_PRODUCT_ID_PRO': JSON.stringify(env.VITE_POLAR_PRODUCT_ID_PRO),
+      'process.env.VITE_POLAR_PRODUCT_ID_TEAM': JSON.stringify(env.VITE_POLAR_PRODUCT_ID_TEAM),
+      'process.env.VITE_CONTEXT': JSON.stringify(env.VITE_CONTEXT),
+      'process.env.VITE_DEPLOY_PRIME_URL': JSON.stringify(env.VITE_DEPLOY_PRIME_URL),
+      'process.env.VITE_DEPLOY_URL': JSON.stringify(env.VITE_DEPLOY_URL),
+      'process.env.VITE_URL': JSON.stringify(env.VITE_URL),
+      'process.env.NODE_ENV': JSON.stringify(mode),
+    },
+    plugins: [
     react(),
     imagetools({
       defaultDirectives: (url) => {
@@ -265,4 +293,5 @@ export default defineConfig(() => ({
   css: {
     devSourcemap: true,
   },
-}));
+};
+});
