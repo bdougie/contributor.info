@@ -2,7 +2,7 @@
 
 ## Overview
 
-As of January 2025, Inngest webhook handling has been migrated from Netlify Functions to Supabase Edge Functions to resolve critical bundling issues and improve reliability.
+As of January 2025, Inngest webhook handling has been migrated from Netlify Functions to Supabase Edge Functions to resolve critical bundling issues and improve reliability. All 10 Inngest functions are now fully implemented and operational.
 
 ## Problem
 
@@ -38,8 +38,17 @@ Client → /api/inngest → Supabase Edge Function (ES Modules) → Inngest Proc
 
 1. **Supabase Function**: `/supabase/functions/inngest-prod/index.ts`
    - Real Inngest SDK integration using `InngestCommHandler`
-   - Imports stub functions from `inngest-functions.ts`
-   - Implements two real functions: `captureRepositorySyncGraphQL` and `classifySingleRepository`
+   - Implements all 10 Inngest functions with full functionality:
+     - `capture-pr-details`: Fetch PR data via REST API
+     - `capture-pr-details-graphql`: Comprehensive PR capture with GraphQL
+     - `capture-pr-reviews`: Store PR review data
+     - `capture-pr-comments`: Capture all PR comments
+     - `capture-issue-comments`: Store issue comments
+     - `capture-repository-issues`: Sync repository issues
+     - `capture-repository-sync`: Full repository sync via REST
+     - `update-pr-activity`: Calculate and update PR activity metrics
+     - `discover-new-repository`: Discover and track new repos
+     - `classify-repository-size`: Batch classify repositories
 
 2. **Routing**: `/netlify.toml`
    - Redirects `/api/inngest` to `https://egcxzonpmmcirmgqdrla.supabase.co/functions/v1/inngest-prod`
@@ -132,10 +141,10 @@ If issues occur, rollback by:
 
 ## Future Improvements
 
-1. **Complete Function Migration**: Currently using stub implementations for most functions. These should be fully ported to Deno-compatible code.
-2. **GraphQL Optimization**: The GraphQL client could be optimized for Deno runtime
-3. **Monitoring**: Add structured logging and metrics collection
-4. **Testing**: Add integration tests for the Edge Function endpoint
+1. **GraphQL Optimization**: The GraphQL client could be optimized for Deno runtime
+2. **Monitoring**: Add structured logging and metrics collection
+3. **Testing**: Add integration tests for the Edge Function endpoint
+4. **Environment Variable Support**: Update Netlify redirects when environment variable support becomes available
 
 ## Related PRs
 

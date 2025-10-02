@@ -106,6 +106,8 @@
 
 # Inngest endpoint - migrated to Supabase Edge Function (stub implementation)
 # Full function migration to be completed in follow-up work
+# NOTE: Netlify redirects don't support environment variables.
+# To update the Supabase URL, replace "egcxzonpmmcirmgqdrla" with your project ID
 [[redirects]]
   from = "/api/inngest"
   to = "https://egcxzonpmmcirmgqdrla.supabase.co/functions/v1/inngest-prod"
@@ -133,6 +135,8 @@
   force = true
 
 # Queue event endpoint - migrated to Supabase Edge Function for better timeout handling
+# NOTE: Netlify redirects don't support environment variables.
+# To update the Supabase URL, replace "egcxzonpmmcirmgqdrla" with your project ID
 [[redirects]]
   from = "/api/queue-event"
   to = "https://egcxzonpmmcirmgqdrla.supabase.co/functions/v1/queue-event"
