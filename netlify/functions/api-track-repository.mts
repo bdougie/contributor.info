@@ -70,12 +70,12 @@ export default async (req: Request, context: Context) => {
     // Validate repository parameters
     const isValidRepoName = (name: string): boolean => /^[a-zA-Z0-9._-]+$/.test(name);
 
-    if (!owner || !repo) {
+    if (!owner || !repo || typeof owner !== 'string' || typeof repo !== 'string') {
       return new Response(
         JSON.stringify({
           success: false,
           error: 'Missing owner or repo',
-          message: 'Please provide both owner and repo parameters',
+          message: 'Please provide both owner and repo parameters as strings',
         }),
         {
           status: 400,

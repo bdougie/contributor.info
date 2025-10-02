@@ -43,11 +43,11 @@ export default async (req, context) => {
   try {
     const body = await req.json();
     const { owner, repo } = body;
-    if (!owner || !repo) {
+    if (!owner || !repo || typeof owner !== 'string' || typeof repo !== 'string') {
       return new Response(
         JSON.stringify({
           error: 'Missing owner or repo',
-          message: 'Please provide both owner and repo parameters',
+          message: 'Please provide both owner and repo parameters as strings',
         }),
         {
           status: 400,
