@@ -10,6 +10,8 @@ import {
   formatValidationErrors,
 } from '@/lib/validations/workspace';
 import { WorkspacePermissionService } from './workspace-permissions.service';
+import { workspacePrioritySync } from '@/lib/progressive-capture/workspace-priority-sync';
+import { inngest } from '@/lib/inngest/client';
 import type {
   Workspace,
   WorkspaceWithStats,
@@ -615,6 +617,30 @@ export class WorkspaceService {
         })
         .eq('id', workspaceId);
 
+      // NEW: Immediately upgrade repository priority to high
+      try {
+        await workspacePrioritySync.markAsWorkspaceRepo(data.repository_id);
+
+        // Trigger immediate priority sync job (async, non-blocking)
+        await inngest.send({
+          name: 'workspace/priorities.sync',
+          data: {
+            repositoryId: data.repository_id,
+            trigger: 'workspace_add',
+            workspaceId,
+          },
+        });
+
+        console.log(
+          'Upgraded repository priority to high: %s (workspace: %s)',
+          data.repository_id,
+          workspaceId
+        );
+      } catch (error) {
+        // Log but don't fail the workspace operation
+        console.error('Failed to update repository priority:', error);
+      }
+
       return {
         success: true,
         data: workspaceRepo,
@@ -675,6 +701,21 @@ export class WorkspaceService {
             last_activity_at: new Date().toISOString(),
           })
           .eq('id', workspaceId);
+      }
+
+      // NEW: Check if repository is still in other workspaces
+      try {
+        const stillInWorkspace = await workspacePrioritySync.isInWorkspace(repositoryId);
+
+        if (!stillInWorkspace) {
+          await workspacePrioritySync.markAsTrackedOnly(repositoryId);
+
+          console.log('Downgraded repository priority to medium: %s (no workspaces)', repositoryId);
+        } else {
+          console.log('Repository still in other workspaces: %s', repositoryId);
+        }
+      } catch (error) {
+        console.error('Failed to downgrade repository priority:', error);
       }
 
       return {
