@@ -5,6 +5,23 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
 
+/**
+ * Normalizes GitHub review state to database format
+ * GitHub API returns uppercase from GraphQL (e.g., 'APPROVED', 'CHANGES_REQUESTED')
+ * But may also return other values that need validation
+ */
+function normalizeReviewState(githubState: string): string {
+  const normalized = githubState.toUpperCase();
+  const validStates = ['PENDING', 'APPROVED', 'CHANGES_REQUESTED', 'COMMENTED', 'DISMISSED'];
+
+  if (!validStates.includes(normalized)) {
+    console.warn('Unknown review state: %s, defaulting to COMMENTED', githubState);
+    return 'COMMENTED';
+  }
+
+  return normalized;
+}
+
 // Deno.serve is the new way to create edge functions
 Deno.serve(async (req) => {
   return await handleRequest(req);
@@ -366,7 +383,7 @@ async function handleRequest(req: Request): Promise<Response> {
                     github_id: review.databaseId,
                     pull_request_id: pr.databaseId,
                     author_id: reviewerId,
-                    state: review.state,
+                    state: normalizeReviewState(review.state),
                     body: review.body,
                     submitted_at: review.submittedAt,
                     last_updated_at: new Date().toISOString(),
