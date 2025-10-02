@@ -385,11 +385,14 @@ ${JSON.stringify(job.metadata, null, 2)}
                         >
                           Report Issue on GitHub
                         </Button>
-                        <Button size="sm" variant="outline" disabled>
-                          Retry Job (Coming Soon)
-                        </Button>
-                        <Button size="sm" variant="outline" disabled>
-                          View Logs (Coming Soon)
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            window.open('https://app.inngest.com/env/production/runs', '_blank');
+                          }}
+                        >
+                          View in Inngest
                         </Button>
                       </div>
                     </div>
