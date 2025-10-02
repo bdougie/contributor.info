@@ -149,6 +149,11 @@ const ConfidenceAnalyticsDashboard = lazy(() =>
 const AdminAnalyticsDashboard = lazy(() =>
   import('@/components/features/admin').then((m) => ({ default: m.AdminAnalyticsDashboard }))
 );
+const FailedJobsDashboard = lazy(() =>
+  import('@/components/features/admin/failed-jobs-dashboard').then((m) => ({
+    default: m.FailedJobsDashboard,
+  }))
+);
 const LLMCitationDashboard = lazy(() =>
   import('@/components/features/analytics/llm-citation-dashboard').then((m) => ({
     default: m.LLMCitationDashboard,
@@ -639,6 +644,14 @@ function App() {
                       element={
                         <AdminRoute>
                           <LLMCitationDashboard />
+                        </AdminRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/failed-jobs"
+                      element={
+                        <AdminRoute>
+                          <FailedJobsDashboard />
                         </AdminRoute>
                       }
                     />
