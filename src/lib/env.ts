@@ -40,9 +40,20 @@ function getEnvVar(viteKey: string, serverKey?: string): string {
 
   if (isBrowser) {
     // Browser: Use import.meta.env (Vite handles this natively)
-    const metaValue = import.meta?.env?.[viteKey];
-    if (metaValue !== undefined) {
-      return typeof metaValue === 'string' ? metaValue : String(metaValue);
+    // Wrap in try-catch to handle CommonJS bundling scenarios
+    try {
+      // Use indirect eval to prevent bundler from statically analyzing import.meta
+      // This allows the code to work even when bundled as CommonJS
+      const metaEnv = (0, eval)('typeof import !== "undefined" && import.meta?.env');
+      if (metaEnv && typeof metaEnv === 'object') {
+        const metaValue = metaEnv[viteKey];
+        if (metaValue !== undefined) {
+          return typeof metaValue === 'string' ? metaValue : String(metaValue);
+        }
+      }
+    } catch {
+      // Fall through to return empty string
+      // This happens in CommonJS environments where import.meta doesn't exist
     }
     return '';
   } else {
@@ -118,21 +129,36 @@ export const env = {
   // Development mode detection
   get DEV() {
     if (isBrowser) {
-      return import.meta?.env?.DEV === true;
+      try {
+        const metaEnv = (0, eval)('typeof import !== "undefined" && import.meta?.env');
+        return metaEnv?.DEV === true;
+      } catch {
+        return false;
+      }
     }
     return hasProcess && process.env.NODE_ENV === 'development';
   },
 
   get PROD() {
     if (isBrowser) {
-      return import.meta?.env?.PROD === true;
+      try {
+        const metaEnv = (0, eval)('typeof import !== "undefined" && import.meta?.env');
+        return metaEnv?.PROD === true;
+      } catch {
+        return false;
+      }
     }
     return hasProcess && process.env.NODE_ENV === 'production';
   },
 
   get MODE() {
     if (isBrowser) {
-      return import.meta?.env?.MODE || 'development';
+      try {
+        const metaEnv = (0, eval)('typeof import !== "undefined" && import.meta?.env');
+        return metaEnv?.MODE || 'development';
+      } catch {
+        return 'development';
+      }
     }
     return hasProcess ? process.env.NODE_ENV || 'development' : 'development';
   },
