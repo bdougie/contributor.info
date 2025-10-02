@@ -69,6 +69,10 @@
 [functions.inngest-local-full]
   node_bundler = "esbuild"
 
+# Embeddings function needs esbuild with longer timeout for ML model loading
+[functions.inngest-embeddings]
+  node_bundler = "esbuild"
+
 # Manual backfill functions may take longer
 [functions.backfill-trigger]
   node_bundler = "esbuild"
@@ -121,6 +125,14 @@
   status = 200
   force = true
   headers = {X-Forwarded-Host = "contributor.info"}
+
+# Inngest embeddings endpoint - Netlify Function for Node.js dependencies
+# Handles embeddings generation which requires @xenova/transformers
+[[redirects]]
+  from = "/api/inngest-embeddings"
+  to = "/.netlify/functions/inngest-embeddings"
+  status = 200
+  force = true
 
 [[redirects]]
   from = "/api/hello"
