@@ -17,17 +17,17 @@ import { supabase } from '@/lib/supabase';
 
 interface BackgroundJob {
   id: string;
-  type: string;
+  job_type: string;
   status: string;
   error: string | null;
   repository_id: string | null;
-  processing_mode: string | null;
-  retry_count: number | null;
-  max_retries: number | null;
-  failed_at: string | null;
+  processor_type: string | null;
+  time_range_days: number | null;
+  workflow_run_id: number | null;
+  metadata: Record<string, unknown> | null;
   created_at: string;
-  payload: Record<string, unknown> | null;
-  duration_ms: number | null;
+  started_at: string | null;
+  completed_at: string | null;
 }
 
 interface JobWithRepo extends BackgroundJob {
@@ -51,12 +51,12 @@ export function FailedJobsDashboard() {
     setError(null);
 
     try {
-      // Fetch failed jobs
+      // Fetch failed jobs from progressive_capture_jobs table
       const { data: jobs, error: jobsError } = await supabase
-        .from('background_jobs')
+        .from('progressive_capture_jobs')
         .select('*')
         .eq('status', 'failed')
-        .order('failed_at', { ascending: false })
+        .order('created_at', { ascending: false })
         .limit(100);
 
       if (jobsError) throw jobsError;
@@ -101,12 +101,12 @@ export function FailedJobsDashboard() {
       const twentyFourHoursAgo = now - 24 * 60 * 60 * 1000;
 
       const last24hJobs = jobsWithRepos.filter(
-        (job) => job.failed_at && new Date(job.failed_at).getTime() > twentyFourHoursAgo
+        (job) => job.created_at && new Date(job.created_at).getTime() > twentyFourHoursAgo
       );
 
       const byType = jobsWithRepos.reduce(
         (acc, job) => {
-          acc[job.type] = (acc[job.type] || 0) + 1;
+          acc[job.job_type] = (acc[job.job_type] || 0) + 1;
           return acc;
         },
         {} as Record<string, number>
@@ -114,7 +114,7 @@ export function FailedJobsDashboard() {
 
       const byMode = jobsWithRepos.reduce(
         (acc, job) => {
-          const mode = job.processing_mode || 'unknown';
+          const mode = job.processor_type || 'unknown';
           acc[mode] = (acc[mode] || 0) + 1;
           return acc;
         },
@@ -264,16 +264,14 @@ export function FailedJobsDashboard() {
                   <div className="flex items-start justify-between mb-4">
                     <div className="space-y-2 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <Badge variant={getJobTypeColor(job.type)}>{job.type}</Badge>
-                        {job.processing_mode && (
+                        <Badge variant={getJobTypeColor(job.job_type)}>{job.job_type}</Badge>
+                        {job.processor_type && (
                           <Badge variant="outline" className="capitalize">
-                            {job.processing_mode}
+                            {job.processor_type}
                           </Badge>
                         )}
-                        {job.retry_count !== null && job.max_retries !== null && (
-                          <Badge variant="secondary">
-                            Retry {job.retry_count}/{job.max_retries}
-                          </Badge>
+                        {job.time_range_days && (
+                          <Badge variant="secondary">Range: {job.time_range_days} days</Badge>
                         )}
                       </div>
 
@@ -309,9 +307,10 @@ export function FailedJobsDashboard() {
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <Clock className="h-3 w-3" />
-                      Failed: {formatDate(job.failed_at)}
+                      Created: {formatDate(job.created_at)}
                     </span>
-                    {job.duration_ms && <span>Duration: {job.duration_ms}ms</span>}
+                    {job.completed_at && <span>Completed: {formatDate(job.completed_at)}</span>}
+                    {job.workflow_run_id && <span>Run ID: {job.workflow_run_id}</span>}
                   </div>
 
                   {/* Expanded Details */}
@@ -322,11 +321,11 @@ export function FailedJobsDashboard() {
                         <p className="text-sm font-mono text-muted-foreground">{job.id}</p>
                       </div>
 
-                      {job.payload && Object.keys(job.payload).length > 0 && (
+                      {job.metadata && Object.keys(job.metadata).length > 0 && (
                         <div>
-                          <h4 className="text-sm font-semibold mb-2">Payload</h4>
+                          <h4 className="text-sm font-semibold mb-2">Metadata</h4>
                           <pre className="text-xs bg-muted p-4 rounded-lg overflow-x-auto">
-                            {JSON.stringify(job.payload, null, 2)}
+                            {JSON.stringify(job.metadata, null, 2)}
                           </pre>
                         </div>
                       )}
