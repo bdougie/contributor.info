@@ -39,12 +39,10 @@ function getEnvVar(viteKey: string, serverKey?: string): string {
   }
 
   if (isBrowser) {
-    // Browser: Use import.meta.env (Vite handles this natively)
-    // Wrap in try-catch to handle CommonJS bundling scenarios
+    // Browser: Access import.meta.env directly so Vite can statically replace at build time
     try {
-      // Use indirect eval to prevent bundler from statically analyzing import.meta
-      // This allows the code to work even when bundled as CommonJS
-      const metaEnv = (0, eval)('typeof import !== "undefined" && import.meta?.env');
+      // Direct access to import.meta.env for Vite static replacement
+      const metaEnv = import.meta?.env;
       if (metaEnv && typeof metaEnv === 'object') {
         const metaValue = metaEnv[viteKey];
         if (metaValue !== undefined) {
@@ -52,9 +50,20 @@ function getEnvVar(viteKey: string, serverKey?: string): string {
         }
       }
     } catch {
-      // Fall through to return empty string
-      // This happens in CommonJS environments where import.meta doesn't exist
+      // import.meta might not be available in some environments
+      // Fall through to process.env check
     }
+
+    // Fallback: Check if process.env is available (for some build environments)
+    if (hasProcess && process.env[viteKey]) {
+      return process.env[viteKey];
+    }
+
+    // Fallback for server keys in browser context (Netlify may inject these)
+    if (serverKey && hasProcess && process.env[serverKey]) {
+      return process.env[serverKey];
+    }
+
     return '';
   } else {
     // Server: Use process.env
@@ -130,8 +139,8 @@ export const env = {
   get DEV() {
     if (isBrowser) {
       try {
-        const metaEnv = (0, eval)('typeof import !== "undefined" && import.meta?.env');
-        return metaEnv?.DEV === true;
+        // Direct access for Vite static replacement
+        return import.meta?.env?.DEV === true;
       } catch {
         return false;
       }
@@ -142,8 +151,8 @@ export const env = {
   get PROD() {
     if (isBrowser) {
       try {
-        const metaEnv = (0, eval)('typeof import !== "undefined" && import.meta?.env');
-        return metaEnv?.PROD === true;
+        // Direct access for Vite static replacement
+        return import.meta?.env?.PROD === true;
       } catch {
         return false;
       }
@@ -154,8 +163,8 @@ export const env = {
   get MODE() {
     if (isBrowser) {
       try {
-        const metaEnv = (0, eval)('typeof import !== "undefined" && import.meta?.env');
-        return metaEnv?.MODE || 'development';
+        // Direct access for Vite static replacement
+        return import.meta?.env?.MODE || 'development';
       } catch {
         return 'development';
       }
