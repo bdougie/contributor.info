@@ -24,7 +24,7 @@ The project uses a **dual-endpoint architecture** for Inngest functions to handl
                  │  /api/inngest   │              │ /api/inngest-    │
                  │  (Supabase)     │              │  embeddings      │
                  │                 │              │  (Netlify)       │
-                 │  10 Functions   │              │  2 Functions     │
+                 │  10 Functions   │              │  7 Functions     │
                  └─────────────────┘              └──────────────────┘
 ```
 
@@ -56,13 +56,29 @@ The project uses a **dual-endpoint architecture** for Inngest functions to handl
 **Runtime:** Node.js
 **Location:** `netlify/functions/inngest-embeddings.mts`
 **Functions:**
-1. `generate-embeddings` - Generate embeddings for issues/PRs
+1. `generate-embeddings` - Legacy embeddings using @xenova/transformers
 2. `batch-generate-embeddings` - Batch embedding generation (cron: every 6 hours)
+3. `compute-embeddings` - Modern embeddings using OpenAI API (cron: every 15 minutes)
+4. `handle-issue-embedding-webhook` - Bridge webhook events for issue embeddings
+5. `handle-pr-embedding-webhook` - Bridge webhook events for PR embeddings
+6. `handle-batch-embedding-webhook` - Bridge webhook events for batch processing
+7. `handle-similarity-recalculation` - Bridge webhook events for similarity recalculation
+
+**Event Mappings:**
+- `embeddings.generate` → `generate-embeddings` (legacy)
+- `cron (6h)` → `batch-generate-embeddings` (legacy)
+- `embeddings/compute.requested` → `compute-embeddings` (modern)
+- `cron (15m)` → `compute-embeddings` (modern)
+- `embedding/issue.generate` → `handle-issue-embedding-webhook` → triggers `compute-embeddings`
+- `embedding/pr.generate` → `handle-pr-embedding-webhook` → triggers `compute-embeddings`
+- `embedding/batch.process` → `handle-batch-embedding-webhook` → triggers `compute-embeddings`
+- `similarity/repository.recalculate` → `handle-similarity-recalculation` → triggers `compute-embeddings`
 
 **Why Netlify:**
-- Requires `@xenova/transformers` (Node.js-only ML library)
+- Requires `@xenova/transformers` (Node.js-only ML library for legacy functions)
 - Uses `crypto` module for content hashing
 - Heavy model loading requires Node.js runtime
+- Webhook bridge functions route events to compute-embeddings
 
 ## Configuration
 
@@ -191,9 +207,10 @@ If additional functions need Node.js dependencies:
 ### Future: External Embeddings Service
 
 Long-term recommendation:
-- Replace `@xenova/transformers` with OpenAI/Cohere API
-- Move embeddings to Supabase Edge Functions
-- Consolidate to single endpoint
+- ✅ **Done:** Modern `compute-embeddings` function now uses OpenAI API
+- **Next:** Deprecate legacy `@xenova/transformers` functions (generate-embeddings, batch-generate-embeddings)
+- **Future:** Move all embeddings to Supabase Edge Functions
+- **Goal:** Consolidate to single endpoint once legacy migration complete
 
 ## Troubleshooting
 
