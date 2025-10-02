@@ -61,8 +61,7 @@
   node_bundler = "esbuild"
 
 # Inngest functions need longer timeouts for processing
-[functions.inngest-prod]
-  node_bundler = "esbuild"
+# Note: inngest-prod migrated to Supabase Edge Functions (see docs/infrastructure/inngest-supabase-migration.md)
 
 [functions.inngest]
   node_bundler = "esbuild"
