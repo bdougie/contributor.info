@@ -94,44 +94,45 @@ describe('Inngest Handler Integration Tests', () => {
     });
   });
 
-  describe('Production Handler (inngest-prod.mts)', () => {
-    let handler: any;
+  // Commented out - inngest-prod.mts migrated to Supabase Edge Functions
+  // describe('Production Handler (inngest-prod.mts)', () => {
+  //   let handler: any;
 
-    beforeAll(async () => {
-      // Set production environment
-      process.env.NODE_ENV = 'production';
-      process.env.CONTEXT = 'production';
+  //   beforeAll(async () => {
+  //     // Set production environment
+  //     process.env.NODE_ENV = 'production';
+  //     process.env.CONTEXT = 'production';
 
-      try {
-        const module = await import('../../netlify/functions/inngest-prod.mts');
-        handler = module.default || module.handler;
-      } catch (error) {
-        console.error('Failed to import inngest-prod.mts:', error);
-      }
-    });
+  //     try {
+  //       const module = await import('../../netlify/functions/inngest-prod.mts');
+  //       handler = module.default || module.handler;
+  //     } catch (error) {
+  //       console.error('Failed to import inngest-prod.mts:', error);
+  //     }
+  //   });
 
-    afterAll(() => {
-      // Reset environment
-      delete process.env.NODE_ENV;
-      delete process.env.CONTEXT;
-    });
+  //   afterAll(() => {
+  //     // Reset environment
+  //     delete process.env.NODE_ENV;
+  //     delete process.env.CONTEXT;
+  //   });
 
-    it('should export a handler function', () => {
-      expect(handler).toBeDefined();
-      expect(typeof handler).toBe('function');
-    });
+  //   it('should export a handler function', () => {
+  //     expect(handler).toBeDefined();
+  //     expect(typeof handler).toBe('function');
+  //   });
 
-    it('should handle GET requests with production status', async () => {
-      const event = createMockEvent({ httpMethod: 'GET' });
-      const context = createMockContext();
+  //   it('should handle GET requests with production status', async () => {
+  //     const event = createMockEvent({ httpMethod: 'GET' });
+  //     const context = createMockContext();
 
-      const response = await handler(event, context);
+  //     const response = await handler(event, context);
 
-      expect(response.statusCode).toBe(200);
-      const body = JSON.parse(response.body);
-      expect(body.environment?.isProduction).toBe(true);
-    });
-  });
+  //     expect(response.statusCode).toBe(200);
+  //     const body = JSON.parse(response.body);
+  //     expect(body.environment?.isProduction).toBe(true);
+  //   });
+  // });
 
   describe('Import Path Validation', () => {
     it('should successfully import all Inngest functions', async () => {
@@ -139,7 +140,7 @@ describe('Inngest Handler Integration Tests', () => {
       const imports = [
         import('../../src/lib/inngest/functions/index-without-embeddings'),
         import('../../src/lib/inngest/client'),
-        import('../../netlify/functions/inngest-prod-functions'),
+        // import('../../netlify/functions/inngest-prod-functions'), // Migrated to Supabase
       ];
 
       const results = await Promise.allSettled(imports);
