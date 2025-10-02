@@ -6,6 +6,23 @@ import { SyncLogger } from '../sync-logger';
 import { NonRetriableError } from 'inngest';
 import { detectBot } from '../../utils/bot-detection';
 
+/**
+ * Normalizes GitHub review state to database format
+ * GitHub API returns lowercase (e.g., 'approved', 'changes_requested')
+ * Database expects uppercase (e.g., 'APPROVED', 'CHANGES_REQUESTED')
+ */
+function normalizeReviewState(githubState: string): string {
+  const normalized = githubState.toUpperCase();
+  const validStates = ['PENDING', 'APPROVED', 'CHANGES_REQUESTED', 'COMMENTED', 'DISMISSED'];
+
+  if (!validStates.includes(normalized)) {
+    console.warn('Unknown review state: %s, defaulting to COMMENTED', githubState);
+    return 'COMMENTED';
+  }
+
+  return normalized;
+}
+
 // Extended GitHub Review type with user details
 interface GitHubReviewWithUser {
   id: number;
@@ -138,7 +155,7 @@ export const capturePrReviews = inngest.createFunction(
             github_id: review.id.toString(),
             pull_request_id: prId,
             reviewer_id: reviewerId,
-            state: review.state,
+            state: normalizeReviewState(review.state),
             body: review.body || '',
             submitted_at: review.submitted_at,
             commit_id: review.commit_id,
