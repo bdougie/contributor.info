@@ -1,5 +1,6 @@
 import { supabase } from '../supabase';
 import type { GitHubPullRequest } from '../github';
+import { env } from '../env';
 
 interface CommitRecord {
   sha: string;
@@ -39,8 +40,8 @@ export class SmartCommitAnalyzer {
   private token: string | null = null;
 
   constructor() {
-    // Try to get GitHub token from environment
-    this.token = process.env.VITE_GITHUB_TOKEN || process.env.GITHUB_TOKEN || null;
+    // Try to get GitHub token from environment using env module
+    this.token = env.GITHUB_TOKEN || null;
   }
 
   /**
