@@ -1,5 +1,5 @@
 import { supabase } from '../supabase';
-import { serverEnv } from '../env';
+import { serverEnv } from '../env-server';
 
 const GITHUB_API_BASE = 'https://api.github.com';
 

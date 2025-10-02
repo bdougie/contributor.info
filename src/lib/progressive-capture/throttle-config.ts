@@ -5,14 +5,12 @@
 
 // Helper to safely access environment variables
 const getEnvNumber = (key: string, defaultValue: number): number => {
+  // Only use process.env to avoid import.meta issues in Netlify functions
   if (typeof process !== 'undefined' && process.env[key]) {
     return Number(process.env[key]);
   }
-  // @ts-ignore - import.meta.env may not exist in all environments
-  if (typeof import.meta !== 'undefined' && import.meta.env?.[key]) {
-    // @ts-ignore
-    return Number(import.meta.env[key]);
-  }
+  // Don't check import.meta in server contexts - it causes bundling issues
+  // Browser contexts don't use this file anyway (it's for Inngest functions)
   return defaultValue;
 };
 
