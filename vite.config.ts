@@ -1,43 +1,11 @@
 import path from 'path';
 import react from '@vitejs/plugin-react-swc';
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig } from 'vite';
 import { imagetools } from 'vite-imagetools';
 
-export default defineConfig(({ mode }) => {
-  // Load env from .env files (for local development)
-  const fileEnv = loadEnv(mode, process.cwd(), '');
-
-  // Helper to get env var from process.env (Netlify) or .env files (local)
-  const getEnv = (key: string) => process.env[key] || fileEnv[key];
-
-  return {
-    base: '/',
-    // Define process.env.VITE_* for browser compatibility
-    // Check process.env first (for Netlify), then fall back to .env files (for local)
-    define: {
-      'process.env.VITE_SUPABASE_URL': JSON.stringify(getEnv('VITE_SUPABASE_URL')),
-      'process.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(getEnv('VITE_SUPABASE_ANON_KEY')),
-      'process.env.VITE_GITHUB_TOKEN': JSON.stringify(getEnv('VITE_GITHUB_TOKEN')),
-      'process.env.VITE_INNGEST_APP_ID': JSON.stringify(getEnv('VITE_INNGEST_APP_ID')),
-      'process.env.VITE_INNGEST_EVENT_KEY': JSON.stringify(getEnv('VITE_INNGEST_EVENT_KEY')),
-      'process.env.VITE_OPENAI_API_KEY': JSON.stringify(getEnv('VITE_OPENAI_API_KEY')),
-      'process.env.VITE_POSTHOG_KEY': JSON.stringify(getEnv('VITE_POSTHOG_KEY')),
-      'process.env.VITE_POSTHOG_HOST': JSON.stringify(getEnv('VITE_POSTHOG_HOST')),
-      'process.env.VITE_SENTRY_DSN': JSON.stringify(getEnv('VITE_SENTRY_DSN')),
-      'process.env.VITE_DUB_CO_KEY': JSON.stringify(getEnv('VITE_DUB_CO_KEY')),
-      'process.env.VITE_DUB_DOMAIN_DEV': JSON.stringify(getEnv('VITE_DUB_DOMAIN_DEV')),
-      'process.env.VITE_DUB_DOMAIN_PROD': JSON.stringify(getEnv('VITE_DUB_DOMAIN_PROD')),
-      'process.env.VITE_RESEND_API_KEY': JSON.stringify(getEnv('VITE_RESEND_API_KEY')),
-      'process.env.VITE_POLAR_ACCESS_TOKEN': JSON.stringify(getEnv('VITE_POLAR_ACCESS_TOKEN')),
-      'process.env.VITE_POLAR_PRODUCT_ID_PRO': JSON.stringify(getEnv('VITE_POLAR_PRODUCT_ID_PRO')),
-      'process.env.VITE_POLAR_PRODUCT_ID_TEAM': JSON.stringify(getEnv('VITE_POLAR_PRODUCT_ID_TEAM')),
-      'process.env.VITE_CONTEXT': JSON.stringify(getEnv('VITE_CONTEXT')),
-      'process.env.VITE_DEPLOY_PRIME_URL': JSON.stringify(getEnv('VITE_DEPLOY_PRIME_URL')),
-      'process.env.VITE_DEPLOY_URL': JSON.stringify(getEnv('VITE_DEPLOY_URL')),
-      'process.env.VITE_URL': JSON.stringify(getEnv('VITE_URL')),
-      'process.env.NODE_ENV': JSON.stringify(mode),
-    },
-    plugins: [
+export default defineConfig(() => ({
+  base: '/',
+  plugins: [
     react(),
     imagetools({
       defaultDirectives: (url) => {
@@ -297,5 +265,4 @@ export default defineConfig(({ mode }) => {
   css: {
     devSourcemap: true,
   },
-};
-});
+}));

@@ -18,7 +18,7 @@ const hasProcess = typeof process !== 'undefined' && process.env;
 
 /**
  * Get environment variable value from all available sources
- * Uses direct import.meta.env access for browser (Vite static replacement)
+ * Uses import.meta.env for browser (Vite handles this natively)
  * Uses process.env for server/Node contexts
  */
 function getEnvVar(viteKey: string, serverKey?: string): string {
@@ -38,19 +38,29 @@ function getEnvVar(viteKey: string, serverKey?: string): string {
     return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
   }
 
-  // Try process.env first (works in both browser via Vite and server)
-  if (hasProcess) {
-    const processValue = process.env[viteKey];
-    if (processValue) return processValue;
+  if (isBrowser) {
+    // Browser: Use import.meta.env (Vite handles this natively)
+    const metaValue = import.meta?.env?.[viteKey];
+    if (metaValue !== undefined) {
+      return typeof metaValue === 'string' ? metaValue : String(metaValue);
+    }
+    return '';
+  } else {
+    // Server: Use process.env
+    if (!hasProcess) return '';
 
-    // In server context, also try non-prefixed key
-    if (isServer && serverKey) {
+    // Try VITE_* prefixed key first
+    const primaryValue = process.env[viteKey];
+    if (primaryValue) return primaryValue;
+
+    // Also try non-prefixed key in server context
+    if (serverKey) {
       const secondaryValue = process.env[serverKey];
       if (secondaryValue) return secondaryValue;
     }
-  }
 
-  return '';
+    return '';
+  }
 }
 
 /**
@@ -106,16 +116,24 @@ export const env = {
   BUILD_ID: getEnvVar('VITE_BUILD_ID', 'BUILD_ID'),
 
   // Development mode detection
-  // Vite will inject these via define config
   get DEV() {
+    if (isBrowser) {
+      return import.meta?.env?.DEV === true;
+    }
     return hasProcess && process.env.NODE_ENV === 'development';
   },
 
   get PROD() {
+    if (isBrowser) {
+      return import.meta?.env?.PROD === true;
+    }
     return hasProcess && process.env.NODE_ENV === 'production';
   },
 
   get MODE() {
+    if (isBrowser) {
+      return import.meta?.env?.MODE || 'development';
+    }
     return hasProcess ? process.env.NODE_ENV || 'development' : 'development';
   },
 
