@@ -120,7 +120,7 @@ export const handler: Handler = async (event) => {
       stack: errorStack,
       repository: body.repository, // Safe to access now
       timestamp: new Date().toISOString(),
-      ghDatapipeUrl: process.env.GH_DATPIPE_API_URL || 'https://gh-datapipe.fly.dev',
+      ghDatapipeUrl: process.env.GH_DATPIPE_API_URL || 'https://gh-datapipe-sync.fly.dev',
       hasApiKey: Boolean(process.env.GH_DATPIPE_KEY),
     });
 

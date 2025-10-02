@@ -47,7 +47,7 @@ class ManualBackfillClient {
 
   constructor() {
     // Use server-side environment variables for API configuration
-    this.apiUrl = process.env.GH_DATPIPE_API_URL || 'https://gh-datapipe.fly.dev';
+    this.apiUrl = process.env.GH_DATPIPE_API_URL || 'https://gh-datapipe-sync.fly.dev';
     this.apiKey = process.env.GH_DATPIPE_KEY || '';
 
     if (!this.apiKey) {
