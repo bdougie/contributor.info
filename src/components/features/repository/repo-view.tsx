@@ -254,7 +254,7 @@ export default function RepoView() {
         description={repoDescription}
         url={repoUrl}
         type="article"
-        image={`social-cards/repo-${owner}-${repo}.png`}
+        image="social-cards/repo"
       />
       <Breadcrumbs />
       <section className="mb-8">

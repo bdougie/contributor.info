@@ -18,6 +18,7 @@ import { useOrgRepos } from '@/hooks/use-org-repos';
 import { humanizeNumber } from '@/lib/utils';
 import { OrganizationAvatar } from '@/components/ui/organization-avatar';
 import { Breadcrumbs } from '@/components/common/layout/breadcrumbs';
+import { SocialMetaTags } from '@/components/common/layout';
 import { avatarCache } from '@/lib/avatar-cache';
 
 interface RepositoryWithTracking {
@@ -253,8 +254,20 @@ export default function OrgView() {
     );
   }
 
+  // Generate dynamic meta tags for the organization profile
+  const orgTitle = `${orgData?.name || org} - Open Source Organization`;
+  const orgDescription = `Explore ${orgData?.name || org}'s open source repositories and contribution activity. Discover their collaborative projects and development impact.`;
+  const orgUrl = `https://contributor.info/${org}`;
+
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
+      <SocialMetaTags
+        title={orgTitle}
+        description={orgDescription}
+        url={orgUrl}
+        type="article"
+        image="social-cards/user"
+      />
       {/* Breadcrumbs */}
       <Breadcrumbs />
 
@@ -263,19 +276,25 @@ export default function OrgView() {
         <div className="flex items-center gap-3">
           <div className="org-avatar-container">
             {/* Use cached avatar URL immediately if available, fall back to orgData */}
-            {cachedAvatarUrl || orgData?.avatar_url ? (
-              <OrganizationAvatar
-                src={cachedAvatarUrl || orgData?.avatar_url || ''}
-                alt={orgData?.name || org || ''}
-                size={48}
-                priority={true}
-                lazy={false} // Always load immediately for org avatar
-              />
-            ) : (
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-md flex items-center justify-center text-white font-bold text-lg">
-                {org?.charAt(0)?.toUpperCase() || '?'}
-              </div>
-            )}
+            {(() => {
+              const avatarSrc = cachedAvatarUrl || orgData?.avatar_url;
+              const altText = orgData?.name || org || '';
+              const fallbackInitial = org?.charAt(0)?.toUpperCase() || '?';
+
+              return avatarSrc ? (
+                <OrganizationAvatar
+                  src={avatarSrc}
+                  alt={altText}
+                  size={48}
+                  priority={true}
+                  lazy={false} // Always load immediately for org avatar
+                />
+              ) : (
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-md flex items-center justify-center text-white font-bold text-lg">
+                  {fallbackInitial}
+                </div>
+              );
+            })()}
           </div>
           <div>
             <h1 className="text-3xl font-bold">{orgData?.name || org}</h1>
