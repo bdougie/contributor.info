@@ -330,7 +330,61 @@ export function FailedJobsDashboard() {
                         </div>
                       )}
 
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-wrap">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            const title = encodeURIComponent(
+                              `Failed Job: ${job.job_type} - ${job.repository_name || 'Unknown Repo'}`
+                            );
+                            const body = encodeURIComponent(
+                              `## Failed Job Details
+
+**Job ID:** \`${job.id}\`
+**Job Type:** \`${job.job_type}\`
+**Processor:** \`${job.processor_type || 'unknown'}\`
+**Repository:** ${job.repository_name || 'N/A'}
+**Time Range:** ${job.time_range_days ? `${job.time_range_days} days` : 'N/A'}
+**Created:** ${new Date(job.created_at).toLocaleString()}
+${job.completed_at ? `**Completed:** ${new Date(job.completed_at).toLocaleString()}` : ''}
+${job.workflow_run_id ? `**Workflow Run ID:** ${job.workflow_run_id}` : ''}
+
+## Error Message
+
+\`\`\`
+${job.error || 'No error message available'}
+\`\`\`
+
+## Metadata
+
+\`\`\`json
+${JSON.stringify(job.metadata, null, 2)}
+\`\`\`
+
+## Steps to Reproduce
+
+1.
+2.
+3.
+
+## Expected Behavior
+
+
+
+## Actual Behavior
+
+
+`
+                            );
+                            window.open(
+                              `https://github.com/bdougie/contributor.info/issues/new?title=${title}&body=${body}&labels=bug,failed-job`,
+                              '_blank'
+                            );
+                          }}
+                        >
+                          Report Issue on GitHub
+                        </Button>
                         <Button size="sm" variant="outline" disabled>
                           Retry Job (Coming Soon)
                         </Button>
