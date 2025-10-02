@@ -105,17 +105,21 @@
   status = 200
   force = true
 
+# Inngest endpoint - migrated to Supabase Edge Function to avoid CommonJS bundling issues
+# and provide 150s timeout for long-running operations
 [[redirects]]
   from = "/api/inngest"
-  to = "/.netlify/functions/inngest-prod"
+  to = "https://egcxzonpmmcirmgqdrla.supabase.co/functions/v1/inngest-prod"
   status = 200
   force = true
+  headers = {X-Forwarded-Host = "contributor.info"}
 
 [[redirects]]
   from = "/api/inngest-sync"
-  to = "/.netlify/functions/inngest-prod"
+  to = "https://egcxzonpmmcirmgqdrla.supabase.co/functions/v1/inngest-prod"
   status = 200
   force = true
+  headers = {X-Forwarded-Host = "contributor.info"}
 
 [[redirects]]
   from = "/api/hello"
