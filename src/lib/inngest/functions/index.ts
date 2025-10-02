@@ -25,3 +25,6 @@ export {
   cleanupWorkspaceMetricsData,
   workspaceMetricsFunctions,
 } from './aggregate-workspace-metrics';
+
+// Workspace priority sync
+export { syncWorkspacePriorities } from './sync-workspace-priorities';
