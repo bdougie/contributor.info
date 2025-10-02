@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
-import { env, serverEnv } from './env';
+// Use server-specific env to avoid import.meta issues in Netlify functions
+import { env, serverEnv } from './env-server';
 
 /**
  * Creates a Supabase client with service role key for admin operations
