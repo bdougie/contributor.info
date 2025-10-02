@@ -61,6 +61,23 @@ export class HybridQueueManager {
       throw new Error('repositoryName is required for queueing jobs');
     }
 
+    // Query priority from tracked_repositories table
+    const { data: trackedRepo } = await supabase
+      .from('tracked_repositories')
+      .select('priority, is_workspace_repo, workspace_count')
+      .eq('repository_id', data.repositoryId)
+      .maybeSingle();
+
+    // Calculate priority score for Inngest
+    const PRIORITY_MAP: Record<string, number> = {
+      high: 100, // Workspace repos
+      medium: 50, // Tracked-only repos
+      low: 25, // Background tasks
+    };
+
+    const basePriority = trackedRepo?.priority || 'medium';
+    const priorityScore = PRIORITY_MAP[basePriority] || 50;
+
     // Check if this is a newly tracked repository (< 24 hours)
     const isNewlyTracked = await this.isNewlyTrackedRepository(data.repositoryId);
     if (isNewlyTracked) {
@@ -72,13 +89,25 @@ export class HybridQueueManager {
       data.metadata = {
         ...data.metadata,
         priority: 'critical',
+        priorityScore: 150, // Boost score for newly tracked repos
         isNewlyTracked: true,
-        originalPriority: data.metadata?.priority || 'medium',
+        isWorkspaceRepo: trackedRepo?.is_workspace_repo || false,
+        workspaceCount: trackedRepo?.workspace_count || 0,
+        originalPriority: basePriority,
       };
       // Force manual trigger source to bypass throttling
       if (!data.triggerSource || data.triggerSource === 'automatic') {
         data.triggerSource = 'manual';
       }
+    } else {
+      // Apply workspace-based priority
+      data.metadata = {
+        ...data.metadata,
+        priority: basePriority,
+        priorityScore,
+        isWorkspaceRepo: trackedRepo?.is_workspace_repo || false,
+        workspaceCount: trackedRepo?.workspace_count || 0,
+      };
     }
 
     // Check if repository is eligible for hybrid rollout
