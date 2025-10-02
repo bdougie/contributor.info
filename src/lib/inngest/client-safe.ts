@@ -9,7 +9,7 @@
 import { inngest } from './client';
 
 // Import env helper for consistent environment variable access
-import { env } from '../env-server';
+import { env } from '../env';
 
 // Get Supabase URL from environment
 const SUPABASE_URL = env.SUPABASE_URL;

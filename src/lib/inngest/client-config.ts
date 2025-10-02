@@ -1,5 +1,5 @@
 import { Inngest } from 'inngest';
-import { env, serverEnv } from '../env-server';
+import { env, serverEnv } from '../env';
 
 /**
  * Configuration for Inngest client based on environment
