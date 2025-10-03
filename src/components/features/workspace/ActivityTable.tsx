@@ -29,6 +29,7 @@ import { cn } from '@/lib/utils';
 import type { ActivityItem } from './AnalyticsDashboard';
 import { ContributorHoverCard } from '@/components/features/contributor/contributor-hover-card';
 import type { ContributorStats } from '@/lib/types';
+import { getRecentActivitiesForContributor } from '@/lib/workspace-hover-card-utils';
 
 export interface ActivityTableProps {
   activities: ActivityItem[];
@@ -424,7 +425,11 @@ export function ActivityTable({
                                   `https://avatars.githubusercontent.com/${activity.author.username}`,
                                 pullRequests: 0,
                                 percentage: 0,
-                                recentPRs: [],
+                                recentActivities: getRecentActivitiesForContributor(
+                                  activity.author.username,
+                                  activities,
+                                  5
+                                ),
                               };
 
                               return (

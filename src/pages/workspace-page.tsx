@@ -819,6 +819,15 @@ function WorkspaceContributors({
   isLoggedIn?: boolean;
   currentUser?: User | null;
 }) {
+  // Fetch pull requests for hover cards
+  const { pullRequests } = useWorkspacePRs({
+    repositories,
+    selectedRepositories,
+    workspaceId,
+    refreshInterval: 60,
+    maxStaleMinutes: 60,
+  });
+
   // Navigate removed - no longer needed as profile modal handles internally
   const [showAddContributors, setShowAddContributors] = useState(false);
   const [selectedContributorsToAdd, setSelectedContributorsToAdd] = useState<string[]>([]);
@@ -1759,6 +1768,7 @@ function WorkspaceContributors({
                   userRole={userRole}
                   workspaceTier={workspaceTier}
                   isLoggedIn={isLoggedIn}
+                  pullRequests={pullRequests}
                 />
               )}
             </CardContent>

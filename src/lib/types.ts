@@ -64,12 +64,38 @@ export interface RepoStats {
   error: string | null;
 }
 
+export interface RecentIssue {
+  id: string;
+  number: number;
+  title: string;
+  state: 'open' | 'closed';
+  created_at: string;
+  updated_at: string;
+  closed_at?: string;
+  repository_owner: string;
+  repository_name: string;
+  comments_count: number;
+  html_url?: string;
+}
+
+export interface RecentActivity {
+  id: string;
+  type: 'pr' | 'issue' | 'commit' | 'review' | 'comment' | 'star' | 'fork';
+  title: string;
+  created_at: string;
+  status?: string;
+  repository: string;
+  url?: string;
+}
+
 export interface ContributorStats {
   login: string;
   avatar_url: string;
   pullRequests: number;
   percentage: number;
   recentPRs?: PullRequest[];
+  recentIssues?: RecentIssue[];
+  recentActivities?: RecentActivity[];
   organizations?: {
     login: string;
     avatar_url: string;

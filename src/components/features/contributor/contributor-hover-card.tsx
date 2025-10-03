@@ -166,6 +166,78 @@ export function ContributorHoverCard({
             </>
           )}
 
+          {contributor.recentIssues && contributor.recentIssues.length > 0 && (
+            <>
+              <Separator className="my-4" />
+              <div className="space-y-2">
+                <div className="text-sm font-medium">Recent Issues</div>
+                <div className="space-y-2">
+                  {contributor.recentIssues.slice(0, 5).map((issue) => (
+                    <a
+                      key={issue.id}
+                      href={
+                        issue.html_url ||
+                        `https://github.com/${issue.repository_owner}/${issue.repository_name}/issues/${issue.number}`
+                      }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block text-sm hover:bg-muted/50 rounded p-1 transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="text-xs shrink-0">
+                          #{issue.number}
+                        </Badge>
+                        <span className="truncate">{issue.title}</span>
+                        <Badge
+                          variant="outline"
+                          className={`ml-auto text-xs shrink-0 ${
+                            issue.state === 'closed'
+                              ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400'
+                              : 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400'
+                          }`}
+                        >
+                          {issue.state}
+                        </Badge>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          {contributor.recentActivities && contributor.recentActivities.length > 0 && (
+            <>
+              <Separator className="my-4" />
+              <div className="space-y-2">
+                <div className="text-sm font-medium">Recent Activity</div>
+                <div className="space-y-2">
+                  {contributor.recentActivities.slice(0, 5).map((activity) => (
+                    <a
+                      key={activity.id}
+                      href={activity.url || '#'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block text-sm hover:bg-muted/50 rounded p-1 transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="text-xs shrink-0 capitalize">
+                          {activity.type}
+                        </Badge>
+                        <span className="truncate">{activity.title}</span>
+                        {activity.status && (
+                          <Badge variant="outline" className="ml-auto text-xs shrink-0">
+                            {activity.status}
+                          </Badge>
+                        )}
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
           {contributor.organizations && contributor.organizations.length > 0 && (
             <>
               <Separator className="my-3" />

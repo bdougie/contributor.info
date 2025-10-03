@@ -36,6 +36,7 @@ import { PRFilters } from './filters/TableFilters';
 import { isBot, hasBotAuthors } from '@/lib/utils/bot-detection';
 import { ContributorHoverCard } from '@/components/features/contributor/contributor-hover-card';
 import type { ContributorStats } from '@/lib/types';
+import { getRecentPRsForContributor } from '@/lib/workspace-hover-card-utils';
 
 export interface PullRequest {
   id: string;
@@ -283,7 +284,7 @@ export function WorkspacePullRequestsTable({
               avatar_url: author.avatar_url,
               pullRequests: 0, // Not available in this context
               percentage: 0,
-              recentPRs: [], // Could be populated with author's recent PRs
+              recentPRs: getRecentPRsForContributor(author.username, pullRequests, 5),
             };
 
             return (
@@ -464,7 +465,7 @@ export function WorkspacePullRequestsTable({
           },
         }),
       ] as ColumnDef<PullRequest>[],
-    [onPullRequestClick, onRepositoryClick]
+    [onPullRequestClick, onRepositoryClick, pullRequests]
   );
 
   const table = useReactTable({

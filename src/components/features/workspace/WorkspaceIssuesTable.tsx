@@ -46,6 +46,7 @@ import { isBot, hasBotAuthors } from '@/lib/utils/bot-detection';
 import { supabase } from '@/lib/supabase';
 import { ContributorHoverCard } from '@/components/features/contributor/contributor-hover-card';
 import type { ContributorStats } from '@/lib/types';
+import { getRecentIssuesForContributor } from '@/lib/workspace-hover-card-utils';
 
 export interface Issue {
   id: string;
@@ -357,7 +358,7 @@ export function WorkspaceIssuesTable({
               avatar_url: author.avatar_url,
               pullRequests: 0, // Not available in this context
               percentage: 0,
-              recentPRs: [], // Could be populated with recent issues transformed to PR format
+              recentIssues: getRecentIssuesForContributor(author.username, issues, 5),
             };
 
             return (
@@ -587,7 +588,7 @@ export function WorkspaceIssuesTable({
           size: 50,
         }),
       ] as ColumnDef<Issue>[],
-    [onIssueClick, onRepositoryClick, similarIssuesMap]
+    [onIssueClick, onRepositoryClick, similarIssuesMap, issues]
   );
 
   const table = useReactTable({
