@@ -154,7 +154,8 @@ export const capturePrReviews = inngest.createFunction(
           processedReviews.push({
             github_id: review.id.toString(),
             pull_request_id: prId,
-            reviewer_id: reviewerId,
+            repository_id: repositoryId,
+            author_id: reviewerId,
             state: normalizeReviewState(review.state),
             body: review.body || '',
             submitted_at: review.submitted_at,
