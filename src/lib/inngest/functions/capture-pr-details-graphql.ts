@@ -5,6 +5,28 @@ import type { NonRetriableError } from 'inngest';
 import { getMergeableStatus } from '../../utils/performance-helpers';
 import { getPRState } from '../../utils/data-type-mapping';
 
+/**
+ * Normalizes GitHub review state to database format
+ * GitHub API returns lowercase (e.g., 'approved', 'changes_requested')
+ * Database expects uppercase (e.g., 'APPROVED', 'CHANGES_REQUESTED')
+ */
+function normalizeReviewState(githubState: string | undefined): string {
+  if (!githubState) {
+    console.warn('Received undefined review state, defaulting to COMMENTED');
+    return 'COMMENTED';
+  }
+
+  const normalized = githubState.toUpperCase();
+  const validStates = ['PENDING', 'APPROVED', 'CHANGES_REQUESTED', 'COMMENTED', 'DISMISSED'];
+
+  if (!validStates.includes(normalized)) {
+    console.warn('Unknown review state: %s, defaulting to COMMENTED', githubState);
+    return 'COMMENTED';
+  }
+
+  return normalized;
+}
+
 // Type definitions for GitHub user data
 interface GitHubUser {
   databaseId?: number;
@@ -324,7 +346,7 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
               repository_id: repositoryId,
               pull_request_id: prInternalId,
               github_id: review.databaseId,
-              state: review.state?.toLowerCase(),
+              state: normalizeReviewState(review.state),
               body: review.body,
               author_id: reviewAuthorId,
               submitted_at: review.submittedAt,
