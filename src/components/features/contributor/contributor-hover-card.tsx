@@ -48,6 +48,12 @@ export function ContributorHoverCard({
   reviewsCount = 0,
   commentsCount = 0,
 }: ContributorHoverCardProps) {
+  // Validate required contributor data
+  if (!contributor || !contributor.login) {
+    console.warn('ContributorHoverCard: Missing required contributor data', contributor);
+    return <>{children}</>;
+  }
+
   return (
     <HoverCardPrimitive.Root openDelay={0} closeDelay={100}>
       <HoverCardPrimitive.Trigger asChild>
@@ -57,6 +63,7 @@ export function ContributorHoverCard({
       </HoverCardPrimitive.Trigger>
       <HoverCardPrimitive.Portal>
         <HoverCardPrimitive.Content
+          aria-label={`Contributor information for ${contributor.login}`}
           className={cn(
             'relative z-[100] w-80 rounded-md border bg-popover p-4 text-popover-foreground shadow-md outline-none',
             'data-[state=open]:animate-in data-[state=closed]:animate-out',
@@ -145,31 +152,38 @@ export function ContributorHoverCard({
               <div className="space-y-2">
                 <div className="text-sm font-medium">Recent PRs</div>
                 <div className="space-y-2">
-                  {contributor.recentPRs.slice(0, 5).map((pr) => (
-                    <a
-                      key={pr.id}
-                      href={`https://github.com/${pr.repository_owner}/${pr.repository_name}/pull/${pr.number}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block text-sm hover:bg-muted/50 rounded p-1 transition-colors"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary" className="text-xs shrink-0">
-                          #{pr.number}
-                        </Badge>
-                        <span className="truncate">{pr.title}</span>
-                        <Badge
-                          variant="outline"
-                          className={`ml-auto text-xs shrink-0 ${getStatusBadgeStyle(
-                            pr.state,
-                            pr.merged_at !== null
-                          )}`}
-                        >
-                          {getStatusLabel(pr.state, pr.merged_at !== null)}
-                        </Badge>
-                      </div>
-                    </a>
-                  ))}
+                  {contributor.recentPRs.slice(0, 5).map((pr) => {
+                    // Validate PR data before rendering
+                    if (!pr.repository_owner || !pr.repository_name || !pr.number) {
+                      console.warn('Invalid PR data for hover card', pr);
+                      return null;
+                    }
+                    return (
+                      <a
+                        key={pr.id}
+                        href={`https://github.com/${pr.repository_owner}/${pr.repository_name}/pull/${pr.number}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block text-sm hover:bg-muted/50 rounded p-1 transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="text-xs shrink-0">
+                            #{pr.number}
+                          </Badge>
+                          <span className="truncate">{pr.title}</span>
+                          <Badge
+                            variant="outline"
+                            className={`ml-auto text-xs shrink-0 ${getStatusBadgeStyle(
+                              pr.state,
+                              pr.merged_at !== null
+                            )}`}
+                          >
+                            {getStatusLabel(pr.state, pr.merged_at !== null)}
+                          </Badge>
+                        </div>
+                      </a>
+                    );
+                  })}
                 </div>
               </div>
             </>
@@ -181,33 +195,40 @@ export function ContributorHoverCard({
               <div className="space-y-2">
                 <div className="text-sm font-medium">Recent Issues</div>
                 <div className="space-y-2">
-                  {contributor.recentIssues.slice(0, 5).map((issue) => (
-                    <a
-                      key={issue.id}
-                      href={
-                        issue.html_url ||
-                        `https://github.com/${issue.repository_owner}/${issue.repository_name}/issues/${issue.number}`
-                      }
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block text-sm hover:bg-muted/50 rounded p-1 transition-colors"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary" className="text-xs shrink-0">
-                          #{issue.number}
-                        </Badge>
-                        <span className="truncate">{issue.title}</span>
-                        <Badge
-                          variant="outline"
-                          className={`ml-auto text-xs shrink-0 ${
-                            issue.state === 'closed' ? STATUS_COLORS.closed : STATUS_COLORS.open
-                          }`}
-                        >
-                          {issue.state}
-                        </Badge>
-                      </div>
-                    </a>
-                  ))}
+                  {contributor.recentIssues.slice(0, 5).map((issue) => {
+                    // Validate issue data before rendering
+                    if (!issue.repository_owner || !issue.repository_name || !issue.number) {
+                      console.warn('Invalid issue data for hover card', issue);
+                      return null;
+                    }
+                    return (
+                      <a
+                        key={issue.id}
+                        href={
+                          issue.html_url ||
+                          `https://github.com/${issue.repository_owner}/${issue.repository_name}/issues/${issue.number}`
+                        }
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block text-sm hover:bg-muted/50 rounded p-1 transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="text-xs shrink-0">
+                            #{issue.number}
+                          </Badge>
+                          <span className="truncate">{issue.title}</span>
+                          <Badge
+                            variant="outline"
+                            className={`ml-auto text-xs shrink-0 ${
+                              issue.state === 'closed' ? STATUS_COLORS.closed : STATUS_COLORS.open
+                            }`}
+                          >
+                            {issue.state}
+                          </Badge>
+                        </div>
+                      </a>
+                    );
+                  })}
                 </div>
               </div>
             </>

@@ -11,18 +11,58 @@ interface GroupedData {
   activitiesByAuthor: Map<string, RecentActivity[]>;
 }
 
+// Cache management constants
+const MAX_CACHE_ENTRIES = 10;
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 let cachedGroupedData: GroupedData | null = null;
 let cachedDataHash: string | null = null;
+let cacheTimestamp: number = Date.now();
+let cacheEntryCount: number = 0;
 
 /**
- * Helper to create a simple hash of array length for cache invalidation
+ * Helper to create a content-based hash for cache invalidation.
+ * Uses the most recent updated_at timestamps to detect data changes.
  */
 function createDataHash(
   prs: WorkspacePR[],
   issues: WorkspaceIssue[],
   activities: ActivityItem[]
 ): string {
-  return `${prs.length}-${issues.length}-${activities.length}`;
+  // Get most recent timestamps from each dataset
+  const latestPR =
+    prs.length > 0 ? Math.max(...prs.map((pr) => new Date(pr.updated_at).getTime())) : 0;
+  const latestIssue =
+    issues.length > 0
+      ? Math.max(...issues.map((issue) => new Date(issue.updated_at).getTime()))
+      : 0;
+  const latestActivity =
+    activities.length > 0
+      ? Math.max(...activities.map((activity) => new Date(activity.created_at).getTime()))
+      : 0;
+
+  // Combine counts and timestamps for a more robust cache key
+  return `${prs.length}-${issues.length}-${activities.length}-${latestPR}-${latestIssue}-${latestActivity}`;
+}
+
+/**
+ * Check if cache should be invalidated based on TTL and size limits
+ */
+function shouldInvalidateCache(): boolean {
+  const now = Date.now();
+  const isExpired = now - cacheTimestamp > CACHE_TTL;
+  const isOversized = cacheEntryCount > MAX_CACHE_ENTRIES;
+  return isExpired || isOversized;
+}
+
+/**
+ * Clear the cache to prevent memory leaks
+ */
+function clearCache(): void {
+  cachedGroupedData = null;
+  cachedDataHash = null;
+  cacheTimestamp = Date.now();
+  cacheEntryCount = 0;
 }
 
 /**
@@ -76,6 +116,11 @@ export function groupWorkspaceDataByContributor(
   allActivities: ActivityItem[]
 ): GroupedData {
   const dataHash = createDataHash(allPRs, allIssues, allActivities);
+
+  // Check cache expiration and size limits
+  if (shouldInvalidateCache()) {
+    clearCache();
+  }
 
   // Return cached data if hash matches
   if (cachedDataHash === dataHash && cachedGroupedData) {
@@ -188,6 +233,9 @@ export function groupWorkspaceDataByContributor(
     activitiesByAuthor,
   };
   cachedDataHash = dataHash;
+  cacheTimestamp = Date.now();
+  cacheEntryCount =
+    prsByAuthor.size + issuesByAuthor.size + prsByReviewer.size + activitiesByAuthor.size;
 
   return cachedGroupedData;
 }

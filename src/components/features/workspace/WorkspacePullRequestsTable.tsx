@@ -279,12 +279,18 @@ export function WorkspacePullRequestsTable({
             const repo = row.original.repository;
             const authorFilterUrl = `https://github.com/${repo.owner}/${repo.name}/pulls?q=is%3Apr+author%3A${encodeURIComponent(author.username)}`;
 
+            // Get PRs for this contributor to calculate accurate count
+            const recentPRs = getRecentPRsForContributor(author.username, pullRequests, 5);
+            const contributorPRCount = pullRequests.filter(
+              (pr) => pr.author.username.toLowerCase() === author.username.toLowerCase()
+            ).length;
+
             const contributorStats: ContributorStats = {
               login: author.username,
               avatar_url: author.avatar_url,
-              pullRequests: 0, // Not available in this context
+              pullRequests: contributorPRCount,
               percentage: 0,
-              recentPRs: getRecentPRsForContributor(author.username, pullRequests, 5),
+              recentPRs,
             };
 
             return (

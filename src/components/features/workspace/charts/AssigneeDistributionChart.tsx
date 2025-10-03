@@ -203,9 +203,13 @@ export function AssigneeDistributionChart({
                 ? 'h-8 w-8 rounded-full hover:ring-2 hover:ring-primary transition-all'
                 : 'h-8 w-8 rounded-full';
 
-              // Get issues assigned to this user
+              // Get issues assigned to this user, filtering to only open issues to match the chart
               const assignedIssues: RecentIssue[] = issues
-                .filter((issue) => issue.assignees?.some((a) => a.login === assignee.login))
+                .filter(
+                  (issue) =>
+                    issue.state === 'open' &&
+                    issue.assignees?.some((a) => a.login === assignee.login)
+                )
                 .slice(0, 5)
                 .map((issue) => ({
                   id: issue.id,
