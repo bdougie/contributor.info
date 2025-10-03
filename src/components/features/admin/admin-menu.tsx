@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   TrendingUp,
   Bug,
+  PieChart,
 } from '@/components/ui/icon';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -37,6 +38,8 @@ function AdminMenuItem({
   badge,
   variant = 'default',
 }: AdminMenuItemProps) {
+  const isExternalLink = href.startsWith('http');
+
   return (
     <Card className="hover:shadow-md transition-shadow cursor-pointer">
       <CardHeader className="pb-3">
@@ -54,9 +57,17 @@ function AdminMenuItem({
       </CardHeader>
       <CardContent className="pt-0">
         <p className="text-muted-foreground text-sm mb-4">{description}</p>
-        <Button asChild className="w-full">
-          <Link to={href}>Open {title}</Link>
-        </Button>
+        {isExternalLink ? (
+          <Button asChild className="w-full">
+            <a href={href} target="_blank" rel="noopener noreferrer">
+              Open {title}
+            </a>
+          </Button>
+        ) : (
+          <Button asChild className="w-full">
+            <Link to={href}>Open {title}</Link>
+          </Button>
+        )}
       </CardContent>
     </Card>
   );
@@ -125,6 +136,15 @@ export function AdminMenu() {
         'Comprehensive analytics including system metrics, sharing analytics, referral traffic, and LLM citations.',
       icon: BarChart3,
       href: '/admin/analytics',
+    },
+    {
+      title: 'PostHog Analytics',
+      description:
+        'Access real-time user analytics, session recordings, and product insights in PostHog.',
+      icon: PieChart,
+      href: 'https://us.posthog.com/project/173101',
+      badge: 'External',
+      variant: 'success' as const,
     },
     {
       title: 'Performance Monitoring',
