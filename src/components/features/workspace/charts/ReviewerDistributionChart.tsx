@@ -21,6 +21,9 @@ import {
 import { cn } from '@/lib/utils';
 import { isBot } from '@/lib/utils/bot-detection';
 import type { PullRequest } from '../WorkspacePullRequestsTable';
+import { ContributorHoverCard } from '@/components/features/contributor/contributor-hover-card';
+import type { ContributorStats } from '@/lib/types';
+import { getRecentPRsForReviewer } from '@/lib/workspace-hover-card-utils';
 
 interface ReviewerData {
   username: string;
@@ -326,30 +329,46 @@ export function ReviewerDistributionChart({
                       </div>
                     );
                   }
-                  if (githubUrl) {
-                    return (
-                      <a
-                        href={githubUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex-shrink-0"
-                        onClick={(e) => e.stopPropagation()}
-                        title={`View PRs reviewed by ${reviewer.username}`}
-                      >
-                        <img
-                          src={reviewer.avatar_url}
-                          alt={reviewer.username}
-                          className="h-8 w-8 rounded-full hover:ring-2 hover:ring-primary transition-all"
-                        />
-                      </a>
-                    );
-                  }
-                  return (
+
+                  const contributorStats: ContributorStats = {
+                    login: reviewer.username,
+                    avatar_url: reviewer.avatar_url,
+                    pullRequests: reviewer.totalPRs,
+                    percentage: 0,
+                    recentPRs: getRecentPRsForReviewer(reviewer.username, pullRequests, 5),
+                  };
+
+                  const avatarImg = (
                     <img
                       src={reviewer.avatar_url}
                       alt={reviewer.username}
-                      className="h-8 w-8 rounded-full"
+                      className={
+                        githubUrl
+                          ? 'h-8 w-8 rounded-full hover:ring-2 hover:ring-primary transition-all'
+                          : 'h-8 w-8 rounded-full'
+                      }
                     />
+                  );
+
+                  const avatarContent = githubUrl ? (
+                    <a
+                      href={githubUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-shrink-0"
+                      onClick={(e) => e.stopPropagation()}
+                      title={`View PRs reviewed by ${reviewer.username}`}
+                    >
+                      {avatarImg}
+                    </a>
+                  ) : (
+                    avatarImg
+                  );
+
+                  return (
+                    <ContributorHoverCard contributor={contributorStats}>
+                      {avatarContent}
+                    </ContributorHoverCard>
                   );
                 })()}
 

@@ -5,13 +5,28 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import type { ContributorStats } from '@/lib/types';
 import React from 'react';
-import { GitPullRequest, MessageSquare, GitPullRequestDraft } from '@/components/ui/icon';
+import {
+  GitPullRequest,
+  MessageSquare,
+  GitPullRequestDraft,
+  AlertCircle,
+  CheckCircle2,
+} from '@/components/ui/icon';
+
+// Status colors matching ActivityTable
+const STATUS_COLORS = {
+  open: 'bg-blue-500/10 text-blue-700 dark:text-blue-400',
+  merged: 'bg-purple-500/10 text-purple-700 dark:text-purple-400',
+  closed: 'bg-gray-500/10 text-gray-700 dark:text-gray-400',
+  approved: 'bg-green-500/10 text-green-700 dark:text-green-400',
+  changes_requested: 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400',
+} as const;
 
 // Function to get status badge styling
 const getStatusBadgeStyle = (state: string, merged: boolean) => {
-  if (merged) return 'bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400';
-  if (state === 'closed') return 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400';
-  return 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400';
+  if (merged) return STATUS_COLORS.merged;
+  if (state === 'closed') return STATUS_COLORS.closed;
+  return STATUS_COLORS.open;
 };
 
 // Function to get status label
@@ -28,6 +43,11 @@ interface ContributorHoverCardProps {
   showComments?: boolean;
   reviewsCount?: number;
   commentsCount?: number;
+  // When true, shows issue icons instead of PR icons
+  useIssueIcons?: boolean;
+  // Custom labels for metrics (used with issue context)
+  primaryLabel?: string;
+  secondaryLabel?: string;
 }
 
 export function ContributorHoverCard({
@@ -38,7 +58,16 @@ export function ContributorHoverCard({
   showComments = false,
   reviewsCount = 0,
   commentsCount = 0,
+  useIssueIcons = false,
+  primaryLabel,
+  secondaryLabel,
 }: ContributorHoverCardProps) {
+  // Validate required contributor data
+  if (!contributor || !contributor.login) {
+    console.warn('ContributorHoverCard: Missing required contributor data', contributor);
+    return <>{children}</>;
+  }
+
   return (
     <HoverCardPrimitive.Root openDelay={0} closeDelay={100}>
       <HoverCardPrimitive.Trigger asChild>
@@ -48,6 +77,7 @@ export function ContributorHoverCard({
       </HoverCardPrimitive.Trigger>
       <HoverCardPrimitive.Portal>
         <HoverCardPrimitive.Content
+          aria-label={`Contributor information for ${contributor.login}`}
           className={cn(
             'relative z-[100] w-80 rounded-md border bg-popover p-4 text-popover-foreground shadow-md outline-none',
             'data-[state=open]:animate-in data-[state=closed]:animate-out',
@@ -104,13 +134,27 @@ export function ContributorHoverCard({
                 <h4 className="text-sm font-semibold">{contributor.login}</h4>
               </a>
               <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-                <GitPullRequest className="h-4 w-4" />
-                <span>{contributor.pullRequests}</span>
+                {useIssueIcons ? (
+                  <AlertCircle className="h-4 w-4" />
+                ) : (
+                  <GitPullRequest className="h-4 w-4" />
+                )}
+                <span>
+                  {contributor.pullRequests}
+                  {primaryLabel && <span className="ml-1 text-xs">{primaryLabel}</span>}
+                </span>
                 {showReviews && (
                   <>
                     <span className="text-muted-foreground/50">•</span>
-                    <GitPullRequestDraft className="h-4 w-4" />
-                    <span>{reviewsCount}</span>
+                    {useIssueIcons ? (
+                      <CheckCircle2 className="h-4 w-4" />
+                    ) : (
+                      <GitPullRequestDraft className="h-4 w-4" />
+                    )}
+                    <span>
+                      {reviewsCount}
+                      {secondaryLabel && <span className="ml-1 text-xs">{secondaryLabel}</span>}
+                    </span>
                   </>
                 )}
                 {showComments && (
@@ -134,30 +178,120 @@ export function ContributorHoverCard({
             <>
               <Separator className="my-4" />
               <div className="space-y-2">
-                <div className="text-sm font-medium">Recent Pull Requests</div>
+                <div className="text-sm font-medium">Recent PRs</div>
                 <div className="space-y-2">
-                  {contributor.recentPRs.slice(0, 5).map((pr) => (
+                  {contributor.recentPRs.slice(0, 5).map((pr) => {
+                    // Validate PR data before rendering
+                    if (!pr.repository_owner || !pr.repository_name || !pr.number) {
+                      console.warn('Invalid PR data for hover card', pr);
+                      return null;
+                    }
+                    return (
+                      <a
+                        key={pr.id}
+                        href={`https://github.com/${pr.repository_owner}/${pr.repository_name}/pull/${pr.number}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block text-sm hover:bg-muted/50 rounded p-1 transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="text-xs shrink-0">
+                            #{pr.number}
+                          </Badge>
+                          <span className="truncate">{pr.title}</span>
+                          <Badge
+                            variant="outline"
+                            className={`ml-auto text-xs shrink-0 ${getStatusBadgeStyle(
+                              pr.state,
+                              pr.merged_at !== null
+                            )}`}
+                          >
+                            {getStatusLabel(pr.state, pr.merged_at !== null)}
+                          </Badge>
+                        </div>
+                      </a>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
+
+          {contributor.recentIssues && contributor.recentIssues.length > 0 && (
+            <>
+              <Separator className="my-4" />
+              <div className="space-y-2">
+                <div className="text-sm font-medium">Recent Issues</div>
+                <div className="space-y-2">
+                  {contributor.recentIssues.slice(0, 5).map((issue) => {
+                    // Validate issue data before rendering
+                    if (!issue.repository_owner || !issue.repository_name || !issue.number) {
+                      console.warn('Invalid issue data for hover card', issue);
+                      return null;
+                    }
+                    return (
+                      <a
+                        key={issue.id}
+                        href={
+                          issue.html_url ||
+                          `https://github.com/${issue.repository_owner}/${issue.repository_name}/issues/${issue.number}`
+                        }
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block text-sm hover:bg-muted/50 rounded p-1 transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="text-xs shrink-0">
+                            #{issue.number}
+                          </Badge>
+                          <span className="truncate">{issue.title}</span>
+                          <Badge
+                            variant="outline"
+                            className={`ml-auto text-xs shrink-0 ${
+                              issue.state === 'closed' ? STATUS_COLORS.closed : STATUS_COLORS.open
+                            }`}
+                          >
+                            {issue.state}
+                          </Badge>
+                        </div>
+                      </a>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
+
+          {contributor.recentActivities && contributor.recentActivities.length > 0 && (
+            <>
+              <Separator className="my-4" />
+              <div className="space-y-2">
+                <div className="text-sm font-medium">Recent Activity</div>
+                <div className="space-y-2">
+                  {contributor.recentActivities.slice(0, 5).map((activity) => (
                     <a
-                      key={pr.id}
-                      href={`https://github.com/${pr.repository_owner}/${pr.repository_name}/pull/${pr.number}`}
+                      key={activity.id}
+                      href={activity.url || '#'}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="block text-sm hover:bg-muted/50 rounded p-1 transition-colors"
                     >
                       <div className="flex items-center gap-2">
-                        <Badge variant="secondary" className="text-xs shrink-0">
-                          #{pr.number}
+                        <Badge variant="secondary" className="text-xs shrink-0 capitalize">
+                          {activity.type === 'pr' ? 'PR' : activity.type}
                         </Badge>
-                        <span className="truncate">{pr.title}</span>
-                        <Badge
-                          variant="outline"
-                          className={`ml-auto text-xs shrink-0 ${getStatusBadgeStyle(
-                            pr.state,
-                            pr.merged_at !== null
-                          )}`}
-                        >
-                          {getStatusLabel(pr.state, pr.merged_at !== null)}
-                        </Badge>
+                        <span className="truncate">{activity.title}</span>
+                        {activity.status && (
+                          <Badge
+                            variant="outline"
+                            className={`ml-auto text-xs shrink-0 capitalize ${
+                              STATUS_COLORS[activity.status as keyof typeof STATUS_COLORS] ||
+                              STATUS_COLORS.open
+                            }`}
+                          >
+                            {activity.status}
+                          </Badge>
+                        )}
                       </div>
                     </a>
                   ))}

@@ -810,6 +810,7 @@ function WorkspaceContributors({
   workspaceTier,
   isLoggedIn,
   currentUser,
+  activities = [],
 }: {
   repositories: Repository[];
   selectedRepositories: string[];
@@ -818,6 +819,7 @@ function WorkspaceContributors({
   workspaceTier?: import('@/types/workspace').WorkspaceTier;
   isLoggedIn?: boolean;
   currentUser?: User | null;
+  activities?: ActivityItem[];
 }) {
   // Navigate removed - no longer needed as profile modal handles internally
   const [showAddContributors, setShowAddContributors] = useState(false);
@@ -1759,6 +1761,7 @@ function WorkspaceContributors({
                   userRole={userRole}
                   workspaceTier={workspaceTier}
                   isLoggedIn={isLoggedIn}
+                  activities={activities}
                 />
               )}
             </CardContent>
@@ -2327,6 +2330,118 @@ function WorkspacePage() {
     () => repositories.map((r) => r.id).filter(Boolean),
     [repositories]
   );
+
+  // Memoize repository lookup map
+  const repositoryMap = useMemo(() => {
+    const map = new Map<string, Repository>();
+    repositories.forEach((repo) => {
+      if (repo?.id) {
+        map.set(repo.id, repo);
+      }
+    });
+    return map;
+  }, [repositories]);
+
+  // Build activities from workspace data for hover cards
+  const activities: ActivityItem[] = useMemo(() => {
+    const getRepoName = (repoId: string | undefined): string => {
+      if (!repoId) return 'Unknown Repository';
+      const repo = repositoryMap.get(repoId);
+      return repo?.full_name || 'Unknown Repository';
+    };
+
+    const allActivities: ActivityItem[] = [];
+
+    // Convert PRs to activities
+    fullPRData.forEach((pr, index) => {
+      allActivities.push({
+        id: `pr-${pr.id}-${index}`,
+        type: 'pr',
+        title: pr.title || `PR #${pr.number}`,
+        created_at: pr.created_at,
+        author: {
+          username: pr.author_login || 'Unknown',
+          avatar_url: pr.author_login
+            ? `https://avatars.githubusercontent.com/${pr.author_login}`
+            : '',
+        },
+        repository: getRepoName(pr.repository_id),
+        status: (() => {
+          if (pr.merged_at) return 'merged';
+          if (pr.state === 'open') return 'open';
+          return 'closed';
+        })(),
+        url: pr.html_url || '#',
+        metadata: {
+          additions: pr.additions || 0,
+          deletions: pr.deletions || 0,
+        },
+      });
+    });
+
+    // Convert issues to activities
+    fullIssueData.forEach((issue, index) => {
+      allActivities.push({
+        id: `issue-${issue.id}-${index}`,
+        type: 'issue',
+        title: issue.title || `Issue #${issue.number}`,
+        created_at: issue.created_at,
+        author: {
+          username: issue.author_login || 'Unknown',
+          avatar_url: issue.author_login
+            ? `https://avatars.githubusercontent.com/${issue.author_login}`
+            : '',
+        },
+        repository: getRepoName(issue.repository_id),
+        status: issue.closed_at ? 'closed' : 'open',
+        url: issue.html_url || '#',
+        metadata: {},
+      });
+    });
+
+    // Convert reviews to activities
+    fullReviewData.forEach((review, index) => {
+      allActivities.push({
+        id: `review-${review.id}-${index}`,
+        type: 'review',
+        title: review.pr_title ? `Review on: ${review.pr_title}` : 'Review on PR',
+        created_at: review.submitted_at,
+        author: {
+          username: review.reviewer_login || 'Unknown',
+          avatar_url: review.reviewer_login
+            ? `https://avatars.githubusercontent.com/${review.reviewer_login}`
+            : '',
+        },
+        repository: review.repository_name || 'Unknown Repository',
+        status: review.state.toLowerCase() as ActivityItem['status'],
+        url: '#',
+        metadata: {},
+      });
+    });
+
+    // Convert comments to activities
+    fullCommentData.forEach((comment, index) => {
+      allActivities.push({
+        id: `comment-${comment.id}-${index}`,
+        type: 'comment',
+        title: comment.pr_title ? `Comment on: ${comment.pr_title}` : 'Comment on PR',
+        created_at: comment.created_at,
+        author: {
+          username: comment.commenter_login || 'Unknown',
+          avatar_url: comment.commenter_login
+            ? `https://avatars.githubusercontent.com/${comment.commenter_login}`
+            : '',
+        },
+        repository: comment.repository_name || 'Unknown Repository',
+        status: undefined,
+        url: '#',
+        metadata: {},
+      });
+    });
+
+    return allActivities;
+  }, [fullPRData, fullIssueData, fullReviewData, fullCommentData, repositoryMap]);
+
   const appStatus = useWorkspaceGitHubAppStatus(repositoryIds);
 
   // Determine active tab from URL
@@ -3475,6 +3590,7 @@ function WorkspacePage() {
                 workspaceTier={workspace.tier}
                 isLoggedIn={!!currentUser}
                 currentUser={currentUser}
+                activities={activities}
               />
             </div>
           </TabsContent>

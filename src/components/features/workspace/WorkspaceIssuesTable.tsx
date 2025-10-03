@@ -44,6 +44,9 @@ import { useWorkspaceFiltersStore, type IssueState } from '@/lib/workspace-filte
 import { IssueFilters } from './filters/TableFilters';
 import { isBot, hasBotAuthors } from '@/lib/utils/bot-detection';
 import { supabase } from '@/lib/supabase';
+import { ContributorHoverCard } from '@/components/features/contributor/contributor-hover-card';
+import type { ContributorStats } from '@/lib/types';
+import { getRecentIssuesForContributor } from '@/lib/workspace-hover-card-utils';
 
 export interface Issue {
   id: string;
@@ -350,28 +353,45 @@ export function WorkspaceIssuesTable({
             const repo = row.original.repository;
             const authorFilterUrl = `https://github.com/${repo.owner}/${repo.name}/issues?q=is%3Aissue+author%3A${encodeURIComponent(author.username)}`;
 
+            // Calculate issue statistics for this author
+            const authoredIssues = issues.filter(
+              (issue) => issue.author.username === author.username
+            );
+            const assignedIssues = issues.filter((issue) =>
+              issue.assignees?.some((assignee) => assignee.login === author.username)
+            );
+
+            const contributorStats: ContributorStats = {
+              login: author.username,
+              avatar_url: author.avatar_url,
+              pullRequests: authoredIssues.length, // Total issues created
+              percentage: 0,
+              recentIssues: getRecentIssuesForContributor(author.username, issues, 5),
+            };
+
             return (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <a
-                      href={authorFilterUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-block"
-                    >
-                      <img
-                        src={author.avatar_url}
-                        alt={author.username}
-                        className="h-6 w-6 rounded-full cursor-pointer hover:ring-2 hover:ring-primary transition-all"
-                      />
-                    </a>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{author.username}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <ContributorHoverCard
+                contributor={contributorStats}
+                showReviews={true}
+                showComments={false}
+                reviewsCount={assignedIssues.length}
+                useIssueIcons={true}
+                primaryLabel="authored"
+                secondaryLabel="assigned"
+              >
+                <a
+                  href={authorFilterUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block"
+                >
+                  <img
+                    src={author.avatar_url}
+                    alt={author.username}
+                    className="h-6 w-6 rounded-full cursor-pointer hover:ring-2 hover:ring-primary transition-all"
+                  />
+                </a>
+              </ContributorHoverCard>
             );
           },
           size: 60,
@@ -395,29 +415,47 @@ export function WorkspaceIssuesTable({
                 {visibleAssignees.map((assignee, index) => {
                   const assigneeFilterUrl = `https://github.com/${repo.owner}/${repo.name}/issues?q=is%3Aissue+assignee%3A${encodeURIComponent(assignee.login)}`;
 
+                  // Calculate issue statistics for this assignee
+                  const authoredByAssignee = issues.filter(
+                    (issue) => issue.author.username === assignee.login
+                  );
+                  const assignedToAssignee = issues.filter((issue) =>
+                    issue.assignees?.some((a) => a.login === assignee.login)
+                  );
+
+                  const contributorStats: ContributorStats = {
+                    login: assignee.login,
+                    avatar_url: assignee.avatar_url,
+                    pullRequests: authoredByAssignee.length, // Total issues created
+                    percentage: 0,
+                    recentIssues: getRecentIssuesForContributor(assignee.login, issues, 5),
+                  };
+
                   return (
-                    <TooltipProvider key={assignee.login}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <a
-                            href={assigneeFilterUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-block -ml-2 first:ml-0"
-                            style={{ zIndex: maxVisible - index }}
-                          >
-                            <img
-                              src={assignee.avatar_url}
-                              alt={assignee.login}
-                              className="h-6 w-6 rounded-full border-2 border-background hover:ring-2 hover:ring-primary transition-all"
-                            />
-                          </a>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{assignee.login}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <ContributorHoverCard
+                      key={assignee.login}
+                      contributor={contributorStats}
+                      showReviews={true}
+                      showComments={false}
+                      reviewsCount={assignedToAssignee.length}
+                      useIssueIcons={true}
+                      primaryLabel="authored"
+                      secondaryLabel="assigned"
+                    >
+                      <a
+                        href={assigneeFilterUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-block -ml-2 first:ml-0"
+                        style={{ zIndex: maxVisible - index }}
+                      >
+                        <img
+                          src={assignee.avatar_url}
+                          alt={assignee.login}
+                          className="h-6 w-6 rounded-full border-2 border-background hover:ring-2 hover:ring-primary transition-all"
+                        />
+                      </a>
+                    </ContributorHoverCard>
                   );
                 })}
                 {remainingCount > 0 && (
@@ -584,7 +622,7 @@ export function WorkspaceIssuesTable({
           size: 50,
         }),
       ] as ColumnDef<Issue>[],
-    [onIssueClick, onRepositoryClick, similarIssuesMap]
+    [onIssueClick, onRepositoryClick, similarIssuesMap, issues]
   );
 
   const table = useReactTable({

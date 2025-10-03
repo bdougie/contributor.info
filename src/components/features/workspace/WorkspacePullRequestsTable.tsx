@@ -34,6 +34,9 @@ import { cn } from '@/lib/utils';
 import { useWorkspaceFiltersStore, type PRState } from '@/lib/workspace-filters-store';
 import { PRFilters } from './filters/TableFilters';
 import { isBot, hasBotAuthors } from '@/lib/utils/bot-detection';
+import { ContributorHoverCard } from '@/components/features/contributor/contributor-hover-card';
+import type { ContributorStats } from '@/lib/types';
+import { getRecentPRsForContributor } from '@/lib/workspace-hover-card-utils';
 
 export interface PullRequest {
   id: string;
@@ -276,28 +279,35 @@ export function WorkspacePullRequestsTable({
             const repo = row.original.repository;
             const authorFilterUrl = `https://github.com/${repo.owner}/${repo.name}/pulls?q=is%3Apr+author%3A${encodeURIComponent(author.username)}`;
 
+            // Get PRs for this contributor to calculate accurate count
+            const recentPRs = getRecentPRsForContributor(author.username, pullRequests, 5);
+            const contributorPRCount = pullRequests.filter(
+              (pr) => pr.author.username.toLowerCase() === author.username.toLowerCase()
+            ).length;
+
+            const contributorStats: ContributorStats = {
+              login: author.username,
+              avatar_url: author.avatar_url,
+              pullRequests: contributorPRCount,
+              percentage: 0,
+              recentPRs,
+            };
+
             return (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <a
-                      href={authorFilterUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-block"
-                    >
-                      <img
-                        src={author.avatar_url}
-                        alt={author.username}
-                        className="h-6 w-6 rounded-full cursor-pointer hover:ring-2 hover:ring-primary transition-all"
-                      />
-                    </a>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{author.username}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <ContributorHoverCard contributor={contributorStats}>
+                <a
+                  href={authorFilterUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block"
+                >
+                  <img
+                    src={author.avatar_url}
+                    alt={author.username}
+                    className="h-6 w-6 rounded-full cursor-pointer hover:ring-2 hover:ring-primary transition-all"
+                  />
+                </a>
+              </ContributorHoverCard>
             );
           },
         }),
@@ -461,7 +471,7 @@ export function WorkspacePullRequestsTable({
           },
         }),
       ] as ColumnDef<PullRequest>[],
-    [onPullRequestClick, onRepositoryClick]
+    [onPullRequestClick, onRepositoryClick, pullRequests]
   );
 
   const table = useReactTable({

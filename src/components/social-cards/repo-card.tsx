@@ -95,7 +95,9 @@ export default function RepoSocialCard({ owner, repo, timeRange, stats }: RepoSo
                   ))}
                 </div>
                 {stats.totalContributors > 5 && (
-                  <span className="text-foreground text-sm ml-3">+{stats.totalContributors - 5}</span>
+                  <span className="text-foreground text-sm ml-3">
+                    +{stats.totalContributors - 5}
+                  </span>
                 )}
               </div>
             )}

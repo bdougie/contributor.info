@@ -8,6 +8,8 @@ import { ChevronDown, ChevronUp, Users } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 import { isBot } from '@/lib/utils/bot-detection';
 import type { Issue } from '../WorkspaceIssuesTable';
+import { ContributorHoverCard } from '@/components/features/contributor/contributor-hover-card';
+import type { ContributorStats, RecentIssue } from '@/lib/types';
 
 interface AssigneeData {
   login: string;
@@ -46,7 +48,10 @@ export function AssigneeDistributionChart({
     // Track unassigned count
     let unassignedCount = 0;
 
-    issues.forEach((issue) => {
+    // Filter to only open issues
+    const openIssues = issues.filter((issue) => issue.state === 'open');
+
+    openIssues.forEach((issue) => {
       if (!issue.assignees || issue.assignees.length === 0) {
         unassignedCount++;
         return;
@@ -198,25 +203,65 @@ export function AssigneeDistributionChart({
                 ? 'h-8 w-8 rounded-full hover:ring-2 hover:ring-primary transition-all'
                 : 'h-8 w-8 rounded-full';
 
+              // Get issues assigned to this user, filtering to only open issues to match the chart
+              const assignedIssues: RecentIssue[] = issues
+                .filter(
+                  (issue) =>
+                    issue.state === 'open' &&
+                    issue.assignees?.some((a) => a.login === assignee.login)
+                )
+                .slice(0, 5)
+                .map((issue) => ({
+                  id: issue.id,
+                  number: issue.number,
+                  title: issue.title,
+                  state: issue.state,
+                  created_at: issue.created_at,
+                  updated_at: issue.updated_at,
+                  closed_at: issue.closed_at,
+                  repository_owner: issue.repository.owner,
+                  repository_name: issue.repository.name,
+                  comments_count: issue.comments_count,
+                  html_url: issue.url,
+                }));
+
+              const contributorStats: ContributorStats = {
+                login: assignee.login,
+                avatar_url: assignee.avatar_url,
+                pullRequests: assignee.count, // Total issues assigned (shown as main count)
+                percentage: 0,
+                recentIssues: assignedIssues,
+              };
+
               const avatarImg = (
                 <img src={assignee.avatar_url} alt={assignee.login} className={avatarClassName} />
               );
 
-              if (githubUrl) {
-                return (
-                  <a
-                    href={githubUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-shrink-0"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {avatarImg}
-                  </a>
-                );
-              }
+              const avatarContent = githubUrl ? (
+                <a
+                  href={githubUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-shrink-0"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {avatarImg}
+                </a>
+              ) : (
+                avatarImg
+              );
 
-              return avatarImg;
+              return (
+                <ContributorHoverCard
+                  contributor={contributorStats}
+                  showReviews={false}
+                  showComments={false}
+                  useIssueIcons={true}
+                  primaryLabel="assigned"
+                >
+                  {avatarContent}
+                </ContributorHoverCard>
+              );
             };
 
             return (

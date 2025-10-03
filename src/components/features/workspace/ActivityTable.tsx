@@ -27,6 +27,9 @@ import {
 import { format, parseISO, formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import type { ActivityItem } from './AnalyticsDashboard';
+import { ContributorHoverCard } from '@/components/features/contributor/contributor-hover-card';
+import type { ContributorStats } from '@/lib/types';
+import { getRecentActivitiesForContributor } from '@/lib/workspace-hover-card-utils';
 
 export interface ActivityTableProps {
   activities: ActivityItem[];
@@ -414,22 +417,65 @@ export function ActivityTable({
 
                           {/* Author */}
                           <div className="hidden sm:flex flex-shrink-0 w-40 items-center gap-2">
-                            <a
-                              href={`https://github.com/${activity.author.username}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
-                            >
-                              <Avatar className="h-6 w-6">
-                                <AvatarImage src={activity.author.avatar_url} />
-                                <AvatarFallback>
-                                  {activity.author.username.slice(0, 2).toUpperCase()}
-                                </AvatarFallback>
-                              </Avatar>
-                              <span className="text-sm truncate hover:text-primary transition-colors">
-                                {activity.author.username}
-                              </span>
-                            </a>
+                            {(() => {
+                              // Calculate contributor stats from all activities
+                              const contributorActivities = activities.filter(
+                                (a) => a.author.username === activity.author.username
+                              );
+
+                              const pullRequestsCount = contributorActivities.filter(
+                                (a) => a.type === 'pr'
+                              ).length;
+
+                              const reviewsCount = contributorActivities.filter(
+                                (a) => a.type === 'review'
+                              ).length;
+
+                              const commentsCount = contributorActivities.filter(
+                                (a) => a.type === 'comment'
+                              ).length;
+
+                              const contributorStats: ContributorStats = {
+                                login: activity.author.username,
+                                avatar_url:
+                                  activity.author.avatar_url ||
+                                  `https://avatars.githubusercontent.com/${activity.author.username}`,
+                                pullRequests: pullRequestsCount,
+                                percentage: 0,
+                                recentActivities: getRecentActivitiesForContributor(
+                                  activity.author.username,
+                                  activities,
+                                  5
+                                ),
+                              };
+
+                              return (
+                                <ContributorHoverCard
+                                  contributor={contributorStats}
+                                  showReviews={true}
+                                  showComments={true}
+                                  reviewsCount={reviewsCount}
+                                  commentsCount={commentsCount}
+                                >
+                                  <a
+                                    href={`https://github.com/${activity.author.username}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+                                  >
+                                    <Avatar className="h-6 w-6">
+                                      <AvatarImage src={activity.author.avatar_url} />
+                                      <AvatarFallback>
+                                        {activity.author.username.slice(0, 2).toUpperCase()}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <span className="text-sm truncate hover:text-primary transition-colors">
+                                      {activity.author.username}
+                                    </span>
+                                  </a>
+                                </ContributorHoverCard>
+                              );
+                            })()}
                           </div>
 
                           {/* Repository */}

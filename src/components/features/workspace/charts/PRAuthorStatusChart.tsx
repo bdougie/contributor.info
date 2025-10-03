@@ -22,6 +22,8 @@ import {
 import { cn } from '@/lib/utils';
 import { isBot } from '@/lib/utils/bot-detection';
 import type { PullRequest } from '../WorkspacePullRequestsTable';
+import { ContributorHoverCard } from '@/components/features/contributor/contributor-hover-card';
+import { getRecentPRsForContributor } from '@/lib/workspace-hover-card-utils';
 
 interface AuthorStatus {
   username: string;
@@ -283,26 +285,38 @@ export function PRAuthorStatusChart({
               >
                 <div className="flex items-center gap-3">
                   {/* Avatar */}
-                  <a
-                    href={githubUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-shrink-0"
-                    onClick={(e) => e.stopPropagation()}
-                    title={`View PRs authored by ${author.username}`}
-                  >
-                    <img
-                      src={
+                  <ContributorHoverCard
+                    contributor={{
+                      login: author.username,
+                      avatar_url:
                         author.avatar_url ||
-                        `https://github.com/${encodeURIComponent(author.username)}.png`
-                      }
-                      alt={author.username}
-                      className="h-8 w-8 rounded-full hover:ring-2 hover:ring-primary transition-all"
-                      onError={(e) => {
-                        e.currentTarget.src = `https://github.com/${encodeURIComponent(author.username)}.png`;
-                      }}
-                    />
-                  </a>
+                        `https://github.com/${encodeURIComponent(author.username)}.png`,
+                      pullRequests: author.totalOpenPRs,
+                      percentage: 0,
+                      recentPRs: getRecentPRsForContributor(author.username, pullRequests, 5),
+                    }}
+                  >
+                    <a
+                      href={githubUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-shrink-0"
+                      onClick={(e) => e.stopPropagation()}
+                      title={`View PRs authored by ${author.username}`}
+                    >
+                      <img
+                        src={
+                          author.avatar_url ||
+                          `https://github.com/${encodeURIComponent(author.username)}.png`
+                        }
+                        alt={author.username}
+                        className="h-8 w-8 rounded-full hover:ring-2 hover:ring-primary transition-all"
+                        onError={(e) => {
+                          e.currentTarget.src = `https://github.com/${encodeURIComponent(author.username)}.png`;
+                        }}
+                      />
+                    </a>
+                  </ContributorHoverCard>
 
                   {/* Username and stats */}
                   <div className="flex-1 min-w-0">
