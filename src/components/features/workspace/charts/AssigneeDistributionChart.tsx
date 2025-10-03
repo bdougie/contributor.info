@@ -48,7 +48,10 @@ export function AssigneeDistributionChart({
     // Track unassigned count
     let unassignedCount = 0;
 
-    issues.forEach((issue) => {
+    // Filter to only open issues
+    const openIssues = issues.filter((issue) => issue.state === 'open');
+
+    openIssues.forEach((issue) => {
       if (!issue.assignees || issue.assignees.length === 0) {
         unassignedCount++;
         return;
