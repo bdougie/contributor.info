@@ -3,6 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { ContributorHoverCard } from '@/components/features/contributor/contributor-hover-card';
 
 interface FirstRespondersCardProps {
   responders: {
@@ -50,12 +51,22 @@ export function FirstRespondersCard({ responders, loading }: FirstRespondersCard
       <dl className="mt-2">
         <dt className="sr-only">Top First Responder</dt>
         <dd className="flex items-center gap-2">
-          <Avatar className="h-6 w-6">
-            <AvatarImage src={topResponder.avatar_url} alt={topResponder.username} />
-            <AvatarFallback className="text-xs">
-              {topResponder.username.charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
+          <ContributorHoverCard
+            contributor={{
+              login: topResponder.username,
+              avatar_url: topResponder.avatar_url,
+              pullRequests: 0,
+              percentage: 0,
+              recentPRs: [],
+            }}
+          >
+            <Avatar className="h-6 w-6">
+              <AvatarImage src={topResponder.avatar_url} alt={topResponder.username} />
+              <AvatarFallback className="text-xs">
+                {topResponder.username.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+          </ContributorHoverCard>
           <span className="text-sm font-medium truncate">{topResponder.username}</span>
         </dd>
         <div className="flex items-center gap-1 mt-1">

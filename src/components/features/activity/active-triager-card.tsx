@@ -2,6 +2,7 @@ import { MessageSquare, Star } from '@/components/ui/icon';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ContributorHoverCard } from '@/components/features/contributor/contributor-hover-card';
 
 interface ActiveTriagerCardProps {
   triager: {
@@ -47,12 +48,22 @@ export function ActiveTriagerCard({ triager, loading }: ActiveTriagerCardProps) 
       <dl className="mt-2">
         <dt className="sr-only">Most Active Triager</dt>
         <dd className="flex items-center gap-2">
-          <Avatar className="h-6 w-6">
-            <AvatarImage src={triager.avatar_url} alt={triager.username} />
-            <AvatarFallback className="text-xs">
-              {triager.username.charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
+          <ContributorHoverCard
+            contributor={{
+              login: triager.username,
+              avatar_url: triager.avatar_url,
+              pullRequests: 0,
+              percentage: 0,
+              recentPRs: [],
+            }}
+          >
+            <Avatar className="h-6 w-6">
+              <AvatarImage src={triager.avatar_url} alt={triager.username} />
+              <AvatarFallback className="text-xs">
+                {triager.username.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+          </ContributorHoverCard>
           <span className="text-sm font-medium truncate">{triager.username}</span>
         </dd>
         <div className="flex items-center gap-1 mt-1">
