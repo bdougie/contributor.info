@@ -85,6 +85,8 @@ export interface DatabaseComment {
 export interface DatabaseReview {
   github_id: string;
   pull_request_id: string;
+  repository_id: string;
+  author_id: string;
   reviewer_id?: string;
   state: string;
   body: string;
