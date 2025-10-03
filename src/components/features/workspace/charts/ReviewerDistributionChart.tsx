@@ -23,6 +23,7 @@ import { isBot } from '@/lib/utils/bot-detection';
 import type { PullRequest } from '../WorkspacePullRequestsTable';
 import { ContributorHoverCard } from '@/components/features/contributor/contributor-hover-card';
 import type { ContributorStats } from '@/lib/types';
+import { getRecentPRsForReviewer } from '@/lib/workspace-hover-card-utils';
 
 interface ReviewerData {
   username: string;
@@ -332,9 +333,9 @@ export function ReviewerDistributionChart({
                   const contributorStats: ContributorStats = {
                     login: reviewer.username,
                     avatar_url: reviewer.avatar_url,
-                    pullRequests: 0,
+                    pullRequests: reviewer.totalPRs,
                     percentage: 0,
-                    recentPRs: [],
+                    recentPRs: getRecentPRsForReviewer(reviewer.username, pullRequests, 5),
                   };
 
                   const avatarImg = (

@@ -7,11 +7,20 @@ import type { ContributorStats } from '@/lib/types';
 import React from 'react';
 import { GitPullRequest, MessageSquare, GitPullRequestDraft } from '@/components/ui/icon';
 
+// Status colors matching ActivityTable
+const STATUS_COLORS = {
+  open: 'bg-blue-500/10 text-blue-700 dark:text-blue-400',
+  merged: 'bg-purple-500/10 text-purple-700 dark:text-purple-400',
+  closed: 'bg-gray-500/10 text-gray-700 dark:text-gray-400',
+  approved: 'bg-green-500/10 text-green-700 dark:text-green-400',
+  changes_requested: 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400',
+} as const;
+
 // Function to get status badge styling
 const getStatusBadgeStyle = (state: string, merged: boolean) => {
-  if (merged) return 'bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400';
-  if (state === 'closed') return 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400';
-  return 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400';
+  if (merged) return STATUS_COLORS.merged;
+  if (state === 'closed') return STATUS_COLORS.closed;
+  return STATUS_COLORS.open;
 };
 
 // Function to get status label
@@ -134,7 +143,7 @@ export function ContributorHoverCard({
             <>
               <Separator className="my-4" />
               <div className="space-y-2">
-                <div className="text-sm font-medium">Recent Pull Requests</div>
+                <div className="text-sm font-medium">Recent PRs</div>
                 <div className="space-y-2">
                   {contributor.recentPRs.slice(0, 5).map((pr) => (
                     <a
@@ -191,9 +200,7 @@ export function ContributorHoverCard({
                         <Badge
                           variant="outline"
                           className={`ml-auto text-xs shrink-0 ${
-                            issue.state === 'closed'
-                              ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400'
-                              : 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400'
+                            issue.state === 'closed' ? STATUS_COLORS.closed : STATUS_COLORS.open
                           }`}
                         >
                           {issue.state}
@@ -222,11 +229,17 @@ export function ContributorHoverCard({
                     >
                       <div className="flex items-center gap-2">
                         <Badge variant="secondary" className="text-xs shrink-0 capitalize">
-                          {activity.type}
+                          {activity.type === 'pr' ? 'PR' : activity.type}
                         </Badge>
                         <span className="truncate">{activity.title}</span>
                         {activity.status && (
-                          <Badge variant="outline" className="ml-auto text-xs shrink-0">
+                          <Badge
+                            variant="outline"
+                            className={`ml-auto text-xs shrink-0 capitalize ${
+                              STATUS_COLORS[activity.status as keyof typeof STATUS_COLORS] ||
+                              STATUS_COLORS.open
+                            }`}
+                          >
                             {activity.status}
                           </Badge>
                         )}

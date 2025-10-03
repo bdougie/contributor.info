@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 import { isBot } from '@/lib/utils/bot-detection';
 import type { Issue } from '../WorkspaceIssuesTable';
 import { ContributorHoverCard } from '@/components/features/contributor/contributor-hover-card';
-import type { ContributorStats } from '@/lib/types';
+import type { ContributorStats, RecentIssue } from '@/lib/types';
 
 interface AssigneeData {
   login: string;
@@ -200,12 +200,30 @@ export function AssigneeDistributionChart({
                 ? 'h-8 w-8 rounded-full hover:ring-2 hover:ring-primary transition-all'
                 : 'h-8 w-8 rounded-full';
 
+              // Get issues assigned to this user
+              const assignedIssues: RecentIssue[] = issues
+                .filter((issue) => issue.assignees?.some((a) => a.login === assignee.login))
+                .slice(0, 5)
+                .map((issue) => ({
+                  id: issue.id,
+                  number: issue.number,
+                  title: issue.title,
+                  state: issue.state,
+                  created_at: issue.created_at,
+                  updated_at: issue.updated_at,
+                  closed_at: issue.closed_at,
+                  repository_owner: issue.repository.owner,
+                  repository_name: issue.repository.name,
+                  comments_count: issue.comments_count,
+                  html_url: issue.url,
+                }));
+
               const contributorStats: ContributorStats = {
                 login: assignee.login,
                 avatar_url: assignee.avatar_url,
                 pullRequests: 0,
                 percentage: 0,
-                recentPRs: [],
+                recentIssues: assignedIssues,
               };
 
               const avatarImg = (

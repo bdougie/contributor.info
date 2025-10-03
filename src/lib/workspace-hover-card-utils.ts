@@ -88,6 +88,58 @@ export function getRecentIssuesForContributor(
 }
 
 /**
+ * Get recent PRs where a contributor is a requested reviewer or has reviewed
+ * @param reviewerUsername - The username to filter PRs for
+ * @param allPRs - All PRs from the workspace
+ * @param limit - Maximum number of PRs to return (default: 5)
+ * @returns Array of recent PRs in hover card format
+ */
+export function getRecentPRsForReviewer(
+  reviewerUsername: string,
+  allPRs: WorkspacePR[],
+  limit = 5
+): HoverCardPR[] {
+  // Filter PRs where the user is a reviewer or requested reviewer
+  const reviewerPRs = allPRs.filter((pr) => {
+    const isRequestedReviewer = pr.requested_reviewers?.some(
+      (reviewer) => reviewer.username.toLowerCase() === reviewerUsername.toLowerCase()
+    );
+    const hasReviewed = pr.reviewers?.some(
+      (reviewer) => reviewer.username.toLowerCase() === reviewerUsername.toLowerCase()
+    );
+    return isRequestedReviewer || hasReviewed;
+  });
+
+  // Sort by updated_at (most recent first)
+  const sortedPRs = reviewerPRs.sort((a, b) => {
+    return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+  });
+
+  // Take the most recent N PRs and transform to hover card format
+  return sortedPRs.slice(0, limit).map((pr) => ({
+    id: parseInt(pr.id, 10) || 0,
+    number: pr.number,
+    title: pr.title,
+    state: pr.state === 'merged' || pr.state === 'open' || pr.state === 'draft' ? 'open' : 'closed',
+    created_at: pr.created_at,
+    updated_at: pr.updated_at,
+    merged_at: pr.merged_at || null,
+    closed_at: pr.closed_at || null,
+    additions: pr.additions,
+    deletions: pr.deletions,
+    changed_files: pr.changed_files,
+    repository_owner: pr.repository.owner,
+    repository_name: pr.repository.name,
+    user: {
+      id: 0,
+      login: pr.author.username,
+      avatar_url: pr.author.avatar_url,
+    },
+    html_url: pr.url,
+  }));
+}
+
+/**
  * Get recent activities for a specific contributor from workspace activity data
  * @param contributorUsername - The username to filter activities for
  * @param allActivities - All activities from the workspace

@@ -3,7 +3,6 @@ import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { ContributorHoverCard } from '@/components/features/contributor/contributor-hover-card';
 
 interface RepeatReportersCardProps {
   reporters: {
@@ -57,22 +56,12 @@ export function RepeatReportersCard({ reporters, loading }: RepeatReportersCardP
       <dl className="mt-2">
         <dt className="sr-only">Top Issue Reporter</dt>
         <dd className="flex items-center gap-2">
-          <ContributorHoverCard
-            contributor={{
-              login: topReporter.username,
-              avatar_url: topReporter.avatar_url,
-              pullRequests: 0,
-              percentage: 0,
-              recentPRs: [],
-            }}
-          >
-            <Avatar className="h-6 w-6">
-              <AvatarImage src={topReporter.avatar_url} alt={topReporter.username} />
-              <AvatarFallback className="text-xs">
-                {topReporter.username.charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-          </ContributorHoverCard>
+          <Avatar className="h-6 w-6">
+            <AvatarImage src={topReporter.avatar_url} alt={topReporter.username} />
+            <AvatarFallback className="text-xs">
+              {topReporter.username.charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
           <span className="text-sm font-medium truncate">{topReporter.username}</span>
         </dd>
         <div className="flex items-center gap-1 mt-1">

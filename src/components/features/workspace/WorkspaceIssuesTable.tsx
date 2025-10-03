@@ -399,29 +399,30 @@ export function WorkspaceIssuesTable({
                 {visibleAssignees.map((assignee, index) => {
                   const assigneeFilterUrl = `https://github.com/${repo.owner}/${repo.name}/issues?q=is%3Aissue+assignee%3A${encodeURIComponent(assignee.login)}`;
 
+                  const contributorStats: ContributorStats = {
+                    login: assignee.login,
+                    avatar_url: assignee.avatar_url,
+                    pullRequests: 0,
+                    percentage: 0,
+                    recentIssues: getRecentIssuesForContributor(assignee.login, issues, 5),
+                  };
+
                   return (
-                    <TooltipProvider key={assignee.login}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <a
-                            href={assigneeFilterUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-block -ml-2 first:ml-0"
-                            style={{ zIndex: maxVisible - index }}
-                          >
-                            <img
-                              src={assignee.avatar_url}
-                              alt={assignee.login}
-                              className="h-6 w-6 rounded-full border-2 border-background hover:ring-2 hover:ring-primary transition-all"
-                            />
-                          </a>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{assignee.login}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <ContributorHoverCard key={assignee.login} contributor={contributorStats}>
+                      <a
+                        href={assigneeFilterUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-block -ml-2 first:ml-0"
+                        style={{ zIndex: maxVisible - index }}
+                      >
+                        <img
+                          src={assignee.avatar_url}
+                          alt={assignee.login}
+                          className="h-6 w-6 rounded-full border-2 border-background hover:ring-2 hover:ring-primary transition-all"
+                        />
+                      </a>
+                    </ContributorHoverCard>
                   );
                 })}
                 {remainingCount > 0 && (

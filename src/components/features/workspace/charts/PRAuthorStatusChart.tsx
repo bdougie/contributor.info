@@ -23,6 +23,7 @@ import { cn } from '@/lib/utils';
 import { isBot } from '@/lib/utils/bot-detection';
 import type { PullRequest } from '../WorkspacePullRequestsTable';
 import { ContributorHoverCard } from '@/components/features/contributor/contributor-hover-card';
+import { getRecentPRsForContributor } from '@/lib/workspace-hover-card-utils';
 
 interface AuthorStatus {
   username: string;
@@ -292,7 +293,7 @@ export function PRAuthorStatusChart({
                         `https://github.com/${encodeURIComponent(author.username)}.png`,
                       pullRequests: author.totalOpenPRs,
                       percentage: 0,
-                      recentPRs: [],
+                      recentPRs: getRecentPRsForContributor(author.username, pullRequests, 5),
                     }}
                   >
                     <a

@@ -52,8 +52,8 @@ import { GroupManagementCTA } from '@/components/ui/permission-upgrade-cta';
 import { useAuth } from '@/hooks/useAuth';
 import { ContributorHoverCard } from '@/components/features/contributor/contributor-hover-card';
 import type { ContributorStats } from '@/lib/types';
-import type { PullRequest as WorkspacePR } from './WorkspacePullRequestsTable';
-import { getRecentPRsForContributor } from '@/lib/workspace-hover-card-utils';
+import type { ActivityItem } from './AnalyticsDashboard';
+import { getRecentActivitiesForContributor } from '@/lib/workspace-hover-card-utils';
 
 export interface ContributorGroup {
   id: string;
@@ -81,7 +81,7 @@ export interface ContributorsTableProps {
   workspaceTier?: WorkspaceTier;
   isLoggedIn?: boolean;
   // Data for hover cards
-  pullRequests?: WorkspacePR[];
+  activities?: ActivityItem[];
 }
 
 const columnHelper = createColumnHelper<Contributor>();
@@ -117,7 +117,7 @@ export function ContributorsTable({
   userRole,
   workspaceTier,
   isLoggedIn = false,
-  pullRequests = [],
+  activities = [],
 }: ContributorsTableProps) {
   const [sorting, setSorting] = useState<SortingState>([{ id: 'activity', desc: true }]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -217,7 +217,11 @@ export function ContributorsTable({
             avatar_url: contributor.avatar_url,
             pullRequests: contributor.contributions.pull_requests,
             percentage: 0, // Not applicable in workspace context
-            recentPRs: getRecentPRsForContributor(contributor.username, pullRequests, 5),
+            recentActivities: getRecentActivitiesForContributor(
+              contributor.username,
+              activities,
+              5
+            ),
           };
 
           return (
@@ -430,7 +434,7 @@ export function ContributorsTable({
       handleSelectContributor,
       isAllSelected,
       isPartiallySelected,
-      pullRequests,
+      activities,
     ]
   );
 
