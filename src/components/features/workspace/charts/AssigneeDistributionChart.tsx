@@ -228,7 +228,7 @@ export function AssigneeDistributionChart({
               const contributorStats: ContributorStats = {
                 login: assignee.login,
                 avatar_url: assignee.avatar_url,
-                pullRequests: 0,
+                pullRequests: assignee.count, // Total issues assigned (shown as main count)
                 percentage: 0,
                 recentIssues: assignedIssues,
               };
@@ -252,7 +252,13 @@ export function AssigneeDistributionChart({
               );
 
               return (
-                <ContributorHoverCard contributor={contributorStats}>
+                <ContributorHoverCard
+                  contributor={contributorStats}
+                  showReviews={false}
+                  showComments={false}
+                  useIssueIcons={true}
+                  primaryLabel="assigned"
+                >
                   {avatarContent}
                 </ContributorHoverCard>
               );

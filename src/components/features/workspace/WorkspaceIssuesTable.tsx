@@ -353,16 +353,32 @@ export function WorkspaceIssuesTable({
             const repo = row.original.repository;
             const authorFilterUrl = `https://github.com/${repo.owner}/${repo.name}/issues?q=is%3Aissue+author%3A${encodeURIComponent(author.username)}`;
 
+            // Calculate issue statistics for this author
+            const authoredIssues = issues.filter(
+              (issue) => issue.author.username === author.username
+            );
+            const assignedIssues = issues.filter((issue) =>
+              issue.assignees?.some((assignee) => assignee.login === author.username)
+            );
+
             const contributorStats: ContributorStats = {
               login: author.username,
               avatar_url: author.avatar_url,
-              pullRequests: 0, // Not available in this context
+              pullRequests: authoredIssues.length, // Total issues created
               percentage: 0,
               recentIssues: getRecentIssuesForContributor(author.username, issues, 5),
             };
 
             return (
-              <ContributorHoverCard contributor={contributorStats}>
+              <ContributorHoverCard
+                contributor={contributorStats}
+                showReviews={true}
+                showComments={false}
+                reviewsCount={assignedIssues.length}
+                useIssueIcons={true}
+                primaryLabel="authored"
+                secondaryLabel="assigned"
+              >
                 <a
                   href={authorFilterUrl}
                   target="_blank"
@@ -399,16 +415,33 @@ export function WorkspaceIssuesTable({
                 {visibleAssignees.map((assignee, index) => {
                   const assigneeFilterUrl = `https://github.com/${repo.owner}/${repo.name}/issues?q=is%3Aissue+assignee%3A${encodeURIComponent(assignee.login)}`;
 
+                  // Calculate issue statistics for this assignee
+                  const authoredByAssignee = issues.filter(
+                    (issue) => issue.author.username === assignee.login
+                  );
+                  const assignedToAssignee = issues.filter((issue) =>
+                    issue.assignees?.some((a) => a.login === assignee.login)
+                  );
+
                   const contributorStats: ContributorStats = {
                     login: assignee.login,
                     avatar_url: assignee.avatar_url,
-                    pullRequests: 0,
+                    pullRequests: authoredByAssignee.length, // Total issues created
                     percentage: 0,
                     recentIssues: getRecentIssuesForContributor(assignee.login, issues, 5),
                   };
 
                   return (
-                    <ContributorHoverCard key={assignee.login} contributor={contributorStats}>
+                    <ContributorHoverCard
+                      key={assignee.login}
+                      contributor={contributorStats}
+                      showReviews={true}
+                      showComments={false}
+                      reviewsCount={assignedToAssignee.length}
+                      useIssueIcons={true}
+                      primaryLabel="authored"
+                      secondaryLabel="assigned"
+                    >
                       <a
                         href={assigneeFilterUrl}
                         target="_blank"

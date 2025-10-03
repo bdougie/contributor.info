@@ -50,14 +50,18 @@ describe('Workspace Invitation Email Tests', () => {
     const textOutput = getTestInvitationEmailText(mockData);
 
     // Test HTML template has correct URL format
-    expect(htmlOutput).toContain('https://contributor.info/invitation/12345678-1234-1234-1234-123456789012');
+    expect(htmlOutput).toContain(
+      'https://contributor.info/invitation/12345678-1234-1234-1234-123456789012'
+    );
 
     // Test HTML template does NOT contain old incorrect URLs
     expect(htmlOutput).not.toContain('workspace/invitation/accept');
     expect(htmlOutput).not.toContain('workspace/invitation/decline');
 
     // Test text template has correct URL format
-    expect(textOutput).toContain('https://contributor.info/invitation/12345678-1234-1234-1234-123456789012');
+    expect(textOutput).toContain(
+      'https://contributor.info/invitation/12345678-1234-1234-1234-123456789012'
+    );
 
     // Test text template does NOT contain old incorrect URLs
     expect(textOutput).not.toContain('workspace/invitation/accept');
@@ -101,7 +105,7 @@ describe('Workspace Invitation Email Tests', () => {
       },
     ];
 
-    testCases.forEach(({ name, token }) => {
+    testCases.forEach(({ token }) => {
       const mockData: WorkspaceInvitationData = {
         recipientEmail: 'test@example.com',
         workspaceName: 'Test Workspace',

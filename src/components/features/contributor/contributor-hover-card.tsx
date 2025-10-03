@@ -5,7 +5,13 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import type { ContributorStats } from '@/lib/types';
 import React from 'react';
-import { GitPullRequest, MessageSquare, GitPullRequestDraft } from '@/components/ui/icon';
+import {
+  GitPullRequest,
+  MessageSquare,
+  GitPullRequestDraft,
+  AlertCircle,
+  CheckCircle2,
+} from '@/components/ui/icon';
 
 // Status colors matching ActivityTable
 const STATUS_COLORS = {
@@ -37,6 +43,11 @@ interface ContributorHoverCardProps {
   showComments?: boolean;
   reviewsCount?: number;
   commentsCount?: number;
+  // When true, shows issue icons instead of PR icons
+  useIssueIcons?: boolean;
+  // Custom labels for metrics (used with issue context)
+  primaryLabel?: string;
+  secondaryLabel?: string;
 }
 
 export function ContributorHoverCard({
@@ -47,6 +58,9 @@ export function ContributorHoverCard({
   showComments = false,
   reviewsCount = 0,
   commentsCount = 0,
+  useIssueIcons = false,
+  primaryLabel,
+  secondaryLabel,
 }: ContributorHoverCardProps) {
   // Validate required contributor data
   if (!contributor || !contributor.login) {
@@ -120,13 +134,27 @@ export function ContributorHoverCard({
                 <h4 className="text-sm font-semibold">{contributor.login}</h4>
               </a>
               <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-                <GitPullRequest className="h-4 w-4" />
-                <span>{contributor.pullRequests}</span>
+                {useIssueIcons ? (
+                  <AlertCircle className="h-4 w-4" />
+                ) : (
+                  <GitPullRequest className="h-4 w-4" />
+                )}
+                <span>
+                  {contributor.pullRequests}
+                  {primaryLabel && <span className="ml-1 text-xs">{primaryLabel}</span>}
+                </span>
                 {showReviews && (
                   <>
                     <span className="text-muted-foreground/50">•</span>
-                    <GitPullRequestDraft className="h-4 w-4" />
-                    <span>{reviewsCount}</span>
+                    {useIssueIcons ? (
+                      <CheckCircle2 className="h-4 w-4" />
+                    ) : (
+                      <GitPullRequestDraft className="h-4 w-4" />
+                    )}
+                    <span>
+                      {reviewsCount}
+                      {secondaryLabel && <span className="ml-1 text-xs">{secondaryLabel}</span>}
+                    </span>
                   </>
                 )}
                 {showComments && (

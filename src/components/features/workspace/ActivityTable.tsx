@@ -418,12 +418,29 @@ export function ActivityTable({
                           {/* Author */}
                           <div className="hidden sm:flex flex-shrink-0 w-40 items-center gap-2">
                             {(() => {
+                              // Calculate contributor stats from all activities
+                              const contributorActivities = activities.filter(
+                                (a) => a.author.username === activity.author.username
+                              );
+
+                              const pullRequestsCount = contributorActivities.filter(
+                                (a) => a.type === 'pr'
+                              ).length;
+
+                              const reviewsCount = contributorActivities.filter(
+                                (a) => a.type === 'review'
+                              ).length;
+
+                              const commentsCount = contributorActivities.filter(
+                                (a) => a.type === 'comment'
+                              ).length;
+
                               const contributorStats: ContributorStats = {
                                 login: activity.author.username,
                                 avatar_url:
                                   activity.author.avatar_url ||
                                   `https://avatars.githubusercontent.com/${activity.author.username}`,
-                                pullRequests: 0,
+                                pullRequests: pullRequestsCount,
                                 percentage: 0,
                                 recentActivities: getRecentActivitiesForContributor(
                                   activity.author.username,
@@ -433,7 +450,13 @@ export function ActivityTable({
                               };
 
                               return (
-                                <ContributorHoverCard contributor={contributorStats}>
+                                <ContributorHoverCard
+                                  contributor={contributorStats}
+                                  showReviews={true}
+                                  showComments={true}
+                                  reviewsCount={reviewsCount}
+                                  commentsCount={commentsCount}
+                                >
                                   <a
                                     href={`https://github.com/${activity.author.username}`}
                                     target="_blank"
