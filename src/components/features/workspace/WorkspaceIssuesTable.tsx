@@ -44,6 +44,8 @@ import { useWorkspaceFiltersStore, type IssueState } from '@/lib/workspace-filte
 import { IssueFilters } from './filters/TableFilters';
 import { isBot, hasBotAuthors } from '@/lib/utils/bot-detection';
 import { supabase } from '@/lib/supabase';
+import { ContributorHoverCard } from '@/components/features/contributor/contributor-hover-card';
+import type { ContributorStats } from '@/lib/types';
 
 export interface Issue {
   id: string;
@@ -350,28 +352,29 @@ export function WorkspaceIssuesTable({
             const repo = row.original.repository;
             const authorFilterUrl = `https://github.com/${repo.owner}/${repo.name}/issues?q=is%3Aissue+author%3A${encodeURIComponent(author.username)}`;
 
+            const contributorStats: ContributorStats = {
+              login: author.username,
+              avatar_url: author.avatar_url,
+              pullRequests: 0, // Not available in this context
+              percentage: 0,
+              recentPRs: [], // Could be populated with recent issues transformed to PR format
+            };
+
             return (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <a
-                      href={authorFilterUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-block"
-                    >
-                      <img
-                        src={author.avatar_url}
-                        alt={author.username}
-                        className="h-6 w-6 rounded-full cursor-pointer hover:ring-2 hover:ring-primary transition-all"
-                      />
-                    </a>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{author.username}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <ContributorHoverCard contributor={contributorStats}>
+                <a
+                  href={authorFilterUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block"
+                >
+                  <img
+                    src={author.avatar_url}
+                    alt={author.username}
+                    className="h-6 w-6 rounded-full cursor-pointer hover:ring-2 hover:ring-primary transition-all"
+                  />
+                </a>
+              </ContributorHoverCard>
             );
           },
           size: 60,

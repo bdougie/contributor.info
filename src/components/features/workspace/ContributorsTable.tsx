@@ -50,6 +50,8 @@ import type { WorkspaceRole, WorkspaceTier } from '@/types/workspace';
 import { useGroupManagementPermissions } from '@/hooks/useWorkspacePermissions';
 import { GroupManagementCTA } from '@/components/ui/permission-upgrade-cta';
 import { useAuth } from '@/hooks/useAuth';
+import { ContributorHoverCard } from '@/components/features/contributor/contributor-hover-card';
+import type { ContributorStats } from '@/lib/types';
 
 export interface ContributorGroup {
   id: string;
@@ -205,31 +207,47 @@ export function ContributorsTable({
           const groupIds = contributorGroups.get(contributor.id) || [];
           const contributorGroupsList = groups.filter((g) => groupIds.includes(g.id));
 
+          const contributorStats: ContributorStats = {
+            login: contributor.username,
+            avatar_url: contributor.avatar_url,
+            pullRequests: contributor.contributions.pull_requests,
+            percentage: 0, // Not applicable in workspace context
+            recentPRs: [], // Would need to be passed from parent if available
+          };
+
           return (
-            <button
-              onClick={() => onContributorClick?.(contributor)}
-              className="flex items-center gap-3 text-left hover:opacity-80 transition-opacity"
+            <ContributorHoverCard
+              contributor={contributorStats}
+              showReviews={true}
+              showComments={true}
+              reviewsCount={contributor.contributions.reviews}
+              commentsCount={contributor.contributions.comments}
             >
-              <img
-                src={contributor.avatar_url}
-                alt={contributor.username}
-                className="h-8 w-8 rounded-full"
-              />
-              <div className="space-y-1">
-                <p className="font-medium">@{contributor.username}</p>
-                <div className="flex flex-wrap gap-1">
-                  {contributorGroupsList.length > 0 ? (
-                    contributorGroupsList.map((group) => (
-                      <Badge key={group.id} variant="secondary" className="text-xs">
-                        {group.name}
-                      </Badge>
-                    ))
-                  ) : (
-                    <span className="text-xs text-muted-foreground">No groups</span>
-                  )}
+              <button
+                onClick={() => onContributorClick?.(contributor)}
+                className="flex items-center gap-3 text-left hover:opacity-80 transition-opacity"
+              >
+                <img
+                  src={contributor.avatar_url}
+                  alt={contributor.username}
+                  className="h-8 w-8 rounded-full"
+                />
+                <div className="space-y-1">
+                  <p className="font-medium">@{contributor.username}</p>
+                  <div className="flex flex-wrap gap-1">
+                    {contributorGroupsList.length > 0 ? (
+                      contributorGroupsList.map((group) => (
+                        <Badge key={group.id} variant="secondary" className="text-xs">
+                          {group.name}
+                        </Badge>
+                      ))
+                    ) : (
+                      <span className="text-xs text-muted-foreground">No groups</span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </button>
+              </button>
+            </ContributorHoverCard>
           );
         },
       }),
