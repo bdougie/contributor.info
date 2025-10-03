@@ -2,6 +2,23 @@ import { supabase } from '../supabase';
 import { detectBot } from '@/lib/utils/bot-detection';
 
 /**
+ * Normalizes GitHub review state to database format
+ * GitHub API returns lowercase (e.g., 'approved', 'changes_requested')
+ * Database expects uppercase (e.g., 'APPROVED', 'CHANGES_REQUESTED')
+ */
+function normalizeReviewState(githubState: string): string {
+  const normalized = githubState.toUpperCase();
+  const validStates = ['PENDING', 'APPROVED', 'CHANGES_REQUESTED', 'COMMENTED', 'DISMISSED'];
+
+  if (!validStates.includes(normalized)) {
+    console.warn('Unknown review state: %s, defaulting to COMMENTED', githubState);
+    return 'COMMENTED';
+  }
+
+  return normalized;
+}
+
+/**
  * Processor for fetching and storing PR reviews and comments
  */
 export class ReviewCommentProcessor {
@@ -114,7 +131,7 @@ export class ReviewCommentProcessor {
               github_id: review.id,
               pull_request_id: metadata.pr_id,
               reviewer_id: reviewer.id,
-              state: review.state,
+              state: normalizeReviewState(review.state),
               body: review.body || null,
               submitted_at: review.submitted_at,
               commit_id: review.commit_id || null,
