@@ -8,6 +8,8 @@ import { ChevronDown, ChevronUp, Users } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 import { isBot } from '@/lib/utils/bot-detection';
 import type { Issue } from '../WorkspaceIssuesTable';
+import { ContributorHoverCard } from '@/components/features/contributor/contributor-hover-card';
+import type { ContributorStats } from '@/lib/types';
 
 interface AssigneeData {
   login: string;
@@ -198,25 +200,37 @@ export function AssigneeDistributionChart({
                 ? 'h-8 w-8 rounded-full hover:ring-2 hover:ring-primary transition-all'
                 : 'h-8 w-8 rounded-full';
 
+              const contributorStats: ContributorStats = {
+                login: assignee.login,
+                avatar_url: assignee.avatar_url,
+                pullRequests: 0,
+                percentage: 0,
+                recentPRs: [],
+              };
+
               const avatarImg = (
                 <img src={assignee.avatar_url} alt={assignee.login} className={avatarClassName} />
               );
 
-              if (githubUrl) {
-                return (
-                  <a
-                    href={githubUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-shrink-0"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {avatarImg}
-                  </a>
-                );
-              }
+              const avatarContent = githubUrl ? (
+                <a
+                  href={githubUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-shrink-0"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {avatarImg}
+                </a>
+              ) : (
+                avatarImg
+              );
 
-              return avatarImg;
+              return (
+                <ContributorHoverCard contributor={contributorStats}>
+                  {avatarContent}
+                </ContributorHoverCard>
+              );
             };
 
             return (
