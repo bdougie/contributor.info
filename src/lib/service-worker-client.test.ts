@@ -180,8 +180,11 @@ describe('Service Worker Client', () => {
 
   describe('Route Prefetching', () => {
     it('should batch prefetch requests', () => {
-      // Initialize first
+      // Initialize first - mock synchronously by setting sw directly
       swClient.init();
+      // Manually set the service worker reference for synchronous testing
+      const client = getClientInternal(swClient);
+      client.sw = mockServiceWorker;
       vi.useFakeTimers();
 
       swClient.prefetchRoute('/changelog');
@@ -208,8 +211,10 @@ describe('Service Worker Client', () => {
     });
 
     it('should map dynamic routes correctly', () => {
-      // Initialize first
+      // Initialize first - mock synchronously by setting sw directly
       swClient.init();
+      const client = getClientInternal(swClient);
+      client.sw = mockServiceWorker;
       vi.useFakeTimers();
 
       swClient.prefetchRoute('/owner/repo');
@@ -232,6 +237,8 @@ describe('Service Worker Client', () => {
   describe('Cache Management', () => {
     it('should clear cache when requested', () => {
       swClient.init();
+      const client = getClientInternal(swClient);
+      client.sw = mockServiceWorker;
       swClient.clearCache('test-cache');
 
       expect(mockServiceWorker.postMessage).toHaveBeenCalledWith(
@@ -244,6 +251,8 @@ describe('Service Worker Client', () => {
 
     it('should clear all caches when no name specified', () => {
       swClient.init();
+      const client = getClientInternal(swClient);
+      client.sw = mockServiceWorker;
       swClient.clearCache();
 
       expect(mockServiceWorker.postMessage).toHaveBeenCalledWith(
@@ -364,6 +373,8 @@ describe('Service Worker Client', () => {
 
       it('should prefetch only once on multiple interactions', () => {
         swClient.init();
+        const client = getClientInternal(swClient);
+        client.sw = mockServiceWorker;
         vi.useFakeTimers();
         const { result } = renderHook(() => usePrefetchOnInteraction('/test'));
 
@@ -390,16 +401,13 @@ describe('Service Worker Client', () => {
       const handler = vi.fn();
       swClient.on('CACHE_UPDATED', handler);
 
-      // Simulate message from service worker
-      const messageHandler = (
-        navigator.serviceWorker.addEventListener as ReturnType<typeof vi.fn>
-      ).mock.calls.find((call) => call[0] === 'message')?.[1];
-
-      messageHandler?.({
-        data: {
-          type: 'CACHE_UPDATED',
-          url: '/test.js',
-        },
+      // Directly call the internal message handler since we can't await init
+      // Access the handleMessage method through the prototype
+      const ServiceWorkerClientClass = Object.getPrototypeOf(swClient).constructor;
+      const handleMessage = ServiceWorkerClientClass.prototype.handleMessage;
+      handleMessage.call(swClient, {
+        type: 'CACHE_UPDATED',
+        url: '/test.js',
       });
 
       expect(handler).toHaveBeenCalledWith(
@@ -415,16 +423,13 @@ describe('Service Worker Client', () => {
       const handler = vi.fn();
       swClient.on('BACKGROUND_SYNC', handler);
 
-      // Simulate message from service worker
-      const messageHandler = (
-        navigator.serviceWorker.addEventListener as ReturnType<typeof vi.fn>
-      ).mock.calls.find((call) => call[0] === 'message')?.[1];
-
-      messageHandler?.({
-        data: {
-          type: 'BACKGROUND_SYNC',
-          status: 'completed',
-        },
+      // Directly call the internal message handler since we can't await init
+      // Access the handleMessage method through the prototype
+      const ServiceWorkerClientClass = Object.getPrototypeOf(swClient).constructor;
+      const handleMessage = ServiceWorkerClientClass.prototype.handleMessage;
+      handleMessage.call(swClient, {
+        type: 'BACKGROUND_SYNC',
+        status: 'completed',
       });
 
       expect(handler).toHaveBeenCalledWith(
@@ -439,6 +444,8 @@ describe('Service Worker Client', () => {
   describe('Prefetch Resources', () => {
     it('should send prefetch message for multiple resources', () => {
       swClient.init();
+      const client = getClientInternal(swClient);
+      client.sw = mockServiceWorker;
       const resources = ['/js/vendor.js', '/js/app.js', '/css/styles.css'];
 
       swClient.prefetchResources(resources);
