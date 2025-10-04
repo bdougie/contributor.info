@@ -10,8 +10,9 @@ import { detectBot } from '../../utils/bot-detection';
  * Normalizes GitHub review state to database format
  * GitHub API returns lowercase (e.g., 'approved', 'changes_requested')
  * Database expects uppercase (e.g., 'APPROVED', 'CHANGES_REQUESTED')
+ * @internal Exported for testing purposes
  */
-function normalizeReviewState(githubState: string): string {
+export function normalizeReviewState(githubState: string): string {
   const normalized = githubState.toUpperCase();
   const validStates = ['PENDING', 'APPROVED', 'CHANGES_REQUESTED', 'COMMENTED', 'DISMISSED'];
 
