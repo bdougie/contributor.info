@@ -308,10 +308,16 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
     typeof navigator !== 'undefined' && /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
   // Custom Node for scatter plot points
-  // Using 'any' for props type due to Nivo's complex internal types
-  // The data structure is validated at runtime with defensive checks
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const CustomNode = (props: any) => {
+  // Props interface for scatter plot node component
+  interface ScatterPlotNodeProps {
+    node: {
+      data: CustomNodeData;
+      index: number;
+    };
+    style?: Record<string, unknown>;
+  }
+
+  const CustomNode = (props: ScatterPlotNodeProps) => {
     // Defensive check for required props
     if (!props || !props.node || !props.node.data) {
       console.warn('CustomNode: Missing required props', props);

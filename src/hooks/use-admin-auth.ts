@@ -215,7 +215,7 @@ export async function logAdminAction(
   actionType: string,
   targetType?: string,
   targetId?: string,
-  details?: Record<string, any>
+  details?: Record<string, unknown>
 ): Promise<void> {
   try {
     // First try to use the RPC function
@@ -232,7 +232,7 @@ export async function logAdminAction(
     if (rpcError) {
       throw rpcError;
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.warn('RPC log_admin_action failed, admin system may not be set up:', error?.message);
 
     // Fallback: Try direct insert (will work if admin_action_logs table exists)

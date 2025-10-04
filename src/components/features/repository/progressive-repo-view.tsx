@@ -91,7 +91,15 @@ export function ProgressiveRepoView() {
               </div>
             ) : (
               <div className="flex -space-x-2">
-                {progressiveData.basicInfo?.topContributors.map((contributor: any, i: number) => (
+                {progressiveData.basicInfo?.topContributors.map(
+                  (
+                    contributor: {
+                      id: number;
+                      username: string;
+                      avatar_url: string;
+                    },
+                    i: number
+                  ) => (
                   <Avatar key={contributor.id} className="h-8 w-8 border-2 border-background">
                     <AvatarImage
                       src={`${contributor.avatar_url}?s=64`}

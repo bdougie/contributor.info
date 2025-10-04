@@ -23,7 +23,7 @@ export interface EnhancedProgressiveDataState {
   stats: RepoStats;
   lotteryFactor: LotteryFactor | null;
   directCommitsData: DirectCommitsData | null;
-  historicalTrends: any | null;
+  historicalTrends: Record<string, unknown> | null;
 
   // Enhanced loading state with error handling
   currentStage: LoadingStage;
@@ -38,7 +38,7 @@ export interface EnhancedProgressiveDataState {
       | 'large_repository_protected'
       | 'error';
     message?: string;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
   };
 
   // Error recovery state
@@ -119,7 +119,7 @@ export function useProgressiveRepoDataWithErrorBoundaries(
 
   // Handle errors with automatic retry logic
   const handleStageError = useCallback(
-    async (error: unknown, stage: LoadingStage, context?: any) => {
+    async (error: unknown, stage: LoadingStage, context?: Record<string, unknown>) => {
       const loadingError =
         error instanceof Error && (error as LoadingError).stage
           ? (error as LoadingError)
@@ -520,7 +520,7 @@ export function useProgressiveRepoDataWithErrorBoundaries(
 function createGenericLoadingError(
   error: unknown,
   stage: LoadingStage,
-  context?: any
+  context?: Record<string, unknown>
 ): LoadingError {
   const message = error instanceof Error ? error.message : String(error);
 

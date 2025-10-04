@@ -11,15 +11,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 export default function TestInsights() {
   // State for the legacy function testing
   const [loading, setLoading] = useState(false);
-  const [response, setResponse] = useState<any>(null);
+  const [response, setResponse] = useState<Record<string, unknown> | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [requestDetails, setRequestDetails] = useState<any>(null);
+  const [requestDetails, setRequestDetails] = useState<Record<string, unknown> | null>(null);
 
   // State for the new implementation testing
   const [owner, setOwner] = useState('facebook');
   const [repo, setRepo] = useState('react');
   const [localLoading, setLocalLoading] = useState(false);
-  const [localResponse, setLocalResponse] = useState<any>(null);
+  const [localResponse, setLocalResponse] = useState<Record<string, unknown> | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
 
   // Sample PR data for testing
@@ -53,7 +53,7 @@ export default function TestInsights() {
   };
 
   // Legacy Supabase function test
-  const testSupabaseFunction = async (data: any) => {
+  const testSupabaseFunction = async (data: Record<string, unknown>) => {
     setLoading(true);
     setError(null);
     setResponse(null);

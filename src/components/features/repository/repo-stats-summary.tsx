@@ -19,7 +19,7 @@ interface ExtendedLotteryFactorType extends LotteryFactor {
 }
 
 // Type guard for ExtendedLotteryFactorType
-const isExtendedLotteryFactor = (factor: any): factor is ExtendedLotteryFactorType => {
+const isExtendedLotteryFactor = (factor: unknown): factor is ExtendedLotteryFactorType => {
   return (
     factor &&
     typeof factor === 'object' &&
