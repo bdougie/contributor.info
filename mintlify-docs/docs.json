@@ -1,7 +1,7 @@
 {
   "name": "contributor.info",
   "theme": "willow",
-  "favicon": "/favicon.ico",
+  "favicon": "/favicon.svg",
   "primaryTab": {
     "name": "Documentation"
   },
@@ -79,6 +79,12 @@
     "twitter": "https://twitter.com/bdougieYO",
     "discord": "https://discord.gg/gZMKK5q"
   },
+  "footer": [
+    {
+      "name": "Changelog",
+      "url": "/changelog"
+    }
+  ],
   "analytics": {
     "posthog": {
       "apiKey": "phc_WKB5qeFfKiZB11zZfCnuqbvWKwQ0jLBzG2bX7vJ1MhO"

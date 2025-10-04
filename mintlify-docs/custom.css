@@ -38,12 +38,36 @@ body {
   color: #ff5402 !important;
 }
 
+/* Header/Logo styling to match main app */
+header a[href='/'],
+header a[href='']:first-child,
+[class*='logo'],
+[data-logo] {
+  font-size: 1.25rem !important; /* 20px - text-xl */
+  font-weight: 700 !important; /* font-bold */
+  transition: color 0.2s ease !important;
+}
+
+header a[href='/']:hover,
+header a[href='']:first-child:hover,
+[class*='logo']:hover,
+[data-logo]:hover {
+  color: #ff5402 !important;
+}
+
 /* Navigation font sizes to match main app */
 nav a,
 .sidebar a,
 header a {
   font-size: 0.875rem; /* 14px - text-sm in Tailwind */
   font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+nav a:hover,
+.sidebar a:hover,
+header a:hover {
+  color: #ff5402;
 }
 
 /* Primary color for links and buttons */
@@ -63,16 +87,39 @@ a:hover {
   color: #ff7a3d;
 }
 
-/* Buttons */
-button,
-.button {
+/* Buttons - only apply to primary action buttons */
+button[data-primary],
+.button-primary,
+button[type='submit'] {
   background-color: #ff5402;
   color: white;
 }
 
-button:hover,
-.button:hover {
+button[data-primary]:hover,
+.button-primary:hover,
+button[type='submit']:hover {
   background-color: #ff7a3d;
+}
+
+/* Keep nav buttons transparent */
+nav button,
+header button,
+button[aria-label*='search' i],
+button[aria-label*='navigation' i],
+button[class*='search'],
+button[class*='nav'],
+[data-search-trigger],
+[data-nav-trigger] {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+nav button:hover,
+header button:hover,
+button[aria-label*='search' i]:hover,
+button[aria-label*='navigation' i]:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  background: rgba(255, 255, 255, 0.1) !important;
 }
 
 /* Headings matching main app style */
