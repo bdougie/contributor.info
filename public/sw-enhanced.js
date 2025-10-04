@@ -553,6 +553,26 @@ self.addEventListener('message', (event) => {
         caches: Object.keys(CACHES),
       });
       break;
+
+    case 'INVALIDATE_CONTRIBUTOR_CACHE':
+      // Clear cached contributor data when social links are updated
+      if (data && data.contributorId) {
+        caches.open(CACHES.API).then((cache) => {
+          cache.keys().then((requests) => {
+            requests.forEach((request) => {
+              // Delete any cached requests related to this contributor
+              if (
+                request.url.includes('/contributors') &&
+                request.url.includes(data.contributorId)
+              ) {
+                cache.delete(request);
+                console.log('[SW] Invalidated contributor cache:', request.url);
+              }
+            });
+          });
+        });
+      }
+      break;
   }
 });
 
