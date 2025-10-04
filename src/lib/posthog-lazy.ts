@@ -727,7 +727,7 @@ export async function trackSupabaseError(
     const posthog = await loadPostHog();
     if (!posthog) return;
 
-    const errorMessage = 'message' in error ? error.message : error.toString();
+    const errorMessage = 'message' in error ? error.message : String(error);
     const errorCode = 'code' in error ? error.code : undefined;
     const errorDetails = 'details' in error ? error.details : undefined;
 
