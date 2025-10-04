@@ -11,15 +11,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 export default function TestInsights() {
   // State for the legacy function testing
   const [loading, setLoading] = useState(false);
-  const [response, setResponse] = useState<any>(null);
+  const [response, setResponse] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
-  const [requestDetails, setRequestDetails] = useState<any>(null);
+  const [requestDetails, setRequestDetails] = useState<unknown>(null);
 
   // State for the new implementation testing
   const [owner, setOwner] = useState('facebook');
   const [repo, setRepo] = useState('react');
   const [localLoading, setLocalLoading] = useState(false);
-  const [localResponse, setLocalResponse] = useState<any>(null);
+  const [localResponse, setLocalResponse] = useState<unknown>(null);
   const [localError, setLocalError] = useState<string | null>(null);
 
   // Sample PR data for testing
@@ -53,7 +53,7 @@ export default function TestInsights() {
   };
 
   // Legacy Supabase function test
-  const testSupabaseFunction = async (data: any) => {
+  const testSupabaseFunction = async (data: Record<string, unknown>) => {
     setLoading(true);
     setError(null);
     setResponse(null);
@@ -247,7 +247,7 @@ export default function TestInsights() {
               <div className="p-4 bg-muted rounded-md">
                 <p className="font-semibold">Local Analysis Result:</p>
                 <pre className="text-sm mt-2 whitespace-pre-wrap overflow-x-auto">
-                  {JSON.stringify(localResponse, null, 2)}
+                  {localResponse ? JSON.stringify(localResponse, null, 2) : 'No data'}
                 </pre>
               </div>
             )}
@@ -285,7 +285,7 @@ export default function TestInsights() {
               <div className="p-4 bg-muted rounded-md">
                 <p className="font-semibold">Request Details:</p>
                 <pre className="text-sm mt-2 whitespace-pre-wrap overflow-x-auto">
-                  {JSON.stringify(requestDetails, null, 2)}
+                  {requestDetails ? JSON.stringify(requestDetails, null, 2) : 'No data'}
                 </pre>
               </div>
             )}
@@ -294,7 +294,7 @@ export default function TestInsights() {
               <div className="p-4 bg-muted rounded-md">
                 <p className="font-semibold">Response:</p>
                 <pre className="text-sm mt-2 whitespace-pre-wrap overflow-x-auto">
-                  {JSON.stringify(response, null, 2)}
+                  {response ? JSON.stringify(response, null, 2) : 'No data'}
                 </pre>
               </div>
             )}

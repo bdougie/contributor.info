@@ -28,7 +28,7 @@ interface ShareEvent {
   action: string;
   share_type: string;
   domain: string;
-  metadata: any;
+  metadata: Record<string, unknown>;
   created_at: string;
 }
 

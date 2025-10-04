@@ -308,8 +308,8 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
     typeof navigator !== 'undefined' && /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
   // Custom Node for scatter plot points
-  // Using 'any' for props type due to Nivo's complex internal types
-  // The data structure is validated at runtime with defensive checks
+  // Using any here because Nivo's ScatterPlotNodeProps is complex and dynamic
+  // Data structure is validated at runtime with defensive checks
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const CustomNode = (props: any) => {
     // Defensive check for required props

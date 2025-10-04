@@ -22,7 +22,7 @@ export interface CachedApiState<T> {
 
 export interface UseCachedGitHubApiOptions extends ApiCallOptions {
   enabled?: boolean;
-  onSuccess?: (data: any) => void;
+  onSuccess?: (data: unknown) => void;
   onError?: (error: string) => void;
   refreshInterval?: number;
 }
@@ -32,10 +32,13 @@ export interface UseCachedGitHubApiOptions extends ApiCallOptions {
  */
 export function useCachedGitHubApi<T>(
   endpoint: string,
-  params: Record<string, any> = {},
+  params: Record<string, unknown> = {},
   options: UseCachedGitHubApiOptions = {}
 ): CachedApiState<T> {
-  const [session, setSession] = useState<any>(null);
+  const [session, setSession] = useState<{
+    provider_token?: string | null;
+    [key: string]: unknown;
+  } | null>(null);
   const [state, setState] = useState<{
     data: T | null;
     loading: boolean;
@@ -50,7 +53,7 @@ export function useCachedGitHubApi<T>(
     responseTime: 0,
   });
 
-  const clientRef = useRef(createCachedGitHubClient(session?.provider_token));
+  const clientRef = useRef(createCachedGitHubClient(session?.provider_token ?? undefined));
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const { enabled = true, onSuccess, onError, refreshInterval, ...apiOptions } = options;
@@ -134,14 +137,21 @@ export function useCachedGitHubApi<T>(
       const {
         data: { session },
       } = await supabase.auth.getSession();
-      setSession(session);
+      setSession(
+        session
+          ? {
+              provider_token: session.provider_token,
+              ...session,
+            }
+          : null
+      );
     };
     getSession();
   }, []);
 
   // Update client token when session changes
   useEffect(() => {
-    clientRef.current = createCachedGitHubClient(session?.provider_token);
+    clientRef.current = createCachedGitHubClient(session?.provider_token ?? undefined);
   }, [session?.provider_token]);
 
   return {
@@ -189,7 +199,7 @@ export function useCachedUser(username: string, options: UseCachedGitHubApiOptio
 export function useCachedPullRequests(
   owner: string,
   repo: string,
-  queryParams: Record<string, any> = {},
+  queryParams: Record<string, unknown> = {},
   options: UseCachedGitHubApiOptions = {}
 ) {
   return useCachedGitHubApi(`/repos/${owner}/${repo}/pulls`, queryParams, {
@@ -204,7 +214,7 @@ export function useCachedPullRequests(
 export function useCachedRepositoryEvents(
   owner: string,
   repo: string,
-  queryParams: Record<string, any> = {},
+  queryParams: Record<string, unknown> = {},
   options: UseCachedGitHubApiOptions = {}
 ) {
   return useCachedGitHubApi(`/repos/${owner}/${repo}/events`, queryParams, {
@@ -217,7 +227,11 @@ export function useCachedRepositoryEvents(
  * Hook for batch API requests
  */
 export function useCachedBatchRequests<T>(
-  requests: Array<{ endpoint: string; params?: Record<string, any>; options?: ApiCallOptions }>,
+  requests: Array<{
+    endpoint: string;
+    params?: Record<string, unknown>;
+    options?: ApiCallOptions;
+  }>,
   options: UseCachedGitHubApiOptions = {}
 ) {
   const [state, setState] = useState<{
@@ -268,7 +282,7 @@ export function useCachedBatchRequests<T>(
  * Hook for monitoring cache performance
  */
 export function useCacheStats() {
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<Record<string, unknown> | null>(null);
   const clientRef = useRef(createCachedGitHubClient());
 
   const refreshStats = useCallback(() => {

@@ -4,11 +4,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useRepositorySummary } from '@/hooks/use-repository-summary';
 import { Markdown } from '@/components/common/layout';
+import type { PullRequest } from '@/lib/types';
 
 interface RepositorySummaryCardProps {
   owner: string;
   repo: string;
-  pullRequests?: any[];
+  pullRequests?: PullRequest[];
   className?: string;
 }
 
