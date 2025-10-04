@@ -63,9 +63,9 @@
           "href": "https://discord.gg/gZMKK5q"
         },
         {
-          "anchor": "Support",
-          "icon": "question",
-          "href": "https://github.com/bdougie/contributor.info/issues"
+          "anchor": "Discussions",
+          "icon": "github",
+          "href": "https://github.com/bdougie/contributor.info/discussions"
         }
       ]
     }
