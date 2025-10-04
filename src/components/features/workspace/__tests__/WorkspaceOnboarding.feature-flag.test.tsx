@@ -74,7 +74,7 @@ describe('WorkspaceOnboarding - Feature Flag Tests', () => {
         render(<WorkspaceOnboarding onCreateClick={mockOnCreateClick} />);
 
         expect(screen.getByText('Workspaces')).toBeInTheDocument();
-        expect(screen.getByText('Login Required')).toBeInTheDocument();
+        expect(screen.getByText('Sign In Required')).toBeInTheDocument();
         expect(screen.queryByText('Create Your First Workspace')).not.toBeInTheDocument();
       });
 
@@ -137,7 +137,7 @@ describe('WorkspaceOnboarding - Feature Flag Tests', () => {
       it('should show the disabled state', () => {
         render(<WorkspaceOnboardingCompact onCreateClick={mockOnCreateClick} />);
 
-        expect(screen.getByText('Login Required')).toBeInTheDocument();
+        expect(screen.getByText('Sign In Required')).toBeInTheDocument();
         expect(screen.queryByText('New Workspace')).not.toBeInTheDocument();
       });
     });
