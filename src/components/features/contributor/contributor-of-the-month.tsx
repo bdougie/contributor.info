@@ -162,41 +162,56 @@ export function ContributorOfTheMonth({
               </div>
 
               {/* Top Runners-up */}
-              {topContributors.length > 1 && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-medium text-muted-foreground">
-                      Top Contributors ({topContributors.length - 1} runner
-                      {topContributors.length - 1 !== 1 ? 's' : ''}-up)
-                      {topContributors.length > 4 && (
-                        <Button
-                          variant="link"
-                          className="text-xs ml-2"
-                          onClick={() => setShowAllContributors((prev) => !prev)}
-                        >
-                          {showAllContributors ? 'Show less' : `Show all`}
-                        </Button>
-                      )}
-                    </h4>
-                  </div>
+              {topContributors.length > 1 &&
+                (() => {
+                  const runnersUp = topContributors.slice(1, showAllContributors ? undefined : 4);
+                  const runnerCount = runnersUp.length;
 
-                  <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 mx-auto">
-                    {topContributors
-                      .slice(1, showAllContributors ? undefined : 4)
-                      .map((contributor) => (
-                        <ContributorCard
-                          key={contributor.login}
-                          contributor={contributor}
-                          showRank={true}
-                          repositoryOwner={repositoryOwner}
-                          repositoryName={repositoryName}
-                          month={ranking.month}
-                          year={ranking.year}
-                        />
-                      ))}
-                  </div>
-                </div>
-              )}
+                  // Dynamic grid based on runner count:
+                  // 1 runner: centered single column
+                  // 2 runners: 2 columns centered
+                  // 3+ runners: 3 columns
+                  let gridClass = 'grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 mx-auto';
+                  if (runnerCount === 1) {
+                    gridClass = 'grid gap-4 grid-cols-1 max-w-sm mx-auto';
+                  } else if (runnerCount === 2) {
+                    gridClass = 'grid gap-4 grid-cols-1 sm:grid-cols-2 max-w-2xl mx-auto';
+                  }
+
+                  return (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-medium text-muted-foreground">
+                          Top Contributors ({topContributors.length - 1} runner
+                          {topContributors.length - 1 !== 1 ? 's' : ''}-up)
+                          {topContributors.length > 4 && (
+                            <Button
+                              variant="link"
+                              className="text-xs ml-2"
+                              onClick={() => setShowAllContributors((prev) => !prev)}
+                            >
+                              {showAllContributors ? 'Show less' : `Show all`}
+                            </Button>
+                          )}
+                        </h4>
+                      </div>
+
+                      <div className={gridClass}>
+                        {runnersUp.map((contributor) => (
+                          <ContributorCard
+                            key={contributor.login}
+                            contributor={contributor}
+                            showRank={true}
+                            repositoryOwner={repositoryOwner}
+                            repositoryName={repositoryName}
+                            month={ranking.month}
+                            year={ranking.year}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
             </div>
           ) : (
             <div className="space-y-4">
@@ -208,38 +223,55 @@ export function ContributorOfTheMonth({
                     {(totalContributors || ranking.contributors.length) !== 1 ? 's' : ''}
                   </span>
                 </div>
+                {topContributors.length > 1 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowAllContributors((prev) => !prev)}
+                  >
+                    {showAllContributors ? 'Show winner only' : 'View all contributors'}
+                  </Button>
+                )}
               </div>
 
-              <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
-                {topContributors.map((contributor, index) => {
-                  const isFirstPlace = index === 0 && showBlurredFirst && !hasPaidWorkspace;
+              {/* Show only winner by default, or all contributors when toggled */}
+              <div
+                className={cn(
+                  'grid gap-4',
+                  showAllContributors ? 'grid-cols-1 sm:grid-cols-3' : 'max-w-sm mx-auto'
+                )}
+              >
+                {topContributors
+                  .slice(0, showAllContributors ? undefined : 1)
+                  .map((contributor, index) => {
+                    const isFirstPlace = index === 0 && showBlurredFirst && !hasPaidWorkspace;
 
-                  return (
-                    <div key={contributor.login} className="relative">
-                      {isFirstPlace && (
-                        <div className="absolute inset-0 z-10 rounded-lg bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center gap-2">
-                          <Lock className="h-6 w-6 text-muted-foreground" />
-                          <Button
-                            size="sm"
-                            onClick={() => setShowWorkspaceModal(true)}
-                            className="text-xs bg-orange-500 hover:bg-orange-600 text-white"
-                          >
-                            {isLoggedIn ? 'Upgrade to view' : 'Login to view'}
-                          </Button>
-                        </div>
-                      )}
-                      <ContributorCard
-                        contributor={contributor}
-                        showRank={true}
-                        className={isFirstPlace ? 'blur-sm' : ''}
-                        repositoryOwner={repositoryOwner}
-                        repositoryName={repositoryName}
-                        month={ranking.month}
-                        year={ranking.year}
-                      />
-                    </div>
-                  );
-                })}
+                    return (
+                      <div key={contributor.login} className="relative">
+                        {isFirstPlace && (
+                          <div className="absolute inset-0 z-10 rounded-lg bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center gap-2">
+                            <Lock className="h-6 w-6 text-muted-foreground" />
+                            <Button
+                              size="sm"
+                              onClick={() => setShowWorkspaceModal(true)}
+                              className="text-xs bg-orange-500 hover:bg-orange-600 text-white"
+                            >
+                              {isLoggedIn ? 'Upgrade to view' : 'Login to view'}
+                            </Button>
+                          </div>
+                        )}
+                        <ContributorCard
+                          contributor={contributor}
+                          showRank={true}
+                          className={isFirstPlace ? 'blur-sm' : ''}
+                          repositoryOwner={repositoryOwner}
+                          repositoryName={repositoryName}
+                          month={ranking.month}
+                          year={ranking.year}
+                        />
+                      </div>
+                    );
+                  })}
               </div>
 
               {/* Workspace CTA */}
