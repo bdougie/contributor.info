@@ -49,8 +49,29 @@ serve(async (req) => {
 
     // Get current month/year if not provided (use UTC to avoid timezone issues)
     const now = new Date();
-    const targetMonth = month || now.getUTCMonth() + 1;
-    const targetYear = year || now.getUTCFullYear();
+    let targetMonth: number;
+    let targetYear: number;
+
+    if (month !== undefined && year !== undefined) {
+      // Explicit month/year provided
+      targetMonth = month;
+      targetYear = year;
+    } else {
+      // No explicit month/year - determine based on cycle phase
+      const dayOfMonth = now.getUTCDate();
+      const isWinnerPhase = dayOfMonth >= 1 && dayOfMonth <= 7;
+
+      if (isWinnerPhase) {
+        // Winner announcement phase (1st-7th): show previous month's data
+        const previousMonthDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
+        targetMonth = previousMonthDate.getUTCMonth() + 1;
+        targetYear = previousMonthDate.getUTCFullYear();
+      } else {
+        // Running leaderboard phase (8th+): show current month's data
+        targetMonth = now.getUTCMonth() + 1;
+        targetYear = now.getUTCFullYear();
+      }
+    }
 
     // Calculate date range for the month in UTC
     const startDate = new Date(Date.UTC(targetYear, targetMonth - 1, 1, 0, 0, 0, 0));
@@ -239,32 +260,62 @@ serve(async (req) => {
       stats.pull_requests_count++;
     });
 
+    // Get contributor IDs for reviewers and commenters who aren't PR authors
+    const reviewerIds = new Set(
+      prReviews?.filter((r) => r.reviewer_id && !contributorMap.has(r.reviewer_id))
+        .map((r) => r.reviewer_id) || []
+    );
+    const commenterIds = new Set(
+      prComments?.filter((c) => c.commenter_id && !contributorMap.has(c.commenter_id))
+        .map((c) => c.commenter_id) || []
+    );
+
+    // Fetch contributor info for reviewers and commenters
+    const additionalContributorIds = Array.from(new Set([...reviewerIds, ...commenterIds]));
+    if (additionalContributorIds.length > 0) {
+      const { data: additionalContributors } = await supabase
+        .from('contributors')
+        .select('id, username, display_name, avatar_url, github_id')
+        .in('id', additionalContributorIds);
+
+      // Add them to the contributor map
+      additionalContributors?.forEach((contributor) => {
+        if (!contributorMap.has(contributor.id)) {
+          contributorMap.set(contributor.id, {
+            contributor_id: contributor.id,
+            username: contributor.username,
+            display_name: contributor.display_name || contributor.username,
+            avatar_url:
+              contributor.avatar_url ||
+              `https://avatars.githubusercontent.com/${contributor.username}`,
+            github_id: contributor.github_id,
+            pull_requests_count: 0,
+            reviews_count: 0,
+            comments_count: 0,
+            weighted_score: 0,
+          });
+        }
+      });
+    }
+
     // Count reviews per contributor
     prReviews?.forEach((review) => {
       if (!review.reviewer_id) return;
 
-      if (!contributorMap.has(review.reviewer_id)) {
-        // Need to fetch contributor info for reviewers who didn't create PRs
-        // For now, we'll skip them (they wouldn't rank high anyway)
-        return;
+      const stats = contributorMap.get(review.reviewer_id);
+      if (stats) {
+        stats.reviews_count++;
       }
-
-      const stats = contributorMap.get(review.reviewer_id)!;
-      stats.reviews_count++;
     });
 
     // Count comments per contributor
     prComments?.forEach((comment) => {
       if (!comment.commenter_id) return;
 
-      if (!contributorMap.has(comment.commenter_id)) {
-        // Need to fetch contributor info for commenters who didn't create PRs
-        // For now, we'll skip them (they wouldn't rank high anyway)
-        return;
+      const stats = contributorMap.get(comment.commenter_id);
+      if (stats) {
+        stats.comments_count++;
       }
-
-      const stats = contributorMap.get(comment.commenter_id)!;
-      stats.comments_count++;
     });
 
     // Calculate weighted scores
