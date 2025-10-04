@@ -284,7 +284,7 @@ describe('Service Worker Client', () => {
 
       expect(Notification.requestPermission).toHaveBeenCalled();
       // Verify the promise resolves to true (mocked in beforeEach)
-      expect(promise).resolves.toBe(true);
+      return expect(promise).resolves.toBe(true);
     });
 
     it('should return false when permission denied', () => {
@@ -292,7 +292,7 @@ describe('Service Worker Client', () => {
 
       const promise = swClient.requestNotificationPermission();
 
-      expect(promise).resolves.toBe(false);
+      return expect(promise).resolves.toBe(false);
     });
 
     it('should return false when already denied', () => {
@@ -305,7 +305,7 @@ describe('Service Worker Client', () => {
       const promise = swClient.requestNotificationPermission();
 
       expect(Notification.requestPermission).not.toHaveBeenCalled();
-      expect(promise).resolves.toBe(false);
+      return expect(promise).resolves.toBe(false);
     });
   });
 
