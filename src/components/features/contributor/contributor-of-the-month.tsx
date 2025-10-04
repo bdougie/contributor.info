@@ -11,6 +11,7 @@ import { useState, useEffect, useRef } from 'react';
 import { WorkspaceCreateModal } from '../workspace/WorkspaceCreateModal';
 import { useHasPaidWorkspace } from '@/hooks/use-has-paid-workspace';
 import { trackEvent } from '@/lib/posthog-lazy';
+import { useAuth } from '@/hooks/use-auth';
 
 interface ContributorOfTheMonthProps {
   ranking: ContributorRanking | null;
@@ -34,8 +35,25 @@ export function ContributorOfTheMonth({
   repositoryName,
 }: ContributorOfTheMonthProps) {
   const [showWorkspaceModal, setShowWorkspaceModal] = useState(false);
+  const [showAllContributors, setShowAllContributors] = useState(false);
   const { hasPaidWorkspace } = useHasPaidWorkspace();
+  const { isLoggedIn } = useAuth();
   const hasTrackedView = useRef(false);
+
+  const isWinnerPhase = ranking?.phase === 'winner_announcement';
+
+  // Set runner-up visibility based on date whenever ranking changes
+  useEffect(() => {
+    if (isWinnerPhase) {
+      const today = new Date();
+      // After the first week of the month, show all contributors by default
+      // During the first week (days 1-7), collapse to show only 3 runners-up
+      setShowAllContributors(today.getDate() > 7);
+    } else {
+      // Reset to collapsed view when not in winner phase
+      setShowAllContributors(false);
+    }
+  }, [isWinnerPhase, ranking]);
 
   // Track leaderboard view event (only once per mount)
   useEffect(() => {
@@ -46,12 +64,13 @@ export function ContributorOfTheMonth({
         repository_name: repositoryName,
         month: ranking.month,
         year: ranking.year,
-        is_winner_phase: ranking.phase === 'winner_announcement',
+        is_winner_phase: isWinnerPhase,
         total_contributors: ranking.contributors.length,
         has_winner: !!ranking.winner,
       });
     }
-  }, [ranking, repositoryOwner, repositoryName]);
+  }, [ranking, repositoryOwner, repositoryName, isWinnerPhase]);
+
   if (loading) {
     return (
       <ContributorOfMonthSkeleton className={className} phase="leaderboard" contributorCount={5} />
@@ -66,7 +85,6 @@ export function ContributorOfTheMonth({
     return <ContributorEmptyState type="no_activity" className={className} />;
   }
 
-  const isWinnerPhase = ranking.phase === 'winner_announcement';
   // Now we only show top 3 contributors
   const topContributors = ranking.contributors;
 
@@ -117,11 +135,24 @@ export function ContributorOfTheMonth({
                     {ranking.month} {ranking.year} Winner
                   </h3>
                 </div>
-                <div className="max-w-sm mx-auto">
+                <div className="max-w-sm mx-auto relative">
+                  {showBlurredFirst && !hasPaidWorkspace && (
+                    <div className="absolute inset-0 z-10 rounded-lg bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center gap-2">
+                      <Lock className="h-6 w-6 text-muted-foreground" />
+                      <Button
+                        size="sm"
+                        onClick={() => setShowWorkspaceModal(true)}
+                        className="text-xs bg-orange-500 hover:bg-orange-600 text-white"
+                      >
+                        {isLoggedIn ? 'Upgrade to view' : 'Login to view'}
+                      </Button>
+                    </div>
+                  )}
                   <ContributorCard
                     contributor={ranking.winner}
                     isWinner={true}
                     showRank={false}
+                    className={showBlurredFirst && !hasPaidWorkspace ? 'blur-sm' : ''}
                     repositoryOwner={repositoryOwner}
                     repositoryName={repositoryName}
                     month={ranking.month}
@@ -130,27 +161,39 @@ export function ContributorOfTheMonth({
                 </div>
               </div>
 
-              {/* Top 5 Runners-up */}
+              {/* Top Runners-up */}
               {topContributors.length > 1 && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-medium text-muted-foreground">Top Contributors</h4>
-                    <span className="text-xs text-muted-foreground">
-                      {topContributors.length - 1} runners-up
-                    </span>
+                    <h4 className="text-sm font-medium text-muted-foreground">
+                      Top Contributors ({topContributors.length - 1} runner
+                      {topContributors.length - 1 !== 1 ? 's' : ''}-up)
+                      {topContributors.length > 4 && (
+                        <Button
+                          variant="link"
+                          className="text-xs ml-2"
+                          onClick={() => setShowAllContributors((prev) => !prev)}
+                        >
+                          {showAllContributors ? 'Show less' : `Show all`}
+                        </Button>
+                      )}
+                    </h4>
                   </div>
+
                   <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 mx-auto">
-                    {topContributors.slice(1).map((contributor) => (
-                      <ContributorCard
-                        key={contributor.login}
-                        contributor={contributor}
-                        showRank={true}
-                        repositoryOwner={repositoryOwner}
-                        repositoryName={repositoryName}
-                        month={ranking.month}
-                        year={ranking.year}
-                      />
-                    ))}
+                    {topContributors
+                      .slice(1, showAllContributors ? undefined : 4)
+                      .map((contributor) => (
+                        <ContributorCard
+                          key={contributor.login}
+                          contributor={contributor}
+                          showRank={true}
+                          repositoryOwner={repositoryOwner}
+                          repositoryName={repositoryName}
+                          month={ranking.month}
+                          year={ranking.year}
+                        />
+                      ))}
                   </div>
                 </div>
               )}
@@ -181,7 +224,7 @@ export function ContributorOfTheMonth({
                             onClick={() => setShowWorkspaceModal(true)}
                             className="text-xs bg-orange-500 hover:bg-orange-600 text-white"
                           >
-                            Upgrade to view
+                            {isLoggedIn ? 'Upgrade to view' : 'Login to view'}
                           </Button>
                         </div>
                       )}
