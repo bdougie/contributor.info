@@ -106,7 +106,7 @@ describe('Monthly Rankings Date Logic', () => {
 
     it('should select current month on day 28 (February non-leap year)', () => {
       const currentDate = new Date('2025-02-28T12:00:00Z');
-      const { targetMonth, targetYear} = calculateTargetMonth(currentDate);
+      const { targetMonth, targetYear } = calculateTargetMonth(currentDate);
 
       expect(targetMonth).toBe(2); // February
       expect(targetYear).toBe(2025);

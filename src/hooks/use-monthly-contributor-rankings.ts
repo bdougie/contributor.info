@@ -51,7 +51,9 @@ export function useMonthlyContributorRankings(owner: string, repo: string): Mont
 
         if (isWinnerPhase) {
           // Winner announcement phase (1st-7th): request previous month's data
-          const previousMonthDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
+          const previousMonthDate = new Date(
+            Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1)
+          );
           targetMonth = previousMonthDate.getUTCMonth() + 1;
           targetYear = previousMonthDate.getUTCFullYear();
         } else {
