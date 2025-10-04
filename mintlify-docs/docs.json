@@ -79,7 +79,7 @@
     "twitter": "https://twitter.com/bdougieYO",
     "discord": "https://discord.gg/gZMKK5q"
   },
-  "footer": [
+  "footerLinks": [
     {
       "name": "Changelog",
       "url": "/changelog"
