@@ -2777,9 +2777,9 @@ function WorkspacePage() {
           const { data: reviewData, error: reviewError } = await supabase
             .from('reviews')
             .select(
-              `id, pull_request_id, reviewer_id, state, body, submitted_at,
+              `id, pull_request_id, author_id, state, body, submitted_at,
                  pull_requests!inner(title, number, repository_id),
-                 contributors!fk_reviews_reviewer(username, avatar_url)`
+                 contributors!reviews_author_id_fkey(username, avatar_url)`
             )
             .in('pull_requests.repository_id', repoIds)
             .gte('submitted_at', startDate.toISOString())
@@ -2790,16 +2790,16 @@ function WorkspacePage() {
           }
 
           if (reviewData && Array.isArray(reviewData)) {
-            // Type guard for review data validation
-            const isValidReview = (
-              review: unknown
-            ): review is {
+            // Define types for better type safety
+            type ContributorData = { username?: string; avatar_url?: string };
+            type ReviewData = {
               id: string;
               pull_request_id: string;
-              reviewer_id: string;
+              author_id: string;
               state: string;
               body?: string;
               submitted_at: string;
+              contributors?: ContributorData | ContributorData[];
               pull_requests?:
                 | {
                     title: string;
@@ -2811,13 +2811,16 @@ function WorkspacePage() {
                     number: number;
                     repository_id: string;
                   }>;
-            } => {
+            };
+
+            // Type guard for review data validation
+            const isValidReview = (review: unknown): review is ReviewData => {
               return (
                 typeof review === 'object' &&
                 review !== null &&
                 'id' in review &&
                 'pull_request_id' in review &&
-                'reviewer_id' in review &&
+                'author_id' in review &&
                 'state' in review &&
                 'submitted_at' in review
               );
@@ -2829,23 +2832,26 @@ function WorkspacePage() {
             const formattedReviews = reviewData.filter(isValidReview).map((r) => {
               // Handle both single object and array cases
               const pr = Array.isArray(r.pull_requests) ? r.pull_requests[0] : r.pull_requests;
+
+              // Extract username from contributors join with type assertion
+              let reviewerUsername = 'Unknown';
+              if (r.contributors) {
+                const contribData = r.contributors as ContributorData | ContributorData[];
+                if (Array.isArray(contribData)) {
+                  reviewerUsername = contribData[0]?.username || 'Unknown';
+                } else {
+                  reviewerUsername = contribData.username || 'Unknown';
+                }
+              }
+
               return {
                 id: r.id,
                 pull_request_id: r.pull_request_id,
-                reviewer_id: r.reviewer_id,
+                reviewer_id: r.author_id, // Map author_id to reviewer_id for backwards compatibility
                 state: r.state,
                 body: r.body,
                 submitted_at: r.submitted_at,
-                reviewer_login: (() => {
-                  const contrib = r.contributors as
-                    | { username?: string; avatar_url?: string }
-                    | { username?: string; avatar_url?: string }[]
-                    | undefined;
-                  if (Array.isArray(contrib)) {
-                    return contrib[0]?.username || 'Unknown';
-                  }
-                  return contrib?.username || 'Unknown';
-                })(), // Use actual GitHub username
+                reviewer_login: reviewerUsername,
                 pr_title: pr?.title,
                 pr_number: pr?.number,
                 repository_id: pr?.repository_id,
