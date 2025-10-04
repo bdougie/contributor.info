@@ -41,9 +41,7 @@ export function WorkspaceCreationDisabled({
                 team collaboration.
               </>
             ) : (
-              <>
-                Please sign in to continue. Workspace creation requires a Pro subscription.
-              </>
+              <>Please sign in to continue. Workspace creation requires a Pro subscription.</>
             )}
           </p>
         </div>
@@ -85,9 +83,7 @@ export function WorkspaceCreationDisabled({
               team collaboration.
             </>
           ) : (
-            <>
-              Please sign in to continue. Workspace creation requires a Pro subscription.
-            </>
+            <>Please sign in to continue. Workspace creation requires a Pro subscription.</>
           )}
         </p>
         {isLoggedIn ? (

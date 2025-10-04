@@ -96,7 +96,7 @@ export function WidgetGallery({
     try {
       await navigator.clipboard.writeText(text);
       toast.success(`${type} copied to clipboard`);
-    } catch (error) {
+    } catch {
       toast.error('Failed to copy to clipboard');
     }
   };
@@ -107,7 +107,7 @@ export function WidgetGallery({
       typeof window !== 'undefined' ? window.location.origin : 'https://contributor.info';
 
     switch (selectedWidget) {
-      case 'stat-card':
+      case 'stat-card': {
         const params = new URLSearchParams({
           owner: customOwner,
           repo: customRepo,
@@ -121,8 +121,9 @@ export function WidgetGallery({
           markdown: `[![${customOwner}/${customRepo} Stats](${baseURL}/api/widgets/stat-card?${params})](https://contributor.info/${customOwner}/${customRepo})`,
           url: `${baseURL}/api/widgets/stat-card?${params}`,
         };
+      }
 
-      case 'badge':
+      case 'badge': {
         const badgeMarkdown = generateBadgeMarkdown(badgeConfig, data);
         const badgeParams = new URLSearchParams({
           owner: customOwner,
@@ -136,6 +137,7 @@ export function WidgetGallery({
           markdown: badgeMarkdown,
           url: `${baseURL}/api/widgets/badge?${badgeParams}`,
         };
+      }
 
       default:
         return {

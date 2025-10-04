@@ -412,6 +412,16 @@ function App() {
     };
   }, []);
 
+  // Initialize global error tracking with PostHog
+  useEffect(() => {
+    import('./lib/error-tracker').then(({ setupGlobalErrorTracking }) => {
+      setupGlobalErrorTracking();
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[Error Tracking] Global error handlers initialized with PostHog');
+      }
+    });
+  }, []);
+
   // Preload critical routes and initialize progressive features after mount
   useEffect(() => {
     // Initialize auto-tracking service for 404 interception

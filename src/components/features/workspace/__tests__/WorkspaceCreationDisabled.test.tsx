@@ -40,9 +40,7 @@ describe('WorkspaceCreationDisabled', () => {
       );
 
       expect(screen.getByRole('heading', { name: 'Upgrade to Pro' })).toBeInTheDocument();
-      expect(
-        screen.getByText(/Workspaces are a Pro feature/)
-      ).toBeInTheDocument();
+      expect(screen.getByText(/Workspaces are a Pro feature/)).toBeInTheDocument();
       expect(screen.getByRole('link', { name: /Upgrade to Pro/i })).toBeInTheDocument();
     });
   });
@@ -64,9 +62,7 @@ describe('WorkspaceCreationDisabled', () => {
       );
 
       expect(screen.getByRole('heading', { name: 'Upgrade to Pro' })).toBeInTheDocument();
-      expect(
-        screen.getByText(/Workspaces are a Pro feature/)
-      ).toBeInTheDocument();
+      expect(screen.getByText(/Workspaces are a Pro feature/)).toBeInTheDocument();
     });
 
     it('should show sign in button for modal variant when not logged in', () => {

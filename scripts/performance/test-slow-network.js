@@ -2,13 +2,13 @@
 
 /**
  * Slow Network Performance Testing Script
- * 
+ *
  * Tests lazy loading and performance optimizations on various network conditions
  * Validates that the app provides a good experience for all users
- * 
+ *
  * Usage:
  *   node scripts/performance/test-slow-network.js [--condition=<condition>] [--url=<url>]
- * 
+ *
  * Options:
  *   --condition  Network condition to test (slow3g, fast3g, offline-online, flaky)
  *   --url        URL to test (default: http://localhost:4173)
@@ -109,7 +109,7 @@ class NetworkTester {
 
   async testInitialPageLoad(context) {
     console.log('📊 Test 1: Initial Page Load Performance');
-    console.log('=' .repeat(50));
+    console.log('='.repeat(50));
 
     const page = await context.newPage();
     const networkCondition = NETWORK_CONDITIONS[this.condition];
@@ -169,7 +169,7 @@ class NetworkTester {
           }
         });
         observer.observe({ type: 'layout-shift', buffered: true });
-        
+
         setTimeout(() => {
           observer.disconnect();
           resolve(cls);
@@ -205,7 +205,12 @@ class NetworkTester {
       passed,
     });
 
-    this.printTestResult('Skeleton Visible', metrics.skeletonTime, thresholds.firstSkeletonMs, 'ms');
+    this.printTestResult(
+      'Skeleton Visible',
+      metrics.skeletonTime,
+      thresholds.firstSkeletonMs,
+      'ms'
+    );
     this.printTestResult('Fully Loaded', metrics.fullyLoadedTime, null, 'ms');
     this.printTestResult('Cumulative Layout Shift', metrics.cls, thresholds.cumulativeLayoutShift);
     console.log(`📦 Resources: ${JSON.stringify(metrics.resourceCounts, null, 2)}`);
@@ -214,7 +219,7 @@ class NetworkTester {
 
   async testChartLazyLoading(context) {
     console.log('📈 Test 2: Chart Lazy Loading with IntersectionObserver');
-    console.log('=' .repeat(50));
+    console.log('='.repeat(50));
 
     const page = await context.newPage();
     const networkCondition = NETWORK_CONDITIONS[this.condition];
@@ -240,7 +245,9 @@ class NetworkTester {
 
     // Check for charts above the fold (should load immediately)
     const chartsAboveFold = await page.evaluate(() => {
-      const charts = document.querySelectorAll('[data-testid*="chart"], canvas, svg[class*="recharts"]');
+      const charts = document.querySelectorAll(
+        '[data-testid*="chart"], canvas, svg[class*="recharts"]'
+      );
       let aboveFold = 0;
       charts.forEach((chart) => {
         const rect = chart.getBoundingClientRect();
@@ -254,13 +261,13 @@ class NetworkTester {
 
     // Scroll to find charts below the fold
     const initialChartCount = await page.locator('[data-testid*="chart"], canvas, svg').count();
-    
+
     const scrollStart = Date.now();
     await page.evaluate(() => window.scrollBy(0, window.innerHeight * 2));
-    
+
     // Wait for new charts to appear (lazy loaded)
     await page.waitForTimeout(2000); // Give time for IntersectionObserver to trigger
-    
+
     const finalChartCount = await page.locator('[data-testid*="chart"], canvas, svg').count();
     metrics.chartsBelowFold = finalChartCount - initialChartCount;
     metrics.chartsLoadedOnScroll = finalChartCount > initialChartCount;
@@ -268,7 +275,8 @@ class NetworkTester {
 
     await page.close();
 
-    const passed = metrics.chartsLoadedOnScroll && metrics.scrollToLoadTime < thresholds.chartsLoadedMs;
+    const passed =
+      metrics.chartsLoadedOnScroll && metrics.scrollToLoadTime < thresholds.chartsLoadedMs;
 
     this.results.push({
       test: 'Chart Lazy Loading',
@@ -279,13 +287,18 @@ class NetworkTester {
 
     console.log(`✅ Charts above fold: ${metrics.chartsFoundAboveFold}`);
     console.log(`📊 Charts lazy loaded: ${metrics.chartsBelowFold}`);
-    this.printTestResult('Scroll to Load Time', metrics.scrollToLoadTime, thresholds.chartsLoadedMs, 'ms');
+    this.printTestResult(
+      'Scroll to Load Time',
+      metrics.scrollToLoadTime,
+      thresholds.chartsLoadedMs,
+      'ms'
+    );
     console.log();
   }
 
   async testNavigationPrefetching(context) {
     console.log('🔗 Test 3: Navigation Prefetching');
-    console.log('=' .repeat(50));
+    console.log('='.repeat(50));
 
     const page = await context.newPage();
     const networkCondition = NETWORK_CONDITIONS[this.condition];
@@ -310,7 +323,7 @@ class NetworkTester {
 
     // Find a navigation link
     const navLink = page.locator('a[href^="/"]').first();
-    if (await navLink.count() > 0) {
+    if ((await navLink.count()) > 0) {
       // Hover to trigger prefetch
       const hoverStart = Date.now();
       await navLink.hover();
@@ -318,9 +331,9 @@ class NetworkTester {
 
       // Check if prefetch was triggered
       const prefetchRequests = await page.evaluate(() => {
-        return performance.getEntriesByType('resource')
-          .filter(r => r.initiatorType === 'fetch' || r.name.includes('chunk'))
-          .length;
+        return performance
+          .getEntriesByType('resource')
+          .filter((r) => r.initiatorType === 'fetch' || r.name.includes('chunk')).length;
       });
       metrics.prefetchTriggered = prefetchRequests > 0;
 
@@ -350,7 +363,7 @@ class NetworkTester {
 
   async testChunkLoadingFailure(context) {
     console.log('❌ Test 4: Chunk Loading Failure Handling');
-    console.log('=' .repeat(50));
+    console.log('='.repeat(50));
 
     const page = await context.newPage();
 
@@ -367,16 +380,17 @@ class NetworkTester {
 
     try {
       await page.goto(this.url, { waitUntil: 'domcontentloaded' });
-      
+
       // Check if error boundary is shown
-      const errorBoundary = await page.locator('[role="alert"], [data-testid="error-boundary"]').count();
+      const errorBoundary = await page
+        .locator('[role="alert"], [data-testid="error-boundary"]')
+        .count();
       metrics.errorBoundaryVisible = errorBoundary > 0;
 
       // Check if basic app shell still works
-      const hasNavigation = await page.locator('nav, header').count() > 0;
-      const hasContent = await page.locator('main, [role="main"]').count() > 0;
+      const hasNavigation = (await page.locator('nav, header').count()) > 0;
+      const hasContent = (await page.locator('main, [role="main"]').count()) > 0;
       metrics.gracefulDegradation = hasNavigation && hasContent;
-
     } catch (error) {
       // Expected to potentially fail
       console.log('⚠️  Chunk loading failed as expected');
@@ -399,7 +413,7 @@ class NetworkTester {
 
   async testProgressiveEnhancement(context) {
     console.log('⚡ Test 5: Progressive Enhancement');
-    console.log('=' .repeat(50));
+    console.log('='.repeat(50));
 
     const page = await context.newPage();
     const networkCondition = NETWORK_CONDITIONS[this.condition];
@@ -431,7 +445,7 @@ class NetworkTester {
 
     // Test if navigation is interactive during loading
     const navLink = page.locator('a').first();
-    if (await navLink.count() > 0) {
+    if ((await navLink.count()) > 0) {
       try {
         await navLink.click({ timeout: 1000 });
         metrics.interactiveDuringLoad = true;
