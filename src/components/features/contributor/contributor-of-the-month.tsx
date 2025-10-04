@@ -42,16 +42,18 @@ export function ContributorOfTheMonth({
 
   const isWinnerPhase = ranking?.phase === 'winner_announcement';
 
-  // Set initial state of runner-up visibility based on date
+  // Set runner-up visibility based on date whenever ranking changes
   useEffect(() => {
     if (isWinnerPhase) {
       const today = new Date();
       // After the first week of the month, show all contributors by default
-      if (today.getDate() > 7) {
-        setShowAllContributors(true);
-      }
+      // During the first week (days 1-7), collapse to show only 3 runners-up
+      setShowAllContributors(today.getDate() > 7);
+    } else {
+      // Reset to collapsed view when not in winner phase
+      setShowAllContributors(false);
     }
-  }, [isWinnerPhase]);
+  }, [isWinnerPhase, ranking]);
 
   // Track leaderboard view event (only once per mount)
   useEffect(() => {
