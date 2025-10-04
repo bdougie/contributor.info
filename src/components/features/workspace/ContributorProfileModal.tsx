@@ -783,8 +783,8 @@ function SocialLinksCard({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <CardTitle className="text-base">Social Links</CardTitle>
-            {/* Display clickable links when available - use state values for real-time updates */}
-            {(contributor.username || linkedinUrl || discordUrl) && (
+            {/* Display clickable links when available - use contributor prop values */}
+            {(contributor.username || contributor.linkedin_url || contributor.discord_url) && (
               <div className="flex gap-2">
                 {contributor.username && (
                   <a
@@ -799,9 +799,9 @@ function SocialLinksCard({
                     GitHub
                   </a>
                 )}
-                {linkedinUrl && isValidLinkedInUrl(linkedinUrl) && (
+                {contributor.linkedin_url && isValidLinkedInUrl(contributor.linkedin_url) && (
                   <a
-                    href={getSafeHref(linkedinUrl)}
+                    href={getSafeHref(contributor.linkedin_url)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1"
@@ -812,12 +812,12 @@ function SocialLinksCard({
                     LinkedIn
                   </a>
                 )}
-                {discordUrl && isValidDiscordUrl(discordUrl) && (
+                {contributor.discord_url && isValidDiscordUrl(contributor.discord_url) && (
                   <a
                     href={
-                      discordUrl.startsWith('discord:')
-                        ? `https://discord.com/users/${discordUrl.replace('discord:', '')}`
-                        : getSafeHref(discordUrl)
+                      contributor.discord_url.startsWith('discord:')
+                        ? `https://discord.com/users/${contributor.discord_url.replace('discord:', '')}`
+                        : getSafeHref(contributor.discord_url)
                     }
                     target="_blank"
                     rel="noopener noreferrer"
