@@ -86,7 +86,7 @@ export default function WidgetsPage() {
         }
         image={
           owner && repo
-            ? `/api/widgets/stat-card?owner=${owner}&repo=${repo}&theme=light&size=large`
+            ? `/api/widgets/stat-card?owner=${owner}&repo=${repo}&theme=dark&size=large`
             : undefined
         }
       />
@@ -128,7 +128,7 @@ export default function WidgetsPage() {
               <div className="bg-muted p-4 rounded-lg">
                 <h3 className="font-semibold mb-2">Stat Card API</h3>
                 <code className="text-xs">
-                  GET /api/widgets/stat-card?owner=facebook&repo=react&theme=light&size=medium
+                  GET /api/widgets/stat-card?owner=facebook&repo=react&theme=dark&size=medium
                 </code>
                 <p className="text-muted-foreground mt-2">
                   Generate comprehensive stat cards with multiple metrics, themes, and sizes.

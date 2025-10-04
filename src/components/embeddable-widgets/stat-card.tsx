@@ -17,34 +17,34 @@ const METRIC_CONFIG = {
     label: 'Contributors',
     getValue: (data: WidgetData) => data.stats.totalContributors,
     getSubtext: undefined,
-    color: 'text-blue-600 dark:text-blue-400',
+    color: 'text-blue-600 dark:text-primary',
   },
   'pull-requests': {
     icon: GitPullRequest,
     label: 'Pull Requests',
     getValue: (data: WidgetData) => data.stats.totalPRs,
     getSubtext: undefined,
-    color: 'text-green-600 dark:text-green-400',
+    color: 'text-green-600 dark:text-primary',
   },
   'lottery-factor': {
     icon: Target,
     label: 'Lottery Factor',
     getValue: (data: WidgetData) => data.stats.lotteryFactor?.toFixed(1) || 'N/A',
     getSubtext: (data: WidgetData) => data.stats.lotteryRating,
-    color: 'text-orange-600 dark:text-orange-400',
+    color: 'text-orange-600 dark:text-primary',
   },
   'merge-rate': {
     icon: TrendingUp,
     label: 'Merge Rate',
     getValue: (data: WidgetData) => `${data.stats.mergeRate.toFixed(1)}%`,
     getSubtext: undefined,
-    color: 'text-purple-600 dark:text-purple-400',
+    color: 'text-purple-600 dark:text-primary',
   },
 };
 
 export function StatCard({ config, data, className }: StatCardProps) {
   const metrics = config.metrics || ['contributors', 'pull-requests', 'lottery-factor'];
-  const theme = config.theme || 'light';
+  const theme = config.theme || 'dark';
   const size = config.size || 'medium';
 
   // Size variants
