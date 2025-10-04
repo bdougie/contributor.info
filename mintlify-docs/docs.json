@@ -1,20 +1,26 @@
 {
   "name": "contributor.info",
-  "theme": "mint",
-  "favicon": "/favicon.svg",
+  "theme": "willow",
+  "favicon": "/favicon.ico",
+  "primaryTab": {
+    "name": "Documentation"
+  },
   "colors": {
-    "primary": "#0D9488",
-    "light": "#14B8A6",
-    "dark": "#0D9488"
+    "primary": "#FF5402",
+    "light": "#FF5402",
+    "dark": "#FF5402"
+  },
+  "modeToggle": {
+    "default": "dark"
+  },
+  "github": {
+    "owner": "bdougie",
+    "repo": "contributor.info"
   },
   "topbarLinks": [
     {
       "name": "App",
       "url": "https://contributor.info"
-    },
-    {
-      "name": "GitHub",
-      "url": "https://github.com/bdougie/contributor.info"
     }
   ],
   "topbarCtaButton": {
@@ -25,9 +31,7 @@
     "groups": [
       {
         "group": "Overview",
-        "pages": [
-          "introduction"
-        ]
+        "pages": ["introduction"]
       },
       {
         "group": "Features",
@@ -79,5 +83,6 @@
     "posthog": {
       "apiKey": "phc_WKB5qeFfKiZB11zZfCnuqbvWKwQ0jLBzG2bX7vJ1MhO"
     }
-  }
+  },
+  "customCSS": ["/custom.css"]
 }

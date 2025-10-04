@@ -1,0 +1,160 @@
+/* Custom CSS to match contributor.info main app styling */
+
+/* Font family matching main app */
+body {
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    'SF Pro Display',
+    Roboto,
+    'Helvetica Neue',
+    Arial,
+    sans-serif;
+  font-feature-settings:
+    'liga' 1,
+    'calt' 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Dark mode: White text with orange accents */
+.dark {
+  --color-text: #fafafa; /* white text */
+  --color-primary: #ff5402; /* orange primary */
+  --color-primary-hover: #ff7a3d; /* lighter orange hover */
+  --color-background: #0a0a0a; /* dark background */
+  color: #fafafa;
+}
+
+.dark body {
+  color: #fafafa;
+}
+
+/* Override any teal/green colors */
+.dark [class*='teal'],
+.dark [class*='green'] {
+  color: #ff5402 !important;
+}
+
+/* Navigation font sizes to match main app */
+nav a,
+.sidebar a,
+header a {
+  font-size: 0.875rem; /* 14px - text-sm in Tailwind */
+  font-weight: 500;
+}
+
+/* Primary color for links and buttons */
+a {
+  color: #ff5402;
+}
+
+a:hover {
+  color: #ff7a3d;
+}
+
+.dark a {
+  color: #ff5402;
+}
+
+.dark a:hover {
+  color: #ff7a3d;
+}
+
+/* Buttons */
+button,
+.button {
+  background-color: #ff5402;
+  color: white;
+}
+
+button:hover,
+.button:hover {
+  background-color: #ff7a3d;
+}
+
+/* Headings matching main app style */
+h1 {
+  font-size: 2.25rem; /* 36px */
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+h2 {
+  font-size: 1.875rem; /* 30px */
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+h3 {
+  font-size: 1.5rem; /* 24px */
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+h4 {
+  font-size: 1.25rem; /* 20px */
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.dark h1,
+.dark h2,
+.dark h3,
+.dark h4,
+.dark h5,
+.dark h6 {
+  color: #fafafa;
+}
+
+/* Body text */
+p {
+  font-size: 1rem; /* 16px - text-base */
+  line-height: 1.6;
+}
+
+.dark p {
+  color: #fafafa;
+}
+
+/* Code blocks */
+code {
+  font-family:
+    'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+  font-size: 0.875rem; /* 14px */
+}
+
+/* Override any default accent colors */
+.dark [class*='accent'] {
+  color: #ff5402 !important;
+}
+
+/* Fix light/dark mode toggle - remove orange background */
+button[aria-label*='theme' i],
+button[aria-label*='mode' i],
+[class*='theme-toggle'],
+[class*='mode-toggle'],
+[data-theme-toggle] {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+button[aria-label*='theme' i]:hover,
+button[aria-label*='mode' i]:hover,
+[class*='theme-toggle']:hover,
+[class*='mode-toggle']:hover,
+[data-theme-toggle]:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.dark button[aria-label*='theme' i],
+.dark button[aria-label*='mode' i],
+.dark [class*='theme-toggle'],
+.dark [class*='mode-toggle'],
+.dark [data-theme-toggle] {
+  background-color: transparent !important;
+  background: transparent !important;
+}
