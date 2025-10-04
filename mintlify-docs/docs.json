@@ -1,7 +1,7 @@
 {
   "name": "contributor.info",
   "theme": "mint",
-  "favicon": "/favicon.png",
+  "favicon": "/favicon.svg",
   "colors": {
     "primary": "#0D9488",
     "light": "#14B8A6",
