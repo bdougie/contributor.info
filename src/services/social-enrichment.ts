@@ -251,6 +251,14 @@ export async function updateContributorSocialLinks(
     console.error('Error updating contributor social links:', error);
     throw error;
   }
+
+  // Invalidate service worker cache for this contributor
+  if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+    navigator.serviceWorker.controller.postMessage({
+      type: 'INVALIDATE_CONTRIBUTOR_CACHE',
+      contributorId,
+    });
+  }
 }
 
 /**

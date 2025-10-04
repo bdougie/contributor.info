@@ -161,7 +161,9 @@ export function useWorkspaceContributors({
             display_name,
             bio,
             company,
-            location
+            location,
+            linkedin_url,
+            discord_url
           `
           )
           .in('id', contributorIds);
