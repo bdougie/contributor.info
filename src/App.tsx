@@ -439,7 +439,7 @@ function App() {
 
       // Load after browser idle time to avoid blocking LCP
       if ('requestIdleCallback' in window) {
-        requestIdleCallback(loadProgressiveFeatures, { timeout: 5000 });
+        requestIdleCallback(loadProgressiveFeatures, { timeout: 1000 });
       } else {
         // Fallback for browsers without requestIdleCallback (use original timing)
         setTimeout(loadProgressiveFeatures, 500);
