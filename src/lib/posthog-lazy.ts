@@ -540,3 +540,11 @@ export function getRateLimiterStats(): {
     },
   };
 }
+
+/**
+ * Initialize PostHog (for manual initialization)
+ * Returns a promise that resolves when PostHog is loaded
+ */
+export async function initPostHog(): Promise<PostHogInstance | null> {
+  return loadPostHog();
+}
