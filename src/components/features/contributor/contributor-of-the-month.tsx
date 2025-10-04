@@ -11,6 +11,7 @@ import { useState, useEffect, useRef } from 'react';
 import { WorkspaceCreateModal } from '../workspace/WorkspaceCreateModal';
 import { useHasPaidWorkspace } from '@/hooks/use-has-paid-workspace';
 import { trackEvent } from '@/lib/posthog-lazy';
+import { useAuth } from '@/hooks/use-auth';
 
 interface ContributorOfTheMonthProps {
   ranking: ContributorRanking | null;
@@ -36,6 +37,7 @@ export function ContributorOfTheMonth({
   const [showWorkspaceModal, setShowWorkspaceModal] = useState(false);
   const [showAllContributors, setShowAllContributors] = useState(false);
   const { hasPaidWorkspace } = useHasPaidWorkspace();
+  const { isLoggedIn } = useAuth();
   const hasTrackedView = useRef(false);
 
   const isWinnerPhase = ranking?.phase === 'winner_announcement';
@@ -140,7 +142,7 @@ export function ContributorOfTheMonth({
                         onClick={() => setShowWorkspaceModal(true)}
                         className="text-xs bg-orange-500 hover:bg-orange-600 text-white"
                       >
-                        Upgrade to view
+                        {isLoggedIn ? 'Upgrade to view' : 'Login to view'}
                       </Button>
                     </div>
                   )}
@@ -161,21 +163,25 @@ export function ContributorOfTheMonth({
               {topContributors.length > 1 && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-medium text-muted-foreground">Top Contributors</h4>
-                    <Button
-                      variant="link"
-                      className="text-xs"
-                      onClick={() => setShowAllContributors((prev) => !prev)}
-                    >
-                      {showAllContributors
-                        ? 'Hide runners-up'
-                        : `Show all ${topContributors.length - 1} runners-up`}
-                    </Button>
+                    <h4 className="text-sm font-medium text-muted-foreground">
+                      Top Contributors ({topContributors.length - 1} runner
+                      {topContributors.length - 1 !== 1 ? 's' : ''}-up)
+                      {topContributors.length > 4 && (
+                        <Button
+                          variant="link"
+                          className="text-xs ml-2"
+                          onClick={() => setShowAllContributors((prev) => !prev)}
+                        >
+                          {showAllContributors ? 'Show less' : `Show all`}
+                        </Button>
+                      )}
+                    </h4>
                   </div>
 
-                  {showAllContributors && (
-                    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-                      {topContributors.slice(1).map((contributor) => (
+                  <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                    {topContributors
+                      .slice(1, showAllContributors ? undefined : 4)
+                      .map((contributor) => (
                         <ContributorCard
                           key={contributor.login}
                           contributor={contributor}
@@ -186,8 +192,7 @@ export function ContributorOfTheMonth({
                           year={ranking.year}
                         />
                       ))}
-                    </div>
-                  )}
+                  </div>
                 </div>
               )}
             </div>
@@ -217,7 +222,7 @@ export function ContributorOfTheMonth({
                             onClick={() => setShowWorkspaceModal(true)}
                             className="text-xs bg-orange-500 hover:bg-orange-600 text-white"
                           >
-                            Upgrade to view
+                            {isLoggedIn ? 'Upgrade to view' : 'Login to view'}
                           </Button>
                         </div>
                       )}
