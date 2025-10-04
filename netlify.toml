@@ -285,12 +285,13 @@
     X-Content-Type-Options = "nosniff"
     Cache-Control = "public, max-age=31536000, immutable"
 
-# Explicit redirect for docs pages to ensure SPA routing works
+# Redirect docs to Mintlify hosted documentation
+# TODO: Update this URL once Mintlify docs are deployed
 [[redirects]]
   from = "/docs/*"
-  to = "/index.html"
-  status = 200
-  force = false
+  to = "https://docs.contributor.info/:splat"
+  status = 301
+  force = true
 
 # Redirect rules for SPA behavior
 # All API redirects above have force = true so they take precedence
