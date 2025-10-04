@@ -53,7 +53,7 @@ export function useCachedGitHubApi<T>(
     responseTime: 0,
   });
 
-  const clientRef = useRef(createCachedGitHubClient(session?.provider_token));
+  const clientRef = useRef(createCachedGitHubClient(session?.provider_token ?? undefined));
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const { enabled = true, onSuccess, onError, refreshInterval, ...apiOptions } = options;
@@ -137,14 +137,21 @@ export function useCachedGitHubApi<T>(
       const {
         data: { session },
       } = await supabase.auth.getSession();
-      setSession(session);
+      setSession(
+        session
+          ? {
+              provider_token: session.provider_token,
+              ...session,
+            }
+          : null
+      );
     };
     getSession();
   }, []);
 
   // Update client token when session changes
   useEffect(() => {
-    clientRef.current = createCachedGitHubClient(session?.provider_token);
+    clientRef.current = createCachedGitHubClient(session?.provider_token ?? undefined);
   }, [session?.provider_token]);
 
   return {
