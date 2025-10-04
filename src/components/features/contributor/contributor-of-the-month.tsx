@@ -168,7 +168,7 @@ export function ContributorOfTheMonth({
                     <h4 className="text-sm font-medium text-muted-foreground">
                       Top Contributors ({topContributors.length - 1} runner
                       {topContributors.length - 1 !== 1 ? 's' : ''}-up)
-                      {topContributors.length > 4 && (
+                      {topContributors.length > 5 && (
                         <Button
                           variant="link"
                           className="text-xs ml-2"
@@ -180,9 +180,9 @@ export function ContributorOfTheMonth({
                     </h4>
                   </div>
 
-                  <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 mx-auto">
+                  <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 mx-auto">
                     {topContributors
-                      .slice(1, showAllContributors ? undefined : 4)
+                      .slice(1, showAllContributors ? undefined : 5)
                       .map((contributor) => (
                         <ContributorCard
                           key={contributor.login}
