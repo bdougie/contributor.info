@@ -180,7 +180,7 @@ export function ContributorOfTheMonth({
                     </h4>
                   </div>
 
-                  <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 mx-auto">
                     {topContributors
                       .slice(1, showAllContributors ? undefined : 4)
                       .map((contributor) => (

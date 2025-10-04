@@ -42,8 +42,23 @@ export function useMonthlyContributorRankings(owner: string, repo: string): Mont
 
         // Get current month and year using UTC to match Edge Function
         const now = new Date();
-        const currentMonth = now.getUTCMonth() + 1;
-        const currentYear = now.getUTCFullYear();
+        const dayOfMonth = now.getUTCDate();
+        const isWinnerPhase = dayOfMonth >= 1 && dayOfMonth <= 7;
+
+        // Determine which month to request based on cycle phase
+        let targetMonth: number;
+        let targetYear: number;
+
+        if (isWinnerPhase) {
+          // Winner announcement phase (1st-7th): request previous month's data
+          const previousMonthDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
+          targetMonth = previousMonthDate.getUTCMonth() + 1;
+          targetYear = previousMonthDate.getUTCFullYear();
+        } else {
+          // Running leaderboard phase (8th+): request current month's data
+          targetMonth = now.getUTCMonth() + 1;
+          targetYear = now.getUTCFullYear();
+        }
 
         // First, try to call the Edge Function for on-demand calculation
         try {
@@ -60,8 +75,8 @@ export function useMonthlyContributorRankings(owner: string, repo: string): Mont
               body: {
                 owner,
                 repo,
-                month: currentMonth,
-                year: currentYear,
+                month: targetMonth,
+                year: targetYear,
                 limit: 10,
               },
               headers: session
@@ -101,8 +116,10 @@ export function useMonthlyContributorRankings(owner: string, repo: string): Mont
             );
 
             setRankings(transformedRankings);
-            setDisplayMonth(now.toLocaleString('default', { month: 'long' }));
-            setDisplayYear(currentYear);
+            setDisplayMonth(
+              new Date(targetYear, targetMonth - 1).toLocaleString('default', { month: 'long' })
+            );
+            setDisplayYear(targetYear);
             setIsCalculating(false);
             return; // Successfully got rankings from Edge Function
           }
@@ -133,8 +150,8 @@ export function useMonthlyContributorRankings(owner: string, repo: string): Mont
             )
           `
           )
-          .eq('month', currentMonth)
-          .eq('year', currentYear)
+          .eq('month', targetMonth)
+          .eq('year', targetYear)
           .eq('repositories.owner', owner)
           .eq('repositories.name', repo)
           .order('weighted_score', { ascending: false })
@@ -213,8 +230,10 @@ export function useMonthlyContributorRankings(owner: string, repo: string): Mont
             }
           }
         } else {
-          setDisplayMonth(now.toLocaleString('default', { month: 'long' }));
-          setDisplayYear(currentYear);
+          setDisplayMonth(
+            new Date(targetYear, targetMonth - 1).toLocaleString('default', { month: 'long' })
+          );
+          setDisplayYear(targetYear);
         }
 
         if (data && data.length > 0) {
