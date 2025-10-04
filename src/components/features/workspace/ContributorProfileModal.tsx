@@ -67,6 +67,7 @@ export interface ContributorProfileModalProps {
   workspaceId?: string;
   onManageGroups?: () => void;
   onAddNote?: () => void;
+  onContributorUpdate?: () => void;
   isFiltered?: boolean; // Whether this group is being used for filtering
   // Permission context
   userRole?: WorkspaceRole;
@@ -128,6 +129,7 @@ export function ContributorProfileModal({
   workspaceId,
   onManageGroups,
   onAddNote,
+  onContributorUpdate,
   userRole,
   workspaceTier,
   isLoggedIn = false,
@@ -366,7 +368,11 @@ export function ContributorProfileModal({
             </Card>
 
             {/* Social Links Section */}
-            <SocialLinksCard contributor={contributor} isLoggedIn={isLoggedIn} />
+            <SocialLinksCard
+              contributor={contributor}
+              isLoggedIn={isLoggedIn}
+              onContributorUpdate={onContributorUpdate}
+            />
           </TabsContent>
 
           <TabsContent value="activity" className="mt-4">
@@ -631,9 +637,11 @@ export function ContributorProfileModal({
 function SocialLinksCard({
   contributor,
   isLoggedIn,
+  onContributorUpdate,
 }: {
   contributor: Contributor;
   isLoggedIn: boolean;
+  onContributorUpdate?: () => void;
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
@@ -664,8 +672,6 @@ function SocialLinksCard({
       const socialLinks = await fetchAndUpdateSocialLinks(contributor.id, contributor.username);
 
       if (socialLinks.discord_url || socialLinks.linkedin_url) {
-        setDiscordUrl(socialLinks.discord_url || '');
-        setLinkedinUrl(socialLinks.linkedin_url || '');
         // Show success toast with specific details
         const { toast } = await import('@/hooks/use-toast');
 
@@ -675,8 +681,15 @@ function SocialLinksCard({
 
         toast({
           title: '✅ Social links fetched successfully',
-          description: `Found ${foundLinks.join(' and ')} link${foundLinks.length > 1 ? 's' : ''} from @${contributor.username}'s GitHub profile`,
+          description: `Found ${foundLinks.join(' and ')} link${
+            foundLinks.length > 1 ? 's' : ''
+          } from @${contributor.username}'s GitHub profile`,
         });
+
+        // Trigger a refetch of the contributor data
+        if (onContributorUpdate) {
+          onContributorUpdate();
+        }
       } else {
         // Show info message when no links found
         const { toast } = await import('@/hooks/use-toast');

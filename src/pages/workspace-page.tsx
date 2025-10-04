@@ -811,6 +811,7 @@ function WorkspaceContributors({
   isLoggedIn,
   currentUser,
   activities = [],
+  onContributorUpdate,
 }: {
   repositories: Repository[];
   selectedRepositories: string[];
@@ -820,6 +821,7 @@ function WorkspaceContributors({
   isLoggedIn?: boolean;
   currentUser?: User | null;
   activities?: ActivityItem[];
+  onContributorUpdate?: () => void;
 }) {
   // Navigate removed - no longer needed as profile modal handles internally
   const [showAddContributors, setShowAddContributors] = useState(false);
@@ -904,6 +906,7 @@ function WorkspaceContributors({
     error,
     addContributorsToWorkspace,
     removeContributorFromWorkspace,
+    refetchContributors,
   } = useWorkspaceContributors({
     workspaceId: workspaceId,
     repositories,
@@ -1792,6 +1795,7 @@ function WorkspaceContributors({
         userRole={userRole}
         workspaceTier={workspaceTier}
         isLoggedIn={isLoggedIn}
+        onContributorUpdate={refetchContributors}
       />
 
       <ContributorNotesDialog
@@ -1829,6 +1833,7 @@ function WorkspaceContributors({
         userRole={userRole}
         workspaceTier={workspaceTier}
         isLoggedIn={isLoggedIn}
+        onContributorUpdate={onContributorUpdate}
       />
     </div>
   );
@@ -3597,6 +3602,7 @@ function WorkspacePage() {
                 isLoggedIn={!!currentUser}
                 currentUser={currentUser}
                 activities={activities}
+                onContributorUpdate={refetchContributors}
               />
             </div>
           </TabsContent>
