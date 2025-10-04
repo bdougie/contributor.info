@@ -664,8 +664,14 @@ function SocialLinksCard({
       const socialLinks = await fetchAndUpdateSocialLinks(contributor.id, contributor.username);
 
       if (socialLinks.discord_url || socialLinks.linkedin_url) {
+        // Update local state
         setDiscordUrl(socialLinks.discord_url || '');
         setLinkedinUrl(socialLinks.linkedin_url || '');
+
+        // Update the contributor object to persist across modal interactions
+        contributor.discord_url = socialLinks.discord_url;
+        contributor.linkedin_url = socialLinks.linkedin_url;
+
         // Show success toast with specific details
         const { toast } = await import('@/hooks/use-toast');
 
@@ -674,8 +680,8 @@ function SocialLinksCard({
         if (socialLinks.discord_url) foundLinks.push('Discord');
 
         toast({
-          title: '✅ Social links fetched successfully',
-          description: `Found ${foundLinks.join(' and ')} link${foundLinks.length > 1 ? 's' : ''} from @${contributor.username}'s GitHub profile`,
+          title: '✅ Social links fetched and saved',
+          description: `Found ${foundLinks.join(' and ')} link${foundLinks.length > 1 ? 's' : ''} from @${contributor.username}'s GitHub profile and saved to database`,
         });
       } else {
         // Show info message when no links found

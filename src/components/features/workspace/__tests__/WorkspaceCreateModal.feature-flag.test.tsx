@@ -106,10 +106,9 @@ describe('WorkspaceCreateModal - Feature Flag Tests', () => {
     it('should show the disabled state for creation mode', () => {
       render(<WorkspaceCreateModal {...defaultProps} />);
 
-      expect(screen.getByTestId('modal-title-disabled')).toHaveTextContent('Workspace Creation');
-      expect(screen.getByTestId('modal-description-disabled')).toHaveTextContent(
-        /workspace creation.*unavailable/i
-      );
+      // Modal no longer has separate title/description - it's all in the disabled component
+      expect(screen.getByTestId('workspace-creation-disabled')).toBeInTheDocument();
+      expect(screen.getByText('Sign In Required')).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /create workspace/i })).not.toBeInTheDocument();
     });
 
@@ -125,9 +124,8 @@ describe('WorkspaceCreateModal - Feature Flag Tests', () => {
       render(<WorkspaceCreateModal {...defaultProps} />);
 
       // Test only what's immediately available without async behavior
-      expect(screen.getByTestId('modal-title-disabled')).toBeInTheDocument();
-      expect(screen.getByTestId('modal-description-disabled')).toBeInTheDocument();
       expect(screen.getByTestId('workspace-creation-disabled')).toBeInTheDocument();
+      expect(screen.getByText('Sign In Required')).toBeInTheDocument();
     });
   });
 });

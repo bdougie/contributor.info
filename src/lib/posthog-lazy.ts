@@ -4,6 +4,7 @@
  */
 
 import { env } from './env';
+import type { CaptureResult } from 'posthog-js';
 
 // Constants for localStorage keys
 const POSTHOG_DEV_ENABLED_KEY = 'enablePostHogDev';
@@ -82,19 +83,22 @@ function sanitizeErrorMessage(message: string): string {
   // Remove potential tokens
   let sanitized = message.replace(/ghp_[a-zA-Z0-9]{36}/g, '[GITHUB_TOKEN]');
   sanitized = sanitized.replace(/gho_[a-zA-Z0-9]{36}/g, '[GITHUB_OAUTH_TOKEN]');
-  
+
   // Remove PostHog API keys
   sanitized = sanitized.replace(/phc_[A-Za-z0-9]{32,}/g, '[POSTHOG_KEY]');
-  
+
   // Remove potential API keys (generic pattern)
-  sanitized = sanitized.replace(/['"]?api[_-]?key['"]?\s*[:=]\s*['"]?[a-zA-Z0-9_-]{20,}['"]?/gi, 'api_key=[REDACTED]');
-  
+  sanitized = sanitized.replace(
+    /['"]?api[_-]?key['"]?\s*[:=]\s*['"]?[a-zA-Z0-9_-]{20,}['"]?/gi,
+    'api_key=[REDACTED]'
+  );
+
   // Remove email addresses
   sanitized = sanitized.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[EMAIL]');
-  
+
   // Remove URLs with potential tokens in query params
   sanitized = sanitized.replace(/(\?|&)(token|key|auth)=[^&\s]+/gi, '$1$2=[REDACTED]');
-  
+
   return sanitized;
 }
 
@@ -165,13 +169,17 @@ const POSTHOG_CONFIG = {
   disable_surveys: true, // No surveys
   disable_compression: false, // Keep compression for smaller payloads
   // Error filtering and sanitization
-  before_send: (event: any) => {
+  before_send: (event: CaptureResult | null): CaptureResult | null => {
     // Filter sensitive data from errors
-    if (event.properties && event.properties.$exception_message) {
+    if (
+      event &&
+      event.properties &&
+      typeof event.properties === 'object' &&
+      '$exception_message' in event.properties
+    ) {
+      const props = event.properties as Record<string, unknown>;
       // Remove potential tokens or API keys from error messages
-      event.properties.$exception_message = sanitizeErrorMessage(
-        event.properties.$exception_message
-      );
+      props.$exception_message = sanitizeErrorMessage(String(props.$exception_message));
     }
     return event;
   },
@@ -681,12 +689,15 @@ export async function trackApiError(
     if (!posthog) return;
 
     const errorMessage = typeof error === 'string' ? error : error.message;
-    const severity =
-      status >= 500
-        ? ErrorSeverity.CRITICAL
-        : status >= 400
-        ? ErrorSeverity.HIGH
-        : ErrorSeverity.MEDIUM;
+
+    let severity: ErrorSeverity;
+    if (status >= 500) {
+      severity = ErrorSeverity.CRITICAL;
+    } else if (status >= 400) {
+      severity = ErrorSeverity.HIGH;
+    } else {
+      severity = ErrorSeverity.MEDIUM;
+    }
 
     posthog.capture('api_error', {
       status_code: status,
@@ -746,4 +757,12 @@ export async function trackSupabaseError(
       console.error('Failed to track Supabase error in PostHog:', trackingError);
     }
   }
+}
+
+/**
+ * Initialize PostHog (for manual initialization)
+ * Returns a promise that resolves when PostHog is loaded
+ */
+export async function initPostHog(): Promise<PostHogInstance | null> {
+  return loadPostHog();
 }

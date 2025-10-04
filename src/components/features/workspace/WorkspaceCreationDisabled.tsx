@@ -29,7 +29,7 @@ export function WorkspaceCreationDisabled({
         </div>
         <div className="text-center space-y-2">
           <h3 className="text-lg font-semibold" data-testid="disabled-heading">
-            {isLoggedIn ? 'Pro Account Required' : 'Login Required'}
+            {isLoggedIn ? 'Upgrade to Pro' : 'Sign In Required'}
           </h3>
           <p
             className="text-muted-foreground text-sm max-w-sm mx-auto"
@@ -37,14 +37,11 @@ export function WorkspaceCreationDisabled({
           >
             {isLoggedIn ? (
               <>
-                Workspace creation requires a Pro subscription. Upgrade your account to create and
-                manage unlimited workspaces with advanced features.
+                Workspaces are a Pro feature. Upgrade to create and manage unlimited workspaces with
+                team collaboration.
               </>
             ) : (
-              <>
-                Please log in to create a workspace. Note that a Pro account is required for
-                workspace creation and management.
-              </>
+              <>Please sign in to continue. Workspace creation requires a Pro subscription.</>
             )}
           </p>
         </div>
@@ -64,7 +61,7 @@ export function WorkspaceCreationDisabled({
               size="sm"
             >
               <LogIn className="w-4 h-4 mr-2" />
-              Login to Continue
+              Sign In
             </Button>
           )}
         </div>
@@ -77,19 +74,16 @@ export function WorkspaceCreationDisabled({
   return (
     <Alert>
       {isLoggedIn ? <Crown className="h-4 w-4" /> : <LogIn className="h-4 w-4" />}
-      <AlertTitle>{isLoggedIn ? 'Pro Account Required' : 'Login Required'}</AlertTitle>
+      <AlertTitle>{isLoggedIn ? 'Upgrade to Pro' : 'Sign In Required'}</AlertTitle>
       <AlertDescription className="mt-2">
         <p className="text-sm mb-3">
           {isLoggedIn ? (
             <>
-              Workspace creation requires a Pro subscription. Upgrade your account to create and
-              manage unlimited workspaces with advanced features.
+              Workspaces are a Pro feature. Upgrade to create and manage unlimited workspaces with
+              team collaboration.
             </>
           ) : (
-            <>
-              Please log in to create a workspace. Note that a Pro account is required for workspace
-              creation and management.
-            </>
+            <>Please sign in to continue. Workspace creation requires a Pro subscription.</>
           )}
         </p>
         {isLoggedIn ? (
@@ -103,7 +97,7 @@ export function WorkspaceCreationDisabled({
           onRequestAccess && (
             <Button onClick={onRequestAccess} variant="outline" size="sm">
               <LogIn className="w-4 h-4 mr-2" />
-              Login to Continue
+              Sign In
             </Button>
           )
         )}
