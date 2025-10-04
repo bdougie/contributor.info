@@ -67,7 +67,7 @@ export interface ContributorProfileModalProps {
   workspaceId?: string;
   onManageGroups?: () => void;
   onAddNote?: () => void;
-  onContributorUpdate?: () => void;
+  onContributorUpdate?: () => Promise<void>;
   isFiltered?: boolean; // Whether this group is being used for filtering
   // Permission context
   userRole?: WorkspaceRole;
@@ -641,7 +641,7 @@ function SocialLinksCard({
 }: {
   contributor: Contributor;
   isLoggedIn: boolean;
-  onContributorUpdate?: () => void;
+  onContributorUpdate?: () => Promise<void>;
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
