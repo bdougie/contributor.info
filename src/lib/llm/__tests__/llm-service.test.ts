@@ -184,6 +184,8 @@ describe('LLM Service', () => {
     });
 
     it('should use fallback when PostHog OpenAI fails', async () => {
+      // Clear cache to ensure we don't get cached success from previous test
+      llmService.clearCache();
       mockPostHogOpenAIService.generateHealthInsight.mockRejectedValue(new Error('API Error'));
 
       const insight = await llmService.generateHealthInsight(sampleHealthData, sampleRepoInfo);
@@ -201,6 +203,8 @@ describe('LLM Service', () => {
     });
 
     it('should use fallback when PostHog OpenAI returns null', async () => {
+      // Clear cache to ensure we don't get cached success from previous test
+      llmService.clearCache();
       mockPostHogOpenAIService.generateHealthInsight.mockResolvedValue(null);
 
       const insight = await llmService.generateHealthInsight(sampleHealthData, sampleRepoInfo);
@@ -247,6 +251,8 @@ describe('LLM Service', () => {
     });
 
     it('should use fallback when PostHog OpenAI fails', async () => {
+      // Clear cache to ensure we don't get cached success from previous test
+      llmService.clearCache();
       mockPostHogOpenAIService.generateRecommendations.mockRejectedValue(new Error('API Error'));
 
       const insight = await llmService.generateRecommendations(sampleData, sampleRepoInfo);
@@ -302,7 +308,8 @@ describe('LLM Service', () => {
       const healthData1 = { ...sampleHealthData, score: 70 };
       const healthData2 = { ...sampleHealthData, score: 80 };
 
-      // Clear mocks to ensure clean count
+      // Clear cache and mocks to ensure clean state
+      llmService.clearCache();
       mockPostHogOpenAIService.generateHealthInsight.mockClear();
 
       await llmService.generateHealthInsight(healthData1, sampleRepoInfo);
@@ -312,7 +319,8 @@ describe('LLM Service', () => {
     });
 
     it('should clear cache when requested', async () => {
-      // Clear mocks to ensure clean count
+      // Clear cache and mocks to ensure clean state
+      llmService.clearCache();
       mockPostHogOpenAIService.generateHealthInsight.mockClear();
 
       await llmService.generateHealthInsight(sampleHealthData, sampleRepoInfo);
@@ -377,6 +385,8 @@ describe('LLM Service', () => {
     });
 
     it('should use fallback when PostHog OpenAI fails', async () => {
+      // Clear cache to ensure we don't get cached success from previous test
+      llmService.clearCache();
       mockPostHogOpenAIService.analyzePRPatterns.mockRejectedValue(new Error('API Error'));
 
       const insight = await llmService.analyzePRPatterns(samplePRData, sampleRepoInfo);

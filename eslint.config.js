@@ -76,6 +76,7 @@ export default tseslint.config(
       '**/*integration*.test.{ts,tsx}', // Integration test files
       '**/*e2e*.test.{ts,tsx}', // E2E test files
       '**/*api*.test.{ts,tsx}', // API test files
+      'src/lib/llm/**/*.test.{ts,tsx}', // LLM service tests (integration with external APIs)
     ],
     rules: {
       // Prevent async/await in test functions to avoid CI hangs

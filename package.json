@@ -103,7 +103,7 @@
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
     "@netlify/functions": "^4.1.8",
-    "@nivo/scatterplot": "^0.88.0",
+    "@nivo/scatterplot": "^0.99.0",
     "@octokit/auth-app": "^8.0.2",
     "@octokit/graphql": "^9.0.1",
     "@octokit/plugin-throttling": "^11.0.1",
@@ -191,6 +191,7 @@
     "@iconify/json": "^2.2.367",
     "@mdx-js/react": "^2.3.0",
     "@playwright/test": "^1.54.1",
+    "@react-spring/web": "^10.0.3",
     "playwright": "^1.53.0",
     "@storybook/addon-a11y": "^8.6.14",
     "@storybook/addon-docs": "^8.6.14",
