@@ -39,7 +39,7 @@ describe('WorkspaceCreationDisabled', () => {
         </MemoryRouter>
       );
 
-      expect(screen.getByText('Upgrade to Pro')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Upgrade to Pro' })).toBeInTheDocument();
       expect(
         screen.getByText(/Workspaces are a Pro feature/)
       ).toBeInTheDocument();
@@ -63,7 +63,7 @@ describe('WorkspaceCreationDisabled', () => {
         </MemoryRouter>
       );
 
-      expect(screen.getByText('Upgrade to Pro')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Upgrade to Pro' })).toBeInTheDocument();
       expect(
         screen.getByText(/Workspaces are a Pro feature/)
       ).toBeInTheDocument();
