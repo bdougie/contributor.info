@@ -51,13 +51,8 @@ const ChangelogPage = lazy(() =>
     default: m.ChangelogPage,
   }))
 );
-// Documentation components with routing
-const DocsList = lazy(() =>
-  import('@/components/features/docs/docs-list').then((m) => ({ default: m.DocsList }))
-);
-const DocDetail = lazy(() =>
-  import('@/components/features/docs/doc-detail').then((m) => ({ default: m.DocDetail }))
-);
+// Documentation has been migrated to Mintlify
+// See mintlify-docs/ directory
 const FeedPage = lazy(() => import('@/components/features/feed/feed-page'));
 const SpamFeedPage = lazy(() => import('@/components/features/feed/spam-feed-page'));
 const SocialCardPreview = lazy(() => import('@/components/social-cards/preview'));
@@ -535,14 +530,9 @@ function App() {
                     <Route path="/workspace/:id" element={<WorkspaceRedirect />} />
                     <Route path="/workspace/:id/:tab" element={<WorkspaceRedirect includeTab />} />
                     <Route path="/changelog" element={<ChangelogPage />} />
-                    <Route path="/docs" element={<DocsList />} />
-                    <Route path="/docs/:slug" element={<DocDetail />} />
 
                     {/* Invitation acceptance route */}
                     <Route path="/invitation/:token" element={<InvitationAcceptancePage />} />
-
-                    {/* Legacy Route Redirect - Old feedback page moved to docs */}
-                    <Route path="/search/feedback" element={<Navigate to="/docs" replace />} />
                     <Route path="/widgets" element={<WidgetsPage />} />
                     <Route path="/:owner/:repo/widgets" element={<WidgetsPage />} />
                     <Route

@@ -1,12 +1,18 @@
 # PRD: User Documentation Image Replacement Plan
 
+**Status**: OBSOLETE - Documentation migrated to Mintlify (see feat/mintlify-docs-406)
+
 ## Project Overview
 
 ### Objective
-Replace all placeholder images and add necessary visual content to the 16 user documentation files in `/public/docs/` to enhance user understanding and engagement.
+~~Replace all placeholder images and add necessary visual content to the 16 user documentation files in `/public/docs/` to enhance user understanding and engagement.~~
+
+**UPDATE**: Documentation has been migrated from `/public/docs/` to Mintlify (`mintlify-docs/`). This PRD is no longer applicable. Visual content should now be added to Mintlify documentation following their image standards.
 
 ### Background
-The user documentation currently lacks visual elements that would help users understand features, navigate the interface, and visualize data patterns. This project aims to add screenshots, diagrams, and visual aids following the design language of contributor.info.
+~~The user documentation currently lacks visual elements that would help users understand features, navigate the interface, and visualize data patterns. This project aims to add screenshots, diagrams, and visual aids following the design language of contributor.info.~~
+
+**UPDATE**: The in-app documentation system has been replaced with Mintlify-hosted documentation. See `mintlify-docs/` directory and https://docs.contributor.info for the new documentation system.
 
 ### Success Metrics
 - All 16 documentation files have appropriate visual content

@@ -22,7 +22,7 @@ type ServiceWorkerMessage = BackgroundSyncEvent | CacheUpdateEvent;
 
 class ServiceWorkerClient {
   private sw: ServiceWorker | null = null;
-  private messageHandlers: Map<string, Function[]> = new Map();
+  private messageHandlers: Map<string, ((message: ServiceWorkerMessage) => void)[]> = new Map();
   private prefetchQueue: Set<string> = new Set();
   private prefetchTimer: NodeJS.Timeout | null = null;
   private initialized = false;
@@ -113,7 +113,7 @@ class ServiceWorkerClient {
   /**
    * Register a message handler
    */
-  public on(type: string, handler: Function) {
+  public on(type: string, handler: (message: ServiceWorkerMessage) => void) {
     const handlers = this.messageHandlers.get(type) || [];
     handlers.push(handler);
     this.messageHandlers.set(type, handlers);
@@ -122,7 +122,7 @@ class ServiceWorkerClient {
   /**
    * Send a message to the service worker
    */
-  private postMessage(message: any) {
+  private postMessage(message: Record<string, unknown>) {
     if (this.sw) {
       this.sw.postMessage(message);
     }
@@ -177,9 +177,6 @@ class ServiceWorkerClient {
       switch (route) {
         case '/changelog':
           resources.push('/js/changelog-page.js');
-          break;
-        case '/docs':
-          resources.push('/js/docs-list.js');
           break;
         case '/feed':
           resources.push('/js/feed-page.js');

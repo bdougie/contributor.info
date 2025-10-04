@@ -47,12 +47,12 @@ jobs:
         run: npm ci
 
       # Build step removed - Netlify will handle the build with proper env vars
-      
+
       - name: Update tracked repositories list
         run: |
           echo "📊 Updating tracked repositories list..."
           node scripts/update-tracked-repos.js
-          
+
           # Check if files changed
           if git diff --quiet tracked-repositories.txt tracked-repositories.json tracked-repositories-stats.json 2>/dev/null; then
             echo "✅ No changes to tracked repositories"
@@ -71,11 +71,11 @@ jobs:
       - name: Run tests
         run: npm test -- --passWithNoTests
 
-      - name: Prepare changelog for public directory
+      - name: Prepare changelog for Mintlify docs
         run: |
-          mkdir -p public
+          mkdir -p mintlify-docs
           if [ -f CHANGELOG.md ]; then
-            cp CHANGELOG.md public/CHANGELOG.md
+            cp CHANGELOG.md mintlify-docs/changelog.mdx
           fi
 
       - name: Create Release
@@ -93,28 +93,28 @@ jobs:
       # Netlify will automatically deploy from main branch via GitHub integration
       # No manual deployment needed here
 
-      - name: Update public changelog after release  
+      - name: Update Mintlify changelog after release
         if: steps.release.outputs.released == 'true'
         run: |
-          mkdir -p public
-          cp CHANGELOG.md public/CHANGELOG.md
-          
+          mkdir -p mintlify-docs
+          cp CHANGELOG.md mintlify-docs/changelog.mdx
+
           # Generate RSS/Atom feeds from changelog
           if [ -f scripts/changelog/generate-rss.js ]; then
             node scripts/changelog/generate-rss.js
           fi
-          
+
           # Configure git with proper credentials
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          
+
           # Add and commit changes
-          git add public/CHANGELOG.md public/changelog-rss.xml public/changelog-atom.xml 2>/dev/null || true
-          git commit -m "chore: update public changelog and feeds after release ${{ steps.release.outputs.version }}" || echo "No changes to commit"
-          
+          git add mintlify-docs/changelog.mdx public/changelog-rss.xml public/changelog-atom.xml 2>/dev/null || true
+          git commit -m "chore: update Mintlify changelog and feeds after release ${{ steps.release.outputs.version }}" || echo "No changes to commit"
+
           # Push with the GitHub token using authenticated URL
           git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} HEAD:main || echo "Push failed, possibly due to no changes"
-          
+
   verify-sitemap:
     name: Verify Sitemap Accessibility
     runs-on: ubuntu-latest
@@ -125,11 +125,11 @@ jobs:
         run: |
           echo "Waiting 2 minutes for Netlify deployment to complete..."
           sleep 120
-          
+
       - name: Verify sitemaps are accessible
         run: |
           echo "Verifying sitemap accessibility..."
-          
+
           # Check main sitemap
           if curl -f -s https://contributor.info/sitemap.xml > /dev/null; then
             echo "✅ Main sitemap is accessible"
@@ -137,7 +137,7 @@ jobs:
             echo "❌ Main sitemap is NOT accessible"
             exit 1
           fi
-          
+
           # Check news sitemap
           if curl -f -s https://contributor.info/sitemap-news.xml > /dev/null; then
             echo "✅ News sitemap is accessible"
@@ -145,7 +145,7 @@ jobs:
             echo "❌ News sitemap is NOT accessible"
             exit 1
           fi
-          
+
           echo ""
           echo "✅ Sitemaps verified! Automatic submission will be triggered."
           echo ""

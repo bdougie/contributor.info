@@ -20,7 +20,7 @@ const isValidRoute = (route: string): boolean => {
  * Safely import a module with error handling
  */
 const validateImport = async (
-  importFn: () => Promise<any>,
+  importFn: () => Promise<unknown>,
   moduleName: string
 ): Promise<boolean> => {
   try {
@@ -76,12 +76,6 @@ export const prefetchRoute = (routePath: string) => {
         success = await validateImport(
           () => import('@/components/features/changelog/changelog-page'),
           'changelog-page'
-        );
-        break;
-      case '/docs':
-        success = await validateImport(
-          () => import('@/components/features/docs/docs-list'),
-          'docs-list'
         );
         break;
       case '/feed':

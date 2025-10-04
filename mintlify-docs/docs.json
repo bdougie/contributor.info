@@ -1,0 +1,94 @@
+{
+  "name": "contributor.info",
+  "theme": "willow",
+  "favicon": "/favicon.svg",
+  "primaryTab": {
+    "name": "Documentation"
+  },
+  "colors": {
+    "primary": "#FF5402",
+    "light": "#FF5402",
+    "dark": "#FF5402"
+  },
+  "modeToggle": {
+    "default": "dark"
+  },
+  "github": {
+    "owner": "bdougie",
+    "repo": "contributor.info"
+  },
+  "topbarLinks": [
+    {
+      "name": "App",
+      "url": "https://contributor.info"
+    }
+  ],
+  "topbarCtaButton": {
+    "name": "Get Started",
+    "url": "https://contributor.info"
+  },
+  "navigation": {
+    "groups": [
+      {
+        "group": "Overview",
+        "pages": ["introduction"]
+      },
+      {
+        "group": "Features",
+        "pages": [
+          "features/lottery-factor",
+          "features/activity-feed",
+          "features/authentication",
+          "features/contributor-confidence",
+          "features/contribution-analytics",
+          "features/contributor-of-month",
+          "features/hover-cards",
+          "features/distribution-charts",
+          "features/repository-health",
+          "features/repository-search",
+          "features/github-app-setup"
+        ]
+      },
+      {
+        "group": "Insights",
+        "pages": [
+          "insights/pr-activity",
+          "insights/repository-health",
+          "insights/needs-attention",
+          "insights/recommendations"
+        ]
+      }
+    ],
+    "global": {
+      "anchors": [
+        {
+          "anchor": "Community",
+          "icon": "discord",
+          "href": "https://discord.gg/gZMKK5q"
+        },
+        {
+          "anchor": "Discussions",
+          "icon": "github",
+          "href": "https://github.com/bdougie/contributor.info/discussions"
+        }
+      ]
+    }
+  },
+  "footerSocials": {
+    "github": "https://github.com/bdougie/contributor.info",
+    "twitter": "https://twitter.com/bdougieYO",
+    "discord": "https://discord.gg/gZMKK5q"
+  },
+  "footer": [
+    {
+      "name": "Changelog",
+      "url": "/changelog"
+    }
+  ],
+  "analytics": {
+    "posthog": {
+      "apiKey": "phc_WKB5qeFfKiZB11zZfCnuqbvWKwQ0jLBzG2bX7vJ1MhO"
+    }
+  },
+  "customCSS": ["/custom.css"]
+}

@@ -186,7 +186,9 @@ describe('LLM Service', () => {
     it('should use fallback when PostHog OpenAI fails', async () => {
       // Clear cache to ensure we don't get cached success from previous test
       llmService.clearCache();
-      mockPostHogOpenAIService.generateHealthInsight.mockRejectedValue(new Error('API Error'));
+      // Reset the mock and set up rejection
+      mockPostHogOpenAIService.generateHealthInsight.mockReset();
+      mockPostHogOpenAIService.generateHealthInsight.mockRejectedValueOnce(new Error('API Error'));
 
       const insight = await llmService.generateHealthInsight(sampleHealthData, sampleRepoInfo);
 
@@ -205,7 +207,9 @@ describe('LLM Service', () => {
     it('should use fallback when PostHog OpenAI returns null', async () => {
       // Clear cache to ensure we don't get cached success from previous test
       llmService.clearCache();
-      mockPostHogOpenAIService.generateHealthInsight.mockResolvedValue(null);
+      // Reset the mock and set up null return
+      mockPostHogOpenAIService.generateHealthInsight.mockReset();
+      mockPostHogOpenAIService.generateHealthInsight.mockResolvedValueOnce(null);
 
       const insight = await llmService.generateHealthInsight(sampleHealthData, sampleRepoInfo);
 
@@ -253,7 +257,11 @@ describe('LLM Service', () => {
     it('should use fallback when PostHog OpenAI fails', async () => {
       // Clear cache to ensure we don't get cached success from previous test
       llmService.clearCache();
-      mockPostHogOpenAIService.generateRecommendations.mockRejectedValue(new Error('API Error'));
+      // Reset the mock and set up rejection
+      mockPostHogOpenAIService.generateRecommendations.mockReset();
+      mockPostHogOpenAIService.generateRecommendations.mockRejectedValueOnce(
+        new Error('API Error')
+      );
 
       const insight = await llmService.generateRecommendations(sampleData, sampleRepoInfo);
 
@@ -305,12 +313,18 @@ describe('LLM Service', () => {
     });
 
     it('should not use cache for different data', async () => {
+      // Clear cache and reset mocks to ensure clean state
+      llmService.clearCache();
+      mockPostHogOpenAIService.generateHealthInsight.mockReset();
+      mockPostHogOpenAIService.generateHealthInsight.mockResolvedValue({
+        type: 'health',
+        content: 'Mock health insight from OpenAI',
+        confidence: 0.85,
+        timestamp: new Date(),
+      });
+
       const healthData1 = { ...sampleHealthData, score: 70 };
       const healthData2 = { ...sampleHealthData, score: 80 };
-
-      // Clear cache and mocks to ensure clean state
-      llmService.clearCache();
-      mockPostHogOpenAIService.generateHealthInsight.mockClear();
 
       await llmService.generateHealthInsight(healthData1, sampleRepoInfo);
       await llmService.generateHealthInsight(healthData2, sampleRepoInfo);

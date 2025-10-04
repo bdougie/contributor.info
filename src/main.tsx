@@ -30,18 +30,19 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
     });
 
     // Listen for cache updates
-    swClient.on('CACHE_UPDATED', (event: { type: 'CACHE_UPDATED'; url: string }) => {
-      console.log('Cache updated for:', event.url);
-      // Could trigger a subtle UI update here
+    swClient.on('CACHE_UPDATED', (message) => {
+      if (message.type === 'CACHE_UPDATED') {
+        console.log('Cache updated for:', message.url);
+        // Could trigger a subtle UI update here
+      }
     });
 
     // Listen for background sync
-    swClient.on(
-      'BACKGROUND_SYNC',
-      (event: { type: 'BACKGROUND_SYNC'; status: 'started' | 'completed' }) => {
-        console.log('Background sync:', event.status);
+    swClient.on('BACKGROUND_SYNC', (message) => {
+      if (message.type === 'BACKGROUND_SYNC') {
+        console.log('Background sync:', message.status);
       }
-    );
+    });
   });
 }
 
