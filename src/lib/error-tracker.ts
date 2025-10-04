@@ -191,10 +191,12 @@ export async function retryWithTracking<T>(
     maxRetries?: number;
     delay?: number;
     operation: string;
-    category?: ErrorCategory;
+    category?: string; // Use string type instead of enum to avoid import issue
   }
 ): Promise<T> {
-  const { maxRetries = 3, delay = 1000, operation, category = ErrorCategory.NETWORK } = options;
+  const { maxRetries = 3, delay = 1000, operation, category } = options;
+  // Default to 'network' string if not provided
+  const errorCategory = category || 'network';
   
   let lastError: Error | null = null;
   
@@ -209,7 +211,7 @@ export async function retryWithTracking<T>(
         import('./posthog-lazy').then(({ trackError, ErrorSeverity }) => {
           trackError(lastError!, {
             severity: ErrorSeverity.HIGH,
-            category,
+            category: errorCategory as any,
             metadata: {
               operation,
               attempts: maxRetries,
