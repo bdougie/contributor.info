@@ -286,10 +286,9 @@
     Cache-Control = "public, max-age=31536000, immutable"
 
 # Redirect docs to Mintlify hosted documentation
-# TODO: Update this URL once Mintlify docs are deployed
 [[redirects]]
   from = "/docs/*"
-  to = "https://docs.contributor.info/:splat"
+  to = "https://contributor.mintlify.app/:splat"
   status = 301
   force = true
 
