@@ -77,7 +77,7 @@ export function WidgetGallery({
     type: 'stat-card',
     owner: customOwner,
     repo: customRepo,
-    theme: 'light',
+    theme: 'dark',
     size: 'medium',
     format: 'html',
     metrics: ['contributors', 'pull-requests', 'lottery-factor'],
@@ -111,7 +111,7 @@ export function WidgetGallery({
         const params = new URLSearchParams({
           owner: customOwner,
           repo: customRepo,
-          theme: statCardConfig.theme || 'light',
+          theme: statCardConfig.theme || 'dark',
           size: statCardConfig.size || 'medium',
           metrics: statCardConfig.metrics?.join(',') || 'contributors,pull-requests',
         });

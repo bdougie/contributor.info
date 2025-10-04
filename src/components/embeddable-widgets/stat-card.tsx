@@ -17,34 +17,34 @@ const METRIC_CONFIG = {
     label: 'Contributors',
     getValue: (data: WidgetData) => data.stats.totalContributors,
     getSubtext: undefined,
-    color: 'text-blue-600 dark:text-blue-400',
+    color: 'text-blue-600 dark:text-[#FF5402]',
   },
   'pull-requests': {
     icon: GitPullRequest,
     label: 'Pull Requests',
     getValue: (data: WidgetData) => data.stats.totalPRs,
     getSubtext: undefined,
-    color: 'text-green-600 dark:text-green-400',
+    color: 'text-green-600 dark:text-[#FF5402]',
   },
   'lottery-factor': {
     icon: Target,
     label: 'Lottery Factor',
     getValue: (data: WidgetData) => data.stats.lotteryFactor?.toFixed(1) || 'N/A',
     getSubtext: (data: WidgetData) => data.stats.lotteryRating,
-    color: 'text-orange-600 dark:text-orange-400',
+    color: 'text-orange-600 dark:text-[#FF5402]',
   },
   'merge-rate': {
     icon: TrendingUp,
     label: 'Merge Rate',
     getValue: (data: WidgetData) => `${data.stats.mergeRate.toFixed(1)}%`,
     getSubtext: undefined,
-    color: 'text-purple-600 dark:text-purple-400',
+    color: 'text-purple-600 dark:text-[#FF5402]',
   },
 };
 
 export function StatCard({ config, data, className }: StatCardProps) {
   const metrics = config.metrics || ['contributors', 'pull-requests', 'lottery-factor'];
-  const theme = config.theme || 'light';
+  const theme = config.theme || 'dark';
   const size = config.size || 'medium';
 
   // Size variants
@@ -59,9 +59,11 @@ export function StatCard({ config, data, className }: StatCardProps) {
       className={cn(
         'embeddable-widget stat-card',
         sizeClasses[size],
-        theme === 'dark' && 'dark',
+        theme === 'dark' && 'dark bg-[#0A0A0A] border-[#141414]',
+        theme === 'light' && 'bg-white',
         className
       )}
+      style={theme === 'dark' ? { backgroundColor: '#0A0A0A', borderColor: '#141414' } : undefined}
     >
       <CardHeader className={cn('pb-2', size === 'small' && 'pb-1', size === 'large' && 'pb-4')}>
         <div className="flex items-center justify-between">
@@ -79,7 +81,8 @@ export function StatCard({ config, data, className }: StatCardProps) {
             variant="secondary"
             className={cn(
               size === 'small' && 'text-xs px-1.5 py-0.5',
-              size === 'large' && 'text-sm px-3 py-1'
+              size === 'large' && 'text-sm px-3 py-1',
+              theme === 'dark' && 'bg-[#141414] text-gray-300 border-[#FF5402]/20'
             )}
           >
             {data.repository.language}
@@ -134,13 +137,19 @@ export function StatCard({ config, data, className }: StatCardProps) {
 
         {/* Footer with attribution */}
         {config.showLogo !== false && (
-          <div className="mt-3 pt-2 border-t text-xs text-muted-foreground text-center">
+          <div className={cn(
+            "mt-3 pt-2 border-t text-xs text-center",
+            theme === 'dark' ? 'border-[#141414] text-gray-400' : 'text-muted-foreground'
+          )}>
             <span>Powered by </span>
             <a
               href="https://contributor.info"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-primary hover:underline"
+              className={cn(
+                "hover:underline",
+                theme === 'dark' ? 'text-[#FF5402]' : 'text-primary'
+              )}
             >
               contributor.info
             </a>
