@@ -100,18 +100,19 @@ export function ProgressiveRepoView() {
                     },
                     i: number
                   ) => (
-                  <Avatar
-                    key={contributor.login}
-                    className="h-8 w-8 border-2 border-background"
-                  >
-                    <AvatarImage
-                      src={`${contributor.avatar_url}?s=64`}
-                      alt={contributor.login}
-                      loading={i < 3 ? 'eager' : 'lazy'} // Eager load first 3
-                    />
-                    <AvatarFallback>{contributor.login[0]}</AvatarFallback>
-                  </Avatar>
-                ))
+                    <Avatar
+                      key={contributor.login}
+                      className="h-8 w-8 border-2 border-background"
+                    >
+                      <AvatarImage
+                        src={`${contributor.avatar_url}?s=64`}
+                        alt={contributor.login}
+                        loading={i < 3 ? 'eager' : 'lazy'} // Eager load first 3
+                      />
+                      <AvatarFallback>{contributor.login[0]}</AvatarFallback>
+                    </Avatar>
+                  )
+                )}
               </div>
             )}
           </CardContent>
