@@ -1,0 +1,83 @@
+{
+  "name": "Contributor.info",
+  "theme": "mint",
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg"
+  },
+  "favicon": "/favicon.png",
+  "colors": {
+    "primary": "#0D9488",
+    "light": "#14B8A6",
+    "dark": "#0D9488"
+  },
+  "topbarLinks": [
+    {
+      "name": "App",
+      "url": "https://contributor.info"
+    },
+    {
+      "name": "GitHub",
+      "url": "https://github.com/bdougie/contributor.info"
+    }
+  ],
+  "topbarCtaButton": {
+    "name": "Get Started",
+    "url": "https://contributor.info"
+  },
+  "navigation": {
+    "anchors": [
+      {
+        "anchor": "Features",
+        "icon": "star",
+        "pages": [
+          "features/lottery-factor",
+          "features/activity-feed",
+          "features/authentication",
+          "features/contributor-confidence",
+          "features/contribution-analytics",
+          "features/contributor-of-month",
+          "features/hover-cards",
+          "features/distribution-charts",
+          "features/repository-health",
+          "features/repository-search",
+          "features/github-app-setup"
+        ]
+      },
+      {
+        "anchor": "Insights",
+        "icon": "chart-line",
+        "pages": [
+          "insights/pr-activity",
+          "insights/repository-health",
+          "insights/needs-attention",
+          "insights/recommendations"
+        ]
+      }
+    ],
+    "global": {
+      "anchors": [
+        {
+          "anchor": "Community",
+          "icon": "discord",
+          "href": "https://discord.gg/gZMKK5q"
+        },
+        {
+          "anchor": "Support",
+          "icon": "question",
+          "href": "https://github.com/bdougie/contributor.info/issues"
+        }
+      ]
+    }
+  },
+  "footerSocials": {
+    "github": "https://github.com/bdougie/contributor.info",
+    "twitter": "https://twitter.com/bdougieYO",
+    "discord": "https://discord.gg/gZMKK5q"
+  },
+  "analytics": {
+    "posthog": {
+      "apiKey": "phc_WKB5qeFfKiZB11zZfCnuqbvWKwQ0jLBzG2bX7vJ1MhO"
+    }
+  }
+}
