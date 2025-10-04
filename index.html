@@ -34,17 +34,14 @@
     <meta name="format-detection" content="telephone=no" />
     
     <!-- Performance optimizations -->
-    <link rel="preconnect" href="https://avatars.githubusercontent.com" crossorigin>
-    <link rel="preconnect" href="https://api.github.com" crossorigin>
-    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Keep only critical preconnect (Supabase) to stay under recommended limit of 4 -->
     <link rel="preconnect" href="https://egcxzonpmmcirmgqdrla.supabase.co" crossorigin>
+    <!-- Use cheaper dns-prefetch for non-critical resources -->
     <link rel="dns-prefetch" href="https://avatars.githubusercontent.com">
     <link rel="dns-prefetch" href="https://api.github.com">
     <link rel="dns-prefetch" href="https://github.com">
     <link rel="dns-prefetch" href="https://fonts.googleapis.com">
     <link rel="dns-prefetch" href="https://fonts.gstatic.com">
-    <link rel="dns-prefetch" href="https://egcxzonpmmcirmgqdrla.supabase.co">
     
     <!-- Fonts temporarily disabled due to CSP issues - using system fonts -->
     <!-- TODO: Implement self-hosted fonts with subsetting (issue #475) -->

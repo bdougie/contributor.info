@@ -17,7 +17,6 @@ const NotFound = lazy(() =>
   import('@/components/common/layout').then((m) => ({ default: m.NotFound }))
 );
 import { ProtectedRoute, AdminRoute } from '@/components/features/auth';
-import { initializeWebVitalsMonitoring } from '@/lib/web-vitals-monitoring';
 import { initializeLLMCitationTracking } from '@/lib/llm-citation-tracking';
 import { SVGSpriteInliner } from '@/components/ui/svg-sprite-loader';
 import { WorkspaceRedirect } from '@/components/WorkspaceRedirect';
@@ -321,32 +320,82 @@ function App() {
   useSubscriptionSync();
 
   // Initialize Web Vitals monitoring with PostHog
+  // Deferred to requestIdleCallback to avoid blocking LCP
   useEffect(() => {
-    const vitalsMonitor = initializeWebVitalsMonitoring({
-      debug: process.env.NODE_ENV === 'development',
-      // Optional: Set up reporting endpoint for production
-      // reportingEndpoint: '/api/vitals'
-    });
+    const initVitals = () => {
+      import('./lib/web-vitals-monitoring').then(({ initializeWebVitalsMonitoring }) => {
+        const vitalsMonitor = initializeWebVitalsMonitoring({
+          debug: process.env.NODE_ENV === 'development',
+          // Optional: Set up reporting endpoint for production
+          // reportingEndpoint: '/api/vitals'
+        });
 
-    // Enable PostHog for Web Vitals tracking (lazy-loaded to minimize bundle impact)
-    import('./lib/web-vitals-analytics').then(({ getWebVitalsAnalytics }) => {
-      const analytics = getWebVitalsAnalytics();
-      // Enable both Supabase and PostHog providers
-      analytics.setProviders(['supabase', 'posthog']);
-    });
+        // Enable Web Vitals analytics (Supabase first, PostHog after interaction)
+        import('./lib/web-vitals-analytics').then(({ getWebVitalsAnalytics }) => {
+          const analytics = getWebVitalsAnalytics();
+          // Start with Supabase only (lightweight)
+          analytics.setProviders(['supabase']);
+        });
 
-    // Log metrics to console in development
-    if (process.env.NODE_ENV === 'development') {
-      vitalsMonitor.onMetric((metric) => {
-        // Additional logging or analytics can be added here
-        if (metric.rating !== 'good') {
-          console.warn(`Performance issue detected: ${metric.name}`, metric);
+        // Log metrics to console in development
+        if (process.env.NODE_ENV === 'development') {
+          vitalsMonitor.onMetric((metric) => {
+            // Additional logging or analytics can be added here
+            if (metric.rating !== 'good') {
+              console.warn(`Performance issue detected: ${metric.name}`, metric);
+            }
+          });
         }
       });
+    };
+
+    // Load after browser idle time to avoid blocking LCP
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(initVitals);
+    } else {
+      // Fallback for browsers without requestIdleCallback
+      setTimeout(initVitals, 3000);
     }
 
+    // Note: Cleanup handled by module singleton pattern
+    return () => {};
+  }, []);
+
+  // Load PostHog on user interaction (Phase 3 optimization)
+  useEffect(() => {
+    let isPostHogLoaded = false;
+
+    const loadPostHogOnInteraction = () => {
+      if (isPostHogLoaded) return;
+      isPostHogLoaded = true;
+
+      // Load PostHog and enable it for web vitals
+      import('./lib/posthog-lazy').then(({ initPostHog }) => {
+        initPostHog().then(() => {
+          // Add PostHog to analytics providers after it loads
+          import('./lib/web-vitals-analytics').then(({ getWebVitalsAnalytics }) => {
+            const analytics = getWebVitalsAnalytics();
+            analytics.setProviders(['supabase', 'posthog']);
+          });
+        });
+      });
+
+      // Remove event listeners after first interaction
+      events.forEach((e) => document.removeEventListener(e, loadPostHogOnInteraction));
+    };
+
+    // User interaction events that trigger PostHog loading
+    const events = ['mousedown', 'keydown', 'scroll', 'touchstart'];
+    events.forEach((e) =>
+      document.addEventListener(e, loadPostHogOnInteraction, { once: true, passive: true })
+    );
+
+    // Fallback: load after 3 seconds if no interaction
+    const fallbackTimer = setTimeout(loadPostHogOnInteraction, 3000);
+
     return () => {
-      vitalsMonitor.destroy();
+      events.forEach((e) => document.removeEventListener(e, loadPostHogOnInteraction));
+      clearTimeout(fallbackTimer);
     };
   }, []);
 
@@ -379,14 +428,22 @@ function App() {
       // Start critical loads immediately
       Promise.all(criticalImports).catch(console.warn);
 
-      // Priority 2: Background progressive features (delayed)
-      setTimeout(() => {
+      // Priority 2: Background progressive features (deferred to idle time)
+      const loadProgressiveFeatures = () => {
         Promise.all([
           import('@/lib/progressive-capture/manual-trigger'),
           import('@/lib/progressive-capture/smart-notifications'),
           import('@/lib/progressive-capture/background-processor'),
         ]).catch(console.warn);
-      }, 500); // Reduced from 1000ms for better UX
+      };
+
+      // Load after browser idle time to avoid blocking LCP
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(loadProgressiveFeatures, { timeout: 1000 });
+      } else {
+        // Fallback for browsers without requestIdleCallback (use original timing)
+        setTimeout(loadProgressiveFeatures, 500);
+      }
     };
 
     initializeDeferred();
