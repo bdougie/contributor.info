@@ -26,10 +26,15 @@
     "url": "https://contributor.info"
   },
   "navigation": {
-    "anchors": [
+    "groups": [
       {
-        "anchor": "Features",
-        "icon": "star",
+        "group": "Overview",
+        "pages": [
+          "introduction"
+        ]
+      },
+      {
+        "group": "Features",
         "pages": [
           "features/lottery-factor",
           "features/activity-feed",
@@ -45,8 +50,7 @@
         ]
       },
       {
-        "anchor": "Insights",
-        "icon": "chart-line",
+        "group": "Insights",
         "pages": [
           "insights/pr-activity",
           "insights/repository-health",
