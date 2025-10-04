@@ -913,7 +913,11 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
                     markers: {
                       lineColor: 'hsl(var(--foreground))',
                       lineStrokeWidth: 2,
-                      textColor: 'hsl(var(--foreground))',
+                      text: {
+                        fill: 'hsl(var(--foreground))',
+                        fontSize: 11,
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      } as any,
                     },
                     dots: {
                       text: {
