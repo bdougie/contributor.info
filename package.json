@@ -162,7 +162,7 @@
     "minimatch": "^10.0.3",
     "next-themes": "^0.3.0",
     "openai": "^5.11.0",
-    "playwright": "^1.53.0",
+    "playwright": "^1.55.0",
     "posthog-js": "^1.260.2",
     "react": "^18.3.1",
     "react-day-picker": "^9.6.7",
