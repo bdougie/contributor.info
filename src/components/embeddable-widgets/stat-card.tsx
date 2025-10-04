@@ -59,11 +59,9 @@ export function StatCard({ config, data, className }: StatCardProps) {
       className={cn(
         'embeddable-widget stat-card',
         sizeClasses[size],
-        theme === 'dark' && 'dark bg-[#0A0A0A] border-[#141414]',
-        theme === 'light' && 'bg-white',
+        theme === 'dark' && 'dark',
         className
       )}
-      style={theme === 'dark' ? { backgroundColor: '#0A0A0A', borderColor: '#141414' } : undefined}
     >
       <CardHeader className={cn('pb-2', size === 'small' && 'pb-1', size === 'large' && 'pb-4')}>
         <div className="flex items-center justify-between">
@@ -81,8 +79,7 @@ export function StatCard({ config, data, className }: StatCardProps) {
             variant="secondary"
             className={cn(
               size === 'small' && 'text-xs px-1.5 py-0.5',
-              size === 'large' && 'text-sm px-3 py-1',
-              theme === 'dark' && 'bg-[#141414] text-gray-300 border-primary/20'
+              size === 'large' && 'text-sm px-3 py-1'
             )}
           >
             {data.repository.language}
@@ -137,10 +134,7 @@ export function StatCard({ config, data, className }: StatCardProps) {
 
         {/* Footer with attribution */}
         {config.showLogo !== false && (
-          <div className={cn(
-            "mt-3 pt-2 border-t text-xs text-center",
-            theme === 'dark' ? 'border-[#141414] text-gray-400' : 'text-muted-foreground'
-          )}>
+          <div className="mt-3 pt-2 border-t text-xs text-muted-foreground text-center">
             <span>Powered by </span>
             <a
               href="https://contributor.info"
