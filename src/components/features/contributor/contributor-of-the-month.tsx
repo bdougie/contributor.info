@@ -208,38 +208,55 @@ export function ContributorOfTheMonth({
                     {(totalContributors || ranking.contributors.length) !== 1 ? 's' : ''}
                   </span>
                 </div>
+                {topContributors.length > 1 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowAllContributors((prev) => !prev)}
+                  >
+                    {showAllContributors ? 'Show winner only' : 'View all contributors'}
+                  </Button>
+                )}
               </div>
 
-              <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
-                {topContributors.map((contributor, index) => {
-                  const isFirstPlace = index === 0 && showBlurredFirst && !hasPaidWorkspace;
+              {/* Show only winner by default, or all contributors when toggled */}
+              <div
+                className={cn(
+                  'grid gap-4',
+                  showAllContributors ? 'grid-cols-1 sm:grid-cols-3' : 'max-w-sm mx-auto'
+                )}
+              >
+                {topContributors
+                  .slice(0, showAllContributors ? undefined : 1)
+                  .map((contributor, index) => {
+                    const isFirstPlace = index === 0 && showBlurredFirst && !hasPaidWorkspace;
 
-                  return (
-                    <div key={contributor.login} className="relative">
-                      {isFirstPlace && (
-                        <div className="absolute inset-0 z-10 rounded-lg bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center gap-2">
-                          <Lock className="h-6 w-6 text-muted-foreground" />
-                          <Button
-                            size="sm"
-                            onClick={() => setShowWorkspaceModal(true)}
-                            className="text-xs bg-orange-500 hover:bg-orange-600 text-white"
-                          >
-                            {isLoggedIn ? 'Upgrade to view' : 'Login to view'}
-                          </Button>
-                        </div>
-                      )}
-                      <ContributorCard
-                        contributor={contributor}
-                        showRank={true}
-                        className={isFirstPlace ? 'blur-sm' : ''}
-                        repositoryOwner={repositoryOwner}
-                        repositoryName={repositoryName}
-                        month={ranking.month}
-                        year={ranking.year}
-                      />
-                    </div>
-                  );
-                })}
+                    return (
+                      <div key={contributor.login} className="relative">
+                        {isFirstPlace && (
+                          <div className="absolute inset-0 z-10 rounded-lg bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center gap-2">
+                            <Lock className="h-6 w-6 text-muted-foreground" />
+                            <Button
+                              size="sm"
+                              onClick={() => setShowWorkspaceModal(true)}
+                              className="text-xs bg-orange-500 hover:bg-orange-600 text-white"
+                            >
+                              {isLoggedIn ? 'Upgrade to view' : 'Login to view'}
+                            </Button>
+                          </div>
+                        )}
+                        <ContributorCard
+                          contributor={contributor}
+                          showRank={true}
+                          className={isFirstPlace ? 'blur-sm' : ''}
+                          repositoryOwner={repositoryOwner}
+                          repositoryName={repositoryName}
+                          month={ranking.month}
+                          year={ranking.year}
+                        />
+                      </div>
+                    );
+                  })}
               </div>
 
               {/* Workspace CTA */}
