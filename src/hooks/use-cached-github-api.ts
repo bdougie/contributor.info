@@ -36,7 +36,7 @@ export function useCachedGitHubApi<T>(
   options: UseCachedGitHubApiOptions = {}
 ): CachedApiState<T> {
   const [session, setSession] = useState<{
-    provider_token?: string;
+    provider_token?: string | null;
     [key: string]: unknown;
   } | null>(null);
   const [state, setState] = useState<{
@@ -275,12 +275,7 @@ export function useCachedBatchRequests<T>(
  * Hook for monitoring cache performance
  */
 export function useCacheStats() {
-  const [stats, setStats] = useState<{
-    hits: number;
-    misses: number;
-    size: number;
-    [key: string]: unknown;
-  } | null>(null);
+  const [stats, setStats] = useState<Record<string, unknown> | null>(null);
   const clientRef = useRef(createCachedGitHubClient());
 
   const refreshStats = useCallback(() => {

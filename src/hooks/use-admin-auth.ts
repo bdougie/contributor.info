@@ -233,7 +233,8 @@ export async function logAdminAction(
       throw rpcError;
     }
   } catch (error: unknown) {
-    console.warn('RPC log_admin_action failed, admin system may not be set up:', error?.message);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.warn('RPC log_admin_action failed, admin system may not be set up:', errorMessage);
 
     // Fallback: Try direct insert (will work if admin_action_logs table exists)
     try {

@@ -11,15 +11,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 export default function TestInsights() {
   // State for the legacy function testing
   const [loading, setLoading] = useState(false);
-  const [response, setResponse] = useState<Record<string, unknown> | null>(null);
+  const [response, setResponse] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
-  const [requestDetails, setRequestDetails] = useState<Record<string, unknown> | null>(null);
+  const [requestDetails, setRequestDetails] = useState<unknown>(null);
 
   // State for the new implementation testing
   const [owner, setOwner] = useState('facebook');
   const [repo, setRepo] = useState('react');
   const [localLoading, setLocalLoading] = useState(false);
-  const [localResponse, setLocalResponse] = useState<Record<string, unknown> | null>(null);
+  const [localResponse, setLocalResponse] = useState<unknown>(null);
   const [localError, setLocalError] = useState<string | null>(null);
 
   // Sample PR data for testing

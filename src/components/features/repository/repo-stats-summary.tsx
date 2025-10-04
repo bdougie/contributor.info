@@ -21,10 +21,12 @@ interface ExtendedLotteryFactorType extends LotteryFactor {
 // Type guard for ExtendedLotteryFactorType
 const isExtendedLotteryFactor = (factor: unknown): factor is ExtendedLotteryFactorType => {
   return (
-    factor &&
     typeof factor === 'object' &&
-    typeof factor.score === 'number' &&
-    typeof factor.rating === 'string'
+    factor !== null &&
+    'score' in factor &&
+    'rating' in factor &&
+    typeof (factor as Record<string, unknown>).score === 'number' &&
+    typeof (factor as Record<string, unknown>).rating === 'string'
   );
 };
 
