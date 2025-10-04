@@ -1,5 +1,6 @@
 import { Component, ReactNode, ErrorInfo } from 'react';
 import { AlertCircle, RefreshCw } from '@/components/ui/icon';
+import { trackError, ErrorSeverity, ErrorCategory } from '@/lib/posthog-lazy';
 
 interface Props {
   children: ReactNode;
@@ -33,6 +34,17 @@ export class ErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // Log error to console for debugging
     console.error('Error caught by ErrorBoundary:', error, errorInfo);
+
+    // Track error in PostHog
+    trackError(error, {
+      severity: this.props.context === 'Application Root' ? ErrorSeverity.CRITICAL : ErrorSeverity.HIGH,
+      category: ErrorCategory.UI,
+      metadata: {
+        componentStack: errorInfo.componentStack,
+        context: this.props.context,
+        errorBoundary: true,
+      },
+    });
 
     // Call custom error handler if provided
     this.props.onError?.(error, errorInfo);

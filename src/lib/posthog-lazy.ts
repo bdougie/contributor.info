@@ -18,6 +18,7 @@ interface PostHogInstance {
   people: {
     set: (properties: Record<string, unknown>) => void;
   };
+  captureException: (error: Error, properties?: Record<string, unknown>) => void;
 }
 
 // PostHog instance cache
@@ -74,6 +75,52 @@ const rateLimiter = {
   },
 };
 
+/**
+ * Sanitize error messages to remove sensitive data
+ */
+function sanitizeErrorMessage(message: string): string {
+  // Remove potential tokens
+  let sanitized = message.replace(/ghp_[a-zA-Z0-9]{36}/g, '[GITHUB_TOKEN]');
+  sanitized = sanitized.replace(/gho_[a-zA-Z0-9]{36}/g, '[GITHUB_OAUTH_TOKEN]');
+  
+  // Remove PostHog API keys
+  sanitized = sanitized.replace(/phc_[A-Za-z0-9]{32,}/g, '[POSTHOG_KEY]');
+  
+  // Remove potential API keys (generic pattern)
+  sanitized = sanitized.replace(/['"]?api[_-]?key['"]?\s*[:=]\s*['"]?[a-zA-Z0-9_-]{20,}['"]?/gi, 'api_key=[REDACTED]');
+  
+  // Remove email addresses
+  sanitized = sanitized.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[EMAIL]');
+  
+  // Remove URLs with potential tokens in query params
+  sanitized = sanitized.replace(/(\?|&)(token|key|auth)=[^&\s]+/gi, '$1$2=[REDACTED]');
+  
+  return sanitized;
+}
+
+/**
+ * Error severity levels
+ */
+export enum ErrorSeverity {
+  LOW = 'low',
+  MEDIUM = 'medium',
+  HIGH = 'high',
+  CRITICAL = 'critical',
+}
+
+/**
+ * Error category types
+ */
+export enum ErrorCategory {
+  API = 'api',
+  DATABASE = 'database',
+  NETWORK = 'network',
+  VALIDATION = 'validation',
+  UI = 'ui',
+  AUTH = 'auth',
+  UNKNOWN = 'unknown',
+}
+
 // Security validation
 function validateApiKey(key: string): boolean {
   // PostHog API keys should match expected format
@@ -101,6 +148,9 @@ const POSTHOG_CONFIG = {
   capture_pageleave: true, // Track page leaves
   disable_session_recording: false, // Enable session recording
   enable_recording_console_log: false, // Don't record console logs
+  // Error tracking configuration
+  capture_exceptions: true, // Enable automatic error capture
+  capture_performance: true, // Capture performance issues
   session_recording: {
     // Session recording configuration - explicitly enable
     maskAllInputs: true, // Mask sensitive input fields
@@ -114,6 +164,17 @@ const POSTHOG_CONFIG = {
   advanced_disable_decide: false, // Keep enabled to allow session recording to work
   disable_surveys: true, // No surveys
   disable_compression: false, // Keep compression for smaller payloads
+  // Error filtering and sanitization
+  before_send: (event: any) => {
+    // Filter sensitive data from errors
+    if (event.properties && event.properties.$exception_message) {
+      // Remove potential tokens or API keys from error messages
+      event.properties.$exception_message = sanitizeErrorMessage(
+        event.properties.$exception_message
+      );
+    }
+    return event;
+  },
   bootstrap: {
     distinctID: undefined, // Will be set on init
   },
@@ -539,4 +600,150 @@ export function getRateLimiterStats(): {
       perHour: rateLimiter.maxEventsPerHour,
     },
   };
+}
+
+/**
+ * Track application errors with context
+ */
+export async function trackError(
+  error: Error,
+  context?: {
+    severity?: ErrorSeverity;
+    category?: ErrorCategory;
+    userId?: string;
+    metadata?: Record<string, unknown>;
+  }
+): Promise<void> {
+  if (!shouldEnablePostHog()) {
+    return;
+  }
+
+  // Apply rate limiting
+  if (!rateLimiter.canSendEvent('error')) {
+    return;
+  }
+
+  try {
+    const posthog = await loadPostHog();
+    if (!posthog) return;
+
+    const errorProperties = {
+      error_name: error.name,
+      error_message: sanitizeErrorMessage(error.message),
+      error_stack: error.stack ? sanitizeErrorMessage(error.stack) : undefined,
+      severity: context?.severity || ErrorSeverity.MEDIUM,
+      category: context?.category || ErrorCategory.UNKNOWN,
+      page_url: window.location.href,
+      page_path: window.location.pathname,
+      user_agent: navigator.userAgent,
+      timestamp: new Date().toISOString(),
+      ...context?.metadata,
+    };
+
+    // Use captureException if available, otherwise use regular capture
+    if (typeof posthog.captureException === 'function') {
+      posthog.captureException(error, errorProperties);
+    } else {
+      posthog.capture('$exception', errorProperties);
+    }
+
+    // Log in development
+    if (env.DEV) {
+      console.error('[PostHog] Error tracked:', error, errorProperties);
+    }
+  } catch (trackingError) {
+    if (env.DEV) {
+      console.error('Failed to track error in PostHog:', trackingError);
+    }
+  }
+}
+
+/**
+ * Track API errors (5xx, 4xx)
+ */
+export async function trackApiError(
+  status: number,
+  endpoint: string,
+  error: Error | string,
+  context?: Record<string, unknown>
+): Promise<void> {
+  if (!shouldEnablePostHog()) {
+    return;
+  }
+
+  // Apply rate limiting
+  if (!rateLimiter.canSendEvent('api_error')) {
+    return;
+  }
+
+  try {
+    const posthog = await loadPostHog();
+    if (!posthog) return;
+
+    const errorMessage = typeof error === 'string' ? error : error.message;
+    const severity =
+      status >= 500
+        ? ErrorSeverity.CRITICAL
+        : status >= 400
+        ? ErrorSeverity.HIGH
+        : ErrorSeverity.MEDIUM;
+
+    posthog.capture('api_error', {
+      status_code: status,
+      endpoint: sanitizeErrorMessage(endpoint),
+      error_message: sanitizeErrorMessage(errorMessage),
+      severity,
+      category: ErrorCategory.API,
+      is_server_error: status >= 500,
+      is_client_error: status >= 400 && status < 500,
+      timestamp: new Date().toISOString(),
+      ...context,
+    });
+  } catch (trackingError) {
+    if (env.DEV) {
+      console.error('Failed to track API error in PostHog:', trackingError);
+    }
+  }
+}
+
+/**
+ * Track Supabase query errors
+ */
+export async function trackSupabaseError(
+  operation: string,
+  error: Error | { message: string; code?: string; details?: string },
+  context?: Record<string, unknown>
+): Promise<void> {
+  if (!shouldEnablePostHog()) {
+    return;
+  }
+
+  // Apply rate limiting
+  if (!rateLimiter.canSendEvent('supabase_error')) {
+    return;
+  }
+
+  try {
+    const posthog = await loadPostHog();
+    if (!posthog) return;
+
+    const errorMessage = 'message' in error ? error.message : error.toString();
+    const errorCode = 'code' in error ? error.code : undefined;
+    const errorDetails = 'details' in error ? error.details : undefined;
+
+    posthog.capture('supabase_error', {
+      operation: sanitizeErrorMessage(operation),
+      error_message: sanitizeErrorMessage(errorMessage),
+      error_code: errorCode,
+      error_details: errorDetails ? sanitizeErrorMessage(errorDetails) : undefined,
+      severity: ErrorSeverity.HIGH,
+      category: ErrorCategory.DATABASE,
+      timestamp: new Date().toISOString(),
+      ...context,
+    });
+  } catch (trackingError) {
+    if (env.DEV) {
+      console.error('Failed to track Supabase error in PostHog:', trackingError);
+    }
+  }
 }

@@ -215,8 +215,9 @@ export default defineConfig(() => ({
     },
     // Optimize CSS minification
     cssMinify: 'esbuild',
-    // Disable sourcemaps for production to reduce bundle size
-    sourcemap: false,
+    // Enable sourcemaps for production error tracking (PostHog)
+    // Use 'hidden' to generate maps without exposing them to browsers
+    sourcemap: process.env.NODE_ENV === 'production' ? 'hidden' : true,
     // Optimize minification and target for better compression
     minify: 'esbuild',
     target: 'es2020', // Modern target with good compatibility
