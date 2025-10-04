@@ -15,23 +15,23 @@ describe('WorkspaceCreationDisabled', () => {
     it('should render the card variant by default (not logged in)', () => {
       render(<WorkspaceCreationDisabled />);
 
-      expect(screen.getByText('Login Required')).toBeInTheDocument();
-      expect(screen.getByText(/Please log in to create a workspace/)).toBeInTheDocument();
+      expect(screen.getByText('Sign In Required')).toBeInTheDocument();
+      expect(screen.getByText(/Please sign in to continue/)).toBeInTheDocument();
     });
 
     it('should show login button when callback provided (not logged in)', () => {
       render(<WorkspaceCreationDisabled onRequestAccess={mockOnRequestAccess} />);
 
-      expect(screen.getByText('Login to Continue')).toBeInTheDocument();
+      expect(screen.getByText('Sign In')).toBeInTheDocument();
     });
 
     it('should not show login button when callback not provided (not logged in)', () => {
       render(<WorkspaceCreationDisabled />);
 
-      expect(screen.queryByText('Login to Continue')).not.toBeInTheDocument();
+      expect(screen.queryByText('Sign In')).not.toBeInTheDocument();
     });
 
-    it('should render pro account required for logged in user', () => {
+    it('should render upgrade to pro for logged in user', () => {
       const mockUser = { id: '123', email: 'test@example.com' } as User;
       render(
         <MemoryRouter>
@@ -39,11 +39,11 @@ describe('WorkspaceCreationDisabled', () => {
         </MemoryRouter>
       );
 
-      expect(screen.getByText('Pro Account Required')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Upgrade to Pro' })).toBeInTheDocument();
       expect(
-        screen.getByText(/Workspace creation requires a Pro subscription/)
+        screen.getByText(/Workspaces are a Pro feature/)
       ).toBeInTheDocument();
-      expect(screen.getByText('Upgrade to Pro')).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /Upgrade to Pro/i })).toBeInTheDocument();
     });
   });
 
@@ -51,8 +51,8 @@ describe('WorkspaceCreationDisabled', () => {
     it('should render the modal variant (not logged in)', () => {
       render(<WorkspaceCreationDisabled variant="modal" />);
 
-      expect(screen.getByText('Login Required')).toBeInTheDocument();
-      expect(screen.getByText(/Please log in to create a workspace/)).toBeInTheDocument();
+      expect(screen.getByText('Sign In Required')).toBeInTheDocument();
+      expect(screen.getByText(/Please sign in to continue/)).toBeInTheDocument();
     });
 
     it('should render the modal variant (logged in)', () => {
@@ -63,16 +63,16 @@ describe('WorkspaceCreationDisabled', () => {
         </MemoryRouter>
       );
 
-      expect(screen.getByText('Pro Account Required')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Upgrade to Pro' })).toBeInTheDocument();
       expect(
-        screen.getByText(/Workspace creation requires a Pro subscription/)
+        screen.getByText(/Workspaces are a Pro feature/)
       ).toBeInTheDocument();
     });
 
-    it('should show login button for modal variant when not logged in', () => {
+    it('should show sign in button for modal variant when not logged in', () => {
       render(<WorkspaceCreationDisabled variant="modal" onRequestAccess={mockOnRequestAccess} />);
 
-      expect(screen.getByText('Login to Continue')).toBeInTheDocument();
+      expect(screen.getByText('Sign In')).toBeInTheDocument();
     });
 
     it('should show upgrade button for modal variant when logged in', () => {
@@ -83,14 +83,14 @@ describe('WorkspaceCreationDisabled', () => {
         </MemoryRouter>
       );
 
-      expect(screen.getByText('Upgrade to Pro')).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /Upgrade to Pro/i })).toBeInTheDocument();
     });
 
     it('should render different layout for modal variant', () => {
       render(<WorkspaceCreationDisabled variant="modal" />);
 
       // Modal variant should have centered layout
-      const container = screen.getByText('Login Required').closest('div');
+      const container = screen.getByText('Sign In Required').closest('div');
       expect(container?.className).toContain('text-center');
     });
   });

@@ -187,13 +187,6 @@ export function WorkspaceCreateModal({
       <DialogContent className="sm:max-w-[500px]">
         {mode === 'create' && !canCreateWorkspaces ? (
           <>
-            <DialogHeader>
-              <DialogTitle data-testid="modal-title-disabled">Workspace Creation</DialogTitle>
-              <DialogDescription data-testid="modal-description-disabled">
-                Workspace creation is currently unavailable
-              </DialogDescription>
-            </DialogHeader>
-
             <WorkspaceCreationDisabled
               variant="modal"
               onRequestAccess={handleRequestAccess}
