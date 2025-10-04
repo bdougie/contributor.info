@@ -2,15 +2,19 @@
  * Business logic for ContributorOfTheMonth component
  * Pure functions with no React dependencies
  */
-import type { ContributorRanking } from '@/lib/types';
+import type { ContributorRanking, MonthlyContributor } from '@/lib/types';
 
 export type ComponentState =
   | { type: 'loading' }
   | { type: 'error'; message: string }
   | { type: 'no_activity' }
-  | { type: 'minimal_activity'; contributors: any[]; month: string; year: number }
-  | { type: 'winner_phase'; ranking: ContributorRanking; topContributors: any[] }
-  | { type: 'leaderboard_phase'; ranking: ContributorRanking; topContributors: any[] };
+  | { type: 'minimal_activity'; contributors: MonthlyContributor[]; month: string; year: number }
+  | { type: 'winner_phase'; ranking: ContributorRanking; topContributors: MonthlyContributor[] }
+  | {
+      type: 'leaderboard_phase';
+      ranking: ContributorRanking;
+      topContributors: MonthlyContributor[];
+    };
 
 export interface DisplayContent {
   title: string;
@@ -53,7 +57,9 @@ export function getComponentState(
   }
 
   const isWinnerPhase = ranking.phase === 'winner_announcement';
-  const topContributors = ranking.contributors.slice(0, 5);
+  // For winner phase: show 1 winner + 3 runners-up = 4 total
+  // For leaderboard phase: show top 5
+  const topContributors = ranking.contributors.slice(0, isWinnerPhase ? 4 : 5);
 
   // Check for minimal activity
   const totalActivity = ranking.contributors.reduce((sum, c) => sum + c.activity.totalScore, 0);
@@ -105,7 +111,7 @@ export function getDisplayContent(
  */
 export function getWinnerDisplayContent(
   ranking: ContributorRanking,
-  topContributors: any[]
+  topContributors: MonthlyContributor[]
 ): WinnerDisplayContent {
   return {
     sectionTitle: 'Winner Display',
@@ -120,7 +126,7 @@ export function getWinnerDisplayContent(
  */
 export function getLeaderboardDisplayContent(
   ranking: ContributorRanking,
-  topContributors: any[]
+  topContributors: MonthlyContributor[]
 ): LeaderboardDisplayContent {
   const activeCount = `${topContributors.length} active contributor${topContributors.length !== 1 ? 's' : ''}`;
   const moreContributorsText =

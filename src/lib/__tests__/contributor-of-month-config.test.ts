@@ -160,7 +160,7 @@ describe('contributor-of-month-config', () => {
       const state = getComponentState(largeRanking, false, null);
 
       if (state.type === 'winner_phase') {
-        expect(state.topContributors).toHaveLength(5);
+        expect(state.topContributors).toHaveLength(4);
       }
     });
   });
@@ -230,7 +230,7 @@ describe('contributor-of-month-config', () => {
     it('includes more contributors text when total > 5', () => {
       const rankingWith10 = {
         ...mockRanking,
-        contributors: Array.from({ length: 10 }, (_, i) => mockRanking.contributors[0]),
+        contributors: Array.from({ length: 10 }, () => mockRanking.contributors[0]),
       };
       const topContributors = rankingWith10.contributors.slice(0, 5);
       const content = getLeaderboardDisplayContent(rankingWith10, topContributors);
