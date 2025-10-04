@@ -17,28 +17,28 @@ const METRIC_CONFIG = {
     label: 'Contributors',
     getValue: (data: WidgetData) => data.stats.totalContributors,
     getSubtext: undefined,
-    color: 'text-blue-600 dark:text-[#FF5402]',
+    color: 'text-blue-600 dark:text-primary',
   },
   'pull-requests': {
     icon: GitPullRequest,
     label: 'Pull Requests',
     getValue: (data: WidgetData) => data.stats.totalPRs,
     getSubtext: undefined,
-    color: 'text-green-600 dark:text-[#FF5402]',
+    color: 'text-green-600 dark:text-primary',
   },
   'lottery-factor': {
     icon: Target,
     label: 'Lottery Factor',
     getValue: (data: WidgetData) => data.stats.lotteryFactor?.toFixed(1) || 'N/A',
     getSubtext: (data: WidgetData) => data.stats.lotteryRating,
-    color: 'text-orange-600 dark:text-[#FF5402]',
+    color: 'text-orange-600 dark:text-primary',
   },
   'merge-rate': {
     icon: TrendingUp,
     label: 'Merge Rate',
     getValue: (data: WidgetData) => `${data.stats.mergeRate.toFixed(1)}%`,
     getSubtext: undefined,
-    color: 'text-purple-600 dark:text-[#FF5402]',
+    color: 'text-purple-600 dark:text-primary',
   },
 };
 
@@ -82,7 +82,7 @@ export function StatCard({ config, data, className }: StatCardProps) {
             className={cn(
               size === 'small' && 'text-xs px-1.5 py-0.5',
               size === 'large' && 'text-sm px-3 py-1',
-              theme === 'dark' && 'bg-[#141414] text-gray-300 border-[#FF5402]/20'
+              theme === 'dark' && 'bg-[#141414] text-gray-300 border-primary/20'
             )}
           >
             {data.repository.language}
@@ -146,10 +146,7 @@ export function StatCard({ config, data, className }: StatCardProps) {
               href="https://contributor.info"
               target="_blank"
               rel="noopener noreferrer"
-              className={cn(
-                "hover:underline",
-                theme === 'dark' ? 'text-[#FF5402]' : 'text-primary'
-              )}
+              className="text-primary hover:underline"
             >
               contributor.info
             </a>
