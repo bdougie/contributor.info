@@ -1,10 +1,6 @@
 {
-  "name": "Contributor.info",
+  "name": "contributor.info",
   "theme": "mint",
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
   "favicon": "/favicon.png",
   "colors": {
     "primary": "#0D9488",
