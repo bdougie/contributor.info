@@ -162,41 +162,56 @@ export function ContributorOfTheMonth({
               </div>
 
               {/* Top Runners-up */}
-              {topContributors.length > 1 && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-medium text-muted-foreground">
-                      Top Contributors ({topContributors.length - 1} runner
-                      {topContributors.length - 1 !== 1 ? 's' : ''}-up)
-                      {topContributors.length > 4 && (
-                        <Button
-                          variant="link"
-                          className="text-xs ml-2"
-                          onClick={() => setShowAllContributors((prev) => !prev)}
-                        >
-                          {showAllContributors ? 'Show less' : `Show all`}
-                        </Button>
-                      )}
-                    </h4>
-                  </div>
+              {topContributors.length > 1 &&
+                (() => {
+                  const runnersUp = topContributors.slice(1, showAllContributors ? undefined : 4);
+                  const runnerCount = runnersUp.length;
 
-                  <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 mx-auto">
-                    {topContributors
-                      .slice(1, showAllContributors ? undefined : 4)
-                      .map((contributor) => (
-                        <ContributorCard
-                          key={contributor.login}
-                          contributor={contributor}
-                          showRank={true}
-                          repositoryOwner={repositoryOwner}
-                          repositoryName={repositoryName}
-                          month={ranking.month}
-                          year={ranking.year}
-                        />
-                      ))}
-                  </div>
-                </div>
-              )}
+                  // Dynamic grid based on runner count:
+                  // 1 runner: centered single column
+                  // 2 runners: 2 columns centered
+                  // 3+ runners: 3 columns
+                  let gridClass = 'grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 mx-auto';
+                  if (runnerCount === 1) {
+                    gridClass = 'grid gap-4 grid-cols-1 max-w-sm mx-auto';
+                  } else if (runnerCount === 2) {
+                    gridClass = 'grid gap-4 grid-cols-1 sm:grid-cols-2 max-w-2xl mx-auto';
+                  }
+
+                  return (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-medium text-muted-foreground">
+                          Top Contributors ({topContributors.length - 1} runner
+                          {topContributors.length - 1 !== 1 ? 's' : ''}-up)
+                          {topContributors.length > 4 && (
+                            <Button
+                              variant="link"
+                              className="text-xs ml-2"
+                              onClick={() => setShowAllContributors((prev) => !prev)}
+                            >
+                              {showAllContributors ? 'Show less' : `Show all`}
+                            </Button>
+                          )}
+                        </h4>
+                      </div>
+
+                      <div className={gridClass}>
+                        {runnersUp.map((contributor) => (
+                          <ContributorCard
+                            key={contributor.login}
+                            contributor={contributor}
+                            showRank={true}
+                            repositoryOwner={repositoryOwner}
+                            repositoryName={repositoryName}
+                            month={ranking.month}
+                            year={ranking.year}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
             </div>
           ) : (
             <div className="space-y-4">
