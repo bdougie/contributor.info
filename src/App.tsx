@@ -441,8 +441,8 @@ function App() {
       if ('requestIdleCallback' in window) {
         requestIdleCallback(loadProgressiveFeatures, { timeout: 5000 });
       } else {
-        // Fallback for browsers without requestIdleCallback
-        setTimeout(loadProgressiveFeatures, 5000);
+        // Fallback for browsers without requestIdleCallback (use original timing)
+        setTimeout(loadProgressiveFeatures, 500);
       }
     };
 
