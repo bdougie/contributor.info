@@ -4,7 +4,6 @@
  */
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { trackError, ErrorSeverity, ErrorCategory } from '@/lib/posthog-lazy';
 
 interface Props {
   children: ReactNode;
@@ -39,15 +38,17 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // Track error in PostHog
-    trackError(error, {
-      severity: ErrorSeverity.HIGH,
-      category: ErrorCategory.UI,
-      metadata: {
-        componentStack: errorInfo.componentStack,
-        errorBoundary: true,
-      },
-    });
+    // Track error in PostHog (lazy-loaded to avoid bundle bloat)
+    import('@/lib/posthog-lazy').then(({ trackError, ErrorSeverity, ErrorCategory }) => {
+      trackError(error, {
+        severity: ErrorSeverity.HIGH,
+        category: ErrorCategory.UI,
+        metadata: {
+          componentStack: errorInfo.componentStack,
+          errorBoundary: true,
+        },
+      });
+    }).catch(console.error);
 
     // Call optional error handler
     this.props.onError?.(error, errorInfo);
