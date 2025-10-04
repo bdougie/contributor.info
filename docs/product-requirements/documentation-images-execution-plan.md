@@ -1,7 +1,11 @@
 # Documentation Images Execution Plan
 
+**Status**: OBSOLETE - Documentation migrated to Mintlify (see feat/mintlify-docs-406)
+
 ## Overview
-This plan addresses the need to add visual content to all 16 user documentation files in `/public/docs/`. Currently, these files contain no images, making it difficult for users to understand features visually.
+~~This plan addresses the need to add visual content to all 16 user documentation files in `/public/docs/`. Currently, these files contain no images, making it difficult for users to understand features visually.~~
+
+**UPDATE**: The in-app documentation at `/public/docs/` has been migrated to Mintlify. This execution plan is no longer applicable. For adding images to the new documentation, see Mintlify's image documentation: https://mintlify.com/docs/content/images
 
 ## Scripts Created
 
