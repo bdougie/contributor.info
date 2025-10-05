@@ -129,6 +129,141 @@ async function checkAgainstRule(content: string, lines: string[], file: string, 
       break;
   }
 
+  // Add purpose-specific checks based on file location
+  issues.push(...checkDocumentationPurpose(content, lines, file));
+
+  return issues;
+}
+
+function checkDocumentationPurpose(content: string, lines: string[], file: string): DocumentationIssue[] {
+  const issues: DocumentationIssue[] = [];
+
+  // Determine documentation type
+  const isUserDoc = file.includes('mintlify-docs') || file.includes('public/docs');
+  const isDevDoc = file.includes('docs/') && !file.includes('mintlify-docs');
+  const isArchitectureDoc = file.includes('architecture') || file.includes('infrastructure') || 
+                            file.includes('database') || file.includes('setup');
+  const isFeatureDoc = file.includes('features/') || file.includes('implementations/');
+
+  // User documentation checks - focus on "how to use"
+  if (isUserDoc) {
+    // Check for step-by-step instructions
+    const hasSteps = /\b(step|follow|instructions|how to)\b/i.test(content) ||
+                     /^\d+\.\s/m.test(content);
+    const hasCodeExample = content.includes('```');
+    
+    if (!hasSteps && !hasCodeExample) {
+      issues.push({
+        file,
+        message: 'User documentation should include step-by-step instructions or code examples showing how to use the feature',
+        severity: 'warning',
+        rule: 'documentation-purpose',
+      });
+    }
+
+    // Check for prerequisites
+    if (!content.toLowerCase().includes('prerequisite') && 
+        !content.toLowerCase().includes('requirements') &&
+        !content.toLowerCase().includes('before you begin')) {
+      issues.push({
+        file,
+        message: 'User documentation should clarify prerequisites or requirements upfront',
+        severity: 'info',
+        rule: 'documentation-purpose',
+      });
+    }
+
+    // Check for expected outcomes
+    const hasOutcome = /\b(result|output|expect|should see|you will)\b/i.test(content);
+    if (!hasOutcome && hasCodeExample) {
+      issues.push({
+        file,
+        message: 'User documentation with code examples should explain the expected result or outcome',
+        severity: 'info',
+        rule: 'documentation-purpose',
+      });
+    }
+  }
+
+  // Architecture/infrastructure documentation checks - focus on "how it works"
+  if (isArchitectureDoc) {
+    // Check for architecture explanation
+    const hasArchitectureTerms = /\b(architecture|design|structure|flow|diagram|component|system)\b/i.test(content);
+    if (!hasArchitectureTerms) {
+      issues.push({
+        file,
+        message: 'Architecture documentation should explain system design, structure, or component relationships',
+        severity: 'warning',
+        rule: 'documentation-purpose',
+      });
+    }
+
+    // Check for technical decisions or rationale
+    const hasRationale = /\b(because|rationale|reason|why|decision|trade-off|chosen)\b/i.test(content);
+    if (!hasRationale) {
+      issues.push({
+        file,
+        message: 'Architecture documentation should explain technical decisions and rationale for future developers',
+        severity: 'info',
+        rule: 'documentation-purpose',
+      });
+    }
+
+    // Check for infrastructure details
+    if (file.includes('infrastructure') || file.includes('deployment')) {
+      const hasInfraDetails = /\b(server|deploy|environment|config|variable|secret|scaling|monitoring)\b/i.test(content);
+      if (!hasInfraDetails) {
+        issues.push({
+          file,
+          message: 'Infrastructure documentation should include deployment, configuration, or environment details',
+          severity: 'warning',
+          rule: 'documentation-purpose',
+        });
+      }
+    }
+  }
+
+  // Feature/implementation documentation checks
+  if (isFeatureDoc) {
+    const hasCodeExample = content.includes('```');
+    const hasUsageInfo = /\b(use|usage|how to|example|implement)\b/i.test(content);
+    const hasArchitectureInfo = /\b(architecture|design|how it works|implementation)\b/i.test(content);
+
+    if (!hasCodeExample) {
+      issues.push({
+        file,
+        message: 'Feature documentation should include code examples showing how to use the feature',
+        severity: 'warning',
+        rule: 'documentation-purpose',
+      });
+    }
+
+    if (!hasUsageInfo && !hasArchitectureInfo) {
+      issues.push({
+        file,
+        message: 'Feature documentation should explain either how to use the feature (for users) or how it works internally (for developers)',
+        severity: 'warning',
+        rule: 'documentation-purpose',
+      });
+    }
+  }
+
+  // General developer documentation checks
+  if (isDevDoc && !isArchitectureDoc) {
+    // Check for context about file locations or structure
+    const hasFileReferences = /`[^`]*\.(ts|tsx|js|jsx|json|yml|yaml)`/g.test(content) ||
+                              /\bfile|directory|folder|path\b/i.test(content);
+    
+    if (!hasFileReferences && content.includes('```')) {
+      issues.push({
+        file,
+        message: 'Developer documentation with code examples should reference file locations to help developers navigate the codebase',
+        severity: 'info',
+        rule: 'documentation-purpose',
+      });
+    }
+  }
+
   return issues;
 }
 
@@ -478,13 +613,17 @@ async function postReviewComments(issues: DocumentationIssue[]): Promise<void> {
       reviewBody += '\n';
     }
 
-    reviewBody += '### 📖 Documentation Guidelines\n\n';
-    reviewBody += '- Keep text **clear and concise** - avoid unnecessary words\n';
-    reviewBody += '- Use **active voice** instead of passive voice\n';
-    reviewBody += '- Break up text with **visual elements** (code blocks, bullets, images)\n';
-    reviewBody += '- Avoid **marketing speak** and technical jargon\n';
-    reviewBody += '- Include **examples** for features and complex concepts\n';
-    reviewBody += '\nFor full guidelines, see `.continue/rules/`\n';
+    reviewBody += '### 📖 Documentation Purpose\n\n';
+    reviewBody += '**User Documentation** (`/mintlify-docs`):\n';
+    reviewBody += '- Show **how to use** the product with step-by-step instructions\n';
+    reviewBody += '- Include **prerequisites** and expected **outcomes**\n';
+    reviewBody += '- Add **code examples** users can copy and run\n\n';
+    reviewBody += '**Developer Documentation** (`/docs`):\n';
+    reviewBody += '- Explain **how the architecture works** (system design, component relationships)\n';
+    reviewBody += '- Document **technical decisions** and rationale\n';
+    reviewBody += '- Include **file locations** and navigation hints\n';
+    reviewBody += '- Explain **infrastructure and deployment** details\n\n';
+    reviewBody += 'For full guidelines, see `.continue/rules/`\n';
   }
 
   // Post the review comment

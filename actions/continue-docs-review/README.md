@@ -13,6 +13,29 @@ Automated documentation review that enforces copywriting and formatting rules fr
 
 ## Checks Performed
 
+### Documentation Purpose (Goal-Oriented Checks)
+
+The action validates that documentation serves its intended purpose:
+
+**User Documentation** (`/mintlify-docs`, `/public/docs`)
+- ✅ **Step-by-step instructions**: Guides users on how to use features
+- ✅ **Prerequisites**: States requirements upfront
+- ✅ **Code examples**: Provides copy-paste examples users can run
+- ✅ **Expected outcomes**: Explains what users should see after following steps
+- **Goal**: Help users understand **how to use the product**
+
+**Developer Documentation** (`/docs`)
+- ✅ **Architecture explanations**: Describes system design and component relationships
+- ✅ **Technical decisions**: Documents rationale and trade-offs
+- ✅ **Infrastructure details**: Covers deployment, configuration, environment setup
+- ✅ **File locations**: References specific files to help navigate codebase
+- **Goal**: Help developers understand **how the architecture and infrastructure works**
+
+**Feature Documentation** (`/docs/features`, `/docs/implementations`)
+- ✅ **Code examples**: Shows feature implementation
+- ✅ **Usage OR architecture**: Explains how to use OR how it works internally
+- **Goal**: Serves both user needs (usage) and developer needs (implementation)
+
 ### Copywriting Rules (`.continue/rules/copywriting.md`)
 
 **Passive Voice Detection**
@@ -65,10 +88,16 @@ Automated documentation review that enforces copywriting and formatting rules fr
 
 ### Documentation Scope
 
-Reviews all `.md` files in:
-- `/docs/**/*.md` - Developer documentation
-- `/mintlify-docs/**/*.md` - User-facing documentation  
-- `*.md` - Root-level docs (README, CONTRIBUTING, etc.)
+Reviews all `.md` files with context-aware checks:
+
+| Path | Type | Purpose | Key Checks |
+|------|------|---------|------------|
+| `/mintlify-docs/**` | User docs | How to **use** the product | Step-by-step, prerequisites, outcomes |
+| `/docs/architecture/**` | Dev docs | How it **works** | System design, technical decisions |
+| `/docs/infrastructure/**` | Dev docs | How to **deploy** | Deployment, config, environment |
+| `/docs/features/**` | Mixed | Usage **or** implementation | Code examples, usage/architecture |
+| `/docs/**` (other) | Dev docs | Development info | File locations, navigation hints |
+| `*.md` (root) | General | Varies | Standard formatting/copywriting |
 
 ## Configuration
 
@@ -154,10 +183,10 @@ The action posts a PR comment with:
 ```markdown
 ## 📚 Documentation Review
 
-Found 5 suggestion(s) for documentation improvements:
+Found 7 suggestion(s) for documentation improvements:
 
 - 🔴 1 error(s)
-- 🟡 2 warning(s)
+- 🟡 4 warning(s)
 - 🔵 2 suggestion(s)
 
 ### Details:
@@ -165,19 +194,28 @@ Found 5 suggestion(s) for documentation improvements:
 **docs/features/new-feature.md:**
 - 🔴 Line 42: Documentation contains TODO marker. Complete or remove before publishing.
 - 🟡 Line 15: Avoid marketing speak. Be clear and direct.
+- 🟡 Feature documentation should include code examples showing how to use the feature
 - 🔵 Line 8: Avoid passive voice. Use active voice: "Deploy the app" instead of "The app is deployed"
 
-**mintlify-docs/introduction.mdx:**
-- 🟡 Line 23: Found 4 consecutive paragraphs without visual breaks. Add code examples, bullet points, tables, or images to improve scannability.
-- 🔵 Line 67: Replace redundant phrase with "to" for conciseness
+**mintlify-docs/guides/getting-started.md:**
+- 🟡 User documentation should include step-by-step instructions or code examples showing how to use the feature
+- 🔵 User documentation should clarify prerequisites or requirements upfront
 
-### 📖 Documentation Guidelines
+**docs/architecture/data-flow.md:**
+- 🟡 Architecture documentation should explain technical decisions and rationale for future developers
 
-- Keep text **clear and concise** - avoid unnecessary words
-- Use **active voice** instead of passive voice
-- Break up text with **visual elements** (code blocks, bullets, images)
-- Avoid **marketing speak** and technical jargon
-- Include **examples** for features and complex concepts
+### 📖 Documentation Purpose
+
+**User Documentation** (`/mintlify-docs`):
+- Show **how to use** the product with step-by-step instructions
+- Include **prerequisites** and expected **outcomes**
+- Add **code examples** users can copy and run
+
+**Developer Documentation** (`/docs`):
+- Explain **how the architecture works** (system design, component relationships)
+- Document **technical decisions** and rationale
+- Include **file locations** and navigation hints
+- Explain **infrastructure and deployment** details
 
 For full guidelines, see `.continue/rules/`
 ```
@@ -214,6 +252,12 @@ The action uses specialized analyzers for different rules:
 - Consecutive paragraph counting
 - Visual element recognition
 - Technical doc code example validation
+
+### `checkDocumentationPurpose()`
+- User doc validation (steps, prerequisites, outcomes)
+- Architecture doc validation (design, rationale, infrastructure)
+- Feature doc validation (code examples, usage/architecture)
+- Developer doc validation (file references, navigation)
 
 ### Extensibility
 
