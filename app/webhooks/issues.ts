@@ -8,10 +8,33 @@ import { eventRouter } from './event-router';
 import { supabase } from '../../src/lib/supabase';
 
 /**
+ * Update repository's last webhook event timestamp
+ * @throws Error if timestamp update fails - triggers GitHub webhook retry
+ */
+async function updateLastWebhookEvent(repositoryGithubId: number) {
+  const { error } = await supabase
+    .from('repositories')
+    .update({
+      last_webhook_event_at: new Date().toISOString(),
+    })
+    .eq('github_id', repositoryGithubId);
+
+  if (error) {
+    console.error('Failed to update webhook timestamp:', error);
+    throw new Error(
+      `Failed to update webhook timestamp for repository ${repositoryGithubId}: ${error.message}`
+    );
+  }
+}
+
+/**
  * Handle issue webhook events with routing and prioritization
  */
 export async function handleIssuesEvent(event: IssuesEvent) {
   console.log('Issue %s: #%d in %s', event.action, event.issue.number, event.repository.full_name);
+
+  // Update last webhook event timestamp
+  await updateLastWebhookEvent(event.repository.id);
 
   // Route event through EventRouter for prioritization and debouncing
   await eventRouter.routeEvent(event);
