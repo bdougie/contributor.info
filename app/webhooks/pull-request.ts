@@ -22,12 +22,21 @@ import { similarityMetricsService } from '../services/similarity-metrics';
  * Update repository's last webhook event timestamp
  */
 async function updateLastWebhookEvent(repositoryGithubId: number) {
-  await supabase
-    .from('repositories')
-    .update({
-      last_webhook_event_at: new Date().toISOString(),
-    })
-    .eq('github_id', repositoryGithubId);
+  try {
+    const { error } = await supabase
+      .from('repositories')
+      .update({
+        last_webhook_event_at: new Date().toISOString(),
+      })
+      .eq('github_id', repositoryGithubId);
+
+    if (error) {
+      console.error('Failed to update webhook timestamp:', error);
+    }
+  } catch (err) {
+    console.error('Failed to update webhook timestamp:', err);
+    // Continue processing - don't fail the entire webhook
+  }
 }
 
 /**
