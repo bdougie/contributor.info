@@ -14,9 +14,10 @@
     "js-yaml": "4.1.0"
   },
   "devDependencies": {
+    "@types/glob": "^8.1.0",
     "@types/js-yaml": "4.0.9",
     "@types/node": "20.11.5",
-    "typescript": "5.3.3",
-    "tsx": "4.7.0"
+    "tsx": "4.7.0",
+    "typescript": "5.3.3"
   }
 }

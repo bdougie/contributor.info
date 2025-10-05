@@ -2,13 +2,14 @@ import * as core from '@actions/core';
 import * as github from '@actions/github';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { glob } from 'glob';
+import glob from 'glob';
 import * as yaml from 'js-yaml';
 
 interface Rule {
   globs?: string[];
   description: string;
   content: string;
+  name: string;
 }
 
 interface DocumentationIssue {
@@ -35,7 +36,7 @@ async function loadRules(rulesPath: string): Promise<Rule[]> {
     }
 
     // Find all .md files in the rules directory
-    const ruleFiles = await glob(`${sanitizedPath}/*.md`);
+    const ruleFiles = glob.sync(`${sanitizedPath}/*.md`);
 
     for (const file of ruleFiles) {
       const content = await fs.readFile(file, 'utf-8');
@@ -49,10 +50,12 @@ async function loadRules(rulesPath: string): Promise<Rule[]> {
         };
         const ruleContent = content.replace(/^---\n[\s\S]*?\n---\n/, '');
 
+        const ruleName = path.basename(file, '.md');
         rules.push({
           globs: frontmatter.globs,
           description: frontmatter.description,
           content: ruleContent,
+          name: ruleName,
         });
 
         core.info(`Loaded rule from ${path.basename(file)}: ${frontmatter.description}`);
@@ -109,6 +112,216 @@ async function getChangedDocFiles(): Promise<string[]> {
   return docFiles;
 }
 
+async function checkAgainstRule(content: string, lines: string[], file: string, rule: Rule): Promise<DocumentationIssue[]> {
+  const issues: DocumentationIssue[] = [];
+  const ruleName = rule.name;
+
+  // Apply rule-specific checks
+  switch (ruleName) {
+    case 'documentation-scannable-format':
+      issues.push(...checkScannableFormat(content, lines, file));
+      break;
+    case 'copywriting':
+      issues.push(...checkCopywriting(content, lines, file));
+      break;
+    default:
+      // Generic check for other rules
+      break;
+  }
+
+  return issues;
+}
+
+function checkScannableFormat(content: string, lines: string[], file: string): DocumentationIssue[] {
+  const issues: DocumentationIssue[] = [];
+
+  // Check for multiple consecutive paragraphs without visual breaks
+  let consecutiveParagraphs = 0;
+  let paragraphStartLine = 0;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    const nextLine = lines[i + 1]?.trim() || '';
+
+    const isTextLine = line && !line.startsWith('#') && !line.startsWith('-') && 
+                       !line.startsWith('*') && !line.startsWith('```') && 
+                       !line.startsWith('|') && !line.startsWith('>') &&
+                       !line.startsWith('<') && !line.match(/^\d+\./);
+    
+    const isNextTextLine = nextLine && !nextLine.startsWith('#') && !nextLine.startsWith('-') && 
+                           !nextLine.startsWith('*') && !nextLine.startsWith('```') && 
+                           !nextLine.startsWith('|') && !nextLine.startsWith('>') &&
+                           !nextLine.startsWith('<') && !nextLine.match(/^\d+\./);
+
+    if (isTextLine) {
+      if (consecutiveParagraphs === 0) {
+        paragraphStartLine = i + 1;
+      }
+      
+      if (isNextTextLine) {
+        consecutiveParagraphs++;
+        if (consecutiveParagraphs >= 3) {
+          issues.push({
+            file,
+            line: paragraphStartLine,
+            message: `Found ${consecutiveParagraphs + 1} consecutive paragraphs without visual breaks. Add code examples, bullet points, tables, or images to improve scannability.`,
+            severity: 'warning',
+            rule: 'documentation-scannable-format',
+          });
+          consecutiveParagraphs = 0; // Reset to avoid duplicate warnings
+        }
+      } else {
+        consecutiveParagraphs = 0;
+      }
+    } else if (!line) {
+      consecutiveParagraphs = 0;
+    }
+  }
+
+  // Check for lack of code examples in technical documentation
+  const hasCodeExample = content.includes('```');
+  const isTechnicalDoc = file.includes('feature') || file.includes('setup') || 
+                         file.includes('guide') || file.includes('implementation') ||
+                         file.includes('api');
+  
+  if (isTechnicalDoc && !hasCodeExample) {
+    issues.push({
+      file,
+      message: 'Technical documentation should include code examples to improve clarity and scannability',
+      severity: 'info',
+      rule: 'documentation-scannable-format',
+    });
+  }
+
+  return issues;
+}
+
+function checkCopywriting(content: string, lines: string[], file: string): DocumentationIssue[] {
+  const issues: DocumentationIssue[] = [];
+
+  // Check for passive voice patterns
+  const passivePatterns = [
+    { pattern: /\b(is|are|was|were|been|being)\s+\w+ed\b/i, example: 'Use active voice: "Deploy the app" instead of "The app is deployed"' },
+    { pattern: /\b(has|have|had)\s+been\s+\w+ed\b/i, example: 'Use active voice: "We updated the feature" instead of "The feature has been updated"' },
+  ];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    // Skip code blocks and headings
+    if (line.trim().startsWith('```') || line.trim().startsWith('#')) {
+      continue;
+    }
+    
+    for (const { pattern, example } of passivePatterns) {
+      if (pattern.test(line)) {
+        issues.push({
+          file,
+          line: i + 1,
+          message: `Avoid passive voice. ${example}`,
+          severity: 'info',
+          rule: 'copywriting',
+        });
+        break;
+      }
+    }
+  }
+
+  // Check for marketing speak and fluff
+  const fluffPatterns = [
+    { pattern: /\b(unlock|unleash|empower|revolutionize|transform|supercharge)\b/i, message: 'Avoid marketing speak. Be clear and direct.' },
+    { pattern: /\b(blazingly|incredibly|amazingly|extremely)\s+(fast|powerful|simple)\b/i, message: 'Remove hyperbolic adjectives. State facts instead.' },
+    { pattern: /\b(100%|completely|totally)\s+(secure|safe|reliable|guaranteed)\b/i, message: 'Avoid absolute claims. Be precise and realistic.' },
+    { pattern: /\b(seamless|cutting-edge|state-of-the-art|next-generation|world-class)\b/i, message: 'Avoid vague buzzwords. Use specific, measurable descriptions.' },
+  ];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (line.trim().startsWith('```') || line.trim().startsWith('#')) {
+      continue;
+    }
+    
+    for (const { pattern, message } of fluffPatterns) {
+      if (pattern.test(line)) {
+        issues.push({
+          file,
+          line: i + 1,
+          message,
+          severity: 'warning',
+          rule: 'copywriting',
+        });
+        break;
+      }
+    }
+  }
+
+  // Check for TODO comments
+  const todoPattern = /\b(TODO|FIXME|XXX|HACK|WIP)\b/i;
+  for (let i = 0; i < lines.length; i++) {
+    if (todoPattern.test(lines[i])) {
+      const match = lines[i].match(todoPattern);
+      issues.push({
+        file,
+        line: i + 1,
+        message: `Documentation contains ${match?.[0] || 'TODO'} marker. Complete or remove before publishing.`,
+        severity: 'error',
+        rule: 'copywriting',
+      });
+    }
+  }
+
+  // Check for overly long sentences (> 30 words)
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line || line.startsWith('#') || line.startsWith('-') || line.startsWith('```')) {
+      continue;
+    }
+    
+    const sentences = line.split(/[.!?]+/);
+    for (const sentence of sentences) {
+      const wordCount = sentence.trim().split(/\s+/).length;
+      if (wordCount > 30) {
+        issues.push({
+          file,
+          line: i + 1,
+          message: `Sentence is too long (${wordCount} words). Break into smaller sentences for better readability.`,
+          severity: 'info',
+          rule: 'copywriting',
+        });
+        break;
+      }
+    }
+  }
+
+  // Check for redundant phrases
+  const redundantPhrases = [
+    { pattern: /\bin order to\b/gi, replacement: 'to' },
+    { pattern: /\bdue to the fact that\b/gi, replacement: 'because' },
+    { pattern: /\bat this point in time\b/gi, replacement: 'now' },
+    { pattern: /\bfor the purpose of\b/gi, replacement: 'to' },
+  ];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (line.trim().startsWith('```') || line.trim().startsWith('#')) {
+      continue;
+    }
+    
+    for (const { pattern, replacement } of redundantPhrases) {
+      if (pattern.test(line)) {
+        issues.push({
+          file,
+          line: i + 1,
+          message: `Replace redundant phrase with "${replacement}" for conciseness`,
+          severity: 'info',
+          rule: 'copywriting',
+        });
+      }
+    }
+  }
+
+  return issues;
+}
+
 async function analyzeDocumentation(files: string[], rules: Rule[]): Promise<DocumentationIssue[]> {
   const issues: DocumentationIssue[] = [];
 
@@ -121,131 +334,18 @@ async function analyzeDocumentation(files: string[], rules: Rule[]): Promise<Doc
       for (const rule of rules) {
         // Check if this rule applies to this file
         if (rule.globs && rule.globs.length > 0) {
-          const matches = await glob(rule.globs);
-          if (!matches.includes(file)) {
+          const matchesAnyGlob = rule.globs.some((pattern) => {
+            const matches = glob.sync(pattern);
+            return matches.includes(file);
+          });
+          if (!matchesAnyGlob) {
             continue;
           }
         }
 
-        // Basic checks based on common documentation issues
-
-        // Check for multiple consecutive paragraphs without visual breaks
-        let consecutiveParagraphs = 0;
-        for (let i = 0; i < lines.length; i++) {
-          const line = lines[i].trim();
-          const nextLine = lines[i + 1]?.trim() || '';
-
-          if (
-            line &&
-            !line.startsWith('#') &&
-            !line.startsWith('-') &&
-            !line.startsWith('*') &&
-            !line.startsWith('```') &&
-            !line.startsWith('|') &&
-            !line.startsWith('>')
-          ) {
-            if (
-              nextLine &&
-              !nextLine.startsWith('#') &&
-              !nextLine.startsWith('-') &&
-              !nextLine.startsWith('*') &&
-              !nextLine.startsWith('```') &&
-              !nextLine.startsWith('|') &&
-              !nextLine.startsWith('>')
-            ) {
-              consecutiveParagraphs++;
-              if (consecutiveParagraphs >= 2) {
-                issues.push({
-                  file,
-                  line: i + 1,
-                  message:
-                    'Multiple consecutive paragraphs without visual breaks. Add code examples, bullet points, or other visual elements.',
-                  severity: 'warning',
-                  rule: 'documentation-scannable-format',
-                });
-              }
-            } else {
-              consecutiveParagraphs = 0;
-            }
-          } else {
-            consecutiveParagraphs = 0;
-          }
-        }
-
-        // Check for passive voice patterns
-        const passivePatterns = [
-          /\b(is|are|was|were|been|being)\s+\w+ed\b/i,
-          /\b(has|have|had)\s+been\s+\w+ed\b/i,
-        ];
-
-        for (let i = 0; i < lines.length; i++) {
-          const line = lines[i];
-          for (const pattern of passivePatterns) {
-            if (pattern.test(line)) {
-              issues.push({
-                file,
-                line: i + 1,
-                message: 'Consider using active voice instead of passive voice',
-                severity: 'info',
-                rule: 'copywriting',
-              });
-              break;
-            }
-          }
-        }
-
-        // Check for marketing speak and fluff
-        const fluffPatterns = [
-          /\b(unlock|unleash|empower|revolutionize|transform)\b/i,
-          /\b(blazingly|incredibly|amazingly|extremely)\s+fast\b/i,
-          /\b(100%|completely|totally)\s+(secure|safe|reliable)\b/i,
-        ];
-
-        for (let i = 0; i < lines.length; i++) {
-          const line = lines[i];
-          for (const pattern of fluffPatterns) {
-            if (pattern.test(line)) {
-              issues.push({
-                file,
-                line: i + 1,
-                message: 'Avoid marketing speak and fluff. Use clear, direct language.',
-                severity: 'warning',
-                rule: 'copywriting',
-              });
-              break;
-            }
-          }
-        }
-
-        // Check for TODO comments (case-insensitive)
-        const todoPattern = /\b(TODO|FIXME|XXX|HACK)\b/i;
-        if (todoPattern.test(content)) {
-          for (let i = 0; i < lines.length; i++) {
-            if (todoPattern.test(lines[i])) {
-              const match = lines[i].match(todoPattern);
-              issues.push({
-                file,
-                line: i + 1,
-                message: `Documentation contains ${match?.[0] || 'TODO/FIXME'} comment. Please complete or remove.`,
-                severity: 'warning',
-                rule: 'documentation-completeness',
-              });
-            }
-          }
-        }
-
-        // Check for missing examples in feature documentation
-        if (file.includes('feature-') || file.includes('insight-')) {
-          const hasCodeExample = content.includes('```');
-          if (!hasCodeExample) {
-            issues.push({
-              file,
-              message: 'Feature documentation should include code examples',
-              severity: 'info',
-              rule: 'documentation-examples',
-            });
-          }
-        }
+        // Apply rule-specific checks
+        const ruleIssues = await checkAgainstRule(content, lines, file, rule);
+        issues.push(...ruleIssues);
       }
     } catch (error) {
       core.warning(`Failed to analyze ${file}: ${error}`);
