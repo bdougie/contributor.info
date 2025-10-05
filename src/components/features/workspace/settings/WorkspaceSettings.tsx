@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,11 +20,22 @@ import { supabase } from '@/lib/supabase';
 import { WorkspaceService } from '@/services/workspace.service';
 import { WorkspacePermissionService } from '@/services/workspace-permissions.service';
 import type { Workspace, WorkspaceMember, WorkspaceVisibility } from '@/types/workspace';
+import { WorkspaceBackfillManager } from '../WorkspaceBackfillManager';
+
+interface Repository {
+  id: string;
+  owner: string;
+  name: string;
+  full_name: string;
+  stargazers_count?: number;
+  forks_count?: number;
+}
 
 interface WorkspaceSettingsProps {
   workspace: Workspace;
   currentMember: WorkspaceMember;
   memberCount: number;
+  repositories?: Repository[];
   onWorkspaceUpdate?: (workspace: Workspace) => void;
 }
 
@@ -32,6 +43,7 @@ export function WorkspaceSettings({
   workspace,
   currentMember,
   memberCount,
+  repositories = [],
   onWorkspaceUpdate,
 }: WorkspaceSettingsProps) {
   const [isLoading, setIsLoading] = useState(false);
@@ -148,6 +160,20 @@ export function WorkspaceSettings({
       setIsSaving(false);
     }
   };
+
+  // Memoize repositories array to prevent unnecessary re-renders
+  const memoizedRepositories = useMemo(
+    () =>
+      repositories.map((repo) => ({
+        id: repo.id,
+        owner: repo.owner,
+        name: repo.name,
+        full_name: repo.full_name,
+        stargazers_count: repo.stargazers_count || 0,
+        forks_count: repo.forks_count || 0,
+      })),
+    [repositories]
+  );
 
   // Delete workspace
   const handleDeleteWorkspace = async () => {
@@ -412,6 +438,11 @@ export function WorkspaceSettings({
           </div>
         </CardContent>
       </Card>
+
+      {/* Event Data Backfill Section */}
+      {repositories.length > 0 && (
+        <WorkspaceBackfillManager workspaceId={workspace.id} repositories={memoizedRepositories} />
+      )}
 
       {/* Team Members Section */}
       <MembersTab

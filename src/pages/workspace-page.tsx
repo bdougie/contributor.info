@@ -3696,6 +3696,14 @@ function WorkspacePage() {
                   }
                 }
                 memberCount={memberCount}
+                repositories={repositories.map((repo) => ({
+                  id: repo.id,
+                  owner: repo.owner,
+                  name: repo.name,
+                  full_name: repo.full_name,
+                  stargazers_count: repo.stars,
+                  forks_count: repo.forks,
+                }))}
                 onWorkspaceUpdate={handleWorkspaceUpdate}
               />
             </div>
