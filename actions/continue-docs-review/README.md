@@ -172,12 +172,42 @@ If `globs` is omitted, the rule applies to all changed markdown files.
 
 The action posts a PR comment with:
 
-### Success Case
+### Success Case (With Context)
 ```markdown
 ## 📚 Documentation Review
 
-✅ All documentation checks passed! The documentation follows the copywriting and formatting guidelines.
+✅ **All documentation checks passed!**
+
+### What we validated:
+
+**docs/features/new-feature.md:**
+- ✅ Document is properly structured with 3 code block(s), bullet points, numbered lists
+  - Line 45: Code example found
+  - Line 78: Code example found
+  - Line 112: Code example found
+- ✅ Clear writing with 5 active voice instances, no TODO markers
+  - Line 12: Active voice - "Install the dependencies using npm install..."
+  - Line 34: Active voice - "Configure your environment variables in the .env file..."
+  - Line 56: Active voice - "Run the application with npm start..."
+- ✅ User-focused documentation with 3 key element(s)
+  - Step-by-step instructions found
+  - Code examples included
+  - Prerequisites documented
+
+### Rules applied:
+
+- **Copywriting**: Active voice, no marketing fluff, clear error messages
+- **Scannable Format**: Visual breaks, code examples, bullet points
+- **Documentation Purpose**: User docs show "how to use", dev docs explain "how it works"
+
+_For full guidelines, see `.continue/rules/`_
 ```
+
+This provides:
+- **Specific line numbers** where good practices were found
+- **Counts** of structural elements (code blocks, bullet points)
+- **Examples** of validated content (snippets of active voice usage)
+- **Context** about which documentation purpose was validated
 
 ### Issues Found
 ```markdown
@@ -291,6 +321,28 @@ export GITHUB_TOKEN=your_token
 export INPUT_PR_NUMBER=123
 node index.ts
 ```
+
+## Example Outputs
+
+See [EXAMPLE_OUTPUT.md](./EXAMPLE_OUTPUT.md) for detailed examples of both success and failure cases.
+
+## Key Improvements
+
+### Before
+The action would always output:
+> ✅ All documentation checks passed! The documentation follows the copywriting and formatting guidelines.
+
+This provided no context about what was actually validated.
+
+### After
+The action now provides:
+- **Specific line numbers** for code examples, active voice usage, etc.
+- **Counts** of structural elements (code blocks, bullet points, etc.)
+- **Examples** of what passed validation (e.g., "Line 45: Code example found")
+- **Context** about which documentation purpose was validated (user vs. dev docs)
+- **Clear breakdown** of what rules were applied
+
+This makes the feedback actionable and demonstrates the action is working correctly!
 
 ## Related Documentation
 

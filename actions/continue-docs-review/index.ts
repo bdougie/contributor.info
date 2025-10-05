@@ -20,6 +20,13 @@ interface DocumentationIssue {
   rule: string;
 }
 
+interface ValidationSuccess {
+  file: string;
+  rule: string;
+  message: string;
+  examples?: string[];
+}
+
 async function loadRules(rulesPath: string): Promise<Rule[]> {
   const rules: Rule[] = [];
 
@@ -457,8 +464,12 @@ function checkCopywriting(content: string, lines: string[], file: string): Docum
   return issues;
 }
 
-async function analyzeDocumentation(files: string[], rules: Rule[]): Promise<DocumentationIssue[]> {
+async function analyzeDocumentation(
+  files: string[],
+  rules: Rule[]
+): Promise<{ issues: DocumentationIssue[]; validations: ValidationSuccess[] }> {
   const issues: DocumentationIssue[] = [];
+  const validations: ValidationSuccess[] = [];
 
   for (const file of files) {
     try {
@@ -481,16 +492,175 @@ async function analyzeDocumentation(files: string[], rules: Rule[]): Promise<Doc
         // Apply rule-specific checks
         const ruleIssues = await checkAgainstRule(content, lines, file, rule);
         issues.push(...ruleIssues);
+
+        // Track successful validations with examples
+        if (ruleIssues.length === 0) {
+          const successExamples = getValidationExamples(content, lines, file, rule);
+          validations.push(...successExamples);
+        }
       }
     } catch (error) {
       core.warning(`Failed to analyze ${file}: ${error}`);
     }
   }
 
-  return issues;
+  return { issues, validations };
 }
 
-async function postReviewComments(issues: DocumentationIssue[]): Promise<void> {
+function getValidationExamples(
+  content: string,
+  lines: string[],
+  file: string,
+  rule: Rule
+): ValidationSuccess[] {
+  const validations: ValidationSuccess[] = [];
+  const ruleName = rule.name;
+
+  switch (ruleName) {
+    case 'documentation-scannable-format': {
+      // Find examples of good structure
+      const examples: string[] = [];
+      let hasCodeBlocks = false;
+      let hasBulletPoints = false;
+      let hasNumberedLists = false;
+      let codeBlockCount = 0;
+      let bulletListCount = 0;
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (line.startsWith('```')) {
+          hasCodeBlocks = true;
+          codeBlockCount++;
+          const lineNum = i + 1;
+          // Get a snippet of the code block
+          const nextLine = lines[i + 1]?.trim() || '';
+          if (nextLine && !nextLine.startsWith('```')) {
+            examples.push(`Line ${lineNum}: Code example found`);
+          }
+        } else if (line.startsWith('-') || line.startsWith('*')) {
+          hasBulletPoints = true;
+          bulletListCount++;
+        } else if (line.match(/^\d+\./)) {
+          hasNumberedLists = true;
+        }
+      }
+
+      let message = '✅ Document is properly structured with ';
+      const structureElements: string[] = [];
+      if (hasCodeBlocks) structureElements.push(`${codeBlockCount} code block(s)`);
+      if (hasBulletPoints) structureElements.push(`bullet points`);
+      if (hasNumberedLists) structureElements.push(`numbered lists`);
+      message += structureElements.join(', ');
+
+      validations.push({
+        file,
+        rule: 'documentation-scannable-format',
+        message,
+        examples: examples.slice(0, 3), // Limit to 3 examples
+      });
+      break;
+    }
+
+    case 'copywriting': {
+      // Check for good copywriting practices
+      const examples: string[] = [];
+      let activeVoiceCount = 0;
+      let conciseCount = 0;
+      let noTodos = true;
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line || line.startsWith('#') || line.startsWith('```')) continue;
+
+        // Check for active voice (action verbs at start)
+        if (/^(Install|Deploy|Configure|Run|Create|Update|Set|Use|Add|Remove|Delete|Build)/i.test(line)) {
+          activeVoiceCount++;
+          if (examples.length < 3) {
+            examples.push(`Line ${i + 1}: Active voice - "${line.substring(0, 60)}..."`);
+          }
+        }
+
+        // Check for TODO markers
+        if (/\b(TODO|FIXME|XXX|HACK|WIP)\b/i.test(line)) {
+          noTodos = false;
+        }
+      }
+
+      const messages: string[] = [];
+      if (activeVoiceCount > 0) messages.push(`${activeVoiceCount} active voice instances`);
+      if (noTodos) messages.push('no TODO markers');
+
+      if (messages.length > 0) {
+        validations.push({
+          file,
+          rule: 'copywriting',
+          message: `✅ Clear writing with ${messages.join(', ')}`,
+          examples,
+        });
+      }
+      break;
+    }
+
+    case 'documentation-purpose': {
+      // Validate purpose-specific content
+      const isUserDoc = file.includes('mintlify-docs') || file.includes('public/docs');
+      const isArchitectureDoc =
+        file.includes('architecture') ||
+        file.includes('infrastructure') ||
+        file.includes('database') ||
+        file.includes('setup');
+
+      const examples: string[] = [];
+
+      if (isUserDoc) {
+        const hasSteps = /\b(step|follow|instructions|how to)\b/i.test(content) || /^\d+\.\s/m.test(content);
+        const hasCodeExample = content.includes('```');
+        const hasPrerequisites =
+          content.toLowerCase().includes('prerequisite') ||
+          content.toLowerCase().includes('requirements') ||
+          content.toLowerCase().includes('before you begin');
+
+        if (hasSteps) examples.push('Step-by-step instructions found');
+        if (hasCodeExample) examples.push('Code examples included');
+        if (hasPrerequisites) examples.push('Prerequisites documented');
+
+        if (examples.length > 0) {
+          validations.push({
+            file,
+            rule: 'documentation-purpose',
+            message: `✅ User-focused documentation with ${examples.length} key element(s)`,
+            examples,
+          });
+        }
+      } else if (isArchitectureDoc) {
+        const hasArchitecture = /\b(architecture|design|structure|flow|diagram|component|system)\b/i.test(content);
+        const hasRationale = /\b(because|rationale|reason|why|decision|trade-off|chosen)\b/i.test(content);
+        const hasInfraDetails = /\b(server|deploy|environment|config|variable|secret|scaling|monitoring)\b/i.test(content);
+
+        if (hasArchitecture) examples.push('Architecture explained');
+        if (hasRationale) examples.push('Technical decisions documented');
+        if (hasInfraDetails) examples.push('Infrastructure details included');
+
+        if (examples.length > 0) {
+          validations.push({
+            file,
+            rule: 'documentation-purpose',
+            message: `✅ Architecture documentation with ${examples.length} key element(s)`,
+            examples,
+          });
+        }
+      }
+      break;
+    }
+  }
+
+  return validations;
+}
+
+async function postReviewComments(
+  issues: DocumentationIssue[],
+  validations: ValidationSuccess[]
+): Promise<void> {
   const token = process.env.GITHUB_TOKEN || process.env.INPUT_GITHUB_TOKEN || '';
   if (!token) {
     core.warning('No GitHub token available, skipping review posting');
@@ -581,8 +751,42 @@ async function postReviewComments(issues: DocumentationIssue[]): Promise<void> {
   reviewBody += '<!-- docs-review-action -->\n\n';
 
   if (issues.length === 0) {
-    reviewBody +=
-      '✅ All documentation checks passed! The documentation follows the copywriting and formatting guidelines.\n';
+    reviewBody += '✅ **All documentation checks passed!**\n\n';
+    
+    // Group validations by file
+    const validationsByFile = new Map<string, ValidationSuccess[]>();
+    for (const validation of validations) {
+      if (!validationsByFile.has(validation.file)) {
+        validationsByFile.set(validation.file, []);
+      }
+      validationsByFile.get(validation.file)!.push(validation);
+    }
+
+    if (validationsByFile.size > 0) {
+      reviewBody += '### What we validated:\n\n';
+      
+      for (const [file, fileValidations] of validationsByFile) {
+        reviewBody += `**${file}:**\n`;
+        for (const validation of fileValidations) {
+          reviewBody += `- ${validation.message}\n`;
+          if (validation.examples && validation.examples.length > 0) {
+            for (const example of validation.examples) {
+              reviewBody += `  - ${example}\n`;
+            }
+          }
+        }
+        reviewBody += '\n';
+      }
+
+      reviewBody += '### Rules applied:\n\n';
+      reviewBody += '- **Copywriting**: Active voice, no marketing fluff, clear error messages\n';
+      reviewBody += '- **Scannable Format**: Visual breaks, code examples, bullet points\n';
+      reviewBody += '- **Documentation Purpose**: User docs show "how to use", dev docs explain "how it works"\n\n';
+    } else {
+      reviewBody += 'The documentation follows the copywriting and formatting guidelines.\n\n';
+    }
+
+    reviewBody += '_For full guidelines, see `.continue/rules/`_\n';
   } else {
     reviewBody += `Found ${issues.length} suggestion(s) for documentation improvements:\n\n`;
 
@@ -672,11 +876,12 @@ async function run(): Promise<void> {
     }
 
     // Analyze documentation
-    const issues = await analyzeDocumentation(changedFiles, rules);
+    const { issues, validations } = await analyzeDocumentation(changedFiles, rules);
     core.info(`Found ${issues.length} documentation issue(s)`);
+    core.info(`Found ${validations.length} successful validation(s)`);
 
     // Post review comments
-    await postReviewComments(issues);
+    await postReviewComments(issues, validations);
 
     core.info('Documentation review completed');
   } catch (error) {
