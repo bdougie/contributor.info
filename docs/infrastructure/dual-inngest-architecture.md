@@ -24,7 +24,7 @@ The project uses a **dual-endpoint architecture** for Inngest functions to handl
                  │  /api/inngest   │              │ /api/inngest-    │
                  │  (Supabase)     │              │  embeddings      │
                  │                 │              │  (Netlify)       │
-                 │  10 Functions   │              │  7 Functions     │
+                 │  10 Functions   │              │  11 Functions    │
                  └─────────────────┘              └──────────────────┘
 ```
 
@@ -63,6 +63,10 @@ The project uses a **dual-endpoint architecture** for Inngest functions to handl
 5. `handle-pr-embedding-webhook` - Bridge webhook events for PR embeddings
 6. `handle-batch-embedding-webhook` - Bridge webhook events for batch processing
 7. `handle-similarity-recalculation` - Bridge webhook events for similarity recalculation
+8. `aggregate-workspace-metrics` - Aggregate metrics for a single workspace
+9. `scheduled-workspace-aggregation` - Scheduled metrics refresh (cron: every 5 minutes)
+10. `handle-workspace-repository-change` - Handle repo add/remove events
+11. `cleanup-workspace-metrics-data` - Data cleanup (cron: daily at 3 AM)
 
 **Event Mappings:**
 - `embeddings.generate` → `generate-embeddings` (legacy)
@@ -73,12 +77,17 @@ The project uses a **dual-endpoint architecture** for Inngest functions to handl
 - `embedding/pr.generate` → `handle-pr-embedding-webhook` → triggers `compute-embeddings`
 - `embedding/batch.process` → `handle-batch-embedding-webhook` → triggers `compute-embeddings`
 - `similarity/repository.recalculate` → `handle-similarity-recalculation` → triggers `compute-embeddings`
+- `workspace.metrics.aggregate` → `aggregate-workspace-metrics`
+- `cron (5m)` → `scheduled-workspace-aggregation`
+- `workspace.repository.changed` → `handle-workspace-repository-change`
+- `cron (daily 3am)` → `cleanup-workspace-metrics-data`
 
 **Why Netlify:**
 - Requires `@xenova/transformers` (Node.js-only ML library for legacy functions)
 - Uses `crypto` module for content hashing
 - Heavy model loading requires Node.js runtime
 - Webhook bridge functions route events to compute-embeddings
+- Workspace metrics use WorkspaceAggregationService (compatible with Node.js runtime)
 
 ## Configuration
 
@@ -244,6 +253,9 @@ Long-term recommendation:
 
 ---
 
-**Last Updated:** 2025-10-02
+**Last Updated:** 2025-10-05
 **Author:** Claude Code
 **Status:** ✅ Implemented and Deployed
+**Recent Changes:**
+- Added 4 workspace metrics functions to Netlify endpoint (Issue #905)
+- Total functions: 10 (Supabase) + 11 (Netlify) = 21 functions

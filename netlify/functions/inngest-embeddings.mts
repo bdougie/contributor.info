@@ -12,8 +12,14 @@ import {
   handleBatchEmbeddingWebhook,
   handleSimilarityRecalculation,
 } from '../../src/lib/inngest/functions/webhook-embeddings';
+import {
+  aggregateWorkspaceMetrics,
+  scheduledWorkspaceAggregation,
+  handleWorkspaceRepositoryChange,
+  cleanupWorkspaceMetricsData,
+} from '../../src/lib/inngest/functions/aggregate-workspace-metrics';
 
-// Create the Inngest serve handler for embeddings only
+// Create the Inngest serve handler for embeddings and workspace metrics
 const inngestHandler = serve({
   client: inngest,
   functions: [
@@ -27,6 +33,11 @@ const inngestHandler = serve({
     handlePREmbeddingWebhook,
     handleBatchEmbeddingWebhook,
     handleSimilarityRecalculation,
+    // Workspace metrics functions
+    aggregateWorkspaceMetrics,
+    scheduledWorkspaceAggregation,
+    handleWorkspaceRepositoryChange,
+    cleanupWorkspaceMetricsData,
   ],
   servePath: '/.netlify/functions/inngest-embeddings',
 });
@@ -37,9 +48,9 @@ export default async (req: Request, context: Context) => {
   if (req.method === 'GET' && !req.url.includes('?')) {
     return new Response(
       JSON.stringify({
-        message: 'Inngest Embeddings endpoint is active',
+        message: 'Inngest Embeddings & Workspace Metrics endpoint is active',
         endpoint: '/.netlify/functions/inngest-embeddings',
-        note: 'Handles embeddings-related functions that require Node.js dependencies',
+        note: 'Handles embeddings and workspace metrics functions that require Node.js dependencies',
         functions: [
           'generate-embeddings',
           'batch-generate-embeddings',
@@ -48,6 +59,10 @@ export default async (req: Request, context: Context) => {
           'handle-pr-embedding-webhook',
           'handle-batch-embedding-webhook',
           'handle-similarity-recalculation',
+          'aggregate-workspace-metrics',
+          'scheduled-workspace-aggregation',
+          'handle-workspace-repository-change',
+          'cleanup-workspace-metrics-data',
         ],
         eventHandlers: {
           'embeddings.generate': 'generate-embeddings',
@@ -58,6 +73,10 @@ export default async (req: Request, context: Context) => {
           'embedding/pr.generate': 'handle-pr-embedding-webhook',
           'embedding/batch.process': 'handle-batch-embedding-webhook',
           'similarity/repository.recalculate': 'handle-similarity-recalculation',
+          'workspace.metrics.aggregate': 'aggregate-workspace-metrics',
+          'cron (5m)': 'scheduled-workspace-aggregation',
+          'workspace.repository.changed': 'handle-workspace-repository-change',
+          'cron (daily 3am)': 'cleanup-workspace-metrics-data',
         },
         environment: {
           context: process.env.CONTEXT || 'unknown',
