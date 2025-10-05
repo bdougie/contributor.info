@@ -46,6 +46,9 @@ interface AggregatedData {
   totalStars: number;
   totalForks: number;
   totalWatchers: number;
+  // Event-based counts for accurate trend calculation
+  starEventsInPeriod: number;
+  forkEventsInPeriod: number;
   prMergeTimes: number[];
   issueCloseTimes: number[];
   languages: LanguageDistribution;
@@ -311,6 +314,8 @@ export class WorkspaceAggregationService {
       totalStars: 0,
       totalForks: 0,
       totalWatchers: 0,
+      starEventsInPeriod: 0,
+      forkEventsInPeriod: 0,
       prMergeTimes: [] as number[],
       issueCloseTimes: [] as number[],
       languages: {} as LanguageDistribution,
@@ -366,8 +371,27 @@ export class WorkspaceAggregationService {
     aggregated.openIssues += issueData.open;
     aggregated.issueCloseTimes.push(...issueData.closeTimes);
 
+    // Get historical star/fork events for accurate trend calculation
+    const starEventCount = await this.getStarEventCount(
+      repository.owner,
+      repository.name,
+      periodStart,
+      periodEnd
+    );
+    const forkEventCount = await this.getForkEventCount(
+      repository.owner,
+      repository.name,
+      periodStart,
+      periodEnd
+    );
+
+    // Use current star count as absolute (from GitHub API)
     aggregated.totalStars += repository.stargazers_count || 0;
     aggregated.totalForks += repository.forks_count || 0;
+
+    // Track event counts for trend calculation
+    aggregated.starEventsInPeriod += starEventCount;
+    aggregated.forkEventsInPeriod += forkEventCount;
 
     // Update language distribution
     if (repository.language) {
@@ -578,6 +602,56 @@ export class WorkspaceAggregationService {
   }
 
   /**
+   * Get star event count for a repository in a time period
+   */
+  private async getStarEventCount(
+    owner: string,
+    name: string,
+    periodStart: Date,
+    periodEnd: Date
+  ): Promise<number> {
+    const { data, error } = await this.supabase!.from('github_events_cache')
+      .select('id', { count: 'exact', head: true })
+      .eq('event_type', 'WatchEvent')
+      .eq('repository_owner', owner)
+      .eq('repository_name', name)
+      .gte('created_at', toUTCTimestamp(periodStart))
+      .lte('created_at', toUTCTimestamp(periodEnd));
+
+    if (error) {
+      console.error('Error fetching star event count:', error);
+      return 0;
+    }
+
+    return data?.length || 0;
+  }
+
+  /**
+   * Get fork event count for a repository in a time period
+   */
+  private async getForkEventCount(
+    owner: string,
+    name: string,
+    periodStart: Date,
+    periodEnd: Date
+  ): Promise<number> {
+    const { data, error } = await this.supabase!.from('github_events_cache')
+      .select('id', { count: 'exact', head: true })
+      .eq('event_type', 'ForkEvent')
+      .eq('repository_owner', owner)
+      .eq('repository_name', name)
+      .gte('created_at', toUTCTimestamp(periodStart))
+      .lte('created_at', toUTCTimestamp(periodEnd));
+
+    if (error) {
+      console.error('Error fetching fork event count:', error);
+      return 0;
+    }
+
+    return data?.length || 0;
+  }
+
+  /**
    * Calculate trends vs previous period
    */
   private async calculateTrends(
@@ -590,9 +664,10 @@ export class WorkspaceAggregationService {
     const previousPeriod = await this.getPreviousPeriodMetrics(workspaceId, timeRange, periodStart);
 
     return {
+      // Use event counts for stars trend (comparing activity, not absolute counts)
       starsTrend: this.calculateTrendPercentage(
-        currentData.totalStars,
-        previousPeriod?.totalStars || 0
+        currentData.starEventsInPeriod,
+        previousPeriod?.starEventsInPeriod || 0
       ),
       prsTrend: this.calculateTrendPercentage(currentData.totalPRs, previousPeriod?.totalPRs || 0),
       contributorsTrend: this.calculateTrendPercentage(
@@ -647,12 +722,18 @@ export class WorkspaceAggregationService {
         totalStars: Math.max(acc.totalStars, day.total_stars || 0),
         totalContributors: Math.max(acc.totalContributors, day.total_contributors || 0),
         totalCommits: acc.totalCommits + (day.daily_commits || 0),
+        totalIssues: acc.totalIssues + (day.daily_issues || 0),
+        starEventsInPeriod: acc.starEventsInPeriod + (day.daily_star_events || 0),
+        forkEventsInPeriod: acc.forkEventsInPeriod + (day.daily_fork_events || 0),
       }),
       {
         totalPRs: 0,
         totalStars: 0,
         totalContributors: 0,
         totalCommits: 0,
+        totalIssues: 0,
+        starEventsInPeriod: 0,
+        forkEventsInPeriod: 0,
       }
     );
   }
