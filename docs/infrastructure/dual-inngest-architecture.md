@@ -64,7 +64,7 @@ The project uses a **dual-endpoint architecture** for Inngest functions to handl
 6. `handle-batch-embedding-webhook` - Bridge webhook events for batch processing
 7. `handle-similarity-recalculation` - Bridge webhook events for similarity recalculation
 8. `aggregate-workspace-metrics` - Aggregate metrics for a single workspace
-9. `scheduled-workspace-aggregation` - Scheduled metrics refresh (cron: every 5 minutes)
+9. `scheduled-workspace-aggregation` - Scheduled metrics refresh (cron: twice daily at 6 AM and 6 PM)
 10. `handle-workspace-repository-change` - Handle repo add/remove events
 11. `cleanup-workspace-metrics-data` - Data cleanup (cron: daily at 3 AM)
 
@@ -78,7 +78,7 @@ The project uses a **dual-endpoint architecture** for Inngest functions to handl
 - `embedding/batch.process` → `handle-batch-embedding-webhook` → triggers `compute-embeddings`
 - `similarity/repository.recalculate` → `handle-similarity-recalculation` → triggers `compute-embeddings`
 - `workspace.metrics.aggregate` → `aggregate-workspace-metrics`
-- `cron (5m)` → `scheduled-workspace-aggregation`
+- `cron (twice daily)` → `scheduled-workspace-aggregation`
 - `workspace.repository.changed` → `handle-workspace-repository-change`
 - `cron (daily 3am)` → `cleanup-workspace-metrics-data`
 
