@@ -19,6 +19,18 @@ import { webhookMetricsService } from '../services/webhook-metrics';
 import { similarityMetricsService } from '../services/similarity-metrics';
 
 /**
+ * Update repository's last webhook event timestamp
+ */
+async function updateLastWebhookEvent(repositoryGithubId: number) {
+  await supabase
+    .from('repositories')
+    .update({
+      last_webhook_event_at: new Date().toISOString(),
+    })
+    .eq('github_id', repositoryGithubId);
+}
+
+/**
  * Handle pull request webhook events with routing and prioritization
  */
 export async function handlePullRequestEvent(event: PullRequestEvent) {
@@ -26,6 +38,9 @@ export async function handlePullRequestEvent(event: PullRequestEvent) {
   if (!['opened', 'ready_for_review', 'edited', 'synchronize'].includes(event.action)) {
     return;
   }
+
+  // Update last webhook event timestamp
+  await updateLastWebhookEvent(event.repository.id);
 
   // Route event through EventRouter for prioritization and debouncing
   await eventRouter.routeEvent(event);
@@ -94,7 +109,7 @@ export async function handlePullRequestEvent(event: PullRequestEvent) {
         : Promise.resolve([] as SimilarIssue[]),
       isFeatureEnabled(config, 'reviewer_suggestions')
         ? suggestReviewers(event.pull_request, event.repository, installationId)
-        : Promise.resolve({ suggestions: [], hasCodeOwners: false })
+        : Promise.resolve({ suggestions: [], hasCodeOwners: false }),
     ]);
 
     // Extract suggestions and hasCodeOwners flag

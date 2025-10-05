@@ -241,6 +241,15 @@ async function handleRepositoriesAdded(
           enabled_at: new Date().toISOString(),
         });
 
+        // Enable webhook priority for this repository
+        await supabase
+          .from('repositories')
+          .update({
+            webhook_priority: true,
+            webhook_enabled_at: new Date().toISOString(),
+          })
+          .eq('id', repoId);
+
         // Queue for data sync
         await inngest.send({
           name: 'github.repository.app_enabled',
@@ -347,6 +356,16 @@ async function handleRepositoriesRemoved(
           .delete()
           .eq('installation_id', installationRecord.id)
           .eq('repository_id', repoRecord.id);
+
+        // Disable webhook priority for this repository
+        await supabase
+          .from('repositories')
+          .update({
+            webhook_priority: false,
+            webhook_enabled_at: null,
+            last_webhook_event_at: null,
+          })
+          .eq('id', repoRecord.id);
       }
     }
   } catch (error) {
