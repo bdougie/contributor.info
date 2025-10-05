@@ -9,7 +9,7 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-03T19:43:08.776Z</news:publication_date>
+      <news:publication_date>2025-10-05T00:43:03.365Z</news:publication_date>
       <news:title>microsoft/vscode - Contributor Updates</news:title>
     </news:news>
   </url>
@@ -20,7 +20,7 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-03T18:31:44.253Z</news:publication_date>
+      <news:publication_date>2025-10-05T00:42:31.039Z</news:publication_date>
       <news:title>ollama/ollama - Contributor Updates</news:title>
     </news:news>
   </url>
@@ -31,8 +31,19 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-03T15:29:31.682Z</news:publication_date>
+      <news:publication_date>2025-10-04T16:21:39.005Z</news:publication_date>
       <news:title>kubernetes/kubernetes - Contributor Updates</news:title>
+    </news:news>
+  </url>
+  <url>
+    <loc>https://contributor.info/microsoft/TypeScript</loc>
+    <news:news>
+      <news:publication>
+        <news:name>Contributor.info</news:name>
+        <news:language>en</news:language>
+      </news:publication>
+      <news:publication_date>2025-10-04T13:07:38.918Z</news:publication_date>
+      <news:title>microsoft/TypeScript - Contributor Updates</news:title>
     </news:news>
   </url>
   <url>
@@ -42,7 +53,7 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-03T19:41:30.565Z</news:publication_date>
+      <news:publication_date>2025-10-04T15:48:18.851Z</news:publication_date>
       <news:title>vitejs/vite - Contributor Updates</news:title>
     </news:news>
   </url>
@@ -53,7 +64,7 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-03T18:31:19.651Z</news:publication_date>
+      <news:publication_date>2025-10-04T16:21:37.187Z</news:publication_date>
       <news:title>etcd-io/etcd - Contributor Updates</news:title>
     </news:news>
   </url>
@@ -64,7 +75,7 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-04T02:23:51.611Z</news:publication_date>
+      <news:publication_date>2025-10-05T00:46:37.524Z</news:publication_date>
       <news:title>continuedev/continue - Contributor Updates</news:title>
     </news:news>
   </url>
@@ -75,7 +86,7 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-03T19:19:43.420Z</news:publication_date>
+      <news:publication_date>2025-10-05T00:42:59.950Z</news:publication_date>
       <news:title>argoproj/argo-cd - Contributor Updates</news:title>
     </news:news>
   </url>
@@ -86,7 +97,7 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-03T15:29:31.733Z</news:publication_date>
+      <news:publication_date>2025-10-04T18:31:57.562Z</news:publication_date>
       <news:title>vercel/ai - Contributor Updates</news:title>
     </news:news>
   </url>
@@ -97,7 +108,7 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-03T15:27:30.062Z</news:publication_date>
+      <news:publication_date>2025-10-04T18:29:49.547Z</news:publication_date>
       <news:title>pgvector/pgvector - Contributor Updates</news:title>
     </news:news>
   </url>
@@ -108,7 +119,7 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-03T18:32:39.194Z</news:publication_date>
+      <news:publication_date>2025-10-05T00:43:10.660Z</news:publication_date>
       <news:title>better-auth/better-auth - Contributor Updates</news:title>
     </news:news>
   </url>
@@ -119,7 +130,7 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-04T00:37:49.874Z</news:publication_date>
+      <news:publication_date>2025-10-04T15:26:53.925Z</news:publication_date>
       <news:title>github/docs - Contributor Updates</news:title>
     </news:news>
   </url>
@@ -130,19 +141,8 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-03T21:26:54.552Z</news:publication_date>
+      <news:publication_date>2025-10-05T00:43:26.106Z</news:publication_date>
       <news:title>Kilo-Org/kilocode - Contributor Updates</news:title>
-    </news:news>
-  </url>
-  <url>
-    <loc>https://contributor.info/jargonsdev/jargons.dev</loc>
-    <news:news>
-      <news:publication>
-        <news:name>Contributor.info</news:name>
-        <news:language>en</news:language>
-      </news:publication>
-      <news:publication_date>2025-10-02T13:12:17.533Z</news:publication_date>
-      <news:title>jargonsdev/jargons.dev - Contributor Updates</news:title>
     </news:news>
   </url>
   <url>
@@ -152,19 +152,8 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-03T15:27:23.742Z</news:publication_date>
+      <news:publication_date>2025-10-04T18:29:47.244Z</news:publication_date>
       <news:title>moment/moment - Contributor Updates</news:title>
-    </news:news>
-  </url>
-  <url>
-    <loc>https://contributor.info/expressjs/express</loc>
-    <news:news>
-      <news:publication>
-        <news:name>Contributor.info</news:name>
-        <news:language>en</news:language>
-      </news:publication>
-      <news:publication_date>2025-10-03T15:28:04.172Z</news:publication_date>
-      <news:title>expressjs/express - Contributor Updates</news:title>
     </news:news>
   </url>
   <url>
@@ -174,19 +163,19 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-03T18:32:25.084Z</news:publication_date>
+      <news:publication_date>2025-10-05T00:42:23.877Z</news:publication_date>
       <news:title>shadcn/ui - Contributor Updates</news:title>
     </news:news>
   </url>
   <url>
-    <loc>https://contributor.info/facebook/react</loc>
+    <loc>https://contributor.info/expressjs/express</loc>
     <news:news>
       <news:publication>
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-03T15:29:31.759Z</news:publication_date>
-      <news:title>facebook/react - Contributor Updates</news:title>
+      <news:publication_date>2025-10-04T18:30:47.601Z</news:publication_date>
+      <news:title>expressjs/express - Contributor Updates</news:title>
     </news:news>
   </url>
   <url>
@@ -196,7 +185,7 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-03T21:26:49.403Z</news:publication_date>
+      <news:publication_date>2025-10-05T00:43:21.743Z</news:publication_date>
       <news:title>zulip/zulip - Contributor Updates</news:title>
     </news:news>
   </url>
@@ -207,30 +196,8 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-04T00:36:18.195Z</news:publication_date>
+      <news:publication_date>2025-10-05T00:43:48.602Z</news:publication_date>
       <news:title>Ad-Astra-Innovia/frontend - Contributor Updates</news:title>
-    </news:news>
-  </url>
-  <url>
-    <loc>https://contributor.info/langchain-ai/langchain</loc>
-    <news:news>
-      <news:publication>
-        <news:name>Contributor.info</news:name>
-        <news:language>en</news:language>
-      </news:publication>
-      <news:publication_date>2025-10-04T00:36:21.923Z</news:publication_date>
-      <news:title>langchain-ai/langchain - Contributor Updates</news:title>
-    </news:news>
-  </url>
-  <url>
-    <loc>https://contributor.info/zml/zml</loc>
-    <news:news>
-      <news:publication>
-        <news:name>Contributor.info</news:name>
-        <news:language>en</news:language>
-      </news:publication>
-      <news:publication_date>2025-10-04T00:36:43.519Z</news:publication_date>
-      <news:title>zml/zml - Contributor Updates</news:title>
     </news:news>
   </url>
   <url>
@@ -240,8 +207,41 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-04T00:35:54.720Z</news:publication_date>
+      <news:publication_date>2025-10-04T15:25:58.130Z</news:publication_date>
       <news:title>excalidraw/excalidraw - Contributor Updates</news:title>
+    </news:news>
+  </url>
+  <url>
+    <loc>https://contributor.info/zml/zml</loc>
+    <news:news>
+      <news:publication>
+        <news:name>Contributor.info</news:name>
+        <news:language>en</news:language>
+      </news:publication>
+      <news:publication_date>2025-10-05T00:44:01.339Z</news:publication_date>
+      <news:title>zml/zml - Contributor Updates</news:title>
+    </news:news>
+  </url>
+  <url>
+    <loc>https://contributor.info/facebook/docusaurus</loc>
+    <news:news>
+      <news:publication>
+        <news:name>Contributor.info</news:name>
+        <news:language>en</news:language>
+      </news:publication>
+      <news:publication_date>2025-10-05T00:41:45.154Z</news:publication_date>
+      <news:title>facebook/docusaurus - Contributor Updates</news:title>
+    </news:news>
+  </url>
+  <url>
+    <loc>https://contributor.info/langchain-ai/langchain</loc>
+    <news:news>
+      <news:publication>
+        <news:name>Contributor.info</news:name>
+        <news:language>en</news:language>
+      </news:publication>
+      <news:publication_date>2025-10-04T15:26:40.558Z</news:publication_date>
+      <news:title>langchain-ai/langchain - Contributor Updates</news:title>
     </news:news>
   </url>
   <url>
@@ -251,8 +251,19 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-03T15:28:00.741Z</news:publication_date>
+      <news:publication_date>2025-10-04T18:30:09.442Z</news:publication_date>
       <news:title>golang/go - Contributor Updates</news:title>
+    </news:news>
+  </url>
+  <url>
+    <loc>https://contributor.info/axios/axios</loc>
+    <news:news>
+      <news:publication>
+        <news:name>Contributor.info</news:name>
+        <news:language>en</news:language>
+      </news:publication>
+      <news:publication_date>2025-10-05T00:42:11.504Z</news:publication_date>
+      <news:title>axios/axios - Contributor Updates</news:title>
     </news:news>
   </url>
   <url>
@@ -262,7 +273,7 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-04T00:36:25.861Z</news:publication_date>
+      <news:publication_date>2025-10-05T00:43:44.790Z</news:publication_date>
       <news:title>BlueMatthew/WechatExporter - Contributor Updates</news:title>
     </news:news>
   </url>
@@ -273,30 +284,8 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-04T00:36:26.771Z</news:publication_date>
+      <news:publication_date>2025-10-05T00:43:55.995Z</news:publication_date>
       <news:title>vue/vue - Contributor Updates</news:title>
-    </news:news>
-  </url>
-  <url>
-    <loc>https://contributor.info/axios/axios</loc>
-    <news:news>
-      <news:publication>
-        <news:name>Contributor.info</news:name>
-        <news:language>en</news:language>
-      </news:publication>
-      <news:publication_date>2025-10-03T18:32:42.884Z</news:publication_date>
-      <news:title>axios/axios - Contributor Updates</news:title>
-    </news:news>
-  </url>
-  <url>
-    <loc>https://contributor.info/facebook/docusaurus</loc>
-    <news:news>
-      <news:publication>
-        <news:name>Contributor.info</news:name>
-        <news:language>en</news:language>
-      </news:publication>
-      <news:publication_date>2025-10-03T18:32:17.489Z</news:publication_date>
-      <news:title>facebook/docusaurus - Contributor Updates</news:title>
     </news:news>
   </url>
   <url>
@@ -306,7 +295,7 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-04T00:36:40.967Z</news:publication_date>
+      <news:publication_date>2025-10-05T00:43:56.478Z</news:publication_date>
       <news:title>open-sauced/app - Contributor Updates</news:title>
     </news:news>
   </url>
@@ -317,19 +306,8 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-04T00:36:38.274Z</news:publication_date>
+      <news:publication_date>2025-10-05T00:43:45.264Z</news:publication_date>
       <news:title>Robdel12/DraftPatch - Contributor Updates</news:title>
-    </news:news>
-  </url>
-  <url>
-    <loc>https://contributor.info/analogjs/analog</loc>
-    <news:news>
-      <news:publication>
-        <news:name>Contributor.info</news:name>
-        <news:language>en</news:language>
-      </news:publication>
-      <news:publication_date>2025-10-04T00:36:39.675Z</news:publication_date>
-      <news:title>analogjs/analog - Contributor Updates</news:title>
     </news:news>
   </url>
   <url>
@@ -339,8 +317,19 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-04T00:36:21.925Z</news:publication_date>
+      <news:publication_date>2025-10-04T15:26:46.219Z</news:publication_date>
       <news:title>grafana/grafana - Contributor Updates</news:title>
+    </news:news>
+  </url>
+  <url>
+    <loc>https://contributor.info/analogjs/analog</loc>
+    <news:news>
+      <news:publication>
+        <news:name>Contributor.info</news:name>
+        <news:language>en</news:language>
+      </news:publication>
+      <news:publication_date>2025-10-05T00:44:16.164Z</news:publication_date>
+      <news:title>analogjs/analog - Contributor Updates</news:title>
     </news:news>
   </url>
   <url>
@@ -350,7 +339,7 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-03T18:30:52.982Z</news:publication_date>
+      <news:publication_date>2025-10-04T21:24:49.000Z</news:publication_date>
       <news:title>anthropics/claude-code - Contributor Updates</news:title>
     </news:news>
   </url>
@@ -361,7 +350,7 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-03T18:32:03.654Z</news:publication_date>
+      <news:publication_date>2025-10-05T00:42:18.540Z</news:publication_date>
       <news:title>lodash/lodash - Contributor Updates</news:title>
     </news:news>
   </url>
@@ -372,7 +361,7 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-04T00:37:49.432Z</news:publication_date>
+      <news:publication_date>2025-10-05T00:45:12.288Z</news:publication_date>
       <news:title>tensorflow/tensorflow - Contributor Updates</news:title>
     </news:news>
   </url>
@@ -383,8 +372,19 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-03T21:25:55.996Z</news:publication_date>
+      <news:publication_date>2025-10-05T00:42:29.366Z</news:publication_date>
       <news:title>rivet-gg/rivetkit - Contributor Updates</news:title>
+    </news:news>
+  </url>
+  <url>
+    <loc>https://contributor.info/facebook/react</loc>
+    <news:news>
+      <news:publication>
+        <news:name>Contributor.info</news:name>
+        <news:language>en</news:language>
+      </news:publication>
+      <news:publication_date>2025-10-04T18:31:44.656Z</news:publication_date>
+      <news:title>facebook/react - Contributor Updates</news:title>
     </news:news>
   </url>
   <url>
@@ -394,19 +394,8 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-03T15:31:04.035Z</news:publication_date>
+      <news:publication_date>2025-10-04T18:31:59.662Z</news:publication_date>
       <news:title>cline/cline - Contributor Updates</news:title>
-    </news:news>
-  </url>
-  <url>
-    <loc>https://contributor.info/bdougie/contributor.info</loc>
-    <news:news>
-      <news:publication>
-        <news:name>Contributor.info</news:name>
-        <news:language>en</news:language>
-      </news:publication>
-      <news:publication_date>2025-10-03T15:29:31.070Z</news:publication_date>
-      <news:title>bdougie/contributor.info - Contributor Updates</news:title>
     </news:news>
   </url>
   <url>
@@ -416,8 +405,30 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-03T21:27:06.049Z</news:publication_date>
+      <news:publication_date>2025-10-05T00:43:01.470Z</news:publication_date>
       <news:title>duckdb/duckdb - Contributor Updates</news:title>
+    </news:news>
+  </url>
+  <url>
+    <loc>https://contributor.info/pytorch/pytorch</loc>
+    <news:news>
+      <news:publication>
+        <news:name>Contributor.info</news:name>
+        <news:language>en</news:language>
+      </news:publication>
+      <news:publication_date>2025-10-04T18:31:55.068Z</news:publication_date>
+      <news:title>pytorch/pytorch - Contributor Updates</news:title>
+    </news:news>
+  </url>
+  <url>
+    <loc>https://contributor.info/bdougie/contributor.info</loc>
+    <news:news>
+      <news:publication>
+        <news:name>Contributor.info</news:name>
+        <news:language>en</news:language>
+      </news:publication>
+      <news:publication_date>2025-10-04T18:31:55.645Z</news:publication_date>
+      <news:title>bdougie/contributor.info - Contributor Updates</news:title>
     </news:news>
   </url>
   <url>
@@ -427,7 +438,7 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-03T18:31:54.245Z</news:publication_date>
+      <news:publication_date>2025-10-04T21:26:08.886Z</news:publication_date>
       <news:title>supabase/supabase - Contributor Updates</news:title>
     </news:news>
   </url>
@@ -438,7 +449,7 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-03T18:33:46.670Z</news:publication_date>
+      <news:publication_date>2025-10-04T21:27:16.763Z</news:publication_date>
       <news:title>Supabase/supabase - Contributor Updates</news:title>
     </news:news>
   </url>
@@ -449,7 +460,7 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-03T18:31:20.975Z</news:publication_date>
+      <news:publication_date>2025-10-05T00:42:00.835Z</news:publication_date>
       <news:title>topoteretes/cognee - Contributor Updates</news:title>
     </news:news>
   </url>
@@ -460,7 +471,7 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-03T21:26:31.355Z</news:publication_date>
+      <news:publication_date>2025-10-05T00:43:14.715Z</news:publication_date>
       <news:title>huggingface/transformers - Contributor Updates</news:title>
     </news:news>
   </url>
@@ -471,7 +482,7 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-03T15:29:48.496Z</news:publication_date>
+      <news:publication_date>2025-10-04T18:31:16.249Z</news:publication_date>
       <news:title>prometheus/prometheus - Contributor Updates</news:title>
     </news:news>
   </url>
@@ -482,7 +493,7 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-03T21:26:17.987Z</news:publication_date>
+      <news:publication_date>2025-10-05T00:43:06.568Z</news:publication_date>
       <news:title>nestjs/nest - Contributor Updates</news:title>
     </news:news>
   </url>
@@ -493,19 +504,8 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-03T18:32:57.620Z</news:publication_date>
+      <news:publication_date>2025-10-05T00:42:10.085Z</news:publication_date>
       <news:title>fastapi/fastapi - Contributor Updates</news:title>
-    </news:news>
-  </url>
-  <url>
-    <loc>https://contributor.info/pytorch/pytorch</loc>
-    <news:news>
-      <news:publication>
-        <news:name>Contributor.info</news:name>
-        <news:language>en</news:language>
-      </news:publication>
-      <news:publication_date>2025-10-03T15:31:12.617Z</news:publication_date>
-      <news:title>pytorch/pytorch - Contributor Updates</news:title>
     </news:news>
   </url>
   <url>
@@ -515,7 +515,7 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-03T21:26:53.708Z</news:publication_date>
+      <news:publication_date>2025-10-05T00:43:54.289Z</news:publication_date>
       <news:title>clickhouse/clickhouse - Contributor Updates</news:title>
     </news:news>
   </url>
@@ -526,7 +526,7 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-03T15:29:36.611Z</news:publication_date>
+      <news:publication_date>2025-10-04T18:31:41.332Z</news:publication_date>
       <news:title>rust-lang/rust - Contributor Updates</news:title>
     </news:news>
   </url>
@@ -537,7 +537,7 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-03T15:30:07.133Z</news:publication_date>
+      <news:publication_date>2025-10-04T18:31:50.956Z</news:publication_date>
       <news:title>terraform-providers/terraform-provider-aws - Contributor Updates</news:title>
     </news:news>
   </url>
@@ -548,7 +548,7 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-03T15:29:17.464Z</news:publication_date>
+      <news:publication_date>2025-10-04T18:31:50.561Z</news:publication_date>
       <news:title>angular/angular - Contributor Updates</news:title>
     </news:news>
   </url>
@@ -559,7 +559,7 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-03T18:32:34.440Z</news:publication_date>
+      <news:publication_date>2025-10-05T00:42:50.273Z</news:publication_date>
       <news:title>pingcap/tidb - Contributor Updates</news:title>
     </news:news>
   </url>
