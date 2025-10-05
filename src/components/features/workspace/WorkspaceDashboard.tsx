@@ -105,16 +105,16 @@ export function WorkspaceDashboard({
       {/* Metrics Grid */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard
-          title="Total Stars"
-          subtitle="Across all repositories"
+          title="Star Velocity"
+          subtitle="Stars per day"
           value={metrics.totalStars}
-          description="Community interest and popularity"
+          description="Daily star growth rate"
           icon={<Star className="h-4 w-4" />}
           trend={{
             value: metrics.starsTrend,
             label: trendLabel,
           }}
-          format="compact"
+          format={(val) => (val < 1 ? val.toFixed(3) : val.toFixed(1))}
           color="yellow"
           loading={loading}
         />

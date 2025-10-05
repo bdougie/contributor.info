@@ -16,7 +16,7 @@ export interface MetricCardProps {
   };
   loading?: boolean;
   className?: string;
-  format?: 'number' | 'percentage' | 'compact';
+  format?: 'number' | 'percentage' | 'compact' | ((val: number) => string);
   color?: 'blue' | 'green' | 'orange' | 'purple' | 'gray' | 'yellow';
 }
 
@@ -43,6 +43,11 @@ export function MetricCard({
 }: MetricCardProps) {
   const formatValue = (val: number | string): string => {
     if (typeof val === 'string') return val;
+
+    // If format is a function, use it
+    if (typeof format === 'function') {
+      return format(val);
+    }
 
     switch (format) {
       case 'percentage':

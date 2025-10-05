@@ -5,9 +5,15 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database';
-import { createSupabaseAdmin } from '@/lib/supabase-admin';
+import { supabase } from '@/lib/supabase';
 import { toDateOnlyString, toUTCTimestamp } from '../lib/utils/date-formatting';
 import { TIME_PERIODS, timeHelpers } from '@/lib/constants/time-constants';
+import {
+  validateEventPayload,
+  getSchemaForEventType,
+  extractAvatarUrl,
+  extractUserLogin,
+} from '@/lib/event-validation';
 
 // Types for event-based metrics
 export interface EventMetrics {
@@ -60,7 +66,7 @@ class WorkspaceEventsService {
   private supabase: SupabaseClient<Database>;
 
   constructor() {
-    this.supabase = createSupabaseAdmin();
+    this.supabase = supabase;
   }
 
   /**
@@ -71,7 +77,7 @@ class WorkspaceEventsService {
     timeRange: string = '30d'
   ): Promise<EventMetrics | null> {
     try {
-      // Get repositories in the workspace
+      // Get repositories in the workspace with their actual star/fork counts
       const { data: workspaceRepos, error: repoError } = await this.supabase
         .from('workspace_repositories')
         .select(
@@ -79,7 +85,9 @@ class WorkspaceEventsService {
           repositories!inner (
             owner,
             name,
-            full_name
+            full_name,
+            stargazers_count,
+            forks_count
           )
         `
         )
@@ -93,6 +101,14 @@ class WorkspaceEventsService {
         repository_owner: repo.owner,
         repository_name: repo.name,
       }));
+
+      // Get actual totals from repository data
+      const totalStarsFromRepos = repositories
+        .flat()
+        .reduce((sum, repo) => sum + (repo.stargazers_count || 0), 0);
+      const totalForksFromRepos = repositories
+        .flat()
+        .reduce((sum, repo) => sum + (repo.forks_count || 0), 0);
 
       // Calculate date ranges
       const now = new Date();
@@ -111,9 +127,19 @@ class WorkspaceEventsService {
       const previousStars = previousPeriodEvents.filter((e) => e.event_type === 'WatchEvent');
       const previousForks = previousPeriodEvents.filter((e) => e.event_type === 'ForkEvent');
 
-      // Calculate metrics
-      const starMetrics = this.calculateTrendMetrics(currentStars, previousStars, ranges);
-      const forkMetrics = this.calculateTrendMetrics(currentForks, previousForks, ranges);
+      // Calculate metrics using actual totals
+      const starMetrics = this.calculateTrendMetrics(
+        currentStars,
+        previousStars,
+        ranges,
+        totalStarsFromRepos
+      );
+      const forkMetrics = this.calculateTrendMetrics(
+        currentForks,
+        previousForks,
+        ranges,
+        totalForksFromRepos
+      );
       const activityMetrics = this.calculateActivityMetrics(currentPeriodEvents);
       const timeline = this.processTimelineData(timelineData);
 
@@ -154,11 +180,16 @@ class WorkspaceEventsService {
   }
 
   /**
-   * Get recent activity feed for a workspace
+   * Get recent activity feed for a workspace with validation and pagination support
    */
   async getWorkspaceActivityFeed(
     workspaceId: string,
-    limit: number = 50
+    limit: number = 50,
+    options: {
+      offset?: number;
+      cursor?: string;
+      eventTypes?: string[];
+    } = {}
   ): Promise<
     Array<{
       id: string;
@@ -169,6 +200,7 @@ class WorkspaceEventsService {
       repository_name: string;
       created_at: string;
       payload: Record<string, unknown>;
+      validationWarning?: string;
     }>
   > {
     try {
@@ -192,16 +224,67 @@ class WorkspaceEventsService {
         .map((repo) => `and(repository_owner.eq.${repo.owner},repository_name.eq.${repo.name})`)
         .join(',');
 
-      const { data: events, error } = await this.supabase
+      // Build query with optional filters
+      let query = this.supabase
         .from('github_events_cache')
         .select('*')
         .or(orConditions)
-        .in('event_type', ['WatchEvent', 'ForkEvent', 'PullRequestEvent', 'IssuesEvent'])
-        .order('created_at', { ascending: false })
-        .limit(limit);
+        .order('created_at', { ascending: false });
+
+      // Apply event type filter
+      const eventTypes = options.eventTypes ?? [
+        'WatchEvent',
+        'ForkEvent',
+        'PullRequestEvent',
+        'IssuesEvent',
+      ];
+      query = query.in('event_type', eventTypes);
+
+      // Apply pagination
+      if (options.offset !== undefined) {
+        query = query.range(options.offset, options.offset + limit - 1);
+      } else {
+        query = query.limit(limit);
+      }
+
+      const { data: events, error } = await query;
 
       if (error) throw error;
-      return events || [];
+
+      // Validate and enrich events
+      const validatedEvents = (events || []).map((event) => {
+        const schema = getSchemaForEventType(event.event_type);
+
+        // If we have a schema, validate the payload
+        if (schema && event.payload) {
+          const validation = validateEventPayload(event.payload, schema);
+
+          if (!validation.valid) {
+            // Log validation error but don't crash
+            console.warn(
+              `Invalid payload for event ${event.event_id} (${event.event_type}):`,
+              validation.error
+            );
+
+            // Try to extract what we can
+            const safePayload = {
+              ...event.payload,
+              _avatarUrl: extractAvatarUrl(event.payload as Record<string, unknown>),
+              _userLogin: extractUserLogin(event.payload as Record<string, unknown>),
+            };
+
+            return {
+              ...event,
+              payload: safePayload,
+              validationWarning: validation.error,
+            };
+          }
+        }
+
+        return event;
+      });
+
+      return validatedEvents;
     } catch (error) {
       console.error('Error fetching workspace activity feed:', error);
       return [];
@@ -306,24 +389,30 @@ class WorkspaceEventsService {
       currentEnd: Date;
       previousStart: Date;
       previousEnd: Date;
-    }
+    },
+    actualTotal?: number
   ): EventTrendMetrics {
     const currentCount = currentEvents.length;
     const previousCount = previousEvents.length;
 
-    // Calculate velocity (events per day)
+    // Calculate velocity (events per day) for both periods
     const periodDays = timeHelpers.msToDays(
       ranges.currentEnd.getTime() - ranges.currentStart.getTime()
     );
     const velocity = currentCount / periodDays;
+    const previousVelocity = previousCount / periodDays;
 
-    // Calculate percent change
+    // Calculate percent change based on velocity comparison
+    // This shows how the daily rate changed between periods
     let percentChange = 0;
-    if (previousCount > 0) {
-      percentChange = Math.round(((currentCount - previousCount) / previousCount) * 100);
-    } else if (currentCount > 0) {
-      percentChange = 100;
+    if (previousVelocity > 0) {
+      percentChange = Math.round(((velocity - previousVelocity) / previousVelocity) * 100);
+    } else if (velocity > 0) {
+      // If we have current velocity but no previous velocity, show as stable
+      // (We can't calculate a meaningful percentage without baseline)
+      percentChange = 0;
     }
+    // If no data in either period, percentChange stays 0 (will show as "stable")
 
     // Determine trend
     let trend: 'up' | 'down' | 'stable';
@@ -354,7 +443,7 @@ class WorkspaceEventsService {
     }).length;
 
     return {
-      total: currentCount,
+      total: actualTotal !== undefined ? actualTotal : currentCount,
       thisWeek,
       lastWeek,
       thisMonth,
