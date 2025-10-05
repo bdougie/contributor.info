@@ -112,7 +112,7 @@ const realMetrics = {
 ```
 
 **Acceptance Criteria:**
-- ✅ Total Stars shows count from `stargazers_count` (absolute truth)
+- ✅ Star Velocity displays the stars/day rate derived from event velocity data
 - ✅ Stars trend shows % change based on `WatchEvent` timestamps in selected time range
 - ✅ Trend compares current period vs previous period (e.g., last 30d vs prior 30d)
 - ✅ Card subtitle shows "vs previous period" with accurate percentage
