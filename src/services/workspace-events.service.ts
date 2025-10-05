@@ -5,7 +5,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database';
-import { createSupabaseAdmin } from '@/lib/supabase-admin';
+import { supabase } from '@/lib/supabase';
 import { toDateOnlyString, toUTCTimestamp } from '../lib/utils/date-formatting';
 import { TIME_PERIODS, timeHelpers } from '@/lib/constants/time-constants';
 import {
@@ -66,7 +66,7 @@ class WorkspaceEventsService {
   private supabase: SupabaseClient<Database>;
 
   constructor() {
-    this.supabase = createSupabaseAdmin();
+    this.supabase = supabase;
   }
 
   /**

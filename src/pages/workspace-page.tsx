@@ -5,6 +5,7 @@ import type { User } from '@supabase/supabase-js';
 import { getFallbackAvatar } from '@/lib/utils/avatar';
 import { useWorkspaceContributors } from '@/hooks/useWorkspaceContributors';
 import { useContributorGroups } from '@/hooks/useContributorGroups';
+import { useWorkspaceEvents } from '@/hooks/use-workspace-events';
 import { TIME_PERIODS, timeHelpers } from '@/lib/constants/time-constants';
 import { WorkspaceDashboard, WorkspaceDashboardSkeleton } from '@/components/features/workspace';
 import { WorkspaceErrorBoundary } from '@/components/error-boundaries/workspace-error-boundary';
@@ -2325,6 +2326,13 @@ function WorkspacePage() {
   const [githubAppModalOpen, setGithubAppModalOpen] = useState(false);
   const [selectedRepoForModal, setSelectedRepoForModal] = useState<Repository | null>(null);
 
+  // Fetch event-based metrics for accurate star trends
+  const { metrics: eventMetrics } = useWorkspaceEvents({
+    workspaceId,
+    timeRange,
+    enabled: !!workspaceId,
+  });
+
   // Check GitHub App installation status across all workspace repos
   const repositoryIds = useMemo(
     () => repositories.map((r) => r.id).filter(Boolean),
@@ -3152,6 +3160,15 @@ function WorkspacePage() {
         previousMetrics
       );
 
+      // Override starsTrend with event-based data from useWorkspaceEvents hook
+      if (eventMetrics?.stars) {
+        realMetrics.starsTrend = eventMetrics.stars.percentChange;
+        // Optionally use event-based total if available
+        if (eventMetrics.stars.total) {
+          realMetrics.totalStars = eventMetrics.stars.total;
+        }
+      }
+
       // Generate trend data with real PR/issue data
       const realTrendData = calculateRealTrendData(
         TIME_RANGE_DAYS[timeRange],
@@ -3176,7 +3193,7 @@ function WorkspacePage() {
     } finally {
       setLoading(false);
     }
-  }, [workspaceId, timeRange, selectedRepositories, syncWithUrl]);
+  }, [workspaceId, timeRange, selectedRepositories, syncWithUrl, eventMetrics]);
 
   useEffect(() => {
     // Sync the workspace dropdown with the current URL
