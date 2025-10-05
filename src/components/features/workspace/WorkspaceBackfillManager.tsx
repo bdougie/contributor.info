@@ -38,10 +38,11 @@ interface WorkspaceBackfillManagerProps {
 }
 
 interface RepositoryBackfillStatus {
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'waiting';
   progress?: number;
   error?: string;
   lastBackfillDate?: string;
+  waitingMessage?: string;
 }
 
 export function WorkspaceBackfillManager({
@@ -59,7 +60,7 @@ export function WorkspaceBackfillManager({
   useEffect(() => {
     const initialStatuses: Record<string, RepositoryBackfillStatus> = {};
     repositories.forEach((repo) => {
-      const storageKey = `backfill-${workspaceId}-${repo.full_name}`;
+      const storageKey = `contributor-info:backfill-${workspaceId}-${repo.full_name}`;
       const stored = localStorage.getItem(storageKey);
       initialStatuses[repo.full_name] = {
         status: 'pending',
@@ -136,7 +137,12 @@ export function WorkspaceBackfillManager({
           });
 
           if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+            let errorData: { message?: string };
+            try {
+              errorData = await response.json();
+            } catch {
+              errorData = { message: `HTTP ${response.status}: ${response.statusText}` };
+            }
             throw new Error(errorData.message || 'Failed to trigger backfill');
           }
 
@@ -152,7 +158,7 @@ export function WorkspaceBackfillManager({
           }));
 
           // Store in localStorage
-          const storageKey = `backfill-${workspaceId}-${repo.full_name}`;
+          const storageKey = `contributor-info:backfill-${workspaceId}-${repo.full_name}`;
           localStorage.setItem(storageKey, now);
 
           completed++;
@@ -178,8 +184,21 @@ export function WorkspaceBackfillManager({
           }));
         }
 
-        // Small delay between requests
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        // Small delay between requests to avoid rate limits
+        // Show waiting status for next repository
+        const nextIndex = reposToBackfill.indexOf(repo) + 1;
+        if (nextIndex < reposToBackfill.length) {
+          const nextRepo = reposToBackfill[nextIndex];
+          setBackfillStatuses((prev) => ({
+            ...prev,
+            [nextRepo.full_name]: {
+              ...prev[nextRepo.full_name],
+              status: 'waiting',
+              waitingMessage: 'Next in queue...',
+            },
+          }));
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
       }
 
       const failed = reposToBackfill.length - completed;
@@ -230,6 +249,8 @@ export function WorkspaceBackfillManager({
     switch (status) {
       case 'pending':
         return <AlertCircle className="h-4 w-4 text-muted-foreground" />;
+      case 'waiting':
+        return <Loader2 className="h-4 w-4 animate-spin text-yellow-500" />;
       case 'processing':
         return <Loader2 className="h-4 w-4 animate-spin text-blue-500" />;
       case 'completed':
@@ -242,6 +263,7 @@ export function WorkspaceBackfillManager({
   const getStatusBadge = (status: RepositoryBackfillStatus['status']) => {
     const variants = {
       pending: 'secondary' as const,
+      waiting: 'outline' as const,
       processing: 'default' as const,
       completed: 'default' as const,
       failed: 'destructive' as const,
@@ -249,7 +271,7 @@ export function WorkspaceBackfillManager({
 
     return (
       <Badge variant={variants[status]} className="capitalize">
-        {status}
+        {status === 'waiting' ? 'Next in queue' : status}
       </Badge>
     );
   };

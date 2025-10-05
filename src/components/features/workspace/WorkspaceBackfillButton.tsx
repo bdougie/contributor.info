@@ -54,7 +54,7 @@ export function WorkspaceBackfillButton({
 
   // Load last backfill time from localStorage
   useEffect(() => {
-    const storageKey = `workspace-backfill-${workspaceId}`;
+    const storageKey = `contributor-info:workspace-backfill-${workspaceId}`;
     const stored = localStorage.getItem(storageKey);
     if (stored) {
       setLastBackfillTime(new Date(stored));
@@ -112,7 +112,12 @@ export function WorkspaceBackfillButton({
           });
 
           if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+            let errorData: { message?: string };
+            try {
+              errorData = await response.json();
+            } catch {
+              errorData = { message: `HTTP ${response.status}: ${response.statusText}` };
+            }
             throw new Error(errorData.message || 'Failed to trigger backfill');
           }
 
@@ -148,7 +153,7 @@ export function WorkspaceBackfillButton({
       // Update last backfill time
       const now = new Date();
       setLastBackfillTime(now);
-      localStorage.setItem(`workspace-backfill-${workspaceId}`, now.toISOString());
+      localStorage.setItem(`contributor-info:workspace-backfill-${workspaceId}`, now.toISOString());
 
       // Show completion toast
       if (failed === 0) {
