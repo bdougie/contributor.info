@@ -610,7 +610,7 @@ export class WorkspaceAggregationService {
     periodStart: Date,
     periodEnd: Date
   ): Promise<number> {
-    const { data, error } = await this.supabase!.from('github_events_cache')
+    const { count, error } = await this.supabase!.from('github_events_cache')
       .select('id', { count: 'exact', head: true })
       .eq('event_type', 'WatchEvent')
       .eq('repository_owner', owner)
@@ -623,7 +623,7 @@ export class WorkspaceAggregationService {
       return 0;
     }
 
-    return data?.length || 0;
+    return count || 0;
   }
 
   /**
@@ -635,7 +635,7 @@ export class WorkspaceAggregationService {
     periodStart: Date,
     periodEnd: Date
   ): Promise<number> {
-    const { data, error } = await this.supabase!.from('github_events_cache')
+    const { count, error } = await this.supabase!.from('github_events_cache')
       .select('id', { count: 'exact', head: true })
       .eq('event_type', 'ForkEvent')
       .eq('repository_owner', owner)
@@ -648,7 +648,7 @@ export class WorkspaceAggregationService {
       return 0;
     }
 
-    return data?.length || 0;
+    return count || 0;
   }
 
   /**
