@@ -8,6 +8,12 @@ import type { Database } from '@/types/database';
 import { createSupabaseAdmin } from '@/lib/supabase-admin';
 import { toDateOnlyString, toUTCTimestamp } from '../lib/utils/date-formatting';
 import { TIME_PERIODS, timeHelpers } from '@/lib/constants/time-constants';
+import {
+  validateEventPayload,
+  getSchemaForEventType,
+  extractAvatarUrl,
+  extractUserLogin,
+} from '@/lib/event-validation';
 
 // Types for event-based metrics
 export interface EventMetrics {
@@ -154,11 +160,16 @@ class WorkspaceEventsService {
   }
 
   /**
-   * Get recent activity feed for a workspace
+   * Get recent activity feed for a workspace with validation and pagination support
    */
   async getWorkspaceActivityFeed(
     workspaceId: string,
-    limit: number = 50
+    limit: number = 50,
+    options: {
+      offset?: number;
+      cursor?: string;
+      eventTypes?: string[];
+    } = {}
   ): Promise<
     Array<{
       id: string;
@@ -169,6 +180,7 @@ class WorkspaceEventsService {
       repository_name: string;
       created_at: string;
       payload: Record<string, unknown>;
+      validationWarning?: string;
     }>
   > {
     try {
@@ -192,16 +204,67 @@ class WorkspaceEventsService {
         .map((repo) => `and(repository_owner.eq.${repo.owner},repository_name.eq.${repo.name})`)
         .join(',');
 
-      const { data: events, error } = await this.supabase
+      // Build query with optional filters
+      let query = this.supabase
         .from('github_events_cache')
         .select('*')
         .or(orConditions)
-        .in('event_type', ['WatchEvent', 'ForkEvent', 'PullRequestEvent', 'IssuesEvent'])
-        .order('created_at', { ascending: false })
-        .limit(limit);
+        .order('created_at', { ascending: false });
+
+      // Apply event type filter
+      const eventTypes = options.eventTypes ?? [
+        'WatchEvent',
+        'ForkEvent',
+        'PullRequestEvent',
+        'IssuesEvent',
+      ];
+      query = query.in('event_type', eventTypes);
+
+      // Apply pagination
+      if (options.offset !== undefined) {
+        query = query.range(options.offset, options.offset + limit - 1);
+      } else {
+        query = query.limit(limit);
+      }
+
+      const { data: events, error } = await query;
 
       if (error) throw error;
-      return events || [];
+
+      // Validate and enrich events
+      const validatedEvents = (events || []).map((event) => {
+        const schema = getSchemaForEventType(event.event_type);
+
+        // If we have a schema, validate the payload
+        if (schema && event.payload) {
+          const validation = validateEventPayload(event.payload, schema);
+
+          if (!validation.valid) {
+            // Log validation error but don't crash
+            console.warn(
+              `Invalid payload for event ${event.event_id} (${event.event_type}):`,
+              validation.error
+            );
+
+            // Try to extract what we can
+            const safePayload = {
+              ...event.payload,
+              _avatarUrl: extractAvatarUrl(event.payload as Record<string, unknown>),
+              _userLogin: extractUserLogin(event.payload as Record<string, unknown>),
+            };
+
+            return {
+              ...event,
+              payload: safePayload,
+              validationWarning: validation.error,
+            };
+          }
+        }
+
+        return event;
+      });
+
+      return validatedEvents;
     } catch (error) {
       console.error('Error fetching workspace activity feed:', error);
       return [];
