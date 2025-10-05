@@ -46,7 +46,6 @@ export default function Layout() {
   // Prefetch handlers for navigation links
   const trendingPrefetch = usePrefetchOnIntent('/trending');
   const changelogPrefetch = usePrefetchOnIntent('/changelog');
-  const docsPrefetch = usePrefetchOnIntent('/docs');
 
   // Check if current page needs time range controls
   const needsTimeRange = () => {
@@ -167,14 +166,15 @@ export default function Layout() {
                 >
                   Changelog
                 </Link>
-                <Link
-                  to="/docs"
+                <a
+                  href="https://docs.contributor.info"
                   onClick={() => setIsMenuOpen(false)}
                   className="text-base hover:text-primary transition-colors"
-                  {...docsPrefetch}
+                  target="_blank"
+                  rel="noopener noreferrer"
                 >
                   Docs
-                </Link>
+                </a>
 
                 {/* Time Range - only on relevant pages */}
                 {isLoggedIn && needsTimeRange() && (

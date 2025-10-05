@@ -148,6 +148,65 @@ Track success rates through:
 - Browser console for frontend tracking events
 - Netlify function logs for API endpoint calls
 
+## Webhook Priority System
+
+### Overview
+
+Repositories with the **GitHub App installed** automatically receive real-time webhook updates, eliminating the need for manual tracking or progressive capture polling.
+
+### When Webhooks Take Priority
+
+When you install the Contributor Insights GitHub App on a repository:
+
+1. **Automatic Activation**: The repository is automatically marked as `webhook_priority = TRUE`
+2. **Real-Time Updates**: All PR and issue events update the database within seconds
+3. **Skip Manual Tracking**: Progressive capture automatically skips the repository
+4. **Graceful Fallback**: If webhooks become stale (>24 hours), progressive capture resumes
+
+### Benefits of Webhook Priority
+
+| Feature | Manual Tracking | Webhook Priority |
+|---------|----------------|------------------|
+| **Data Latency** | 15-60 minutes | <5 seconds |
+| **API Usage** | ~5,000 calls/day | ~50 calls/day |
+| **User Action Required** | Yes (click "Track Repository") | No (automatic after app install) |
+| **Event Coverage** | PRs, Issues, Comments | PRs, Issues, Comments, Reviews, Labels |
+
+### How to Enable
+
+1. Install the [Contributor Insights GitHub App](https://github.com/apps/contributor-insights) on your repository
+2. The repository will automatically:
+   - Be added to the database
+   - Receive webhook priority flag
+   - Start receiving real-time updates
+3. No manual "Track Repository" action needed
+
+### Fallback to Manual Tracking
+
+If webhooks fail or become stale:
+- **After 24 hours** without webhook events, progressive capture automatically resumes
+- Manual tracking button remains available for force-refresh
+- Webhook priority automatically re-activates when events resume
+
+### Monitoring Webhook Status
+
+Check if a repository is webhook-enabled:
+
+```sql
+SELECT
+  full_name,
+  webhook_priority,
+  webhook_enabled_at,
+  last_webhook_event_at
+FROM repositories
+WHERE full_name = 'owner/repo';
+```
+
+### See Also
+
+- [Webhook Priority System](./webhook-priority-system.md) - Technical implementation details
+- [GitHub App Setup](../github-app/README.md) - How to install the app
+
 ## Future Improvements
 
 Potential enhancements:
@@ -155,4 +214,4 @@ Potential enhancements:
 - Organization-level tracking
 - Tracking quotas per user
 - Tracking history and audit logs
-- Webhook-based automatic updates for tracked repos
+- UI indicator for webhook vs manual tracking status

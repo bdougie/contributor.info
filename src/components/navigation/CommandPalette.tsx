@@ -203,7 +203,7 @@ export function CommandPalette({
         description: 'Learn how to use contributor.info',
         icon: <FileText className="h-4 w-4" />,
         action: () => {
-          navigate('/docs');
+          window.open('https://docs.contributor.info', '_blank', 'noopener,noreferrer');
           onOpenChange(false);
         },
         category: 'action',

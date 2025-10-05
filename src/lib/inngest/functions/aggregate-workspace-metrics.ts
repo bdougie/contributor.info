@@ -19,7 +19,7 @@ export interface WorkspaceAggregationEvent {
     priority?: number;
     forceRefresh?: boolean;
     triggeredBy?: 'schedule' | 'webhook' | 'manual' | 'dependency';
-    triggerMetadata?: Record<string, any>;
+    triggerMetadata?: Record<string, unknown>;
   };
 }
 
@@ -65,7 +65,7 @@ export const aggregateWorkspaceMetrics = inngest.createFunction(
         .from('workspaces')
         .select('id, name, tier, is_active')
         .eq('id', workspaceId)
-        .single();
+        .maybeSingle();
 
       if (error || !data) {
         throw new Error(`Workspace not found: ${workspaceId}`);
@@ -95,7 +95,7 @@ export const aggregateWorkspaceMetrics = inngest.createFunction(
           trigger_metadata: event.data.triggerMetadata || {},
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Failed to create queue entry:', error);
@@ -189,7 +189,7 @@ export const aggregateWorkspaceMetrics = inngest.createFunction(
 );
 
 /**
- * Scheduled aggregation - runs every 5 minutes for all active workspaces
+ * Scheduled aggregation - runs twice daily for all active workspaces
  */
 export const scheduledWorkspaceAggregation = inngest.createFunction(
   {
@@ -197,7 +197,7 @@ export const scheduledWorkspaceAggregation = inngest.createFunction(
     name: 'Scheduled Workspace Aggregation',
   },
   {
-    cron: '*/5 * * * *', // Every 5 minutes
+    cron: '0 6,18 * * *', // Twice daily at 6 AM and 6 PM
   },
   async ({ step }) => {
     // Step 1: Get all active workspaces
@@ -228,7 +228,7 @@ export const scheduledWorkspaceAggregation = inngest.createFunction(
           .eq('workspace_id', workspace.id)
           .eq('time_range', '30d')
           .in('status', ['pending', 'processing'])
-          .single();
+          .maybeSingle();
 
         if (!existingJob) {
           // Check if cache is stale or expired
@@ -237,7 +237,7 @@ export const scheduledWorkspaceAggregation = inngest.createFunction(
             .select('expires_at, is_stale')
             .eq('workspace_id', workspace.id)
             .eq('time_range', '30d')
-            .single();
+            .maybeSingle();
 
           const needsUpdate = !cache || cache.is_stale || new Date(cache.expires_at) < new Date();
 

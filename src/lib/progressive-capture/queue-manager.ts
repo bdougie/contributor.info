@@ -33,6 +33,51 @@ export interface DataCaptureJob {
 export class DataCaptureQueueManager {
   private readonly RATE_LIMIT_BUFFER = 1000; // Keep 1000 calls as buffer
   private readonly MAX_HOURLY_CALLS = 4000; // Conservative limit
+  private readonly WEBHOOK_STALE_HOURS = 24; // Consider webhook data stale after 24 hours
+
+  /**
+   * Check if repository should skip progressive capture due to webhook priority
+   * Returns true if repo has webhook priority and recent webhook events
+   */
+  private async shouldSkipDueToWebhooks(repositoryId: string): Promise<boolean> {
+    const { data } = await supabase
+      .from('repositories')
+      .select('webhook_priority, last_webhook_event_at')
+      .eq('id', repositoryId)
+      .maybeSingle();
+
+    if (!data?.webhook_priority) {
+      return false; // Not webhook-enabled, don't skip
+    }
+
+    if (!data.last_webhook_event_at) {
+      return false; // No recent webhook events, don't skip
+    }
+
+    // Check if webhook data is still fresh
+    const lastEvent = new Date(data.last_webhook_event_at);
+    const hoursSinceEvent = (Date.now() - lastEvent.getTime()) / 3600000;
+
+    if (hoursSinceEvent < this.WEBHOOK_STALE_HOURS) {
+      if (env.DEV) {
+        console.log(
+          '[Queue] Skipping repository %s: webhook-enabled with fresh data (%s hours old)',
+          repositoryId,
+          hoursSinceEvent.toFixed(1)
+        );
+      }
+      return true; // Webhook data is fresh, skip progressive capture
+    }
+
+    if (env.DEV) {
+      console.log(
+        '[Queue] Repository %s: webhook-enabled but data is stale (%s hours old), allowing progressive capture',
+        repositoryId,
+        hoursSinceEvent.toFixed(1)
+      );
+    }
+    return false; // Webhook data is stale, allow progressive capture as fallback
+  }
 
   /**
    * Get human-readable reason for priority level
@@ -67,6 +112,11 @@ export class DataCaptureQueueManager {
     limit: number = 200,
     priority: 'critical' | 'high' | 'medium' | 'low'
   ): Promise<number> {
+    // Check if we should skip due to webhook priority
+    if (await this.shouldSkipDueToWebhooks(repositoryId)) {
+      return 0; // Skip queuing - webhooks are handling this repo
+    }
+
     // Find PRs with missing file change data
     const { data: prsNeedingUpdate, error } = await supabase
       .from('pull_requests')

@@ -19,6 +19,26 @@ import { webhookMetricsService } from '../services/webhook-metrics';
 import { similarityMetricsService } from '../services/similarity-metrics';
 
 /**
+ * Update repository's last webhook event timestamp
+ * @throws Error if timestamp update fails - triggers GitHub webhook retry
+ */
+async function updateLastWebhookEvent(repositoryGithubId: number) {
+  const { error } = await supabase
+    .from('repositories')
+    .update({
+      last_webhook_event_at: new Date().toISOString(),
+    })
+    .eq('github_id', repositoryGithubId);
+
+  if (error) {
+    console.error('Failed to update webhook timestamp:', error);
+    throw new Error(
+      `Failed to update webhook timestamp for repository ${repositoryGithubId}: ${error.message}`
+    );
+  }
+}
+
+/**
  * Handle pull request webhook events with routing and prioritization
  */
 export async function handlePullRequestEvent(event: PullRequestEvent) {
@@ -26,6 +46,9 @@ export async function handlePullRequestEvent(event: PullRequestEvent) {
   if (!['opened', 'ready_for_review', 'edited', 'synchronize'].includes(event.action)) {
     return;
   }
+
+  // Update last webhook event timestamp
+  await updateLastWebhookEvent(event.repository.id);
 
   // Route event through EventRouter for prioritization and debouncing
   await eventRouter.routeEvent(event);
@@ -94,7 +117,7 @@ export async function handlePullRequestEvent(event: PullRequestEvent) {
         : Promise.resolve([] as SimilarIssue[]),
       isFeatureEnabled(config, 'reviewer_suggestions')
         ? suggestReviewers(event.pull_request, event.repository, installationId)
-        : Promise.resolve({ suggestions: [], hasCodeOwners: false })
+        : Promise.resolve({ suggestions: [], hasCodeOwners: false }),
     ]);
 
     // Extract suggestions and hasCodeOwners flag
