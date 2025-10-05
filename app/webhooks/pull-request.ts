@@ -20,22 +20,21 @@ import { similarityMetricsService } from '../services/similarity-metrics';
 
 /**
  * Update repository's last webhook event timestamp
+ * @throws Error if timestamp update fails - triggers GitHub webhook retry
  */
 async function updateLastWebhookEvent(repositoryGithubId: number) {
-  try {
-    const { error } = await supabase
-      .from('repositories')
-      .update({
-        last_webhook_event_at: new Date().toISOString(),
-      })
-      .eq('github_id', repositoryGithubId);
+  const { error } = await supabase
+    .from('repositories')
+    .update({
+      last_webhook_event_at: new Date().toISOString(),
+    })
+    .eq('github_id', repositoryGithubId);
 
-    if (error) {
-      console.error('Failed to update webhook timestamp:', error);
-    }
-  } catch (err) {
-    console.error('Failed to update webhook timestamp:', err);
-    // Continue processing - don't fail the entire webhook
+  if (error) {
+    console.error('Failed to update webhook timestamp:', error);
+    throw new Error(
+      `Failed to update webhook timestamp for repository ${repositoryGithubId}: ${error.message}`
+    );
   }
 }
 
