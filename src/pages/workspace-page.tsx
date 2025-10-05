@@ -2327,10 +2327,11 @@ function WorkspacePage() {
   const [selectedRepoForModal, setSelectedRepoForModal] = useState<Repository | null>(null);
 
   // Fetch event-based metrics for accurate star trends
+  // Use workspace?.id (UUID) instead of workspaceId (which could be a slug)
   const { metrics: eventMetrics } = useWorkspaceEvents({
-    workspaceId,
+    workspaceId: workspace?.id,
     timeRange,
-    enabled: !!workspaceId,
+    enabled: !!workspace?.id,
   });
 
   // Check GitHub App installation status across all workspace repos
