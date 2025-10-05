@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -160,6 +160,20 @@ export function WorkspaceSettings({
       setIsSaving(false);
     }
   };
+
+  // Memoize repositories array to prevent unnecessary re-renders
+  const memoizedRepositories = useMemo(
+    () =>
+      repositories.map((repo) => ({
+        id: repo.id,
+        owner: repo.owner,
+        name: repo.name,
+        full_name: repo.full_name,
+        stargazers_count: repo.stargazers_count || 0,
+        forks_count: repo.forks_count || 0,
+      })),
+    [repositories]
+  );
 
   // Delete workspace
   const handleDeleteWorkspace = async () => {
@@ -427,17 +441,7 @@ export function WorkspaceSettings({
 
       {/* Event Data Backfill Section */}
       {repositories.length > 0 && (
-        <WorkspaceBackfillManager
-          workspaceId={workspace.id}
-          repositories={repositories.map((repo) => ({
-            id: repo.id,
-            owner: repo.owner,
-            name: repo.name,
-            full_name: repo.full_name,
-            stargazers_count: repo.stargazers_count || 0,
-            forks_count: repo.forks_count || 0,
-          }))}
-        />
+        <WorkspaceBackfillManager workspaceId={workspace.id} repositories={memoizedRepositories} />
       )}
 
       {/* Team Members Section */}

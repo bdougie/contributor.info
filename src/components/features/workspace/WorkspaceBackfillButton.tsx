@@ -88,10 +88,12 @@ export function WorkspaceBackfillButton({
 
       let completed = 0;
       let failed = 0;
+      let wasAborted = false;
 
       // Process repositories sequentially to avoid rate limits
       for (const repo of repositories) {
         if (abortControllerRef.current?.signal.aborted) {
+          wasAborted = true;
           toast.info('Backfill cancelled', {
             description: `Completed ${completed} of ${repositories.length} repositories.`,
           });
@@ -136,6 +138,7 @@ export function WorkspaceBackfillButton({
           }
         } catch (error) {
           if (error instanceof Error && error.name === 'AbortError') {
+            wasAborted = true;
             break;
           }
           console.error('Backfill error for %s:', repo.full_name, error);
@@ -150,22 +153,27 @@ export function WorkspaceBackfillButton({
         await new Promise((resolve) => setTimeout(resolve, 1000));
       }
 
-      // Update last backfill time
-      const now = new Date();
-      setLastBackfillTime(now);
-      localStorage.setItem(`contributor-info:workspace-backfill-${workspaceId}`, now.toISOString());
+      // Only update last backfill time and show success if not aborted
+      if (!wasAborted) {
+        const now = new Date();
+        setLastBackfillTime(now);
+        localStorage.setItem(
+          `contributor-info:workspace-backfill-${workspaceId}`,
+          now.toISOString()
+        );
 
-      // Show completion toast
-      if (failed === 0) {
-        toast.success('Backfill complete!', {
-          description: `Successfully backfilled ${completed} repositories. Event data will be available shortly.`,
-          duration: 8000,
-        });
-      } else {
-        toast.warning('Backfill completed with errors', {
-          description: `Completed: ${completed}, Failed: ${failed}. Check console for details.`,
-          duration: 8000,
-        });
+        // Show completion toast
+        if (failed === 0) {
+          toast.success('Backfill complete!', {
+            description: `Successfully backfilled ${completed} repositories. Event data will be available shortly.`,
+            duration: 8000,
+          });
+        } else {
+          toast.warning('Backfill completed with errors', {
+            description: `Completed: ${completed}, Failed: ${failed}. Check console for details.`,
+            duration: 8000,
+          });
+        }
       }
     } catch (error) {
       console.error('Workspace backfill error:', error);
