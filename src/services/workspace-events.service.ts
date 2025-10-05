@@ -77,7 +77,7 @@ class WorkspaceEventsService {
     timeRange: string = '30d'
   ): Promise<EventMetrics | null> {
     try {
-      // Get repositories in the workspace
+      // Get repositories in the workspace with their actual star/fork counts
       const { data: workspaceRepos, error: repoError } = await this.supabase
         .from('workspace_repositories')
         .select(
@@ -85,7 +85,9 @@ class WorkspaceEventsService {
           repositories!inner (
             owner,
             name,
-            full_name
+            full_name,
+            stargazers_count,
+            forks_count
           )
         `
         )
@@ -99,6 +101,14 @@ class WorkspaceEventsService {
         repository_owner: repo.owner,
         repository_name: repo.name,
       }));
+
+      // Get actual totals from repository data
+      const totalStarsFromRepos = repositories
+        .flat()
+        .reduce((sum, repo) => sum + (repo.stargazers_count || 0), 0);
+      const totalForksFromRepos = repositories
+        .flat()
+        .reduce((sum, repo) => sum + (repo.forks_count || 0), 0);
 
       // Calculate date ranges
       const now = new Date();
@@ -117,9 +127,19 @@ class WorkspaceEventsService {
       const previousStars = previousPeriodEvents.filter((e) => e.event_type === 'WatchEvent');
       const previousForks = previousPeriodEvents.filter((e) => e.event_type === 'ForkEvent');
 
-      // Calculate metrics
-      const starMetrics = this.calculateTrendMetrics(currentStars, previousStars, ranges);
-      const forkMetrics = this.calculateTrendMetrics(currentForks, previousForks, ranges);
+      // Calculate metrics using actual totals
+      const starMetrics = this.calculateTrendMetrics(
+        currentStars,
+        previousStars,
+        ranges,
+        totalStarsFromRepos
+      );
+      const forkMetrics = this.calculateTrendMetrics(
+        currentForks,
+        previousForks,
+        ranges,
+        totalForksFromRepos
+      );
       const activityMetrics = this.calculateActivityMetrics(currentPeriodEvents);
       const timeline = this.processTimelineData(timelineData);
 
@@ -369,24 +389,30 @@ class WorkspaceEventsService {
       currentEnd: Date;
       previousStart: Date;
       previousEnd: Date;
-    }
+    },
+    actualTotal?: number
   ): EventTrendMetrics {
     const currentCount = currentEvents.length;
     const previousCount = previousEvents.length;
 
-    // Calculate velocity (events per day)
+    // Calculate velocity (events per day) for both periods
     const periodDays = timeHelpers.msToDays(
       ranges.currentEnd.getTime() - ranges.currentStart.getTime()
     );
     const velocity = currentCount / periodDays;
+    const previousVelocity = previousCount / periodDays;
 
-    // Calculate percent change
+    // Calculate percent change based on velocity comparison
+    // This shows how the daily rate changed between periods
     let percentChange = 0;
-    if (previousCount > 0) {
-      percentChange = Math.round(((currentCount - previousCount) / previousCount) * 100);
-    } else if (currentCount > 0) {
-      percentChange = 100;
+    if (previousVelocity > 0) {
+      percentChange = Math.round(((velocity - previousVelocity) / previousVelocity) * 100);
+    } else if (velocity > 0) {
+      // If we have current velocity but no previous velocity, show as stable
+      // (We can't calculate a meaningful percentage without baseline)
+      percentChange = 0;
     }
+    // If no data in either period, percentChange stays 0 (will show as "stable")
 
     // Determine trend
     let trend: 'up' | 'down' | 'stable';
@@ -417,7 +443,7 @@ class WorkspaceEventsService {
     }).length;
 
     return {
-      total: currentCount,
+      total: actualTotal !== undefined ? actualTotal : currentCount,
       thisWeek,
       lastWeek,
       thisMonth,

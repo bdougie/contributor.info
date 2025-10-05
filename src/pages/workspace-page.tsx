@@ -3164,10 +3164,8 @@ function WorkspacePage() {
       // Override starsTrend with event-based data from useWorkspaceEvents hook
       if (eventMetrics?.stars) {
         realMetrics.starsTrend = eventMetrics.stars.percentChange;
-        // Optionally use event-based total if available
-        if (eventMetrics.stars.total) {
-          realMetrics.totalStars = eventMetrics.stars.total;
-        }
+        // Use velocity (stars/day) instead of total
+        realMetrics.totalStars = eventMetrics.stars.velocity;
       }
 
       // Generate trend data with real PR/issue data
