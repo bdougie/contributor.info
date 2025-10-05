@@ -22,6 +22,7 @@ interface DebugRoute {
   description: string;
   icon: React.ReactNode;
   category: 'auth' | 'testing' | 'dev' | 'insights' | 'docs' | 'monitoring';
+  isExternal?: boolean;
 }
 
 const debugRoutes: DebugRoute[] = [
@@ -82,11 +83,12 @@ const debugRoutes: DebugRoute[] = [
     category: 'docs',
   },
   {
-    path: '/docs',
+    path: 'https://docs.contributor.info',
     title: 'Documentation',
     description: 'Application documentation and API references',
     icon: <Globe className="h-4 w-4" />,
     category: 'docs',
+    isExternal: true,
   },
 ];
 
@@ -147,7 +149,13 @@ export function DebugMenu() {
                     <Button
                       variant="outline"
                       className="w-full justify-start gap-3 h-auto py-3 px-3 text-left"
-                      onClick={() => navigate(route.path)}
+                      onClick={() => {
+                        if (route.isExternal) {
+                          window.open(route.path, '_blank', 'noopener,noreferrer');
+                        } else {
+                          navigate(route.path);
+                        }
+                      }}
                     >
                       <div className="flex-shrink-0">{route.icon}</div>
                       <div className="min-w-0 flex-1">
