@@ -1,13 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import {
-  ChevronDown,
-  Plus,
-  Package,
-  Clock,
-  GitBranch,
-  Search,
-  RefreshCw,
-} from '@/components/ui/icon';
+import { ChevronDown, Plus, Clock, GitBranch, Search, RefreshCw } from '@/components/ui/icon';
+import { PlantIcon } from '@/components/icons/PlantIcon';
 import { useWorkspaceContext, type Workspace } from '@/contexts/WorkspaceContext';
 import { Button } from '@/components/ui/button';
 import {
@@ -188,7 +181,7 @@ export function WorkspaceSwitcher({
             aria-haspopup="menu"
           >
             <div className="flex items-center gap-2">
-              <Package className="h-4 w-4" />
+              <PlantIcon className="h-4 w-4" />
               {showFullName && (
                 <span className="truncate max-w-[200px]" title={activeWorkspace?.name}>
                   {(() => {
@@ -278,7 +271,7 @@ export function WorkspaceSwitcher({
                   >
                     <div className="flex items-center justify-between w-full">
                       <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <Package className="h-4 w-4 flex-shrink-0" />
+                        <PlantIcon className="h-4 w-4 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1">
                             <span className="truncate font-medium">{workspace.name}</span>
@@ -318,7 +311,7 @@ export function WorkspaceSwitcher({
                 >
                   <div className="flex items-center justify-between w-full">
                     <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <Package className="h-4 w-4 flex-shrink-0" />
+                      <PlantIcon className="h-4 w-4 flex-shrink-0" />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1">
                           <span className="truncate font-medium">{workspace.name}</span>
