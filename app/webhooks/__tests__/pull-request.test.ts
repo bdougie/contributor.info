@@ -27,6 +27,9 @@ vi.mock('../../../src/lib/supabase', () => {
         upsert: vi.fn(() => ({
           select: vi.fn(() => createChain()),
         })),
+        update: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({ data: null, error: null })),
+        })),
       })),
     },
   };
