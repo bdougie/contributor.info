@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +9,10 @@ import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/lib/supabase';
+import { useContributorSummary } from '@/hooks/use-contributor-summary';
+import { useGitHubAuth } from '@/hooks/use-github-auth';
+import type { PullRequest, RecentIssue, RecentActivity } from '@/lib/types';
+import type { ContributorActivity } from '@/hooks/useContributorActivity';
 import {
   GitPullRequest,
   GitCommit,
@@ -118,6 +122,77 @@ function getActivityColor(type: Activity['type'], state?: Activity['state']) {
   }
 }
 
+/**
+ * Map ContributorActivity to PullRequest format for AI summaries
+ */
+function mapActivityToPullRequest(activity: ContributorActivity): PullRequest | null {
+  if (activity.type !== 'pr' || !activity.pr_number || !activity.repository_full_name) {
+    return null;
+  }
+
+  const [owner = '', name = ''] = activity.repository_full_name.split('/');
+
+  return {
+    id: parseInt(activity.id) || 0,
+    number: activity.pr_number,
+    title: activity.title,
+    state: activity.state === 'merged' ? 'closed' : (activity.state as 'open' | 'closed'),
+    created_at: activity.created_at,
+    updated_at: activity.created_at,
+    merged_at: activity.state === 'merged' ? activity.created_at : null,
+    closed_at: activity.state === 'closed' ? activity.created_at : null,
+    additions: 0, // Not available in activity data
+    deletions: 0, // Not available in activity data
+    repository_owner: owner,
+    repository_name: name,
+    user: {
+      id: 0,
+      login: '',
+      avatar_url: '',
+    },
+  };
+}
+
+/**
+ * Map ContributorActivity to RecentIssue format for AI summaries
+ */
+function mapActivityToIssue(activity: ContributorActivity): RecentIssue | null {
+  if (activity.type !== 'issue' || !activity.issue_number || !activity.repository_full_name) {
+    return null;
+  }
+
+  const [owner = '', name = ''] = activity.repository_full_name.split('/');
+
+  return {
+    id: activity.id,
+    number: activity.issue_number,
+    title: activity.title,
+    state: activity.state as 'open' | 'closed',
+    created_at: activity.created_at,
+    updated_at: activity.created_at,
+    closed_at: activity.state === 'closed' ? activity.created_at : undefined,
+    repository_owner: owner,
+    repository_name: name,
+    comments_count: 0, // Not available in activity data
+    html_url: activity.url,
+  };
+}
+
+/**
+ * Map ContributorActivity to RecentActivity format for AI summaries
+ */
+function mapToRecentActivity(activity: ContributorActivity): RecentActivity {
+  return {
+    id: activity.id,
+    type: activity.type,
+    title: activity.title,
+    created_at: activity.created_at,
+    status: activity.state,
+    repository: activity.repository,
+    url: activity.url,
+  };
+}
+
 export function ContributorProfileModal({
   open,
   onOpenChange,
@@ -155,6 +230,92 @@ export function ContributorProfileModal({
     workspaceId,
     pageSize: 20,
   });
+
+  // Map activities to PR/issue structures for AI summary (memoized to prevent infinite loops)
+  const contributorSummaryData = useMemo(() => {
+    const username = contributor?.username;
+    const avatarUrl = contributor?.avatar_url;
+    const prCount = contributor?.contributions?.pull_requests;
+
+    // Always return username, even if no activities (hook will use fallback)
+    if (!username) {
+      return { login: '', avatar_url: '', pullRequests: 0, percentage: 0 };
+    }
+
+    // If no activities, return basic data with username (hook generates fallback)
+    if (!activities || activities.length === 0) {
+      return {
+        login: username,
+        avatar_url: avatarUrl || '',
+        pullRequests: prCount || 0,
+        percentage: 0,
+        recentPRs: [],
+        recentIssues: [],
+        recentActivities: [],
+      };
+    }
+
+    // Use single iteration with early termination for performance
+    const result = activities.reduce(
+      (acc, activity, index) => {
+        // Early termination - we only need max 10 of each type
+        if (acc.recentPRs.length >= 10 && acc.recentIssues.length >= 10 && index >= 10) {
+          return acc;
+        }
+
+        // Always add to recent activities (up to 10)
+        if (index < 10) {
+          acc.recentActivities.push(mapToRecentActivity(activity));
+        }
+
+        // Try to map to PR if we need more PRs
+        if (acc.recentPRs.length < 10) {
+          const pr = mapActivityToPullRequest(activity);
+          if (pr) {
+            acc.recentPRs.push(pr);
+          }
+        }
+
+        // Try to map to issue if we need more issues
+        if (acc.recentIssues.length < 10) {
+          const issue = mapActivityToIssue(activity);
+          if (issue) {
+            acc.recentIssues.push(issue);
+          }
+        }
+
+        return acc;
+      },
+      {
+        recentPRs: [] as PullRequest[],
+        recentIssues: [] as RecentIssue[],
+        recentActivities: [] as RecentActivity[],
+      }
+    );
+
+    return {
+      login: username,
+      avatar_url: avatarUrl || '',
+      pullRequests: prCount || 0,
+      percentage: 0,
+      recentPRs: result.recentPRs,
+      recentIssues: result.recentIssues,
+      recentActivities: result.recentActivities,
+    };
+  }, [
+    contributor?.username,
+    contributor?.avatar_url,
+    contributor?.contributions?.pull_requests,
+    activities,
+  ]);
+
+  // Generate AI summary with properly structured data
+  const {
+    summary,
+    loading: summaryLoading,
+    requiresAuth,
+  } = useContributorSummary(contributorSummaryData);
+  const { login: handleAuthLogin } = useGitHubAuth();
 
   if (!contributor) return null;
 
@@ -320,6 +481,36 @@ export function ContributorProfileModal({
                 <CardDescription>
                   Total contributions: {humanizeNumber(contributor.stats.total_contributions)}
                 </CardDescription>
+
+                {/* AI-Generated Activity Summary */}
+                {(summary || summaryLoading || requiresAuth) && (
+                  <div className="mt-3 pt-3 border-t border-border/50">
+                    {summaryLoading && (
+                      <div className="space-y-2">
+                        <div className="h-3 w-full bg-muted animate-pulse rounded" />
+                        <div className="h-3 w-4/5 bg-muted animate-pulse rounded" />
+                      </div>
+                    )}
+                    {summary && !summaryLoading && !requiresAuth && (
+                      <p className="text-sm text-muted-foreground italic leading-relaxed">
+                        {summary}
+                      </p>
+                    )}
+                    {requiresAuth && !summaryLoading && (
+                      <div className="flex items-center justify-between gap-3 p-3 bg-muted/50 rounded-lg">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">AI-powered insights available</p>
+                          <p className="text-xs text-muted-foreground">
+                            Login to see contributor summaries
+                          </p>
+                        </div>
+                        <Button onClick={handleAuthLogin} size="sm" variant="default">
+                          Login
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

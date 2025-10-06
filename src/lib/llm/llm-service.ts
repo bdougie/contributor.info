@@ -10,6 +10,10 @@ import { cacheService } from './cache-service';
 
 // Re-export types from posthog-openai-service
 import type { HealthData, RecommendationData, PRData } from './posthog-openai-service';
+import type {
+  ContributorActivityData,
+  ContributorSummaryMetadata,
+} from './contributor-summary-types';
 
 export interface LLMServiceOptions {
   enableCaching: boolean;
@@ -35,9 +39,11 @@ class LLMService {
    * Check if any LLM service is available
    */
   isAvailable(): boolean {
-    return this.options.enablePostHogTracking
-      ? posthogOpenAIService.isAvailable()
-      : openAIService.isAvailable();
+    // Try PostHog first if enabled, but fall back to regular OpenAI if PostHog unavailable
+    const posthogAvailable =
+      this.options.enablePostHogTracking && posthogOpenAIService.isAvailable();
+    const openAIAvailable = openAIService.isAvailable();
+    return posthogAvailable || openAIAvailable;
   }
 
   /**
@@ -200,6 +206,296 @@ class LLMService {
   }
 
   /**
+   * Generate contributor activity summary for hover cards
+   * Uses gpt-4o-mini model with 200 token limit for cost efficiency
+   */
+  async generateContributorSummary(
+    activityData: ContributorActivityData,
+    contributorInfo: ContributorSummaryMetadata,
+    metadata?: LLMCallMetadata
+  ): Promise<LLMInsight | null> {
+    const cacheKey = this.buildContributorCacheKey(contributorInfo.login, activityData);
+    const dataHash = this.generateDataHash(activityData);
+
+    // Check cache first (6 hour TTL for contributor summaries)
+    if (this.options.enableCaching) {
+      const cached = cacheService.get(cacheKey, dataHash);
+      if (cached) {
+        return cached;
+      }
+    }
+
+    // Try generating summary with PostHog tracking, fall back to direct OpenAI if PostHog unavailable
+    try {
+      let insight: LLMInsight | null = null;
+
+      if (this.options.enablePostHogTracking && posthogOpenAIService.isAvailable()) {
+        insight = await this.generateContributorSummaryWithTracking(
+          activityData,
+          contributorInfo,
+          metadata
+        );
+      }
+
+      // If PostHog failed or unavailable, try direct OpenAI
+      if (!insight && openAIService.isAvailable()) {
+        console.log('[LLM Service] PostHog unavailable, using direct OpenAI');
+        insight = await this.generateContributorSummaryDirect(activityData, contributorInfo);
+      }
+
+      if (insight && this.options.enableCaching) {
+        // Cache for 24 hours (1440 minutes) - contributor activity is relatively stable
+        cacheService.set(cacheKey, insight, dataHash, 1440);
+      }
+
+      // If LLM unavailable, use fallback or return null (hover card will hide summary)
+      if (!insight && this.options.enableFallbacks) {
+        return this.generateFallbackContributorSummary(activityData);
+      }
+
+      return insight;
+    } catch (error) {
+      console.error('LLM contributor summary failed:', error);
+
+      if (this.options.enableFallbacks) {
+        return this.generateFallbackContributorSummary(activityData);
+      }
+
+      return null;
+    }
+  }
+
+  /**
+   * Generate contributor summary using PostHog-tracked service
+   */
+  private async generateContributorSummaryWithTracking(
+    activityData: ContributorActivityData,
+    contributorInfo: ContributorSummaryMetadata,
+    metadata?: LLMCallMetadata
+  ): Promise<LLMInsight | null> {
+    const prompt = this.buildContributorSummaryPrompt(activityData, contributorInfo);
+
+    // Use gpt-4o-mini for simple summaries (cost-effective, 200 token limit)
+    const model = 'gpt-4o-mini';
+
+    try {
+      // Note: PostHog service uses maxTokens from config (500), but prompt enforces 30 word limit
+      const result = await posthogOpenAIService.callOpenAI(prompt, model, {
+        feature: 'contributor-summary',
+        userId: metadata?.userId,
+        traceId: metadata?.traceId,
+        ...metadata,
+      });
+
+      return {
+        type: 'contributor_summary',
+        content: result.content,
+        confidence: 0.8, // Good confidence for AI-generated summaries
+        timestamp: new Date(),
+      };
+    } catch (error) {
+      console.error('PostHog-tracked summary generation failed:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Generate contributor summary directly (fallback when PostHog unavailable)
+   */
+  private async generateContributorSummaryDirect(
+    activityData: ContributorActivityData,
+    contributorInfo: ContributorSummaryMetadata
+  ): Promise<LLMInsight | null> {
+    if (!openAIService.isAvailable()) {
+      return null;
+    }
+
+    const prompt = this.buildContributorSummaryPrompt(activityData, contributorInfo);
+
+    try {
+      // Call OpenAI directly with low token count
+      const response = await openAIService.callOpenAI(prompt, 'gpt-4o-mini');
+
+      return {
+        type: 'contributor_summary',
+        content: response,
+        confidence: 0.8,
+        timestamp: new Date(),
+      };
+    } catch (error) {
+      console.error('Direct summary generation failed:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Build prompt for contributor summary (1-2 sentences, persona-focused)
+   */
+  private buildContributorSummaryPrompt(
+    data: ContributorActivityData,
+    contributor: ContributorSummaryMetadata
+  ): string {
+    // Get actual PR and issue titles for context with null safety
+    const recentPRTitles = (data.recentPRs || [])
+      .slice(0, 5)
+      .map((pr) => pr?.title)
+      .filter((title): title is string => Boolean(title));
+
+    const recentIssueTitles = (data.recentIssues || [])
+      .slice(0, 5)
+      .map((issue) => issue?.title)
+      .filter((title): title is string => Boolean(title));
+
+    const prSummary = this.summarizePRActivity(data.recentPRs || []);
+    const issueSummary = this.summarizeIssueActivity(data.recentIssues || []);
+
+    // Calculate age of most recent activity to determine if contributions are old
+    let ageContext = '';
+    const allDates = [
+      ...(data.recentPRs || [])
+        .map((pr) => pr.created_at)
+        .filter((date): date is string => Boolean(date))
+        .map((date) => new Date(date)),
+      ...(data.recentIssues || [])
+        .map((issue) => issue.created_at)
+        .filter((date): date is string => Boolean(date))
+        .map((date) => new Date(date)),
+    ].filter((date) => !isNaN(date.getTime()));
+
+    if (allDates.length > 0) {
+      const mostRecent = new Date(Math.max(...allDates.map((d) => d.getTime())));
+      const daysAgo = Math.floor((Date.now() - mostRecent.getTime()) / (1000 * 60 * 60 * 24));
+
+      if (daysAgo > 30) {
+        const monthsAgo = Math.floor(daysAgo / 30);
+        ageContext = `\n\nIMPORTANT: Most recent activity was ${monthsAgo} month${monthsAgo > 1 ? 's' : ''} ago. Mention this timeframe in the summary (e.g., "in recent months" or "${monthsAgo} months ago").`;
+      } else if (daysAgo > 14) {
+        ageContext = `\n\nIMPORTANT: Most recent activity was ${daysAgo} days ago. Mention this timeframe (e.g., "in recent weeks").`;
+      }
+    }
+
+    return `Generate a specific, actionable 1-2 sentence summary for GitHub contributor ${contributor.login} based on their recent work:
+
+Recent Pull Requests ${prSummary}:
+${recentPRTitles.length > 0 ? recentPRTitles.map((title) => `- ${title}`).join('\n') : 'None'}
+
+Recent Issues ${issueSummary}:
+${recentIssueTitles.length > 0 ? recentIssueTitles.map((title) => `- ${title}`).join('\n') : 'None'}${ageContext}
+
+Create a summary that:
+1. MUST start with "${contributor.login} recently..." (use exact username)
+2. Identifies SPECIFIC areas they worked on (e.g., "authentication flow", "API endpoints", "UI components")
+3. Describes the TYPE of work (features, fixes, refactoring, docs, testing)
+4. Mentions impact or patterns (e.g., "improving performance", "adding new features", "fixing critical bugs")
+
+Requirements:
+- Maximum 30 words
+- MUST start with "${contributor.login} recently..."
+- Be SPECIFIC - avoid generic phrases like "general contributions" or "various features"
+- Use technical details from the PR/issue titles
+- Third-person, professional tone
+
+Good: "${contributor.login} recently implemented new authentication flow and API rate limiting, fixing critical bugs in payment processing."
+Bad: "Made general contributions to the codebase with various improvements."`;
+  }
+
+  /**
+   * Extract focus areas from contributor activity
+   */
+  private extractFocusAreas(data: ContributorActivityData): string {
+    if (data.primaryFocus) {
+      return data.primaryFocus;
+    }
+
+    // Infer from PR titles
+    const titles = data.recentPRs.map((pr) => pr.title.toLowerCase()).join(' ');
+
+    if (titles.includes('auth') || titles.includes('login') || titles.includes('security')) {
+      return 'authentication/security';
+    }
+    if (titles.includes('ui') || titles.includes('component') || titles.includes('style')) {
+      return 'frontend/UI';
+    }
+    if (titles.includes('api') || titles.includes('endpoint') || titles.includes('backend')) {
+      return 'backend/API';
+    }
+    if (titles.includes('test') || titles.includes('spec')) {
+      return 'testing/quality';
+    }
+    if (titles.includes('doc') || titles.includes('readme')) {
+      return 'documentation';
+    }
+
+    return 'general development';
+  }
+
+  /**
+   * Summarize PR activity in concise format
+   */
+  private summarizePRActivity(prs: ContributorActivityData['recentPRs']): string {
+    if (prs.length === 0) return 'none';
+
+    const merged = prs.filter((pr) => pr.merged_at).length;
+    const open = prs.filter((pr) => pr.state === 'open' && !pr.merged_at).length;
+
+    if (merged > 0 && open > 0) {
+      return `(${merged} merged, ${open} open)`;
+    } else if (merged > 0) {
+      return `(${merged} merged)`;
+    } else if (open > 0) {
+      return `(${open} open)`;
+    }
+
+    return '';
+  }
+
+  /**
+   * Summarize issue activity in concise format
+   */
+  private summarizeIssueActivity(issues: ContributorActivityData['recentIssues']): string {
+    if (issues.length === 0) return 'none';
+
+    const open = issues.filter((issue) => issue.state === 'open').length;
+    const closed = issues.filter((issue) => issue.state === 'closed').length;
+
+    if (open > 0 && closed > 0) {
+      return `(${open} open, ${closed} closed)`;
+    } else if (open > 0) {
+      return `(${open} open)`;
+    } else if (closed > 0) {
+      return `(${closed} closed)`;
+    }
+
+    return '';
+  }
+
+  /**
+   * Build cache key for contributor summaries
+   */
+  private buildContributorCacheKey(login: string, activityData: ContributorActivityData): string {
+    const dataHash = this.generateDataHash(activityData);
+    return `contributor_summary:${login}:${dataHash}`;
+  }
+
+  /**
+   * Generate fallback summary when LLM fails
+   */
+  private generateFallbackContributorSummary(data: ContributorActivityData): LLMInsight {
+    const merged = data.recentPRs.filter((pr) => pr.merged_at).length;
+    const contributionType = merged > 3 ? 'Active contributor' : 'Contributor';
+    const focus = data.primaryFocus || this.extractFocusAreas(data);
+
+    const content = `${contributionType} focusing on ${focus}. ${merged} merged PRs recently.`;
+
+    return {
+      type: 'contributor_summary',
+      content,
+      confidence: 0.5, // Lower confidence for fallback
+      timestamp: new Date(),
+    };
+  }
+
+  /**
    * Clear all cached insights
    */
   clearCache(): void {
@@ -241,7 +537,9 @@ class LLMService {
   /**
    * Generate hash from data for cache invalidation
    */
-  private generateDataHash(data: HealthData | RecommendationData | PRData[]): string {
+  private generateDataHash(
+    data: HealthData | RecommendationData | PRData[] | ContributorActivityData
+  ): string {
     // Simple hash function for data changes detection
     const dataString = JSON.stringify(data);
     let hash = 0;

@@ -142,13 +142,26 @@ describe('LLM Service', () => {
       expect(mockPostHogOpenAIService.isAvailable).toHaveBeenCalledOnce();
     });
 
-    it('should return false when PostHog OpenAI service is unavailable', () => {
+    it('should return false when both PostHog and OpenAI services are unavailable', () => {
       mockPostHogOpenAIService.isAvailable.mockReturnValue(false);
+      mockOpenAIService.isAvailable.mockReturnValue(false);
 
       const isAvailable = llmService.isAvailable();
 
       expect(isAvailable).toBe(false);
       expect(mockPostHogOpenAIService.isAvailable).toHaveBeenCalledOnce();
+      expect(mockOpenAIService.isAvailable).toHaveBeenCalledOnce();
+    });
+
+    it('should return true when PostHog is unavailable but OpenAI is available', () => {
+      mockPostHogOpenAIService.isAvailable.mockReturnValue(false);
+      mockOpenAIService.isAvailable.mockReturnValue(true);
+
+      const isAvailable = llmService.isAvailable();
+
+      expect(isAvailable).toBe(true);
+      expect(mockPostHogOpenAIService.isAvailable).toHaveBeenCalledOnce();
+      expect(mockOpenAIService.isAvailable).toHaveBeenCalledOnce();
     });
   });
 
