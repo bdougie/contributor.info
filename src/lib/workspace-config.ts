@@ -8,13 +8,15 @@ export const WORKSPACE_TIMEOUTS = {
   AUTH: 2000,
 
   // UI feedback timeout - when to show "taking longer than usual" message
-  UI_FEEDBACK: 3000,
+  UI_FEEDBACK: 2000,
 
   // Context loading timeout - max time for workspace context to load
-  CONTEXT: 5000,
+  // Reduced from 5000ms to 3000ms after Phase 1 optimization (batched queries + materialized view)
+  CONTEXT: 3000,
 
   // Hook timeout - max time for workspace hooks to complete
-  HOOK: 10000,
+  // Reduced from 10000ms to 5000ms after query optimization
+  HOOK: 5000,
 
   // Retry delay after failure
   RETRY_DELAY: 1000,
