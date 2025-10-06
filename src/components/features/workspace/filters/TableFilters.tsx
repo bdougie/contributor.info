@@ -43,30 +43,30 @@ export function PRFilters({
   };
 
   return (
-    <div className="flex flex-wrap gap-4 mb-4">
+    <div className="flex flex-wrap gap-3 sm:gap-4 mb-4">
       {(Object.keys(prStateLabels) as PRState[]).map((state) => (
-        <div key={state} className="flex items-center space-x-2">
+        <div key={state} className="flex items-center space-x-2 min-w-fit">
           <Switch
             id={`filter-pr-${state}`}
             checked={selectedStates.includes(state)}
             onCheckedChange={() => onToggleState(state)}
             aria-label={`Filter pull requests by ${prStateLabels[state]} state`}
           />
-          <Label htmlFor={`filter-pr-${state}`} className="text-sm">
+          <Label htmlFor={`filter-pr-${state}`} className="text-sm whitespace-nowrap">
             {prStateLabels[state]}
           </Label>
         </div>
       ))}
 
       {hasBots && (
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 min-w-fit">
           <Switch
             id="filter-pr-bots"
             checked={includeBots}
             onCheckedChange={onIncludeBotsChange}
             aria-label="Show or hide pull requests from bots"
           />
-          <Label htmlFor="filter-pr-bots" className="text-sm">
+          <Label htmlFor="filter-pr-bots" className="text-sm whitespace-nowrap">
             Show Bots
           </Label>
         </div>
@@ -77,7 +77,7 @@ export function PRFilters({
           variant="ghost"
           size="sm"
           onClick={onReset}
-          className="ml-auto"
+          className="sm:ml-auto"
           aria-label="Reset all pull request filters to default"
         >
           Reset Filters
@@ -103,22 +103,22 @@ export function IssueFilters({
   };
 
   return (
-    <div className="flex flex-wrap gap-4 mb-4">
+    <div className="flex flex-wrap gap-3 sm:gap-4 mb-4">
       {(Object.keys(issueStateLabels) as IssueState[]).map((state) => (
-        <div key={state} className="flex items-center space-x-2">
+        <div key={state} className="flex items-center space-x-2 min-w-fit">
           <Switch
             id={`filter-issue-${state}`}
             checked={selectedStates.includes(state)}
             onCheckedChange={() => onToggleState(state)}
             aria-label={`Filter issues by ${issueStateLabels[state]} state`}
           />
-          <Label htmlFor={`filter-issue-${state}`} className="text-sm">
+          <Label htmlFor={`filter-issue-${state}`} className="text-sm whitespace-nowrap">
             {issueStateLabels[state]}
           </Label>
         </div>
       ))}
 
-      <div className="flex items-center space-x-2">
+      <div className="flex items-center space-x-2 min-w-fit">
         <Switch
           id="filter-issue-assigned"
           checked={assignmentFilter === 'assigned'}
@@ -131,12 +131,12 @@ export function IssueFilters({
           }}
           aria-label="Show only assigned issues"
         />
-        <Label htmlFor="filter-issue-assigned" className="text-sm">
+        <Label htmlFor="filter-issue-assigned" className="text-sm whitespace-nowrap">
           Assigned
         </Label>
       </div>
 
-      <div className="flex items-center space-x-2">
+      <div className="flex items-center space-x-2 min-w-fit">
         <Switch
           id="filter-issue-unassigned"
           checked={assignmentFilter === 'unassigned'}
@@ -149,20 +149,20 @@ export function IssueFilters({
           }}
           aria-label="Show only unassigned issues"
         />
-        <Label htmlFor="filter-issue-unassigned" className="text-sm">
+        <Label htmlFor="filter-issue-unassigned" className="text-sm whitespace-nowrap">
           Unassigned
         </Label>
       </div>
 
       {hasBots && (
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 min-w-fit">
           <Switch
             id="filter-issue-bots"
             checked={includeBots}
             onCheckedChange={onIncludeBotsChange}
             aria-label="Show or hide issues from bots"
           />
-          <Label htmlFor="filter-issue-bots" className="text-sm">
+          <Label htmlFor="filter-issue-bots" className="text-sm whitespace-nowrap">
             Show Bots
           </Label>
         </div>
@@ -173,7 +173,7 @@ export function IssueFilters({
           variant="ghost"
           size="sm"
           onClick={onReset}
-          className="ml-auto"
+          className="sm:ml-auto"
           aria-label="Reset all issue filters to default"
         >
           Reset Filters

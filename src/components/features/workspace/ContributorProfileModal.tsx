@@ -390,14 +390,14 @@ export function ContributorProfileModal({
                   </div>
                 </div>
               </div>
-              <div className="flex flex-wrap gap-2 md:flex-nowrap">
+              <div className="flex flex-wrap gap-2">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() =>
                     window.open(`https://github.com/${contributor.username}`, '_blank')
                   }
-                  className="flex-1 md:flex-none"
+                  className="flex-1 min-w-[120px] sm:flex-none"
                 >
                   GitHub Profile
                 </Button>
@@ -411,7 +411,7 @@ export function ContributorProfileModal({
                         window.open(sanitized, '_blank');
                       }
                     }}
-                    className="flex-1 md:flex-none"
+                    className="flex-1 min-w-[120px] sm:flex-none"
                   >
                     LinkedIn
                   </Button>
@@ -434,7 +434,7 @@ export function ContributorProfileModal({
                         }
                       }
                     }}
-                    className="flex-1 md:flex-none"
+                    className="flex-1 min-w-[120px] sm:flex-none"
                   >
                     Discord
                   </Button>
@@ -1035,7 +1035,7 @@ function SocialLinksCard({
               </div>
             )}
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {!isEditing && (
               <>
                 <Button
@@ -1048,28 +1048,38 @@ function SocialLinksCard({
                       ? 'Sign in to fetch social links'
                       : 'Fetch social links from GitHub profile'
                   }
+                  className="flex-1 min-w-[140px] sm:flex-none"
                 >
                   {(() => {
                     if (isFetching) {
                       return (
                         <>
                           <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                          Fetching...
+                          <span className="hidden sm:inline">Fetching...</span>
                         </>
                       );
                     }
                     if (!isLoggedIn) {
-                      return <>🔐 Sign in to Fetch</>;
+                      return (
+                        <>
+                          🔐 <span className="hidden sm:inline">Sign in to Fetch</span>
+                        </>
+                      );
                     }
                     return (
                       <>
                         <RefreshCw className="h-4 w-4 mr-1" />
-                        Fetch from GitHub
+                        <span className="hidden sm:inline">Fetch from GitHub</span>
                       </>
                     );
                   })()}
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEditing(true)}
+                  className="flex-1 min-w-[80px] sm:flex-none"
+                >
                   <Settings className="h-4 w-4 mr-1" />
                   Edit
                 </Button>
@@ -1077,11 +1087,21 @@ function SocialLinksCard({
             )}
             {isEditing && (
               <>
-                <Button variant="outline" size="sm" onClick={handleCancel}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCancel}
+                  className="flex-1 min-w-[80px] sm:flex-none"
+                >
                   <X className="h-4 w-4 mr-1" />
                   Cancel
                 </Button>
-                <Button variant="default" size="sm" onClick={handleSave}>
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={handleSave}
+                  className="flex-1 min-w-[80px] sm:flex-none"
+                >
                   <Check className="h-4 w-4 mr-1" />
                   Save
                 </Button>

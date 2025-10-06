@@ -246,7 +246,8 @@ export function AuthButton() {
     return (
       <Button variant="outline" onClick={handleLogin}>
         <GithubIcon className="mr-2 h-4 w-4" />
-        Login with GitHub
+        <span className="hidden sm:inline">Login with GitHub</span>
+        <span className="sm:hidden">Login</span>
       </Button>
     );
   }
