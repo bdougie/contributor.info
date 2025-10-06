@@ -30,6 +30,12 @@ type RepositoryWithWorkspace = {
   };
 };
 
+type WorkspacePreviewStats = {
+  workspace_id: string;
+  repository_count: number;
+  member_count: number;
+};
+
 export interface UseUserWorkspacesReturn {
   workspaces: WorkspacePreviewData[];
   loading: boolean;
@@ -230,12 +236,17 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
       const { data: workspaceStats } = await supabase
         .from('workspace_preview_stats')
         .select('workspace_id, repository_count, member_count')
-        .in('workspace_id', workspaceIdsArray);
+        .in('workspace_id', workspaceIdsArray)
+        .returns<WorkspacePreviewStats[]>();
 
       // Create lookup map for O(1) access
       const statsMap = new Map(workspaceStats?.map((stat) => [stat.workspace_id, stat]) || []);
 
       // 2. Fetch ALL repositories for ALL workspaces in one query
+      // Dynamic limit: 10 repos per workspace (we only show 3, but fetch 10 for sorting flexibility)
+      // Capped at 100 to prevent excessive memory usage
+      const repoLimit = Math.min(workspaceIdsArray.length * 10, 100);
+
       const { data: allRepositories, error: reposError } = await supabase
         .from('workspace_repositories')
         .select(
@@ -258,7 +269,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
         )
         .in('workspace_id', workspaceIdsArray)
         .order('is_pinned', { ascending: false })
-        .limit(100) // Fetch enough for all workspaces
+        .limit(repoLimit)
         .returns<RepositoryWithWorkspace[]>();
 
       if (reposError) {
