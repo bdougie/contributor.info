@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { EmptyState } from './empty-state';
-import { FileText, Users, Folder } from './icon';
+import { FileText, Users, File } from './icon';
 
 const meta = {
   title: 'UI/EmptyState',
@@ -56,7 +56,7 @@ export const WithExternalLink: Story = {
 
 export const NoContent: Story = {
   args: {
-    icon: <Folder className="h-8 w-8" />,
-    title: 'Empty folder',
+    icon: <File className="h-8 w-8" />,
+    title: 'No files found',
   },
 };
