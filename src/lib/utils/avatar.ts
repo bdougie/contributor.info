@@ -6,22 +6,19 @@ import { DEFAULT_AVATAR_DATA_URL } from './default-avatar-data';
 
 /**
  * Get a properly formatted avatar URL with fallback support
- * @param username - GitHub username or identifier
- * @param originalUrl - Optional original avatar URL
+ * @param username - GitHub username or identifier (not used, kept for compatibility)
+ * @param originalUrl - Optional cached avatar URL from Supabase
  * @returns Formatted avatar URL with fallback
  */
 export function getAvatarUrl(username?: string, originalUrl?: string): string {
-  // If we have a valid original URL, use it
+  // If we have a cached URL, use it
   if (originalUrl) {
     try {
       const url = new URL(originalUrl);
-      // Return GitHub avatar URLs as-is since they're already optimized
-      const allowedGitHubAvatarHosts = ['avatars.githubusercontent.com'];
-      if (allowedGitHubAvatarHosts.includes(url.hostname)) {
+      // Return any valid HTTPS URL (including Supabase storage URLs)
+      if (url.protocol === 'https:') {
         return originalUrl;
       }
-      // For non-GitHub URLs, return as-is
-      return originalUrl;
     } catch {
       // Invalid URL, treat as relative path
       if (originalUrl && !originalUrl.startsWith('http')) {
@@ -30,12 +27,8 @@ export function getAvatarUrl(username?: string, originalUrl?: string): string {
     }
   }
 
-  // If we have a username but no URL, try to construct GitHub avatar URL
-  if (username) {
-    return `https://avatars.githubusercontent.com/u/${username}`;
-  }
-
-  // Return local fallback avatar
+  // Return local fallback avatar (do not construct GitHub URLs)
+  // All avatars should come from Supabase cache
   return getFallbackAvatar();
 }
 
@@ -49,18 +42,23 @@ export function getFallbackAvatar(): string {
 
 /**
  * Get organization avatar URL with fallback
- * @param orgName - Organization name
+ * @param orgName - Organization name (not used, kept for compatibility)
+ * @param cachedUrl - Optional cached URL from Supabase
  * @returns Organization avatar URL with fallback
  */
-export function getOrgAvatarUrl(orgName?: string): string {
+export function getOrgAvatarUrl(orgName?: string, cachedUrl?: string): string {
   if (!orgName) {
     return getFallbackAvatar();
   }
 
-  // GitHub organizations don't have .png endpoints
-  // Use avatars.githubusercontent.com instead
-  // This will redirect to the correct avatar
-  return `https://avatars.githubusercontent.com/${orgName}`;
+  // Prefer cached URL from Supabase if available
+  if (cachedUrl) {
+    return cachedUrl;
+  }
+
+  // Return fallback avatar (do not construct GitHub URLs)
+  // Organization avatars should be fetched from Supabase or use default
+  return getFallbackAvatar();
 }
 
 /**
