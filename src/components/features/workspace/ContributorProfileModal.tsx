@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/lib/supabase';
 import { useContributorSummary } from '@/hooks/use-contributor-summary';
+import { useGitHubAuth } from '@/hooks/use-github-auth';
 import type { PullRequest, RecentIssue, RecentActivity } from '@/lib/types';
 import type { ContributorActivity } from '@/hooks/useContributorActivity';
 import {
@@ -309,7 +310,12 @@ export function ContributorProfileModal({
   ]);
 
   // Generate AI summary with properly structured data
-  const { summary, loading: summaryLoading } = useContributorSummary(contributorSummaryData);
+  const {
+    summary,
+    loading: summaryLoading,
+    requiresAuth,
+  } = useContributorSummary(contributorSummaryData);
+  const { login: handleAuthLogin } = useGitHubAuth();
 
   if (!contributor) return null;
 
@@ -477,7 +483,7 @@ export function ContributorProfileModal({
                 </CardDescription>
 
                 {/* AI-Generated Activity Summary */}
-                {(summary || summaryLoading) && (
+                {(summary || summaryLoading || requiresAuth) && (
                   <div className="mt-3 pt-3 border-t border-border/50">
                     {summaryLoading && (
                       <div className="space-y-2">
@@ -485,10 +491,23 @@ export function ContributorProfileModal({
                         <div className="h-3 w-4/5 bg-muted animate-pulse rounded" />
                       </div>
                     )}
-                    {summary && !summaryLoading && (
+                    {summary && !summaryLoading && !requiresAuth && (
                       <p className="text-sm text-muted-foreground italic leading-relaxed">
                         {summary}
                       </p>
+                    )}
+                    {requiresAuth && !summaryLoading && (
+                      <div className="flex items-center justify-between gap-3 p-3 bg-muted/50 rounded-lg">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">AI-powered insights available</p>
+                          <p className="text-xs text-muted-foreground">
+                            Login to see contributor summaries
+                          </p>
+                        </div>
+                        <Button onClick={handleAuthLogin} size="sm" variant="default">
+                          Login
+                        </Button>
+                      </div>
                     )}
                   </div>
                 )}

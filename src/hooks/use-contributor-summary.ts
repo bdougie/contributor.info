@@ -8,6 +8,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { llmService } from '@/lib/llm/llm-service';
 import type { ContributorStats } from '@/lib/types';
 import type { ContributorActivityData } from '@/lib/llm/contributor-summary-types';
+import { useGitHubAuth } from '@/hooks/use-github-auth';
 
 interface UseContributorSummaryResult {
   /** AI-generated summary text (1-2 sentences) */
@@ -21,6 +22,9 @@ interface UseContributorSummaryResult {
 
   /** Confidence score of the summary (0-1) */
   confidence: number | null;
+
+  /** Whether authentication is required to access summaries */
+  requiresAuth: boolean;
 }
 
 /**
@@ -48,6 +52,7 @@ export function useContributorSummary(
   contributor: ContributorStats,
   enabled = true
 ): UseContributorSummaryResult {
+  const { isLoggedIn, loading: authLoading } = useGitHubAuth();
   const [summary, setSummary] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -84,12 +89,20 @@ export function useContributorSummary(
       hasContributor: !!contributor,
       login: contributor?.login,
       llmAvailable: llmService.isAvailable(),
+      isLoggedIn,
       requestId: currentRequestId,
     });
 
     // Skip if disabled or no contributor data
     if (!enabled || !contributor || !contributor.login) {
       console.log('[AI Summary Hook] Early return - disabled or no contributor');
+      setLoading(false);
+      return;
+    }
+
+    // Skip if not authenticated - require login for AI summaries (PLG motion + cost control)
+    if (!isLoggedIn) {
+      console.log('[AI Summary Hook] Early return - authentication required');
       setLoading(false);
       return;
     }
@@ -208,12 +221,13 @@ export function useContributorSummary(
     };
     // Note: activityKey is memoized from contributor, so contributor changes trigger this effect
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activityKey, enabled]);
+  }, [activityKey, enabled, isLoggedIn]);
 
   return {
     summary,
-    loading,
+    loading: loading || authLoading,
     error,
     confidence,
+    requiresAuth: !isLoggedIn,
   };
 }

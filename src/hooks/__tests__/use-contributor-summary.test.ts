@@ -7,6 +7,7 @@ import { renderHook } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useContributorSummary } from '../use-contributor-summary';
 import { llmService } from '@/lib/llm/llm-service';
+import { useGitHubAuth } from '@/hooks/use-github-auth';
 import type { ContributorStats } from '@/lib/types';
 
 // Mock LLM service
@@ -15,6 +16,11 @@ vi.mock('@/lib/llm/llm-service', () => ({
     isAvailable: vi.fn(),
     generateContributorSummary: vi.fn(),
   },
+}));
+
+// Mock GitHub auth hook
+vi.mock('@/hooks/use-github-auth', () => ({
+  useGitHubAuth: vi.fn(),
 }));
 
 describe('useContributorSummary', () => {
@@ -45,6 +51,17 @@ describe('useContributorSummary', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+
+    // Default: user is logged in
+    vi.mocked(useGitHubAuth).mockReturnValue({
+      isLoggedIn: true,
+      loading: false,
+      login: vi.fn(),
+      logout: vi.fn(),
+      checkSession: vi.fn(),
+      showLoginDialog: false,
+      setShowLoginDialog: vi.fn(),
+    });
   });
 
   it('should return initial loading state when enabled', () => {
@@ -262,5 +279,68 @@ describe('useContributorSummary', () => {
 
     // Should not trigger another API call due to memoized activity key
     expect(llmService.generateContributorSummary).toHaveBeenCalledTimes(1);
+  });
+
+  // Authentication requirement tests
+  it('should not load summary when user is not logged in', () => {
+    vi.mocked(llmService.isAvailable).mockReturnValue(true);
+    vi.mocked(useGitHubAuth).mockReturnValue({
+      isLoggedIn: false,
+      loading: false,
+      login: vi.fn(),
+      logout: vi.fn(),
+      checkSession: vi.fn(),
+      showLoginDialog: false,
+      setShowLoginDialog: vi.fn(),
+    });
+
+    const { result } = renderHook(() => useContributorSummary(mockContributor));
+
+    expect(result.current.loading).toBe(false);
+    expect(result.current.summary).toBe(null);
+    expect(result.current.requiresAuth).toBe(true);
+    expect(llmService.generateContributorSummary).not.toHaveBeenCalled();
+  });
+
+  it('should indicate authentication is required when not logged in', () => {
+    vi.mocked(llmService.isAvailable).mockReturnValue(true);
+    vi.mocked(useGitHubAuth).mockReturnValue({
+      isLoggedIn: false,
+      loading: false,
+      login: vi.fn(),
+      logout: vi.fn(),
+      checkSession: vi.fn(),
+      showLoginDialog: false,
+      setShowLoginDialog: vi.fn(),
+    });
+
+    const { result } = renderHook(() => useContributorSummary(mockContributor));
+
+    expect(result.current.requiresAuth).toBe(true);
+  });
+
+  it('should indicate authentication is not required when logged in', () => {
+    vi.mocked(llmService.isAvailable).mockReturnValue(true);
+
+    const { result } = renderHook(() => useContributorSummary(mockContributor));
+
+    expect(result.current.requiresAuth).toBe(false);
+  });
+
+  it('should include auth loading in overall loading state', () => {
+    vi.mocked(llmService.isAvailable).mockReturnValue(true);
+    vi.mocked(useGitHubAuth).mockReturnValue({
+      isLoggedIn: true,
+      loading: true, // Auth is still loading
+      login: vi.fn(),
+      logout: vi.fn(),
+      checkSession: vi.fn(),
+      showLoginDialog: false,
+      setShowLoginDialog: vi.fn(),
+    });
+
+    const { result } = renderHook(() => useContributorSummary(mockContributor));
+
+    expect(result.current.loading).toBe(true); // Should include auth loading
   });
 });
