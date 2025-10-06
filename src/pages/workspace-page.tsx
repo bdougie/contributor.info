@@ -3625,6 +3625,8 @@ function WorkspacePage() {
                 }))}
                 selectedRepositories={selectedRepositories}
                 timeRange={timeRange}
+                userRole={currentMember?.role}
+                isLoggedIn={!!currentUser}
               />
             </div>
           </TabsContent>

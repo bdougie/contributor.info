@@ -108,6 +108,15 @@ export const UPGRADE_MESSAGES = {
     actionText: 'Login to view',
     actionType: 'login' as const,
   },
+
+  // Workspace Features - Discussions
+  WORKSPACE_DISCUSSIONS: {
+    title: 'Workspace Required',
+    description: 'Create your own workspace to view and manage GitHub Discussions.',
+    actionText: 'Create Workspace',
+    actionHref: '/workspaces/new',
+    actionType: 'upgrade' as const,
+  },
 } as const;
 
 /**

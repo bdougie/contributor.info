@@ -17,6 +17,8 @@ import {
   RefreshCw,
 } from '@/components/ui/icon';
 import { formatDistanceToNow } from 'date-fns';
+import { PermissionUpgradeCTA } from '@/components/ui/permission-upgrade-cta';
+import { UPGRADE_MESSAGES } from '@/lib/copy/upgrade-messages';
 
 export interface Discussion {
   id: string;
@@ -61,12 +63,16 @@ interface WorkspaceDiscussionsTableProps {
   selectedRepositories: string[];
   timeRange?: string;
   onRefresh?: () => void;
+  userRole?: string | null;
+  isLoggedIn?: boolean;
 }
 
 export function WorkspaceDiscussionsTable({
   repositories,
   selectedRepositories,
   onRefresh,
+  userRole,
+  isLoggedIn = false,
 }: WorkspaceDiscussionsTableProps) {
   const [discussions, setDiscussions] = useState<Discussion[]>([]);
   const [loading, setLoading] = useState(true);
@@ -176,8 +182,12 @@ export function WorkspaceDiscussionsTable({
   // Get unique categories
   const categories = Array.from(new Set(discussions.map((d) => d.category_name).filter(Boolean)));
 
+  // Check if user has workspace access (must be logged in and have a role)
+  const hasWorkspaceAccess = isLoggedIn && userRole;
+  const showUpgradePrompt = !hasWorkspaceAccess;
+
   return (
-    <Card>
+    <Card className="relative">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
@@ -419,6 +429,23 @@ export function WorkspaceDiscussionsTable({
           </div>
         )}
       </CardContent>
+
+      {/* Blur overlay with upgrade prompt for users without workspace access */}
+      {showUpgradePrompt && (
+        <div className="absolute inset-0 backdrop-blur-sm bg-background/50 rounded-lg flex items-center justify-center z-10">
+          <div className="max-w-md w-full mx-4">
+            <PermissionUpgradeCTA
+              message={
+                isLoggedIn
+                  ? UPGRADE_MESSAGES.WORKSPACE_DISCUSSIONS
+                  : UPGRADE_MESSAGES.LOGIN_REQUIRED
+              }
+              variant="card"
+              size="lg"
+            />
+          </div>
+        </div>
+      )}
     </Card>
   );
 }
