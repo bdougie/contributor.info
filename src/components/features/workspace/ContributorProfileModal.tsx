@@ -125,9 +125,11 @@ function getActivityColor(type: Activity['type'], state?: Activity['state']) {
  * Map ContributorActivity to PullRequest format for AI summaries
  */
 function mapActivityToPullRequest(activity: ContributorActivity): PullRequest | null {
-  if (activity.type !== 'pr' || !activity.pr_number) return null;
+  if (activity.type !== 'pr' || !activity.pr_number || !activity.repository_full_name) {
+    return null;
+  }
 
-  const [owner, name] = activity.repository_full_name?.split('/') || ['', ''];
+  const [owner = '', name = ''] = activity.repository_full_name.split('/');
 
   return {
     id: parseInt(activity.id) || 0,
@@ -154,9 +156,11 @@ function mapActivityToPullRequest(activity: ContributorActivity): PullRequest | 
  * Map ContributorActivity to RecentIssue format for AI summaries
  */
 function mapActivityToIssue(activity: ContributorActivity): RecentIssue | null {
-  if (activity.type !== 'issue' || !activity.issue_number) return null;
+  if (activity.type !== 'issue' || !activity.issue_number || !activity.repository_full_name) {
+    return null;
+  }
 
-  const [owner, name] = activity.repository_full_name?.split('/') || ['', ''];
+  const [owner = '', name = ''] = activity.repository_full_name.split('/');
 
   return {
     id: activity.id,
@@ -258,11 +262,12 @@ export function ContributorProfileModal({
       recentIssues,
       recentActivities,
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     contributor?.username,
     contributor?.avatar_url,
     contributor?.contributions?.pull_requests,
-    activities,
+    activities?.length, // Use length to prevent re-renders from array reference changes
   ]);
 
   // Generate AI summary with properly structured data

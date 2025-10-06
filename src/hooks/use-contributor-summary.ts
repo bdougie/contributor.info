@@ -81,8 +81,10 @@ export function useContributorSummary(
           contributionTypes: {
             prs: contributor.recentPRs?.length || 0,
             issues: contributor.recentIssues?.length || 0,
-            reviews: 0, // TODO: Add review count if available
-            comments: 0, // TODO: Add comment count if available
+            // Review/comment counts not currently available in ContributorStats type
+            // Would require adding these fields to contributor data aggregation
+            reviews: 0,
+            comments: 0,
           },
         };
 
