@@ -11,16 +11,11 @@ export function useNotifications(filters: NotificationFilters = {}) {
   const [user, setUser] = useState<User | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   // Fetch notifications
   const fetchNotifications = useCallback(async () => {
-    if (!user) {
-      setNotifications([]);
-      setUnreadCount(0);
-      setLoading(false);
-      return;
-    }
+    if (!user) return;
 
     setLoading(true);
     const data = await NotificationService.getNotifications(filters);
@@ -30,10 +25,7 @@ export function useNotifications(filters: NotificationFilters = {}) {
 
   // Fetch unread count
   const fetchUnreadCount = useCallback(async () => {
-    if (!user) {
-      setUnreadCount(0);
-      return;
-    }
+    if (!user) return;
 
     const count = await NotificationService.getUnreadCount();
     setUnreadCount(count);
