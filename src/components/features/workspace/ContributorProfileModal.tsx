@@ -1035,7 +1035,7 @@ function SocialLinksCard({
               </div>
             )}
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-row gap-2">
             {!isEditing && (
               <>
                 <Button
@@ -1048,61 +1048,37 @@ function SocialLinksCard({
                       ? 'Sign in to fetch social links'
                       : 'Fetch social links from GitHub profile'
                   }
-                  className="flex-1 min-w-[140px] sm:flex-none"
+                  className="h-8"
                 >
                   {(() => {
                     if (isFetching) {
-                      return (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                          <span className="hidden sm:inline">Fetching...</span>
-                        </>
-                      );
+                      return <Loader2 className="h-3.5 w-3.5 animate-spin" />;
                     }
                     if (!isLoggedIn) {
-                      return (
-                        <>
-                          🔐 <span className="hidden sm:inline">Sign in to Fetch</span>
-                        </>
-                      );
+                      return <>🔐</>;
                     }
-                    return (
-                      <>
-                        <RefreshCw className="h-4 w-4 mr-1" />
-                        <span className="hidden sm:inline">Fetch from GitHub</span>
-                      </>
-                    );
+                    return <RefreshCw className="h-3.5 w-3.5" />;
                   })()}
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setIsEditing(true)}
-                  className="flex-1 min-w-[80px] sm:flex-none"
+                  className="h-8"
                 >
-                  <Settings className="h-4 w-4 mr-1" />
+                  <Settings className="h-3.5 w-3.5 mr-1.5" />
                   Edit
                 </Button>
               </>
             )}
             {isEditing && (
               <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCancel}
-                  className="flex-1 min-w-[80px] sm:flex-none"
-                >
-                  <X className="h-4 w-4 mr-1" />
+                <Button variant="outline" size="sm" onClick={handleCancel} className="h-8">
+                  <X className="h-3.5 w-3.5 mr-1.5" />
                   Cancel
                 </Button>
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={handleSave}
-                  className="flex-1 min-w-[80px] sm:flex-none"
-                >
-                  <Check className="h-4 w-4 mr-1" />
+                <Button variant="default" size="sm" onClick={handleSave} className="h-8">
+                  <Check className="h-3.5 w-3.5 mr-1.5" />
                   Save
                 </Button>
               </>
