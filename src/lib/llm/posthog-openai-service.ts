@@ -86,8 +86,8 @@ class PostHogOpenAIService {
   } | null = null; // Will be dynamically imported
 
   constructor() {
-    // Handle both Vite and Node.js environments
-    this.apiKey = import.meta.env?.VITE_OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
+    // Browser environment - use Vite's import.meta.env
+    this.apiKey = import.meta.env?.VITE_OPENAI_API_KEY;
 
     this.config = {
       model: 'gpt-4o-mini',
@@ -98,12 +98,9 @@ class PostHogOpenAIService {
     };
 
     this.posthogConfig = {
-      apiKey: import.meta.env?.VITE_POSTHOG_API_KEY || process.env.POSTHOG_API_KEY,
-      host:
-        import.meta.env?.VITE_POSTHOG_HOST ||
-        process.env.POSTHOG_HOST ||
-        'https://us.i.posthog.com',
-      enableTracking: !!(import.meta.env?.VITE_POSTHOG_API_KEY || process.env.POSTHOG_API_KEY),
+      apiKey: import.meta.env?.VITE_POSTHOG_API_KEY,
+      host: import.meta.env?.VITE_POSTHOG_HOST || 'https://us.i.posthog.com',
+      enableTracking: !!import.meta.env?.VITE_POSTHOG_API_KEY,
       enablePrivacyMode: false, // Set to true to prevent capturing conversation content
     };
 
@@ -309,7 +306,7 @@ class PostHogOpenAIService {
 
     // Prevent real API calls in test environment
     if (
-      process.env.NODE_ENV === 'test' ||
+      import.meta.env.MODE === 'test' ||
       this.apiKey === 'test-openai-key' ||
       this.apiKey === 'test-key-for-ci'
     ) {

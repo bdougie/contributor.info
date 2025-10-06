@@ -77,8 +77,8 @@ class OpenAIService {
   private config: LLMServiceConfig;
 
   constructor() {
-    // Handle both Vite and Node.js environments
-    this.apiKey = import.meta.env?.VITE_OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
+    // Browser environment - use Vite's import.meta.env
+    this.apiKey = import.meta.env?.VITE_OPENAI_API_KEY;
 
     this.config = {
       model: 'gpt-4o-mini', // Start with high-quota free model
@@ -210,7 +210,7 @@ class OpenAIService {
 
     // Prevent real API calls in test environment
     if (
-      process.env.NODE_ENV === 'test' ||
+      import.meta.env.MODE === 'test' ||
       this.apiKey === 'test-openai-key' ||
       this.apiKey === 'test-key-for-ci'
     ) {
