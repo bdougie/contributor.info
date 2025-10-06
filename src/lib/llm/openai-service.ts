@@ -57,7 +57,13 @@ interface HealthFactor {
 }
 
 export interface LLMInsight {
-  type: 'health' | 'recommendation' | 'pattern' | 'trend' | 'contributor_summary';
+  type:
+    | 'health'
+    | 'recommendation'
+    | 'pattern'
+    | 'trend'
+    | 'contributor_summary'
+    | 'discussion_summary';
   content: string;
   confidence: number; // 0-1
   timestamp: Date;
