@@ -15,6 +15,7 @@ type WorkspaceWithMember = {
 
 type RepositoryWithWorkspace = {
   id: string;
+  workspace_id: string;
   is_pinned: boolean;
   repositories: {
     id: string;
@@ -222,119 +223,120 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
         return;
       }
 
-      // Fetch additional data for each workspace
-      const enrichedWorkspaces = await Promise.all(
-        workspaceData.map(async (workspace) => {
-          // Get repository count and member count
-          const [repositoriesResult, repoCountResult, membersResult] = await Promise.all([
-            supabase
-              .from('workspace_repositories')
-              .select(
-                `
-                id,
-                is_pinned,
-                repositories!inner(
-                  id,
-                  full_name,
-                  name,
-                  owner,
-                  description,
-                  language,
-                  github_pushed_at,
-                  pull_request_count,
-                  open_issues_count
-                )
-              `
-              )
-              .eq('workspace_id', workspace.id)
-              .order('is_pinned', { ascending: false })
-              .limit(10) // Fetch more to sort client-side
-              .returns<RepositoryWithWorkspace[]>(),
+      // Fetch additional data for all workspaces in batched queries (Phase 1 optimization)
+      // This replaces the N+1 query problem with 3 batched queries
 
-            // Get actual total count of repositories (not just the displayed 3)
-            supabase
-              .from('workspace_repositories')
-              .select('id', { count: 'exact', head: true })
-              .eq('workspace_id', workspace.id),
+      // 1. Fetch workspace stats from materialized view (replaces 2N queries)
+      const { data: workspaceStats } = await supabase
+        .from('workspace_preview_stats')
+        .select('workspace_id, repository_count, member_count')
+        .in('workspace_id', workspaceIdsArray);
 
-            supabase
-              .from('workspace_members')
-              .select('id', { count: 'exact', head: true })
-              .eq('workspace_id', workspace.id),
-          ]);
+      // Create lookup map for O(1) access
+      const statsMap = new Map(workspaceStats?.map((stat) => [stat.workspace_id, stat]) || []);
 
-          // Check for errors in individual queries and fail fast for critical data
-          if (repositoriesResult.error) {
-            console.error(
-              `Failed to fetch repositories for workspace ${workspace.id}:`,
-              repositoriesResult.error.message
-            );
-            // For critical data failures, throw to trigger error state
-            throw new Error(
-              `Unable to load workspace repositories: ${repositoriesResult.error.message}`
-            );
+      // 2. Fetch ALL repositories for ALL workspaces in one query
+      const { data: allRepositories, error: reposError } = await supabase
+        .from('workspace_repositories')
+        .select(
+          `
+          workspace_id,
+          id,
+          is_pinned,
+          repositories!inner(
+            id,
+            full_name,
+            name,
+            owner,
+            description,
+            language,
+            github_pushed_at,
+            pull_request_count,
+            open_issues_count
+          )
+        `
+        )
+        .in('workspace_id', workspaceIdsArray)
+        .order('is_pinned', { ascending: false })
+        .limit(100) // Fetch enough for all workspaces
+        .returns<RepositoryWithWorkspace[]>();
+
+      if (reposError) {
+        console.error('Failed to fetch workspace repositories:', reposError.message);
+        throw new Error(`Unable to load workspace repositories: ${reposError.message}`);
+      }
+
+      // 3. Group repositories by workspace_id
+      const reposByWorkspace = new Map<string, RepositoryWithWorkspace[]>();
+      allRepositories?.forEach((repo) => {
+        const existing = reposByWorkspace.get(repo.workspace_id) || [];
+        existing.push(repo);
+        reposByWorkspace.set(repo.workspace_id, existing);
+      });
+
+      // 4. Enrich workspaces (no async operations needed!)
+      const enrichedWorkspaces = workspaceData.map((workspace) => {
+        // Get stats from materialized view
+        const stats = statsMap.get(workspace.id);
+        const repositoryCount = stats?.repository_count || 0;
+        const memberCount = stats?.member_count || 0;
+
+        // Get repositories for this workspace
+        const workspaceRepos = reposByWorkspace.get(workspace.id) || [];
+
+        // Sort repositories by pinned status first, then by github_pushed_at
+        const sortedRepositories = workspaceRepos.sort((a, b) => {
+          // First sort by pinned status
+          if (a.is_pinned !== b.is_pinned) {
+            return a.is_pinned ? -1 : 1;
           }
-          if (membersResult.error) {
-            console.warn(
-              `Failed to fetch members for workspace ${workspace.id}:`,
-              membersResult.error.message
-            );
-            // Members count is less critical, can continue with fallback
-          }
+          // Then sort by pushed_at date
+          const dateA = new Date(a.repositories.github_pushed_at || 0).getTime();
+          const dateB = new Date(b.repositories.github_pushed_at || 0).getTime();
+          return dateB - dateA;
+        });
 
-          // Sort repositories by pinned status first, then by github_pushed_at
-          const sortedRepositories = repositoriesResult.data?.sort((a, b) => {
-            // First sort by pinned status
-            if (a.is_pinned !== b.is_pinned) {
-              return a.is_pinned ? -1 : 1;
-            }
-            // Then sort by pushed_at date
-            const dateA = new Date(a.repositories.github_pushed_at || 0).getTime();
-            const dateB = new Date(b.repositories.github_pushed_at || 0).getTime();
-            return dateB - dateA;
-          });
+        // Take top 3 repositories for preview
+        const repositories =
+          sortedRepositories.slice(0, 3).map((item) => {
+            // Calculate activity score: weight issues 2x higher than PRs
+            const issueScore = (item.repositories.open_issues_count || 0) * 2;
+            const prScore = item.repositories.pull_request_count || 0;
+            const activityScore = issueScore + prScore;
 
-          const repositories =
-            sortedRepositories?.slice(0, 3).map((item) => {
-              // Calculate activity score: weight issues 2x higher than PRs
-              const issueScore = (item.repositories.open_issues_count || 0) * 2;
-              const prScore = item.repositories.pull_request_count || 0;
-              const activityScore = issueScore + prScore;
+            return {
+              id: item.repositories.id,
+              full_name: item.repositories.full_name,
+              name: item.repositories.name,
+              owner: item.repositories.owner,
+              description: item.repositories.description,
+              language: item.repositories.language,
+              activity_score: activityScore,
+              last_activity: item.repositories.github_pushed_at || new Date().toISOString(),
+              avatar_url: getRepoOwnerAvatarUrl(item.repositories.owner),
+              html_url: `https://github.com/${item.repositories.full_name}`,
+            };
+          }) || [];
 
-              return {
-                id: item.repositories.id,
-                full_name: item.repositories.full_name,
-                name: item.repositories.name,
-                owner: item.repositories.owner,
-                description: item.repositories.description,
-                language: item.repositories.language,
-                activity_score: activityScore,
-                last_activity: item.repositories.github_pushed_at || new Date().toISOString(),
-                avatar_url: getRepoOwnerAvatarUrl(item.repositories.owner),
-                html_url: `https://github.com/${item.repositories.full_name}`,
-              };
-            }) || [];
+        // Use current user's metadata if they're the owner
+        const ownerMetadata = workspace.owner_id === user.id ? user.user_metadata : null;
 
-          // Use current user's metadata if they're the owner
-          const ownerMetadata = workspace.owner_id === user.id ? user.user_metadata : null;
-
-          return {
-            id: workspace.id,
-            name: workspace.name,
-            slug: workspace.slug,
-            description: workspace.description,
-            owner: {
-              id: workspace.owner_id,
-              avatar_url: ownerMetadata?.avatar_url,
-              display_name: ownerMetadata?.full_name || ownerMetadata?.name,
-            },
-            repository_count: repoCountResult.count || 0,
-            member_count: membersResult.count || 0,
-            repositories,
-            created_at: workspace.created_at,
-          } as WorkspacePreviewData;
-        })
-      );
+        return {
+          id: workspace.id,
+          name: workspace.name,
+          slug: workspace.slug,
+          description: workspace.description,
+          owner: {
+            id: workspace.owner_id,
+            avatar_url: ownerMetadata?.avatar_url,
+            display_name: ownerMetadata?.full_name || ownerMetadata?.name,
+          },
+          repository_count: repositoryCount,
+          member_count: memberCount,
+          repositories,
+          created_at: workspace.created_at,
+        } as WorkspacePreviewData;
+      });
 
       console.log('[Workspace] Successfully loaded %d workspace(s)', enrichedWorkspaces.length);
       setWorkspaces(enrichedWorkspaces);
@@ -373,14 +375,15 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
       if (!mounted) return;
 
       // Add a shorter timeout to prevent infinite loading state
+      // Reduced from 10s to 5s after Phase 1 optimization
       loadingTimeout = setTimeout(() => {
         if (loading && mounted && !hasInitialLoadRef.current) {
-          console.error('[Workspace] Loading timed out after 10 seconds');
+          console.error('[Workspace] Loading timed out after 5 seconds');
           setLoading(false);
           setError(new Error('Workspace loading timed out. Please refresh the page.'));
           hasInitialLoadRef.current = true;
         }
-      }, 10000);
+      }, 5000);
 
       await fetchUserWorkspaces();
       clearTimeout(loadingTimeout);
