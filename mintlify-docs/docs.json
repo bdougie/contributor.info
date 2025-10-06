@@ -57,10 +57,21 @@
           "insights/needs-attention",
           "insights/recommendations"
         ]
+      },
+      {
+        "group": "Resources",
+        "pages": [
+          "changelog"
+        ]
       }
     ],
     "global": {
       "anchors": [
+        {
+          "anchor": "Documentation",
+          "icon": "book",
+          "href": "https://docs.contributor.info"
+        },
         {
           "anchor": "Community",
           "icon": "discord",

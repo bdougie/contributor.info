@@ -298,6 +298,13 @@
   status = 301
   force = true
 
+# Redirect changelog to docs subdomain
+[[redirects]]
+  from = "/changelog"
+  to = "https://docs.contributor.info/changelog"
+  status = 301
+  force = true
+
 # Redirect rules for SPA behavior
 # All API redirects above have force = true so they take precedence
 [[redirects]]
