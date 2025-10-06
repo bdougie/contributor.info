@@ -19,6 +19,7 @@ import {
   WorkspaceIssuesTable,
   type Issue,
 } from '@/components/features/workspace/WorkspaceIssuesTable';
+import { WorkspaceDiscussionsTable } from '@/components/features/workspace/WorkspaceDiscussionsTable';
 import { RepositoryFilter } from '@/components/features/workspace/RepositoryFilter';
 import { WorkspaceMetricsAndTrends } from '@/components/features/workspace/WorkspaceMetricsAndTrends';
 import { WorkspaceSwitcher } from '@/components/navigation/WorkspaceSwitcher';
@@ -56,6 +57,7 @@ import {
   Menu,
   Package,
   Sparkles,
+  MessageSquare,
 } from '@/components/ui/icon';
 import {
   useReactTable,
@@ -3498,7 +3500,7 @@ function WorkspacePage() {
       {/* Tab Navigation */}
       <div className="container max-w-7xl mx-auto px-6 mt-6">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 grid-rows-2 sm:flex sm:w-full sm:justify-between sm:grid-rows-1 mb-6 min-h-[88px] sm:min-h-[44px]">
+          <TabsList className="grid w-full grid-cols-4 grid-rows-2 sm:flex sm:w-full sm:justify-between sm:grid-rows-1 mb-6 min-h-[88px] sm:min-h-[44px]">
             <TabsTrigger value="overview" className="flex items-center gap-2 sm:pl-4">
               <Layout className="h-4 w-4" />
               <span className="hidden sm:inline">Overview</span>
@@ -3510,6 +3512,10 @@ function WorkspacePage() {
             <TabsTrigger value="issues" className="flex items-center gap-2">
               <AlertCircle className="h-4 w-4" />
               <span className="hidden sm:inline">Issues</span>
+            </TabsTrigger>
+            <TabsTrigger value="discussions" className="flex items-center gap-2">
+              <MessageSquare className="h-4 w-4" />
+              <span className="hidden sm:inline">Discussions</span>
             </TabsTrigger>
             <TabsTrigger value="contributors" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
@@ -3604,6 +3610,21 @@ function WorkspacePage() {
                 selectedRepositories={selectedRepositories}
                 timeRange={timeRange}
                 onGitHubAppModalOpen={handleGitHubAppModalOpen}
+              />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="discussions" className="mt-6">
+            <div className="container max-w-7xl mx-auto">
+              <WorkspaceDiscussionsTable
+                repositories={repositories.map((r) => ({
+                  id: r.id,
+                  name: r.name,
+                  owner: r.owner,
+                  full_name: r.full_name,
+                }))}
+                selectedRepositories={selectedRepositories}
+                timeRange={timeRange}
               />
             </div>
           </TabsContent>
