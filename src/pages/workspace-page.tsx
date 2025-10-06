@@ -3169,13 +3169,6 @@ function WorkspacePage() {
         previousMetrics
       );
 
-      // Override starsTrend with event-based data from useWorkspaceEvents hook
-      if (eventMetrics?.stars) {
-        realMetrics.starsTrend = eventMetrics.stars.percentChange;
-        // Use velocity (stars/day) instead of total
-        realMetrics.totalStars = eventMetrics.stars.velocity;
-      }
-
       // Generate trend data with real PR/issue data
       const realTrendData = calculateRealTrendData(
         TIME_RANGE_DAYS[timeRange],
@@ -3200,7 +3193,21 @@ function WorkspacePage() {
     } finally {
       setLoading(false);
     }
-  }, [workspaceId, timeRange, selectedRepositories, syncWithUrl, eventMetrics]);
+  }, [workspaceId, timeRange, selectedRepositories, syncWithUrl]);
+
+  // Separate useEffect to update metrics with event data without refetching
+  useEffect(() => {
+    if (eventMetrics?.stars) {
+      setMetrics((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          starsTrend: eventMetrics.stars.percentChange,
+          totalStars: eventMetrics.stars.velocity,
+        };
+      });
+    }
+  }, [eventMetrics]);
 
   useEffect(() => {
     // Sync the workspace dropdown with the current URL

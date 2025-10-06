@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -33,6 +33,7 @@ export interface Discussion {
   category_emoji: string | null;
   author_id: string | null;
   author_login: string | null;
+  author_avatar_url?: string | null;
   created_at: string;
   updated_at: string;
   is_answered: boolean;
@@ -113,8 +114,6 @@ export function WorkspaceDiscussionsTable({
         }
 
         // Fetch discussions with repository data
-        // Note: We use author_login directly from discussions table instead of joining
-        // with contributors because author_id is a GitHub ID (bigint) not a contributor UUID
         const { data, error: discussionsError } = await supabase
           .from('discussions')
           .select(
@@ -135,7 +134,34 @@ export function WorkspaceDiscussionsTable({
           console.error('Failed to fetch discussions:', discussionsError);
           setError('Failed to load discussions');
         } else {
-          setDiscussions((data || []) as Discussion[]);
+          // Fetch avatar URLs for all unique authors
+          const uniqueAuthors = [
+            ...new Set((data || []).map((d) => d.author_login).filter(Boolean)),
+          ];
+
+          if (uniqueAuthors.length > 0) {
+            const { data: contributorsData } = await supabase
+              .from('contributors')
+              .select('username, avatar_url')
+              .in('username', uniqueAuthors);
+
+            // Create a map of username -> avatar_url
+            const avatarMap = new Map(
+              (contributorsData || []).map((c) => [c.username, c.avatar_url])
+            );
+
+            // Enrich discussions with avatar URLs
+            const enrichedData = (data || []).map((discussion) => ({
+              ...discussion,
+              author_avatar_url: discussion.author_login
+                ? avatarMap.get(discussion.author_login)
+                : null,
+            }));
+
+            setDiscussions(enrichedData as Discussion[]);
+          } else {
+            setDiscussions((data || []) as Discussion[]);
+          }
         }
       } catch (err) {
         console.error('Error fetching discussions:', err);
@@ -367,6 +393,15 @@ export function WorkspaceDiscussionsTable({
                   {/* Author Avatar */}
                   <div className="flex-shrink-0">
                     <Avatar className="h-10 w-10">
+                      {(discussion.author_avatar_url || discussion.author_login) && (
+                        <AvatarImage
+                          src={
+                            discussion.author_avatar_url ||
+                            `https://avatars.githubusercontent.com/${discussion.author_login}?s=40`
+                          }
+                          alt={discussion.author_login || 'User'}
+                        />
+                      )}
                       <AvatarFallback>
                         {discussion.author_login?.charAt(0).toUpperCase() || '?'}
                       </AvatarFallback>
