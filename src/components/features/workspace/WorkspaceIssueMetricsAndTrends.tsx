@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Link } from '@/components/ui/icon';
 import { toast } from 'sonner';
+import { PermissionUpgradeCTA } from '@/components/ui/permission-upgrade-cta';
+import { UPGRADE_MESSAGES } from '@/lib/copy/upgrade-messages';
 import {
   calculateIssueMetrics,
   calculateIssueTrendMetrics,
@@ -23,12 +25,16 @@ interface WorkspaceIssueMetricsAndTrendsProps {
   repositories: Repository[];
   selectedRepositories: string[];
   timeRange: string;
+  userRole?: string | null;
+  isLoggedIn?: boolean;
 }
 
 export function WorkspaceIssueMetricsAndTrends({
   repositories,
   selectedRepositories,
   timeRange,
+  userRole,
+  isLoggedIn = false,
 }: WorkspaceIssueMetricsAndTrendsProps) {
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState<IssueMetrics | null>(null);
@@ -259,8 +265,12 @@ export function WorkspaceIssueMetricsAndTrends({
     calculateMetrics();
   }, [calculateMetrics]);
 
+  // Check if user has workspace access (must be logged in and have a role)
+  const hasWorkspaceAccess = isLoggedIn && userRole;
+  const showUpgradePrompt = !hasWorkspaceAccess;
+
   return (
-    <Card>
+    <Card className="relative">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
@@ -375,6 +385,23 @@ export function WorkspaceIssueMetricsAndTrends({
           )}
         </section>
       </CardContent>
+
+      {/* Blur overlay with upgrade prompt for users without workspace access */}
+      {showUpgradePrompt && (
+        <div className="absolute inset-0 backdrop-blur-sm bg-background/50 rounded-lg flex items-center justify-center z-10">
+          <div className="max-w-md w-full mx-4">
+            <PermissionUpgradeCTA
+              message={
+                isLoggedIn
+                  ? UPGRADE_MESSAGES.WORKSPACE_DISCUSSIONS
+                  : UPGRADE_MESSAGES.LOGIN_REQUIRED
+              }
+              variant="card"
+              size="lg"
+            />
+          </div>
+        </div>
+      )}
     </Card>
   );
 }

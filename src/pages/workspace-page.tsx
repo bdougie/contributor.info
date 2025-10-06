@@ -498,6 +498,8 @@ function WorkspacePRs({
         repositories={repositories}
         selectedRepositories={selectedRepositories}
         timeRange={timeRange}
+        userRole={currentMember?.role}
+        isLoggedIn={!!currentUser}
       />
 
       {/* Review Charts - PR Status and Distribution side by side */}
@@ -776,6 +778,8 @@ function WorkspaceIssues({
             repositories={repositories}
             selectedRepositories={selectedRepositories}
             timeRange={timeRange}
+            userRole={currentMember?.role}
+            isLoggedIn={!!currentUser}
           />
 
           {/* Assignee Distribution Chart */}
@@ -791,6 +795,8 @@ function WorkspaceIssues({
           repositories={repositories}
           selectedRepositories={selectedRepositories}
           timeRange={timeRange}
+          userRole={currentMember?.role}
+          isLoggedIn={!!currentUser}
         />
       )}
 
