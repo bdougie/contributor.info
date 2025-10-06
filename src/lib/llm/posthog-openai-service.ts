@@ -355,7 +355,9 @@ class PostHogOpenAIService {
         if (response.status === 429) {
           throw new Error('OpenAI API rate limit exceeded');
         } else if (response.status === 401) {
-          throw new Error('Invalid OpenAI API key');
+          throw new Error(
+            'OpenAI authentication failed - check API key or account balance ($0 balance causes 401 errors)'
+          );
         } else {
           throw new Error(`OpenAI API error: ${response.status}`);
         }
