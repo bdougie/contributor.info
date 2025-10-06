@@ -60,21 +60,20 @@ export function useNotifications(filters: NotificationFilters = {}) {
   }, []);
 
   // Delete notification
-  const deleteNotification = useCallback(
-    async (notificationId: string) => {
-      const success = await NotificationService.deleteNotification(notificationId);
-      if (success) {
-        setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
+  const deleteNotification = useCallback(async (notificationId: string) => {
+    const success = await NotificationService.deleteNotification(notificationId);
+    if (success) {
+      setNotifications((prev) => {
+        const notification = prev.find((n) => n.id === notificationId);
         // Update unread count if deleted notification was unread
-        const notification = notifications.find((n) => n.id === notificationId);
         if (notification && !notification.read) {
-          setUnreadCount((prev) => Math.max(0, prev - 1));
+          setUnreadCount((prevCount) => Math.max(0, prevCount - 1));
         }
-      }
-      return success;
-    },
-    [notifications]
-  );
+        return prev.filter((n) => n.id !== notificationId);
+      });
+    }
+    return success;
+  }, []);
 
   // Delete all read notifications
   const deleteAllRead = useCallback(async () => {
@@ -96,7 +95,9 @@ export function useNotifications(filters: NotificationFilters = {}) {
     });
 
     return () => {
-      authListener?.subscription?.unsubscribe();
+      if (authListener?.subscription) {
+        authListener.subscription.unsubscribe();
+      }
     };
   }, []);
 
@@ -123,18 +124,16 @@ export function useNotifications(filters: NotificationFilters = {}) {
       },
       // On notification delete
       (notificationId) => {
-        const notification = notifications.find((n) => n.id === notificationId);
         setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
-        if (notification && !notification.read) {
-          setUnreadCount((prev) => Math.max(0, prev - 1));
-        }
+        // Refetch unread count to ensure accuracy
+        fetchUnreadCount();
       }
     );
 
     return () => {
       unsubscribe();
     };
-  }, [user, fetchNotifications, fetchUnreadCount, notifications]);
+  }, [user, fetchNotifications, fetchUnreadCount]);
 
   return {
     notifications,

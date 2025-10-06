@@ -39,7 +39,6 @@ export function NotificationDropdown({ className }: NotificationDropdownProps) {
     await deleteAllRead();
   };
 
-  // Disable dropdown if no notifications and not loading
   const isEmpty = notifications.length === 0 && !loading;
 
   return (
@@ -49,8 +48,8 @@ export function NotificationDropdown({ className }: NotificationDropdownProps) {
           variant="ghost"
           size="sm"
           className={cn('relative', className)}
-          disabled={isEmpty}
           title={isEmpty ? 'No notifications' : 'View notifications'}
+          aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
         >
           <Icon name="mail" size={18} className={cn(isEmpty && 'opacity-50')} />
           {unreadCount > 0 && (
