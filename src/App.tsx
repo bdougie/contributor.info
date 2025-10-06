@@ -543,14 +543,7 @@ function App() {
                         </ProtectedRoute>
                       }
                     />
-                    <Route
-                      path="/billing"
-                      element={
-                        <ProtectedRoute>
-                          <BillingDashboard />
-                        </ProtectedRoute>
-                      }
-                    />
+                    <Route path="/billing" element={<BillingDashboard />} />
                     <Route path="/privacy" element={<PrivacyPolicyPage />} />
                     <Route path="/privacy/data-request" element={<DataRequestPage />} />
                     <Route path="/terms" element={<TermsPage />} />
