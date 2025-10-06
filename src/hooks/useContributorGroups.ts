@@ -314,7 +314,7 @@ export function useContributorGroups(workspaceId: string | undefined) {
     [groupMembers, groups]
   );
 
-  // Add or update a note for a contributor
+  // Add a note for a contributor (always creates a new note)
   const upsertNote = useCallback(
     async (contributorUsername: string, noteContent: string) => {
       if (!workspaceId) throw new Error('Workspace ID is required');
@@ -324,24 +324,16 @@ export function useContributorGroups(workspaceId: string | undefined) {
       } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      // Use upsert with onConflict to handle the unique constraint properly
+      // Insert a new note (removed upsert since we allow multiple notes per contributor)
       const { data, error } = await supabase
         .from('contributor_notes')
-        .upsert(
-          {
-            workspace_id: workspaceId,
-            contributor_username: contributorUsername,
-            note_content: noteContent,
-            created_by: user.id,
-            updated_by: user.id,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          },
-          {
-            onConflict: 'workspace_id,contributor_username',
-            ignoreDuplicates: false,
-          }
-        )
+        .insert({
+          workspace_id: workspaceId,
+          contributor_username: contributorUsername,
+          note_content: noteContent,
+          created_by: user.id,
+          updated_by: user.id,
+        })
         .select()
         .maybeSingle();
 
@@ -370,26 +362,13 @@ export function useContributorGroups(workspaceId: string | undefined) {
         updated_by: userInfo,
       };
 
-      // Check if note exists in local state
-      const existingNoteIndex = notes.findIndex(
-        (n) => n.contributor_username === contributorUsername
-      );
-
-      if (existingNoteIndex >= 0) {
-        setNotes((prev) => {
-          const updated = [...prev];
-          updated[existingNoteIndex] = mappedNote;
-          return updated;
-        });
-        toast.success('Note updated successfully');
-      } else {
-        setNotes((prev) => [...prev, mappedNote]);
-        toast.success('Note added successfully');
-      }
+      // Add the new note to local state
+      setNotes((prev) => [...prev, mappedNote]);
+      toast.success('Note added successfully');
 
       return mappedNote;
     },
-    [workspaceId, notes]
+    [workspaceId]
   );
 
   // Delete a note
@@ -430,7 +409,7 @@ export function useContributorGroups(workspaceId: string | undefined) {
         })
         .eq('id', noteId)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       if (!data) throw new Error('Failed to update note');

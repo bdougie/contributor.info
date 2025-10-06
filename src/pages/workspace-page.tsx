@@ -871,31 +871,37 @@ function WorkspaceContributors({
   }, [groupMembers]);
 
   // Transform notes to match ContributorNotesDialog interface
+  // Filter by selected contributor's username to prevent cross-user data leak
   const transformedNotes = useMemo(() => {
-    return notes.map((note) => {
-      const createdBy = note.created_by as
-        | {
-            auth_user_id: string;
-            email: string;
-            display_name: string;
-          }
-        | string
-        | null;
-      const isObject = typeof createdBy === 'object' && createdBy !== null;
+    const contributorUsername = selectedContributor?.username;
+    if (!contributorUsername) return [];
 
-      return {
-        ...note,
-        created_by: {
-          id: isObject ? createdBy.auth_user_id : createdBy || 'unknown',
-          email: isObject ? createdBy.email : 'unknown@example.com',
-          display_name: isObject
-            ? createdBy.display_name || createdBy.email?.split('@')[0]
-            : 'Unknown User',
-          avatar_url: undefined,
-        },
-      };
-    });
-  }, [notes]);
+    return notes
+      .filter((note) => note.contributor_username === contributorUsername)
+      .map((note) => {
+        const createdBy = note.created_by as
+          | {
+              auth_user_id: string;
+              email: string;
+              display_name: string;
+            }
+          | string
+          | null;
+        const isObject = typeof createdBy === 'object' && createdBy !== null;
+
+        return {
+          ...note,
+          created_by: {
+            id: isObject ? createdBy.auth_user_id : createdBy || 'unknown',
+            email: isObject ? createdBy.email : 'unknown@example.com',
+            display_name: isObject
+              ? createdBy.display_name || createdBy.email?.split('@')[0]
+              : 'Unknown User',
+            avatar_url: undefined,
+          },
+        };
+      });
+  }, [notes, selectedContributor?.username]);
 
   const {
     contributors,
