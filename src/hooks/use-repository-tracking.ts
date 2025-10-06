@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useGitHubAuth } from './use-github-auth';
 import { handleApiResponse } from '@/lib/utils/api-helpers';
+import { NotificationService } from '@/lib/notifications';
 
 // Type for track repository API response
 interface TrackRepositoryResponse {
@@ -175,6 +176,19 @@ export function useRepositoryTracking({
               repository: repoData,
               message: 'Repository successfully tracked!',
               error: null,
+            });
+
+            // Create notification for successful tracking
+            await NotificationService.createNotification({
+              operation_id: result.eventId || `track-${Date.now()}`,
+              operation_type: 'repository_tracking',
+              repository: `${owner}/${repo}`,
+              status: 'completed',
+              title: `Repository tracking complete`,
+              message: `${owner}/${repo} is now being tracked`,
+              metadata: {
+                repository_id: repoData.id,
+              },
             });
 
             if (onTrackingComplete) {
