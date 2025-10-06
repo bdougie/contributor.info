@@ -19,6 +19,7 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 import { PermissionUpgradeCTA } from '@/components/ui/permission-upgrade-cta';
 import { UPGRADE_MESSAGES } from '@/lib/copy/upgrade-messages';
+import { convertGithubEmoji } from '@/lib/utils/github-emoji';
 
 export interface Discussion {
   id: string;
@@ -421,7 +422,7 @@ export function WorkspaceDiscussionsTable({
                         <Badge variant="secondary" className="text-xs">
                           {discussion.category_emoji && (
                             <span className="mr-1" aria-hidden="true">
-                              {discussion.category_emoji}
+                              {convertGithubEmoji(discussion.category_emoji)}
                             </span>
                           )}
                           {discussion.category_name}
