@@ -19,6 +19,7 @@ import {
   WorkspaceIssuesTable,
   type Issue,
 } from '@/components/features/workspace/WorkspaceIssuesTable';
+import { WorkspaceDiscussionsTable } from '@/components/features/workspace/WorkspaceDiscussionsTable';
 import { RepositoryFilter } from '@/components/features/workspace/RepositoryFilter';
 import { WorkspaceMetricsAndTrends } from '@/components/features/workspace/WorkspaceMetricsAndTrends';
 import { WorkspaceSwitcher } from '@/components/navigation/WorkspaceSwitcher';
@@ -56,6 +57,7 @@ import {
   Menu,
   Package,
   Sparkles,
+  MessageSquare,
 } from '@/components/ui/icon';
 import {
   useReactTable,
@@ -3167,13 +3169,6 @@ function WorkspacePage() {
         previousMetrics
       );
 
-      // Override starsTrend with event-based data from useWorkspaceEvents hook
-      if (eventMetrics?.stars) {
-        realMetrics.starsTrend = eventMetrics.stars.percentChange;
-        // Use velocity (stars/day) instead of total
-        realMetrics.totalStars = eventMetrics.stars.velocity;
-      }
-
       // Generate trend data with real PR/issue data
       const realTrendData = calculateRealTrendData(
         TIME_RANGE_DAYS[timeRange],
@@ -3198,7 +3193,21 @@ function WorkspacePage() {
     } finally {
       setLoading(false);
     }
-  }, [workspaceId, timeRange, selectedRepositories, syncWithUrl, eventMetrics]);
+  }, [workspaceId, timeRange, selectedRepositories, syncWithUrl]);
+
+  // Separate useEffect to update metrics with event data without refetching
+  useEffect(() => {
+    if (eventMetrics?.stars) {
+      setMetrics((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          starsTrend: eventMetrics.stars.percentChange,
+          totalStars: eventMetrics.stars.velocity,
+        };
+      });
+    }
+  }, [eventMetrics]);
 
   useEffect(() => {
     // Sync the workspace dropdown with the current URL
@@ -3498,7 +3507,7 @@ function WorkspacePage() {
       {/* Tab Navigation */}
       <div className="container max-w-7xl mx-auto px-6 mt-6">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 grid-rows-2 sm:flex sm:w-full sm:justify-between sm:grid-rows-1 mb-6 min-h-[88px] sm:min-h-[44px]">
+          <TabsList className="grid w-full grid-cols-4 grid-rows-2 sm:flex sm:w-full sm:justify-between sm:grid-rows-1 mb-6 min-h-[88px] sm:min-h-[44px]">
             <TabsTrigger value="overview" className="flex items-center gap-2 sm:pl-4">
               <Layout className="h-4 w-4" />
               <span className="hidden sm:inline">Overview</span>
@@ -3510,6 +3519,10 @@ function WorkspacePage() {
             <TabsTrigger value="issues" className="flex items-center gap-2">
               <AlertCircle className="h-4 w-4" />
               <span className="hidden sm:inline">Issues</span>
+            </TabsTrigger>
+            <TabsTrigger value="discussions" className="flex items-center gap-2">
+              <MessageSquare className="h-4 w-4" />
+              <span className="hidden sm:inline">Discussions</span>
             </TabsTrigger>
             <TabsTrigger value="contributors" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
@@ -3604,6 +3617,23 @@ function WorkspacePage() {
                 selectedRepositories={selectedRepositories}
                 timeRange={timeRange}
                 onGitHubAppModalOpen={handleGitHubAppModalOpen}
+              />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="discussions" className="mt-6">
+            <div className="container max-w-7xl mx-auto">
+              <WorkspaceDiscussionsTable
+                repositories={repositories.map((r) => ({
+                  id: r.id,
+                  name: r.name,
+                  owner: r.owner,
+                  full_name: r.full_name,
+                }))}
+                selectedRepositories={selectedRepositories}
+                timeRange={timeRange}
+                userRole={currentMember?.role}
+                isLoggedIn={!!currentUser}
               />
             </div>
           </TabsContent>
