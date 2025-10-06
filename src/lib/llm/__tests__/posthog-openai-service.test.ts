@@ -24,13 +24,16 @@ describe('PostHogOpenAIService', () => {
   });
 
   it('should fallback to process.env when import.meta.env is undefined', async () => {
-    // Setup process.env
+    // Setup process.env BEFORE importing
     process.env.VITE_OPENAI_API_KEY = 'test-key-from-process';
 
     // Make import.meta.env undefined
     (import.meta as { env?: unknown }).env = undefined;
 
-    // Dynamic import to get fresh instance
+    // Reset module cache to force fresh singleton creation
+    vi.resetModules();
+
+    // Dynamic import to get fresh instance with new env vars
     const { posthogOpenAIService } = await import('../posthog-openai-service');
 
     // Should detect the key from process.env
