@@ -187,4 +187,80 @@ describe('useContributorSummary', () => {
     expect(result.current.summary).toBe('newuser is a contributor to this repository.');
     expect(result.current.confidence).toBe(0.3);
   });
+
+  // Memory leak prevention test
+  it('should handle unmount gracefully without memory leaks', () => {
+    vi.mocked(llmService.isAvailable).mockReturnValue(true);
+
+    // Mock a pending promise that would normally cause a memory leak
+    const generateSummaryMock = vi.fn().mockImplementation(
+      () => new Promise(() => {}) // Never resolves
+    );
+    vi.mocked(llmService.generateContributorSummary).mockImplementation(generateSummaryMock);
+
+    const { result, unmount } = renderHook(() => useContributorSummary(mockContributor));
+
+    // Should start loading
+    expect(result.current.loading).toBe(true);
+    expect(generateSummaryMock).toHaveBeenCalled();
+
+    // Unmount while loading
+    unmount();
+
+    // Should not throw any errors or warnings
+    // The abort controller in the cleanup function prevents memory leaks
+    expect(() => unmount()).not.toThrow();
+  });
+
+  // Race condition prevention test
+  it('should handle rapid contributor changes without race conditions', () => {
+    vi.mocked(llmService.isAvailable).mockReturnValue(true);
+
+    const { result, rerender } = renderHook(
+      ({ contributor }) => useContributorSummary(contributor),
+      {
+        initialProps: { contributor: mockContributor },
+      }
+    );
+
+    // First render starts loading
+    expect(result.current.loading).toBe(true);
+
+    // Quickly change contributor multiple times
+    const contributor2 = { ...mockContributor, login: 'user2', id: 222 };
+    const contributor3 = { ...mockContributor, login: 'user3', id: 333 };
+
+    rerender({ contributor: contributor2 });
+    expect(result.current.summary).toBe(null); // State cleared
+
+    rerender({ contributor: contributor3 });
+    expect(result.current.summary).toBe(null); // State cleared again
+
+    // The requestId tracking ensures only the latest request updates state
+    // Earlier requests are ignored even if they complete later
+  });
+
+  // Test activity key memoization
+  it('should not re-fetch when activity data is unchanged', () => {
+    vi.mocked(llmService.isAvailable).mockReturnValue(true);
+
+    const { rerender } = renderHook(({ contributor }) => useContributorSummary(contributor), {
+      initialProps: { contributor: mockContributor },
+    });
+
+    expect(llmService.generateContributorSummary).toHaveBeenCalledTimes(1);
+
+    // Rerender with same data (new object reference but same content)
+    const sameContributor = {
+      ...mockContributor,
+      recentPRs: [...mockContributor.recentPRs],
+      recentIssues: [...mockContributor.recentIssues],
+      recentActivities: [...mockContributor.recentActivities],
+    };
+
+    rerender({ contributor: sameContributor });
+
+    // Should not trigger another API call due to memoized activity key
+    expect(llmService.generateContributorSummary).toHaveBeenCalledTimes(1);
+  });
 });

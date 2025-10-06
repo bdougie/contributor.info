@@ -52,6 +52,7 @@ export function useContributorSummary(
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confidence, setConfidence] = useState<number | null>(null);
+  const [requestIdRef] = useState(() => ({ current: 0 }));
 
   // Create stable activity key to prevent infinite re-renders
   // Only re-fetch when actual activity data changes, not when object reference changes
@@ -66,6 +67,13 @@ export function useContributorSummary(
   }, [contributor]);
 
   useEffect(() => {
+    // Track this request to prevent race conditions
+    const currentRequestId = ++requestIdRef.current;
+
+    // Create abort controller for cleanup
+    const abortController = new AbortController();
+    let isMounted = true;
+
     // Clear stale state from previous contributor before any early returns
     setSummary(null);
     setConfidence(null);
@@ -76,6 +84,7 @@ export function useContributorSummary(
       hasContributor: !!contributor,
       login: contributor?.login,
       llmAvailable: llmService.isAvailable(),
+      requestId: currentRequestId,
     });
 
     // Skip if disabled or no contributor data
@@ -92,11 +101,12 @@ export function useContributorSummary(
       return;
     }
 
-    let cancelled = false;
-
     async function fetchSummary() {
       try {
-        setLoading(true);
+        // Only update loading state if this is still the current request
+        if (isMounted && currentRequestId === requestIdRef.current) {
+          setLoading(true);
+        }
 
         // Build activity data from contributor stats
         const activityData: ContributorActivityData = {
@@ -125,7 +135,12 @@ export function useContributorSummary(
           // Generate a simple fallback summary based on available data
           const fallbackSummary = `${contributor.login} is a contributor to this repository.`;
 
-          if (!cancelled) {
+          // Only update state if component is still mounted and this is the current request
+          if (
+            isMounted &&
+            !abortController.signal.aborted &&
+            currentRequestId === requestIdRef.current
+          ) {
             setSummary(fallbackSummary);
             setConfidence(0.3); // Low confidence for fallback
             setLoading(false);
@@ -137,6 +152,7 @@ export function useContributorSummary(
           totalContributions: activityData.totalContributions,
           recentPRs: activityData.recentPRs.length,
           recentIssues: activityData.recentIssues.length,
+          requestId: currentRequestId,
         });
 
         // Generate summary (checks cache first, then generates if needed)
@@ -149,8 +165,12 @@ export function useContributorSummary(
           }
         );
 
-        // Update state if request wasn't cancelled
-        if (!cancelled) {
+        // Only update state if component is still mounted and this is the current request
+        if (
+          isMounted &&
+          !abortController.signal.aborted &&
+          currentRequestId === requestIdRef.current
+        ) {
           if (result) {
             setSummary(result.content);
             setConfidence(result.confidence);
@@ -161,7 +181,12 @@ export function useContributorSummary(
           setLoading(false);
         }
       } catch (err) {
-        if (!cancelled) {
+        // Only handle error if component is still mounted and this is the current request
+        if (
+          isMounted &&
+          !abortController.signal.aborted &&
+          currentRequestId === requestIdRef.current
+        ) {
           console.error('Failed to fetch contributor summary:', err);
           setError(err instanceof Error ? err.message : 'Failed to generate summary');
           setSummary(null);
@@ -172,9 +197,14 @@ export function useContributorSummary(
 
     fetchSummary();
 
-    // Cleanup function to prevent state updates after unmount
+    // Cleanup function to prevent state updates after unmount and abort any pending operations
     return () => {
-      cancelled = true;
+      isMounted = false;
+      abortController.abort();
+      // If this was the current request, mark it as cancelled
+      if (currentRequestId === requestIdRef.current) {
+        requestIdRef.current = -1; // Mark as cancelled
+      }
     };
     // Note: activityKey is memoized from contributor, so contributor changes trigger this effect
     // eslint-disable-next-line react-hooks/exhaustive-deps

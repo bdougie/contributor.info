@@ -254,27 +254,52 @@ export function ContributorProfileModal({
       };
     }
 
-    // Filter and map activities to appropriate structures
-    const recentPRs = activities
-      .map(mapActivityToPullRequest)
-      .filter((pr): pr is PullRequest => pr !== null)
-      .slice(0, 10);
+    // Use single iteration with early termination for performance
+    const result = activities.reduce(
+      (acc, activity, index) => {
+        // Early termination - we only need max 10 of each type
+        if (acc.recentPRs.length >= 10 && acc.recentIssues.length >= 10 && index >= 10) {
+          return acc;
+        }
 
-    const recentIssues = activities
-      .map(mapActivityToIssue)
-      .filter((issue): issue is RecentIssue => issue !== null)
-      .slice(0, 10);
+        // Always add to recent activities (up to 10)
+        if (index < 10) {
+          acc.recentActivities.push(mapToRecentActivity(activity));
+        }
 
-    const recentActivities = activities.slice(0, 10).map(mapToRecentActivity);
+        // Try to map to PR if we need more PRs
+        if (acc.recentPRs.length < 10) {
+          const pr = mapActivityToPullRequest(activity);
+          if (pr) {
+            acc.recentPRs.push(pr);
+          }
+        }
+
+        // Try to map to issue if we need more issues
+        if (acc.recentIssues.length < 10) {
+          const issue = mapActivityToIssue(activity);
+          if (issue) {
+            acc.recentIssues.push(issue);
+          }
+        }
+
+        return acc;
+      },
+      {
+        recentPRs: [] as PullRequest[],
+        recentIssues: [] as RecentIssue[],
+        recentActivities: [] as RecentActivity[],
+      }
+    );
 
     return {
       login: username,
       avatar_url: avatarUrl || '',
       pullRequests: prCount || 0,
       percentage: 0,
-      recentPRs,
-      recentIssues,
-      recentActivities,
+      recentPRs: result.recentPRs,
+      recentIssues: result.recentIssues,
+      recentActivities: result.recentActivities,
     };
   }, [
     contributor?.username,
