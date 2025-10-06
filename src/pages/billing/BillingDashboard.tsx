@@ -39,7 +39,7 @@ export function BillingDashboard() {
   const { workspace: primaryWorkspace } = usePrimaryWorkspace();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [usageStats, setUsageStats] = useState<UsageStats | null>(null);
   const [creatingCheckout, setCreatingCheckout] = useState(false);
 
@@ -57,7 +57,10 @@ export function BillingDashboard() {
 
   useEffect(() => {
     const loadUsageStats = async () => {
-      if (!user?.id) return;
+      if (!user?.id) {
+        setLoading(false);
+        return;
+      }
 
       try {
         setLoading(true);
@@ -70,13 +73,15 @@ export function BillingDashboard() {
       }
     };
 
-    if (user?.id) {
-      loadUsageStats();
-    }
+    loadUsageStats();
   }, [user]);
 
   const handleUpgrade = async (tierId: 'pro' | 'team') => {
-    if (!user?.id || !user?.email) return;
+    if (!user?.id || !user?.email) {
+      // Redirect to login if not authenticated
+      navigate('/login?redirect=/billing');
+      return;
+    }
 
     try {
       setCreatingCheckout(true);
@@ -180,11 +185,14 @@ export function BillingDashboard() {
     <div className="container mx-auto py-8 px-4">
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">Billing & Subscription</h1>
-        <p className="text-muted-foreground">Manage your subscription and view usage statistics</p>
+        <p className="text-muted-foreground">
+          {user ? 'Manage your subscription and view usage statistics' : 'View our pricing plans and features'}
+        </p>
       </div>
 
-      {/* Current Plan */}
-      <Card className="mb-8">
+      {/* Current Plan - Only show for authenticated users */}
+      {user && (
+        <Card className="mb-8">
         <CardHeader>
           <CardTitle>Current Plan</CardTitle>
           <CardDescription>Your subscription details and billing information</CardDescription>
@@ -235,9 +243,11 @@ export function BillingDashboard() {
           )}
         </CardContent>
       </Card>
+      )}
 
-      {/* Usage Overview */}
-      <Card className="mb-8">
+      {/* Usage Overview - Only show for authenticated users */}
+      {user && (
+        <Card className="mb-8">
         <CardHeader>
           <CardTitle>Usage Overview</CardTitle>
           <CardDescription>Your current usage against plan limits</CardDescription>
@@ -264,6 +274,7 @@ export function BillingDashboard() {
           </div>
         </CardContent>
       </Card>
+      )}
 
       {/* Pricing Plans */}
       <div className="mb-8">
@@ -345,26 +356,39 @@ export function BillingDashboard() {
                     )}
                   </ul>
 
-                  {tier.id !== currentTier && tier.id !== 'free' && (
-                    <Button
-                      className="w-full"
-                      onClick={() => handleUpgrade(tier.id as 'pro' | 'team')}
-                      disabled={creatingCheckout}
-                    >
-                      {creatingCheckout ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Processing...
-                        </>
-                      ) : (
-                        `Upgrade to ${tier.name}`
+                  {user ? (
+                    <>
+                      {tier.id !== currentTier && tier.id !== 'free' && (
+                        <Button
+                          className="w-full"
+                          onClick={() => handleUpgrade(tier.id as 'pro' | 'team')}
+                          disabled={creatingCheckout}
+                        >
+                          {creatingCheckout ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Processing...
+                            </>
+                          ) : (
+                            `Upgrade to ${tier.name}`
+                          )}
+                        </Button>
                       )}
-                    </Button>
-                  )}
-                  {tier.id === currentTier && (
-                    <Button className="w-full" disabled variant="outline">
-                      Current Plan
-                    </Button>
+                      {tier.id === currentTier && (
+                        <Button className="w-full" disabled variant="outline">
+                          Current Plan
+                        </Button>
+                      )}
+                    </>
+                  ) : (
+                    tier.id !== 'free' && (
+                      <Button
+                        className="w-full"
+                        onClick={() => navigate('/login?redirect=/billing')}
+                      >
+                        Get Started
+                      </Button>
+                    )
                   )}
                 </CardContent>
               </Card>
