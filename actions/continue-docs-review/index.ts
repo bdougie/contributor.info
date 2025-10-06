@@ -75,7 +75,14 @@ async function loadRules(rulesPath: string): Promise<Rule[]> {
   return rules;
 }
 
-async function getChangedDocFiles(): Promise<string[]> {
+interface PRFiles {
+  docFiles: string[];
+  allFiles: { filename: string; additions: number; deletions: number; status: string }[];
+  prTitle: string;
+  prBody: string;
+}
+
+async function getChangedFiles(): Promise<PRFiles> {
   const token = process.env.GITHUB_TOKEN || process.env.INPUT_GITHUB_TOKEN || '';
   const octokit = github.getOctokit(token);
   const context = github.context;
@@ -102,8 +109,13 @@ async function getChangedDocFiles(): Promise<string[]> {
 
   if (!pullNumber) {
     core.info('No pull request context found');
-    return [];
+    return { docFiles: [], allFiles: [], prTitle: '', prBody: '' };
   }
+
+  const { data: pr } = await octokit.rest.pulls.get({
+    ...context.repo,
+    pull_number: pullNumber,
+  });
 
   const { data: files } = await octokit.rest.pulls.listFiles({
     ...context.repo,
@@ -115,8 +127,22 @@ async function getChangedDocFiles(): Promise<string[]> {
     .filter((file) => file.filename.endsWith('.md'))
     .map((file) => file.filename);
 
+  const allFiles = files.map((file) => ({
+    filename: file.filename,
+    additions: file.additions,
+    deletions: file.deletions,
+    status: file.status,
+  }));
+
   core.info(`Found ${docFiles.length} documentation files changed`);
-  return docFiles;
+  core.info(`Total files in PR: ${allFiles.length}`);
+  
+  return { 
+    docFiles, 
+    allFiles, 
+    prTitle: pr.title || '', 
+    prBody: pr.body || '' 
+  };
 }
 
 async function checkAgainstRule(
@@ -733,9 +759,123 @@ function getValidationExamples(
   return validations;
 }
 
+function needsDocumentation(prFiles: PRFiles): { needed: boolean; reason: string; suggestions: string[] } {
+  const { allFiles, docFiles, prTitle, prBody } = prFiles;
+
+  // If there are already docs, skip this check
+  if (docFiles.length > 0) {
+    return { needed: false, reason: '', suggestions: [] };
+  }
+
+  const suggestions: string[] = [];
+  let reason = '';
+
+  // Check for new features (by PR title/body keywords)
+  const featureKeywords = /\b(feat|feature|add|new|implement|create)\b/i;
+  const isFeaturePR = featureKeywords.test(prTitle) || featureKeywords.test(prBody);
+
+  // Count significant code changes
+  const codeFiles = allFiles.filter(
+    (f) =>
+      (f.filename.endsWith('.ts') ||
+        f.filename.endsWith('.tsx') ||
+        f.filename.endsWith('.js') ||
+        f.filename.endsWith('.jsx')) &&
+      !f.filename.includes('.test.') &&
+      !f.filename.includes('.spec.') &&
+      !f.filename.includes('__tests__') &&
+      !f.filename.includes('.stories.')
+  );
+
+  const totalAdditions = codeFiles.reduce((sum, f) => sum + f.additions, 0);
+  const newFiles = codeFiles.filter((f) => f.status === 'added');
+
+  // Check for database migrations
+  const hasMigrations = allFiles.some((f) => f.filename.includes('migrations/'));
+
+  // Check for new API endpoints or services
+  const hasNewServices = newFiles.some(
+    (f) => f.filename.includes('/services/') || f.filename.includes('/api/')
+  );
+
+  // Check for new React components
+  const hasNewComponents = newFiles.some(
+    (f) => f.filename.includes('/components/') && f.filename.endsWith('.tsx')
+  );
+
+  // Check for new hooks
+  const hasNewHooks = newFiles.some(
+    (f) => f.filename.includes('/hooks/') && f.filename.startsWith('use-')
+  );
+
+  // Determine if docs are needed
+  let needed = false;
+
+  if (isFeaturePR && totalAdditions > 100) {
+    needed = true;
+    reason = 'This PR introduces a new feature with significant code changes';
+
+    if (hasNewComponents) {
+      suggestions.push(
+        'Add user documentation in `docs/features/` or `mintlify-docs/` explaining how to use the new UI components'
+      );
+    }
+
+    if (hasNewHooks) {
+      suggestions.push(
+        'Document the new React hooks in `docs/development/hooks.md` with usage examples'
+      );
+    }
+
+    if (hasNewServices) {
+      suggestions.push(
+        'Add architecture documentation in `docs/architecture/` explaining how the new service works and integrates with existing systems'
+      );
+    }
+
+    if (hasMigrations) {
+      suggestions.push(
+        'Document database changes in `docs/database/` or update `docs/database-schema.md`'
+      );
+      suggestions.push(
+        'If migrations affect data structure, add migration notes in `docs/setup/DATABASE_MIGRATIONS.md`'
+      );
+    }
+
+    if (suggestions.length === 0) {
+      // Generic suggestions
+      suggestions.push(
+        'Add feature documentation in `docs/features/` explaining what the feature does and how it works'
+      );
+      suggestions.push(
+        'Consider adding user-facing docs in `mintlify-docs/` if users interact with this feature'
+      );
+    }
+  } else if (hasMigrations && !isFeaturePR) {
+    needed = true;
+    reason = 'This PR includes database migrations';
+    suggestions.push(
+      'Document database schema changes in `docs/database-schema.md` or `docs/database/`'
+    );
+    suggestions.push(
+      'Add migration notes to `docs/setup/DATABASE_MIGRATIONS.md` if needed for local setup'
+    );
+  } else if (hasNewServices && totalAdditions > 150) {
+    needed = true;
+    reason = 'This PR adds new services or APIs with substantial implementation';
+    suggestions.push(
+      'Add architecture documentation in `docs/architecture/` or `docs/api/` explaining the service design'
+    );
+    suggestions.push('Document API endpoints and usage examples if exposing new APIs');
+  }
+
+  return { needed, reason, suggestions };
+}
+
 async function postReviewComments(
   issues: DocumentationIssue[],
-  validations: ValidationSuccess[]
+  validations: ValidationSuccess[],
+  prFiles: PRFiles
 ): Promise<void> {
   const token = process.env.GITHUB_TOKEN || process.env.INPUT_GITHUB_TOKEN || '';
   if (!token) {
@@ -822,11 +962,33 @@ async function postReviewComments(
     issuesByFile.get(issue.file)!.push(issue);
   }
 
+  // Check if documentation is needed
+  const docsNeeded = needsDocumentation(prFiles);
+
   // Create a review comment with a unique identifier
   let reviewBody = '## 📚 Documentation Review\n\n';
   reviewBody += '<!-- docs-review-action -->\n\n';
 
-  if (issues.length === 0) {
+  // If docs are needed but missing, call it out first
+  if (docsNeeded.needed) {
+    reviewBody += '### ⚠️ Documentation Needed\n\n';
+    reviewBody += `${docsNeeded.reason}. Consider adding documentation:\n\n`;
+    for (const suggestion of docsNeeded.suggestions) {
+      reviewBody += `- ${suggestion}\n`;
+    }
+    reviewBody += '\n---\n\n';
+  }
+
+  if (issues.length === 0 && prFiles.docFiles.length === 0) {
+    // No docs in PR at all
+    if (docsNeeded.needed) {
+      reviewBody += '**No documentation files found in this PR.**\n\n';
+      reviewBody += 'Please add documentation following the suggestions above.\n';
+    } else {
+      reviewBody += '✅ **No documentation changes in this PR.**\n\n';
+      reviewBody += 'Code-only changes detected. Documentation review skipped.\n';
+    }
+  } else if (issues.length === 0) {
     reviewBody += '✅ **All documentation checks passed!**\n\n';
 
     // Group validations by file
@@ -945,21 +1107,26 @@ async function run(): Promise<void> {
     const rules = await loadRules(rulesPath);
     core.info(`Loaded ${rules.length} rule(s)`);
 
-    // Get changed documentation files
-    const changedFiles = await getChangedDocFiles();
+    // Get changed files
+    const prFiles = await getChangedFiles();
 
-    if (changedFiles.length === 0) {
-      core.info('No documentation files changed, skipping review');
-      return;
+    // Always run the review to check if docs are needed
+    let issues: DocumentationIssue[] = [];
+    let validations: ValidationSuccess[] = [];
+
+    if (prFiles.docFiles.length > 0) {
+      // Analyze documentation if docs exist
+      const analysis = await analyzeDocumentation(prFiles.docFiles, rules);
+      issues = analysis.issues;
+      validations = analysis.validations;
+      core.info(`Found ${issues.length} documentation issue(s)`);
+      core.info(`Found ${validations.length} successful validation(s)`);
+    } else {
+      core.info('No documentation files in PR');
     }
 
-    // Analyze documentation
-    const { issues, validations } = await analyzeDocumentation(changedFiles, rules);
-    core.info(`Found ${issues.length} documentation issue(s)`);
-    core.info(`Found ${validations.length} successful validation(s)`);
-
-    // Post review comments
-    await postReviewComments(issues, validations);
+    // Post review comments (including "docs needed" check)
+    await postReviewComments(issues, validations, prFiles);
 
     core.info('Documentation review completed');
   } catch (error) {
