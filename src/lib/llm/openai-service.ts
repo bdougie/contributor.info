@@ -77,8 +77,10 @@ class OpenAIService {
   private config: LLMServiceConfig;
 
   constructor() {
-    // Browser environment - use Vite's import.meta.env
-    this.apiKey = import.meta.env?.VITE_OPENAI_API_KEY;
+    // Support both browser (Vite) and Node.js environments
+    this.apiKey =
+      import.meta.env?.VITE_OPENAI_API_KEY ||
+      (typeof process !== 'undefined' ? process.env?.VITE_OPENAI_API_KEY : undefined);
 
     this.config = {
       model: 'gpt-4o-mini', // Start with high-quota free model
@@ -202,8 +204,9 @@ class OpenAIService {
 
   /**
    * Make API call to OpenAI with rate limiting and error handling
+   * Public method for use by other services
    */
-  private async callOpenAI(prompt: string, model?: string): Promise<string> {
+  async callOpenAI(prompt: string, model?: string): Promise<string> {
     if (!this.apiKey) {
       throw new Error('OpenAI API key not configured');
     }

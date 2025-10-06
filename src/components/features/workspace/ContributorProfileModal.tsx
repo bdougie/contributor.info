@@ -262,12 +262,11 @@ export function ContributorProfileModal({
       recentIssues,
       recentActivities,
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     contributor?.username,
     contributor?.avatar_url,
     contributor?.contributions?.pull_requests,
-    activities?.length, // Use length to prevent re-renders from array reference changes
+    activities,
   ]);
 
   // Generate AI summary with properly structured data

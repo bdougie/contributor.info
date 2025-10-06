@@ -4,7 +4,7 @@
  * Designed for hover card integration with minimal latency
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { llmService } from '@/lib/llm/llm-service';
 import type { ContributorStats } from '@/lib/types';
 import type { ContributorActivityData } from '@/lib/llm/contributor-summary-types';
@@ -53,15 +53,34 @@ export function useContributorSummary(
   const [error, setError] = useState<string | null>(null);
   const [confidence, setConfidence] = useState<number | null>(null);
 
+  // Create stable activity key to prevent infinite re-renders
+  // Only re-fetch when actual activity data changes, not when object reference changes
+  const activityKey = useMemo(() => {
+    return JSON.stringify({
+      login: contributor?.login || '',
+      prCount: contributor?.pullRequests || 0,
+      recentPRCount: contributor?.recentPRs?.length || 0,
+      recentIssueCount: contributor?.recentIssues?.length || 0,
+      recentActivityCount: contributor?.recentActivities?.length || 0,
+    });
+  }, [contributor]);
+
   useEffect(() => {
+    // Clear stale state from previous contributor before any early returns
+    setSummary(null);
+    setConfidence(null);
+    setError(null);
+
     // Skip if disabled or no contributor data
     if (!enabled || !contributor || !contributor.login) {
+      setLoading(false);
       return;
     }
 
     // Skip if no LLM service available
     if (!llmService.isAvailable()) {
       console.log('[AI Summary] LLM service not available for', contributor.login);
+      setLoading(false);
       return;
     }
 
@@ -70,7 +89,6 @@ export function useContributorSummary(
     async function fetchSummary() {
       try {
         setLoading(true);
-        setError(null);
 
         // Build activity data from contributor stats
         const activityData: ContributorActivityData = {
@@ -88,18 +106,22 @@ export function useContributorSummary(
           },
         };
 
-        // Skip if no meaningful activity
+        // Generate fallback for contributors with minimal activity
         if (
           activityData.totalContributions === 0 &&
           activityData.recentPRs.length === 0 &&
           activityData.recentIssues.length === 0
         ) {
-          console.log('[AI Summary] Skipping - no activity data for', contributor.login, {
-            totalContributions: activityData.totalContributions,
-            recentPRs: activityData.recentPRs.length,
-            recentIssues: activityData.recentIssues.length,
-          });
-          setLoading(false);
+          console.log('[AI Summary] Using fallback - no detailed activity for', contributor.login);
+
+          // Generate a simple fallback summary based on available data
+          const fallbackSummary = `${contributor.login} is a contributor to this repository.`;
+
+          if (!cancelled) {
+            setSummary(fallbackSummary);
+            setConfidence(0.3); // Low confidence for fallback
+            setLoading(false);
+          }
           return;
         }
 
@@ -146,7 +168,9 @@ export function useContributorSummary(
     return () => {
       cancelled = true;
     };
-  }, [contributor, enabled]); // Re-fetch if contributor data changes
+    // Note: activityKey is memoized from contributor, so contributor changes trigger this effect
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activityKey, enabled]);
 
   return {
     summary,

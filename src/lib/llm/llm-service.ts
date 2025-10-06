@@ -230,8 +230,8 @@ class LLMService {
         : await this.generateContributorSummaryDirect(activityData, contributorInfo);
 
       if (insight && this.options.enableCaching) {
-        // Cache for 6 hours (360 minutes) - contributor activity is relatively stable
-        cacheService.set(cacheKey, insight, dataHash, 360);
+        // Cache for 24 hours (1440 minutes) - contributor activity is relatively stable
+        cacheService.set(cacheKey, insight, dataHash, 1440);
       }
 
       // If LLM unavailable, use fallback or return null (hover card will hide summary)
@@ -266,8 +266,7 @@ class LLMService {
 
     try {
       // Note: PostHog service uses maxTokens from config (500), but prompt enforces 30 word limit
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await (posthogOpenAIService as any).callOpenAI(prompt, model, {
+      const result = await posthogOpenAIService.callOpenAI(prompt, model, {
         feature: 'contributor-summary',
         userId: metadata?.userId,
         traceId: metadata?.traceId,
@@ -301,8 +300,7 @@ class LLMService {
 
     try {
       // Call OpenAI directly with low token count
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const response = await (openAIService as any).callOpenAI(prompt, 'gpt-4o-mini');
+      const response = await openAIService.callOpenAI(prompt, 'gpt-4o-mini');
 
       return {
         type: 'contributor_summary',
@@ -323,18 +321,31 @@ class LLMService {
     data: ContributorActivityData,
     contributor: ContributorSummaryMetadata
   ): string {
-    // Get actual PR and issue titles for context
-    const recentPRTitles = data.recentPRs.slice(0, 5).map((pr) => pr.title);
-    const recentIssueTitles = data.recentIssues.slice(0, 5).map((issue) => issue.title);
+    // Get actual PR and issue titles for context with null safety
+    const recentPRTitles = (data.recentPRs || [])
+      .slice(0, 5)
+      .map((pr) => pr?.title)
+      .filter((title): title is string => Boolean(title));
 
-    const prSummary = this.summarizePRActivity(data.recentPRs);
-    const issueSummary = this.summarizeIssueActivity(data.recentIssues);
+    const recentIssueTitles = (data.recentIssues || [])
+      .slice(0, 5)
+      .map((issue) => issue?.title)
+      .filter((title): title is string => Boolean(title));
+
+    const prSummary = this.summarizePRActivity(data.recentPRs || []);
+    const issueSummary = this.summarizeIssueActivity(data.recentIssues || []);
 
     // Calculate age of most recent activity to determine if contributions are old
     let ageContext = '';
     const allDates = [
-      ...data.recentPRs.map((pr) => new Date(pr.created_at)),
-      ...data.recentIssues.map((issue) => new Date(issue.created_at)),
+      ...(data.recentPRs || [])
+        .map((pr) => pr.created_at)
+        .filter((date): date is string => Boolean(date))
+        .map((date) => new Date(date)),
+      ...(data.recentIssues || [])
+        .map((issue) => issue.created_at)
+        .filter((date): date is string => Boolean(date))
+        .map((date) => new Date(date)),
     ].filter((date) => !isNaN(date.getTime()));
 
     if (allDates.length > 0) {
