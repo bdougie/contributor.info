@@ -1,7 +1,7 @@
 // React hook for notifications with Realtime subscriptions
 // Related to issue #959: Add notification system for async operations
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { NotificationService } from '../lib/notifications';
 import type { Notification, NotificationFilters } from '../lib/notifications';
@@ -14,6 +14,17 @@ export function useNotifications(filters: NotificationFilters = {}) {
   const [loading, setLoading] = useState(false);
   const [hasInitialLoad, setHasInitialLoad] = useState(false);
 
+  // Memoize filters to prevent infinite loops from object recreation
+  const stableFilters = useMemo(
+    () => ({
+      limit: filters.limit,
+      offset: filters.offset,
+      operation_type: filters.operation_type,
+      unread_only: filters.unread_only,
+    }),
+    [filters.limit, filters.offset, filters.operation_type, filters.unread_only]
+  );
+
   // Fetch notifications
   const fetchNotifications = useCallback(async () => {
     if (!user) return;
@@ -23,11 +34,11 @@ export function useNotifications(filters: NotificationFilters = {}) {
       setLoading(true);
     }
 
-    const data = await NotificationService.getNotifications(filters);
+    const data = await NotificationService.getNotifications(stableFilters);
     setNotifications(data);
     setLoading(false);
     setHasInitialLoad(true);
-  }, [user, filters, hasInitialLoad]);
+  }, [user, stableFilters, hasInitialLoad]);
 
   // Fetch unread count
   const fetchUnreadCount = useCallback(async () => {
