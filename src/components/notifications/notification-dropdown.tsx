@@ -39,17 +39,28 @@ export function NotificationDropdown({ className }: NotificationDropdownProps) {
     await deleteAllRead();
   };
 
+  // Disable dropdown if no notifications and not loading
+  const isEmpty = notifications.length === 0 && !loading;
+
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className={cn('relative', className)}>
-          <Icon name="mail" size={18} />
+        <Button
+          variant="ghost"
+          size="sm"
+          className={cn('relative', className)}
+          disabled={isEmpty}
+          title={isEmpty ? 'No notifications' : 'View notifications'}
+        >
+          <Icon name="mail" size={18} className={cn(isEmpty && 'opacity-50')} />
           {unreadCount > 0 && (
             <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-[10px] font-bold text-white">
               {unreadCount > 9 ? '9+' : unreadCount}
             </span>
           )}
-          <span className="sr-only">Notifications</span>
+          <span className="sr-only">
+            {isEmpty ? 'No notifications' : `${unreadCount} notifications`}
+          </span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-[400px] p-0">

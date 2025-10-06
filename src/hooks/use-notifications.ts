@@ -12,16 +12,22 @@ export function useNotifications(filters: NotificationFilters = {}) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [hasInitialLoad, setHasInitialLoad] = useState(false);
 
   // Fetch notifications
   const fetchNotifications = useCallback(async () => {
     if (!user) return;
 
-    setLoading(true);
+    // Only show loading on initial fetch
+    if (!hasInitialLoad) {
+      setLoading(true);
+    }
+
     const data = await NotificationService.getNotifications(filters);
     setNotifications(data);
     setLoading(false);
-  }, [user, filters]);
+    setHasInitialLoad(true);
+  }, [user, filters, hasInitialLoad]);
 
   // Fetch unread count
   const fetchUnreadCount = useCallback(async () => {
