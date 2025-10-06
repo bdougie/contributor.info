@@ -103,9 +103,7 @@ export function WorkspaceDiscussionsTable({
         // Filter repositories based on selection
         const repoIds =
           selectedRepositories.length > 0
-            ? repositories
-                .filter((r) => selectedRepositories.includes(r.full_name))
-                .map((r) => r.id)
+            ? repositories.filter((r) => selectedRepositories.includes(r.id)).map((r) => r.id)
             : repositories.map((r) => r.id);
 
         if (repoIds.length === 0) {
