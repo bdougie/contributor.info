@@ -236,8 +236,22 @@ export function ContributorProfileModal({
     const avatarUrl = contributor?.avatar_url;
     const prCount = contributor?.contributions?.pull_requests;
 
-    if (!username || !activities) {
+    // Always return username, even if no activities (hook will use fallback)
+    if (!username) {
       return { login: '', avatar_url: '', pullRequests: 0, percentage: 0 };
+    }
+
+    // If no activities, return basic data with username (hook generates fallback)
+    if (!activities || activities.length === 0) {
+      return {
+        login: username,
+        avatar_url: avatarUrl || '',
+        pullRequests: prCount || 0,
+        percentage: 0,
+        recentPRs: [],
+        recentIssues: [],
+        recentActivities: [],
+      };
     }
 
     // Filter and map activities to appropriate structures

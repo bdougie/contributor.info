@@ -71,8 +71,16 @@ export function useContributorSummary(
     setConfidence(null);
     setError(null);
 
+    console.log('[AI Summary Hook] Effect triggered:', {
+      enabled,
+      hasContributor: !!contributor,
+      login: contributor?.login,
+      llmAvailable: llmService.isAvailable(),
+    });
+
     // Skip if disabled or no contributor data
     if (!enabled || !contributor || !contributor.login) {
+      console.log('[AI Summary Hook] Early return - disabled or no contributor');
       setLoading(false);
       return;
     }

@@ -39,9 +39,11 @@ class LLMService {
    * Check if any LLM service is available
    */
   isAvailable(): boolean {
-    return this.options.enablePostHogTracking
-      ? posthogOpenAIService.isAvailable()
-      : openAIService.isAvailable();
+    // Try PostHog first if enabled, but fall back to regular OpenAI if PostHog unavailable
+    const posthogAvailable =
+      this.options.enablePostHogTracking && posthogOpenAIService.isAvailable();
+    const openAIAvailable = openAIService.isAvailable();
+    return posthogAvailable || openAIAvailable;
   }
 
   /**
@@ -223,11 +225,23 @@ class LLMService {
       }
     }
 
-    // Try generating summary with PostHog tracking
+    // Try generating summary with PostHog tracking, fall back to direct OpenAI if PostHog unavailable
     try {
-      const insight = this.options.enablePostHogTracking
-        ? await this.generateContributorSummaryWithTracking(activityData, contributorInfo, metadata)
-        : await this.generateContributorSummaryDirect(activityData, contributorInfo);
+      let insight: LLMInsight | null = null;
+
+      if (this.options.enablePostHogTracking && posthogOpenAIService.isAvailable()) {
+        insight = await this.generateContributorSummaryWithTracking(
+          activityData,
+          contributorInfo,
+          metadata
+        );
+      }
+
+      // If PostHog failed or unavailable, try direct OpenAI
+      if (!insight && openAIService.isAvailable()) {
+        console.log('[LLM Service] PostHog unavailable, using direct OpenAI');
+        insight = await this.generateContributorSummaryDirect(activityData, contributorInfo);
+      }
 
       if (insight && this.options.enableCaching) {
         // Cache for 24 hours (1440 minutes) - contributor activity is relatively stable
