@@ -66,14 +66,20 @@ export function getOrgAvatarUrl(orgName?: string): string {
 /**
  * Get repository owner avatar URL with fallback
  * @param owner - Repository owner name
+ * @param cachedUrl - Optional cached URL from Supabase
  * @returns Owner avatar URL with fallback
  */
-export function getRepoOwnerAvatarUrl(owner?: string): string {
+export function getRepoOwnerAvatarUrl(owner?: string, cachedUrl?: string): string {
   if (!owner) {
     return getFallbackAvatar();
   }
 
-  // Use avatars.githubusercontent.com for repo owners too
-  // GitHub's .png endpoints are deprecated/unreliable
-  return `https://avatars.githubusercontent.com/${owner}`;
+  // Prefer cached URL from Supabase if available
+  if (cachedUrl) {
+    return cachedUrl;
+  }
+
+  // Fallback to default avatar (not GitHub API)
+  // Repository avatars should be fetched from Supabase or use default
+  return getFallbackAvatar();
 }

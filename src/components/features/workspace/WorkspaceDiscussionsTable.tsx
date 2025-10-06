@@ -394,12 +394,9 @@ export function WorkspaceDiscussionsTable({
                   {/* Author Avatar */}
                   <div className="flex-shrink-0">
                     <Avatar className="h-10 w-10">
-                      {(discussion.author_avatar_url || discussion.author_login) && (
+                      {discussion.author_avatar_url && (
                         <AvatarImage
-                          src={
-                            discussion.author_avatar_url ||
-                            `https://avatars.githubusercontent.com/${discussion.author_login}?s=40`
-                          }
+                          src={discussion.author_avatar_url}
                           alt={discussion.author_login || 'User'}
                         />
                       )}
