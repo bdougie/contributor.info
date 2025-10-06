@@ -154,6 +154,8 @@ For each issue, use ### headers with clear structure:
 
   // Add code changes with size limits
   let diffContent = '';
+  let isTruncated = false;
+  
   for (const file of pr.files) {
     if (file.patch) {
       diffContent += `\n## File: ${file.filename}\n\`\`\`diff\n${file.patch}\n\`\`\`\n`;
@@ -162,12 +164,17 @@ For each issue, use ### headers with clear structure:
 
   // Truncate if too large (15KB limit, increased from 12KB for better context)
   if (diffContent.length > 15000) {
+    isTruncated = true;
     diffContent =
       diffContent.substring(0, 14000) +
-      '\n```\n\n... (diff truncated due to size - focus on critical files)';
+      '\n```\n\n**⚠️ DIFF TRUNCATED**: The complete diff exceeds size limits. Review only the visible portions.';
   }
 
   prompt += diffContent;
+  
+  if (isTruncated) {
+    prompt += `\n\n## ⚠️ Important: Handling Truncated Diffs\n\nThe diff has been truncated due to size. When reviewing:\n\n1. **DO NOT** comment on truncation or incomplete content\n2. **DO** review all visible code thoroughly\n3. **DO** mention if you need to see specific files to complete the review\n4. **DO** provide actionable feedback on what you can see\n5. Focus your review on the visible portions only\n\nIf critical files are cut off, recommend viewing them directly in the GitHub PR.`;
+  }
 
   prompt += `
 
@@ -177,7 +184,11 @@ Please provide a comprehensive, actionable review that helps improve code qualit
 
 Focus on issues that matter for functionality, security, maintainability, and consistency with established patterns.
 
-IMPORTANT: Use proper markdown formatting with ## and ### headers for clear structure. Never use # (h1 headers) - start with ## for main sections and ### for specific issues.`;
+IMPORTANT FORMATTING RULES:
+- Use proper markdown formatting with ## and ### headers for clear structure
+- Never use # (h1 headers) - start with ## for main sections and ### for specific issues
+- DO NOT mention or comment on diff truncation - review what you can see
+- If the diff was truncated, simply review the visible portions without mentioning the truncation`;
 
   return prompt;
 }

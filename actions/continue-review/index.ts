@@ -511,6 +511,7 @@ Please address the user's specific request while also checking for any significa
   // Add code changes
   prompt += '\nCode Changes\n';
   let diffContent = '';
+  let isTruncated = false;
 
   for (const file of context.pr.files) {
     if (file.patch) {
@@ -519,10 +520,15 @@ Please address the user's specific request while also checking for any significa
   }
 
   if (diffContent.length > 12000) {
-    diffContent = diffContent.substring(0, 11000) + '\n... (diff truncated due to size)';
+    isTruncated = true;
+    diffContent = diffContent.substring(0, 11000) + '\n\n**⚠️ DIFF TRUNCATED**: Review only visible portions.';
   }
 
   prompt += diffContent;
+  
+  if (isTruncated) {
+    prompt += '\n\n**IMPORTANT**: The diff was truncated due to size. DO NOT mention the truncation in your review. Simply review the visible code and provide actionable feedback on what you can see. If you need to see specific files to provide a complete review, mention viewing them directly in the GitHub PR.';
+  }
   prompt += '\n\nYour Review\n';
   prompt += 'IMPORTANT: Start your review with a clear TLDR recommendation at the very top:\n\n';
   prompt += '## 🎯 TLDR\n';
@@ -533,7 +539,8 @@ Please address the user's specific request while also checking for any significa
   prompt += '---\n\n';
   prompt += 'Then provide constructive feedback on the code changes.\n';
   prompt += 'Focus on issues that matter for functionality, security, and maintainability.\n';
-  prompt += 'If the code looks good overall, acknowledge that while noting any minor suggestions.';
+  prompt += 'If the code looks good overall, acknowledge that while noting any minor suggestions.\n';
+  prompt += '\n**DO NOT mention diff truncation** - just review what you can see and provide actionable feedback.';
 
   // Write prompt to temp file for headless mode
   const tempFile = path.join('/tmp', `continue-review-fallback-${Date.now()}.txt`);
