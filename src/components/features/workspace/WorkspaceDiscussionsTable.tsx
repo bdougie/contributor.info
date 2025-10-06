@@ -212,21 +212,27 @@ export function WorkspaceDiscussionsTable({
           <div className="flex flex-col sm:flex-row gap-4">
             {/* Search */}
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground"
+                aria-hidden="true"
+              />
               <Input
                 placeholder="Search discussions..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
+                aria-label="Search discussions"
               />
             </div>
 
             {/* Sort */}
-            <div className="flex gap-2">
+            <div className="flex gap-2" role="group" aria-label="Sort discussions">
               <Button
                 variant={sortBy === 'newest' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setSortBy('newest')}
+                aria-pressed={sortBy === 'newest'}
+                aria-label="Sort by newest"
               >
                 Newest
               </Button>
@@ -234,6 +240,8 @@ export function WorkspaceDiscussionsTable({
                 variant={sortBy === 'upvotes' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setSortBy('upvotes')}
+                aria-pressed={sortBy === 'upvotes'}
+                aria-label="Sort by most upvoted"
               >
                 Most Upvoted
               </Button>
@@ -241,6 +249,8 @@ export function WorkspaceDiscussionsTable({
                 variant={sortBy === 'comments' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setSortBy('comments')}
+                aria-pressed={sortBy === 'comments'}
+                aria-label="Sort by most commented"
               >
                 Most Commented
               </Button>
@@ -248,11 +258,13 @@ export function WorkspaceDiscussionsTable({
           </div>
 
           {/* Filter Chips */}
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Filter discussions">
             <Button
               variant={filterBy === 'all' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setFilterBy('all')}
+              aria-pressed={filterBy === 'all'}
+              aria-label="Show all discussions"
             >
               All
             </Button>
@@ -260,6 +272,8 @@ export function WorkspaceDiscussionsTable({
               variant={filterBy === 'answered' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setFilterBy('answered')}
+              aria-pressed={filterBy === 'answered'}
+              aria-label="Show answered discussions only"
             >
               Answered
             </Button>
@@ -267,13 +281,15 @@ export function WorkspaceDiscussionsTable({
               variant={filterBy === 'unanswered' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setFilterBy('unanswered')}
+              aria-pressed={filterBy === 'unanswered'}
+              aria-label="Show unanswered discussions only"
             >
               Unanswered
             </Button>
 
             {categories.length > 0 && (
               <>
-                <div className="border-l mx-2" />
+                <div className="border-l mx-2" aria-hidden="true" />
                 {categories.map((category) => (
                   <Button
                     key={category}
@@ -282,6 +298,8 @@ export function WorkspaceDiscussionsTable({
                     onClick={() =>
                       setSelectedCategory(selectedCategory === category ? null : category)
                     }
+                    aria-pressed={selectedCategory === category}
+                    aria-label={`Filter by ${category} category`}
                   >
                     {category}
                   </Button>
@@ -338,11 +356,12 @@ export function WorkspaceDiscussionsTable({
 
         {/* Discussions List */}
         {!loading && !error && filteredDiscussions.length > 0 && (
-          <div className="space-y-3">
+          <div className="space-y-3" role="feed" aria-label="Discussions feed">
             {filteredDiscussions.map((discussion) => (
-              <div
+              <article
                 key={discussion.id}
                 className="p-4 border rounded-lg hover:border-primary/50 transition-colors"
+                aria-labelledby={`discussion-title-${discussion.id}`}
               >
                 <div className="flex gap-4">
                   {/* Author Avatar */}
@@ -366,7 +385,9 @@ export function WorkspaceDiscussionsTable({
                       {discussion.category_name && (
                         <Badge variant="secondary" className="text-xs">
                           {discussion.category_emoji && (
-                            <span className="mr-1">{discussion.category_emoji}</span>
+                            <span className="mr-1" aria-hidden="true">
+                              {discussion.category_emoji}
+                            </span>
                           )}
                           {discussion.category_name}
                         </Badge>
@@ -374,16 +395,23 @@ export function WorkspaceDiscussionsTable({
                     </div>
 
                     {/* Title and Link */}
-                    <h3 className="font-semibold text-lg mb-1 flex items-start gap-2">
+                    <h3
+                      id={`discussion-title-${discussion.id}`}
+                      className="font-semibold text-lg mb-1 flex items-start gap-2"
+                    >
                       <a
                         href={discussion.url}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="hover:underline flex-1"
+                        aria-label={`${discussion.title} (opens in new tab)`}
                       >
                         {discussion.title}
                       </a>
-                      <ExternalLink className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-1" />
+                      <ExternalLink
+                        className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-1"
+                        aria-hidden="true"
+                      />
                     </h3>
 
                     {/* Preview Text */}
@@ -399,30 +427,41 @@ export function WorkspaceDiscussionsTable({
                         <span>by {discussion.author_login || 'Unknown'}</span>
                       </div>
                       <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-1">
-                          <ChevronUp className="h-4 w-4" />
+                        <div
+                          className="flex items-center gap-1"
+                          aria-label={`${discussion.upvote_count} upvotes`}
+                        >
+                          <ChevronUp className="h-4 w-4" aria-hidden="true" />
                           <span>{discussion.upvote_count}</span>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <MessageSquare className="h-4 w-4" />
+                        <div
+                          className="flex items-center gap-1"
+                          aria-label={`${discussion.comment_count} comments`}
+                        >
+                          <MessageSquare className="h-4 w-4" aria-hidden="true" />
                           <span>{discussion.comment_count}</span>
                         </div>
                         {discussion.is_answered && (
-                          <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
-                            <CheckCircle2 className="h-4 w-4" />
+                          <div
+                            className="flex items-center gap-1 text-green-600 dark:text-green-400"
+                            aria-label="Discussion answered"
+                          >
+                            <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
                             <span>Answered</span>
                           </div>
                         )}
                       </div>
                       <div className="ml-auto">
-                        {formatDistanceToNow(new Date(discussion.updated_at), {
-                          addSuffix: true,
-                        })}
+                        <time dateTime={discussion.updated_at}>
+                          {formatDistanceToNow(new Date(discussion.updated_at), {
+                            addSuffix: true,
+                          })}
+                        </time>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              </article>
             ))}
           </div>
         )}
