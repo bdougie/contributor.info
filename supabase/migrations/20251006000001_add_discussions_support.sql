@@ -34,9 +34,8 @@ END $$;
 
 -- Discussions Table
 CREATE TABLE IF NOT EXISTS public.discussions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id VARCHAR PRIMARY KEY NOT NULL,  -- GitHub GraphQL node ID (e.g., "D_kwDOJm0kOc4AiTSy")
   github_id VARCHAR UNIQUE NOT NULL,
-  github_node_id VARCHAR UNIQUE NOT NULL,  -- GraphQL global node ID
   repository_id UUID REFERENCES repositories(id) ON DELETE CASCADE,
   number INTEGER NOT NULL,
   title TEXT NOT NULL,
@@ -58,7 +57,7 @@ CREATE TABLE IF NOT EXISTS public.discussions (
 
   -- Answer tracking (for Q&A discussions)
   is_answered BOOLEAN DEFAULT FALSE,
-  answer_id VARCHAR,  -- References discussion_comments.github_id
+  answer_id VARCHAR,  -- References discussion_comments.id
   answer_chosen_at TIMESTAMPTZ,
   answer_chosen_by VARCHAR,
 
@@ -77,20 +76,19 @@ CREATE TABLE IF NOT EXISTS public.discussions (
 );
 
 COMMENT ON TABLE public.discussions IS 'GitHub Discussions collected via GraphQL API';
-COMMENT ON COLUMN public.discussions.github_node_id IS 'GraphQL global node ID for the discussion';
+COMMENT ON COLUMN public.discussions.id IS 'GitHub GraphQL global node ID for the discussion';
 COMMENT ON COLUMN public.discussions.is_answered IS 'For Q&A discussions, indicates if an answer has been chosen';
-COMMENT ON COLUMN public.discussions.answer_id IS 'GitHub ID of the comment marked as the answer';
+COMMENT ON COLUMN public.discussions.answer_id IS 'GitHub node ID of the comment marked as the answer';
 
 -- Discussion Comments Table
 CREATE TABLE IF NOT EXISTS public.discussion_comments (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id VARCHAR PRIMARY KEY NOT NULL,  -- GitHub GraphQL node ID (e.g., "DC_kwDOJm0kOc4AiTSy")
   github_id VARCHAR UNIQUE NOT NULL,
-  github_node_id VARCHAR UNIQUE NOT NULL,  -- GraphQL global node ID
 
   -- Parent references
-  discussion_id UUID REFERENCES discussions(id) ON DELETE CASCADE,
+  discussion_id VARCHAR NOT NULL,
   discussion_number INTEGER NOT NULL,
-  parent_comment_id UUID REFERENCES discussion_comments(id) ON DELETE CASCADE,  -- For nested replies
+  parent_comment_id VARCHAR,  -- For nested replies
 
   -- Author information
   author_id UUID REFERENCES contributors(id) ON DELETE SET NULL,
@@ -109,11 +107,15 @@ CREATE TABLE IF NOT EXISTS public.discussion_comments (
   reply_count INTEGER DEFAULT 0,
 
   -- Audit
-  synced_at TIMESTAMPTZ DEFAULT NOW()
+  synced_at TIMESTAMPTZ DEFAULT NOW(),
+
+  -- Foreign key constraints
+  CONSTRAINT fk_discussion FOREIGN KEY (discussion_id) REFERENCES discussions(id) ON DELETE CASCADE,
+  CONSTRAINT fk_parent_comment FOREIGN KEY (parent_comment_id) REFERENCES discussion_comments(id) ON DELETE CASCADE
 );
 
 COMMENT ON TABLE public.discussion_comments IS 'Comments on GitHub Discussions, supports nested replies';
-COMMENT ON COLUMN public.discussion_comments.github_node_id IS 'GraphQL global node ID for the comment';
+COMMENT ON COLUMN public.discussion_comments.id IS 'GitHub GraphQL global node ID for the comment';
 COMMENT ON COLUMN public.discussion_comments.parent_comment_id IS 'Links to parent comment for nested thread structure';
 COMMENT ON COLUMN public.discussion_comments.is_answer IS 'Indicates if this comment was marked as the answer to a Q&A discussion';
 
@@ -128,7 +130,6 @@ CREATE INDEX IF NOT EXISTS idx_discussions_category ON discussions(category_name
 CREATE INDEX IF NOT EXISTS idx_discussions_created_at ON discussions(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_discussions_updated_at ON discussions(updated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_discussions_is_answered ON discussions(is_answered) WHERE is_answered = TRUE;
-CREATE INDEX IF NOT EXISTS idx_discussions_github_node_id ON discussions(github_node_id);
 
 -- Discussion comments indexes
 CREATE INDEX IF NOT EXISTS idx_discussion_comments_discussion ON discussion_comments(discussion_id);
@@ -136,7 +137,6 @@ CREATE INDEX IF NOT EXISTS idx_discussion_comments_author ON discussion_comments
 CREATE INDEX IF NOT EXISTS idx_discussion_comments_parent ON discussion_comments(parent_comment_id);
 CREATE INDEX IF NOT EXISTS idx_discussion_comments_created_at ON discussion_comments(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_discussion_comments_is_answer ON discussion_comments(is_answer) WHERE is_answer = TRUE;
-CREATE INDEX IF NOT EXISTS idx_discussion_comments_github_node_id ON discussion_comments(github_node_id);
 
 -- ============================================================================
 -- RLS POLICIES
