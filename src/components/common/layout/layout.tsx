@@ -257,10 +257,20 @@ export default function Layout() {
                 {!onboardingLoading && !needsOnboarding && !isWorkspacePage() && (
                   // Show workspace switcher for users with workspaces (not on workspace pages)
                   <div onMouseEnter={handlePreloadCommandPalette}>
-                    <WorkspaceSwitcher
-                      className="min-w-[150px]"
-                      onOpenCommandPalette={() => setCommandPaletteOpen(true)}
-                    />
+                    <div className="hidden md:block">
+                      <WorkspaceSwitcher
+                        className="min-w-[200px]"
+                        showFullName={true}
+                        onOpenCommandPalette={() => setCommandPaletteOpen(true)}
+                      />
+                    </div>
+                    <div className="md:hidden">
+                      <WorkspaceSwitcher
+                        className="min-w-[40px]"
+                        showFullName={false}
+                        onOpenCommandPalette={() => setCommandPaletteOpen(true)}
+                      />
+                    </div>
                   </div>
                 )}
               </>

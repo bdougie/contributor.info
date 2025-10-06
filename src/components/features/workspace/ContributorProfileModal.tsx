@@ -348,471 +348,490 @@ export function ContributorProfileModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[80vh]">
-        <DialogHeader>
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-4">
-              <img
-                src={contributor.avatar_url}
-                alt={contributor.username}
-                className="h-16 w-16 rounded-full"
-              />
-              <div>
-                <DialogTitle className="text-xl">
-                  {contributor.name || contributor.username}
-                </DialogTitle>
-                <p className="text-sm text-muted-foreground">@{contributor.username}</p>
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {assignedGroups.map((group) => (
-                    <Badge key={group.id} variant="secondary" className="text-xs">
-                      {group.name}
-                    </Badge>
-                  ))}
-                  {permissions.canAssignContributorsToGroups ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={onManageGroups}
-                      className="h-6 text-xs"
-                    >
-                      <Plus className="h-3 w-3 mr-1" />
-                      Add to Group
-                    </Button>
-                  ) : (
-                    <GroupManagementCTA
-                      message={permissions.getGroupAssignmentMessage()}
-                      variant="inline"
-                      size="sm"
-                      showAction={false}
-                    />
-                  )}
+      <DialogContent className="max-w-[100vw] max-h-[100vh] md:max-w-3xl md:max-h-[80vh] md:rounded-lg rounded-none flex flex-col p-0">
+        <div className="flex-shrink-0 p-6 pb-0">
+          <DialogHeader>
+            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <img
+                  src={contributor.avatar_url}
+                  alt={contributor.username}
+                  className="h-16 w-16 rounded-full flex-shrink-0"
+                />
+                <div className="min-w-0 flex-1">
+                  <DialogTitle className="text-xl truncate">
+                    {contributor.name || contributor.username}
+                  </DialogTitle>
+                  <p className="text-sm text-muted-foreground truncate">@{contributor.username}</p>
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {assignedGroups.map((group) => (
+                      <Badge key={group.id} variant="secondary" className="text-xs">
+                        {group.name}
+                      </Badge>
+                    ))}
+                    {permissions.canAssignContributorsToGroups ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={onManageGroups}
+                        className="h-6 text-xs"
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        Add to Group
+                      </Button>
+                    ) : (
+                      <GroupManagementCTA
+                        message={permissions.getGroupAssignmentMessage()}
+                        variant="inline"
+                        size="sm"
+                        showAction={false}
+                      />
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => window.open(`https://github.com/${contributor.username}`, '_blank')}
-              >
-                GitHub Profile
-              </Button>
-              {contributor.linkedin_url && canSafelyOpenUrl(contributor.linkedin_url) && (
+              <div className="flex flex-wrap gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => {
-                    const sanitized = sanitizeLinkedInUrl(contributor.linkedin_url);
-                    if (sanitized) {
-                      window.open(sanitized, '_blank');
-                    }
-                  }}
+                  onClick={() =>
+                    window.open(`https://github.com/${contributor.username}`, '_blank')
+                  }
+                  className="flex-1 min-w-[120px] sm:flex-none"
                 >
-                  LinkedIn
+                  GitHub Profile
                 </Button>
-              )}
-              {contributor.discord_url && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    if (contributor.discord_url!.startsWith('discord:')) {
-                      // Discord username, copy to clipboard
-                      navigator.clipboard.writeText(
-                        contributor.discord_url!.replace('discord:', '')
-                      );
-                      // You might want to add a toast notification here
-                    } else {
-                      const sanitized = sanitizeDiscordUrl(contributor.discord_url);
-                      if (sanitized && canSafelyOpenUrl(sanitized)) {
+                {contributor.linkedin_url && canSafelyOpenUrl(contributor.linkedin_url) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const sanitized = sanitizeLinkedInUrl(contributor.linkedin_url);
+                      if (sanitized) {
                         window.open(sanitized, '_blank');
                       }
-                    }
-                  }}
-                >
-                  Discord
-                </Button>
-              )}
-            </div>
-          </div>
-        </DialogHeader>
-
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="activity">Activity</TabsTrigger>
-            <TabsTrigger value="notes">Notes ({notes.length})</TabsTrigger>
-            <TabsTrigger value="stats">Statistics</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview" className="space-y-4 mt-4">
-            {/* Bio Section */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Profile Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {contributor.bio && <p className="text-sm">{contributor.bio}</p>}
-                <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                  {contributor.company && (
-                    <div className="flex items-center gap-1">
-                      <Users className="h-4 w-4" />
-                      {contributor.company}
-                    </div>
-                  )}
-                  {contributor.location && (
-                    <div className="flex items-center gap-1">
-                      <Globe className="h-4 w-4" />
-                      {contributor.location}
-                    </div>
-                  )}
-                  <div className="flex items-center gap-1">
-                    <Calendar className="h-4 w-4" />
-                    Last active {getRelativeTime(contributor.stats.last_active)}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Quick Stats */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Contribution Summary</CardTitle>
-                <CardDescription>
-                  Total contributions: {humanizeNumber(contributor.stats.total_contributions)}
-                </CardDescription>
-
-                {/* AI-Generated Activity Summary */}
-                {(summary || summaryLoading || requiresAuth) && (
-                  <div className="mt-3 pt-3 border-t border-border/50">
-                    {summaryLoading && (
-                      <div className="space-y-2">
-                        <div className="h-3 w-full bg-muted animate-pulse rounded" />
-                        <div className="h-3 w-4/5 bg-muted animate-pulse rounded" />
-                      </div>
-                    )}
-                    {summary && !summaryLoading && !requiresAuth && (
-                      <p className="text-sm text-muted-foreground italic leading-relaxed">
-                        {summary}
-                      </p>
-                    )}
-                    {requiresAuth && !summaryLoading && (
-                      <div className="flex items-center justify-between gap-3 p-3 bg-muted/50 rounded-lg">
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">AI-powered insights available</p>
-                          <p className="text-xs text-muted-foreground">
-                            Login to see contributor summaries
-                          </p>
-                        </div>
-                        <Button onClick={handleAuthLogin} size="sm" variant="default">
-                          Login
-                        </Button>
-                      </div>
-                    )}
-                  </div>
+                    }}
+                    className="flex-1 min-w-[120px] sm:flex-none"
+                  >
+                    LinkedIn
+                  </Button>
                 )}
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="text-center">
-                    <GitPullRequest className="h-8 w-8 mx-auto mb-1 text-muted-foreground" />
-                    <div className="text-2xl font-semibold">
-                      {humanizeNumber(contributor.contributions.pull_requests)}
-                    </div>
-                    <div className="text-xs text-muted-foreground">Pull Requests</div>
-                  </div>
-                  <div className="text-center">
-                    <AlertCircle className="h-8 w-8 mx-auto mb-1 text-muted-foreground" />
-                    <div className="text-2xl font-semibold">
-                      {humanizeNumber(contributor.contributions.issues)}
-                    </div>
-                    <div className="text-xs text-muted-foreground">Issues</div>
-                  </div>
-                  <div className="text-center">
-                    <MessageSquare className="h-8 w-8 mx-auto mb-1 text-muted-foreground" />
-                    <div className="text-2xl font-semibold">
-                      {humanizeNumber(contributor.contributions.reviews)}
-                    </div>
-                    <div className="text-xs text-muted-foreground">Reviews</div>
-                  </div>
-                  <div className="text-center">
-                    <GitCommit className="h-8 w-8 mx-auto mb-1 text-muted-foreground" />
-                    <div className="text-2xl font-semibold">
-                      {humanizeNumber(contributor.contributions.commits)}
-                    </div>
-                    <div className="text-xs text-muted-foreground">Commits</div>
-                  </div>
-                </div>
+                {contributor.discord_url && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (contributor.discord_url!.startsWith('discord:')) {
+                        // Discord username, copy to clipboard
+                        navigator.clipboard.writeText(
+                          contributor.discord_url!.replace('discord:', '')
+                        );
+                        // You might want to add a toast notification here
+                      } else {
+                        const sanitized = sanitizeDiscordUrl(contributor.discord_url);
+                        if (sanitized && canSafelyOpenUrl(sanitized)) {
+                          window.open(sanitized, '_blank');
+                        }
+                      }
+                    }}
+                    className="flex-1 min-w-[120px] sm:flex-none"
+                  >
+                    Discord
+                  </Button>
+                )}
+              </div>
+            </div>
+          </DialogHeader>
+        </div>
 
-                {/* Trend */}
-                <div className="flex items-center justify-center gap-2 pt-2 border-t">
-                  <TrendIcon className={cn('h-5 w-5', trendColor)} />
-                  <span className={cn('font-medium', trendColor)}>
-                    {trend > 0 ? '+' : ''}
-                    {trend}%
-                  </span>
-                  <span className="text-sm text-muted-foreground">vs. previous period</span>
-                </div>
-              </CardContent>
-            </Card>
+        <div className="flex-1 overflow-y-auto px-6 pb-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="activity">Activity</TabsTrigger>
+              <TabsTrigger value="notes">Notes ({notes.length})</TabsTrigger>
+              <TabsTrigger value="stats">Statistics</TabsTrigger>
+            </TabsList>
 
-            {/* Social Links Section */}
-            <SocialLinksCard contributor={contributor} isLoggedIn={isLoggedIn} />
-          </TabsContent>
+            <TabsContent value="overview" className="space-y-4 mt-4">
+              {/* Bio Section */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Profile Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {contributor.bio && <p className="text-sm">{contributor.bio}</p>}
+                  <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                    {contributor.company && (
+                      <div className="flex items-center gap-1">
+                        <Users className="h-4 w-4" />
+                        {contributor.company}
+                      </div>
+                    )}
+                    {contributor.location && (
+                      <div className="flex items-center gap-1">
+                        <Globe className="h-4 w-4" />
+                        {contributor.location}
+                      </div>
+                    )}
+                    <div className="flex items-center gap-1">
+                      <Calendar className="h-4 w-4" />
+                      Last active {getRelativeTime(contributor.stats.last_active)}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-          <TabsContent value="activity" className="mt-4">
-            <Card className="overflow-hidden">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Recent Activity</CardTitle>
-                <CardDescription>Latest contributions across repositories</CardDescription>
-              </CardHeader>
-              <CardContent className="p-0">
-                <ScrollArea
-                  className="h-[400px] px-6 py-4"
-                  ref={scrollAreaRef}
-                  onScrollCapture={(e) => {
-                    const target = e.currentTarget;
-                    const scrollPercentage =
-                      (target.scrollTop + target.clientHeight) / target.scrollHeight;
+              {/* Quick Stats */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Contribution Summary</CardTitle>
+                  <CardDescription>
+                    Total contributions: {humanizeNumber(contributor.stats.total_contributions)}
+                  </CardDescription>
 
-                    // Load more when user scrolls to 80% of content
-                    if (scrollPercentage > 0.8 && hasMore && !activityLoading) {
-                      loadMore();
-                    }
-                  }}
-                >
-                  {(() => {
-                    if (activityError) {
-                      return (
-                        <div className="text-center py-8">
-                          <AlertCircle className="mx-auto h-10 w-10 text-destructive" />
-                          <p className="mt-2 text-sm text-destructive">Failed to load activity</p>
-                          <p className="text-xs text-muted-foreground mt-1">{activityError}</p>
+                  {/* AI-Generated Activity Summary */}
+                  {(summary || summaryLoading || requiresAuth) && (
+                    <div className="mt-3 pt-3 border-t border-border/50">
+                      {summaryLoading && (
+                        <div className="space-y-2">
+                          <div className="h-3 w-full bg-muted animate-pulse rounded" />
+                          <div className="h-3 w-4/5 bg-muted animate-pulse rounded" />
                         </div>
-                      );
-                    }
-                    if (activities.length > 0 || activityLoading) {
-                      return (
-                        <div className="space-y-3">
-                          {activities.map((activity) => (
-                            <div
-                              key={activity.id}
-                              className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors"
-                            >
+                      )}
+                      {summary && !summaryLoading && !requiresAuth && (
+                        <p className="text-sm text-muted-foreground italic leading-relaxed">
+                          {summary}
+                        </p>
+                      )}
+                      {requiresAuth && !summaryLoading && (
+                        <div className="flex items-center justify-between gap-3 p-3 bg-muted/50 rounded-lg">
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">AI-powered insights available</p>
+                            <p className="text-xs text-muted-foreground">
+                              Login to see contributor summaries
+                            </p>
+                          </div>
+                          <Button onClick={handleAuthLogin} size="sm" variant="default">
+                            Login
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="text-center">
+                      <GitPullRequest className="h-8 w-8 mx-auto mb-1 text-muted-foreground" />
+                      <div className="text-2xl font-semibold">
+                        {humanizeNumber(contributor.contributions.pull_requests)}
+                      </div>
+                      <div className="text-xs text-muted-foreground">Pull Requests</div>
+                    </div>
+                    <div className="text-center">
+                      <AlertCircle className="h-8 w-8 mx-auto mb-1 text-muted-foreground" />
+                      <div className="text-2xl font-semibold">
+                        {humanizeNumber(contributor.contributions.issues)}
+                      </div>
+                      <div className="text-xs text-muted-foreground">Issues</div>
+                    </div>
+                    <div className="text-center">
+                      <MessageSquare className="h-8 w-8 mx-auto mb-1 text-muted-foreground" />
+                      <div className="text-2xl font-semibold">
+                        {humanizeNumber(contributor.contributions.reviews)}
+                      </div>
+                      <div className="text-xs text-muted-foreground">Reviews</div>
+                    </div>
+                    <div className="text-center">
+                      <GitCommit className="h-8 w-8 mx-auto mb-1 text-muted-foreground" />
+                      <div className="text-2xl font-semibold">
+                        {humanizeNumber(contributor.contributions.commits)}
+                      </div>
+                      <div className="text-xs text-muted-foreground">Commits</div>
+                    </div>
+                  </div>
+
+                  {/* Trend */}
+                  <div className="flex items-center justify-center gap-2 pt-2 border-t">
+                    <TrendIcon className={cn('h-5 w-5', trendColor)} />
+                    <span className={cn('font-medium', trendColor)}>
+                      {trend > 0 ? '+' : ''}
+                      {trend}%
+                    </span>
+                    <span className="text-sm text-muted-foreground">vs. previous period</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Social Links Section */}
+              <SocialLinksCard contributor={contributor} isLoggedIn={isLoggedIn} />
+            </TabsContent>
+
+            <TabsContent value="activity" className="mt-4">
+              <Card className="overflow-hidden">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Recent Activity</CardTitle>
+                  <CardDescription>Latest contributions across repositories</CardDescription>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <ScrollArea
+                    className="h-[400px] px-6 py-4"
+                    ref={scrollAreaRef}
+                    onScrollCapture={(e) => {
+                      const target = e.currentTarget;
+                      const scrollPercentage =
+                        (target.scrollTop + target.clientHeight) / target.scrollHeight;
+
+                      // Load more when user scrolls to 80% of content
+                      if (scrollPercentage > 0.8 && hasMore && !activityLoading) {
+                        loadMore();
+                      }
+                    }}
+                  >
+                    {(() => {
+                      if (activityError) {
+                        return (
+                          <div className="text-center py-8">
+                            <AlertCircle className="mx-auto h-10 w-10 text-destructive" />
+                            <p className="mt-2 text-sm text-destructive">Failed to load activity</p>
+                            <p className="text-xs text-muted-foreground mt-1">{activityError}</p>
+                          </div>
+                        );
+                      }
+                      if (activities.length > 0 || activityLoading) {
+                        return (
+                          <div className="space-y-3">
+                            {activities.map((activity) => (
                               <div
-                                className={cn(
-                                  'mt-1',
-                                  getActivityColor(activity.type, activity.state)
-                                )}
+                                key={activity.id}
+                                className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors"
                               >
-                                {getActivityIcon(activity.type)}
-                              </div>
-                              <div className="flex-1 min-w-0 overflow-hidden">
-                                <a
-                                  href={activity.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="font-medium hover:underline line-clamp-2 text-sm block"
-                                >
-                                  {activity.title}
-                                </a>
-                                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                                  <span className="truncate max-w-[150px]">
-                                    {activity.repository}
-                                  </span>
-                                  <span className="flex-shrink-0">•</span>
-                                  <span className="flex-shrink-0">
-                                    {getRelativeTime(activity.created_at)}
-                                  </span>
-                                  {activity.state && (
-                                    <>
-                                      <span className="flex-shrink-0">•</span>
-                                      <Badge
-                                        variant="outline"
-                                        className="text-xs capitalize h-5 px-1 flex-shrink-0"
-                                      >
-                                        {activity.state}
-                                      </Badge>
-                                    </>
+                                <div
+                                  className={cn(
+                                    'mt-1',
+                                    getActivityColor(activity.type, activity.state)
                                   )}
+                                >
+                                  {getActivityIcon(activity.type)}
+                                </div>
+                                <div className="flex-1 min-w-0 overflow-hidden">
+                                  <a
+                                    href={activity.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="font-medium hover:underline line-clamp-2 text-sm block"
+                                  >
+                                    {activity.title}
+                                  </a>
+                                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                                    <span className="truncate max-w-[150px]">
+                                      {activity.repository}
+                                    </span>
+                                    <span className="flex-shrink-0">•</span>
+                                    <span className="flex-shrink-0">
+                                      {getRelativeTime(activity.created_at)}
+                                    </span>
+                                    {activity.state && (
+                                      <>
+                                        <span className="flex-shrink-0">•</span>
+                                        <Badge
+                                          variant="outline"
+                                          className="text-xs capitalize h-5 px-1 flex-shrink-0"
+                                        >
+                                          {activity.state}
+                                        </Badge>
+                                      </>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          ))}
+                            ))}
 
-                          {activityLoading && (
-                            <div className="flex items-center justify-center py-4">
-                              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                              <span className="ml-2 text-sm text-muted-foreground">
-                                Loading more activity...
-                              </span>
-                            </div>
-                          )}
+                            {activityLoading && (
+                              <div className="flex items-center justify-center py-4">
+                                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                                <span className="ml-2 text-sm text-muted-foreground">
+                                  Loading more activity...
+                                </span>
+                              </div>
+                            )}
 
-                          {!activityLoading && hasMore && (
-                            <Button variant="ghost" size="sm" onClick={loadMore} className="w-full">
-                              Load More
-                            </Button>
-                          )}
+                            {!activityLoading && hasMore && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={loadMore}
+                                className="w-full"
+                              >
+                                Load More
+                              </Button>
+                            )}
 
-                          {!hasMore && activities.length > 0 && (
-                            <div className="text-center py-4 text-sm text-muted-foreground">
-                              No more activity to load
-                            </div>
-                          )}
+                            {!hasMore && activities.length > 0 && (
+                              <div className="text-center py-4 text-sm text-muted-foreground">
+                                No more activity to load
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className="text-center py-8">
+                          <Clock className="mx-auto h-10 w-10 text-muted-foreground" />
+                          <p className="mt-2 text-sm text-muted-foreground">No recent activity</p>
                         </div>
                       );
-                    }
-                    return (
-                      <div className="text-center py-8">
-                        <Clock className="mx-auto h-10 w-10 text-muted-foreground" />
-                        <p className="mt-2 text-sm text-muted-foreground">No recent activity</p>
-                      </div>
-                    );
-                  })()}
-                </ScrollArea>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="notes" className="mt-4">
-            <Card className="overflow-hidden">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-base">Notes</CardTitle>
-                    <CardDescription>
-                      Context and information about this contributor
-                    </CardDescription>
-                  </div>
-                  {permissions.canAssignContributorsToGroups && (
-                    <Button size="sm" onClick={onAddNote}>
-                      <MessageSquare className="h-4 w-4 mr-1" />
-                      Add Note
-                    </Button>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent className="p-0">
-                {permissions.canViewNotes ? (
-                  <ScrollArea className="h-[400px] px-6 py-4">
-                    {notes.length > 0 ? (
-                      <div className="space-y-3">
-                        {notes.map((note) => (
-                          <div
-                            key={note.id}
-                            className="p-3 border rounded-lg space-y-2 overflow-hidden"
-                          >
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <span className="font-medium truncate">
-                                {note.created_by.display_name || note.created_by.email}
-                              </span>
-                              <span className="flex-shrink-0">•</span>
-                              <span className="flex-shrink-0">
-                                {getRelativeTime(note.created_at)}
-                              </span>
-                            </div>
-                            <p className="text-sm whitespace-pre-wrap break-words">{note.note}</p>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-8">
-                        <MessageSquare className="mx-auto h-10 w-10 text-muted-foreground" />
-                        <p className="mt-2 text-sm text-muted-foreground">No notes yet</p>
-                        {permissions.canAssignContributorsToGroups && (
-                          <Button variant="outline" size="sm" onClick={onAddNote} className="mt-4">
-                            Add First Note
-                          </Button>
-                        )}
-                      </div>
-                    )}
+                    })()}
                   </ScrollArea>
-                ) : (
-                  <div className="px-6 py-8">
-                    <GroupManagementCTA
-                      message={permissions.getGroupAssignmentMessage()}
-                      variant="card"
-                      size="md"
-                      showAction={true}
-                      onAction={!isLoggedIn ? login : undefined}
-                    />
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-          <TabsContent value="stats" className="mt-4">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Detailed Statistics</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Contribution Breakdown */}
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium">Contribution Breakdown</h4>
+            <TabsContent value="notes" className="mt-4">
+              <Card className="overflow-hidden">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-base">Notes</CardTitle>
+                      <CardDescription>
+                        Context and information about this contributor
+                      </CardDescription>
+                    </div>
+                    {permissions.canAssignContributorsToGroups && (
+                      <Button size="sm" onClick={onAddNote}>
+                        <MessageSquare className="h-4 w-4 mr-1" />
+                        Add Note
+                      </Button>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                  {permissions.canViewNotes ? (
+                    <ScrollArea className="h-[400px] px-6 py-4">
+                      {notes.length > 0 ? (
+                        <div className="space-y-3">
+                          {notes.map((note) => (
+                            <div
+                              key={note.id}
+                              className="p-3 border rounded-lg space-y-2 overflow-hidden"
+                            >
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <span className="font-medium truncate">
+                                  {note.created_by.display_name || note.created_by.email}
+                                </span>
+                                <span className="flex-shrink-0">•</span>
+                                <span className="flex-shrink-0">
+                                  {getRelativeTime(note.created_at)}
+                                </span>
+                              </div>
+                              <p className="text-sm whitespace-pre-wrap break-words">{note.note}</p>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <MessageSquare className="mx-auto h-10 w-10 text-muted-foreground" />
+                          <p className="mt-2 text-sm text-muted-foreground">No notes yet</p>
+                          {permissions.canAssignContributorsToGroups && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={onAddNote}
+                              className="mt-4"
+                            >
+                              Add First Note
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </ScrollArea>
+                  ) : (
+                    <div className="px-6 py-8">
+                      <GroupManagementCTA
+                        message={permissions.getGroupAssignmentMessage()}
+                        variant="card"
+                        size="md"
+                        showAction={true}
+                        onAction={!isLoggedIn ? login : undefined}
+                      />
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="stats" className="mt-4">
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Detailed Statistics</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Contribution Breakdown */}
                   <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm w-20">PRs</span>
-                      <Progress value={prPercentage} className="flex-1" />
-                      <span className="text-sm text-muted-foreground w-12 text-right">
-                        {Math.round(prPercentage)}%
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm w-20">Issues</span>
-                      <Progress value={issuePercentage} className="flex-1" />
-                      <span className="text-sm text-muted-foreground w-12 text-right">
-                        {Math.round(issuePercentage)}%
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm w-20">Reviews</span>
-                      <Progress value={reviewPercentage} className="flex-1" />
-                      <span className="text-sm text-muted-foreground w-12 text-right">
-                        {Math.round(reviewPercentage)}%
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm w-20">Comments</span>
-                      <Progress value={commentPercentage} className="flex-1" />
-                      <span className="text-sm text-muted-foreground w-12 text-right">
-                        {Math.round(commentPercentage)}%
-                      </span>
+                    <h4 className="text-sm font-medium">Contribution Breakdown</h4>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm w-20">PRs</span>
+                        <Progress value={prPercentage} className="flex-1" />
+                        <span className="text-sm text-muted-foreground w-12 text-right">
+                          {Math.round(prPercentage)}%
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm w-20">Issues</span>
+                        <Progress value={issuePercentage} className="flex-1" />
+                        <span className="text-sm text-muted-foreground w-12 text-right">
+                          {Math.round(issuePercentage)}%
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm w-20">Reviews</span>
+                        <Progress value={reviewPercentage} className="flex-1" />
+                        <span className="text-sm text-muted-foreground w-12 text-right">
+                          {Math.round(reviewPercentage)}%
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm w-20">Comments</span>
+                        <Progress value={commentPercentage} className="flex-1" />
+                        <span className="text-sm text-muted-foreground w-12 text-right">
+                          {Math.round(commentPercentage)}%
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Repository Stats */}
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium">Repository Engagement</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-3 border rounded-lg">
-                      <div className="text-2xl font-semibold">
-                        {contributor.stats.repositories_contributed}
+                  {/* Repository Stats */}
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium">Repository Engagement</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-3 border rounded-lg">
+                        <div className="text-2xl font-semibold">
+                          {contributor.stats.repositories_contributed}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Repositories Contributed To
+                        </div>
                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        Repositories Contributed To
-                      </div>
-                    </div>
-                    <div className="p-3 border rounded-lg">
-                      <div className="text-2xl font-semibold">
-                        {Math.round(
-                          contributor.stats.total_contributions /
-                            Math.max(1, contributor.stats.repositories_contributed)
-                        )}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        Avg. Contributions per Repo
+                      <div className="p-3 border rounded-lg">
+                        <div className="text-2xl font-semibold">
+                          {Math.round(
+                            contributor.stats.total_contributions /
+                              Math.max(1, contributor.stats.repositories_contributed)
+                          )}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Avg. Contributions per Repo
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -1016,7 +1035,7 @@ function SocialLinksCard({
               </div>
             )}
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-row gap-2">
             {!isEditing && (
               <>
                 <Button
@@ -1029,41 +1048,37 @@ function SocialLinksCard({
                       ? 'Sign in to fetch social links'
                       : 'Fetch social links from GitHub profile'
                   }
+                  className="h-8"
                 >
                   {(() => {
                     if (isFetching) {
-                      return (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                          Fetching...
-                        </>
-                      );
+                      return <Loader2 className="h-3.5 w-3.5 animate-spin" />;
                     }
                     if (!isLoggedIn) {
-                      return <>🔐 Sign in to Fetch</>;
+                      return <>🔐</>;
                     }
-                    return (
-                      <>
-                        <RefreshCw className="h-4 w-4 mr-1" />
-                        Fetch from GitHub
-                      </>
-                    );
+                    return <RefreshCw className="h-3.5 w-3.5" />;
                   })()}
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
-                  <Settings className="h-4 w-4 mr-1" />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEditing(true)}
+                  className="h-8"
+                >
+                  <Settings className="h-3.5 w-3.5 mr-1.5" />
                   Edit
                 </Button>
               </>
             )}
             {isEditing && (
               <>
-                <Button variant="outline" size="sm" onClick={handleCancel}>
-                  <X className="h-4 w-4 mr-1" />
+                <Button variant="outline" size="sm" onClick={handleCancel} className="h-8">
+                  <X className="h-3.5 w-3.5 mr-1.5" />
                   Cancel
                 </Button>
-                <Button variant="default" size="sm" onClick={handleSave}>
-                  <Check className="h-4 w-4 mr-1" />
+                <Button variant="default" size="sm" onClick={handleSave} className="h-8">
+                  <Check className="h-3.5 w-3.5 mr-1.5" />
                   Save
                 </Button>
               </>

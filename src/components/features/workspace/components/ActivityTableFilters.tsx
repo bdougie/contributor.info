@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useEffect, useState } from 'react';
+import React, { memo, useEffect, useState, useMemo } from 'react';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -27,10 +27,11 @@ export const ActivityTableFilters = memo(
     const [localSearchQuery, setLocalSearchQuery] = useState(initialQuery);
 
     // Debounced search handler
-    const debouncedSearch = useCallback(
-      debounce((query: string) => {
-        onSearchChange(query);
-      }, 300) as (query: string) => void,
+    const debouncedSearch = useMemo(
+      () =>
+        debounce((query: string) => {
+          onSearchChange(query);
+        }, 300),
       [onSearchChange]
     );
 
@@ -70,7 +71,7 @@ export const ActivityTableFilters = memo(
           onValueChange={onTypeFilterChange}
           aria-label="Filter by activity type"
         >
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-full sm:w-40">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

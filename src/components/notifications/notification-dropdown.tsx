@@ -62,13 +62,13 @@ export function NotificationDropdown({ className }: NotificationDropdownProps) {
           </span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-[400px] p-0">
-        <div className="flex items-center justify-between p-4 pb-2">
+      <DropdownMenuContent align="end" className="w-[90vw] md:w-[400px] p-0">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between p-4 pb-2 gap-2">
           <DropdownMenuLabel className="p-0 text-base font-semibold">
             Notifications
           </DropdownMenuLabel>
           {notifications.length > 0 && (
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               {unreadCount > 0 && (
                 <Button
                   variant="ghost"
