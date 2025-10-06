@@ -57,7 +57,7 @@ interface HealthFactor {
 }
 
 export interface LLMInsight {
-  type: 'health' | 'recommendation' | 'pattern' | 'trend';
+  type: 'health' | 'recommendation' | 'pattern' | 'trend' | 'contributor_summary';
   content: string;
   confidence: number; // 0-1
   timestamp: Date;
@@ -77,8 +77,10 @@ class OpenAIService {
   private config: LLMServiceConfig;
 
   constructor() {
-    // Handle both Vite and Node.js environments
-    this.apiKey = import.meta.env?.VITE_OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
+    // Support both browser (Vite) and Node.js environments
+    this.apiKey =
+      import.meta.env?.VITE_OPENAI_API_KEY ||
+      (typeof process !== 'undefined' ? process.env?.VITE_OPENAI_API_KEY : undefined);
 
     this.config = {
       model: 'gpt-4o-mini', // Start with high-quota free model
@@ -202,15 +204,16 @@ class OpenAIService {
 
   /**
    * Make API call to OpenAI with rate limiting and error handling
+   * Public method for use by other services
    */
-  private async callOpenAI(prompt: string, model?: string): Promise<string> {
+  async callOpenAI(prompt: string, model?: string): Promise<string> {
     if (!this.apiKey) {
       throw new Error('OpenAI API key not configured');
     }
 
     // Prevent real API calls in test environment
     if (
-      process.env.NODE_ENV === 'test' ||
+      import.meta.env.MODE === 'test' ||
       this.apiKey === 'test-openai-key' ||
       this.apiKey === 'test-key-for-ci'
     ) {
@@ -252,7 +255,9 @@ class OpenAIService {
         if (response.status === 429) {
           throw new Error('OpenAI API rate limit exceeded');
         } else if (response.status === 401) {
-          throw new Error('Invalid OpenAI API key');
+          throw new Error(
+            'OpenAI authentication failed - check API key or account balance ($0 balance causes 401 errors)'
+          );
         } else {
           throw new Error(`OpenAI API error: ${response.status}`);
         }

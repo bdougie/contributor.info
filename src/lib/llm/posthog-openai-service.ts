@@ -86,8 +86,10 @@ class PostHogOpenAIService {
   } | null = null; // Will be dynamically imported
 
   constructor() {
-    // Handle both Vite and Node.js environments
-    this.apiKey = import.meta.env?.VITE_OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
+    // Support both browser (Vite) and Node.js environments
+    this.apiKey =
+      import.meta?.env?.VITE_OPENAI_API_KEY ||
+      (typeof process !== 'undefined' ? process.env?.VITE_OPENAI_API_KEY : undefined);
 
     this.config = {
       model: 'gpt-4o-mini',
@@ -97,13 +99,19 @@ class PostHogOpenAIService {
       timeout: 10000,
     };
 
+    const posthogApiKey =
+      import.meta?.env?.VITE_POSTHOG_API_KEY ||
+      (typeof process !== 'undefined' ? process.env?.VITE_POSTHOG_API_KEY : undefined);
+
+    const posthogHost =
+      import.meta?.env?.VITE_POSTHOG_HOST ||
+      (typeof process !== 'undefined' ? process.env?.VITE_POSTHOG_HOST : undefined) ||
+      'https://us.i.posthog.com';
+
     this.posthogConfig = {
-      apiKey: import.meta.env?.VITE_POSTHOG_API_KEY || process.env.POSTHOG_API_KEY,
-      host:
-        import.meta.env?.VITE_POSTHOG_HOST ||
-        process.env.POSTHOG_HOST ||
-        'https://us.i.posthog.com',
-      enableTracking: !!(import.meta.env?.VITE_POSTHOG_API_KEY || process.env.POSTHOG_API_KEY),
+      apiKey: posthogApiKey,
+      host: posthogHost,
+      enableTracking: !!posthogApiKey,
       enablePrivacyMode: false, // Set to true to prevent capturing conversation content
     };
 
@@ -292,8 +300,9 @@ class PostHogOpenAIService {
 
   /**
    * Make tracked API call to OpenAI with PostHog analytics
+   * Public method for use by other services
    */
-  private async callOpenAI(
+  async callOpenAI(
     prompt: string,
     model?: string,
     metadata?: LLMCallMetadata
@@ -309,7 +318,7 @@ class PostHogOpenAIService {
 
     // Prevent real API calls in test environment
     if (
-      process.env.NODE_ENV === 'test' ||
+      import.meta?.env?.MODE === 'test' ||
       this.apiKey === 'test-openai-key' ||
       this.apiKey === 'test-key-for-ci'
     ) {
@@ -358,7 +367,9 @@ class PostHogOpenAIService {
         if (response.status === 429) {
           throw new Error('OpenAI API rate limit exceeded');
         } else if (response.status === 401) {
-          throw new Error('Invalid OpenAI API key');
+          throw new Error(
+            'OpenAI authentication failed - check API key or account balance ($0 balance causes 401 errors)'
+          );
         } else {
           throw new Error(`OpenAI API error: ${response.status}`);
         }
