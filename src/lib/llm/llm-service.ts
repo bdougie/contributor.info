@@ -330,26 +330,47 @@ class LLMService {
     const prSummary = this.summarizePRActivity(data.recentPRs);
     const issueSummary = this.summarizeIssueActivity(data.recentIssues);
 
+    // Calculate age of most recent activity to determine if contributions are old
+    let ageContext = '';
+    const allDates = [
+      ...data.recentPRs.map((pr) => new Date(pr.created_at)),
+      ...data.recentIssues.map((issue) => new Date(issue.created_at)),
+    ].filter((date) => !isNaN(date.getTime()));
+
+    if (allDates.length > 0) {
+      const mostRecent = new Date(Math.max(...allDates.map((d) => d.getTime())));
+      const daysAgo = Math.floor((Date.now() - mostRecent.getTime()) / (1000 * 60 * 60 * 24));
+
+      if (daysAgo > 30) {
+        const monthsAgo = Math.floor(daysAgo / 30);
+        ageContext = `\n\nIMPORTANT: Most recent activity was ${monthsAgo} month${monthsAgo > 1 ? 's' : ''} ago. Mention this timeframe in the summary (e.g., "in recent months" or "${monthsAgo} months ago").`;
+      } else if (daysAgo > 14) {
+        ageContext = `\n\nIMPORTANT: Most recent activity was ${daysAgo} days ago. Mention this timeframe (e.g., "in recent weeks").`;
+      }
+    }
+
     return `Generate a specific, actionable 1-2 sentence summary for GitHub contributor ${contributor.login} based on their recent work:
 
 Recent Pull Requests ${prSummary}:
 ${recentPRTitles.length > 0 ? recentPRTitles.map((title) => `- ${title}`).join('\n') : 'None'}
 
 Recent Issues ${issueSummary}:
-${recentIssueTitles.length > 0 ? recentIssueTitles.map((title) => `- ${title}`).join('\n') : 'None'}
+${recentIssueTitles.length > 0 ? recentIssueTitles.map((title) => `- ${title}`).join('\n') : 'None'}${ageContext}
 
 Create a summary that:
-1. Identifies SPECIFIC areas they worked on (e.g., "authentication flow", "API endpoints", "UI components")
-2. Describes the TYPE of work (features, fixes, refactoring, docs, testing)
-3. Mentions impact or patterns (e.g., "improving performance", "adding new features", "fixing critical bugs")
+1. MUST start with "${contributor.login} recently..." (use exact username)
+2. Identifies SPECIFIC areas they worked on (e.g., "authentication flow", "API endpoints", "UI components")
+3. Describes the TYPE of work (features, fixes, refactoring, docs, testing)
+4. Mentions impact or patterns (e.g., "improving performance", "adding new features", "fixing critical bugs")
 
 Requirements:
 - Maximum 30 words
+- MUST start with "${contributor.login} recently..."
 - Be SPECIFIC - avoid generic phrases like "general contributions" or "various features"
 - Use technical details from the PR/issue titles
 - Third-person, professional tone
 
-Good: "Implemented new authentication flow and API rate limiting. Fixed critical bugs in payment processing."
+Good: "${contributor.login} recently implemented new authentication flow and API rate limiting, fixing critical bugs in payment processing."
 Bad: "Made general contributions to the codebase with various improvements."`;
   }
 
