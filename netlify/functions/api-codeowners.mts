@@ -13,6 +13,10 @@ interface CodeOwnersResponse {
   exists: boolean;
   path?: string;
   error?: string;
+  message?: string;
+  helpUrl?: string;
+  checkedPaths?: string[];
+  repository?: string;
 }
 
 async function fetchCodeOwnersFromDatabase(
@@ -46,10 +50,7 @@ async function fetchCodeOwnersFromDatabase(
 
 export default async (req: Request, context: Context) => {
   const supabaseUrl = process.env.SUPABASE_URL || '';
-  const supabaseKey =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.SUPABASE_ANON_KEY ||
-    '';
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '';
 
   if (!supabaseUrl || !supabaseKey) {
     return createErrorResponse('Missing Supabase configuration', 500);
@@ -115,7 +116,10 @@ export default async (req: Request, context: Context) => {
     if (repoError || !repository) {
       // If this is a database error, surface as 500; otherwise 404
       if (repoError) {
-        return createErrorResponse(`Database error while fetching repository: ${repoError.message}`, 500);
+        return createErrorResponse(
+          `Database error while fetching repository: ${repoError.message}`,
+          500
+        );
       }
       return createNotFoundResponse(owner, repo);
     }
@@ -180,15 +184,23 @@ export default async (req: Request, context: Context) => {
       if (foundContent && foundPath) {
         codeOwnersData = { exists: true, content: foundContent, path: foundPath };
       } else if (!codeOwnersData.exists) {
+        // Return 200 with structured empty state instead of 404
         const resp = new Response(
           JSON.stringify({
             exists: false,
             message: 'No CODEOWNERS file found in repository',
+            helpUrl:
+              'https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners',
             checkedPaths: paths,
+            repository: `${owner}/${repo}`,
           }),
           {
-            status: 404,
-            headers: { ...CORS_HEADERS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300' },
+            status: 200,
+            headers: {
+              ...CORS_HEADERS,
+              'Content-Type': 'application/json',
+              'Cache-Control': 'public, max-age=300',
+            },
           }
         );
         return rate ? applyRateLimitHeaders(resp, rate) : resp;
@@ -200,11 +212,15 @@ export default async (req: Request, context: Context) => {
         exists: true,
         content: codeOwnersData.content,
         path: codeOwnersData.path,
-        repository: `${owner}/${repo}`
+        repository: `${owner}/${repo}`,
       }),
       {
         status: 200,
-        headers: { ...CORS_HEADERS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300' },
+        headers: {
+          ...CORS_HEADERS,
+          'Content-Type': 'application/json',
+          'Cache-Control': 'public, max-age=300',
+        },
       }
     );
     return rate ? applyRateLimitHeaders(resp, rate) : resp;

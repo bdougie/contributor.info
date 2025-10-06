@@ -27,13 +27,19 @@ vi.mock('../lib/rate-limiter.mts', () => ({
 
 import { createClient } from '@supabase/supabase-js';
 import handler from '../api-codeowners';
+import type { Mock } from 'vitest';
+import type { Context } from '@netlify/functions';
+
+interface MockSupabase {
+  from: Mock;
+}
 
 describe('CODEOWNERS API Tests', () => {
-  let mockSupabase: any;
-  let mockFrom: any;
-  let mockSelect: any;
-  let mockEq: any;
-  let mockMaybeSingle: any;
+  let mockSupabase: MockSupabase;
+  let mockFrom: Mock;
+  let mockSelect: Mock;
+  let mockEq: Mock;
+  let mockMaybeSingle: Mock;
 
   beforeEach(() => {
     // Setup Supabase mocks with complete query chain
@@ -60,7 +66,7 @@ describe('CODEOWNERS API Tests', () => {
     mockFrom = vi.fn().mockReturnValue({ select: mockSelect });
     mockSupabase = { from: mockFrom };
 
-    (createClient as any).mockReturnValue(mockSupabase);
+    (createClient as Mock).mockReturnValue(mockSupabase);
   });
 
   afterEach(() => {
@@ -73,7 +79,7 @@ describe('CODEOWNERS API Tests', () => {
         method: 'OPTIONS',
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, {} as Context);
 
       expect(response.status).toBe(200);
       expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*');
@@ -86,7 +92,7 @@ describe('CODEOWNERS API Tests', () => {
         method: 'POST',
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, {} as Context);
       const data = await response.json();
 
       expect(response.status).toBe(405);
@@ -100,7 +106,7 @@ describe('CODEOWNERS API Tests', () => {
         method: 'GET',
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, {} as Context);
       const data = await response.json();
 
       expect(response.status).toBe(400);
@@ -116,7 +122,7 @@ describe('CODEOWNERS API Tests', () => {
         method: 'GET',
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, {} as Context);
       const data = await response.json();
 
       expect(response.status).toBe(404);
@@ -134,7 +140,7 @@ describe('CODEOWNERS API Tests', () => {
         method: 'GET',
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, {} as Context);
       const data = await response.json();
 
       expect(response.status).toBe(404);
@@ -151,7 +157,7 @@ describe('CODEOWNERS API Tests', () => {
         method: 'GET',
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, {} as Context);
       const data = await response.json();
 
       expect(response.status).toBe(500);
@@ -187,7 +193,7 @@ describe('CODEOWNERS API Tests', () => {
         method: 'GET',
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, {} as Context);
       const data = await response.json();
 
       expect(response.status).toBe(200);
@@ -218,7 +224,7 @@ describe('CODEOWNERS API Tests', () => {
         method: 'GET',
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, {} as Context);
       const data = await response.json();
 
       expect(response.status).toBe(200);
@@ -227,7 +233,7 @@ describe('CODEOWNERS API Tests', () => {
       expect(data.path).toBe('CODEOWNERS');
     });
 
-    it('should return 404 when no CODEOWNERS file is found', async () => {
+    it('should return 200 with empty state when no CODEOWNERS file is found', async () => {
       // Clear and setup mock for this specific test
       mockMaybeSingle.mockClear();
       mockMaybeSingle
@@ -248,18 +254,22 @@ describe('CODEOWNERS API Tests', () => {
         method: 'GET',
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, {} as Context);
       const data = await response.json();
 
-      expect(response.status).toBe(404);
+      expect(response.status).toBe(200);
       expect(data.exists).toBe(false);
       expect(data.message).toBe('No CODEOWNERS file found in repository');
+      expect(data.helpUrl).toBe(
+        'https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners'
+      );
       expect(data.checkedPaths).toEqual([
         '.github/CODEOWNERS',
         'CODEOWNERS',
         'docs/CODEOWNERS',
         '.gitlab/CODEOWNERS',
       ]);
+      expect(data.repository).toBe('owner/repo');
     });
 
     it('should handle GitHub API errors gracefully', async () => {
@@ -283,10 +293,10 @@ describe('CODEOWNERS API Tests', () => {
         method: 'GET',
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, {} as Context);
       const data = await response.json();
 
-      expect(response.status).toBe(404);
+      expect(response.status).toBe(200);
       expect(data.exists).toBe(false);
     });
 
@@ -317,7 +327,7 @@ describe('CODEOWNERS API Tests', () => {
         method: 'GET',
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, {} as Context);
 
       expect(response.status).toBe(200);
       expect(response.headers.get('Cache-Control')).toBe('public, max-age=300');
@@ -331,7 +341,7 @@ describe('CODEOWNERS API Tests', () => {
         method: 'GET',
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, {} as Context);
       const data = await response.json();
 
       expect(response.status).toBe(404);
@@ -344,7 +354,7 @@ describe('CODEOWNERS API Tests', () => {
         method: 'GET',
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, {} as Context);
       const data = await response.json();
 
       expect(response.status).toBe(404);

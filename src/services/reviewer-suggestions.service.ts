@@ -32,21 +32,24 @@ export async function fetchCodeOwners(owner: string, repo: string, forceRefresh 
     : `/api/repos/${owner}/${repo}/codeowners`;
   const res = await fetch(url);
 
-  // 404 is expected when repository isn't tracked - return a valid response
+  // 404 means repository isn't tracked - return empty state gracefully
   if (res.status === 404) {
     return {
       exists: false,
       message: 'Repository not tracked or CODEOWNERS file not found',
-      source: 'none' as const,
     };
   }
 
   if (!res.ok) throw new Error(`Failed to fetch CODEOWNERS: ${res.status}`);
+
   return res.json() as Promise<{
     exists: boolean;
     content?: string;
     path?: string;
     message?: string;
+    helpUrl?: string;
+    checkedPaths?: string[];
+    repository?: string;
     source?: 'github' | 'database' | 'none';
     suggestions?: Array<{
       pattern: string;
@@ -241,7 +244,8 @@ export async function fetchPRsWithoutReviewers(
   const prsWithoutReviews = prs
     .filter((pr) => !prsWithReviews.has(pr.id))
     .slice(0, limit)
-    .map(({ id: _id, ...rest }) => rest); // Omit the internal id field
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    .map(({ id, ...rest }) => rest); // Omit the internal id field
 
   return prsWithoutReviews as unknown as MinimalPR[];
 }

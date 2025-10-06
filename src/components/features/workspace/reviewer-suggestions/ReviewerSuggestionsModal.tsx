@@ -2,9 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Users, Copy } from '@/components/ui/icon';
+import { Loader2, Users, Copy, FileText } from '@/components/ui/icon';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { EmptyState } from '@/components/ui/empty-state';
 import {
   Select,
   SelectTrigger,
@@ -73,6 +74,7 @@ export function ReviewerSuggestionsModal({
     content?: string;
     path?: string;
     message?: string;
+    helpUrl?: string;
   } | null>(null);
 
   const [pullRequests, setPullRequests] = useState<MinimalPR[]>([]);
@@ -181,7 +183,9 @@ export function ReviewerSuggestionsModal({
                     <span className="text-xs text-muted-foreground">{codeowners.path}</span>
                   </>
                 ) : (
-                  <span className="text-xs text-muted-foreground">No CODEOWNERS file</span>
+                  <Badge variant="outline" className="text-xs text-muted-foreground">
+                    No CODEOWNERS file
+                  </Badge>
                 )}
               </div>
             )}
@@ -228,6 +232,21 @@ export function ReviewerSuggestionsModal({
                 </div>
               </div>
             </div>
+          )}
+
+          {/* Show CODEOWNERS empty state if missing */}
+          {!suggestions && !error && codeowners && !codeowners.exists && (
+            <EmptyState
+              icon={<FileText className="h-8 w-8" />}
+              title="No CODEOWNERS file found"
+              description="CODEOWNERS files help automatically assign code reviewers based on file ownership. Adding one can improve your team's review workflow."
+              action={{
+                label: 'Learn how to add CODEOWNERS',
+                href:
+                  codeowners.helpUrl ||
+                  'https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners',
+              }}
+            />
           )}
 
           {/* Main content area */}
