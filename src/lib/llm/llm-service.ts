@@ -10,6 +10,10 @@ import { cacheService } from './cache-service';
 
 // Re-export types from posthog-openai-service
 import type { HealthData, RecommendationData, PRData } from './posthog-openai-service';
+import type {
+  ContributorActivityData,
+  ContributorSummaryMetadata,
+} from './contributor-summary-types';
 
 export interface LLMServiceOptions {
   enableCaching: boolean;
@@ -200,6 +204,248 @@ class LLMService {
   }
 
   /**
+   * Generate contributor activity summary for hover cards
+   * Uses gpt-4o-mini model with 200 token limit for cost efficiency
+   */
+  async generateContributorSummary(
+    activityData: ContributorActivityData,
+    contributorInfo: ContributorSummaryMetadata,
+    metadata?: LLMCallMetadata
+  ): Promise<LLMInsight | null> {
+    const cacheKey = this.buildContributorCacheKey(contributorInfo.login, activityData);
+    const dataHash = this.generateDataHash(activityData);
+
+    // Check cache first (6 hour TTL for contributor summaries)
+    if (this.options.enableCaching) {
+      const cached = cacheService.get(cacheKey, dataHash);
+      if (cached) {
+        return cached;
+      }
+    }
+
+    // Try generating summary with PostHog tracking
+    try {
+      const insight = this.options.enablePostHogTracking
+        ? await this.generateContributorSummaryWithTracking(activityData, contributorInfo, metadata)
+        : await this.generateContributorSummaryDirect(activityData, contributorInfo);
+
+      if (insight && this.options.enableCaching) {
+        // Cache for 6 hours (360 minutes) - contributor activity is relatively stable
+        cacheService.set(cacheKey, insight, dataHash, 360);
+      }
+
+      // If LLM unavailable, use fallback or return null (hover card will hide summary)
+      if (!insight && this.options.enableFallbacks) {
+        return this.generateFallbackContributorSummary(activityData);
+      }
+
+      return insight;
+    } catch (error) {
+      console.error('LLM contributor summary failed:', error);
+
+      if (this.options.enableFallbacks) {
+        return this.generateFallbackContributorSummary(activityData);
+      }
+
+      return null;
+    }
+  }
+
+  /**
+   * Generate contributor summary using PostHog-tracked service
+   */
+  private async generateContributorSummaryWithTracking(
+    activityData: ContributorActivityData,
+    contributorInfo: ContributorSummaryMetadata,
+    metadata?: LLMCallMetadata
+  ): Promise<LLMInsight | null> {
+    const prompt = this.buildContributorSummaryPrompt(activityData, contributorInfo);
+
+    // Use gpt-4o-mini for simple summaries (cost-effective, 200 token limit)
+    const model = 'gpt-4o-mini';
+
+    try {
+      // Note: PostHog service uses maxTokens from config (500), but prompt enforces 25 word limit
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await (posthogOpenAIService as any).callOpenAI(prompt, model, {
+        feature: 'contributor-summary',
+        userId: metadata?.userId,
+        traceId: metadata?.traceId,
+        ...metadata,
+      });
+
+      return {
+        type: 'contributor_summary',
+        content: result.content,
+        confidence: 0.8, // Good confidence for AI-generated summaries
+        timestamp: new Date(),
+      };
+    } catch (error) {
+      console.error('PostHog-tracked summary generation failed:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Generate contributor summary directly (fallback when PostHog unavailable)
+   */
+  private async generateContributorSummaryDirect(
+    activityData: ContributorActivityData,
+    contributorInfo: ContributorSummaryMetadata
+  ): Promise<LLMInsight | null> {
+    if (!openAIService.isAvailable()) {
+      return null;
+    }
+
+    const prompt = this.buildContributorSummaryPrompt(activityData, contributorInfo);
+
+    try {
+      // Call OpenAI directly with low token count
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = await (openAIService as any).callOpenAI(prompt, 'gpt-4o-mini');
+
+      return {
+        type: 'contributor_summary',
+        content: response,
+        confidence: 0.8,
+        timestamp: new Date(),
+      };
+    } catch (error) {
+      console.error('Direct summary generation failed:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Build prompt for contributor summary (1-2 sentences, persona-focused)
+   */
+  private buildContributorSummaryPrompt(
+    data: ContributorActivityData,
+    contributor: ContributorSummaryMetadata
+  ): string {
+    // Extract focus areas from PRs and issues
+    const focusAreas = this.extractFocusAreas(data);
+    const prSummary = this.summarizePRActivity(data.recentPRs);
+    const issueSummary = this.summarizeIssueActivity(data.recentIssues);
+
+    return `Generate a professional 1-2 sentence summary for GitHub contributor ${contributor.login} based on recent activity:
+
+Recent Activity:
+- Pull Requests: ${data.recentPRs.length} ${prSummary}
+- Issues: ${data.recentIssues.length} ${issueSummary}
+- Focus Areas: ${focusAreas}
+- Total Contributions: ${data.totalContributions}
+
+Create a concise summary highlighting:
+1. Primary contribution type (features, bug fixes, reviews, documentation)
+2. Technical focus area or expertise demonstrated
+3. Activity pattern (active, occasional, specific focus)
+
+Requirements:
+- Maximum 25 words
+- Professional third-person tone
+- Actionable, persona-focused
+
+Example: "Focuses on authentication features with 5 merged PRs this month. Active code reviewer on security-related changes."`;
+  }
+
+  /**
+   * Extract focus areas from contributor activity
+   */
+  private extractFocusAreas(data: ContributorActivityData): string {
+    if (data.primaryFocus) {
+      return data.primaryFocus;
+    }
+
+    // Infer from PR titles
+    const titles = data.recentPRs.map((pr) => pr.title.toLowerCase()).join(' ');
+
+    if (titles.includes('auth') || titles.includes('login') || titles.includes('security')) {
+      return 'authentication/security';
+    }
+    if (titles.includes('ui') || titles.includes('component') || titles.includes('style')) {
+      return 'frontend/UI';
+    }
+    if (titles.includes('api') || titles.includes('endpoint') || titles.includes('backend')) {
+      return 'backend/API';
+    }
+    if (titles.includes('test') || titles.includes('spec')) {
+      return 'testing/quality';
+    }
+    if (titles.includes('doc') || titles.includes('readme')) {
+      return 'documentation';
+    }
+
+    return 'general development';
+  }
+
+  /**
+   * Summarize PR activity in concise format
+   */
+  private summarizePRActivity(prs: ContributorActivityData['recentPRs']): string {
+    if (prs.length === 0) return 'none';
+
+    const merged = prs.filter((pr) => pr.merged_at).length;
+    const open = prs.filter((pr) => pr.state === 'open' && !pr.merged_at).length;
+
+    if (merged > 0 && open > 0) {
+      return `(${merged} merged, ${open} open)`;
+    } else if (merged > 0) {
+      return `(${merged} merged)`;
+    } else if (open > 0) {
+      return `(${open} open)`;
+    }
+
+    return '';
+  }
+
+  /**
+   * Summarize issue activity in concise format
+   */
+  private summarizeIssueActivity(issues: ContributorActivityData['recentIssues']): string {
+    if (issues.length === 0) return 'none';
+
+    const open = issues.filter((issue) => issue.state === 'open').length;
+    const closed = issues.filter((issue) => issue.state === 'closed').length;
+
+    if (open > 0 && closed > 0) {
+      return `(${open} open, ${closed} closed)`;
+    } else if (open > 0) {
+      return `(${open} open)`;
+    } else if (closed > 0) {
+      return `(${closed} closed)`;
+    }
+
+    return '';
+  }
+
+  /**
+   * Build cache key for contributor summaries
+   */
+  private buildContributorCacheKey(login: string, activityData: ContributorActivityData): string {
+    const dataHash = this.generateDataHash(activityData);
+    return `contributor_summary:${login}:${dataHash}`;
+  }
+
+  /**
+   * Generate fallback summary when LLM fails
+   */
+  private generateFallbackContributorSummary(data: ContributorActivityData): LLMInsight {
+    const merged = data.recentPRs.filter((pr) => pr.merged_at).length;
+    const contributionType = merged > 3 ? 'Active contributor' : 'Contributor';
+    const focus = data.primaryFocus || this.extractFocusAreas(data);
+
+    const content = `${contributionType} focusing on ${focus}. ${merged} merged PRs recently.`;
+
+    return {
+      type: 'contributor_summary',
+      content,
+      confidence: 0.5, // Lower confidence for fallback
+      timestamp: new Date(),
+    };
+  }
+
+  /**
    * Clear all cached insights
    */
   clearCache(): void {
@@ -241,7 +487,9 @@ class LLMService {
   /**
    * Generate hash from data for cache invalidation
    */
-  private generateDataHash(data: HealthData | RecommendationData | PRData[]): string {
+  private generateDataHash(
+    data: HealthData | RecommendationData | PRData[] | ContributorActivityData
+  ): string {
     // Simple hash function for data changes detection
     const dataString = JSON.stringify(data);
     let hash = 0;

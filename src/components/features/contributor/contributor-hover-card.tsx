@@ -12,6 +12,7 @@ import {
   AlertCircle,
   CheckCircle2,
 } from '@/components/ui/icon';
+import { useContributorSummary } from '@/hooks/use-contributor-summary';
 
 // Status colors matching ActivityTable
 const STATUS_COLORS = {
@@ -62,6 +63,11 @@ export function ContributorHoverCard({
   primaryLabel,
   secondaryLabel,
 }: ContributorHoverCardProps) {
+  // Fetch AI-generated summary for this contributor (must be called before early return)
+  const { summary, loading } = useContributorSummary(
+    contributor || { login: '', avatar_url: '', pullRequests: 0, percentage: 0 }
+  );
+
   // Validate required contributor data
   if (!contributor || !contributor.login) {
     console.warn('ContributorHoverCard: Missing required contributor data', contributor);
@@ -173,6 +179,21 @@ export function ContributorHoverCard({
               </div>
             </div>
           </div>
+
+          {/* AI-Generated Activity Summary */}
+          {(summary || loading) && (
+            <div className="mt-3 pt-3 border-t border-border/50">
+              {loading && (
+                <div className="space-y-2">
+                  <div className="h-3 w-full bg-muted animate-pulse rounded" />
+                  <div className="h-3 w-4/5 bg-muted animate-pulse rounded" />
+                </div>
+              )}
+              {summary && !loading && (
+                <p className="text-sm text-muted-foreground italic leading-relaxed">{summary}</p>
+              )}
+            </div>
+          )}
 
           {contributor.recentPRs && contributor.recentPRs.length > 0 && (
             <>
