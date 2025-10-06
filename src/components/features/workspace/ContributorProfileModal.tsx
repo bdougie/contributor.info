@@ -9,7 +9,6 @@ import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/lib/supabase';
-import { useContributorSummary } from '@/hooks/use-contributor-summary';
 import {
   GitPullRequest,
   GitCommit,
@@ -157,20 +156,10 @@ export function ContributorProfileModal({
     pageSize: 20,
   });
 
-  // Generate AI summary based on contributor data
-  const { summary, loading: summaryLoading } = useContributorSummary(
-    contributor
-      ? {
-          login: contributor.username,
-          avatar_url: contributor.avatar_url || '',
-          pullRequests: contributor.contributions?.pull_requests || 0,
-          percentage: 0,
-          recentPRs: [], // TODO: Map from activities if available
-          recentIssues: [], // TODO: Map from activities if available
-          recentActivities: activities?.slice(0, 10) || [],
-        }
-      : { login: '', avatar_url: '', pullRequests: 0, percentage: 0 }
-  );
+  // TODO: Re-enable AI summaries once we have proper PR/issue data
+  // Currently disabled because recentPRs/recentIssues are empty, causing poor summaries
+  const summary = null;
+  const summaryLoading = false;
 
   if (!contributor) return null;
 
