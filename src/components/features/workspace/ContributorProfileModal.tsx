@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +9,9 @@ import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/lib/supabase';
+import { useContributorSummary } from '@/hooks/use-contributor-summary';
+import type { PullRequest, RecentIssue, RecentActivity } from '@/lib/types';
+import type { ContributorActivity } from '@/hooks/useContributorActivity';
 import {
   GitPullRequest,
   GitCommit,
@@ -118,6 +121,73 @@ function getActivityColor(type: Activity['type'], state?: Activity['state']) {
   }
 }
 
+/**
+ * Map ContributorActivity to PullRequest format for AI summaries
+ */
+function mapActivityToPullRequest(activity: ContributorActivity): PullRequest | null {
+  if (activity.type !== 'pr' || !activity.pr_number) return null;
+
+  const [owner, name] = activity.repository_full_name?.split('/') || ['', ''];
+
+  return {
+    id: parseInt(activity.id) || 0,
+    number: activity.pr_number,
+    title: activity.title,
+    state: activity.state === 'merged' ? 'closed' : (activity.state as 'open' | 'closed'),
+    created_at: activity.created_at,
+    updated_at: activity.created_at,
+    merged_at: activity.state === 'merged' ? activity.created_at : null,
+    closed_at: activity.state === 'closed' ? activity.created_at : null,
+    additions: 0, // Not available in activity data
+    deletions: 0, // Not available in activity data
+    repository_owner: owner,
+    repository_name: name,
+    user: {
+      id: 0,
+      login: '',
+      avatar_url: '',
+    },
+  };
+}
+
+/**
+ * Map ContributorActivity to RecentIssue format for AI summaries
+ */
+function mapActivityToIssue(activity: ContributorActivity): RecentIssue | null {
+  if (activity.type !== 'issue' || !activity.issue_number) return null;
+
+  const [owner, name] = activity.repository_full_name?.split('/') || ['', ''];
+
+  return {
+    id: activity.id,
+    number: activity.issue_number,
+    title: activity.title,
+    state: activity.state as 'open' | 'closed',
+    created_at: activity.created_at,
+    updated_at: activity.created_at,
+    closed_at: activity.state === 'closed' ? activity.created_at : undefined,
+    repository_owner: owner,
+    repository_name: name,
+    comments_count: 0, // Not available in activity data
+    html_url: activity.url,
+  };
+}
+
+/**
+ * Map ContributorActivity to RecentActivity format for AI summaries
+ */
+function mapToRecentActivity(activity: ContributorActivity): RecentActivity {
+  return {
+    id: activity.id,
+    type: activity.type,
+    title: activity.title,
+    created_at: activity.created_at,
+    status: activity.state,
+    repository: activity.repository,
+    url: activity.url,
+  };
+}
+
 export function ContributorProfileModal({
   open,
   onOpenChange,
@@ -156,10 +226,47 @@ export function ContributorProfileModal({
     pageSize: 20,
   });
 
-  // TODO: Re-enable AI summaries once we have proper PR/issue data
-  // Currently disabled because recentPRs/recentIssues are empty, causing poor summaries
-  const summary = null;
-  const summaryLoading = false;
+  // Map activities to PR/issue structures for AI summary (memoized to prevent infinite loops)
+  const contributorSummaryData = useMemo(() => {
+    const username = contributor?.username;
+    const avatarUrl = contributor?.avatar_url;
+    const prCount = contributor?.contributions?.pull_requests;
+
+    if (!username || !activities) {
+      return { login: '', avatar_url: '', pullRequests: 0, percentage: 0 };
+    }
+
+    // Filter and map activities to appropriate structures
+    const recentPRs = activities
+      .map(mapActivityToPullRequest)
+      .filter((pr): pr is PullRequest => pr !== null)
+      .slice(0, 10);
+
+    const recentIssues = activities
+      .map(mapActivityToIssue)
+      .filter((issue): issue is RecentIssue => issue !== null)
+      .slice(0, 10);
+
+    const recentActivities = activities.slice(0, 10).map(mapToRecentActivity);
+
+    return {
+      login: username,
+      avatar_url: avatarUrl || '',
+      pullRequests: prCount || 0,
+      percentage: 0,
+      recentPRs,
+      recentIssues,
+      recentActivities,
+    };
+  }, [
+    contributor?.username,
+    contributor?.avatar_url,
+    contributor?.contributions?.pull_requests,
+    activities,
+  ]);
+
+  // Generate AI summary with properly structured data
+  const { summary, loading: summaryLoading } = useContributorSummary(contributorSummaryData);
 
   if (!contributor) return null;
 
