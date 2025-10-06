@@ -61,6 +61,7 @@ export function useContributorSummary(
 
     // Skip if no LLM service available
     if (!llmService.isAvailable()) {
+      console.log('[AI Summary] LLM service not available for', contributor.login);
       return;
     }
 
@@ -91,9 +92,20 @@ export function useContributorSummary(
           activityData.recentPRs.length === 0 &&
           activityData.recentIssues.length === 0
         ) {
+          console.log('[AI Summary] Skipping - no activity data for', contributor.login, {
+            totalContributions: activityData.totalContributions,
+            recentPRs: activityData.recentPRs.length,
+            recentIssues: activityData.recentIssues.length,
+          });
           setLoading(false);
           return;
         }
+
+        console.log('[AI Summary] Generating for', contributor.login, {
+          totalContributions: activityData.totalContributions,
+          recentPRs: activityData.recentPRs.length,
+          recentIssues: activityData.recentIssues.length,
+        });
 
         // Generate summary (checks cache first, then generates if needed)
         const result = await llmService.generateContributorSummary(
