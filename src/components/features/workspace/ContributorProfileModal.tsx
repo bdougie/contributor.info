@@ -187,20 +187,20 @@ export function ContributorProfileModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[80vh]">
+      <DialogContent className="max-w-[100vw] max-h-[100vh] md:max-w-3xl md:max-h-[80vh] md:rounded-lg rounded-none">
         <DialogHeader>
-          <div className="flex items-start justify-between">
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
             <div className="flex items-center gap-4">
               <img
                 src={contributor.avatar_url}
                 alt={contributor.username}
-                className="h-16 w-16 rounded-full"
+                className="h-16 w-16 rounded-full flex-shrink-0"
               />
-              <div>
-                <DialogTitle className="text-xl">
+              <div className="min-w-0 flex-1">
+                <DialogTitle className="text-xl truncate">
                   {contributor.name || contributor.username}
                 </DialogTitle>
-                <p className="text-sm text-muted-foreground">@{contributor.username}</p>
+                <p className="text-sm text-muted-foreground truncate">@{contributor.username}</p>
                 <div className="flex flex-wrap gap-1 mt-2">
                   {assignedGroups.map((group) => (
                     <Badge key={group.id} variant="secondary" className="text-xs">
@@ -228,11 +228,12 @@ export function ContributorProfileModal({
                 </div>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2 md:flex-nowrap">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => window.open(`https://github.com/${contributor.username}`, '_blank')}
+                className="flex-1 md:flex-none"
               >
                 GitHub Profile
               </Button>
@@ -246,6 +247,7 @@ export function ContributorProfileModal({
                       window.open(sanitized, '_blank');
                     }
                   }}
+                  className="flex-1 md:flex-none"
                 >
                   LinkedIn
                 </Button>
@@ -268,6 +270,7 @@ export function ContributorProfileModal({
                       }
                     }
                   }}
+                  className="flex-1 md:flex-none"
                 >
                   Discord
                 </Button>

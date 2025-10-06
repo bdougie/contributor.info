@@ -197,7 +197,7 @@ export function WorkspaceSwitcher({
             <ChevronDown className="h-4 w-4 opacity-50" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-[320px]">
+        <DropdownMenuContent align="start" className="w-[95vw] md:w-[320px] max-w-[400px]">
           {error && (
             <>
               <DropdownMenuLabel>
