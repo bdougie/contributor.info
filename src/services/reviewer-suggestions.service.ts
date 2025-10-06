@@ -32,6 +32,14 @@ export async function fetchCodeOwners(owner: string, repo: string, forceRefresh 
     : `/api/repos/${owner}/${repo}/codeowners`;
   const res = await fetch(url);
 
+  // 404 means repository isn't tracked - return empty state gracefully
+  if (res.status === 404) {
+    return {
+      exists: false,
+      message: 'Repository not tracked or CODEOWNERS file not found',
+    };
+  }
+
   if (!res.ok) throw new Error(`Failed to fetch CODEOWNERS: ${res.status}`);
 
   return res.json() as Promise<{
