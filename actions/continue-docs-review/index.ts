@@ -119,7 +119,12 @@ async function getChangedDocFiles(): Promise<string[]> {
   return docFiles;
 }
 
-async function checkAgainstRule(content: string, lines: string[], file: string, rule: Rule): Promise<DocumentationIssue[]> {
+async function checkAgainstRule(
+  content: string,
+  lines: string[],
+  file: string,
+  rule: Rule
+): Promise<DocumentationIssue[]> {
   const issues: DocumentationIssue[] = [];
   const ruleName = rule.name;
 
@@ -142,36 +147,46 @@ async function checkAgainstRule(content: string, lines: string[], file: string, 
   return issues;
 }
 
-function checkDocumentationPurpose(content: string, lines: string[], file: string): DocumentationIssue[] {
+function checkDocumentationPurpose(
+  content: string,
+  lines: string[],
+  file: string
+): DocumentationIssue[] {
   const issues: DocumentationIssue[] = [];
 
   // Determine documentation type
   const isUserDoc = file.includes('mintlify-docs') || file.includes('public/docs');
   const isDevDoc = file.includes('docs/') && !file.includes('mintlify-docs');
-  const isArchitectureDoc = file.includes('architecture') || file.includes('infrastructure') || 
-                            file.includes('database') || file.includes('setup');
+  const isArchitectureDoc =
+    file.includes('architecture') ||
+    file.includes('infrastructure') ||
+    file.includes('database') ||
+    file.includes('setup');
   const isFeatureDoc = file.includes('features/') || file.includes('implementations/');
 
   // User documentation checks - focus on "how to use"
   if (isUserDoc) {
     // Check for step-by-step instructions
-    const hasSteps = /\b(step|follow|instructions|how to)\b/i.test(content) ||
-                     /^\d+\.\s/m.test(content);
+    const hasSteps =
+      /\b(step|follow|instructions|how to)\b/i.test(content) || /^\d+\.\s/m.test(content);
     const hasCodeExample = content.includes('```');
-    
+
     if (!hasSteps && !hasCodeExample) {
       issues.push({
         file,
-        message: 'User documentation should include step-by-step instructions or code examples showing how to use the feature',
+        message:
+          'User documentation should include step-by-step instructions or code examples showing how to use the feature',
         severity: 'warning',
         rule: 'documentation-purpose',
       });
     }
 
     // Check for prerequisites
-    if (!content.toLowerCase().includes('prerequisite') && 
-        !content.toLowerCase().includes('requirements') &&
-        !content.toLowerCase().includes('before you begin')) {
+    if (
+      !content.toLowerCase().includes('prerequisite') &&
+      !content.toLowerCase().includes('requirements') &&
+      !content.toLowerCase().includes('before you begin')
+    ) {
       issues.push({
         file,
         message: 'User documentation should clarify prerequisites or requirements upfront',
@@ -185,7 +200,8 @@ function checkDocumentationPurpose(content: string, lines: string[], file: strin
     if (!hasOutcome && hasCodeExample) {
       issues.push({
         file,
-        message: 'User documentation with code examples should explain the expected result or outcome',
+        message:
+          'User documentation with code examples should explain the expected result or outcome',
         severity: 'info',
         rule: 'documentation-purpose',
       });
@@ -195,22 +211,27 @@ function checkDocumentationPurpose(content: string, lines: string[], file: strin
   // Architecture/infrastructure documentation checks - focus on "how it works"
   if (isArchitectureDoc) {
     // Check for architecture explanation
-    const hasArchitectureTerms = /\b(architecture|design|structure|flow|diagram|component|system)\b/i.test(content);
+    const hasArchitectureTerms =
+      /\b(architecture|design|structure|flow|diagram|component|system)\b/i.test(content);
     if (!hasArchitectureTerms) {
       issues.push({
         file,
-        message: 'Architecture documentation should explain system design, structure, or component relationships',
+        message:
+          'Architecture documentation should explain system design, structure, or component relationships',
         severity: 'warning',
         rule: 'documentation-purpose',
       });
     }
 
     // Check for technical decisions or rationale
-    const hasRationale = /\b(because|rationale|reason|why|decision|trade-off|chosen)\b/i.test(content);
+    const hasRationale = /\b(because|rationale|reason|why|decision|trade-off|chosen)\b/i.test(
+      content
+    );
     if (!hasRationale) {
       issues.push({
         file,
-        message: 'Architecture documentation should explain technical decisions and rationale for future developers',
+        message:
+          'Architecture documentation should explain technical decisions and rationale for future developers',
         severity: 'info',
         rule: 'documentation-purpose',
       });
@@ -218,11 +239,13 @@ function checkDocumentationPurpose(content: string, lines: string[], file: strin
 
     // Check for infrastructure details
     if (file.includes('infrastructure') || file.includes('deployment')) {
-      const hasInfraDetails = /\b(server|deploy|environment|config|variable|secret|scaling|monitoring)\b/i.test(content);
+      const hasInfraDetails =
+        /\b(server|deploy|environment|config|variable|secret|scaling|monitoring)\b/i.test(content);
       if (!hasInfraDetails) {
         issues.push({
           file,
-          message: 'Infrastructure documentation should include deployment, configuration, or environment details',
+          message:
+            'Infrastructure documentation should include deployment, configuration, or environment details',
           severity: 'warning',
           rule: 'documentation-purpose',
         });
@@ -234,12 +257,15 @@ function checkDocumentationPurpose(content: string, lines: string[], file: strin
   if (isFeatureDoc) {
     const hasCodeExample = content.includes('```');
     const hasUsageInfo = /\b(use|usage|how to|example|implement)\b/i.test(content);
-    const hasArchitectureInfo = /\b(architecture|design|how it works|implementation)\b/i.test(content);
+    const hasArchitectureInfo = /\b(architecture|design|how it works|implementation)\b/i.test(
+      content
+    );
 
     if (!hasCodeExample) {
       issues.push({
         file,
-        message: 'Feature documentation should include code examples showing how to use the feature',
+        message:
+          'Feature documentation should include code examples showing how to use the feature',
         severity: 'warning',
         rule: 'documentation-purpose',
       });
@@ -248,7 +274,8 @@ function checkDocumentationPurpose(content: string, lines: string[], file: strin
     if (!hasUsageInfo && !hasArchitectureInfo) {
       issues.push({
         file,
-        message: 'Feature documentation should explain either how to use the feature (for users) or how it works internally (for developers)',
+        message:
+          'Feature documentation should explain either how to use the feature (for users) or how it works internally (for developers)',
         severity: 'warning',
         rule: 'documentation-purpose',
       });
@@ -258,13 +285,15 @@ function checkDocumentationPurpose(content: string, lines: string[], file: strin
   // General developer documentation checks
   if (isDevDoc && !isArchitectureDoc) {
     // Check for context about file locations or structure
-    const hasFileReferences = /`[^`]*\.(ts|tsx|js|jsx|json|yml|yaml)`/g.test(content) ||
-                              /\bfile|directory|folder|path\b/i.test(content);
-    
+    const hasFileReferences =
+      /`[^`]*\.(ts|tsx|js|jsx|json|yml|yaml)`/g.test(content) ||
+      /\bfile|directory|folder|path\b/i.test(content);
+
     if (!hasFileReferences && content.includes('```')) {
       issues.push({
         file,
-        message: 'Developer documentation with code examples should reference file locations to help developers navigate the codebase',
+        message:
+          'Developer documentation with code examples should reference file locations to help developers navigate the codebase',
         severity: 'info',
         rule: 'documentation-purpose',
       });
@@ -274,32 +303,48 @@ function checkDocumentationPurpose(content: string, lines: string[], file: strin
   return issues;
 }
 
-function checkScannableFormat(content: string, lines: string[], file: string): DocumentationIssue[] {
+function checkScannableFormat(
+  content: string,
+  lines: string[],
+  file: string
+): DocumentationIssue[] {
   const issues: DocumentationIssue[] = [];
 
   // Check for multiple consecutive paragraphs without visual breaks
   let consecutiveParagraphs = 0;
   let paragraphStartLine = 0;
-  
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
     const nextLine = lines[i + 1]?.trim() || '';
 
-    const isTextLine = line && !line.startsWith('#') && !line.startsWith('-') && 
-                       !line.startsWith('*') && !line.startsWith('```') && 
-                       !line.startsWith('|') && !line.startsWith('>') &&
-                       !line.startsWith('<') && !line.match(/^\d+\./);
-    
-    const isNextTextLine = nextLine && !nextLine.startsWith('#') && !nextLine.startsWith('-') && 
-                           !nextLine.startsWith('*') && !nextLine.startsWith('```') && 
-                           !nextLine.startsWith('|') && !nextLine.startsWith('>') &&
-                           !nextLine.startsWith('<') && !nextLine.match(/^\d+\./);
+    const isTextLine =
+      line &&
+      !line.startsWith('#') &&
+      !line.startsWith('-') &&
+      !line.startsWith('*') &&
+      !line.startsWith('```') &&
+      !line.startsWith('|') &&
+      !line.startsWith('>') &&
+      !line.startsWith('<') &&
+      !line.match(/^\d+\./);
+
+    const isNextTextLine =
+      nextLine &&
+      !nextLine.startsWith('#') &&
+      !nextLine.startsWith('-') &&
+      !nextLine.startsWith('*') &&
+      !nextLine.startsWith('```') &&
+      !nextLine.startsWith('|') &&
+      !nextLine.startsWith('>') &&
+      !nextLine.startsWith('<') &&
+      !nextLine.match(/^\d+\./);
 
     if (isTextLine) {
       if (consecutiveParagraphs === 0) {
         paragraphStartLine = i + 1;
       }
-      
+
       if (isNextTextLine) {
         consecutiveParagraphs++;
         if (consecutiveParagraphs >= 3) {
@@ -322,14 +367,18 @@ function checkScannableFormat(content: string, lines: string[], file: string): D
 
   // Check for lack of code examples in technical documentation
   const hasCodeExample = content.includes('```');
-  const isTechnicalDoc = file.includes('feature') || file.includes('setup') || 
-                         file.includes('guide') || file.includes('implementation') ||
-                         file.includes('api');
-  
+  const isTechnicalDoc =
+    file.includes('feature') ||
+    file.includes('setup') ||
+    file.includes('guide') ||
+    file.includes('implementation') ||
+    file.includes('api');
+
   if (isTechnicalDoc && !hasCodeExample) {
     issues.push({
       file,
-      message: 'Technical documentation should include code examples to improve clarity and scannability',
+      message:
+        'Technical documentation should include code examples to improve clarity and scannability',
       severity: 'info',
       rule: 'documentation-scannable-format',
     });
@@ -343,8 +392,15 @@ function checkCopywriting(content: string, lines: string[], file: string): Docum
 
   // Check for passive voice patterns
   const passivePatterns = [
-    { pattern: /\b(is|are|was|were|been|being)\s+\w+ed\b/i, example: 'Use active voice: "Deploy the app" instead of "The app is deployed"' },
-    { pattern: /\b(has|have|had)\s+been\s+\w+ed\b/i, example: 'Use active voice: "We updated the feature" instead of "The feature has been updated"' },
+    {
+      pattern: /\b(is|are|was|were|been|being)\s+\w+ed\b/i,
+      example: 'Use active voice: "Deploy the app" instead of "The app is deployed"',
+    },
+    {
+      pattern: /\b(has|have|had)\s+been\s+\w+ed\b/i,
+      example:
+        'Use active voice: "We updated the feature" instead of "The feature has been updated"',
+    },
   ];
 
   for (let i = 0; i < lines.length; i++) {
@@ -353,7 +409,7 @@ function checkCopywriting(content: string, lines: string[], file: string): Docum
     if (line.trim().startsWith('```') || line.trim().startsWith('#')) {
       continue;
     }
-    
+
     for (const { pattern, example } of passivePatterns) {
       if (pattern.test(line)) {
         issues.push({
@@ -370,10 +426,22 @@ function checkCopywriting(content: string, lines: string[], file: string): Docum
 
   // Check for marketing speak and fluff
   const fluffPatterns = [
-    { pattern: /\b(unlock|unleash|empower|revolutionize|transform|supercharge)\b/i, message: 'Avoid marketing speak. Be clear and direct.' },
-    { pattern: /\b(blazingly|incredibly|amazingly|extremely)\s+(fast|powerful|simple)\b/i, message: 'Remove hyperbolic adjectives. State facts instead.' },
-    { pattern: /\b(100%|completely|totally)\s+(secure|safe|reliable|guaranteed)\b/i, message: 'Avoid absolute claims. Be precise and realistic.' },
-    { pattern: /\b(seamless|cutting-edge|state-of-the-art|next-generation|world-class)\b/i, message: 'Avoid vague buzzwords. Use specific, measurable descriptions.' },
+    {
+      pattern: /\b(unlock|unleash|empower|revolutionize|transform|supercharge)\b/i,
+      message: 'Avoid marketing speak. Be clear and direct.',
+    },
+    {
+      pattern: /\b(blazingly|incredibly|amazingly|extremely)\s+(fast|powerful|simple)\b/i,
+      message: 'Remove hyperbolic adjectives. State facts instead.',
+    },
+    {
+      pattern: /\b(100%|completely|totally)\s+(secure|safe|reliable|guaranteed)\b/i,
+      message: 'Avoid absolute claims. Be precise and realistic.',
+    },
+    {
+      pattern: /\b(seamless|cutting-edge|state-of-the-art|next-generation|world-class)\b/i,
+      message: 'Avoid vague buzzwords. Use specific, measurable descriptions.',
+    },
   ];
 
   for (let i = 0; i < lines.length; i++) {
@@ -381,7 +449,7 @@ function checkCopywriting(content: string, lines: string[], file: string): Docum
     if (line.trim().startsWith('```') || line.trim().startsWith('#')) {
       continue;
     }
-    
+
     for (const { pattern, message } of fluffPatterns) {
       if (pattern.test(line)) {
         issues.push({
@@ -417,7 +485,7 @@ function checkCopywriting(content: string, lines: string[], file: string): Docum
     if (!line || line.startsWith('#') || line.startsWith('-') || line.startsWith('```')) {
       continue;
     }
-    
+
     const sentences = line.split(/[.!?]+/);
     for (const sentence of sentences) {
       const wordCount = sentence.trim().split(/\s+/).length;
@@ -447,7 +515,7 @@ function checkCopywriting(content: string, lines: string[], file: string): Docum
     if (line.trim().startsWith('```') || line.trim().startsWith('#')) {
       continue;
     }
-    
+
     for (const { pattern, replacement } of redundantPhrases) {
       if (pattern.test(line)) {
         issues.push({
@@ -524,7 +592,6 @@ function getValidationExamples(
       let hasBulletPoints = false;
       let hasNumberedLists = false;
       let codeBlockCount = 0;
-      let bulletListCount = 0;
 
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim();
@@ -539,7 +606,6 @@ function getValidationExamples(
           }
         } else if (line.startsWith('-') || line.startsWith('*')) {
           hasBulletPoints = true;
-          bulletListCount++;
         } else if (line.match(/^\d+\./)) {
           hasNumberedLists = true;
         }
@@ -565,7 +631,6 @@ function getValidationExamples(
       // Check for good copywriting practices
       const examples: string[] = [];
       let activeVoiceCount = 0;
-      let conciseCount = 0;
       let noTodos = true;
 
       for (let i = 0; i < lines.length; i++) {
@@ -573,7 +638,11 @@ function getValidationExamples(
         if (!line || line.startsWith('#') || line.startsWith('```')) continue;
 
         // Check for active voice (action verbs at start)
-        if (/^(Install|Deploy|Configure|Run|Create|Update|Set|Use|Add|Remove|Delete|Build)/i.test(line)) {
+        if (
+          /^(Install|Deploy|Configure|Run|Create|Update|Set|Use|Add|Remove|Delete|Build)/i.test(
+            line
+          )
+        ) {
           activeVoiceCount++;
           if (examples.length < 3) {
             examples.push(`Line ${i + 1}: Active voice - "${line.substring(0, 60)}..."`);
@@ -613,7 +682,8 @@ function getValidationExamples(
       const examples: string[] = [];
 
       if (isUserDoc) {
-        const hasSteps = /\b(step|follow|instructions|how to)\b/i.test(content) || /^\d+\.\s/m.test(content);
+        const hasSteps =
+          /\b(step|follow|instructions|how to)\b/i.test(content) || /^\d+\.\s/m.test(content);
         const hasCodeExample = content.includes('```');
         const hasPrerequisites =
           content.toLowerCase().includes('prerequisite') ||
@@ -633,9 +703,15 @@ function getValidationExamples(
           });
         }
       } else if (isArchitectureDoc) {
-        const hasArchitecture = /\b(architecture|design|structure|flow|diagram|component|system)\b/i.test(content);
-        const hasRationale = /\b(because|rationale|reason|why|decision|trade-off|chosen)\b/i.test(content);
-        const hasInfraDetails = /\b(server|deploy|environment|config|variable|secret|scaling|monitoring)\b/i.test(content);
+        const hasArchitecture =
+          /\b(architecture|design|structure|flow|diagram|component|system)\b/i.test(content);
+        const hasRationale = /\b(because|rationale|reason|why|decision|trade-off|chosen)\b/i.test(
+          content
+        );
+        const hasInfraDetails =
+          /\b(server|deploy|environment|config|variable|secret|scaling|monitoring)\b/i.test(
+            content
+          );
 
         if (hasArchitecture) examples.push('Architecture explained');
         if (hasRationale) examples.push('Technical decisions documented');
@@ -752,7 +828,7 @@ async function postReviewComments(
 
   if (issues.length === 0) {
     reviewBody += '✅ **All documentation checks passed!**\n\n';
-    
+
     // Group validations by file
     const validationsByFile = new Map<string, ValidationSuccess[]>();
     for (const validation of validations) {
@@ -764,7 +840,7 @@ async function postReviewComments(
 
     if (validationsByFile.size > 0) {
       reviewBody += '### What we validated:\n\n';
-      
+
       for (const [file, fileValidations] of validationsByFile) {
         reviewBody += `**${file}:**\n`;
         for (const validation of fileValidations) {
@@ -781,7 +857,8 @@ async function postReviewComments(
       reviewBody += '### Rules applied:\n\n';
       reviewBody += '- **Copywriting**: Active voice, no marketing fluff, clear error messages\n';
       reviewBody += '- **Scannable Format**: Visual breaks, code examples, bullet points\n';
-      reviewBody += '- **Documentation Purpose**: User docs show "how to use", dev docs explain "how it works"\n\n';
+      reviewBody +=
+        '- **Documentation Purpose**: User docs show "how to use", dev docs explain "how it works"\n\n';
     } else {
       reviewBody += 'The documentation follows the copywriting and formatting guidelines.\n\n';
     }
@@ -823,7 +900,8 @@ async function postReviewComments(
     reviewBody += '- Include **prerequisites** and expected **outcomes**\n';
     reviewBody += '- Add **code examples** users can copy and run\n\n';
     reviewBody += '**Developer Documentation** (`/docs`):\n';
-    reviewBody += '- Explain **how the architecture works** (system design, component relationships)\n';
+    reviewBody +=
+      '- Explain **how the architecture works** (system design, component relationships)\n';
     reviewBody += '- Document **technical decisions** and rationale\n';
     reviewBody += '- Include **file locations** and navigation hints\n';
     reviewBody += '- Explain **infrastructure and deployment** details\n\n';
