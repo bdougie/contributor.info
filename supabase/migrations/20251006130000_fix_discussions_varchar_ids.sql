@@ -1,38 +1,14 @@
--- Migration: Add GitHub Discussions Support
+-- Migration: Fix Discussions Schema - Convert UUID to VARCHAR for GitHub Node IDs
 -- Created: 2025-10-06
--- Issue: https://github.com/open-source-ready/gh-datapipe/issues/160
+-- Issue: GitHub GraphQL API returns string node IDs, not UUIDs
 --
--- This migration adds tables for GitHub Discussions data collected via GraphQL API
--- Supports: discussions, discussion comments, categories, answers, and engagement metrics
+-- This migration fixes the schema to use VARCHAR for ID columns instead of UUID
 
--- ============================================================================
--- DEPENDENCY CHECKS
--- ============================================================================
+-- Drop existing tables to recreate with correct schema
+DROP TABLE IF EXISTS public.discussion_comments CASCADE;
+DROP TABLE IF EXISTS public.discussions CASCADE;
 
--- Create required roles if they don't exist
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
-    CREATE ROLE anon;
-    RAISE NOTICE 'Created role: anon';
-  END IF;
-
-  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
-    CREATE ROLE authenticated;
-    RAISE NOTICE 'Created role: authenticated';
-  END IF;
-
-  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN
-    CREATE ROLE service_role;
-    RAISE NOTICE 'Created role: service_role';
-  END IF;
-END $$;
-
--- ============================================================================
--- TABLES
--- ============================================================================
-
--- Discussions Table
+-- Recreate Discussions Table with VARCHAR IDs
 CREATE TABLE IF NOT EXISTS public.discussions (
   id VARCHAR PRIMARY KEY NOT NULL,  -- GitHub GraphQL node ID (e.g., "D_kwDOJm0kOc4AiTSy")
   github_id VARCHAR UNIQUE NOT NULL,
@@ -80,7 +56,7 @@ COMMENT ON COLUMN public.discussions.id IS 'GitHub GraphQL global node ID for th
 COMMENT ON COLUMN public.discussions.is_answered IS 'For Q&A discussions, indicates if an answer has been chosen';
 COMMENT ON COLUMN public.discussions.answer_id IS 'GitHub node ID of the comment marked as the answer';
 
--- Discussion Comments Table
+-- Recreate Discussion Comments Table with VARCHAR IDs
 CREATE TABLE IF NOT EXISTS public.discussion_comments (
   id VARCHAR PRIMARY KEY NOT NULL,  -- GitHub GraphQL node ID (e.g., "DC_kwDOJm0kOc4AiTSy")
   github_id VARCHAR UNIQUE NOT NULL,
@@ -119,11 +95,7 @@ COMMENT ON COLUMN public.discussion_comments.id IS 'GitHub GraphQL global node I
 COMMENT ON COLUMN public.discussion_comments.parent_comment_id IS 'Links to parent comment for nested thread structure';
 COMMENT ON COLUMN public.discussion_comments.is_answer IS 'Indicates if this comment was marked as the answer to a Q&A discussion';
 
--- ============================================================================
--- INDEXES
--- ============================================================================
-
--- Discussions indexes
+-- Recreate Indexes
 CREATE INDEX IF NOT EXISTS idx_discussions_repository ON discussions(repository_id);
 CREATE INDEX IF NOT EXISTS idx_discussions_author ON discussions(author_id);
 CREATE INDEX IF NOT EXISTS idx_discussions_category ON discussions(category_name);
@@ -131,45 +103,33 @@ CREATE INDEX IF NOT EXISTS idx_discussions_created_at ON discussions(created_at 
 CREATE INDEX IF NOT EXISTS idx_discussions_updated_at ON discussions(updated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_discussions_is_answered ON discussions(is_answered) WHERE is_answered = TRUE;
 
--- Discussion comments indexes
 CREATE INDEX IF NOT EXISTS idx_discussion_comments_discussion ON discussion_comments(discussion_id);
 CREATE INDEX IF NOT EXISTS idx_discussion_comments_author ON discussion_comments(author_id);
 CREATE INDEX IF NOT EXISTS idx_discussion_comments_parent ON discussion_comments(parent_comment_id);
 CREATE INDEX IF NOT EXISTS idx_discussion_comments_created_at ON discussion_comments(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_discussion_comments_is_answer ON discussion_comments(is_answer) WHERE is_answer = TRUE;
 
--- ============================================================================
--- RLS POLICIES
--- ============================================================================
-
--- Enable RLS on discussions
+-- Enable RLS
 ALTER TABLE discussions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE discussion_comments ENABLE ROW LEVEL SECURITY;
 
 -- Public read access for discussions
-DO $$
-BEGIN
-  -- Drop existing policy for idempotency
-  DROP POLICY IF EXISTS "Public discussions are viewable by everyone" ON discussions;
-
-  -- Create policy
-  CREATE POLICY "Public discussions are viewable by everyone"
-    ON discussions FOR SELECT
-    USING (true);
-END $$;
+DROP POLICY IF EXISTS "Public discussions are viewable by everyone" ON discussions;
+CREATE POLICY "Public discussions are viewable by everyone"
+  ON discussions FOR SELECT
+  USING (true);
 
 -- Service role can insert/update discussions
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN
     DROP POLICY IF EXISTS "Service role can insert discussions" ON discussions;
-
     CREATE POLICY "Service role can insert discussions"
       ON discussions FOR INSERT
       TO service_role
       WITH CHECK (true);
 
     DROP POLICY IF EXISTS "Service role can update discussions" ON discussions;
-
     CREATE POLICY "Service role can update discussions"
       ON discussions FOR UPDATE
       TO service_role
@@ -178,34 +138,23 @@ BEGIN
   END IF;
 END $$;
 
--- Enable RLS on discussion_comments
-ALTER TABLE discussion_comments ENABLE ROW LEVEL SECURITY;
-
 -- Public read access for discussion comments
-DO $$
-BEGIN
-  -- Drop existing policy for idempotency
-  DROP POLICY IF EXISTS "Discussion comments are viewable by everyone" ON discussion_comments;
-
-  -- Create policy
-  CREATE POLICY "Discussion comments are viewable by everyone"
-    ON discussion_comments FOR SELECT
-    USING (true);
-END $$;
+DROP POLICY IF EXISTS "Discussion comments are viewable by everyone" ON discussion_comments;
+CREATE POLICY "Discussion comments are viewable by everyone"
+  ON discussion_comments FOR SELECT
+  USING (true);
 
 -- Service role can insert/update discussion comments
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN
     DROP POLICY IF EXISTS "Service role can insert discussion comments" ON discussion_comments;
-
     CREATE POLICY "Service role can insert discussion comments"
       ON discussion_comments FOR INSERT
       TO service_role
       WITH CHECK (true);
 
     DROP POLICY IF EXISTS "Service role can update discussion comments" ON discussion_comments;
-
     CREATE POLICY "Service role can update discussion comments"
       ON discussion_comments FOR UPDATE
       TO service_role
@@ -214,36 +163,26 @@ BEGIN
   END IF;
 END $$;
 
--- ============================================================================
--- GRANTS
--- ============================================================================
-
--- Grant permissions to roles
+-- Grant permissions
 DO $$
 BEGIN
-  -- Anon can read discussions
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
     GRANT SELECT ON discussions TO anon;
     GRANT SELECT ON discussion_comments TO anon;
   END IF;
 
-  -- Authenticated users can read discussions
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
     GRANT SELECT ON discussions TO authenticated;
     GRANT SELECT ON discussion_comments TO authenticated;
   END IF;
 
-  -- Service role has full access
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN
     GRANT ALL ON discussions TO service_role;
     GRANT ALL ON discussion_comments TO service_role;
   END IF;
 END $$;
 
--- ============================================================================
--- VALIDATION
--- ============================================================================
-
+-- Validation
 DO $$
 DECLARE
   discussions_count INTEGER;
@@ -260,11 +199,11 @@ BEGIN
   AND table_name = 'discussion_comments';
 
   IF discussions_count = 1 AND comments_count = 1 THEN
-    RAISE NOTICE '✅ Discussions migration completed successfully';
-    RAISE NOTICE '   - discussions table created';
-    RAISE NOTICE '   - discussion_comments table created';
-    RAISE NOTICE '   - RLS policies applied';
-    RAISE NOTICE '   - Indexes created for optimal query performance';
+    RAISE NOTICE '✅ Discussions schema fix completed successfully';
+    RAISE NOTICE '   - discussions table recreated with VARCHAR IDs';
+    RAISE NOTICE '   - discussion_comments table recreated with VARCHAR IDs';
+    RAISE NOTICE '   - RLS policies reapplied';
+    RAISE NOTICE '   - Indexes recreated';
   ELSE
     RAISE WARNING '⚠️ Migration validation failed - check table creation';
   END IF;
