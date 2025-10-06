@@ -265,7 +265,7 @@ class LLMService {
     const model = 'gpt-4o-mini';
 
     try {
-      // Note: PostHog service uses maxTokens from config (500), but prompt enforces 25 word limit
+      // Note: PostHog service uses maxTokens from config (500), but prompt enforces 30 word limit
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await (posthogOpenAIService as any).callOpenAI(prompt, model, {
         feature: 'contributor-summary',
@@ -323,30 +323,34 @@ class LLMService {
     data: ContributorActivityData,
     contributor: ContributorSummaryMetadata
   ): string {
-    // Extract focus areas from PRs and issues
-    const focusAreas = this.extractFocusAreas(data);
+    // Get actual PR and issue titles for context
+    const recentPRTitles = data.recentPRs.slice(0, 5).map((pr) => pr.title);
+    const recentIssueTitles = data.recentIssues.slice(0, 5).map((issue) => issue.title);
+
     const prSummary = this.summarizePRActivity(data.recentPRs);
     const issueSummary = this.summarizeIssueActivity(data.recentIssues);
 
-    return `Generate a professional 1-2 sentence summary for GitHub contributor ${contributor.login} based on recent activity:
+    return `Generate a specific, actionable 1-2 sentence summary for GitHub contributor ${contributor.login} based on their recent work:
 
-Recent Activity:
-- Pull Requests: ${data.recentPRs.length} ${prSummary}
-- Issues: ${data.recentIssues.length} ${issueSummary}
-- Focus Areas: ${focusAreas}
-- Total Contributions: ${data.totalContributions}
+Recent Pull Requests ${prSummary}:
+${recentPRTitles.length > 0 ? recentPRTitles.map((title) => `- ${title}`).join('\n') : 'None'}
 
-Create a concise summary highlighting:
-1. Primary contribution type (features, bug fixes, reviews, documentation)
-2. Technical focus area or expertise demonstrated
-3. Activity pattern (active, occasional, specific focus)
+Recent Issues ${issueSummary}:
+${recentIssueTitles.length > 0 ? recentIssueTitles.map((title) => `- ${title}`).join('\n') : 'None'}
+
+Create a summary that:
+1. Identifies SPECIFIC areas they worked on (e.g., "authentication flow", "API endpoints", "UI components")
+2. Describes the TYPE of work (features, fixes, refactoring, docs, testing)
+3. Mentions impact or patterns (e.g., "improving performance", "adding new features", "fixing critical bugs")
 
 Requirements:
-- Maximum 25 words
-- Professional third-person tone
-- Actionable, persona-focused
+- Maximum 30 words
+- Be SPECIFIC - avoid generic phrases like "general contributions" or "various features"
+- Use technical details from the PR/issue titles
+- Third-person, professional tone
 
-Example: "Focuses on authentication features with 5 merged PRs this month. Active code reviewer on security-related changes."`;
+Good: "Implemented new authentication flow and API rate limiting. Fixed critical bugs in payment processing."
+Bad: "Made general contributions to the codebase with various improvements."`;
   }
 
   /**

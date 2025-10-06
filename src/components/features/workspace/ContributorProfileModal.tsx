@@ -9,6 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/lib/supabase';
+import { useContributorSummary } from '@/hooks/use-contributor-summary';
 import {
   GitPullRequest,
   GitCommit,
@@ -155,6 +156,21 @@ export function ContributorProfileModal({
     workspaceId,
     pageSize: 20,
   });
+
+  // Generate AI summary based on contributor data
+  const { summary, loading: summaryLoading } = useContributorSummary(
+    contributor
+      ? {
+          login: contributor.username,
+          avatar_url: contributor.avatar_url || '',
+          pullRequests: contributor.contributions?.pull_requests || 0,
+          percentage: 0,
+          recentPRs: [], // TODO: Map from activities if available
+          recentIssues: [], // TODO: Map from activities if available
+          recentActivities: activities?.slice(0, 10) || [],
+        }
+      : { login: '', avatar_url: '', pullRequests: 0, percentage: 0 }
+  );
 
   if (!contributor) return null;
 
@@ -320,6 +336,23 @@ export function ContributorProfileModal({
                 <CardDescription>
                   Total contributions: {humanizeNumber(contributor.stats.total_contributions)}
                 </CardDescription>
+
+                {/* AI-Generated Activity Summary */}
+                {(summary || summaryLoading) && (
+                  <div className="mt-3 pt-3 border-t border-border/50">
+                    {summaryLoading && (
+                      <div className="space-y-2">
+                        <div className="h-3 w-full bg-muted animate-pulse rounded" />
+                        <div className="h-3 w-4/5 bg-muted animate-pulse rounded" />
+                      </div>
+                    )}
+                    {summary && !summaryLoading && (
+                      <p className="text-sm text-muted-foreground italic leading-relaxed">
+                        {summary}
+                      </p>
+                    )}
+                  </div>
+                )}
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
