@@ -389,6 +389,8 @@ function WorkspacePRs({
   workspace,
   setReviewerModalOpen,
   onGitHubAppModalOpen,
+  currentUser,
+  currentMember,
 }: {
   repositories: Repository[];
   selectedRepositories: string[];
@@ -397,6 +399,8 @@ function WorkspacePRs({
   workspace?: Workspace;
   setReviewerModalOpen: (open: boolean) => void;
   onGitHubAppModalOpen: (repo: Repository) => void;
+  currentUser: User | null;
+  currentMember: WorkspaceMemberWithUser | null;
 }) {
   const navigate = useNavigate();
 
@@ -546,11 +550,15 @@ function WorkspaceIssues({
   selectedRepositories,
   timeRange,
   onGitHubAppModalOpen,
+  currentUser,
+  currentMember,
 }: {
   repositories: Repository[];
   selectedRepositories: string[];
   timeRange: TimeRange;
   onGitHubAppModalOpen: (repo: Repository) => void;
+  currentUser: User | null;
+  currentMember: WorkspaceMemberWithUser | null;
 }) {
   const [issues, setIssues] = useState<Issue[]>([]);
   const [loading, setLoading] = useState(true);
@@ -3612,6 +3620,8 @@ function WorkspacePage() {
                 workspace={workspace}
                 setReviewerModalOpen={setReviewerModalOpen}
                 onGitHubAppModalOpen={handleGitHubAppModalOpen}
+                currentUser={currentUser}
+                currentMember={currentMember}
               />
             </div>
           </TabsContent>
@@ -3623,6 +3633,8 @@ function WorkspacePage() {
                 selectedRepositories={selectedRepositories}
                 timeRange={timeRange}
                 onGitHubAppModalOpen={handleGitHubAppModalOpen}
+                currentUser={currentUser}
+                currentMember={currentMember}
               />
             </div>
           </TabsContent>
