@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Plus } from '@/components/ui/icon';
 import { LazyNavigationSheet } from './lazy-navigation-sheet';
 import { WorkspaceSwitcher } from '@/components/navigation/WorkspaceSwitcher';
+import { NotificationDropdown } from '@/components/notifications';
 import { supabase } from '@/lib/supabase';
 import { useTimeRangeStore } from '@/lib/time-range-store';
 import { usePrefetchOnIntent, prefetchCriticalRoutes } from '@/lib/route-prefetch';
@@ -264,6 +265,7 @@ export default function Layout() {
                 )}
               </>
             )}
+            {isLoggedIn && <NotificationDropdown />}
             <AuthButton />
           </div>
         </div>
