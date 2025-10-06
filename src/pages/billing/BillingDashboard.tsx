@@ -268,7 +268,7 @@ export function BillingDashboard() {
       {/* Pricing Plans */}
       <div className="mb-8">
         <h2 className="text-2xl font-bold mb-4">Available Plans</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {Object.values(SUBSCRIPTION_TIERS)
             .filter((tier) => tier.id !== 'enterprise')
             .map((tier) => (
