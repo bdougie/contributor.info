@@ -7,7 +7,16 @@ import { useWorkspaceContributors } from '@/hooks/useWorkspaceContributors';
 import { useContributorGroups } from '@/hooks/useContributorGroups';
 import { useWorkspaceEvents } from '@/hooks/use-workspace-events';
 import { TIME_PERIODS, timeHelpers } from '@/lib/constants/time-constants';
-import { WorkspaceDashboard, WorkspaceDashboardSkeleton } from '@/components/features/workspace';
+import {
+  WorkspaceDashboard,
+  WorkspaceDashboardSkeleton,
+  ResponsePreviewModal,
+} from '@/components/features/workspace';
+import {
+  findSimilarItems,
+  generateResponseMessage,
+  type SimilarItem,
+} from '@/services/similarity-search';
 import { WorkspaceErrorBoundary } from '@/components/error-boundaries/workspace-error-boundary';
 import { WorkspaceAutoSync } from '@/components/features/workspace/WorkspaceAutoSync';
 import { useWorkspaceContext } from '@/contexts/WorkspaceContext';
@@ -2350,6 +2359,10 @@ function WorkspacePage() {
   const [reviewerModalOpen, setReviewerModalOpen] = useState(false);
   const [githubAppModalOpen, setGithubAppModalOpen] = useState(false);
   const [selectedRepoForModal, setSelectedRepoForModal] = useState<Repository | null>(null);
+  const [responseModalOpen, setResponseModalOpen] = useState(false);
+  const [similarItems, setSimilarItems] = useState<SimilarItem[]>([]);
+  const [responseMessage, setResponseMessage] = useState('');
+  const [loadingSimilarItems, setLoadingSimilarItems] = useState(false);
 
   // Fetch event-based metrics for accurate star trends
   // Use workspace?.id (UUID) instead of workspaceId (which could be a slug)
@@ -3589,6 +3602,18 @@ function WorkspacePage() {
             />
           )}
 
+          {/* Response Preview Modal - Available on all tabs */}
+          <ResponsePreviewModal
+            open={responseModalOpen}
+            onOpenChange={setResponseModalOpen}
+            loading={loadingSimilarItems}
+            similarItems={similarItems}
+            responseMessage={responseMessage}
+            onCopyToClipboard={() => {
+              toast.success('Response copied to clipboard!');
+            }}
+          />
+
           <TabsContent value="overview" className="mt-6 space-y-4">
             <div className="container max-w-7xl mx-auto">
               <WorkspaceDashboard
@@ -3610,6 +3635,34 @@ function WorkspacePage() {
                 onMyWorkItemClick={(item) => {
                   // Open the URL in a new tab
                   window.open(item.url, '_blank', 'noopener,noreferrer');
+                }}
+                onMyWorkItemRespond={async (item) => {
+                  setResponseModalOpen(true);
+                  setLoadingSimilarItems(true);
+
+                  try {
+                    // Find similar items in the workspace
+                    const items = await findSimilarItems({
+                      workspaceId: workspace.id,
+                      queryItem: {
+                        id: item.id,
+                        title: item.title,
+                        body: null, // We don't have the body in MyWorkItem
+                        type: item.type,
+                      },
+                      limit: 4,
+                    });
+
+                    setSimilarItems(items);
+                    const message = generateResponseMessage(items);
+                    setResponseMessage(message);
+                  } catch (error) {
+                    console.error('Error finding similar items:', error);
+                    setSimilarItems([]);
+                    setResponseMessage('Failed to find similar items. Please try again.');
+                  } finally {
+                    setLoadingSimilarItems(false);
+                  }
                 }}
                 repoStatuses={appStatus.repoStatuses}
               />

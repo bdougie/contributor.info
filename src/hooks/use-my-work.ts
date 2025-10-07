@@ -68,6 +68,8 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
         setLoading(true);
         const githubLogin = user.user_metadata.user_name;
 
+        console.log('useMyWork - Starting fetch for:', { workspaceId, githubLogin });
+
         // First, get the contributor ID
         const { data: contributor, error: contributorError } = await supabase
           .from('contributors')
@@ -100,7 +102,10 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             .select('repository_id')
             .eq('workspace_id', workspaceId);
 
-          console.log('Workspace repositories:', workspaceRepos?.length || 0);
+          console.log('useMyWork - Workspace found:', {
+            workspaceId,
+            repositoryCount: workspaceRepos?.length || 0,
+          });
 
           if (workspaceRepos && workspaceRepos.length > 0) {
             workspaceRepoIds = workspaceRepos.map((wr) => wr.repository_id);
@@ -182,8 +187,8 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
           setError(issueError);
         }
 
-        // Query 3: Unanswered discussions where user is author (in workspace repos)
-        // Note: discussions table uses author_login (string) not author_id (UUID)
+        // Query 3: ALL unanswered discussions in workspace (not just authored by user)
+        // Maintainers should see all discussions needing answers
         let discussionsQuery = supabase
           .from('discussions')
           .select(
@@ -197,7 +202,6 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             repositories!inner(full_name, owner, name)
           `
           )
-          .eq('author_login', githubLogin)
           .eq('is_answered', false) // Only unanswered discussions need attention
           .order('updated_at', { ascending: false })
           .limit(20);
@@ -271,7 +275,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
           allDiscussions?.map((discussion) => ({
             id: `discussion-${discussion.id}`,
             type: 'discussion' as const,
-            itemType: 'authored' as const,
+            itemType: 'participant' as const, // All unanswered discussions in workspace
             title: discussion.title,
             repository: discussion.repositories.full_name,
             status: 'open' as const, // Only unanswered discussions are fetched

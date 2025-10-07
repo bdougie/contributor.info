@@ -47,6 +47,7 @@ export interface WorkspaceDashboardProps {
   onSettingsClick?: () => void;
   onUpgradeClick?: () => void;
   onMyWorkItemClick?: (item: MyWorkItem) => void;
+  onMyWorkItemRespond?: (item: MyWorkItem) => void;
   className?: string;
   children?: React.ReactNode; // Allow passing additional content like Rising Stars chart
   repoStatuses?: Map<
@@ -79,6 +80,7 @@ export function WorkspaceDashboard({
   onRepositoryClick,
   onGitHubAppModalOpen,
   onMyWorkItemClick,
+  onMyWorkItemRespond,
   className,
   children,
   repoStatuses,
@@ -178,6 +180,7 @@ export function WorkspaceDashboard({
         stats={myWorkStats}
         loading={loading}
         onItemClick={onMyWorkItemClick}
+        onRespond={onMyWorkItemRespond}
       />
 
       {/* Additional Content (e.g., Rising Stars Chart) */}
