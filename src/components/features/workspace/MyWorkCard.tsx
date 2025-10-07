@@ -19,6 +19,10 @@ export interface MyWorkItem {
   updated_at: string;
   needsAttention?: boolean;
   number: number;
+  user: {
+    username: string;
+    avatar_url?: string;
+  };
 }
 
 export interface MyWorkStats {
@@ -139,9 +143,17 @@ function MyWorkItemComponent({
       onClick={() => onClick?.(item)}
     >
       <div className="relative flex-shrink-0">
-        <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
-          <span className="text-xs font-medium">You</span>
-        </div>
+        {item.user.avatar_url ? (
+          <img
+            src={item.user.avatar_url}
+            alt={item.user.username}
+            className="h-8 w-8 rounded-full"
+          />
+        ) : (
+          <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+            <span className="text-xs font-medium">{item.user.username.slice(0, 2)}</span>
+          </div>
+        )}
         <div
           className={cn(
             'absolute bottom-0 right-0 w-3 h-3 rounded-full border border-background',
@@ -155,7 +167,7 @@ function MyWorkItemComponent({
         <div className="flex flex-col space-y-1 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-1 min-w-0 flex-1">
             <div className="flex items-center space-x-1 text-sm flex-wrap">
-              <span className="font-medium">You</span>
+              <span className="font-medium">{item.user.username}</span>
               <span className="text-muted-foreground">{getActivityText()}</span>
               <a
                 href={item.url}

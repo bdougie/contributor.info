@@ -24,62 +24,98 @@ const mockItems: MyWorkItem[] = [
   {
     id: '1',
     type: 'pr',
+    itemType: 'review_requested',
     title: 'Add new feature: user authentication flow',
     repository: 'acme/web-app',
     status: 'open',
     url: 'https://github.com/acme/web-app/pull/123',
     updated_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
     needsAttention: true,
+    number: 123,
+    user: {
+      username: 'letanloc1998',
+      avatar_url: 'https://avatars.githubusercontent.com/u/25937103?v=4',
+    },
   },
   {
     id: '2',
     type: 'issue',
+    itemType: 'assigned',
     title: 'Bug: Login button not responsive on mobile',
     repository: 'acme/mobile-app',
     status: 'open',
     url: 'https://github.com/acme/mobile-app/issues/456',
     updated_at: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(), // 5 hours ago
     needsAttention: false,
+    number: 456,
+    user: {
+      username: 'letanloc1998',
+      avatar_url: 'https://avatars.githubusercontent.com/u/25937103?v=4',
+    },
   },
   {
     id: '3',
-    type: 'mention',
+    type: 'discussion',
+    itemType: 'participant',
     title: 'Discussion: API rate limiting strategy',
     repository: 'acme/api-server',
     status: 'open',
     url: 'https://github.com/acme/api-server/discussions/789',
     updated_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
     needsAttention: false,
+    number: 789,
+    user: {
+      username: 'letanloc1998',
+      avatar_url: 'https://avatars.githubusercontent.com/u/25937103?v=4',
+    },
   },
   {
     id: '4',
     type: 'pr',
+    itemType: 'review_requested',
     title: 'Fix: Resolve memory leak in worker process',
     repository: 'acme/backend',
     status: 'merged',
     url: 'https://github.com/acme/backend/pull/321',
     updated_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
     needsAttention: false,
+    number: 321,
+    user: {
+      username: 'letanloc1998',
+      avatar_url: 'https://avatars.githubusercontent.com/u/25937103?v=4',
+    },
   },
   {
     id: '5',
     type: 'pr',
+    itemType: 'authored',
     title: 'Update dependencies to latest versions',
     repository: 'acme/web-app',
     status: 'closed',
     url: 'https://github.com/acme/web-app/pull/789',
     updated_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days ago
     needsAttention: false,
+    number: 789,
+    user: {
+      username: 'letanloc1998',
+      avatar_url: 'https://avatars.githubusercontent.com/u/25937103?v=4',
+    },
   },
   {
     id: '6',
     type: 'issue',
+    itemType: 'assigned',
     title: 'Feature request: Dark mode support',
     repository: 'acme/design-system',
     status: 'open',
     url: 'https://github.com/acme/design-system/issues/100',
     updated_at: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(), // 14 days ago
     needsAttention: true,
+    number: 100,
+    user: {
+      username: 'letanloc1998',
+      avatar_url: 'https://avatars.githubusercontent.com/u/25937103?v=4',
+    },
   },
 ];
 

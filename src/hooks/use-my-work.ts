@@ -78,10 +78,10 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
 
         console.log('useMyWork - Starting fetch for:', { workspaceId, githubLogin });
 
-        // First, get the contributor ID
+        // First, get the contributor ID and avatar
         const { data: contributor, error: contributorError } = await supabase
           .from('contributors')
-          .select('id')
+          .select('id, avatar_url')
           .eq('username', githubLogin)
           .maybeSingle();
 
@@ -100,7 +100,8 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
         }
 
         const contributorId = contributor.id;
-        console.log('Found contributor:', { contributorId, githubLogin });
+        const avatarUrl = contributor.avatar_url;
+        console.log('Found contributor:', { contributorId, githubLogin, avatarUrl });
 
         // Get workspace repository IDs for filtering
         let workspaceRepoIds: string[] = [];
@@ -255,6 +256,10 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             updated_at: pr.updated_at,
             needsAttention: true,
             number: pr.number,
+            user: {
+              username: githubLogin,
+              avatar_url: avatarUrl,
+            },
           })) || [];
 
         // Map assigned issues to MyWorkItem
@@ -270,6 +275,10 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             updated_at: issue.updated_at,
             needsAttention: true,
             number: issue.number,
+            user: {
+              username: githubLogin,
+              avatar_url: avatarUrl,
+            },
           })) || [];
 
         // Map unanswered discussions to MyWorkItem
@@ -285,6 +294,10 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             updated_at: discussion.updated_at,
             needsAttention: true,
             number: discussion.number,
+            user: {
+              username: githubLogin,
+              avatar_url: avatarUrl,
+            },
           })) || [];
 
         // Combine and sort by updated_at
