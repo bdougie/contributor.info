@@ -249,22 +249,19 @@ export function WorkspacePullRequestsTable({
           header: 'Repository',
           cell: ({ row }) => {
             const repo = row.original.repository;
-            const avatarUrl =
-              repo.avatar_url || `https://avatars.githubusercontent.com/${repo.owner}`;
 
             return (
               <button
                 onClick={() => onRepositoryClick?.(repo.owner, repo.name)}
                 className="flex items-center gap-2 text-sm hover:text-primary transition-colors min-w-0"
               >
-                <img
-                  src={avatarUrl}
-                  alt={repo.owner}
-                  className="h-5 w-5 rounded flex-shrink-0"
-                  onError={(e) => {
-                    e.currentTarget.src = `https://avatars.githubusercontent.com/${repo.owner}`;
-                  }}
-                />
+                {repo.avatar_url && (
+                  <img
+                    src={repo.avatar_url}
+                    alt={repo.owner}
+                    className="h-5 w-5 rounded flex-shrink-0"
+                  />
+                )}
                 <span className="truncate">{repo.name}</span>
               </button>
             );

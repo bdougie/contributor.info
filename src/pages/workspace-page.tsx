@@ -2,7 +2,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect, lazy, Suspense, useMemo, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
-import { getFallbackAvatar } from '@/lib/utils/avatar';
+import { getFallbackAvatar, getOrgAvatarUrl } from '@/lib/utils/avatar';
 import { useWorkspaceContributors } from '@/hooks/useWorkspaceContributors';
 import { useContributorGroups } from '@/hooks/useContributorGroups';
 import { useWorkspaceEvents } from '@/hooks/use-workspace-events';
@@ -143,6 +143,7 @@ interface WorkspaceRepository {
     stargazers_count: number;
     forks_count: number;
     open_issues_count: number;
+    avatar_url: string | null;
   };
 }
 
@@ -602,7 +603,8 @@ function WorkspaceIssues({
               id,
               name,
               owner,
-              full_name
+              full_name,
+              avatar_url
             ),
             contributors:author_id(
               username,
@@ -648,6 +650,7 @@ function WorkspaceIssues({
               name: string;
               owner: string;
               full_name: string;
+              avatar_url: string | null;
             };
             contributors?: {
               username: string;
@@ -664,9 +667,11 @@ function WorkspaceIssues({
               repository: {
                 name: issue.repositories?.name || 'unknown',
                 owner: issue.repositories?.owner || 'unknown',
-                avatar_url: issue.repositories?.owner
-                  ? `https://avatars.githubusercontent.com/${issue.repositories.owner}`
-                  : getFallbackAvatar(),
+                avatar_url:
+                  issue.repositories?.avatar_url ||
+                  (issue.repositories?.owner
+                    ? `https://avatars.githubusercontent.com/${issue.repositories.owner}`
+                    : getFallbackAvatar()),
               },
               author: {
                 username: issue.contributors?.username || 'unknown',
@@ -1275,7 +1280,7 @@ function WorkspaceContributors({
                   {displayOwners.map((owner, i) => (
                     <img
                       key={`${owner}_${i}`}
-                      src={`https://avatars.githubusercontent.com/${owner}?size=40`}
+                      src={getOrgAvatarUrl(owner)}
                       alt={`${owner} organization`}
                       className="h-5 w-5 rounded-sm border border-border object-cover"
                       loading="lazy"
@@ -1381,7 +1386,7 @@ function WorkspaceContributors({
                   {displayOwners.map((owner, i) => (
                     <img
                       key={`${owner}_${i}`}
-                      src={`https://avatars.githubusercontent.com/${owner}?size=40`}
+                      src={getOrgAvatarUrl(owner)}
                       alt={`${owner} organization`}
                       className="h-5 w-5 rounded-sm border border-border object-cover"
                       loading="lazy"
@@ -1987,9 +1992,7 @@ function WorkspaceActivity({
             created_at: pr.created_at,
             author: {
               username: pr.author_login || 'Unknown',
-              avatar_url: pr.author_login
-                ? `https://avatars.githubusercontent.com/${pr.author_login}`
-                : '',
+              avatar_url: '', // Should come from contributors table via join
             },
             repository: getRepoName(pr.repository_id),
             status: (() => {
@@ -2015,9 +2018,7 @@ function WorkspaceActivity({
             created_at: issue.created_at,
             author: {
               username: issue.author_login || 'Unknown',
-              avatar_url: issue.author_login
-                ? `https://avatars.githubusercontent.com/${issue.author_login}`
-                : '',
+              avatar_url: '', // Should come from contributors table via join
             },
             repository: getRepoName(issue.repository_id),
             status: issue.closed_at ? 'closed' : 'open',
@@ -2037,9 +2038,7 @@ function WorkspaceActivity({
             created_at: review.submitted_at,
             author: {
               username: review.reviewer_login || 'Unknown',
-              avatar_url: review.reviewer_login
-                ? `https://avatars.githubusercontent.com/${review.reviewer_login}`
-                : '',
+              avatar_url: '', // Should come from contributors table via join
             },
             repository: review.repository_name || 'Unknown Repository',
             status: review.state.toLowerCase() as ActivityItem['status'],
@@ -2056,9 +2055,7 @@ function WorkspaceActivity({
             created_at: comment.created_at,
             author: {
               username: comment.commenter_login || 'Unknown',
-              avatar_url: comment.commenter_login
-                ? `https://avatars.githubusercontent.com/${comment.commenter_login}`
-                : '',
+              avatar_url: '', // Should come from contributors table via join
             },
             repository: comment.repository_name || 'Unknown Repository',
             status: 'open',
@@ -2611,7 +2608,8 @@ function WorkspacePage() {
               language,
               stargazers_count,
               forks_count,
-              open_issues_count
+              open_issues_count,
+              avatar_url
             )
           `
         )
@@ -2639,9 +2637,11 @@ function WorkspacePage() {
           contributors: 0, // Will be populated from real data
           last_activity: new Date().toISOString(),
           is_pinned: r.is_pinned,
-          avatar_url: r.repositories?.owner
-            ? `https://avatars.githubusercontent.com/${r.repositories.owner}`
-            : getFallbackAvatar(),
+          avatar_url:
+            r.repositories?.avatar_url ||
+            (r.repositories?.owner
+              ? `https://avatars.githubusercontent.com/${r.repositories.owner}`
+              : getFallbackAvatar()),
           html_url: `https://github.com/${r.repositories.full_name}`,
         }));
       console.log('Transformed repositories:', transformedRepos.length, transformedRepos);
@@ -3029,11 +3029,7 @@ function WorkspacePage() {
               id: event.event_id,
               event_type: 'star' as const,
               actor_login: event.actor_login,
-              actor_avatar:
-                payload?.actor?.avatar_url ||
-                (event.actor_login
-                  ? `https://avatars.githubusercontent.com/${event.actor_login}`
-                  : getFallbackAvatar()),
+              actor_avatar: payload?.actor?.avatar_url || getFallbackAvatar(),
               repository_name: `${event.repository_owner}/${event.repository_name}`,
               captured_at: event.created_at,
             };
@@ -3047,11 +3043,7 @@ function WorkspacePage() {
               id: event.event_id,
               event_type: 'fork' as const,
               actor_login: event.actor_login,
-              actor_avatar:
-                payload?.actor?.avatar_url ||
-                (event.actor_login
-                  ? `https://avatars.githubusercontent.com/${event.actor_login}`
-                  : getFallbackAvatar()),
+              actor_avatar: payload?.actor?.avatar_url || getFallbackAvatar(),
               repository_name: `${event.repository_owner}/${event.repository_name}`,
               captured_at: event.created_at,
             };
@@ -3304,7 +3296,8 @@ function WorkspacePage() {
             language,
             stargazers_count,
             forks_count,
-            open_issues_count
+            open_issues_count,
+            avatar_url
           )
         `
         )
@@ -3325,9 +3318,11 @@ function WorkspacePage() {
             open_prs: 0, // Mock for now
             open_issues: item.repositories.open_issues_count || 0,
             contributors: 0, // Will be populated from real data
-            avatar_url: item.repositories?.owner
-              ? `https://avatars.githubusercontent.com/${item.repositories.owner}`
-              : getFallbackAvatar(),
+            avatar_url:
+              item.repositories?.avatar_url ||
+              (item.repositories?.owner
+                ? `https://avatars.githubusercontent.com/${item.repositories.owner}`
+                : getFallbackAvatar()),
             last_activity: new Date().toISOString().split('T')[0],
             is_pinned: item.is_pinned || false,
             html_url: `https://github.com/${item.repositories.full_name}`,

@@ -108,17 +108,15 @@ export function RepositoryFilter({
     if (selectedRepositories.length === 1) {
       const repo = repositories.find((r) => r.id === selectedRepositories[0]);
       if (repo) {
-        const avatarUrl = repo.avatar_url || `https://avatars.githubusercontent.com/${repo.owner}`;
         return (
           <div className="flex items-center gap-2">
-            <img
-              src={avatarUrl}
-              alt={repo.owner}
-              className="h-4 w-4 rounded flex-shrink-0"
-              onError={(e) => {
-                e.currentTarget.src = `https://avatars.githubusercontent.com/${repo.owner}`;
-              }}
-            />
+            {repo.avatar_url && (
+              <img
+                src={repo.avatar_url}
+                alt={repo.owner}
+                className="h-4 w-4 rounded flex-shrink-0"
+              />
+            )}
             <span className="truncate">{repo.name}</span>
           </div>
         );
@@ -193,8 +191,6 @@ export function RepositoryFilter({
               <div className="space-y-1">
                 {filteredRepositories.map((repo) => {
                   const isSelected = selectedRepositories.includes(repo.id);
-                  const avatarUrl =
-                    repo.avatar_url || `https://avatars.githubusercontent.com/${repo.owner}`;
                   return (
                     <button
                       key={repo.id}
@@ -213,14 +209,13 @@ export function RepositoryFilter({
                         >
                           {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
                         </div>
-                        <img
-                          src={avatarUrl}
-                          alt={repo.owner}
-                          className="h-5 w-5 rounded flex-shrink-0"
-                          onError={(e) => {
-                            e.currentTarget.src = `https://avatars.githubusercontent.com/${repo.owner}`;
-                          }}
-                        />
+                        {repo.avatar_url && (
+                          <img
+                            src={repo.avatar_url}
+                            alt={repo.owner}
+                            className="h-5 w-5 rounded flex-shrink-0"
+                          />
+                        )}
                         <div className="flex-1 min-w-0">
                           <div className="truncate font-medium">{repo.name}</div>
                           {repo.language && (
@@ -321,17 +316,13 @@ export function SingleRepositoryFilter({
           <GitBranch className="h-4 w-4 flex-shrink-0" />
           {selectedRepo ? (
             <>
-              <img
-                src={
-                  selectedRepo.avatar_url ||
-                  `https://avatars.githubusercontent.com/${selectedRepo.owner}`
-                }
-                alt={selectedRepo.owner}
-                className="h-4 w-4 rounded flex-shrink-0"
-                onError={(e) => {
-                  e.currentTarget.src = `https://avatars.githubusercontent.com/${selectedRepo.owner}`;
-                }}
-              />
+              {selectedRepo.avatar_url && (
+                <img
+                  src={selectedRepo.avatar_url}
+                  alt={selectedRepo.owner}
+                  className="h-4 w-4 rounded flex-shrink-0"
+                />
+              )}
               <span className="truncate">{selectedRepo.name}</span>
             </>
           ) : (
@@ -376,58 +367,55 @@ export function SingleRepositoryFilter({
                 No repositories found
               </div>
             ) : (
-              <div className="space-y-1">
-                {filteredRepositories.map((repo) => {
-                  const isSelected = repo.id === selectedRepository;
-                  const avatarUrl =
-                    repo.avatar_url || `https://avatars.githubusercontent.com/${repo.owner}`;
-                  return (
-                    <button
-                      key={repo.id}
-                      onClick={() => {
-                        onSelectionChange(repo.id);
-                        setIsOpen(false);
-                      }}
-                      className={cn(
-                        'w-full flex items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-accent transition-colors',
-                        isSelected && 'bg-accent'
-                      )}
-                    >
-                      <div className="flex items-center gap-2 flex-1 text-left">
+                          <div className="space-y-1">
+              {filteredRepositories.map((repo) => {
+                const isSelected = repo.id === selectedRepository;
+                return (
+                  <button
+                    key={repo.id}
+                    onClick={() => {
+                      onSelectionChange(repo.id);
+                      setIsOpen(false);
+                    }}
+                    className={cn(
+                      'w-full flex items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-accent transition-colors',
+                      isSelected && 'bg-accent'
+                    )}
+                  >
+                    <div className="flex items-center gap-2 flex-1 text-left">
+                      {repo.avatar_url && (
                         <img
-                          src={avatarUrl}
+                          src={repo.avatar_url}
                           alt={repo.owner}
                           className="h-5 w-5 rounded flex-shrink-0"
-                          onError={(e) => {
-                            e.currentTarget.src = `https://avatars.githubusercontent.com/${repo.owner}`;
-                          }}
                         />
-                        <div className="flex-1">
-                          <div className="truncate font-medium">{repo.name}</div>
-                          {repo.language && (
-                            <div className="text-xs text-muted-foreground">{repo.language}</div>
-                          )}
-                        </div>
-                      </div>
-                      {(repo.activity_count !== undefined || repo.last_activity) && (
-                        <div className="flex items-center gap-2">
-                          {repo.activity_count !== undefined && (
-                            <Badge variant="secondary" className="text-xs">
-                              <Activity className="h-3 w-3 mr-1" />
-                              {repo.activity_count}
-                            </Badge>
-                          )}
-                          {repo.last_activity && (
-                            <span className="text-xs text-muted-foreground">
-                              {getActivityLabel(repo.last_activity)}
-                            </span>
-                          )}
-                        </div>
                       )}
-                    </button>
-                  );
-                })}
-              </div>
+                      <div className="flex-1">
+                        <div className="truncate font-medium">{repo.name}</div>
+                        {repo.language && (
+                          <div className="text-xs text-muted-foreground">{repo.language}</div>
+                        )}
+                      </div>
+                    </div>
+                    {(repo.activity_count !== undefined || repo.last_activity) && (
+                      <div className="flex items-center gap-2">
+                        {repo.activity_count !== undefined && (
+                          <Badge variant="secondary" className="text-xs">
+                            <Activity className="h-3 w-3 mr-1" />
+                            {repo.activity_count}
+                          </Badge>
+                        )}
+                        {repo.last_activity && (
+                          <span className="text-xs text-muted-foreground">
+                            {getActivityLabel(repo.last_activity)}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
             )}
           </div>
         </div>

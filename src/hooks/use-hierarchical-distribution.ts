@@ -108,9 +108,7 @@ export function useHierarchicalDistribution(
             name: login,
             value: prs.length,
             login,
-            avatar_url:
-              prs[0]?.user.avatar_url ||
-              `https://avatars.githubusercontent.com/u/${prs[0]?.user.id}`,
+            avatar_url: prs[0]?.user.avatar_url || '',
             prs,
           }))
           .sort((a, b) => b.value - a.value)
