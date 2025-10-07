@@ -367,7 +367,7 @@ export function LotteryFactorContent({
           {showYoloButton && (
             <button
               onClick={() => setShowYoloCoders(true)}
-              className="flex items-center justify-between w-full text-slate-500 shadow-sm !border !border-slate-300 p-2 sm:p-1 gap-2 text-sm rounded-full"
+              className="flex items-center justify-between w-full text-slate-500 shadow-sm !border !border-slate-300 p-2 sm:p-1 gap-2 text-sm rounded-full hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
             >
               <div className="flex gap-2 items-center min-w-0 flex-1">
                 <div className="flex items-center font-medium gap-1 px-2 py-0.5 rounded-2xl bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400 flex-shrink-0">
@@ -376,14 +376,15 @@ export function LotteryFactorContent({
                   <span className="sm:hidden">YOLO</span>
                 </div>
                 <p
-                  className="text-sm hidden sm:inline"
+                  className="text-sm hidden sm:inline text-muted-foreground"
                   style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}
                 >
-                  commits pushed on main
+                  Pushing commits directly to main
                 </p>
               </div>
 
-              <div className="flex gap-2 items-center ml-auto mr-1 sm:mr-3 flex-shrink-0">
+              <div className="flex gap-1 items-center ml-auto mr-1 sm:mr-3 flex-shrink-0">
+                <span className="text-sm hidden sm:inline">See more</span>
                 <ArrowRight className="h-4 w-4" />
               </div>
             </button>
