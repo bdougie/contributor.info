@@ -12,11 +12,7 @@ import {
   WorkspaceDashboardSkeleton,
   ResponsePreviewModal,
 } from '@/components/features/workspace';
-import {
-  findSimilarItems,
-  generateResponseMessage,
-  type SimilarItem,
-} from '@/services/similarity-search';
+import type { SimilarItem } from '@/services/similarity-search';
 import { WorkspaceErrorBoundary } from '@/components/error-boundaries/workspace-error-boundary';
 import { WorkspaceAutoSync } from '@/components/features/workspace/WorkspaceAutoSync';
 import { useWorkspaceContext } from '@/contexts/WorkspaceContext';
@@ -3641,6 +3637,11 @@ function WorkspacePage() {
                   setLoadingSimilarItems(true);
 
                   try {
+                    // Dynamically import similarity search to avoid loading ML models on page init
+                    const { findSimilarItems, generateResponseMessage } = await import(
+                      '@/services/similarity-search'
+                    );
+
                     // Find similar items in the workspace
                     const items = await findSimilarItems({
                       workspaceId: workspace.id,
