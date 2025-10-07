@@ -59,7 +59,7 @@ export function useMyWork(workspaceId?: string) {
         const { data: contributor, error: contributorError } = await supabase
           .from('contributors')
           .select('id')
-          .eq('github_login', githubLogin)
+          .eq('username', githubLogin)
           .maybeSingle();
 
         if (contributorError) {
