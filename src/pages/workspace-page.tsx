@@ -667,7 +667,11 @@ function WorkspaceIssues({
               repository: {
                 name: issue.repositories?.name || 'unknown',
                 owner: issue.repositories?.owner || 'unknown',
-                avatar_url: issue.repositories?.avatar_url || getFallbackAvatar(),
+                avatar_url:
+                  issue.repositories?.avatar_url ||
+                  (issue.repositories?.owner
+                    ? `https://avatars.githubusercontent.com/${issue.repositories.owner}`
+                    : getFallbackAvatar()),
               },
               author: {
                 username: issue.contributors?.username || 'unknown',
@@ -2633,7 +2637,11 @@ function WorkspacePage() {
           contributors: 0, // Will be populated from real data
           last_activity: new Date().toISOString(),
           is_pinned: r.is_pinned,
-          avatar_url: r.repositories?.avatar_url || getFallbackAvatar(),
+          avatar_url:
+            r.repositories?.avatar_url ||
+            (r.repositories?.owner
+              ? `https://avatars.githubusercontent.com/${r.repositories.owner}`
+              : getFallbackAvatar()),
           html_url: `https://github.com/${r.repositories.full_name}`,
         }));
       console.log('Transformed repositories:', transformedRepos.length, transformedRepos);
@@ -3310,7 +3318,11 @@ function WorkspacePage() {
             open_prs: 0, // Mock for now
             open_issues: item.repositories.open_issues_count || 0,
             contributors: 0, // Will be populated from real data
-            avatar_url: item.repositories?.avatar_url || getFallbackAvatar(),
+            avatar_url:
+              item.repositories?.avatar_url ||
+              (item.repositories?.owner
+                ? `https://avatars.githubusercontent.com/${item.repositories.owner}`
+                : getFallbackAvatar()),
             last_activity: new Date().toISOString().split('T')[0],
             is_pinned: item.is_pinned || false,
             html_url: `https://github.com/${item.repositories.full_name}`,
