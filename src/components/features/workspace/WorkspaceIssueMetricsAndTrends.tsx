@@ -388,7 +388,7 @@ export function WorkspaceIssueMetricsAndTrends({
 
       {/* Blur overlay with upgrade prompt for users without workspace access */}
       {showUpgradePrompt && (
-        <div className="absolute inset-0 backdrop-blur-sm bg-background/50 rounded-lg flex items-center justify-center z-10">
+        <div className="absolute inset-0 backdrop-blur-sm bg-background/50 rounded-lg flex items-start justify-center pt-4 md:items-center md:pt-0 z-10">
           <div className="max-w-md w-full mx-4">
             <PermissionUpgradeCTA
               message={
@@ -397,7 +397,7 @@ export function WorkspaceIssueMetricsAndTrends({
                   : UPGRADE_MESSAGES.LOGIN_REQUIRED
               }
               variant="card"
-              size="lg"
+              size="md"
             />
           </div>
         </div>
