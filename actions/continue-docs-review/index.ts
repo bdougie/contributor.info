@@ -136,12 +136,12 @@ async function getChangedFiles(): Promise<PRFiles> {
 
   core.info(`Found ${docFiles.length} documentation files changed`);
   core.info(`Total files in PR: ${allFiles.length}`);
-  
-  return { 
-    docFiles, 
-    allFiles, 
-    prTitle: pr.title || '', 
-    prBody: pr.body || '' 
+
+  return {
+    docFiles,
+    allFiles,
+    prTitle: pr.title || '',
+    prBody: pr.body || '',
   };
 }
 
@@ -759,7 +759,11 @@ function getValidationExamples(
   return validations;
 }
 
-function needsDocumentation(prFiles: PRFiles): { needed: boolean; reason: string; suggestions: string[] } {
+function needsDocumentation(prFiles: PRFiles): {
+  needed: boolean;
+  reason: string;
+  suggestions: string[];
+} {
   const { allFiles, docFiles, prTitle, prBody } = prFiles;
 
   // If there are already docs, skip this check
@@ -770,11 +774,15 @@ function needsDocumentation(prFiles: PRFiles): { needed: boolean; reason: string
   const suggestions: string[] = [];
   let reason = '';
 
-  // Check for new features (by PR title/body keywords)
+  // Check for PR keywords
   const featureKeywords = /\b(feat|feature|add|new|implement|create)\b/i;
+  const breakingKeywords = /\b(breaking|remove|delete|rename|deprecate|BREAKING CHANGE)\b/i;
+  const fixKeywords = /\b(fix|bug|issue|patch)\b/i;
   const isFeaturePR = featureKeywords.test(prTitle) || featureKeywords.test(prBody);
+  const isBreakingChange = breakingKeywords.test(prTitle) || breakingKeywords.test(prBody);
+  const isBugFix = fixKeywords.test(prTitle) || fixKeywords.test(prBody);
 
-  // Count significant code changes
+  // Categorize code files
   const codeFiles = allFiles.filter(
     (f) =>
       (f.filename.endsWith('.ts') ||
@@ -788,85 +796,137 @@ function needsDocumentation(prFiles: PRFiles): { needed: boolean; reason: string
   );
 
   const totalAdditions = codeFiles.reduce((sum, f) => sum + f.additions, 0);
+  const totalDeletions = codeFiles.reduce((sum, f) => sum + f.deletions, 0);
   const newFiles = codeFiles.filter((f) => f.status === 'added');
+  const removedFiles = codeFiles.filter((f) => f.status === 'removed');
+  const modifiedFiles = codeFiles.filter((f) => f.status === 'modified');
 
-  // Check for database migrations
-  const hasMigrations = allFiles.some((f) => f.filename.includes('migrations/'));
-
-  // Check for new API endpoints or services
+  // Detect specific code changes
+  const hasMigrations = allFiles.some((f) => f.filename.includes('supabase/migrations/'));
   const hasNewServices = newFiles.some(
     (f) => f.filename.includes('/services/') || f.filename.includes('/api/')
   );
-
-  // Check for new React components
   const hasNewComponents = newFiles.some(
     (f) => f.filename.includes('/components/') && f.filename.endsWith('.tsx')
   );
-
-  // Check for new hooks
   const hasNewHooks = newFiles.some(
-    (f) => f.filename.includes('/hooks/') && f.filename.startsWith('use-')
+    (f) => f.filename.includes('/hooks/') && /use-?[A-Z]/.test(f.filename)
+  );
+  const hasLibChanges = allFiles.some(
+    (f) => f.filename.includes('/lib/') && f.status !== 'removed'
+  );
+  const hasConfigChanges = allFiles.some(
+    (f) =>
+      f.filename.includes('.env') ||
+      f.filename.endsWith('config.ts') ||
+      f.filename.endsWith('config.json') ||
+      f.filename.includes('vite.config') ||
+      f.filename.includes('tsconfig')
+  );
+  const hasRemovedExports = removedFiles.length > 0 || totalDeletions > 100;
+
+  // Detect environment variable changes
+  const hasEnvChanges = allFiles.some(
+    (f) =>
+      f.filename.includes('.env.example') ||
+      (f.filename.includes('lib/env') &&
+        modifiedFiles.some((mf) => mf.filename === f.filename && mf.additions > 5))
   );
 
   // Determine if docs are needed
   let needed = false;
 
-  if (isFeaturePR && totalAdditions > 100) {
+  // Priority 1: Breaking changes (CRITICAL)
+  if (isBreakingChange || (hasRemovedExports && !isBugFix)) {
     needed = true;
-    reason = 'This PR introduces a new feature with significant code changes';
+    reason = 'This PR contains breaking changes that affect existing functionality';
+    suggestions.push(
+      '⚠️ **CRITICAL**: Create migration guide in `docs/migration/` explaining what changed and how to update'
+    );
+    suggestions.push('Update `CHANGELOG.md` with breaking change details');
+    if (hasRemovedExports) {
+      suggestions.push('Document removed/renamed APIs and provide alternatives');
+    }
+  }
+
+  // Priority 2: Database migrations
+  if (hasMigrations) {
+    needed = true;
+    if (!reason) reason = 'This PR includes database schema changes';
+    suggestions.push(
+      'Document schema changes in `docs/database/schema.md` with table/column details'
+    );
+    suggestions.push('Update `docs/database/migrations.md` with migration instructions');
+    if (totalAdditions > 50) {
+      suggestions.push('Add architecture doc in `docs/architecture/` if this changes data flow');
+    }
+  }
+
+  // Priority 3: New features with components/hooks
+  if (isFeaturePR && (hasNewComponents || hasNewHooks) && totalAdditions > 50) {
+    needed = true;
+    if (!reason) reason = 'This PR introduces new user-facing features';
 
     if (hasNewComponents) {
+      const componentFiles = newFiles.filter((f) => f.filename.includes('/components/'));
       suggestions.push(
-        'Add user documentation in `docs/features/` or `mintlify-docs/` explaining how to use the new UI components'
+        `Add feature documentation in \`docs/features/\` for ${componentFiles.length} new component(s)`
       );
+      suggestions.push('Include usage examples and props/API documentation');
     }
 
     if (hasNewHooks) {
+      const hookFiles = newFiles.filter((f) => f.filename.includes('/hooks/'));
       suggestions.push(
-        'Document the new React hooks in `docs/development/hooks.md` with usage examples'
+        `Document ${hookFiles.length} new hook(s) in \`docs/api/hooks.md\` with usage examples`
       );
     }
+  }
 
-    if (hasNewServices) {
-      suggestions.push(
-        'Add architecture documentation in `docs/architecture/` explaining how the new service works and integrates with existing systems'
-      );
-    }
-
-    if (hasMigrations) {
-      suggestions.push(
-        'Document database changes in `docs/database/` or update `docs/database-schema.md`'
-      );
-      suggestions.push(
-        'If migrations affect data structure, add migration notes in `docs/setup/DATABASE_MIGRATIONS.md`'
-      );
-    }
-
-    if (suggestions.length === 0) {
-      // Generic suggestions
-      suggestions.push(
-        'Add feature documentation in `docs/features/` explaining what the feature does and how it works'
-      );
-      suggestions.push(
-        'Consider adding user-facing docs in `mintlify-docs/` if users interact with this feature'
-      );
-    }
-  } else if (hasMigrations && !isFeaturePR) {
+  // Priority 4: New services/API endpoints
+  if (hasNewServices && totalAdditions > 100) {
     needed = true;
-    reason = 'This PR includes database migrations';
+    if (!reason) reason = 'This PR adds new backend services or APIs';
     suggestions.push(
-      'Document database schema changes in `docs/database-schema.md` or `docs/database/`'
+      'Add architecture documentation in `docs/architecture/` explaining service design'
     );
-    suggestions.push(
-      'Add migration notes to `docs/setup/DATABASE_MIGRATIONS.md` if needed for local setup'
-    );
-  } else if (hasNewServices && totalAdditions > 150) {
+    suggestions.push('Document API endpoints with request/response examples in `docs/api/`');
+    suggestions.push('Add integration guide if this changes how other services interact');
+  }
+
+  // Priority 5: Configuration or environment changes
+  if (hasEnvChanges || (hasConfigChanges && !isBugFix)) {
     needed = true;
-    reason = 'This PR adds new services or APIs with substantial implementation';
+    if (!reason) reason = 'This PR modifies configuration or environment setup';
+    suggestions.push('Update `docs/setup/` with new environment variables and their purpose');
+    suggestions.push('Update `.env.example` and document required vs optional variables');
+    if (hasConfigChanges) {
+      suggestions.push(
+        'Document configuration changes in `docs/configuration/` if behavior changes'
+      );
+    }
+  }
+
+  // Priority 6: Significant library/core changes
+  if (hasLibChanges && totalAdditions > 150 && !isBugFix) {
+    needed = true;
+    if (!reason) reason = 'This PR makes significant changes to core library code';
     suggestions.push(
-      'Add architecture documentation in `docs/architecture/` or `docs/api/` explaining the service design'
+      'Add architecture documentation in `docs/architecture/` explaining technical design decisions'
     );
-    suggestions.push('Document API endpoints and usage examples if exposing new APIs');
+    suggestions.push('Document any new utilities or helpers in `docs/development/`');
+  }
+
+  // Fallback: Large feature without specific indicators
+  if (!needed && isFeaturePR && totalAdditions > 200) {
+    needed = true;
+    reason = 'This PR adds substantial new functionality';
+    suggestions.push(
+      'Add feature documentation in `docs/features/` explaining what this does and why'
+    );
+    suggestions.push(
+      'Consider architecture docs in `docs/architecture/` if this changes system design'
+    );
   }
 
   return { needed, reason, suggestions };
