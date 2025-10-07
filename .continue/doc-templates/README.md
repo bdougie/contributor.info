@@ -134,4 +134,4 @@ These templates should be updated as our documentation standards evolve:
 - Remove sections that aren't useful
 - Add sections that we frequently need
 
-**Last Updated:** 2025-01-07
+**Last Updated:** 2025-10-07

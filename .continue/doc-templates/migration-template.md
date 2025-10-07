@@ -93,11 +93,17 @@ const result = newMethod({ param });
 
 Update your configuration files:
 
+**Before:**
 ```json
-// config.json
 {
-  "oldKey": "value"  // ❌ Remove this
-  "newKey": "value"  // ✅ Add this
+  "oldKey": "value"
+}
+```
+
+**After:**
+```json
+{
+  "newKey": "value"
 }
 ```
 
