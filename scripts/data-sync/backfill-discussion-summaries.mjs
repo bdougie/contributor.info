@@ -4,21 +4,29 @@
  * Generates LLM summaries for discussions that don't have them yet
  *
  * Usage:
- *   GITHUB_TOKEN=xxx node scripts/data-sync/backfill-discussion-summaries.mjs --repository-id=<uuid>
- *   GITHUB_TOKEN=xxx node scripts/data-sync/backfill-discussion-summaries.mjs --all
+ *   OPENAI_API_KEY=xxx node scripts/data-sync/backfill-discussion-summaries.mjs --repository-id=<uuid>
+ *   OPENAI_API_KEY=xxx node scripts/data-sync/backfill-discussion-summaries.mjs --all
  */
 
 import { createClient } from '@supabase/supabase-js';
+import OpenAI from 'openai';
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://egcxzonpmmcirmgqdrla.supabase.co';
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
 
 if (!SUPABASE_ANON_KEY) {
   console.error('Error: VITE_SUPABASE_ANON_KEY environment variable is required');
   process.exit(1);
 }
 
+if (!OPENAI_API_KEY) {
+  console.error('Error: OPENAI_API_KEY environment variable is required');
+  process.exit(1);
+}
+
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
 // Parse command line arguments
 const args = process.argv.slice(2);
@@ -36,16 +44,30 @@ if (!repositoryId && !backfillAll) {
 }
 
 /**
- * Generate summary for a discussion using title fallback
- * In production, this would call the LLM service
+ * Generate AI summary for a discussion using OpenAI
  */
 async function generateSummary(discussion) {
-  // For now, use title as summary (placeholder until LLM integration)
-  // In production: call llmService.generateDiscussionSummary()
-  const summary =
-    discussion.title.length > 150 ? discussion.title.substring(0, 147) + '...' : discussion.title;
+  try {
+    const bodyPreview = discussion.body?.substring(0, 500) || '';
+    const prompt = `Summarize this GitHub discussion in 1-2 concise sentences (max 150 chars). Focus on the MAIN QUESTION or TOPIC and KEY POINTS. Use plain text only.
 
-  return summary;
+Title: ${discussion.title}
+Body: ${bodyPreview}
+
+Summary:`;
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 50,
+      temperature: 0.3,
+    });
+
+    return completion.choices[0]?.message?.content?.trim() || null;
+  } catch (error) {
+    console.error(`Failed to generate summary for discussion ${discussion.id}:`, error.message);
+    return null;
+  }
 }
 
 /**
