@@ -476,6 +476,8 @@ function App() {
                   <Route path="/" element={<Layout />}>
                     <Route index element={<Home />} />
                     <Route path="/trending" element={<TrendingPageRoute />} />
+                    {/* Invitation acceptance route - must come before workspace routes to avoid conflicts */}
+                    <Route path="/invitation/:token" element={<InvitationAcceptancePage />} />
                     {/* Workspace routes - protected by feature flag */}
                     {/* Dynamic configuration to support both /i/ and /workspaces/ paths */}
                     {['/i', '/workspaces'].map((basePath) => (
@@ -530,9 +532,6 @@ function App() {
                     <Route path="/workspace/:id" element={<WorkspaceRedirect />} />
                     <Route path="/workspace/:id/:tab" element={<WorkspaceRedirect includeTab />} />
                     <Route path="/changelog" element={<ChangelogPage />} />
-
-                    {/* Invitation acceptance route */}
-                    <Route path="/invitation/:token" element={<InvitationAcceptancePage />} />
                     <Route path="/widgets" element={<WidgetsPage />} />
                     <Route path="/:owner/:repo/widgets" element={<WidgetsPage />} />
                     <Route
