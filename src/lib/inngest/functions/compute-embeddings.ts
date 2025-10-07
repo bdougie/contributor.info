@@ -5,17 +5,17 @@ import { NonRetriableError } from 'inngest';
 interface EmbeddingJobData {
   repositoryId: string;
   forceRegenerate?: boolean;
-  itemTypes?: ('issues' | 'pull_requests')[];
+  itemTypes?: ('issues' | 'pull_requests' | 'discussions')[];
 }
 
 /**
- * Background job to compute embeddings for issues and PRs
+ * Background job to compute embeddings for issues, PRs, and discussions
  * Runs every 15 minutes to process new and updated content
  */
 export const computeEmbeddings = inngest.createFunction(
   {
     id: 'compute-embeddings',
-    name: 'Compute Embeddings for Issues and PRs',
+    name: 'Compute Embeddings for Issues, PRs, and Discussions',
     concurrency: {
       limit: 2,
       key: 'event.data.repositoryId',
@@ -34,7 +34,7 @@ export const computeEmbeddings = inngest.createFunction(
     const data = event.data as EmbeddingJobData | undefined;
     const repositoryId = data?.repositoryId;
     const forceRegenerate = data?.forceRegenerate || false;
-    const itemTypes = data?.itemTypes || ['issues', 'pull_requests'];
+    const itemTypes = data?.itemTypes || ['issues', 'pull_requests', 'discussions'];
 
     // Step 1: Create or update job record
     const jobId = await step.run('create-job', async () => {
@@ -60,7 +60,7 @@ export const computeEmbeddings = inngest.createFunction(
     const itemsToProcess = await step.run('find-items', async () => {
       const items: Array<{
         id: string;
-        type: 'issue' | 'pull_request';
+        type: 'issue' | 'pull_request' | 'discussion';
         repository_id: string;
         title: string;
         body: string | null;
@@ -90,7 +90,15 @@ export const computeEmbeddings = inngest.createFunction(
       // If force regenerate, also get items with existing embeddings
       if (forceRegenerate && repositoryId) {
         for (const itemType of itemTypes) {
-          const table = itemType === 'issues' ? 'issues' : 'pull_requests';
+          let table: string;
+          if (itemType === 'issues') {
+            table = 'issues';
+          } else if (itemType === 'pull_requests') {
+            table = 'pull_requests';
+          } else {
+            table = 'discussions';
+          }
+
           const { data: forceItems } = await supabase
             .from(table)
             .select('id, repository_id, title, body, content_hash, embedding_generated_at')
@@ -102,7 +110,7 @@ export const computeEmbeddings = inngest.createFunction(
             items.push(
               ...forceItems.map((item) => ({
                 ...item,
-                type: itemType.slice(0, -1) as 'issue' | 'pull_request',
+                type: itemType.slice(0, -1) as 'issue' | 'pull_request' | 'discussion',
               }))
             );
           }
@@ -195,7 +203,14 @@ export const computeEmbeddings = inngest.createFunction(
             const embedding = embeddings[j]?.embedding;
 
             if (embedding) {
-              const table = item.type === 'issue' ? 'issues' : 'pull_requests';
+              let table: string;
+              if (item.type === 'issue') {
+                table = 'issues';
+              } else if (item.type === 'pull_request') {
+                table = 'pull_requests';
+              } else {
+                table = 'discussions';
+              }
 
               // Update the item with embedding
               await supabase
@@ -271,7 +286,7 @@ export const triggerEmbeddingComputation = async (
   repositoryId: string,
   options?: {
     forceRegenerate?: boolean;
-    itemTypes?: ('issues' | 'pull_requests')[];
+    itemTypes?: ('issues' | 'pull_requests' | 'discussions')[];
   }
 ) => {
   await inngest.send({
