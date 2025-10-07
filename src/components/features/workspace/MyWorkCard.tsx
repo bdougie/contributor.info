@@ -8,7 +8,7 @@ import { formatDistanceToNow } from 'date-fns';
 export interface MyWorkItem {
   id: string;
   type: 'pr' | 'issue' | 'discussion';
-  itemType: 'authored' | 'assigned' | 'mentioned' | 'participant';
+  itemType: 'authored' | 'assigned' | 'review_requested' | 'mentioned' | 'participant';
   title: string;
   repository: string;
   status: 'open' | 'merged' | 'closed' | 'answered';
@@ -108,6 +108,9 @@ function MyWorkItemComponent({
             : 'started discussion';
         }
         return 'authored';
+
+      case 'review_requested':
+        return 'requested to review PR';
 
       case 'assigned':
         return 'assigned to issue';
