@@ -14,6 +14,7 @@ import type {
   ContributorActivityData,
   ContributorSummaryMetadata,
 } from './contributor-summary-types';
+import type { DiscussionData, DiscussionSummaryMetadata } from './discussion-summary-types';
 
 export interface LLMServiceOptions {
   enableCaching: boolean;
@@ -470,6 +471,176 @@ Bad: "Made general contributions to the codebase with various improvements."`;
   }
 
   /**
+   * Generate discussion summary for preview cards
+   * Uses gpt-4o-mini model with 150 token limit for cost efficiency
+   */
+  async generateDiscussionSummary(
+    discussionData: DiscussionData,
+    metadata?: DiscussionSummaryMetadata & LLMCallMetadata
+  ): Promise<LLMInsight | null> {
+    const cacheKey = this.buildDiscussionCacheKey(
+      metadata?.discussionId || 'unknown',
+      discussionData
+    );
+    const dataHash = this.generateDataHash(discussionData);
+
+    // Check cache first (24 hour TTL for discussion summaries)
+    if (this.options.enableCaching) {
+      const cached = cacheService.get(cacheKey, dataHash);
+      if (cached) {
+        return cached;
+      }
+    }
+
+    // Try generating summary with PostHog tracking, fall back to direct OpenAI if PostHog unavailable
+    try {
+      let insight: LLMInsight | null = null;
+
+      if (this.options.enablePostHogTracking && posthogOpenAIService.isAvailable()) {
+        insight = await this.generateDiscussionSummaryWithTracking(discussionData, metadata);
+      }
+
+      // If PostHog failed or unavailable, try direct OpenAI
+      if (!insight && openAIService.isAvailable()) {
+        console.log('[LLM Service] PostHog unavailable, using direct OpenAI for discussion');
+        insight = await this.generateDiscussionSummaryDirect(discussionData);
+      }
+
+      if (insight && this.options.enableCaching) {
+        // Cache for 24 hours (1440 minutes) - discussions are relatively stable
+        cacheService.set(cacheKey, insight, dataHash, 1440);
+      }
+
+      // If LLM unavailable, use fallback or return null
+      if (!insight && this.options.enableFallbacks) {
+        return this.generateFallbackDiscussionSummary(discussionData);
+      }
+
+      return insight;
+    } catch (error) {
+      console.error('LLM discussion summary failed:', error);
+
+      if (this.options.enableFallbacks) {
+        return this.generateFallbackDiscussionSummary(discussionData);
+      }
+
+      return null;
+    }
+  }
+
+  /**
+   * Generate discussion summary using PostHog-tracked service
+   */
+  private async generateDiscussionSummaryWithTracking(
+    discussionData: DiscussionData,
+    metadata?: LLMCallMetadata
+  ): Promise<LLMInsight | null> {
+    const prompt = this.buildDiscussionSummaryPrompt(discussionData);
+
+    // Use gpt-4o-mini for simple summaries (cost-effective, 150 token limit)
+    const model = 'gpt-4o-mini';
+
+    try {
+      const result = await posthogOpenAIService.callOpenAI(prompt, model, {
+        feature: 'discussion-summary',
+        userId: metadata?.userId,
+        traceId: metadata?.traceId,
+        ...metadata,
+      });
+
+      return {
+        type: 'discussion_summary',
+        content: result.content,
+        confidence: 0.8,
+        timestamp: new Date(),
+      };
+    } catch (error) {
+      console.error('PostHog-tracked discussion summary generation failed:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Generate discussion summary directly (fallback when PostHog unavailable)
+   */
+  private async generateDiscussionSummaryDirect(
+    discussionData: DiscussionData
+  ): Promise<LLMInsight | null> {
+    if (!openAIService.isAvailable()) {
+      return null;
+    }
+
+    const prompt = this.buildDiscussionSummaryPrompt(discussionData);
+
+    try {
+      const response = await openAIService.callOpenAI(prompt, 'gpt-4o-mini');
+
+      return {
+        type: 'discussion_summary',
+        content: response,
+        confidence: 0.8,
+        timestamp: new Date(),
+      };
+    } catch (error) {
+      console.error('Direct discussion summary generation failed:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Build prompt for discussion summary (1-2 sentences, focused on the question/topic)
+   */
+  private buildDiscussionSummaryPrompt(data: DiscussionData): string {
+    // Truncate body if too long (first 500 chars for context)
+    const bodyPreview = data.body ? data.body.substring(0, 500) : '';
+    const categoryContext = data.category?.name ? ` in ${data.category.name}` : '';
+
+    return `Generate a concise 1-2 sentence summary for this GitHub Discussion${categoryContext}:
+
+Title: ${data.title}
+
+Content: ${bodyPreview}${data.body && data.body.length > 500 ? '...' : ''}
+
+Create a summary that:
+1. Captures the MAIN QUESTION or TOPIC being discussed
+2. Highlights KEY POINTS or ISSUES raised
+3. Uses PLAIN TEXT (no markdown formatting)
+4. Focuses on WHAT is being discussed, not who or when
+
+Requirements:
+- Maximum 150 characters
+- Plain text only (no markdown, no asterisks, no formatting)
+- Professional, clear language
+- Start with the topic/question directly (no "This discussion is about...")
+
+Good: "How to implement authentication with OAuth2 and handle token refresh for API requests"
+Bad: "This discussion asks about implementing OAuth2 authentication and various token-related issues"`;
+  }
+
+  /**
+   * Build cache key for discussion summaries
+   */
+  private buildDiscussionCacheKey(discussionId: string, discussionData: DiscussionData): string {
+    const dataHash = this.generateDataHash(discussionData);
+    return `discussion_summary:${discussionId}:${dataHash}`;
+  }
+
+  /**
+   * Generate fallback summary when LLM fails
+   */
+  private generateFallbackDiscussionSummary(data: DiscussionData): LLMInsight {
+    // Truncate title to reasonable length
+    const title = data.title.length > 100 ? `${data.title.substring(0, 97)}...` : data.title;
+
+    return {
+      type: 'discussion_summary',
+      content: title,
+      confidence: 0.3, // Low confidence for fallback
+      timestamp: new Date(),
+    };
+  }
+
+  /**
    * Build cache key for contributor summaries
    */
   private buildContributorCacheKey(login: string, activityData: ContributorActivityData): string {
@@ -538,7 +709,7 @@ Bad: "Made general contributions to the codebase with various improvements."`;
    * Generate hash from data for cache invalidation
    */
   private generateDataHash(
-    data: HealthData | RecommendationData | PRData[] | ContributorActivityData
+    data: HealthData | RecommendationData | PRData[] | ContributorActivityData | DiscussionData
   ): string {
     // Simple hash function for data changes detection
     const dataString = JSON.stringify(data);

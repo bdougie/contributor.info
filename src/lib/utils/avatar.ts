@@ -32,7 +32,7 @@ export function getAvatarUrl(username?: string, originalUrl?: string): string {
 
   // If we have a username but no URL, try to construct GitHub avatar URL
   if (username) {
-    return `https://avatars.githubusercontent.com/u/${username}`;
+    return `https://avatars.githubusercontent.com/${username}`;
   }
 
   // Return local fallback avatar
