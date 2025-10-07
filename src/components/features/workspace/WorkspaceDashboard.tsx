@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { MetricCard } from './MetricCard';
+import { MyWorkCard, type MyWorkItem, type MyWorkStats } from './MyWorkCard';
 import { RepositoryList, type Repository } from './RepositoryList';
 import { TimeRange } from './TimeRangeSelector';
 import { Star, GitPullRequest, Users, AlertCircle } from '@/components/ui/icon';
@@ -34,6 +35,8 @@ export interface WorkspaceDashboardProps {
   trendData: WorkspaceTrendData;
   activityData?: unknown; // Made generic since we removed the import
   repositories: Repository[];
+  myWorkItems?: MyWorkItem[];
+  myWorkStats?: MyWorkStats;
   loading?: boolean;
   tier?: 'free' | 'pro' | 'enterprise';
   timeRange?: TimeRange;
@@ -43,6 +46,7 @@ export interface WorkspaceDashboardProps {
   onGitHubAppModalOpen?: (repo: Repository) => void;
   onSettingsClick?: () => void;
   onUpgradeClick?: () => void;
+  onMyWorkItemClick?: (item: MyWorkItem) => void;
   className?: string;
   children?: React.ReactNode; // Allow passing additional content like Rising Stars chart
   repoStatuses?: Map<
@@ -66,12 +70,15 @@ const timeRangeComparisonLabels: Record<TimeRange, string> = {
 export function WorkspaceDashboard({
   metrics,
   repositories,
+  myWorkItems = [],
+  myWorkStats,
   loading = false,
   timeRange = '30d',
   onAddRepository,
   onRemoveRepository,
   onRepositoryClick,
   onGitHubAppModalOpen,
+  onMyWorkItemClick,
   className,
   children,
   repoStatuses,
@@ -164,6 +171,16 @@ export function WorkspaceDashboard({
           loading={loading}
         />
       </div>
+
+      {/* My Work Section */}
+      {(myWorkItems && myWorkItems.length > 0) || myWorkStats ? (
+        <MyWorkCard
+          items={myWorkItems || []}
+          stats={myWorkStats}
+          loading={loading}
+          onItemClick={onMyWorkItemClick}
+        />
+      ) : null}
 
       {/* Additional Content (e.g., Rising Stars Chart) */}
       {children}

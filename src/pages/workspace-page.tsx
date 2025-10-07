@@ -83,6 +83,7 @@ import type { Workspace, WorkspaceMemberWithUser } from '@/types/workspace';
 import { WorkspaceService } from '@/services/workspace.service';
 import { WorkspaceSettings as WorkspaceSettingsComponent } from '@/components/features/workspace/settings/WorkspaceSettings';
 import { useWorkspacePRs } from '@/hooks/useWorkspacePRs';
+import { useMyWork } from '@/hooks/use-my-work';
 // Analytics imports disabled - will be implemented in issue #598
 // import { AnalyticsDashboard } from '@/components/features/workspace/AnalyticsDashboard';
 import { ActivityTable } from '@/components/features/workspace/ActivityTable';
@@ -2326,6 +2327,10 @@ function WorkspacePage() {
   const [metrics, setMetrics] = useState<WorkspaceMetrics | null>(null);
   const [trendData, setTrendData] = useState<WorkspaceTrendData | null>(null);
   const [activityData, setActivityData] = useState<ActivityDataPoint[]>([]);
+
+  // Fetch live My Work data
+  const { items: myWorkItems } = useMyWork(workspaceId);
+  // TODO: Use loading and error states from useMyWork for better UX (issue #997)
   const [fullPRData, setFullPRData] = useState<WorkspaceActivityProps['prData']>([]);
   const [fullIssueData, setFullIssueData] = useState<WorkspaceActivityProps['issueData']>([]);
   const [fullReviewData, setFullReviewData] = useState<WorkspaceActivityProps['reviewData']>([]);
@@ -3592,6 +3597,7 @@ function WorkspacePage() {
                 trendData={trendData}
                 activityData={activityData}
                 repositories={repositories}
+                myWorkItems={myWorkItems}
                 tier={workspace.tier as 'free' | 'pro' | 'enterprise'}
                 timeRange={timeRange}
                 onAddRepository={isWorkspaceOwner ? handleAddRepository : undefined}
@@ -3600,6 +3606,10 @@ function WorkspacePage() {
                 onGitHubAppModalOpen={handleGitHubAppModalOpen}
                 onSettingsClick={handleSettingsClick}
                 onUpgradeClick={handleUpgradeClick}
+                onMyWorkItemClick={(item) => {
+                  // Open the URL in a new tab
+                  window.open(item.url, '_blank', 'noopener,noreferrer');
+                }}
                 repoStatuses={appStatus.repoStatuses}
               />
             </div>
