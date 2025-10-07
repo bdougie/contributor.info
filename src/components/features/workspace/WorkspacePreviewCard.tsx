@@ -139,7 +139,7 @@ export function WorkspacePreviewCard({
                   key={repo.id}
                   className="flex items-center gap-3 p-2 rounded-md border bg-muted/30"
                 >
-                  <Avatar className="h-6 w-6">
+                  <Avatar className="h-6 w-6 rounded-md">
                     <AvatarImage src={repo.avatar_url} alt={repo.owner} />
                     <AvatarFallback className="text-xs">
                       {repo.owner.charAt(0).toUpperCase()}
@@ -230,7 +230,7 @@ export function WorkspacePreviewCardSkeleton({ className }: { className?: string
           <div className="space-y-2">
             {Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className="flex items-center gap-3 p-2 rounded-md border bg-muted/30">
-                <div className="h-6 w-6 rounded-full bg-muted animate-pulse" />
+                <div className="h-6 w-6 rounded-md bg-muted animate-pulse" />
                 <div className="flex-1 space-y-2">
                   <div className="flex items-center gap-2">
                     <div className="h-3 w-20 bg-muted animate-pulse rounded" />

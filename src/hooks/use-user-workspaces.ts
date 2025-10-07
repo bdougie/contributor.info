@@ -27,6 +27,7 @@ type RepositoryWithWorkspace = {
     github_pushed_at: string | null;
     pull_request_count: number | null;
     open_issues_count: number | null;
+    avatar_url: string | null;
   };
 };
 
@@ -263,7 +264,8 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
             language,
             github_pushed_at,
             pull_request_count,
-            open_issues_count
+            open_issues_count,
+            avatar_url
           )
         `
         )
@@ -324,7 +326,10 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
               language: item.repositories.language,
               activity_score: activityScore,
               last_activity: item.repositories.github_pushed_at || new Date().toISOString(),
-              avatar_url: getRepoOwnerAvatarUrl(item.repositories.owner),
+              avatar_url: getRepoOwnerAvatarUrl(
+                item.repositories.owner,
+                item.repositories.avatar_url || undefined
+              ),
               html_url: `https://github.com/${item.repositories.full_name}`,
             };
           }) || [];
