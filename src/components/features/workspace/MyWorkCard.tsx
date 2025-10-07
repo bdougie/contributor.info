@@ -215,7 +215,7 @@ export function MyWorkCard({
       <Card className={cn('transition-all', className)}>
         <CardHeader>
           <CardTitle>My Work</CardTitle>
-          <CardDescription>Your recent activity</CardDescription>
+          <CardDescription>Items requiring your attention</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           {[1, 2, 3].map((i) => (
@@ -233,14 +233,14 @@ export function MyWorkCard({
       <Card className={cn('transition-all', className)}>
         <CardHeader>
           <CardTitle>My Work</CardTitle>
-          <CardDescription>Your recent activity</CardDescription>
+          <CardDescription>Items requiring your attention</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
             <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">No activity to display</p>
+            <p className="text-sm text-muted-foreground">Nothing needs your attention</p>
             <p className="text-xs text-muted-foreground mt-1">
-              Your PRs, issues, and mentions will appear here
+              Review requests, assigned issues, and unanswered discussions will appear here
             </p>
           </div>
         </CardContent>
@@ -253,7 +253,9 @@ export function MyWorkCard({
       <CardHeader>
         <CardTitle>My Work</CardTitle>
         <CardDescription>
-          {totalCount > 0 ? `${totalCount} items to review` : 'Your recent activity'}
+          {totalCount > 0
+            ? `${totalCount} items requiring attention`
+            : 'Items requiring your attention'}
         </CardDescription>
       </CardHeader>
       <CardContent>
