@@ -8,7 +8,7 @@ import { formatDistanceToNow } from 'date-fns';
 export interface MyWorkItem {
   id: string;
   type: 'pr' | 'issue' | 'discussion';
-  itemType: 'authored' | 'assigned' | 'review_requested' | 'mentioned' | 'participant';
+  itemType: 'authored' | 'assigned' | 'mentioned' | 'participant';
   title: string;
   repository: string;
   status: 'open' | 'merged' | 'closed' | 'answered';
@@ -108,9 +108,6 @@ function MyWorkItemComponent({
             : 'started discussion';
         }
         return 'authored';
-
-      case 'review_requested':
-        return 'requested to review PR';
 
       case 'assigned':
         return 'assigned to issue';
@@ -241,7 +238,7 @@ export function MyWorkCard({
             <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
             <p className="text-sm text-muted-foreground">Nothing needs your attention</p>
             <p className="text-xs text-muted-foreground mt-1">
-              Review requests, assigned issues, and unanswered discussions will appear here
+              Assigned issues and unanswered discussions will appear here
             </p>
           </div>
         </CardContent>

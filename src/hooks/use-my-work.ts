@@ -15,17 +15,6 @@ interface GitHubAssignee {
   id?: number;
 }
 
-interface PullRequestRow {
-  id: string;
-  number: number;
-  title: string;
-  state: string;
-  merged: boolean;
-  updated_at: string;
-  repository_id: string;
-  repositories: RepositoryData;
-}
-
 interface IssueRow {
   id: string;
   number: number;
@@ -119,45 +108,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
           }
         }
 
-        // Query 1: PRs where user is requested as reviewer
-        // Note: This requires requested_reviewers JSONB field in pull_requests table
-        let reviewRequestedPRQuery = supabase
-          .from('pull_requests')
-          .select(
-            `
-            id,
-            number,
-            title,
-            state,
-            merged,
-            updated_at,
-            repository_id,
-            requested_reviewers,
-            repositories!inner(full_name, owner, name)
-          `
-          )
-          .eq('state', 'open') // Only open PRs need reviews
-          .order('updated_at', { ascending: false })
-          .limit(20);
-
-        if (workspaceRepoIds.length > 0) {
-          reviewRequestedPRQuery = reviewRequestedPRQuery.in('repository_id', workspaceRepoIds);
-        }
-
-        const { data: rawReviewPrs, error: reviewPrError } = await reviewRequestedPRQuery;
-
-        if (reviewPrError) {
-          console.error('Error fetching review PRs:', reviewPrError);
-        }
-
-        // Type assertions for Supabase join response
-        const reviewPrs = rawReviewPrs as unknown as
-          | (PullRequestRow & {
-              requested_reviewers: GitHubAssignee[] | null;
-            })[]
-          | null;
-
-        // Query 2: Open issues assigned to user (in workspace repos)
+        // Query 1: Open issues assigned to user (in workspace repos)
         let issueQuery = supabase
           .from('github_issues')
           .select(
@@ -187,7 +138,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
           setError(issueError);
         }
 
-        // Query 3: ALL unanswered discussions in workspace (not just authored by user)
+        // Query 2: ALL unanswered discussions in workspace (not just authored by user)
         // Maintainers should see all discussions needing answers
         let discussionsQuery = supabase
           .from('discussions')
@@ -221,7 +172,6 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
         const allDiscussions = rawDiscussions as unknown as DiscussionRow[] | null;
 
         console.log('Query results:', {
-          reviewPRs: rawReviewPrs?.length || 0,
           openIssues: allIssues?.length || 0,
           unansweredDiscussions: allDiscussions?.length || 0,
         });
@@ -231,29 +181,6 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
           if (!issue.assignees || issue.assignees.length === 0) return false;
           return issue.assignees.some((assignee: GitHubAssignee) => assignee.login === githubLogin);
         });
-
-        // Filter review PRs where the user is requested (client-side filtering for JSONB)
-        const reviewRequestedPrs = reviewPrs?.filter((pr) => {
-          if (!pr.requested_reviewers || pr.requested_reviewers.length === 0) return false;
-          return pr.requested_reviewers.some(
-            (reviewer: GitHubAssignee) => reviewer.login === githubLogin
-          );
-        });
-
-        // Map review requested PRs to MyWorkItem
-        const reviewPrItems: MyWorkItem[] =
-          reviewRequestedPrs?.map((pr) => ({
-            id: `review-pr-${pr.id}`,
-            type: 'pr' as const,
-            itemType: 'review_requested' as const,
-            title: pr.title,
-            repository: pr.repositories.full_name,
-            status: 'open' as const, // Review requests are always open
-            url: `https://github.com/${pr.repositories.owner}/${pr.repositories.name}/pull/${pr.number}`,
-            updated_at: pr.updated_at,
-            needsAttention: true, // Review requests always need attention
-            number: pr.number,
-          })) || [];
 
         // Map assigned issues to MyWorkItem
         const issueItems: MyWorkItem[] =
@@ -286,12 +213,11 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
           })) || [];
 
         // Combine and sort by updated_at
-        const allItems = [...reviewPrItems, ...issueItems, ...discussionItems].sort(
+        const allItems = [...issueItems, ...discussionItems].sort(
           (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
         );
 
         console.log('Processed items needing attention:', {
-          reviewPrItems: reviewPrItems.length,
           issueItems: issueItems.length,
           discussionItems: discussionItems.length,
           total: allItems.length,
