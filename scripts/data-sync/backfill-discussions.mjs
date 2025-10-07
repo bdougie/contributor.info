@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import { graphql } from '@octokit/graphql';
 import { parseArgs } from 'util';
 import dotenv from 'dotenv';
+import OpenAI from 'openai';
 
 dotenv.config();
 
@@ -40,6 +41,14 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// Initialize OpenAI client for summaries
+const openaiApiKey = process.env.VITE_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+const openai = openaiApiKey ? new OpenAI({ apiKey: openaiApiKey }) : null;
+
+if (!openai) {
+  console.log('⚠️  No OPENAI_API_KEY found - summaries will not be generated');
+}
+
 // Use authenticated GraphQL if token is available, otherwise use public API for public repos
 const graphqlClient = githubToken
   ? graphql.defaults({
@@ -61,6 +70,37 @@ if (!owner || !repo) {
 }
 
 console.log(`Backfilling discussions for ${owner}/${repo} (${repositoryId})`);
+
+/**
+ * Generate AI summary for a discussion
+ */
+async function generateDiscussionSummary(discussion) {
+  if (!openai) {
+    return null;
+  }
+
+  try {
+    const bodyPreview = discussion.body?.substring(0, 500) || '';
+    const prompt = `Summarize this GitHub discussion in 1-2 concise sentences (max 150 chars). Focus on the MAIN QUESTION or TOPIC and KEY POINTS. Use plain text only.
+
+Title: ${discussion.title}
+Body: ${bodyPreview}
+
+Summary:`;
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 50,
+      temperature: 0.3,
+    });
+
+    return completion.choices[0]?.message?.content?.trim() || null;
+  } catch (error) {
+    console.error(`Failed to generate summary for discussion ${discussion.number}:`, error.message);
+    return null;
+  }
+}
 
 async function fetchDiscussions() {
   let hasNextPage = true;
@@ -129,7 +169,7 @@ async function fetchDiscussions() {
       console.log(`Fetched ${discussions.length} discussions from GitHub`);
 
       for (const discussion of discussions) {
-        discussionsToInsert.push({
+        const discussionData = {
           id: discussion.id, // GraphQL node ID (string)
           github_id: discussion.number, // Use discussion number as numeric ID
           repository_id: repositoryId,
@@ -152,7 +192,20 @@ async function fetchDiscussions() {
           answer_chosen_by: discussion.answer?.author?.login || null,
           upvote_count: discussion.upvoteCount || 0,
           comment_count: discussion.comments.totalCount || 0,
-        });
+        };
+
+        // Generate AI summary
+        const summary = await generateDiscussionSummary(discussion);
+        if (summary) {
+          discussionData.summary = summary;
+        }
+
+        discussionsToInsert.push(discussionData);
+
+        // Rate limit summary generation
+        if (openai) {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
       }
 
       discussionsFetched += discussions.length;
