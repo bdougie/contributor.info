@@ -53,11 +53,8 @@ interface DiscussionRow {
   is_answered: boolean;
   repository_id: string;
   author_login: string;
-  author_id: string;
+  author_id: number;
   repositories: RepositoryData;
-  contributors: {
-    avatar_url?: string;
-  } | null;
 }
 
 /**
@@ -208,8 +205,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             repository_id,
             author_login,
             author_id,
-            repositories!inner(full_name, owner, name),
-            contributors!author_id(avatar_url)
+            repositories!inner(full_name, owner, name)
           `
           )
           .eq('is_answered', false) // Only unanswered discussions need attention
@@ -289,6 +285,25 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             },
           })) || [];
 
+        // Fetch avatars for discussion authors
+        const discussionAuthorLogins = [
+          ...new Set(allDiscussions?.map((d) => d.author_login) || []),
+        ];
+        const authorAvatars = new Map<string, string>();
+
+        if (discussionAuthorLogins.length > 0) {
+          const { data: authorData } = await supabase
+            .from('contributors')
+            .select('username, avatar_url')
+            .in('username', discussionAuthorLogins);
+
+          authorData?.forEach((author) => {
+            if (author.avatar_url) {
+              authorAvatars.set(author.username, author.avatar_url);
+            }
+          });
+        }
+
         // Map unanswered discussions to MyWorkItem
         const discussionItems: MyWorkItem[] =
           allDiscussions?.map((discussion) => ({
@@ -304,7 +319,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             number: discussion.number,
             user: {
               username: discussion.author_login,
-              avatar_url: discussion.contributors?.avatar_url,
+              avatar_url: authorAvatars.get(discussion.author_login),
             },
           })) || [];
 
