@@ -53,8 +53,11 @@ interface DiscussionRow {
   is_answered: boolean;
   repository_id: string;
   author_login: string;
-  author_avatar_url?: string;
+  author_id: string;
   repositories: RepositoryData;
+  contributors: {
+    avatar_url?: string;
+  } | null;
 }
 
 /**
@@ -204,8 +207,9 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             is_answered,
             repository_id,
             author_login,
-            author_avatar_url,
-            repositories!inner(full_name, owner, name)
+            author_id,
+            repositories!inner(full_name, owner, name),
+            contributors!author_id(avatar_url)
           `
           )
           .eq('is_answered', false) // Only unanswered discussions need attention
@@ -300,7 +304,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             number: discussion.number,
             user: {
               username: discussion.author_login,
-              avatar_url: discussion.author_avatar_url,
+              avatar_url: discussion.contributors?.avatar_url,
             },
           })) || [];
 
