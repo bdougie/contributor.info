@@ -72,6 +72,9 @@
 # Embeddings function needs esbuild with longer timeout for ML model loading
 [functions.inngest-embeddings]
   node_bundler = "esbuild"
+  # Use ESM format to support import.meta in the codebase
+  [functions.inngest-embeddings.esbuild]
+    format = "esm"
 
 # Manual backfill functions may take longer
 [functions.backfill-trigger]
