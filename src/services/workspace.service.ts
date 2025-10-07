@@ -1134,6 +1134,39 @@ export class WorkspaceService {
         // Don't fail the invitation creation if email fails
       }
 
+      // Create notification for inviter
+      try {
+        const { NotificationService } = await import('@/lib/notifications/notification.service');
+
+        // Get workspace name
+        const { data: workspaceData } = await supabase
+          .from('workspaces')
+          .select('name')
+          .eq('id', workspaceId)
+          .maybeSingle();
+
+        await NotificationService.createNotification(
+          {
+            operation_id: invitation.id,
+            operation_type: 'invite',
+            status: 'pending',
+            title: `Invitation sent to ${sanitizedEmail}`,
+            message: `Your invitation to join ${workspaceData?.name || 'the workspace'} has been sent`,
+            metadata: {
+              workspace_id: workspaceId,
+              workspace_name: workspaceData?.name,
+              invitee_email: sanitizedEmail,
+              role,
+              invite_status: 'sent',
+            },
+          },
+          invitedBy
+        );
+      } catch (notificationErr) {
+        console.error('Failed to create invite notification:', notificationErr);
+        // Don't fail the invitation if notification fails
+      }
+
       // Return a success response with invitation details
       // We'll return a simplified object since this is an invitation, not a full member
       // Using 'as unknown as' to bypass strict type checking for pending invitations
