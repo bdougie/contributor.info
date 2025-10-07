@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -15,6 +15,8 @@ import {
   ExternalLink,
   ChevronUp,
   RefreshCw,
+  ChevronLeft,
+  ChevronRight,
 } from '@/components/ui/icon';
 import { formatDistanceToNow } from 'date-fns';
 import { PermissionUpgradeCTA } from '@/components/ui/permission-upgrade-cta';
@@ -84,6 +86,8 @@ export function WorkspaceDiscussionsTable({
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [filterBy, setFilterBy] = useState<FilterOption>('all');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   // Track data timestamps
   const { lastUpdated } = useDataTimestamp([discussions], {
@@ -177,33 +181,56 @@ export function WorkspaceDiscussionsTable({
   }, [repositories, selectedRepositories]);
 
   // Filter and sort discussions
-  const filteredDiscussions = discussions
-    .filter((discussion) => {
-      // Search filter
-      if (searchTerm && !discussion.title.toLowerCase().includes(searchTerm.toLowerCase())) {
-        return false;
-      }
+  const filteredDiscussions = useMemo(
+    () =>
+      discussions
+        .filter((discussion) => {
+          // Search filter
+          if (searchTerm && !discussion.title.toLowerCase().includes(searchTerm.toLowerCase())) {
+            return false;
+          }
 
-      // Answered filter
-      if (filterBy === 'answered' && !discussion.is_answered) return false;
-      if (filterBy === 'unanswered' && discussion.is_answered) return false;
+          // Answered filter
+          if (filterBy === 'answered' && !discussion.is_answered) return false;
+          if (filterBy === 'unanswered' && discussion.is_answered) return false;
 
-      // Category filter
-      if (selectedCategory && discussion.category_name !== selectedCategory) return false;
+          // Category filter
+          if (selectedCategory && discussion.category_name !== selectedCategory) return false;
 
-      return true;
-    })
-    .sort((a, b) => {
-      switch (sortBy) {
-        case 'upvotes':
-          return b.upvote_count - a.upvote_count;
-        case 'comments':
-          return b.comment_count - a.comment_count;
-        case 'newest':
-        default:
-          return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
-      }
-    });
+          return true;
+        })
+        .sort((a, b) => {
+          switch (sortBy) {
+            case 'upvotes':
+              return b.upvote_count - a.upvote_count;
+            case 'comments':
+              return b.comment_count - a.comment_count;
+            case 'newest':
+            default:
+              return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+          }
+        }),
+    [discussions, searchTerm, filterBy, selectedCategory, sortBy]
+  );
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, sortBy, filterBy, selectedCategory]);
+
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredDiscussions.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedDiscussions = filteredDiscussions.slice(startIndex, endIndex);
+
+  const handlePreviousPage = () => {
+    setCurrentPage((prev) => Math.max(1, prev - 1));
+  };
+
+  const handleNextPage = () => {
+    setCurrentPage((prev) => Math.min(totalPages, prev + 1));
+  };
 
   // Get unique categories
   const categories = Array.from(new Set(discussions.map((d) => d.category_name).filter(Boolean)));
@@ -384,8 +411,9 @@ export function WorkspaceDiscussionsTable({
 
         {/* Discussions List */}
         {!loading && !error && filteredDiscussions.length > 0 && (
-          <div className="space-y-3" role="feed" aria-label="Discussions feed">
-            {filteredDiscussions.map((discussion) => (
+          <>
+            <div className="space-y-3" role="feed" aria-label="Discussions feed">
+              {paginatedDiscussions.map((discussion) => (
               <article
                 key={discussion.id}
                 className="p-4 border rounded-lg hover:border-primary/50 transition-colors"
@@ -500,8 +528,46 @@ export function WorkspaceDiscussionsTable({
                   </div>
                 </div>
               </article>
-            ))}
-          </div>
+              ))}
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between mt-6 pt-4 border-t">
+                <div className="text-sm text-muted-foreground">
+                  Showing {startIndex + 1} to {Math.min(endIndex, filteredDiscussions.length)} of{' '}
+                  {filteredDiscussions.length} discussions
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePreviousPage}
+                    disabled={currentPage === 1}
+                    aria-label="Go to previous page"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Previous
+                  </Button>
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm font-medium">{currentPage}</span>
+                    <span className="text-sm text-muted-foreground">of</span>
+                    <span className="text-sm font-medium">{totalPages}</span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleNextPage}
+                    disabled={currentPage === totalPages}
+                    aria-label="Go to next page"
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </CardContent>
 
