@@ -437,7 +437,7 @@ export function ActivityTable({
 
                               const contributorStats: ContributorStats = {
                                 login: activity.author.username,
-                                avatar_url: activity.author.avatar_url,
+                                avatar_url: activity.author.avatar_url || '',
                                 pullRequests: pullRequestsCount,
                                 percentage: 0,
                                 recentActivities: getRecentActivitiesForContributor(

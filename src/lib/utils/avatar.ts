@@ -6,11 +6,11 @@ import { DEFAULT_AVATAR_DATA_URL } from './default-avatar-data';
 
 /**
  * Get a properly formatted avatar URL with fallback support
- * @param username - GitHub username or identifier (not used, kept for compatibility)
+ * @param _username - GitHub username or identifier (not used, kept for compatibility)
  * @param originalUrl - Optional cached avatar URL from Supabase
  * @returns Formatted avatar URL with fallback
  */
-export function getAvatarUrl(username?: string, originalUrl?: string): string {
+export function getAvatarUrl(_username?: string, originalUrl?: string): string {
   // If we have a cached URL, use it
   if (originalUrl) {
     try {
@@ -42,12 +42,12 @@ export function getFallbackAvatar(): string {
 
 /**
  * Get organization avatar URL with fallback
- * @param orgName - Organization name (not used, kept for compatibility)
+ * @param _orgName - Organization name (not used, kept for compatibility)
  * @param cachedUrl - Optional cached URL from Supabase
  * @returns Organization avatar URL with fallback
  */
-export function getOrgAvatarUrl(orgName?: string, cachedUrl?: string): string {
-  if (!orgName) {
+export function getOrgAvatarUrl(_orgName?: string, cachedUrl?: string): string {
+  if (!_orgName) {
     return getFallbackAvatar();
   }
 
@@ -63,12 +63,12 @@ export function getOrgAvatarUrl(orgName?: string, cachedUrl?: string): string {
 
 /**
  * Get repository owner avatar URL with fallback
- * @param owner - Repository owner name
+ * @param _owner - Repository owner name (not used, kept for compatibility)
  * @param cachedUrl - Optional cached URL from Supabase
  * @returns Owner avatar URL with fallback
  */
-export function getRepoOwnerAvatarUrl(owner?: string, cachedUrl?: string): string {
-  if (!owner) {
+export function getRepoOwnerAvatarUrl(_owner?: string, cachedUrl?: string): string {
+  if (!_owner) {
     return getFallbackAvatar();
   }
 

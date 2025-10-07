@@ -294,7 +294,6 @@ export function useWorkspacePRs({
       repository: {
         name: repo?.name || 'unknown',
         owner: repo?.owner || 'unknown',
-        avatar_url: repo?.avatar_url || '',
       },
       author: {
         username: contributor?.username || 'unknown',
