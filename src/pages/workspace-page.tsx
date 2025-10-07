@@ -3660,7 +3660,9 @@ function WorkspacePage() {
                   } catch (error) {
                     console.error('Error finding similar items:', error);
                     setSimilarItems([]);
-                    setResponseMessage('Failed to find similar items. Please try again.');
+                    setResponseMessage(
+                      'Similarity search is not available yet. Embeddings need to be generated for this workspace.'
+                    );
                   } finally {
                     setLoadingSimilarItems(false);
                   }
