@@ -129,7 +129,7 @@ function MyWorkItemComponent({
       }
 
       case 'participant':
-        if (item.type === 'discussion') return 'unanswered discussion';
+        if (item.type === 'discussion') return 'started discussion';
         return 'participating in discussion';
 
       default:

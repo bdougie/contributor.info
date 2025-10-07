@@ -52,6 +52,8 @@ interface DiscussionRow {
   updated_at: string;
   is_answered: boolean;
   repository_id: string;
+  author_login: string;
+  author_avatar_url?: string;
   repositories: RepositoryData;
 }
 
@@ -201,6 +203,8 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             updated_at,
             is_answered,
             repository_id,
+            author_login,
+            author_avatar_url,
             repositories!inner(full_name, owner, name)
           `
           )
@@ -295,8 +299,8 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             needsAttention: true,
             number: discussion.number,
             user: {
-              username: githubLogin,
-              avatar_url: avatarUrl,
+              username: discussion.author_login,
+              avatar_url: discussion.author_avatar_url,
             },
           })) || [];
 
