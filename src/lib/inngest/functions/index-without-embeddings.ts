@@ -18,3 +18,6 @@ export { updatePrActivity } from './update-pr-activity';
 
 // Repository discovery
 export { discoverNewRepository } from './discover-new-repository';
+
+// Discussion capture
+export { captureRepositoryDiscussions } from './capture-repository-discussions';
