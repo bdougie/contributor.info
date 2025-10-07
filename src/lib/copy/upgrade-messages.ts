@@ -104,7 +104,7 @@ export const UPGRADE_MESSAGES = {
   // Authentication
   LOGIN_REQUIRED: {
     title: 'Login Required',
-    description: 'Please log in to access workspace management features.',
+    description: 'Please log in to access workspace analytics features.',
     actionText: 'Login to view',
     actionType: 'login' as const,
   },

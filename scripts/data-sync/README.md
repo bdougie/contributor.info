@@ -29,6 +29,7 @@ The data sync scripts handle:
 | `backfill-pr-stats.js` | Fill missing PR statistics | Data recovery |
 | `backfill-reviews-comments.mjs` | Backfill reviews and comments | Complete missing data |
 | `backfill-discussions.mjs` | Backfill GitHub Discussions | Initial discussions setup |
+| `backfill-discussion-summaries.mjs` | Generate AI summaries for discussions | AI summary generation |
 | `initialize-pytorch-backfill.js` | Initialize large repo backfill | Start pytorch/pytorch sync |
 | `get-pytorch-stats.js` | Get accurate repo statistics | Verify GitHub data |
 | `pytorch-7day-backfill.js` | Run 7-day backfill with timeouts | Fetch recent PyTorch PRs |
@@ -87,6 +88,11 @@ GITHUB_TOKEN=your_token node scripts/data-sync/backfill-discussions.mjs \
   --repository-id=<uuid> \
   --repository-name=owner/repo \
   --max-items=100
+
+# Generate AI summaries for discussions
+node scripts/data-sync/backfill-discussion-summaries.mjs --repository-id=<uuid>
+# Or generate for all discussions
+node scripts/data-sync/backfill-discussion-summaries.mjs --all
 ```
 
 ## ⚙️ Configuration

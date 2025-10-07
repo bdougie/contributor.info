@@ -28,6 +28,7 @@ export interface Discussion {
   number: number;
   title: string;
   body: string | null;
+  summary?: string | null;
   category_id: string | null;
   category_name: string | null;
   category_description: string | null;
@@ -447,11 +448,15 @@ export function WorkspaceDiscussionsTable({
                       />
                     </h3>
 
-                    {/* Preview Text */}
-                    {discussion.body && (
-                      <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-                        {discussion.body}
-                      </p>
+                    {/* AI Summary or Truncated Body */}
+                    {discussion.summary ? (
+                      <p className="text-sm text-muted-foreground mb-3">{discussion.summary}</p>
+                    ) : (
+                      discussion.body && (
+                        <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+                          {discussion.body}
+                        </p>
+                      )
                     )}
 
                     {/* Metadata */}
