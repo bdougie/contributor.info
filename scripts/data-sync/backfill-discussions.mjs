@@ -172,6 +172,44 @@ async function fetchDiscussions() {
   return discussionsToInsert;
 }
 
+async function upsertDiscussionAuthors(discussions) {
+  // Extract unique discussion authors
+  const authors = discussions
+    .filter((d) => d.author_login && d.author_id)
+    .reduce((acc, discussion) => {
+      const key = discussion.author_login;
+      if (!acc.has(key)) {
+        acc.set(key, {
+          username: discussion.author_login,
+          github_id: discussion.author_id,
+          avatar_url: `https://avatars.githubusercontent.com/u/${discussion.author_id}`,
+          first_seen_at: discussion.created_at,
+        });
+      }
+      return acc;
+    }, new Map());
+
+  if (authors.size === 0) {
+    console.log('No discussion authors to upsert');
+    return;
+  }
+
+  console.log(`Upserting ${authors.size} discussion authors as contributors...`);
+
+  const authorsArray = Array.from(authors.values());
+  const { error } = await supabase.from('contributors').upsert(authorsArray, {
+    onConflict: 'username',
+    ignoreDuplicates: false,
+  });
+
+  if (error) {
+    console.error('Error upserting discussion authors:', error);
+    throw error;
+  }
+
+  console.log(`Successfully upserted ${authors.size} discussion authors`);
+}
+
 async function insertDiscussions(discussions) {
   if (discussions.length === 0) {
     console.log('No discussions to insert');
@@ -197,6 +235,7 @@ async function insertDiscussions(discussions) {
 async function main() {
   try {
     const discussions = await fetchDiscussions();
+    await upsertDiscussionAuthors(discussions);
     await insertDiscussions(discussions);
 
     console.log('\n✅ Backfill completed successfully!');
