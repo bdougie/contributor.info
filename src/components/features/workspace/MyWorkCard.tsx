@@ -7,13 +7,15 @@ import { formatDistanceToNow } from 'date-fns';
 
 export interface MyWorkItem {
   id: string;
-  type: 'pr' | 'issue' | 'mention';
+  type: 'pr' | 'issue' | 'discussion';
+  itemType: 'authored' | 'assigned' | 'review_requested' | 'mentioned' | 'participant';
   title: string;
   repository: string;
-  status: 'open' | 'merged' | 'closed';
+  status: 'open' | 'merged' | 'closed' | 'answered';
   url: string;
   updated_at: string;
   needsAttention?: boolean;
+  number: number;
 }
 
 export interface MyWorkStats {
@@ -36,8 +38,13 @@ export interface MyWorkCardProps {
   stats?: MyWorkStats;
   loading?: boolean;
   className?: string;
+  totalCount?: number;
+  currentPage?: number;
+  itemsPerPage?: number;
   onItemClick?: (item: MyWorkItem) => void;
   onViewAll?: () => void;
+  onPageChange?: (page: number) => void;
+  onRespond?: (item: MyWorkItem) => void;
 }
 
 function MyWorkItemSkeleton() {
@@ -55,10 +62,14 @@ function MyWorkItemSkeleton() {
 function MyWorkItemComponent({
   item,
   onClick,
+  onRespond,
 }: {
   item: MyWorkItem;
   onClick?: (item: MyWorkItem) => void;
+  onRespond?: (item: MyWorkItem) => void;
 }) {
+  // Only show respond button for open items where user can respond
+  const canRespond = item.status === 'open' || item.status === 'answered';
   const getActivityColor = () => {
     if (item.type === 'pr') {
       switch (item.status) {
@@ -75,32 +86,47 @@ function MyWorkItemComponent({
     if (item.type === 'issue') {
       return 'bg-orange-500';
     }
-    if (item.type === 'mention') {
-      return 'bg-gray-500';
+    if (item.type === 'discussion') {
+      return 'bg-blue-500';
     }
     return 'bg-gray-400';
   };
 
   const getActivityText = () => {
-    if (item.type === 'pr') {
-      switch (item.status) {
-        case 'open':
-          return 'opened';
-        case 'merged':
-          return 'merged';
-        case 'closed':
-          return 'closed';
-        default:
-          return 'updated';
+    // Describe the relationship to the item
+    switch (item.itemType) {
+      case 'authored':
+        if (item.type === 'pr') {
+          if (item.status === 'open') return 'opened PR';
+          if (item.status === 'merged') return 'merged PR';
+          return 'closed PR';
+        } else if (item.type === 'issue') {
+          return item.status === 'open' ? 'opened issue' : 'closed issue';
+        } else if (item.type === 'discussion') {
+          return item.status === 'answered'
+            ? 'started discussion (answered)'
+            : 'started discussion';
+        }
+        return 'authored';
+
+      case 'review_requested':
+        return 'requested to review PR';
+
+      case 'assigned':
+        return 'assigned to issue';
+
+      case 'mentioned': {
+        if (item.type === 'pr') return 'mentioned in PR';
+        if (item.type === 'issue') return 'mentioned in issue';
+        return 'mentioned in discussion';
       }
+
+      case 'participant':
+        return 'participating in discussion';
+
+      default:
+        return 'updated';
     }
-    if (item.type === 'issue') {
-      return item.status === 'open' ? 'opened issue' : 'closed issue';
-    }
-    if (item.type === 'mention') {
-      return 'mentioned you in';
-    }
-    return 'updated';
   };
 
   return (
@@ -134,8 +160,9 @@ function MyWorkItemComponent({
                 rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
               >
-                {item.type === 'pr' && 'PR'}
-                {item.type === 'issue' && 'Issue'}
+                {item.type === 'pr' && `PR #${item.number}`}
+                {item.type === 'issue' && `Issue #${item.number}`}
+                {item.type === 'discussion' && `Discussion #${item.number}`}
               </a>
               <span className="text-muted-foreground hidden sm:inline">in</span>
               <span className="text-orange-500 truncate max-w-xs sm:max-w-none hidden sm:inline">
@@ -146,9 +173,24 @@ function MyWorkItemComponent({
               {item.title}
             </h3>
           </div>
-          <time className="text-xs text-muted-foreground whitespace-nowrap sm:ml-2">
-            {formatDistanceToNow(new Date(item.updated_at), { addSuffix: true })}
-          </time>
+          <div className="flex items-center gap-2 sm:ml-2">
+            <time className="text-xs text-muted-foreground whitespace-nowrap">
+              {formatDistanceToNow(new Date(item.updated_at), { addSuffix: true })}
+            </time>
+            {canRespond && onRespond && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-6 px-2 text-xs"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRespond(item);
+                }}
+              >
+                Respond
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     </article>
@@ -159,9 +201,15 @@ export function MyWorkCard({
   items,
   loading = false,
   className,
+  totalCount = 0,
+  currentPage = 1,
+  itemsPerPage = 10,
   onItemClick,
   onViewAll,
+  onPageChange,
+  onRespond,
 }: MyWorkCardProps) {
+  const totalPages = Math.ceil(totalCount / itemsPerPage);
   if (loading) {
     return (
       <Card className={cn('transition-all', className)}>
@@ -204,17 +252,50 @@ export function MyWorkCard({
     <Card className={cn('transition-all', className)}>
       <CardHeader>
         <CardTitle>My Work</CardTitle>
-        <CardDescription>Your recent activity</CardDescription>
+        <CardDescription>
+          {totalCount > 0 ? `${totalCount} items to review` : 'Your recent activity'}
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
-          {items.slice(0, 5).map((item) => (
-            <MyWorkItemComponent key={item.id} item={item} onClick={onItemClick} />
+          {items.map((item) => (
+            <MyWorkItemComponent
+              key={item.id}
+              item={item}
+              onClick={onItemClick}
+              onRespond={onRespond}
+            />
           ))}
         </div>
-        {items.length > 5 && onViewAll && (
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && onPageChange && (
+          <div className="flex items-center justify-between mt-4 pt-3 border-t">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onPageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </Button>
+            <div className="text-sm text-muted-foreground">
+              Page {currentPage} of {totalPages}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onPageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </Button>
+          </div>
+        )}
+
+        {onViewAll && (
           <Button variant="ghost" className="w-full mt-3 text-sm" onClick={onViewAll}>
-            View all {items.length} items
+            View all {totalCount} items
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         )}

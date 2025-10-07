@@ -2329,8 +2329,9 @@ function WorkspacePage() {
   const [activityData, setActivityData] = useState<ActivityDataPoint[]>([]);
 
   // Fetch live My Work data
-  const { items: myWorkItems } = useMyWork(workspaceId);
-  // TODO: Use loading and error states from useMyWork for better UX (issue #997)
+  // Use workspace?.id (UUID) instead of workspaceId (which is a slug)
+  const { items: myWorkItems } = useMyWork(workspace?.id);
+  // TODO: Add pagination state, totalCount, and loading to WorkspaceDashboard props
   const [fullPRData, setFullPRData] = useState<WorkspaceActivityProps['prData']>([]);
   const [fullIssueData, setFullIssueData] = useState<WorkspaceActivityProps['issueData']>([]);
   const [fullReviewData, setFullReviewData] = useState<WorkspaceActivityProps['reviewData']>([]);

@@ -5,6 +5,9 @@ export type { MetricCardProps } from './MetricCard';
 export { MyWorkCard, MyWorkCardSkeleton } from './MyWorkCard';
 export type { MyWorkCardProps, MyWorkItem, MyWorkStats } from './MyWorkCard';
 
+export { ResponsePreviewModal } from './ResponsePreviewModal';
+export type { ResponsePreviewModalProps } from './ResponsePreviewModal';
+
 export { TrendChart, TrendChartSkeleton } from './TrendChart';
 export type { TrendChartProps } from './TrendChart';
 

@@ -172,15 +172,13 @@ export function WorkspaceDashboard({
         />
       </div>
 
-      {/* My Work Section */}
-      {(myWorkItems && myWorkItems.length > 0) || myWorkStats ? (
-        <MyWorkCard
-          items={myWorkItems || []}
-          stats={myWorkStats}
-          loading={loading}
-          onItemClick={onMyWorkItemClick}
-        />
-      ) : null}
+      {/* My Work Section - Always show to display loading/empty states */}
+      <MyWorkCard
+        items={myWorkItems || []}
+        stats={myWorkStats}
+        loading={loading}
+        onItemClick={onMyWorkItemClick}
+      />
 
       {/* Additional Content (e.g., Rising Stars Chart) */}
       {children}
