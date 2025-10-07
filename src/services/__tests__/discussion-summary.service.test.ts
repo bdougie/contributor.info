@@ -132,7 +132,7 @@ describe('Discussion Summary Service', () => {
           return {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockImplementation(async () => {
+                maybeSingle: vi.fn().mockImplementation(async () => {
                   const callCount = vi.mocked(supabase.from).mock.calls.length;
                   return {
                     data: mockDiscussions[callCount % 2],
@@ -168,7 +168,7 @@ describe('Discussion Summary Service', () => {
       vi.mocked(supabase.from).mockReturnValue({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
+            maybeSingle: vi.fn().mockResolvedValue({
               data: null,
               error: { message: 'Not found' },
             }),
