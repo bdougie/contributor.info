@@ -12,11 +12,16 @@ import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://egcxzonpmmcirmgqdrla.supabase.co';
-const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
+const SUPABASE_KEY =
+  process.env.SUPABASE_TOKEN ||
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.VITE_SUPABASE_ANON_KEY;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
 
-if (!SUPABASE_ANON_KEY) {
-  console.error('Error: VITE_SUPABASE_ANON_KEY environment variable is required');
+if (!SUPABASE_KEY) {
+  console.error(
+    'Error: SUPABASE_TOKEN or SUPABASE_SERVICE_ROLE_KEY environment variable is required'
+  );
   process.exit(1);
 }
 
@@ -25,7 +30,7 @@ if (!OPENAI_API_KEY) {
   process.exit(1);
 }
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
 // Parse command line arguments
