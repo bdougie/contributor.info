@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Link, TrendingUp, TrendingDown } from '@/components/ui/icon';
 import { toast } from 'sonner';
+import { PermissionUpgradeCTA } from '@/components/ui/permission-upgrade-cta';
+import { UPGRADE_MESSAGES } from '@/lib/copy/upgrade-messages';
 import { PrCountCard } from '../activity/pr-count-card';
 import { AvgTimeCard } from '../activity/avg-time-card';
 import { VelocityCard } from '../activity/velocity-card';
@@ -18,6 +20,8 @@ interface WorkspaceMetricsAndTrendsProps {
   repositories: Repository[];
   selectedRepositories: string[];
   timeRange: string;
+  userRole?: string | null;
+  isLoggedIn?: boolean;
 }
 
 function TrendCard({ trend, loading = false }: { trend?: TrendData; loading?: boolean }) {
@@ -102,6 +106,8 @@ export function WorkspaceMetricsAndTrends({
   repositories,
   selectedRepositories,
   timeRange,
+  userRole,
+  isLoggedIn = false,
 }: WorkspaceMetricsAndTrendsProps) {
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState<ActivityMetrics | null>(null);
@@ -273,8 +279,12 @@ export function WorkspaceMetricsAndTrends({
     calculateMetrics();
   }, [calculateMetrics]);
 
+  // Check if user has workspace access (must be logged in and have a role)
+  const hasWorkspaceAccess = isLoggedIn && userRole;
+  const showUpgradePrompt = !hasWorkspaceAccess;
+
   return (
-    <Card>
+    <Card className="relative">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
@@ -358,6 +368,23 @@ export function WorkspaceMetricsAndTrends({
           })()}
         </section>
       </CardContent>
+
+      {/* Blur overlay with upgrade prompt for users without workspace access */}
+      {showUpgradePrompt && (
+        <div className="absolute inset-0 backdrop-blur-sm bg-background/50 rounded-lg flex items-start justify-center pt-4 md:items-center md:pt-0 z-10">
+          <div className="max-w-md w-full mx-4">
+            <PermissionUpgradeCTA
+              message={
+                isLoggedIn
+                  ? UPGRADE_MESSAGES.WORKSPACE_DISCUSSIONS
+                  : UPGRADE_MESSAGES.LOGIN_REQUIRED
+              }
+              variant="card"
+              size="md"
+            />
+          </div>
+        </div>
+      )}
     </Card>
   );
 }
