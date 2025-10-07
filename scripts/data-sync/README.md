@@ -28,8 +28,7 @@ The data sync scripts handle:
 |--------|---------|-------|
 | `backfill-pr-stats.js` | Fill missing PR statistics | Data recovery |
 | `backfill-reviews-comments.mjs` | Backfill reviews and comments | Complete missing data |
-| `backfill-discussions.mjs` | Backfill GitHub Discussions | Initial discussions setup |
-| `backfill-discussion-summaries.mjs` | Generate AI summaries for discussions | AI summary generation |
+| `backfill-discussion-summaries.mjs` | Generate AI summaries for existing discussions | Backfill summaries on old data |
 | `initialize-pytorch-backfill.js` | Initialize large repo backfill | Start pytorch/pytorch sync |
 | `get-pytorch-stats.js` | Get accurate repo statistics | Verify GitHub data |
 | `pytorch-7day-backfill.js` | Run 7-day backfill with timeouts | Fetch recent PyTorch PRs |
@@ -83,16 +82,22 @@ node scripts/data-sync/backfill-pr-stats.js --days 30
 # Backfill reviews and comments
 node scripts/data-sync/backfill-reviews-comments.mjs --repository-id <uuid>
 
-# Backfill GitHub Discussions
-GITHUB_TOKEN=your_token node scripts/data-sync/backfill-discussions.mjs \
-  --repository-id=<uuid> \
-  --repository-name=owner/repo \
-  --max-items=100
-
-# Generate AI summaries for discussions
+# Backfill AI summaries for existing discussions (without summaries)
 node scripts/data-sync/backfill-discussion-summaries.mjs --repository-id=<uuid>
 # Or generate for all discussions
 node scripts/data-sync/backfill-discussion-summaries.mjs --all
+```
+
+### Discussion Sync (Inngest Background Job)
+```bash
+# For new discussion syncs, use the Inngest background job instead:
+# See: docs/data-fetching/discussion-background-sync.md
+
+# Trigger via code:
+await inngest.send({
+  name: 'capture/repository.discussions',
+  data: { repositoryId: 'uuid', maxItems: 100 }
+});
 ```
 
 ## ⚙️ Configuration
