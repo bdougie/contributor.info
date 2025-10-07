@@ -13,6 +13,9 @@ import {
   type ContributionDataPoint,
 } from '@/lib/utils/contribution-visualization';
 import { detectBot } from '@/lib/utils/bot-detection';
+import { Link } from 'react-router-dom';
+import { YoloIcon } from '@/components/icons/YoloIcon';
+import { ArrowRight } from '@/components/ui/icon';
 
 // Lazy load the ScatterPlot component to reduce initial bundle size
 const ResponsiveScatterPlot = lazy(() =>
@@ -48,7 +51,11 @@ interface ContributionsChartProps {
 }
 
 function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartProps) {
-  const { stats, includeBots: contextIncludeBots } = useContext(RepoStatsContext);
+  const {
+    stats,
+    directCommitsData,
+    includeBots: contextIncludeBots,
+  } = useContext(RepoStatsContext);
   const { effectiveTimeRange } = useTimeRange();
   const { owner, repo } = useParams<{ owner: string; repo: string }>();
   // Enhanced mode (logarithmic scale) defaults to on for clarity
@@ -686,9 +693,38 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
     );
   }
 
+  // Check if YOLO button should be shown
+  const showYoloButton = directCommitsData?.hasYoloCoders === true;
+
   return (
     <div className="space-y-4 w-full overflow-hidden">
       <div className={`flex flex-col gap-4 pt-3 ${isMobile ? 'px-2' : 'md:px-7'}`}>
+        {showYoloButton && owner && repo && (
+          <Link
+            to={`/repo/${owner}/${repo}/health`}
+            className="flex items-center justify-between text-slate-500 shadow-sm !border !border-slate-300 p-1 gap-2 text-sm rounded-full hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors w-fit"
+          >
+            <div className="flex gap-2 items-center min-w-0">
+              <div className="flex items-center font-medium gap-1 px-2 py-0.5 rounded-2xl bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400 flex-shrink-0">
+                <YoloIcon className="h-4 w-4" />
+                <span className="hidden sm:inline">YOLO Coders</span>
+                <span className="sm:hidden">YOLO</span>
+              </div>
+              <p
+                className="text-sm hidden sm:inline text-muted-foreground"
+                style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}
+              >
+                Pushing commits directly to main
+              </p>
+            </div>
+
+            <div className="flex gap-1 items-center mr-1 sm:mr-2 flex-shrink-0">
+              <span className="text-sm hidden sm:inline">See more</span>
+              <ArrowRight className="h-4 w-4" />
+            </div>
+          </Link>
+        )}
+
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="text-sm text-muted-foreground">
             {data[0].data.length} pull requests shown
