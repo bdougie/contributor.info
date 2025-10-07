@@ -1,9 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { ArrowRight, Activity } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
+import { useState } from 'react';
 
 export interface MyWorkItem {
   id: string;
@@ -210,6 +213,30 @@ export function MyWorkCard({
   onPageChange,
   onRespond,
 }: MyWorkCardProps) {
+  const [selectedTypes, setSelectedTypes] = useState<Array<'pr' | 'issue' | 'discussion'>>([
+    'pr',
+    'issue',
+    'discussion',
+  ]);
+
+  const toggleType = (type: 'pr' | 'issue' | 'discussion') => {
+    setSelectedTypes((prev) => {
+      const isSelected = prev.includes(type);
+
+      if (isSelected) {
+        // Don't allow deselecting all types
+        if (prev.length === 1) {
+          return prev;
+        }
+        return prev.filter((t) => t !== type);
+      }
+
+      return [...prev, type];
+    });
+  };
+
+  // Filter items by selected types
+  const filteredItems = items.filter((item) => selectedTypes.includes(item.type));
   const totalPages = Math.ceil(totalCount / itemsPerPage);
   if (loading) {
     return (
@@ -227,9 +254,9 @@ export function MyWorkCard({
     );
   }
 
-  const hasActivity = items.length > 0;
+  const hasActivity = filteredItems.length > 0;
 
-  if (!hasActivity) {
+  if (!hasActivity && items.length === 0) {
     return (
       <Card className={cn('transition-all', className)}>
         <CardHeader>
@@ -260,19 +287,74 @@ export function MyWorkCard({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="space-y-2">
-          {items.map((item) => (
-            <MyWorkItemComponent
-              key={item.id}
-              item={item}
-              onClick={onItemClick}
-              onRespond={onRespond}
+        {/* Type Filters */}
+        <div className="flex flex-wrap gap-4 mb-4 pb-4 border-b">
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="filter-pr"
+              checked={selectedTypes.includes('pr')}
+              onCheckedChange={() => toggleType('pr')}
             />
-          ))}
+            <Label htmlFor="filter-pr" className="text-sm">
+              PRs
+            </Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="filter-issue"
+              checked={selectedTypes.includes('issue')}
+              onCheckedChange={() => toggleType('issue')}
+            />
+            <Label htmlFor="filter-issue" className="text-sm">
+              Issues
+            </Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="filter-discussion"
+              checked={selectedTypes.includes('discussion')}
+              onCheckedChange={() => toggleType('discussion')}
+            />
+            <Label htmlFor="filter-discussion" className="text-sm">
+              Discussions
+            </Label>
+          </div>
         </div>
 
+        {/* Items count */}
+        {filteredItems.length < items.length && (
+          <div className="mb-2 text-sm text-muted-foreground">
+            Showing {filteredItems.length} of {items.length} items
+          </div>
+        )}
+
+        {/* Show message when all items are filtered out */}
+        {!hasActivity && items.length > 0 && (
+          <div className="text-center py-8">
+            <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+            <p className="text-sm text-muted-foreground">No items match selected filters</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Try selecting different item types above
+            </p>
+          </div>
+        )}
+
+        {/* Show items list */}
+        {hasActivity && (
+          <div className="space-y-2">
+            {filteredItems.map((item) => (
+              <MyWorkItemComponent
+                key={item.id}
+                item={item}
+                onClick={onItemClick}
+                onRespond={onRespond}
+              />
+            ))}
+          </div>
+        )}
+
         {/* Pagination Controls */}
-        {totalPages > 1 && onPageChange && (
+        {totalPages > 1 && onPageChange && hasActivity && (
           <div className="flex items-center justify-between mt-4 pt-3 border-t">
             <Button
               variant="outline"
@@ -296,7 +378,7 @@ export function MyWorkCard({
           </div>
         )}
 
-        {onViewAll && (
+        {onViewAll && hasActivity && (
           <Button variant="ghost" className="w-full mt-3 text-sm" onClick={onViewAll}>
             View all {totalCount} items
             <ArrowRight className="ml-2 h-4 w-4" />
