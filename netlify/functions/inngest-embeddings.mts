@@ -1,11 +1,9 @@
 import { serve } from 'inngest/lambda';
 import type { Context } from '@netlify/functions';
 import { inngest } from '../../src/lib/inngest/client';
-import {
-  generateEmbeddings,
-  batchGenerateEmbeddings,
-} from '../../src/lib/inngest/functions/generate-embeddings';
-// Note: computeEmbeddings moved to Supabase edge function for better performance
+// Note: ALL embeddings functions moved to Supabase edge function (inngest-prod)
+// to avoid 42MB @xenova/transformers bundle that causes cold start timeouts
+// import { generateEmbeddings, batchGenerateEmbeddings } from '../../src/lib/inngest/functions/generate-embeddings';
 // import { computeEmbeddings } from '../../src/lib/inngest/functions/compute-embeddings';
 import {
   handleIssueEmbeddingWebhook,
@@ -20,16 +18,14 @@ import {
   cleanupWorkspaceMetricsData,
 } from '../../src/lib/inngest/functions/aggregate-workspace-metrics';
 
-// Create the Inngest serve handler for embeddings and workspace metrics
+// Create the Inngest serve handler for webhook bridges and workspace metrics
 const inngestHandler = serve({
   client: inngest,
   functions: [
-    // Legacy embeddings functions (using @xenova/transformers)
-    generateEmbeddings,
-    batchGenerateEmbeddings,
-    // Note: computeEmbeddings now runs on Supabase edge function (inngest-prod)
-    // for better cold start performance and no 42MB bundle size
-    // Webhook bridge functions
+    // Note: All embeddings generation moved to Supabase edge function (inngest-prod)
+    // to avoid 42MB @xenova/transformers bundle causing 502 cold start timeouts
+
+    // Webhook bridge functions (lightweight, no heavy dependencies)
     handleIssueEmbeddingWebhook,
     handlePREmbeddingWebhook,
     handleBatchEmbeddingWebhook,
@@ -49,13 +45,11 @@ export default async (req: Request, context: Context) => {
   if (req.method === 'GET' && !req.url.includes('?')) {
     return new Response(
       JSON.stringify({
-        message: 'Inngest Embeddings & Workspace Metrics endpoint is active',
+        message: 'Inngest Webhook Bridges & Workspace Metrics endpoint is active',
         endpoint: '/.netlify/functions/inngest-embeddings',
-        note: 'Handles embeddings and workspace metrics functions that require Node.js dependencies',
+        note: 'Handles webhook bridges and workspace metrics. All embeddings functions moved to Supabase edge function to avoid 42MB bundle causing cold start timeouts.',
         functions: [
-          'generate-embeddings',
-          'batch-generate-embeddings',
-          // 'compute-embeddings', // Moved to Supabase (inngest-prod)
+          // All embeddings generation moved to Supabase (inngest-prod)
           'handle-issue-embedding-webhook',
           'handle-pr-embedding-webhook',
           'handle-batch-embedding-webhook',
@@ -65,11 +59,12 @@ export default async (req: Request, context: Context) => {
           'handle-workspace-repository-change',
           'cleanup-workspace-metrics-data',
         ],
+        movedToSupabase: ['generate-embeddings', 'batch-generate-embeddings', 'compute-embeddings'],
         eventHandlers: {
-          'embeddings.generate': 'generate-embeddings',
-          'cron (6h)': 'batch-generate-embeddings',
-          'embeddings/compute.requested': 'compute-embeddings',
-          'cron (15m)': 'compute-embeddings',
+          // Embeddings events now handled by Supabase inngest-prod
+          // 'embeddings.generate' -> Supabase
+          // 'cron (6h)' -> Supabase (batch-generate-embeddings)
+          // 'embeddings/compute.requested' & 'cron (15m)' -> Supabase (compute-embeddings)
           'embedding/issue.generate': 'handle-issue-embedding-webhook',
           'embedding/pr.generate': 'handle-pr-embedding-webhook',
           'embedding/batch.process': 'handle-batch-embedding-webhook',
@@ -83,7 +78,6 @@ export default async (req: Request, context: Context) => {
           context: process.env.CONTEXT || 'unknown',
           hasEventKey: !!process.env.INNGEST_EVENT_KEY,
           hasSigningKey: !!process.env.INNGEST_SIGNING_KEY,
-          hasOpenAIKey: !!process.env.VITE_OPENAI_API_KEY || !!process.env.OPENAI_API_KEY,
         },
       }),
       {
