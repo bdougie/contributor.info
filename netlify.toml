@@ -288,6 +288,22 @@
     X-Content-Type-Options = "nosniff"
     Cache-Control = "public, max-age=31536000, immutable"
 
+# Legacy workspace invitation redirects
+# Handle old invitation link format that may still be in circulation
+[[redirects]]
+  from = "/workspace/invitation/accept"
+  to = "/invitation/:token"
+  status = 301
+  force = false
+  query = {token = ":token"}
+
+[[redirects]]
+  from = "/workspaces/invitation/accept"
+  to = "/invitation/:token"
+  status = 301
+  force = false
+  query = {token = ":token"}
+
 # Redirect docs to subdomain documentation (SEO-friendly)
 [[redirects]]
   from = "/docs"
