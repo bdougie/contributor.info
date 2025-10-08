@@ -514,6 +514,540 @@ interface SpamResult {
 
 ---
 
+### database.ts - Database Utilities
+
+Shared database operations including Supabase client creation and contributor management.
+
+#### Purpose
+- Provide standardized Supabase client initialization
+- Eliminate duplicate contributor upsert logic
+- Ensure consistent database error handling
+
+#### Key Functions
+
+##### `createSupabaseClient(): SupabaseClient`
+
+Creates a Supabase client with service role key.
+
+**Usage:**
+```typescript
+import { createSupabaseClient } from '../_shared/database.ts';
+
+const supabase = createSupabaseClient();
+const { data, error } = await supabase.from('contributors').select('*');
+```
+
+**Benefits:**
+- Centralized client configuration
+- Automatic environment variable validation
+- Consistent error handling
+
+##### `ensureContributor(supabase: SupabaseClient, userData: GitHubUser): Promise<string | null>`
+
+Ensures a contributor exists in the database, creating or updating as needed.
+
+**Usage:**
+```typescript
+import { createSupabaseClient, ensureContributor } from '../_shared/database.ts';
+
+const supabase = createSupabaseClient();
+const contributorId = await ensureContributor(supabase, {
+  id: 12345,
+  login: 'octocat',
+  name: 'The Octocat',
+  avatar_url: 'https://github.com/images/error/octocat_happy.gif',
+  type: 'User'
+});
+
+if (contributorId) {
+  console.log('Contributor ID: %s', contributorId);
+}
+```
+
+**Features:**
+- Automatic bot detection
+- Upsert with conflict resolution
+- Returns database ID for further operations
+- Handles missing optional fields gracefully
+
+##### `getContributorByGitHubId(supabase: SupabaseClient, githubId: number): Promise<string | null>`
+
+Gets an existing contributor by GitHub ID.
+
+**Usage:**
+```typescript
+import { getContributorByGitHubId } from '../_shared/database.ts';
+
+const contributorId = await getContributorByGitHubId(supabase, 12345);
+if (contributorId) {
+  // Contributor exists
+}
+```
+
+##### `getOrCreateContributor(supabase: SupabaseClient, userData: GitHubUser): Promise<string | null>`
+
+Gets or creates a contributor (checks if exists first).
+
+**Usage:**
+```typescript
+import { getOrCreateContributor } from '../_shared/database.ts';
+
+// More efficient than ensureContributor when contributor likely exists
+const contributorId = await getOrCreateContributor(supabase, githubUser);
+```
+
+#### Types
+
+```typescript
+interface GitHubUser {
+  id: number;
+  login: string;
+  name?: string | null;
+  email?: string | null;
+  avatar_url?: string | null;
+  type?: string;
+}
+```
+
+#### Best Practices
+
+1. **Use ensureContributor for webhook processing:**
+   ```typescript
+   // In webhook handler
+   const contributorId = await ensureContributor(supabase, event.payload.sender);
+   ```
+
+2. **Use getOrCreateContributor for batch operations:**
+   ```typescript
+   // When processing many PRs
+   for (const pr of pullRequests) {
+     const contributorId = await getOrCreateContributor(supabase, pr.user);
+   }
+   ```
+
+3. **Always check for null return:**
+   ```typescript
+   const contributorId = await ensureContributor(supabase, user);
+   if (!contributorId) {
+     console.error('Failed to ensure contributor: %s', user.login);
+     continue;
+   }
+   ```
+
+---
+
+### responses.ts - Response Utilities
+
+Standardized response formatting and error handling for consistent API responses.
+
+#### Purpose
+- Provide consistent response formats across all edge functions
+- Simplify error handling with pre-built response helpers
+- Automatic CORS header inclusion
+- Structured logging for errors
+
+#### Key Functions
+
+##### `successResponse<T>(data?: T, message?: string, status?: number, meta?: Record<string, unknown>): Response`
+
+Creates a standardized success response.
+
+**Usage:**
+```typescript
+import { successResponse } from '../_shared/responses.ts';
+
+// Simple success
+return successResponse({ contributorId: '123' });
+
+// With message and custom status
+return successResponse(
+  { contributorId: '123' },
+  'Contributor created',
+  201
+);
+
+// With metadata
+return successResponse(
+  { contributors: [...] },
+  'Success',
+  200,
+  { total: 50, page: 1 }
+);
+```
+
+**Response Format:**
+```json
+{
+  "success": true,
+  "data": { ... },
+  "message": "Optional message",
+  "meta": { "optional": "metadata" }
+}
+```
+
+##### `errorResponse(error: string, status?: number, details?: string, code?: string, meta?: Record<string, unknown>): Response`
+
+Creates a standardized error response.
+
+**Usage:**
+```typescript
+import { errorResponse } from '../_shared/responses.ts';
+
+return errorResponse(
+  'Repository not found',
+  404,
+  'The repository owner/name does not exist',
+  'REPO_NOT_FOUND'
+);
+```
+
+**Response Format:**
+```json
+{
+  "success": false,
+  "error": "Error message",
+  "details": "Optional details",
+  "code": "ERROR_CODE",
+  "meta": { "optional": "metadata" }
+}
+```
+
+##### Helper Functions
+
+**`validationError(message: string, details?: string): Response`**
+```typescript
+return validationError('Missing required fields', 'Both owner and name are required');
+```
+
+**`notFoundError(resource: string, details?: string): Response`**
+```typescript
+return notFoundError('Repository', 'No repository found with owner/name');
+```
+
+**`unauthorizedError(message?: string): Response`**
+```typescript
+return unauthorizedError('GitHub token not configured');
+```
+
+**`forbiddenError(message?: string): Response`**
+```typescript
+return forbiddenError('Insufficient permissions');
+```
+
+**`rateLimitError(retryAfter?: number): Response`**
+```typescript
+return rateLimitError(3600); // Includes Retry-After header
+```
+
+**`corsPreflightResponse(): Response`**
+```typescript
+if (req.method === 'OPTIONS') {
+  return corsPreflightResponse();
+}
+```
+
+**`handleError(error: unknown, context: string, status?: number): Response`**
+```typescript
+try {
+  // ... operation
+} catch (error) {
+  return handleError(error, 'repository sync');
+}
+```
+
+#### Migration Example
+
+**Before:**
+```typescript
+// Old pattern with duplication
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+if (req.method === 'OPTIONS') {
+  return new Response('ok', { headers: corsHeaders });
+}
+
+if (!owner || !name) {
+  return new Response(
+    JSON.stringify({ error: 'Missing required fields' }),
+    { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
+}
+
+return new Response(
+  JSON.stringify({ success: true, data: result }),
+  { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+);
+```
+
+**After:**
+```typescript
+// New pattern with response utilities
+import { corsPreflightResponse, validationError, successResponse } from '../_shared/responses.ts';
+
+if (req.method === 'OPTIONS') {
+  return corsPreflightResponse();
+}
+
+if (!owner || !name) {
+  return validationError('Missing required fields', 'Both owner and name are required');
+}
+
+return successResponse({ data: result });
+```
+
+#### Best Practices
+
+1. **Always use response utilities:**
+   ```typescript
+   // ✅ GOOD
+   return successResponse(data);
+   
+   // ❌ BAD
+   return new Response(JSON.stringify({ success: true, data }), { headers: corsHeaders });
+   ```
+
+2. **Include error codes for client handling:**
+   ```typescript
+   return errorResponse('Invalid token', 401, undefined, 'INVALID_TOKEN');
+   ```
+
+3. **Use specific error helpers:**
+   ```typescript
+   // ✅ GOOD
+   return notFoundError('Repository');
+   
+   // ❌ BAD
+   return errorResponse('Not found', 404);
+   ```
+
+---
+
+### github.ts - GitHub API Utilities
+
+Shared utilities for interacting with the GitHub API.
+
+#### Purpose
+- Standardize GitHub API requests
+- Handle rate limiting consistently
+- Provide common GitHub operations
+- Reduce code duplication for API calls
+
+#### Key Functions
+
+##### `getGitHubHeaders(token?: string, userAgent?: string): HeadersInit`
+
+Creates standard GitHub API headers.
+
+**Usage:**
+```typescript
+import { getGitHubHeaders, GITHUB_API_BASE } from '../_shared/github.ts';
+
+const headers = getGitHubHeaders();
+const response = await fetch(`${GITHUB_API_BASE}/repos/owner/name`, { headers });
+```
+
+##### `getRateLimitInfo(response: Response): RateLimitInfo | null`
+
+Extracts rate limit information from GitHub API response.
+
+**Usage:**
+```typescript
+import { getRateLimitInfo } from '../_shared/github.ts';
+
+const response = await fetch(url, { headers });
+const rateLimit = getRateLimitInfo(response);
+
+if (rateLimit) {
+  console.log('Rate limit: %s remaining of %s',
+    rateLimit.remaining,
+    rateLimit.limit
+  );
+}
+```
+
+##### `checkRateLimit(response: Response, threshold?: number): boolean`
+
+Checks if rate limit is low and logs a warning.
+
+**Usage:**
+```typescript
+import { checkRateLimit } from '../_shared/github.ts';
+
+const response = await fetch(url, { headers });
+if (checkRateLimit(response, 50)) {
+  // Rate limit is low, consider slowing down
+  break;
+}
+```
+
+##### `fetchGitHubAPI<T>(url: string, token?: string): Promise<T>`
+
+Fetches data from GitHub API with error handling.
+
+**Usage:**
+```typescript
+import { fetchGitHubAPI, GITHUB_API_BASE } from '../_shared/github.ts';
+
+interface Repository {
+  id: number;
+  name: string;
+  full_name: string;
+}
+
+const repo = await fetchGitHubAPI<Repository>(
+  `${GITHUB_API_BASE}/repos/owner/name`
+);
+```
+
+##### `fetchRepository(owner: string, repo: string, token?: string): Promise<GitHubRepository>`
+
+Fetches repository information from GitHub.
+
+**Usage:**
+```typescript
+import { fetchRepository } from '../_shared/github.ts';
+
+const repo = await fetchRepository('facebook', 'react');
+console.log('Repository: %s, Stars: %s', repo.full_name, repo.stargazers_count);
+```
+
+##### `fetchUser(username: string, token?: string): Promise<GitHubUserInfo>`
+
+Fetches user information from GitHub.
+
+**Usage:**
+```typescript
+import { fetchUser } from '../_shared/github.ts';
+
+const user = await fetchUser('octocat');
+console.log('User: %s, Followers: %s', user.login, user.followers);
+```
+
+##### `fetchPaginated<T>(baseUrl: string, options?: PaginatedFetchOptions): Promise<T[]>`
+
+Fetches paginated data from GitHub API.
+
+**Usage:**
+```typescript
+import { fetchPaginated, GITHUB_API_BASE } from '../_shared/github.ts';
+
+const events = await fetchPaginated(
+  `${GITHUB_API_BASE}/repos/owner/name/events`,
+  {
+    perPage: 100,
+    maxPages: 3
+  }
+);
+
+console.log('Fetched %s events', events.length);
+```
+
+##### `isBotUser(login: string, type?: string): boolean`
+
+Checks if a user is a bot account.
+
+**Usage:**
+```typescript
+import { isBotUser } from '../_shared/github.ts';
+
+if (isBotUser(user.login, user.type)) {
+  console.log('Skipping bot account');
+  continue;
+}
+```
+
+#### Types
+
+```typescript
+interface RateLimitInfo {
+  limit: number;
+  remaining: number;
+  reset: number;
+  used: number;
+}
+
+interface PaginatedFetchOptions {
+  token?: string;
+  perPage?: number;
+  maxPages?: number;
+  since?: string;
+}
+```
+
+#### Migration Example
+
+**Before:**
+```typescript
+// Duplicated in multiple functions
+const token = Deno.env.get('GITHUB_TOKEN');
+if (!token) {
+  throw new Error('GitHub token not configured');
+}
+
+const headers = {
+  Authorization: `Bearer ${token}`,
+  Accept: 'application/vnd.github.v3+json',
+  'User-Agent': 'Contributor-Info-Bot',
+};
+
+const response = await fetch(url, { headers });
+if (!response.ok) {
+  throw new Error(`GitHub API error: ${response.status}`);
+}
+
+const remaining = parseInt(response.headers.get('x-ratelimit-remaining') || '0');
+if (remaining < 100) {
+  console.warn('Low rate limit: %s remaining', remaining);
+}
+```
+
+**After:**
+```typescript
+import { getGitHubHeaders, checkRateLimit, fetchGitHubAPI } from '../_shared/github.ts';
+
+// Simple approach
+const data = await fetchGitHubAPI(url);
+
+// Or with rate limit checking
+const headers = getGitHubHeaders();
+const response = await fetch(url, { headers });
+checkRateLimit(response);
+```
+
+#### Best Practices
+
+1. **Use fetchGitHubAPI for simple requests:**
+   ```typescript
+   const data = await fetchGitHubAPI<Repository>(`${GITHUB_API_BASE}/repos/owner/name`);
+   ```
+
+2. **Use fetchPaginated for lists:**
+   ```typescript
+   const events = await fetchPaginated(`${GITHUB_API_BASE}/repos/owner/name/events`);
+   ```
+
+3. **Always check rate limits in loops:**
+   ```typescript
+   for (let page = 1; page <= maxPages; page++) {
+     const response = await fetch(url, { headers });
+     if (checkRateLimit(response, 100)) {
+       break; // Stop if rate limit is low
+     }
+   }
+   ```
+
+4. **Filter bots early:**
+   ```typescript
+   if (isBotUser(user.login, user.type)) {
+     continue;
+   }
+   ```
+
+---
+
 ## Creating New Shared Utilities
 
 When creating new shared utilities:
