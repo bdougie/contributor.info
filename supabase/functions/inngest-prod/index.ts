@@ -23,7 +23,17 @@ console.log('Configuration:', {
   appId: INNGEST_APP_ID,
   hasEventKey: !!INNGEST_EVENT_KEY,
   hasSigningKey: !!INNGEST_SIGNING_KEY,
+  eventKeyLength: INNGEST_EVENT_KEY?.length || 0,
+  signingKeyLength: INNGEST_SIGNING_KEY?.length || 0,
 });
+
+// Validate required keys
+if (!INNGEST_EVENT_KEY) {
+  console.error('❌ CRITICAL: INNGEST_EVENT_KEY or INNGEST_PRODUCTION_EVENT_KEY is missing');
+}
+if (!INNGEST_SIGNING_KEY) {
+  console.error('❌ CRITICAL: INNGEST_SIGNING_KEY or INNGEST_PRODUCTION_SIGNING_KEY is missing');
+}
 
 // Initialize Inngest client
 const inngest = new Inngest({
@@ -898,6 +908,279 @@ const classifyRepositorySize = inngest.createFunction(
   }
 );
 
+// 11. compute-embeddings - Runs every 15 minutes
+const computeEmbeddings = inngest.createFunction(
+  {
+    id: 'compute-embeddings',
+    name: 'Compute Embeddings for Issues, PRs, and Discussions',
+    concurrency: {
+      limit: 2,
+      key: 'event.data.repositoryId',
+    },
+    retries: 2,
+    throttle: {
+      limit: 5,
+      period: '1m',
+    },
+  },
+  [
+    { event: 'embeddings/compute.requested' },
+    { cron: '*/15 * * * *' },
+  ],
+  async ({ event, step }) => {
+    const data = event.data || {};
+    const repositoryId = data.repositoryId;
+    const forceRegenerate = data.forceRegenerate || false;
+    const itemTypes = data.itemTypes || ['issues', 'pull_requests', 'discussions'];
+
+    // Step 1: Create job record
+    const jobId = await step.run('create-job', async () => {
+      const supabase = getSupabaseClient();
+      const { data: job, error } = await supabase
+        .from('embedding_jobs')
+        .insert({
+          repository_id: repositoryId || null,
+          status: 'pending',
+          items_total: 0,
+          items_processed: 0,
+        })
+        .select()
+        .maybeSingle();
+
+      if (error || !job) {
+        throw new NonRetriableError('Failed to create embedding job');
+      }
+
+      return job.id;
+    });
+
+    // Step 2: Find items needing embeddings
+    const itemsToProcess = await step.run('find-items', async () => {
+      const supabase = getSupabaseClient();
+      const items: any[] = [];
+
+      let baseQuery = supabase.from('items_needing_embeddings').select('*');
+
+      if (repositoryId) {
+        baseQuery = baseQuery.eq('repository_id', repositoryId);
+      }
+
+      const { data: viewItems, error } = await baseQuery.limit(100);
+
+      if (error) {
+        console.error('Failed to fetch items needing embeddings:', error);
+        return [];
+      }
+
+      if (viewItems) {
+        items.push(...viewItems);
+      }
+
+      if (forceRegenerate && repositoryId) {
+        for (const itemType of itemTypes) {
+          let table: string;
+          if (itemType === 'issues') {
+            table = 'issues';
+          } else if (itemType === 'pull_requests') {
+            table = 'pull_requests';
+          } else {
+            table = 'discussions';
+          }
+          const { data: forceItems } = await supabase
+            .from(table)
+            .select('id, repository_id, title, body, content_hash, embedding_generated_at')
+            .eq('repository_id', repositoryId)
+            .not('embedding', 'is', null)
+            .limit(50);
+
+          if (forceItems) {
+            items.push(
+              ...forceItems.map((item: any) => ({
+                ...item,
+                type: itemType.slice(0, -1),
+              }))
+            );
+          }
+        }
+      }
+
+      await supabase
+        .from('embedding_jobs')
+        .update({
+          items_total: items.length,
+          status: 'processing',
+          started_at: new Date().toISOString(),
+        })
+        .eq('id', jobId);
+
+      return items;
+    });
+
+    if (itemsToProcess.length === 0) {
+      await step.run('mark-complete', async () => {
+        const supabase = getSupabaseClient();
+        await supabase
+          .from('embedding_jobs')
+          .update({
+            status: 'completed',
+            completed_at: new Date().toISOString(),
+          })
+          .eq('id', jobId);
+      });
+      return { message: 'No items to process', jobId };
+    }
+
+    // Step 3: Process embeddings in batches
+    const batchSize = 20;
+    let processedCount = 0;
+    const errors: string[] = [];
+
+    for (let i = 0; i < itemsToProcess.length; i += batchSize) {
+      const batch = itemsToProcess.slice(i, i + batchSize);
+
+      await step.run(`process-batch-${i / batchSize}`, async () => {
+        const supabase = getSupabaseClient();
+        try {
+          // Generate content hashes if missing
+          for (const item of batch) {
+            if (!item.content_hash) {
+              const content = `${item.title || ''}:${item.body || ''}`;
+              const encoder = new TextEncoder();
+              const data = encoder.encode(content);
+              const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+              const hashArray = Array.from(new Uint8Array(hashBuffer));
+              const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+              item.content_hash = hashHex.substring(0, 16);
+            }
+          }
+
+          const apiKey = Deno.env.get('VITE_OPENAI_API_KEY') || Deno.env.get('OPENAI_API_KEY');
+          if (!apiKey) {
+            throw new Error('OpenAI API key not configured');
+          }
+
+          const texts = batch.map((item: any) =>
+            `[${item.type.toUpperCase()}] ${item.title} ${item.body || ''}`.substring(0, 2000)
+          );
+
+          const response = await fetch('https://api.openai.com/v1/embeddings', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${apiKey}`,
+            },
+            body: JSON.stringify({
+              model: 'text-embedding-3-small',
+              input: texts,
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error(`OpenAI API error: ${response.status}`);
+          }
+
+          const responseData = await response.json();
+          const embeddings = responseData.data;
+
+          for (let j = 0; j < batch.length; j++) {
+            const item = batch[j];
+            const embedding = embeddings[j]?.embedding;
+
+            if (embedding) {
+              let table: string;
+              if (item.type === 'issue') {
+                table = 'issues';
+              } else if (item.type === 'pull_request') {
+                table = 'pull_requests';
+              } else {
+                table = 'discussions';
+              }
+
+              await supabase
+                .from(table)
+                .update({
+                  embedding: `[${embedding.join(',')}]`,
+                  embedding_generated_at: new Date().toISOString(),
+                  content_hash: item.content_hash,
+                })
+                .eq('id', item.id);
+
+              await supabase.from('similarity_cache').upsert(
+                {
+                  repository_id: item.repository_id,
+                  item_type: item.type,
+                  item_id: item.id,
+                  embedding: `[${embedding.join(',')}]`,
+                  content_hash: item.content_hash,
+                  ttl_hours: 168,
+                },
+                {
+                  onConflict: 'repository_id,item_type,item_id',
+                }
+              );
+
+              processedCount++;
+            }
+          }
+
+          await supabase.rpc('update_embedding_job_progress', {
+            job_id: jobId,
+            processed_count: processedCount,
+          });
+        } catch (error: any) {
+          const errorMsg = `Batch ${i / batchSize} failed: ${error.message}`;
+          console.error(errorMsg);
+          errors.push(errorMsg);
+        }
+      });
+    }
+
+    // Step 4: Finalize job
+    await step.run('finalize-job', async () => {
+      const supabase = getSupabaseClient();
+      let jobStatus: string;
+      if (errors.length > 0 && processedCount === 0) {
+        jobStatus = 'failed';
+      } else {
+        jobStatus = 'completed';
+      }
+
+      let errorMessage: string | null;
+      if (errors.length > 0) {
+        errorMessage = errors.join('; ');
+      } else {
+        errorMessage = null;
+      }
+
+      await supabase
+        .from('embedding_jobs')
+        .update({
+          status: jobStatus,
+          items_processed: processedCount,
+          error_message: errorMessage,
+          completed_at: new Date().toISOString(),
+        })
+        .eq('id', jobId);
+
+      await supabase.rpc('cleanup_expired_cache');
+    });
+
+    let returnErrors: string[] | undefined;
+    if (errors.length > 0) {
+      returnErrors = errors;
+    } else {
+      returnErrors = undefined;
+    }
+
+    return {
+      jobId,
+      processed: processedCount,
+      total: itemsToProcess.length,
+      errors: returnErrors,
+    };
+  }
+);
+
 // Define our functions registry
 const functions = [
   capturePrDetails,
@@ -910,10 +1193,11 @@ const functions = [
   updatePrActivity,
   discoverNewRepository,
   classifyRepositorySize,
+  computeEmbeddings,
 ];
 
 // Create Inngest handler
-const handler = new InngestCommHandler({
+const commHandler = new InngestCommHandler({
   frameworkName: 'deno-edge-supabase',
   appName: INNGEST_APP_ID,
   signingKey: INNGEST_SIGNING_KEY,
@@ -921,7 +1205,21 @@ const handler = new InngestCommHandler({
   functions,
   serveHost: Deno.env.get('VITE_DEPLOY_URL') || 'https://egcxzonpmmcirmgqdrla.supabase.co',
   servePath: '/functions/v1/inngest-prod',
+  handler: (req: Request) => {
+    return {
+      body: () => req.json(),
+      headers: (key) => req.headers.get(key),
+      method: () => req.method,
+      url: () => new URL(req.url),
+      transformResponse: ({ body, status, headers }) => {
+        return new Response(body, { status, headers });
+      },
+    };
+  },
 });
+
+// Create the actual handler
+const handler = commHandler.createHandler();
 
 // Main HTTP handler
 serve(async (req) => {
@@ -929,6 +1227,16 @@ serve(async (req) => {
   const method = req.method;
 
   console.log(`📥 ${method} ${url.pathname}${url.search}`);
+
+  // Log authorization headers for debugging
+  const authHeader = req.headers.get('authorization');
+  const inngestSig = req.headers.get('x-inngest-signature');
+  console.log('Headers:', {
+    hasAuthorization: !!authHeader,
+    authType: authHeader?.split(' ')[0],
+    hasInngestSignature: !!inngestSig,
+    contentType: req.headers.get('content-type'),
+  });
 
   // Handle CORS preflight
   if (method === 'OPTIONS') {
@@ -969,8 +1277,8 @@ serve(async (req) => {
   }
 
   try {
-    // Use Inngest handler for all other requests
-    const response = await handler.POST(req);
+    // Use the unified handler - it handles GET/POST/PUT internally
+    const response = await handler(req);
 
     // Add CORS headers to the response
     const headers = new Headers(response.headers);
@@ -984,14 +1292,29 @@ serve(async (req) => {
     });
   } catch (error: any) {
     console.error('❌ Error processing request:', error);
+    console.error('Error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack?.split('\n').slice(0, 3).join('\n'),
+    });
+
+    // Check for common authorization errors
+    const isAuthError = error.message?.toLowerCase().includes('authorization') ||
+                       error.message?.toLowerCase().includes('signature') ||
+                       error.message?.toLowerCase().includes('signing key');
 
     return new Response(
       JSON.stringify({
-        error: 'Failed to process request',
+        error: isAuthError ? 'Authorization Error' : 'Failed to process request',
         message: error.message,
+        hint: isAuthError
+          ? 'Check that INNGEST_SIGNING_KEY is correctly set in Supabase secrets'
+          : 'Check function logs for details',
+        timestamp: new Date().toISOString(),
+        stack: Deno.env.get('VITE_ENV') === 'local' ? error.stack : undefined,
       }),
       {
-        status: 500,
+        status: isAuthError ? 401 : 500,
         headers: {
           ...corsHeaders,
           'Content-Type': 'application/json',
