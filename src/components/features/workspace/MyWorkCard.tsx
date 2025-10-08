@@ -78,22 +78,20 @@ function MyWorkItemComponent({
   // Only show respond button for open items where user can respond
   const canRespond = item.status === 'open' || item.status === 'answered';
   const getActivityColor = () => {
-    if (item.type === 'pr') {
-      switch (item.status) {
-        case 'open':
-          return 'bg-emerald-500';
-        case 'merged':
-          return 'bg-purple-500';
-        case 'closed':
-          return 'bg-red-500';
-        default:
-          return 'bg-gray-400';
-      }
+    // Simplified logic to avoid Rollup conditional expression analysis bugs
+    const type = item.type;
+    const status = item.status;
+
+    if (type === 'pr') {
+      if (status === 'open') return 'bg-emerald-500';
+      if (status === 'merged') return 'bg-purple-500';
+      if (status === 'closed') return 'bg-red-500';
+      return 'bg-gray-400';
     }
-    if (item.type === 'issue') {
+    if (type === 'issue') {
       return 'bg-orange-500';
     }
-    if (item.type === 'discussion') {
+    if (type === 'discussion') {
       return 'bg-blue-500';
     }
     return 'bg-gray-400';
@@ -101,40 +99,87 @@ function MyWorkItemComponent({
 
   const getActivityText = () => {
     // Describe the relationship to the item
-    switch (item.itemType) {
-      case 'authored':
-        if (item.type === 'pr') {
-          if (item.status === 'open') return 'opened PR';
-          if (item.status === 'merged') return 'merged PR';
-          return 'closed PR';
-        } else if (item.type === 'issue') {
-          return item.status === 'open' ? 'opened issue' : 'closed issue';
-        } else if (item.type === 'discussion') {
-          return item.status === 'answered'
-            ? 'started discussion (answered)'
-            : 'started discussion';
-        }
-        return 'authored';
+    // Simplified logic to avoid Rollup conditional expression analysis bugs
+    const itemType = item.itemType;
+    const type = item.type;
+    const status = item.status;
 
-      case 'review_requested':
-        return 'requested to review PR';
-
-      case 'assigned':
-        return 'assigned to issue';
-
-      case 'mentioned': {
-        if (item.type === 'pr') return 'mentioned in PR';
-        if (item.type === 'issue') return 'mentioned in issue';
-        return 'mentioned in discussion';
+    if (itemType === 'authored') {
+      if (type === 'pr') {
+        if (status === 'open') return 'opened PR';
+        if (status === 'merged') return 'merged PR';
+        return 'closed PR';
       }
-
-      case 'participant':
-        if (item.type === 'discussion') return 'started discussion';
-        return 'participating in discussion';
-
-      default:
-        return 'updated';
+      if (type === 'issue') {
+        // Avoid ternary - Rollup 4.45.0 bug (see docs/architecture/state-machine-patterns.md)
+        if (status === 'open') return 'opened issue';
+        return 'closed issue';
+      }
+      if (type === 'discussion') {
+        // Avoid ternary - Rollup 4.45.0 bug (see docs/architecture/state-machine-patterns.md)
+        if (status === 'answered') return 'started discussion (answered)';
+        return 'started discussion';
+      }
+      return 'authored';
     }
+
+    if (itemType === 'review_requested') {
+      return 'requested to review PR';
+    }
+
+    if (itemType === 'assigned') {
+      return 'assigned to issue';
+    }
+
+    if (itemType === 'mentioned') {
+      if (type === 'pr') return 'mentioned in PR';
+      if (type === 'issue') return 'mentioned in issue';
+      return 'mentioned in discussion';
+    }
+
+    if (itemType === 'participant') {
+      if (type === 'discussion') return 'started discussion';
+      return 'participating in discussion';
+    }
+
+    return 'updated';
+  };
+
+  const getItemTypeLabel = () => {
+    // Avoid ternary/logical-AND - Rollup 4.45.0 bug (see docs/architecture/state-machine-patterns.md)
+    const type = item.type;
+    const number = item.number;
+
+    if (type === 'pr') {
+      return `PR #${number}`;
+    }
+    if (type === 'issue') {
+      return `Issue #${number}`;
+    }
+    if (type === 'discussion') {
+      return `Discussion #${number}`;
+    }
+    return `Item #${number}`;
+  };
+
+  // Avoid conditional rendering with && - Rollup 4.45.0 bug
+  const renderRespondButton = () => {
+    if (!canRespond || !onRespond) {
+      return null;
+    }
+    return (
+      <Button
+        variant="outline"
+        size="sm"
+        className="h-6 px-2 text-xs"
+        onClick={(e) => {
+          e.stopPropagation();
+          onRespond(item);
+        }}
+      >
+        Respond
+      </Button>
+    );
   };
 
   return (
@@ -176,9 +221,7 @@ function MyWorkItemComponent({
                 rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
               >
-                {item.type === 'pr' && `PR #${item.number}`}
-                {item.type === 'issue' && `Issue #${item.number}`}
-                {item.type === 'discussion' && `Discussion #${item.number}`}
+                {getItemTypeLabel()}
               </a>
               <span className="text-muted-foreground hidden sm:inline">in</span>
               <span className="text-orange-500 truncate max-w-xs sm:max-w-none hidden sm:inline">
@@ -193,19 +236,7 @@ function MyWorkItemComponent({
             <time className="text-xs text-muted-foreground whitespace-nowrap">
               {formatDistanceToNow(new Date(item.updated_at), { addSuffix: true })}
             </time>
-            {canRespond && onRespond && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-6 px-2 text-xs"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRespond(item);
-                }}
-              >
-                Respond
-              </Button>
-            )}
+            {renderRespondButton()}
           </div>
         </div>
       </div>
@@ -267,6 +298,82 @@ export function MyWorkCard({
   }
 
   const hasActivity = filteredItems.length > 0;
+
+  // Build conditional sections to avoid Rollup 4.45.0 bug with && operators
+  let itemCountSection = null;
+  if (filteredItems.length < items.length) {
+    itemCountSection = (
+      <div className="mb-2 text-sm text-muted-foreground">
+        Showing {filteredItems.length} of {items.length} items
+      </div>
+    );
+  }
+
+  let noMatchesSection = null;
+  if (!hasActivity && items.length > 0) {
+    noMatchesSection = (
+      <div className="text-center py-8">
+        <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+        <p className="text-sm text-muted-foreground">No items match selected filters</p>
+        <p className="text-xs text-muted-foreground mt-1">
+          Try selecting different item types above
+        </p>
+      </div>
+    );
+  }
+
+  let itemsListSection = null;
+  if (hasActivity) {
+    itemsListSection = (
+      <div className="space-y-2">
+        {filteredItems.map((item) => (
+          <MyWorkItemComponent
+            key={item.id}
+            item={item}
+            onClick={onItemClick}
+            onRespond={onRespond}
+          />
+        ))}
+      </div>
+    );
+  }
+
+  let paginationSection = null;
+  if (totalPages > 1 && onPageChange && hasActivity) {
+    paginationSection = (
+      <div className="flex items-center justify-between mt-4 pt-3 border-t">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+        >
+          Previous
+        </Button>
+        <div className="text-sm text-muted-foreground">
+          Page {currentPage} of {totalPages}
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+        >
+          Next
+        </Button>
+      </div>
+    );
+  }
+
+  let viewAllSection = null;
+  if (onViewAll && hasActivity) {
+    viewAllSection = (
+      <Button variant="ghost" className="w-full mt-3 text-sm" onClick={onViewAll}>
+        View all {totalCount} items
+        <ArrowRight className="ml-2 h-4 w-4" />
+      </Button>
+    );
+  }
 
   if (!hasActivity && items.length === 0) {
     return (
@@ -334,68 +441,18 @@ export function MyWorkCard({
         </div>
 
         {/* Items count */}
-        {filteredItems.length < items.length && (
-          <div className="mb-2 text-sm text-muted-foreground">
-            Showing {filteredItems.length} of {items.length} items
-          </div>
-        )}
+        {itemCountSection}
 
         {/* Show message when all items are filtered out */}
-        {!hasActivity && items.length > 0 && (
-          <div className="text-center py-8">
-            <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">No items match selected filters</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Try selecting different item types above
-            </p>
-          </div>
-        )}
+        {noMatchesSection}
 
         {/* Show items list */}
-        {hasActivity && (
-          <div className="space-y-2">
-            {filteredItems.map((item) => (
-              <MyWorkItemComponent
-                key={item.id}
-                item={item}
-                onClick={onItemClick}
-                onRespond={onRespond}
-              />
-            ))}
-          </div>
-        )}
+        {itemsListSection}
 
         {/* Pagination Controls */}
-        {totalPages > 1 && onPageChange && hasActivity && (
-          <div className="flex items-center justify-between mt-4 pt-3 border-t">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onPageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-            >
-              Previous
-            </Button>
-            <div className="text-sm text-muted-foreground">
-              Page {currentPage} of {totalPages}
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onPageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-            >
-              Next
-            </Button>
-          </div>
-        )}
+        {paginationSection}
 
-        {onViewAll && hasActivity && (
-          <Button variant="ghost" className="w-full mt-3 text-sm" onClick={onViewAll}>
-            View all {totalCount} items
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-        )}
+        {viewAllSection}
       </CardContent>
     </Card>
   );

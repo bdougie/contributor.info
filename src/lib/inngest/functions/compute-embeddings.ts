@@ -90,7 +90,13 @@ export const computeEmbeddings = inngest.createFunction(
       // If force regenerate, also get items with existing embeddings
       if (forceRegenerate && repositoryId) {
         for (const itemType of itemTypes) {
-          const table = itemType === 'issues' ? 'issues' : 'pull_requests';
+          // Avoid ternary - Rollup 4.45.0 bug (see docs/architecture/state-machine-patterns.md)
+          let table: string;
+          if (itemType === 'issues') {
+            table = 'issues';
+          } else {
+            table = 'pull_requests';
+          }
           const { data: forceItems } = await supabase
             .from(table)
             .select('id, repository_id, title, body, content_hash, embedding_generated_at')
@@ -195,7 +201,13 @@ export const computeEmbeddings = inngest.createFunction(
             const embedding = embeddings[j]?.embedding;
 
             if (embedding) {
-              const table = item.type === 'issue' ? 'issues' : 'pull_requests';
+              // Avoid ternary - Rollup 4.45.0 bug (see docs/architecture/state-machine-patterns.md)
+              let table: string;
+              if (item.type === 'issue') {
+                table = 'issues';
+              } else {
+                table = 'pull_requests';
+              }
 
               // Update the item with embedding
               await supabase
@@ -241,12 +253,27 @@ export const computeEmbeddings = inngest.createFunction(
 
     // Step 4: Finalize job
     await step.run('finalize-job', async () => {
+      // Avoid ternary - Rollup 4.45.0 bug (see docs/architecture/state-machine-patterns.md)
+      let jobStatus: 'failed' | 'completed';
+      if (errors.length > 0 && processedCount === 0) {
+        jobStatus = 'failed';
+      } else {
+        jobStatus = 'completed';
+      }
+
+      let errorMessage: string | null;
+      if (errors.length > 0) {
+        errorMessage = errors.join('; ');
+      } else {
+        errorMessage = null;
+      }
+
       await supabase
         .from('embedding_jobs')
         .update({
-          status: errors.length > 0 && processedCount === 0 ? 'failed' : 'completed',
+          status: jobStatus,
           items_processed: processedCount,
-          error_message: errors.length > 0 ? errors.join('; ') : null,
+          error_message: errorMessage,
           completed_at: new Date().toISOString(),
         })
         .eq('id', jobId);
@@ -255,11 +282,19 @@ export const computeEmbeddings = inngest.createFunction(
       await supabase.rpc('cleanup_expired_cache');
     });
 
+    // Avoid ternary - Rollup 4.45.0 bug
+    let returnErrors: string[] | undefined;
+    if (errors.length > 0) {
+      returnErrors = errors;
+    } else {
+      returnErrors = undefined;
+    }
+
     return {
       jobId,
       processed: processedCount,
       total: itemsToProcess.length,
-      errors: errors.length > 0 ? errors : undefined,
+      errors: returnErrors,
     };
   }
 );

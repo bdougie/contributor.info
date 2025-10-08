@@ -985,7 +985,13 @@ export class WorkspaceService {
       );
 
       const isOwner = workspace.owner_id === invitedBy;
-      const userRole = isOwner ? 'owner' : (currentUserMember?.role as WorkspaceRole);
+      // Avoid ternary - Rollup 4.45.0 bug (see docs/architecture/state-machine-patterns.md)
+      let userRole: WorkspaceRole;
+      if (isOwner) {
+        userRole = 'owner';
+      } else {
+        userRole = currentUserMember?.role as WorkspaceRole;
+      }
 
       if (!userRole) {
         return {
@@ -1224,7 +1230,13 @@ export class WorkspaceService {
         (m) => m.user_id === requestingUserId && m.accepted_at
       );
       const isOwner = workspace.owner_id === requestingUserId;
-      const requestingRole = isOwner ? 'owner' : requestingMember?.role;
+      // Avoid ternary - Rollup 4.45.0 bug (see docs/architecture/state-machine-patterns.md)
+      let requestingRole: WorkspaceRole | undefined;
+      if (isOwner) {
+        requestingRole = 'owner';
+      } else {
+        requestingRole = requestingMember?.role;
+      }
 
       if (!requestingRole) {
         return {
@@ -1502,11 +1514,17 @@ export class WorkspaceService {
       // We'll just show the inviter ID for now
 
       // Format the response
+      // Avoid ternary - Rollup 4.45.0 bug (see docs/architecture/state-machine-patterns.md)
+      let workspace: WorkspaceWithDetails;
+      if (Array.isArray(invitation.workspaces)) {
+        workspace = invitation.workspaces[0] as WorkspaceWithDetails;
+      } else {
+        workspace = invitation.workspaces as WorkspaceWithDetails;
+      }
+
       const invitationDetails = {
         id: invitation.id,
-        workspace: (Array.isArray(invitation.workspaces)
-          ? invitation.workspaces[0]
-          : invitation.workspaces) as WorkspaceWithDetails,
+        workspace,
         role: invitation.role,
         inviterName: undefined, // profiles table doesn't exist
         expiresAt: invitation.expires_at,

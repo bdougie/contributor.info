@@ -56,13 +56,21 @@ export async function findSimilarItems(options: SimilaritySearchOptions): Promis
     const embeddingArray = `[${queryEmbedding.join(',')}]`;
 
     // Step 3: Search for similar PRs
+    // Avoid ternary - Rollup 4.45.0 bug (see docs/architecture/state-machine-patterns.md)
+    let excludePrId: string | null;
+    if (queryItem.type === 'pr') {
+      excludePrId = queryItem.id;
+    } else {
+      excludePrId = null;
+    }
+
     const { data: similarPRs, error: prError } = await supabase.rpc(
       'find_similar_pull_requests_in_workspace',
       {
         query_embedding: embeddingArray,
         repo_ids: repoIds,
         match_count: limit,
-        exclude_pr_id: queryItem.type === 'pr' ? queryItem.id : null,
+        exclude_pr_id: excludePrId,
       }
     );
 
@@ -71,13 +79,21 @@ export async function findSimilarItems(options: SimilaritySearchOptions): Promis
     }
 
     // Step 4: Search for similar issues
+    // Avoid ternary - Rollup 4.45.0 bug (see docs/architecture/state-machine-patterns.md)
+    let excludeIssueId: string | null;
+    if (queryItem.type === 'issue') {
+      excludeIssueId = queryItem.id;
+    } else {
+      excludeIssueId = null;
+    }
+
     const { data: similarIssues, error: issueError } = await supabase.rpc(
       'find_similar_issues_in_workspace',
       {
         query_embedding: embeddingArray,
         repo_ids: repoIds,
         match_count: limit,
-        exclude_issue_id: queryItem.type === 'issue' ? queryItem.id : null,
+        exclude_issue_id: excludeIssueId,
       }
     );
 
@@ -86,13 +102,21 @@ export async function findSimilarItems(options: SimilaritySearchOptions): Promis
     }
 
     // Step 5: Search for similar discussions
+    // Avoid ternary - Rollup 4.45.0 bug (see docs/architecture/state-machine-patterns.md)
+    let excludeDiscussionId: string | null;
+    if (queryItem.type === 'discussion') {
+      excludeDiscussionId = queryItem.id;
+    } else {
+      excludeDiscussionId = null;
+    }
+
     const { data: similarDiscussions, error: discussionError } = await supabase.rpc(
       'find_similar_discussions_in_workspace',
       {
         query_embedding: embeddingArray,
         repo_ids: repoIds,
         match_count: limit,
-        exclude_discussion_id: queryItem.type === 'discussion' ? queryItem.id : null,
+        exclude_discussion_id: excludeDiscussionId,
       }
     );
 
@@ -116,6 +140,7 @@ export async function findSimilarItems(options: SimilaritySearchOptions): Promis
           html_url: string;
           repository_name: string;
         }) => {
+          // Use if statements to avoid Rollup 4.45.0 ternary bug (see docs/architecture/state-machine-patterns.md)
           let prStatus: 'open' | 'merged' | 'closed';
           if (pr.state === 'open') {
             prStatus = 'open';
@@ -177,6 +202,14 @@ export async function findSimilarItems(options: SimilaritySearchOptions): Promis
           html_url: string;
           repository_name: string;
         }) => {
+          // Avoid ternary - Rollup 4.45.0 bug (see docs/architecture/state-machine-patterns.md)
+          let discussionStatus: 'answered' | 'open';
+          if (discussion.is_answered) {
+            discussionStatus = 'answered';
+          } else {
+            discussionStatus = 'open';
+          }
+
           allResults.push({
             id: discussion.id,
             type: 'discussion',
@@ -185,7 +218,7 @@ export async function findSimilarItems(options: SimilaritySearchOptions): Promis
             repository: discussion.repository_name,
             url: discussion.html_url,
             similarity: discussion.similarity,
-            status: discussion.is_answered ? 'answered' : 'open',
+            status: discussionStatus,
           });
         }
       );
@@ -212,25 +245,21 @@ export function generateResponseMessage(similarItems: SimilarItem[]): string {
   const lines = ['Sharing some relevant links from this workspace:\n'];
 
   similarItems.forEach((item) => {
-    let typeLabel: string;
-    if (item.type === 'pr') {
-      typeLabel = 'PR';
-    } else if (item.type === 'issue') {
-      typeLabel = 'Issue';
-    } else {
-      typeLabel = 'Discussion';
-    }
+    // Use lookup tables to avoid Rollup 4.45.0 ternary bug (see docs/architecture/state-machine-patterns.md)
+    const typeLabelMap: Record<string, string> = {
+      pr: 'PR',
+      issue: 'Issue',
+      discussion: 'Discussion',
+    };
+    const typeLabel = typeLabelMap[item.type] || 'Item';
 
-    let statusEmoji: string;
-    if (item.status === 'merged') {
-      statusEmoji = '🟣';
-    } else if (item.status === 'closed') {
-      statusEmoji = '🔴';
-    } else if (item.status === 'answered') {
-      statusEmoji = '✅';
-    } else {
-      statusEmoji = '🟢';
-    }
+    const statusEmojiMap: Record<string, string> = {
+      merged: '🟣',
+      closed: '🔴',
+      answered: '✅',
+      open: '🟢',
+    };
+    const statusEmoji = statusEmojiMap[item.status] || '⚫';
 
     lines.push(`${statusEmoji} **${typeLabel} #${item.number}**: ${item.title}`);
     lines.push(`   📍 ${item.repository}`);
