@@ -1243,9 +1243,30 @@ serve(async (req) => {
   }
 
   try {
-    // Use Inngest handler - pass all requests (GET, POST, PUT) to it
-    // The handler internally routes based on method and path
-    const response = await handler.POST(req);
+    // Route to appropriate handler method based on HTTP method
+    // GET: Function registration and introspection
+    // POST: Function invocation
+    // PUT: Registration with deployId
+    let response: Response;
+
+    if (method === 'GET') {
+      response = await handler.GET(req);
+    } else if (method === 'POST') {
+      response = await handler.POST(req);
+    } else if (method === 'PUT') {
+      response = await handler.PUT(req);
+    } else {
+      return new Response(
+        JSON.stringify({ error: 'Method not allowed' }),
+        {
+          status: 405,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+    }
 
     // Add CORS headers to the response
     const headers = new Headers(response.headers);
@@ -1264,6 +1285,7 @@ serve(async (req) => {
       JSON.stringify({
         error: 'Failed to process request',
         message: error.message,
+        stack: Deno.env.get('VITE_ENV') === 'local' ? error.stack : undefined,
       }),
       {
         status: 500,
