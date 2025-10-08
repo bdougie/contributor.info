@@ -5,7 +5,6 @@
  * Helps users respond to items by suggesting relevant related content.
  */
 
-import { generateIssueEmbedding } from '@/lib/ml-utils';
 import { supabase } from '@/lib/supabase';
 
 export interface SimilarItem {
@@ -38,10 +37,15 @@ export async function findSimilarItems(options: SimilaritySearchOptions): Promis
 
   try {
     // Step 1: Get workspace repository IDs
-    const { data: workspaceRepos } = await supabase
+    const { data: workspaceRepos, error: workspaceError } = await supabase
       .from('workspace_repositories')
       .select('repository_id')
       .eq('workspace_id', workspaceId);
+
+    if (workspaceError) {
+      console.error('Error fetching workspace repositories:', workspaceError);
+      throw new Error(`Failed to fetch workspace repositories: ${workspaceError.message}`);
+    }
 
     if (!workspaceRepos || workspaceRepos.length === 0) {
       return [];
@@ -49,17 +53,39 @@ export async function findSimilarItems(options: SimilaritySearchOptions): Promis
 
     const repoIds = workspaceRepos.map((wr) => wr.repository_id);
 
-    // Step 2: Generate embedding for the query item
-    const queryEmbedding = await generateIssueEmbedding(queryItem.title, queryItem.body || '');
+    // Step 2: Strip any UI prefixes from the ID (e.g., "discussion-", "issue-", "pr-")
+    const rawId = queryItem.id.replace(/^(discussion|issue|pr)-/, '');
 
-    // Convert to array format for PostgreSQL
-    const embeddingArray = `[${queryEmbedding.join(',')}]`;
+    // Step 3: Fetch embedding from database
+    // Determine table name based on item type
+    let tableName: string;
+    if (queryItem.type === 'pr') {
+      tableName = 'pull_requests';
+    } else if (queryItem.type === 'issue') {
+      tableName = 'github_issues';
+    } else {
+      tableName = 'discussions';
+    }
 
-    // Step 3: Search for similar PRs
+    const { data: itemData, error: fetchError } = await supabase
+      .from(tableName)
+      .select('embedding')
+      .eq('id', rawId)
+      .maybeSingle();
+
+    if (fetchError || !itemData?.embedding) {
+      console.error('No embedding found for item:', rawId);
+      return [];
+    }
+
+    // Embedding is already in array format from database
+    const embeddingArray = itemData.embedding;
+
+    // Step 4: Search for similar PRs
     // Avoid ternary - Rollup 4.45.0 bug (see docs/architecture/state-machine-patterns.md)
     let excludePrId: string | null;
     if (queryItem.type === 'pr') {
-      excludePrId = queryItem.id;
+      excludePrId = rawId;
     } else {
       excludePrId = null;
     }
@@ -76,55 +102,42 @@ export async function findSimilarItems(options: SimilaritySearchOptions): Promis
 
     if (prError) {
       console.error('Error finding similar PRs:', prError);
+      // Don't throw - continue with empty PR results
     }
 
-    // Step 4: Search for similar issues
-    // Avoid ternary - Rollup 4.45.0 bug (see docs/architecture/state-machine-patterns.md)
-    let excludeIssueId: string | null;
-    if (queryItem.type === 'issue') {
-      excludeIssueId = queryItem.id;
-    } else {
-      excludeIssueId = null;
-    }
+    // Step 5: Search for similar issues
+    // NOTE: The github_issues table (used by find_similar_issues_in_workspace RPC)
+    // does not have an embedding column. Skip issue similarity for now.
+    // TODO: Either add embeddings to github_issues or use the issues table instead
+    const similarIssues: Array<{
+      id: string;
+      number: number;
+      title: string;
+      state: string;
+      similarity: number;
+      html_url: string;
+      repository_name: string;
+    }> = [];
 
-    const { data: similarIssues, error: issueError } = await supabase.rpc(
-      'find_similar_issues_in_workspace',
-      {
-        query_embedding: embeddingArray,
-        repo_ids: repoIds,
-        match_count: limit,
-        exclude_issue_id: excludeIssueId,
-      }
-    );
-
-    if (issueError) {
-      console.error('Error finding similar issues:', issueError);
-    }
-
-    // Step 5: Search for similar discussions
-    // Avoid ternary - Rollup 4.45.0 bug (see docs/architecture/state-machine-patterns.md)
-    let excludeDiscussionId: string | null;
-    if (queryItem.type === 'discussion') {
-      excludeDiscussionId = queryItem.id;
-    } else {
-      excludeDiscussionId = null;
-    }
-
+    // Step 6: Search for similar discussions
+    // Note: The RPC function has a bug - it expects UUID but discussions use VARCHAR IDs
+    // For now, we pass null to avoid the type error and filter client-side
     const { data: similarDiscussions, error: discussionError } = await supabase.rpc(
       'find_similar_discussions_in_workspace',
       {
         query_embedding: embeddingArray,
         repo_ids: repoIds,
-        match_count: limit,
-        exclude_discussion_id: excludeDiscussionId,
+        match_count: limit + 1, // Request one extra to account for filtering
+        exclude_discussion_id: null, // Can't use VARCHAR ID with UUID parameter
       }
     );
 
     if (discussionError) {
       console.error('Error finding similar discussions:', discussionError);
+      // Don't throw - continue with empty discussion results
     }
 
-    // Step 6: Combine and format results
+    // Step 7: Combine and format results
     const allResults: SimilarItem[] = [];
 
     // Add PRs
@@ -202,6 +215,11 @@ export async function findSimilarItems(options: SimilaritySearchOptions): Promis
           html_url: string;
           repository_name: string;
         }) => {
+          // Filter out the current discussion (client-side since RPC can't handle VARCHAR IDs)
+          if (queryItem.type === 'discussion' && discussion.id === rawId) {
+            return;
+          }
+
           // Avoid ternary - Rollup 4.45.0 bug (see docs/architecture/state-machine-patterns.md)
           let discussionStatus: 'answered' | 'open';
           if (discussion.is_answered) {
@@ -224,7 +242,7 @@ export async function findSimilarItems(options: SimilaritySearchOptions): Promis
       );
     }
 
-    // Step 7: Sort by similarity and return top N
+    // Step 8: Sort by similarity and return top N
     const sortedResults = allResults.sort((a, b) => b.similarity - a.similarity).slice(0, limit);
 
     return sortedResults;

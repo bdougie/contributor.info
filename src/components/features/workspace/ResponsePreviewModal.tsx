@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -30,6 +30,16 @@ export function ResponsePreviewModal({
   onCopyToClipboard,
 }: ResponsePreviewModalProps) {
   const [copied, setCopied] = useState(false);
+  const copyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleCopy = async () => {
     try {
@@ -37,9 +47,15 @@ export function ResponsePreviewModal({
       setCopied(true);
       onCopyToClipboard?.();
 
+      // Clear any existing timeout
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
+      }
+
       // Reset copied state after 2 seconds
-      setTimeout(() => {
+      copyTimeoutRef.current = setTimeout(() => {
         setCopied(false);
+        copyTimeoutRef.current = null;
       }, 2000);
     } catch (error) {
       console.error('Failed to copy to clipboard:', error);

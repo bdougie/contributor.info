@@ -74,6 +74,15 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
         return;
       }
 
+      // Guard: Only fetch if workspace ID is provided
+      // Prevents data leakage by ensuring queries are scoped to a workspace
+      if (!workspaceId) {
+        setLoading(false);
+        setItems([]);
+        setTotalCount(0);
+        return;
+      }
+
       try {
         setLoading(true);
         const githubLogin = user.user_metadata.user_name;

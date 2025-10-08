@@ -6,7 +6,8 @@ import { Label } from '@/components/ui/label';
 import { ArrowRight, Activity } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
-import { useState } from 'react';
+import { useState, memo } from 'react';
+import { sanitizeText, sanitizeURL } from '@/lib/sanitize';
 
 export interface MyWorkItem {
   id: string;
@@ -66,7 +67,7 @@ function MyWorkItemSkeleton() {
   );
 }
 
-function MyWorkItemComponent({
+const MyWorkItemComponent = memo(function MyWorkItemComponent({
   item,
   onClick,
   onRespond,
@@ -212,10 +213,10 @@ function MyWorkItemComponent({
         <div className="flex flex-col space-y-1 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-1 min-w-0 flex-1">
             <div className="flex items-center space-x-1 text-sm flex-wrap">
-              <span className="font-medium">{item.user.username}</span>
+              <span className="font-medium">{sanitizeText(item.user.username)}</span>
               <span className="text-muted-foreground">{getActivityText()}</span>
               <a
-                href={item.url}
+                href={sanitizeURL(item.url)}
                 className="text-orange-500 hover:underline cursor-pointer transition-colors"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -225,11 +226,11 @@ function MyWorkItemComponent({
               </a>
               <span className="text-muted-foreground hidden sm:inline">in</span>
               <span className="text-orange-500 truncate max-w-xs sm:max-w-none hidden sm:inline">
-                {item.repository}
+                {sanitizeText(item.repository)}
               </span>
             </div>
             <h3 className="text-sm line-clamp-1 pr-2 font-normal hover:text-primary transition-colors">
-              {item.title}
+              {sanitizeText(item.title)}
             </h3>
           </div>
           <div className="flex items-center gap-2 sm:ml-2">
@@ -242,7 +243,7 @@ function MyWorkItemComponent({
       </div>
     </article>
   );
-}
+});
 
 export function MyWorkCard({
   items,

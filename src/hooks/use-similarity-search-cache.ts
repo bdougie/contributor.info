@@ -146,25 +146,53 @@ export function useSimilaritySearchCache(options: UseSimilaritySearchCacheOption
  * Prevents rapid repeated searches for the same item
  */
 export function useDebouncedSimilaritySearch(delayMs: number = 300) {
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastSearchRef = useRef<string>('');
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const debouncedSearch = useCallback(
     async <T>(searchKey: string, searchFn: () => Promise<T>): Promise<T | null> => {
+      // Cancel any pending operations
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      // Clear existing timeout
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+
+      // Create new abort controller for this search
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
+
       // If searching for the same item, debounce
       if (lastSearchRef.current === searchKey) {
-        // Clear existing timeout
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current);
-        }
-
         return new Promise((resolve, reject) => {
           timeoutRef.current = setTimeout(async () => {
+            // Check if this operation was aborted
+            if (abortController.signal.aborted) {
+              reject(new Error('Search cancelled'));
+              return;
+            }
+
             try {
               const result = await searchFn();
+
+              // Check again if aborted during async operation
+              if (abortController.signal.aborted) {
+                reject(new Error('Search cancelled'));
+                return;
+              }
+
               resolve(result);
             } catch (error) {
-              reject(error);
+              if (!abortController.signal.aborted) {
+                reject(error);
+              }
+            } finally {
+              timeoutRef.current = null;
             }
           }, delayMs);
         });
@@ -172,7 +200,22 @@ export function useDebouncedSimilaritySearch(delayMs: number = 300) {
 
       // New search, execute immediately
       lastSearchRef.current = searchKey;
-      return searchFn();
+
+      try {
+        const result = await searchFn();
+
+        // Check if aborted during execution
+        if (abortController.signal.aborted) {
+          return null;
+        }
+
+        return result;
+      } catch (error) {
+        if (!abortController.signal.aborted) {
+          throw error;
+        }
+        return null;
+      }
     },
     [delayMs]
   );
@@ -181,6 +224,12 @@ export function useDebouncedSimilaritySearch(delayMs: number = 300) {
   const cleanup = useCallback(() => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
     }
   }, []);
 
