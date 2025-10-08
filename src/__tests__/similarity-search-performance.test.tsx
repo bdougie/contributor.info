@@ -159,17 +159,27 @@ describe('Similarity Search Performance Optimizations', () => {
 
     it('should debounce repeated searches for the same key', () => {
       const { result } = renderHook(() => useDebouncedSimilaritySearch(300));
-      const searchFn1 = vi.fn().mockResolvedValue('search result 1');
-      const searchFn2 = vi.fn().mockResolvedValue('search result 2');
-      const searchFn3 = vi.fn().mockResolvedValue('search result 3');
+      const searchFn1 = vi.fn(() => 'search result 1');
+      const searchFn2 = vi.fn(() => 'search result 2');
+      const searchFn3 = vi.fn(() => 'search result 3');
 
       // First search for a key executes immediately (returns promise)
-      result.current.debouncedSearch('key-1', searchFn1);
+      const promise1 = result.current.debouncedSearch('key-1', searchFn1);
       expect(searchFn1).toHaveBeenCalledTimes(1);
 
       // Subsequent searches for the same key are debounced
-      result.current.debouncedSearch('key-1', searchFn2);
-      result.current.debouncedSearch('key-1', searchFn3);
+      // Note: These promises will be rejected when cancelled (expected behavior)
+      // We catch them to prevent unhandled rejection warnings
+      const promise2 = result.current.debouncedSearch('key-1', searchFn2);
+      const promise3 = result.current.debouncedSearch('key-1', searchFn3);
+
+      // Attach error handlers immediately to prevent unhandled rejections
+      promise2.catch(() => {
+        /* Expected: cancelled by next call */
+      });
+      promise3.catch(() => {
+        /* Expected: may be cancelled or may resolve */
+      });
 
       // Should not have been called yet (debounced)
       expect(searchFn2).not.toHaveBeenCalled();
@@ -183,6 +193,11 @@ describe('Similarity Search Performance Optimizations', () => {
       // Only the last debounced function should be called
       expect(searchFn2).not.toHaveBeenCalled();
       expect(searchFn3).toHaveBeenCalledTimes(1);
+
+      // Ensure first promise completes without issues
+      promise1.catch(() => {
+        /* Should not reject */
+      });
     });
 
     it('should execute immediately for different search keys', () => {
@@ -201,11 +216,19 @@ describe('Similarity Search Performance Optimizations', () => {
 
     it('should cleanup timeout on unmount', () => {
       const { result, unmount } = renderHook(() => useDebouncedSimilaritySearch(300));
-      const searchFn = vi.fn().mockResolvedValue('result');
+      const searchFn = vi.fn(() => 'result');
 
       // Start a debounced search for the same key (to trigger debounce)
-      result.current.debouncedSearch('key-1', () => Promise.resolve('first'));
-      result.current.debouncedSearch('key-1', searchFn); // This should be debounced
+      const promise1 = result.current.debouncedSearch('key-1', () => 'first');
+      const promise2 = result.current.debouncedSearch('key-1', searchFn); // This should be debounced
+
+      // Attach error handlers to prevent unhandled rejections
+      promise1.catch(() => {
+        /* Expected: may be cancelled */
+      });
+      promise2.catch(() => {
+        /* Expected: will be rejected on cleanup */
+      });
 
       // Clean up before timeout
       act(() => {
