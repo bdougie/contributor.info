@@ -13,7 +13,7 @@ export interface EmbeddingItem {
   id: string;
   title: string;
   body?: string | null;
-  type: 'issue' | 'pull_request';
+  type: 'issue' | 'pull_request' | 'discussion';
 }
 
 /**
@@ -78,7 +78,9 @@ export function createContentHash(title: string, body?: string | null): string {
  */
 export function prepareTextForEmbedding(item: EmbeddingItem): string {
   const bodyPreview = item.body ? item.body.substring(0, 500) : '';
-  return `${item.type === 'issue' ? 'Issue' : 'Pull Request'}: ${item.title}\n\n${bodyPreview}`.trim();
+  const typeLabel =
+    item.type === 'issue' ? 'Issue' : item.type === 'pull_request' ? 'Pull Request' : 'Discussion';
+  return `${typeLabel}: ${item.title}\n\n${bodyPreview}`.trim();
 }
 
 /**
