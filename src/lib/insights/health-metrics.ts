@@ -142,16 +142,6 @@ export async function calculateHealthMetrics(
     // Import supabase for additional queries
     const { supabase } = await import('../supabase');
 
-    // Get repository ID for queries
-    const { data: repoData } = await supabase
-      .from('repositories')
-      .select('id')
-      .eq('owner', owner)
-      .eq('name', repo)
-      .maybeSingle();
-
-    const repositoryId = repoData?.id;
-
     // Gather all contributor types
     const [issueAuthors, reviewers, discussionParticipants] = await Promise.all([
       // Issue authors
