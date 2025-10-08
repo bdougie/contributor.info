@@ -17,13 +17,12 @@ while true; do
   echo ""
 
   echo "📊 Current Backlog (items_needing_embeddings view):"
-  psql "postgresql://postgres:${SUPABASE_SERVICE_ROLE_KEY}@db.${PROJECT_REF}.supabase.co:5432/postgres" \
-    -c "SELECT item_type, COUNT(*) as pending FROM items_needing_embeddings GROUP BY item_type ORDER BY pending DESC;" 2>/dev/null
+  echo "SELECT item_type, COUNT(*) as pending FROM items_needing_embeddings GROUP BY item_type ORDER BY pending DESC;" | \
+    npx supabase db execute --project-ref ${PROJECT_REF} 2>/dev/null
 
   echo ""
   echo "📈 Processing Rate (last 5 minutes):"
-  psql "postgresql://postgres:${SUPABASE_SERVICE_ROLE_KEY}@db.${PROJECT_REF}.supabase.co:5432/postgres" \
-    -c "SELECT
+  echo "SELECT
       'issue' as type,
       COUNT(*) as processed
     FROM issues
@@ -43,12 +42,12 @@ while true; do
       'discussion' as type,
       COUNT(*) as processed
     FROM discussions
-    WHERE embedding_generated_at > NOW() - INTERVAL '5 minutes';" 2>/dev/null
+    WHERE embedding_generated_at > NOW() - INTERVAL '5 minutes';" | \
+    npx supabase db execute --project-ref ${PROJECT_REF} 2>/dev/null
 
   echo ""
   echo "🎯 Total Progress (items with embeddings):"
-  psql "postgresql://postgres:${SUPABASE_SERVICE_ROLE_KEY}@db.${PROJECT_REF}.supabase.co:5432/postgres" \
-    -c "SELECT
+  echo "SELECT
       'issue' as type,
       COUNT(*) FILTER (WHERE embedding IS NOT NULL) as with_embeddings,
       COUNT(*) as total,
@@ -71,7 +70,8 @@ while true; do
       COUNT(*) FILTER (WHERE embedding IS NOT NULL) as with_embeddings,
       COUNT(*) as total,
       ROUND(100.0 * COUNT(*) FILTER (WHERE embedding IS NOT NULL) / COUNT(*), 1) as pct_complete
-    FROM discussions WHERE created_at > NOW() - INTERVAL '90 days';" 2>/dev/null
+    FROM discussions WHERE created_at > NOW() - INTERVAL '90 days';" | \
+    npx supabase db execute --project-ref ${PROJECT_REF} 2>/dev/null
 
   echo ""
   echo "🔄 Refreshing in 10 seconds..."
