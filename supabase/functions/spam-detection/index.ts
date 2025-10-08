@@ -1,3 +1,44 @@
+/**
+ * Spam Detection Edge Function
+ * 
+ * Analyzes GitHub pull requests and user profiles for spam indicators using multiple
+ * detection methods including content analysis, account characteristics, and PR patterns.
+ * 
+ * The function calculates a composite spam score (0-100) based on:
+ * - Content analysis (40%): Title/body patterns, links, formatting
+ * - Account characteristics (40%): Age, activity, followers
+ * - PR characteristics (20%): Size, files changed, patterns
+ * 
+ * @example
+ * POST /functions/v1/spam-detection
+ * {
+ *   "pull_request": {
+ *     "id": "123",
+ *     "title": "Fix typo",
+ *     "body": "Fixed a typo in README",
+ *     "number": 42,
+ *     "additions": 1,
+ *     "deletions": 1,
+ *     "changed_files": 1,
+ *     "author": {
+ *       "login": "username",
+ *       "created_at": "2024-01-01T00:00:00Z",
+ *       "public_repos": 10,
+ *       "followers": 5
+ *     }
+ *   }
+ * }
+ * 
+ * @returns
+ * {
+ *   "success": true,
+ *   "spam_score": 25,
+ *   "is_spam": false,
+ *   "confidence": 0.75,
+ *   "reasons": ["Account age is reasonable", "Content quality is good"]
+ * }
+ */
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 

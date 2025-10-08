@@ -1,3 +1,41 @@
+/**
+ * Health Check Edge Function
+ * 
+ * Provides comprehensive health status for the contributor.info application.
+ * Checks database connectivity, system metrics, and response times to ensure
+ * the service is functioning properly.
+ * 
+ * Health checks include:
+ * - Database connectivity and latency (< 2s threshold)
+ * - System statistics and database size
+ * - Overall service health status
+ * 
+ * @example
+ * GET /functions/v1/health
+ * 
+ * @returns
+ * {
+ *   "success": true,
+ *   "status": "healthy",
+ *   "timestamp": "2024-01-01T00:00:00.000Z",
+ *   "checks": {
+ *     "database": {
+ *       "status": "healthy",
+ *       "latency": 50
+ *     },
+ *     "system": {
+ *       "status": "healthy",
+ *       "latency": 100
+ *     }
+ *   },
+ *   "metadata": {
+ *     "service": "contributor.info",
+ *     "version": "1.0.0",
+ *     "environment": "production"
+ *   }
+ * }
+ */
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';

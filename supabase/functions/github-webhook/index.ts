@@ -1,3 +1,36 @@
+/**
+ * GitHub Webhook Edge Function
+ * 
+ * Main webhook handler that processes GitHub webhook events in real-time.
+ * Routes events based on type and action, updates contributor metrics, and
+ * manages privileged event detection for role assignment.
+ * 
+ * Supported webhook events:
+ * - issue_comment: Processes comments for triager/responder metrics
+ * - pull_request: Handles PR events and updates contributor roles
+ * - Other events: Logged and queued for async processing
+ * 
+ * Security features:
+ * - Webhook signature verification (x-hub-signature-256)
+ * - Bot account detection and filtering
+ * - Privileged event detection for role management
+ * 
+ * @example
+ * POST /functions/v1/github-webhook
+ * Headers:
+ *   x-github-event: pull_request
+ *   x-hub-signature-256: sha256=...
+ * Body: { GitHub webhook payload }
+ * 
+ * @returns
+ * {
+ *   "success": true,
+ *   "message": "Webhook processed successfully",
+ *   "event_type": "pull_request",
+ *   "action": "closed"
+ * }
+ */
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { crypto } from 'https://deno.land/std@0.168.0/crypto/mod.ts';

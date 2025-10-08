@@ -1,3 +1,45 @@
+/**
+ * Repository Sync GraphQL Edge Function
+ * 
+ * Efficiently synchronizes GitHub repository data using GraphQL API.
+ * This function is preferred over REST API for bulk operations due to reduced
+ * network requests and improved performance.
+ * 
+ * Features:
+ * - Fetches pull requests with all related data in single queries
+ * - Supports pagination for large repositories
+ * - Normalizes review states for database consistency
+ * - Handles up to 150 seconds execution time on paid plans
+ * - Batch upserts for optimal database performance
+ * 
+ * Performance benefits vs REST:
+ * - Single GraphQL query vs multiple REST requests
+ * - Reduced network latency and API rate limit usage
+ * - Fetches nested data (reviews, comments) efficiently
+ * 
+ * @example
+ * POST /functions/v1/repository-sync-graphql
+ * {
+ *   "owner": "bdougie",
+ *   "name": "contributor.info",
+ *   "fullSync": false,
+ *   "daysLimit": 30,
+ *   "cursor": "Y3Vyc29yOnYyOpHOABCD"
+ * }
+ * 
+ * @returns
+ * {
+ *   "success": true,
+ *   "data": {
+ *     "pull_requests_synced": 100,
+ *     "reviews_synced": 250,
+ *     "has_next_page": true,
+ *     "next_cursor": "Y3Vyc29yOnYyOpHOABCE"
+ *   },
+ *   "timestamp": "2024-01-01T00:00:00.000Z"
+ * }
+ */
+
 // Supabase Edge Function for GraphQL-based repository sync
 // More efficient than REST API for bulk operations
 // Supports up to 150 seconds execution time on paid plans

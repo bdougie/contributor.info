@@ -1,3 +1,32 @@
+/**
+ * Process Webhook Edge Function
+ * 
+ * Processes queued webhook events by retrieving job details from the database
+ * and forwarding them to Inngest for asynchronous processing. This function
+ * acts as a bridge between Supabase database and Inngest event system.
+ * 
+ * Workflow:
+ * 1. Receives job ID from request
+ * 2. Fetches job details from background_jobs table
+ * 3. Validates job status and payload
+ * 4. Sends event to Inngest for processing
+ * 5. Updates job status in database
+ * 
+ * @example
+ * POST /functions/v1/process-webhook
+ * {
+ *   "jobId": "uuid-of-background-job"
+ * }
+ * 
+ * @returns
+ * {
+ *   "success": true,
+ *   "message": "Webhook event processed successfully",
+ *   "job_id": "uuid-of-background-job",
+ *   "inngest_event_id": "evt_..."
+ * }
+ */
+
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
 import { corsHeaders } from '../_shared/cors.ts';
