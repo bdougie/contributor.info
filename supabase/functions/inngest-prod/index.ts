@@ -23,7 +23,17 @@ console.log('Configuration:', {
   appId: INNGEST_APP_ID,
   hasEventKey: !!INNGEST_EVENT_KEY,
   hasSigningKey: !!INNGEST_SIGNING_KEY,
+  eventKeyLength: INNGEST_EVENT_KEY?.length || 0,
+  signingKeyLength: INNGEST_SIGNING_KEY?.length || 0,
 });
+
+// Validate required keys
+if (!INNGEST_EVENT_KEY) {
+  console.error('❌ CRITICAL: INNGEST_EVENT_KEY or INNGEST_PRODUCTION_EVENT_KEY is missing');
+}
+if (!INNGEST_SIGNING_KEY) {
+  console.error('❌ CRITICAL: INNGEST_SIGNING_KEY or INNGEST_PRODUCTION_SIGNING_KEY is missing');
+}
 
 // Initialize Inngest client
 const inngest = new Inngest({
@@ -1218,6 +1228,16 @@ serve(async (req) => {
 
   console.log(`📥 ${method} ${url.pathname}${url.search}`);
 
+  // Log authorization headers for debugging
+  const authHeader = req.headers.get('authorization');
+  const inngestSig = req.headers.get('x-inngest-signature');
+  console.log('Headers:', {
+    hasAuthorization: !!authHeader,
+    authType: authHeader?.split(' ')[0],
+    hasInngestSignature: !!inngestSig,
+    contentType: req.headers.get('content-type'),
+  });
+
   // Handle CORS preflight
   if (method === 'OPTIONS') {
     return new Response(null, {
@@ -1272,15 +1292,29 @@ serve(async (req) => {
     });
   } catch (error: any) {
     console.error('❌ Error processing request:', error);
+    console.error('Error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack?.split('\n').slice(0, 3).join('\n'),
+    });
+
+    // Check for common authorization errors
+    const isAuthError = error.message?.toLowerCase().includes('authorization') ||
+                       error.message?.toLowerCase().includes('signature') ||
+                       error.message?.toLowerCase().includes('signing key');
 
     return new Response(
       JSON.stringify({
-        error: 'Failed to process request',
+        error: isAuthError ? 'Authorization Error' : 'Failed to process request',
         message: error.message,
+        hint: isAuthError
+          ? 'Check that INNGEST_SIGNING_KEY is correctly set in Supabase secrets'
+          : 'Check function logs for details',
+        timestamp: new Date().toISOString(),
         stack: Deno.env.get('VITE_ENV') === 'local' ? error.stack : undefined,
       }),
       {
-        status: 500,
+        status: isAuthError ? 401 : 500,
         headers: {
           ...corsHeaders,
           'Content-Type': 'application/json',
