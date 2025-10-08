@@ -31,20 +31,16 @@
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { crypto } from 'https://deno.land/std@0.168.0/crypto/mod.ts';
+import { createSupabaseClient, ensureContributor } from '../_shared/database.ts';
+import { corsHeaders } from '../_shared/cors.ts';
+import { corsPreflightResponse, successResponse, errorResponse } from '../_shared/responses.ts';
 import { detectPrivilegedEvent, GitHubEvent, isBotAccount } from '../_shared/event-detection.ts';
 import {
   getContributorMetrics,
   calculateConfidenceScore,
   updateContributorRole,
 } from '../_shared/confidence-scoring.ts';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type, x-hub-signature-256',
-};
 
 // Process issue comment events for triager/first responder metrics
 async function processIssueCommentEvent(
@@ -85,30 +81,12 @@ async function processIssueCommentEvent(
     const commenter = event.payload.comment.user;
     if (!commenter) return;
 
-    let commenterId: string | null = null;
-    const { data: existingContributor } = await supabase
-      .from('contributors')
-      .select('id')
-      .eq('github_id', commenter.id)
-      .maybeSingle();
-
-    if (existingContributor) {
-      commenterId = existingContributor.id;
-    } else {
-      // Create new contributor
-      const { data: newContributor } = await supabase
-        .from('contributors')
-        .insert({
-          github_id: commenter.id,
-          username: commenter.login,
-          avatar_url: commenter.avatar_url,
-          is_bot: commenter.type === 'Bot' || commenter.login.includes('[bot]'),
-        })
-        .select('id')
-        .maybeSingle();
-
-      commenterId = newContributor?.id || null;
-    }
+    const commenterId = await ensureContributor(supabase, {
+      id: commenter.id,
+      login: commenter.login,
+      avatar_url: commenter.avatar_url,
+      type: commenter.type,
+    });
 
     if (!commenterId) {
       console.error(`Failed to get or create commenter ${commenter.login}`);
@@ -168,13 +146,13 @@ async function verifyWebhookSignature(
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return corsPreflightResponse();
   }
 
   try {
     const webhookSecret = Deno.env.get('GITHUB_WEBHOOK_SECRET');
     if (!webhookSecret) {
-      return new Response('Webhook secret not configured', { status: 500 });
+      return errorResponse('Webhook secret not configured', 500);
     }
 
     // Verify signature
@@ -183,16 +161,13 @@ serve(async (req) => {
 
     const isValid = await verifyWebhookSignature(body, signature, webhookSecret);
     if (!isValid) {
-      return new Response('Invalid signature', { status: 401 });
+      return errorResponse('Invalid signature', 401, undefined, 'INVALID_SIGNATURE');
     }
 
     const event = JSON.parse(body) as GitHubEvent;
 
     // Initialize Supabase client
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
+    const supabase = createSupabaseClient();
 
     // Store event in cache
     const [owner, name] = event.repo.name.split('/');
@@ -252,22 +227,17 @@ serve(async (req) => {
       }
     );
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        eventType: event.type,
-        isPrivileged: privilegedCheck.isPrivileged,
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      }
-    );
+    return successResponse({
+      eventType: event.type,
+      isPrivileged: privilegedCheck.isPrivileged,
+    });
   } catch (error) {
     console.error('Webhook error:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500,
-    });
+    return errorResponse(
+      'Webhook processing failed',
+      500,
+      error instanceof Error ? error.message : 'Unknown error',
+      'WEBHOOK_ERROR'
+    );
   }
 });
