@@ -248,6 +248,34 @@ Deno.serve(async (req: Request) => {
       },
     });
 
+    // Create notification for inviter about acceptance
+    try {
+      // Get accepting user's display info
+      const { data: acceptingUser } = await supabase.rpc('get_user_display_name', {
+        user_id: userId,
+      });
+
+      await supabase.from('notifications').insert({
+        user_id: invitation.invited_by,
+        operation_id: invitation.id,
+        operation_type: 'invite',
+        status: 'completed',
+        title: `${acceptingUser || userEmail} accepted your invitation`,
+        message: `${acceptingUser || userEmail} has joined ${invitation.workspace.name}`,
+        metadata: {
+          workspace_id: invitation.workspace_id,
+          workspace_name: invitation.workspace.name,
+          invitee_email: invitation.email,
+          invitee_username: acceptingUser,
+          role: invitation.role,
+          invite_status: 'accepted',
+        },
+      });
+    } catch (notificationErr) {
+      console.warn('Failed to create acceptance notification:', notificationErr);
+      // Don't fail the request if notification fails
+    }
+
     console.log('Workspace invitation accepted successfully:', {
       workspaceId: invitation.workspace_id,
       userId: userId,

@@ -1,13 +1,28 @@
 name: Continue Documentation Review
 on:
   pull_request:
-    types: [opened, ready_for_review]
+    types: [opened, ready_for_review, synchronize]
     paths:
+      # Documentation files
       - 'docs/**'
       - 'public/docs/**'
       - '**.md'
       - 'CONTRIBUTING.md'
       - 'README.md'
+      # Code files that may need documentation
+      - 'src/**'
+      - 'components/**'
+      - 'lib/**'
+      - 'hooks/**'
+      - 'app/**'
+      - 'supabase/migrations/**'
+      # Exclude test files and build artifacts
+      - '!**/*.test.{ts,tsx,js,jsx}'
+      - '!**/*.spec.{ts,tsx,js,jsx}'
+      - '!**/__tests__/**'
+      - '!**/*.stories.{ts,tsx,js,jsx}'
+      - '!**/dist/**'
+      - '!**/build/**'
   issue_comment:
     types: [created]
   workflow_dispatch: # Allow manual testing

@@ -3,10 +3,16 @@ import { test, expect } from '@playwright/test';
 /**
  * E2E tests for workspace invitation flow
  * Tests the fix for GitHub issue #863
+ *
+ * TODO: Add notification tests for #975
+ * - Test notification created when invitation sent (status: pending)
+ * - Test notification created when invitation accepted (status: completed)
+ * - Verify notification appears in inviter's notification center
+ * - Verify notification metadata includes workspace and invitee details
  */
 
 test.describe('Workspace Invitation Flow', () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async () => {
     // Set up test data or authentication as needed
     // This would typically involve creating test accounts and workspaces
   });

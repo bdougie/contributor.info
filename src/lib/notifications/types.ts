@@ -1,10 +1,16 @@
 // Notification types aligned with database schema
 // Related to issue #959: Add notification system for async operations
 
-export type NotificationOperationType = 'repository_tracking' | 'backfill' | 'sync' | 'other';
-export type NotificationStatus = 'completed' | 'failed' | 'error';
+export type NotificationOperationType =
+  | 'repository_tracking'
+  | 'backfill'
+  | 'sync'
+  | 'invite'
+  | 'other';
+export type NotificationStatus = 'completed' | 'failed' | 'error' | 'pending';
 
 export interface NotificationMetadata {
+  // Repository tracking/sync fields
   duration?: number;
   records_synced?: number;
   tables_processed?: string[];
@@ -12,6 +18,16 @@ export interface NotificationMetadata {
   prs?: number;
   events?: number;
   errors?: string[];
+
+  // Workspace invite fields
+  workspace_id?: string;
+  workspace_name?: string;
+  invitee_email?: string;
+  invitee_username?: string;
+  invited_by_username?: string;
+  role?: string;
+  invite_status?: 'sent' | 'accepted' | 'declined' | 'expired';
+
   [key: string]: unknown;
 }
 
