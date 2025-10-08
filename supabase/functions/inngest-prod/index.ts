@@ -1243,7 +1243,8 @@ serve(async (req) => {
   }
 
   try {
-    // Use Inngest handler for all other requests
+    // Use Inngest handler - pass all requests (GET, POST, PUT) to it
+    // The handler internally routes based on method and path
     const response = await handler.POST(req);
 
     // Add CORS headers to the response
