@@ -898,6 +898,279 @@ const classifyRepositorySize = inngest.createFunction(
   }
 );
 
+// 11. compute-embeddings - Runs every 15 minutes
+const computeEmbeddings = inngest.createFunction(
+  {
+    id: 'compute-embeddings',
+    name: 'Compute Embeddings for Issues, PRs, and Discussions',
+    concurrency: {
+      limit: 2,
+      key: 'event.data.repositoryId',
+    },
+    retries: 2,
+    throttle: {
+      limit: 5,
+      period: '1m',
+    },
+  },
+  [
+    { event: 'embeddings/compute.requested' },
+    { cron: '*/15 * * * *' },
+  ],
+  async ({ event, step }) => {
+    const data = event.data || {};
+    const repositoryId = data.repositoryId;
+    const forceRegenerate = data.forceRegenerate || false;
+    const itemTypes = data.itemTypes || ['issues', 'pull_requests', 'discussions'];
+
+    // Step 1: Create job record
+    const jobId = await step.run('create-job', async () => {
+      const supabase = getSupabaseClient();
+      const { data: job, error } = await supabase
+        .from('embedding_jobs')
+        .insert({
+          repository_id: repositoryId || null,
+          status: 'pending',
+          items_total: 0,
+          items_processed: 0,
+        })
+        .select()
+        .maybeSingle();
+
+      if (error || !job) {
+        throw new NonRetriableError('Failed to create embedding job');
+      }
+
+      return job.id;
+    });
+
+    // Step 2: Find items needing embeddings
+    const itemsToProcess = await step.run('find-items', async () => {
+      const supabase = getSupabaseClient();
+      const items: any[] = [];
+
+      let baseQuery = supabase.from('items_needing_embeddings').select('*');
+
+      if (repositoryId) {
+        baseQuery = baseQuery.eq('repository_id', repositoryId);
+      }
+
+      const { data: viewItems, error } = await baseQuery.limit(100);
+
+      if (error) {
+        console.error('Failed to fetch items needing embeddings:', error);
+        return [];
+      }
+
+      if (viewItems) {
+        items.push(...viewItems);
+      }
+
+      if (forceRegenerate && repositoryId) {
+        for (const itemType of itemTypes) {
+          let table: string;
+          if (itemType === 'issues') {
+            table = 'issues';
+          } else if (itemType === 'pull_requests') {
+            table = 'pull_requests';
+          } else {
+            table = 'discussions';
+          }
+          const { data: forceItems } = await supabase
+            .from(table)
+            .select('id, repository_id, title, body, content_hash, embedding_generated_at')
+            .eq('repository_id', repositoryId)
+            .not('embedding', 'is', null)
+            .limit(50);
+
+          if (forceItems) {
+            items.push(
+              ...forceItems.map((item: any) => ({
+                ...item,
+                type: itemType.slice(0, -1),
+              }))
+            );
+          }
+        }
+      }
+
+      await supabase
+        .from('embedding_jobs')
+        .update({
+          items_total: items.length,
+          status: 'processing',
+          started_at: new Date().toISOString(),
+        })
+        .eq('id', jobId);
+
+      return items;
+    });
+
+    if (itemsToProcess.length === 0) {
+      await step.run('mark-complete', async () => {
+        const supabase = getSupabaseClient();
+        await supabase
+          .from('embedding_jobs')
+          .update({
+            status: 'completed',
+            completed_at: new Date().toISOString(),
+          })
+          .eq('id', jobId);
+      });
+      return { message: 'No items to process', jobId };
+    }
+
+    // Step 3: Process embeddings in batches
+    const batchSize = 20;
+    let processedCount = 0;
+    const errors: string[] = [];
+
+    for (let i = 0; i < itemsToProcess.length; i += batchSize) {
+      const batch = itemsToProcess.slice(i, i + batchSize);
+
+      await step.run(`process-batch-${i / batchSize}`, async () => {
+        const supabase = getSupabaseClient();
+        try {
+          // Generate content hashes if missing
+          for (const item of batch) {
+            if (!item.content_hash) {
+              const content = `${item.title || ''}:${item.body || ''}`;
+              const encoder = new TextEncoder();
+              const data = encoder.encode(content);
+              const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+              const hashArray = Array.from(new Uint8Array(hashBuffer));
+              const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+              item.content_hash = hashHex.substring(0, 16);
+            }
+          }
+
+          const apiKey = Deno.env.get('VITE_OPENAI_API_KEY') || Deno.env.get('OPENAI_API_KEY');
+          if (!apiKey) {
+            throw new Error('OpenAI API key not configured');
+          }
+
+          const texts = batch.map((item: any) =>
+            `[${item.type.toUpperCase()}] ${item.title} ${item.body || ''}`.substring(0, 2000)
+          );
+
+          const response = await fetch('https://api.openai.com/v1/embeddings', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${apiKey}`,
+            },
+            body: JSON.stringify({
+              model: 'text-embedding-3-small',
+              input: texts,
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error(`OpenAI API error: ${response.status}`);
+          }
+
+          const responseData = await response.json();
+          const embeddings = responseData.data;
+
+          for (let j = 0; j < batch.length; j++) {
+            const item = batch[j];
+            const embedding = embeddings[j]?.embedding;
+
+            if (embedding) {
+              let table: string;
+              if (item.type === 'issue') {
+                table = 'issues';
+              } else if (item.type === 'pull_request') {
+                table = 'pull_requests';
+              } else {
+                table = 'discussions';
+              }
+
+              await supabase
+                .from(table)
+                .update({
+                  embedding,
+                  embedding_generated_at: new Date().toISOString(),
+                  content_hash: item.content_hash,
+                })
+                .eq('id', item.id);
+
+              await supabase.from('similarity_cache').upsert(
+                {
+                  repository_id: item.repository_id,
+                  item_type: item.type,
+                  item_id: item.id,
+                  embedding,
+                  content_hash: item.content_hash,
+                  ttl_hours: 168,
+                },
+                {
+                  onConflict: 'repository_id,item_type,item_id',
+                }
+              );
+
+              processedCount++;
+            }
+          }
+
+          await supabase.rpc('update_embedding_job_progress', {
+            job_id: jobId,
+            processed_count: processedCount,
+          });
+        } catch (error: any) {
+          const errorMsg = `Batch ${i / batchSize} failed: ${error.message}`;
+          console.error(errorMsg);
+          errors.push(errorMsg);
+        }
+      });
+    }
+
+    // Step 4: Finalize job
+    await step.run('finalize-job', async () => {
+      const supabase = getSupabaseClient();
+      let jobStatus: string;
+      if (errors.length > 0 && processedCount === 0) {
+        jobStatus = 'failed';
+      } else {
+        jobStatus = 'completed';
+      }
+
+      let errorMessage: string | null;
+      if (errors.length > 0) {
+        errorMessage = errors.join('; ');
+      } else {
+        errorMessage = null;
+      }
+
+      await supabase
+        .from('embedding_jobs')
+        .update({
+          status: jobStatus,
+          items_processed: processedCount,
+          error_message: errorMessage,
+          completed_at: new Date().toISOString(),
+        })
+        .eq('id', jobId);
+
+      await supabase.rpc('cleanup_expired_cache');
+    });
+
+    let returnErrors: string[] | undefined;
+    if (errors.length > 0) {
+      returnErrors = errors;
+    } else {
+      returnErrors = undefined;
+    }
+
+    return {
+      jobId,
+      processed: processedCount,
+      total: itemsToProcess.length,
+      errors: returnErrors,
+    };
+  }
+);
+
 // Define our functions registry
 const functions = [
   capturePrDetails,
@@ -910,6 +1183,7 @@ const functions = [
   updatePrActivity,
   discoverNewRepository,
   classifyRepositorySize,
+  computeEmbeddings,
 ];
 
 // Create Inngest handler

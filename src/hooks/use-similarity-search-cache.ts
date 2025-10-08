@@ -1,0 +1,188 @@
+import { useCallback, useRef } from 'react';
+import type { SimilarItem } from '@/services/similarity-search';
+
+interface CacheEntry {
+  key: string;
+  items: SimilarItem[];
+  timestamp: number;
+  accessCount: number;
+}
+
+interface UseSimilaritySearchCacheOptions {
+  maxSize?: number;
+  ttlMs?: number;
+}
+
+/**
+ * LRU cache hook for similarity search results
+ * Prevents redundant API calls for recently searched items
+ */
+export function useSimilaritySearchCache(options: UseSimilaritySearchCacheOptions = {}) {
+  const { maxSize = 20, ttlMs = 5 * 60 * 1000 } = options; // 5 minutes default TTL
+
+  // Use ref to maintain cache across renders
+  const cacheRef = useRef<Map<string, CacheEntry>>(new Map());
+  const accessOrderRef = useRef<string[]>([]);
+
+  // Generate cache key from search parameters
+  const getCacheKey = useCallback(
+    (workspaceId: string, itemId: string, itemType: string): string => {
+      return `${workspaceId}:${itemType}:${itemId}`;
+    },
+    []
+  );
+
+  // Check if cache entry is still valid
+  const isValidEntry = useCallback(
+    (entry: CacheEntry): boolean => {
+      return Date.now() - entry.timestamp < ttlMs;
+    },
+    [ttlMs]
+  );
+
+  // Update access order for LRU
+  const updateAccessOrder = useCallback((key: string) => {
+    const index = accessOrderRef.current.indexOf(key);
+    if (index > -1) {
+      accessOrderRef.current.splice(index, 1);
+    }
+    accessOrderRef.current.unshift(key);
+  }, []);
+
+  // Evict least recently used entries if cache is full
+  const evictIfNeeded = useCallback(() => {
+    const cache = cacheRef.current;
+    const accessOrder = accessOrderRef.current;
+
+    while (cache.size >= maxSize && accessOrder.length > 0) {
+      const oldestKey = accessOrder.pop();
+      if (oldestKey) {
+        cache.delete(oldestKey);
+      }
+    }
+  }, [maxSize]);
+
+  // Get cached result if available and valid
+  const get = useCallback(
+    (workspaceId: string, itemId: string, itemType: string): SimilarItem[] | null => {
+      const key = getCacheKey(workspaceId, itemId, itemType);
+      const entry = cacheRef.current.get(key);
+
+      if (entry && isValidEntry(entry)) {
+        // Update access count and order
+        entry.accessCount++;
+        updateAccessOrder(key);
+        return entry.items;
+      }
+
+      // Remove invalid entry
+      if (entry) {
+        cacheRef.current.delete(key);
+        const index = accessOrderRef.current.indexOf(key);
+        if (index > -1) {
+          accessOrderRef.current.splice(index, 1);
+        }
+      }
+
+      return null;
+    },
+    [getCacheKey, isValidEntry, updateAccessOrder]
+  );
+
+  // Set cache entry
+  const set = useCallback(
+    (workspaceId: string, itemId: string, itemType: string, items: SimilarItem[]) => {
+      const key = getCacheKey(workspaceId, itemId, itemType);
+
+      // Evict old entries if needed
+      evictIfNeeded();
+
+      // Add new entry
+      cacheRef.current.set(key, {
+        key,
+        items,
+        timestamp: Date.now(),
+        accessCount: 1,
+      });
+
+      updateAccessOrder(key);
+    },
+    [getCacheKey, evictIfNeeded, updateAccessOrder]
+  );
+
+  // Clear entire cache
+  const clear = useCallback(() => {
+    cacheRef.current.clear();
+    accessOrderRef.current = [];
+  }, []);
+
+  // Get cache statistics - use a getter for real-time stats
+  const stats = {
+    get size() {
+      return cacheRef.current.size;
+    },
+    maxSize,
+    get entries() {
+      return Array.from(cacheRef.current.values()).map((entry) => ({
+        key: entry.key,
+        age: Date.now() - entry.timestamp,
+        accessCount: entry.accessCount,
+        itemCount: entry.items.length,
+      }));
+    },
+  };
+
+  return {
+    get,
+    set,
+    clear,
+    stats,
+    getCacheKey,
+  };
+}
+
+/**
+ * Debounced similarity search hook
+ * Prevents rapid repeated searches for the same item
+ */
+export function useDebouncedSimilaritySearch(delayMs: number = 300) {
+  const timeoutRef = useRef<NodeJS.Timeout>();
+  const lastSearchRef = useRef<string>('');
+
+  const debouncedSearch = useCallback(
+    async <T>(searchKey: string, searchFn: () => Promise<T>): Promise<T | null> => {
+      // If searching for the same item, debounce
+      if (lastSearchRef.current === searchKey) {
+        // Clear existing timeout
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
+
+        return new Promise((resolve, reject) => {
+          timeoutRef.current = setTimeout(async () => {
+            try {
+              const result = await searchFn();
+              resolve(result);
+            } catch (error) {
+              reject(error);
+            }
+          }, delayMs);
+        });
+      }
+
+      // New search, execute immediately
+      lastSearchRef.current = searchKey;
+      return searchFn();
+    },
+    [delayMs]
+  );
+
+  // Cleanup on unmount
+  const cleanup = useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+  }, []);
+
+  return { debouncedSearch, cleanup };
+}

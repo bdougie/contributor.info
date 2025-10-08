@@ -14,6 +14,12 @@ import {
 } from '@/components/features/workspace';
 import type { SimilarItem } from '@/services/similarity-search';
 import { WorkspaceErrorBoundary } from '@/components/error-boundaries/workspace-error-boundary';
+import { AIFeatureErrorBoundary } from '@/components/error-boundaries/ai-feature-error-boundary';
+import { parseWorkspaceIdentifier, getWorkspaceQueryField } from '@/types/workspace-identifier';
+import {
+  useSimilaritySearchCache,
+  useDebouncedSimilaritySearch,
+} from '@/hooks/use-similarity-search-cache';
 import { WorkspaceAutoSync } from '@/components/features/workspace/WorkspaceAutoSync';
 import { useWorkspaceContext } from '@/contexts/WorkspaceContext';
 import {
@@ -2360,6 +2366,15 @@ function WorkspacePage() {
   const [responseMessage, setResponseMessage] = useState('');
   const [loadingSimilarItems, setLoadingSimilarItems] = useState(false);
 
+  // Initialize similarity search cache and debouncing
+  const similarityCache = useSimilaritySearchCache({ maxSize: 20, ttlMs: 5 * 60 * 1000 });
+  const { debouncedSearch, cleanup: cleanupDebounce } = useDebouncedSimilaritySearch(300);
+
+  // Cleanup debounce on unmount
+  useEffect(() => {
+    return () => cleanupDebounce();
+  }, [cleanupDebounce]);
+
   // Fetch event-based metrics for accurate star trends
   // Use workspace?.id (UUID) instead of workspaceId (which could be a slug)
   const { metrics: eventMetrics } = useWorkspaceEvents({
@@ -2524,25 +2539,17 @@ function WorkspacePage() {
       } = await supabase.auth.getUser();
       setCurrentUser(user);
 
-      // Check if workspaceId is a UUID or a slug
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-        workspaceId
-      );
+      // Parse workspace identifier with type safety
+      const identifier = parseWorkspaceIdentifier(workspaceId);
+      const { field, value } = getWorkspaceQueryField(identifier);
 
-      // Fetch workspace details using either id or slug
-      const { data: workspaceData, error: wsError } = isUUID
-        ? await supabase
-            .from('workspaces')
-            .select('*')
-            .eq('is_active', true)
-            .eq('id', workspaceId)
-            .maybeSingle()
-        : await supabase
-            .from('workspaces')
-            .select('*')
-            .eq('is_active', true)
-            .eq('slug', workspaceId)
-            .maybeSingle();
+      // Fetch workspace details using the appropriate field
+      const { data: workspaceData, error: wsError } = await supabase
+        .from('workspaces')
+        .select('*')
+        .eq('is_active', true)
+        .eq(field, value)
+        .maybeSingle();
 
       if (wsError) {
         console.error('Error fetching workspace:', wsError);
@@ -3598,17 +3605,27 @@ function WorkspacePage() {
             />
           )}
 
-          {/* Response Preview Modal - Available on all tabs */}
-          <ResponsePreviewModal
-            open={responseModalOpen}
-            onOpenChange={setResponseModalOpen}
-            loading={loadingSimilarItems}
-            similarItems={similarItems}
-            responseMessage={responseMessage}
-            onCopyToClipboard={() => {
-              toast.success('Response copied to clipboard!');
-            }}
-          />
+          {/* Response Preview Modal - Available on all tabs - Wrapped in AI Error Boundary */}
+          <AIFeatureErrorBoundary
+            featureName="Response Suggestions"
+            fallback={
+              <div className="p-4 text-center text-muted-foreground">
+                <p>AI-powered response suggestions are temporarily unavailable.</p>
+                <p className="text-sm mt-2">You can still manually respond to items.</p>
+              </div>
+            }
+          >
+            <ResponsePreviewModal
+              open={responseModalOpen}
+              onOpenChange={setResponseModalOpen}
+              loading={loadingSimilarItems}
+              similarItems={similarItems}
+              responseMessage={responseMessage}
+              onCopyToClipboard={() => {
+                toast.success('Response copied to clipboard!');
+              }}
+            />
+          </AIFeatureErrorBoundary>
 
           <TabsContent value="overview" className="mt-6 space-y-4">
             <div className="container max-w-7xl mx-auto">
@@ -3637,26 +3654,51 @@ function WorkspacePage() {
                   setLoadingSimilarItems(true);
 
                   try {
-                    // Dynamically import similarity search to avoid loading ML models on page init
-                    const { findSimilarItems, generateResponseMessage } = await import(
-                      '@/services/similarity-search'
-                    );
+                    // Check cache first
+                    const cacheKey = similarityCache.getCacheKey(workspace.id, item.id, item.type);
+                    const cachedItems = similarityCache.get(workspace.id, item.id, item.type);
 
-                    // Find similar items in the workspace
-                    const items = await findSimilarItems({
-                      workspaceId: workspace.id,
-                      queryItem: {
-                        id: item.id,
-                        title: item.title,
-                        body: null, // We don't have the body in MyWorkItem
-                        type: item.type,
-                      },
-                      limit: 4,
+                    if (cachedItems) {
+                      // Use cached results
+                      setSimilarItems(cachedItems);
+                      const { generateResponseMessage } = await import(
+                        '@/services/similarity-search'
+                      );
+                      const message = generateResponseMessage(cachedItems);
+                      setResponseMessage(message);
+                      setLoadingSimilarItems(false);
+                      return;
+                    }
+
+                    // Perform debounced search if not cached
+                    const searchResult = await debouncedSearch(cacheKey, async () => {
+                      // Dynamically import similarity search to avoid loading ML models on page init
+                      const { findSimilarItems, generateResponseMessage } = await import(
+                        '@/services/similarity-search'
+                      );
+
+                      // Find similar items in the workspace
+                      const items = await findSimilarItems({
+                        workspaceId: workspace.id,
+                        queryItem: {
+                          id: item.id,
+                          title: item.title,
+                          body: null, // We don't have the body in MyWorkItem
+                          type: item.type,
+                        },
+                        limit: 4,
+                      });
+
+                      // Cache the results
+                      similarityCache.set(workspace.id, item.id, item.type, items);
+
+                      return { items, message: generateResponseMessage(items) };
                     });
 
-                    setSimilarItems(items);
-                    const message = generateResponseMessage(items);
-                    setResponseMessage(message);
+                    if (searchResult) {
+                      setSimilarItems(searchResult.items);
+                      setResponseMessage(searchResult.message);
+                    }
                   } catch (error) {
                     console.error('Error finding similar items:', error);
                     setSimilarItems([]);

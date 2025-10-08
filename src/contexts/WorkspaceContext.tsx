@@ -18,6 +18,7 @@ import {
   WORKSPACE_STORAGE_KEYS,
   WORKSPACE_LIMITS,
 } from '@/lib/workspace-config';
+import { parseWorkspaceIdentifier } from '@/types/workspace-identifier';
 
 // Extend WorkspacePreviewData to include additional fields that might be needed
 interface Workspace extends Omit<WorkspacePreviewData, 'slug'> {
@@ -97,20 +98,19 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
   const retryCountRef = useRef(0);
 
   // Find active workspace from the list (support both ID and slug)
-  // First try to find by ID (most common case after initial load)
-  // Then check if the activeWorkspaceId might be a slug from URL
+  // Use type-safe identifier parsing
   const activeWorkspace = useMemo(() => {
     if (!activeWorkspaceId) return null;
 
-    // Try to find by ID first
-    const workspaceById = workspaces.find((w: Workspace) => w.id === activeWorkspaceId);
-    if (workspaceById) return workspaceById;
+    const identifier = parseWorkspaceIdentifier(activeWorkspaceId);
 
-    // If not found by ID, try to find by slug
-    const workspaceBySlug = workspaces.find((w: Workspace) => w.slug === activeWorkspaceId);
-    if (workspaceBySlug) return workspaceBySlug;
-
-    return null;
+    if (identifier.type === 'uuid') {
+      // Find by UUID
+      return workspaces.find((w: Workspace) => w.id === identifier.value) || null;
+    } else {
+      // Find by slug
+      return workspaces.find((w: Workspace) => w.slug === identifier.value) || null;
+    }
   }, [workspaces, activeWorkspaceId]);
 
   // Persist active workspace to localStorage
@@ -229,7 +229,13 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
 
   const findWorkspace = useCallback(
     (idOrSlug: string): Workspace | undefined => {
-      return workspaces.find((w) => w.id === idOrSlug || w.slug === idOrSlug);
+      const identifier = parseWorkspaceIdentifier(idOrSlug);
+
+      if (identifier.type === 'uuid') {
+        return workspaces.find((w) => w.id === identifier.value);
+      } else {
+        return workspaces.find((w) => w.slug === identifier.value);
+      }
     },
     [workspaces]
   );

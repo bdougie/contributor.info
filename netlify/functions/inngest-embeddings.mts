@@ -5,7 +5,8 @@ import {
   generateEmbeddings,
   batchGenerateEmbeddings,
 } from '../../src/lib/inngest/functions/generate-embeddings';
-import { computeEmbeddings } from '../../src/lib/inngest/functions/compute-embeddings';
+// Note: computeEmbeddings moved to Supabase edge function for better performance
+// import { computeEmbeddings } from '../../src/lib/inngest/functions/compute-embeddings';
 import {
   handleIssueEmbeddingWebhook,
   handlePREmbeddingWebhook,
@@ -26,8 +27,8 @@ const inngestHandler = serve({
     // Legacy embeddings functions (using @xenova/transformers)
     generateEmbeddings,
     batchGenerateEmbeddings,
-    // Modern embeddings function (using OpenAI API)
-    computeEmbeddings,
+    // Note: computeEmbeddings now runs on Supabase edge function (inngest-prod)
+    // for better cold start performance and no 42MB bundle size
     // Webhook bridge functions
     handleIssueEmbeddingWebhook,
     handlePREmbeddingWebhook,
@@ -54,7 +55,7 @@ export default async (req: Request, context: Context) => {
         functions: [
           'generate-embeddings',
           'batch-generate-embeddings',
-          'compute-embeddings',
+          // 'compute-embeddings', // Moved to Supabase (inngest-prod)
           'handle-issue-embedding-webhook',
           'handle-pr-embedding-webhook',
           'handle-batch-embedding-webhook',
