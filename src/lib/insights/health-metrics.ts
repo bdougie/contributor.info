@@ -127,9 +127,81 @@ export async function calculateHealthMetrics(
     });
 
     // 2. Contributor Diversity Factor
-    const uniqueContributors = new Set(
+    // Expand contributor definition beyond just PR authors
+    const prAuthors = new Set(
       pullRequests.map((pr: GitHubPullRequest | PullRequest) => pr.user?.login).filter(Boolean)
     );
+
+    // Fetch additional contributor types from github_events_cache
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - parseInt(timeRange));
+    const utcMidnight = new Date(
+      Date.UTC(cutoffDate.getFullYear(), cutoffDate.getMonth(), cutoffDate.getDate(), 0, 0, 0, 0)
+    );
+
+    // Import supabase for additional queries
+    const { supabase } = await import('../supabase');
+
+    // Get repository ID for queries
+    const { data: repoData } = await supabase
+      .from('repositories')
+      .select('id')
+      .eq('owner', owner)
+      .eq('name', repo)
+      .maybeSingle();
+
+    const repositoryId = repoData?.id;
+
+    // Gather all contributor types
+    const [issueAuthors, reviewers, discussionParticipants] = await Promise.all([
+      // Issue authors
+      supabase
+        .from('github_events_cache')
+        .select('actor_login')
+        .eq('repository_owner', owner)
+        .eq('repository_name', repo)
+        .eq('event_type', 'IssuesEvent')
+        .gte('created_at', toUTCTimestamp(utcMidnight)),
+
+      // Reviewers
+      supabase
+        .from('github_events_cache')
+        .select('actor_login')
+        .eq('repository_owner', owner)
+        .eq('repository_name', repo)
+        .in('event_type', ['PullRequestReviewEvent', 'PullRequestReviewCommentEvent'])
+        .gte('created_at', toUTCTimestamp(utcMidnight)),
+
+      // Discussion participants
+      supabase
+        .from('discussions')
+        .select('author_login')
+        .eq('repository_owner', owner)
+        .eq('repository_name', repo)
+        .gte('created_at', toUTCTimestamp(utcMidnight)),
+    ]);
+
+    // Build comprehensive contributor set
+    const uniqueContributors = new Set<string>(prAuthors);
+
+    // Add issue authors
+    (issueAuthors.data as Array<{ actor_login: string }>)
+      ?.map((e) => e.actor_login)
+      .filter(Boolean)
+      .forEach((username) => uniqueContributors.add(username));
+
+    // Add reviewers
+    (reviewers.data as Array<{ actor_login: string }>)
+      ?.map((e) => e.actor_login)
+      .filter(Boolean)
+      .forEach((username) => uniqueContributors.add(username));
+
+    // Add discussion participants
+    (discussionParticipants.data as Array<{ author_login: string }>)
+      ?.map((d) => d.author_login)
+      .filter(Boolean)
+      .forEach((username) => uniqueContributors.add(username));
+
     const contributorCount = uniqueContributors.size;
 
     // Calculate bus factor (contributors who handle majority of work)
@@ -178,7 +250,37 @@ export async function calculateHealthMetrics(
       score: busFactorScore,
       weight: 20,
       status: busFactorStatus,
-      description: `${contributorCount} active contributors, ${busFactorCount} handle 50% of work`,
+      description: `${contributorCount} active contributors (PRs, issues, reviews, discussions), ${busFactorCount} handle 50% of work`,
+    });
+
+    // 2b. Issue Engagement Factor (NEW)
+    const uniqueIssueAuthors = (issueAuthors.data as Array<{ actor_login: string }>)
+      ?.map((e) => e.actor_login)
+      .filter(Boolean) || [];
+    const issueAuthorCount = new Set(uniqueIssueAuthors).size;
+
+    // Calculate issue engagement score
+    let issueEngagementScore = 100;
+    let issueEngagementStatus: 'good' | 'warning' | 'critical' = 'good';
+
+    if (issueAuthorCount === 0) {
+      issueEngagementScore = 50;
+      issueEngagementStatus = 'warning';
+    } else if (issueAuthorCount < 3) {
+      issueEngagementScore = 70;
+      issueEngagementStatus = 'warning';
+      recommendations.push('Encourage more community members to report issues and provide feedback');
+    } else if (issueAuthorCount < 10) {
+      issueEngagementScore = 85;
+      issueEngagementStatus = 'good';
+    }
+
+    factors.push({
+      name: 'Issue Engagement',
+      score: issueEngagementScore,
+      weight: 15,
+      status: issueEngagementStatus,
+      description: `${issueAuthorCount} unique issue authors engaging with the project`,
     });
 
     // 3. Review Coverage Factor
@@ -201,12 +303,22 @@ export async function calculateHealthMetrics(
       recommendations.push('Increase code review coverage to improve quality');
     }
 
+    // Calculate review quality metrics
+    const uniqueReviewers = (reviewers.data as Array<{ actor_login: string }>)
+      ?.map((e) => e.actor_login)
+      .filter(Boolean) || [];
+    const reviewerCount = new Set(uniqueReviewers).size;
+
+    // Enhanced review score includes both coverage and participation
+    const reviewParticipationBonus = Math.min(20, reviewerCount * 2); // Up to 20 points for reviewer diversity
+    const enhancedReviewScore = Math.min(100, reviewScore + reviewParticipationBonus);
+
     factors.push({
-      name: 'Review Coverage',
-      score: reviewScore,
-      weight: 20,
+      name: 'Review & Discussion Quality',
+      score: enhancedReviewScore,
+      weight: 15,
       status: reviewStatus,
-      description: `${Math.round(reviewCoverage)}% of PRs receive reviews`,
+      description: `${Math.round(reviewCoverage)}% of PRs receive reviews from ${reviewerCount} reviewers`,
     });
 
     // 4. Activity Level Factor
@@ -265,7 +377,7 @@ export async function calculateHealthMetrics(
     factors.push({
       name: 'Response Time',
       score: responseScore,
-      weight: 15,
+      weight: 10,
       status: responseStatus,
       description: `${oldOpenPRs.length} PRs open for more than 7 days`,
     });
@@ -777,6 +889,7 @@ async function calculateStarForkConfidenceWithBreakdown(
 
 /**
  * Issue/comment engagement to contribution conversion rate
+ * Now includes IssuesEvent and DiscussionCommentEvent as engagement signals
  */
 async function calculateEngagementConfidence(
   supabase: SupabaseClient<any, 'public', any>,
@@ -792,7 +905,7 @@ async function calculateEngagementConfidence(
     Date.UTC(cutoffDate.getFullYear(), cutoffDate.getMonth(), cutoffDate.getDate(), 0, 0, 0, 0)
   );
 
-  // Get engagement events (issues, all comment types, reviews)
+  // Get engagement events (issues, all comment types, reviews, discussions)
   const { data: engagementEvents } = await supabase
     .from('github_events_cache')
     .select('actor_login, event_type')
@@ -804,21 +917,72 @@ async function calculateEngagementConfidence(
       'PullRequestReviewEvent',
       'PullRequestReviewCommentEvent',
       'CommitCommentEvent',
+      'DiscussionCommentEvent',
     ])
     .gte('created_at', toUTCTimestamp(utcMidnight));
 
-  // Get PR contributors
-  const { data: prContributors } = await supabase
-    .from('pull_requests')
-    .select('contributors!inner(username)')
-    .eq('repository_id', repositoryId)
-    .gte('created_at', toUTCTimestamp(utcMidnight));
+  // Get all types of contributors (PR authors, issue authors, reviewers, discussion participants)
+  const [prContributors, issueAuthors, reviewers, discussionParticipants] = await Promise.all([
+    // PR contributors
+    supabase
+      .from('pull_requests')
+      .select('contributors!inner(username)')
+      .eq('repository_id', repositoryId)
+      .gte('created_at', toUTCTimestamp(utcMidnight)),
 
-  const contributors = new Set(
-    (prContributors as Array<{ contributors: Array<{ username: string }> }>)
-      ?.flatMap((c) => c.contributors?.map((contrib) => contrib.username))
-      .filter(Boolean) || []
-  );
+    // Issue authors from github_events_cache
+    supabase
+      .from('github_events_cache')
+      .select('actor_login')
+      .eq('repository_owner', owner)
+      .eq('repository_name', repo)
+      .eq('event_type', 'IssuesEvent')
+      .gte('created_at', toUTCTimestamp(utcMidnight)),
+
+    // Reviewers from github_events_cache
+    supabase
+      .from('github_events_cache')
+      .select('actor_login')
+      .eq('repository_owner', owner)
+      .eq('repository_name', repo)
+      .in('event_type', ['PullRequestReviewEvent', 'PullRequestReviewCommentEvent'])
+      .gte('created_at', toUTCTimestamp(utcMidnight)),
+
+    // Discussion participants from discussions table
+    supabase
+      .from('discussions')
+      .select('author_login')
+      .eq('repository_owner', owner)
+      .eq('repository_name', repo)
+      .gte('created_at', toUTCTimestamp(utcMidnight)),
+  ]);
+
+  // Build comprehensive contributor set
+  const contributors = new Set<string>();
+
+  // Add PR contributors
+  (prContributors.data as Array<{ contributors: Array<{ username: string }> }>)
+    ?.flatMap((c) => c.contributors?.map((contrib) => contrib.username))
+    .filter(Boolean)
+    .forEach((username) => contributors.add(username));
+
+  // Add issue authors
+  (issueAuthors.data as Array<{ actor_login: string }>)
+    ?.map((e) => e.actor_login)
+    .filter(Boolean)
+    .forEach((username) => contributors.add(username));
+
+  // Add reviewers
+  (reviewers.data as Array<{ actor_login: string }>)
+    ?.map((e) => e.actor_login)
+    .filter(Boolean)
+    .forEach((username) => contributors.add(username));
+
+  // Add discussion participants
+  (discussionParticipants.data as Array<{ author_login: string }>)
+    ?.map((d) => d.author_login)
+    .filter(Boolean)
+    .forEach((username) => contributors.add(username));
 
   const engagers = new Set(
     (engagementEvents as Array<{ actor_login: string; event_type: string }>)

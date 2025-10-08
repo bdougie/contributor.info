@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { calculateRepositoryConfidence, clearConfidenceCache } from './health-metrics';
+import {
+  calculateRepositoryConfidence,
+  calculateHealthMetrics,
+  clearConfidenceCache,
+} from './health-metrics';
 
 // Mock the entire supabase module
 vi.mock('@/lib/supabase', () => ({
@@ -434,6 +438,172 @@ describe('calculateRepositoryConfidence', () => {
       // Should use fallback calculation based on repo metrics
       expect(result).toBeGreaterThan(0);
       expect(result).toBeLessThan(100);
+    });
+  });
+
+  describe('Expanded Contributor Definition', () => {
+    it('should count issue authors as contributors', async () => {
+      const { supabase } = await import('@/lib/supabase');
+
+      const mockRepo = {
+        data: {
+          id: 1,
+          stargazers_count: 100,
+          forks_count: 50,
+          created_at: '2023-01-01',
+        },
+        error: null,
+      };
+
+      // Mock issue authors
+      const mockIssueAuthors = {
+        data: Array.from({ length: 10 }, (_, i) => ({
+          actor_login: `issue_author${i}`,
+        })),
+        error: null,
+      };
+
+      supabase.from = vi.fn().mockImplementation((table: string) => {
+        if (table === 'repositories') {
+          return createChainableMock(mockRepo);
+        }
+        if (table === 'github_events_cache') {
+          const mock = createChainableMock({ data: [], error: null });
+          // Override in to detect IssuesEvent query
+          const originalIn = mock.in;
+          mock.in = vi.fn().mockImplementation((field: string, values: string[]) => {
+            if (values.includes('IssuesEvent')) {
+              return createChainableMock(mockIssueAuthors);
+            }
+            return originalIn.call(mock, field, values);
+          });
+          // Override eq to detect IssuesEvent query
+          const originalEq = mock.eq;
+          mock.eq = vi.fn().mockImplementation((field: string, value: string) => {
+            if (field === 'event_type' && value === 'IssuesEvent') {
+              return createChainableMock(mockIssueAuthors);
+            }
+            return originalEq.call(mock, field, value);
+          });
+          return mock;
+        }
+        if (table === 'pull_requests') {
+          return createChainableMock({ data: [], error: null });
+        }
+        if (table === 'discussions') {
+          return createChainableMock({ data: [], error: null });
+        }
+        if (table === 'repository_confidence_cache') {
+          const mock = createChainableMock({ data: null, error: null });
+          mock.delete = vi.fn().mockReturnValue(createChainableMock({ data: null, error: null }));
+          return mock;
+        }
+        return createChainableMock({ data: [], error: null });
+      });
+
+      const result = await calculateRepositoryConfidence('test-owner', 'test-repo', '30');
+
+      // Should calculate confidence including issue authors
+      expect(result).toBeGreaterThanOrEqual(0);
+      expect(result).toBeLessThanOrEqual(100);
+    });
+
+    it('should count discussion participants as contributors', async () => {
+      const { supabase } = await import('@/lib/supabase');
+
+      const mockRepo = {
+        data: {
+          id: 1,
+          stargazers_count: 100,
+          forks_count: 50,
+          created_at: '2023-01-01',
+        },
+        error: null,
+      };
+
+      // Mock discussion participants
+      const mockDiscussionParticipants = {
+        data: Array.from({ length: 8 }, (_, i) => ({
+          author_login: `discussion_user${i}`,
+        })),
+        error: null,
+      };
+
+      supabase.from = vi.fn().mockImplementation((table: string) => {
+        if (table === 'repositories') {
+          return createChainableMock(mockRepo);
+        }
+        if (table === 'discussions') {
+          return createChainableMock(mockDiscussionParticipants);
+        }
+        if (table === 'repository_confidence_cache') {
+          const mock = createChainableMock({ data: null, error: null });
+          mock.delete = vi.fn().mockReturnValue(createChainableMock({ data: null, error: null }));
+          return mock;
+        }
+        return createChainableMock({ data: [], error: null });
+      });
+
+      const result = await calculateRepositoryConfidence('test-owner', 'test-repo', '30');
+
+      // Should calculate confidence including discussion participants
+      expect(result).toBeGreaterThanOrEqual(0);
+      expect(result).toBeLessThanOrEqual(100);
+    });
+
+    it('should count reviewers as contributors', async () => {
+      const { supabase } = await import('@/lib/supabase');
+
+      const mockRepo = {
+        data: {
+          id: 1,
+          stargazers_count: 100,
+          forks_count: 50,
+          created_at: '2023-01-01',
+        },
+        error: null,
+      };
+
+      // Mock reviewers
+      const mockReviewers = {
+        data: Array.from({ length: 5 }, (_, i) => ({
+          actor_login: `reviewer${i}`,
+        })),
+        error: null,
+      };
+
+      supabase.from = vi.fn().mockImplementation((table: string) => {
+        if (table === 'repositories') {
+          return createChainableMock(mockRepo);
+        }
+        if (table === 'github_events_cache') {
+          const mock = createChainableMock({ data: [], error: null });
+          // Override in to detect review event queries
+          const originalIn = mock.in;
+          mock.in = vi.fn().mockImplementation((field: string, values: string[]) => {
+            if (
+              values.includes('PullRequestReviewEvent') ||
+              values.includes('PullRequestReviewCommentEvent')
+            ) {
+              return createChainableMock(mockReviewers);
+            }
+            return originalIn.call(mock, field, values);
+          });
+          return mock;
+        }
+        if (table === 'repository_confidence_cache') {
+          const mock = createChainableMock({ data: null, error: null });
+          mock.delete = vi.fn().mockReturnValue(createChainableMock({ data: null, error: null }));
+          return mock;
+        }
+        return createChainableMock({ data: [], error: null });
+      });
+
+      const result = await calculateRepositoryConfidence('test-owner', 'test-repo', '30');
+
+      // Should calculate confidence including reviewers
+      expect(result).toBeGreaterThanOrEqual(0);
+      expect(result).toBeLessThanOrEqual(100);
     });
   });
 });
