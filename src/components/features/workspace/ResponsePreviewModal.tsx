@@ -98,7 +98,9 @@ export function ResponsePreviewModal({
       noItemsAlert = (
         <Alert>
           <AlertDescription>
-            No similar items found in this workspace. The response will indicate this to the user.
+            <strong>No similar items available yet.</strong> Our system generates AI embeddings for
+            similarity search in the background. This typically completes within 15-30 minutes for
+            new workspaces. You can still copy and paste the response manually.
           </AlertDescription>
         </Alert>
       );
