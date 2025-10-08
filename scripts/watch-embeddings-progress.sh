@@ -51,7 +51,7 @@ while true; do
       'issue' as type,
       COUNT(*) FILTER (WHERE embedding IS NOT NULL) as with_embeddings,
       COUNT(*) as total,
-      ROUND(100.0 * COUNT(*) FILTER (WHERE embedding IS NOT NULL) / COUNT(*), 1) as pct_complete
+      ROUND(100.0 * COUNT(*) FILTER (WHERE embedding IS NOT NULL) / NULLIF(COUNT(*), 0), 1) as pct_complete
     FROM issues WHERE created_at > NOW() - INTERVAL '90 days'
 
     UNION ALL
@@ -60,7 +60,7 @@ while true; do
       'pull_request' as type,
       COUNT(*) FILTER (WHERE embedding IS NOT NULL) as with_embeddings,
       COUNT(*) as total,
-      ROUND(100.0 * COUNT(*) FILTER (WHERE embedding IS NOT NULL) / COUNT(*), 1) as pct_complete
+      ROUND(100.0 * COUNT(*) FILTER (WHERE embedding IS NOT NULL) / NULLIF(COUNT(*), 0), 1) as pct_complete
     FROM pull_requests WHERE created_at > NOW() - INTERVAL '90 days'
 
     UNION ALL
@@ -69,7 +69,7 @@ while true; do
       'discussion' as type,
       COUNT(*) FILTER (WHERE embedding IS NOT NULL) as with_embeddings,
       COUNT(*) as total,
-      ROUND(100.0 * COUNT(*) FILTER (WHERE embedding IS NOT NULL) / COUNT(*), 1) as pct_complete
+      ROUND(100.0 * COUNT(*) FILTER (WHERE embedding IS NOT NULL) / NULLIF(COUNT(*), 0), 1) as pct_complete
     FROM discussions WHERE created_at > NOW() - INTERVAL '90 days';" | \
     npx supabase db execute --project-ref ${PROJECT_REF} 2>/dev/null
 
