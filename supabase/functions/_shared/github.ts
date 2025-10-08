@@ -143,6 +143,11 @@ export async function fetchGitHubAPI<T = unknown>(
     );
   }
 
+  // Handle 204 No Content responses (e.g., star/unstar, notification ack)
+  if (response.status === 204 || response.status === 205) {
+    return undefined as T;
+  }
+
   return await response.json() as T;
 }
 
@@ -271,6 +276,7 @@ export async function fetchPaginated<T = unknown>(
     token,
     perPage = 100,
     maxPages = 10,
+    since,
   } = options;
 
   const headers = getGitHubHeaders(token);
@@ -278,7 +284,14 @@ export async function fetchPaginated<T = unknown>(
   let page = 1;
 
   while (page <= maxPages) {
-    const url = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}per_page=${perPage}&page=${page}`;
+    const separator = baseUrl.includes('?') ? '&' : '?';
+    let url = `${baseUrl}${separator}per_page=${perPage}&page=${page}`;
+    
+    // Add since parameter if provided
+    if (since) {
+      url += `&since=${encodeURIComponent(since)}`;
+    }
+    
     const response = await fetch(url, { headers });
 
     if (!response.ok) {

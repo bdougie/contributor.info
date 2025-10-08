@@ -85,7 +85,6 @@ export async function ensureContributor(
           profile_url: `https://github.com/${userData.login}`,
           is_bot: userData.type === 'Bot' || userData.login.includes('[bot]'),
           is_active: true,
-          first_seen_at: new Date().toISOString(),
           last_updated_at: new Date().toISOString(),
         },
         {
