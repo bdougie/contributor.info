@@ -1089,7 +1089,7 @@ const computeEmbeddings = inngest.createFunction(
               await supabase
                 .from(table)
                 .update({
-                  embedding,
+                  embedding: `[${embedding.join(',')}]`,
                   embedding_generated_at: new Date().toISOString(),
                   content_hash: item.content_hash,
                 })
@@ -1100,7 +1100,7 @@ const computeEmbeddings = inngest.createFunction(
                   repository_id: item.repository_id,
                   item_type: item.type,
                   item_id: item.id,
-                  embedding,
+                  embedding: `[${embedding.join(',')}]`,
                   content_hash: item.content_hash,
                   ttl_hours: 168,
                 },
@@ -1187,7 +1187,7 @@ const functions = [
 ];
 
 // Create Inngest handler
-const handler = new InngestCommHandler({
+const commHandler = new InngestCommHandler({
   frameworkName: 'deno-edge-supabase',
   appName: INNGEST_APP_ID,
   signingKey: INNGEST_SIGNING_KEY,
@@ -1195,7 +1195,21 @@ const handler = new InngestCommHandler({
   functions,
   serveHost: Deno.env.get('VITE_DEPLOY_URL') || 'https://egcxzonpmmcirmgqdrla.supabase.co',
   servePath: '/functions/v1/inngest-prod',
+  handler: (req: Request) => {
+    return {
+      body: () => req.json(),
+      headers: (key) => req.headers.get(key),
+      method: () => req.method,
+      url: () => new URL(req.url),
+      transformResponse: ({ body, status, headers }) => {
+        return new Response(body, { status, headers });
+      },
+    };
+  },
 });
+
+// Create the actual handler
+const handler = commHandler.createHandler();
 
 // Main HTTP handler
 serve(async (req) => {
@@ -1243,30 +1257,8 @@ serve(async (req) => {
   }
 
   try {
-    // Route to appropriate handler method based on HTTP method
-    // GET: Function registration and introspection
-    // POST: Function invocation
-    // PUT: Registration with deployId
-    let response: Response;
-
-    if (method === 'GET') {
-      response = await handler.GET(req);
-    } else if (method === 'POST') {
-      response = await handler.POST(req);
-    } else if (method === 'PUT') {
-      response = await handler.PUT(req);
-    } else {
-      return new Response(
-        JSON.stringify({ error: 'Method not allowed' }),
-        {
-          status: 405,
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-    }
+    // Use the unified handler - it handles GET/POST/PUT internally
+    const response = await handler(req);
 
     // Add CORS headers to the response
     const headers = new Headers(response.headers);
