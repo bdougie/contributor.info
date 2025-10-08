@@ -149,12 +149,19 @@ export function useDebouncedSimilaritySearch(delayMs: number = 300) {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastSearchRef = useRef<string>('');
   const abortControllerRef = useRef<AbortController | null>(null);
+  const pendingRejectRef = useRef<((reason: Error) => void) | null>(null);
 
   const debouncedSearch = useCallback(
     async <T>(searchKey: string, searchFn: () => Promise<T>): Promise<T | null> => {
       // Cancel any pending operations
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
+      }
+
+      // Reject any pending promise before clearing timeout
+      if (pendingRejectRef.current) {
+        pendingRejectRef.current(new Error('Search cancelled by new request'));
+        pendingRejectRef.current = null;
       }
 
       // Clear existing timeout
@@ -170,7 +177,13 @@ export function useDebouncedSimilaritySearch(delayMs: number = 300) {
       // If searching for the same item, debounce
       if (lastSearchRef.current === searchKey) {
         return new Promise((resolve, reject) => {
+          // Store reject function so we can call it if this promise gets cancelled
+          pendingRejectRef.current = reject;
+
           timeoutRef.current = setTimeout(async () => {
+            // Clear the pending reject since we're executing now
+            pendingRejectRef.current = null;
+
             // Check if this operation was aborted
             if (abortController.signal.aborted) {
               reject(new Error('Search cancelled'));
@@ -222,6 +235,12 @@ export function useDebouncedSimilaritySearch(delayMs: number = 300) {
 
   // Cleanup on unmount
   const cleanup = useCallback(() => {
+    // Reject any pending promise
+    if (pendingRejectRef.current) {
+      pendingRejectRef.current(new Error('Component unmounted'));
+      pendingRejectRef.current = null;
+    }
+
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
