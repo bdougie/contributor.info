@@ -30,12 +30,11 @@
  * @returns
  * {
  *   "success": true,
- *   "data": {
- *     "pull_requests_synced": 100,
- *     "reviews_synced": 250,
- *     "has_next_page": true,
- *     "next_cursor": "Y3Vyc29yOnYyOpHOABCE"
- *   },
+ *   "repository": "owner/name",
+ *   "processed": 100,
+ *   "errors": [],
+ *   "hasNextPage": true,
+ *   "nextCursor": "Y3Vyc29yOnYyOpHOABCE",
  *   "timestamp": "2024-01-01T00:00:00.000Z"
  * }
  */

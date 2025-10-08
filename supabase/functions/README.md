@@ -376,7 +376,7 @@ All health check functions return:
 ## Documentation
 
 - [Architecture Guide](../../docs/supabase/edge-functions-architecture.md) - Detailed patterns and conventions
-- [Shared Utilities](./shared/README.md) - Utility documentation
+- [Shared Utilities](./_shared/README.md) - Utility documentation
 - Individual function READMEs - Complex function documentation
 
 ## Contributing

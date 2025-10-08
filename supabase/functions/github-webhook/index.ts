@@ -25,9 +25,8 @@
  * @returns
  * {
  *   "success": true,
- *   "message": "Webhook processed successfully",
- *   "event_type": "pull_request",
- *   "action": "closed"
+ *   "eventType": "pull_request",
+ *   "isPrivileged": true
  * }
  */
 

@@ -89,7 +89,7 @@ Utilities for detecting and categorizing GitHub webhook events.
 
 #### Key Functions
 
-##### `detectPrivilegedEvent(event: GitHubEvent): boolean`
+##### `detectPrivilegedEvent(event: GitHubEvent): PrivilegedEventDetection`
 
 Determines if an event represents a privileged action (e.g., merge, review approval).
 
@@ -105,10 +105,10 @@ const event: GitHubEvent = {
   }
 };
 
-const isPrivileged = detectPrivilegedEvent(event);
+const { isPrivileged, confidence, signals } = detectPrivilegedEvent(event);
 if (isPrivileged) {
-  // Update contributor metrics
-  await updateContributorRole(supabase, authorId, 'maintainer');
+  console.log('Detected privileged event with confidence: %d', confidence);
+  console.log('Detection signals: %s', signals.join(', '));
 }
 ```
 
@@ -172,10 +172,19 @@ interface GitHubEvent {
    }
    ```
 
-2. **Use privileged detection for role updates:**
+2. **Use privileged detection for metrics:**
    ```typescript
-   if (detectPrivilegedEvent(event)) {
-     await updateContributorRole(supabase, userId, 'maintainer');
+   const { isPrivileged } = detectPrivilegedEvent(event);
+   if (isPrivileged) {
+     // Update contributor role with proper metrics
+     const metrics = await getContributorMetrics(
+       supabase, 
+       userId, 
+       repositoryOwner, 
+       repositoryName
+     );
+     const score = calculateConfidenceScore(metrics);
+     await updateContributorRole(supabase, metrics, score);
    }
    ```
 
@@ -200,21 +209,31 @@ Calculate and manage contributor confidence scores based on activity.
 
 #### Key Functions
 
-##### `calculateConfidenceScore(supabase, contributorId: string): Promise<number>`
+##### `calculateConfidenceScore(metrics: ContributorMetrics): ConfidenceScore`
 
-Calculates a confidence score (0-100) based on contributor activity.
+Calculates a confidence score based on contributor activity metrics.
 
 **Usage:**
 ```typescript
-import { calculateConfidenceScore } from '../_shared/confidence-scoring.ts';
+import { calculateConfidenceScore, getContributorMetrics } from '../_shared/confidence-scoring.ts';
 
-const score = await calculateConfidenceScore(supabase, contributorId);
-console.log('Confidence score: %d', score);
+// First get metrics
+const metrics = await getContributorMetrics(
+  supabase, 
+  contributorId, 
+  repositoryOwner, 
+  repositoryName
+);
+
+// Then calculate score
+const score = calculateConfidenceScore(metrics);
+console.log('Overall confidence: %d', score.overall);
+console.log('Privileged events score: %d', score.components.privilegedEvents);
 
 // Update contributor record
 await supabase
   .from('contributors')
-  .update({ confidence_score: score })
+  .update({ confidence_score: score.overall })
   .eq('id', contributorId);
 ```
 
@@ -225,35 +244,49 @@ await supabase
 - Issue triage activity
 - Account age and activity
 
-##### `getContributorMetrics(supabase, contributorId: string): Promise<Metrics>`
+##### `getContributorMetrics(supabase, userId: string, repositoryOwner: string, repositoryName: string): Promise<Metrics>`
 
-Retrieves detailed contributor metrics.
+Retrieves detailed contributor metrics for a specific repository.
 
 **Usage:**
 ```typescript
 import { getContributorMetrics } from '../_shared/confidence-scoring.ts';
 
-const metrics = await getContributorMetrics(supabase, contributorId);
+const metrics = await getContributorMetrics(
+  supabase, 
+  contributorId, 
+  repositoryOwner, 
+  repositoryName
+);
+
 console.log('Contributor stats:', {
-  totalPRs: metrics.total_prs,
-  mergedPRs: metrics.merged_prs,
-  reviews: metrics.review_count,
-  issues: metrics.issue_count,
+  totalPRs: metrics.totalEventCount,
+  privilegedEvents: metrics.privilegedEventCount,
+  uniqueEventTypes: metrics.uniqueEventTypes,
+  daysSinceFirstSeen: metrics.daysSinceFirstSeen,
 });
 ```
 
-##### `updateContributorRole(supabase, contributorId: string, role: string): Promise<void>`
+##### `updateContributorRole(supabase, metrics: ContributorMetrics, score: ConfidenceScore): Promise<void>`
 
-Updates a contributor's role based on activity.
+Updates a contributor's role based on metrics and confidence score.
 
 **Usage:**
 ```typescript
-import { updateContributorRole } from '../_shared/confidence-scoring.ts';
+import { updateContributorRole, getContributorMetrics, calculateConfidenceScore } from '../_shared/confidence-scoring.ts';
 
-// Promote to maintainer after merge
-if (detectPrivilegedEvent(event)) {
-  await updateContributorRole(supabase, contributorId, 'maintainer');
-}
+// Get metrics and calculate score
+const metrics = await getContributorMetrics(
+  supabase, 
+  contributorId, 
+  repositoryOwner, 
+  repositoryName
+);
+const score = calculateConfidenceScore(metrics);
+
+// Update role based on confidence
+await updateContributorRole(supabase, metrics, score);
+```
 
 // Valid roles: 'viewer', 'contributor', 'maintainer'
 ```

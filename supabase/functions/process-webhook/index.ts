@@ -21,9 +21,7 @@
  * @returns
  * {
  *   "success": true,
- *   "message": "Webhook event processed successfully",
- *   "job_id": "uuid-of-background-job",
- *   "inngest_event_id": "evt_..."
+ *   "result": { ... }
  * }
  */
 

@@ -335,6 +335,10 @@ async function verifyWebhookSignature(req: Request, body: string): Promise<boole
   const signature = req.headers.get('x-hub-signature-256');
   const webhookSecret = Deno.env.get('GITHUB_WEBHOOK_SECRET')!;
   
+  if (!signature || !webhookSecret) {
+    return false;
+  }
+  
   const key = await crypto.subtle.importKey(
     'raw',
     new TextEncoder().encode(webhookSecret),
@@ -353,7 +357,25 @@ async function verifyWebhookSignature(req: Request, body: string): Promise<boole
     .map(b => b.toString(16).padStart(2, '0'))
     .join('');
   
-  return signature === expectedSignature;
+  // Use constant-time comparison to prevent timing attacks
+  return timingSafeEqual(signature, expectedSignature);
+}
+
+/**
+ * Constant-time string comparison to prevent timing attacks
+ * This prevents attackers from using timing information to forge signatures
+ */
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) {
+    return false;
+  }
+  
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  
+  return result === 0;
 }
 ```
 
