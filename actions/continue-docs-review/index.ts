@@ -759,6 +759,145 @@ function getValidationExamples(
   return validations;
 }
 
+interface DocReview {
+  relevantDocs: string[];
+  reviewSuggestions: string[];
+}
+
+async function findAffectedDocs(prFiles: PRFiles): Promise<DocReview> {
+  const { allFiles } = prFiles;
+  const relevantDocs: Set<string> = new Set();
+  const reviewSuggestions: string[] = [];
+
+  // Map code changes to documentation areas
+  const codeFiles = allFiles.filter(
+    (f) =>
+      (f.filename.endsWith('.ts') ||
+        f.filename.endsWith('.tsx') ||
+        f.filename.endsWith('.js') ||
+        f.filename.endsWith('.jsx')) &&
+      !f.filename.includes('.test.') &&
+      !f.filename.includes('.spec.') &&
+      !f.filename.includes('__tests__') &&
+      !f.filename.includes('.stories.')
+  );
+
+  // Check for workspace-related changes
+  const hasWorkspaceChanges = codeFiles.some(
+    (f) =>
+      f.filename.includes('/workspace/') ||
+      f.filename.includes('workspace.service') ||
+      f.filename.includes('workspace-')
+  );
+
+  // Check for health/lottery factor changes
+  const hasHealthChanges = codeFiles.some(
+    (f) =>
+      f.filename.includes('/health/') ||
+      f.filename.includes('health-metrics') ||
+      f.filename.includes('lottery-factor') ||
+      f.filename.includes('repository-health')
+  );
+
+  // Check for contribution/activity changes
+  const hasActivityChanges = codeFiles.some(
+    (f) =>
+      f.filename.includes('/activity/') ||
+      f.filename.includes('contributions') ||
+      f.filename.includes('contributor')
+  );
+
+  // Check for notification changes
+  const hasNotificationChanges = codeFiles.some(
+    (f) => f.filename.includes('notification') || f.filename.includes('invite')
+  );
+
+  // Check for authentication changes
+  const hasAuthChanges = codeFiles.some(
+    (f) => f.filename.includes('/auth/') || f.filename.includes('auth-')
+  );
+
+  // Map changes to potential documentation
+  try {
+    // Check if docs directory exists
+    try {
+      await fs.access('docs');
+
+      // Look for feature docs
+      const featureDocs = glob.sync('docs/features/*.md');
+      const architectureDocs = glob.sync('docs/architecture/*.md');
+
+      if (hasWorkspaceChanges) {
+        const workspaceDocs = featureDocs.filter((f) => f.includes('workspace'));
+        workspaceDocs.forEach((doc) => relevantDocs.add(doc));
+        reviewSuggestions.push(
+          '📝 **Workspace changes detected** - Review `docs/features/workspace-*.md` for accuracy'
+        );
+      }
+
+      if (hasHealthChanges) {
+        const healthDocs = featureDocs.filter((f) => f.includes('health') || f.includes('lottery'));
+        healthDocs.forEach((doc) => relevantDocs.add(doc));
+        reviewSuggestions.push(
+          '📝 **Health metrics changes** - Verify `docs/features/*health*.md` still matches implementation'
+        );
+      }
+
+      if (hasActivityChanges) {
+        const activityDocs = featureDocs.filter(
+          (f) => f.includes('activity') || f.includes('contribution')
+        );
+        activityDocs.forEach((doc) => relevantDocs.add(doc));
+        reviewSuggestions.push(
+          '📝 **Activity/contribution changes** - Check if `docs/features/*activity*.md` needs updates'
+        );
+      }
+
+      if (hasNotificationChanges) {
+        const notificationDocs = featureDocs.filter(
+          (f) => f.includes('notification') || f.includes('invite')
+        );
+        notificationDocs.forEach((doc) => relevantDocs.add(doc));
+        reviewSuggestions.push(
+          '📝 **Notification changes** - Review notification docs for accuracy'
+        );
+      }
+
+      if (hasAuthChanges) {
+        const authDocs = [...featureDocs, ...architectureDocs].filter((f) => f.includes('auth'));
+        authDocs.forEach((doc) => relevantDocs.add(doc));
+        reviewSuggestions.push('📝 **Auth changes** - Verify authentication documentation');
+      }
+
+      // Check README for general feature mentions
+      try {
+        await fs.access('README.md');
+        relevantDocs.add('README.md');
+        if (
+          hasWorkspaceChanges ||
+          hasHealthChanges ||
+          hasActivityChanges ||
+          hasNotificationChanges
+        ) {
+          reviewSuggestions.push('📝 Review `README.md` for affected feature descriptions');
+        }
+      } catch {
+        // README doesn't exist, skip
+      }
+    } catch {
+      // docs directory doesn't exist
+      core.info('No docs directory found');
+    }
+  } catch (error) {
+    core.warning(`Error finding affected docs: ${error}`);
+  }
+
+  return {
+    relevantDocs: Array.from(relevantDocs),
+    reviewSuggestions,
+  };
+}
+
 function needsDocumentation(prFiles: PRFiles): {
   needed: boolean;
   reason: string;
@@ -935,7 +1074,8 @@ function needsDocumentation(prFiles: PRFiles): {
 async function postReviewComments(
   issues: DocumentationIssue[],
   validations: ValidationSuccess[],
-  prFiles: PRFiles
+  prFiles: PRFiles,
+  affectedDocs: DocReview
 ): Promise<void> {
   const token = process.env.GITHUB_TOKEN || process.env.INPUT_GITHUB_TOKEN || '';
   if (!token) {
@@ -1044,9 +1184,25 @@ async function postReviewComments(
     if (docsNeeded.needed) {
       reviewBody += '**No documentation files found in this PR.**\n\n';
       reviewBody += 'Please add documentation following the suggestions above.\n';
+    } else if (affectedDocs.reviewSuggestions.length > 0) {
+      // Code changes detected that might affect existing docs
+      reviewBody += '✅ **No documentation changes in this PR.**\n\n';
+      reviewBody +=
+        'However, your code changes may affect existing documentation. Please verify:\n\n';
+      for (const suggestion of affectedDocs.reviewSuggestions) {
+        reviewBody += `- ${suggestion}\n`;
+      }
+      if (affectedDocs.relevantDocs.length > 0) {
+        reviewBody += '\n**Potentially affected documentation:**\n';
+        for (const doc of affectedDocs.relevantDocs) {
+          reviewBody += `- \`${doc}\`\n`;
+        }
+      }
+      reviewBody += '\n';
     } else {
       reviewBody += '✅ **No documentation changes in this PR.**\n\n';
-      reviewBody += 'Code-only changes detected. Documentation review skipped.\n';
+      reviewBody +=
+        'Code changes detected with no obvious documentation impact. If your changes affect user-facing features or APIs, please verify relevant documentation is still accurate.\n';
     }
   } else if (issues.length === 0) {
     reviewBody += '✅ **All documentation checks passed!**\n\n';
@@ -1185,8 +1341,13 @@ async function run(): Promise<void> {
       core.info('No documentation files in PR');
     }
 
-    // Post review comments (including "docs needed" check)
-    await postReviewComments(issues, validations, prFiles);
+    // Find documentation that might be affected by code changes
+    const affectedDocs = await findAffectedDocs(prFiles);
+    core.info(`Found ${affectedDocs.relevantDocs.length} potentially affected docs`);
+    core.info(`Generated ${affectedDocs.reviewSuggestions.length} review suggestions`);
+
+    // Post review comments (including "docs needed" check and affected docs)
+    await postReviewComments(issues, validations, prFiles, affectedDocs);
 
     core.info('Documentation review completed');
   } catch (error) {
