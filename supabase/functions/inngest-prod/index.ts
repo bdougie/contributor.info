@@ -973,7 +973,11 @@ const computeEmbeddings = inngest.createFunction(
       }
 
       if (viewItems) {
-        items.push(...viewItems);
+        // Map item_type to type for consistency
+        items.push(...viewItems.map((item: any) => ({
+          ...item,
+          type: item.item_type,
+        })));
       }
 
       if (forceRegenerate && repositoryId) {
