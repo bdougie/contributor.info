@@ -130,6 +130,11 @@ export function ResponsePreviewModal({
                       <span className="text-xs px-1.5 py-0.5 rounded bg-muted">
                         {item.repository}
                       </span>
+                      {item.status === 'answered' && (
+                        <span className="text-xs px-1.5 py-0.5 rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
+                          Answered
+                        </span>
+                      )}
                     </div>
                     <p className="text-sm mt-1 line-clamp-1">{item.title}</p>
                   </div>

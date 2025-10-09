@@ -33,7 +33,7 @@ export interface SimilaritySearchOptions {
  * Find similar items across PRs, issues, and discussions within a workspace
  */
 export async function findSimilarItems(options: SimilaritySearchOptions): Promise<SimilarItem[]> {
-  const { workspaceId, queryItem, limit = 4 } = options;
+  const { workspaceId, queryItem, limit = 7 } = options;
 
   try {
     // Step 1: Get workspace repository IDs
