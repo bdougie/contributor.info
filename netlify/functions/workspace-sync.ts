@@ -180,7 +180,9 @@ export const handler: Handler = async (event) => {
       repositoryIds.map(async (repoId: string) => {
         try {
           console.log(`[workspace-sync] Sending event for repository: ${repoId}`);
-          const eventData = {
+
+          // Send PR sync event
+          const prEventData = {
             name: 'capture/repository.sync.graphql',
             data: {
               repositoryId: repoId,
@@ -189,10 +191,23 @@ export const handler: Handler = async (event) => {
               reason: `Manual workspace sync ${workspaceId ? `for workspace ${workspaceId}` : ''}`,
             },
           };
-          console.log(`[workspace-sync] Event data:`, eventData);
+          console.log(`[workspace-sync] PR sync event data:`, prEventData);
 
-          const result = await inngest.send(eventData);
-          console.log(`[workspace-sync] Event sent successfully for ${repoId}:`, result);
+          await inngest.send(prEventData);
+
+          // Also trigger discussion sync for this repository
+          const discussionEventData = {
+            name: 'capture/repository.discussions',
+            data: {
+              repositoryId: repoId,
+              maxItems: 100,
+              source: `workspace-sync${workspaceId ? `:${workspaceId}` : ''}`,
+            },
+          };
+          console.log(`[workspace-sync] Discussion sync event data:`, discussionEventData);
+
+          await inngest.send(discussionEventData);
+          console.log(`[workspace-sync] Events sent successfully for ${repoId}`);
 
           return { repositoryId: repoId, status: 'success' };
         } catch (error) {
