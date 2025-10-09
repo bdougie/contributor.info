@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { getAuthRedirectURL } from '@/lib/auth/auth-utils';
+import { GITHUB_OAUTH_SCOPES } from '@/config/auth';
 
 /**
  * Hook for managing GitHub authentication state and actions
@@ -136,7 +137,7 @@ export function useGitHubAuth() {
         provider: 'github',
         options: {
           redirectTo: redirectUrl, // Dynamic redirect based on context
-          scopes: 'repo read:user user:email', // 'repo' scope needed to check repository permissions
+          scopes: GITHUB_OAUTH_SCOPES,
         },
       });
 

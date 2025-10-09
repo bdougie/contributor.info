@@ -18,6 +18,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Crown, LogIn, Plus, Loader2, AlertCircle } from '@/components/ui/icon';
+import { GITHUB_OAUTH_SCOPES } from '@/config/auth';
 import { getWorkspaceRoute } from '@/lib/utils/workspace-routes';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
@@ -114,7 +115,7 @@ export function AddToWorkspaceModal({ open, onOpenChange, owner, repo }: AddToWo
         provider: 'github',
         options: {
           redirectTo,
-          scopes: 'public_repo read:user user:email',
+          scopes: GITHUB_OAUTH_SCOPES,
         },
       });
 

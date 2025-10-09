@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { trackEvent } from '@/lib/posthog-lazy';
+import { GITHUB_OAUTH_SCOPES } from '@/config/auth';
 
 /**
  * Simple auth hook for login functionality
@@ -21,7 +22,7 @@ export function useAuth() {
         provider: 'github',
         options: {
           redirectTo,
-          scopes: 'public_repo read:user user:email',
+          scopes: GITHUB_OAUTH_SCOPES,
         },
       });
 

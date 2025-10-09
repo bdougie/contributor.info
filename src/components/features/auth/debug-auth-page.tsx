@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
@@ -12,21 +12,27 @@ import {
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useGitHubAuth } from '@/hooks/use-github-auth';
+import { GITHUB_OAUTH_SCOPES_DEBUG } from '@/config/auth';
+import type { Session, User } from '@supabase/supabase-js';
+
+interface SessionData {
+  session: Session | null;
+}
 
 export default function DebugAuthPage() {
-  const [sessionInfo, setSessionInfo] = useState<any>(null);
+  const [sessionInfo, setSessionInfo] = useState<SessionData | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [userInfo, setUserInfo] = useState<any>(null);
+  const [userInfo, setUserInfo] = useState<User | null>(null);
   const [debugLogs, setDebugLogs] = useState<string[]>([]);
   const navigate = useNavigate();
   const { checkSession: hookCheckSession } = useGitHubAuth();
 
   // Add a log entry
-  const addLog = (message: string) => {
+  const addLog = useCallback((message: string) => {
     setDebugLogs((prev) => [...prev, `${new Date().toISOString()}: ${message}`]);
-  };
+  }, []);
 
-  const refreshSessionInfo = async () => {
+  const refreshSessionInfo = useCallback(async () => {
     try {
       addLog('Checking session...');
       const { data, error } = await supabase.auth.getSession();
@@ -48,7 +54,7 @@ export default function DebugAuthPage() {
       setAuthError(errorMessage);
       addLog(`Session check error: ${errorMessage}`);
     }
-  };
+  }, [addLog]);
 
   const handleLogin = async () => {
     try {
@@ -62,7 +68,7 @@ export default function DebugAuthPage() {
         provider: 'github',
         options: {
           redirectTo: `${window.location.origin}/debug-auth`,
-          scopes: 'repo user',
+          scopes: GITHUB_OAUTH_SCOPES_DEBUG,
         },
       });
 
@@ -172,7 +178,7 @@ export default function DebugAuthPage() {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [addLog, refreshSessionInfo]);
 
   return (
     <div className="container max-w-4xl mx-auto py-2">

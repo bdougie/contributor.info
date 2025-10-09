@@ -18,6 +18,7 @@ import { useFeatureFlags } from '@/lib/feature-flags/context';
 import { FEATURE_FLAGS } from '@/lib/feature-flags/types';
 import type { CreateWorkspaceRequest } from '@/types/workspace';
 import type { User } from '@supabase/supabase-js';
+import { GITHUB_OAUTH_SCOPES } from '@/config/auth';
 
 export interface WorkspaceCreateModalProps {
   open: boolean;
@@ -71,7 +72,7 @@ export function WorkspaceCreateModal({
           provider: 'github',
           options: {
             redirectTo,
-            scopes: 'public_repo read:user user:email',
+            scopes: GITHUB_OAUTH_SCOPES,
           },
         });
 

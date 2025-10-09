@@ -3,6 +3,7 @@ import { useState, useEffect, lazy, Suspense, useMemo, useCallback } from 'react
 import { supabase } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import { getFallbackAvatar, getOrgAvatarUrl } from '@/lib/utils/avatar';
+import { GITHUB_OAUTH_SCOPES } from '@/config/auth';
 import { useWorkspaceContributors } from '@/hooks/useWorkspaceContributors';
 import { useContributorGroups } from '@/hooks/useContributorGroups';
 import { useWorkspaceEvents } from '@/hooks/use-workspace-events';
@@ -3293,7 +3294,7 @@ function WorkspacePage() {
         provider: 'github',
         options: {
           redirectTo: redirectTo,
-          scopes: 'read:user user:email public_repo',
+          scopes: GITHUB_OAUTH_SCOPES,
         },
       });
 

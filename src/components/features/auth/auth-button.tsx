@@ -14,6 +14,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { trackEvent, identifyUser } from '@/lib/posthog-lazy';
 import type { User } from '@supabase/supabase-js';
+import { GITHUB_OAUTH_SCOPES } from '@/config/auth';
 
 export function AuthButton() {
   const navigate = useNavigate();
@@ -193,7 +194,7 @@ export function AuthButton() {
         provider: 'github',
         options: {
           redirectTo,
-          scopes: 'public_repo read:user user:email',
+          scopes: GITHUB_OAUTH_SCOPES,
         },
       });
 
