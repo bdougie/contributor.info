@@ -20,7 +20,9 @@ describe('WorkspaceCreationDisabled', () => {
       );
 
       expect(screen.getByText('Sign In Required')).toBeInTheDocument();
-      expect(screen.getByText(/Please sign in to continue/)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Sign in to organize repositories and collaborate with your team/)
+      ).toBeInTheDocument();
     });
 
     it('should show login button when callback provided (not logged in)', () => {
@@ -66,7 +68,9 @@ describe('WorkspaceCreationDisabled', () => {
       );
 
       expect(screen.getByText('Sign In Required')).toBeInTheDocument();
-      expect(screen.getByText(/Please sign in to continue/)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Sign in to organize repositories and collaborate with your team/)
+      ).toBeInTheDocument();
     });
 
     it('should render the modal variant (logged in)', () => {

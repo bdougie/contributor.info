@@ -153,3 +153,4 @@ When implementing features that load data or process information in the backgrou
 - Subtle, helpful notifications (not technical jargon)
 - Graceful error handling and fallbacks
 - check the bulletproof testing doc before fixing tests
+- if you touch the file, make it better don't just disable the linter
