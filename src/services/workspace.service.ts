@@ -749,6 +749,37 @@ export class WorkspaceService {
         console.error('Failed to downgrade repository priority:', error);
       }
 
+      // NEW: Trigger workspace metrics update
+      try {
+        // Get repository full_name for the event
+        const { data: repository } = await supabase
+          .from('repositories')
+          .select('full_name')
+          .eq('id', repositoryId)
+          .maybeSingle();
+
+        if (repository) {
+          await inngest.send({
+            name: 'workspace.repository.changed',
+            data: {
+              workspaceId,
+              action: 'removed',
+              repositoryId,
+              repositoryName: repository.full_name,
+            },
+          });
+
+          console.log(
+            'Triggered workspace metrics update: %s removed from workspace %s',
+            repository.full_name,
+            workspaceId
+          );
+        }
+      } catch (error) {
+        // Log but don't fail the workspace operation
+        console.error('Failed to trigger workspace metrics update:', error);
+      }
+
       return {
         success: true,
         statusCode: 200,
