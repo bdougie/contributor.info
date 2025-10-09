@@ -1,11 +1,11 @@
 # Postmortem: Embeddings Generation Complete Resolution
 
 ## Issue Timeline
-- **Start**: January 9, 2025 ~16:00 UTC - Embeddings generation stopped
-- **Discovery**: January 10, 2025 05:00 UTC - Issue identified during debugging
-- **Partial Fix #1**: January 10, 2025 05:45 UTC - First successful embedding (1/100) after OpenAI key fix
-- **Partial Fix #2**: January 10, 2025 05:58 UTC - Dimension mismatch resolved (384 vs 1536)
-- **Complete Resolution**: January 10, 2025 06:08 UTC - Full functionality restored
+- **Start**: October 8, 2025 ~16:00 UTC - Embeddings generation stopped
+- **Discovery**: October 9, 2025 05:00 UTC - Issue identified during debugging
+- **Partial Fix #1**: October 9, 2025 05:45 UTC - First successful embedding (1/100) after OpenAI key fix
+- **Partial Fix #2**: October 9, 2025 05:58 UTC - Dimension mismatch resolved (384 vs 1536)
+- **Complete Resolution**: October 9, 2025 06:08 UTC - Full functionality restored
 - **Duration**: 14+ hours of complete/partial failure
 
 ## Root Causes Identified & Fixed
