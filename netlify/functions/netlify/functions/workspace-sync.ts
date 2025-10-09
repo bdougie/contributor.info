@@ -1,5 +1,6 @@
 import type { Handler } from '@netlify/functions';
 import { Inngest } from 'inngest';
+import { createClient } from '@supabase/supabase-js';
 
 // Initialize Inngest client with fallback to prevent empty eventKey
 function createInngestClient() {
@@ -97,6 +98,62 @@ function checkRateLimit(workspaceId: string): {
   };
 }
 
+/**
+ * Verify user has access to the workspace
+ */
+async function verifyWorkspaceAccess(
+  authToken: string | undefined,
+  workspaceId: string
+): Promise<{ authorized: boolean; userId?: string; error?: string }> {
+  if (!authToken) {
+    return { authorized: false, error: 'Missing authorization token' };
+  }
+
+  const supabaseUrl = process.env.VITE_SUPABASE_URL;
+  const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return { authorized: false, error: 'Supabase configuration missing' };
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    global: {
+      headers: {
+        Authorization: authToken,
+      },
+    },
+  });
+
+  // Verify the token and get user
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { authorized: false, error: 'Invalid or expired token' };
+  }
+
+  // Check if user is a member of the workspace
+  const { data: membership, error: membershipError } = await supabase
+    .from('workspace_members')
+    .select('role')
+    .eq('workspace_id', workspaceId)
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  if (membershipError) {
+    console.error('[workspace-sync] Error checking workspace membership:', membershipError);
+    return { authorized: false, error: 'Error verifying workspace access' };
+  }
+
+  if (!membership) {
+    return { authorized: false, error: 'User is not a member of this workspace' };
+  }
+
+  return { authorized: true, userId: user.id };
+}
+
 export const handler: Handler = async (event) => {
   // Only allow POST requests
   if (event.httpMethod !== 'POST') {
@@ -129,33 +186,65 @@ export const handler: Handler = async (event) => {
       };
     }
 
+    // Require workspaceId for rate limiting and authorization
+    if (!workspaceId) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({
+          error: 'workspaceId is required',
+          message:
+            'Workspace sync requests must include a workspaceId for authorization and rate limiting',
+        }),
+      };
+    }
+
+    // Verify workspace access
+    const authToken = event.headers?.authorization || event.headers?.Authorization;
+    const authResult = await verifyWorkspaceAccess(authToken, workspaceId);
+
+    if (!authResult.authorized) {
+      console.warn('[workspace-sync] Unauthorized access attempt:', {
+        workspaceId,
+        error: authResult.error,
+      });
+      return {
+        statusCode: 401,
+        body: JSON.stringify({
+          error: 'Unauthorized',
+          message: authResult.error || 'You do not have access to this workspace',
+        }),
+      };
+    }
+
+    console.log('[workspace-sync] User authorized:', {
+      userId: authResult.userId,
+      workspaceId,
+    });
+
     // Check rate limit for workspace
-    let rateLimitInfo: { allowed: boolean; remaining: number; resetTime: number } | undefined;
-    if (workspaceId) {
-      rateLimitInfo = checkRateLimit(workspaceId);
+    const rateLimitInfo = checkRateLimit(workspaceId);
 
-      if (!rateLimitInfo.allowed) {
-        // TODO: Add PostHog tracking for rate limit hit
-        // posthog.capture('workspace_sync_rate_limited', {
-        //   workspaceId,
-        //   resetTime: new Date(rateLimitInfo.resetTime).toISOString(),
-        // });
+    if (!rateLimitInfo.allowed) {
+      // TODO: Add PostHog tracking for rate limit hit
+      // posthog.capture('workspace_sync_rate_limited', {
+      //   workspaceId,
+      //   resetTime: new Date(rateLimitInfo.resetTime).toISOString(),
+      // });
 
-        return {
-          statusCode: 429,
-          headers: {
-            'X-RateLimit-Limit': String(MAX_SYNCS_PER_WINDOW),
-            'X-RateLimit-Remaining': '0',
-            'X-RateLimit-Reset': String(Math.floor(rateLimitInfo.resetTime / 1000)),
-            'Retry-After': String(Math.ceil((rateLimitInfo.resetTime - Date.now()) / 1000)),
-          },
-          body: JSON.stringify({
-            error: 'Rate limit exceeded',
-            message: `Too many sync requests. Please wait ${Math.ceil((rateLimitInfo.resetTime - Date.now()) / 1000)} seconds before trying again.`,
-            resetTime: new Date(rateLimitInfo.resetTime).toISOString(),
-          }),
-        };
-      }
+      return {
+        statusCode: 429,
+        headers: {
+          'X-RateLimit-Limit': String(MAX_SYNCS_PER_WINDOW),
+          'X-RateLimit-Remaining': '0',
+          'X-RateLimit-Reset': String(Math.floor(rateLimitInfo.resetTime / 1000)),
+          'Retry-After': String(Math.ceil((rateLimitInfo.resetTime - Date.now()) / 1000)),
+        },
+        body: JSON.stringify({
+          error: 'Rate limit exceeded',
+          message: `Too many sync requests. Please wait ${Math.ceil((rateLimitInfo.resetTime - Date.now()) / 1000)} seconds before trying again.`,
+          resetTime: new Date(rateLimitInfo.resetTime).toISOString(),
+        }),
+      };
     }
 
     // Initialize Inngest client
@@ -180,7 +269,9 @@ export const handler: Handler = async (event) => {
       repositoryIds.map(async (repoId: string) => {
         try {
           console.log(`[workspace-sync] Sending event for repository: ${repoId}`);
-          const eventData = {
+
+          // Send PR sync event
+          const prEventData = {
             name: 'capture/repository.sync.graphql',
             data: {
               repositoryId: repoId,
@@ -189,10 +280,23 @@ export const handler: Handler = async (event) => {
               reason: `Manual workspace sync ${workspaceId ? `for workspace ${workspaceId}` : ''}`,
             },
           };
-          console.log(`[workspace-sync] Event data:`, eventData);
+          console.log(`[workspace-sync] PR sync event data:`, prEventData);
 
-          const result = await inngest.send(eventData);
-          console.log(`[workspace-sync] Event sent successfully for ${repoId}:`, result);
+          await inngest.send(prEventData);
+
+          // Also trigger discussion sync for this repository
+          const discussionEventData = {
+            name: 'capture/repository.discussions',
+            data: {
+              repositoryId: repoId,
+              maxItems: 100,
+              source: `workspace-sync${workspaceId ? `:${workspaceId}` : ''}`,
+            },
+          };
+          console.log(`[workspace-sync] Discussion sync event data:`, discussionEventData);
+
+          await inngest.send(discussionEventData);
+          console.log(`[workspace-sync] Events sent successfully for ${repoId}`);
 
           return { repositoryId: repoId, status: 'success' };
         } catch (error) {
