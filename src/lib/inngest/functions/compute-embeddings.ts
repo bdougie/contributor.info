@@ -102,14 +102,15 @@ export const computeEmbeddings = inngest.createFunction(
       }> = [];
 
       // Build query conditions
-      let baseQuery = supabase.from('items_needing_embeddings').select('*');
+      // Use priority view for backfill with workspace-based prioritization
+      let baseQuery = supabase.from('items_needing_embeddings_priority').select('*');
 
       if (repositoryId) {
         baseQuery = baseQuery.eq('repository_id', repositoryId);
       }
 
-      // Get items from view
-      const { data: viewItems, error } = await baseQuery.limit(100);
+      // Get items from priority view (200 items max, prioritized by workspace and type)
+      const { data: viewItems, error } = await baseQuery.limit(200);
 
       if (error) {
         console.error('[Embeddings] Failed to fetch items needing embeddings:', {
