@@ -188,6 +188,49 @@ export const handler: Handler = async (event) => {
       } catch (error) {
         console.error('[workspace-sync] Failed to log sync event:', error);
       }
+
+      // Trigger workspace metrics aggregation via Inngest
+      try {
+        const inngestEventKey = process.env.INNGEST_EVENT_KEY;
+        if (inngestEventKey) {
+          const inngestResponse = await fetch('https://inn.gs/e/contributor_info', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${inngestEventKey}`,
+            },
+            body: JSON.stringify({
+              name: 'workspace.metrics.aggregate',
+              data: {
+                workspaceId,
+                timeRange: 'all',
+                priority: 50,
+                forceRefresh: true,
+                triggeredBy: 'manual_sync',
+              },
+            }),
+          });
+
+          if (inngestResponse.ok) {
+            console.log(
+              `[workspace-sync] Triggered workspace metrics aggregation for workspace %s`,
+              workspaceId
+            );
+          } else {
+            console.error(
+              '[workspace-sync] Failed to trigger workspace metrics aggregation:',
+              await inngestResponse.text()
+            );
+          }
+        } else {
+          console.warn(
+            '[workspace-sync] INNGEST_EVENT_KEY not configured - skipping metrics aggregation'
+          );
+        }
+      } catch (error) {
+        console.error('[workspace-sync] Error triggering workspace metrics aggregation:', error);
+        // Don't fail the sync operation if metrics aggregation fails
+      }
     }
 
     return {

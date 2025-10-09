@@ -698,29 +698,29 @@ export async function getWorkspaceTrendData(
 }
 
 /**
- * Trigger metrics aggregation via API
+ * Trigger metrics aggregation via Inngest
  */
 async function triggerMetricsAggregation(
   workspaceId: string,
   timeRange: MetricsTimeRange
 ): Promise<void> {
   try {
-    // Call the API endpoint to trigger aggregation
-    const response = await fetch('/api/workspaces/metrics/aggregate', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
+    // Import inngest client dynamically to avoid SSR issues
+    const { inngest } = await import('@/lib/inngest/client');
+
+    // Send Inngest event to trigger aggregation
+    await inngest.send({
+      name: 'workspace.metrics.aggregate',
+      data: {
         workspaceId,
         timeRange,
         priority: 50,
-      }),
+        forceRefresh: false,
+        triggeredBy: 'manual',
+      },
     });
 
-    if (!response.ok) {
-      console.error('Failed to trigger metrics aggregation:', response.statusText);
-    }
+    console.log('Triggered workspace metrics aggregation:', { workspaceId, timeRange });
   } catch (error) {
     console.error('Error triggering metrics aggregation:', error);
   }
