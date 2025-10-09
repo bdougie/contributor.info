@@ -62,7 +62,7 @@ export default function DebugAuthPage() {
         provider: 'github',
         options: {
           redirectTo: `${window.location.origin}/debug-auth`,
-          scopes: 'repo user',
+          scopes: 'public_repo read:user user:email',
         },
       });
 

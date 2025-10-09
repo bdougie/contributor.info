@@ -132,23 +132,41 @@ async function githubGraphQL(query: string, variables: Record<string, any> = {},
 }
 
 // Helper to ensure contributor exists
-async function ensureContributor(supabase: any, username: string, avatarUrl?: string): Promise<string> {
-  // Check if contributor exists
-  const { data: existing } = await supabase
+async function ensureContributor(supabase: any, username: string, avatarUrl?: string, githubId?: number): Promise<string | null> {
+  // Skip users without numeric IDs (bots from GitHub API don't have numeric IDs)
+  if (!githubId) {
+    console.log(`Skipping user ${username} without github_id (likely a GitHub app/bot)`);
+    return null;
+  }
+
+  // Check if contributor exists by github_id first (unique constraint)
+  const { data: existingById } = await supabase
     .from('contributors')
     .select('id')
-    .eq('github_username', username)
+    .eq('github_id', githubId)
     .single();
 
-  if (existing) {
-    return existing.id;
+  if (existingById) {
+    return existingById.id;
+  }
+
+  // Check if contributor exists by username (for legacy data)
+  const { data: existingByUsername } = await supabase
+    .from('contributors')
+    .select('id')
+    .eq('username', username)
+    .single();
+
+  if (existingByUsername) {
+    return existingByUsername.id;
   }
 
   // Create new contributor
   const { data: newContributor, error } = await supabase
     .from('contributors')
     .insert({
-      github_username: username,
+      github_id: githubId,
+      username: username,
       avatar_url: avatarUrl,
     })
     .select('id')
@@ -156,13 +174,22 @@ async function ensureContributor(supabase: any, username: string, avatarUrl?: st
 
   if (error) {
     console.error(`Failed to create contributor ${username}:`, error);
-    // Try to get existing one again in case of race condition
-    const { data: retry } = await supabase
+    // Try to get existing one by github_id in case of race condition
+    const { data: retryById } = await supabase
       .from('contributors')
       .select('id')
-      .eq('github_username', username)
+      .eq('github_id', githubId)
       .single();
-    if (retry) return retry.id;
+    if (retryById) return retryById.id;
+
+    // Try by username as fallback
+    const { data: retryByUsername } = await supabase
+      .from('contributors')
+      .select('id')
+      .eq('username', username)
+      .single();
+    if (retryByUsername) return retryByUsername.id;
+
     throw error;
   }
 
@@ -192,7 +219,7 @@ const capturePrDetails = inngest.createFunction(
       const supabase = getSupabaseClient();
 
       // Ensure author exists
-      const authorId = await ensureContributor(supabase, prData.user.login, prData.user.avatar_url);
+      const authorId = await ensureContributor(supabase, prData.user.login, prData.user.avatar_url, prData.user.id);
 
       // Get repository ID
       const { data: repoData } = await supabase
@@ -215,11 +242,12 @@ const capturePrDetails = inngest.createFunction(
         repoData.id = newRepo.id;
       }
 
-      // Store PR data
+      // Store PR data with correct field names
       const { error } = await supabase
         .from('pull_requests')
         .upsert({
-          pr_number: prData.number,
+          number: prData.number,
+          github_id: prData.id.toString(),
           repository_id: repoData.id,
           repository_full_name: `${owner}/${repo}`,
           title: prData.title,
@@ -234,6 +262,11 @@ const capturePrDetails = inngest.createFunction(
           closed_at: prData.closed_at,
           merged_at: prData.merged_at,
           is_draft: prData.draft || false,
+          base_branch: prData.base?.ref || 'main',
+          head_branch: prData.head?.ref || 'unknown',
+          last_synced_at: new Date().toISOString(),
+        }, {
+          onConflict: 'github_id',
         });
 
       if (error) throw error;
@@ -314,7 +347,8 @@ const capturePrDetailsGraphQL = inngest.createFunction(
       const authorId = await ensureContributor(
         supabase,
         prData.author.login,
-        prData.author.avatarUrl
+        prData.author.avatarUrl,
+        prData.author.databaseId
       );
 
       // Get or create repository
@@ -330,9 +364,10 @@ const capturePrDetailsGraphQL = inngest.createFunction(
         .select('id')
         .single()).data.id;
 
-      // Store PR
+      // Store PR with correct field names
       await supabase.from('pull_requests').upsert({
-        pr_number: prData.number,
+        number: prData.number,
+        github_id: prData.databaseId?.toString() || prData.id,
         repository_id: repositoryId,
         repository_full_name: `${owner}/${repo}`,
         title: prData.title,
@@ -347,6 +382,11 @@ const capturePrDetailsGraphQL = inngest.createFunction(
         closed_at: prData.closedAt,
         merged_at: prData.mergedAt,
         is_draft: prData.isDraft || false,
+        base_branch: prData.baseRefName || 'main',
+        head_branch: prData.headRefName || 'unknown',
+        last_synced_at: new Date().toISOString(),
+      }, {
+        onConflict: 'github_id',
       });
 
       // Store reviews
@@ -473,8 +513,10 @@ const capturePrComments = inngest.createFunction(
         const authorId = await ensureContributor(
           supabase,
           comment.user.login,
-          comment.user.avatar_url
+          comment.user.avatar_url,
+          comment.user.id
         );
+        if (!authorId) continue; // Skip if no github_id (GitHub Apps/bots)
 
         const { error } = await supabase
           .from('pr_comments')
@@ -527,8 +569,10 @@ const captureIssueComments = inngest.createFunction(
         const authorId = await ensureContributor(
           supabase,
           comment.user.login,
-          comment.user.avatar_url
+          comment.user.avatar_url,
+          comment.user.id
         );
+        if (!authorId) continue; // Skip if no github_id (GitHub Apps/bots)
 
         const { error } = await supabase
           .from('issue_comments')
@@ -592,13 +636,16 @@ const captureRepositoryIssues = inngest.createFunction(
         const authorId = await ensureContributor(
           supabase,
           issue.user.login,
-          issue.user.avatar_url
+          issue.user.avatar_url,
+          issue.user.id
         );
+        if (!authorId) continue; // Skip if no github_id (GitHub Apps/bots)
 
         const { error } = await supabase
           .from('issues')
           .upsert({
-            issue_number: issue.number,
+            number: issue.number,
+            github_id: issue.id.toString(),
             repository_id: repositoryId,
             repository_full_name: `${owner}/${repo}`,
             title: issue.title,
@@ -609,6 +656,9 @@ const captureRepositoryIssues = inngest.createFunction(
             created_at: issue.created_at,
             updated_at: issue.updated_at,
             closed_at: issue.closed_at,
+            last_synced_at: new Date().toISOString(),
+          }, {
+            onConflict: 'github_id',
           });
 
         if (error) {
@@ -645,21 +695,24 @@ const captureRepositorySync = inngest.createFunction(
       const { data, error } = await supabase
         .from('repositories')
         .upsert({
+          github_id: repoData.id,
           full_name: repoData.full_name,
           name: repoData.name,
           owner: repoData.owner.login,
           description: repoData.description,
-          stars: repoData.stargazers_count,
-          forks: repoData.forks_count,
-          open_issues: repoData.open_issues_count,
+          stargazers_count: repoData.stargazers_count,
+          forks_count: repoData.forks_count,
+          open_issues_count: repoData.open_issues_count,
           language: repoData.language,
-          created_at: repoData.created_at,
-          updated_at: repoData.updated_at,
-          pushed_at: repoData.pushed_at,
+          github_created_at: repoData.created_at,
+          github_updated_at: repoData.updated_at,
+          github_pushed_at: repoData.pushed_at,
           is_private: repoData.private,
           is_archived: repoData.archived,
           default_branch: repoData.default_branch,
           topics: repoData.topics,
+        }, {
+          onConflict: 'full_name'
         })
         .select('id')
         .single();
@@ -671,9 +724,14 @@ const captureRepositorySync = inngest.createFunction(
     // Fetch and store recent PRs
     await step.run('sync-recent-prs', async () => {
       const prs = await githubRequest(
-        `/repos/${owner}/${repo}/pulls?state=all&per_page=30&sort=updated&direction=desc`,
+        `/repos/${owner}/${repo}/pulls?state=all&per_page=30&sort=created&direction=desc`,
         github_token
       );
+      
+      console.log(`Fetched ${prs.length} PRs from ${owner}/${repo}`);
+      if (prs.length > 0) {
+        console.log(`First PR: #${prs[0].number} - ${prs[0].title} (created: ${prs[0].created_at})`);
+      }
 
       const supabase = getSupabaseClient();
 
@@ -681,11 +739,14 @@ const captureRepositorySync = inngest.createFunction(
         const authorId = await ensureContributor(
           supabase,
           pr.user.login,
-          pr.user.avatar_url
+          pr.user.avatar_url,
+          pr.user.id
         );
+        if (!authorId) continue; // Skip if no github_id (GitHub Apps/bots)
 
-        await supabase.from('pull_requests').upsert({
-          pr_number: pr.number,
+        const { error: prError } = await supabase.from('pull_requests').upsert({
+          number: pr.number,
+          github_id: pr.id.toString(),
           repository_id: repositoryId,
           repository_full_name: `${owner}/${repo}`,
           title: pr.title,
@@ -700,7 +761,18 @@ const captureRepositorySync = inngest.createFunction(
           closed_at: pr.closed_at,
           merged_at: pr.merged_at,
           is_draft: pr.draft || false,
+          base_branch: pr.base?.ref || 'main',
+          head_branch: pr.head?.ref || 'unknown',
+          last_synced_at: new Date().toISOString(),
+        }, {
+          onConflict: 'github_id',
         });
+        
+        if (prError) {
+          console.error(`Failed to upsert PR #${pr.number}:`, prError);
+        } else {
+          console.log(`Successfully upserted PR #${pr.number} (${pr.title})`);
+        }
       }
     });
 
@@ -1246,6 +1318,261 @@ const computeEmbeddings = inngest.createFunction(
   }
 );
 
+// ============================================================================
+// WORKSPACE METRICS AGGREGATION
+// ============================================================================
+
+const aggregateWorkspaceMetrics = inngest.createFunction(
+  {
+    id: 'aggregate-workspace-metrics',
+    name: 'Aggregate Workspace Metrics',
+    throttle: {
+      key: 'event.data.workspaceId',
+      limit: 1,
+      period: '1m',
+    },
+    retries: 3,
+  },
+  { event: 'workspace.metrics.aggregate' },
+  async ({ event, step }) => {
+    const { workspaceId, timeRange = 'all', forceRefresh = false } = event.data;
+
+    console.log('[workspace-metrics] Starting aggregation for workspace %s', workspaceId);
+
+    // Step 1: Get workspace repositories with explicit field selection
+    const repositories = await step.run('fetch-workspace-repositories', async () => {
+      const supabase = getSupabaseClient();
+
+      const { data, error } = await supabase
+        .from('workspace_repositories')
+        .select(`
+          repository_id,
+          repositories (
+            id,
+            full_name,
+            owner,
+            name,
+            stargazers_count,
+            forks_count,
+            watchers_count,
+            language
+          )
+        `)
+        .eq('workspace_id', workspaceId);
+
+      if (error) {
+        throw new NonRetriableError(`Failed to fetch workspace repositories: ${error.message}`);
+      }
+
+      // Extract repositories with proper typing
+      const repos = data?.map(wr => wr.repositories).filter(Boolean) || [];
+      console.log('[workspace-metrics] Found %s repositories for workspace', repos.length);
+
+      return repos;
+    });
+
+    if (repositories.length === 0) {
+      console.log('[workspace-metrics] No repositories found for workspace %s', workspaceId);
+      return { workspaceId, metrics: null, message: 'No repositories in workspace' };
+    }
+
+    // Step 2: Aggregate PRs
+    const prMetrics = await step.run('aggregate-pull-requests', async () => {
+      const supabase = getSupabaseClient();
+      const repositoryIds = repositories.map(r => r.id);
+
+      const { data, error } = await supabase
+        .from('pull_requests')
+        .select('state, created_at, closed_at, merged_at')
+        .in('repository_id', repositoryIds);
+
+      if (error) {
+        console.error('[workspace-metrics] Error fetching PRs: %s', error.message);
+        return { total: 0, open: 0, closed: 0, merged: 0 };
+      }
+
+      const now = new Date();
+      const metrics = {
+        total: data?.length || 0,
+        open: data?.filter(pr => pr.state === 'open').length || 0,
+        closed: data?.filter(pr => pr.state === 'closed' && !pr.merged_at).length || 0,
+        merged: data?.filter(pr => pr.merged_at).length || 0,
+      };
+
+      console.log('[workspace-metrics] PR metrics: %s', JSON.stringify(metrics));
+      return metrics;
+    });
+
+    // Step 3: Aggregate Issues
+    const issueMetrics = await step.run('aggregate-issues', async () => {
+      const supabase = getSupabaseClient();
+      const repositoryIds = repositories.map(r => r.id);
+
+      const { data, error } = await supabase
+        .from('issues')
+        .select('state, created_at, closed_at')
+        .in('repository_id', repositoryIds);
+
+      if (error) {
+        console.error('[workspace-metrics] Error fetching issues: %s', error.message);
+        return { total: 0, open: 0, closed: 0 };
+      }
+
+      const metrics = {
+        total: data?.length || 0,
+        open: data?.filter(issue => issue.state === 'open').length || 0,
+        closed: data?.filter(issue => issue.state === 'closed').length || 0,
+      };
+
+      console.log('[workspace-metrics] Issue metrics: %s', JSON.stringify(metrics));
+      return metrics;
+    });
+
+    // Step 4: Aggregate Discussions
+    const discussionMetrics = await step.run('aggregate-discussions', async () => {
+      const supabase = getSupabaseClient();
+      const repositoryIds = repositories.map(r => r.id);
+
+      const { data, error } = await supabase
+        .from('discussions')
+        .select('created_at, answer_chosen_at')
+        .in('repository_id', repositoryIds);
+
+      if (error) {
+        console.error('[workspace-metrics] Error fetching discussions: %s', error.message);
+        return { total: 0, answered: 0 };
+      }
+
+      const metrics = {
+        total: data?.length || 0,
+        answered: data?.filter(d => d.answer_chosen_at).length || 0,
+      };
+
+      console.log('[workspace-metrics] Discussion metrics: %s', JSON.stringify(metrics));
+      return metrics;
+    });
+
+    // Step 5: Cache the results
+    await step.run('cache-metrics', async () => {
+      const supabase = getSupabaseClient();
+
+      const cacheEntry = {
+        workspace_id: workspaceId,
+        time_range: timeRange,
+        pull_requests: prMetrics,
+        issues: issueMetrics,
+        discussions: discussionMetrics,
+        repository_count: repositories.length,
+        computed_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 3600000).toISOString(), // 1 hour TTL
+      };
+
+      const { error } = await supabase
+        .from('workspace_metrics_cache')
+        .upsert(cacheEntry, {
+          onConflict: 'workspace_id,time_range',
+        });
+
+      if (error) {
+        console.error('[workspace-metrics] Error caching metrics: %s', error.message);
+      } else {
+        console.log('[workspace-metrics] Metrics cached successfully for workspace %s', workspaceId);
+      }
+    });
+
+    return {
+      workspaceId,
+      metrics: {
+        pull_requests: prMetrics,
+        issues: issueMetrics,
+        discussions: discussionMetrics,
+        repository_count: repositories.length,
+      },
+    };
+  }
+);
+
+const scheduleWorkspaceAggregation = inngest.createFunction(
+  {
+    id: 'schedule-workspace-aggregation',
+    name: 'Schedule Workspace Aggregation',
+    retries: 2,
+  },
+  { event: 'workspace.metrics.aggregate.scheduled' },
+  async ({ event, step }) => {
+    console.log('[workspace-schedule] Starting scheduled aggregation');
+
+    // Get all workspaces with stale metrics
+    const workspaces = await step.run('fetch-stale-workspaces', async () => {
+      const supabase = getSupabaseClient();
+
+      // Find workspaces with expired cache or no cache at all
+      const { data, error } = await supabase
+        .from('workspaces')
+        .select('id, name, tier')
+        .eq('is_active', true)
+        .limit(50); // Process 50 workspaces per run
+
+      if (error) {
+        console.error('[workspace-schedule] Error fetching workspaces: %s', error.message);
+        return [];
+      }
+
+      console.log('[workspace-schedule] Found %s active workspaces', data?.length || 0);
+      return data || [];
+    });
+
+    if (workspaces.length === 0) {
+      return { message: 'No workspaces to aggregate', count: 0 };
+    }
+
+    // Trigger aggregation for each workspace
+    const triggered = await step.run('trigger-aggregations', async () => {
+      const inngestEventKey = Deno.env.get('INNGEST_EVENT_KEY');
+      if (!inngestEventKey) {
+        throw new NonRetriableError('INNGEST_EVENT_KEY not configured');
+      }
+
+      let successCount = 0;
+      for (const workspace of workspaces) {
+        try {
+          const response = await fetch(`https://inn.gs/e/${inngestEventKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: 'workspace.metrics.aggregate',
+              data: {
+                workspaceId: workspace.id,
+                timeRange: 'all',
+                priority: 50,
+                forceRefresh: false,
+                triggeredBy: 'schedule',
+              },
+            }),
+          });
+
+          if (response.ok) {
+            successCount++;
+          } else {
+            console.error('[workspace-schedule] Failed to trigger for workspace %s: %s', workspace.id, await response.text());
+          }
+        } catch (error) {
+          console.error('[workspace-schedule] Error triggering workspace %s: %s', workspace.id, error);
+        }
+      }
+
+      console.log('[workspace-schedule] Triggered aggregation for %s/%s workspaces', successCount, workspaces.length);
+      return successCount;
+    });
+
+    return {
+      message: 'Scheduled aggregation triggered',
+      workspacesProcessed: triggered,
+      totalWorkspaces: workspaces.length,
+    };
+  }
+);
+
 // Define our functions registry
 const functions = [
   capturePrDetails,
@@ -1259,6 +1586,8 @@ const functions = [
   discoverNewRepository,
   classifyRepositorySize,
   computeEmbeddings,
+  aggregateWorkspaceMetrics,
+  scheduleWorkspaceAggregation,
 ];
 
 // Create Inngest handler

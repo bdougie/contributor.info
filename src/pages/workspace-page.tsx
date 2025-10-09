@@ -33,7 +33,7 @@ import {
 import { WorkspaceDiscussionsTable } from '@/components/features/workspace/WorkspaceDiscussionsTable';
 import { RepositoryFilter } from '@/components/features/workspace/RepositoryFilter';
 import { WorkspaceMetricsAndTrends } from '@/components/features/workspace/WorkspaceMetricsAndTrends';
-import { WorkspaceSwitcher } from '@/components/navigation/WorkspaceSwitcher';
+
 import { WorkspaceIssueMetricsAndTrends } from '@/components/features/workspace/WorkspaceIssueMetricsAndTrends';
 import {
   ContributorsList,
@@ -3510,13 +3510,6 @@ function WorkspacePage() {
               )}
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <WorkspaceSwitcher
-                className="min-w-[150px]"
-                onOpenCommandPalette={() => {
-                  // Command palette can be opened from here if needed
-                  console.log('Open command palette from workspace page');
-                }}
-              />
               <TimeRangeSelector
                 value={timeRange}
                 onChange={setTimeRange}
