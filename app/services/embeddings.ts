@@ -120,7 +120,7 @@ export async function generateAndStoreEmbeddings(items: EmbeddingItem[]): Promis
             throw new Error(`Failed to store embedding: ${updateError.message}`);
           }
 
-          console.log('Generated embedding for %s ${item.id}', item.type);
+          console.log('Generated embedding for %s %s', item.type, item.id);
         } catch (error) {
           console.error('Failed to generate embedding for %s %s: %s', item.type, item.id, error);
         }

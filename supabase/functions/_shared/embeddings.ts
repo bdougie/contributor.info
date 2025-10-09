@@ -82,15 +82,14 @@ export function prepareTextForEmbedding(item: EmbeddingItem): string {
 /**
  * Create content hash for change detection
  */
-export function createContentHash(title: string, body?: string | null): string {
+export async function createContentHash(title: string, body?: string | null): Promise<string> {
   const content = JSON.stringify({ title, body: body || '' });
   const encoder = new TextEncoder();
   const data = encoder.encode(content);
-  return crypto.subtle.digest('SHA-256', data).then((hash) => {
-    return Array.from(new Uint8Array(hash))
-      .map((b) => b.toString(16).padStart(2, '0'))
-      .join('');
-  });
+  const hash = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hash))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 /**
