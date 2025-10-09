@@ -2,7 +2,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createSupabaseClient } from '../_shared/database.ts';
 import { detectPrivilegedEvent, GitHubEvent } from '../_shared/event-detection.ts';
 import { batchUpdateConfidenceScores } from '../_shared/confidence-scoring.ts';
-import { corsPreflightResponse, successResponse, errorResponse, handleError, validationError } from '../_shared/responses.ts';
+import { corsPreflightResponse, legacySuccessResponse, errorResponse, handleError, validationError } from '../_shared/responses.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 
 interface BackfillRequest {
@@ -248,7 +248,7 @@ serve(async (req) => {
         return acc;
       }, {}) || {};
 
-        return successResponse(
+        return legacySuccessResponse(
       {
         repository: `${repository_owner}/${repository_name}`,
         events_fetched: events.length,

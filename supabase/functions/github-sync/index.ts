@@ -10,7 +10,7 @@ import {
   processPRWithSpamDetection,
   batchProcessPRsForSpam,
 } from '../_shared/spam-detection-integration.ts';
-import { corsPreflightResponse, successResponse, errorResponse, handleError } from '../_shared/responses.ts';
+import { corsPreflightResponse, legacySuccessResponse, errorResponse, handleError } from '../_shared/responses.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 
 
@@ -607,7 +607,7 @@ serve(async (req) => {
       }
     }
 
-        return successResponse(
+        return legacySuccessResponse(
       {
         repositories_synced: results.length,
         results,

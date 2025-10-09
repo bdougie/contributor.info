@@ -2,7 +2,7 @@
 // Supports up to 150 seconds execution time on paid plans (50s on free tier)
 
 import { createSupabaseClient, ensureContributor } from '../_shared/database.ts';
-import { corsPreflightResponse, successResponse, errorResponse, handleError } from '../_shared/responses.ts';
+import { corsPreflightResponse, legacySuccessResponse, errorResponse, handleError } from '../_shared/responses.ts';
 
 // Deno.serve is the new way to create edge functions
 Deno.serve(async (req) => {
@@ -152,7 +152,7 @@ async function handleRequest(req: Request): Promise<Response> {
           { onConflict: 'repository_id' }
         );
 
-                return successResponse(
+                return legacySuccessResponse(
           {
             partial: true,
             processed: pullRequests.length,
@@ -293,7 +293,7 @@ async function handleRequest(req: Request): Promise<Response> {
     await supabase.from('sync_progress').delete().eq('repository_id', repoData.id);
 
         // Return success response
-    return successResponse(
+    return legacySuccessResponse(
       {
         repository: `${owner}/${name}`,
         processed,

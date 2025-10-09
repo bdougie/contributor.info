@@ -27,7 +27,7 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createSupabaseClient } from '../_shared/database.ts';
-import { corsPreflightResponse, successResponse, errorResponse, validationError, notFoundError, handleError } from '../_shared/responses.ts';
+import { corsPreflightResponse, legacySuccessResponse, errorResponse, validationError, notFoundError, handleError } from '../_shared/responses.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 
 // Initialize Inngest client for sending events
@@ -100,7 +100,7 @@ serve(async (req: Request) => {
         })
         .eq('id', jobId);
 
-      return successResponse(result, 'Webhook job processed successfully');
+      return legacySuccessResponse(result, 'Webhook job processed successfully');
     } catch (error: any) {
       console.error(`Job ${jobId} failed:`, error);
 

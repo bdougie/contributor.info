@@ -3,7 +3,7 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createSupabaseClient } from '../_shared/database.ts';
-import { corsPreflightResponse, successResponse, errorResponse, handleError, notFoundError } from '../_shared/responses.ts';
+import { corsPreflightResponse, legacySuccessResponse, errorResponse, handleError, notFoundError } from '../_shared/responses.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 
 interface BackfillRequest {
@@ -91,7 +91,7 @@ serve(async (req) => {
     }
 
         // Step 4: Return job information
-    return successResponse(
+            return legacySuccessResponse(
       {
         job_id: backfillData.job_id,
         status: backfillData.status,

@@ -1,6 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createSupabaseClient } from '../_shared/database.ts';
-import { corsPreflightResponse, successResponse, errorResponse, validationError, unauthorizedError } from '../_shared/responses.ts';
+import { corsPreflightResponse, legacySuccessResponse, errorResponse, validationError, unauthorizedError } from '../_shared/responses.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 
 interface GitHubPR {
@@ -277,7 +277,7 @@ serve(async (req) => {
     const draftCount = prsWithReviewers.filter((pr) => pr.draft).length;
     const closedCount = prsWithReviewers.filter((pr) => pr.state === 'closed').length;
 
-        return successResponse(
+        return legacySuccessResponse(
       {
         prs: prsWithReviewers,
         openCount,
