@@ -191,11 +191,19 @@ export const computeEmbeddings = inngest.createFunction(
           });
 
           if (!response.ok) {
-            throw new Error(`OpenAI API error: ${response.status}`);
+            const errorText = await response.text();
+            console.error('[Embeddings] OpenAI API error:', {
+              status: response.status,
+              statusText: response.statusText,
+              body: errorText,
+            });
+            throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
           }
 
           const data = await response.json();
           const embeddings = data.data;
+
+          console.log(`[Embeddings] Generated ${embeddings.length} embeddings for batch`);
 
           // Update database with embeddings
           for (let j = 0; j < batch.length; j++) {
@@ -214,7 +222,7 @@ export const computeEmbeddings = inngest.createFunction(
               }
 
               // Update the item with embedding
-              await supabase
+              const { error: updateError } = await supabase
                 .from(table)
                 .update({
                   embedding,
@@ -223,8 +231,15 @@ export const computeEmbeddings = inngest.createFunction(
                 })
                 .eq('id', item.id);
 
+              if (updateError) {
+                const errorMsg = `Failed to update ${item.type} ${item.id}: ${updateError.message}`;
+                console.error('[Embeddings]', errorMsg);
+                errors.push(errorMsg);
+                continue;
+              }
+
               // Store in cache
-              await supabase.from('similarity_cache').upsert(
+              const { error: cacheError } = await supabase.from('similarity_cache').upsert(
                 {
                   repository_id: item.repository_id,
                   item_type: item.type,
@@ -237,6 +252,11 @@ export const computeEmbeddings = inngest.createFunction(
                   onConflict: 'repository_id,item_type,item_id',
                 }
               );
+
+              if (cacheError) {
+                console.warn('[Embeddings] Cache warning:', cacheError.message);
+                // Don't fail on cache errors
+              }
 
               processedCount++;
             }
