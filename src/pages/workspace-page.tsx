@@ -3228,10 +3228,18 @@ function WorkspacePage() {
     if (eventMetrics?.stars) {
       setMetrics((prev) => {
         if (!prev) return prev;
+        
+        // Only use velocity if it's a valid positive number
+        // Otherwise keep the existing totalStars (which is actual star count)
+        const starsPerDay = eventMetrics.stars.velocity;
+        const isValidVelocity = typeof starsPerDay === 'number' && starsPerDay > 0;
+        
         return {
           ...prev,
           starsTrend: eventMetrics.stars.percentChange,
-          totalStars: eventMetrics.stars.velocity,
+          // Only override totalStars with velocity if it's valid
+          // This prevents showing total stars when velocity fails
+          totalStars: isValidVelocity ? starsPerDay : prev.totalStars,
         };
       });
     }

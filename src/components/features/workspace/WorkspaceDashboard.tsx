@@ -125,7 +125,12 @@ export function WorkspaceDashboard({
         <MetricCard
           title="Star Velocity"
           subtitle="Stars per day"
-          value={metrics.totalStars}
+          value={
+            // Show placeholder if velocity is not valid (0, undefined, or too large)
+            metrics.totalStars > 0 && metrics.totalStars < 1000
+              ? metrics.totalStars
+              : '—'
+          }
           description="Daily star growth rate"
           icon={<Star className="h-4 w-4" />}
           trend={{
@@ -133,6 +138,7 @@ export function WorkspaceDashboard({
             label: trendLabel,
           }}
           format={(val) => {
+            if (typeof val === 'string') return val;
             // Avoid ternary - Rollup 4.45.0 bug (see docs/architecture/state-machine-patterns.md)
             if (val < 1) {
               return val.toFixed(3);

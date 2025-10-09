@@ -33,9 +33,11 @@ export function useWorkspaceEvents({
     queryFn: () => workspaceEventsService.getWorkspaceEventMetrics(workspaceId!, timeRange),
     enabled: !!workspaceId && enabled,
     staleTime: 5 * 60 * 1000, // 5 minutes - data is fresh for this long
-    gcTime: 10 * 60 * 1000, // 10 minutes - keep in cache for this long
+    gcTime: 30 * 60 * 1000, // 30 minutes - keep in cache longer
     refetchOnWindowFocus: false, // Don't refetch when tab is focused
-    refetchOnMount: 'always', // Always refetch when component mounts
+    refetchOnMount: false, // Use cached data on mount, don't always refetch
+    retry: 2, // Retry failed requests twice
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   const handleRefetch = async () => {
