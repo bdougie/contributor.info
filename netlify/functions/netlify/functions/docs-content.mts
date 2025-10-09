@@ -149,15 +149,16 @@ export default async (req: Request, context: Context) => {
       },
     });
   } catch (error) {
+    // Log stack trace and error server-side only
     console.error(`Error in docs-content function for ${filename}:`, error);
 
     return new Response(
       JSON.stringify({
         error: 'Internal server error',
-        message: error instanceof Error ? error.message : 'Unknown error',
-        stack:
+        // Optionally include the error message in development, but NOT the stack
+        message:
           process.env.NODE_ENV === 'development' && error instanceof Error
-            ? error.stack
+            ? error.message
             : undefined,
       }),
       {
