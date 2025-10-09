@@ -1251,7 +1251,7 @@ const computeEmbeddings = inngest.createFunction(
     return {
       jobId,
       processed: finalResult.processedCount,
-      total: itemsToProcess.length,
+      total: finalResult.totalCount,
     };
   }
 );
