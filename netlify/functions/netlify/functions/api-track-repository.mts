@@ -265,9 +265,17 @@ export default async (req: Request, context: Context) => {
     } catch (githubError) {
       // Log the actual error for debugging
       console.error('GitHub API call failed:', githubError);
+
+      // Type narrowing for error handling
+      const errorMessage = githubError instanceof Error ? githubError.message : 'Unknown error';
+      const errorStatus =
+        githubError && typeof githubError === 'object' && 'status' in githubError
+          ? (githubError as { status?: number }).status
+          : undefined;
+
       console.error('GitHub error details:', {
-        message: githubError.message,
-        status: githubError.status,
+        message: errorMessage,
+        status: errorStatus,
         hasToken: !!process.env.GITHUB_TOKEN,
       });
 
