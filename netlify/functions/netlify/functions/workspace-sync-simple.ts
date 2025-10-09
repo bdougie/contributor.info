@@ -192,12 +192,12 @@ export const handler: Handler = async (event) => {
       // Trigger workspace metrics aggregation via Inngest
       try {
         const inngestEventKey = process.env.INNGEST_EVENT_KEY;
-        if (inngestEventKey) {
-          const inngestResponse = await fetch('https://inn.gs/e/contributor_info', {
+        if (inngestEventKey && inngestEventKey !== 'local_development_only') {
+          const inngestUrl = `https://inn.gs/e/${inngestEventKey}`;
+          const inngestResponse = await fetch(inngestUrl, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              Authorization: `Bearer ${inngestEventKey}`,
             },
             body: JSON.stringify({
               name: 'workspace.metrics.aggregate',
