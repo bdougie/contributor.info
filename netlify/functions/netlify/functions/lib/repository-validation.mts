@@ -1,4 +1,4 @@
-import { createSupabaseClient } from '../../../src/lib/supabase.js';
+import { createSupabaseClient } from '../../../../../src/lib/supabase';
 
 interface RepositoryValidation {
   isTracked: boolean;
@@ -26,7 +26,8 @@ export async function validateRepository(
     return {
       isTracked: false,
       exists: false,
-      error: 'Invalid repository format. Names can only contain letters, numbers, dots, underscores, and hyphens',
+      error:
+        'Invalid repository format. Names can only contain letters, numbers, dots, underscores, and hyphens',
     };
   }
 

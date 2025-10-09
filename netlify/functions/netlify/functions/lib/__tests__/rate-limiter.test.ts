@@ -6,16 +6,22 @@ vi.mock('@supabase/supabase-js', () => ({
   createClient: vi.fn(),
 }));
 
+interface MockSupabaseClient {
+  from: vi.MockedFunction<(table: string) => unknown>;
+}
+
 describe('RateLimiter', () => {
   let rateLimiter: RateLimiter;
-  let mockSupabase: any;
+  let mockSupabase: MockSupabaseClient;
 
   beforeEach(() => {
     mockSupabase = {
       from: vi.fn(),
     };
 
-    (createClient as any).mockReturnValue(mockSupabase);
+    (createClient as vi.MockedFunction<typeof createClient>).mockReturnValue(
+      mockSupabase as unknown as ReturnType<typeof createClient>
+    );
 
     rateLimiter = new RateLimiter('https://test.supabase.co', 'test-key', {
       maxRequests: 10,

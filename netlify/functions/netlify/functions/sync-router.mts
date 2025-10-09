@@ -13,24 +13,27 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const USE_SUPABASE_FUNCTIONS = process.env.USE_SUPABASE_FUNCTIONS === 'true';
 
 // Initialize Supabase client when available
-const supabase = SUPABASE_URL && (SUPABASE_SERVICE_KEY || SUPABASE_ANON_KEY)
-  ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY || SUPABASE_ANON_KEY!)
-  : null;
+const supabase =
+  SUPABASE_URL && (SUPABASE_SERVICE_KEY || SUPABASE_ANON_KEY)
+    ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY || SUPABASE_ANON_KEY!)
+    : null;
 
 // Repository size thresholds
 const LARGE_REPO_THRESHOLD = 1000; // PRs
 const MEDIUM_REPO_THRESHOLD = 500;
 
+interface SyncOptions {
+  fullSync?: boolean;
+  daysLimit?: number;
+  prNumbers?: number[];
+  forceSupabase?: boolean; // Override routing logic
+  forceNetlify?: boolean; // Override routing logic
+}
+
 interface SyncRequest {
   action: 'sync' | 'sync-graphql' | 'batch-pr' | 'quick-update';
   repository: string; // owner/name format
-  options?: {
-    fullSync?: boolean;
-    daysLimit?: number;
-    prNumbers?: number[];
-    forceSupabase?: boolean; // Override routing logic
-    forceNetlify?: boolean; // Override routing logic
-  };
+  options?: SyncOptions;
 }
 
 // Known large repositories that should always use Supabase
@@ -79,9 +82,9 @@ export const handler: Handler = async (event) => {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           error: 'Invalid repository format',
-          details: 'Repository must be in format: owner/name'
+          details: 'Repository must be in format: owner/name',
         }),
       };
     }
@@ -91,9 +94,9 @@ export const handler: Handler = async (event) => {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           error: 'Invalid repository format',
-          details: 'Both owner and name are required'
+          details: 'Both owner and name are required',
         }),
       };
     }
@@ -124,45 +127,37 @@ export const handler: Handler = async (event) => {
 };
 
 // Determine if operation should use Supabase Edge Functions
-function shouldUseSupabase(
-  repository: string,
-  action: string,
-  options: any
-): boolean {
+function shouldUseSupabase(repository: string, action: string, options: SyncOptions): boolean {
   // Check manual overrides
   if (options.forceSupabase) return true;
   if (options.forceNetlify) return false;
-  
+
   // Always use Supabase for known large repos
   if (LARGE_REPOS.includes(repository)) return true;
-  
+
   // Use Supabase for full syncs
   if (options.fullSync) return true;
-  
+
   // Use Supabase for batch operations over 50 PRs
   if (action === 'batch-pr' && options.prNumbers?.length > 50) return true;
-  
+
   // Use Supabase for sync operations with large date ranges
   if (options.daysLimit && options.daysLimit > 90) return true;
-  
+
   // Use Supabase if explicitly enabled
   if (USE_SUPABASE_FUNCTIONS) return true;
-  
+
   // Default to Netlify for quick operations
   return false;
 }
 
 // Route to Supabase Edge Functions with job tracking
-async function routeToSupabase(
-  action: string,
-  repository: string,
-  options: any
-) {
+async function routeToSupabase(action: string, repository: string, options: SyncOptions) {
   const [owner, name] = repository.split('/');
 
   // Map action to job type for background_jobs table
   const jobTypeMap: Record<string, string> = {
-    'sync': 'sync-router/repository.sync',
+    sync: 'sync-router/repository.sync',
     'sync-graphql': 'sync-router/repository.sync.graphql',
     'batch-pr': 'sync-router/pr.details.batch',
   };
@@ -218,10 +213,10 @@ async function routeToSupabase(
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+          Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
         },
         body: JSON.stringify({ jobId: job.id }),
-      }).catch(error => {
+      }).catch((error) => {
         console.error('Error triggering process-job:', error);
       });
 
@@ -257,16 +252,12 @@ async function routeToSupabase(
 }
 
 // Direct Supabase function call (legacy mode without job tracking)
-async function directSupabaseCall(
-  action: string,
-  repository: string,
-  options: any
-) {
+async function directSupabaseCall(action: string, repository: string, options: SyncOptions) {
   const [owner, name] = repository.split('/');
 
   // Map action to Supabase function endpoint
   const endpoints: Record<string, string> = {
-    'sync': 'repository-sync',
+    sync: 'repository-sync',
     'sync-graphql': 'repository-sync-graphql',
     'batch-pr': 'pr-details-batch',
   };
@@ -284,7 +275,7 @@ async function directSupabaseCall(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
     },
     body: JSON.stringify(body),
   });
@@ -309,22 +300,18 @@ async function directSupabaseCall(
 }
 
 // Route to Inngest (existing Netlify functions)
-async function routeToInngest(
-  action: string,
-  repository: string,
-  options: any
-) {
+async function routeToInngest(action: string, repository: string, options: SyncOptions) {
   const [owner, name] = repository.split('/');
-  
+
   try {
     // Map actions to Inngest events
     const eventMap: Record<string, string> = {
-      'sync': 'repository.sync.requested',
+      sync: 'repository.sync.requested',
       'sync-graphql': 'repository.sync.graphql.requested',
       'batch-pr': 'pr.details.batch.requested',
       'quick-update': 'repository.quick.update',
     };
-    
+
     const eventName = eventMap[action];
     if (!eventName) {
       return {
@@ -333,7 +320,7 @@ async function routeToInngest(
         body: JSON.stringify({ error: `Unknown action: ${action}` }),
       };
     }
-    
+
     // Send event to Inngest
     const result = await inngest.send({
       name: eventName,
@@ -344,13 +331,13 @@ async function routeToInngest(
         ...options,
       },
     });
-    
+
     console.log(`Inngest event sent:`, {
       event: eventName,
       repository,
       id: result.ids,
     });
-    
+
     return {
       statusCode: 202,
       headers: { 'Content-Type': 'application/json' },
@@ -384,8 +371,7 @@ export const health = async () => {
   let jobStats = null;
   if (jobTrackingEnabled && supabase) {
     try {
-      const { data } = await supabase
-        .rpc('get_job_statistics_summary');
+      const { data } = await supabase.rpc('get_job_statistics_summary');
       jobStats = data;
     } catch (error) {
       console.error('Error fetching job stats:', error);
