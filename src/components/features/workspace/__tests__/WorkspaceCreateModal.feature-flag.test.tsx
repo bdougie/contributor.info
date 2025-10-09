@@ -1,9 +1,9 @@
 import { render, screen } from '@testing-library/react';
-import { vi } from 'vitest';
-import { MemoryRouter } from 'react-router-dom';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { WorkspaceCreateModal } from '../WorkspaceCreateModal';
 import { useFeatureFlags } from '@/lib/feature-flags/context';
 import { FEATURE_FLAGS } from '@/lib/feature-flags/types';
+import React from 'react';
 
 // Mock the feature flags hook
 vi.mock('@/lib/feature-flags/context');
@@ -14,7 +14,7 @@ vi.mock('@/services/workspace.service');
 vi.mock('@/lib/supabase', () => ({
   supabase: {
     auth: {
-      getUser: vi.fn().mockResolvedValue({
+      getUser: vi.fn().mockReturnValue({
         data: { user: null },
         error: null,
       }),
@@ -29,14 +29,14 @@ vi.mock('@/hooks/use-analytics', () => ({
   }),
 }));
 
-// Mock react-router-dom - partial mock to preserve Link component
-vi.mock('react-router-dom', () => {
-  const actual = vi.importActual('react-router-dom');
-  return {
-    ...actual,
-    useNavigate: () => vi.fn(),
-  };
-});
+// Mock react-router-dom with all necessary exports
+vi.mock('react-router-dom', () => ({
+  useNavigate: () => vi.fn(),
+  Link: ({ children, to }: { children: React.ReactNode; to: string }) =>
+    React.createElement('a', { href: to }, children),
+  MemoryRouter: ({ children }: { children: React.ReactNode }) =>
+    React.createElement(React.Fragment, {}, children),
+}));
 
 // Mock sonner
 vi.mock('sonner', () => ({
@@ -74,11 +74,7 @@ describe('WorkspaceCreateModal - Feature Flag Tests', () => {
     });
 
     it('should show the workspace creation form', () => {
-      render(
-        <MemoryRouter>
-          <WorkspaceCreateModal {...defaultProps} />
-        </MemoryRouter>
-      );
+      render(<WorkspaceCreateModal {...defaultProps} />);
 
       expect(screen.getByTestId('modal-title-enabled')).toHaveTextContent('Create New Workspace');
       expect(screen.getByLabelText(/workspace name/i)).toBeInTheDocument();
@@ -86,11 +82,7 @@ describe('WorkspaceCreateModal - Feature Flag Tests', () => {
     });
 
     it('should show form elements when feature is enabled', () => {
-      render(
-        <MemoryRouter>
-          <WorkspaceCreateModal {...defaultProps} />
-        </MemoryRouter>
-      );
+      render(<WorkspaceCreateModal {...defaultProps} />);
 
       const nameInput = screen.getByLabelText(/workspace name/i);
       const submitButton = screen.getByRole('button', { name: /create workspace/i });
@@ -117,11 +109,7 @@ describe('WorkspaceCreateModal - Feature Flag Tests', () => {
     });
 
     it('should show the disabled state for creation mode', () => {
-      render(
-        <MemoryRouter>
-          <WorkspaceCreateModal {...defaultProps} />
-        </MemoryRouter>
-      );
+      render(<WorkspaceCreateModal {...defaultProps} />);
 
       // Modal no longer has separate title/description - it's all in the disabled component
       expect(screen.getByTestId('workspace-creation-disabled')).toBeInTheDocument();
@@ -130,11 +118,7 @@ describe('WorkspaceCreateModal - Feature Flag Tests', () => {
     });
 
     it('should show normal edit form for edit mode even when creation is disabled', () => {
-      render(
-        <MemoryRouter>
-          <WorkspaceCreateModal {...defaultProps} mode="edit" workspaceId="test-id" />
-        </MemoryRouter>
-      );
+      render(<WorkspaceCreateModal {...defaultProps} mode="edit" workspaceId="test-id" />);
 
       expect(screen.getByTestId('modal-title-enabled')).toHaveTextContent('Edit Workspace');
       expect(screen.getByLabelText(/workspace name/i)).toBeInTheDocument();
@@ -142,11 +126,7 @@ describe('WorkspaceCreateModal - Feature Flag Tests', () => {
     });
 
     it('should render disabled component when creation is disabled', () => {
-      render(
-        <MemoryRouter>
-          <WorkspaceCreateModal {...defaultProps} />
-        </MemoryRouter>
-      );
+      render(<WorkspaceCreateModal {...defaultProps} />);
 
       // Test only what's immediately available without async behavior
       expect(screen.getByTestId('workspace-creation-disabled')).toBeInTheDocument();

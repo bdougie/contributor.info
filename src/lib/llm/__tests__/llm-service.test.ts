@@ -197,10 +197,13 @@ describe('LLM Service', () => {
     });
 
     it('should use fallback when PostHog OpenAI fails', async () => {
-      // Clear cache to ensure we don't get cached success from previous test
+      // Clear cache and reset all mocks to ensure clean test state
       llmService.clearCache();
-      // Reset the mock and set up rejection
-      mockPostHogOpenAIService.generateHealthInsight.mockReset();
+      vi.clearAllMocks();
+
+      // Set up PostHog to fail
+      mockPostHogOpenAIService.isAvailable.mockReturnValue(true);
+      mockPostHogOpenAIService.isTrackingEnabled.mockReturnValue(true);
       mockPostHogOpenAIService.generateHealthInsight.mockRejectedValueOnce(new Error('API Error'));
 
       const insight = await llmService.generateHealthInsight(sampleHealthData, sampleRepoInfo);
@@ -218,10 +221,13 @@ describe('LLM Service', () => {
     });
 
     it('should use fallback when PostHog OpenAI returns null', async () => {
-      // Clear cache to ensure we don't get cached success from previous test
+      // Clear cache and reset all mocks to ensure clean test state
       llmService.clearCache();
-      // Reset the mock and set up null return
-      mockPostHogOpenAIService.generateHealthInsight.mockReset();
+      vi.clearAllMocks();
+
+      // Set up PostHog to return null
+      mockPostHogOpenAIService.isAvailable.mockReturnValue(true);
+      mockPostHogOpenAIService.isTrackingEnabled.mockReturnValue(true);
       mockPostHogOpenAIService.generateHealthInsight.mockResolvedValueOnce(null);
 
       const insight = await llmService.generateHealthInsight(sampleHealthData, sampleRepoInfo);
@@ -268,10 +274,13 @@ describe('LLM Service', () => {
     });
 
     it('should use fallback when PostHog OpenAI fails', async () => {
-      // Clear cache to ensure we don't get cached success from previous test
+      // Clear cache and reset all mocks to ensure clean test state
       llmService.clearCache();
-      // Reset the mock and set up rejection
-      mockPostHogOpenAIService.generateRecommendations.mockReset();
+      vi.clearAllMocks();
+
+      // Set up PostHog to fail
+      mockPostHogOpenAIService.isAvailable.mockReturnValue(true);
+      mockPostHogOpenAIService.isTrackingEnabled.mockReturnValue(true);
       mockPostHogOpenAIService.generateRecommendations.mockRejectedValueOnce(
         new Error('API Error')
       );
@@ -326,9 +335,13 @@ describe('LLM Service', () => {
     });
 
     it('should not use cache for different data', async () => {
-      // Clear cache and reset mocks to ensure clean state
+      // Clear cache and reset all mocks to ensure clean state
       llmService.clearCache();
-      mockPostHogOpenAIService.generateHealthInsight.mockReset();
+      vi.clearAllMocks();
+
+      // Set up PostHog to work properly
+      mockPostHogOpenAIService.isAvailable.mockReturnValue(true);
+      mockPostHogOpenAIService.isTrackingEnabled.mockReturnValue(true);
       mockPostHogOpenAIService.generateHealthInsight.mockResolvedValue({
         type: 'health',
         content: 'Mock health insight from OpenAI',
@@ -346,9 +359,19 @@ describe('LLM Service', () => {
     });
 
     it('should clear cache when requested', async () => {
-      // Clear cache and mocks to ensure clean state
+      // Clear cache and reset all mocks to ensure clean state
       llmService.clearCache();
-      mockPostHogOpenAIService.generateHealthInsight.mockClear();
+      vi.clearAllMocks();
+
+      // Set up PostHog to work properly
+      mockPostHogOpenAIService.isAvailable.mockReturnValue(true);
+      mockPostHogOpenAIService.isTrackingEnabled.mockReturnValue(true);
+      mockPostHogOpenAIService.generateHealthInsight.mockResolvedValue({
+        type: 'health',
+        content: 'Mock health insight from OpenAI',
+        confidence: 0.85,
+        timestamp: new Date(),
+      });
 
       await llmService.generateHealthInsight(sampleHealthData, sampleRepoInfo);
       expect(mockPostHogOpenAIService.generateHealthInsight).toHaveBeenCalledTimes(1);
@@ -412,9 +435,14 @@ describe('LLM Service', () => {
     });
 
     it('should use fallback when PostHog OpenAI fails', async () => {
-      // Clear cache to ensure we don't get cached success from previous test
+      // Clear cache and reset all mocks to ensure clean test state
       llmService.clearCache();
-      mockPostHogOpenAIService.analyzePRPatterns.mockRejectedValue(new Error('API Error'));
+      vi.clearAllMocks();
+
+      // Set up PostHog to fail
+      mockPostHogOpenAIService.isAvailable.mockReturnValue(true);
+      mockPostHogOpenAIService.isTrackingEnabled.mockReturnValue(true);
+      mockPostHogOpenAIService.analyzePRPatterns.mockRejectedValueOnce(new Error('API Error'));
 
       const insight = await llmService.analyzePRPatterns(samplePRData, sampleRepoInfo);
 
