@@ -11,9 +11,13 @@ set -e
 echo "🧹 Cleaning up unused Netlify environment variables..."
 echo ""
 
-# Variables that are NOT used in the codebase and can be safely removed
+# Variables that are NOT used in Netlify Functions and can be safely removed
 UNUSED_VARS=(
-  "VITE_SUPABASE_DATABASE_URL"  # Not referenced anywhere in src/ or netlify/functions/
+  "VITE_SUPABASE_DATABASE_URL"      # Not referenced anywhere in src/ or netlify/functions/
+  "GITHUB_APP_CLIENT_ID"            # GitHub App OAuth not used in Netlify functions
+  "GITHUB_APP_CLIENT_SECRET"        # GitHub App OAuth not used in Netlify functions
+  "GITHUB_APP_WEBHOOK_SECRET"       # Webhooks migrated to Fly.io, not in Netlify
+  "GITHUB_WEBHOOK_SECRET"           # Only used in Supabase Edge Functions
 )
 
 echo "The following variables will be removed:"

@@ -23,11 +23,15 @@ All `VITE_*` prefixed variables were analyzed to determine:
 
 ### Results
 
-#### ✅ Safe to Remove (Unused)
+#### ✅ Safe to Remove (Not Used in Netlify Functions)
 
-Only **1 variable** was found to be completely unused:
+**5 variables** can be safely removed from Netlify:
 
 - `VITE_SUPABASE_DATABASE_URL` - Not referenced anywhere in codebase
+- `GITHUB_APP_CLIENT_ID` - GitHub App OAuth not used in Netlify functions
+- `GITHUB_APP_CLIENT_SECRET` - GitHub App OAuth not used in Netlify functions
+- `GITHUB_APP_WEBHOOK_SECRET` - Webhooks migrated to Fly.io (see netlify.toml:96)
+- `GITHUB_WEBHOOK_SECRET` - Only used in Supabase Edge Functions (supabase/functions/github-webhook/)
 
 #### ❌ Must Keep (Actively Used in Frontend)
 
@@ -54,14 +58,40 @@ All other VITE_ variables are actively used:
 
 ## Solution
 
-### Immediate Action
+### Two-Part Strategy
+
+#### Part 1: Remove Unused Variables
 
 Run the cleanup script:
 ```bash
 ./scripts/cleanup-netlify-env-vars.sh
 ```
 
-This removes `VITE_SUPABASE_DATABASE_URL` from all deployment contexts.
+This removes 5 unused variables from all deployment contexts.
+
+#### Part 2: Optimize Variable Scopes (RECOMMENDED)
+
+**Better approach**: Scope function-only variables to exclude the build step:
+
+```bash
+./scripts/optimize-netlify-env-scopes.sh
+```
+
+This script:
+1. Removes unused variables (same as Part 1)
+2. Provides instructions to re-scope function-only vars in Netlify UI
+
+**Variables to re-scope** (exclude from "Builds" scope):
+- `SUPABASE_SERVICE_ROLE_KEY` - Only used in functions (~500 bytes)
+- `INNGEST_EVENT_KEY` - Only used in functions
+- `INNGEST_PRODUCTION_EVENT_KEY` - Only used in functions
+- `INNGEST_SIGNING_KEY` - Only used in functions
+- `ADMIN_KEY` - Only used in functions
+- `GH_DATAPIPE_API_URL` - Only used in functions
+
+**Why this works**: Netlify's 4KB limit applies to variables available in each scope. By excluding these from the "Builds" scope, they won't count toward the function deployment limit.
+
+**Important**: VITE_ prefixed variables CANNOT be scoped because Vite needs them during build time for inlining.
 
 ### Alternative Solutions Considered
 
@@ -76,9 +106,17 @@ Continue migrating functions to Supabase Edge Functions where environment variab
 
 ## Impact
 
-- **Size Reduction**: ~100-200 bytes (minimal, but every byte counts near the limit)
-- **Risk**: Zero - variable is not used anywhere
+### Part 1 Only (Remove Unused)
+- **Size Reduction**: ~500-800 bytes
+- **Risk**: Zero - variables not used anywhere
 - **Breaking Changes**: None
+
+### Part 2 (Remove + Re-scope)
+- **Size Reduction**: ~1.5-2KB total
+  - 500-800 bytes from removing unused vars
+  - 1KB+ from scoping function-only vars
+- **Risk**: Very low - variables still available where needed
+- **Breaking Changes**: None (functions still have access)
 
 ## Verification
 
