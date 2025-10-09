@@ -1085,6 +1085,8 @@ const computeEmbeddings = inngest.createFunction(
         const supabase = getSupabaseClient();
         let batchProcessedCount = 0;
 
+        console.log(`[Embeddings] Starting batch ${i / batchSize + 1}, items: ${batch.length}`);
+
         try {
           // Generate content hashes if missing
           for (const item of batch) {
@@ -1187,15 +1189,24 @@ const computeEmbeddings = inngest.createFunction(
           }
 
           // Increment job progress by the batch count (not set to batch count)
-          await supabase.rpc('increment_embedding_job_progress', {
+          console.log(`[Embeddings] Incrementing job progress: jobId=${jobId}, count=${batchProcessedCount}`);
+          const { error: progressError } = await supabase.rpc('increment_embedding_job_progress', {
             job_id: jobId,
             increment_count: batchProcessedCount,
           });
+
+          if (progressError) {
+            console.error('[Embeddings] Failed to increment job progress:', progressError);
+            throw new Error(`Failed to increment job progress: ${progressError.message}`);
+          }
+
+          console.log(`[Embeddings] Successfully incremented job progress by ${batchProcessedCount}`);
         } catch (error: any) {
           const errorMsg = `Batch ${i / batchSize} failed: ${error.message}`;
           console.error(errorMsg);
-          // Note: Error tracking removed due to Inngest step isolation
-          // Errors will be visible in logs but not aggregated
+          console.error('Full error:', error);
+          // Rethrow so Inngest captures the error and shows it in the dashboard
+          throw new Error(errorMsg);
         }
       });
     }
