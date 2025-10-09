@@ -26,16 +26,41 @@ vi.mock('../lib/rate-limiter.mts', () => ({
 
 import { createClient } from '@supabase/supabase-js';
 import handler from '../api-suggest-reviewers';
+import type { Context } from '@netlify/functions';
+
+// Mock Context type for tests
+const mockContext: Context = {
+  awsRequestId: 'test-request-id',
+  callbackWaitsForEmptyEventLoop: false,
+  functionName: 'test-function',
+  functionVersion: '1',
+  invokedFunctionArn: 'arn:aws:lambda:test',
+  memoryLimitInMB: '512',
+  logGroupName: 'test-log-group',
+  logStreamName: 'test-log-stream',
+  getRemainingTimeInMillis: () => 30000,
+  done: () => {},
+  fail: () => {},
+  succeed: () => {},
+  clientContext: undefined,
+  identity: undefined,
+};
+
+interface MockSupabaseClient {
+  from: vi.MockedFunction<(table: string) => unknown>;
+}
 
 describe('Suggest Reviewers API Tests', () => {
-  let mockSupabase: any;
-  let mockFrom: any;
+  let mockSupabase: MockSupabaseClient;
+  let mockFrom: vi.MockedFunction<(table: string) => unknown>;
 
   beforeEach(() => {
     // Setup default Supabase mock
     mockFrom = vi.fn();
     mockSupabase = { from: mockFrom };
-    (createClient as any).mockReturnValue(mockSupabase);
+    (createClient as vi.MockedFunction<typeof createClient>).mockReturnValue(
+      mockSupabase as unknown as ReturnType<typeof createClient>
+    );
 
     // Mock environment variables - ensure all are set
     process.env.GITHUB_TOKEN = 'test-github-token';
@@ -61,7 +86,7 @@ describe('Suggest Reviewers API Tests', () => {
         method: 'OPTIONS',
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, mockContext);
 
       expect(response.status).toBe(200);
       expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*');
@@ -74,7 +99,7 @@ describe('Suggest Reviewers API Tests', () => {
         method: 'GET',
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, mockContext);
       const data = await response.json();
 
       expect(response.status).toBe(405);
@@ -127,7 +152,7 @@ describe('Suggest Reviewers API Tests', () => {
         body: JSON.stringify({ prAuthor: 'author1' }),
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, mockContext);
       const data = await response.json();
 
       expect(response.status).toBe(400);
@@ -144,7 +169,7 @@ describe('Suggest Reviewers API Tests', () => {
         body: JSON.stringify({ files: [], prAuthor: 'author1' }),
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, mockContext);
       const data = await response.json();
 
       expect(response.status).toBe(400);
@@ -161,7 +186,7 @@ describe('Suggest Reviewers API Tests', () => {
         body: JSON.stringify({ files: 'not-an-array', prAuthor: 'author1' }),
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, mockContext);
       const data = await response.json();
 
       expect(response.status).toBe(400);
@@ -302,7 +327,7 @@ describe('Suggest Reviewers API Tests', () => {
         }),
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, mockContext);
       const data = await response.json();
 
       expect(response.status).toBe(200);
@@ -316,8 +341,12 @@ describe('Suggest Reviewers API Tests', () => {
       // Should include developers who worked on similar files
       const allSuggestions = data.data.suggestions;
 
-      expect(allSuggestions.some((s: any) => s.handle === 'developer1')).toBe(true);
-      expect(allSuggestions.some((s: any) => s.handle === 'developer2')).toBe(true);
+      interface Suggestion {
+        handle: string;
+        [key: string]: unknown;
+      }
+      expect(allSuggestions.some((s: Suggestion) => s.handle === 'developer1')).toBe(true);
+      expect(allSuggestions.some((s: Suggestion) => s.handle === 'developer2')).toBe(true);
     });
 
     it('should exclude PR author from suggestions', async () => {
@@ -330,7 +359,7 @@ describe('Suggest Reviewers API Tests', () => {
         }),
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, mockContext);
       const data = await response.json();
 
       expect(response.status).toBe(200);
@@ -338,8 +367,12 @@ describe('Suggest Reviewers API Tests', () => {
       const allSuggestions = data.data?.suggestions || [];
 
       // Should not include the PR author
-      expect(allSuggestions.some((s: any) => s.handle === 'developer1')).toBe(false);
-      expect(allSuggestions.some((s: any) => s.handle === 'developer2')).toBe(true);
+      interface Suggestion {
+        handle: string;
+        [key: string]: unknown;
+      }
+      expect(allSuggestions.some((s: Suggestion) => s.handle === 'developer1')).toBe(false);
+      expect(allSuggestions.some((s: Suggestion) => s.handle === 'developer2')).toBe(true);
     });
 
     it('should include CODEOWNERS in suggestions when available', async () => {
@@ -434,7 +467,7 @@ describe('Suggest Reviewers API Tests', () => {
         }),
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, mockContext);
       const data = await response.json();
 
       expect(response.status).toBe(200);
@@ -445,7 +478,11 @@ describe('Suggest Reviewers API Tests', () => {
       // CODEOWNERS should be in suggestions
       expect(data.data.suggestions).toBeDefined();
       expect(data.data.suggestions.length).toBeGreaterThan(0);
-      const suggestionHandles = data.data.suggestions.map((s: any) => s.handle);
+      interface Suggestion {
+        handle: string;
+        [key: string]: unknown;
+      }
+      const suggestionHandles = data.data.suggestions.map((s: Suggestion) => s.handle);
       expect(suggestionHandles).toContain('codeowner1');
       expect(suggestionHandles).toContain('codeowner2');
     });
@@ -463,7 +500,7 @@ describe('Suggest Reviewers API Tests', () => {
         }),
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, mockContext);
       const data = await response.json();
 
       expect(response.status).toBe(200);
@@ -476,7 +513,7 @@ describe('Suggest Reviewers API Tests', () => {
 
     it('should return a specific error when GitHub file fetch fails', async () => {
       // Mock fetch to simulate GitHub API failure
-      (global.fetch as any).mockResolvedValue({
+      (global.fetch as vi.MockedFunction<typeof fetch>).mockResolvedValue({
         ok: false,
         status: 404,
         statusText: 'Not Found',
@@ -491,7 +528,7 @@ describe('Suggest Reviewers API Tests', () => {
         }),
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, mockContext);
       const data = await response.json();
 
       expect(response.status).toBe(400);
@@ -579,7 +616,7 @@ describe('Suggest Reviewers API Tests', () => {
         }),
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, mockContext);
       const data = await response.json();
 
       expect(response.status).toBe(500);
@@ -682,7 +719,7 @@ describe('Suggest Reviewers API Tests', () => {
         }),
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, mockContext);
       const data = await response.json();
 
       expect(response.status).toBe(200);
@@ -699,7 +736,7 @@ describe('Suggest Reviewers API Tests', () => {
         body: 'invalid json',
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, mockContext);
       const data = await response.json();
 
       expect(response.status).toBe(500);
