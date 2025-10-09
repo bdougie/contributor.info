@@ -1,6 +1,6 @@
-import { serve } from "inngest/lambda";
-import type { Context } from "@netlify/functions";
-import { inngest } from "../../src/lib/inngest/client";
+import { serve } from 'inngest/lambda';
+import type { Context } from '@netlify/functions';
+import { inngest } from '../../src/lib/inngest/client';
 import {
   capturePrDetails,
   capturePrReviews,
@@ -11,7 +11,8 @@ import {
   classifyRepositorySize,
   classifySingleRepository,
   discoverNewRepository,
-} from "../../src/lib/inngest/functions/index-without-embeddings";
+  syncDiscussionsCron,
+} from '../../src/lib/inngest/functions/index-without-embeddings';
 
 // Create the Inngest serve handler
 const inngestHandler = serve({
@@ -29,37 +30,43 @@ const inngestHandler = serve({
     classifySingleRepository,
     // Discovery function
     discoverNewRepository,
+    // Discussion sync cron
+    syncDiscussionsCron,
   ],
-  servePath: "/.netlify/functions/inngest",
+  servePath: '/.netlify/functions/inngest',
 });
 
 // Export the Netlify handler
 export default async (req: Request, context: Context) => {
   // Handle GET requests with a status page
-  if (req.method === "GET" && !req.url.includes("?")) {
-    return new Response(JSON.stringify({
-      message: "Inngest endpoint is active",
-      endpoint: "/.netlify/functions/inngest",
-      functions: [
-        "capture-pr-details",
-        "capture-pr-reviews", 
-        "capture-pr-comments",
-        "capture-repository-sync",
-        "capture-pr-details-graphql",
-        "capture-repository-sync-graphql",
-        "classify-repository-size",
-        "classify-single-repository",
-        "discover-new-repository"
-      ],
-      environment: {
-        context: process.env.CONTEXT || "unknown",
-        hasEventKey: !!process.env.INNGEST_EVENT_KEY,
-        hasSigningKey: !!process.env.INNGEST_SIGNING_KEY,
+  if (req.method === 'GET' && !req.url.includes('?')) {
+    return new Response(
+      JSON.stringify({
+        message: 'Inngest endpoint is active',
+        endpoint: '/.netlify/functions/inngest',
+        functions: [
+          'capture-pr-details',
+          'capture-pr-reviews',
+          'capture-pr-comments',
+          'capture-repository-sync',
+          'capture-pr-details-graphql',
+          'capture-repository-sync-graphql',
+          'classify-repository-size',
+          'classify-single-repository',
+          'discover-new-repository',
+          'sync-discussions-cron',
+        ],
+        environment: {
+          context: process.env.CONTEXT || 'unknown',
+          hasEventKey: !!process.env.INNGEST_EVENT_KEY,
+          hasSigningKey: !!process.env.INNGEST_SIGNING_KEY,
+        },
+      }),
+      {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
       }
-    }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" }
-    });
+    );
   }
 
   // Pass all other requests to Inngest
