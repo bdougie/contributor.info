@@ -242,11 +242,12 @@ const capturePrDetails = inngest.createFunction(
         repoData.id = newRepo.id;
       }
 
-      // Store PR data
+      // Store PR data with correct field names
       const { error } = await supabase
         .from('pull_requests')
         .upsert({
-          pr_number: prData.number,
+          number: prData.number,
+          github_id: prData.id.toString(),
           repository_id: repoData.id,
           repository_full_name: `${owner}/${repo}`,
           title: prData.title,
@@ -261,6 +262,11 @@ const capturePrDetails = inngest.createFunction(
           closed_at: prData.closed_at,
           merged_at: prData.merged_at,
           is_draft: prData.draft || false,
+          base_branch: prData.base?.ref || 'main',
+          head_branch: prData.head?.ref || 'unknown',
+          last_synced_at: new Date().toISOString(),
+        }, {
+          onConflict: 'github_id',
         });
 
       if (error) throw error;
@@ -358,9 +364,10 @@ const capturePrDetailsGraphQL = inngest.createFunction(
         .select('id')
         .single()).data.id;
 
-      // Store PR
+      // Store PR with correct field names
       await supabase.from('pull_requests').upsert({
-        pr_number: prData.number,
+        number: prData.number,
+        github_id: prData.databaseId?.toString() || prData.id,
         repository_id: repositoryId,
         repository_full_name: `${owner}/${repo}`,
         title: prData.title,
@@ -375,6 +382,11 @@ const capturePrDetailsGraphQL = inngest.createFunction(
         closed_at: prData.closedAt,
         merged_at: prData.mergedAt,
         is_draft: prData.isDraft || false,
+        base_branch: prData.baseRefName || 'main',
+        head_branch: prData.headRefName || 'unknown',
+        last_synced_at: new Date().toISOString(),
+      }, {
+        onConflict: 'github_id',
       });
 
       // Store reviews
@@ -632,7 +644,8 @@ const captureRepositoryIssues = inngest.createFunction(
         const { error } = await supabase
           .from('issues')
           .upsert({
-            issue_number: issue.number,
+            number: issue.number,
+            github_id: issue.id.toString(),
             repository_id: repositoryId,
             repository_full_name: `${owner}/${repo}`,
             title: issue.title,
@@ -643,6 +656,9 @@ const captureRepositoryIssues = inngest.createFunction(
             created_at: issue.created_at,
             updated_at: issue.updated_at,
             closed_at: issue.closed_at,
+            last_synced_at: new Date().toISOString(),
+          }, {
+            onConflict: 'github_id',
           });
 
         if (error) {
@@ -711,6 +727,11 @@ const captureRepositorySync = inngest.createFunction(
         `/repos/${owner}/${repo}/pulls?state=all&per_page=30&sort=created&direction=desc`,
         github_token
       );
+      
+      console.log(`Fetched ${prs.length} PRs from ${owner}/${repo}`);
+      if (prs.length > 0) {
+        console.log(`First PR: #${prs[0].number} - ${prs[0].title} (created: ${prs[0].created_at})`);
+      }
 
       const supabase = getSupabaseClient();
 
@@ -723,8 +744,9 @@ const captureRepositorySync = inngest.createFunction(
         );
         if (!authorId) continue; // Skip if no github_id (GitHub Apps/bots)
 
-        await supabase.from('pull_requests').upsert({
-          pr_number: pr.number,
+        const { error: prError } = await supabase.from('pull_requests').upsert({
+          number: pr.number,
+          github_id: pr.id.toString(),
           repository_id: repositoryId,
           repository_full_name: `${owner}/${repo}`,
           title: pr.title,
@@ -739,7 +761,18 @@ const captureRepositorySync = inngest.createFunction(
           closed_at: pr.closed_at,
           merged_at: pr.merged_at,
           is_draft: pr.draft || false,
+          base_branch: pr.base?.ref || 'main',
+          head_branch: pr.head?.ref || 'unknown',
+          last_synced_at: new Date().toISOString(),
+        }, {
+          onConflict: 'github_id',
         });
+        
+        if (prError) {
+          console.error(`Failed to upsert PR #${pr.number}:`, prError);
+        } else {
+          console.log(`Successfully upserted PR #${pr.number} (${pr.title})`);
+        }
       }
     });
 
