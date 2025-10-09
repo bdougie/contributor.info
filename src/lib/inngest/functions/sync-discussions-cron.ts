@@ -39,8 +39,8 @@ export const syncDiscussionsCron = inngest.createFunction(
     }
 
     // Step 2: Trigger discussion sync for each repository
-    const events = await step.run('trigger-discussion-syncs', async () => {
-      return repositories.map((repo) => ({
+    await step.run('send-discussion-sync-events', async () => {
+      const events = repositories.map((repo) => ({
         name: 'capture/repository.discussions' as const,
         data: {
           repositoryId: repo.id,
@@ -48,9 +48,14 @@ export const syncDiscussionsCron = inngest.createFunction(
           source: 'cron',
         },
       }));
-    });
 
-    await step.sendEvent('send-sync-events', events);
+      // Send events individually to ensure they're all emitted
+      for (const event of events) {
+        await inngest.send(event);
+      }
+
+      return { eventsSent: events.length };
+    });
 
     console.log('Triggered discussion sync for %d repositories', repositories.length);
 
