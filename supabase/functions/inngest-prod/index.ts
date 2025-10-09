@@ -989,6 +989,8 @@ const computeEmbeddings = inngest.createFunction(
       }
 
       const { data: viewItems, error } = await baseQuery.limit(100);
+      
+      console.log(`Found ${viewItems ? viewItems.length : 0} items from items_needing_embeddings view`);
 
       if (error) {
         console.error('Failed to fetch items needing embeddings:', error);
@@ -1097,10 +1099,14 @@ const computeEmbeddings = inngest.createFunction(
             }
           }
 
-          const apiKey = Deno.env.get('VITE_OPENAI_API_KEY') || Deno.env.get('OPENAI_API_KEY');
+          const apiKey = Deno.env.get('OPENAI_API_KEY') || Deno.env.get('VITE_OPENAI_API_KEY');
           if (!apiKey) {
-            throw new Error('OpenAI API key not configured');
+            console.error('OpenAI API key not found in environment');
+            console.error('Checked: OPENAI_API_KEY, VITE_OPENAI_API_KEY');
+            console.error('Available env vars:', Object.keys(Deno.env.toObject()).filter(k => k.includes('OPENAI') || k.includes('API')));
+            throw new Error('OpenAI API key not configured - check OPENAI_API_KEY env var in Supabase secrets');
           }
+          console.log(`Using OpenAI API key: ${apiKey.substring(0, 7)}...`);
 
           const texts = batch.map((item) =>
             `[${item.type.toUpperCase()}] ${item.title} ${item.body || ''}`.substring(0, 2000)
@@ -1119,7 +1125,9 @@ const computeEmbeddings = inngest.createFunction(
           });
 
           if (!response.ok) {
-            throw new Error(`OpenAI API error: ${response.status}`);
+            const errorBody = await response.text();
+            console.error(`OpenAI API error ${response.status}:`, errorBody);
+            throw new Error(`OpenAI API error: ${response.status} - ${errorBody}`);
           }
 
           const responseData = await response.json();
@@ -1139,7 +1147,7 @@ const computeEmbeddings = inngest.createFunction(
                 table = 'discussions';
               }
 
-              await supabase
+              const { error: updateError } = await supabase
                 .from(table)
                 .update({
                   embedding,
@@ -1148,19 +1156,27 @@ const computeEmbeddings = inngest.createFunction(
                 })
                 .eq('id', item.id);
 
-              await supabase.from('similarity_cache').upsert(
-                {
+              if (updateError) {
+                console.error(`Failed to update ${table} embedding for ${item.id}:`, updateError);
+                throw updateError;
+              }
+
+              const { error: cacheError } = await supabase
+                .from('similarity_cache')
+                .upsert({
                   repository_id: item.repository_id,
                   item_type: item.type,
                   item_id: item.id,
                   embedding,
                   content_hash: item.content_hash,
                   ttl_hours: 168,
-                },
-                {
-                  onConflict: 'repository_id,item_type,item_id',
-                }
-              );
+                })
+                .onConflict('repository_id,item_type,item_id');
+
+              if (cacheError) {
+                console.warn(`Failed to update similarity cache for ${item.id}:`, cacheError);
+                // Don't throw for cache errors - they're non-critical
+              }
 
               processedCount++;
             }

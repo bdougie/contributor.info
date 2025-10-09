@@ -1,28 +1,29 @@
 #!/usr/bin/env node
 
 /**
- * Manually trigger the embeddings computation function
+ * Manually trigger the embeddings computation function via Inngest API
  * Usage: node scripts/trigger-embeddings.mjs
  */
 
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://egcxzonpmmcirmgqdrla.supabase.co';
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const INNGEST_ENDPOINT = `${SUPABASE_URL}/functions/v1/inngest-prod`;
+const INNGEST_EVENT_KEY = process.env.INNGEST_EVENT_KEY || process.env.INNGEST_PRODUCTION_EVENT_KEY;
+const INNGEST_API_URL = 'https://inn.gs/e';
 
 async function triggerEmbeddings() {
-  if (!SUPABASE_SERVICE_KEY) {
-    console.error('❌ Error: SUPABASE_SERVICE_ROLE_KEY environment variable is required');
+  if (!INNGEST_EVENT_KEY) {
+    console.error(
+      '❌ Error: INNGEST_EVENT_KEY or INNGEST_PRODUCTION_EVENT_KEY environment variable is required'
+    );
+    console.error("   Export it: export INNGEST_EVENT_KEY='your-key'");
     process.exit(1);
   }
 
-  console.log('🚀 Triggering embeddings computation...');
+  console.log('🚀 Triggering embeddings computation via Inngest API...');
 
   try {
-    const response = await fetch(INNGEST_ENDPOINT, {
+    const response = await fetch(`${INNGEST_API_URL}/${INNGEST_EVENT_KEY}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
       },
       body: JSON.stringify({
         name: 'embeddings/compute.requested',
@@ -41,10 +42,11 @@ async function triggerEmbeddings() {
 
     console.log('✅ Successfully triggered embeddings computation');
     console.log('Response:', text);
+    console.log('\n📊 Monitor at: https://app.inngest.com');
     console.log('\n📊 Check status with SQL:');
     console.log('  SELECT * FROM embedding_jobs ORDER BY created_at DESC LIMIT 1;');
   } catch (error) {
-    console.error('❌ Error:', error.message);
+    console.error(`❌ Error: %s`, error.message);
     process.exit(1);
   }
 }
