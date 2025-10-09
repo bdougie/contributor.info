@@ -2,6 +2,7 @@ import { fetchPRDataWithFallback } from '../supabase-pr-data';
 import { toUTCTimestamp } from '../utils/date-formatting';
 import type { PullRequest } from '../types';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/types/database';
 
 // GitHub PR interface for this module
 interface GitHubPullRequest {
@@ -43,6 +44,11 @@ interface PullRequestData {
   author_id?: string;
   state?: string;
   merged_at?: string | null;
+}
+
+// Supabase query result interfaces for type safety
+interface GitHubEventActor {
+  actor_login: string;
 }
 
 interface CacheValue {
@@ -244,9 +250,10 @@ export async function calculateHealthMetrics(
     });
 
     // 2b. Issue Engagement Factor (NEW)
-    const uniqueIssueAuthors = (issueAuthors.data as Array<{ actor_login: string }>)
-      ?.map((e) => e.actor_login)
-      .filter(Boolean) || [];
+    const uniqueIssueAuthors =
+      (issueAuthors.data as Array<{ actor_login: string }>)
+        ?.map((e) => e.actor_login)
+        .filter(Boolean) || [];
     const issueAuthorCount = new Set(uniqueIssueAuthors).size;
 
     // Calculate issue engagement score
@@ -259,7 +266,9 @@ export async function calculateHealthMetrics(
     } else if (issueAuthorCount < 3) {
       issueEngagementScore = 70;
       issueEngagementStatus = 'warning';
-      recommendations.push('Encourage more community members to report issues and provide feedback');
+      recommendations.push(
+        'Encourage more community members to report issues and provide feedback'
+      );
     } else if (issueAuthorCount < 10) {
       issueEngagementScore = 85;
       issueEngagementStatus = 'good';
@@ -293,14 +302,23 @@ export async function calculateHealthMetrics(
       recommendations.push('Increase code review coverage to improve quality');
     }
 
-    // Calculate review quality metrics
-    const uniqueReviewers = (reviewers.data as Array<{ actor_login: string }>)
-      ?.map((e) => e.actor_login)
-      .filter(Boolean) || [];
+    /**
+     * Calculate review quality metrics including reviewer diversity
+     *
+     * The enhanced review score combines two factors:
+     * 1. Review coverage (base score): % of PRs that receive reviews
+     * 2. Reviewer participation bonus: Rewards having multiple diverse reviewers
+     *    - Formula: min(20, reviewerCount * 2)
+     *    - Adds 2 points per unique reviewer, capped at 20 points
+     *    - This encourages having 10+ reviewers for maximum diversity (20 points)
+     */
+    const uniqueReviewers =
+      (reviewers.data as GitHubEventActor[] | null)?.map((e) => e.actor_login).filter(Boolean) ||
+      [];
     const reviewerCount = new Set(uniqueReviewers).size;
 
     // Enhanced review score includes both coverage and participation
-    const reviewParticipationBonus = Math.min(20, reviewerCount * 2); // Up to 20 points for reviewer diversity
+    const reviewParticipationBonus = Math.min(20, reviewerCount * 2);
     const enhancedReviewScore = Math.min(100, reviewScore + reviewParticipationBonus);
 
     factors.push({
@@ -717,7 +735,7 @@ export async function calculateRepositoryConfidence(
  * Core star/fork to contribution conversion rate (OpenSauced algorithm)
  */
 async function calculateStarForkConfidence(
-  supabase: SupabaseClient<any, 'public', any>,
+  supabase: SupabaseClient<Database>,
   owner: string,
   repo: string,
   repositoryId: string,
@@ -793,7 +811,7 @@ async function calculateStarForkConfidence(
  * Core star/fork to contribution conversion rate with breakdown data
  */
 async function calculateStarForkConfidenceWithBreakdown(
-  supabase: SupabaseClient<any, 'public', any>,
+  supabase: SupabaseClient<Database>,
   owner: string,
   repo: string,
   repositoryId: string,
@@ -882,7 +900,7 @@ async function calculateStarForkConfidenceWithBreakdown(
  * Now includes IssuesEvent and DiscussionCommentEvent as engagement signals
  */
 async function calculateEngagementConfidence(
-  supabase: SupabaseClient<any, 'public', any>,
+  supabase: SupabaseClient<Database>,
   owner: string,
   repo: string,
   repositoryId: string,
@@ -988,7 +1006,7 @@ async function calculateEngagementConfidence(
  * Contributor retention rate over time windows
  */
 async function calculateRetentionConfidence(
-  supabase: SupabaseClient<any, 'public', any>,
+  supabase: SupabaseClient<Database>,
   _owner: string,
   _repo: string,
   repositoryId: string,
@@ -1083,7 +1101,7 @@ async function calculateRetentionConfidence(
  * PR success rate and contribution quality
  */
 async function calculateQualityConfidence(
-  supabase: SupabaseClient<any, 'public', any>,
+  supabase: SupabaseClient<Database>,
   _owner: string,
   _repo: string,
   repositoryId: string,
@@ -1229,7 +1247,7 @@ function calculateFallbackConfidence(
  * Get cached confidence score if available and not expired
  */
 async function getCachedConfidenceScore(
-  supabase: SupabaseClient<any, 'public', any>,
+  supabase: SupabaseClient<Database>,
   owner: string,
   repo: string,
   timeRangeDays: number
@@ -1270,7 +1288,7 @@ async function getCachedConfidenceScore(
  * Cache confidence score with appropriate TTL
  */
 async function cacheConfidenceScore(
-  supabase: SupabaseClient<any, 'public', any>,
+  supabase: SupabaseClient<Database>,
   owner: string,
   repo: string,
   timeRangeDays: number,
