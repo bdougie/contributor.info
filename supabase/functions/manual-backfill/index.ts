@@ -2,13 +2,9 @@
 // Can run up to 150 seconds on paid plans, 50 seconds on free tier
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-// CORS headers for browser requests
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { createSupabaseClient } from '../_shared/database.ts';
+import { corsPreflightResponse, legacySuccessResponse, errorResponse, handleError, notFoundError } from '../_shared/responses.ts';
+import { corsHeaders } from '../_shared/cors.ts';
 
 interface BackfillRequest {
   repository: string;
@@ -20,16 +16,15 @@ interface BackfillRequest {
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return corsPreflightResponse();
   }
 
   try {
     const { repository, days = 30, force = false } = (await req.json()) as BackfillRequest;
 
-    // Initialize Supabase client
+        // Initialize Supabase client
+    const supabase = createSupabaseClient();
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get gh-datapipe configuration (require env vars, no hardcoded fallbacks for security)
     const ghDatapipeUrl = Deno.env.get('GH_DATPIPE_API_URL');
@@ -48,16 +43,10 @@ serve(async (req) => {
       .eq('name', name)
       .single();
 
-    if (repoError || !repoData) {
-      return new Response(
-        JSON.stringify({
-          error: 'Repository not found or not tracked',
-          details: repoError?.message,
-        }),
-        {
-          status: 404,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
+        if (repoError || !repoData) {
+      return notFoundError(
+        'Repository',
+        `Repository ${repository} not found or not tracked: ${repoError?.message}`
       );
     }
 
@@ -101,35 +90,19 @@ serve(async (req) => {
       console.error('Failed to store job metadata:', jobError);
     }
 
-    // Step 4: Return job information
-    return new Response(
-      JSON.stringify({
-        success: true,
+        // Step 4: Return job information
+            return legacySuccessResponse(
+      {
         job_id: backfillData.job_id,
         status: backfillData.status,
         repository,
         days,
         estimated_completion: backfillData.estimated_completion,
         status_url: backfillData.status_url,
-        message: 'Backfill job queued successfully. Monitor progress via job_id.',
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      },
+      'Backfill job queued successfully. Monitor progress via job_id.'
     );
-  } catch (error) {
-    console.error('Backfill error:', error);
-
-    return new Response(
-      JSON.stringify({
-        error: 'Failed to trigger backfill',
-        details: error.message,
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
+    } catch (error) {
+    return handleError(error, 'manual backfill');
   }
 });

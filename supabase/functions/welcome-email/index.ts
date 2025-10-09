@@ -1,5 +1,5 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
-import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { createSupabaseClient } from '../_shared/database.ts';
 
 // Email template types
 interface WelcomeEmailData {
@@ -307,7 +307,7 @@ Deno.serve(async (req: Request) => {
     console.log('Processing welcome email request for:', { userEmail, userName, signupDate });
 
     // GDPR COMPLIANCE: Welcome emails are transactional and sent under contractual necessity
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createSupabaseClient();
 
     // Log GDPR processing activity under contractual necessity
     const { data: gdprLogId, error: gdprError } = await supabase.rpc('log_gdpr_processing', {

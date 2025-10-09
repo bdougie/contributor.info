@@ -1,8 +1,8 @@
 // Supabase Edge Function for long-running repository sync operations
 // Supports up to 150 seconds execution time on paid plans (50s on free tier)
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { corsHeaders } from '../_shared/cors.ts';
+import { createSupabaseClient, ensureContributor } from '../_shared/database.ts';
+import { corsPreflightResponse, legacySuccessResponse, errorResponse, handleError } from '../_shared/responses.ts';
 
 // Deno.serve is the new way to create edge functions
 Deno.serve(async (req) => {
@@ -56,10 +56,10 @@ const DEFAULT_DAYS_LIMIT = 30;
 const GITHUB_API_BASE = 'https://api.github.com';
 
 async function handleRequest(req: Request): Promise<Response> {
-  // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
-  }
+      // Handle CORS preflight
+    if (req.method === 'OPTIONS') {
+      return corsPreflightResponse();
+    }
 
   const startTime = Date.now();
 
@@ -74,24 +74,18 @@ async function handleRequest(req: Request): Promise<Response> {
       resumeFrom,
     } = (await req.json()) as SyncRequest;
 
-    // Validate input parameters
+        // Validate input parameters
     if (!owner || !name) {
-      return new Response(
-        JSON.stringify({
-          error: 'Missing required fields',
-          details: 'Both owner and name are required',
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
+      return errorResponse(
+        'Missing required fields',
+        400,
+        'Both owner and name are required',
+        'VALIDATION_ERROR'
       );
     }
 
-    // Initialize Supabase client with service role
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+        // Initialize Supabase client
+    const supabase = createSupabaseClient();
 
     // Get GitHub token
     const githubToken = Deno.env.get('GITHUB_TOKEN');
@@ -107,29 +101,21 @@ async function handleRequest(req: Request): Promise<Response> {
       .eq('name', name)
       .single();
 
-    if (repoError || !repoData) {
-      return new Response(
-        JSON.stringify({
-          error: 'Repository not found',
-          details: `${owner}/${name} is not tracked`,
-        }),
-        {
-          status: 404,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
+        if (repoError || !repoData) {
+      return errorResponse(
+        'Repository not found',
+        404,
+        `${owner}/${name} is not tracked`,
+        'REPO_NOT_FOUND'
       );
     }
 
-    if (!repoData.is_tracked) {
-      return new Response(
-        JSON.stringify({
-          error: 'Repository not tracked',
-          details: 'Please track the repository first',
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
+        if (!repoData.is_tracked) {
+      return errorResponse(
+        'Repository not tracked',
+        400,
+        'Please track the repository first',
+        'REPO_NOT_TRACKED'
       );
     }
 
@@ -166,19 +152,14 @@ async function handleRequest(req: Request): Promise<Response> {
           { onConflict: 'repository_id' }
         );
 
-        return new Response(
-          JSON.stringify({
-            success: true,
+                return legacySuccessResponse(
+          {
             partial: true,
             processed: pullRequests.length,
             resumeFrom: cursor,
-            message:
-              'Partial sync completed due to time limit. Call again with resumeFrom cursor to continue.',
-          }),
-          {
-            status: 200,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
+          },
+          'Partial sync completed due to time limit. Call again with resumeFrom cursor to continue.',
+          200
         );
       }
 
@@ -311,10 +292,9 @@ async function handleRequest(req: Request): Promise<Response> {
     // Only clear if we processed everything and didn't hit the time limit
     await supabase.from('sync_progress').delete().eq('repository_id', repoData.id);
 
-    // Return success response
-    return new Response(
-      JSON.stringify({
-        success: true,
+        // Return success response
+    return legacySuccessResponse(
+      {
         repository: `${owner}/${name}`,
         processed,
         errors,
@@ -322,62 +302,12 @@ async function handleRequest(req: Request): Promise<Response> {
         executionTime: `${((Date.now() - startTime) / 1000).toFixed(2)}s`,
         syncType: fullSync ? 'full' : 'incremental',
         dateRange: fullSync ? 'all' : `last ${daysLimit} days`,
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
-  } catch (error) {
-    console.error('Sync error:', error);
-
-    return new Response(
-      JSON.stringify({
-        error: 'Sync failed',
-        details: error instanceof Error ? error.message : 'Unknown error',
-        executionTime: `${((Date.now() - startTime) / 1000).toFixed(2)}s`,
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
-  }
-}
-
-// Helper function to ensure contributor exists
-async function ensureContributor(supabase: any, githubUser: any): Promise<string | null> {
-  if (!githubUser || !githubUser.id) {
-    return null;
-  }
-
-  const { data, error } = await supabase
-    .from('contributors')
-    .upsert(
-      {
-        github_id: githubUser.id,
-        username: githubUser.login,
-        display_name: githubUser.name || null,
-        email: githubUser.email || null,
-        avatar_url: githubUser.avatar_url || null,
-        profile_url: `https://github.com/${githubUser.login}`,
-        is_bot: githubUser.type === 'Bot' || githubUser.login.includes('[bot]'),
-        is_active: true,
-        first_seen_at: new Date().toISOString(),
-        last_updated_at: new Date().toISOString(),
       },
-      {
-        onConflict: 'github_id',
-        ignoreDuplicates: false,
-      }
-    )
-    .select('id')
-    .maybeSingle();
-
-  if (error) {
-    console.error('Error upserting contributor:', error);
-    return null;
+      'Repository sync completed successfully'
+    );
+    } catch (error) {
+    return handleError(error, 'repository sync');
   }
-
-  return data?.id || null;
 }
+
+
