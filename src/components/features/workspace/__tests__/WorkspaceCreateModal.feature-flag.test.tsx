@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { vi } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
 import { WorkspaceCreateModal } from '../WorkspaceCreateModal';
 import { useFeatureFlags } from '@/lib/feature-flags/context';
 import { FEATURE_FLAGS } from '@/lib/feature-flags/types';
@@ -28,10 +29,14 @@ vi.mock('@/hooks/use-analytics', () => ({
   }),
 }));
 
-// Mock react-router-dom
-vi.mock('react-router-dom', () => ({
-  useNavigate: () => vi.fn(),
-}));
+// Mock react-router-dom - partial mock to preserve Link component
+vi.mock('react-router-dom', () => {
+  const actual = vi.importActual('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: () => vi.fn(),
+  };
+});
 
 // Mock sonner
 vi.mock('sonner', () => ({
@@ -69,7 +74,11 @@ describe('WorkspaceCreateModal - Feature Flag Tests', () => {
     });
 
     it('should show the workspace creation form', () => {
-      render(<WorkspaceCreateModal {...defaultProps} />);
+      render(
+        <MemoryRouter>
+          <WorkspaceCreateModal {...defaultProps} />
+        </MemoryRouter>
+      );
 
       expect(screen.getByTestId('modal-title-enabled')).toHaveTextContent('Create New Workspace');
       expect(screen.getByLabelText(/workspace name/i)).toBeInTheDocument();
@@ -77,7 +86,11 @@ describe('WorkspaceCreateModal - Feature Flag Tests', () => {
     });
 
     it('should show form elements when feature is enabled', () => {
-      render(<WorkspaceCreateModal {...defaultProps} />);
+      render(
+        <MemoryRouter>
+          <WorkspaceCreateModal {...defaultProps} />
+        </MemoryRouter>
+      );
 
       const nameInput = screen.getByLabelText(/workspace name/i);
       const submitButton = screen.getByRole('button', { name: /create workspace/i });
@@ -104,7 +117,11 @@ describe('WorkspaceCreateModal - Feature Flag Tests', () => {
     });
 
     it('should show the disabled state for creation mode', () => {
-      render(<WorkspaceCreateModal {...defaultProps} />);
+      render(
+        <MemoryRouter>
+          <WorkspaceCreateModal {...defaultProps} />
+        </MemoryRouter>
+      );
 
       // Modal no longer has separate title/description - it's all in the disabled component
       expect(screen.getByTestId('workspace-creation-disabled')).toBeInTheDocument();
@@ -113,7 +130,11 @@ describe('WorkspaceCreateModal - Feature Flag Tests', () => {
     });
 
     it('should show normal edit form for edit mode even when creation is disabled', () => {
-      render(<WorkspaceCreateModal {...defaultProps} mode="edit" workspaceId="test-id" />);
+      render(
+        <MemoryRouter>
+          <WorkspaceCreateModal {...defaultProps} mode="edit" workspaceId="test-id" />
+        </MemoryRouter>
+      );
 
       expect(screen.getByTestId('modal-title-enabled')).toHaveTextContent('Edit Workspace');
       expect(screen.getByLabelText(/workspace name/i)).toBeInTheDocument();
@@ -121,7 +142,11 @@ describe('WorkspaceCreateModal - Feature Flag Tests', () => {
     });
 
     it('should render disabled component when creation is disabled', () => {
-      render(<WorkspaceCreateModal {...defaultProps} />);
+      render(
+        <MemoryRouter>
+          <WorkspaceCreateModal {...defaultProps} />
+        </MemoryRouter>
+      );
 
       // Test only what's immediately available without async behavior
       expect(screen.getByTestId('workspace-creation-disabled')).toBeInTheDocument();

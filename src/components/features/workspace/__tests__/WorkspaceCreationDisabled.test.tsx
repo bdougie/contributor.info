@@ -13,20 +13,32 @@ describe('WorkspaceCreationDisabled', () => {
 
   describe('card variant', () => {
     it('should render the card variant by default (not logged in)', () => {
-      render(<WorkspaceCreationDisabled />);
+      render(
+        <MemoryRouter>
+          <WorkspaceCreationDisabled />
+        </MemoryRouter>
+      );
 
       expect(screen.getByText('Sign In Required')).toBeInTheDocument();
       expect(screen.getByText(/Please sign in to continue/)).toBeInTheDocument();
     });
 
     it('should show login button when callback provided (not logged in)', () => {
-      render(<WorkspaceCreationDisabled onRequestAccess={mockOnRequestAccess} />);
+      render(
+        <MemoryRouter>
+          <WorkspaceCreationDisabled onRequestAccess={mockOnRequestAccess} />
+        </MemoryRouter>
+      );
 
       expect(screen.getByText('Sign In')).toBeInTheDocument();
     });
 
     it('should not show login button when callback not provided (not logged in)', () => {
-      render(<WorkspaceCreationDisabled />);
+      render(
+        <MemoryRouter>
+          <WorkspaceCreationDisabled />
+        </MemoryRouter>
+      );
 
       expect(screen.queryByText('Sign In')).not.toBeInTheDocument();
     });
@@ -47,7 +59,11 @@ describe('WorkspaceCreationDisabled', () => {
 
   describe('modal variant', () => {
     it('should render the modal variant (not logged in)', () => {
-      render(<WorkspaceCreationDisabled variant="modal" />);
+      render(
+        <MemoryRouter>
+          <WorkspaceCreationDisabled variant="modal" />
+        </MemoryRouter>
+      );
 
       expect(screen.getByText('Sign In Required')).toBeInTheDocument();
       expect(screen.getByText(/Please sign in to continue/)).toBeInTheDocument();
@@ -66,7 +82,11 @@ describe('WorkspaceCreationDisabled', () => {
     });
 
     it('should show sign in button for modal variant when not logged in', () => {
-      render(<WorkspaceCreationDisabled variant="modal" onRequestAccess={mockOnRequestAccess} />);
+      render(
+        <MemoryRouter>
+          <WorkspaceCreationDisabled variant="modal" onRequestAccess={mockOnRequestAccess} />
+        </MemoryRouter>
+      );
 
       expect(screen.getByText('Sign In')).toBeInTheDocument();
     });
@@ -83,7 +103,11 @@ describe('WorkspaceCreationDisabled', () => {
     });
 
     it('should render different layout for modal variant', () => {
-      render(<WorkspaceCreationDisabled variant="modal" />);
+      render(
+        <MemoryRouter>
+          <WorkspaceCreationDisabled variant="modal" />
+        </MemoryRouter>
+      );
 
       // Modal variant should have centered layout
       const container = screen.getByText('Sign In Required').closest('div');
