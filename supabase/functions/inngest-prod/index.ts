@@ -1142,7 +1142,7 @@ const computeEmbeddings = inngest.createFunction(
               await supabase
                 .from(table)
                 .update({
-                  embedding: `[${embedding.join(',')}]`,
+                  embedding,
                   embedding_generated_at: new Date().toISOString(),
                   content_hash: item.content_hash,
                 })
@@ -1153,7 +1153,7 @@ const computeEmbeddings = inngest.createFunction(
                   repository_id: item.repository_id,
                   item_type: item.type,
                   item_id: item.id,
-                  embedding: `[${embedding.join(',')}]`,
+                  embedding,
                   content_hash: item.content_hash,
                   ttl_hours: 168,
                 },
