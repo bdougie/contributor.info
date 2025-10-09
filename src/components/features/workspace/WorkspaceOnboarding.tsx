@@ -4,13 +4,15 @@ import { Users, Package, Plus, Sparkles, BarChart3, Share2 } from '@/components/
 import { useFeatureFlags } from '@/lib/feature-flags/context';
 import { FEATURE_FLAGS } from '@/lib/feature-flags/types';
 import { WorkspaceCreationDisabled } from './WorkspaceCreationDisabled';
+import type { User } from '@supabase/supabase-js';
 
 export interface WorkspaceOnboardingProps {
   onCreateClick: () => void;
   className?: string;
+  user?: User | null;
 }
 
-export function WorkspaceOnboarding({ onCreateClick, className }: WorkspaceOnboardingProps) {
+export function WorkspaceOnboarding({ onCreateClick, className, user }: WorkspaceOnboardingProps) {
   const { checkFlag } = useFeatureFlags();
   const canCreateWorkspaces = checkFlag(FEATURE_FLAGS.ENABLE_WORKSPACE_CREATION);
 
@@ -30,7 +32,7 @@ export function WorkspaceOnboarding({ onCreateClick, className }: WorkspaceOnboa
         </CardHeader>
 
         <CardContent>
-          <WorkspaceCreationDisabled variant="card" />
+          <WorkspaceCreationDisabled variant="card" user={user} />
         </CardContent>
       </Card>
     );
@@ -112,7 +114,7 @@ export function WorkspaceOnboarding({ onCreateClick, className }: WorkspaceOnboa
 }
 
 // Compact version for when user already has workspaces
-export function WorkspaceOnboardingCompact({ onCreateClick }: WorkspaceOnboardingProps) {
+export function WorkspaceOnboardingCompact({ onCreateClick, user }: WorkspaceOnboardingProps) {
   const { checkFlag } = useFeatureFlags();
   const canCreateWorkspaces = checkFlag(FEATURE_FLAGS.ENABLE_WORKSPACE_CREATION);
 
@@ -120,7 +122,7 @@ export function WorkspaceOnboardingCompact({ onCreateClick }: WorkspaceOnboardin
     return (
       <Card>
         <CardContent className="py-6 px-6">
-          <WorkspaceCreationDisabled variant="card" />
+          <WorkspaceCreationDisabled variant="card" user={user} />
         </CardContent>
       </Card>
     );

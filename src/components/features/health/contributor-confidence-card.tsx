@@ -1,10 +1,9 @@
 import { useState, memo, useMemo, useCallback } from 'react';
-import { UserPlus, RefreshCw, Database, LogIn, HelpCircle } from '@/components/ui/icon';
+import { UserPlus, RefreshCw, HelpCircle } from '@/components/ui/icon';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useOnDemandSync } from '@/hooks/use-on-demand-sync';
-import { useGitHubAuth } from '@/hooks/use-github-auth';
 import { ConfidenceBreakdownTooltip } from './confidence-breakdown-tooltip';
 import { ContributorConfidenceLearnMore } from './contributor-confidence-learn-more';
 import { ConfidenceSkeleton } from './confidence-skeleton';
@@ -139,9 +138,6 @@ export const ContributorConfidenceCard = memo(function ContributorConfidenceCard
   // Local state for Learn More modal
   const [showLearnMore, setShowLearnMore] = useState(false);
 
-  // Authentication hook
-  const { isLoggedIn, login } = useGitHubAuth();
-
   // On-demand sync hook
   const { hasData, syncStatus, triggerSync } = useOnDemandSync({
     owner: owner || '',
@@ -220,41 +216,20 @@ export const ContributorConfidenceCard = memo(function ContributorConfidenceCard
             </div>
           </div>
 
-          {/* Authentication and sync trigger - always visible */}
+          {/* Upgrade CTA - always visible when no data */}
           {hasData === false && !syncStatus.error && (
             <div className="flex flex-col items-center sm:items-start gap-2 pt-2 mt-2 border-t w-full">
-              {!isLoggedIn ? (
-                <>
-                  <p className="text-xs text-muted-foreground hidden sm:block">
-                    Log in with GitHub to analyze this repository's contributor data.
-                  </p>
-                  <Button
-                    onClick={login}
-                    variant="outline"
-                    size="sm"
-                    className="flex items-center gap-1 h-7 px-2 text-xs"
-                  >
-                    <LogIn className="h-3 w-3" />
-                    Log in
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <p className="text-xs text-muted-foreground hidden sm:block">
-                    This repository hasn't been analyzed yet.
-                  </p>
-                  <Button
-                    onClick={triggerSync}
-                    variant="outline"
-                    size="sm"
-                    disabled={syncStatus.isTriggering || syncStatus.isInProgress}
-                    className="flex items-center gap-1 h-7 px-2 text-xs"
-                  >
-                    <Database className="h-3 w-3" />
-                    Analyze Repository
-                  </Button>
-                </>
-              )}
+              <p className="text-xs text-muted-foreground hidden sm:block">
+                Upgrade to see contributor confidence metrics for this repository.
+              </p>
+              <Button
+                onClick={() => window.open('https://polar.sh/bdougie/products', '_blank')}
+                variant="default"
+                size="sm"
+                className="flex items-center gap-1 h-7 px-2 text-xs"
+              >
+                Upgrade and find out
+              </Button>
             </div>
           )}
 
