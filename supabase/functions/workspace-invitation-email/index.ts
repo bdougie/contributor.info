@@ -1,5 +1,5 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
-import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { createSupabaseClient } from '../_shared/database.ts';
 
 // Email template types
 interface WorkspaceInvitationData {
@@ -462,7 +462,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createSupabaseClient();
 
     // Fetch invitation details with related workspace and inviter information
     const { data: invitation, error: invitationError } = await supabase

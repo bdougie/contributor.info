@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createSupabaseClient } from '../_shared/database.ts';
 import {
   detectPrivilegedEvent,
   GitHubEvent,
@@ -10,11 +10,10 @@ import {
   processPRWithSpamDetection,
   batchProcessPRsForSpam,
 } from '../_shared/spam-detection-integration.ts';
+import { corsPreflightResponse, successResponse, errorResponse, handleError } from '../_shared/responses.ts';
+import { corsHeaders } from '../_shared/cors.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+
 
 interface Repository {
   owner: string;
@@ -399,16 +398,13 @@ async function getRepositoriesToSync(supabase: any): Promise<Repository[]> {
 serve(async (req) => {
   // Handle CORS
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return corsPreflightResponse();
   }
 
   console.log('[GitHub Sync] Received sync request');
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
+        const supabase = createSupabaseClient();
 
     // Parse request body
     const body = await req.json().catch(() => ({}));
@@ -611,29 +607,15 @@ serve(async (req) => {
       }
     }
 
-    return new Response(
-      JSON.stringify({
-        success: true,
+        return successResponse(
+      {
         repositories_synced: results.length,
         results,
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      }
+      },
+      'GitHub sync completed successfully'
     );
-  } catch (error) {
-    console.error('Sync error:', error);
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: error.message,
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
-      }
-    );
+    } catch (error) {
+    return handleError(error, 'GitHub sync');
   }
 });
 

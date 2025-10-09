@@ -1,10 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { createSupabaseClient } from '../_shared/database.ts';
+import { corsPreflightResponse, successResponse, errorResponse, validationError, unauthorizedError } from '../_shared/responses.ts';
+import { corsHeaders } from '../_shared/cors.ts';
 
 interface GitHubPR {
   id: number;
@@ -40,7 +37,7 @@ interface GitHubPR {
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return corsPreflightResponse();
   }
 
   try {
@@ -53,25 +50,17 @@ serve(async (req) => {
       update_database = true,
     } = await req.json();
 
-    if (!owner || !repo) {
-      return new Response(JSON.stringify({ error: 'Missing owner or repo parameter' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+        if (!owner || !repo) {
+      return validationError('Missing required fields', 'owner and repo parameters are required');
     }
 
-    // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+        // Initialize Supabase client
+    const supabase = createSupabaseClient();
 
     // Get GitHub token from environment or user's stored token
     const githubToken = Deno.env.get('GITHUB_TOKEN');
-    if (!githubToken) {
-      return new Response(JSON.stringify({ error: 'GitHub token not configured' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+        if (!githubToken) {
+      return unauthorizedError('GitHub token not configured');
     }
 
     // Fetch both open and closed PRs from GitHub
@@ -288,25 +277,17 @@ serve(async (req) => {
     const draftCount = prsWithReviewers.filter((pr) => pr.draft).length;
     const closedCount = prsWithReviewers.filter((pr) => pr.state === 'closed').length;
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message: `Synced ${prsWithReviewers.length} PRs (${openCount} open, ${closedCount} closed)`,
+        return successResponse(
+      {
         prs: prsWithReviewers,
         openCount,
         closedCount,
         errors: results.filter((r) => !r.success),
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      }
+      },
+      `Synced ${prsWithReviewers.length} PRs (${openCount} open, ${closedCount} closed)`
     );
-  } catch (error) {
+    } catch (error) {
     console.error('Error in sync-pr-reviewers function:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500,
-    });
+    return errorResponse('Sync PR reviewers failed', 500, error.message, 'SYNC_FAILED');
   }
 });

@@ -1,12 +1,9 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createSupabaseClient } from '../_shared/database.ts';
 import { detectPrivilegedEvent, GitHubEvent } from '../_shared/event-detection.ts';
 import { batchUpdateConfidenceScores } from '../_shared/confidence-scoring.ts';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { corsPreflightResponse, successResponse, errorResponse, handleError, validationError } from '../_shared/responses.ts';
+import { corsHeaders } from '../_shared/cors.ts';
 
 interface BackfillRequest {
   repository_owner: string;
@@ -40,7 +37,7 @@ async function fetchAllRepositoryEvents(
   let hasMore = true;
   const perPage = 100;
 
-  console.log('Fetching events for %s/${repo} from last ${daysBack} days', owner);
+  console.log('Fetching events for %s/%s from last %s days', owner, repo, daysBack);
 
   while (hasMore && page <= 10) {
     // Limit to 10 pages (1000 events) per backfill
@@ -97,7 +94,7 @@ async function fetchAllRepositoryEvents(
     }
   }
 
-  console.log('Fetched %s events for ${owner}/${repo}', allEvents.length);
+  console.log('Fetched %s events for %s/%s', allEvents.length, owner, repo);
   return allEvents;
 }
 
@@ -175,30 +172,24 @@ async function processBackfillEvents(
 serve(async (req) => {
   // Handle CORS
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return corsPreflightResponse();
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
+        const supabase = createSupabaseClient();
 
     // Parse request body
     const body: BackfillRequest = await req.json();
     const { repository_owner, repository_name, days_back = 30, event_types } = body;
 
-    if (!repository_owner || !repository_name) {
-      return new Response(
-        JSON.stringify({ error: 'repository_owner and repository_name are required' }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400,
-        }
+        if (!repository_owner || !repository_name) {
+      return validationError(
+        'Missing required fields',
+        'repository_owner and repository_name are required'
       );
     }
 
-    console.log('Starting backfill for %s/${repository_name}', repository_owner);
+    console.log('Starting backfill for %s/%s', repository_owner, repository_name);
 
     // Update sync status
     await supabase.from('github_sync_status').upsert(
@@ -257,9 +248,8 @@ serve(async (req) => {
         return acc;
       }, {}) || {};
 
-    return new Response(
-      JSON.stringify({
-        success: true,
+        return successResponse(
+      {
         repository: `${repository_owner}/${repository_name}`,
         events_fetched: events.length,
         events_processed: result.processed,
@@ -267,11 +257,8 @@ serve(async (req) => {
         days_back,
         role_distribution: roleCounts,
         errors: result.errors.length > 0 ? result.errors : undefined,
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      }
+      },
+      'GitHub backfill completed successfully'
     );
   } catch (error) {
     console.error('Backfill error:', error);
@@ -279,10 +266,7 @@ serve(async (req) => {
     // Try to update sync status with error
     try {
       const { repository_owner, repository_name } = await req.json();
-      const supabase = createClient(
-        Deno.env.get('SUPABASE_URL')!,
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-      );
+          const supabase = createSupabaseClient();
 
       await supabase.from('github_sync_status').upsert(
         {
@@ -299,15 +283,6 @@ serve(async (req) => {
       // Ignore errors updating status
     }
 
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: error.message,
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
-      }
-    );
+        return handleError(error, 'GitHub backfill');
   }
 });
