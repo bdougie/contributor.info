@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Simplified automated embeddings processor
-# Uses node script to trigger Inngest repeatedly
+# Uses node script to trigger Inngest repeatedly via Inngest API
 
 set -e
 
@@ -9,10 +9,10 @@ echo "🤖 Automated Embeddings Processor (Simplified)"
 echo "==============================================="
 echo ""
 
-# Check if SUPABASE_SERVICE_ROLE_KEY is set
-if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
-  echo "❌ Error: SUPABASE_SERVICE_ROLE_KEY environment variable is required"
-  echo "   Run: export SUPABASE_SERVICE_ROLE_KEY='your-key'"
+# Check if INNGEST_EVENT_KEY or INNGEST_PRODUCTION_EVENT_KEY is set
+if [ -z "$INNGEST_EVENT_KEY" ] && [ -z "$INNGEST_PRODUCTION_EVENT_KEY" ]; then
+  echo "❌ Error: INNGEST_EVENT_KEY or INNGEST_PRODUCTION_EVENT_KEY environment variable is required"
+  echo "   Run: export INNGEST_EVENT_KEY='your-key'"
   exit 1
 fi
 
