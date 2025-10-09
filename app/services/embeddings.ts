@@ -99,7 +99,13 @@ export async function generateAndStoreEmbeddings(items: EmbeddingItem[]): Promis
           const contentHash = createContentHash(item.title, item.body);
           const embedding = await generateEmbedding(text);
 
-          const table = item.type === 'issue' ? 'issues' : 'pull_requests';
+          // Map item type to correct database table
+          const table =
+            item.type === 'issue'
+              ? 'issues'
+              : item.type === 'pull_request'
+                ? 'pull_requests'
+                : 'discussions';
 
           const { error: updateError } = await supabase
             .from(table)
