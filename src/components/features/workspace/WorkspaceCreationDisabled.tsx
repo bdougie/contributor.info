@@ -37,8 +37,11 @@ export function WorkspaceCreationDisabled({
           >
             {isLoggedIn ? (
               <>
-                Workspaces are a Pro feature. Upgrade to create and manage unlimited workspaces with
-                team collaboration.
+                Workspaces are a Pro feature.{' '}
+                <Link to="/billing" className="text-primary hover:underline font-medium">
+                  Upgrade and find out
+                </Link>{' '}
+                how they can help you collaborate.
               </>
             ) : (
               <>Sign in to organize repositories and collaborate with your team.</>
@@ -48,10 +51,7 @@ export function WorkspaceCreationDisabled({
         <div className="flex justify-center pt-2">
           {isLoggedIn ? (
             <Button asChild variant="default" size="sm">
-              <Link to="/billing">
-                <Crown className="w-4 h-4 mr-2" />
-                Upgrade to Pro
-              </Link>
+              <Link to="/billing">Upgrade to Pro</Link>
             </Button>
           ) : (
             <Button
@@ -79,8 +79,11 @@ export function WorkspaceCreationDisabled({
         <p className="text-sm mb-3">
           {isLoggedIn ? (
             <>
-              Workspaces are a Pro feature. Upgrade to create and manage unlimited workspaces with
-              team collaboration.
+              Workspaces are a Pro feature.{' '}
+              <Link to="/billing" className="text-primary hover:underline font-medium">
+                Upgrade and find out
+              </Link>{' '}
+              how they can help you collaborate.
             </>
           ) : (
             <>Sign in to organize repositories and collaborate with your team.</>
@@ -88,10 +91,7 @@ export function WorkspaceCreationDisabled({
         </p>
         {isLoggedIn ? (
           <Button asChild variant="outline" size="sm">
-            <Link to="/billing">
-              <Crown className="w-4 h-4 mr-2" />
-              Upgrade to Pro
-            </Link>
+            <Link to="/billing">Upgrade to Pro</Link>
           </Button>
         ) : (
           onRequestAccess && (
