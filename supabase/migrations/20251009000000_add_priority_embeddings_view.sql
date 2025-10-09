@@ -1,12 +1,13 @@
--- Migration: Add priority-based embeddings view for backfill
+-- Migration: Add workspace-only embeddings view for backfill
 -- Created: 2025-10-09
 -- Issue: PRs and issues have extremely low embedding coverage (0.07% and 38.83%)
 --
+-- CRITICAL: Only workspace items get embeddings - non-workspace items are excluded
+--
 -- This migration adds:
--- 1. Priority view that removes 90-day restriction for backfill
--- 2. Workspace-based prioritization (items in workspaces first)
--- 3. Item type prioritization (issues > PRs > discussions)
--- 4. Larger batch sizes for faster backfill
+-- 1. Workspace-only view using INNER JOIN (no non-workspace items)
+-- 2. Item type prioritization (issues > PRs > discussions)
+-- 3. Larger batch sizes for faster backfill (200 vs 100)
 
 -- ============================================================================
 -- VIEW: items_needing_embeddings_priority
@@ -32,13 +33,9 @@ prioritized_items AS (
     i.updated_at,
     i.embedding_generated_at,
     i.content_hash,
-    -- Priority scoring: workspace repos get higher priority
-    CASE
-      WHEN wr.repository_id IS NOT NULL THEN 3  -- Workspace issues
-      ELSE 1                                      -- Other issues
-    END as priority_score
+    3 as priority_score  -- Workspace issues only
   FROM issues i
-  LEFT JOIN workspace_repos wr ON i.repository_id = wr.repository_id
+  INNER JOIN workspace_repos wr ON i.repository_id = wr.repository_id
   WHERE (
     i.embedding IS NULL
     OR i.embedding_generated_at < i.updated_at
@@ -57,13 +54,9 @@ prioritized_items AS (
     pr.updated_at,
     pr.embedding_generated_at,
     pr.content_hash,
-    -- Priority scoring: workspace repos get higher priority
-    CASE
-      WHEN wr.repository_id IS NOT NULL THEN 2  -- Workspace PRs
-      ELSE 0                                      -- Other PRs (lowest)
-    END as priority_score
+    2 as priority_score  -- Workspace PRs only
   FROM pull_requests pr
-  LEFT JOIN workspace_repos wr ON pr.repository_id = wr.repository_id
+  INNER JOIN workspace_repos wr ON pr.repository_id = wr.repository_id
   WHERE (
     pr.embedding IS NULL
     OR pr.embedding_generated_at < pr.updated_at
@@ -71,7 +64,7 @@ prioritized_items AS (
 
   UNION ALL
 
-  -- Discussions (already working well, but included for completeness)
+  -- Discussions
   SELECT
     'discussion' as item_type,
     d.id::text as id,
@@ -82,13 +75,9 @@ prioritized_items AS (
     d.updated_at,
     d.embedding_generated_at,
     NULL as content_hash, -- discussions don't have content_hash
-    -- Priority scoring: workspace repos get higher priority
-    CASE
-      WHEN wr.repository_id IS NOT NULL THEN 2  -- Workspace discussions
-      ELSE 0                                      -- Other discussions
-    END as priority_score
+    2 as priority_score  -- Workspace discussions only
   FROM discussions d
-  LEFT JOIN workspace_repos wr ON d.repository_id = wr.repository_id
+  INNER JOIN workspace_repos wr ON d.repository_id = wr.repository_id
   WHERE (
     d.embedding IS NULL
     OR d.embedding_generated_at < d.updated_at
@@ -113,7 +102,7 @@ LIMIT 200;              -- Larger batch for backfill (was 100)
 
 -- Add documentation
 COMMENT ON VIEW items_needing_embeddings_priority IS
-'Priority-based view for embedding backfill. Prioritizes: 1) Workspace items, 2) Issues over PRs, 3) Recently updated. No 90-day restriction for backfill.';
+'Workspace-only embeddings view. ONLY processes items in active workspaces (INNER JOIN). Priority: Issues (3) > PRs (2) > Discussions (2). Batch size: 200 items.';
 
 -- ============================================================================
 -- VALIDATION
@@ -133,10 +122,10 @@ BEGIN
 
   IF view_exists THEN
     RAISE NOTICE '✅ View items_needing_embeddings_priority created successfully';
-    RAISE NOTICE '   - Prioritizes workspace items';
-    RAISE NOTICE '   - Issues ranked higher than PRs';
-    RAISE NOTICE '   - No 90-day restriction';
+    RAISE NOTICE '   - WORKSPACE ITEMS ONLY (INNER JOIN)';
+    RAISE NOTICE '   - Priority: Issues (3) > PRs (2) > Discussions (2)';
     RAISE NOTICE '   - Batch size: 200 items';
+    RAISE NOTICE '   - Non-workspace items excluded';
   ELSE
     RAISE WARNING '⚠️  View creation validation failed';
   END IF;

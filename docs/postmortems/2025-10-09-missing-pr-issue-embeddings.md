@@ -83,26 +83,24 @@ These may be related to the fix attempts.
 
 ## Solution Implemented
 
-### 1. Created Priority-Based View
+### 1. Created Workspace-Only View
 **Migration**: `20251009000000_add_priority_embeddings_view.sql`
 
 Created `items_needing_embeddings_priority` view that:
-- ✅ Removes 90-day restriction (processes all items)
+- ✅ **WORKSPACE ITEMS ONLY** - Uses INNER JOIN to exclude non-workspace items
 - ✅ Increases batch size from 100 to 200 items
-- ✅ Implements workspace-based prioritization
-- ✅ Priority scoring:
+- ✅ Priority scoring (workspace items only):
   - Score 3: Workspace issues (highest)
   - Score 2: Workspace PRs and discussions
-  - Score 1: Non-workspace issues
-  - Score 0: Non-workspace PRs (lowest)
+- ⚠️ Non-workspace items are completely excluded from embedding generation
 
 ### 2. Updated Embedding Function
 **File**: `src/lib/inngest/functions/compute-embeddings.ts:105-113`
 
 Changed from `items_needing_embeddings` to `items_needing_embeddings_priority` view:
-- Now processes 200 items per batch (was 100)
-- Automatically prioritizes workspace items and issues
-- No code changes needed for priority logic (handled by view)
+- Now processes 200 workspace items per batch (was 100 mixed items)
+- **WORKSPACE ITEMS ONLY** - Non-workspace items never processed
+- Priority logic: Issues (3) > PRs/Discussions (2)
 
 ### 3. Created Backfill Script
 **Script**: `scripts/backfill-embeddings-priority.sh`
@@ -110,8 +108,8 @@ Changed from `items_needing_embeddings` to `items_needing_embeddings_priority` v
 Features:
 - Configurable iterations and delay (default: 100 runs, 15s delay)
 - Progress tracking and summary statistics
-- Automatically uses priority view for issues-first backfill
-- Estimates ~20,000 items processed per run (100 iterations × 200 items)
+- Automatically uses workspace-only priority view
+- Estimates ~20,000 workspace items per run (100 iterations × 200 items)
 
 Usage:
 ```bash
