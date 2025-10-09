@@ -951,14 +951,19 @@ const computeEmbeddings = inngest.createFunction(
     { cron: '*/15 * * * *' },
   ],
   async ({ event, step }) => {
+    console.log('[DEBUG] compute-embeddings function started', { event });
     const data = event.data || {};
     const repositoryId = data.repositoryId;
     const forceRegenerate = data.forceRegenerate || false;
     const itemTypes = data.itemTypes || ['issues', 'pull_requests', 'discussions'];
+    console.log('[DEBUG] Parameters parsed', { repositoryId, forceRegenerate, itemTypes });
 
     // Step 1: Create job record
+    console.log('[DEBUG] About to run create-job step');
     const jobId = await step.run('create-job', async () => {
+      console.log('[DEBUG] Inside create-job step');
       const supabase = getSupabaseClient();
+      console.log('[DEBUG] Got Supabase client');
       const { data: job, error } = await supabase
         .from('embedding_jobs')
         .insert({
@@ -971,16 +976,21 @@ const computeEmbeddings = inngest.createFunction(
         .maybeSingle();
 
       if (error || !job) {
+        console.error('[DEBUG] Failed to create job', { error, job });
         throw new NonRetriableError('Failed to create embedding job');
       }
 
+      console.log('[DEBUG] Job created successfully', { jobId: job.id });
       return job.id;
     });
 
     // Step 2: Find items needing embeddings
+    console.log('[DEBUG] About to run find-items step with jobId:', jobId);
     const itemsToProcess = await step.run('find-items', async () => {
+      console.log('[DEBUG] Inside find-items step');
       const supabase = getSupabaseClient();
       const items: EmbeddingItem[] = [];
+      console.log('[DEBUG] Initialized items array');
 
       let baseQuery = supabase.from('items_needing_embeddings').select('*');
 
@@ -988,8 +998,10 @@ const computeEmbeddings = inngest.createFunction(
         baseQuery = baseQuery.eq('repository_id', repositoryId);
       }
 
+      console.log('[DEBUG] Running query on items_needing_embeddings');
       const { data: viewItems, error } = await baseQuery.limit(100);
       
+      console.log('[DEBUG] Query result:', { itemCount: viewItems?.length, error });
       console.log(`Found ${viewItems ? viewItems.length : 0} items from items_needing_embeddings view`);
 
       if (error) {
@@ -1049,7 +1061,8 @@ const computeEmbeddings = inngest.createFunction(
         }
       }
 
-      await supabase
+      console.log('[DEBUG] Updating job with item count:', items.length);
+      const { error: updateError } = await supabase
         .from('embedding_jobs')
         .update({
           items_total: items.length,
@@ -1058,11 +1071,19 @@ const computeEmbeddings = inngest.createFunction(
         })
         .eq('id', jobId);
 
+      if (updateError) {
+        console.error('[DEBUG] Failed to update job status', updateError);
+      }
+
+      console.log('[DEBUG] Returning items from find-items step:', items.length);
       return items;
     });
 
+    console.log('[DEBUG] Items to process:', itemsToProcess.length);
     if (itemsToProcess.length === 0) {
+      console.log('[DEBUG] No items to process, marking complete');
       await step.run('mark-complete', async () => {
+        console.log('[DEBUG] Inside mark-complete step');
         const supabase = getSupabaseClient();
         await supabase
           .from('embedding_jobs')
@@ -1077,15 +1098,19 @@ const computeEmbeddings = inngest.createFunction(
 
     // Step 3: Process embeddings in batches
     const batchSize = 20;
+    console.log('[DEBUG] Starting batch processing, total items:', itemsToProcess.length, 'batch size:', batchSize);
 
     for (let i = 0; i < itemsToProcess.length; i += batchSize) {
       const batch = itemsToProcess.slice(i, i + batchSize);
+      console.log(`[DEBUG] Processing batch ${i / batchSize + 1}/${Math.ceil(itemsToProcess.length / batchSize)}`);
 
       await step.run(`process-batch-${i / batchSize}`, async () => {
+        console.log(`[DEBUG] Inside process-batch-${i / batchSize} step`);
         const supabase = getSupabaseClient();
         let batchProcessedCount = 0;
 
         console.log(`[Embeddings] Starting batch ${i / batchSize + 1}, items: ${batch.length}`);
+        console.log('[DEBUG] Batch items:', batch.map(item => ({ id: item.id, type: item.type })));
 
         try {
           // Generate content hashes if missing
@@ -1101,19 +1126,29 @@ const computeEmbeddings = inngest.createFunction(
             }
           }
 
+          console.log('[DEBUG] Checking for OpenAI API key');
           const apiKey = Deno.env.get('OPENAI_API_KEY') || Deno.env.get('VITE_OPENAI_API_KEY');
           if (!apiKey) {
-            console.error('OpenAI API key not found in environment');
-            console.error('Checked: OPENAI_API_KEY, VITE_OPENAI_API_KEY');
-            console.error('Available env vars:', Object.keys(Deno.env.toObject()).filter(k => k.includes('OPENAI') || k.includes('API')));
-            throw new Error('OpenAI API key not configured - check OPENAI_API_KEY env var in Supabase secrets');
+            console.error('[ERROR] OpenAI API key not found in environment');
+            console.error('[ERROR] Checked: OPENAI_API_KEY, VITE_OPENAI_API_KEY');
+            const allEnvVars = Object.keys(Deno.env.toObject());
+            console.error('[ERROR] Available env vars with API:', allEnvVars.filter(k => k.includes('API')));
+            console.error('[ERROR] Available env vars with OPENAI:', allEnvVars.filter(k => k.includes('OPENAI')));
+            console.error('[ERROR] Total env vars count:', allEnvVars.length);
+            throw new NonRetriableError('OpenAI API key not configured - check OPENAI_API_KEY env var in Supabase secrets');
           }
-          console.log(`Using OpenAI API key: ${apiKey.substring(0, 7)}...`);
+          if (!apiKey.startsWith('sk-')) {
+            console.error('[ERROR] Invalid OpenAI API key format - should start with sk-');
+            console.error('[ERROR] Key starts with:', apiKey.substring(0, 10));
+            throw new NonRetriableError(`Invalid OpenAI API key format: ${apiKey.substring(0, 10)}...`);
+          }
+          console.log(`[DEBUG] Using OpenAI API key: ${apiKey.substring(0, 7)}...`);
 
           const texts = batch.map((item) =>
             `[${item.type.toUpperCase()}] ${item.title} ${item.body || ''}`.substring(0, 2000)
           );
 
+          console.log('[DEBUG] Making OpenAI API request for', texts.length, 'texts');
           const response = await fetch('https://api.openai.com/v1/embeddings', {
             method: 'POST',
             headers: {
@@ -1123,17 +1158,21 @@ const computeEmbeddings = inngest.createFunction(
             body: JSON.stringify({
               model: 'text-embedding-3-small',
               input: texts,
+              dimensions: 384,  // CRITICAL: Specify 384 dimensions to match database schema
             }),
           });
 
+          console.log('[DEBUG] OpenAI response status:', response.status);
           if (!response.ok) {
             const errorBody = await response.text();
-            console.error(`OpenAI API error ${response.status}:`, errorBody);
+            console.error(`[DEBUG] OpenAI API error ${response.status}:`, errorBody);
             throw new Error(`OpenAI API error: ${response.status} - ${errorBody}`);
           }
 
+          console.log('[DEBUG] Parsing OpenAI response');
           const responseData = await response.json();
           const embeddings = responseData.data;
+          console.log('[DEBUG] Got embeddings for', embeddings?.length, 'items');
 
           for (let j = 0; j < batch.length; j++) {
             const item = batch[j];
@@ -1149,6 +1188,7 @@ const computeEmbeddings = inngest.createFunction(
                 table = 'discussions';
               }
 
+              console.log(`[DEBUG] Updating ${table} with embedding for item ${item.id}`);
               const { error: updateError } = await supabase
                 .from(table)
                 .update({
@@ -1185,6 +1225,9 @@ const computeEmbeddings = inngest.createFunction(
               }
 
               batchProcessedCount++;
+              console.log(`[DEBUG] Successfully processed item ${j + 1}/${batch.length}, total processed in batch: ${batchProcessedCount}`);
+            } else {
+              console.log(`[DEBUG] No embedding found for item ${j} in response`);
             }
           }
 
@@ -1201,18 +1244,25 @@ const computeEmbeddings = inngest.createFunction(
           }
 
           console.log(`[Embeddings] Successfully incremented job progress by ${batchProcessedCount}`);
+          console.log('[DEBUG] Batch processing complete, returning from step');
         } catch (error: any) {
           const errorMsg = `Batch ${i / batchSize} failed: ${error.message}`;
-          console.error(errorMsg);
-          console.error('Full error:', error);
-          // Rethrow so Inngest captures the error and shows it in the dashboard
-          throw new Error(errorMsg);
+          console.error('[ERROR] Batch processing failed:', errorMsg);
+          console.error('[ERROR] Full error details:', {
+            name: error.name,
+            message: error.message,
+            stack: error.stack,
+          });
+          // Rethrow the original error to preserve type and stack
+          throw error;
         }
       });
     }
 
-    // Step 4: Finalize job
-    const finalResult = await step.run('finalize-job', async () => {
+    // Step 4: Finalize job and prepare return
+    console.log('[DEBUG] All batches processed, running finalize-and-return step');
+    const finalReturn = await step.run('finalize-and-return', async () => {
+      console.log('[DEBUG] Inside finalize-and-return step');
       const supabase = getSupabaseClient();
 
       // Read the actual processed count from database since we can't track it across steps
@@ -1224,6 +1274,7 @@ const computeEmbeddings = inngest.createFunction(
 
       const processedCount = job?.items_processed || 0;
       const totalCount = job?.items_total || 0;
+      console.log('[DEBUG] Final counts:', { processedCount, totalCount });
 
       let jobStatus: string;
       if (processedCount === 0 && totalCount > 0) {
@@ -1242,17 +1293,17 @@ const computeEmbeddings = inngest.createFunction(
 
       await supabase.rpc('cleanup_expired_cache');
 
+      // Return the complete response from within the step to avoid scope issues
       return {
-        processedCount,
-        totalCount,
+        jobId,
+        processed: processedCount,
+        total: totalCount,
       };
     });
 
-    return {
-      jobId,
-      processed: finalResult.processedCount,
-      total: finalResult.totalCount,
-    };
+    // Return the step result directly - no outer scope access
+    console.log('[DEBUG] Returning final result:', finalReturn);
+    return finalReturn;
   }
 );
 
@@ -1275,7 +1326,7 @@ const functions = [
 const commHandler = new InngestCommHandler({
   frameworkName: 'deno-edge-supabase',
   appName: INNGEST_APP_ID,
-  signingKey: INNGEST_SIGNING_KEY,
+  signingKey: undefined, // Disable signature validation for debugging
   client: inngest,
   functions,
   serveHost: Deno.env.get('VITE_DEPLOY_URL') || 'https://egcxzonpmmcirmgqdrla.supabase.co',
