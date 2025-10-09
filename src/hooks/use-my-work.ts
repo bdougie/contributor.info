@@ -31,6 +31,7 @@ interface PullRequestRow {
   updated_at: string;
   repository_id: string;
   reviewer_data: ReviewerData | null;
+  author_login: string;
   repositories: RepositoryData;
 }
 
@@ -42,6 +43,7 @@ interface IssueRow {
   updated_at: string;
   assignees: GitHubAssignee[] | null;
   repository_id: string;
+  author_id: number;
   repositories: RepositoryData;
 }
 
@@ -153,6 +155,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             updated_at,
             repository_id,
             reviewer_data,
+            author_login,
             repositories!inner(full_name, owner, name)
           `
           )
@@ -172,7 +175,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
 
         // Query 2: Open issues assigned to user (in workspace repos)
         let issueQuery = supabase
-          .from('github_issues')
+          .from('issues')
           .select(
             `
             id,
@@ -182,6 +185,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             updated_at,
             assignees,
             repository_id,
+            author_id,
             repositories!inner(full_name, owner, name)
           `
           )
@@ -200,7 +204,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
           setError(issueError);
         }
 
-        // Query 2: ALL unanswered discussions in workspace (not just authored by user)
+        // Query 3: ALL unanswered discussions in workspace (not just authored by user)
         // Maintainers should see all discussions needing answers
         let discussionsQuery = supabase
           .from('discussions')

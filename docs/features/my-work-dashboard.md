@@ -7,9 +7,13 @@ The My Work feature provides a personalized dashboard showing GitHub items that 
 ## Features
 
 ### Data Types Displayed
+"My Work" shows items that **require your action** - it does NOT include items you authored (those appear in the PRs and Issues tabs):
+
 - **Review-Requested PRs**: Open pull requests where the user is requested as a reviewer
 - **Assigned Issues**: Open issues assigned to the user
 - **Unanswered Discussions**: Workspace-wide discussions that need responses (for maintainers)
+
+**Note**: PRs and issues you authored are available in their respective tabs, not in "My Work".
 
 ### UI Components
 
@@ -35,11 +39,11 @@ Provides:
 ### Data Fetching
 
 #### useMyWork Hook
-Located at `src/hooks/useMyWork.ts`
+Located at `src/hooks/use-my-work.ts`
 
 Queries:
 ```typescript
-// Review-requested PRs
+// 1. Review-requested PRs
 const reviewRequestedPRs = await supabase
   .from('pull_requests')
   .select('*')
@@ -48,15 +52,16 @@ const reviewRequestedPRs = await supabase
 
 // Filter client-side for PRs where user is in reviewer_data.requested_reviewers
 
-// Assigned issues
+// 2. Assigned issues
 const assignedIssues = await supabase
   .from('github_issues')
   .select('*')
   .eq('state', 'open')
-  .contains('assignees', [{ login: githubLogin }])
   .in('repository_id', repoIds);
 
-// Unanswered discussions (workspace-wide)
+// Filter client-side for issues where user is in assignees
+
+// 3. Unanswered discussions (workspace-wide)
 const discussions = await supabase
   .from('discussions')
   .select('*')
@@ -96,14 +101,14 @@ const response = await generateResponseMessage(item, similar);
 #### pull_requests table
 - `id`, `repository_id`, `number`, `title`, `state`
 - `author_login`, `author_avatar_url`
-- `reviewer_data` (JSONB): Contains `requested_reviewers` array
+- `reviewer_data` (JSONB): Contains `requested_reviewers` array for identifying review requests
 - `created_at`, `updated_at`
 - `embedding` (vector(384)): For similarity search
 
 #### github_issues table
 - `id`, `repository_id`, `number`, `title`, `state`
 - `author_login`, `author_avatar_url`
-- `assignees` (JSONB): Array of assignee objects with `login` field
+- `assignees` (JSONB): Array of assignee objects with `login` field for identifying assignments
 - `created_at`, `updated_at`
 - `embedding` (vector(384)): For similarity search
 
