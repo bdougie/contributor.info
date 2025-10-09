@@ -242,8 +242,13 @@ export async function findSimilarItems(options: SimilaritySearchOptions): Promis
       );
     }
 
-    // Step 8: Sort by similarity and return top N
-    const sortedResults = allResults.sort((a, b) => b.similarity - a.similarity).slice(0, limit);
+    // Step 8: Filter out the query item (defensive check across all types)
+    const filteredResults = allResults.filter((result) => result.id !== rawId);
+
+    // Step 9: Sort by similarity and return top N
+    const sortedResults = filteredResults
+      .sort((a, b) => b.similarity - a.similarity)
+      .slice(0, limit);
 
     return sortedResults;
   } catch (error) {
@@ -254,22 +259,30 @@ export async function findSimilarItems(options: SimilaritySearchOptions): Promis
 
 /**
  * Generate a formatted response message with similar items
+ * Matches the Continue project's GitHub Actions format for consistency
  */
 export function generateResponseMessage(similarItems: SimilarItem[]): string {
   if (similarItems.length === 0) {
     return 'No similar items found in this workspace.';
   }
 
-  const lines = ['Sharing some relevant links from this workspace:\n'];
+  const lines = [
+    'I found some existing items that might be related. Let me know if these are helpful:\n',
+  ];
+
+  // Table header
+  lines.push('| # | Title | Status |');
+  lines.push('|---|-------|--------|');
 
   similarItems.forEach((item) => {
     // Use lookup tables to avoid Rollup 4.45.0 ternary bug (see docs/architecture/state-machine-patterns.md)
-    const typeLabelMap: Record<string, string> = {
-      pr: 'PR',
-      issue: 'Issue',
-      discussion: 'Discussion',
+    const statusLabelMap: Record<string, string> = {
+      merged: 'Merged',
+      closed: 'Closed',
+      answered: 'Answered',
+      open: 'Open',
     };
-    const typeLabel = typeLabelMap[item.type] || 'Item';
+    const statusLabel = statusLabelMap[item.status] || 'Unknown';
 
     const statusEmojiMap: Record<string, string> = {
       merged: '🟣',
@@ -279,10 +292,10 @@ export function generateResponseMessage(similarItems: SimilarItem[]): string {
     };
     const statusEmoji = statusEmojiMap[item.status] || '⚫';
 
-    lines.push(`${statusEmoji} **${typeLabel} #${item.number}**: ${item.title}`);
-    lines.push(`   📍 ${item.repository}`);
-    lines.push(`   🔗 ${item.url}`);
-    lines.push('');
+    // Format table row
+    lines.push(
+      `| [#${item.number}](${item.url}) | ${item.title} | ${statusEmoji} ${statusLabel} |`
+    );
   });
 
   return lines.join('\n');

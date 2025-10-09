@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -9,8 +9,10 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Check, Copy, Loader2 } from '@/components/ui/icon';
 import type { SimilarItem } from '@/services/similarity-search';
+import { generateResponseMessage } from '@/services/similarity-search';
 
 export interface ResponsePreviewModalProps {
   open: boolean;
@@ -26,11 +28,18 @@ export function ResponsePreviewModal({
   onOpenChange,
   loading = false,
   similarItems,
-  responseMessage,
   onCopyToClipboard,
 }: ResponsePreviewModalProps) {
   const [copied, setCopied] = useState(false);
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const copyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Initialize all items as selected when modal opens
+  useEffect(() => {
+    if (open && similarItems.length > 0) {
+      setSelectedItems(new Set(similarItems.map((item) => item.id)));
+    }
+  }, [open, similarItems]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -40,6 +49,24 @@ export function ResponsePreviewModal({
       }
     };
   }, []);
+
+  // Generate response message based on selected items
+  const responseMessage = useMemo(() => {
+    const filteredItems = similarItems.filter((item) => selectedItems.has(item.id));
+    return generateResponseMessage(filteredItems);
+  }, [similarItems, selectedItems]);
+
+  const toggleItem = (itemId: string) => {
+    setSelectedItems((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(itemId)) {
+        newSet.delete(itemId);
+      } else {
+        newSet.add(itemId);
+      }
+      return newSet;
+    });
+  };
 
   const handleCopy = async () => {
     try {
@@ -79,31 +106,41 @@ export function ResponsePreviewModal({
     if (similarItems.length > 0) {
       similarItemsSection = (
         <div className="space-y-2">
-          <h4 className="text-sm font-medium">Similar Items Found:</h4>
+          <h4 className="text-sm font-medium">
+            Similar Items Found:{' '}
+            <span className="text-muted-foreground font-normal text-xs">
+              (uncheck items that aren't relevant)
+            </span>
+          </h4>
           <div className="space-y-2">
-            {similarItems.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-start justify-between p-2 rounded border bg-card"
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-muted-foreground uppercase">
-                      {item.type} #{item.number}
-                    </span>
-                    <span className="text-xs px-1.5 py-0.5 rounded bg-muted">
-                      {item.repository}
+            {similarItems.map((item) => {
+              const isSelected = selectedItems.has(item.id);
+              return (
+                <div key={item.id} className="flex items-start gap-3 p-2 rounded border bg-card">
+                  <Checkbox
+                    checked={isSelected}
+                    onCheckedChange={() => toggleItem(item.id)}
+                    className="mt-1"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-muted-foreground uppercase">
+                        {item.type} #{item.number}
+                      </span>
+                      <span className="text-xs px-1.5 py-0.5 rounded bg-muted">
+                        {item.repository}
+                      </span>
+                    </div>
+                    <p className="text-sm mt-1 line-clamp-1">{item.title}</p>
+                  </div>
+                  <div className="flex-shrink-0 ml-3 text-right">
+                    <span className="text-xs text-muted-foreground">
+                      {Math.round(item.similarity * 100)}% match
                     </span>
                   </div>
-                  <p className="text-sm mt-1 line-clamp-1">{item.title}</p>
                 </div>
-                <div className="flex-shrink-0 ml-3 text-right">
-                  <span className="text-xs text-muted-foreground">
-                    {Math.round(item.similarity * 100)}% match
-                  </span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       );
