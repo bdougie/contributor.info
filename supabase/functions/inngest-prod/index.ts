@@ -1077,14 +1077,14 @@ const computeEmbeddings = inngest.createFunction(
 
     // Step 3: Process embeddings in batches
     const batchSize = 20;
-    let processedCount = 0;
-    const errors: string[] = [];
 
     for (let i = 0; i < itemsToProcess.length; i += batchSize) {
       const batch = itemsToProcess.slice(i, i + batchSize);
 
       await step.run(`process-batch-${i / batchSize}`, async () => {
         const supabase = getSupabaseClient();
+        let batchProcessedCount = 0;
+
         try {
           // Generate content hashes if missing
           for (const item of batch) {
@@ -1163,79 +1163,84 @@ const computeEmbeddings = inngest.createFunction(
 
               const { error: cacheError } = await supabase
                 .from('similarity_cache')
-                .upsert({
-                  repository_id: item.repository_id,
-                  item_type: item.type,
-                  item_id: item.id,
-                  embedding,
-                  content_hash: item.content_hash,
-                  ttl_hours: 168,
-                })
-                .onConflict('repository_id,item_type,item_id');
+                .upsert(
+                  {
+                    repository_id: item.repository_id,
+                    item_type: item.type,
+                    item_id: item.id,
+                    embedding,
+                    content_hash: item.content_hash,
+                    ttl_hours: 168,
+                  },
+                  {
+                    onConflict: 'repository_id,item_type,item_id',
+                  }
+                );
 
               if (cacheError) {
                 console.warn(`Failed to update similarity cache for ${item.id}:`, cacheError);
                 // Don't throw for cache errors - they're non-critical
               }
 
-              processedCount++;
+              batchProcessedCount++;
             }
           }
 
-          await supabase.rpc('update_embedding_job_progress', {
+          // Increment job progress by the batch count (not set to batch count)
+          await supabase.rpc('increment_embedding_job_progress', {
             job_id: jobId,
-            processed_count: processedCount,
+            increment_count: batchProcessedCount,
           });
         } catch (error: any) {
           const errorMsg = `Batch ${i / batchSize} failed: ${error.message}`;
           console.error(errorMsg);
-          errors.push(errorMsg);
+          // Note: Error tracking removed due to Inngest step isolation
+          // Errors will be visible in logs but not aggregated
         }
       });
     }
 
     // Step 4: Finalize job
-    await step.run('finalize-job', async () => {
+    const finalResult = await step.run('finalize-job', async () => {
       const supabase = getSupabaseClient();
+
+      // Read the actual processed count from database since we can't track it across steps
+      const { data: job } = await supabase
+        .from('embedding_jobs')
+        .select('items_processed, items_total')
+        .eq('id', jobId)
+        .single();
+
+      const processedCount = job?.items_processed || 0;
+      const totalCount = job?.items_total || 0;
+
       let jobStatus: string;
-      if (errors.length > 0 && processedCount === 0) {
+      if (processedCount === 0 && totalCount > 0) {
         jobStatus = 'failed';
       } else {
         jobStatus = 'completed';
-      }
-
-      let errorMessage: string | null;
-      if (errors.length > 0) {
-        errorMessage = errors.join('; ');
-      } else {
-        errorMessage = null;
       }
 
       await supabase
         .from('embedding_jobs')
         .update({
           status: jobStatus,
-          items_processed: processedCount,
-          error_message: errorMessage,
           completed_at: new Date().toISOString(),
         })
         .eq('id', jobId);
 
       await supabase.rpc('cleanup_expired_cache');
-    });
 
-    let returnErrors: string[] | undefined;
-    if (errors.length > 0) {
-      returnErrors = errors;
-    } else {
-      returnErrors = undefined;
-    }
+      return {
+        processedCount,
+        totalCount,
+      };
+    });
 
     return {
       jobId,
-      processed: processedCount,
+      processed: finalResult.processedCount,
       total: itemsToProcess.length,
-      errors: returnErrors,
     };
   }
 );
