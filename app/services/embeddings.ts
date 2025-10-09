@@ -13,7 +13,7 @@ export interface EmbeddingItem {
   id: string;
   title: string;
   body?: string | null;
-  type: 'issue' | 'pull_request' | 'discussion';
+  type: 'issue' | 'pull_request';
 }
 
 /**
@@ -78,9 +78,7 @@ export function createContentHash(title: string, body?: string | null): string {
  */
 export function prepareTextForEmbedding(item: EmbeddingItem): string {
   const bodyPreview = item.body ? item.body.substring(0, 500) : '';
-  const typeLabel =
-    item.type === 'issue' ? 'Issue' : item.type === 'pull_request' ? 'Pull Request' : 'Discussion';
-  return `${typeLabel}: ${item.title}\n\n${bodyPreview}`.trim();
+  return `${item.type === 'issue' ? 'Issue' : 'Pull Request'}: ${item.title}\n\n${bodyPreview}`.trim();
 }
 
 /**
@@ -99,13 +97,7 @@ export async function generateAndStoreEmbeddings(items: EmbeddingItem[]): Promis
           const contentHash = createContentHash(item.title, item.body);
           const embedding = await generateEmbedding(text);
 
-          // Map item type to correct database table
-          const table =
-            item.type === 'issue'
-              ? 'issues'
-              : item.type === 'pull_request'
-                ? 'pull_requests'
-                : 'discussions';
+          const table = item.type === 'issue' ? 'issues' : 'pull_requests';
 
           const { error: updateError } = await supabase
             .from(table)
@@ -126,7 +118,7 @@ export async function generateAndStoreEmbeddings(items: EmbeddingItem[]): Promis
             throw new Error(`Failed to store embedding: ${updateError.message}`);
           }
 
-          console.log('Generated embedding for %s %s', item.type, item.id);
+          console.log('Generated embedding for %s ${item.id}', item.type);
         } catch (error) {
           console.error('Failed to generate embedding for %s %s: %s', item.type, item.id, error);
         }
