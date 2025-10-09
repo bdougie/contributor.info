@@ -74,7 +74,7 @@ export function createContentHash(title: string, body?: string | null): string {
 }
 
 /**
- * Prepare text for embedding from issue/PR
+ * Prepare text for embedding from issue/PR/discussion
  */
 export function prepareTextForEmbedding(item: EmbeddingItem): string {
   const bodyPreview = item.body ? item.body.substring(0, 500) : '';
@@ -99,7 +99,6 @@ export async function generateAndStoreEmbeddings(items: EmbeddingItem[]): Promis
           const contentHash = createContentHash(item.title, item.body);
           const embedding = await generateEmbedding(text);
 
-          // Map item type to correct database table
           const table =
             item.type === 'issue'
               ? 'issues'
@@ -126,7 +125,7 @@ export async function generateAndStoreEmbeddings(items: EmbeddingItem[]): Promis
             throw new Error(`Failed to store embedding: ${updateError.message}`);
           }
 
-          console.log('Generated embedding for %s %s', item.type, item.id);
+          console.log('Generated embedding for %s ${item.id}', item.type);
         } catch (error) {
           console.error('Failed to generate embedding for %s %s: %s', item.type, item.id, error);
         }
@@ -212,6 +211,28 @@ export async function getItemsNeedingEmbeddings(
           title: pr.title,
           body: pr.body,
           type: 'pull_request',
+        });
+      }
+    }
+  }
+
+  // Get recent discussions
+  const { data: discussions } = await supabase
+    .from('discussions')
+    .select('id, title, body, content_hash, embedding_generated_at')
+    .eq('repository_id', repositoryId)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (discussions) {
+    for (const discussion of discussions) {
+      const contentHash = createContentHash(discussion.title, discussion.body);
+      if (needsEmbedding(contentHash, discussion.content_hash, discussion.embedding_generated_at)) {
+        items.push({
+          id: discussion.id,
+          title: discussion.title,
+          body: discussion.body,
+          type: 'discussion',
         });
       }
     }

@@ -166,25 +166,44 @@ export const computeEmbeddings = inngest.createFunction(
             }
           }
 
-          // Generate MiniLM embeddings using local service
-          const { generateEmbedding, prepareTextForEmbedding } = await import(
-            '../../../../app/services/embeddings'
+          // Call OpenAI API for batch embeddings
+          const apiKey = process.env.VITE_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+          if (!apiKey) {
+            throw new Error(
+              'OpenAI API key not configured - check VITE_OPENAI_API_KEY or OPENAI_API_KEY environment variables'
+            );
+          }
+
+          const texts = batch.map((item) =>
+            `[${item.type.toUpperCase()}] ${item.title} ${item.body || ''}`.substring(0, 2000)
           );
 
-          const embeddings: Array<{ embedding: number[] }> = [];
+          const response = await fetch('https://api.openai.com/v1/embeddings', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${apiKey}`,
+            },
+            body: JSON.stringify({
+              model: 'text-embedding-3-small',
+              input: texts,
+            }),
+          });
 
-          // Process each item in the batch
-          for (const item of batch) {
-            const embeddingItem = {
-              id: item.id,
-              title: item.title,
-              body: item.body,
-              type: item.type,
-            };
-            const text = prepareTextForEmbedding(embeddingItem);
-            const embedding = await generateEmbedding(text);
-            embeddings.push({ embedding });
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('[Embeddings] OpenAI API error:', {
+              status: response.status,
+              statusText: response.statusText,
+              body: errorText,
+            });
+            throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
           }
+
+          const data = await response.json();
+          const embeddings = data.data;
+
+          console.log(`[Embeddings] Generated ${embeddings.length} embeddings for batch`);
 
           // Update database with embeddings
           for (let j = 0; j < batch.length; j++) {
@@ -203,7 +222,7 @@ export const computeEmbeddings = inngest.createFunction(
               }
 
               // Update the item with embedding
-              await supabase
+              const { error: updateError } = await supabase
                 .from(table)
                 .update({
                   embedding,
@@ -212,8 +231,15 @@ export const computeEmbeddings = inngest.createFunction(
                 })
                 .eq('id', item.id);
 
+              if (updateError) {
+                const errorMsg = `Failed to update ${item.type} ${item.id}: ${updateError.message}`;
+                console.error('[Embeddings]', errorMsg);
+                errors.push(errorMsg);
+                continue;
+              }
+
               // Store in cache
-              await supabase.from('similarity_cache').upsert(
+              const { error: cacheError } = await supabase.from('similarity_cache').upsert(
                 {
                   repository_id: item.repository_id,
                   item_type: item.type,
@@ -226,6 +252,11 @@ export const computeEmbeddings = inngest.createFunction(
                   onConflict: 'repository_id,item_type,item_id',
                 }
               );
+
+              if (cacheError) {
+                console.warn('[Embeddings] Cache warning:', cacheError.message);
+                // Don't fail on cache errors
+              }
 
               processedCount++;
             }
