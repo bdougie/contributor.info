@@ -3,6 +3,29 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { Inngest, InngestCommHandler, NonRetriableError } from 'https://esm.sh/inngest@3.16.1';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+// Type for items from the items_needing_embeddings view
+interface ItemNeedingEmbedding {
+  id: string;
+  repository_id: string;
+  title: string;
+  body: string | null;
+  content_hash: string | null;
+  embedding_generated_at: string | null;
+  created_at: string;
+  item_type: 'issue' | 'pull_request' | 'discussion';
+}
+
+// Type for items after mapping item_type to type
+interface EmbeddingItem {
+  id: string;
+  repository_id: string;
+  title: string;
+  body: string | null;
+  content_hash: string | null;
+  embedding_generated_at?: string | null;
+  type: 'issue' | 'pull_request' | 'discussion';
+}
+
 // CORS headers for Inngest
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -957,7 +980,7 @@ const computeEmbeddings = inngest.createFunction(
     // Step 2: Find items needing embeddings
     const itemsToProcess = await step.run('find-items', async () => {
       const supabase = getSupabaseClient();
-      const items: any[] = [];
+      const items: EmbeddingItem[] = [];
 
       let baseQuery = supabase.from('items_needing_embeddings').select('*');
 
@@ -973,19 +996,35 @@ const computeEmbeddings = inngest.createFunction(
       }
 
       if (viewItems) {
-        items.push(...viewItems);
+        // Map item_type to type for consistency with rest of codebase
+        const mappedItems: EmbeddingItem[] = (viewItems as ItemNeedingEmbedding[]).map((item) => ({
+          id: item.id,
+          repository_id: item.repository_id,
+          title: item.title,
+          body: item.body,
+          content_hash: item.content_hash,
+          embedding_generated_at: item.embedding_generated_at,
+          type: item.item_type,
+        }));
+        items.push(...mappedItems);
       }
 
       if (forceRegenerate && repositoryId) {
         for (const itemType of itemTypes) {
           let table: string;
+          let type: 'issue' | 'pull_request' | 'discussion';
+
           if (itemType === 'issues') {
             table = 'issues';
+            type = 'issue';
           } else if (itemType === 'pull_requests') {
             table = 'pull_requests';
+            type = 'pull_request';
           } else {
             table = 'discussions';
+            type = 'discussion';
           }
+
           const { data: forceItems } = await supabase
             .from(table)
             .select('id, repository_id, title, body, content_hash, embedding_generated_at')
@@ -994,12 +1033,16 @@ const computeEmbeddings = inngest.createFunction(
             .limit(50);
 
           if (forceItems) {
-            items.push(
-              ...forceItems.map((item: any) => ({
-                ...item,
-                type: itemType.slice(0, -1),
-              }))
-            );
+            const typedForceItems: EmbeddingItem[] = forceItems.map((item) => ({
+              id: item.id,
+              repository_id: item.repository_id,
+              title: item.title,
+              body: item.body,
+              content_hash: item.content_hash,
+              embedding_generated_at: item.embedding_generated_at,
+              type,
+            }));
+            items.push(...typedForceItems);
           }
         }
       }
@@ -1059,7 +1102,7 @@ const computeEmbeddings = inngest.createFunction(
             throw new Error('OpenAI API key not configured');
           }
 
-          const texts = batch.map((item: any) =>
+          const texts = batch.map((item) =>
             `[${item.type.toUpperCase()}] ${item.title} ${item.body || ''}`.substring(0, 2000)
           );
 
