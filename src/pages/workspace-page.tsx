@@ -3228,12 +3228,12 @@ function WorkspacePage() {
     if (eventMetrics?.stars) {
       setMetrics((prev) => {
         if (!prev) return prev;
-        
+
         // Only use velocity if it's a valid positive number
         // Otherwise keep the existing totalStars (which is actual star count)
         const starsPerDay = eventMetrics.stars.velocity;
         const isValidVelocity = typeof starsPerDay === 'number' && starsPerDay > 0;
-        
+
         return {
           ...prev,
           starsTrend: eventMetrics.stars.percentChange,
@@ -3694,7 +3694,7 @@ function WorkspacePage() {
                           body: null, // We don't have the body in MyWorkItem
                           type: item.type,
                         },
-                        limit: 4,
+                        limit: 7,
                       });
 
                       // Cache the results

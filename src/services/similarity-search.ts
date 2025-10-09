@@ -33,7 +33,7 @@ export interface SimilaritySearchOptions {
  * Find similar items across PRs, issues, and discussions within a workspace
  */
 export async function findSimilarItems(options: SimilaritySearchOptions): Promise<SimilarItem[]> {
-  const { workspaceId, queryItem, limit = 4 } = options;
+  const { workspaceId, queryItem, limit = 7 } = options;
 
   try {
     // Step 1: Get workspace repository IDs
@@ -106,18 +106,28 @@ export async function findSimilarItems(options: SimilaritySearchOptions): Promis
     }
 
     // Step 5: Search for similar issues
-    // NOTE: The github_issues table (used by find_similar_issues_in_workspace RPC)
-    // does not have an embedding column. Skip issue similarity for now.
-    // TODO: Either add embeddings to github_issues or use the issues table instead
-    const similarIssues: Array<{
-      id: string;
-      number: number;
-      title: string;
-      state: string;
-      similarity: number;
-      html_url: string;
-      repository_name: string;
-    }> = [];
+    // Avoid ternary - Rollup 4.45.0 bug (see docs/architecture/state-machine-patterns.md)
+    let excludeIssueId: string | null;
+    if (queryItem.type === 'issue') {
+      excludeIssueId = rawId;
+    } else {
+      excludeIssueId = null;
+    }
+
+    const { data: similarIssues, error: issueError } = await supabase.rpc(
+      'find_similar_issues_in_workspace',
+      {
+        query_embedding: embeddingArray,
+        repo_ids: repoIds,
+        match_count: limit,
+        exclude_issue_id: excludeIssueId,
+      }
+    );
+
+    if (issueError) {
+      console.error('Error finding similar issues:', issueError);
+      // Don't throw - continue with empty issue results
+    }
 
     // Step 6: Search for similar discussions
     // Note: The RPC function has a bug - it expects UUID but discussions use VARCHAR IDs
