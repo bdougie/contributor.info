@@ -23,6 +23,20 @@ export interface GitHubUser {
 }
 
 /**
+ * Extended GitHub user data from GraphQL responses
+ */
+export interface GitHubUserExtended extends GitHubUser {
+  bio?: string | null;
+  company?: string | null;
+  location?: string | null;
+  blog?: string | null;
+  followers?: number;
+  following?: number;
+  public_repos?: number;
+  github_created_at?: string;
+}
+
+/**
  * Creates a Supabase client with service role key
  * 
  * @returns {SupabaseClient} Configured Supabase client
@@ -51,7 +65,7 @@ export const createSupabaseClient = (): SupabaseClient => {
  * detects bot accounts and maintains contributor metadata.
  * 
  * @param {SupabaseClient} supabase - Supabase client instance
- * @param {GitHubUser} userData - GitHub user data to upsert
+ * @param {GitHubUser | GitHubUserExtended} userData - GitHub user data to upsert
  * @returns {Promise<string | null>} The contributor's database ID, or null on error
  * 
  * @example
@@ -65,7 +79,7 @@ export const createSupabaseClient = (): SupabaseClient => {
  */
 export async function ensureContributor(
   supabase: SupabaseClient,
-  userData: GitHubUser
+  userData: GitHubUser | GitHubUserExtended
 ): Promise<string | null> {
   if (!userData || !userData.id) {
     console.error('Invalid user data provided to ensureContributor');
@@ -73,20 +87,49 @@ export async function ensureContributor(
   }
 
   try {
+    const extendedData = userData as GitHubUserExtended;
+    const upsertData: Record<string, unknown> = {
+      github_id: userData.id,
+      username: userData.login,
+      display_name: userData.name || null,
+      email: userData.email || null,
+      avatar_url: userData.avatar_url || null,
+      profile_url: `https://github.com/${userData.login}`,
+      is_bot: userData.type === 'Bot' || userData.login.includes('[bot]'),
+      is_active: true,
+      last_updated_at: new Date().toISOString(),
+    };
+
+    // Add extended fields if available
+    if (extendedData.bio !== undefined) {
+      upsertData.bio = extendedData.bio;
+    }
+    if (extendedData.company !== undefined) {
+      upsertData.company = extendedData.company;
+    }
+    if (extendedData.location !== undefined) {
+      upsertData.location = extendedData.location;
+    }
+    if (extendedData.blog !== undefined) {
+      upsertData.blog = extendedData.blog;
+    }
+    if (extendedData.followers !== undefined) {
+      upsertData.followers = extendedData.followers;
+    }
+    if (extendedData.following !== undefined) {
+      upsertData.following = extendedData.following;
+    }
+    if (extendedData.public_repos !== undefined) {
+      upsertData.public_repos = extendedData.public_repos;
+    }
+    if (extendedData.github_created_at) {
+      upsertData.github_created_at = extendedData.github_created_at;
+    }
+
     const { data, error } = await supabase
       .from('contributors')
       .upsert(
-        {
-          github_id: userData.id,
-          username: userData.login,
-          display_name: userData.name || null,
-          email: userData.email || null,
-          avatar_url: userData.avatar_url || null,
-          profile_url: `https://github.com/${userData.login}`,
-          is_bot: userData.type === 'Bot' || userData.login.includes('[bot]'),
-          is_active: true,
-          last_updated_at: new Date().toISOString(),
-        },
+        upsertData,
         {
           onConflict: 'github_id',
           ignoreDuplicates: false,
