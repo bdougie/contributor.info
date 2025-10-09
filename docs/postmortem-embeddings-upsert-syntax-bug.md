@@ -72,7 +72,7 @@ The issue was discovered while investigating Inngest run failures. Key indicator
 
 ## Resolution
 
-1. Fixed the upsert syntax in `/Users/briandouglas/code/contributor.info/supabase/functions/inngest-prod/index.ts` at line 1164-1178
+1. Fixed the upsert syntax in `supabase/functions/inngest-prod/index.ts` at line 1164-1178
 2. Redeployed inngest-prod edge function with `--no-verify-jwt` flag
 3. Verified fix will be tested on next cron run (every 15 minutes)
 

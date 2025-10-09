@@ -59,7 +59,10 @@ The issue was NOT a code problem but a **configuration problem**. The OpenAI API
 // Local test confirmed API key worked
 const response = await fetch('https://api.openai.com/v1/embeddings', {
   method: 'POST',
-  headers: { 'Authorization': `Bearer ${apiKey}` },
+  headers: {
+    'Authorization': `Bearer ${apiKey}`,
+    'Content-Type': 'application/json'
+  },
   body: JSON.stringify({
     model: 'text-embedding-3-small',
     input: 'Test embedding generation',

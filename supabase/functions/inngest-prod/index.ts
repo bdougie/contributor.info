@@ -1181,10 +1181,10 @@ const computeEmbeddings = inngest.createFunction(
             }
           }
 
-          // Increment job progress by the batch count (not set to batch count)
-          const { error: progressError } = await supabase.rpc('increment_embedding_job_progress', {
+          // Update job progress with the cumulative processed count
+          const { error: progressError } = await supabase.rpc('update_embedding_job_progress', {
             job_id: jobId,
-            increment_count: batchProcessedCount,
+            processed_count: processedCount,
           });
 
           if (progressError) {
