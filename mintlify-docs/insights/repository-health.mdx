@@ -2,16 +2,47 @@ AI-powered analysis of your repository's wellness based on 30 days of activity.
 
 ## Key Metrics
 
+### Core Health Factors
+
 - **Health Score**: Overall rating with confidence level
-- **Lottery Factor**: Knowledge concentration risk  
+- **Lottery Factor**: Knowledge concentration risk (20% weight)
 - **Self-Selection**: How contributors choose their work
-- **Review Time**: Average PR merge duration
-- **Contributor Diversity**: Team distribution patterns
+- **Response Time**: Average PR merge duration (10% weight)
+- **Activity Level**: Repository engagement intensity
+
+### Enhanced Contributor Metrics (New)
+
+- **Contributor Diversity**: Comprehensive team distribution including:
+  - Pull request authors
+  - Issue creators
+  - Code reviewers
+  - Discussion participants
+- **Issue Engagement**: Unique issue authors engaging with the project (15% weight)
+- **Review & Discussion Quality**: Combined review coverage and reviewer diversity (15% weight)
+  - Tracks percentage of PRs receiving reviews
+  - Rewards having multiple diverse reviewers (2 points per unique reviewer, max 20 points)
+
+## Confidence Score Calculation
+
+The repository confidence score evaluates contribution sustainability through:
+
+1. **Star/Fork Conversion**: How effectively stars and forks convert to contributions
+2. **Engagement Conversion**: Issue and comment engagement leading to contributions
+3. **Contributor Retention**: Retention rates over time windows
+4. **Contribution Quality**: PR success rates and merge patterns
 
 ## Visual Indicators
 
-🟢 Green = Healthy  
-🟡 Yellow = Needs attention  
-🔴 Red = Critical
+🟢 Green = Healthy (Score > 70)  
+🟡 Yellow = Needs attention (Score 40-70)  
+🔴 Red = Critical (Score < 40)
 
 Trend arrows show if metrics are improving or declining.
+
+## Data Sources
+
+Health metrics now pull from multiple sources for comprehensive analysis:
+- Pull requests and reviews
+- GitHub events cache (issues, reviews, comments)
+- Discussion participation
+- Contributor activity patterns
