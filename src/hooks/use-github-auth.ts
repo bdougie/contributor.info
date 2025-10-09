@@ -136,7 +136,7 @@ export function useGitHubAuth() {
         provider: 'github',
         options: {
           redirectTo: redirectUrl, // Dynamic redirect based on context
-          scopes: 'repo read:user user:email', // 'repo' scope needed to check repository permissions
+          scopes: 'public_repo read:user user:email', // 'public_repo' scope for public repositories only
         },
       });
 

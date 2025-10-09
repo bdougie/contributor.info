@@ -28,3 +28,6 @@ export {
 
 // Workspace priority sync
 export { syncWorkspacePriorities } from './sync-workspace-priorities';
+
+// Discussion sync
+export { syncDiscussionsCron } from './sync-discussions-cron';

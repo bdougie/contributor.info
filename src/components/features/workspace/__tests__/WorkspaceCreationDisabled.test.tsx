@@ -1,8 +1,14 @@
 import { render, screen } from '@testing-library/react';
-import { vi } from 'vitest';
-import { MemoryRouter } from 'react-router-dom';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { User } from '@supabase/supabase-js';
 import { WorkspaceCreationDisabled } from '../WorkspaceCreationDisabled';
+import React from 'react';
+
+// Mock react-router-dom
+vi.mock('react-router-dom', () => ({
+  Link: ({ children, to }: { children: React.ReactNode; to: string }) =>
+    React.createElement('a', { href: to }, children),
+}));
 
 describe('WorkspaceCreationDisabled', () => {
   const mockOnRequestAccess = vi.fn();
@@ -16,7 +22,9 @@ describe('WorkspaceCreationDisabled', () => {
       render(<WorkspaceCreationDisabled />);
 
       expect(screen.getByText('Sign In Required')).toBeInTheDocument();
-      expect(screen.getByText(/Please sign in to continue/)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Sign in to organize repositories and collaborate with your team/)
+      ).toBeInTheDocument();
     });
 
     it('should show login button when callback provided (not logged in)', () => {
@@ -33,15 +41,12 @@ describe('WorkspaceCreationDisabled', () => {
 
     it('should render upgrade to pro for logged in user', () => {
       const mockUser = { id: '123', email: 'test@example.com' } as User;
-      render(
-        <MemoryRouter>
-          <WorkspaceCreationDisabled user={mockUser} />
-        </MemoryRouter>
-      );
+      render(<WorkspaceCreationDisabled user={mockUser} />);
 
-      expect(screen.getByRole('heading', { name: 'Upgrade to Pro' })).toBeInTheDocument();
+      // No heading for logged in users in card variant, just the upgrade message
       expect(screen.getByText(/Workspaces are a Pro feature/)).toBeInTheDocument();
-      expect(screen.getByRole('link', { name: /Upgrade to Pro/i })).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Upgrade and find out' })).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Upgrade to Pro' })).toBeInTheDocument();
     });
   });
 
@@ -50,19 +55,18 @@ describe('WorkspaceCreationDisabled', () => {
       render(<WorkspaceCreationDisabled variant="modal" />);
 
       expect(screen.getByText('Sign In Required')).toBeInTheDocument();
-      expect(screen.getByText(/Please sign in to continue/)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Sign in to organize repositories and collaborate with your team/)
+      ).toBeInTheDocument();
     });
 
     it('should render the modal variant (logged in)', () => {
       const mockUser = { id: '123', email: 'test@example.com' } as User;
-      render(
-        <MemoryRouter>
-          <WorkspaceCreationDisabled variant="modal" user={mockUser} />
-        </MemoryRouter>
-      );
+      render(<WorkspaceCreationDisabled variant="modal" user={mockUser} />);
 
-      expect(screen.getByRole('heading', { name: 'Upgrade to Pro' })).toBeInTheDocument();
+      // No heading for logged in users in modal variant either
       expect(screen.getByText(/Workspaces are a Pro feature/)).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Upgrade and find out' })).toBeInTheDocument();
     });
 
     it('should show sign in button for modal variant when not logged in', () => {
@@ -73,11 +77,7 @@ describe('WorkspaceCreationDisabled', () => {
 
     it('should show upgrade button for modal variant when logged in', () => {
       const mockUser = { id: '123', email: 'test@example.com' } as User;
-      render(
-        <MemoryRouter>
-          <WorkspaceCreationDisabled variant="modal" user={mockUser} />
-        </MemoryRouter>
-      );
+      render(<WorkspaceCreationDisabled variant="modal" user={mockUser} />);
 
       expect(screen.getByRole('link', { name: /Upgrade to Pro/i })).toBeInTheDocument();
     });

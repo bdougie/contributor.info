@@ -24,7 +24,8 @@ The project uses a **dual-endpoint architecture** for Inngest functions to handl
                  │  /api/inngest   │              │ /api/inngest-    │
                  │  (Supabase)     │              │  embeddings      │
                  │                 │              │  (Netlify)       │
-                 │  10 Functions   │              │  11 Functions    │
+                 │  11 Functions   │              │  8 Functions     │
+                 │  (+ embeddings) │              │  (webhooks only) │
                  └─────────────────┘              └──────────────────┘
 ```
 
@@ -45,49 +46,47 @@ The project uses a **dual-endpoint architecture** for Inngest functions to handl
 8. `update-pr-activity` - Update PR activity metrics
 9. `discover-new-repository` - Discover and track new repositories
 10. `classify-repository-size` - Classify repository sizes
+11. `compute-embeddings` - **NEW** Generate embeddings using OpenAI API (cron: every 15 minutes)
 
 **Why Supabase:**
 - Native ES module support (no bundling issues)
 - Longer timeout (150s vs 26s)
 - Better isolation from main app
+- **No bundle size issues** - OpenAI API calls don't require 42MB ML libraries
 
 ### `/api/inngest-embeddings` → Netlify Function
 
 **Runtime:** Node.js
 **Location:** `netlify/functions/inngest-embeddings.mts`
-**Functions:**
-1. `generate-embeddings` - Legacy embeddings using @xenova/transformers
-2. `batch-generate-embeddings` - Batch embedding generation (cron: every 6 hours)
-3. `compute-embeddings` - Modern embeddings using OpenAI API (cron: every 15 minutes)
-4. `handle-issue-embedding-webhook` - Bridge webhook events for issue embeddings
-5. `handle-pr-embedding-webhook` - Bridge webhook events for PR embeddings
-6. `handle-batch-embedding-webhook` - Bridge webhook events for batch processing
-7. `handle-similarity-recalculation` - Bridge webhook events for similarity recalculation
-8. `aggregate-workspace-metrics` - Aggregate metrics for a single workspace
-9. `scheduled-workspace-aggregation` - Scheduled metrics refresh (cron: twice daily at 6 AM and 6 PM)
-10. `handle-workspace-repository-change` - Handle repo add/remove events
-11. `cleanup-workspace-metrics-data` - Data cleanup (cron: daily at 3 AM)
+**Functions (Lightweight Only):**
+1. `handle-issue-embedding-webhook` - Bridge webhook events for issue embeddings
+2. `handle-pr-embedding-webhook` - Bridge webhook events for PR embeddings
+3. `handle-batch-embedding-webhook` - Bridge webhook events for batch processing
+4. `handle-similarity-recalculation` - Bridge webhook events for similarity recalculation
+5. `aggregate-workspace-metrics` - Aggregate metrics for a single workspace
+6. `scheduled-workspace-aggregation` - Scheduled metrics refresh (cron: every 5 minutes)
+7. `handle-workspace-repository-change` - Handle repo add/remove events
+8. `cleanup-workspace-metrics-data` - Data cleanup (cron: daily at 3 AM)
+
+**Functions Moved to Supabase:**
+- ~~`generate-embeddings`~~ → Moved to Supabase (was causing 42MB bundle)
+- ~~`batch-generate-embeddings`~~ → Moved to Supabase (was causing 42MB bundle)
+- ~~`compute-embeddings`~~ → **Now on Supabase** (see `/api/inngest`)
 
 **Event Mappings:**
-- `embeddings.generate` → `generate-embeddings` (legacy)
-- `cron (6h)` → `batch-generate-embeddings` (legacy)
-- `embeddings/compute.requested` → `compute-embeddings` (modern)
-- `cron (15m)` → `compute-embeddings` (modern)
-- `embedding/issue.generate` → `handle-issue-embedding-webhook` → triggers `compute-embeddings`
-- `embedding/pr.generate` → `handle-pr-embedding-webhook` → triggers `compute-embeddings`
-- `embedding/batch.process` → `handle-batch-embedding-webhook` → triggers `compute-embeddings`
-- `similarity/repository.recalculate` → `handle-similarity-recalculation` → triggers `compute-embeddings`
+- `embedding/issue.generate` → `handle-issue-embedding-webhook` → triggers Supabase `compute-embeddings`
+- `embedding/pr.generate` → `handle-pr-embedding-webhook` → triggers Supabase `compute-embeddings`
+- `embedding/batch.process` → `handle-batch-embedding-webhook` → triggers Supabase `compute-embeddings`
+- `similarity/repository.recalculate` → `handle-similarity-recalculation` → triggers Supabase `compute-embeddings`
 - `workspace.metrics.aggregate` → `aggregate-workspace-metrics`
-- `cron (twice daily)` → `scheduled-workspace-aggregation`
+- `cron (5m)` → `scheduled-workspace-aggregation`
 - `workspace.repository.changed` → `handle-workspace-repository-change`
 - `cron (daily 3am)` → `cleanup-workspace-metrics-data`
 
 **Why Netlify:**
-- Requires `@xenova/transformers` (Node.js-only ML library for legacy functions)
-- Uses `crypto` module for content hashing
-- Heavy model loading requires Node.js runtime
-- Webhook bridge functions route events to compute-embeddings
-- Workspace metrics use WorkspaceAggregationService (compatible with Node.js runtime)
+- Webhook bridge functions (lightweight, no heavy dependencies)
+- Workspace metrics use WorkspaceAggregationService (Node.js compatible)
+- **No longer includes** `@xenova/transformers` (removed to fix 502 timeouts)
 
 ## Configuration
 
@@ -213,13 +212,14 @@ If additional functions need Node.js dependencies:
 2. If incompatible → Add to embeddings endpoint
 3. If compatible → Port to Supabase edge function
 
-### Future: External Embeddings Service
+### ✅ Embeddings Consolidation Complete (Jan 2025)
 
-Long-term recommendation:
-- ✅ **Done:** Modern `compute-embeddings` function now uses OpenAI API
-- **Next:** Deprecate legacy `@xenova/transformers` functions (generate-embeddings, batch-generate-embeddings)
-- **Future:** Move all embeddings to Supabase Edge Functions
-- **Goal:** Consolidate to single endpoint once legacy migration complete
+- ✅ **Done:** Modern `compute-embeddings` function uses OpenAI API
+- ✅ **Done:** All embeddings functions moved to Supabase Edge Functions
+- ✅ **Done:** Removed `@xenova/transformers` from Netlify (fixed 502 timeout issues)
+- ✅ **Done:** Netlify now only handles lightweight webhook bridges
+
+**Result:** Successfully eliminated the 42MB bundle size issue that was causing cold start timeouts.
 
 ## Troubleshooting
 
@@ -253,9 +253,11 @@ Long-term recommendation:
 
 ---
 
-**Last Updated:** 2025-10-05
+**Last Updated:** 2025-10-08
 **Author:** Claude Code
 **Status:** ✅ Implemented and Deployed
-**Recent Changes:**
-- Added 4 workspace metrics functions to Netlify endpoint (Issue #905)
-- Total functions: 10 (Supabase) + 11 (Netlify) = 21 functions
+**Recent Changes (Jan 2025):**
+- ✅ Fixed 502 errors by consolidating ALL embeddings generation to Supabase
+- ✅ Removed `@xenova/transformers` imports from Netlify (was causing 42MB bundle)
+- ✅ Netlify now only handles lightweight webhook bridges and workspace metrics
+- Total functions: 11 (Supabase) + 8 (Netlify) = 19 functions

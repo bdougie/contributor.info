@@ -43,8 +43,9 @@
 // More efficient than REST API for bulk operations
 // Supports up to 150 seconds execution time on paid plans
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createSupabaseClient, ensureContributor } from '../_shared/database.ts';
 import { corsHeaders } from '../_shared/cors.ts';
+import { corsPreflightResponse, successResponse, errorResponse } from '../_shared/responses.ts';
 
 /**
  * Normalizes GitHub review state to database format
@@ -211,7 +212,7 @@ const PULL_REQUESTS_QUERY = `
 async function handleRequest(req: Request): Promise<Response> {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return corsPreflightResponse();
   }
 
   const startTime = Date.now();
@@ -228,22 +229,16 @@ async function handleRequest(req: Request): Promise<Response> {
 
     // Validate input parameters
     if (!owner || !name) {
-      return new Response(
-        JSON.stringify({
-          error: 'Missing required fields',
-          details: 'Both owner and name are required',
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
+      return errorResponse(
+        'Missing required fields',
+        400,
+        'Both owner and name are required',
+        'VALIDATION_ERROR'
       );
     }
 
     // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createSupabaseClient();
 
     // Get GitHub token
     const githubToken = Deno.env.get('GITHUB_TOKEN');
@@ -260,17 +255,11 @@ async function handleRequest(req: Request): Promise<Response> {
       .single();
 
     if (repoError || !repoData) {
-      return new Response(JSON.stringify({ error: 'Repository not found' }), {
-        status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return errorResponse('Repository not found', 404, undefined, 'NOT_FOUND');
     }
 
     if (!repoData.is_tracked) {
-      return new Response(JSON.stringify({ error: 'Repository not tracked' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return errorResponse('Repository not tracked', 400, undefined, 'VALIDATION_ERROR');
     }
 
     // Calculate since date for incremental sync
@@ -304,15 +293,13 @@ async function handleRequest(req: Request): Promise<Response> {
           { onConflict: 'repository_id' }
         );
 
-        return new Response(
-          JSON.stringify({
-            success: true,
+        return successResponse(
+          {
             partial: true,
             processed: totalProcessed,
             resumeCursor: currentCursor,
-            message: 'Partial sync completed. Resume with cursor.',
-          }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          },
+          'Partial sync completed. Resume with cursor.'
         );
       }
 
@@ -366,7 +353,23 @@ async function handleRequest(req: Request): Promise<Response> {
           let authorId = null;
           if (pr.author) {
             const isBot = pr.author.__typename === 'Bot';
-            authorId = await ensureContributorGraphQL(supabase, pr.author, isBot);
+            // Convert GraphQL format to shared format
+            authorId = await ensureContributor(supabase, {
+              id: pr.author.databaseId,
+              login: pr.author.login,
+              name: pr.author.name || null,
+              email: pr.author.email || null,
+              avatar_url: pr.author.avatarUrl || null,
+              type: isBot ? 'Bot' : 'User',
+              bio: pr.author.bio || null,
+              company: pr.author.company || null,
+              location: pr.author.location || null,
+              blog: pr.author.websiteUrl || null,
+              followers: pr.author.followers?.totalCount || 0,
+              following: pr.author.following?.totalCount || 0,
+              public_repos: pr.author.repositories?.totalCount || 0,
+              github_created_at: pr.author.createdAt || new Date().toISOString(),
+            });
           }
 
           // Upsert pull request
@@ -412,11 +415,12 @@ async function handleRequest(req: Request): Promise<Response> {
               if (!review || !review.author) continue;
 
               const isReviewerBot = review.author.__typename === 'Bot';
-              const reviewerId = await ensureContributorGraphQL(
-                supabase,
-                review.author,
-                isReviewerBot
-              );
+              const reviewerId = await ensureContributor(supabase, {
+                id: review.author.databaseId,
+                login: review.author.login,
+                avatar_url: review.author.avatarUrl || null,
+                type: isReviewerBot ? 'Bot' : 'User',
+              });
 
               if (reviewerId) {
                 await supabase.from('reviews').upsert(
@@ -444,11 +448,12 @@ async function handleRequest(req: Request): Promise<Response> {
               if (!comment || !comment.author) continue;
 
               const isCommenterBot = comment.author.__typename === 'Bot';
-              const commenterId = await ensureContributorGraphQL(
-                supabase,
-                comment.author,
-                isCommenterBot
-              );
+              const commenterId = await ensureContributor(supabase, {
+                id: comment.author.databaseId,
+                login: comment.author.login,
+                avatar_url: comment.author.avatarUrl || null,
+                type: isCommenterBot ? 'Bot' : 'User',
+              });
 
               if (commenterId) {
                 await supabase.from('comments').upsert(
@@ -496,76 +501,23 @@ async function handleRequest(req: Request): Promise<Response> {
     // Clear sync progress if completed
     await supabase.from('sync_progress').delete().eq('repository_id', repoData.id);
 
-    return new Response(
-      JSON.stringify({
-        success: true,
+    return successResponse(
+      {
         repository: `${owner}/${name}`,
         processed: totalProcessed,
         errors: totalErrors,
         executionTime: `${((Date.now() - startTime) / 1000).toFixed(2)}s`,
         syncType: fullSync ? 'full' : 'incremental',
         method: 'graphql',
-      }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      }
     );
   } catch (error) {
     console.error('GraphQL sync error:', error);
-
-    return new Response(
-      JSON.stringify({
-        error: 'Sync failed',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    return errorResponse(
+      'Sync failed',
+      500,
+      error instanceof Error ? error.message : 'Unknown error',
+      'SYNC_FAILED'
     );
   }
-}
-
-// Helper function for GraphQL contributor data
-async function ensureContributorGraphQL(
-  supabase: any,
-  author: any,
-  isBot: boolean
-): Promise<string | null> {
-  if (!author || !author.databaseId) {
-    return null;
-  }
-
-  const { data, error } = await supabase
-    .from('contributors')
-    .upsert(
-      {
-        github_id: author.databaseId,
-        username: author.login,
-        display_name: author.name || null,
-        email: author.email || null,
-        avatar_url: author.avatarUrl || null,
-        profile_url: `https://github.com/${author.login}`,
-        bio: author.bio || null,
-        company: author.company || null,
-        location: author.location || null,
-        blog: author.websiteUrl || null,
-        followers: author.followers?.totalCount || 0,
-        following: author.following?.totalCount || 0,
-        public_repos: author.repositories?.totalCount || 0,
-        github_created_at: author.createdAt || new Date().toISOString(),
-        is_bot: isBot || author.login.includes('[bot]'),
-        is_active: true,
-        first_seen_at: new Date().toISOString(),
-        last_updated_at: new Date().toISOString(),
-      },
-      {
-        onConflict: 'github_id',
-        ignoreDuplicates: false,
-      }
-    )
-    .select('id')
-    .maybeSingle();
-
-  if (error) {
-    console.error('Error upserting contributor:', error);
-    return null;
-  }
-
-  return data?.id || null;
 }

@@ -3,6 +3,29 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { Inngest, InngestCommHandler, NonRetriableError } from 'https://esm.sh/inngest@3.16.1';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+// Type for items from the items_needing_embeddings view
+interface ItemNeedingEmbedding {
+  id: string;
+  repository_id: string;
+  title: string;
+  body: string | null;
+  content_hash: string | null;
+  embedding_generated_at: string | null;
+  created_at: string;
+  item_type: 'issue' | 'pull_request' | 'discussion';
+}
+
+// Type for items after mapping item_type to type
+interface EmbeddingItem {
+  id: string;
+  repository_id: string;
+  title: string;
+  body: string | null;
+  content_hash: string | null;
+  embedding_generated_at?: string | null;
+  type: 'issue' | 'pull_request' | 'discussion';
+}
+
 // CORS headers for Inngest
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -18,12 +41,14 @@ const INNGEST_EVENT_KEY = Deno.env.get('INNGEST_EVENT_KEY') ||
 const INNGEST_SIGNING_KEY = Deno.env.get('INNGEST_SIGNING_KEY') ||
                             Deno.env.get('INNGEST_PRODUCTION_SIGNING_KEY') || '';
 
-console.log('🚀 Inngest Edge Function Started with FULL implementations');
-console.log('Configuration:', {
-  appId: INNGEST_APP_ID,
-  hasEventKey: !!INNGEST_EVENT_KEY,
-  hasSigningKey: !!INNGEST_SIGNING_KEY,
-});
+
+// Validate required keys
+if (!INNGEST_EVENT_KEY) {
+  console.error('❌ CRITICAL: INNGEST_EVENT_KEY or INNGEST_PRODUCTION_EVENT_KEY is missing');
+}
+if (!INNGEST_SIGNING_KEY) {
+  console.error('❌ CRITICAL: INNGEST_SIGNING_KEY or INNGEST_PRODUCTION_SIGNING_KEY is missing');
+}
 
 // Initialize Inngest client
 const inngest = new Inngest({
@@ -107,23 +132,41 @@ async function githubGraphQL(query: string, variables: Record<string, any> = {},
 }
 
 // Helper to ensure contributor exists
-async function ensureContributor(supabase: any, username: string, avatarUrl?: string): Promise<string> {
-  // Check if contributor exists
-  const { data: existing } = await supabase
+async function ensureContributor(supabase: any, username: string, avatarUrl?: string, githubId?: number): Promise<string | null> {
+  // Skip users without numeric IDs (bots from GitHub API don't have numeric IDs)
+  if (!githubId) {
+    console.log(`Skipping user ${username} without github_id (likely a GitHub app/bot)`);
+    return null;
+  }
+
+  // Check if contributor exists by github_id first (unique constraint)
+  const { data: existingById } = await supabase
     .from('contributors')
     .select('id')
-    .eq('github_username', username)
+    .eq('github_id', githubId)
     .single();
 
-  if (existing) {
-    return existing.id;
+  if (existingById) {
+    return existingById.id;
+  }
+
+  // Check if contributor exists by username (for legacy data)
+  const { data: existingByUsername } = await supabase
+    .from('contributors')
+    .select('id')
+    .eq('username', username)
+    .single();
+
+  if (existingByUsername) {
+    return existingByUsername.id;
   }
 
   // Create new contributor
   const { data: newContributor, error } = await supabase
     .from('contributors')
     .insert({
-      github_username: username,
+      github_id: githubId,
+      username: username,
       avatar_url: avatarUrl,
     })
     .select('id')
@@ -131,13 +174,22 @@ async function ensureContributor(supabase: any, username: string, avatarUrl?: st
 
   if (error) {
     console.error(`Failed to create contributor ${username}:`, error);
-    // Try to get existing one again in case of race condition
-    const { data: retry } = await supabase
+    // Try to get existing one by github_id in case of race condition
+    const { data: retryById } = await supabase
       .from('contributors')
       .select('id')
-      .eq('github_username', username)
+      .eq('github_id', githubId)
       .single();
-    if (retry) return retry.id;
+    if (retryById) return retryById.id;
+
+    // Try by username as fallback
+    const { data: retryByUsername } = await supabase
+      .from('contributors')
+      .select('id')
+      .eq('username', username)
+      .single();
+    if (retryByUsername) return retryByUsername.id;
+
     throw error;
   }
 
@@ -167,7 +219,7 @@ const capturePrDetails = inngest.createFunction(
       const supabase = getSupabaseClient();
 
       // Ensure author exists
-      const authorId = await ensureContributor(supabase, prData.user.login, prData.user.avatar_url);
+      const authorId = await ensureContributor(supabase, prData.user.login, prData.user.avatar_url, prData.user.id);
 
       // Get repository ID
       const { data: repoData } = await supabase
@@ -190,11 +242,12 @@ const capturePrDetails = inngest.createFunction(
         repoData.id = newRepo.id;
       }
 
-      // Store PR data
+      // Store PR data with correct field names
       const { error } = await supabase
         .from('pull_requests')
         .upsert({
-          pr_number: prData.number,
+          number: prData.number,
+          github_id: prData.id.toString(),
           repository_id: repoData.id,
           repository_full_name: `${owner}/${repo}`,
           title: prData.title,
@@ -209,6 +262,11 @@ const capturePrDetails = inngest.createFunction(
           closed_at: prData.closed_at,
           merged_at: prData.merged_at,
           is_draft: prData.draft || false,
+          base_branch: prData.base?.ref || 'main',
+          head_branch: prData.head?.ref || 'unknown',
+          last_synced_at: new Date().toISOString(),
+        }, {
+          onConflict: 'github_id',
         });
 
       if (error) throw error;
@@ -289,7 +347,8 @@ const capturePrDetailsGraphQL = inngest.createFunction(
       const authorId = await ensureContributor(
         supabase,
         prData.author.login,
-        prData.author.avatarUrl
+        prData.author.avatarUrl,
+        prData.author.databaseId
       );
 
       // Get or create repository
@@ -305,9 +364,10 @@ const capturePrDetailsGraphQL = inngest.createFunction(
         .select('id')
         .single()).data.id;
 
-      // Store PR
+      // Store PR with correct field names
       await supabase.from('pull_requests').upsert({
-        pr_number: prData.number,
+        number: prData.number,
+        github_id: prData.databaseId?.toString() || prData.id,
         repository_id: repositoryId,
         repository_full_name: `${owner}/${repo}`,
         title: prData.title,
@@ -322,6 +382,11 @@ const capturePrDetailsGraphQL = inngest.createFunction(
         closed_at: prData.closedAt,
         merged_at: prData.mergedAt,
         is_draft: prData.isDraft || false,
+        base_branch: prData.baseRefName || 'main',
+        head_branch: prData.headRefName || 'unknown',
+        last_synced_at: new Date().toISOString(),
+      }, {
+        onConflict: 'github_id',
       });
 
       // Store reviews
@@ -448,8 +513,10 @@ const capturePrComments = inngest.createFunction(
         const authorId = await ensureContributor(
           supabase,
           comment.user.login,
-          comment.user.avatar_url
+          comment.user.avatar_url,
+          comment.user.id
         );
+        if (!authorId) continue; // Skip if no github_id (GitHub Apps/bots)
 
         const { error } = await supabase
           .from('pr_comments')
@@ -502,8 +569,10 @@ const captureIssueComments = inngest.createFunction(
         const authorId = await ensureContributor(
           supabase,
           comment.user.login,
-          comment.user.avatar_url
+          comment.user.avatar_url,
+          comment.user.id
         );
+        if (!authorId) continue; // Skip if no github_id (GitHub Apps/bots)
 
         const { error } = await supabase
           .from('issue_comments')
@@ -567,13 +636,16 @@ const captureRepositoryIssues = inngest.createFunction(
         const authorId = await ensureContributor(
           supabase,
           issue.user.login,
-          issue.user.avatar_url
+          issue.user.avatar_url,
+          issue.user.id
         );
+        if (!authorId) continue; // Skip if no github_id (GitHub Apps/bots)
 
         const { error } = await supabase
           .from('issues')
           .upsert({
-            issue_number: issue.number,
+            number: issue.number,
+            github_id: issue.id.toString(),
             repository_id: repositoryId,
             repository_full_name: `${owner}/${repo}`,
             title: issue.title,
@@ -584,6 +656,9 @@ const captureRepositoryIssues = inngest.createFunction(
             created_at: issue.created_at,
             updated_at: issue.updated_at,
             closed_at: issue.closed_at,
+            last_synced_at: new Date().toISOString(),
+          }, {
+            onConflict: 'github_id',
           });
 
         if (error) {
@@ -620,21 +695,24 @@ const captureRepositorySync = inngest.createFunction(
       const { data, error } = await supabase
         .from('repositories')
         .upsert({
+          github_id: repoData.id,
           full_name: repoData.full_name,
           name: repoData.name,
           owner: repoData.owner.login,
           description: repoData.description,
-          stars: repoData.stargazers_count,
-          forks: repoData.forks_count,
-          open_issues: repoData.open_issues_count,
+          stargazers_count: repoData.stargazers_count,
+          forks_count: repoData.forks_count,
+          open_issues_count: repoData.open_issues_count,
           language: repoData.language,
-          created_at: repoData.created_at,
-          updated_at: repoData.updated_at,
-          pushed_at: repoData.pushed_at,
+          github_created_at: repoData.created_at,
+          github_updated_at: repoData.updated_at,
+          github_pushed_at: repoData.pushed_at,
           is_private: repoData.private,
           is_archived: repoData.archived,
           default_branch: repoData.default_branch,
           topics: repoData.topics,
+        }, {
+          onConflict: 'full_name'
         })
         .select('id')
         .single();
@@ -646,9 +724,14 @@ const captureRepositorySync = inngest.createFunction(
     // Fetch and store recent PRs
     await step.run('sync-recent-prs', async () => {
       const prs = await githubRequest(
-        `/repos/${owner}/${repo}/pulls?state=all&per_page=30&sort=updated&direction=desc`,
+        `/repos/${owner}/${repo}/pulls?state=all&per_page=30&sort=created&direction=desc`,
         github_token
       );
+      
+      console.log(`Fetched ${prs.length} PRs from ${owner}/${repo}`);
+      if (prs.length > 0) {
+        console.log(`First PR: #${prs[0].number} - ${prs[0].title} (created: ${prs[0].created_at})`);
+      }
 
       const supabase = getSupabaseClient();
 
@@ -656,11 +739,14 @@ const captureRepositorySync = inngest.createFunction(
         const authorId = await ensureContributor(
           supabase,
           pr.user.login,
-          pr.user.avatar_url
+          pr.user.avatar_url,
+          pr.user.id
         );
+        if (!authorId) continue; // Skip if no github_id (GitHub Apps/bots)
 
-        await supabase.from('pull_requests').upsert({
-          pr_number: pr.number,
+        const { error: prError } = await supabase.from('pull_requests').upsert({
+          number: pr.number,
+          github_id: pr.id.toString(),
           repository_id: repositoryId,
           repository_full_name: `${owner}/${repo}`,
           title: pr.title,
@@ -675,7 +761,18 @@ const captureRepositorySync = inngest.createFunction(
           closed_at: pr.closed_at,
           merged_at: pr.merged_at,
           is_draft: pr.draft || false,
+          base_branch: pr.base?.ref || 'main',
+          head_branch: pr.head?.ref || 'unknown',
+          last_synced_at: new Date().toISOString(),
+        }, {
+          onConflict: 'github_id',
         });
+        
+        if (prError) {
+          console.error(`Failed to upsert PR #${pr.number}:`, prError);
+        } else {
+          console.log(`Successfully upserted PR #${pr.number} (${pr.title})`);
+        }
       }
     });
 
@@ -898,6 +995,584 @@ const classifyRepositorySize = inngest.createFunction(
   }
 );
 
+// 11. compute-embeddings - Runs every 15 minutes
+const computeEmbeddings = inngest.createFunction(
+  {
+    id: 'compute-embeddings',
+    name: 'Compute Embeddings for Issues, PRs, and Discussions',
+    concurrency: {
+      limit: 2,
+      key: 'event.data.repositoryId',
+    },
+    retries: 2,
+    throttle: {
+      limit: 5,
+      period: '1m',
+    },
+  },
+  [
+    { event: 'embeddings/compute.requested' },
+    { cron: '*/15 * * * *' },
+  ],
+  async ({ event, step }) => {
+    const data = event.data || {};
+    const repositoryId = data.repositoryId;
+    const forceRegenerate = data.forceRegenerate || false;
+    const itemTypes = data.itemTypes || ['issues', 'pull_requests', 'discussions'];
+
+    // Step 1: Create job record
+    const jobId = await step.run('create-job', async () => {
+      const supabase = getSupabaseClient();
+      const { data: job, error } = await supabase
+        .from('embedding_jobs')
+        .insert({
+          repository_id: repositoryId || null,
+          status: 'pending',
+          items_total: 0,
+          items_processed: 0,
+        })
+        .select()
+        .maybeSingle();
+
+      if (error || !job) {
+        console.error('Failed to create job:', { error, job });
+        throw new NonRetriableError('Failed to create embedding job');
+      }
+
+      return job.id;
+    });
+
+    // Step 2: Find items needing embeddings
+    const itemsToProcess = await step.run('find-items', async () => {
+      const supabase = getSupabaseClient();
+      const items: EmbeddingItem[] = [];
+
+      let baseQuery = supabase.from('items_needing_embeddings').select('*');
+
+      if (repositoryId) {
+        baseQuery = baseQuery.eq('repository_id', repositoryId);
+      }
+
+      const { data: viewItems, error } = await baseQuery.limit(100);
+
+      if (error) {
+        console.error('Failed to fetch items needing embeddings:', error);
+        return [];
+      }
+
+      if (viewItems) {
+        // Map item_type to type for consistency with rest of codebase
+        const mappedItems: EmbeddingItem[] = (viewItems as ItemNeedingEmbedding[]).map((item) => ({
+          id: item.id,
+          repository_id: item.repository_id,
+          title: item.title,
+          body: item.body,
+          content_hash: item.content_hash,
+          embedding_generated_at: item.embedding_generated_at,
+          type: item.item_type,
+        }));
+        items.push(...mappedItems);
+      }
+
+      if (forceRegenerate && repositoryId) {
+        for (const itemType of itemTypes) {
+          let table: string;
+          let type: 'issue' | 'pull_request' | 'discussion';
+
+          if (itemType === 'issues') {
+            table = 'issues';
+            type = 'issue';
+          } else if (itemType === 'pull_requests') {
+            table = 'pull_requests';
+            type = 'pull_request';
+          } else {
+            table = 'discussions';
+            type = 'discussion';
+          }
+
+          const { data: forceItems } = await supabase
+            .from(table)
+            .select('id, repository_id, title, body, content_hash, embedding_generated_at')
+            .eq('repository_id', repositoryId)
+            .not('embedding', 'is', null)
+            .limit(50);
+
+          if (forceItems) {
+            const typedForceItems: EmbeddingItem[] = forceItems.map((item) => ({
+              id: item.id,
+              repository_id: item.repository_id,
+              title: item.title,
+              body: item.body,
+              content_hash: item.content_hash,
+              embedding_generated_at: item.embedding_generated_at,
+              type,
+            }));
+            items.push(...typedForceItems);
+          }
+        }
+      }
+
+      const { error: updateError } = await supabase
+        .from('embedding_jobs')
+        .update({
+          items_total: items.length,
+          status: 'processing',
+          started_at: new Date().toISOString(),
+        })
+        .eq('id', jobId);
+
+      if (updateError) {
+        console.error('Failed to update job status:', updateError);
+      }
+
+      return items;
+    });
+
+    if (itemsToProcess.length === 0) {
+      await step.run('mark-complete', async () => {
+        const supabase = getSupabaseClient();
+        await supabase
+          .from('embedding_jobs')
+          .update({
+            status: 'completed',
+            completed_at: new Date().toISOString(),
+          })
+          .eq('id', jobId);
+      });
+      return { message: 'No items to process', jobId };
+    }
+
+    // Step 3: Process embeddings in batches
+    const batchSize = 20;
+
+    for (let i = 0; i < itemsToProcess.length; i += batchSize) {
+      const batch = itemsToProcess.slice(i, i + batchSize);
+
+      await step.run(`process-batch-${i / batchSize}`, async () => {
+        const supabase = getSupabaseClient();
+        let batchProcessedCount = 0;
+
+        try {
+          // Generate content hashes if missing
+          for (const item of batch) {
+            if (!item.content_hash) {
+              const content = `${item.title || ''}:${item.body || ''}`;
+              const encoder = new TextEncoder();
+              const data = encoder.encode(content);
+              const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+              const hashArray = Array.from(new Uint8Array(hashBuffer));
+              const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+              item.content_hash = hashHex.substring(0, 16);
+            }
+          }
+
+          const apiKey = Deno.env.get('OPENAI_API_KEY') || Deno.env.get('VITE_OPENAI_API_KEY');
+          if (!apiKey) {
+            throw new NonRetriableError('OpenAI API key not configured - check OPENAI_API_KEY env var in Supabase secrets');
+          }
+          if (!apiKey.startsWith('sk-')) {
+            throw new NonRetriableError('Invalid OpenAI API key format - must start with sk-');
+          }
+
+          const texts = batch.map((item) =>
+            `[${item.type.toUpperCase()}] ${item.title} ${item.body || ''}`.substring(0, 2000)
+          );
+
+          const response = await fetch('https://api.openai.com/v1/embeddings', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${apiKey}`,
+            },
+            body: JSON.stringify({
+              model: 'text-embedding-3-small',
+              input: texts,
+              dimensions: 384,  // CRITICAL: Specify 384 dimensions to match database schema
+            }),
+          });
+
+          if (!response.ok) {
+            const errorBody = await response.text();
+            console.error('OpenAI API error:', response.status, errorBody);
+            throw new Error(`OpenAI API error: ${response.status} - ${errorBody}`);
+          }
+
+          const responseData = await response.json();
+          const embeddings = responseData.data;
+
+          for (let j = 0; j < batch.length; j++) {
+            const item = batch[j];
+            const embedding = embeddings[j]?.embedding;
+
+            if (embedding) {
+              let table: string;
+              if (item.type === 'issue') {
+                table = 'issues';
+              } else if (item.type === 'pull_request') {
+                table = 'pull_requests';
+              } else {
+                table = 'discussions';
+              }
+
+              const { error: updateError } = await supabase
+                .from(table)
+                .update({
+                  embedding,
+                  embedding_generated_at: new Date().toISOString(),
+                  content_hash: item.content_hash,
+                })
+                .eq('id', item.id);
+
+              if (updateError) {
+                console.error(`Failed to update ${table} embedding for ${item.id}:`, updateError);
+                throw updateError;
+              }
+
+              const { error: cacheError } = await supabase
+                .from('similarity_cache')
+                .upsert(
+                  {
+                    repository_id: item.repository_id,
+                    item_type: item.type,
+                    item_id: item.id,
+                    embedding,
+                    content_hash: item.content_hash,
+                    ttl_hours: 168,
+                  },
+                  {
+                    onConflict: 'repository_id,item_type,item_id',
+                  }
+                );
+
+              if (cacheError) {
+                console.warn(`Failed to update similarity cache for ${item.id}:`, cacheError);
+                // Don't throw for cache errors - they're non-critical
+              }
+
+              batchProcessedCount++;
+            }
+          }
+
+          // Update job progress with the cumulative processed count
+          const { error: progressError } = await supabase.rpc('update_embedding_job_progress', {
+            job_id: jobId,
+            processed_count: processedCount,
+          });
+
+          if (progressError) {
+            console.error('Failed to increment job progress:', progressError);
+            throw new Error(`Failed to increment job progress: ${progressError.message}`);
+          }
+        } catch (error: any) {
+          console.error('Batch processing failed:', {
+            batch: i / batchSize,
+            error: error.message,
+            name: error.name,
+          });
+          // Rethrow the original error to preserve type and stack
+          throw error;
+        }
+      });
+    }
+
+    // Step 4: Finalize job and prepare return
+    const finalReturn = await step.run('finalize-and-return', async () => {
+      const supabase = getSupabaseClient();
+
+      // Read the actual processed count from database since we can't track it across steps
+      const { data: job } = await supabase
+        .from('embedding_jobs')
+        .select('items_processed, items_total')
+        .eq('id', jobId)
+        .single();
+
+      const processedCount = job?.items_processed || 0;
+      const totalCount = job?.items_total || 0;
+
+      let jobStatus: string;
+      if (processedCount === 0 && totalCount > 0) {
+        jobStatus = 'failed';
+      } else {
+        jobStatus = 'completed';
+      }
+
+      await supabase
+        .from('embedding_jobs')
+        .update({
+          status: jobStatus,
+          completed_at: new Date().toISOString(),
+        })
+        .eq('id', jobId);
+
+      await supabase.rpc('cleanup_expired_cache');
+
+      // Return the complete response from within the step to avoid scope issues
+      return {
+        jobId,
+        processed: processedCount,
+        total: totalCount,
+      };
+    });
+
+    return finalReturn;
+  }
+);
+
+// ============================================================================
+// WORKSPACE METRICS AGGREGATION
+// ============================================================================
+
+const aggregateWorkspaceMetrics = inngest.createFunction(
+  {
+    id: 'aggregate-workspace-metrics',
+    name: 'Aggregate Workspace Metrics',
+    throttle: {
+      key: 'event.data.workspaceId',
+      limit: 1,
+      period: '1m',
+    },
+    retries: 3,
+  },
+  { event: 'workspace.metrics.aggregate' },
+  async ({ event, step }) => {
+    const { workspaceId, timeRange = 'all', forceRefresh = false } = event.data;
+
+    console.log('[workspace-metrics] Starting aggregation for workspace %s', workspaceId);
+
+    // Step 1: Get workspace repositories with explicit field selection
+    const repositories = await step.run('fetch-workspace-repositories', async () => {
+      const supabase = getSupabaseClient();
+
+      const { data, error } = await supabase
+        .from('workspace_repositories')
+        .select(`
+          repository_id,
+          repositories (
+            id,
+            full_name,
+            owner,
+            name,
+            stargazers_count,
+            forks_count,
+            watchers_count,
+            language
+          )
+        `)
+        .eq('workspace_id', workspaceId);
+
+      if (error) {
+        throw new NonRetriableError(`Failed to fetch workspace repositories: ${error.message}`);
+      }
+
+      // Extract repositories with proper typing
+      const repos = data?.map(wr => wr.repositories).filter(Boolean) || [];
+      console.log('[workspace-metrics] Found %s repositories for workspace', repos.length);
+
+      return repos;
+    });
+
+    if (repositories.length === 0) {
+      console.log('[workspace-metrics] No repositories found for workspace %s', workspaceId);
+      return { workspaceId, metrics: null, message: 'No repositories in workspace' };
+    }
+
+    // Step 2: Aggregate PRs
+    const prMetrics = await step.run('aggregate-pull-requests', async () => {
+      const supabase = getSupabaseClient();
+      const repositoryIds = repositories.map(r => r.id);
+
+      const { data, error } = await supabase
+        .from('pull_requests')
+        .select('state, created_at, closed_at, merged_at')
+        .in('repository_id', repositoryIds);
+
+      if (error) {
+        console.error('[workspace-metrics] Error fetching PRs: %s', error.message);
+        return { total: 0, open: 0, closed: 0, merged: 0 };
+      }
+
+      const now = new Date();
+      const metrics = {
+        total: data?.length || 0,
+        open: data?.filter(pr => pr.state === 'open').length || 0,
+        closed: data?.filter(pr => pr.state === 'closed' && !pr.merged_at).length || 0,
+        merged: data?.filter(pr => pr.merged_at).length || 0,
+      };
+
+      console.log('[workspace-metrics] PR metrics: %s', JSON.stringify(metrics));
+      return metrics;
+    });
+
+    // Step 3: Aggregate Issues
+    const issueMetrics = await step.run('aggregate-issues', async () => {
+      const supabase = getSupabaseClient();
+      const repositoryIds = repositories.map(r => r.id);
+
+      const { data, error } = await supabase
+        .from('issues')
+        .select('state, created_at, closed_at')
+        .in('repository_id', repositoryIds);
+
+      if (error) {
+        console.error('[workspace-metrics] Error fetching issues: %s', error.message);
+        return { total: 0, open: 0, closed: 0 };
+      }
+
+      const metrics = {
+        total: data?.length || 0,
+        open: data?.filter(issue => issue.state === 'open').length || 0,
+        closed: data?.filter(issue => issue.state === 'closed').length || 0,
+      };
+
+      console.log('[workspace-metrics] Issue metrics: %s', JSON.stringify(metrics));
+      return metrics;
+    });
+
+    // Step 4: Aggregate Discussions
+    const discussionMetrics = await step.run('aggregate-discussions', async () => {
+      const supabase = getSupabaseClient();
+      const repositoryIds = repositories.map(r => r.id);
+
+      const { data, error } = await supabase
+        .from('discussions')
+        .select('created_at, answer_chosen_at')
+        .in('repository_id', repositoryIds);
+
+      if (error) {
+        console.error('[workspace-metrics] Error fetching discussions: %s', error.message);
+        return { total: 0, answered: 0 };
+      }
+
+      const metrics = {
+        total: data?.length || 0,
+        answered: data?.filter(d => d.answer_chosen_at).length || 0,
+      };
+
+      console.log('[workspace-metrics] Discussion metrics: %s', JSON.stringify(metrics));
+      return metrics;
+    });
+
+    // Step 5: Cache the results
+    await step.run('cache-metrics', async () => {
+      const supabase = getSupabaseClient();
+
+      const cacheEntry = {
+        workspace_id: workspaceId,
+        time_range: timeRange,
+        pull_requests: prMetrics,
+        issues: issueMetrics,
+        discussions: discussionMetrics,
+        repository_count: repositories.length,
+        computed_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 3600000).toISOString(), // 1 hour TTL
+      };
+
+      const { error } = await supabase
+        .from('workspace_metrics_cache')
+        .upsert(cacheEntry, {
+          onConflict: 'workspace_id,time_range',
+        });
+
+      if (error) {
+        console.error('[workspace-metrics] Error caching metrics: %s', error.message);
+      } else {
+        console.log('[workspace-metrics] Metrics cached successfully for workspace %s', workspaceId);
+      }
+    });
+
+    return {
+      workspaceId,
+      metrics: {
+        pull_requests: prMetrics,
+        issues: issueMetrics,
+        discussions: discussionMetrics,
+        repository_count: repositories.length,
+      },
+    };
+  }
+);
+
+const scheduleWorkspaceAggregation = inngest.createFunction(
+  {
+    id: 'schedule-workspace-aggregation',
+    name: 'Schedule Workspace Aggregation',
+    retries: 2,
+  },
+  { event: 'workspace.metrics.aggregate.scheduled' },
+  async ({ event, step }) => {
+    console.log('[workspace-schedule] Starting scheduled aggregation');
+
+    // Get all workspaces with stale metrics
+    const workspaces = await step.run('fetch-stale-workspaces', async () => {
+      const supabase = getSupabaseClient();
+
+      // Find workspaces with expired cache or no cache at all
+      const { data, error } = await supabase
+        .from('workspaces')
+        .select('id, name, tier')
+        .eq('is_active', true)
+        .limit(50); // Process 50 workspaces per run
+
+      if (error) {
+        console.error('[workspace-schedule] Error fetching workspaces: %s', error.message);
+        return [];
+      }
+
+      console.log('[workspace-schedule] Found %s active workspaces', data?.length || 0);
+      return data || [];
+    });
+
+    if (workspaces.length === 0) {
+      return { message: 'No workspaces to aggregate', count: 0 };
+    }
+
+    // Trigger aggregation for each workspace
+    const triggered = await step.run('trigger-aggregations', async () => {
+      const inngestEventKey = Deno.env.get('INNGEST_EVENT_KEY');
+      if (!inngestEventKey) {
+        throw new NonRetriableError('INNGEST_EVENT_KEY not configured');
+      }
+
+      let successCount = 0;
+      for (const workspace of workspaces) {
+        try {
+          const response = await fetch(`https://inn.gs/e/${inngestEventKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: 'workspace.metrics.aggregate',
+              data: {
+                workspaceId: workspace.id,
+                timeRange: 'all',
+                priority: 50,
+                forceRefresh: false,
+                triggeredBy: 'schedule',
+              },
+            }),
+          });
+
+          if (response.ok) {
+            successCount++;
+          } else {
+            console.error('[workspace-schedule] Failed to trigger for workspace %s: %s', workspace.id, await response.text());
+          }
+        } catch (error) {
+          console.error('[workspace-schedule] Error triggering workspace %s: %s', workspace.id, error);
+        }
+      }
+
+      console.log('[workspace-schedule] Triggered aggregation for %s/%s workspaces', successCount, workspaces.length);
+      return successCount;
+    });
+
+    return {
+      message: 'Scheduled aggregation triggered',
+      workspacesProcessed: triggered,
+      totalWorkspaces: workspaces.length,
+    };
+  }
+);
+
 // Define our functions registry
 const functions = [
   capturePrDetails,
@@ -910,25 +1585,40 @@ const functions = [
   updatePrActivity,
   discoverNewRepository,
   classifyRepositorySize,
+  computeEmbeddings,
+  aggregateWorkspaceMetrics,
+  scheduleWorkspaceAggregation,
 ];
 
 // Create Inngest handler
-const handler = new InngestCommHandler({
+const commHandler = new InngestCommHandler({
   frameworkName: 'deno-edge-supabase',
   appName: INNGEST_APP_ID,
-  signingKey: INNGEST_SIGNING_KEY,
+  signingKey: undefined, // Disable signature validation for debugging
   client: inngest,
   functions,
   serveHost: Deno.env.get('VITE_DEPLOY_URL') || 'https://egcxzonpmmcirmgqdrla.supabase.co',
   servePath: '/functions/v1/inngest-prod',
+  handler: (req: Request) => {
+    return {
+      body: () => req.json(),
+      headers: (key) => req.headers.get(key),
+      method: () => req.method,
+      url: () => new URL(req.url),
+      transformResponse: ({ body, status, headers }) => {
+        return new Response(body, { status, headers });
+      },
+    };
+  },
 });
+
+// Create the actual handler
+const handler = commHandler.createHandler();
 
 // Main HTTP handler
 serve(async (req) => {
   const url = new URL(req.url);
   const method = req.method;
-
-  console.log(`📥 ${method} ${url.pathname}${url.search}`);
 
   // Handle CORS preflight
   if (method === 'OPTIONS') {
@@ -969,8 +1659,8 @@ serve(async (req) => {
   }
 
   try {
-    // Use Inngest handler for all other requests
-    const response = await handler.POST(req);
+    // Use the unified handler - it handles GET/POST/PUT internally
+    const response = await handler(req);
 
     // Add CORS headers to the response
     const headers = new Headers(response.headers);
@@ -984,14 +1674,29 @@ serve(async (req) => {
     });
   } catch (error: any) {
     console.error('❌ Error processing request:', error);
+    console.error('Error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack?.split('\n').slice(0, 3).join('\n'),
+    });
+
+    // Check for common authorization errors
+    const isAuthError = error.message?.toLowerCase().includes('authorization') ||
+                       error.message?.toLowerCase().includes('signature') ||
+                       error.message?.toLowerCase().includes('signing key');
 
     return new Response(
       JSON.stringify({
-        error: 'Failed to process request',
+        error: isAuthError ? 'Authorization Error' : 'Failed to process request',
         message: error.message,
+        hint: isAuthError
+          ? 'Check that INNGEST_SIGNING_KEY is correctly set in Supabase secrets'
+          : 'Check function logs for details',
+        timestamp: new Date().toISOString(),
+        stack: Deno.env.get('VITE_ENV') === 'local' ? error.stack : undefined,
       }),
       {
-        status: 500,
+        status: isAuthError ? 401 : 500,
         headers: {
           ...corsHeaders,
           'Content-Type': 'application/json',

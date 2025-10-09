@@ -47,15 +47,17 @@ These variables are available in both HTML and plain text templates:
 
 ### Call-to-Action URLs
 
-#### Accept Invitation
+#### Current Format (v2)
+```
+https://contributor.info/invitation/{{invitationToken}}
+```
+The invitation page handles both accept and decline actions.
+
+#### Legacy Format (Deprecated)
 ```
 https://contributor.info/workspace/invitation/accept?token={{invitationToken}}
 ```
-
-#### Decline Invitation
-```
-https://contributor.info/workspace/invitation/decline?token={{invitationToken}}
-```
+Old format automatically redirects to the new `/invitation/:token` format.
 
 ### Color Palette
 

@@ -7,8 +7,19 @@ import { useWorkspaceContributors } from '@/hooks/useWorkspaceContributors';
 import { useContributorGroups } from '@/hooks/useContributorGroups';
 import { useWorkspaceEvents } from '@/hooks/use-workspace-events';
 import { TIME_PERIODS, timeHelpers } from '@/lib/constants/time-constants';
-import { WorkspaceDashboard, WorkspaceDashboardSkeleton } from '@/components/features/workspace';
+import {
+  WorkspaceDashboard,
+  WorkspaceDashboardSkeleton,
+  ResponsePreviewModal,
+} from '@/components/features/workspace';
+import type { SimilarItem } from '@/services/similarity-search';
 import { WorkspaceErrorBoundary } from '@/components/error-boundaries/workspace-error-boundary';
+import { AIFeatureErrorBoundary } from '@/components/error-boundaries/ai-feature-error-boundary';
+import { parseWorkspaceIdentifier, getWorkspaceQueryField } from '@/types/workspace-identifier';
+import {
+  useSimilaritySearchCache,
+  useDebouncedSimilaritySearch,
+} from '@/hooks/use-similarity-search-cache';
 import { WorkspaceAutoSync } from '@/components/features/workspace/WorkspaceAutoSync';
 import { useWorkspaceContext } from '@/contexts/WorkspaceContext';
 import {
@@ -22,7 +33,7 @@ import {
 import { WorkspaceDiscussionsTable } from '@/components/features/workspace/WorkspaceDiscussionsTable';
 import { RepositoryFilter } from '@/components/features/workspace/RepositoryFilter';
 import { WorkspaceMetricsAndTrends } from '@/components/features/workspace/WorkspaceMetricsAndTrends';
-import { WorkspaceSwitcher } from '@/components/navigation/WorkspaceSwitcher';
+
 import { WorkspaceIssueMetricsAndTrends } from '@/components/features/workspace/WorkspaceIssueMetricsAndTrends';
 import {
   ContributorsList,
@@ -83,6 +94,7 @@ import type { Workspace, WorkspaceMemberWithUser } from '@/types/workspace';
 import { WorkspaceService } from '@/services/workspace.service';
 import { WorkspaceSettings as WorkspaceSettingsComponent } from '@/components/features/workspace/settings/WorkspaceSettings';
 import { useWorkspacePRs } from '@/hooks/useWorkspacePRs';
+import { useMyWork } from '@/hooks/use-my-work';
 // Analytics imports disabled - will be implemented in issue #598
 // import { AnalyticsDashboard } from '@/components/features/workspace/AnalyticsDashboard';
 import { ActivityTable } from '@/components/features/workspace/ActivityTable';
@@ -2326,6 +2338,11 @@ function WorkspacePage() {
   const [metrics, setMetrics] = useState<WorkspaceMetrics | null>(null);
   const [trendData, setTrendData] = useState<WorkspaceTrendData | null>(null);
   const [activityData, setActivityData] = useState<ActivityDataPoint[]>([]);
+
+  // Fetch live My Work data
+  // Use workspace?.id (UUID) instead of workspaceId (which is a slug)
+  const { items: myWorkItems } = useMyWork(workspace?.id);
+  // TODO: Add pagination state, totalCount, and loading to WorkspaceDashboard props
   const [fullPRData, setFullPRData] = useState<WorkspaceActivityProps['prData']>([]);
   const [fullIssueData, setFullIssueData] = useState<WorkspaceActivityProps['issueData']>([]);
   const [fullReviewData, setFullReviewData] = useState<WorkspaceActivityProps['reviewData']>([]);
@@ -2344,6 +2361,19 @@ function WorkspacePage() {
   const [reviewerModalOpen, setReviewerModalOpen] = useState(false);
   const [githubAppModalOpen, setGithubAppModalOpen] = useState(false);
   const [selectedRepoForModal, setSelectedRepoForModal] = useState<Repository | null>(null);
+  const [responseModalOpen, setResponseModalOpen] = useState(false);
+  const [similarItems, setSimilarItems] = useState<SimilarItem[]>([]);
+  const [responseMessage, setResponseMessage] = useState('');
+  const [loadingSimilarItems, setLoadingSimilarItems] = useState(false);
+
+  // Initialize similarity search cache and debouncing
+  const similarityCache = useSimilaritySearchCache({ maxSize: 20, ttlMs: 5 * 60 * 1000 });
+  const { debouncedSearch, cleanup: cleanupDebounce } = useDebouncedSimilaritySearch(300);
+
+  // Cleanup debounce on unmount
+  useEffect(() => {
+    return () => cleanupDebounce();
+  }, [cleanupDebounce]);
 
   // Fetch event-based metrics for accurate star trends
   // Use workspace?.id (UUID) instead of workspaceId (which could be a slug)
@@ -2509,25 +2539,17 @@ function WorkspacePage() {
       } = await supabase.auth.getUser();
       setCurrentUser(user);
 
-      // Check if workspaceId is a UUID or a slug
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-        workspaceId
-      );
+      // Parse workspace identifier with type safety
+      const identifier = parseWorkspaceIdentifier(workspaceId);
+      const { field, value } = getWorkspaceQueryField(identifier);
 
-      // Fetch workspace details using either id or slug
-      const { data: workspaceData, error: wsError } = isUUID
-        ? await supabase
-            .from('workspaces')
-            .select('*')
-            .eq('is_active', true)
-            .eq('id', workspaceId)
-            .maybeSingle()
-        : await supabase
-            .from('workspaces')
-            .select('*')
-            .eq('is_active', true)
-            .eq('slug', workspaceId)
-            .maybeSingle();
+      // Fetch workspace details using the appropriate field
+      const { data: workspaceData, error: wsError } = await supabase
+        .from('workspaces')
+        .select('*')
+        .eq('is_active', true)
+        .eq(field, value)
+        .maybeSingle();
 
       if (wsError) {
         console.error('Error fetching workspace:', wsError);
@@ -3206,10 +3228,18 @@ function WorkspacePage() {
     if (eventMetrics?.stars) {
       setMetrics((prev) => {
         if (!prev) return prev;
+
+        // Only use velocity if it's a valid positive number
+        // Otherwise keep the existing totalStars (which is actual star count)
+        const starsPerDay = eventMetrics.stars.velocity;
+        const isValidVelocity = typeof starsPerDay === 'number' && starsPerDay > 0;
+
         return {
           ...prev,
           starsTrend: eventMetrics.stars.percentChange,
-          totalStars: eventMetrics.stars.velocity,
+          // Only override totalStars with velocity if it's valid
+          // This prevents showing total stars when velocity fails
+          totalStars: isValidVelocity ? starsPerDay : prev.totalStars,
         };
       });
     }
@@ -3480,13 +3510,6 @@ function WorkspacePage() {
               )}
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <WorkspaceSwitcher
-                className="min-w-[150px]"
-                onOpenCommandPalette={() => {
-                  // Command palette can be opened from here if needed
-                  console.log('Open command palette from workspace page');
-                }}
-              />
               <TimeRangeSelector
                 value={timeRange}
                 onChange={setTimeRange}
@@ -3583,6 +3606,28 @@ function WorkspacePage() {
             />
           )}
 
+          {/* Response Preview Modal - Available on all tabs - Wrapped in AI Error Boundary */}
+          <AIFeatureErrorBoundary
+            featureName="Response Suggestions"
+            fallback={
+              <div className="p-4 text-center text-muted-foreground">
+                <p>AI-powered response suggestions are temporarily unavailable.</p>
+                <p className="text-sm mt-2">You can still manually respond to items.</p>
+              </div>
+            }
+          >
+            <ResponsePreviewModal
+              open={responseModalOpen}
+              onOpenChange={setResponseModalOpen}
+              loading={loadingSimilarItems}
+              similarItems={similarItems}
+              responseMessage={responseMessage}
+              onCopyToClipboard={() => {
+                toast.success('Response copied to clipboard!');
+              }}
+            />
+          </AIFeatureErrorBoundary>
+
           <TabsContent value="overview" className="mt-6 space-y-4">
             <div className="container max-w-7xl mx-auto">
               <WorkspaceDashboard
@@ -3592,6 +3637,7 @@ function WorkspacePage() {
                 trendData={trendData}
                 activityData={activityData}
                 repositories={repositories}
+                myWorkItems={myWorkItems}
                 tier={workspace.tier as 'free' | 'pro' | 'enterprise'}
                 timeRange={timeRange}
                 onAddRepository={isWorkspaceOwner ? handleAddRepository : undefined}
@@ -3600,6 +3646,70 @@ function WorkspacePage() {
                 onGitHubAppModalOpen={handleGitHubAppModalOpen}
                 onSettingsClick={handleSettingsClick}
                 onUpgradeClick={handleUpgradeClick}
+                onMyWorkItemClick={(item) => {
+                  // Open the URL in a new tab
+                  window.open(item.url, '_blank', 'noopener,noreferrer');
+                }}
+                onMyWorkItemRespond={async (item) => {
+                  setResponseModalOpen(true);
+                  setLoadingSimilarItems(true);
+
+                  try {
+                    // Check cache first
+                    const cacheKey = similarityCache.getCacheKey(workspace.id, item.id, item.type);
+                    const cachedItems = similarityCache.get(workspace.id, item.id, item.type);
+
+                    if (cachedItems) {
+                      // Use cached results
+                      setSimilarItems(cachedItems);
+                      const { generateResponseMessage } = await import(
+                        '@/services/similarity-search'
+                      );
+                      const message = generateResponseMessage(cachedItems);
+                      setResponseMessage(message);
+                      setLoadingSimilarItems(false);
+                      return;
+                    }
+
+                    // Perform debounced search if not cached
+                    const searchResult = await debouncedSearch(cacheKey, async () => {
+                      // Dynamically import similarity search to avoid loading ML models on page init
+                      const { findSimilarItems, generateResponseMessage } = await import(
+                        '@/services/similarity-search'
+                      );
+
+                      // Find similar items in the workspace
+                      const items = await findSimilarItems({
+                        workspaceId: workspace.id,
+                        queryItem: {
+                          id: item.id,
+                          title: item.title,
+                          body: null, // We don't have the body in MyWorkItem
+                          type: item.type,
+                        },
+                        limit: 7,
+                      });
+
+                      // Cache the results
+                      similarityCache.set(workspace.id, item.id, item.type, items);
+
+                      return { items, message: generateResponseMessage(items) };
+                    });
+
+                    if (searchResult) {
+                      setSimilarItems(searchResult.items);
+                      setResponseMessage(searchResult.message);
+                    }
+                  } catch (error) {
+                    console.error('Error finding similar items:', error);
+                    setSimilarItems([]);
+                    setResponseMessage(
+                      'Similarity search is not available yet. Embeddings need to be generated for this workspace.'
+                    );
+                  } finally {
+                    setLoadingSimilarItems(false);
+                  }
+                }}
                 repoStatuses={appStatus.repoStatuses}
               />
             </div>

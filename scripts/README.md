@@ -51,6 +51,7 @@ npm run test:integration
 
 ### 🔧 Utilities & Maintenance
 - [`utilities/`](./utilities/) - General-purpose tools and AI operations
+- [`embeddings/`](./embeddings/) - Vector embeddings generation and backfill
 - [`sitemap/`](./sitemap/) - SEO and sitemap management
 - [`citation-tracking/`](./citation-tracking/) - LLM citation monitoring
 - [`changelog/`](./changelog/) - RSS feed generation
@@ -121,6 +122,11 @@ POSTHOG_PERSONAL_API_KEY=phx_your-personal-api-key
 ```bash
 # AI Features
 OPENAI_API_KEY=your-openai-key
+VITE_OPENAI_API_KEY=your-openai-key
+
+# Inngest (Background Jobs & Embeddings)
+INNGEST_PRODUCTION_EVENT_KEY=your-production-event-key
+INNGEST_EVENT_KEY=your-event-key
 
 # External Services
 VITE_DUB_CO_KEY=your-dub-key
@@ -173,13 +179,25 @@ npm run build
 node scripts/health-checks/check-rollout-health.js
 node scripts/monitoring/corruption-monitor.js
 
-# Weekly tasks  
+# Weekly tasks
 node scripts/validation/data-gap-validator.js --all
 node scripts/performance/performance-check.js
+./scripts/embeddings/check-embeddings-status.sh
 
 # Monthly tasks
 node scripts/utilities/classify-repositories.ts
-node scripts/utilities/regenerate-embeddings.ts
+```
+
+### Embeddings Backfill
+```bash
+# Check current coverage
+./scripts/embeddings/check-embeddings-status.sh
+
+# Fast backfill (5s delay, ~20k items in 8 minutes)
+export INNGEST_PRODUCTION_EVENT_KEY='your-key'
+./scripts/embeddings/backfill-embeddings-priority.sh 100 5
+
+# See scripts/embeddings/README.md for full documentation
 ```
 
 ### Incident Response

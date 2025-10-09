@@ -13,7 +13,7 @@ export interface EmbeddingItem {
   id: string;
   title: string;
   body?: string | null;
-  type: 'issue' | 'pull_request';
+  type: 'issue' | 'pull_request' | 'discussion';
 }
 
 /**
@@ -74,11 +74,13 @@ export function createContentHash(title: string, body?: string | null): string {
 }
 
 /**
- * Prepare text for embedding from issue/PR
+ * Prepare text for embedding from issue/PR/discussion
  */
 export function prepareTextForEmbedding(item: EmbeddingItem): string {
   const bodyPreview = item.body ? item.body.substring(0, 500) : '';
-  return `${item.type === 'issue' ? 'Issue' : 'Pull Request'}: ${item.title}\n\n${bodyPreview}`.trim();
+  const typeLabel =
+    item.type === 'issue' ? 'Issue' : item.type === 'pull_request' ? 'Pull Request' : 'Discussion';
+  return `${typeLabel}: ${item.title}\n\n${bodyPreview}`.trim();
 }
 
 /**
@@ -97,7 +99,12 @@ export async function generateAndStoreEmbeddings(items: EmbeddingItem[]): Promis
           const contentHash = createContentHash(item.title, item.body);
           const embedding = await generateEmbedding(text);
 
-          const table = item.type === 'issue' ? 'issues' : 'pull_requests';
+          const table =
+            item.type === 'issue'
+              ? 'issues'
+              : item.type === 'pull_request'
+                ? 'pull_requests'
+                : 'discussions';
 
           const { error: updateError } = await supabase
             .from(table)
@@ -204,6 +211,28 @@ export async function getItemsNeedingEmbeddings(
           title: pr.title,
           body: pr.body,
           type: 'pull_request',
+        });
+      }
+    }
+  }
+
+  // Get recent discussions
+  const { data: discussions } = await supabase
+    .from('discussions')
+    .select('id, title, body, content_hash, embedding_generated_at')
+    .eq('repository_id', repositoryId)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (discussions) {
+    for (const discussion of discussions) {
+      const contentHash = createContentHash(discussion.title, discussion.body);
+      if (needsEmbedding(contentHash, discussion.content_hash, discussion.embedding_generated_at)) {
+        items.push({
+          id: discussion.id,
+          title: discussion.title,
+          body: discussion.body,
+          type: 'discussion',
         });
       }
     }

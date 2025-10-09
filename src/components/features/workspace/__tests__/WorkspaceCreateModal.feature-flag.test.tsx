@@ -1,8 +1,9 @@
 import { render, screen } from '@testing-library/react';
-import { vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { WorkspaceCreateModal } from '../WorkspaceCreateModal';
 import { useFeatureFlags } from '@/lib/feature-flags/context';
 import { FEATURE_FLAGS } from '@/lib/feature-flags/types';
+import React from 'react';
 
 // Mock the feature flags hook
 vi.mock('@/lib/feature-flags/context');
@@ -13,7 +14,7 @@ vi.mock('@/services/workspace.service');
 vi.mock('@/lib/supabase', () => ({
   supabase: {
     auth: {
-      getUser: vi.fn().mockResolvedValue({
+      getUser: vi.fn().mockReturnValue({
         data: { user: null },
         error: null,
       }),
@@ -28,9 +29,13 @@ vi.mock('@/hooks/use-analytics', () => ({
   }),
 }));
 
-// Mock react-router-dom
+// Mock react-router-dom with all necessary exports
 vi.mock('react-router-dom', () => ({
   useNavigate: () => vi.fn(),
+  Link: ({ children, to }: { children: React.ReactNode; to: string }) =>
+    React.createElement('a', { href: to }, children),
+  MemoryRouter: ({ children }: { children: React.ReactNode }) =>
+    React.createElement(React.Fragment, {}, children),
 }));
 
 // Mock sonner

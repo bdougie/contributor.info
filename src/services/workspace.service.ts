@@ -641,6 +641,37 @@ export class WorkspaceService {
         console.error('Failed to update repository priority:', error);
       }
 
+      // NEW: Trigger workspace metrics update
+      try {
+        // Get repository full_name for the event
+        const { data: repository } = await supabase
+          .from('repositories')
+          .select('full_name')
+          .eq('id', data.repository_id)
+          .maybeSingle();
+
+        if (repository) {
+          await inngest.send({
+            name: 'workspace.repository.changed',
+            data: {
+              workspaceId,
+              action: 'added',
+              repositoryId: data.repository_id,
+              repositoryName: repository.full_name,
+            },
+          });
+
+          console.log(
+            'Triggered workspace metrics update: %s added to workspace %s',
+            repository.full_name,
+            workspaceId
+          );
+        }
+      } catch (error) {
+        // Log but don't fail the workspace operation
+        console.error('Failed to trigger workspace metrics update:', error);
+      }
+
       return {
         success: true,
         data: workspaceRepo,
@@ -716,6 +747,37 @@ export class WorkspaceService {
         }
       } catch (error) {
         console.error('Failed to downgrade repository priority:', error);
+      }
+
+      // NEW: Trigger workspace metrics update
+      try {
+        // Get repository full_name for the event
+        const { data: repository } = await supabase
+          .from('repositories')
+          .select('full_name')
+          .eq('id', repositoryId)
+          .maybeSingle();
+
+        if (repository) {
+          await inngest.send({
+            name: 'workspace.repository.changed',
+            data: {
+              workspaceId,
+              action: 'removed',
+              repositoryId,
+              repositoryName: repository.full_name,
+            },
+          });
+
+          console.log(
+            'Triggered workspace metrics update: %s removed from workspace %s',
+            repository.full_name,
+            workspaceId
+          );
+        }
+      } catch (error) {
+        // Log but don't fail the workspace operation
+        console.error('Failed to trigger workspace metrics update:', error);
       }
 
       return {
@@ -985,7 +1047,13 @@ export class WorkspaceService {
       );
 
       const isOwner = workspace.owner_id === invitedBy;
-      const userRole = isOwner ? 'owner' : (currentUserMember?.role as WorkspaceRole);
+      // Avoid ternary - Rollup 4.45.0 bug (see docs/architecture/state-machine-patterns.md)
+      let userRole: WorkspaceRole;
+      if (isOwner) {
+        userRole = 'owner';
+      } else {
+        userRole = currentUserMember?.role as WorkspaceRole;
+      }
 
       if (!userRole) {
         return {
@@ -1257,7 +1325,13 @@ export class WorkspaceService {
         (m) => m.user_id === requestingUserId && m.accepted_at
       );
       const isOwner = workspace.owner_id === requestingUserId;
-      const requestingRole = isOwner ? 'owner' : requestingMember?.role;
+      // Avoid ternary - Rollup 4.45.0 bug (see docs/architecture/state-machine-patterns.md)
+      let requestingRole: WorkspaceRole | undefined;
+      if (isOwner) {
+        requestingRole = 'owner';
+      } else {
+        requestingRole = requestingMember?.role;
+      }
 
       if (!requestingRole) {
         return {
@@ -1535,11 +1609,17 @@ export class WorkspaceService {
       // We'll just show the inviter ID for now
 
       // Format the response
+      // Avoid ternary - Rollup 4.45.0 bug (see docs/architecture/state-machine-patterns.md)
+      let workspace: WorkspaceWithDetails;
+      if (Array.isArray(invitation.workspaces)) {
+        workspace = invitation.workspaces[0] as WorkspaceWithDetails;
+      } else {
+        workspace = invitation.workspaces as WorkspaceWithDetails;
+      }
+
       const invitationDetails = {
         id: invitation.id,
-        workspace: (Array.isArray(invitation.workspaces)
-          ? invitation.workspaces[0]
-          : invitation.workspaces) as WorkspaceWithDetails,
+        workspace,
         role: invitation.role,
         inviterName: undefined, // profiles table doesn't exist
         expiresAt: invitation.expires_at,
