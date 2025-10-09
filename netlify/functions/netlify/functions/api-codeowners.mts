@@ -72,7 +72,13 @@ export default async (req: Request, context: Context) => {
   try {
     // Skip rate limiter during unit tests to avoid interfering with Supabase mocks
     const isTestEnv = process.env.NODE_ENV === 'test';
-    let rate: any | undefined;
+    interface RateLimitResult {
+      allowed: boolean;
+      remaining: number;
+      resetTime: number;
+      retryAfter?: number;
+    }
+    let rate: RateLimitResult | undefined;
     if (!isTestEnv) {
       const rateKey = getRateLimitKey(req);
       rate = await limiter.checkLimit(rateKey);

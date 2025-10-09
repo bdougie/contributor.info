@@ -15,21 +15,22 @@ interface CodeOwnerSuggestion {
   reasoning: string;
 }
 
-async function fetchCodeOwnersFromGitHub(owner: string, repo: string): Promise<{
+async function fetchCodeOwnersFromGitHub(
+  owner: string,
+  repo: string
+): Promise<{
   exists: boolean;
   content?: string;
   path?: string;
   message?: string;
 }> {
   // Try multiple token sources
-  const ghToken = process.env.GITHUB_TOKEN ||
-                 process.env.VITE_GITHUB_TOKEN ||
-                 process.env.GH_TOKEN ||
-                 '';
+  const ghToken =
+    process.env.GITHUB_TOKEN || process.env.VITE_GITHUB_TOKEN || process.env.GH_TOKEN || '';
 
   const headers: HeadersInit = {
     Accept: 'application/vnd.github+json',
-    'X-GitHub-Api-Version': '2022-11-28'
+    'X-GitHub-Api-Version': '2022-11-28',
   };
 
   if (ghToken && ghToken.length > 10) {
@@ -41,7 +42,7 @@ async function fetchCodeOwnersFromGitHub(owner: string, repo: string): Promise<{
     '.github/CODEOWNERS',
     'CODEOWNERS',
     'docs/CODEOWNERS',
-    '.gitlab/CODEOWNERS'  // Some projects might have migrated from GitLab
+    '.gitlab/CODEOWNERS', // Some projects might have migrated from GitLab
   ];
 
   for (const path of possiblePaths) {
@@ -58,13 +59,13 @@ async function fetchCodeOwnersFromGitHub(owner: string, repo: string): Promise<{
           return {
             exists: true,
             content,
-            path: data.path
+            path: data.path,
           };
         }
       } else if (response.status === 401 && ghToken) {
         // Try without auth if we get 401
         const publicResponse = await fetch(url, {
-          headers: { Accept: 'application/vnd.github+json' }
+          headers: { Accept: 'application/vnd.github+json' },
         });
 
         if (publicResponse.ok) {
@@ -74,7 +75,7 @@ async function fetchCodeOwnersFromGitHub(owner: string, repo: string): Promise<{
             return {
               exists: true,
               content,
-              path: data.path
+              path: data.path,
             };
           }
         }
@@ -86,7 +87,7 @@ async function fetchCodeOwnersFromGitHub(owner: string, repo: string): Promise<{
 
   return {
     exists: false,
-    message: 'No CODEOWNERS file found in repository'
+    message: 'No CODEOWNERS file found in repository',
   };
 }
 
@@ -99,7 +100,8 @@ async function generateCodeOwnersSuggestions(
   // Analyze PR patterns to suggest code owners
   const { data: prPatterns, error: prError } = await supabase
     .from('pull_requests')
-    .select(`
+    .select(
+      `
       title,
       files_changed,
       merged_at,
@@ -108,7 +110,8 @@ async function generateCodeOwnersSuggestions(
         reviewer:contributors!reviewer_id(username),
         state
       )
-    `)
+    `
+    )
     .eq('repository_id', repositoryId)
     .not('merged_at', 'is', null)
     .order('merged_at', { ascending: false })
@@ -196,7 +199,7 @@ async function generateCodeOwnersSuggestions(
         pattern,
         owners: topReviewers,
         confidence: Math.min(reviewCount / 10, 0.95),
-        reasoning
+        reasoning,
       });
     }
   }
@@ -213,7 +216,7 @@ async function generateCodeOwnersSuggestions(
       pattern: '*',
       owners: topReviewers,
       confidence: 0.7,
-      reasoning: `${topReviewers[0]} is a top reviewer with high approval rate across the repository`
+      reasoning: `${topReviewers[0]} is a top reviewer with high approval rate across the repository`,
     });
   }
 
@@ -222,10 +225,7 @@ async function generateCodeOwnersSuggestions(
 
 export default async (req: Request, context: Context) => {
   const supabaseUrl = process.env.SUPABASE_URL || '';
-  const supabaseKey =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.SUPABASE_ANON_KEY ||
-    '';
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '';
 
   if (!supabaseUrl || !supabaseKey) {
     return createErrorResponse('Missing Supabase configuration', 500);
@@ -243,7 +243,8 @@ export default async (req: Request, context: Context) => {
   try {
     const rateKey = getRateLimitKey(req);
     const rate = await limiter.checkLimit(rateKey);
-    if (!rate.allowed) return applyRateLimitHeaders(createErrorResponse('Rate limit exceeded', 429), rate);
+    if (!rate.allowed)
+      return applyRateLimitHeaders(createErrorResponse('Rate limit exceeded', 429), rate);
 
     const url = new URL(req.url);
     const parts = url.pathname.split('/');
@@ -276,13 +277,24 @@ export default async (req: Request, context: Context) => {
     // First, try to fetch from GitHub
     const githubResult = await fetchCodeOwnersFromGitHub(owner, repo);
 
-    let response: any = {
+    interface CodeownersResponse {
+      repository: string;
+      source: string;
+      exists: boolean;
+      path?: string;
+      content?: string;
+      message?: string;
+      suggestions?: CodeOwnerSuggestion[];
+      suggestedContent?: string;
+    }
+
+    let response: CodeownersResponse = {
       repository: `${owner}/${repo}`,
       source: githubResult.exists ? 'github' : 'none',
       exists: githubResult.exists,
       path: githubResult.path,
       content: githubResult.content,
-      message: githubResult.message
+      message: githubResult.message,
     };
 
     // If no CODEOWNERS exists, generate suggestions
@@ -295,31 +307,33 @@ export default async (req: Request, context: Context) => {
           '# CODEOWNERS file generated based on PR review patterns',
           '# These suggestions are based on historical review data',
           '',
-          ...suggestions.map(s =>
-            `# ${s.reasoning}\n${s.pattern} ${s.owners.join(' ')}`
-          )
+          ...suggestions.map((s) => `# ${s.reasoning}\n${s.pattern} ${s.owners.join(' ')}`),
         ].join('\n');
 
         response = {
           ...response,
           suggestions,
           suggestedContent,
-          message: 'No CODEOWNERS file found. Suggestions generated based on review patterns.'
+          message: 'No CODEOWNERS file found. Suggestions generated based on review patterns.',
         };
       } else {
-        response.message = 'No CODEOWNERS file found and insufficient data to generate suggestions.';
+        response.message =
+          'No CODEOWNERS file found and insufficient data to generate suggestions.';
       }
     }
 
-    const resp = new Response(
-      JSON.stringify(response),
-      { status: 200, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } }
-    );
+    const resp = new Response(JSON.stringify(response), {
+      status: 200,
+      headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+    });
 
     return applyRateLimitHeaders(resp, rate);
   } catch (error) {
     console.error('Error in api-fetch-codeowners:', error);
-    return createErrorResponse(`Internal server error: ${error instanceof Error ? error.message : 'Unknown error'}`, 500);
+    return createErrorResponse(
+      `Internal server error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      500
+    );
   }
 };
 

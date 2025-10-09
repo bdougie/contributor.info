@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 
 // Mock Supabase before importing
-vi.mock('../../../src/lib/supabase.js', () => ({
+vi.mock('../../../../../src/lib/supabase', () => ({
   createSupabaseClient: vi.fn(() => ({
     from: vi.fn(),
   })),
 }));
 
-import { createSupabaseClient } from '../../../src/lib/supabase.js';
+import { createSupabaseClient } from '../../../../../src/lib/supabase';
 import {
   validateRepository,
   createNotFoundResponse,
@@ -15,13 +15,17 @@ import {
   CORS_HEADERS,
 } from '../lib/repository-validation';
 
+interface MockSupabaseClient {
+  from: vi.MockedFunction<(table: string) => unknown>;
+}
+
 describe('Repository Validation Tests', () => {
-  let mockSupabase: any;
-  let mockFrom: any;
-  let mockSelect: any;
-  let mockEq: any;
-  let mockEq2: any;
-  let mockMaybeSingle: any;
+  let mockSupabase: MockSupabaseClient;
+  let mockFrom: vi.MockedFunction<(table: string) => unknown>;
+  let mockSelect: vi.MockedFunction<() => unknown>;
+  let mockEq: vi.MockedFunction<(column: string, value: unknown) => unknown>;
+  let mockEq2: vi.MockedFunction<(column: string, value: unknown) => unknown>;
+  let mockMaybeSingle: vi.MockedFunction<() => Promise<unknown>>;
 
   beforeEach(() => {
     // Setup Supabase mocks with proper query chain
@@ -32,7 +36,9 @@ describe('Repository Validation Tests', () => {
     mockFrom = vi.fn().mockReturnValue({ select: mockSelect });
     mockSupabase = { from: mockFrom };
 
-    (createSupabaseClient as any).mockReturnValue(mockSupabase);
+    (createSupabaseClient as vi.MockedFunction<typeof createSupabaseClient>).mockReturnValue(
+      mockSupabase as unknown as ReturnType<typeof createSupabaseClient>
+    );
   });
 
   afterEach(() => {

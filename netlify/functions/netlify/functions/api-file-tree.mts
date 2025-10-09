@@ -122,8 +122,15 @@ function processTreeData(data: FileTreeResponse): ProcessedTree {
   };
 }
 
-function buildHierarchicalStructure(processedTree: ProcessedTree) {
-  const root: any = { name: '/', type: 'directory', children: {} };
+interface HierarchicalNode {
+  name: string;
+  type: 'file' | 'directory';
+  path?: string;
+  children?: Record<string, HierarchicalNode>;
+}
+
+function buildHierarchicalStructure(processedTree: ProcessedTree): HierarchicalNode {
+  const root: HierarchicalNode = { name: '/', type: 'directory', children: {} };
 
   // Add directories
   for (const dir of processedTree.directories) {
@@ -173,10 +180,7 @@ function buildHierarchicalStructure(processedTree: ProcessedTree) {
 
 export default async (req: Request, context: Context) => {
   const supabaseUrl = process.env.SUPABASE_URL || '';
-  const supabaseKey =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.SUPABASE_ANON_KEY ||
-    '';
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '';
 
   if (!supabaseUrl || !supabaseKey) {
     return createErrorResponse('Missing Supabase configuration', 500);
@@ -287,7 +291,10 @@ export default async (req: Request, context: Context) => {
           }
         } else if (treeResp.status === 404) {
           return applyRateLimitHeaders(
-            createErrorResponse(`Repository or branch not found: ${owner}/${repo}@${actualBranch}`, 404),
+            createErrorResponse(
+              `Repository or branch not found: ${owner}/${repo}@${actualBranch}`,
+              404
+            ),
             rate
           );
         } else if (treeResp.status === 403) {
@@ -297,7 +304,10 @@ export default async (req: Request, context: Context) => {
           );
         } else {
           return applyRateLimitHeaders(
-            createErrorResponse(`Failed to fetch repository tree: ${errorDetails}`, treeResp.status),
+            createErrorResponse(
+              `Failed to fetch repository tree: ${errorDetails}`,
+              treeResp.status
+            ),
             rate
           );
         }
@@ -310,7 +320,23 @@ export default async (req: Request, context: Context) => {
     }
 
     // Prepare response based on format
-    let responseData: any = {
+    interface FileTreeResponseData {
+      repository: string;
+      totalFiles: number;
+      totalDirectories: number;
+      totalSize: number;
+      truncated: boolean;
+      tree?: HierarchicalNode;
+      files?: string[];
+      directories?: string[];
+      filesByDirectory?: Record<string, string[]>;
+      statistics?: {
+        fileTypes: Record<string, number>;
+        averageFileSize: number;
+      };
+    }
+
+    let responseData: FileTreeResponseData = {
       repository: `${owner}/${repo}`,
       totalFiles: processedTree.files.length,
       totalDirectories: processedTree.directories.length,
@@ -347,22 +373,20 @@ export default async (req: Request, context: Context) => {
           .sort((a, b) => b[1] - a[1])
           .slice(0, 10)
       ),
-      averageFileSize: processedTree.files.length > 0
-        ? Math.round(processedTree.totalSize / processedTree.files.length)
-        : 0,
+      averageFileSize:
+        processedTree.files.length > 0
+          ? Math.round(processedTree.totalSize / processedTree.files.length)
+          : 0,
     };
 
-    const resp = new Response(
-      JSON.stringify(responseData, null, 2),
-      {
-        status: 200,
-        headers: {
-          ...CORS_HEADERS,
-          'Content-Type': 'application/json',
-          'Cache-Control': 'public, max-age=3600', // Cache for 1 hour
-        },
-      }
-    );
+    const resp = new Response(JSON.stringify(responseData, null, 2), {
+      status: 200,
+      headers: {
+        ...CORS_HEADERS,
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, max-age=3600', // Cache for 1 hour
+      },
+    });
     return applyRateLimitHeaders(resp, rate);
   } catch (error) {
     console.error('Error in api-file-tree:', error);

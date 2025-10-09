@@ -1,4 +1,4 @@
-import { APIError, APIResponse, generateRequestId } from '../../../src/lib/api/error-types';
+import { APIError, APIResponse, generateRequestId } from '../../../../../src/lib/api/error-types';
 
 export class APIErrorHandler {
   static createError(

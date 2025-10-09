@@ -10,10 +10,33 @@ vi.mock('@supabase/supabase-js', () => ({
 }));
 import { createClient } from '@supabase/supabase-js';
 import handler from '../api-codeowners';
+import type { Context } from '@netlify/functions';
+
+// Mock Context type for tests
+const mockContext: Context = {
+  awsRequestId: 'test-request-id',
+  callbackWaitsForEmptyEventLoop: false,
+  functionName: 'test-function',
+  functionVersion: '1',
+  invokedFunctionArn: 'arn:aws:lambda:test',
+  memoryLimitInMB: '512',
+  logGroupName: 'test-log-group',
+  logStreamName: 'test-log-stream',
+  getRemainingTimeInMillis: () => 30000,
+  done: () => {},
+  fail: () => {},
+  succeed: () => {},
+  clientContext: undefined,
+  identity: undefined,
+};
+
+interface MockSupabaseClient {
+  from: vi.MockedFunction<(table: string) => unknown>;
+}
 
 describe('CODEOWNERS API Database Tests', () => {
-  let mockSupabase: any;
-  let mockFrom: any;
+  let mockSupabase: MockSupabaseClient;
+  let mockFrom: vi.MockedFunction<(table: string) => unknown>;
 
   beforeEach(() => {
     // Reset all mocks
@@ -22,7 +45,9 @@ describe('CODEOWNERS API Database Tests', () => {
     // Setup Supabase mocks
     mockFrom = vi.fn();
     mockSupabase = { from: mockFrom };
-    (createClient as any).mockReturnValue(mockSupabase);
+    (createClient as vi.MockedFunction<typeof createClient>).mockReturnValue(
+      mockSupabase as unknown as ReturnType<typeof createClient>
+    );
   });
 
   afterEach(() => {
@@ -35,7 +60,7 @@ describe('CODEOWNERS API Database Tests', () => {
         method: 'OPTIONS',
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, mockContext);
 
       expect(response.status).toBe(200);
       expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*');
@@ -61,7 +86,7 @@ describe('CODEOWNERS API Database Tests', () => {
         method: 'GET',
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, mockContext);
       const data = await response.json();
 
       expect(response.status).toBe(500);
@@ -85,7 +110,7 @@ describe('CODEOWNERS API Database Tests', () => {
         method: 'GET',
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, mockContext);
       const data = await response.json();
 
       expect(response.status).toBe(404);
@@ -151,7 +176,7 @@ describe('CODEOWNERS API Database Tests', () => {
         method: 'GET',
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, mockContext);
       const data = await response.json();
 
       expect(response.status).toBe(200);
@@ -216,7 +241,7 @@ describe('CODEOWNERS API Database Tests', () => {
         method: 'GET',
       });
 
-      await handler(request, {} as any);
+      await handler(request, mockContext);
 
       // Verify the codeowners query used the correct repository ID
       expect(mockEqSpy).toHaveBeenCalledWith('repository_id', repositoryId);
@@ -229,7 +254,7 @@ describe('CODEOWNERS API Database Tests', () => {
         method: 'OPTIONS',
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, mockContext);
 
       // Should not have credentials header (security vulnerability when used with wildcard origin)
       expect(response.headers.get('Access-Control-Allow-Credentials')).toBeNull();

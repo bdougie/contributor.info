@@ -1,4 +1,4 @@
-import type { Context, Config } from "@netlify/functions";
+import type { Context, Config } from '@netlify/functions';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 
@@ -11,7 +11,7 @@ export default async (req: Request, context: Context) => {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Content-Type',
         'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      }
+      },
     });
   }
 
@@ -22,21 +22,21 @@ export default async (req: Request, context: Context) => {
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
-      }
+      },
     });
   }
 
   // Extract the doc filename from URL
   const url = new URL(req.url);
   const filename = url.searchParams.get('file');
-  
+
   if (!filename) {
     return new Response(JSON.stringify({ error: 'Missing file parameter' }), {
       status: 400,
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
-      }
+      },
     });
   }
 
@@ -47,7 +47,7 @@ export default async (req: Request, context: Context) => {
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
-      }
+      },
     });
   }
 
@@ -72,8 +72,8 @@ export default async (req: Request, context: Context) => {
         content = await fs.readFile(docPath, 'utf-8');
         successPath = docPath;
         break;
-      } catch (e: any) {
-        errors.push(`${docPath}: ${e.message}`);
+      } catch (e) {
+        errors.push(`${docPath}: ${e instanceof Error ? e.message : 'Unknown error'}`);
         continue;
       }
     }
@@ -85,18 +85,18 @@ export default async (req: Request, context: Context) => {
         NETLIFY: process.env.NETLIFY,
         NODE_ENV: process.env.NODE_ENV,
       });
-      
+
       // Try to list what's actually in the directories for debugging
       try {
         const contents = await fs.readdir(process.cwd());
         console.error('Current directory contents:', contents);
-        
+
         // Check if dist folder exists
         try {
           const distPath = path.join(process.cwd(), 'dist');
           const distContents = await fs.readdir(distPath);
           console.error('Dist folder contents:', distContents);
-          
+
           // Check if dist/docs exists
           try {
             const distDocsPath = path.join(distPath, 'docs');
@@ -120,49 +120,59 @@ export default async (req: Request, context: Context) => {
       } catch (e) {
         console.error('Could not list directory contents:', e);
       }
-      
-      return new Response(JSON.stringify({ 
-        error: 'Documentation file not found',
-        filename,
-        triedPaths: errors,
-        cwd: process.cwd()
-      }), {
-        status: 404,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
+
+      return new Response(
+        JSON.stringify({
+          error: 'Documentation file not found',
+          filename,
+          triedPaths: errors,
+          cwd: process.cwd(),
+        }),
+        {
+          status: 404,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+          },
         }
-      });
+      );
     }
 
     console.log(`Successfully read doc from: ${successPath}`);
-    
+
     return new Response(content, {
       status: 200,
       headers: {
         'Content-Type': 'text/markdown',
         'Cache-Control': 'public, max-age=300',
         'Access-Control-Allow-Origin': '*',
-      }
+      },
     });
-  } catch (error: any) {
+  } catch (error) {
+    // Log stack trace and error server-side only
     console.error(`Error in docs-content function for ${filename}:`, error);
-    
-    return new Response(JSON.stringify({ 
-      error: 'Internal server error',
-      message: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    }), {
-      status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
+
+    return new Response(
+      JSON.stringify({
+        error: 'Internal server error',
+        // Optionally include the error message in development, but NOT the stack
+        message:
+          process.env.NODE_ENV === 'development' && error instanceof Error
+            ? error.message
+            : undefined,
+      }),
+      {
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        },
       }
-    });
+    );
   }
 };
 
 // Export configuration
 export const config: Config = {
-  path: "/.netlify/functions/docs-content"
+  path: '/.netlify/functions/docs-content',
 };

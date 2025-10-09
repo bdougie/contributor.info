@@ -147,8 +147,43 @@ export default async (req: Request, context: Context) => {
     const authHeader = req.headers.get('authorization') || req.headers.get('Authorization');
     const isAuthenticated = !!authHeader;
 
+    // GitHub API repository response type
+    interface GitHubRepository {
+      id: number;
+      full_name: string;
+      name: string;
+      private: boolean;
+      owner: {
+        login: string;
+      };
+      description: string | null;
+      homepage: string | null;
+      language: string | null;
+      stargazers_count: number;
+      watchers_count: number;
+      forks_count: number;
+      open_issues_count: number;
+      size: number;
+      default_branch: string;
+      fork: boolean;
+      archived: boolean;
+      disabled: boolean;
+      has_issues: boolean;
+      has_projects: boolean;
+      has_wiki: boolean;
+      has_pages: boolean;
+      has_downloads: boolean;
+      license: {
+        spdx_id: string;
+      } | null;
+      topics: string[];
+      created_at: string;
+      updated_at: string;
+      pushed_at: string;
+    }
+
     // First, verify the repository exists on GitHub
-    let githubData: any = null;
+    let githubData: GitHubRepository | null = null;
     try {
       // In production, we need a GitHub token to avoid rate limits
       const githubToken = process.env.GITHUB_TOKEN;
@@ -227,12 +262,20 @@ export default async (req: Request, context: Context) => {
           }
         );
       }
-    } catch (githubError: any) {
+    } catch (githubError) {
       // Log the actual error for debugging
       console.error('GitHub API call failed:', githubError);
+
+      // Type narrowing for error handling
+      const errorMessage = githubError instanceof Error ? githubError.message : 'Unknown error';
+      const errorStatus =
+        githubError && typeof githubError === 'object' && 'status' in githubError
+          ? (githubError as { status?: number }).status
+          : undefined;
+
       console.error('GitHub error details:', {
-        message: githubError.message,
-        status: githubError.status,
+        message: errorMessage,
+        status: errorStatus,
         hasToken: !!process.env.GITHUB_TOKEN,
       });
 
@@ -330,7 +373,37 @@ export default async (req: Request, context: Context) => {
         const existingRepo = existingRepos[0];
 
         // Update repository with latest GitHub data
-        const updateData: any = {
+        interface RepositoryUpdateData {
+          is_active: boolean;
+          last_updated_at: string;
+          github_id?: number;
+          full_name?: string;
+          description?: string | null;
+          homepage?: string | null;
+          language?: string | null;
+          stargazers_count?: number;
+          watchers_count?: number;
+          forks_count?: number;
+          open_issues_count?: number;
+          size?: number;
+          default_branch?: string;
+          is_fork?: boolean;
+          is_archived?: boolean;
+          is_disabled?: boolean;
+          is_private?: boolean;
+          has_issues?: boolean;
+          has_projects?: boolean;
+          has_wiki?: boolean;
+          has_pages?: boolean;
+          has_downloads?: boolean;
+          license?: string | null;
+          topics?: string[];
+          github_created_at?: string;
+          github_updated_at?: string;
+          github_pushed_at?: string;
+        }
+
+        const updateData: RepositoryUpdateData = {
           is_active: true,
           last_updated_at: new Date().toISOString(),
         };
@@ -668,7 +741,7 @@ export default async (req: Request, context: Context) => {
           },
         }
       );
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to track repository:', error);
 
       // Still return success to not break the UI
@@ -687,7 +760,7 @@ export default async (req: Request, context: Context) => {
         }
       );
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error('Function error:', error);
 
     return new Response(
