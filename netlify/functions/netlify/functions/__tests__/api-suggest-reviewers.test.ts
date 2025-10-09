@@ -313,6 +313,35 @@ describe('Suggest Reviewers API Tests', () => {
           return { select: mockSelect };
         }
 
+        // For reviewer_suggestions_cache table
+        if (table === 'reviewer_suggestions_cache') {
+          // Mock for cache get (select chain)
+          const mockMaybeSingle = vi.fn().mockResolvedValue({
+            data: null, // Cache miss by default
+            error: null,
+          });
+          const mockLimit = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
+          const mockOrder = vi.fn().mockReturnValue({ limit: mockLimit });
+          const mockGt = vi.fn().mockReturnValue({ order: mockOrder });
+          const mockEq2 = vi.fn().mockReturnValue({ gt: mockGt });
+          const mockEq1 = vi.fn().mockReturnValue({ eq: mockEq2 });
+          const mockSelect = vi.fn().mockReturnValue({ eq: mockEq1 });
+
+          // Mock for cache set (delete chain)
+          const mockDeleteEq2 = vi.fn().mockResolvedValue({ data: null, error: null });
+          const mockDeleteEq1 = vi.fn().mockReturnValue({ eq: mockDeleteEq2 });
+          const mockDelete = vi.fn().mockReturnValue({ eq: mockDeleteEq1 });
+
+          // Mock for cache set (insert)
+          const mockInsert = vi.fn().mockResolvedValue({ data: null, error: null });
+
+          return {
+            select: mockSelect,
+            delete: mockDelete,
+            insert: mockInsert,
+          };
+        }
+
         throw new Error(`Unexpected table: ${table}`);
       });
     });
@@ -453,6 +482,25 @@ describe('Suggest Reviewers API Tests', () => {
           const mockEq = vi.fn().mockReturnValue({ gte: mockGte });
           const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
           return { select: mockSelect };
+        }
+
+        // For reviewer_suggestions_cache table
+        if (table === 'reviewer_suggestions_cache') {
+          const mockMaybeSingle = vi.fn().mockResolvedValue({
+            data: null,
+            error: null,
+          });
+          const mockLimit = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
+          const mockOrder = vi.fn().mockReturnValue({ limit: mockLimit });
+          const mockGt = vi.fn().mockReturnValue({ order: mockOrder });
+          const mockEq2 = vi.fn().mockReturnValue({ gt: mockGt });
+          const mockEq1 = vi.fn().mockReturnValue({ eq: mockEq2 });
+          const mockSelect = vi.fn().mockReturnValue({ eq: mockEq1 });
+          const mockDeleteEq2 = vi.fn().mockResolvedValue({ data: null, error: null });
+          const mockDeleteEq1 = vi.fn().mockReturnValue({ eq: mockDeleteEq2 });
+          const mockDelete = vi.fn().mockReturnValue({ eq: mockDeleteEq1 });
+          const mockInsert = vi.fn().mockResolvedValue({ data: null, error: null });
+          return { select: mockSelect, delete: mockDelete, insert: mockInsert };
         }
 
         throw new Error(`Unexpected table: ${table}`);
@@ -604,6 +652,25 @@ describe('Suggest Reviewers API Tests', () => {
           return { select: mockSelectLocal };
         }
 
+        // For reviewer_suggestions_cache table
+        if (table === 'reviewer_suggestions_cache') {
+          const mockMaybeSingle = vi.fn().mockResolvedValue({
+            data: null,
+            error: null,
+          });
+          const mockLimit = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
+          const mockOrder = vi.fn().mockReturnValue({ limit: mockLimit });
+          const mockGt = vi.fn().mockReturnValue({ order: mockOrder });
+          const mockEq2 = vi.fn().mockReturnValue({ gt: mockGt });
+          const mockEq1 = vi.fn().mockReturnValue({ eq: mockEq2 });
+          const mockSelect = vi.fn().mockReturnValue({ eq: mockEq1 });
+          const mockDeleteEq2 = vi.fn().mockResolvedValue({ data: null, error: null });
+          const mockDeleteEq1 = vi.fn().mockReturnValue({ eq: mockDeleteEq2 });
+          const mockDelete = vi.fn().mockReturnValue({ eq: mockDeleteEq1 });
+          const mockInsert = vi.fn().mockResolvedValue({ data: null, error: null });
+          return { select: mockSelect, delete: mockDelete, insert: mockInsert };
+        }
+
         throw new Error(`Unexpected table: ${table}`);
       });
 
@@ -698,6 +765,25 @@ describe('Suggest Reviewers API Tests', () => {
           const mockEq = vi.fn().mockReturnValue({ gte: mockGte });
           const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
           return { select: mockSelect };
+        }
+
+        // For reviewer_suggestions_cache table
+        if (table === 'reviewer_suggestions_cache') {
+          const mockMaybeSingle = vi.fn().mockResolvedValue({
+            data: null,
+            error: null,
+          });
+          const mockLimit = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
+          const mockOrder = vi.fn().mockReturnValue({ limit: mockLimit });
+          const mockGt = vi.fn().mockReturnValue({ order: mockOrder });
+          const mockEq2 = vi.fn().mockReturnValue({ gt: mockGt });
+          const mockEq1 = vi.fn().mockReturnValue({ eq: mockEq2 });
+          const mockSelect = vi.fn().mockReturnValue({ eq: mockEq1 });
+          const mockDeleteEq2 = vi.fn().mockResolvedValue({ data: null, error: null });
+          const mockDeleteEq1 = vi.fn().mockReturnValue({ eq: mockDeleteEq2 });
+          const mockDelete = vi.fn().mockReturnValue({ eq: mockDeleteEq1 });
+          const mockInsert = vi.fn().mockResolvedValue({ data: null, error: null });
+          return { select: mockSelect, delete: mockDelete, insert: mockInsert };
         }
 
         throw new Error(`Unexpected table: ${table}`);
