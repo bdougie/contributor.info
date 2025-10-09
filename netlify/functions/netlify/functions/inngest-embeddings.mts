@@ -70,7 +70,7 @@ export default async (req: Request, context: Context) => {
           'embedding/batch.process': 'handle-batch-embedding-webhook',
           'similarity/repository.recalculate': 'handle-similarity-recalculation',
           'workspace.metrics.aggregate': 'aggregate-workspace-metrics',
-          'cron (5m)': 'scheduled-workspace-aggregation',
+          'cron (6AM & 6PM UTC)': 'scheduled-workspace-aggregation',
           'workspace.repository.changed': 'handle-workspace-repository-change',
           'cron (daily 3am)': 'cleanup-workspace-metrics-data',
         },

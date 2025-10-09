@@ -251,7 +251,16 @@ export class WorkspaceAggregationService {
       .select(
         `
         repository_id,
-        repositories (*)
+        repositories (
+          id,
+          full_name,
+          owner,
+          name,
+          stargazers_count,
+          forks_count,
+          watchers_count,
+          language
+        )
       `
       )
       .eq('workspace_id', workspaceId);
