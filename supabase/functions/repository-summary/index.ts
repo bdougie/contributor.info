@@ -156,6 +156,7 @@ async function generateEmbedding(text: string): Promise<number[]> {
       body: JSON.stringify({
         model: 'text-embedding-3-small', // Cost-effective embedding model
         input: text,
+        dimensions: 384,  // CRITICAL: Specify 384 dimensions to match database schema
       }),
       signal: controller.signal,
     });

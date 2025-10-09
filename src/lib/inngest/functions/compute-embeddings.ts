@@ -271,6 +271,7 @@ export const computeEmbeddings = inngest.createFunction(
             body: JSON.stringify({
               model: 'text-embedding-3-small',
               input: texts,
+              dimensions: 384, // CRITICAL: Specify 384 dimensions to match database schema
             }),
           });
 
