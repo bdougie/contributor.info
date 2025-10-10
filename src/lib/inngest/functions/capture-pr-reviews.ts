@@ -181,7 +181,7 @@ export const capturePrReviews = inngest.createFunction(
 
         return { reviews: processedReviews, failedContributorCreations };
       } catch (error: unknown) {
-        console.error('Error fetching reviews for PR #%s:', error, prNumber);
+        console.error('Error fetching reviews for PR #%s:', prNumber, error);
         const apiError = error as { status?: number };
         if (apiError.status === 404) {
           console.warn('PR #%s not found, skipping reviews', prNumber);

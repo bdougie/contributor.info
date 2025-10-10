@@ -143,7 +143,7 @@ export const captureRepositoryIssues = inngest.createFunction(
 
         return issues;
       } catch (error: unknown) {
-        console.error('Error fetching issues for %s/%s:', error, repository.owner, repository.name);
+        console.error('Error fetching issues for %s/%s:', repository.owner, repository.name, error);
         const apiError = error as { status?: number };
         if (apiError.status === 404) {
           console.warn('Repository %s/%s not found, skipping', repository.owner, repository.name);
