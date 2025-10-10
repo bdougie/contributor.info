@@ -1,4 +1,4 @@
-import { assertEquals, assert, assertThrows } from 'https://deno.land/std@0.177.0/testing/asserts.ts';
+import { assertEquals, assertThrows } from 'https://deno.land/std@0.177.0/testing/asserts.ts';
 import {
   getGitHubHeaders,
   getRateLimitInfo,
@@ -7,7 +7,7 @@ import {
   GITHUB_API_BASE,
   DEFAULT_USER_AGENT,
 } from './github.ts';
-import { generateTestUser } from '../tests/setup.ts';
+// generateTestUser available from '../tests/setup.ts' but not used in these tests
 
 Deno.test('getGitHubHeaders - creates standard headers with token', () => {
   const token = 'test-token';

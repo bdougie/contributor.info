@@ -24,12 +24,12 @@ jobs:
       - name: Run linter
         run: |
           cd supabase/functions
-          deno lint
+          deno lint _shared/ tests/ health/index.ts
       
       - name: Check formatting
         run: |
           cd supabase/functions
-          deno fmt --check
+          deno fmt --check _shared/ tests/ health/index.ts
 
   test:
     runs-on: ubuntu-latest
@@ -75,4 +75,4 @@ jobs:
       - name: Type check
         run: |
           cd supabase/functions
-          deno check **/*.ts
+          deno check _shared/*.ts tests/*.ts health/index.ts

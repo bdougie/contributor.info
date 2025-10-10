@@ -2,7 +2,7 @@ import { assertEquals, assert } from 'https://deno.land/std@0.177.0/testing/asse
 import { Logger, createLogger } from './logger.ts';
 
 // Mock console methods for testing
-let consoleOutput: Array<{ level: string; message: any }> = [];
+let consoleOutput: Array<{ level: string; message: unknown }> = [];
 
 const originalConsole = {
   debug: console.debug,
@@ -13,10 +13,10 @@ const originalConsole = {
 
 function mockConsole() {
   consoleOutput = [];
-  console.debug = (message: any) => consoleOutput.push({ level: 'debug', message });
-  console.info = (message: any) => consoleOutput.push({ level: 'info', message });
-  console.warn = (message: any) => consoleOutput.push({ level: 'warn', message });
-  console.error = (message: any) => consoleOutput.push({ level: 'error', message });
+  console.debug = (message: unknown) => consoleOutput.push({ level: 'debug', message });
+  console.info = (message: unknown) => consoleOutput.push({ level: 'info', message });
+  console.warn = (message: unknown) => consoleOutput.push({ level: 'warn', message });
+  console.error = (message: unknown) => consoleOutput.push({ level: 'error', message });
 }
 
 function restoreConsole() {

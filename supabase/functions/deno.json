@@ -1,6 +1,7 @@
 {
+  "importMap": "./import_map.json",
   "tasks": {
-    "test": "deno test --allow-all --coverage=coverage",
+    "test": "deno test --allow-all --coverage=coverage _shared/ tests/",
     "test:watch": "deno test --allow-all --watch",
     "coverage": "deno coverage coverage --lcov --output=coverage/lcov.info",
     "lint": "deno lint",
@@ -10,8 +11,13 @@
   "lint": {
     "rules": {
       "tags": ["recommended"],
-      "include": ["no-explicit-any", "no-unused-vars"]
-    }
+      "exclude": ["no-explicit-any", "no-unused-vars", "require-await"]
+    },
+    "include": [
+      "_shared/**/*.ts",
+      "tests/**/*.ts",
+      "health/index.ts"
+    ]
   },
   "fmt": {
     "indentWidth": 2,

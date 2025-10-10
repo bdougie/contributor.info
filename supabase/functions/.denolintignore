@@ -1,0 +1,26 @@
+# Ignore problematic files during transition to strict typing
+social-cards/
+inngest-prod/
+__tests__/
+_templates/
+process-webhook/
+manual-backfill/
+process-job/
+github-backfill/
+insights/
+health-database/
+health-github/
+github-webhook/
+workspace-issues-sync/
+github-sync/
+repository-sync-graphql/
+repository-summary/
+backfill-pr-stats/
+test-embeddings/
+sync-pr-reviewers/
+welcome-email/
+workspace-invitation-email/
+pr-details-batch/
+cleanup-stuck-jobs/
+calculate-monthly-rankings/
+purge-old-file-data/

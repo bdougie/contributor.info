@@ -8,32 +8,32 @@ import { assertEquals, assertExists, assert } from 'https://deno.land/std@0.177.
 
 // Mock Supabase client for testing
 export class MockSupabaseClient {
-  private data: Map<string, any[]> = new Map();
+  private data: Map<string, Record<string, unknown>[]> = new Map();
 
   from(table: string) {
     return {
-      select: (columns: string) => ({
-        eq: (column: string, value: any) => ({
-          single: async () => {
+      select: (_columns: string) => ({
+        eq: (column: string, value: unknown) => ({
+          single: () => {
             const records = this.data.get(table) || [];
             const found = records.find(r => r[column] === value);
             return { data: found, error: found ? null : { message: 'Not found' } };
           },
-          maybeSingle: async () => {
+          maybeSingle: () => {
             const records = this.data.get(table) || [];
             const found = records.find(r => r[column] === value);
             return { data: found || null, error: null };
           },
         }),
       }),
-      insert: async (record: any) => {
+      insert: (record: Record<string, unknown>) => {
         const records = this.data.get(table) || [];
         const newRecord = { ...record, id: `mock-id-${records.length}` };
         records.push(newRecord);
         this.data.set(table, records);
         return { data: newRecord, error: null };
       },
-      upsert: async (record: any, options: any) => {
+      upsert: (record: Record<string, unknown>, options: { onConflict: string }) => {
         const records = this.data.get(table) || [];
         const existingIndex = records.findIndex(r => 
           r[options.onConflict] === record[options.onConflict]
@@ -46,8 +46,8 @@ export class MockSupabaseClient {
             data: records[existingIndex],
             error: null,
             select: () => ({
-              single: async () => ({ data: records[existingIndex], error: null }),
-              maybeSingle: async () => ({ data: records[existingIndex], error: null }),
+              single: () => ({ data: records[existingIndex], error: null }),
+              maybeSingle: () => ({ data: records[existingIndex], error: null }),
             }),
           };
         } else {
@@ -58,8 +58,8 @@ export class MockSupabaseClient {
             data: newRecord,
             error: null,
             select: () => ({
-              single: async () => ({ data: newRecord, error: null }),
-              maybeSingle: async () => ({ data: newRecord, error: null }),
+              single: () => ({ data: newRecord, error: null }),
+              maybeSingle: () => ({ data: newRecord, error: null }),
             }),
           };
         }
@@ -68,7 +68,7 @@ export class MockSupabaseClient {
   }
 
   // Helper to seed test data
-  seed(table: string, records: any[]) {
+  seed(table: string, records: Record<string, unknown>[]) {
     this.data.set(table, records);
   }
 
@@ -85,8 +85,8 @@ export class MockSupabaseClient {
 
 // Mock GitHub API client
 export class MockGitHubClient {
-  private users: Map<string, any> = new Map();
-  private repos: Map<string, any> = new Map();
+  private users: Map<string, Record<string, unknown>> = new Map();
+  private repos: Map<string, Record<string, unknown>> = new Map();
 
   constructor() {
     // Seed with test data
@@ -101,7 +101,7 @@ export class MockGitHubClient {
     });
   }
 
-  async getUser(username: string) {
+  getUser(username: string) {
     const user = this.users.get(username);
     if (!user) {
       throw new Error(`User not found: ${username}`);
@@ -109,7 +109,7 @@ export class MockGitHubClient {
     return user;
   }
 
-  async getRepository(owner: string, repo: string) {
+  getRepository(owner: string, repo: string) {
     const key = `${owner}/${repo}`;
     const repository = this.repos.get(key);
     if (!repository) {
@@ -119,12 +119,12 @@ export class MockGitHubClient {
   }
 
   // Helper to seed test users
-  seedUser(username: string, data: any) {
+  seedUser(username: string, data: Record<string, unknown>) {
     this.users.set(username, data);
   }
 
   // Helper to seed test repositories
-  seedRepo(owner: string, repo: string, data: any) {
+  seedRepo(owner: string, repo: string, data: Record<string, unknown>) {
     this.repos.set(`${owner}/${repo}`, data);
   }
 }
@@ -169,7 +169,7 @@ export const generateSpamUser = (overrides = {}) => ({
 });
 
 // HTTP request helpers
-export const createTestRequest = (body: any, options: RequestInit = {}) => {
+export const createTestRequest = (body: unknown, options: RequestInit = {}) => {
   return new Request('http://localhost/test', {
     method: 'POST',
     headers: {

@@ -10,7 +10,7 @@ export interface LogContext {
   function_name: string;
   request_id?: string;
   user_id?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export class Logger {
@@ -20,7 +20,7 @@ export class Logger {
     this.context = context;
   }
 
-  private log(level: LogLevel, message: string, data?: any) {
+  private log(level: LogLevel, message: string, data?: unknown) {
     const logEntry = {
       timestamp: new Date().toISOString(),
       level,
@@ -46,19 +46,19 @@ export class Logger {
     }
   }
 
-  debug(message: string, data?: any) {
+  debug(message: string, data?: unknown) {
     this.log('debug', message, data);
   }
 
-  info(message: string, data?: any) {
+  info(message: string, data?: unknown) {
     this.log('info', message, data);
   }
 
-  warn(message: string, data?: any) {
+  warn(message: string, data?: unknown) {
     this.log('warn', message, data);
   }
 
-  error(message: string, error?: Error | any) {
+  error(message: string, error?: Error | unknown) {
     this.log('error', message, {
       error: error instanceof Error ? {
         message: error.message,
@@ -74,7 +74,7 @@ export class Logger {
   }
 
   // Method to create a child logger with additional context
-  child(additionalContext: Record<string, any>): Logger {
+  child(additionalContext: Record<string, unknown>): Logger {
     return new Logger({ ...this.context, ...additionalContext });
   }
 }

@@ -53,11 +53,11 @@ function createSpamPR(overrides: Partial<PullRequestData> = {}): PullRequestData
   });
 }
 
-Deno.test('SpamDetectionService - detects legitimate PR correctly', async () => {
+Deno.test('SpamDetectionService - detects legitimate PR correctly', () => {
   const service = new SpamDetectionService();
   const prData = createTestPR();
 
-  const result = await service.detectSpam(prData);
+  const result = service.detectSpam(prData);
 
   assertEquals(result.is_spam, false);
   assert(result.spam_score < SPAM_THRESHOLDS.WARNING);
@@ -67,11 +67,11 @@ Deno.test('SpamDetectionService - detects legitimate PR correctly', async () => 
   assert(result.confidence > 0);
 });
 
-Deno.test('SpamDetectionService - detects spam PR correctly', async () => {
+Deno.test('SpamDetectionService - detects spam PR correctly', () => {
   const service = new SpamDetectionService();
   const prData = createSpamPR();
 
-  const result = await service.detectSpam(prData);
+  const result = service.detectSpam(prData);
 
   assertEquals(result.is_spam, true);
   assert(result.spam_score >= SPAM_THRESHOLDS.LIKELY_SPAM);
@@ -79,49 +79,49 @@ Deno.test('SpamDetectionService - detects spam PR correctly', async () => {
   assert(result.confidence > 0);
 });
 
-Deno.test('SpamDetectionService - analyzeContent detects empty description', async () => {
+Deno.test('SpamDetectionService - analyzeContent detects empty description', () => {
   const service = new SpamDetectionService();
   const prData = createTestPR({ body: '' });
 
-  const result = await service.detectSpam(prData);
+  const result = service.detectSpam(prData);
 
   assert(result.flags.content_score >= 40); // Empty description penalty
   assert(result.reasons.includes('Empty description'));
 });
 
-Deno.test('SpamDetectionService - analyzeContent detects very short description', async () => {
+Deno.test('SpamDetectionService - analyzeContent detects very short description', () => {
   const service = new SpamDetectionService();
   const prData = createTestPR({ body: 'fix bug' });
 
-  const result = await service.detectSpam(prData);
+  const result = service.detectSpam(prData);
 
   assert(result.flags.content_score >= 30); // Short description penalty
   assert(result.reasons.includes('Very short description'));
 });
 
-Deno.test('SpamDetectionService - analyzeContent detects generic titles', async () => {
+Deno.test('SpamDetectionService - analyzeContent detects generic titles', () => {
   const service = new SpamDetectionService();
   const prData = createTestPR({ title: 'fix' });
 
-  const result = await service.detectSpam(prData);
+  const result = service.detectSpam(prData);
 
   assert(result.flags.content_score >= 25); // Generic title penalty
   assert(result.reasons.includes('Generic title'));
 });
 
-Deno.test('SpamDetectionService - analyzeContent detects spam patterns', async () => {
+Deno.test('SpamDetectionService - analyzeContent detects spam patterns', () => {
   const service = new SpamDetectionService();
   const prData = createTestPR({ 
     title: 'hacktoberfest contribution',
     body: 'please merge my first contribution' 
   });
 
-  const result = await service.detectSpam(prData);
+  const result = service.detectSpam(prData);
 
   assert(result.flags.content_score > 0); // Spam patterns detected
 });
 
-Deno.test('SpamDetectionService - analyzeAccount detects new accounts', async () => {
+Deno.test('SpamDetectionService - analyzeAccount detects new accounts', () => {
   const service = new SpamDetectionService();
   const prData = createTestPR({
     author: {
@@ -131,13 +131,13 @@ Deno.test('SpamDetectionService - analyzeAccount detects new accounts', async ()
     }
   });
 
-  const result = await service.detectSpam(prData);
+  const result = service.detectSpam(prData);
 
   assert(result.flags.account_score >= 50); // New account penalty
   assert(result.reasons.some(r => r.includes('Very new account')));
 });
 
-Deno.test('SpamDetectionService - analyzeAccount detects incomplete profiles', async () => {
+Deno.test('SpamDetectionService - analyzeAccount detects incomplete profiles', () => {
   const service = new SpamDetectionService();
   const prData = createTestPR({
     author: {
@@ -150,12 +150,12 @@ Deno.test('SpamDetectionService - analyzeAccount detects incomplete profiles', a
     }
   });
 
-  const result = await service.detectSpam(prData);
+  const result = service.detectSpam(prData);
 
   assert(result.flags.account_score >= 20); // Incomplete profile penalty
 });
 
-Deno.test('SpamDetectionService - analyzeAccount detects zero activity accounts', async () => {
+Deno.test('SpamDetectionService - analyzeAccount detects zero activity accounts', () => {
   const service = new SpamDetectionService();
   const prData = createTestPR({
     author: {
@@ -167,25 +167,25 @@ Deno.test('SpamDetectionService - analyzeAccount detects zero activity accounts'
     }
   });
 
-  const result = await service.detectSpam(prData);
+  const result = service.detectSpam(prData);
 
   assert(result.flags.account_score >= 25); // Zero activity penalty
 });
 
-Deno.test('SpamDetectionService - analyzePRCharacteristics detects single file with no context', async () => {
+Deno.test('SpamDetectionService - analyzePRCharacteristics detects single file with no context', () => {
   const service = new SpamDetectionService();
   const prData = createTestPR({
     changed_files: 1,
     body: 'fix',
   });
 
-  const result = await service.detectSpam(prData);
+  const result = service.detectSpam(prData);
 
   assert(result.flags.pr_score >= 30); // Single file no context penalty
   assert(result.reasons.includes('Single file change with no context'));
 });
 
-Deno.test('SpamDetectionService - analyzePRCharacteristics detects large changes with inadequate description', async () => {
+Deno.test('SpamDetectionService - analyzePRCharacteristics detects large changes with inadequate description', () => {
   const service = new SpamDetectionService();
   const prData = createTestPR({
     additions: 150,
@@ -193,40 +193,40 @@ Deno.test('SpamDetectionService - analyzePRCharacteristics detects large changes
     body: 'update code',
   });
 
-  const result = await service.detectSpam(prData);
+  const result = service.detectSpam(prData);
 
   assert(result.flags.pr_score >= 25); // Large changes inadequate description penalty
 });
 
-Deno.test('SpamDetectionService - analyzePRCharacteristics detects very large PRs', async () => {
+Deno.test('SpamDetectionService - analyzePRCharacteristics detects very large PRs', () => {
   const service = new SpamDetectionService();
   const prData = createTestPR({
     changed_files: 25,
   });
 
-  const result = await service.detectSpam(prData);
+  const result = service.detectSpam(prData);
 
   assert(result.flags.pr_score >= 20); // Very large PR penalty
 });
 
-Deno.test('SpamDetectionService - calculateConfidence returns higher confidence for extreme scores', async () => {
+Deno.test('SpamDetectionService - calculateConfidence returns higher confidence for extreme scores', () => {
   const service = new SpamDetectionService();
   
   // High spam score
   const spamPR = createSpamPR();
-  const spamResult = await service.detectSpam(spamPR);
+  const spamResult = service.detectSpam(spamPR);
   assert(spamResult.confidence >= 0.7);
   
   // Low spam score  
   const legitimatePR = createTestPR();
-  const legitResult = await service.detectSpam(legitimatePR);
+  const legitResult = service.detectSpam(legitimatePR);
   assert(legitResult.confidence >= 0.6);
 });
 
-Deno.test('SpamDetectionService - handles invalid PR data gracefully', async () => {
+Deno.test('SpamDetectionService - handles invalid PR data gracefully', () => {
   const service = new SpamDetectionService();
   
-  const result = await service.detectSpam(null as any);
+  const result = service.detectSpam(null as never);
   
   assertEquals(result.is_spam, false);
   assertEquals(result.spam_score, 0);
@@ -234,18 +234,18 @@ Deno.test('SpamDetectionService - handles invalid PR data gracefully', async () 
   assert(result.reasons.includes('Error during spam detection'));
 });
 
-Deno.test('SpamDetectionService - handles missing author data', async () => {
+Deno.test('SpamDetectionService - handles missing author data', () => {
   const service = new SpamDetectionService();
-  const invalidPR = { ...createTestPR(), author: null as any };
+  const invalidPR = { ...createTestPR(), author: null as never };
   
-  const result = await service.detectSpam(invalidPR);
+  const result = service.detectSpam(invalidPR);
   
   assertEquals(result.is_spam, false);
   assertEquals(result.spam_score, 0);
   assert(result.reasons.includes('Error during spam detection'));
 });
 
-Deno.test('SpamDetectionService - composite scoring works correctly', async () => {
+Deno.test('SpamDetectionService - composite scoring works correctly', () => {
   const service = new SpamDetectionService();
   const prData = createTestPR({
     title: 'fix', // High content score
@@ -260,7 +260,7 @@ Deno.test('SpamDetectionService - composite scoring works correctly', async () =
     changed_files: 1, // High PR score
   });
 
-  const result = await service.detectSpam(prData);
+  const result = service.detectSpam(prData);
 
   // Composite score should reflect all three components
   assert(result.spam_score > 50);

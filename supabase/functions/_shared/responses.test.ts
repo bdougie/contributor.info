@@ -11,7 +11,7 @@ import {
   legacySuccessResponse,
   handleError,
 } from './responses.ts';
-import { createTestRequest, assertSuccessResponse, assertErrorResponse } from '../tests/setup.ts';
+// Note: Test utilities available from '../tests/setup.ts' but not needed for these tests
 
 Deno.test('successResponse - returns JSON response with success flag', async () => {
   const data = { message: 'Success' };

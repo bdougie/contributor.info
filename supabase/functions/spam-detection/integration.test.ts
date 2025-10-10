@@ -4,7 +4,7 @@ import { generateTestUser, generateSpamUser } from '../tests/setup.ts';
 const BASE_URL = 'http://localhost:54321/functions/v1';
 
 // Mock pull request data generator
-function createTestPRData(isSpam = false, overrides: any = {}) {
+function createTestPRData(isSpam = false, overrides: Record<string, unknown> = {}) {
   const baseData = {
     pull_request: {
       id: 'test-pr-1',

@@ -2,7 +2,7 @@ import { assertEquals, assert } from 'https://deno.land/std@0.177.0/testing/asse
 import { PerformanceMonitor } from './metrics.ts';
 
 // Mock console methods for testing
-let consoleOutput: Array<{ level: string; message: any }> = [];
+let consoleOutput: Array<{ level: string; message: unknown[] }> = [];
 
 const originalConsole = {
   info: console.info,
@@ -11,8 +11,8 @@ const originalConsole = {
 
 function mockConsole() {
   consoleOutput = [];
-  console.info = (...args: any[]) => consoleOutput.push({ level: 'info', message: args });
-  console.warn = (...args: any[]) => consoleOutput.push({ level: 'warn', message: args });
+  console.info = (...args: unknown[]) => consoleOutput.push({ level: 'info', message: args });
+  console.warn = (...args: unknown[]) => consoleOutput.push({ level: 'warn', message: args });
 }
 
 function restoreConsole() {
@@ -70,7 +70,7 @@ Deno.test('PerformanceMonitor - handles missing timer gracefully', () => {
   }
 });
 
-Deno.test('PerformanceMonitor - warns on slow operations', async () => {
+Deno.test('PerformanceMonitor - warns on slow operations', () => {
   mockConsole();
   
   try {
