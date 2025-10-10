@@ -54,16 +54,12 @@ async function processActivities(pullRequests: PullRequest[]): Promise<PullReque
     });
     
     // Collect reviewers
-    pr.reviews?.forEach(review => {
-      // reviews don't have user.id, so we'll skip caching for now
-      // and fall back to GitHub API URLs
-    });
+    // Note: reviews don't have user.id in type definitions,
+    // so we skip avatar caching for reviewers and use GitHub API URLs
     
     // Collect commenters
-    pr.comments?.forEach(comment => {
-      // comments don't have user.id, so we'll skip caching for now
-      // and fall back to GitHub API URLs
-    });
+    // Note: comments don't have user.id in type definitions,
+    // so we skip avatar caching for commenters and use GitHub API URLs
   });
 
   // Batch fetch cached avatars
