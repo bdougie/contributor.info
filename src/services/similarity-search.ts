@@ -62,7 +62,7 @@ export async function findSimilarItems(options: SimilaritySearchOptions): Promis
     if (queryItem.type === 'pr') {
       tableName = 'pull_requests';
     } else if (queryItem.type === 'issue') {
-      tableName = 'github_issues';
+      tableName = 'issues';
     } else {
       tableName = 'discussions';
     }

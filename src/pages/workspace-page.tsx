@@ -22,24 +22,13 @@ import {
   useSimilaritySearchCache,
   useDebouncedSimilaritySearch,
 } from '@/hooks/use-similarity-search-cache';
-import { WorkspaceAutoSync } from '@/components/features/workspace/WorkspaceAutoSync';
 import { useWorkspaceContext } from '@/contexts/WorkspaceContext';
-import {
-  WorkspacePullRequestsTable,
-  type PullRequest,
-} from '@/components/features/workspace/WorkspacePullRequestsTable';
-import {
-  WorkspaceIssuesTable,
-  type Issue,
-} from '@/components/features/workspace/WorkspaceIssuesTable';
 import {
   WorkspaceDiscussionsTable,
   type Discussion,
 } from '@/components/features/workspace/WorkspaceDiscussionsTable';
+import { type Issue } from '@/components/features/workspace/WorkspaceIssuesTable';
 import { RepositoryFilter } from '@/components/features/workspace/RepositoryFilter';
-import { WorkspaceMetricsAndTrends } from '@/components/features/workspace/WorkspaceMetricsAndTrends';
-
-import { WorkspaceIssueMetricsAndTrends } from '@/components/features/workspace/WorkspaceIssueMetricsAndTrends';
 import {
   ContributorsList,
   type Contributor,
@@ -72,7 +61,6 @@ import {
   Search,
   Menu,
   Package,
-  Sparkles,
   MessageSquare,
 } from '@/components/ui/icon';
 import {
@@ -96,13 +84,10 @@ import type {
 import type { Workspace, WorkspaceMemberWithUser } from '@/types/workspace';
 import { WorkspaceService } from '@/services/workspace.service';
 import { WorkspaceSettings as WorkspaceSettingsComponent } from '@/components/features/workspace/settings/WorkspaceSettings';
-import { useWorkspacePRs } from '@/hooks/useWorkspacePRs';
 import { useMyWork } from '@/hooks/use-my-work';
 // Analytics imports disabled - will be implemented in issue #598
 // import { AnalyticsDashboard } from '@/components/features/workspace/AnalyticsDashboard';
-import { ActivityTable } from '@/components/features/workspace/ActivityTable';
-import { TrendChart } from '@/components/features/workspace/TrendChart';
-import { WorkspaceActivitySkeleton } from '@/components/features/workspace/skeletons/WorkspaceActivitySkeleton';
+
 // Lazy load heavy components
 const ContributorLeaderboard = lazy(() =>
   import('@/components/features/workspace/ContributorLeaderboard').then((m) => ({
@@ -110,10 +95,13 @@ const ContributorLeaderboard = lazy(() =>
   }))
 );
 
-// Lazy load distribution charts
-import { LazyAssigneeDistributionChart } from '@/components/features/workspace/charts/AssigneeDistributionChart-lazy';
-import { LazyReviewerDistributionChart } from '@/components/features/workspace/charts/ReviewerDistributionChart-lazy';
-import { PRAuthorStatusChart as LazyPRAuthorStatusChart } from '@/components/features/workspace/charts/PRAuthorStatusChart-lazy';
+// Extracted tab components
+import { WorkspacePRsTab } from '@/components/features/workspace/WorkspacePRsTab';
+import { WorkspaceIssuesTab } from '@/components/features/workspace/WorkspaceIssuesTab';
+import {
+  WorkspaceActivityTab,
+  type WorkspaceActivityTabProps as WorkspaceActivityProps,
+} from '@/components/features/workspace/WorkspaceActivityTab';
 // import { WorkspaceExportService } from '@/services/workspace-export.service';
 // import type {
 //   AnalyticsData,
@@ -123,7 +111,7 @@ import { PRAuthorStatusChart as LazyPRAuthorStatusChart } from '@/components/fea
 //   TrendDataset,
 // } from '@/components/features/workspace/AnalyticsDashboard';
 
-// Temporary type definition for ActivityItem until analytics is properly implemented in issue #598
+// ActivityItem type definition used in this page for hover cards and analytics
 interface ActivityItem {
   id: string;
   type: 'pr' | 'issue' | 'commit' | 'review' | 'comment' | 'star' | 'fork';
@@ -179,23 +167,7 @@ const TIME_RANGE_DAYS = {
   all: 730, // 2 years for "all" to limit data size
 } as const;
 
-/**
- * Utility function to filter repositories based on selection
- * @param repos - All available repositories
- * @param selectedRepoIds - Array of selected repository IDs (empty array means show all)
- * @returns Filtered array of repositories
- */
-const filterRepositoriesBySelection = <T extends { id: string }>(
-  repos: T[],
-  selectedRepoIds?: string[]
-): T[] => {
-  // If no selection provided or empty selection, return all repositories
-  if (!selectedRepoIds || selectedRepoIds.length === 0) {
-    return repos;
-  }
-  // Filter repositories by selected IDs
-  return repos.filter((repo) => selectedRepoIds.includes(repo.id));
-};
+// filterRepositoriesBySelection utility moved to WorkspaceIssuesTab component
 
 // Calculate real metrics from repository data and fetched stats
 const calculateRealMetrics = (
@@ -397,456 +369,9 @@ const generateActivityDataFromPRs = (
 };
 
 // Pull Requests tab component
-function WorkspacePRs({
-  repositories,
-  selectedRepositories,
-  timeRange,
-  workspaceId,
-  workspace,
-  setReviewerModalOpen,
-  onGitHubAppModalOpen,
-  currentUser,
-  currentMember,
-}: {
-  repositories: Repository[];
-  selectedRepositories: string[];
-  timeRange: TimeRange;
-  workspaceId: string;
-  workspace?: Workspace;
-  setReviewerModalOpen: (open: boolean) => void;
-  onGitHubAppModalOpen: (repo: Repository) => void;
-  currentUser: User | null;
-  currentMember: WorkspaceMemberWithUser | null;
-}) {
-  const navigate = useNavigate();
+// WorkspacePRs component moved to WorkspacePRsTab.tsx
 
-  // Use the new hook for automatic PR syncing and caching
-  const { pullRequests, loading, error, lastSynced, isStale, refresh } = useWorkspacePRs({
-    repositories,
-    selectedRepositories,
-    workspaceId,
-    refreshInterval: 60, // Hourly refresh interval
-    maxStaleMinutes: 60, // Consider data stale after 60 minutes
-    autoSyncOnMount: true, // Auto-sync enabled with hourly refresh
-  });
-
-  // Log sync status for debugging
-  useEffect(() => {
-    if (lastSynced) {
-      const minutesAgo = ((Date.now() - lastSynced.getTime()) / (1000 * 60)).toFixed(1);
-      console.log(
-        `PR data last synced ${minutesAgo} minutes ago${isStale ? ' (stale)' : ' (fresh)'}`
-      );
-    }
-  }, [lastSynced, isStale]);
-
-  // Show error toast if sync fails
-  useEffect(() => {
-    if (error) {
-      toast.error('Failed to fetch pull requests', {
-        description: error,
-        action: {
-          label: 'Retry',
-          onClick: () => refresh(),
-        },
-      });
-    }
-  }, [error, refresh]);
-
-  const handlePullRequestClick = (pr: PullRequest) => {
-    window.open(pr.url, '_blank');
-  };
-
-  const handleRepositoryClick = (owner: string, name: string) => {
-    navigate(`/${owner}/${name}`);
-  };
-
-  const [selectedReviewer, setSelectedReviewer] = useState<string | null>(null);
-
-  const handleReviewerClick = (reviewer: string) => {
-    setSelectedReviewer(selectedReviewer === reviewer ? null : reviewer);
-  };
-
-  // Filter PRs by selected reviewer
-  const filteredPullRequests = useMemo(() => {
-    if (!selectedReviewer) return pullRequests;
-
-    if (selectedReviewer === '__unreviewed__') {
-      return pullRequests.filter((pr) => !pr.reviewers || pr.reviewers.length === 0);
-    }
-
-    return pullRequests.filter((pr) => pr.reviewers?.some((r) => r.username === selectedReviewer));
-  }, [pullRequests, selectedReviewer]);
-
-  // Check if there are any PRs with reviewers
-  const hasReviewers = pullRequests.some((pr) => pr.reviewers && pr.reviewers.length > 0);
-
-  const ctaRepo = repositories[0]; // Use first repo for modal context
-
-  return (
-    <div className="space-y-6">
-      {/* Auto-sync indicator at top of tab */}
-      <div className="flex items-center justify-between px-1">
-        <WorkspaceAutoSync
-          workspaceId={workspaceId}
-          workspaceSlug={workspace?.slug || 'workspace'}
-          repositoryIds={repositories.map((r) => r.id).filter(Boolean)}
-          onSyncComplete={refresh}
-          syncIntervalMinutes={60}
-          className="text-sm text-muted-foreground"
-        />
-        <div className="flex items-center gap-2">
-          <Button onClick={() => setReviewerModalOpen(true)} size="sm" variant="outline">
-            CODEOWNERS
-          </Button>
-          {ctaRepo && (
-            <Button
-              onClick={() => onGitHubAppModalOpen(ctaRepo)}
-              size="sm"
-              variant="outline"
-              className="gap-2"
-            >
-              <Sparkles className="w-4 h-4 text-amber-500" />
-              Similarity
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Metrics and Trends - first, always full width */}
-      <WorkspaceMetricsAndTrends
-        repositories={repositories}
-        selectedRepositories={selectedRepositories}
-        timeRange={timeRange}
-        userRole={currentMember?.role}
-        isLoggedIn={!!currentUser}
-      />
-
-      {/* Review Charts - PR Status and Distribution side by side */}
-      {hasReviewers && (
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* PR Author Status Chart - shows PRs grouped by author and their status */}
-          <LazyPRAuthorStatusChart
-            pullRequests={pullRequests}
-            onAuthorClick={handleReviewerClick}
-            title="Pull Request Author Status"
-            maxVisible={8}
-          />
-
-          {/* Reviewer Distribution Chart */}
-          <LazyReviewerDistributionChart
-            pullRequests={pullRequests}
-            onReviewerClick={handleReviewerClick}
-            maxVisible={8}
-          />
-        </div>
-      )}
-
-      {/* PR Table */}
-      <WorkspacePullRequestsTable
-        pullRequests={filteredPullRequests}
-        loading={loading}
-        onPullRequestClick={handlePullRequestClick}
-        onRepositoryClick={handleRepositoryClick}
-      />
-    </div>
-  );
-}
-
-// Type definitions for Issue labels
-interface IssueLabel {
-  name: string;
-  color: string;
-  id?: number;
-}
-
-// Issues tab component
-function WorkspaceIssues({
-  repositories,
-  selectedRepositories,
-  timeRange,
-  onGitHubAppModalOpen,
-  currentUser,
-  currentMember,
-  onIssueRespond,
-}: {
-  repositories: Repository[];
-  selectedRepositories: string[];
-  timeRange: TimeRange;
-  onGitHubAppModalOpen: (repo: Repository) => void;
-  currentUser: User | null;
-  currentMember: WorkspaceMemberWithUser | null;
-  onIssueRespond?: (issue: Issue) => void;
-}) {
-  const [issues, setIssues] = useState<Issue[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    async function fetchIssues() {
-      if (repositories.length === 0) {
-        setIssues([]);
-        setLoading(false);
-        return;
-      }
-
-      try {
-        // Use utility function to filter repositories
-        const filteredRepos = filterRepositoriesBySelection(repositories, selectedRepositories);
-
-        const repoIds = filteredRepos.map((r) => r.id);
-
-        // Fetch issues with pagination support
-        // Note: Using .limit() instead of .range() to avoid HTTP 206 partial responses
-        const { data, error } = await supabase
-          .from('issues')
-          .select(
-            `
-            id,
-            github_id,
-            number,
-            title,
-            body,
-            state,
-            created_at,
-            updated_at,
-            closed_at,
-            labels,
-            assignees,
-            comments_count,
-            repository_id,
-            responded_by,
-            responded_at,
-            repositories(
-              id,
-              name,
-              owner,
-              full_name,
-              avatar_url
-            ),
-            contributors:author_id(
-              username,
-              avatar_url
-            )
-          `
-          )
-          .in('repository_id', repoIds)
-          .order('updated_at', { ascending: false })
-          .limit(100); // Using limit instead of range to get full 200 response
-
-        if (error) {
-          console.error('Failed to fetch workspace issues:', {
-            message: error.message,
-            code: error.code,
-            details: error.details,
-          });
-          // Improved error handling with user-friendly message
-          setError('Failed to load issues. Please try again later.');
-          setIssues([]);
-        } else {
-          // Transform data to match Issue interface
-          interface IssueQueryResult {
-            id: string;
-            github_id: number;
-            number: number;
-            title: string;
-            body: string | null;
-            state: string;
-            created_at: string;
-            updated_at: string;
-            closed_at: string | null;
-            labels: IssueLabel[] | null;
-            assignees: Array<{
-              login?: string;
-              username?: string;
-              avatar_url?: string;
-            }> | null;
-            comments_count: number | null;
-            repository_id: string;
-            repositories?: {
-              id: string;
-              name: string;
-              owner: string;
-              full_name: string;
-              avatar_url: string | null;
-            };
-            contributors?: {
-              username: string;
-              avatar_url: string;
-            };
-          }
-
-          const transformedIssues: Issue[] = ((data || []) as unknown as IssueQueryResult[]).map(
-            (issue) => ({
-              id: issue.id,
-              number: issue.number,
-              title: issue.title,
-              state: issue.state as 'open' | 'closed',
-              repository: {
-                name: issue.repositories?.name || 'unknown',
-                owner: issue.repositories?.owner || 'unknown',
-                avatar_url:
-                  issue.repositories?.avatar_url ||
-                  (issue.repositories?.owner
-                    ? `https://avatars.githubusercontent.com/${issue.repositories.owner}`
-                    : getFallbackAvatar()),
-              },
-              author: {
-                username: issue.contributors?.username || 'unknown',
-                avatar_url: issue.contributors?.avatar_url || '',
-              },
-              created_at: issue.created_at,
-              updated_at: issue.updated_at,
-              closed_at: issue.closed_at || undefined,
-              comments_count: issue.comments_count || 0,
-              labels: Array.isArray(issue.labels)
-                ? (issue.labels as IssueLabel[])
-                    .map((label) => ({
-                      name: label.name,
-                      color: label.color || '000000',
-                    }))
-                    .filter((l) => l.name) // Filter out labels without names
-                : [],
-              assignees: Array.isArray(issue.assignees)
-                ? issue.assignees.map((assignee) => ({
-                    login: assignee.login || assignee.username || 'unknown',
-                    avatar_url: assignee.avatar_url || '',
-                  }))
-                : [],
-              // Improved URL construction with validation
-              url:
-                issue.repositories?.full_name && issue.number
-                  ? `https://github.com/${issue.repositories.full_name}/issues/${issue.number}`
-                  : '', // Empty string when repository data is missing to prevent broken links
-            })
-          );
-          setIssues(transformedIssues);
-        }
-      } catch (err) {
-        console.error('Error:', err);
-        setIssues([]);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchIssues();
-  }, [repositories, selectedRepositories]);
-
-  const [selectedAssignee, setSelectedAssignee] = useState<string | null>(null);
-
-  const handleIssueClick = (issue: Issue) => {
-    // Only open if URL exists
-    if (issue.url) {
-      window.open(issue.url, '_blank');
-    }
-  };
-
-  const handleRepositoryClick = (owner: string, name: string) => {
-    navigate(`/${owner}/${name}`);
-  };
-
-  const handleAssigneeClick = (assignee: string) => {
-    setSelectedAssignee(selectedAssignee === assignee ? null : assignee);
-  };
-
-  const handleRespondClick = (issue: Issue) => {
-    onIssueRespond?.(issue);
-  };
-
-  // Filter issues by selected assignee
-  const filteredIssues = useMemo(() => {
-    if (!selectedAssignee) return issues;
-
-    if (selectedAssignee === '__unassigned__') {
-      return issues.filter((issue) => !issue.assignees || issue.assignees.length === 0);
-    }
-
-    return issues.filter((issue) => issue.assignees?.some((a) => a.login === selectedAssignee));
-  }, [issues, selectedAssignee]);
-
-  // Check if there are any issues with assignees
-  const hasAssignees = issues.some((issue) => issue.assignees && issue.assignees.length > 0);
-
-  // Display error message if there's an error
-  if (error) {
-    return (
-      <div className="container max-w-7xl mx-auto p-6">
-        <Card className="border-destructive">
-          <CardHeader>
-            <CardTitle className="text-destructive">Error Loading Issues</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p>{error}</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  const ctaRepo = repositories[0]; // Use first repo for context
-
-  return (
-    <div className="space-y-6">
-      {/* Action buttons at top */}
-      {ctaRepo && (
-        <div className="flex items-center justify-end px-1">
-          <div className="flex items-center gap-2">
-            <Button
-              onClick={() => onGitHubAppModalOpen(ctaRepo)}
-              size="sm"
-              variant="outline"
-              className="gap-2"
-            >
-              <Sparkles className="w-4 h-4 text-amber-500" />
-              Similarity
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Conditionally render side-by-side or full width based on assignee data */}
-      {hasAssignees ? (
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* Issue Metrics and Trends */}
-          <WorkspaceIssueMetricsAndTrends
-            repositories={repositories}
-            selectedRepositories={selectedRepositories}
-            timeRange={timeRange}
-            userRole={currentMember?.role}
-            isLoggedIn={!!currentUser}
-          />
-
-          {/* Assignee Distribution Chart */}
-          <LazyAssigneeDistributionChart
-            issues={issues}
-            onAssigneeClick={handleAssigneeClick}
-            maxVisible={8}
-          />
-        </div>
-      ) : (
-        /* Full width Metrics and Trends when no assignees */
-        <WorkspaceIssueMetricsAndTrends
-          repositories={repositories}
-          selectedRepositories={selectedRepositories}
-          timeRange={timeRange}
-          userRole={currentMember?.role}
-          isLoggedIn={!!currentUser}
-        />
-      )}
-
-      {/* Issues Table */}
-      <WorkspaceIssuesTable
-        issues={filteredIssues}
-        loading={loading}
-        onIssueClick={handleIssueClick}
-        onRepositoryClick={handleRepositoryClick}
-        onRespondClick={handleRespondClick}
-      />
-    </div>
-  );
-}
+// WorkspaceIssues component moved to WorkspaceIssuesTab.tsx
 
 function WorkspaceContributors({
   repositories,
@@ -875,7 +400,7 @@ function WorkspaceContributors({
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [page, setPage] = useState(0);
   const pageSize = 20;
-  
+
   // Debounce search query to avoid excessive API calls
   const debouncedSearchQuery = useDebouncedValue(globalFilter, 300);
 
@@ -1563,7 +1088,8 @@ function WorkspaceContributors({
               </div>
               {debouncedSearchQuery && (
                 <p className="text-sm text-muted-foreground mt-2">
-                  Found {totalCount} contributor{totalCount === 1 ? '' : 's'} matching &quot;{debouncedSearchQuery}&quot;
+                  Found {totalCount} contributor{totalCount === 1 ? '' : 's'} matching &quot;
+                  {debouncedSearchQuery}&quot;
                 </p>
               )}
             </div>
@@ -1624,9 +1150,8 @@ function WorkspaceContributors({
             {/* Pagination */}
             <div className="flex flex-col sm:flex-row items-center justify-between mt-4 gap-4">
               <div className="text-sm text-muted-foreground order-2 sm:order-1">
-                Showing {page * pageSize + 1} to{' '}
-                {Math.min((page + 1) * pageSize, totalCount)}{' '}
-                of {totalCount} contributors
+                Showing {page * pageSize + 1} to {Math.min((page + 1) * pageSize, totalCount)} of{' '}
+                {totalCount} contributors
                 {debouncedSearchQuery && ' (filtered)'}
               </div>
               <div className="flex items-center gap-2 order-1 sm:order-2">
@@ -1909,458 +1434,7 @@ function WorkspaceContributors({
   );
 }
 
-interface WorkspaceActivityProps {
-  workspace?: Workspace | null;
-  prData: Array<{
-    id: string;
-    title: string;
-    number: number;
-    state: string;
-    created_at: string;
-    merged_at: string | null;
-    author_id: string;
-    author_login?: string;
-    repository_id: string;
-    repository_name?: string;
-    html_url?: string;
-    additions?: number;
-    deletions?: number;
-    commits?: number;
-  }>;
-  issueData: Array<{
-    id: string;
-    title: string;
-    number: number;
-    state: string;
-    created_at: string;
-    closed_at: string | null;
-    author_id: string;
-    author_login?: string;
-    repository_id: string;
-    repository_name?: string;
-    html_url?: string;
-  }>;
-  reviewData: Array<{
-    id: string;
-    pull_request_id: string;
-    reviewer_id: string;
-    reviewer_login?: string;
-    state: string;
-    body?: string;
-    submitted_at: string;
-    pr_title?: string;
-    pr_number?: number;
-    repository_id?: string;
-    repository_name?: string;
-  }>;
-  commentData: Array<{
-    id: string;
-    pull_request_id: string;
-    commenter_id: string;
-    commenter_login?: string;
-    body: string;
-    created_at: string;
-    comment_type: string;
-    pr_title?: string;
-    pr_number?: number;
-    repository_id?: string;
-    repository_name?: string;
-  }>;
-  starData: Array<{
-    id: string;
-    event_type: 'star';
-    actor_login: string;
-    actor_avatar?: string;
-    repository_name?: string;
-    captured_at: string;
-  }>;
-  forkData: Array<{
-    id: string;
-    event_type: 'fork';
-    actor_login: string;
-    actor_avatar?: string;
-    repository_name?: string;
-    captured_at: string;
-  }>;
-  repositories: Repository[];
-  loading?: boolean;
-  error?: string | null;
-  onSyncComplete?: () => void;
-}
-
-function WorkspaceActivity({
-  workspace = null,
-  prData = [],
-  issueData = [],
-  reviewData = [],
-  commentData = [],
-  starData = [],
-  forkData = [],
-  repositories = [],
-  loading = false,
-  error = null,
-  onSyncComplete,
-}: WorkspaceActivityProps) {
-  // Memoize the repository lookup map for better performance
-  const repositoryMap = useMemo(() => {
-    const map = new Map<string, Repository>();
-    repositories.forEach((repo) => {
-      if (repo?.id) {
-        map.set(repo.id, repo);
-      }
-    });
-    return map;
-  }, [repositories]);
-
-  // Memoize activities transformation for performance
-  const activities: ActivityItem[] = useMemo(() => {
-    // Helper function defined inside useMemo to avoid dependency issues
-    const getRepoName = (repoId: string | undefined): string => {
-      if (!repoId) return 'Unknown Repository';
-      const repo = repositoryMap.get(repoId);
-      return repo?.full_name || 'Unknown Repository';
-    };
-    try {
-      // Validate input data
-      const validPRData = Array.isArray(prData) ? prData : [];
-      const validIssueData = Array.isArray(issueData) ? issueData : [];
-      const validReviewData = Array.isArray(reviewData) ? reviewData : [];
-      const validCommentData = Array.isArray(commentData) ? commentData : [];
-      const validStarData = Array.isArray(starData) ? starData : [];
-      const validForkData = Array.isArray(forkData) ? forkData : [];
-
-      return [
-        // Convert PRs to activities with better error handling
-        ...validPRData.map((pr, index): ActivityItem => {
-          return {
-            id: `pr-${pr.id}-${index}`, // Add index to ensure uniqueness
-            type: 'pr',
-            title: pr.title || `PR #${pr.number}`,
-            created_at: pr.created_at,
-            author: {
-              username: pr.author_login || 'Unknown',
-              avatar_url: '', // Should come from contributors table via join
-            },
-            repository: getRepoName(pr.repository_id),
-            status: (() => {
-              // Handle all PR states including draft
-              if (pr.merged_at) return 'merged';
-              if (pr.state === 'open') return 'open';
-              if (pr.state === 'draft') return 'open'; // Treat draft as open with different styling later
-              return 'closed';
-            })() as ActivityItem['status'],
-            url: pr.html_url || '#',
-            metadata: {
-              additions: pr.additions || 0,
-              deletions: pr.deletions || 0,
-            },
-          };
-        }),
-        // Convert issues to activities with validation
-        ...validIssueData.map((issue, index): ActivityItem => {
-          return {
-            id: `issue-${issue.id}-${index}`, // Add index to ensure uniqueness
-            type: 'issue',
-            title: issue.title || `Issue #${issue.number}`,
-            created_at: issue.created_at,
-            author: {
-              username: issue.author_login || 'Unknown',
-              avatar_url: '', // Should come from contributors table via join
-            },
-            repository: getRepoName(issue.repository_id),
-            status: issue.closed_at ? 'closed' : 'open',
-            url:
-              issue.repository_name && issue.number
-                ? `https://github.com/${issue.repository_name}/issues/${issue.number}`
-                : '#',
-            metadata: {},
-          };
-        }),
-        // Convert reviews to activities with validation
-        ...validReviewData.map(
-          (review, index): ActivityItem => ({
-            id: `review-${review.id}-${index}`, // Add index to ensure uniqueness
-            type: 'review',
-            title: review.pr_title ? `Review on: ${review.pr_title}` : `Review on PR`,
-            created_at: review.submitted_at,
-            author: {
-              username: review.reviewer_login || 'Unknown',
-              avatar_url: '', // Should come from contributors table via join
-            },
-            repository: review.repository_name || 'Unknown Repository',
-            status: review.state.toLowerCase() as ActivityItem['status'],
-            url: '#',
-            metadata: {},
-          })
-        ),
-        // Convert comments to activities with validation
-        ...validCommentData.map(
-          (comment, index): ActivityItem => ({
-            id: `comment-${comment.id}-${index}`, // Add index to ensure uniqueness
-            type: 'comment',
-            title: comment.pr_title ? `Comment on: ${comment.pr_title}` : `Comment on PR`,
-            created_at: comment.created_at,
-            author: {
-              username: comment.commenter_login || 'Unknown',
-              avatar_url: '', // Should come from contributors table via join
-            },
-            repository: comment.repository_name || 'Unknown Repository',
-            status: 'open',
-            url: '#',
-            metadata: {},
-          })
-        ),
-        // Convert star events to activities - now individual events
-        ...validStarData.map((star, index): ActivityItem => {
-          return {
-            id: star.id || `star-${index}`,
-            type: 'star',
-            title: `starred the repository`,
-            created_at: star.captured_at,
-            author: {
-              username: star.actor_login || 'Unknown',
-              avatar_url: star.actor_avatar || `https://github.com/${star.actor_login}.png`,
-            },
-            repository: star.repository_name || 'Unknown Repository',
-            // No status for star events
-            url: star.repository_name ? `https://github.com/${star.repository_name}` : '#',
-            metadata: {},
-          };
-        }),
-        // Convert fork events to activities - now individual events
-        ...validForkData.map((fork, index): ActivityItem => {
-          return {
-            id: fork.id || `fork-${index}`,
-            type: 'fork',
-            title: `forked the repository`,
-            created_at: fork.captured_at,
-            author: {
-              username: fork.actor_login || 'Unknown',
-              avatar_url: fork.actor_avatar || `https://github.com/${fork.actor_login}.png`,
-            },
-            repository: fork.repository_name || 'Unknown Repository',
-            // No status for fork events
-            url: fork.repository_name ? `https://github.com/${fork.repository_name}` : '#',
-            metadata: {},
-          };
-        }),
-      ];
-    } catch (error) {
-      console.error('Error transforming activity data:', error);
-      return [];
-    }
-  }, [prData, issueData, reviewData, commentData, starData, forkData, repositoryMap]);
-
-  // Memoize sorted activities to avoid unnecessary re-sorts
-  const sortedActivities = useMemo(() => {
-    return [...activities].sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
-  }, [activities]);
-
-  // Memoize trend data calculation for performance
-  const activityByDay = useMemo(() => {
-    const last30Days = Array.from({ length: 30 }, (_, i) => {
-      const date = new Date();
-      date.setDate(date.getDate() - (29 - i));
-      return date.toISOString().split('T')[0];
-    });
-
-    return last30Days.map((date) => {
-      const dayActivities = sortedActivities.filter((a) => a.created_at.split('T')[0] === date);
-      return {
-        date,
-        total: dayActivities.length,
-        prs: dayActivities.filter((a) => a.type === 'pr').length,
-        issues: dayActivities.filter((a) => a.type === 'issue').length,
-        reviews: dayActivities.filter((a) => a.type === 'review').length,
-        comments: dayActivities.filter((a) => a.type === 'comment').length,
-        stars: dayActivities.filter((a) => a.type === 'star').length,
-        forks: dayActivities.filter((a) => a.type === 'fork').length,
-      };
-    });
-  }, [sortedActivities]);
-
-  // Memoize stats calculations for performance
-  const { totalActivities, uniqueContributors, activeRepos, activityScore } = useMemo(() => {
-    const total = activities.length;
-    const contributors = new Set(activities.map((a) => a.author.username)).size;
-    const repos = new Set(activities.map((a) => a.repository)).size;
-    const score = Math.round((total + contributors * 2 + repos * 3) / 3);
-
-    return {
-      totalActivities: total,
-      uniqueContributors: contributors,
-      activeRepos: repos,
-      activityScore: score,
-    };
-  }, [activities]);
-
-  // Show loading skeleton while data is being fetched
-  if (loading) {
-    return <WorkspaceActivitySkeleton />;
-  }
-
-  // Show error state if there's an error
-  if (error) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-center space-y-4">
-          <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto" />
-          <div>
-            <h3 className="font-semibold">Failed to load activity data</h3>
-            <p className="text-sm text-muted-foreground mt-1">{error}</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Show empty state if no activities
-  if (activities.length === 0) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-center space-y-4">
-          <Activity className="h-12 w-12 text-muted-foreground mx-auto" />
-          <div>
-            <h3 className="font-semibold">No activity yet</h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              Activity will appear here once repositories have pull requests, issues, or other
-              interactions.
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      {/* Auto-sync indicator at top of tab */}
-      {workspace && (
-        <div className="flex items-center justify-between px-1">
-          <WorkspaceAutoSync
-            workspaceId={workspace.id}
-            workspaceSlug={workspace.slug}
-            repositoryIds={repositories.map((r) => r.id).filter(Boolean)}
-            onSyncComplete={onSyncComplete}
-            syncIntervalMinutes={60}
-            className="text-sm text-muted-foreground"
-          />
-        </div>
-      )}
-
-      {/* Activity Trend Chart */}
-      <TrendChart
-        title="Activity Trend"
-        description="Daily activity across all workspace repositories"
-        data={{
-          labels: activityByDay.map((d) => {
-            const date = new Date(d.date);
-            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-          }),
-          datasets: [
-            {
-              label: 'Pull Requests',
-              data: activityByDay.map((d) => d.prs),
-              color: '#10b981',
-            },
-            {
-              label: 'Issues',
-              data: activityByDay.map((d) => d.issues),
-              color: '#f97316',
-            },
-            {
-              label: 'Reviews',
-              data: activityByDay.map((d) => d.reviews),
-              color: '#8b5cf6',
-            },
-            {
-              label: 'Comments',
-              data: activityByDay.map((d) => d.comments),
-              color: '#06b6d4',
-            },
-            {
-              label: 'Stars',
-              data: activityByDay.map((d) => d.stars),
-              color: '#fbbf24',
-            },
-            {
-              label: 'Forks',
-              data: activityByDay.map((d) => d.forks),
-              color: '#ffffff',
-            },
-          ],
-        }}
-        height={350}
-        showLegend={true}
-        showGrid={true}
-      />
-
-      {/* Quick Stats */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Activities</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalActivities}</div>
-            <p className="text-xs text-muted-foreground">Last 30 days</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Active Actors</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{uniqueContributors}</div>
-            <p className="text-xs text-muted-foreground">Unique actors</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Active Repositories</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{activeRepos}</div>
-            <p className="text-xs text-muted-foreground">With activity</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Activity Score</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{activityScore}</div>
-            <p className="text-xs text-muted-foreground">Composite metric</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Activity Feed Table */}
-      <Card>
-        <CardHeader>
-          <div>
-            <CardTitle>Activity Feed</CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">
-              Real-time feed of all activities across your workspace repositories
-            </p>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {error ? (
-            <div className="text-center py-8 text-red-500">
-              <p>Error loading activity data: {error}</p>
-              <p className="text-sm text-muted-foreground mt-2">Please try refreshing the page.</p>
-            </div>
-          ) : (
-            <ActivityTable activities={sortedActivities} loading={loading} pageSize={20} />
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
+// WorkspaceActivity component and props moved to WorkspaceActivityTab.tsx
 
 function WorkspacePage() {
   const { workspaceId } = useParams<{ workspaceId: string }>();
@@ -2713,9 +1787,12 @@ function WorkspacePage() {
       let uniqueContributorCount = 0;
 
       if (transformedRepos.length > 0) {
-        // Use utility function to filter repositories
-        const filteredRepos = filterRepositoriesBySelection(transformedRepos, selectedRepositories);
-        const repoIds = filteredRepos.map((r) => r.id);
+        // Filter repositories based on selection (inline since only used once here)
+        const filteredRepos =
+          !selectedRepositories || selectedRepositories.length === 0
+            ? transformedRepos
+            : transformedRepos.filter((repo: Repository) => selectedRepositories.includes(repo.id));
+        const repoIds = filteredRepos.map((r: Repository) => r.id);
 
         // Calculate date range based on selected time range
         // Fetch 2x the time range to calculate trends (current + previous period)
@@ -3902,7 +2979,7 @@ function WorkspacePage() {
 
           <TabsContent value="prs" className="mt-6">
             <div className="container max-w-7xl mx-auto">
-              <WorkspacePRs
+              <WorkspacePRsTab
                 repositories={repositories}
                 selectedRepositories={selectedRepositories}
                 timeRange={timeRange}
@@ -3918,7 +2995,7 @@ function WorkspacePage() {
 
           <TabsContent value="issues" className="mt-6">
             <div className="container max-w-7xl mx-auto">
-              <WorkspaceIssues
+              <WorkspaceIssuesTab
                 repositories={repositories}
                 selectedRepositories={selectedRepositories}
                 timeRange={timeRange}
@@ -4006,7 +3083,7 @@ function WorkspacePage() {
 
           <TabsContent value="activity" className="mt-6">
             <div className="container max-w-7xl mx-auto">
-              <WorkspaceActivity
+              <WorkspaceActivityTab
                 workspace={workspace}
                 prData={fullPRData}
                 issueData={fullIssueData}
