@@ -159,8 +159,8 @@ async function processActivities(pullRequests: PullRequest[]): Promise<PullReque
     if (pr.reviews && pr.reviews.length > 0) {
       pr.reviews.forEach((review, index) => {
         if (review.state === 'APPROVED' || review.state === 'CHANGES_REQUESTED') {
-          // Check if reviewer is a bot
-          const reviewerIsBot = review.user.login.includes('[bot]');
+          // Check if reviewer is a bot using centralized detection
+          const reviewerIsBot = detectBot({ username: review.user.login }).isBot;
 
           processedActivities.push({
             id: `review-${pr.id}-${index}`,
@@ -193,8 +193,8 @@ async function processActivities(pullRequests: PullRequest[]): Promise<PullReque
     // Add comments if available
     if (pr.comments && pr.comments.length > 0) {
       pr.comments.forEach((comment, index) => {
-        // Check if commenter is a bot
-        const commenterIsBot = comment.user.login.includes('[bot]');
+        // Check if commenter is a bot using centralized detection
+        const commenterIsBot = detectBot({ username: comment.user.login }).isBot;
 
         processedActivities.push({
           id: `comment-${pr.id}-${index}`,
