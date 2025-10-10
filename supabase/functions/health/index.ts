@@ -126,7 +126,7 @@ Deno.serve(async (req) => {
         },
       });
     }
-  } catch (error: any ) {
+  } catch (error: any) {
     logger.error('Health check failed', error);
     return errorResponse('Health check failed', 503, error.message, 'HEALTH_CHECK_FAILED');
   }
