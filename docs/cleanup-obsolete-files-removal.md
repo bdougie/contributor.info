@@ -8,9 +8,8 @@
 ### 1. Already Migrated to Supabase Edge Functions
 
 #### Inngest Functions (migrated to `supabase/functions/inngest-prod/`)
-- `netlify/functions/inngest-prod.ts` - Main production Inngest handler
-- `.archived/inngest-prod-functions.mts.disabled` - Already archived
-- `.archived/inngest-prod.mts.disabled` - Already archived
+- `.archived/inngest-prod-functions.mts.disabled` - Already archived, removed
+- `.archived/inngest-prod.mts.disabled` - Already archived, removed
 
 #### Backfill Functions (KEPT - Still Used by Frontend)
 - ✅ KEPT: `netlify/functions/backfill-trigger.ts` - Frontend uses `/api/backfill/trigger`

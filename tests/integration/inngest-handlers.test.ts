@@ -154,20 +154,21 @@ describe('Inngest Handler Integration Tests', () => {
     });
   });
 
-  describe('Handler Export Consistency', () => {
-    it('should have consistent export patterns between dev and prod', async () => {
-      const devModule = await import('../../netlify/functions/inngest.mts');
-      const prodModule = await import('../../netlify/functions/inngest-prod.mts');
-
-      // Both should have either default or handler export
-      const devHasDefault = 'default' in devModule;
-      const devHasHandler = 'handler' in devModule;
-      const prodHasDefault = 'default' in prodModule;
-      const prodHasHandler = 'handler' in prodModule;
-
-      // They should have the same export structure
-      expect(devHasDefault).toBe(prodHasDefault);
-      expect(devHasHandler).toBe(prodHasHandler);
-    });
-  });
+  // Removed - inngest-prod.mts has been migrated to Supabase Edge Functions
+  // describe('Handler Export Consistency', () => {
+  //   it('should have consistent export patterns between dev and prod', async () => {
+  //     const devModule = await import('../../netlify/functions/inngest.mts');
+  //     const prodModule = await import('../../netlify/functions/inngest-prod.mts');
+  //
+  //     // Both should have either default or handler export
+  //     const devHasDefault = 'default' in devModule;
+  //     const devHasHandler = 'handler' in devModule;
+  //     const prodHasDefault = 'default' in prodModule;
+  //     const prodHasHandler = 'handler' in prodModule;
+  //
+  //     // They should have the same export structure
+  //     expect(devHasDefault).toBe(prodHasDefault);
+  //     expect(devHasHandler).toBe(prodHasHandler);
+  //   });
+  // });
 });
