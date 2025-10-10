@@ -12,13 +12,13 @@
 - `.archived/inngest-prod-functions.mts.disabled` - Already archived
 - `.archived/inngest-prod.mts.disabled` - Already archived
 
-#### Manual Backfill (migrated to `supabase/functions/manual-backfill/`)
-- `netlify/functions/backfill-trigger.ts` - Replaced by Supabase function
-- `netlify/functions/backfill-cancel.ts` - Related backfill function
-- `netlify/functions/backfill-status.ts` - Related backfill function  
-- `netlify/functions/backfill-events.ts` - Related backfill function
-- `netlify/functions/backfill-events-proxy.ts` - Related backfill function
-- `netlify/functions/webhook-backfill-complete.ts` - Backfill webhook handler
+#### Backfill Functions (KEPT - Still Used by Frontend)
+- ✅ KEPT: `netlify/functions/backfill-trigger.ts` - Frontend uses `/api/backfill/trigger`
+- ✅ KEPT: `netlify/functions/backfill-cancel.ts` - Frontend uses `/api/backfill/cancel/{id}`
+- ✅ KEPT: `netlify/functions/backfill-status.ts` - Frontend uses `/api/backfill/status/{id}`
+- ✅ KEPT: `netlify/functions/backfill-events.ts` - Frontend uses `/api/backfill/events`
+- ✅ KEPT: `netlify/functions/backfill-events-proxy.ts` - Supporting function
+- ❌ REMOVED: `netlify/functions/webhook-backfill-complete.ts` - Backfill webhook handler
 
 ### 2. Duplicates and Test Files
 
@@ -87,9 +87,9 @@
 
 ## Summary
 
-**Files to Remove:** 18 files
-**Files to Keep:** ~30 files
-**Already Archived:** 2 files
+**Files Removed:** 14 files (was 20, but restored 6 backfill functions)
+**Files Kept:** ~36 files
+**Already Archived:** 2 files removed
 
 ## Rationale
 
@@ -97,3 +97,11 @@
 2. **Clean Development Environment**: Remove test and experimental files
 3. **Maintain Working Functions**: Keep all currently operational endpoints
 4. **Prepare for Migration**: Keep the 5 functions identified in #1070 for future migration
+5. **Frontend Compatibility**: Keep backfill functions that are actively used by UI components
+
+## Important Discovery
+
+During cleanup, discovered that the frontend `ManualBackfill` component and other UI components
+actively use the backfill endpoints. While `supabase/functions/manual-backfill/` exists,
+it only handles the trigger functionality. The status checking, cancellation, and event
+streaming functions are still required and have been kept.
