@@ -245,19 +245,19 @@
     <loc>https://contributor.info/continuedev/continue</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-10-08T12:35:52.381Z</lastmod>
+    <lastmod>2025-10-09T19:55:18.542Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/continuedev/continue/health</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-10-08T12:35:52.381Z</lastmod>
+    <lastmod>2025-10-09T19:55:18.542Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/continuedev/continue/distribution</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-10-08T12:35:52.381Z</lastmod>
+    <lastmod>2025-10-09T19:55:18.542Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/argoproj/argo-cd</loc>
@@ -281,19 +281,19 @@
     <loc>https://contributor.info/vercel/ai</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-10-08T06:34:04.530Z</lastmod>
+    <lastmod>2025-10-09T19:01:23.784Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/vercel/ai/health</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-10-08T06:34:04.530Z</lastmod>
+    <lastmod>2025-10-09T19:01:23.784Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/vercel/ai/distribution</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-10-08T06:34:04.530Z</lastmod>
+    <lastmod>2025-10-09T19:01:23.784Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/pgvector/pgvector</loc>
@@ -407,7 +407,13 @@
     <loc>https://contributor.info/jargonsdev/jargons.dev</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
-    <lastmod>2025-10-07T01:32:46.203Z</lastmod>
+    <lastmod>2025-10-09T19:01:23.820Z</lastmod>
+  </url>
+  <url>
+    <loc>https://contributor.info/bdougie/contributor.info</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+    <lastmod>2025-10-09T19:01:22.054Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/moment/moment</loc>
@@ -600,12 +606,6 @@
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
     <lastmod>2025-10-08T06:33:05.367Z</lastmod>
-  </url>
-  <url>
-    <loc>https://contributor.info/bdougie/contributor.info</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.7</priority>
-    <lastmod>2025-10-08T06:34:29.589Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/facebook/react</loc>
