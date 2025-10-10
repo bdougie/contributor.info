@@ -43,27 +43,20 @@ function createPullRequestsHash(pullRequests: PullRequest[]): string {
 async function processActivities(pullRequests: PullRequest[]): Promise<PullRequestActivity[]> {
   const processedActivities: PullRequestActivity[] = [];
 
-  // Collect all unique users for batch avatar fetching
-  const users = new Set<{ githubId: number; username: string; fallbackUrl: string }>();
-  
-  pullRequests.forEach((pr) => {
-    users.add({ 
-      githubId: pr.user.id, 
-      username: pr.user.login, 
-      fallbackUrl: pr.user.avatar_url 
-    });
-    
-    // Collect reviewers
-    // Note: reviews don't have user.id in type definitions,
-    // so we skip avatar caching for reviewers and use GitHub API URLs
-    
-    // Collect commenters
-    // Note: comments don't have user.id in type definitions,
-    // so we skip avatar caching for commenters and use GitHub API URLs
-  });
+  // Collect all PR authors with GitHub IDs for batch avatar fetching
+  // NOTE: We can only use Supabase avatar cache for PR authors because they have numeric GitHub IDs.
+  // Reviews and comments only provide login/avatar_url without IDs, so they can't use the cache.
+  const authorsWithIds = pullRequests
+    .filter((pr) => pr.user?.id)
+    .map((pr) => ({
+      githubId: pr.user.id,
+      username: pr.user.login,
+      fallbackUrl: pr.user.avatar_url,
+    }));
 
-  // Batch fetch cached avatars
-  const cachedAvatars = await supabaseAvatarCache.getAvatarUrls(Array.from(users));
+  // Batch fetch avatars from Supabase cache for PR authors
+  const avatarCache =
+    authorsWithIds.length > 0 ? await supabaseAvatarCache.getAvatarUrls(authorsWithIds) : new Map();
 
   // Process pull requests
   pullRequests.forEach((pr) => {
@@ -76,6 +69,10 @@ async function processActivities(pullRequests: PullRequest[]): Promise<PullReque
     // Check if user is a bot using centralized detection
     const isBot = detectBot({ githubUser: pr.user }).isBot;
 
+    // Get cached avatar URL if available
+    const cachedAvatar = avatarCache.get(pr.user.id);
+    const avatarUrl = cachedAvatar?.url || pr.user.avatar_url;
+
     // Add PR creation activity
     processedActivities.push({
       id: `pr-${pr.id}-open`,
@@ -83,7 +80,7 @@ async function processActivities(pullRequests: PullRequest[]): Promise<PullReque
       user: {
         id: pr.user.login,
         name: pr.user.login,
-        avatar: cachedAvatars.get(pr.user.id)?.url || pr.user.avatar_url,
+        avatar: avatarUrl,
         isBot: isBot,
       },
       pullRequest: {
@@ -110,7 +107,7 @@ async function processActivities(pullRequests: PullRequest[]): Promise<PullReque
         user: {
           id: pr.user.login,
           name: pr.user.login,
-          avatar: cachedAvatars.get(pr.user.id)?.url || pr.user.avatar_url,
+          avatar: avatarUrl,
           isBot: isBot,
         },
         pullRequest: {
@@ -135,7 +132,7 @@ async function processActivities(pullRequests: PullRequest[]): Promise<PullReque
         user: {
           id: pr.user.login,
           name: pr.user.login,
-          avatar: cachedAvatars.get(pr.user.id)?.url || pr.user.avatar_url,
+          avatar: avatarUrl,
           isBot: isBot,
         },
         pullRequest: {
@@ -161,6 +158,8 @@ async function processActivities(pullRequests: PullRequest[]): Promise<PullReque
         if (review.state === 'APPROVED' || review.state === 'CHANGES_REQUESTED') {
           // Check if reviewer is a bot using centralized detection
           const reviewerIsBot = detectBot({ username: review.user.login }).isBot;
+
+          // NOTE: Cannot use Supabase avatar cache for reviewers - no GitHub ID available
 
           processedActivities.push({
             id: `review-${pr.id}-${index}`,
@@ -195,6 +194,8 @@ async function processActivities(pullRequests: PullRequest[]): Promise<PullReque
       pr.comments.forEach((comment, index) => {
         // Check if commenter is a bot using centralized detection
         const commenterIsBot = detectBot({ username: comment.user.login }).isBot;
+
+        // NOTE: Cannot use Supabase avatar cache for commenters - no GitHub ID available
 
         processedActivities.push({
           id: `comment-${pr.id}-${index}`,
@@ -263,23 +264,23 @@ export function useCachedPRActivity(pullRequests: PullRequest[]) {
         // Process activities (now async)
         const processedActivities = await processActivities(pullRequests);
 
-      // Cache the results
-      activityCache[currentCacheKey] = {
-        activities: processedActivities,
-        timestamp: now,
-        pullRequestsHash: pullRequestsHash,
-      };
+        // Cache the results
+        activityCache[currentCacheKey] = {
+          activities: processedActivities,
+          timestamp: now,
+          pullRequestsHash: pullRequestsHash,
+        };
 
-      // Clean up old cache entries (keep only last 10)
-      const cacheKeys = Object.keys(activityCache);
-      if (cacheKeys.length > 10) {
-        const sortedKeys = cacheKeys.sort(
-          (a, b) => activityCache[b].timestamp - activityCache[a].timestamp
-        );
-        sortedKeys.slice(10).forEach((key) => {
-          delete activityCache[key];
-        });
-      }
+        // Clean up old cache entries (keep only last 10)
+        const cacheKeys = Object.keys(activityCache);
+        if (cacheKeys.length > 10) {
+          const sortedKeys = cacheKeys.sort(
+            (a, b) => activityCache[b].timestamp - activityCache[a].timestamp
+          );
+          sortedKeys.slice(10).forEach((key) => {
+            delete activityCache[key];
+          });
+        }
 
         setActivities(processedActivities);
         setError(null);
