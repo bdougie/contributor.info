@@ -54,12 +54,93 @@ CREATE INDEX IF NOT EXISTS idx_discussions_repo_responded
 ON discussions(repository_id, responded_by) WHERE responded_by IS NOT NULL;
 
 -- ============================================================================
+-- TRIGGER FUNCTIONS TO RESTRICT COLUMN UPDATES
+-- ============================================================================
+
+-- Function to ensure only responded_by and responded_at can be updated in github_issues
+CREATE OR REPLACE FUNCTION enforce_respond_columns_github_issues()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Check if any column other than responded_by and responded_at has changed
+    IF (OLD.id IS DISTINCT FROM NEW.id OR
+        OLD.github_id IS DISTINCT FROM NEW.github_id OR
+        OLD.number IS DISTINCT FROM NEW.number OR
+        OLD.title IS DISTINCT FROM NEW.title OR
+        OLD.body IS DISTINCT FROM NEW.body OR
+        OLD.state IS DISTINCT FROM NEW.state OR
+        OLD.repository_id IS DISTINCT FROM NEW.repository_id OR
+        OLD.author_id IS DISTINCT FROM NEW.author_id OR
+        OLD.closed_by_id IS DISTINCT FROM NEW.closed_by_id OR
+        OLD.labels IS DISTINCT FROM NEW.labels OR
+        OLD.assignees IS DISTINCT FROM NEW.assignees OR
+        OLD.milestone IS DISTINCT FROM NEW.milestone OR
+        OLD.comments_count IS DISTINCT FROM NEW.comments_count OR
+        OLD.created_at IS DISTINCT FROM NEW.created_at OR
+        OLD.updated_at IS DISTINCT FROM NEW.updated_at OR
+        OLD.closed_at IS DISTINCT FROM NEW.closed_at OR
+        OLD.html_url IS DISTINCT FROM NEW.html_url OR
+        OLD.is_pull_request IS DISTINCT FROM NEW.is_pull_request OR
+        OLD.linked_pr_id IS DISTINCT FROM NEW.linked_pr_id OR
+        OLD._dlt_load_id IS DISTINCT FROM NEW._dlt_load_id OR
+        OLD._dlt_id IS DISTINCT FROM NEW._dlt_id) THEN
+
+        RAISE EXCEPTION 'Only responded_by and responded_at columns can be updated by workspace members';
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function to ensure only responded_by and responded_at can be updated in discussions
+CREATE OR REPLACE FUNCTION enforce_respond_columns_discussions()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Check if any column other than responded_by and responded_at has changed
+    -- Using a dynamic approach to avoid listing all columns
+    IF (row(OLD.*) IS DISTINCT FROM row(NEW.*)) THEN
+        -- Verify that ONLY responded_by or responded_at changed
+        IF NOT (
+            OLD.responded_by IS DISTINCT FROM NEW.responded_by OR
+            OLD.responded_at IS DISTINCT FROM NEW.responded_at
+        ) THEN
+            -- Some other column changed when responded columns didn't change
+            RAISE EXCEPTION 'Only responded_by and responded_at columns can be updated by workspace members';
+        END IF;
+
+        -- Reset all non-respond columns to their original values
+        NEW.id := OLD.id;
+        NEW.github_id := OLD.github_id;
+        NEW.number := OLD.number;
+        NEW.title := OLD.title;
+        NEW.body := OLD.body;
+        NEW.repository_id := OLD.repository_id;
+        NEW.author_id := OLD.author_id;
+        NEW.category := OLD.category;
+        NEW.is_answered := OLD.is_answered;
+        NEW.answer_chosen_at := OLD.answer_chosen_at;
+        NEW.answer_chosen_by_id := OLD.answer_chosen_by_id;
+        NEW.created_at := OLD.created_at;
+        NEW.updated_at := OLD.updated_at;
+        NEW.html_url := OLD.html_url;
+        NEW._dlt_load_id := OLD._dlt_load_id;
+        NEW._dlt_id := OLD._dlt_id;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ============================================================================
 -- RLS POLICIES FOR RESPOND FUNCTIONALITY
 -- ============================================================================
 
 -- Drop existing update policies if they exist to avoid conflicts
 DROP POLICY IF EXISTS "Workspace members can mark issues as responded" ON github_issues;
 DROP POLICY IF EXISTS "Workspace members can mark discussions as responded" ON discussions;
+
+-- Drop existing triggers if they exist
+DROP TRIGGER IF EXISTS enforce_respond_columns_trigger ON github_issues;
+DROP TRIGGER IF EXISTS enforce_respond_columns_trigger ON discussions;
 
 -- ============================================================================
 -- GITHUB_ISSUES: Allow workspace members to mark issues as responded
@@ -69,7 +150,7 @@ CREATE POLICY "Workspace members can mark issues as responded"
 ON github_issues FOR UPDATE
 USING (
     -- User must be authenticated
-    auth.uid() IS NOT NULL
+    (SELECT auth.uid()) IS NOT NULL
     AND
     -- User must be a member of a workspace that contains this repository
     EXISTS (
@@ -77,13 +158,13 @@ USING (
         FROM workspace_repositories wr
         JOIN workspace_members wm ON wm.workspace_id = wr.workspace_id
         WHERE wr.repository_id = github_issues.repository_id
-        AND wm.user_id = auth.uid()
+        AND wm.user_id = (SELECT auth.uid())
         AND wm.accepted_at IS NOT NULL
     )
 )
 WITH CHECK (
     -- User must be authenticated
-    auth.uid() IS NOT NULL
+    (SELECT auth.uid()) IS NOT NULL
     AND
     -- User must be a member of a workspace that contains this repository
     EXISTS (
@@ -91,13 +172,24 @@ WITH CHECK (
         FROM workspace_repositories wr
         JOIN workspace_members wm ON wm.workspace_id = wr.workspace_id
         WHERE wr.repository_id = github_issues.repository_id
-        AND wm.user_id = auth.uid()
+        AND wm.user_id = (SELECT auth.uid())
         AND wm.accepted_at IS NOT NULL
     )
     AND
-    -- Only allow updating responded_by and responded_at columns
-    (responded_by = auth.uid() OR responded_by IS NULL)
+    -- Only allow setting responded_by to the current user or NULL
+    (responded_by = (SELECT auth.uid()) OR responded_by IS NULL)
 );
+
+-- Create trigger to enforce column restrictions
+CREATE TRIGGER enforce_respond_columns_trigger
+    BEFORE UPDATE ON github_issues
+    FOR EACH ROW
+    WHEN (
+        -- Only run this trigger when the update is being done by a non-superuser
+        -- (allows system processes and migrations to update all columns)
+        (SELECT auth.uid()) IS NOT NULL
+    )
+    EXECUTE FUNCTION enforce_respond_columns_github_issues();
 
 -- ============================================================================
 -- DISCUSSIONS: Allow workspace members to mark discussions as responded
@@ -107,7 +199,7 @@ CREATE POLICY "Workspace members can mark discussions as responded"
 ON discussions FOR UPDATE
 USING (
     -- User must be authenticated
-    auth.uid() IS NOT NULL
+    (SELECT auth.uid()) IS NOT NULL
     AND
     -- User must be a member of a workspace that contains this repository
     EXISTS (
@@ -115,13 +207,13 @@ USING (
         FROM workspace_repositories wr
         JOIN workspace_members wm ON wm.workspace_id = wr.workspace_id
         WHERE wr.repository_id = discussions.repository_id
-        AND wm.user_id = auth.uid()
+        AND wm.user_id = (SELECT auth.uid())
         AND wm.accepted_at IS NOT NULL
     )
 )
 WITH CHECK (
     -- User must be authenticated
-    auth.uid() IS NOT NULL
+    (SELECT auth.uid()) IS NOT NULL
     AND
     -- User must be a member of a workspace that contains this repository
     EXISTS (
@@ -129,13 +221,24 @@ WITH CHECK (
         FROM workspace_repositories wr
         JOIN workspace_members wm ON wm.workspace_id = wr.workspace_id
         WHERE wr.repository_id = discussions.repository_id
-        AND wm.user_id = auth.uid()
+        AND wm.user_id = (SELECT auth.uid())
         AND wm.accepted_at IS NOT NULL
     )
     AND
-    -- Only allow updating responded_by and responded_at columns
-    (responded_by = auth.uid() OR responded_by IS NULL)
+    -- Only allow setting responded_by to the current user or NULL
+    (responded_by = (SELECT auth.uid()) OR responded_by IS NULL)
 );
+
+-- Create trigger to enforce column restrictions
+CREATE TRIGGER enforce_respond_columns_trigger
+    BEFORE UPDATE ON discussions
+    FOR EACH ROW
+    WHEN (
+        -- Only run this trigger when the update is being done by a non-superuser
+        -- (allows system processes and migrations to update all columns)
+        (SELECT auth.uid()) IS NOT NULL
+    )
+    EXECUTE FUNCTION enforce_respond_columns_discussions();
 
 -- ============================================================================
 -- COMMENTS
