@@ -89,7 +89,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
         setLoading(true);
         const githubLogin = user.user_metadata.user_name;
 
-        console.log('useMyWork - Starting fetch for:', { workspaceId, githubLogin });
+        // Starting fetch for workspace
 
         // First, get the contributor ID and avatar
         const { data: contributor, error: contributorError } = await supabase
@@ -106,7 +106,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
         }
 
         if (!contributor) {
-          console.log('No contributor found for user:', githubLogin);
+          // No contributor found for user
           setItems([]);
           setLoading(false);
           return;
@@ -114,7 +114,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
 
         const contributorId = contributor.id;
         const avatarUrl = contributor.avatar_url;
-        console.log('Found contributor:', { contributorId, githubLogin, avatarUrl });
+        // Found contributor
 
         // Get workspace repository IDs for filtering
         let workspaceRepoIds: string[] = [];
@@ -124,17 +124,14 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             .select('repository_id')
             .eq('workspace_id', workspaceId);
 
-          console.log('useMyWork - Workspace found:', {
-            workspaceId,
-            repositoryCount: workspaceRepos?.length || 0,
-          });
+          // Workspace found
 
           if (workspaceRepos && workspaceRepos.length > 0) {
             workspaceRepoIds = workspaceRepos.map((wr) => wr.repository_id);
-            console.log('Filtering by repository IDs:', workspaceRepoIds);
+            // Filtering by repository IDs
           } else {
             // No repositories in workspace, return empty
-            console.log('No repositories in workspace');
+            // No repositories in workspace
             setItems([]);
             setLoading(false);
             return;
@@ -240,11 +237,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
         const allIssues = rawIssues as unknown as IssueRow[] | null;
         const allDiscussions = rawDiscussions as unknown as DiscussionRow[] | null;
 
-        console.log('Query results:', {
-          reviewPRs: reviewPrs?.length || 0,
-          openIssues: allIssues?.length || 0,
-          unansweredDiscussions: allDiscussions?.length || 0,
-        });
+        // Query results collected
 
         // Filter review PRs where the user is requested (client-side filtering for JSONB)
         const reviewRequestedPrs = reviewPrs?.filter((pr) => {
@@ -341,12 +334,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
           (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
         );
 
-        console.log('Processed items needing attention:', {
-          reviewPrItems: reviewPrItems.length,
-          issueItems: issueItems.length,
-          discussionItems: discussionItems.length,
-          total: allItems.length,
-        });
+        // Processed items needing attention
 
         // Set total count
         setTotalCount(allItems.length);
@@ -356,9 +344,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
         const endIndex = startIndex + itemsPerPage;
         const paginatedItems = allItems.slice(startIndex, endIndex);
 
-        console.log(
-          `Showing items ${startIndex + 1}-${Math.min(endIndex, allItems.length)} of ${allItems.length}`
-        );
+        // Showing paginated items
 
         setItems(paginatedItems);
         setError(null);
