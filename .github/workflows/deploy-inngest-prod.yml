@@ -25,7 +25,7 @@ jobs:
       - name: Deploy inngest-prod function
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          SUPABASE_PROJECT_ID: egcxzonpmmcirmgqdrla
+          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
         run: |
           echo "🚀 Deploying inngest-prod edge function with --no-verify-jwt flag..."
           supabase functions deploy inngest-prod \
@@ -38,7 +38,36 @@ jobs:
       - name: Verify deployment
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          SUPABASE_PROJECT_ID: egcxzonpmmcirmgqdrla
+          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
         run: |
           echo "🔍 Verifying deployment status..."
-          supabase functions list --project-ref $SUPABASE_PROJECT_ID | grep inngest-prod || echo "⚠️ Function may still be deploying"
+
+          # Wait a moment for deployment to register
+          sleep 5
+
+          # Get function list and check status
+          FUNCTION_STATUS=$(supabase functions list --project-ref $SUPABASE_PROJECT_ID)
+
+          if echo "$FUNCTION_STATUS" | grep -q "inngest-prod"; then
+            echo "✅ Function inngest-prod is deployed"
+
+            # Extract and display function details
+            echo "$FUNCTION_STATUS" | grep "inngest-prod"
+
+            # Test function endpoint health
+            FUNCTION_URL="https://$SUPABASE_PROJECT_ID.supabase.co/functions/v1/inngest-prod"
+            echo "🏥 Testing function health at: $FUNCTION_URL"
+
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X GET "$FUNCTION_URL" -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" || echo "000")
+
+            if [ "$HTTP_STATUS" -eq "200" ] || [ "$HTTP_STATUS" -eq "405" ]; then
+              echo "✅ Function endpoint is responsive (HTTP $HTTP_STATUS)"
+            else
+              echo "⚠️ Function endpoint returned HTTP $HTTP_STATUS (may be expected for this function type)"
+            fi
+          else
+            echo "❌ Function inngest-prod not found in deployment list"
+            echo "📋 Available functions:"
+            echo "$FUNCTION_STATUS"
+            exit 1
+          fi
