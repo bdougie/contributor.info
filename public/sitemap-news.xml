@@ -86,7 +86,7 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-08T12:35:52.381Z</news:publication_date>
+      <news:publication_date>2025-10-09T19:55:18.542Z</news:publication_date>
       <news:title>continuedev/continue - Contributor Updates</news:title>
     </news:news>
   </url>
@@ -108,7 +108,7 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-08T06:34:04.530Z</news:publication_date>
+      <news:publication_date>2025-10-09T19:01:23.784Z</news:publication_date>
       <news:title>vercel/ai - Contributor Updates</news:title>
     </news:news>
   </url>
@@ -176,6 +176,28 @@
       </news:publication>
       <news:publication_date>2025-10-08T15:32:33.365Z</news:publication_date>
       <news:title>husamql3/pstrack - Contributor Updates</news:title>
+    </news:news>
+  </url>
+  <url>
+    <loc>https://contributor.info/jargonsdev/jargons.dev</loc>
+    <news:news>
+      <news:publication>
+        <news:name>Contributor.info</news:name>
+        <news:language>en</news:language>
+      </news:publication>
+      <news:publication_date>2025-10-09T19:01:23.820Z</news:publication_date>
+      <news:title>jargonsdev/jargons.dev - Contributor Updates</news:title>
+    </news:news>
+  </url>
+  <url>
+    <loc>https://contributor.info/bdougie/contributor.info</loc>
+    <news:news>
+      <news:publication>
+        <news:name>Contributor.info</news:name>
+        <news:language>en</news:language>
+      </news:publication>
+      <news:publication_date>2025-10-09T19:01:22.054Z</news:publication_date>
+      <news:title>bdougie/contributor.info - Contributor Updates</news:title>
     </news:news>
   </url>
   <url>
@@ -440,17 +462,6 @@
       </news:publication>
       <news:publication_date>2025-10-08T06:33:05.367Z</news:publication_date>
       <news:title>duckdb/duckdb - Contributor Updates</news:title>
-    </news:news>
-  </url>
-  <url>
-    <loc>https://contributor.info/bdougie/contributor.info</loc>
-    <news:news>
-      <news:publication>
-        <news:name>Contributor.info</news:name>
-        <news:language>en</news:language>
-      </news:publication>
-      <news:publication_date>2025-10-08T06:34:29.589Z</news:publication_date>
-      <news:title>bdougie/contributor.info - Contributor Updates</news:title>
     </news:news>
   </url>
   <url>
