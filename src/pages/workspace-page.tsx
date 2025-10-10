@@ -611,6 +611,8 @@ function WorkspaceIssues({
             assignees,
             comments_count,
             repository_id,
+            responded_by,
+            responded_at,
             repositories(
               id,
               name,
@@ -744,6 +746,12 @@ function WorkspaceIssues({
     setSelectedAssignee(selectedAssignee === assignee ? null : assignee);
   };
 
+  const handleRespondClick = (issue: Issue) => {
+    // The respond logic is handled by the parent WorkspacePage component
+    // through the similarity search modal
+    console.log('Respond click for issue:', issue.number);
+  };
+
   // Filter issues by selected assignee
   const filteredIssues = useMemo(() => {
     if (!selectedAssignee) return issues;
@@ -831,6 +839,7 @@ function WorkspaceIssues({
         loading={loading}
         onIssueClick={handleIssueClick}
         onRepositoryClick={handleRepositoryClick}
+        onRespondClick={handleRespondClick}
       />
     </div>
   );
