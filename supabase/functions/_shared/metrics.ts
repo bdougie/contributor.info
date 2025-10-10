@@ -1,6 +1,6 @@
 /**
  * Performance monitoring utilities
- * 
+ *
  * Tracks function execution time and reports metrics.
  */
 

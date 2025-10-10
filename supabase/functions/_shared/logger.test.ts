@@ -28,14 +28,14 @@ function restoreConsole() {
 
 Deno.test('Logger - logs debug messages', () => {
   mockConsole();
-  
+
   try {
     const logger = new Logger({ function_name: 'test' });
     logger.debug('Debug message', { key: 'value' });
 
     assertEquals(consoleOutput.length, 1);
     assertEquals(consoleOutput[0].level, 'debug');
-    
+
     const logEntry = JSON.parse(consoleOutput[0].message as string);
     assertEquals(logEntry.level, 'debug');
     assertEquals(logEntry.message, 'Debug message');
@@ -49,14 +49,14 @@ Deno.test('Logger - logs debug messages', () => {
 
 Deno.test('Logger - logs info messages', () => {
   mockConsole();
-  
+
   try {
     const logger = new Logger({ function_name: 'test' });
     logger.info('Info message', { status: 'running' });
 
     assertEquals(consoleOutput.length, 1);
     assertEquals(consoleOutput[0].level, 'info');
-    
+
     const logEntry = JSON.parse(consoleOutput[0].message as string);
     assertEquals(logEntry.level, 'info');
     assertEquals(logEntry.message, 'Info message');
@@ -68,14 +68,14 @@ Deno.test('Logger - logs info messages', () => {
 
 Deno.test('Logger - logs warn messages', () => {
   mockConsole();
-  
+
   try {
     const logger = new Logger({ function_name: 'test' });
     logger.warn('Warning message', { code: 'WARN001' });
 
     assertEquals(consoleOutput.length, 1);
     assertEquals(consoleOutput[0].level, 'warn');
-    
+
     const logEntry = JSON.parse(consoleOutput[0].message as string);
     assertEquals(logEntry.level, 'warn');
     assertEquals(logEntry.message, 'Warning message');
@@ -87,7 +87,7 @@ Deno.test('Logger - logs warn messages', () => {
 
 Deno.test('Logger - logs error messages with Error objects', () => {
   mockConsole();
-  
+
   try {
     const logger = new Logger({ function_name: 'test' });
     const error = new Error('Test error');
@@ -95,7 +95,7 @@ Deno.test('Logger - logs error messages with Error objects', () => {
 
     assertEquals(consoleOutput.length, 1);
     assertEquals(consoleOutput[0].level, 'error');
-    
+
     const logEntry = JSON.parse(consoleOutput[0].message as string);
     assertEquals(logEntry.level, 'error');
     assertEquals(logEntry.message, 'Error occurred');
@@ -109,13 +109,13 @@ Deno.test('Logger - logs error messages with Error objects', () => {
 
 Deno.test('Logger - logs error messages with non-Error objects', () => {
   mockConsole();
-  
+
   try {
     const logger = new Logger({ function_name: 'test' });
     logger.error('Error occurred', { code: 500, message: 'Server error' });
 
     assertEquals(consoleOutput.length, 1);
-    
+
     const logEntry = JSON.parse(consoleOutput[0].message as string);
     assertEquals(logEntry.data.error.code, 500);
     assertEquals(logEntry.data.error.message, 'Server error');
@@ -126,14 +126,14 @@ Deno.test('Logger - logs error messages with non-Error objects', () => {
 
 Deno.test('Logger - includes context in all log entries', () => {
   mockConsole();
-  
+
   try {
-    const logger = new Logger({ 
+    const logger = new Logger({
       function_name: 'test-function',
       request_id: '123-456',
-      user_id: 'user-789'
+      user_id: 'user-789',
     });
-    
+
     logger.info('Test message');
 
     const logEntry = JSON.parse(consoleOutput[0].message as string);
@@ -147,7 +147,7 @@ Deno.test('Logger - includes context in all log entries', () => {
 
 Deno.test('Logger - updateContext adds new context', () => {
   mockConsole();
-  
+
   try {
     const logger = new Logger({ function_name: 'test' });
     logger.updateContext({ user_id: 'user-123', operation: 'sync' });
@@ -164,7 +164,7 @@ Deno.test('Logger - updateContext adds new context', () => {
 
 Deno.test('Logger - child creates logger with additional context', () => {
   mockConsole();
-  
+
   try {
     const parentLogger = new Logger({ function_name: 'parent' });
     const childLogger = parentLogger.child({ operation: 'child-op', step: 1 });
@@ -181,10 +181,10 @@ Deno.test('Logger - child creates logger with additional context', () => {
 
 Deno.test('createLogger - creates logger with function name', () => {
   const logger = createLogger('test-function');
-  
+
   // Access the private context through logging and parsing
   mockConsole();
-  
+
   try {
     logger.info('Test');
     const logEntry = JSON.parse(consoleOutput[0].message as string);
@@ -197,9 +197,9 @@ Deno.test('createLogger - creates logger with function name', () => {
 
 Deno.test('createLogger - accepts custom request ID', () => {
   const logger = createLogger('test-function', 'custom-request-id');
-  
+
   mockConsole();
-  
+
   try {
     logger.info('Test');
     const logEntry = JSON.parse(consoleOutput[0].message as string);
@@ -212,7 +212,7 @@ Deno.test('createLogger - accepts custom request ID', () => {
 
 Deno.test('Logger - handles logging without data parameter', () => {
   mockConsole();
-  
+
   try {
     const logger = new Logger({ function_name: 'test' });
     logger.info('Simple message');

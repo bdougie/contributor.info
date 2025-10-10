@@ -1,12 +1,21 @@
-import { assertEquals, assert, assertExists } from 'https://deno.land/std@0.177.0/testing/asserts.ts';
-import { SpamDetectionService, SPAM_THRESHOLDS, type PullRequestData } from './spam-detection-service.ts';
+import {
+  assert,
+  assertEquals,
+  assertExists,
+} from 'https://deno.land/std@0.177.0/testing/asserts.ts';
+import {
+  type PullRequestData,
+  SPAM_THRESHOLDS,
+  SpamDetectionService,
+} from './spam-detection-service.ts';
 
 // Helper function to create test PR data
 function createTestPR(overrides: Partial<PullRequestData> = {}): PullRequestData {
   return {
     id: 'test-pr-1',
     title: 'Add new feature',
-    body: 'This PR adds a new feature that improves user experience by implementing xyz functionality.',
+    body:
+      'This PR adds a new feature that improves user experience by implementing xyz functionality.',
     number: 1,
     additions: 50,
     deletions: 10,
@@ -111,9 +120,9 @@ Deno.test('SpamDetectionService - analyzeContent detects generic titles', () => 
 
 Deno.test('SpamDetectionService - analyzeContent detects spam patterns', () => {
   const service = new SpamDetectionService();
-  const prData = createTestPR({ 
+  const prData = createTestPR({
     title: 'hacktoberfest contribution',
-    body: 'please merge my first contribution' 
+    body: 'please merge my first contribution',
   });
 
   const result = service.detectSpam(prData);
@@ -128,13 +137,13 @@ Deno.test('SpamDetectionService - analyzeAccount detects new accounts', () => {
       id: 99999,
       login: 'newuser',
       created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days ago
-    }
+    },
   });
 
   const result = service.detectSpam(prData);
 
   assert(result.flags.account_score >= 50); // New account penalty
-  assert(result.reasons.some(r => r.includes('Very new account')));
+  assert(result.reasons.some((r) => r.includes('Very new account')));
 });
 
 Deno.test('SpamDetectionService - analyzeAccount detects incomplete profiles', () => {
@@ -147,7 +156,7 @@ Deno.test('SpamDetectionService - analyzeAccount detects incomplete profiles', (
       bio: null,
       company: null,
       location: null,
-    }
+    },
   });
 
   const result = service.detectSpam(prData);
@@ -164,7 +173,7 @@ Deno.test('SpamDetectionService - analyzeAccount detects zero activity accounts'
       created_at: '2020-01-01T00:00:00Z',
       public_repos: 0,
       followers: 0,
-    }
+    },
   });
 
   const result = service.detectSpam(prData);
@@ -211,13 +220,13 @@ Deno.test('SpamDetectionService - analyzePRCharacteristics detects very large PR
 
 Deno.test('SpamDetectionService - calculateConfidence returns higher confidence for extreme scores', () => {
   const service = new SpamDetectionService();
-  
+
   // High spam score
   const spamPR = createSpamPR();
   const spamResult = service.detectSpam(spamPR);
   assert(spamResult.confidence >= 0.7);
-  
-  // Low spam score  
+
+  // Low spam score
   const legitimatePR = createTestPR();
   const legitResult = service.detectSpam(legitimatePR);
   assert(legitResult.confidence >= 0.6);
@@ -225,9 +234,9 @@ Deno.test('SpamDetectionService - calculateConfidence returns higher confidence 
 
 Deno.test('SpamDetectionService - handles invalid PR data gracefully', () => {
   const service = new SpamDetectionService();
-  
+
   const result = service.detectSpam(null as never);
-  
+
   assertEquals(result.is_spam, false);
   assertEquals(result.spam_score, 0);
   assertEquals(result.confidence, 0);
@@ -237,9 +246,9 @@ Deno.test('SpamDetectionService - handles invalid PR data gracefully', () => {
 Deno.test('SpamDetectionService - handles missing author data', () => {
   const service = new SpamDetectionService();
   const invalidPR = { ...createTestPR(), author: null as never };
-  
+
   const result = service.detectSpam(invalidPR);
-  
+
   assertEquals(result.is_spam, false);
   assertEquals(result.spam_score, 0);
   assert(result.reasons.includes('Error during spam detection'));
@@ -267,12 +276,12 @@ Deno.test('SpamDetectionService - composite scoring works correctly', () => {
   assertExists(result.flags.content_score);
   assertExists(result.flags.account_score);
   assertExists(result.flags.pr_score);
-  
+
   // Should be weighted: 40% content + 40% account + 20% PR
   const expectedScore = Math.round(
-    result.flags.content_score * 0.4 + 
-    result.flags.account_score * 0.4 + 
-    result.flags.pr_score * 0.2
+    result.flags.content_score * 0.4 +
+      result.flags.account_score * 0.4 +
+      result.flags.pr_score * 0.2,
   );
   assertEquals(result.spam_score, Math.min(expectedScore, 100));
 });

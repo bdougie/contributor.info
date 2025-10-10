@@ -1,18 +1,18 @@
 /**
  * Health Check Edge Function
- * 
+ *
  * Provides comprehensive health status for the contributor.info application.
  * Checks database connectivity, system metrics, and response times to ensure
  * the service is functioning properly.
- * 
+ *
  * Health checks include:
  * - Database connectivity and latency (< 2s threshold)
  * - System statistics and database size
  * - Overall service health status
- * 
+ *
  * @example
  * GET /functions/v1/health
- * 
+ *
  * @returns
  * {
  *   "success": true,
@@ -37,13 +37,13 @@
  */
 
 import { createSupabaseClient } from '../_shared/database.ts';
-import { successResponse, errorResponse, corsPreflightResponse } from '../_shared/responses.ts';
+import { corsPreflightResponse, errorResponse, successResponse } from '../_shared/responses.ts';
 import { createLogger } from '../_shared/logger.ts';
 import { PerformanceMonitor } from '../_shared/metrics.ts';
 
 /**
  * Health Check Edge Function
- * 
+ *
  * Provides comprehensive health status for edge functions infrastructure.
  */
 Deno.serve(async (req) => {
@@ -58,22 +58,22 @@ Deno.serve(async (req) => {
     const checks = await monitor.measure('health_checks', async () => {
       const databaseCheck = await checkDatabase();
       const environmentCheck = checkEnvironment();
-      
+
       return {
         database: databaseCheck,
         system: {
           status: environmentCheck.status ? 'healthy' : 'unhealthy',
-          latency: environmentCheck.latency
+          latency: environmentCheck.latency,
         },
         timestamp: new Date().toISOString(),
       };
     });
 
     // Check if all subsystems are healthy AND latency is acceptable
-    const isHealthy = checks.database.status === 'healthy' && 
-                     checks.system.status === 'healthy' &&
-                     checks.database.latency < 2000 && // < 2s threshold
-                     checks.system.latency < 1000; // < 1s threshold
+    const isHealthy = checks.database.status === 'healthy' &&
+      checks.system.status === 'healthy' &&
+      checks.database.latency < 2000 && // < 2s threshold
+      checks.system.latency < 1000; // < 1s threshold
 
     logger.info('Health check completed', { checks, isHealthy });
 
@@ -86,8 +86,8 @@ Deno.serve(async (req) => {
       metadata: {
         service: 'contributor.info',
         version: '1.0.0',
-        environment: Deno.env.get('ENVIRONMENT') || 'development'
-      }
+        environment: Deno.env.get('ENVIRONMENT') || 'development',
+      },
     };
 
     if (isHealthy) {
@@ -112,10 +112,10 @@ Deno.serve(async (req) => {
         metadata: {
           service: 'contributor.info',
           version: '1.0.0',
-          environment: Deno.env.get('ENVIRONMENT') || 'development'
-        }
+          environment: Deno.env.get('ENVIRONMENT') || 'development',
+        },
       };
-      
+
       return new Response(JSON.stringify(unhealthyResponse), {
         status: 503,
         headers: {
@@ -138,16 +138,16 @@ async function checkDatabase(): Promise<{ status: string; latency: number }> {
     const supabase = createSupabaseClient();
     const { error } = await supabase.from('contributors').select('count').limit(1);
     const latency = performance.now() - startTime;
-    
+
     return {
       status: error ? 'unhealthy' : 'healthy',
-      latency: Math.round(latency)
+      latency: Math.round(latency),
     };
   } catch {
     const latency = performance.now() - startTime;
     return {
       status: 'unhealthy',
-      latency: Math.round(latency)
+      latency: Math.round(latency),
     };
   }
 }
@@ -155,11 +155,11 @@ async function checkDatabase(): Promise<{ status: string; latency: number }> {
 function checkEnvironment(): { status: boolean; latency: number } {
   const startTime = performance.now();
   const requiredVars = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
-  const status = requiredVars.every(v => Deno.env.get(v));
+  const status = requiredVars.every((v) => Deno.env.get(v));
   const latency = performance.now() - startTime;
-  
+
   return {
     status,
-    latency: Math.round(latency)
+    latency: Math.round(latency),
   };
 }

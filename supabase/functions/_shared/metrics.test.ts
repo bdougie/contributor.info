@@ -1,4 +1,4 @@
-import { assertEquals, assert } from 'https://deno.land/std@0.177.0/testing/asserts.ts';
+import { assert, assertEquals } from 'https://deno.land/std@0.177.0/testing/asserts.ts';
 import { PerformanceMonitor } from './metrics.ts';
 
 // Mock console methods for testing
@@ -22,15 +22,15 @@ function restoreConsole() {
 
 // Helper to wait for a short duration
 function wait(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 Deno.test('PerformanceMonitor - tracks timer lifecycle', async () => {
   mockConsole();
-  
+
   try {
     const monitor = new PerformanceMonitor('test-function');
-    
+
     monitor.startTimer('test-operation');
     await wait(10); // Wait a small amount of time
     const metric = monitor.endTimer('test-operation');
@@ -41,7 +41,7 @@ Deno.test('PerformanceMonitor - tracks timer lifecycle', async () => {
     assertEquals(metric.success, true);
     assert(metric.duration_ms >= 10);
     assert(metric.timestamp);
-    
+
     // Should log metric
     assertEquals(consoleOutput.length, 1);
     assertEquals(consoleOutput[0].level, 'info');
@@ -53,14 +53,14 @@ Deno.test('PerformanceMonitor - tracks timer lifecycle', async () => {
 
 Deno.test('PerformanceMonitor - handles missing timer gracefully', () => {
   mockConsole();
-  
+
   try {
     const monitor = new PerformanceMonitor('test-function');
-    
+
     const metric = monitor.endTimer('non-existent-operation');
-    
+
     assertEquals(metric, undefined);
-    
+
     // Should log warning about missing timer
     assertEquals(consoleOutput.length, 1);
     assertEquals(consoleOutput[0].level, 'warn');
@@ -72,10 +72,10 @@ Deno.test('PerformanceMonitor - handles missing timer gracefully', () => {
 
 Deno.test('PerformanceMonitor - warns on slow operations', () => {
   mockConsole();
-  
+
   try {
     const monitor = new PerformanceMonitor('test-function');
-    
+
     // Mock performance.now to simulate slow operation
     const originalNow = performance.now;
     let callCount = 0;
@@ -84,16 +84,16 @@ Deno.test('PerformanceMonitor - warns on slow operations', () => {
       if (callCount === 1) return 0; // start time
       return 1500; // end time (1.5 seconds later)
     };
-    
+
     monitor.startTimer('slow-operation');
     const metric = monitor.endTimer('slow-operation');
-    
+
     // Restore original performance.now
     performance.now = originalNow;
 
     assert(metric);
     assertEquals(metric.duration_ms, 1500);
-    
+
     // Should log metric and warning
     assertEquals(consoleOutput.length, 2);
     assertEquals(consoleOutput[0].level, 'info'); // metric log
@@ -106,17 +106,17 @@ Deno.test('PerformanceMonitor - warns on slow operations', () => {
 
 Deno.test('PerformanceMonitor - measure async operation success', async () => {
   mockConsole();
-  
+
   try {
     const monitor = new PerformanceMonitor('test-function');
-    
+
     const result = await monitor.measure('async-op', async () => {
       await wait(5);
       return 'success-result';
     });
 
     assertEquals(result, 'success-result');
-    
+
     // Should log metric
     assertEquals(consoleOutput.length, 1);
     const metricLog = JSON.parse(consoleOutput[0].message[1]);
@@ -131,10 +131,10 @@ Deno.test('PerformanceMonitor - measure async operation success', async () => {
 
 Deno.test('PerformanceMonitor - measure async operation failure', async () => {
   mockConsole();
-  
+
   try {
     const monitor = new PerformanceMonitor('test-function');
-    
+
     let thrownError;
     try {
       await monitor.measure('failing-op', async () => {
@@ -147,7 +147,7 @@ Deno.test('PerformanceMonitor - measure async operation failure', async () => {
 
     assert(thrownError);
     assertEquals(thrownError.message, 'Test error');
-    
+
     // Should log metric with success=false
     assertEquals(consoleOutput.length, 1);
     const metricLog = JSON.parse(consoleOutput[0].message[1]);
@@ -160,16 +160,16 @@ Deno.test('PerformanceMonitor - measure async operation failure', async () => {
 
 Deno.test('PerformanceMonitor - measureSync operation success', () => {
   mockConsole();
-  
+
   try {
     const monitor = new PerformanceMonitor('test-function');
-    
+
     const result = monitor.measureSync('sync-op', () => {
       return 'sync-result';
     });
 
     assertEquals(result, 'sync-result');
-    
+
     // Should log metric
     assertEquals(consoleOutput.length, 1);
     const metricLog = JSON.parse(consoleOutput[0].message[1]);
@@ -183,10 +183,10 @@ Deno.test('PerformanceMonitor - measureSync operation success', () => {
 
 Deno.test('PerformanceMonitor - measureSync operation failure', () => {
   mockConsole();
-  
+
   try {
     const monitor = new PerformanceMonitor('test-function');
-    
+
     let thrownError;
     try {
       monitor.measureSync('failing-sync-op', () => {
@@ -198,7 +198,7 @@ Deno.test('PerformanceMonitor - measureSync operation failure', () => {
 
     assert(thrownError);
     assertEquals(thrownError.message, 'Sync error');
-    
+
     // Should log metric with success=false
     assertEquals(consoleOutput.length, 1);
     const metricLog = JSON.parse(consoleOutput[0].message[1]);
@@ -211,10 +211,10 @@ Deno.test('PerformanceMonitor - measureSync operation failure', () => {
 
 Deno.test('PerformanceMonitor - endTimer with custom success flag', () => {
   mockConsole();
-  
+
   try {
     const monitor = new PerformanceMonitor('test-function');
-    
+
     monitor.startTimer('custom-success-op');
     const metric = monitor.endTimer('custom-success-op', false);
 
@@ -227,15 +227,15 @@ Deno.test('PerformanceMonitor - endTimer with custom success flag', () => {
 
 Deno.test('PerformanceMonitor - multiple concurrent timers', async () => {
   mockConsole();
-  
+
   try {
     const monitor = new PerformanceMonitor('test-function');
-    
+
     monitor.startTimer('op1');
     monitor.startTimer('op2');
-    
+
     await wait(5);
-    
+
     const metric1 = monitor.endTimer('op1');
     await wait(5);
     const metric2 = monitor.endTimer('op2');
@@ -244,7 +244,7 @@ Deno.test('PerformanceMonitor - multiple concurrent timers', async () => {
     assert(metric2);
     assertEquals(metric1.operation, 'op1');
     assertEquals(metric2.operation, 'op2');
-    
+
     // metric2 should have longer duration since it was ended later
     assert(metric2.duration_ms > metric1.duration_ms);
   } finally {

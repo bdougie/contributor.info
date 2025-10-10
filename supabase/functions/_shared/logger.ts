@@ -1,6 +1,6 @@
 /**
  * Structured logging utility for edge functions
- * 
+ *
  * Provides consistent logging format across all functions.
  */
 
@@ -60,11 +60,13 @@ export class Logger {
 
   error(message: string, error?: Error | unknown) {
     this.log('error', message, {
-      error: error instanceof Error ? {
-        message: error.message,
-        stack: error.stack,
-        name: error.name,
-      } : error,
+      error: error instanceof Error
+        ? {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+        }
+        : error,
     });
   }
 
