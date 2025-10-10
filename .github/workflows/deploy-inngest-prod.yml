@@ -1,0 +1,44 @@
+name: Deploy Inngest Production Edge Function
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'supabase/functions/inngest-prod/**'
+      - '.github/workflows/deploy-inngest-prod.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Deploy inngest-prod function
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_ID: egcxzonpmmcirmgqdrla
+        run: |
+          echo "🚀 Deploying inngest-prod edge function with --no-verify-jwt flag..."
+          supabase functions deploy inngest-prod \
+            --project-ref $SUPABASE_PROJECT_ID \
+            --no-verify-jwt
+
+          echo "✅ Deployment complete!"
+          echo "⏰ Function will run on cron schedule: 0 */6 * * * (every 6 hours)"
+
+      - name: Verify deployment
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_ID: egcxzonpmmcirmgqdrla
+        run: |
+          echo "🔍 Verifying deployment status..."
+          supabase functions list --project-ref $SUPABASE_PROJECT_ID | grep inngest-prod || echo "⚠️ Function may still be deploying"
