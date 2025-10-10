@@ -7,18 +7,26 @@ interface UseWorkspaceContributorsProps {
   workspaceId: string;
   repositories: Array<{ id: string }>;
   selectedRepositories: string[];
+  searchQuery?: string;
+  page?: number;
+  pageSize?: number;
 }
 
 export function useWorkspaceContributors({
   workspaceId,
   repositories,
   selectedRepositories,
+  searchQuery = '',
+  page = 0,
+  pageSize = 20,
 }: UseWorkspaceContributorsProps) {
   const [contributors, setContributors] = useState<Contributor[]>([]);
   const [allAvailableContributors, setAllAvailableContributors] = useState<Contributor[]>([]);
   const [workspaceContributorIds, setWorkspaceContributorIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [totalCount, setTotalCount] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
 
   // Fetch workspace contributors from database
   const fetchWorkspaceContributors = async (availableContributors: Contributor[]) => {
@@ -129,10 +137,12 @@ export function useWorkspaceContributors({
 
         // Get unique contributor IDs from pull requests with optimized query
         // Also fetch dates for last activity calculation
-        const { data: pullRequests, error: prError } = await supabase
+        let prQuery = supabase
           .from('pull_requests')
           .select('author_id, repository_id, created_at, updated_at')
           .in('repository_id', repoIds);
+
+        const { data: pullRequests, error: prError } = await prQuery;
 
         if (prError) {
           console.error('Error fetching pull requests:', prError);
@@ -149,8 +159,8 @@ export function useWorkspaceContributors({
         // Get unique contributor IDs
         const contributorIds = [...new Set(pullRequests.map((pr) => pr.author_id).filter(Boolean))];
 
-        // Fetch contributor details
-        const { data: contributorStats, error: statsError } = await supabase
+        // Fetch contributor details with search filter and pagination
+        let contributorQuery = supabase
           .from('contributors')
           .select(
             `
@@ -164,9 +174,28 @@ export function useWorkspaceContributors({
             location,
             linkedin_url,
             discord_url
-          `
+          `,
+            { count: 'exact' }
           )
           .in('id', contributorIds);
+
+        // Apply search filter if provided
+        if (searchQuery.trim()) {
+          contributorQuery = contributorQuery.or(
+            `username.ilike.%${searchQuery}%,display_name.ilike.%${searchQuery}%`
+          );
+        }
+
+        // Apply pagination
+        const from = page * pageSize;
+        const to = from + pageSize - 1;
+        contributorQuery = contributorQuery.range(from, to);
+
+        const { data: contributorStats, error: statsError, count } = await contributorQuery;
+
+        // Update total count and hasMore flag
+        setTotalCount(count || 0);
+        setHasMore(count ? from + pageSize < count : false);
 
         if (statsError) {
           console.error('Error fetching contributor stats:', statsError);
@@ -321,7 +350,7 @@ export function useWorkspaceContributors({
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [workspaceId, repositories.length, selectedRepositories.length]); // Use stable dependencies
+  }, [workspaceId, repositories.length, selectedRepositories.length, searchQuery, page, pageSize]); // Use stable dependencies
 
   // Filter out contributors that are already in the workspace
   const availableToAdd = allAvailableContributors.filter(
@@ -334,6 +363,8 @@ export function useWorkspaceContributors({
     workspaceContributorIds,
     loading,
     error,
+    totalCount,
+    hasMore,
     addContributorsToWorkspace,
     removeContributorFromWorkspace,
   };
