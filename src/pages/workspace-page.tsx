@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import { getFallbackAvatar, getOrgAvatarUrl } from '@/lib/utils/avatar';
 import { useWorkspaceContributors } from '@/hooks/useWorkspaceContributors';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useContributorGroups } from '@/hooks/useContributorGroups';
 import { useWorkspaceEvents } from '@/hooks/use-workspace-events';
 import { TIME_PERIODS, timeHelpers } from '@/lib/constants/time-constants';
@@ -874,6 +875,16 @@ function WorkspaceContributors({
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+  const [page, setPage] = useState(0);
+  const pageSize = 20;
+  
+  // Debounce search query to avoid excessive API calls
+  const debouncedSearchQuery = useDebouncedValue(globalFilter, 300);
+
+  // Reset to first page when search query changes
+  useEffect(() => {
+    setPage(0);
+  }, [debouncedSearchQuery]);
 
   // CRM State
   const [showGroupManager, setShowGroupManager] = useState(false);
@@ -955,12 +966,17 @@ function WorkspaceContributors({
     workspaceContributorIds,
     loading,
     error,
+    totalCount,
+    hasMore,
     addContributorsToWorkspace,
     removeContributorFromWorkspace,
   } = useWorkspaceContributors({
     workspaceId: workspaceId,
     repositories,
     selectedRepositories,
+    searchQuery: showAddContributors ? debouncedSearchQuery : '',
+    page: showAddContributors ? page : 0,
+    pageSize: showAddContributors ? pageSize : 1000, // Load all for main view
   });
 
   // Create a Map indexed by contributor ID for the UI components
@@ -1007,6 +1023,8 @@ function WorkspaceContributors({
   const handleAddContributor = () => {
     setShowAddContributors(true);
     setSelectedContributorsToAdd([]);
+    setPage(0); // Reset to first page
+    setGlobalFilter(''); // Clear search
   };
 
   const handleSubmitContributors = async () => {
@@ -1022,6 +1040,8 @@ function WorkspaceContributors({
   const handleCancelAdd = () => {
     setShowAddContributors(false);
     setSelectedContributorsToAdd([]);
+    setPage(0); // Reset to first page
+    setGlobalFilter(''); // Clear search
   };
 
   // CRM Handlers
@@ -1453,19 +1473,12 @@ function WorkspaceContributors({
     columns: addColumns,
     state: {
       sorting,
-      globalFilter,
     },
     onSortingChange: setSorting,
-    onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    initialState: {
-      pagination: {
-        pageSize: 10,
-      },
-    },
+    manualPagination: true,
+    pageCount: Math.ceil(totalCount / pageSize),
   });
 
   // Filter contributors by selected group
@@ -1539,12 +1552,22 @@ function WorkspaceContributors({
               <div className="relative">
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search contributors..."
+                  placeholder="Search by username or name..."
                   value={globalFilter ?? ''}
                   onChange={(e) => setGlobalFilter(e.target.value)}
                   className="pl-10 min-h-[44px]"
                 />
+                {loading && globalFilter && (
+                  <div className="absolute right-3 top-2.5">
+                    <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full" />
+                  </div>
+                )}
               </div>
+              {debouncedSearchQuery && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  Found {totalCount} contributor{totalCount === 1 ? '' : 's'} matching &quot;{debouncedSearchQuery}&quot;
+                </p>
+              )}
             </div>
 
             {/* Table */}
@@ -1603,29 +1626,30 @@ function WorkspaceContributors({
             {/* Pagination */}
             <div className="flex flex-col sm:flex-row items-center justify-between mt-4 gap-4">
               <div className="text-sm text-muted-foreground order-2 sm:order-1">
-                Showing {addTable.getState().pagination.pageIndex * 10 + 1} to{' '}
-                {Math.min(
-                  (addTable.getState().pagination.pageIndex + 1) * 10,
-                  allAvailableContributors.length
-                )}{' '}
-                of {allAvailableContributors.length} contributors
+                Showing {page * pageSize + 1} to{' '}
+                {Math.min((page + 1) * pageSize, totalCount)}{' '}
+                of {totalCount} contributors
+                {debouncedSearchQuery && ' (filtered)'}
               </div>
               <div className="flex items-center gap-2 order-1 sm:order-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => addTable.previousPage()}
-                  disabled={!addTable.getCanPreviousPage()}
+                  onClick={() => setPage((prev) => Math.max(0, prev - 1))}
+                  disabled={page === 0 || loading}
                   className="min-h-[44px] px-3"
                 >
                   <span className="hidden sm:inline">Previous</span>
                   <span className="sm:hidden">‹</span>
                 </Button>
+                <span className="text-sm px-2">
+                  Page {page + 1} of {Math.ceil(totalCount / pageSize) || 1}
+                </span>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => addTable.nextPage()}
-                  disabled={!addTable.getCanNextPage()}
+                  onClick={() => setPage((prev) => prev + 1)}
+                  disabled={!hasMore || loading}
                   className="min-h-[44px] px-3"
                 >
                   <span className="hidden sm:inline">Next</span>
