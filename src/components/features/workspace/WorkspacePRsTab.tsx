@@ -78,7 +78,7 @@ export function WorkspacePRsTab({
   }, [error, refresh]);
 
   const handlePullRequestClick = (pr: PullRequest) => {
-    window.open(pr.url, '_blank');
+    window.open(pr.url, '_blank', 'noopener,noreferrer');
   };
 
   const handleRepositoryClick = (owner: string, name: string) => {
