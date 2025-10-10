@@ -4,7 +4,6 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import type { User } from '@supabase/supabase-js';
-import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useWorkspaceContributors } from '@/hooks/useWorkspaceContributors';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
@@ -22,15 +21,20 @@ import {
   type ColumnDef,
   type SortingState,
 } from '@tanstack/react-table';
-import { Plus, Users, Search, Package, Menu, GitPullRequest, AlertCircle, TrendingUp, TrendingDown } from '@/components/ui/icon';
+import {
+  Plus,
+  Users,
+  Search,
+  Package,
+  Menu,
+  GitPullRequest,
+  AlertCircle,
+  TrendingUp,
+  TrendingDown,
+} from '@/components/ui/icon';
 import { getOrgAvatarUrl } from '@/lib/utils/avatar';
 import type { Repository } from '@/components/features/workspace';
-import type {
-  Contributor,
-  ContributorGroup,
-  ContributorNote,
-} from '@/types/contributor';
-import { ContributorsList } from './ContributorsList';
+import { ContributorsList, type Contributor } from './ContributorsList';
 import { ContributorsTable } from './ContributorsTable';
 import { ContributorGroupManager } from './ContributorGroupManager';
 import { ContributorNotesDialog } from './ContributorNotesDialog';
@@ -77,7 +81,6 @@ export function WorkspaceContributorsTab({
   currentUser,
   activities = [],
 }: WorkspaceContributorsTabProps) {
-  const navigate = useNavigate();
   const [showAddContributors, setShowAddContributors] = useState(false);
   const [selectedContributorsToAdd, setSelectedContributorsToAdd] = useState<string[]>([]);
   const [sorting, setSorting] = useState<SortingState>([]);
