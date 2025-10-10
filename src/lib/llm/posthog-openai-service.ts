@@ -4,6 +4,7 @@
  */
 
 import type { LLMInsight, LLMServiceConfig } from './openai-service';
+import { logger } from '../logger';
 
 export interface PostHogConfig {
   apiKey?: string;
@@ -123,13 +124,13 @@ class PostHogOpenAIService {
    */
   private async initializePostHog(): Promise<void> {
     if (!this.posthogConfig.enableTracking || !this.posthogConfig.apiKey) {
-      console.log('PostHog tracking disabled - no API key provided');
+      logger.log('PostHog tracking disabled - no API key provided');
       return;
     }
 
     // Only initialize PostHog in Node.js environments
     if (typeof window !== 'undefined') {
-      console.log('PostHog LLM tracking not available in browser environment');
+      logger.log('PostHog LLM tracking not available in browser environment');
       this.posthogConfig.enableTracking = false;
       return;
     }
@@ -148,7 +149,7 @@ class PostHogOpenAIService {
           properties: Record<string, unknown>;
         }) => void;
       };
-      console.log('PostHog LLM analytics initialized');
+      logger.log('PostHog LLM analytics initialized');
     } catch (error) {
       console.warn('PostHog not available - install posthog-node for LLM tracking:', error);
       this.posthogConfig.enableTracking = false;

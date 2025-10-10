@@ -5,6 +5,7 @@
 
 import type { PostHog } from 'posthog-js';
 import { env } from '../env';
+import { logger } from '../logger';
 import type {
   FeatureFlagName,
   FeatureFlagValue,
@@ -118,7 +119,7 @@ export class PostHogFeatureFlagClient {
         disable_surveys: true,
         disable_compression: false,
         loaded: (ph) => {
-          console.log('[FeatureFlags] PostHog initialized with feature flags enabled');
+          logger.log('[FeatureFlags] PostHog initialized with feature flags enabled');
           this.posthog = ph;
         },
       });
@@ -288,7 +289,7 @@ export class PostHogFeatureFlagClient {
     if (this.posthog) {
       try {
         await this.posthog.reloadFeatureFlags();
-        console.log('[FeatureFlags] Flags reloaded from PostHog');
+        logger.log('[FeatureFlags] Flags reloaded from PostHog');
       } catch (error) {
         console.error('[FeatureFlags] Error reloading flags:', error);
       }
