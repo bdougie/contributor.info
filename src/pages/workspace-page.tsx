@@ -2004,7 +2004,7 @@ function WorkspaceActivity({
             created_at: pr.created_at,
             author: {
               username: pr.author_login || 'Unknown',
-              avatar_url: '', // Should come from contributors table via join
+              avatar_url: pr.author_login ? `https://github.com/${pr.author_login}.png` : '',
             },
             repository: getRepoName(pr.repository_id),
             status: (() => {
@@ -2030,7 +2030,7 @@ function WorkspaceActivity({
             created_at: issue.created_at,
             author: {
               username: issue.author_login || 'Unknown',
-              avatar_url: '', // Should come from contributors table via join
+              avatar_url: issue.author_login ? `https://github.com/${issue.author_login}.png` : '',
             },
             repository: getRepoName(issue.repository_id),
             status: issue.closed_at ? 'closed' : 'open',
@@ -2050,7 +2050,9 @@ function WorkspaceActivity({
             created_at: review.submitted_at,
             author: {
               username: review.reviewer_login || 'Unknown',
-              avatar_url: '', // Should come from contributors table via join
+              avatar_url: review.reviewer_login
+                ? `https://github.com/${review.reviewer_login}.png`
+                : '',
             },
             repository: review.repository_name || 'Unknown Repository',
             status: review.state.toLowerCase() as ActivityItem['status'],
@@ -2067,7 +2069,9 @@ function WorkspaceActivity({
             created_at: comment.created_at,
             author: {
               username: comment.commenter_login || 'Unknown',
-              avatar_url: '', // Should come from contributors table via join
+              avatar_url: comment.commenter_login
+                ? `https://github.com/${comment.commenter_login}.png`
+                : '',
             },
             repository: comment.repository_name || 'Unknown Repository',
             status: 'open',
@@ -2419,9 +2423,7 @@ function WorkspacePage() {
         created_at: pr.created_at,
         author: {
           username: pr.author_login || 'Unknown',
-          avatar_url: pr.author_login
-            ? `https://avatars.githubusercontent.com/${pr.author_login}`
-            : '',
+          avatar_url: pr.author_login ? `https://github.com/${pr.author_login}.png` : '',
         },
         repository: getRepoName(pr.repository_id),
         status: (() => {
@@ -2446,9 +2448,7 @@ function WorkspacePage() {
         created_at: issue.created_at,
         author: {
           username: issue.author_login || 'Unknown',
-          avatar_url: issue.author_login
-            ? `https://avatars.githubusercontent.com/${issue.author_login}`
-            : '',
+          avatar_url: issue.author_login ? `https://github.com/${issue.author_login}.png` : '',
         },
         repository: getRepoName(issue.repository_id),
         status: issue.closed_at ? 'closed' : 'open',
@@ -2467,7 +2467,7 @@ function WorkspacePage() {
         author: {
           username: review.reviewer_login || 'Unknown',
           avatar_url: review.reviewer_login
-            ? `https://avatars.githubusercontent.com/${review.reviewer_login}`
+            ? `https://github.com/${review.reviewer_login}.png`
             : '',
         },
         repository: review.repository_name || 'Unknown Repository',
@@ -2487,7 +2487,7 @@ function WorkspacePage() {
         author: {
           username: comment.commenter_login || 'Unknown',
           avatar_url: comment.commenter_login
-            ? `https://avatars.githubusercontent.com/${comment.commenter_login}`
+            ? `https://github.com/${comment.commenter_login}.png`
             : '',
         },
         repository: comment.repository_name || 'Unknown Repository',
