@@ -2,12 +2,19 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect, lazy, Suspense, useMemo, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
-import { getFallbackAvatar, getOrgAvatarUrl } from '@/lib/utils/avatar';
-import { useWorkspaceContributors } from '@/hooks/useWorkspaceContributors';
-import { useDebouncedValue } from '@/hooks/useDebouncedValue';
-import { useContributorGroups } from '@/hooks/useContributorGroups';
+import { getFallbackAvatar } from '@/lib/utils/avatar';
 import { useWorkspaceEvents } from '@/hooks/use-workspace-events';
-import { TIME_PERIODS, timeHelpers } from '@/lib/constants/time-constants';
+import { TIME_RANGE_DAYS, getStartDateForTimeRange } from '@/lib/utils/time-range';
+import {
+  calculateWorkspaceMetrics,
+  calculateTrendData,
+  generateActivityData,
+  calculatePreviousMetrics,
+  type MergedPR,
+  type PRData,
+  type IssueData,
+} from '@/services/workspace-metrics.service';
+import { WorkspaceContributorsTab } from '@/components/features/workspace/WorkspaceContributorsTab';
 import {
   WorkspaceDashboard,
   WorkspaceDashboardSkeleton,
@@ -29,14 +36,6 @@ import {
 } from '@/components/features/workspace/WorkspaceDiscussionsTable';
 import { type Issue } from '@/components/features/workspace/WorkspaceIssuesTable';
 import { RepositoryFilter } from '@/components/features/workspace/RepositoryFilter';
-import {
-  ContributorsList,
-  type Contributor,
-} from '@/components/features/workspace/ContributorsList';
-import { ContributorsTable } from '@/components/features/workspace/ContributorsTable';
-import { ContributorGroupManager } from '@/components/features/workspace/ContributorGroupManager';
-import { ContributorNotesDialog } from '@/components/features/workspace/ContributorNotesDialog';
-import { ContributorProfileModal } from '@/components/features/workspace/ContributorProfileModal';
 import { AddRepositoryModal } from '@/components/features/workspace/AddRepositoryModal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -44,33 +43,17 @@ import { Button } from '@/components/ui/button';
 import { ReviewerSuggestionsModal } from '@/components/features/workspace/reviewer-suggestions/ReviewerSuggestionsModal';
 import { GitHubAppInstallModal } from '@/components/features/github-app/github-app-install-modal';
 import { useWorkspaceGitHubAppStatus } from '@/hooks/use-workspace-github-app-status';
-import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import {
   GitPullRequest,
   AlertCircle,
   Users,
   Layout,
-  Plus,
   Settings,
   TrendingUp,
-  TrendingDown,
   Activity,
-  Search,
-  Menu,
-  Package,
   MessageSquare,
 } from '@/components/ui/icon';
-import {
-  useReactTable,
-  getCoreRowModel,
-  getSortedRowModel,
-  flexRender,
-  type ColumnDef,
-  type SortingState,
-} from '@tanstack/react-table';
 import {
   TimeRangeSelector,
   type TimeRange,
@@ -150,230 +133,9 @@ interface WorkspaceRepository {
   };
 }
 
-interface MergedPR {
-  merged_at: string;
-  additions: number;
-  deletions: number;
-  changed_files: number;
-  commits: number;
-}
+// Type definitions moved to workspace-metrics.service.ts
 
-// Time range mappings - shared across the component
-const TIME_RANGE_DAYS = {
-  '7d': 7,
-  '30d': 30,
-  '90d': 90,
-  '1y': 365,
-  all: 730, // 2 years for "all" to limit data size
-} as const;
-
-// filterRepositoriesBySelection utility moved to WorkspaceIssuesTab component
-
-// Calculate real metrics from repository data and fetched stats
-const calculateRealMetrics = (
-  repos: Repository[],
-  prCount: number = 0,
-  contributorCount: number = 0,
-  commitCount: number = 0,
-  issueCount: number = 0,
-  previousMetrics?: {
-    prCount: number;
-    contributorCount: number;
-    starCount: number;
-    commitCount: number;
-  }
-): WorkspaceMetrics => {
-  const totalStars = repos.reduce((sum, repo) => sum + (repo.stars || 0), 0);
-  const totalOpenPRs = repos.reduce((sum, repo) => sum + (repo.open_prs || 0), 0);
-  const totalOpenIssues = repos.reduce((sum, repo) => sum + (repo.open_issues || 0), 0);
-
-  // Calculate trends if we have previous metrics
-  let starsTrend = 0;
-  let prsTrend = 0;
-  let contributorsTrend = 0;
-  let commitsTrend = 0;
-
-  if (previousMetrics) {
-    // Calculate percentage changes
-    starsTrend =
-      previousMetrics.starCount > 0
-        ? ((totalStars - previousMetrics.starCount) / previousMetrics.starCount) * 100
-        : 0;
-    prsTrend =
-      previousMetrics.prCount > 0
-        ? ((totalOpenPRs - previousMetrics.prCount) / previousMetrics.prCount) * 100
-        : 0;
-    contributorsTrend =
-      previousMetrics.contributorCount > 0
-        ? ((contributorCount - previousMetrics.contributorCount) /
-            previousMetrics.contributorCount) *
-          100
-        : 0;
-    commitsTrend =
-      previousMetrics.commitCount > 0
-        ? ((commitCount - previousMetrics.commitCount) / previousMetrics.commitCount) * 100
-        : 0;
-  }
-
-  // Calculate issue trend
-  let issuesTrend = 0;
-  if (previousMetrics && 'issueCount' in previousMetrics) {
-    const prevIssues = (previousMetrics as { issueCount?: number }).issueCount || 0;
-    issuesTrend = prevIssues > 0 ? ((totalOpenIssues - prevIssues) / prevIssues) * 100 : 0;
-  }
-
-  return {
-    totalStars,
-    totalPRs: totalOpenPRs || prCount, // Use aggregated open PRs or fallback to passed count
-    totalIssues: totalOpenIssues || issueCount || 0, // Open issues count
-    totalContributors: contributorCount,
-    totalCommits: commitCount, // Keep commits for interface compatibility
-    starsTrend,
-    prsTrend,
-    issuesTrend,
-    contributorsTrend,
-    commitsTrend,
-  };
-};
-
-// Calculate real trend data from historical PR, issue, and commit data
-const calculateRealTrendData = (
-  days: number,
-  prData: Array<{ created_at: string; state: string; commits?: number }> = [],
-  issueData: Array<{ created_at: string; state: string }> = []
-): WorkspaceTrendData => {
-  const labels = [];
-  const prCounts = [];
-  const issueCounts = [];
-  const commitCounts = [];
-  const today = new Date();
-
-  // Create date buckets
-  for (let i = days - 1; i >= 0; i--) {
-    const date = new Date(today);
-    date.setDate(date.getDate() - i);
-    const dateStr = date.toISOString().split('T')[0];
-    labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
-
-    // Count PRs and aggregate commits for this day
-    const dayPRs = prData.filter((pr) => pr.created_at.split('T')[0] === dateStr);
-    prCounts.push(dayPRs.length);
-
-    // Sum up commits from PRs for this day
-    const dayCommits = dayPRs.reduce((sum, pr) => sum + (pr.commits || 0), 0);
-    commitCounts.push(dayCommits);
-
-    // Count issues for this day
-    const dayIssues = issueData.filter(
-      (issue) => issue.created_at.split('T')[0] === dateStr
-    ).length;
-    issueCounts.push(dayIssues);
-  }
-
-  return {
-    labels,
-    datasets: [
-      {
-        label: 'Pull Requests',
-        data: prCounts,
-        color: '#10b981',
-      },
-      {
-        label: 'Issues',
-        data: issueCounts,
-        color: '#f97316',
-      },
-      {
-        label: 'Commits',
-        data: commitCounts,
-        color: '#8b5cf6',
-      },
-    ],
-  };
-};
-
-// Generate activity data from merged PRs with better aggregation
-// Note: repos and selectedRepoIds params reserved for future filtering implementation
-const generateActivityDataFromPRs = (
-  mergedPRs: MergedPR[],
-  timeRange: TimeRange,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _repos?: Repository[],
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _selectedRepoIds?: string[]
-): ActivityDataPoint[] => {
-  // If no data at all, return empty array (let the chart handle empty state)
-  if (!mergedPRs || mergedPRs.length === 0) {
-    return [];
-  }
-
-  // Group PRs by date
-  const prsByDate = new Map<string, MergedPR[]>();
-
-  mergedPRs.forEach((pr) => {
-    const date = new Date(pr.merged_at).toISOString().split('T')[0];
-    if (!prsByDate.has(date)) {
-      prsByDate.set(date, []);
-    }
-    prsByDate.get(date)!.push(pr);
-  });
-
-  // Calculate daily statistics for candlestick chart
-  const activityData: ActivityDataPoint[] = [];
-
-  prsByDate.forEach((prs, date) => {
-    const totalAdditions = prs.reduce((sum, pr) => sum + (pr.additions || 0), 0);
-    const totalDeletions = prs.reduce((sum, pr) => sum + (pr.deletions || 0), 0);
-    const totalCommits = prs.reduce((sum, pr) => sum + (pr.commits || 0), 0);
-    const totalFilesChanged = prs.reduce((sum, pr) => sum + (pr.changed_files || 0), 0);
-
-    // Only add data points that have actual activity
-    if (totalAdditions > 0 || totalDeletions > 0 || totalCommits > 0) {
-      activityData.push({
-        date,
-        additions: totalAdditions,
-        deletions: totalDeletions,
-        commits: totalCommits,
-        files_changed: totalFilesChanged,
-      });
-    }
-  });
-
-  // Sort by date
-  activityData.sort((a, b) => a.date.localeCompare(b.date));
-
-  // Fill in gaps for continuous chart display (optional, only for recent dates)
-  if (activityData.length > 0 && timeRange !== 'all') {
-    const filledData: ActivityDataPoint[] = [];
-    const startDate = new Date(activityData[0].date);
-    const endDate = new Date(activityData[activityData.length - 1].date);
-    const dataMap = new Map(activityData.map((d) => [d.date, d]));
-
-    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-      const dateStr = d.toISOString().split('T')[0];
-      filledData.push(
-        dataMap.get(dateStr) || {
-          date: dateStr,
-          additions: 0,
-          deletions: 0,
-          commits: 0,
-          files_changed: 0,
-        }
-      );
-    }
-
-    return filledData;
-  }
-
-  return activityData;
-};
-
-// Pull Requests tab component
-// WorkspacePRs component moved to WorkspacePRsTab.tsx
-
-// WorkspaceIssues component moved to WorkspaceIssuesTab.tsx
-
-function WorkspaceContributors({
+// All tab components have been extracted to their own files({
   repositories,
   selectedRepositories,
   workspaceId,
@@ -1794,16 +1556,12 @@ function WorkspacePage() {
             : transformedRepos.filter((repo: Repository) => selectedRepositories.includes(repo.id));
         const repoIds = filteredRepos.map((r: Repository) => r.id);
 
-        // Calculate date range based on selected time range
+          // Calculate date range based on selected time range
         // Fetch 2x the time range to calculate trends (current + previous period)
         const daysToFetch = TIME_RANGE_DAYS[timeRange] * 2;
-        const startDate = new Date(Date.now() - daysToFetch * 24 * 60 * 60 * 1000);
-
-        // Ensure startDate is valid and not in the future
-        if (startDate.getTime() > Date.now()) {
-          console.warn('Start date is in the future, using 30 days ago as fallback');
-          startDate.setTime(Date.now() - timeHelpers.daysToMs(TIME_PERIODS.DEFAULT_METRICS_DAYS));
-        }
+        const startDate = getStartDateForTimeRange(timeRange);
+        // Extend start date for previous period comparison
+        startDate.setDate(startDate.getDate() - TIME_RANGE_DAYS[timeRange]);
 
         // Fetch PRs for activity data and metrics with more fields for activity tab
         const { data: prData, error: prError } = await supabase
@@ -2301,7 +2059,7 @@ function WorkspacePage() {
       };
 
       // Generate metrics with real counts including commits and issues
-      const realMetrics = calculateRealMetrics(
+      const realMetrics = calculateWorkspaceMetrics(
         transformedRepos,
         totalPRCount,
         uniqueContributorCount,
@@ -2311,18 +2069,16 @@ function WorkspacePage() {
       );
 
       // Generate trend data with real PR/issue data
-      const realTrendData = calculateRealTrendData(
+      const realTrendData = calculateTrendData(
         TIME_RANGE_DAYS[timeRange],
         prDataForTrends,
         issueDataForTrends
       );
 
       // Generate activity data from PRs
-      const activityDataPoints = generateActivityDataFromPRs(
+      const activityDataPoints = generateActivityData(
         mergedPRs,
-        timeRange,
-        transformedRepos,
-        selectedRepositories
+        timeRange
       );
 
       setMetrics(realMetrics);
@@ -2475,7 +2231,7 @@ function WorkspacePage() {
         setSelectedRepositories(formattedRepos.map((r) => r.id));
 
         // Update metrics with new repository data
-        const newMetrics = calculateRealMetrics(formattedRepos);
+        const newMetrics = calculateWorkspaceMetrics(formattedRepos);
         setMetrics(newMetrics);
       }
     } catch (error) {
@@ -2503,7 +2259,7 @@ function WorkspacePage() {
 
         // Update metrics after removing repository
         const updatedRepos = repositories.filter((r) => r.id !== repo.id);
-        const newMetrics = calculateRealMetrics(updatedRepos);
+        const newMetrics = calculateWorkspaceMetrics(updatedRepos);
         setMetrics(newMetrics);
 
         toast.success('Repository removed from workspace');
@@ -3027,7 +2783,7 @@ function WorkspacePage() {
 
           <TabsContent value="contributors" className="mt-6">
             <div className="container max-w-7xl mx-auto">
-              <WorkspaceContributors
+              <WorkspaceContributorsTab
                 repositories={repositories}
                 selectedRepositories={selectedRepositories}
                 workspaceId={workspace.id}
