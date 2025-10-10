@@ -31,7 +31,10 @@ import {
   WorkspaceIssuesTable,
   type Issue,
 } from '@/components/features/workspace/WorkspaceIssuesTable';
-import { WorkspaceDiscussionsTable } from '@/components/features/workspace/WorkspaceDiscussionsTable';
+import {
+  WorkspaceDiscussionsTable,
+  type Discussion,
+} from '@/components/features/workspace/WorkspaceDiscussionsTable';
 import { RepositoryFilter } from '@/components/features/workspace/RepositoryFilter';
 import { WorkspaceMetricsAndTrends } from '@/components/features/workspace/WorkspaceMetricsAndTrends';
 
@@ -3500,6 +3503,79 @@ function WorkspacePage() {
     }
   };
 
+  const handleDiscussionRespond = async (discussion: Discussion) => {
+    // Set current item for modal
+    setCurrentRespondItem({
+      id: discussion.id,
+      type: 'discussion',
+      url: discussion.url,
+      number: discussion.number,
+      title: discussion.title,
+      repository: discussion.repositories?.full_name || 'Unknown',
+    });
+
+    setResponseModalOpen(true);
+    setLoadingSimilarItems(true);
+
+    try {
+      // Check cache first
+      const cacheKey = similarityCache.getCacheKey(
+        workspace.id,
+        discussion.id.toString(),
+        'discussion'
+      );
+      const cachedItems = similarityCache.get(workspace.id, discussion.id.toString(), 'discussion');
+
+      if (cachedItems) {
+        // Use cached results
+        setSimilarItems(cachedItems);
+        const { generateResponseMessage } = await import('@/services/similarity-search');
+        const message = generateResponseMessage(cachedItems);
+        setResponseMessage(message);
+        setLoadingSimilarItems(false);
+        return;
+      }
+
+      // Perform debounced search if not cached
+      const searchResult = await debouncedSearch(cacheKey, async () => {
+        // Dynamically import similarity search to avoid loading ML models on page init
+        const { findSimilarItems, generateResponseMessage } = await import(
+          '@/services/similarity-search'
+        );
+
+        // Find similar items in the workspace
+        const items = await findSimilarItems({
+          workspaceId: workspace.id,
+          queryItem: {
+            id: discussion.id.toString(),
+            title: discussion.title,
+            body: discussion.body || null,
+            type: 'discussion',
+          },
+          limit: 7,
+        });
+
+        // Cache the results
+        similarityCache.set(workspace.id, discussion.id.toString(), 'discussion', items);
+
+        return { items, message: generateResponseMessage(items) };
+      });
+
+      if (searchResult) {
+        setSimilarItems(searchResult.items);
+        setResponseMessage(searchResult.message);
+      }
+    } catch (error) {
+      console.error('Error finding similar items:', error);
+      setSimilarItems([]);
+      setResponseMessage(
+        'Similarity search is not available yet. Embeddings need to be generated for this workspace.'
+      );
+    } finally {
+      setLoadingSimilarItems(false);
+    }
+  };
+
   const handleWorkspaceUpdate = (updates: Partial<Workspace>) => {
     if (workspace) {
       setWorkspace((prev) => (prev ? { ...prev, ...updates } : prev));
@@ -3845,6 +3921,7 @@ function WorkspacePage() {
                 timeRange={timeRange}
                 userRole={currentMember?.role}
                 isLoggedIn={!!currentUser}
+                onRespondClick={handleDiscussionRespond}
               />
             </div>
           </TabsContent>
