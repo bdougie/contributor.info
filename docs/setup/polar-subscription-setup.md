@@ -344,7 +344,7 @@ Before going live:
 
 ## Next Steps
 
-1. **Customer Portal**: Users can manage subscriptions at `https://polar.sh/purchases`
+1. **Customer Portal**: Users can manage subscriptions at `/billing`
 2. **Usage Analytics**: Implement usage tracking dashboard
 3. **Upgrade Prompts**: Add contextual upgrade prompts when limits are reached
 4. **Email Notifications**: Set up email alerts for subscription changes
