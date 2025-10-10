@@ -6,14 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LastUpdated } from '@/components/ui/last-updated';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useDataTimestamp } from '@/hooks/use-data-timestamp';
 import { supabase } from '@/lib/supabase';
@@ -82,6 +74,7 @@ interface WorkspaceDiscussionsTableProps {
   onRefresh?: () => void;
   userRole?: string | null;
   isLoggedIn?: boolean;
+  onRespondClick?: (discussion: Discussion) => void;
 }
 
 export function WorkspaceDiscussionsTable({
@@ -90,6 +83,7 @@ export function WorkspaceDiscussionsTable({
   onRefresh,
   userRole,
   isLoggedIn = false,
+  onRespondClick,
 }: WorkspaceDiscussionsTableProps) {
   const [discussions, setDiscussions] = useState<Discussion[]>([]);
   const [loading, setLoading] = useState(true);
@@ -100,49 +94,6 @@ export function WorkspaceDiscussionsTable({
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
-  const [selectedDiscussionForRespond, setSelectedDiscussionForRespond] =
-    useState<Discussion | null>(null);
-  const [respondLoading, setRespondLoading] = useState(false);
-
-  // Handle marking discussion as responded
-  const handleMarkAsResponded = async () => {
-    if (!selectedDiscussionForRespond) return;
-
-    setRespondLoading(true);
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        console.error('User not authenticated');
-        setRespondLoading(false);
-        return;
-      }
-
-      const { error } = await supabase
-        .from('discussions')
-        .update({
-          responded_by: user.id,
-          responded_at: new Date().toISOString(),
-        })
-        .eq('id', selectedDiscussionForRespond.id);
-
-      if (error) {
-        console.error('Failed to mark discussion as responded:', error);
-        // TODO: Show toast notification
-      } else {
-        // Update local state
-        setSelectedDiscussionForRespond(null);
-        // TODO: Show success toast
-        // TODO: Refresh discussions list
-      }
-    } catch (err) {
-      console.error('Error marking discussion as responded:', err);
-    } finally {
-      setRespondLoading(false);
-    }
-  };
 
   // Track data timestamps
   const { lastUpdated } = useDataTimestamp([discussions], {
@@ -578,14 +529,15 @@ export function WorkspaceDiscussionsTable({
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => setSelectedDiscussionForRespond(discussion)}
+                                    onClick={() => onRespondClick?.(discussion)}
                                     className={`h-7 px-2 ${
                                       discussion.responded_by && discussion.responded_at
                                         ? 'text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300'
                                         : 'text-muted-foreground hover:text-foreground'
                                     }`}
                                     disabled={
-                                      !!(discussion.responded_by && discussion.responded_at)
+                                      !!(discussion.responded_by && discussion.responded_at) ||
+                                      !onRespondClick
                                     }
                                     aria-label={
                                       discussion.responded_by && discussion.responded_at
@@ -658,59 +610,6 @@ export function WorkspaceDiscussionsTable({
           </>
         )}
       </CardContent>
-
-      {/* Respond Confirmation Dialog */}
-      {selectedDiscussionForRespond && (
-        <Dialog
-          open={!!selectedDiscussionForRespond}
-          onOpenChange={() => setSelectedDiscussionForRespond(null)}
-        >
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Reply className="h-5 w-5" />
-                Mark as Responded
-              </DialogTitle>
-              <DialogDescription>
-                Confirm that you've responded to this discussion:
-              </DialogDescription>
-            </DialogHeader>
-            <div className="py-4">
-              <div className="flex flex-col gap-2">
-                <p className="font-medium">
-                  #{selectedDiscussionForRespond.number}: {selectedDiscussionForRespond.title}
-                </p>
-                {selectedDiscussionForRespond.repositories && (
-                  <p className="text-sm text-muted-foreground">
-                    Repository: {selectedDiscussionForRespond.repositories.full_name}
-                  </p>
-                )}
-                {selectedDiscussionForRespond.category_name && (
-                  <p className="text-sm text-muted-foreground">
-                    Category: {selectedDiscussionForRespond.category_emoji}{' '}
-                    {selectedDiscussionForRespond.category_name}
-                  </p>
-                )}
-              </div>
-              <p className="mt-4 text-sm text-muted-foreground">
-                This will mark the discussion as responded by you and track when you responded.
-              </p>
-            </div>
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setSelectedDiscussionForRespond(null)}
-                disabled={respondLoading}
-              >
-                Cancel
-              </Button>
-              <Button onClick={handleMarkAsResponded} disabled={respondLoading}>
-                {respondLoading ? 'Marking...' : 'Mark as Responded'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
 
       {/* Blur overlay with upgrade prompt for users without workspace access */}
       {showUpgradePrompt && (

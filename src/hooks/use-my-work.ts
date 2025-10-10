@@ -68,6 +68,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     async function fetchMyWork() {
@@ -174,6 +175,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
         }
 
         // Query 2: Open issues assigned to user (in workspace repos)
+        // Exclude issues that have been marked as responded
         let issueQuery = supabase
           .from('issues')
           .select(
@@ -190,6 +192,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
           `
           )
           .eq('state', 'open') // Only open issues need attention
+          .is('responded_by', null) // Exclude responded items
           .order('updated_at', { ascending: false })
           .limit(20);
 
@@ -206,6 +209,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
 
         // Query 3: ALL unanswered discussions in workspace (not just authored by user)
         // Maintainers should see all discussions needing answers
+        // Exclude discussions that have been marked as responded
         let discussionsQuery = supabase
           .from('discussions')
           .select(
@@ -222,6 +226,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
           `
           )
           .eq('is_answered', false) // Only unanswered discussions need attention
+          .is('responded_by', null) // Exclude responded items
           .order('updated_at', { ascending: false })
           .limit(20);
 
@@ -371,7 +376,9 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
     }
 
     fetchMyWork();
-  }, [user, workspaceId, page, itemsPerPage]);
+  }, [user, workspaceId, page, itemsPerPage, refreshTrigger]);
 
-  return { items, totalCount, loading, error };
+  const refresh = () => setRefreshTrigger((prev) => prev + 1);
+
+  return { items, totalCount, loading, error, refresh };
 }
