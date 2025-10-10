@@ -216,22 +216,7 @@ export const ContributorConfidenceCard = memo(function ContributorConfidenceCard
             </div>
           </div>
 
-          {/* Upgrade CTA - always visible when no data */}
-          {hasData === false && !syncStatus.error && (
-            <div className="flex flex-col items-center sm:items-start gap-2 pt-2 mt-2 border-t w-full">
-              <p className="text-xs text-muted-foreground hidden sm:block">
-                Upgrade to see contributor confidence metrics for this repository.
-              </p>
-              <Button
-                onClick={() => window.open('https://polar.sh/bdougie/products', '_blank')}
-                variant="default"
-                size="sm"
-                className="flex items-center gap-1 h-7 px-2 text-xs"
-              >
-                Upgrade and find out
-              </Button>
-            </div>
-          )}
+
 
           {/* Sync error state - always visible */}
           {syncStatus.error && (
