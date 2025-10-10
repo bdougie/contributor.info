@@ -6,6 +6,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LastUpdated } from '@/components/ui/last-updated';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useDataTimestamp } from '@/hooks/use-data-timestamp';
 import { supabase } from '@/lib/supabase';
 import {
@@ -18,6 +27,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from '@/components/ui/icon';
+import { Reply } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { PermissionUpgradeCTA } from '@/components/ui/permission-upgrade-cta';
 import { UPGRADE_MESSAGES } from '@/lib/copy/upgrade-messages';
@@ -48,6 +58,8 @@ export interface Discussion {
   comment_count: number;
   url: string;
   locked: boolean;
+  responded_by?: string | null;
+  responded_at?: string | null;
   repositories?: {
     name: string;
     owner: string;
@@ -88,6 +100,49 @@ export function WorkspaceDiscussionsTable({
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  const [selectedDiscussionForRespond, setSelectedDiscussionForRespond] =
+    useState<Discussion | null>(null);
+  const [respondLoading, setRespondLoading] = useState(false);
+
+  // Handle marking discussion as responded
+  const handleMarkAsResponded = async () => {
+    if (!selectedDiscussionForRespond) return;
+
+    setRespondLoading(true);
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        console.error('User not authenticated');
+        setRespondLoading(false);
+        return;
+      }
+
+      const { error } = await supabase
+        .from('discussions')
+        .update({
+          responded_by: user.id,
+          responded_at: new Date().toISOString(),
+        })
+        .eq('id', selectedDiscussionForRespond.id);
+
+      if (error) {
+        console.error('Failed to mark discussion as responded:', error);
+        // TODO: Show toast notification
+      } else {
+        // Update local state
+        setSelectedDiscussionForRespond(null);
+        // TODO: Show success toast
+        // TODO: Refresh discussions list
+      }
+    } catch (err) {
+      console.error('Error marking discussion as responded:', err);
+    } finally {
+      setRespondLoading(false);
+    }
+  };
 
   // Track data timestamps
   const { lastUpdated } = useDataTimestamp([discussions], {
@@ -414,120 +469,153 @@ export function WorkspaceDiscussionsTable({
           <>
             <div className="space-y-3" role="feed" aria-label="Discussions feed">
               {paginatedDiscussions.map((discussion) => (
-              <article
-                key={discussion.id}
-                className="p-4 border rounded-lg hover:border-primary/50 transition-colors"
-                aria-labelledby={`discussion-title-${discussion.id}`}
-              >
-                <div className="flex gap-4">
-                  {/* Author Avatar */}
-                  <div className="flex-shrink-0">
-                    <Avatar className="h-10 w-10">
-                      {discussion.author_avatar_url && (
-                        <AvatarImage
-                          src={discussion.author_avatar_url}
-                          alt={discussion.author_login || 'User'}
-                        />
-                      )}
-                      <AvatarFallback>
-                        {discussion.author_login?.charAt(0).toUpperCase() || '?'}
-                      </AvatarFallback>
-                    </Avatar>
-                  </div>
-
-                  {/* Discussion Content */}
-                  <div className="flex-1 min-w-0">
-                    {/* Repository & Category Badges */}
-                    <div className="flex flex-wrap gap-2 mb-2">
-                      {discussion.repositories && (
-                        <Badge variant="outline" className="text-xs">
-                          {discussion.repositories.full_name}
-                        </Badge>
-                      )}
-                      {discussion.category_name && (
-                        <Badge variant="secondary" className="text-xs">
-                          {discussion.category_emoji && (
-                            <span className="mr-1" aria-hidden="true">
-                              {convertGithubEmoji(discussion.category_emoji)}
-                            </span>
-                          )}
-                          {discussion.category_name}
-                        </Badge>
-                      )}
+                <article
+                  key={discussion.id}
+                  className="p-4 border rounded-lg hover:border-primary/50 transition-colors"
+                  aria-labelledby={`discussion-title-${discussion.id}`}
+                >
+                  <div className="flex gap-4">
+                    {/* Author Avatar */}
+                    <div className="flex-shrink-0">
+                      <Avatar className="h-10 w-10">
+                        {discussion.author_avatar_url && (
+                          <AvatarImage
+                            src={discussion.author_avatar_url}
+                            alt={discussion.author_login || 'User'}
+                          />
+                        )}
+                        <AvatarFallback>
+                          {discussion.author_login?.charAt(0).toUpperCase() || '?'}
+                        </AvatarFallback>
+                      </Avatar>
                     </div>
 
-                    {/* Title and Link */}
-                    <h3
-                      id={`discussion-title-${discussion.id}`}
-                      className="font-semibold text-lg mb-1 flex items-start gap-2"
-                    >
-                      <a
-                        href={discussion.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="hover:underline flex-1"
-                        aria-label={`${discussion.title} (opens in new tab)`}
-                      >
-                        {discussion.title}
-                      </a>
-                      <ExternalLink
-                        className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-1"
-                        aria-hidden="true"
-                      />
-                    </h3>
-
-                    {/* AI Summary or Truncated Body */}
-                    {discussion.summary ? (
-                      <p className="text-sm text-muted-foreground mb-3">{discussion.summary}</p>
-                    ) : (
-                      discussion.body && (
-                        <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-                          {discussion.body}
-                        </p>
-                      )
-                    )}
-
-                    {/* Metadata */}
-                    <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <span>by {discussion.author_login || 'Unknown'}</span>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <div
-                          className="flex items-center gap-1"
-                          aria-label={`${discussion.upvote_count} upvotes`}
-                        >
-                          <ChevronUp className="h-4 w-4" aria-hidden="true" />
-                          <span>{discussion.upvote_count}</span>
-                        </div>
-                        <div
-                          className="flex items-center gap-1"
-                          aria-label={`${discussion.comment_count} comments`}
-                        >
-                          <MessageSquare className="h-4 w-4" aria-hidden="true" />
-                          <span>{discussion.comment_count}</span>
-                        </div>
-                        {discussion.is_answered && (
-                          <div
-                            className="flex items-center gap-1 text-green-600 dark:text-green-400"
-                            aria-label="Discussion answered"
-                          >
-                            <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
-                            <span>Answered</span>
-                          </div>
+                    {/* Discussion Content */}
+                    <div className="flex-1 min-w-0">
+                      {/* Repository & Category Badges */}
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {discussion.repositories && (
+                          <Badge variant="outline" className="text-xs">
+                            {discussion.repositories.full_name}
+                          </Badge>
+                        )}
+                        {discussion.category_name && (
+                          <Badge variant="secondary" className="text-xs">
+                            {discussion.category_emoji && (
+                              <span className="mr-1" aria-hidden="true">
+                                {convertGithubEmoji(discussion.category_emoji)}
+                              </span>
+                            )}
+                            {discussion.category_name}
+                          </Badge>
                         )}
                       </div>
-                      <div className="ml-auto">
-                        <time dateTime={discussion.updated_at}>
-                          {formatDistanceToNow(new Date(discussion.updated_at), {
-                            addSuffix: true,
-                          })}
-                        </time>
+
+                      {/* Title and Link */}
+                      <h3
+                        id={`discussion-title-${discussion.id}`}
+                        className="font-semibold text-lg mb-1 flex items-start gap-2"
+                      >
+                        <a
+                          href={discussion.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="hover:underline flex-1"
+                          aria-label={`${discussion.title} (opens in new tab)`}
+                        >
+                          {discussion.title}
+                        </a>
+                        <ExternalLink
+                          className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-1"
+                          aria-hidden="true"
+                        />
+                      </h3>
+
+                      {/* AI Summary or Truncated Body */}
+                      {discussion.summary ? (
+                        <p className="text-sm text-muted-foreground mb-3">{discussion.summary}</p>
+                      ) : (
+                        discussion.body && (
+                          <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+                            {discussion.body}
+                          </p>
+                        )
+                      )}
+
+                      {/* Metadata */}
+                      <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <span>by {discussion.author_login || 'Unknown'}</span>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div
+                            className="flex items-center gap-1"
+                            aria-label={`${discussion.upvote_count} upvotes`}
+                          >
+                            <ChevronUp className="h-4 w-4" aria-hidden="true" />
+                            <span>{discussion.upvote_count}</span>
+                          </div>
+                          <div
+                            className="flex items-center gap-1"
+                            aria-label={`${discussion.comment_count} comments`}
+                          >
+                            <MessageSquare className="h-4 w-4" aria-hidden="true" />
+                            <span>{discussion.comment_count}</span>
+                          </div>
+                          {discussion.is_answered && (
+                            <div
+                              className="flex items-center gap-1 text-green-600 dark:text-green-400"
+                              aria-label="Discussion answered"
+                            >
+                              <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+                              <span>Answered</span>
+                            </div>
+                          )}
+                          {hasWorkspaceAccess && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setSelectedDiscussionForRespond(discussion)}
+                                    className={`h-7 px-2 ${
+                                      discussion.responded_by && discussion.responded_at
+                                        ? 'text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300'
+                                        : 'text-muted-foreground hover:text-foreground'
+                                    }`}
+                                    disabled={
+                                      !!(discussion.responded_by && discussion.responded_at)
+                                    }
+                                    aria-label={
+                                      discussion.responded_by && discussion.responded_at
+                                        ? 'Already responded'
+                                        : 'Mark as responded'
+                                    }
+                                  >
+                                    <Reply className="h-4 w-4" aria-hidden="true" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  {discussion.responded_by && discussion.responded_at
+                                    ? 'Already responded'
+                                    : 'Mark as responded'}
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                        </div>
+                        <div className="ml-auto">
+                          <time dateTime={discussion.updated_at}>
+                            {formatDistanceToNow(new Date(discussion.updated_at), {
+                              addSuffix: true,
+                            })}
+                          </time>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </article>
+                </article>
               ))}
             </div>
 
@@ -570,6 +658,59 @@ export function WorkspaceDiscussionsTable({
           </>
         )}
       </CardContent>
+
+      {/* Respond Confirmation Dialog */}
+      {selectedDiscussionForRespond && (
+        <Dialog
+          open={!!selectedDiscussionForRespond}
+          onOpenChange={() => setSelectedDiscussionForRespond(null)}
+        >
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Reply className="h-5 w-5" />
+                Mark as Responded
+              </DialogTitle>
+              <DialogDescription>
+                Confirm that you've responded to this discussion:
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <div className="flex flex-col gap-2">
+                <p className="font-medium">
+                  #{selectedDiscussionForRespond.number}: {selectedDiscussionForRespond.title}
+                </p>
+                {selectedDiscussionForRespond.repositories && (
+                  <p className="text-sm text-muted-foreground">
+                    Repository: {selectedDiscussionForRespond.repositories.full_name}
+                  </p>
+                )}
+                {selectedDiscussionForRespond.category_name && (
+                  <p className="text-sm text-muted-foreground">
+                    Category: {selectedDiscussionForRespond.category_emoji}{' '}
+                    {selectedDiscussionForRespond.category_name}
+                  </p>
+                )}
+              </div>
+              <p className="mt-4 text-sm text-muted-foreground">
+                This will mark the discussion as responded by you and track when you responded.
+              </p>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setSelectedDiscussionForRespond(null)}
+                disabled={respondLoading}
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleMarkAsResponded} disabled={respondLoading}>
+                {respondLoading ? 'Marking...' : 'Mark as Responded'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Blur overlay with upgrade prompt for users without workspace access */}
       {showUpgradePrompt && (

@@ -39,6 +39,7 @@ import {
   MessageSquare,
   Sparkles,
 } from '@/components/ui/icon';
+import { Reply } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useWorkspaceFiltersStore, type IssueState } from '@/lib/workspace-filters-store';
 import { IssueFilters } from './filters/TableFilters';
@@ -81,6 +82,8 @@ export interface Issue {
     state: 'open' | 'closed' | 'merged';
   }>;
   url: string;
+  responded_by?: string | null;
+  responded_at?: string | null;
 }
 
 export interface WorkspaceIssuesTableProps {
@@ -129,6 +132,48 @@ export function WorkspaceIssuesTable({
   const [globalFilter, setGlobalFilter] = useState('');
   const [selectedIssueForSimilar, setSelectedIssueForSimilar] = useState<Issue | null>(null);
   const [similarIssuesMap, setSimilarIssuesMap] = useState<Map<string, Issue[]>>(new Map());
+  const [selectedIssueForRespond, setSelectedIssueForRespond] = useState<Issue | null>(null);
+  const [respondLoading, setRespondLoading] = useState(false);
+
+  // Handle marking issue as responded
+  const handleMarkAsResponded = async () => {
+    if (!selectedIssueForRespond) return;
+
+    setRespondLoading(true);
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        console.error('User not authenticated');
+        setRespondLoading(false);
+        return;
+      }
+
+      const { error } = await supabase
+        .from('github_issues')
+        .update({
+          responded_by: user.id,
+          responded_at: new Date().toISOString(),
+        })
+        .eq('id', selectedIssueForRespond.id);
+
+      if (error) {
+        console.error('Failed to mark issue as responded:', error);
+        // TODO: Show toast notification
+      } else {
+        // Update local state
+        setSelectedIssueForRespond(null);
+        // TODO: Show success toast
+        // TODO: Refresh issues list
+      }
+    } catch (err) {
+      console.error('Error marking issue as responded:', err);
+    } finally {
+      setRespondLoading(false);
+    }
+  };
 
   // Check for similar issues in the background (optimized batch query)
   useEffect(() => {
@@ -331,11 +376,7 @@ export function WorkspaceIssuesTable({
                 className="flex items-center gap-2 text-sm hover:text-primary transition-colors"
               >
                 {repo.avatar_url && (
-                  <img
-                    src={repo.avatar_url}
-                    alt={repo.owner}
-                    className="h-5 w-5 rounded"
-                  />
+                  <img src={repo.avatar_url} alt={repo.owner} className="h-5 w-5 rounded" />
                 )}
                 <span>{repo.name}</span>
               </button>
@@ -599,6 +640,40 @@ export function WorkspaceIssuesTable({
           size: 50,
         }),
         columnHelper.display({
+          id: 'respond',
+          header: () => <span className="sr-only">Respond</span>,
+          cell: ({ row }) => {
+            const hasResponded = row.original.responded_by && row.original.responded_at;
+
+            return (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedIssueForRespond(row.original)}
+                      className={cn(
+                        'h-8 px-2',
+                        hasResponded
+                          ? 'text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300'
+                          : 'text-muted-foreground hover:text-foreground'
+                      )}
+                      disabled={!!hasResponded}
+                    >
+                      <Reply className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {hasResponded ? 'Already responded' : 'Mark as responded'}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            );
+          },
+          size: 50,
+        }),
+        columnHelper.display({
           id: 'actions',
           cell: ({ row }) =>
             row.original.url ? (
@@ -838,6 +913,50 @@ export function WorkspaceIssuesTable({
             <DialogFooter>
               <Button variant="outline" onClick={() => setSelectedIssueForSimilar(null)}>
                 Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Mark as Responded Dialog */}
+      {selectedIssueForRespond && (
+        <Dialog
+          open={!!selectedIssueForRespond}
+          onOpenChange={() => setSelectedIssueForRespond(null)}
+        >
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Reply className="h-5 w-5" />
+                Mark as Responded
+              </DialogTitle>
+              <DialogDescription>Confirm that you've responded to this issue:</DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <div className="flex flex-col gap-2">
+                <p className="font-medium">
+                  #{selectedIssueForRespond.number}: {selectedIssueForRespond.title}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Repository: {selectedIssueForRespond.repository.owner}/
+                  {selectedIssueForRespond.repository.name}
+                </p>
+              </div>
+              <p className="mt-4 text-sm text-muted-foreground">
+                This will mark the issue as responded by you and track when you responded.
+              </p>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setSelectedIssueForRespond(null)}
+                disabled={respondLoading}
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleMarkAsResponded} disabled={respondLoading}>
+                {respondLoading ? 'Marking...' : 'Mark as Responded'}
               </Button>
             </DialogFooter>
           </DialogContent>
