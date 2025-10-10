@@ -342,12 +342,6 @@ export function useWorkspacePRs({
         const shouldSync = !skipSync && (forceRefresh || (needsSync && autoSyncOnMount));
 
         if (shouldSync) {
-          let syncReason = 'First load';
-          if (forceRefresh) {
-            syncReason = 'Refresh forced';
-          } else if (needsSync) {
-            syncReason = 'Data is stale';
-          }
           // Syncing PR data
 
           // Sync each repository

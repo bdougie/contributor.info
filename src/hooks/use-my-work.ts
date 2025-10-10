@@ -112,7 +112,6 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
           return;
         }
 
-        const contributorId = contributor.id;
         const avatarUrl = contributor.avatar_url;
         // Found contributor
 

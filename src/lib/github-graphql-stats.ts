@@ -325,7 +325,6 @@ export async function fetchContributorStats(
   // Calculate date 30 days ago
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-  const sinceDate = thirtyDaysAgo.toISOString();
 
   // Fetching contributor stats
 
