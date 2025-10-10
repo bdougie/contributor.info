@@ -12,6 +12,7 @@ import {
   WorkspaceDashboardSkeleton,
   ResponsePreviewModal,
 } from '@/components/features/workspace';
+import type { CurrentItem } from '@/components/features/workspace/ResponsePreviewModal';
 import type { SimilarItem } from '@/services/similarity-search';
 import { WorkspaceErrorBoundary } from '@/components/error-boundaries/workspace-error-boundary';
 import { AIFeatureErrorBoundary } from '@/components/error-boundaries/ai-feature-error-boundary';
@@ -30,7 +31,10 @@ import {
   WorkspaceIssuesTable,
   type Issue,
 } from '@/components/features/workspace/WorkspaceIssuesTable';
-import { WorkspaceDiscussionsTable } from '@/components/features/workspace/WorkspaceDiscussionsTable';
+import {
+  WorkspaceDiscussionsTable,
+  type Discussion,
+} from '@/components/features/workspace/WorkspaceDiscussionsTable';
 import { RepositoryFilter } from '@/components/features/workspace/RepositoryFilter';
 import { WorkspaceMetricsAndTrends } from '@/components/features/workspace/WorkspaceMetricsAndTrends';
 
@@ -565,6 +569,7 @@ function WorkspaceIssues({
   onGitHubAppModalOpen,
   currentUser,
   currentMember,
+  onIssueRespond,
 }: {
   repositories: Repository[];
   selectedRepositories: string[];
@@ -572,6 +577,7 @@ function WorkspaceIssues({
   onGitHubAppModalOpen: (repo: Repository) => void;
   currentUser: User | null;
   currentMember: WorkspaceMemberWithUser | null;
+  onIssueRespond?: (issue: Issue) => void;
 }) {
   const [issues, setIssues] = useState<Issue[]>([]);
   const [loading, setLoading] = useState(true);
@@ -611,6 +617,8 @@ function WorkspaceIssues({
             assignees,
             comments_count,
             repository_id,
+            responded_by,
+            responded_at,
             repositories(
               id,
               name,
@@ -744,6 +752,10 @@ function WorkspaceIssues({
     setSelectedAssignee(selectedAssignee === assignee ? null : assignee);
   };
 
+  const handleRespondClick = (issue: Issue) => {
+    onIssueRespond?.(issue);
+  };
+
   // Filter issues by selected assignee
   const filteredIssues = useMemo(() => {
     if (!selectedAssignee) return issues;
@@ -831,6 +843,7 @@ function WorkspaceIssues({
         loading={loading}
         onIssueClick={handleIssueClick}
         onRepositoryClick={handleRepositoryClick}
+        onRespondClick={handleRespondClick}
       />
     </div>
   );
@@ -2365,6 +2378,7 @@ function WorkspacePage() {
   const [similarItems, setSimilarItems] = useState<SimilarItem[]>([]);
   const [responseMessage, setResponseMessage] = useState('');
   const [loadingSimilarItems, setLoadingSimilarItems] = useState(false);
+  const [currentRespondItem, setCurrentRespondItem] = useState<CurrentItem | null>(null);
 
   // Initialize similarity search cache and debouncing
   const similarityCache = useSimilaritySearchCache({ maxSize: 20, ttlMs: 5 * 60 * 1000 });
@@ -3420,6 +3434,148 @@ function WorkspacePage() {
     navigate('/billing');
   };
 
+  const handleIssueRespond = async (issue: Issue) => {
+    // Set current item for modal
+    setCurrentRespondItem({
+      id: issue.id,
+      type: 'issue',
+      url: `https://github.com/${issue.repository.owner}/${issue.repository.name}/issues/${issue.number}`,
+      number: issue.number,
+      title: issue.title,
+      repository: `${issue.repository.owner}/${issue.repository.name}`,
+    });
+
+    setResponseModalOpen(true);
+    setLoadingSimilarItems(true);
+
+    try {
+      // Check cache first
+      const cacheKey = similarityCache.getCacheKey(workspace.id, issue.id.toString(), 'issue');
+      const cachedItems = similarityCache.get(workspace.id, issue.id.toString(), 'issue');
+
+      if (cachedItems) {
+        // Use cached results
+        setSimilarItems(cachedItems);
+        const { generateResponseMessage } = await import('@/services/similarity-search');
+        const message = generateResponseMessage(cachedItems);
+        setResponseMessage(message);
+        setLoadingSimilarItems(false);
+        return;
+      }
+
+      // Perform debounced search if not cached
+      const searchResult = await debouncedSearch(cacheKey, async () => {
+        // Dynamically import similarity search to avoid loading ML models on page init
+        const { findSimilarItems, generateResponseMessage } = await import(
+          '@/services/similarity-search'
+        );
+
+        // Find similar items in the workspace
+        const items = await findSimilarItems({
+          workspaceId: workspace.id,
+          queryItem: {
+            id: issue.id.toString(),
+            title: issue.title,
+            body: null, // Issue interface doesn't include body field
+            type: 'issue',
+          },
+          limit: 7,
+        });
+
+        // Cache the results
+        similarityCache.set(workspace.id, issue.id.toString(), 'issue', items);
+
+        return { items, message: generateResponseMessage(items) };
+      });
+
+      if (searchResult) {
+        setSimilarItems(searchResult.items);
+        setResponseMessage(searchResult.message);
+      }
+    } catch (error) {
+      console.error('Error finding similar items:', error);
+      setSimilarItems([]);
+      setResponseMessage(
+        'Similarity search is not available yet. Embeddings need to be generated for this workspace.'
+      );
+    } finally {
+      setLoadingSimilarItems(false);
+    }
+  };
+
+  const handleDiscussionRespond = async (discussion: Discussion) => {
+    // Set current item for modal
+    setCurrentRespondItem({
+      id: discussion.id,
+      type: 'discussion',
+      url: discussion.url,
+      number: discussion.number,
+      title: discussion.title,
+      repository: discussion.repositories?.full_name || 'Unknown',
+    });
+
+    setResponseModalOpen(true);
+    setLoadingSimilarItems(true);
+
+    try {
+      // Check cache first
+      const cacheKey = similarityCache.getCacheKey(
+        workspace.id,
+        discussion.id.toString(),
+        'discussion'
+      );
+      const cachedItems = similarityCache.get(workspace.id, discussion.id.toString(), 'discussion');
+
+      if (cachedItems) {
+        // Use cached results
+        setSimilarItems(cachedItems);
+        const { generateResponseMessage } = await import('@/services/similarity-search');
+        const message = generateResponseMessage(cachedItems);
+        setResponseMessage(message);
+        setLoadingSimilarItems(false);
+        return;
+      }
+
+      // Perform debounced search if not cached
+      const searchResult = await debouncedSearch(cacheKey, async () => {
+        // Dynamically import similarity search to avoid loading ML models on page init
+        const { findSimilarItems, generateResponseMessage } = await import(
+          '@/services/similarity-search'
+        );
+
+        // Find similar items in the workspace
+        const items = await findSimilarItems({
+          workspaceId: workspace.id,
+          queryItem: {
+            id: discussion.id.toString(),
+            title: discussion.title,
+            body: discussion.body || null,
+            type: 'discussion',
+          },
+          limit: 7,
+        });
+
+        // Cache the results
+        similarityCache.set(workspace.id, discussion.id.toString(), 'discussion', items);
+
+        return { items, message: generateResponseMessage(items) };
+      });
+
+      if (searchResult) {
+        setSimilarItems(searchResult.items);
+        setResponseMessage(searchResult.message);
+      }
+    } catch (error) {
+      console.error('Error finding similar items:', error);
+      setSimilarItems([]);
+      setResponseMessage(
+        'Similarity search is not available yet. Embeddings need to be generated for this workspace.'
+      );
+    } finally {
+      setLoadingSimilarItems(false);
+    }
+  };
+
   const handleWorkspaceUpdate = (updates: Partial<Workspace>) => {
     if (workspace) {
       setWorkspace((prev) => (prev ? { ...prev, ...updates } : prev));
@@ -3622,8 +3778,15 @@ function WorkspacePage() {
               loading={loadingSimilarItems}
               similarItems={similarItems}
               responseMessage={responseMessage}
+              currentItem={currentRespondItem || undefined}
+              workspaceId={workspace.id}
               onCopyToClipboard={() => {
                 toast.success('Response copied to clipboard!');
+              }}
+              onItemMarkedAsResponded={() => {
+                // Clear the current item when modal closes
+                setCurrentRespondItem(null);
+                // The useMyWork hook will automatically refresh when this is called
               }}
             />
           </AIFeatureErrorBoundary>
@@ -3740,6 +3903,7 @@ function WorkspacePage() {
                 onGitHubAppModalOpen={handleGitHubAppModalOpen}
                 currentUser={currentUser}
                 currentMember={currentMember}
+                onIssueRespond={handleIssueRespond}
               />
             </div>
           </TabsContent>
@@ -3757,6 +3921,7 @@ function WorkspacePage() {
                 timeRange={timeRange}
                 userRole={currentMember?.role}
                 isLoggedIn={!!currentUser}
+                onRespondClick={handleDiscussionRespond}
               />
             </div>
           </TabsContent>

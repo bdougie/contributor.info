@@ -39,6 +39,7 @@ import {
   MessageSquare,
   Sparkles,
 } from '@/components/ui/icon';
+import { Reply } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useWorkspaceFiltersStore, type IssueState } from '@/lib/workspace-filters-store';
 import { IssueFilters } from './filters/TableFilters';
@@ -81,6 +82,8 @@ export interface Issue {
     state: 'open' | 'closed' | 'merged';
   }>;
   url: string;
+  responded_by?: string | null;
+  responded_at?: string | null;
 }
 
 export interface WorkspaceIssuesTableProps {
@@ -89,6 +92,7 @@ export interface WorkspaceIssuesTableProps {
   className?: string;
   onIssueClick?: (issue: Issue) => void;
   onRepositoryClick?: (owner: string, name: string) => void;
+  onRespondClick?: (issue: Issue) => void;
 }
 
 const columnHelper = createColumnHelper<Issue>();
@@ -123,6 +127,7 @@ export function WorkspaceIssuesTable({
   className,
   onIssueClick,
   onRepositoryClick,
+  onRespondClick,
 }: WorkspaceIssuesTableProps) {
   const [sorting, setSorting] = useState<SortingState>([{ id: 'updated_at', desc: true }]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -331,11 +336,7 @@ export function WorkspaceIssuesTable({
                 className="flex items-center gap-2 text-sm hover:text-primary transition-colors"
               >
                 {repo.avatar_url && (
-                  <img
-                    src={repo.avatar_url}
-                    alt={repo.owner}
-                    className="h-5 w-5 rounded"
-                  />
+                  <img src={repo.avatar_url} alt={repo.owner} className="h-5 w-5 rounded" />
                 )}
                 <span>{repo.name}</span>
               </button>
@@ -599,6 +600,40 @@ export function WorkspaceIssuesTable({
           size: 50,
         }),
         columnHelper.display({
+          id: 'respond',
+          header: () => <span className="sr-only">Respond</span>,
+          cell: ({ row }) => {
+            const hasResponded = row.original.responded_by && row.original.responded_at;
+
+            return (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onRespondClick?.(row.original)}
+                      className={cn(
+                        'h-8 px-2',
+                        hasResponded
+                          ? 'text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300'
+                          : 'text-muted-foreground hover:text-foreground'
+                      )}
+                      disabled={!!hasResponded || !onRespondClick}
+                    >
+                      <Reply className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {hasResponded ? 'Already responded' : 'Mark as responded'}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            );
+          },
+          size: 50,
+        }),
+        columnHelper.display({
           id: 'actions',
           cell: ({ row }) =>
             row.original.url ? (
@@ -619,7 +654,7 @@ export function WorkspaceIssuesTable({
           size: 50,
         }),
       ] as ColumnDef<Issue>[],
-    [onIssueClick, onRepositoryClick, similarIssuesMap, issues]
+    [onIssueClick, onRepositoryClick, onRespondClick, similarIssuesMap, issues]
   );
 
   const table = useReactTable({

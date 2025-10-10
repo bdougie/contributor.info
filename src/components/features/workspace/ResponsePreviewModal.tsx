@@ -10,9 +10,20 @@ import {
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Check, Copy, Loader2 } from '@/components/ui/icon';
+import { Check, Copy, Loader2, ExternalLink } from '@/components/ui/icon';
 import type { SimilarItem } from '@/services/similarity-search';
 import { generateResponseMessage } from '@/services/similarity-search';
+import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
+
+export interface CurrentItem {
+  id: string;
+  type: 'pr' | 'issue' | 'discussion';
+  url: string;
+  number: number;
+  title: string;
+  repository: string;
+}
 
 export interface ResponsePreviewModalProps {
   open: boolean;
@@ -21,6 +32,9 @@ export interface ResponsePreviewModalProps {
   similarItems: SimilarItem[];
   responseMessage: string;
   onCopyToClipboard?: () => void;
+  currentItem?: CurrentItem;
+  workspaceId?: string;
+  onItemMarkedAsResponded?: () => void;
 }
 
 export function ResponsePreviewModal({
@@ -29,9 +43,13 @@ export function ResponsePreviewModal({
   loading = false,
   similarItems,
   onCopyToClipboard,
+  currentItem,
+  workspaceId,
+  onItemMarkedAsResponded,
 }: ResponsePreviewModalProps) {
   const [copied, setCopied] = useState(false);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const [markingAsResponded, setMarkingAsResponded] = useState(false);
   const copyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Initialize all items as selected when modal opens
@@ -89,7 +107,100 @@ export function ResponsePreviewModal({
     }
   };
 
+  const handleMarkAsResponded = async () => {
+    if (!currentItem || !workspaceId) {
+      return;
+    }
+
+    setMarkingAsResponded(true);
+
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        toast.error('You must be logged in to mark items as responded.');
+        setMarkingAsResponded(false);
+        return;
+      }
+
+      // Determine the table name based on item type
+      const tableName = currentItem.type === 'issue' ? 'issues' : 'discussions';
+
+      // Extract the actual database ID by removing the prefix
+      // MyWorkItem IDs have format: "issue-{id}" or "discussion-{id}"
+      const actualId = currentItem.id.replace(/^(issue-|discussion-|review-pr-)/, '');
+
+      // Optimistically trigger refresh BEFORE the database update
+      // This immediately removes the item from the UI for better UX
+      onItemMarkedAsResponded?.();
+
+      // Close the modal immediately after triggering refresh
+      onOpenChange(false);
+
+      // Update the item with responded_by and responded_at
+      const { error } = await supabase
+        .from(tableName)
+        .update({
+          responded_by: user.id,
+          responded_at: new Date().toISOString(),
+        })
+        .eq('id', actualId);
+
+      if (error) {
+        console.error('Error marking item as responded: %s', error.message);
+        toast.error(`Failed to mark as responded: ${error.message}. Please refresh.`);
+        // Trigger another refresh to show the item again since update failed
+        onItemMarkedAsResponded?.();
+        return;
+      }
+
+      toast.success(
+        `${currentItem.type === 'issue' ? 'Issue' : 'Discussion'} #${currentItem.number} marked as responded.`
+      );
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error marking item as responded: %s', errorMessage);
+      toast.error(`Failed to mark as responded: ${errorMessage}. Please refresh.`);
+      // Trigger refresh to restore proper state
+      onItemMarkedAsResponded?.();
+    } finally {
+      setMarkingAsResponded(false);
+    }
+  };
+
+  const handleOpenInNewTab = () => {
+    if (currentItem?.url) {
+      window.open(currentItem.url, '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  const getItemTypeLabel = (type: 'pr' | 'issue' | 'discussion'): string => {
+    if (type === 'issue') return 'Issue';
+    if (type === 'discussion') return 'Discussion';
+    return 'PR';
+  };
+
   // Avoid ternary - Rollup 4.45.0 bug (see docs/architecture/state-machine-patterns.md)
+  // Build button content first since it's used in mainContent
+  let buttonContent;
+  if (copied) {
+    buttonContent = (
+      <>
+        <Check className="h-4 w-4 mr-2" />
+        Copied!
+      </>
+    );
+  } else {
+    buttonContent = (
+      <>
+        <Copy className="h-4 w-4 mr-2" />
+        Copy to Clipboard
+      </>
+    );
+  }
+
   let mainContent;
   if (loading) {
     mainContent = (
@@ -174,6 +285,13 @@ export function ResponsePreviewModal({
               {responseMessage}
             </pre>
           </div>
+
+          {/* Copy button below preview */}
+          <div className="mt-3">
+            <Button onClick={handleCopy} disabled={loading || copied} className="w-full">
+              {buttonContent}
+            </Button>
+          </div>
         </div>
 
         {/* Similar items details with similarity scores */}
@@ -181,24 +299,6 @@ export function ResponsePreviewModal({
 
         {noItemsAlert}
       </div>
-    );
-  }
-
-  // Avoid ternary - Rollup 4.45.0 bug (see docs/architecture/state-machine-patterns.md)
-  let buttonContent;
-  if (copied) {
-    buttonContent = (
-      <>
-        <Check className="h-4 w-4 mr-2" />
-        Copied!
-      </>
-    );
-  } else {
-    buttonContent = (
-      <>
-        <Copy className="h-4 w-4 mr-2" />
-        Copy to Clipboard
-      </>
     );
   }
 
@@ -214,13 +314,46 @@ export function ResponsePreviewModal({
 
         {mainContent}
 
-        <DialogFooter className="flex-col sm:flex-row gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={handleCopy} disabled={loading || copied}>
-            {buttonContent}
-          </Button>
+        <DialogFooter className="flex-col sm:flex-row gap-2 sm:justify-between">
+          {/* Left side: Link button */}
+          <div className="flex gap-2">
+            {currentItem && (
+              <Button
+                variant="outline"
+                onClick={handleOpenInNewTab}
+                className="flex items-center gap-2"
+              >
+                <ExternalLink className="h-4 w-4" />
+                Open {getItemTypeLabel(currentItem.type)} #{currentItem.number}
+              </Button>
+            )}
+          </div>
+
+          {/* Right side: Action buttons */}
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            {currentItem && workspaceId && (
+              <Button
+                onClick={handleMarkAsResponded}
+                disabled={loading || markingAsResponded}
+                variant="default"
+              >
+                {markingAsResponded ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Marking...
+                  </>
+                ) : (
+                  <>
+                    <Check className="h-4 w-4 mr-2" />
+                    Mark as Responded
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
