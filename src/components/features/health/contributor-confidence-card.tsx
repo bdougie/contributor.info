@@ -1,4 +1,5 @@
 import { useState, memo, useMemo, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { UserPlus, RefreshCw, HelpCircle } from '@/components/ui/icon';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -222,13 +223,8 @@ export const ContributorConfidenceCard = memo(function ContributorConfidenceCard
               <p className="text-xs text-muted-foreground hidden sm:block">
                 Upgrade to see contributor confidence metrics for this repository.
               </p>
-              <Button
-                onClick={() => window.open('https://polar.sh/bdougie/products', '_blank')}
-                variant="default"
-                size="sm"
-                className="flex items-center gap-1 h-7 px-2 text-xs"
-              >
-                Upgrade and find out
+              <Button asChild variant="default" size="sm" className="flex items-center gap-1 h-7 px-2 text-xs">
+                <Link to="/billing">Upgrade and find out</Link>
               </Button>
             </div>
           )}
