@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { vi } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
 import { WorkspaceOnboarding, WorkspaceOnboardingCompact } from '../WorkspaceOnboarding';
 import { useFeatureFlags } from '@/lib/feature-flags/context';
 import { FEATURE_FLAGS } from '@/lib/feature-flags/types';
@@ -32,7 +33,11 @@ describe('WorkspaceOnboarding - Feature Flag Tests', () => {
       });
 
       it('should show the full onboarding card', () => {
-        render(<WorkspaceOnboarding onCreateClick={mockOnCreateClick} />);
+        render(
+          <MemoryRouter>
+            <WorkspaceOnboarding onCreateClick={mockOnCreateClick} />
+          </MemoryRouter>
+        );
 
         expect(
           screen.getByRole('heading', { name: 'Create Your First Workspace' })
@@ -47,7 +52,11 @@ describe('WorkspaceOnboarding - Feature Flag Tests', () => {
       });
 
       it('should show create button when enabled', () => {
-        render(<WorkspaceOnboarding onCreateClick={mockOnCreateClick} />);
+        render(
+          <MemoryRouter>
+            <WorkspaceOnboarding onCreateClick={mockOnCreateClick} />
+          </MemoryRouter>
+        );
 
         const createButton = screen.getByRole('button', { name: 'Create Your First Workspace' });
         // Just verify button exists, actual click testing is forbidden
@@ -71,7 +80,11 @@ describe('WorkspaceOnboarding - Feature Flag Tests', () => {
       });
 
       it('should show the disabled state', () => {
-        render(<WorkspaceOnboarding onCreateClick={mockOnCreateClick} />);
+        render(
+          <MemoryRouter>
+            <WorkspaceOnboarding onCreateClick={mockOnCreateClick} />
+          </MemoryRouter>
+        );
 
         expect(screen.getByText('Workspaces')).toBeInTheDocument();
         expect(screen.getByText('Sign In Required')).toBeInTheDocument();
@@ -79,7 +92,11 @@ describe('WorkspaceOnboarding - Feature Flag Tests', () => {
       });
 
       it('should not show the create button', () => {
-        render(<WorkspaceOnboarding onCreateClick={mockOnCreateClick} />);
+        render(
+          <MemoryRouter>
+            <WorkspaceOnboarding onCreateClick={mockOnCreateClick} />
+          </MemoryRouter>
+        );
 
         const createButton = screen.queryByText('Create Your First Workspace');
         expect(createButton).not.toBeInTheDocument();
@@ -104,14 +121,22 @@ describe('WorkspaceOnboarding - Feature Flag Tests', () => {
       });
 
       it('should show the compact onboarding card', () => {
-        render(<WorkspaceOnboardingCompact onCreateClick={mockOnCreateClick} />);
+        render(
+          <MemoryRouter>
+            <WorkspaceOnboardingCompact onCreateClick={mockOnCreateClick} />
+          </MemoryRouter>
+        );
 
         expect(screen.getByText('Need another workspace?')).toBeInTheDocument();
         expect(screen.getByText('New Workspace')).toBeInTheDocument();
       });
 
       it('should show create button when enabled', () => {
-        render(<WorkspaceOnboardingCompact onCreateClick={mockOnCreateClick} />);
+        render(
+          <MemoryRouter>
+            <WorkspaceOnboardingCompact onCreateClick={mockOnCreateClick} />
+          </MemoryRouter>
+        );
 
         const createButton = screen.getByText('New Workspace');
         // Just verify button exists, actual click testing is forbidden
@@ -135,7 +160,11 @@ describe('WorkspaceOnboarding - Feature Flag Tests', () => {
       });
 
       it('should show the disabled state', () => {
-        render(<WorkspaceOnboardingCompact onCreateClick={mockOnCreateClick} />);
+        render(
+          <MemoryRouter>
+            <WorkspaceOnboardingCompact onCreateClick={mockOnCreateClick} />
+          </MemoryRouter>
+        );
 
         expect(screen.getByText('Sign In Required')).toBeInTheDocument();
         expect(screen.queryByText('New Workspace')).not.toBeInTheDocument();

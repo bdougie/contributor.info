@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense } from 'react';
+import { useState, lazy, Suspense, useEffect } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ExampleRepos } from '../../features/repository';
@@ -13,12 +13,15 @@ import { useAuth } from '@/hooks/use-auth';
 import { useWorkspaceContext } from '@/contexts/WorkspaceContext';
 import { useAnalytics } from '@/hooks/use-analytics';
 import type { GitHubRepository } from '@/lib/github';
+import { supabase } from '@/lib/supabase';
+import type { User } from '@supabase/supabase-js';
 
 const CarouselLazy = lazy(() => import('@/components/ui/carousel-lazy'));
 
 export default function Home() {
   const navigate = useNavigate();
   const { isLoggedIn, loading: authLoading } = useAuth();
+  const [user, setUser] = useState<User | null>(null);
 
   const {
     workspaces,
@@ -33,6 +36,14 @@ export default function Home() {
     trackRepositorySelectedFromSearch,
     trackWorkspaceCreated,
   } = useAnalytics();
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      supabase.auth.getUser().then(({ data }) => {
+        setUser(data.user);
+      });
+    }
+  }, [isLoggedIn]);
 
   const handleSearch = (repositoryPath: string) => {
     trackRepositorySearchInitiated('homepage', repositoryPath.length);
@@ -131,7 +142,9 @@ export default function Home() {
               }
 
               if (!hasWorkspaces) {
-                return <WorkspaceOnboarding onCreateClick={() => setCreateModalOpen(true)} />;
+                return (
+                  <WorkspaceOnboarding onCreateClick={() => setCreateModalOpen(true)} user={user} />
+                );
               }
 
               if (workspaces.length === 1) {
