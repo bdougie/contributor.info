@@ -127,6 +127,8 @@ export function WorkspaceIssuesTab({
           setError('Failed to load issues. Please try again later.');
           setIssues([]);
         } else {
+          // Clear error state on successful fetch
+          setError(null);
           // Transform data to match Issue interface
           interface IssueQueryResult {
             id: string;
@@ -221,7 +223,7 @@ export function WorkspaceIssuesTab({
   const handleIssueClick = (issue: Issue) => {
     // Only open if URL exists
     if (issue.url) {
-      window.open(issue.url, '_blank');
+      window.open(issue.url, '_blank', 'noopener,noreferrer');
     }
   };
 

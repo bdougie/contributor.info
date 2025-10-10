@@ -210,7 +210,10 @@ export function WorkspaceActivityTab({
             },
             repository: review.repository_name || 'Unknown Repository',
             status: review.state.toLowerCase() as ActivityItem['status'],
-            url: '#',
+            url:
+              review.repository_name && review.pr_number
+                ? `https://github.com/${review.repository_name}/pull/${review.pr_number}`
+                : '#',
             metadata: {},
           })
         ),
@@ -227,7 +230,10 @@ export function WorkspaceActivityTab({
             },
             repository: comment.repository_name || 'Unknown Repository',
             status: 'open',
-            url: '#',
+            url:
+              comment.repository_name && comment.pr_number
+                ? `https://github.com/${comment.repository_name}/pull/${comment.pr_number}`
+                : '#',
             metadata: {},
           })
         ),

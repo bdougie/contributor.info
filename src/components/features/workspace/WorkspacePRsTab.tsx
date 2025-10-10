@@ -56,11 +56,8 @@ export function WorkspacePRsTab({
   useEffect(() => {
     if (lastSynced) {
       const minutesAgo = ((Date.now() - lastSynced.getTime()) / (1000 * 60)).toFixed(1);
-      console.log(
-        'PR data last synced %s minutes ago%s',
-        minutesAgo,
-        isStale ? ' (stale)' : ' (fresh)'
-      );
+      const staleness = isStale ? ' (stale)' : ' (fresh)';
+      console.log('PR data last synced %s minutes ago%s', minutesAgo, staleness);
     }
   }, [lastSynced, isStale]);
 
