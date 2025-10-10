@@ -75,4 +75,4 @@ jobs:
       - name: Type check
         run: |
           cd supabase/functions
-          deno check _shared/*.ts tests/*.ts health/index.ts
+          deno check --unstable-sloppy-imports _shared/*.ts tests/*.ts health/index.ts
