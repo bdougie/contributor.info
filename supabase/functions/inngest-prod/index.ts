@@ -1012,7 +1012,7 @@ const computeEmbeddings = inngest.createFunction(
   },
   [
     { event: 'embeddings/compute.requested' },
-    { cron: '*/15 * * * *' },
+    { cron: '0 */6 * * *' }, // Run every 6 hours (4 times a day)
   ],
   async ({ event, step }) => {
     const data = event.data || {};
