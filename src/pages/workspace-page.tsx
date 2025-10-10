@@ -12,6 +12,7 @@ import {
   WorkspaceDashboardSkeleton,
   ResponsePreviewModal,
 } from '@/components/features/workspace';
+import type { CurrentItem } from '@/components/features/workspace/ResponsePreviewModal';
 import type { SimilarItem } from '@/services/similarity-search';
 import { WorkspaceErrorBoundary } from '@/components/error-boundaries/workspace-error-boundary';
 import { AIFeatureErrorBoundary } from '@/components/error-boundaries/ai-feature-error-boundary';
@@ -2374,6 +2375,7 @@ function WorkspacePage() {
   const [similarItems, setSimilarItems] = useState<SimilarItem[]>([]);
   const [responseMessage, setResponseMessage] = useState('');
   const [loadingSimilarItems, setLoadingSimilarItems] = useState(false);
+  const [currentRespondItem, setCurrentRespondItem] = useState<CurrentItem | null>(null);
 
   // Initialize similarity search cache and debouncing
   const similarityCache = useSimilaritySearchCache({ maxSize: 20, ttlMs: 5 * 60 * 1000 });
@@ -3430,6 +3432,16 @@ function WorkspacePage() {
   };
 
   const handleIssueRespond = async (issue: Issue) => {
+    // Set current item for modal
+    setCurrentRespondItem({
+      id: issue.id,
+      type: 'issue',
+      url: `https://github.com/${issue.repository.owner}/${issue.repository.name}/issues/${issue.number}`,
+      number: issue.number,
+      title: issue.title,
+      repository: `${issue.repository.owner}/${issue.repository.name}`,
+    });
+
     setResponseModalOpen(true);
     setLoadingSimilarItems(true);
 
@@ -3690,8 +3702,15 @@ function WorkspacePage() {
               loading={loadingSimilarItems}
               similarItems={similarItems}
               responseMessage={responseMessage}
+              currentItem={currentRespondItem || undefined}
+              workspaceId={workspace.id}
               onCopyToClipboard={() => {
                 toast.success('Response copied to clipboard!');
+              }}
+              onItemMarkedAsResponded={() => {
+                // Clear the current item when modal closes
+                setCurrentRespondItem(null);
+                // The useMyWork hook will automatically refresh when this is called
               }}
             />
           </AIFeatureErrorBoundary>
