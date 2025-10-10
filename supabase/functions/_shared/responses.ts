@@ -211,6 +211,40 @@ export function corsPreflightResponse(): Response {
 }
 
 /**
+ * Creates a legacy-compatible success response without data wrapping
+ * 
+ * This maintains backward compatibility for existing endpoints that
+ * return data at the top level instead of wrapped under a 'data' property.
+ * 
+ * @param {Record<string, unknown>} payload - Response payload (spread at top level)
+ * @param {string} message - Optional success message
+ * @param {number} status - HTTP status code (default: 200)
+ * @returns {Response} HTTP Response object
+ * 
+ * @example
+ * return legacySuccessResponse({ processed: 5, errors: 0 }, 'Sync completed');
+ */
+export function legacySuccessResponse(
+  payload: Record<string, unknown>,
+  message?: string,
+  status: number = 200
+): Response {
+  const body = {
+    success: true,
+    ...payload,
+    ...(message && { message }),
+  };
+
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: {
+      ...corsHeaders,
+      'Content-Type': 'application/json',
+    },
+  });
+}
+
+/**
  * Wraps an error in a standardized error response
  * 
  * Useful for catch blocks to ensure consistent error handling

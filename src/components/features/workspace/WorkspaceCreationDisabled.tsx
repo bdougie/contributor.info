@@ -77,7 +77,7 @@ export function WorkspaceCreationDisabled({
               <Link to="/billing" className="text-primary hover:underline font-medium">
                 Upgrade and find out
               </Link>{' '}
-              how we you can build successful open source projects.
+              how you can build successful open source projects.
             </>
           ) : (
             <>Sign in to organize repositories and collaborate with your team.</>

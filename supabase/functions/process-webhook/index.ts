@@ -26,13 +26,9 @@
  */
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
+import { createSupabaseClient } from '../_shared/database.ts';
+import { corsPreflightResponse, legacySuccessResponse, errorResponse, validationError, notFoundError, handleError } from '../_shared/responses.ts';
 import { corsHeaders } from '../_shared/cors.ts';
-
-// Initialize Supabase client
-const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 // Initialize Inngest client for sending events
 const INNGEST_EVENT_KEY = Deno.env.get('INNGEST_EVENT_KEY') || '';
@@ -58,17 +54,17 @@ async function sendInngestEvent(event: any) {
 serve(async (req: Request) => {
   // Handle CORS
   if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 200, headers: corsHeaders });
+    return corsPreflightResponse();
   }
+
+  // Initialize Supabase client per request
+  const supabase = createSupabaseClient();
 
   try {
     const { jobId } = await req.json();
 
-    if (!jobId) {
-      return new Response(JSON.stringify({ error: 'Job ID required' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+        if (!jobId) {
+      return validationError('Missing job ID', 'Job ID is required for processing');
     }
 
     // Get job details
@@ -78,11 +74,8 @@ serve(async (req: Request) => {
       .eq('id', jobId)
       .single();
 
-    if (jobError || !job) {
-      return new Response(JSON.stringify({ error: 'Job not found' }), {
-        status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+        if (jobError || !job) {
+      return notFoundError('Job', `Job with ID ${jobId} not found`);
     }
 
     // Update job status to processing
@@ -94,8 +87,8 @@ serve(async (req: Request) => {
       })
       .eq('id', jobId);
 
-    try {
-      const result = await processWebhookJob(job.payload);
+        try {
+      const result = await processWebhookJob(job.payload, supabase);
 
       // Update job as completed
       await supabase
@@ -107,10 +100,7 @@ serve(async (req: Request) => {
         })
         .eq('id', jobId);
 
-      return new Response(JSON.stringify({ success: true, result }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return legacySuccessResponse(result, 'Webhook job processed successfully');
     } catch (error: any) {
       console.error(`Job ${jobId} failed:`, error);
 
@@ -124,37 +114,33 @@ serve(async (req: Request) => {
         })
         .eq('id', jobId);
 
-      throw error;
+            throw error;
     }
   } catch (error: any) {
-    console.error('Webhook processor error:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return handleError(error, 'webhook processor');
   }
 });
 
 /**
  * Process webhook job with 150s timeout available
  */
-async function processWebhookJob(payload: any): Promise<any> {
+async function processWebhookJob(payload: any, supabase: any): Promise<any> {
   const { event: githubEvent, action, data } = payload;
 
   console.log(`Processing webhook: ${githubEvent} (${action})`);
 
   switch (githubEvent) {
-    case 'pull_request':
-      return await processPullRequestEvent(data, action);
+        case 'pull_request':
+      return await processPullRequestEvent(data, action, supabase);
 
     case 'issues':
-      return await processIssueEvent(data, action);
+      return await processIssueEvent(data, action, supabase);
 
     case 'push':
-      return await processPushEvent(data);
+      return await processPushEvent(data, supabase);
 
     case 'repository':
-      return await processRepositoryEvent(data, action);
+      return await processRepositoryEvent(data, action, supabase);
 
     default:
       console.log(`Unhandled webhook event: ${githubEvent}`);
@@ -162,7 +148,7 @@ async function processWebhookJob(payload: any): Promise<any> {
   }
 }
 
-async function processPullRequestEvent(event: any, action: string) {
+async function processPullRequestEvent(event: any, action: string, supabase: any) {
   const pullRequest = event.pull_request;
   const repository = event.repository;
 
@@ -246,7 +232,7 @@ async function processPullRequestEvent(event: any, action: string) {
   };
 }
 
-async function processIssueEvent(event: any, action: string) {
+async function processIssueEvent(event: any, action: string, supabase: any) {
   const issue = event.issue;
   const repository = event.repository;
 
@@ -291,7 +277,7 @@ async function processIssueEvent(event: any, action: string) {
   };
 }
 
-async function processPushEvent(event: any) {
+async function processPushEvent(event: any, supabase: any) {
   const repository = event.repository;
   const commits = event.commits || [];
 
@@ -346,7 +332,7 @@ async function processPushEvent(event: any) {
   };
 }
 
-async function processRepositoryEvent(event: any, action: string) {
+async function processRepositoryEvent(event: any, action: string, supabase: any) {
   const repository = event.repository;
 
   if (!repository) {
