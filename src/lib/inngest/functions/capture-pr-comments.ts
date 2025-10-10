@@ -254,7 +254,7 @@ export const capturePrComments = inngest.createFunction(
             failedContributorCreations: failedContributorCreations,
           };
         } catch (error: unknown) {
-          console.error('Error fetching comments for PR #%s:', error, prNumber);
+          console.error('Error fetching comments for PR #%s:', prNumber, error);
           const apiError = error as { status?: number };
           if (apiError.status === 404) {
             console.warn('PR #%s not found, skipping comments', prNumber);

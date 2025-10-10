@@ -325,9 +325,8 @@ export async function fetchContributorStats(
   // Calculate date 30 days ago
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-  const sinceDate = thirtyDaysAgo.toISOString();
 
-  console.log('Fetching contributor stats for %s/%s since %s...', owner, repo, sinceDate);
+  // Fetching contributor stats
 
   const contributorMap = new Map<string, ContributorStats>();
   let cursor: string | null = null;
@@ -388,11 +387,7 @@ export async function fetchContributorStats(
 
           // If there are more than 100 reviews, fetch the rest
           if (pr.reviews.totalCount > 100) {
-            console.log(
-              'PR #%d has %d reviews, fetching remaining...',
-              pr.number,
-              pr.reviews.totalCount
-            );
+            // PR has many reviews, fetching remaining
             const additionalReviewerCounts = await fetchAllPRReviews(
               owner,
               repo,
@@ -441,11 +436,7 @@ export async function fetchContributorStats(
 
           // If there are more than 100 comments, fetch the rest
           if (pr.comments.totalCount > 100) {
-            console.log(
-              'PR #%d has %d comments, fetching remaining...',
-              pr.number,
-              pr.comments.totalCount
-            );
+            // PR has many comments, fetching remaining
             const additionalCommenterCounts = await fetchAllPRComments(
               owner,
               repo,
@@ -478,23 +469,14 @@ export async function fetchContributorStats(
       hasNextPage = pullRequests.pageInfo.hasNextPage;
       cursor = pullRequests.pageInfo.endCursor;
 
-      console.log(
-        'Processed %d PRs, %d contributors found so far',
-        pullRequests.nodes.length,
-        contributorMap.size
-      );
+      // Processed PRs and found contributors
     } catch (error) {
       console.error('Error fetching page:', error);
       throw error;
     }
   }
 
-  console.log(
-    'Completed fetching stats for %s/%s: %d contributors',
-    owner,
-    repo,
-    contributorMap.size
-  );
+  // Completed fetching stats
 
   return {
     owner,
@@ -509,7 +491,7 @@ export async function fetchContributorStats(
 export async function updateContributorStatsInDatabase(
   stats: RepositoryContributorStats
 ): Promise<void> {
-  console.log('Updating database for %s/%s...', stats.owner, stats.repo);
+  // Updating database
 
   // Use admin client if available for write operations
   const dbClient = adminSupabase || supabase;
@@ -601,13 +583,7 @@ export async function updateContributorStatsInDatabase(
       if (upsertError) {
         console.error('Failed to update stats for %s:', contributor.login, upsertError);
       } else {
-        console.log(
-          'Updated stats for %s: %d PRs, %d reviews, %d comments',
-          contributor.login,
-          contributor.pullRequestsCount,
-          contributor.reviewsCount,
-          contributor.commentsCount
-        );
+        // Updated stats for contributor
       }
     } catch (error) {
       console.error('Error processing contributor %s:', contributor.login, error);
@@ -615,7 +591,7 @@ export async function updateContributorStatsInDatabase(
     }
   }
 
-  console.log('Database update completed for %s/%s', stats.owner, stats.repo);
+  // Database update completed
 }
 
 /**
@@ -644,12 +620,12 @@ function calculateWeightedScore(
  */
 export async function syncRepositoryContributorStats(owner: string, repo: string): Promise<void> {
   try {
-    console.log('Starting sync for %s/%s', owner, repo);
+    // Starting sync
 
     const stats = await fetchContributorStats(owner, repo);
     await updateContributorStatsInDatabase(stats);
 
-    console.log('Successfully synced contributor stats for %s/%s', owner, repo);
+    // Successfully synced contributor stats
   } catch (error) {
     console.error('Failed to sync contributor stats for %s/%s:', owner, repo, error);
     throw error;

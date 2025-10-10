@@ -54,7 +54,7 @@ class ServiceWorkerClient {
         updateViaCache: 'none', // Always check for updates
       });
 
-      console.log('[SW Client] Service Worker registered:', registration);
+      // Service Worker registered successfully
 
       // Check for updates every hour
       setInterval(
@@ -66,7 +66,7 @@ class ServiceWorkerClient {
 
       // Handle controller change (new version activated)
       navigator.serviceWorker.addEventListener('controllerchange', () => {
-        console.log('[SW Client] New service worker activated');
+        // New service worker activated
         this.notifyUpdate();
       });
 
@@ -102,10 +102,10 @@ class ServiceWorkerClient {
     // Default handlers
     switch (message.type) {
       case 'CACHE_UPDATED':
-        console.log('[SW Client] Cache updated for:', (message as CacheUpdateEvent).url);
+        // Cache updated
         break;
       case 'BACKGROUND_SYNC':
-        console.log('[SW Client] Background sync:', (message as BackgroundSyncEvent).status);
+        // Background sync
         break;
     }
   }
@@ -162,7 +162,7 @@ class ServiceWorkerClient {
       data: { resources },
     });
 
-    console.log('[SW Client] Prefetching resources:', resources);
+    // Prefetching resources
   }
 
   /**

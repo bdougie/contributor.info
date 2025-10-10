@@ -165,7 +165,7 @@ export const captureIssueComments = inngest.createFunction(
           failedContributorCreations: failedContributorCreations,
         };
       } catch (error: unknown) {
-        console.error('Error fetching comments for issue #%s:', error, issueNumber);
+        console.error('Error fetching comments for issue #%s:', issueNumber, error);
         const apiError = error as { status?: number };
         if (apiError.status === 404) {
           console.warn('Issue #%s not found, skipping comments', issueNumber);

@@ -68,6 +68,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     async function fetchMyWork() {
@@ -89,7 +90,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
         setLoading(true);
         const githubLogin = user.user_metadata.user_name;
 
-        console.log('useMyWork - Starting fetch for:', { workspaceId, githubLogin });
+        // Starting fetch for workspace
 
         // First, get the contributor ID and avatar
         const { data: contributor, error: contributorError } = await supabase
@@ -106,15 +107,14 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
         }
 
         if (!contributor) {
-          console.log('No contributor found for user:', githubLogin);
+          // No contributor found for user
           setItems([]);
           setLoading(false);
           return;
         }
 
-        const contributorId = contributor.id;
         const avatarUrl = contributor.avatar_url;
-        console.log('Found contributor:', { contributorId, githubLogin, avatarUrl });
+        // Found contributor
 
         // Get workspace repository IDs for filtering
         let workspaceRepoIds: string[] = [];
@@ -124,17 +124,14 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             .select('repository_id')
             .eq('workspace_id', workspaceId);
 
-          console.log('useMyWork - Workspace found:', {
-            workspaceId,
-            repositoryCount: workspaceRepos?.length || 0,
-          });
+          // Workspace found
 
           if (workspaceRepos && workspaceRepos.length > 0) {
             workspaceRepoIds = workspaceRepos.map((wr) => wr.repository_id);
-            console.log('Filtering by repository IDs:', workspaceRepoIds);
+            // Filtering by repository IDs
           } else {
             // No repositories in workspace, return empty
-            console.log('No repositories in workspace');
+            // No repositories in workspace
             setItems([]);
             setLoading(false);
             return;
@@ -174,6 +171,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
         }
 
         // Query 2: Open issues assigned to user (in workspace repos)
+        // Exclude issues that have been marked as responded
         let issueQuery = supabase
           .from('issues')
           .select(
@@ -190,6 +188,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
           `
           )
           .eq('state', 'open') // Only open issues need attention
+          .is('responded_by', null) // Exclude responded items
           .order('updated_at', { ascending: false })
           .limit(20);
 
@@ -206,6 +205,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
 
         // Query 3: ALL unanswered discussions in workspace (not just authored by user)
         // Maintainers should see all discussions needing answers
+        // Exclude discussions that have been marked as responded
         let discussionsQuery = supabase
           .from('discussions')
           .select(
@@ -222,6 +222,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
           `
           )
           .eq('is_answered', false) // Only unanswered discussions need attention
+          .is('responded_by', null) // Exclude responded items
           .order('updated_at', { ascending: false })
           .limit(20);
 
@@ -240,11 +241,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
         const allIssues = rawIssues as unknown as IssueRow[] | null;
         const allDiscussions = rawDiscussions as unknown as DiscussionRow[] | null;
 
-        console.log('Query results:', {
-          reviewPRs: reviewPrs?.length || 0,
-          openIssues: allIssues?.length || 0,
-          unansweredDiscussions: allDiscussions?.length || 0,
-        });
+        // Query results collected
 
         // Filter review PRs where the user is requested (client-side filtering for JSONB)
         const reviewRequestedPrs = reviewPrs?.filter((pr) => {
@@ -341,12 +338,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
           (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
         );
 
-        console.log('Processed items needing attention:', {
-          reviewPrItems: reviewPrItems.length,
-          issueItems: issueItems.length,
-          discussionItems: discussionItems.length,
-          total: allItems.length,
-        });
+        // Processed items needing attention
 
         // Set total count
         setTotalCount(allItems.length);
@@ -356,9 +348,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
         const endIndex = startIndex + itemsPerPage;
         const paginatedItems = allItems.slice(startIndex, endIndex);
 
-        console.log(
-          `Showing items ${startIndex + 1}-${Math.min(endIndex, allItems.length)} of ${allItems.length}`
-        );
+        // Showing paginated items
 
         setItems(paginatedItems);
         setError(null);
@@ -371,7 +361,9 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
     }
 
     fetchMyWork();
-  }, [user, workspaceId, page, itemsPerPage]);
+  }, [user, workspaceId, page, itemsPerPage, refreshTrigger]);
 
-  return { items, totalCount, loading, error };
+  const refresh = () => setRefreshTrigger((prev) => prev + 1);
+
+  return { items, totalCount, loading, error, refresh };
 }

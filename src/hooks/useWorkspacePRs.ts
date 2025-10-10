@@ -142,7 +142,7 @@ export function useWorkspacePRs({
       const missingRepos = repoIds.filter((id) => !reposWithData.has(id));
 
       if (missingRepos.length > 0 || !data || data.length === 0) {
-        console.log('Found %s repos with no PR data, forcing sync', missingRepos.length);
+        // Found repos with no PR data, forcing sync
         return { needsSync: true, oldestSync: null };
       }
 
@@ -150,11 +150,7 @@ export function useWorkspacePRs({
       const oldestSync = new Date(data[0].last_synced_at);
       const minutesSinceSync = (Date.now() - oldestSync.getTime()) / (1000 * 60);
 
-      console.log(
-        'Oldest PR data is %s minutes old (threshold: %s minutes)',
-        minutesSinceSync.toFixed(1),
-        maxStaleMinutes
-      );
+      // Checked staleness of PR data
 
       return {
         needsSync: minutesSinceSync > maxStaleMinutes,
@@ -346,13 +342,7 @@ export function useWorkspacePRs({
         const shouldSync = !skipSync && (forceRefresh || (needsSync && autoSyncOnMount));
 
         if (shouldSync) {
-          let syncReason = 'First load';
-          if (forceRefresh) {
-            syncReason = 'Refresh forced';
-          } else if (needsSync) {
-            syncReason = 'Data is stale';
-          }
-          console.log('Syncing PR data - %s', syncReason);
+          // Syncing PR data
 
           // Sync each repository
           await Promise.all(

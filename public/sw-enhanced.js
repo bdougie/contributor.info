@@ -87,7 +87,7 @@ async function cleanupOldCaches() {
     cacheNames
       .filter((cacheName) => !currentCaches.includes(cacheName))
       .map((cacheName) => {
-        console.log('[SW] Deleting old cache:', cacheName);
+        // Deleting old cache
         return caches.delete(cacheName);
       })
   );
@@ -102,7 +102,7 @@ async function limitCacheSize(cacheName, maxSize) {
     const deleteCount = keys.length - maxSize;
     const keysToDelete = keys.slice(0, deleteCount);
 
-    console.log(`[SW] Trimming ${cacheName} cache: removing ${deleteCount} items`);
+    // Trimming cache
     await Promise.all(keysToDelete.map((key) => cache.delete(key)));
   }
 }
@@ -148,7 +148,7 @@ async function cacheFirst(request, cacheName, maxAge) {
   const cachedResponse = await cache.match(request);
 
   if (cachedResponse && !isStale(cachedResponse, maxAge)) {
-    console.log('[SW] Cache hit (cache-first):', request.url);
+    // Cache hit (cache-first)
     return cachedResponse;
   }
 
@@ -163,20 +163,20 @@ async function cacheFirst(request, cacheName, maxAge) {
         Object.keys(CACHE_LIMITS).find((key) => cacheName === CACHES[key]) || 'RUNTIME';
       await limitCacheSize(cacheName, CACHE_LIMITS[cacheKey] || 100);
     } else if (networkResponse.status === 206) {
-      console.log('[SW] Partial response (206) - not caching:', request.url);
+      // Partial response (206) - not caching
     }
 
     return networkResponse;
   } catch (error) {
     if (cachedResponse) {
-      console.log('[SW] Network failed, serving stale cache:', request.url);
+      // Network failed, serving stale cache
       return cachedResponse;
     }
 
     // For avatar images that fail, return a proper SVG placeholder to prevent infinite retries
     const url = new URL(request.url);
     if (url.hostname === 'avatars.githubusercontent.com') {
-      console.log('[SW] Avatar fetch failed, returning placeholder:', request.url);
+      // Avatar fetch failed, returning placeholder
       const placeholderSvg =
         '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><rect width="40" height="40" fill="#e1e4e8"/><text x="20" y="25" font-family="system-ui, -apple-system, sans-serif" font-size="20" text-anchor="middle" fill="#6a737d">?</text></svg>';
       return new Response(placeholderSvg, {
@@ -204,12 +204,12 @@ async function staleWhileRevalidate(request, cacheName, maxAge) {
   if (cachedResponse && !isStale(cachedResponse, maxAge)) {
     // For API requests, validate it's actually JSON before returning
     if (!isValidApiResponse(cachedResponse, isApiRequest)) {
-      console.log('[SW] Invalid cached API response (not JSON), refetching:', request.url);
+      // Invalid cached API response (not JSON), refetching
       // Delete the invalid cache entry
       await cache.delete(request);
       // Continue to fetch new response below
     } else {
-      console.log('[SW] Cache hit (fresh):', request.url);
+      // Cache hit (fresh)
 
       // Still fetch in background to keep cache warm
       fetch(request)
@@ -233,12 +233,12 @@ async function staleWhileRevalidate(request, cacheName, maxAge) {
   if (cachedResponse) {
     // For API requests, validate it's actually JSON
     if (!isValidApiResponse(cachedResponse, isApiRequest)) {
-      console.log('[SW] Invalid cached API response (not JSON), refetching:', request.url);
+      // Invalid cached API response (not JSON), refetching
       // Delete the invalid cache entry
       await cache.delete(request);
       // Continue to fetch new response below
     } else {
-      console.log('[SW] Serving stale while revalidating:', request.url);
+      // Serving stale while revalidating
 
       // Revalidate in background
       fetch(request)
@@ -274,12 +274,12 @@ async function staleWhileRevalidate(request, cacheName, maxAge) {
 
   // No cached response, fetch from network
   try {
-    console.log('[SW] Cache miss, fetching:', request.url);
+    // Cache miss, fetching
     const networkResponse = await fetch(request);
 
     // Check if it's a partial response (206) - don't cache these
     if (networkResponse.status === 206) {
-      console.log('[SW] Partial response (206) - not caching:', request.url);
+      // Partial response (206) - not caching
       return networkResponse;
     }
 
@@ -295,7 +295,7 @@ async function staleWhileRevalidate(request, cacheName, maxAge) {
         Object.keys(CACHE_LIMITS).find((key) => cacheName === CACHES[key]) || 'RUNTIME';
       await limitCacheSize(cacheName, CACHE_LIMITS[cacheKey] || 100);
     } else if (isApiRequest && networkResponse.ok) {
-      console.log('[SW] API response is not JSON, not caching:', request.url);
+      // API response is not JSON, not caching
     }
 
     return networkResponse;
@@ -319,7 +319,7 @@ async function networkFirst(request, cacheName) {
         Object.keys(CACHE_LIMITS).find((key) => cacheName === CACHES[key]) || 'RUNTIME';
       await limitCacheSize(cacheName, CACHE_LIMITS[cacheKey] || 100);
     } else if (networkResponse.status === 206) {
-      console.log('[SW] Partial response (206) - not caching:', request.url);
+      // Partial response (206) - not caching
     }
 
     return networkResponse;
@@ -327,7 +327,7 @@ async function networkFirst(request, cacheName) {
     const cachedResponse = await caches.match(request);
 
     if (cachedResponse) {
-      console.log('[SW] Serving from cache (offline):', request.url);
+      // Serving from cache (offline)
       return cachedResponse;
     }
 
@@ -345,7 +345,7 @@ async function networkFirst(request, cacheName) {
 
 // Prefetch routes for instant navigation
 async function prefetchRoutes(routes) {
-  console.log('[SW] Prefetching routes:', routes);
+  // Prefetching routes
 
   const cache = await caches.open(CACHES.APP);
 
@@ -366,7 +366,7 @@ async function prefetchRoutes(routes) {
 
 // Install event - cache static assets and vendor chunks
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing service worker v' + CACHE_VERSION);
+  // Installing service worker
 
   event.waitUntil(
     (async () => {
@@ -374,7 +374,7 @@ self.addEventListener('install', (event) => {
         // Cache static assets
         const staticCache = await caches.open(CACHES.STATIC);
         await staticCache.addAll(STATIC_ASSETS);
-        console.log('[SW] Static assets cached');
+        // Static assets cached
 
         // Skip waiting to activate immediately
         self.skipWaiting();
@@ -387,7 +387,7 @@ self.addEventListener('install', (event) => {
 
 // Activate event - cleanup and claim clients
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating service worker v' + CACHE_VERSION);
+  // Activating service worker
 
   event.waitUntil(
     (async () => {
@@ -403,7 +403,7 @@ self.addEventListener('activate', (event) => {
           prefetchRoutes(PREFETCH_ROUTES);
         }, 1000);
 
-        console.log('[SW] Service worker activated');
+        // Service worker activated
       } catch (error) {
         console.error('[SW] Activation failed:', error);
       }
@@ -477,7 +477,7 @@ async function handleRequest(request) {
     // Special handling for GitHub avatars to prevent infinite retries
     const url = new URL(request.url);
     if (url.hostname === 'avatars.githubusercontent.com') {
-      console.log('[SW] Avatar request failed, returning placeholder SVG to prevent retry loop');
+      // Avatar request failed, returning placeholder SVG to prevent retry loop
       const placeholderSvg =
         '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><rect width="40" height="40" fill="#e1e4e8"/><text x="20" y="25" font-family="system-ui, -apple-system, sans-serif" font-size="20" text-anchor="middle" fill="#6a737d">?</text></svg>';
       return new Response(placeholderSvg, {
@@ -566,7 +566,7 @@ self.addEventListener('message', (event) => {
                 request.url.includes(data.contributorId)
               ) {
                 cache.delete(request);
-                console.log('[SW] Invalidated contributor cache:', request.url);
+                // Invalidated contributor cache
               }
             });
           });
@@ -586,7 +586,7 @@ if ('sync' in self.registration) {
 }
 
 async function handleBackgroundSync() {
-  console.log('[SW] Background sync triggered');
+  // Background sync triggered
 
   // Get all clients
   const clients = await self.clients.matchAll();
