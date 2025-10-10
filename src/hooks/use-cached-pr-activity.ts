@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { PullRequestActivity, PullRequest } from '@/lib/types';
 import { detectBot } from '@/lib/utils/bot-detection';
+import { supabaseAvatarCache } from '@/lib/supabase-avatar-cache';
 
 // Cache interface
 interface ActivityCache {
@@ -39,8 +40,40 @@ function createPullRequestsHash(pullRequests: PullRequest[]): string {
   return JSON.stringify(prData);
 }
 
-function processActivities(pullRequests: PullRequest[]): PullRequestActivity[] {
+async function processActivities(pullRequests: PullRequest[]): Promise<PullRequestActivity[]> {
   const processedActivities: PullRequestActivity[] = [];
+
+  // Collect all unique users for batch avatar fetching
+  const users = new Set<{ githubId: number; username: string; fallbackUrl: string }>();
+  
+  pullRequests.forEach((pr) => {
+    users.add({ 
+      githubId: pr.user.id, 
+      username: pr.user.login, 
+      fallbackUrl: pr.user.avatar_url 
+    });
+    
+    // Collect reviewers
+    pr.reviews?.forEach(review => {
+      users.add({
+        githubId: review.user.id,
+        username: review.user.login,
+        fallbackUrl: review.user.avatar_url
+      });
+    });
+    
+    // Collect commenters
+    pr.comments?.forEach(comment => {
+      users.add({
+        githubId: comment.user.id,
+        username: comment.user.login,
+        fallbackUrl: comment.user.avatar_url
+      });
+    });
+  });
+
+  // Batch fetch cached avatars
+  const cachedAvatars = await supabaseAvatarCache.getAvatarUrls(Array.from(users));
 
   // Process pull requests
   pullRequests.forEach((pr) => {
@@ -60,7 +93,7 @@ function processActivities(pullRequests: PullRequest[]): PullRequestActivity[] {
       user: {
         id: pr.user.login,
         name: pr.user.login,
-        avatar: pr.user.avatar_url,
+        avatar: cachedAvatars.get(pr.user.id)?.url || pr.user.avatar_url,
         isBot: isBot,
       },
       pullRequest: {
@@ -87,7 +120,7 @@ function processActivities(pullRequests: PullRequest[]): PullRequestActivity[] {
         user: {
           id: pr.user.login,
           name: pr.user.login,
-          avatar: pr.user.avatar_url,
+          avatar: cachedAvatars.get(pr.user.id)?.url || pr.user.avatar_url,
           isBot: isBot,
         },
         pullRequest: {
@@ -112,7 +145,7 @@ function processActivities(pullRequests: PullRequest[]): PullRequestActivity[] {
         user: {
           id: pr.user.login,
           name: pr.user.login,
-          avatar: pr.user.avatar_url,
+          avatar: cachedAvatars.get(pr.user.id)?.url || pr.user.avatar_url,
           isBot: isBot,
         },
         pullRequest: {
@@ -145,7 +178,7 @@ function processActivities(pullRequests: PullRequest[]): PullRequestActivity[] {
             user: {
               id: review.user.login,
               name: review.user.login,
-              avatar: review.user.avatar_url,
+              avatar: cachedAvatars.get(review.user.id)?.url || review.user.avatar_url,
               isBot: reviewerIsBot,
             },
             pullRequest: {
@@ -179,7 +212,7 @@ function processActivities(pullRequests: PullRequest[]): PullRequestActivity[] {
           user: {
             id: comment.user.login,
             name: comment.user.login,
-            avatar: comment.user.avatar_url,
+            avatar: cachedAvatars.get(comment.user.id)?.url || comment.user.avatar_url,
             isBot: commenterIsBot,
           },
           pullRequest: {
@@ -216,28 +249,29 @@ export function useCachedPRActivity(pullRequests: PullRequest[]) {
   const cacheKey = useRef<string>('');
 
   useEffect(() => {
-    try {
-      setLoading(true);
+    const processData = async () => {
+      try {
+        setLoading(true);
 
-      // Generate cache key from pull requests
-      const pullRequestsHash = createPullRequestsHash(pullRequests);
-      const currentCacheKey = pullRequestsHash;
-      cacheKey.current = currentCacheKey;
+        // Generate cache key from pull requests
+        const pullRequestsHash = createPullRequestsHash(pullRequests);
+        const currentCacheKey = pullRequestsHash;
+        cacheKey.current = currentCacheKey;
 
-      // Check if we have cached data
-      const cachedData = activityCache[currentCacheKey];
-      const now = Date.now();
+        // Check if we have cached data
+        const cachedData = activityCache[currentCacheKey];
+        const now = Date.now();
 
-      if (cachedData && now - cachedData.timestamp < CACHE_DURATION) {
-        // Use cached data
-        setActivities(cachedData.activities);
-        setError(null);
-        setLoading(false);
-        return;
-      }
+        if (cachedData && now - cachedData.timestamp < CACHE_DURATION) {
+          // Use cached data
+          setActivities(cachedData.activities);
+          setError(null);
+          setLoading(false);
+          return;
+        }
 
-      // Process activities
-      const processedActivities = processActivities(pullRequests);
+        // Process activities (now async)
+        const processedActivities = await processActivities(pullRequests);
 
       // Cache the results
       activityCache[currentCacheKey] = {
@@ -257,13 +291,16 @@ export function useCachedPRActivity(pullRequests: PullRequest[]) {
         });
       }
 
-      setActivities(processedActivities);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to process PR activity'));
-    } finally {
-      setLoading(false);
-    }
+        setActivities(processedActivities);
+        setError(null);
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error('Failed to process PR activity'));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    processData();
   }, [pullRequests]);
 
   return { activities, loading, error };
