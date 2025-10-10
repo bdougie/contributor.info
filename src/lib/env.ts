@@ -34,7 +34,6 @@ interface ImportMeta {
 // Detect runtime environment
 const isServer = typeof window === 'undefined';
 const isBrowser = typeof window !== 'undefined';
-// @ts-expect-error - process is a Node.js global, not available in Deno
 const hasProcess = typeof process !== 'undefined' && process.env;
 
 /**
@@ -48,7 +47,6 @@ function getEnvVar(viteKey: string, serverKey?: string): string {
     console.error('🚨 SECURITY WARNING: Env key "%s" must start with VITE_ prefix', viteKey);
   }
   // For tests, provide default local Supabase values
-  // @ts-expect-error - process is a Node.js global, not available in Deno
   const isTest = hasProcess && (process.env.NODE_ENV === 'test' || process.env.VITEST === 'true');
 
   if (isTest && (viteKey === 'VITE_SUPABASE_URL' || serverKey === 'SUPABASE_URL')) {
@@ -79,7 +77,6 @@ function getEnvVar(viteKey: string, serverKey?: string): string {
 
     // 3. Try process.env as fallback (some bundlers expose this) - VITE_* keys only
     if (hasProcess) {
-      // @ts-expect-error - process is a Node.js global, not available in Deno
       const processValue = process.env[viteKey];
       if (typeof processValue === 'string' && processValue) {
         return processValue;
@@ -94,12 +91,10 @@ function getEnvVar(viteKey: string, serverKey?: string): string {
     // Server: Use process.env only (import.meta.env not available in CommonJS/Netlify Functions)
     if (!hasProcess) return '';
 
-    // @ts-expect-error - process is a Node.js global, not available in Deno
     const primaryValue = process.env[viteKey];
     if (primaryValue) return primaryValue;
 
     if (serverKey) {
-      // @ts-expect-error - process is a Node.js global, not available in Deno
       const secondaryValue = process.env[serverKey];
       if (secondaryValue) return secondaryValue;
     }
@@ -166,7 +161,6 @@ export const env = {
       const metaEnv = (typeof import.meta !== 'undefined' && (import.meta as ImportMeta).env) || {};
       return metaEnv.DEV || false;
     }
-    // @ts-expect-error - process is a Node.js global, not available in Deno
     return hasProcess && process.env.NODE_ENV === 'development';
   },
 
@@ -175,7 +169,6 @@ export const env = {
       const metaEnv = (typeof import.meta !== 'undefined' && (import.meta as ImportMeta).env) || {};
       return metaEnv.PROD || false;
     }
-    // @ts-expect-error - process is a Node.js global, not available in Deno
     return hasProcess && process.env.NODE_ENV === 'production';
   },
 
@@ -184,7 +177,6 @@ export const env = {
       const metaEnv = (typeof import.meta !== 'undefined' && (import.meta as ImportMeta).env) || {};
       return metaEnv.MODE || 'development';
     }
-    // @ts-expect-error - process is a Node.js global, not available in Deno
     return hasProcess ? process.env.NODE_ENV || 'development' : 'development';
   },
 
@@ -215,7 +207,6 @@ export const serverEnv = {
       return '';
     }
     return hasProcess
-      // @ts-expect-error - process is a Node.js global, not available in Deno
       ? process.env.SUPABASE_SERVICE_ROLE || process.env.SUPABASE_SERVICE_ROLE_KEY || ''
       : '';
   },
@@ -225,7 +216,6 @@ export const serverEnv = {
       console.error('🚨 SECURITY: Attempted to access server key from browser!');
       return '';
     }
-    // @ts-expect-error - process is a Node.js global, not available in Deno
     return hasProcess ? process.env.SUPABASE_TOKEN || '' : '';
   },
 
@@ -234,7 +224,6 @@ export const serverEnv = {
       console.error('🚨 SECURITY: Attempted to access server key from browser!');
       return '';
     }
-    // @ts-expect-error - process is a Node.js global, not available in Deno
     return hasProcess ? process.env.SUPABASE_MCP_TOKEN || '' : '';
   },
 
@@ -244,7 +233,6 @@ export const serverEnv = {
       console.error('🚨 SECURITY: Attempted to access server key from browser!');
       return '';
     }
-    // @ts-expect-error - process is a Node.js global, not available in Deno
     return hasProcess ? process.env.INNGEST_EVENT_KEY || '' : '';
   },
 
@@ -253,19 +241,16 @@ export const serverEnv = {
       console.error('🚨 SECURITY: Attempted to access server key from browser!');
       return '';
     }
-    // @ts-expect-error - process is a Node.js global, not available in Deno
     return hasProcess ? process.env.INNGEST_SIGNING_KEY || '' : '';
   },
 
   get INNGEST_SERVE_HOST() {
     if (isBrowser) return '';
-    // @ts-expect-error - process is a Node.js global, not available in Deno
     return hasProcess ? process.env.INNGEST_SERVE_HOST || '' : '';
   },
 
   get INNGEST_SERVE_PATH() {
     if (isBrowser) return '';
-    // @ts-expect-error - process is a Node.js global, not available in Deno
     return hasProcess ? process.env.INNGEST_SERVE_PATH || '/api/inngest' : '/api/inngest';
   },
 
@@ -275,7 +260,6 @@ export const serverEnv = {
       console.error('🚨 SECURITY: Attempted to access server key from browser!');
       return '';
     }
-    // @ts-expect-error - process is a Node.js global, not available in Deno
     return hasProcess ? process.env.OPENAI_API_KEY || '' : '';
   },
 
@@ -285,7 +269,6 @@ export const serverEnv = {
       console.error('🚨 SECURITY: Attempted to access server key from browser!');
       return '';
     }
-    // @ts-expect-error - process is a Node.js global, not available in Deno
     return hasProcess ? process.env.DUB_API_KEY || '' : '';
   },
 
@@ -295,26 +278,22 @@ export const serverEnv = {
       console.error('🚨 SECURITY: Attempted to access server key from browser!');
       return '';
     }
-    // @ts-expect-error - process is a Node.js global, not available in Deno
     return hasProcess ? process.env.RESEND_API_KEY || '' : '';
   },
 
   get CHROMATIC_PROJECT_TOKEN() {
     if (isBrowser) return '';
-    // @ts-expect-error - process is a Node.js global, not available in Deno
     return hasProcess ? process.env.CHROMATIC_PROJECT_TOKEN || '' : '';
   },
 
   // Environment detection for server
   get NODE_ENV() {
     if (isBrowser) return clientEnv.MODE;
-    // @ts-expect-error - process is a Node.js global, not available in Deno
     return hasProcess ? process.env.NODE_ENV || 'development' : 'development';
   },
 
   get IS_DEVELOPMENT() {
     if (isBrowser) return clientEnv.DEV;
-    // @ts-expect-error - process is a Node.js global, not available in Deno
     return hasProcess && process.env.NODE_ENV === 'development';
   },
 };
@@ -352,7 +331,6 @@ if (typeof window !== 'undefined') {
   validateEnvironment('client');
 } else {
   // Server context - only validate if we're actually in a server function
-  // @ts-expect-error - process is a Node.js global, not available in Deno
   if (hasProcess && (process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME)) {
     validateEnvironment('server');
   }
