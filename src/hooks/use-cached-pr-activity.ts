@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { PullRequestActivity, PullRequest } from '@/lib/types';
 import { detectBot } from '@/lib/utils/bot-detection';
+import { supabaseAvatarCache } from '@/lib/supabase-avatar-cache';
 
 // Cache interface
 interface ActivityCache {
@@ -39,8 +40,23 @@ function createPullRequestsHash(pullRequests: PullRequest[]): string {
   return JSON.stringify(prData);
 }
 
-function processActivities(pullRequests: PullRequest[]): PullRequestActivity[] {
+async function processActivities(pullRequests: PullRequest[]): Promise<PullRequestActivity[]> {
   const processedActivities: PullRequestActivity[] = [];
+
+  // Collect all PR authors with GitHub IDs for batch avatar fetching
+  // NOTE: We can only use Supabase avatar cache for PR authors because they have numeric GitHub IDs.
+  // Reviews and comments only provide login/avatar_url without IDs, so they can't use the cache.
+  const authorsWithIds = pullRequests
+    .filter((pr) => pr.user?.id)
+    .map((pr) => ({
+      githubId: pr.user.id,
+      username: pr.user.login,
+      fallbackUrl: pr.user.avatar_url,
+    }));
+
+  // Batch fetch avatars from Supabase cache for PR authors
+  const avatarCache =
+    authorsWithIds.length > 0 ? await supabaseAvatarCache.getAvatarUrls(authorsWithIds) : new Map();
 
   // Process pull requests
   pullRequests.forEach((pr) => {
@@ -53,6 +69,10 @@ function processActivities(pullRequests: PullRequest[]): PullRequestActivity[] {
     // Check if user is a bot using centralized detection
     const isBot = detectBot({ githubUser: pr.user }).isBot;
 
+    // Get cached avatar URL if available
+    const cachedAvatar = avatarCache.get(pr.user.id);
+    const avatarUrl = cachedAvatar?.url || pr.user.avatar_url;
+
     // Add PR creation activity
     processedActivities.push({
       id: `pr-${pr.id}-open`,
@@ -60,7 +80,7 @@ function processActivities(pullRequests: PullRequest[]): PullRequestActivity[] {
       user: {
         id: pr.user.login,
         name: pr.user.login,
-        avatar: pr.user.avatar_url,
+        avatar: avatarUrl,
         isBot: isBot,
       },
       pullRequest: {
@@ -87,7 +107,7 @@ function processActivities(pullRequests: PullRequest[]): PullRequestActivity[] {
         user: {
           id: pr.user.login,
           name: pr.user.login,
-          avatar: pr.user.avatar_url,
+          avatar: avatarUrl,
           isBot: isBot,
         },
         pullRequest: {
@@ -112,7 +132,7 @@ function processActivities(pullRequests: PullRequest[]): PullRequestActivity[] {
         user: {
           id: pr.user.login,
           name: pr.user.login,
-          avatar: pr.user.avatar_url,
+          avatar: avatarUrl,
           isBot: isBot,
         },
         pullRequest: {
@@ -138,6 +158,8 @@ function processActivities(pullRequests: PullRequest[]): PullRequestActivity[] {
         if (review.state === 'APPROVED' || review.state === 'CHANGES_REQUESTED') {
           // Check if reviewer is a bot using centralized detection
           const reviewerIsBot = detectBot({ username: review.user.login }).isBot;
+
+          // NOTE: Cannot use Supabase avatar cache for reviewers - no GitHub ID available
 
           processedActivities.push({
             id: `review-${pr.id}-${index}`,
@@ -172,6 +194,8 @@ function processActivities(pullRequests: PullRequest[]): PullRequestActivity[] {
       pr.comments.forEach((comment, index) => {
         // Check if commenter is a bot using centralized detection
         const commenterIsBot = detectBot({ username: comment.user.login }).isBot;
+
+        // NOTE: Cannot use Supabase avatar cache for commenters - no GitHub ID available
 
         processedActivities.push({
           id: `comment-${pr.id}-${index}`,
@@ -216,54 +240,58 @@ export function useCachedPRActivity(pullRequests: PullRequest[]) {
   const cacheKey = useRef<string>('');
 
   useEffect(() => {
-    try {
-      setLoading(true);
+    const processData = async () => {
+      try {
+        setLoading(true);
 
-      // Generate cache key from pull requests
-      const pullRequestsHash = createPullRequestsHash(pullRequests);
-      const currentCacheKey = pullRequestsHash;
-      cacheKey.current = currentCacheKey;
+        // Generate cache key from pull requests
+        const pullRequestsHash = createPullRequestsHash(pullRequests);
+        const currentCacheKey = pullRequestsHash;
+        cacheKey.current = currentCacheKey;
 
-      // Check if we have cached data
-      const cachedData = activityCache[currentCacheKey];
-      const now = Date.now();
+        // Check if we have cached data
+        const cachedData = activityCache[currentCacheKey];
+        const now = Date.now();
 
-      if (cachedData && now - cachedData.timestamp < CACHE_DURATION) {
-        // Use cached data
-        setActivities(cachedData.activities);
+        if (cachedData && now - cachedData.timestamp < CACHE_DURATION) {
+          // Use cached data
+          setActivities(cachedData.activities);
+          setError(null);
+          setLoading(false);
+          return;
+        }
+
+        // Process activities (now async)
+        const processedActivities = await processActivities(pullRequests);
+
+        // Cache the results
+        activityCache[currentCacheKey] = {
+          activities: processedActivities,
+          timestamp: now,
+          pullRequestsHash: pullRequestsHash,
+        };
+
+        // Clean up old cache entries (keep only last 10)
+        const cacheKeys = Object.keys(activityCache);
+        if (cacheKeys.length > 10) {
+          const sortedKeys = cacheKeys.sort(
+            (a, b) => activityCache[b].timestamp - activityCache[a].timestamp
+          );
+          sortedKeys.slice(10).forEach((key) => {
+            delete activityCache[key];
+          });
+        }
+
+        setActivities(processedActivities);
         setError(null);
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error('Failed to process PR activity'));
+      } finally {
         setLoading(false);
-        return;
       }
+    };
 
-      // Process activities
-      const processedActivities = processActivities(pullRequests);
-
-      // Cache the results
-      activityCache[currentCacheKey] = {
-        activities: processedActivities,
-        timestamp: now,
-        pullRequestsHash: pullRequestsHash,
-      };
-
-      // Clean up old cache entries (keep only last 10)
-      const cacheKeys = Object.keys(activityCache);
-      if (cacheKeys.length > 10) {
-        const sortedKeys = cacheKeys.sort(
-          (a, b) => activityCache[b].timestamp - activityCache[a].timestamp
-        );
-        sortedKeys.slice(10).forEach((key) => {
-          delete activityCache[key];
-        });
-      }
-
-      setActivities(processedActivities);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to process PR activity'));
-    } finally {
-      setLoading(false);
-    }
+    processData();
   }, [pullRequests]);
 
   return { activities, loading, error };
