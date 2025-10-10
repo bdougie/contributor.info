@@ -12,6 +12,7 @@ Documentation for development tools, patterns, and testing approaches used in th
 ### Development Tools
 - **[hooks.md](./hooks.md)** - React hooks documentation and patterns
 - **[evals-readme.md](./evals-readme.md)** - Evaluation and testing framework documentation
+- **[logging.md](./logging.md)** - Production-safe logging with logger utility
 
 ## Development Patterns
 

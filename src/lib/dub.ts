@@ -1,11 +1,12 @@
 import { supabase } from './supabase';
+import { logger } from './logger';
 
 // Environment-specific configuration
 const isDev = import.meta.env.DEV;
 const DOMAIN = isDev ? 'dub.sh' : 'oss.fyi';
 const DUB_API_KEY = import.meta.env.VITE_DUB_CO_KEY;
 
-console.log('Environment:', isDev ? 'Development' : 'Production', '- Using Dub API directly');
+logger.log('Environment:', isDev ? 'Development' : 'Production', '- Using Dub API directly');
 
 interface CreateShortUrlOptions {
   url: string;
@@ -87,7 +88,7 @@ export async function createShortUrl({
   }
 
   try {
-    console.log('Creating short URL via Dub API:', {
+    logger.log('Creating short URL via Dub API:', {
       url,
       domain: DOMAIN,
       key,
@@ -127,7 +128,7 @@ export async function createShortUrl({
     }
 
     const data = await response.json();
-    console.log('URL shortening success:', data.shortLink);
+    logger.log('URL shortening success:', data.shortLink);
 
     // Track the short URL creation in Supabase for analytics
     await trackShortUrlCreation(data);
@@ -182,7 +183,7 @@ async function trackShortUrlCreation(dubData: ShortUrlResponse) {
     if (error) {
       console.error('Failed to track short URL creation:', error);
     } else {
-      console.log('Short URL tracked in Supabase analytics');
+      logger.log('Short URL tracked in Supabase analytics');
     }
   } catch (error) {
     console.error('Error tracking short URL creation:', error);
@@ -296,7 +297,7 @@ export async function createChartShareUrl(
 export async function trackClick(shortUrl: string, metadata?: Record<string, unknown>) {
   // This will be automatically tracked by dub.co when the link is clicked
   // Additional custom tracking can be added here if needed
-  console.log('Click tracked for:', shortUrl, metadata);
+  logger.log('Click tracked for:', shortUrl, metadata);
 }
 
 /**

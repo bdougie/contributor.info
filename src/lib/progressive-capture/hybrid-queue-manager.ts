@@ -1,5 +1,6 @@
 import { supabase } from '../supabase';
 import { inngest } from '../inngest/client';
+import { logger } from '../logger';
 import { GitHubActionsQueueManager, GitHubActionsJobInput } from './github-actions-queue-manager';
 import { DataCaptureQueueManager } from './queue-manager';
 import { hybridRolloutManager } from './rollout-manager';
@@ -81,7 +82,7 @@ export class HybridQueueManager {
     // Check if this is a newly tracked repository (< 24 hours)
     const isNewlyTracked = await this.isNewlyTrackedRepository(data.repositoryId);
     if (isNewlyTracked) {
-      console.log(
+      logger.log(
         '[HybridQueue] Repository %s is newly tracked (<24h), applying priority boost',
         data.repositoryName
       );
@@ -132,12 +133,12 @@ export class HybridQueueManager {
       processor = routingDecision.processor;
       rolloutApplied = true;
 
-      console.log(
+      logger.log(
         '[HybridQueue] Repository %s eligible for hybrid routing → %s',
         data.repositoryName,
         processor
       );
-      console.log(
+      logger.log(
         '[HybridQueue] Routing reason: %s (confidence: %s)',
         routingDecision.reason,
         routingDecision.confidence
@@ -146,13 +147,13 @@ export class HybridQueueManager {
       // Check if we should initiate backfill for large repos
       const repo = await this.getRepositoryInfo(data.repositoryId);
       if (repo && (await enhancedHybridRouter.shouldInitiateBackfill(repo))) {
-        console.log('[HybridQueue] Initiating progressive backfill for %s', data.repositoryName);
+        logger.log('[HybridQueue] Initiating progressive backfill for %s', data.repositoryName);
         // The backfill will be initiated by the sync function
       }
     } else {
       // Fallback to Inngest-only for non-eligible repositories
       processor = 'inngest';
-      console.log(
+      logger.log(
         '[HybridQueue] Repository %s not eligible for hybrid routing → fallback to inngest',
         data.repositoryName
       );
@@ -177,7 +178,7 @@ export class HybridQueueManager {
         0 // processing time not available yet
       );
 
-      console.log(
+      logger.log(
         '[HybridQueue] Successfully queued %s job to %s (job_id: %s, rollout: %s)',
         jobType,
         processor,
@@ -333,7 +334,7 @@ export class HybridQueueManager {
           name: eventName,
           data: eventData as Record<string, unknown>,
         });
-        console.log(
+        logger.log(
           `[HybridQueue] Event ${eventName} queued successfully via client-safe API for`,
           (eventData as { repositoryId?: string }).repositoryId
         );
@@ -343,7 +344,7 @@ export class HybridQueueManager {
           name: eventName,
           data: eventData,
         });
-        console.log(
+        logger.log(
           `[HybridQueue] Event ${eventName} sent successfully for`,
           (eventData as { repositoryId?: string }).repositoryId
         );
@@ -606,7 +607,7 @@ export class HybridQueueManager {
       const rollbackTriggered = await hybridRolloutManager.checkAndTriggerAutoRollback();
 
       if (rollbackTriggered) {
-        console.log('[HybridQueue] Auto-rollback triggered due to high error rate');
+        logger.log('[HybridQueue] Auto-rollback triggered due to high error rate');
 
         // Optionally notify monitoring systems or send alerts
         // This could integrate with Sentry, PostHog, or other monitoring tools
