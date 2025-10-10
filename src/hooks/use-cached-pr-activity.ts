@@ -55,20 +55,14 @@ async function processActivities(pullRequests: PullRequest[]): Promise<PullReque
     
     // Collect reviewers
     pr.reviews?.forEach(review => {
-      users.add({
-        githubId: review.user.id,
-        username: review.user.login,
-        fallbackUrl: review.user.avatar_url
-      });
+      // reviews don't have user.id, so we'll skip caching for now
+      // and fall back to GitHub API URLs
     });
     
     // Collect commenters
     pr.comments?.forEach(comment => {
-      users.add({
-        githubId: comment.user.id,
-        username: comment.user.login,
-        fallbackUrl: comment.user.avatar_url
-      });
+      // comments don't have user.id, so we'll skip caching for now
+      // and fall back to GitHub API URLs
     });
   });
 
@@ -178,7 +172,7 @@ async function processActivities(pullRequests: PullRequest[]): Promise<PullReque
             user: {
               id: review.user.login,
               name: review.user.login,
-              avatar: cachedAvatars.get(review.user.id)?.url || review.user.avatar_url,
+              avatar: review.user.avatar_url,
               isBot: reviewerIsBot,
             },
             pullRequest: {
@@ -212,7 +206,7 @@ async function processActivities(pullRequests: PullRequest[]): Promise<PullReque
           user: {
             id: comment.user.login,
             name: comment.user.login,
-            avatar: cachedAvatars.get(comment.user.id)?.url || comment.user.avatar_url,
+            avatar: comment.user.avatar_url,
             isBot: commenterIsBot,
           },
           pullRequest: {
