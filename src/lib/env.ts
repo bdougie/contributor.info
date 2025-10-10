@@ -11,6 +11,14 @@
  * service tokens, and other sensitive configuration.
  */
 
+// Type declarations for Node.js globals (for Deno type checking compatibility)
+declare global {
+  // eslint-disable-next-line no-var
+  var process: {
+    env: Record<string, string | undefined>;
+  };
+}
+
 // Type for import.meta.env
 interface ImportMetaEnv {
   DEV?: boolean;
@@ -23,29 +31,10 @@ interface ImportMeta {
   env?: ImportMetaEnv;
 }
 
-// Type declarations for Node.js globals (for Deno type checking compatibility)
-// This allows the code to work in both Deno and Node.js environments
-declare global {
-  // Declare process for Deno compatibility
-  // eslint-disable-next-line no-var
-  var process: NodeJS.Process | undefined;
-  
-  // eslint-disable-next-line @typescript-eslint/no-namespace
-  namespace NodeJS {
-    interface ProcessEnv {
-      [key: string]: string | undefined;
-    }
-    interface Process {
-      env: ProcessEnv;
-    }
-  }
-}
-
 // Detect runtime environment
 const isServer = typeof window === 'undefined';
 const isBrowser = typeof window !== 'undefined';
-// Use type-safe check for process that works in both Deno and Node.js
-const hasProcess = typeof process !== 'undefined' && process?.env;
+const hasProcess = typeof process !== 'undefined' && process.env;
 
 /**
  * Universal environment access that works in both client and server contexts
@@ -58,7 +47,7 @@ function getEnvVar(viteKey: string, serverKey?: string): string {
     console.error('🚨 SECURITY WARNING: Env key "%s" must start with VITE_ prefix', viteKey);
   }
   // For tests, provide default local Supabase values
-  const isTest = hasProcess && (process?.env?.NODE_ENV === 'test' || process?.env?.VITEST === 'true');
+  const isTest = hasProcess && (process.env.NODE_ENV === 'test' || process.env.VITEST === 'true');
 
   if (isTest && (viteKey === 'VITE_SUPABASE_URL' || serverKey === 'SUPABASE_URL')) {
     return 'http://127.0.0.1:54321';
@@ -88,7 +77,7 @@ function getEnvVar(viteKey: string, serverKey?: string): string {
 
     // 3. Try process.env as fallback (some bundlers expose this) - VITE_* keys only
     if (hasProcess) {
-      const processValue = process?.env?.[viteKey];
+      const processValue = process.env[viteKey];
       if (typeof processValue === 'string' && processValue) {
         return processValue;
       }
@@ -101,11 +90,12 @@ function getEnvVar(viteKey: string, serverKey?: string): string {
   } else {
     // Server: Use process.env only (import.meta.env not available in CommonJS/Netlify Functions)
     if (!hasProcess) return '';
-    const primaryValue = process?.env?.[viteKey];
+
+    const primaryValue = process.env[viteKey];
     if (primaryValue) return primaryValue;
 
     if (serverKey) {
-      const secondaryValue = process?.env?.[serverKey];
+      const secondaryValue = process.env[serverKey];
       if (secondaryValue) return secondaryValue;
     }
 
@@ -171,7 +161,7 @@ export const env = {
       const metaEnv = (typeof import.meta !== 'undefined' && (import.meta as ImportMeta).env) || {};
       return metaEnv.DEV || false;
     }
-    return hasProcess && process?.env?.NODE_ENV === 'development';
+    return hasProcess && process.env.NODE_ENV === 'development';
   },
 
   get PROD() {
@@ -179,7 +169,7 @@ export const env = {
       const metaEnv = (typeof import.meta !== 'undefined' && (import.meta as ImportMeta).env) || {};
       return metaEnv.PROD || false;
     }
-    return hasProcess && process?.env?.NODE_ENV === 'production';
+    return hasProcess && process.env.NODE_ENV === 'production';
   },
 
   get MODE() {
@@ -187,7 +177,7 @@ export const env = {
       const metaEnv = (typeof import.meta !== 'undefined' && (import.meta as ImportMeta).env) || {};
       return metaEnv.MODE || 'development';
     }
-    return hasProcess ? process?.env?.NODE_ENV || 'development' : 'development';
+    return hasProcess ? process.env.NODE_ENV || 'development' : 'development';
   },
 
   // Runtime context
@@ -217,7 +207,7 @@ export const serverEnv = {
       return '';
     }
     return hasProcess
-      ? process?.env?.SUPABASE_SERVICE_ROLE || process?.env?.SUPABASE_SERVICE_ROLE_KEY || ''
+      ? process.env.SUPABASE_SERVICE_ROLE || process.env.SUPABASE_SERVICE_ROLE_KEY || ''
       : '';
   },
 
@@ -226,7 +216,7 @@ export const serverEnv = {
       console.error('🚨 SECURITY: Attempted to access server key from browser!');
       return '';
     }
-    return hasProcess ? process?.env?.SUPABASE_TOKEN || '' : '';
+    return hasProcess ? process.env.SUPABASE_TOKEN || '' : '';
   },
 
   get SUPABASE_MCP_TOKEN() {
@@ -234,7 +224,7 @@ export const serverEnv = {
       console.error('🚨 SECURITY: Attempted to access server key from browser!');
       return '';
     }
-    return hasProcess ? process?.env?.SUPABASE_MCP_TOKEN || '' : '';
+    return hasProcess ? process.env.SUPABASE_MCP_TOKEN || '' : '';
   },
 
   // Inngest server keys (NEVER expose to browser)
@@ -243,7 +233,7 @@ export const serverEnv = {
       console.error('🚨 SECURITY: Attempted to access server key from browser!');
       return '';
     }
-    return hasProcess ? process?.env?.INNGEST_EVENT_KEY || '' : '';
+    return hasProcess ? process.env.INNGEST_EVENT_KEY || '' : '';
   },
 
   get INNGEST_SIGNING_KEY() {
@@ -251,17 +241,17 @@ export const serverEnv = {
       console.error('🚨 SECURITY: Attempted to access server key from browser!');
       return '';
     }
-    return hasProcess ? process?.env?.INNGEST_SIGNING_KEY || '' : '';
+    return hasProcess ? process.env.INNGEST_SIGNING_KEY || '' : '';
   },
 
   get INNGEST_SERVE_HOST() {
     if (isBrowser) return '';
-    return hasProcess ? process?.env?.INNGEST_SERVE_HOST || '' : '';
+    return hasProcess ? process.env.INNGEST_SERVE_HOST || '' : '';
   },
 
   get INNGEST_SERVE_PATH() {
     if (isBrowser) return '';
-    return hasProcess ? process?.env?.INNGEST_SERVE_PATH || '/api/inngest' : '/api/inngest';
+    return hasProcess ? process.env.INNGEST_SERVE_PATH || '/api/inngest' : '/api/inngest';
   },
 
   // OpenAI server key
@@ -270,7 +260,7 @@ export const serverEnv = {
       console.error('🚨 SECURITY: Attempted to access server key from browser!');
       return '';
     }
-    return hasProcess ? process?.env?.OPENAI_API_KEY || '' : '';
+    return hasProcess ? process.env.OPENAI_API_KEY || '' : '';
   },
 
   // Other server keys
@@ -279,7 +269,7 @@ export const serverEnv = {
       console.error('🚨 SECURITY: Attempted to access server key from browser!');
       return '';
     }
-    return hasProcess ? process?.env?.DUB_API_KEY || '' : '';
+    return hasProcess ? process.env.DUB_API_KEY || '' : '';
   },
 
   // Email service keys
@@ -288,23 +278,23 @@ export const serverEnv = {
       console.error('🚨 SECURITY: Attempted to access server key from browser!');
       return '';
     }
-    return hasProcess ? process?.env?.RESEND_API_KEY || '' : '';
+    return hasProcess ? process.env.RESEND_API_KEY || '' : '';
   },
 
   get CHROMATIC_PROJECT_TOKEN() {
     if (isBrowser) return '';
-    return hasProcess ? process?.env?.CHROMATIC_PROJECT_TOKEN || '' : '';
+    return hasProcess ? process.env.CHROMATIC_PROJECT_TOKEN || '' : '';
   },
 
   // Environment detection for server
   get NODE_ENV() {
     if (isBrowser) return clientEnv.MODE;
-    return hasProcess ? process?.env?.NODE_ENV || 'development' : 'development';
+    return hasProcess ? process.env.NODE_ENV || 'development' : 'development';
   },
 
   get IS_DEVELOPMENT() {
     if (isBrowser) return clientEnv.DEV;
-    return hasProcess && process?.env?.NODE_ENV === 'development';
+    return hasProcess && process.env.NODE_ENV === 'development';
   },
 };
 
@@ -341,7 +331,7 @@ if (typeof window !== 'undefined') {
   validateEnvironment('client');
 } else {
   // Server context - only validate if we're actually in a server function
-  if (hasProcess && (process?.env?.NETLIFY || process?.env?.AWS_LAMBDA_FUNCTION_NAME)) {
+  if (hasProcess && (process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME)) {
     validateEnvironment('server');
   }
 }
