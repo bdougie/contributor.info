@@ -36,6 +36,12 @@ ON issues(repository_id, responded_by) WHERE responded_by IS NOT NULL;
 CREATE OR REPLACE FUNCTION enforce_respond_columns_issues()
 RETURNS TRIGGER AS $$
 BEGIN
+    -- Only enforce restrictions for authenticated users
+    -- (allows system processes and migrations to update all columns)
+    IF (SELECT auth.uid()) IS NULL THEN
+        RETURN NEW;
+    END IF;
+
     -- Check if any column other than responded_by and responded_at has changed
     IF (OLD.id IS DISTINCT FROM NEW.id OR
         OLD.github_id IS DISTINCT FROM NEW.github_id OR
@@ -109,14 +115,11 @@ WITH CHECK (
 );
 
 -- Create trigger to enforce column restrictions
+-- Note: Removed WHEN clause because PostgreSQL doesn't support subqueries in trigger WHEN conditions
+-- The auth check is handled within the trigger function instead
 CREATE TRIGGER enforce_respond_columns_trigger
     BEFORE UPDATE ON issues
     FOR EACH ROW
-    WHEN (
-        -- Only run this trigger when the update is being done by a non-superuser
-        -- (allows system processes and migrations to update all columns)
-        (SELECT auth.uid()) IS NOT NULL
-    )
     EXECUTE FUNCTION enforce_respond_columns_issues();
 
 -- ============================================================================
