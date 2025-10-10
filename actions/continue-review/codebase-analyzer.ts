@@ -63,6 +63,12 @@ export async function analyzeCodebasePatterns(changedFiles: string[]): Promise<P
           architecture.componentPatterns.push(...componentPatterns);
         }
 
+        // ENHANCEMENT: Analyze Supabase migration patterns for SQL files
+        if (file.match(/\.sql$/)) {
+          const sqlPatterns = extractSupabasePatterns(content, file);
+          architecture.dataFlowPatterns.push(...sqlPatterns);
+        }
+
         // Analyze naming conventions
         const namingPatterns = extractNamingPatterns(content, file);
         conventions.naming.files.push(...namingPatterns.files);
@@ -142,6 +148,31 @@ async function findRelatedFiles(changedFiles: string[]): Promise<string[]> {
     } catch (error) {
       core.debug(`Failed to find test files for ${baseName}: ${error}`);
     }
+  }
+
+  // ENHANCEMENT: Always include Supabase migration files for database-related context
+  try {
+    const migrationFiles = await glob('supabase/migrations/*.sql', {
+      ignore: ['node_modules/**'],
+    });
+    for (const f of migrationFiles) {
+      relatedFiles.add(f);
+    }
+    core.info(`Added ${migrationFiles.length} Supabase migration files for database context`);
+  } catch (error) {
+    core.debug(`Failed to find Supabase migration files: ${error}`);
+  }
+
+  // ENHANCEMENT: Include relevant schema and configuration files
+  try {
+    const configFiles = await glob('{supabase/**/*.sql,src/lib/supabase.ts,*.env.example}', {
+      ignore: ['node_modules/**'],
+    });
+    for (const f of configFiles) {
+      relatedFiles.add(f);
+    }
+  } catch (error) {
+    core.debug(`Failed to find configuration files: ${error}`);
   }
 
   return Array.from(relatedFiles);
@@ -320,6 +351,68 @@ async function analyzeDependencies(): Promise<{ frameworks: string[]; libraries:
     core.debug(`Failed to analyze dependencies: ${error}`);
     return { frameworks: [] as string[], libraries: [] as string[] };
   }
+}
+
+/**
+ * Extract Supabase-specific patterns from SQL migration files
+ */
+function extractSupabasePatterns(content: string, filepath: string): string[] {
+  const patterns: string[] = [];
+
+  // Check for foreign key constraints
+  if (content.includes('REFERENCES') && content.includes('ON DELETE')) {
+    patterns.push('Foreign key constraints with cascade options');
+  }
+  if (content.includes('REFERENCES')) {
+    patterns.push('Foreign key relationships');
+  }
+
+  // Check for UUID patterns
+  if (content.includes('UUID')) {
+    patterns.push('UUID column types');
+  }
+  if (content.includes('uuid_generate_v4()')) {
+    patterns.push('UUID generation functions');
+  }
+
+  // Check for RLS patterns
+  if (content.includes('ENABLE ROW LEVEL SECURITY')) {
+    patterns.push('Row Level Security (RLS)');
+  }
+  if (content.includes('CREATE POLICY')) {
+    patterns.push('RLS policies');
+  }
+
+  // Check for index patterns
+  if (content.includes('CREATE INDEX')) {
+    patterns.push('Database indexes');
+  }
+  if (content.includes('CREATE UNIQUE INDEX')) {
+    patterns.push('Unique constraints via indexes');
+  }
+
+  // Check for trigger patterns
+  if (content.includes('CREATE TRIGGER')) {
+    patterns.push('Database triggers');
+  }
+  if (content.includes('updated_at')) {
+    patterns.push('Automatic timestamp updates');
+  }
+
+  // Check for function patterns
+  if (content.includes('CREATE OR REPLACE FUNCTION')) {
+    patterns.push('Custom database functions');
+  }
+
+  // Check for data type patterns
+  if (content.includes('TIMESTAMPTZ')) {
+    patterns.push('Timezone-aware timestamps');
+  }
+  if (content.includes('JSONB')) {
+    patterns.push('JSONB document storage');
+  }
+
+  return patterns;
 }
 
 /**

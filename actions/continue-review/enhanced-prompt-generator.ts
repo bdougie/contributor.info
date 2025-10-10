@@ -53,6 +53,9 @@ This is a **${inferProjectType(conventions, architecture)}** project with the fo
 ### Established Patterns (found in codebase)
 ${generatePatternInsights(patterns, conventions)}
 
+### Database Schema Context
+${generateDatabaseContext(architecture.dataFlowPatterns)}
+
 ### Code Quality Standards
 ${generateQualityStandards(rules)}
 
@@ -92,6 +95,16 @@ ${command ? `\n## Specific Review Request\n"${command}"\n` : ''}
 
 # Review Guidelines
 
+## CRITICAL: Verification Requirements Before Making Claims
+**Before claiming something is missing or incorrect, you MUST:**
+
+1. **Check Migration Files**: Look in \`supabase/migrations/*.sql\` for database constraints, foreign keys, and schema definitions
+2. **Search Implementation**: Use code search patterns to verify if functionality actually exists before claiming it's missing
+3. **Understand Framework Patterns**: Recognize common patterns in this codebase:
+   - **Supabase UUIDs**: UUIDs are correctly represented as strings in TypeScript/JavaScript - this is NOT a type mismatch
+   - **Optimistic UI Updates**: Updates that happen immediately in UI before database confirmation are intentional and better UX
+   - **Foreign Key Constraints**: Check actual migration files, not just TypeScript interfaces
+
 ## What to Focus On
 - **Actual Problems**: Issues that will cause bugs, security vulnerabilities, or performance problems
 - **Pattern Violations**: Code that doesn't follow established codebase conventions
@@ -103,6 +116,9 @@ ${command ? `\n## Specific Review Request\n"${command}"\n` : ''}
 - Personal preferences unless they violate established patterns
 - Minor naming unless genuinely confusing
 - Alternative approaches unless current approach is problematic
+- **NEVER claim missing database constraints without checking migration files**
+- **NEVER claim UUID/string type mismatches in Supabase projects**
+- **NEVER claim missing refresh functionality without checking for optimistic updates**
 
 ## Review Output Format
 
@@ -184,11 +200,23 @@ Please provide a comprehensive, actionable review that helps improve code qualit
 
 Focus on issues that matter for functionality, security, maintainability, and consistency with established patterns.
 
+## 🚨 CRITICAL REQUIREMENTS FOR ACCURATE REVIEWS
+
+**BEFORE making any claim about missing functionality, constraints, or type issues:**
+
+1. **Database Claims**: Check \`supabase/migrations/*.sql\` files for actual constraints
+2. **Missing Functionality**: Search the visible code for patterns like \`onSomethingHappened\`, state updates, etc.
+3. **Type Issues**: Remember Supabase UUIDs are correctly typed as \`string\` in TypeScript
+4. **Evidence Required**: Include specific file paths and line numbers for any claims
+
+**Provide evidence-based feedback with specific references to code you can actually see.**
+
 IMPORTANT FORMATTING RULES:
 - Use proper markdown formatting with ## and ### headers for clear structure
 - Never use # (h1 headers) - start with ## for main sections and ### for specific issues
 - DO NOT mention or comment on diff truncation - review what you can see
-- If the diff was truncated, simply review the visible portions without mentioning the truncation`;
+- If the diff was truncated, simply review the visible portions without mentioning the truncation
+- Include file paths and line numbers for all claims and suggestions`;
 
   return prompt;
 }
@@ -247,6 +275,22 @@ function generatePatternInsights(patterns: any[], conventions: any): string {
   }
 
   return insights || 'Standard patterns detected';
+}
+
+/**
+ * Generate database context from Supabase patterns
+ */
+function generateDatabaseContext(dataFlowPatterns: string[]): string {
+  if (dataFlowPatterns.length === 0) {
+    return 'No database patterns detected';
+  }
+
+  const dbInsights = dataFlowPatterns
+    .slice(0, 8) // Show top 8 patterns
+    .map((pattern) => `- **${pattern}**: Established in migration files`)
+    .join('\n');
+
+  return `**Database Patterns Found in Migrations**:\n${dbInsights}\n\n⚠️ **Important**: Before claiming missing database constraints or foreign keys, check the actual Supabase migration files (\`supabase/migrations/*.sql\`). Many constraints are defined at the database level, not in TypeScript interfaces.`;
 }
 
 /**
