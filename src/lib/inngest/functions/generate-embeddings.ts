@@ -68,7 +68,7 @@ export const batchGenerateEmbeddings = inngest.createFunction(
     id: 'batch-generate-embeddings',
     name: 'Batch Generate Embeddings',
   },
-  { cron: '0 */6 * * *' }, // Run every 6 hours
+  { cron: '0 */2 * * *' }, // Run every 2 hours
   async ({ step }) => {
     // Get all tracked repositories
     const repositories = await step.run('get-tracked-repositories', async () => {
