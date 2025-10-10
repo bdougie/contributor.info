@@ -2,7 +2,8 @@ import type { Handler, HandlerEvent, HandlerContext } from '@netlify/functions';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL || import.meta.env?.VITE_SUPABASE_URL;
-const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || import.meta.env?.VITE_SUPABASE_ANON_KEY;
+const supabaseAnonKey =
+  process.env.VITE_SUPABASE_ANON_KEY || import.meta.env?.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
@@ -53,7 +54,12 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
       limit: Math.min(parseInt(params.get('limit') || '50'), 100), // Cap at 100
       language: params.get('language') || undefined,
       minStars: parseInt(params.get('minStars') || '0'),
-      sort: (params.get('sort') as 'trending_score' | 'star_change' | 'pr_change' | 'contributor_change') || 'trending_score',
+      sort:
+        (params.get('sort') as
+          | 'trending_score'
+          | 'star_change'
+          | 'pr_change'
+          | 'contributor_change') || 'trending_score',
     };
 
     // Convert period to interval
@@ -66,19 +72,22 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
     console.log('Fetching trending repositories with params:', query);
 
     // Call the trending repositories function with fallback
-    const { data: trendingRepos, error } = await supabase.rpc('get_trending_repositories_with_fallback', {
-      p_time_period: intervalMap[query.period],
-      p_limit: query.limit,
-      p_language: query.language,
-      p_min_stars: query.minStars,
-    });
+    const { data: trendingRepos, error } = await supabase.rpc(
+      'get_trending_repositories_with_fallback',
+      {
+        p_time_period: intervalMap[query.period],
+        p_limit: query.limit,
+        p_language: query.language,
+        p_min_stars: query.minStars,
+      }
+    );
 
     if (error) {
       console.error('Error fetching trending repositories:', error);
       return {
         statusCode: 500,
         headers,
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           error: 'Failed to fetch trending repositories',
           details: error.message,
         }),
@@ -87,7 +96,7 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
 
     // Sort results if requested (the SQL function returns by trending_score by default)
     let sortedRepos = trendingRepos || [];
-    
+
     if (query.sort !== 'trending_score' && sortedRepos.length > 0) {
       sortedRepos = [...sortedRepos].sort((a, b) => {
         const aValue = a[query.sort!] || 0;
@@ -102,7 +111,7 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
     });
 
     const response = {
-      repositories: sortedRepos.map(repo => ({
+      repositories: sortedRepos.map((repo) => ({
         id: repo.repository_id,
         owner: repo.owner,
         name: repo.name,
@@ -138,14 +147,14 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
     };
   } catch (error) {
     console.error('Error in trending repositories API:', error);
-    
+
     return {
       statusCode: 500,
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         error: 'Internal server error',
         message: error instanceof Error ? error.message : 'Unknown error',
       }),

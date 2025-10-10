@@ -29,7 +29,7 @@ export class ReviewerCache {
     let hash = 0;
     for (let i = 0; i < cacheKey.length; i++) {
       const char = cacheKey.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32-bit integer
     }
     return hash.toString(36);
@@ -74,7 +74,12 @@ export class ReviewerCache {
   /**
    * Store suggestions in cache
    */
-  async set(repositoryId: string, files: string[], suggestions: unknown, prAuthor?: string): Promise<void> {
+  async set(
+    repositoryId: string,
+    files: string[],
+    suggestions: unknown,
+    prAuthor?: string
+  ): Promise<void> {
     try {
       const fileHash = this.generateFileHash(files, prAuthor);
       const now = new Date();
@@ -88,15 +93,13 @@ export class ReviewerCache {
         .eq('file_hash', fileHash);
 
       // Insert new cache entry
-      const { error } = await this.supabase
-        .from(this.cacheTable)
-        .insert({
-          repository_id: repositoryId,
-          file_hash: fileHash,
-          suggestions,
-          created_at: now.toISOString(),
-          expires_at: expiresAt.toISOString(),
-        });
+      const { error } = await this.supabase.from(this.cacheTable).insert({
+        repository_id: repositoryId,
+        file_hash: fileHash,
+        suggestions,
+        created_at: now.toISOString(),
+        expires_at: expiresAt.toISOString(),
+      });
 
       if (error) {
         console.warn('Cache write error:', error);
@@ -115,10 +118,7 @@ export class ReviewerCache {
     try {
       const now = new Date().toISOString();
 
-      const { error } = await this.supabase
-        .from(this.cacheTable)
-        .delete()
-        .lt('expires_at', now);
+      const { error } = await this.supabase.from(this.cacheTable).delete().lt('expires_at', now);
 
       if (error) {
         console.warn('Error clearing expired cache entries:', error);

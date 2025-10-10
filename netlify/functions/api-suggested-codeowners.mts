@@ -19,10 +19,7 @@ interface CodeOwnersSuggestion {
 // Helper function to create Supabase client
 function createSupabaseClient() {
   const supabaseUrl = process.env.SUPABASE_URL || '';
-  const supabaseKey =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.SUPABASE_ANON_KEY ||
-    '';
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '';
 
   if (!supabaseUrl || !supabaseKey) {
     throw new Error('Missing Supabase configuration');
@@ -38,7 +35,10 @@ interface ContributorStats {
   directories: Set<string>;
 }
 
-async function analyzeContributions(owner: string, repo: string): Promise<Map<string, ContributorStats>> {
+async function analyzeContributions(
+  owner: string,
+  repo: string
+): Promise<Map<string, ContributorStats>> {
   const supabase = createSupabaseClient();
 
   // First try the repositories table
@@ -56,11 +56,13 @@ async function analyzeContributions(owner: string, repo: string): Promise<Map<st
   const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
   const { data: commits, error } = await supabase
     .from('commits')
-    .select(`
+    .select(
+      `
       author:contributors!author_id(username, avatar_url),
       message,
       committed_date
-    `)
+    `
+    )
     .eq('repository_id', repository.id)
     .gte('committed_date', ninetyDaysAgo)
     .order('committed_date', { ascending: false })
@@ -84,7 +86,7 @@ async function analyzeContributions(owner: string, repo: string): Promise<Map<st
         username,
         contributions: 0,
         files: [],
-        directories: new Set()
+        directories: new Set(),
       });
     }
 
@@ -161,12 +163,14 @@ function generateCodeOwnersSuggestions(
       pattern: '/*',
       owners: existingTeams,
       confidence: 0.85,
-      reasoning: 'Existing team ownership pattern detected'
+      reasoning: 'Existing team ownership pattern detected',
     });
   }
 
   for (const [dir, rec] of directoryOwnership) {
-    const sorted = rec.owners.sort((a, b) => (contributorStats.get(b)!.contributions - contributorStats.get(a)!.contributions));
+    const sorted = rec.owners.sort(
+      (a, b) => contributorStats.get(b)!.contributions - contributorStats.get(a)!.contributions
+    );
     const top = sorted.slice(0, 3).map((u) => {
       // Handle both individual users and preserve team format
       return u.includes('/') ? `@${u}` : `@${u}`;
@@ -178,7 +182,7 @@ function generateCodeOwnersSuggestions(
         pattern: `/${dir}/`,
         owners: top,
         confidence,
-        reasoning: `Top ${top.length} contributor(s) to this directory`
+        reasoning: `Top ${top.length} contributor(s) to this directory`,
       });
     }
   }
@@ -188,10 +192,7 @@ function generateCodeOwnersSuggestions(
 
 export default async (req: Request, context: Context) => {
   const supabaseUrl = process.env.SUPABASE_URL || '';
-  const supabaseKey =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.SUPABASE_ANON_KEY ||
-    '';
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '';
   const limiter = new RateLimiter(supabaseUrl, supabaseKey, {
     maxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '60', 10),
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000', 10),
@@ -203,12 +204,14 @@ export default async (req: Request, context: Context) => {
   try {
     const rateKey = getRateLimitKey(req);
     const rate = await limiter.checkLimit(rateKey);
-    if (!rate.allowed) return applyRateLimitHeaders(createErrorResponse('Rate limit exceeded', 429), rate);
+    if (!rate.allowed)
+      return applyRateLimitHeaders(createErrorResponse('Rate limit exceeded', 429), rate);
 
     const url = new URL(req.url);
     const parts = url.pathname.split('/');
     const apiIndex = parts.findIndex((p) => p === 'api');
-    if (apiIndex === -1 || parts.length < apiIndex + 5) return createErrorResponse('Invalid API path format');
+    if (apiIndex === -1 || parts.length < apiIndex + 5)
+      return createErrorResponse('Invalid API path format');
     const owner = parts[apiIndex + 2];
     const repo = parts[apiIndex + 3];
 
@@ -244,7 +247,14 @@ export default async (req: Request, context: Context) => {
           generatedAt: cached.generated_at,
           cached: true,
         }),
-        { status: 200, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600' } }
+        {
+          status: 200,
+          headers: {
+            ...CORS_HEADERS,
+            'Content-Type': 'application/json',
+            'Cache-Control': 'public, max-age=3600',
+          },
+        }
       );
       return applyRateLimitHeaders(resp, rate);
     }
@@ -278,7 +288,11 @@ export default async (req: Request, context: Context) => {
     // Even if no individual contributors, we can still suggest teams
     if (contributorStats.size === 0 && existingTeams.length === 0) {
       const resp = new Response(
-        JSON.stringify({ suggestions: [], message: 'No contribution data available for analysis', repository: `${owner}/${repo}` }),
+        JSON.stringify({
+          suggestions: [],
+          message: 'No contribution data available for analysis',
+          repository: `${owner}/${repo}`,
+        }),
         { status: 200, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } }
       );
       return applyRateLimitHeaders(resp, rate);
@@ -289,7 +303,10 @@ export default async (req: Request, context: Context) => {
       '# CODEOWNERS file generated based on contribution analysis',
       '# Review and adjust these suggestions before using',
       '',
-      ...suggestions.map((s) => `${s.pattern} ${s.owners.join(' ')} # ${s.reasoning} (confidence: ${(s.confidence * 100).toFixed(0)}%)`),
+      ...suggestions.map(
+        (s) =>
+          `${s.pattern} ${s.owners.join(' ')} # ${s.reasoning} (confidence: ${(s.confidence * 100).toFixed(0)}%)`
+      ),
     ].join('\n');
 
     // LLM fallback or augmentation when no suggestions or explicit request
@@ -316,7 +333,10 @@ Output lines in the format:
           body: JSON.stringify({
             model: 'gpt-4o-mini',
             messages: [
-              { role: 'system', content: 'You are an expert at generating CODEOWNERS suggestions.' },
+              {
+                role: 'system',
+                content: 'You are an expert at generating CODEOWNERS suggestions.',
+              },
               { role: 'user', content: prompt },
             ],
             temperature: 0.2,
@@ -365,9 +385,12 @@ Output lines in the format:
             directories: Array.from(s.directories).slice(0, 50),
           })),
         };
-        const { data: fnData, error: fnError } = await (client as any).functions.invoke('codeowners-llm', {
-          body: payload,
-        });
+        const { data: fnData, error: fnError } = await (client as any).functions.invoke(
+          'codeowners-llm',
+          {
+            body: payload,
+          }
+        );
         if (!fnError && fnData?.content) {
           const content = String(fnData.content);
           codeOwnersContent = `# CODEOWNERS suggestions (LLM-assisted via Supabase)\n# Review before committing\n\n${content}`;
@@ -397,26 +420,45 @@ Output lines in the format:
     const generatedAt = new Date().toISOString();
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
     try {
-      await supabase.from('codeowners_suggestions').upsert({
-        repository_id: repository.id,
-        suggestions,
-        generated_content: codeOwnersContent,
-        total_contributors: contributorStats.size,
-        generated_at: generatedAt,
-        expires_at: expiresAt,
-      }, { onConflict: 'repository_id' });
+      await supabase.from('codeowners_suggestions').upsert(
+        {
+          repository_id: repository.id,
+          suggestions,
+          generated_content: codeOwnersContent,
+          total_contributors: contributorStats.size,
+          generated_at: generatedAt,
+          expires_at: expiresAt,
+        },
+        { onConflict: 'repository_id' }
+      );
     } catch (e) {
       console.error('Failed to cache suggestions:', e);
     }
 
     const resp = new Response(
-      JSON.stringify({ suggestions, codeOwnersContent, repository: `${owner}/${repo}` , totalContributors: contributorStats.size, generatedAt }),
-      { status: 200, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600' } }
+      JSON.stringify({
+        suggestions,
+        codeOwnersContent,
+        repository: `${owner}/${repo}`,
+        totalContributors: contributorStats.size,
+        generatedAt,
+      }),
+      {
+        status: 200,
+        headers: {
+          ...CORS_HEADERS,
+          'Content-Type': 'application/json',
+          'Cache-Control': 'public, max-age=3600',
+        },
+      }
     );
     return applyRateLimitHeaders(resp, rate);
   } catch (error) {
     console.error('Error in api-suggested-codeowners:', error);
-    return createErrorResponse(`Internal server error: ${error instanceof Error ? error.message : 'Unknown error'}`, 500);
+    return createErrorResponse(
+      `Internal server error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      500
+    );
   }
 };
 
