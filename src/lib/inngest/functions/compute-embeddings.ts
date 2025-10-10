@@ -28,7 +28,7 @@ export const computeEmbeddings = inngest.createFunction(
   },
   [
     { event: 'embeddings/compute.requested' },
-    { cron: '*/15 * * * *' }, // Run every 15 minutes
+    { cron: '0 */6 * * *' }, // Run every 6 hours (4 times a day)
   ],
   async ({ event, step }) => {
     // Log initial event data for debugging
