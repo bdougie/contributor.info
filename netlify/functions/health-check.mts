@@ -1,5 +1,5 @@
-import type { Context } from "@netlify/functions";
-import { supabase } from "../../src/lib/supabase";
+import type { Context } from '@netlify/functions';
+import { supabase } from '../../src/lib/supabase';
 
 interface HealthCheckResult {
   service: string;
@@ -12,10 +12,7 @@ interface HealthCheckResult {
 async function checkSupabase(): Promise<HealthCheckResult> {
   try {
     // Simple query to check database connectivity
-    const { error } = await supabase
-      .from('sync_logs')
-      .select('id')
-      .limit(1);
+    const { error } = await supabase.from('sync_logs').select('id').limit(1);
 
     if (error) {
       return {
@@ -81,7 +78,7 @@ async function checkInngest(): Promise<HealthCheckResult> {
       };
     }
 
-    const successfulSyncs = recentSyncs?.filter(s => s.status === 'completed').length || 0;
+    const successfulSyncs = recentSyncs?.filter((s) => s.status === 'completed').length || 0;
     const totalSyncs = recentSyncs?.length || 0;
 
     if (totalSyncs === 0) {
@@ -135,7 +132,7 @@ async function checkInngest(): Promise<HealthCheckResult> {
 async function checkGitHubAPI(): Promise<HealthCheckResult> {
   try {
     const hasToken = !!process.env.GITHUB_TOKEN || !!process.env.VITE_GITHUB_TOKEN;
-    
+
     if (!hasToken) {
       return {
         service: 'github',
@@ -149,8 +146,8 @@ async function checkGitHubAPI(): Promise<HealthCheckResult> {
     const token = process.env.GITHUB_TOKEN || process.env.VITE_GITHUB_TOKEN;
     const response = await fetch('https://api.github.com/rate_limit', {
       headers: {
-        'Authorization': `Bearer ${token}`,
-        'Accept': 'application/vnd.github.v3+json',
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github.v3+json',
       },
     });
 
@@ -212,31 +209,38 @@ export default async (_req: Request, _context: Context) => {
   ]);
 
   const results = [supabaseHealth, inngestHealth, githubHealth];
-  
+
   // Overall health status
-  const hasUnhealthy = results.some(r => r.status === 'unhealthy');
-  const hasDegraded = results.some(r => r.status === 'degraded');
-  
+  const hasUnhealthy = results.some((r) => r.status === 'unhealthy');
+  const hasDegraded = results.some((r) => r.status === 'degraded');
+
   const overallStatus = hasUnhealthy ? 'unhealthy' : hasDegraded ? 'degraded' : 'healthy';
   const statusCode = hasUnhealthy ? 503 : hasDegraded ? 200 : 200;
 
-  return new Response(JSON.stringify({
-    status: overallStatus,
-    timestamp: new Date().toISOString(),
-    services: results,
-    environment: {
-      context: process.env.CONTEXT || 'unknown',
-      nodeEnv: process.env.NODE_ENV || 'unknown',
-    },
-  }, null, 2), {
-    status: statusCode,
-    headers: {
-      'Content-Type': 'application/json',
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
-    },
-  });
+  return new Response(
+    JSON.stringify(
+      {
+        status: overallStatus,
+        timestamp: new Date().toISOString(),
+        services: results,
+        environment: {
+          context: process.env.CONTEXT || 'unknown',
+          nodeEnv: process.env.NODE_ENV || 'unknown',
+        },
+      },
+      null,
+      2
+    ),
+    {
+      status: statusCode,
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+      },
+    }
+  );
 };
 
 export const config = {
-  path: "/.netlify/functions/health-check",
+  path: '/.netlify/functions/health-check',
 };

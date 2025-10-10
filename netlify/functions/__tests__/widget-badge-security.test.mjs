@@ -23,30 +23,43 @@ function escapeXml(text) {
 function sanitizeColor(color) {
   const hexPattern = /^#[0-9A-Fa-f]{3,8}$/;
   const rgbPattern = /^rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*[0-9.]+\s*)?\)$/;
-  const namedColors = ['red', 'green', 'blue', 'yellow', 'orange', 'purple', 'gray', 'black', 'white'];
-  
-  if (hexPattern.test(color) || rgbPattern.test(color) || namedColors.includes(color.toLowerCase())) {
+  const namedColors = [
+    'red',
+    'green',
+    'blue',
+    'yellow',
+    'orange',
+    'purple',
+    'gray',
+    'black',
+    'white',
+  ];
+
+  if (
+    hexPattern.test(color) ||
+    rgbPattern.test(color) ||
+    namedColors.includes(color.toLowerCase())
+  ) {
     return color;
   }
-  
+
   return '#007ec6';
 }
 
 describe('Widget Badge Security', () => {
   describe('escapeXml', () => {
     it('should escape HTML entities', () => {
-      expect(escapeXml('<script>alert("XSS")</script>'))
-        .toBe('&lt;script&gt;alert(&quot;XSS&quot;)&lt;/script&gt;');
+      expect(escapeXml('<script>alert("XSS")</script>')).toBe(
+        '&lt;script&gt;alert(&quot;XSS&quot;)&lt;/script&gt;'
+      );
     });
 
     it('should escape XML entities', () => {
-      expect(escapeXml('&<>"\''))
-        .toBe('&amp;&lt;&gt;&quot;&apos;');
+      expect(escapeXml('&<>"\'')).toBe('&amp;&lt;&gt;&quot;&apos;');
     });
 
     it('should remove control characters', () => {
-      expect(escapeXml('Hello\x00World\x08Test'))
-        .toBe('HelloWorldTest');
+      expect(escapeXml('Hello\x00World\x08Test')).toBe('HelloWorldTest');
     });
 
     it('should handle non-string inputs', () => {
@@ -57,14 +70,16 @@ describe('Widget Badge Security', () => {
 
     it('should prevent SVG injection', () => {
       const malicious = '"><script>alert(1)</script><text x="';
-      expect(escapeXml(malicious))
-        .toBe('&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;&lt;text x=&quot;');
+      expect(escapeXml(malicious)).toBe(
+        '&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;&lt;text x=&quot;'
+      );
     });
 
     it('should prevent style injection', () => {
       const malicious = '"><style>*{display:none}</style><text x="';
-      expect(escapeXml(malicious))
-        .toBe('&quot;&gt;&lt;style&gt;*{display:none}&lt;/style&gt;&lt;text x=&quot;');
+      expect(escapeXml(malicious)).toBe(
+        '&quot;&gt;&lt;style&gt;*{display:none}&lt;/style&gt;&lt;text x=&quot;'
+      );
     });
   });
 
