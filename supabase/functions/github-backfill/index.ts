@@ -2,7 +2,13 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createSupabaseClient } from '../_shared/database.ts';
 import { detectPrivilegedEvent, GitHubEvent } from '../_shared/event-detection.ts';
 import { batchUpdateConfidenceScores } from '../_shared/confidence-scoring.ts';
-import { corsPreflightResponse, legacySuccessResponse, errorResponse, handleError, validationError } from '../_shared/responses.ts';
+import {
+  corsPreflightResponse,
+  errorResponse,
+  handleError,
+  legacySuccessResponse,
+  validationError,
+} from '../_shared/responses.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 
 interface BackfillRequest {
@@ -16,7 +22,7 @@ interface BackfillRequest {
 async function fetchAllRepositoryEvents(
   owner: string,
   repo: string,
-  daysBack: number = 30
+  daysBack: number = 30,
 ): Promise<GitHubEvent[]> {
   const token = Deno.env.get('GITHUB_TOKEN');
   if (!token) {
@@ -41,7 +47,8 @@ async function fetchAllRepositoryEvents(
 
   while (hasMore && page <= 10) {
     // Limit to 10 pages (1000 events) per backfill
-    const url = `https://api.github.com/repos/${owner}/${repo}/events?per_page=${perPage}&page=${page}`;
+    const url =
+      `https://api.github.com/repos/${owner}/${repo}/events?per_page=${perPage}&page=${page}`;
 
     try {
       const response = await fetch(url, { headers });
@@ -104,7 +111,7 @@ async function processBackfillEvents(
   events: GitHubEvent[],
   owner: string,
   repo: string,
-  eventTypes?: string[]
+  eventTypes?: string[],
 ) {
   let processed = 0;
   let privilegedCount = 0;
@@ -176,16 +183,16 @@ serve(async (req) => {
   }
 
   try {
-        const supabase = createSupabaseClient();
+    const supabase = createSupabaseClient();
 
     // Parse request body
     const body: BackfillRequest = await req.json();
     const { repository_owner, repository_name, days_back = 30, event_types } = body;
 
-        if (!repository_owner || !repository_name) {
+    if (!repository_owner || !repository_name) {
       return validationError(
         'Missing required fields',
-        'repository_owner and repository_name are required'
+        'repository_owner and repository_name are required',
       );
     }
 
@@ -201,7 +208,7 @@ serve(async (req) => {
       },
       {
         onConflict: 'repository_owner,repository_name',
-      }
+      },
     );
 
     // Fetch all events
@@ -213,7 +220,7 @@ serve(async (req) => {
       events,
       repository_owner,
       repository_name,
-      event_types
+      event_types,
     );
 
     // Update all confidence scores
@@ -232,7 +239,7 @@ serve(async (req) => {
       },
       {
         onConflict: 'repository_owner,repository_name',
-      }
+      },
     );
 
     // Get final statistics
@@ -242,13 +249,12 @@ serve(async (req) => {
       .eq('repository_owner', repository_owner)
       .eq('repository_name', repository_name);
 
-    const roleCounts =
-      roleStats?.reduce((acc: any, curr: any) => {
-        acc[curr.role] = (acc[curr.role] || 0) + 1;
-        return acc;
-      }, {}) || {};
+    const roleCounts = roleStats?.reduce((acc: any, curr: any) => {
+      acc[curr.role] = (acc[curr.role] || 0) + 1;
+      return acc;
+    }, {}) || {};
 
-        return legacySuccessResponse(
+    return legacySuccessResponse(
       {
         repository: `${repository_owner}/${repository_name}`,
         events_fetched: events.length,
@@ -258,7 +264,7 @@ serve(async (req) => {
         role_distribution: roleCounts,
         errors: result.errors.length > 0 ? result.errors : undefined,
       },
-      'GitHub backfill completed successfully'
+      'GitHub backfill completed successfully',
     );
   } catch (error) {
     console.error('Backfill error:', error);
@@ -266,7 +272,7 @@ serve(async (req) => {
     // Try to update sync status with error
     try {
       const { repository_owner, repository_name } = await req.json();
-          const supabase = createSupabaseClient();
+      const supabase = createSupabaseClient();
 
       await supabase.from('github_sync_status').upsert(
         {
@@ -277,12 +283,12 @@ serve(async (req) => {
         },
         {
           onConflict: 'repository_owner,repository_name',
-        }
+        },
       );
     } catch (e) {
       // Ignore errors updating status
     }
 
-        return handleError(error, 'GitHub backfill');
+    return handleError(error, 'GitHub backfill');
   }
 });

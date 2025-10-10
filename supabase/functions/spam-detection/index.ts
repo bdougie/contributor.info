@@ -1,14 +1,14 @@
 /**
  * Spam Detection Edge Function
- * 
+ *
  * Analyzes GitHub pull requests and user profiles for spam indicators using multiple
  * detection methods including content analysis, account characteristics, and PR patterns.
- * 
+ *
  * The function calculates a composite spam score (0-100) based on:
  * - Content analysis (40%): Title/body patterns, links, formatting
  * - Account characteristics (40%): Age, activity, followers
  * - PR characteristics (20%): Size, files changed, patterns
- * 
+ *
  * @example
  * POST /functions/v1/spam-detection
  * {
@@ -28,7 +28,7 @@
  *     }
  *   }
  * }
- * 
+ *
  * @returns
  * {
  *   "success": true,
@@ -42,17 +42,17 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createSupabaseClient } from '../_shared/database.ts';
 import { corsHeaders } from '../_shared/cors.ts';
-import { 
-  SpamDetectionService, 
+import {
   type PullRequestData,
-  type SpamDetectionResult 
+  type SpamDetectionResult,
+  SpamDetectionService,
 } from '../_shared/spam-detection-service.ts';
 
 // Batch processing function
 async function batchProcessPRsForSpam(
   supabase: any,
   repositoryId: string,
-  limit: number = 100
+  limit: number = 100,
 ): Promise<{ processed: number; errors: number }> {
   const spamService = new SpamDetectionService();
   let processed = 0;
@@ -164,7 +164,7 @@ async function batchProcessPRsForSpam(
       });
 
       console.log(
-        `[Spam Detection] Batch complete. Total processed: ${processed}, errors: ${errors}`
+        `[Spam Detection] Batch complete. Total processed: ${processed}, errors: ${errors}`,
       );
     }
 
@@ -172,7 +172,7 @@ async function batchProcessPRsForSpam(
   }
 
   console.log(
-    `[Spam Detection] Batch processing complete. Processed: ${processed}, Errors: ${errors}`
+    `[Spam Detection] Batch processing complete. Processed: ${processed}, Errors: ${errors}`,
   );
 
   return { processed, errors };
@@ -237,7 +237,7 @@ serve(async (req) => {
     if (pr_id) {
       console.log('[Spam Detection] Analyzing single PR: %s', pr_id);
 
-            // Fetch PR data with corrected foreign key reference
+      // Fetch PR data with corrected foreign key reference
       const { data: pr, error: prError } = await supabase
         .from('pull_requests')
         .select(
@@ -263,7 +263,7 @@ serve(async (req) => {
           repository:repositories(
             full_name
           )
-        `
+        `,
         )
         .eq('id', pr_id)
         .maybeSingle();
@@ -283,7 +283,7 @@ serve(async (req) => {
           {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 200,
-          }
+          },
         );
       }
 
@@ -336,7 +336,7 @@ serve(async (req) => {
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 200,
-        }
+        },
       );
     }
 
@@ -365,7 +365,7 @@ serve(async (req) => {
           {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 200,
-          }
+          },
         );
       }
 
@@ -382,7 +382,7 @@ serve(async (req) => {
           if (force_recheck) {
             console.log(
               '[Spam Detection] Force recheck enabled for %s, clearing existing spam scores',
-              repo.full_name
+              repo.full_name,
             );
             const { error: clearError } = await supabase
               .from('pull_requests')
@@ -397,7 +397,7 @@ serve(async (req) => {
             if (clearError) {
               console.warn(
                 `[Spam Detection] Error clearing spam scores for ${repo.full_name}:`,
-                clearError
+                clearError,
               );
             }
           }
@@ -417,12 +417,12 @@ serve(async (req) => {
 
           console.log(
             '[Spam Detection] Completed %s: ${processed} processed, ${errors} errors',
-            repo.full_name
+            repo.full_name,
           );
         } catch (repoError) {
           console.error(
             `[Spam Detection] Error processing repository ${repo.full_name}:`,
-            repoError
+            repoError,
           );
           totalErrors++;
           results.push({
@@ -467,7 +467,7 @@ serve(async (req) => {
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 200,
-        }
+        },
       );
     }
 
@@ -545,7 +545,7 @@ serve(async (req) => {
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 200,
-        }
+        },
       );
     }
 
@@ -558,7 +558,7 @@ serve(async (req) => {
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
-      }
+      },
     );
   } catch (error) {
     console.error('[Spam Detection] Error:', error);
@@ -570,7 +570,7 @@ serve(async (req) => {
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
-      }
+      },
     );
   }
 });

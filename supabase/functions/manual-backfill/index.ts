@@ -3,7 +3,13 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createSupabaseClient } from '../_shared/database.ts';
-import { corsPreflightResponse, legacySuccessResponse, errorResponse, handleError, notFoundError } from '../_shared/responses.ts';
+import {
+  corsPreflightResponse,
+  errorResponse,
+  handleError,
+  legacySuccessResponse,
+  notFoundError,
+} from '../_shared/responses.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 
 interface BackfillRequest {
@@ -22,7 +28,7 @@ serve(async (req) => {
   try {
     const { repository, days = 30, force = false } = (await req.json()) as BackfillRequest;
 
-        // Initialize Supabase client
+    // Initialize Supabase client
     const supabase = createSupabaseClient();
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 
@@ -43,10 +49,10 @@ serve(async (req) => {
       .eq('name', name)
       .single();
 
-        if (repoError || !repoData) {
+    if (repoError || !repoData) {
       return notFoundError(
         'Repository',
-        `Repository ${repository} not found or not tracked: ${repoError?.message}`
+        `Repository ${repository} not found or not tracked: ${repoError?.message}`,
       );
     }
 
@@ -90,8 +96,8 @@ serve(async (req) => {
       console.error('Failed to store job metadata:', jobError);
     }
 
-        // Step 4: Return job information
-            return legacySuccessResponse(
+    // Step 4: Return job information
+    return legacySuccessResponse(
       {
         job_id: backfillData.job_id,
         status: backfillData.status,
@@ -100,9 +106,9 @@ serve(async (req) => {
         estimated_completion: backfillData.estimated_completion,
         status_url: backfillData.status_url,
       },
-      'Backfill job queued successfully. Monitor progress via job_id.'
+      'Backfill job queued successfully. Monitor progress via job_id.',
     );
-    } catch (error) {
+  } catch (error) {
     return handleError(error, 'manual backfill');
   }
 });

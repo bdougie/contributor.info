@@ -223,7 +223,7 @@ async function handleRequest(req: Request): Promise<Response> {
           JSON.stringify({
             error: 'No PRs to process. Specify prNumbers or range.',
           }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
         );
       }
     }
@@ -251,7 +251,7 @@ async function handleRequest(req: Request): Promise<Response> {
             status: 'partial',
             updated_at: new Date().toISOString(),
           },
-          { onConflict: 'repository_id' }
+          { onConflict: 'repository_id' },
         );
 
         return new Response(
@@ -262,7 +262,7 @@ async function handleRequest(req: Request): Promise<Response> {
             remaining: numbersToProcess.length - i,
             message: 'Partial batch completed due to time limit.',
           }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
         );
       }
 
@@ -349,7 +349,7 @@ async function handleRequest(req: Request): Promise<Response> {
             {
               onConflict: 'github_id',
               ignoreDuplicates: false,
-            }
+            },
           );
 
           if (prError) {
@@ -379,7 +379,7 @@ async function handleRequest(req: Request): Promise<Response> {
                   {
                     onConflict: 'github_id',
                     ignoreDuplicates: false,
-                  }
+                  },
                 );
               }
             }
@@ -398,7 +398,7 @@ async function handleRequest(req: Request): Promise<Response> {
                     login: comment.author.login,
                     avatarUrl: comment.author.avatarUrl,
                   },
-                  false
+                  false,
                 );
 
                 if (commenterId) {
@@ -415,7 +415,7 @@ async function handleRequest(req: Request): Promise<Response> {
                     {
                       onConflict: 'github_id',
                       ignoreDuplicates: false,
-                    }
+                    },
                   );
                 }
               }
@@ -432,7 +432,7 @@ async function handleRequest(req: Request): Promise<Response> {
                     login: comment.author.login,
                     avatarUrl: comment.author.avatarUrl,
                   },
-                  false
+                  false,
                 );
 
                 if (commenterId) {
@@ -449,7 +449,7 @@ async function handleRequest(req: Request): Promise<Response> {
                     {
                       onConflict: 'github_id',
                       ignoreDuplicates: false,
-                    }
+                    },
                   );
                 }
               }
@@ -484,7 +484,7 @@ async function handleRequest(req: Request): Promise<Response> {
         executionTime: `${((Date.now() - startTime) / 1000).toFixed(2)}s`,
         results: results.slice(0, 10), // Return sample of results
       }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   } catch (error) {
     console.error('Batch processing error:', error);
@@ -494,7 +494,7 @@ async function handleRequest(req: Request): Promise<Response> {
         error: 'Batch processing failed',
         details: error instanceof Error ? error.message : 'Unknown error',
       }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   }
 }
@@ -515,7 +515,7 @@ function hashCode(str: string): number {
 async function ensureContributor(
   supabase: any,
   author: any,
-  isBot: boolean
+  isBot: boolean,
 ): Promise<string | null> {
   if (!author) return null;
 
@@ -541,7 +541,7 @@ async function ensureContributor(
       {
         onConflict: 'github_id',
         ignoreDuplicates: false,
-      }
+      },
     )
     .select('id')
     .maybeSingle();

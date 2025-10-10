@@ -1,6 +1,8 @@
 # Inngest Production Edge Function
 
-This Supabase Edge Function handles Inngest webhook requests for production background job processing. It's a migration from the Netlify Function to take advantage of longer timeout limits and better performance.
+This Supabase Edge Function handles Inngest webhook requests for production background job
+processing. It's a migration from the Netlify Function to take advantage of longer timeout limits
+and better performance.
 
 ## Features
 
@@ -55,21 +57,27 @@ VITE_GITHUB_TOKEN=your-github-token
 ## Endpoints
 
 ### GET /functions/v1/inngest-prod
+
 Returns status information about the endpoint including:
+
 - Environment configuration
 - Available functions
 - CORS configuration
 - Rate limit status
 
 ### POST /functions/v1/inngest-prod
+
 Handles Inngest webhook requests with:
+
 - Signature verification
 - Function routing
 - Error handling
 - CORS headers
 
 ### OPTIONS /functions/v1/inngest-prod
+
 Handles CORS preflight requests with proper headers for:
+
 - `x-inngest-signature`
 - `x-inngest-sdk`
 - Standard CORS headers
@@ -91,6 +99,7 @@ Handles CORS preflight requests with proper headers for:
 ### Supporting Functions (Stubs)
 
 The following functions are included as stubs and would need full migration:
+
 - `capture-pr-details`
 - `capture-pr-reviews`
 - `capture-pr-comments`
@@ -104,11 +113,13 @@ The following functions are included as stubs and would need full migration:
 ## Testing
 
 Run tests with:
+
 ```bash
 npm run test:edge-functions
 ```
 
 Tests cover:
+
 - CORS header handling
 - Webhook signature verification
 - Environment configuration
@@ -121,6 +132,7 @@ Tests cover:
 ## Monitoring
 
 Monitor the function using:
+
 - Supabase Dashboard > Functions > Logs
 - Inngest Dashboard > Events & Functions
 - GitHub API rate limit status
@@ -128,6 +140,7 @@ Monitor the function using:
 ## Rollback Plan
 
 If issues occur, traffic can be routed back to Netlify:
+
 1. Update Inngest webhook URL back to Netlify endpoint
 2. Monitor error rates
 3. Investigate issues in Supabase logs

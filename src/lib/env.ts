@@ -11,6 +11,14 @@
  * service tokens, and other sensitive configuration.
  */
 
+// Type declarations for Node.js globals (for Deno type checking compatibility)
+declare global {
+  // eslint-disable-next-line no-var
+  var process: {
+    env: Record<string, string | undefined>;
+  };
+}
+
 // Type for import.meta.env
 interface ImportMetaEnv {
   DEV?: boolean;

@@ -90,14 +90,15 @@ serve(async (req: Request) => {
         return (end - start) / 1000;
       });
       avgProcessingTime = Math.floor(
-        processingTimes.reduce((a, b) => a + b, 0) / processingTimes.length
+        processingTimes.reduce((a, b) => a + b, 0) / processingTimes.length,
       );
     }
 
     // Calculate failure rate
     const totalProcessed = (failedCount || 0) + (completedCount || 0);
-    const failureRate =
-      totalProcessed > 0 ? Math.round(((failedCount || 0) / totalProcessed) * 100) : 0;
+    const failureRate = totalProcessed > 0
+      ? Math.round(((failedCount || 0) / totalProcessed) * 100)
+      : 0;
 
     // Determine health status
     let status: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
@@ -116,7 +117,7 @@ serve(async (req: Request) => {
     if (oldestQueuedAge && oldestQueuedAge > 600) {
       // 10 minutes
       warnings.push(
-        `Old jobs in queue: oldest job is ${Math.floor(oldestQueuedAge / 60)} minutes old`
+        `Old jobs in queue: oldest job is ${Math.floor(oldestQueuedAge / 60)} minutes old`,
       );
       status = 'degraded';
     }
@@ -135,7 +136,7 @@ serve(async (req: Request) => {
     if (oldestQueuedAge && oldestQueuedAge > 3600) {
       // 1 hour
       errors.push(
-        `Stale jobs in queue: oldest job is ${Math.floor(oldestQueuedAge / 3600)} hours old`
+        `Stale jobs in queue: oldest job is ${Math.floor(oldestQueuedAge / 3600)} hours old`,
       );
       status = 'unhealthy';
     }
@@ -188,7 +189,7 @@ serve(async (req: Request) => {
       {
         status: 503,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      },
     );
   }
 });

@@ -21,10 +21,10 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 // Get Inngest configuration from environment
 const INNGEST_APP_ID = Deno.env.get('INNGEST_APP_ID') || 'contributor-info';
-const INNGEST_EVENT_KEY =
-  Deno.env.get('INNGEST_EVENT_KEY') || Deno.env.get('INNGEST_PRODUCTION_EVENT_KEY');
-const INNGEST_SIGNING_KEY =
-  Deno.env.get('INNGEST_SIGNING_KEY') || Deno.env.get('INNGEST_PRODUCTION_SIGNING_KEY');
+const INNGEST_EVENT_KEY = Deno.env.get('INNGEST_EVENT_KEY') ||
+  Deno.env.get('INNGEST_PRODUCTION_EVENT_KEY');
+const INNGEST_SIGNING_KEY = Deno.env.get('INNGEST_SIGNING_KEY') ||
+  Deno.env.get('INNGEST_PRODUCTION_SIGNING_KEY');
 
 // Ensure GitHub token is available
 const GITHUB_TOKEN = Deno.env.get('GITHUB_TOKEN') || Deno.env.get('VITE_GITHUB_TOKEN');
@@ -65,7 +65,7 @@ const testFunction = inngest.createFunction(
       environment: 'supabase-edge-production',
       data: event.data,
     };
-  }
+  },
 );
 
 // Simple PR activity update function
@@ -75,7 +75,7 @@ const updatePrActivity = inngest.createFunction(
   async ({ event, step }) => {
     console.log('PR activity update triggered:', event.data);
     return { success: true, message: 'PR activity update completed' };
-  }
+  },
 );
 
 // Placeholder functions for migration
@@ -86,7 +86,7 @@ const placeholderFunction = (id: string, name: string, eventName: string) =>
     async ({ event }) => {
       console.log(`${name} triggered:`, event.data);
       return { success: true, message: `${name} placeholder executed`, data: event.data };
-    }
+    },
   );
 
 // Create placeholder functions for all expected Inngest functions
@@ -94,15 +94,35 @@ const functions = [
   testFunction,
   updatePrActivity,
   placeholderFunction('capture-pr-details', 'Capture PR Details', 'pr.details.capture'),
-  placeholderFunction('capture-pr-details-graphql', 'Capture PR Details (GraphQL)', 'pr.details.capture.graphql'),
+  placeholderFunction(
+    'capture-pr-details-graphql',
+    'Capture PR Details (GraphQL)',
+    'pr.details.capture.graphql',
+  ),
   placeholderFunction('capture-pr-reviews', 'Capture PR Reviews', 'pr.reviews.capture'),
   placeholderFunction('capture-pr-comments', 'Capture PR Comments', 'pr.comments.capture'),
   placeholderFunction('capture-issue-comments', 'Capture Issue Comments', 'issue.comments.capture'),
-  placeholderFunction('capture-repository-issues', 'Capture Repository Issues', 'repository.issues.capture'),
+  placeholderFunction(
+    'capture-repository-issues',
+    'Capture Repository Issues',
+    'repository.issues.capture',
+  ),
   placeholderFunction('capture-repository-sync', 'Capture Repository Sync', 'repository.sync'),
-  placeholderFunction('capture-repository-sync-graphql', 'Capture Repository Sync (GraphQL)', 'repository.sync.graphql'),
-  placeholderFunction('classify-repository-size', 'Classify Repository Size', 'repository.size.classify'),
-  placeholderFunction('classify-single-repository', 'Classify Single Repository', 'repository.single.classify'),
+  placeholderFunction(
+    'capture-repository-sync-graphql',
+    'Capture Repository Sync (GraphQL)',
+    'repository.sync.graphql',
+  ),
+  placeholderFunction(
+    'classify-repository-size',
+    'Classify Repository Size',
+    'repository.size.classify',
+  ),
+  placeholderFunction(
+    'classify-single-repository',
+    'Classify Single Repository',
+    'repository.single.classify',
+  ),
   placeholderFunction('discover-new-repository', 'Discover New Repository', 'repository.discover'),
 ];
 

@@ -293,8 +293,7 @@ Deno.serve(async (req: Request) => {
 
     // Extract user information
     const userEmail = record.email;
-    const userName =
-      record.raw_user_meta_data?.name ||
+    const userName = record.raw_user_meta_data?.name ||
       record.raw_user_meta_data?.full_name ||
       record.raw_user_meta_data?.user_name ||
       userEmail.split('@')[0];
@@ -403,7 +402,7 @@ Deno.serve(async (req: Request) => {
         message: 'Transactional welcome email sent successfully',
         email_id: emailResult.id,
       }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
+      { status: 200, headers: { 'Content-Type': 'application/json' } },
     );
   } catch (error) {
     console.error('Error sending welcome email:', error);
@@ -413,7 +412,7 @@ Deno.serve(async (req: Request) => {
         error: 'Failed to send welcome email',
         details: error.message,
       }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
+      { status: 500, headers: { 'Content-Type': 'application/json' } },
     );
   }
 });

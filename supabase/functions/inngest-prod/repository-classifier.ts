@@ -160,7 +160,7 @@ export class RepositorySizeClassifier {
   async classifyAndUpdateRepository(
     repositoryId: string,
     owner: string,
-    repo: string
+    repo: string,
   ): Promise<RepositorySize> {
     try {
       console.log(`Classifying repository size for ${owner}/${repo}`);

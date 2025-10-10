@@ -61,7 +61,7 @@ serve(async (req) => {
     if (!openaiApiKey) {
       console.error('OpenAI API key missing');
       throw new Error(
-        'OpenAI API key is not configured in the edge function environment. Please add OPENAI_API_KEY to your Supabase project settings.'
+        'OpenAI API key is not configured in the edge function environment. Please add OPENAI_API_KEY to your Supabase project settings.',
       );
     }
 
@@ -288,7 +288,7 @@ Format the response in clear markdown sections.`;
           ...corsHeaders,
           'Content-Type': 'application/json',
         },
-      }
+      },
     );
   }
 });

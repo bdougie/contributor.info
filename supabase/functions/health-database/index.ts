@@ -24,7 +24,7 @@ serve(async (req) => {
 
     // Get connection pool status
     const { data: connStats, error: connStatsError } = await supabase.rpc(
-      'get_connection_pool_status'
+      'get_connection_pool_status',
     );
 
     // Get slow queries from last 5 minutes
@@ -104,7 +104,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
           'Cache-Control': 'no-cache, no-store, must-revalidate',
         },
-      }
+      },
     );
   } catch (error) {
     console.error('Database health check error:', error);
@@ -129,7 +129,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
           'Cache-Control': 'no-cache, no-store, must-revalidate',
         },
-      }
+      },
     );
   }
 });

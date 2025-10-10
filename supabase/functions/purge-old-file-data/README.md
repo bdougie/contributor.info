@@ -1,6 +1,7 @@
 # Purge Old File Data Function
 
-This Edge Function automatically purges file index data older than 30 days to comply with our data retention policy.
+This Edge Function automatically purges file index data older than 30 days to comply with our data
+retention policy.
 
 ## What it does
 
@@ -91,6 +92,7 @@ The function returns a JSON response with the count of purged records:
 ## Privacy Compliance
 
 This function ensures compliance with our privacy policy by:
+
 - Automatically removing file index data after 30 days
 - Not storing file content permanently
 - Maintaining only aggregated contributor statistics

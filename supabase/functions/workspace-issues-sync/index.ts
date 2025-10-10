@@ -98,7 +98,7 @@ serve(async (req) => {
             has_issues
           )
         )
-      `
+      `,
       )
       .eq('fetch_issues', true)
       .lte('next_sync_at', new Date().toISOString())
@@ -124,7 +124,7 @@ serve(async (req) => {
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 200,
-        }
+        },
       );
     }
 
@@ -153,7 +153,7 @@ serve(async (req) => {
 
       console.log(
         'Syncing issues for %s/${name} (workspace: ${workspaceName}, tier: ${tier})',
-        owner
+        owner,
       );
 
       try {
@@ -163,7 +163,8 @@ serve(async (req) => {
         const maxPages = 5; // Limit to 5 pages (500 issues) to avoid timeout
 
         while (page <= maxPages) {
-          const issuesUrl = `https://api.github.com/repos/${owner}/${name}/issues?state=all&since=${since}&per_page=100&sort=updated&direction=desc&page=${page}`;
+          const issuesUrl =
+            `https://api.github.com/repos/${owner}/${name}/issues?state=all&since=${since}&per_page=100&sort=updated&direction=desc&page=${page}`;
 
           const response = await fetch(issuesUrl, {
             headers: {
@@ -188,7 +189,7 @@ serve(async (req) => {
             } else {
               // If subsequent pages fail, continue with what we have
               console.warn(
-                `Failed to fetch page ${page}, continuing with ${allIssues.length} issues`
+                `Failed to fetch page ${page}, continuing with ${allIssues.length} issues`,
               );
               break;
             }
@@ -350,7 +351,7 @@ serve(async (req) => {
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
-      }
+      },
     );
   } catch (error) {
     console.error('Error in workspace issues sync:', error);
@@ -362,7 +363,7 @@ serve(async (req) => {
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
-      }
+      },
     );
   }
 });
@@ -389,7 +390,7 @@ async function ensureContributorExists(supabase: any, githubUser: any): Promise<
       {
         onConflict: 'github_id',
         ignoreDuplicates: false,
-      }
+      },
     )
     .select('id')
     .single();
@@ -426,7 +427,7 @@ async function updateDailyMetrics(supabase: any, results: any[]) {
         },
         {
           onConflict: 'repository_id,date',
-        }
+        },
       );
     }
   }

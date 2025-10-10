@@ -1,14 +1,14 @@
 /**
  * [Function Name] Edge Function
- * 
+ *
  * [Brief description of what this function does and its purpose]
- * 
+ *
  * @example
  * POST /functions/v1/function-name
  * {
  *   "key": "value"
  * }
- * 
+ *
  * @returns
  * {
  *   "success": true,
@@ -74,15 +74,15 @@ serve(async (req) => {
   try {
     // Parse request body
     const body = await req.json();
-    
+
     // Validate request
     validateRequest(body);
-    
+
     // Initialize Supabase client
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // TODO: Implement your function logic here
-    
+
     // Example: Query database
     const { data: records, error: queryError } = await supabase
       .from('table_name')
@@ -100,7 +100,7 @@ serve(async (req) => {
     // Example: Update database
     const { error: updateError } = await supabase
       .from('table_name')
-      .upsert({ 
+      .upsert({
         key: body.key,
         value: result,
         updated_at: new Date().toISOString(),
@@ -132,13 +132,12 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         status: 200,
-      }
+      },
     );
-
   } catch (error) {
     // Log error with format specifiers for security
     console.error('Function error: %s', error.message);
-    
+
     // Return error response
     return new Response(
       JSON.stringify({
@@ -152,7 +151,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         status: 500,
-      }
+      },
     );
   }
 });

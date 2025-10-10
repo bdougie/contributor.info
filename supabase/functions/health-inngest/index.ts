@@ -68,14 +68,16 @@ serve(async (req: Request) => {
     };
 
     // Check 1: Stuck jobs
-    const { data: stuckJobsData, error: stuckJobsError } = await supabase.rpc('get_stuck_job_summary');
+    const { data: stuckJobsData, error: stuckJobsError } = await supabase.rpc(
+      'get_stuck_job_summary',
+    );
 
     if (stuckJobsError) {
       result.healthy = false;
       result.status = 'critical';
       result.checks.stuck_jobs.healthy = false;
       result.recommendations.push(
-        '🚨 Failed to query stuck jobs from database. Check database connectivity and RPC function.'
+        '🚨 Failed to query stuck jobs from database. Check database connectivity and RPC function.',
       );
     } else if (stuckJobsData && stuckJobsData.length > 0) {
       const stuckSummary = stuckJobsData[0];
@@ -92,7 +94,7 @@ serve(async (req: Request) => {
         result.recommendations.push(
           '🚨 High number of stuck jobs detected. Check Inngest webhook configuration.',
           `Expected webhook: https://contributor.info/.netlify/functions/inngest-prod`,
-          'Verify webhook URL in Inngest dashboard: https://app.inngest.com'
+          'Verify webhook URL in Inngest dashboard: https://app.inngest.com',
         );
       }
     }
@@ -117,7 +119,7 @@ serve(async (req: Request) => {
         result.healthy = false;
         result.status = result.status === 'critical' ? 'critical' : 'warning';
         result.recommendations.push(
-          '⚠️ No jobs completed in the last hour. Inngest processing may be stalled.'
+          '⚠️ No jobs completed in the last hour. Inngest processing may be stalled.',
         );
       }
     }
@@ -144,7 +146,7 @@ serve(async (req: Request) => {
         result.healthy = false;
         result.status = result.status === 'critical' ? 'critical' : 'warning';
         result.recommendations.push(
-          `⚠️ High failure rate: ${failureRate.toFixed(1)}%. Check Inngest function logs.`
+          `⚠️ High failure rate: ${failureRate.toFixed(1)}%. Check Inngest function logs.`,
         );
       }
     }
@@ -174,7 +176,7 @@ serve(async (req: Request) => {
           ...corsHeaders,
           'Content-Type': 'application/json',
         },
-      }
+      },
     );
   }
 });

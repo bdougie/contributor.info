@@ -41,7 +41,7 @@ interface IdempotencyRecord {
  */
 async function generateRequestHash(
   eventName: string,
-  data: Record<string, unknown>
+  data: Record<string, unknown>,
 ): Promise<string> {
   const content = JSON.stringify({ eventName, data });
   const encoder = new TextEncoder();
@@ -59,7 +59,7 @@ async function handleIdempotency(
   key: string,
   eventName: string,
   data: Record<string, unknown>,
-  userId?: string
+  userId?: string,
 ): Promise<{ isDuplicate: boolean; response?: IdempotencyResponse }> {
   try {
     // First, check if this idempotency key already exists
@@ -141,7 +141,7 @@ async function handleIdempotency(
 async function updateIdempotencyRecord(
   key: string,
   status: 'completed' | 'failed',
-  response?: IdempotencyResponse
+  response?: IdempotencyResponse,
 ): Promise<void> {
   try {
     const { error } = await supabase
@@ -165,7 +165,7 @@ async function updateIdempotencyRecord(
  */
 async function sendToInngest(
   eventName: string,
-  data: Record<string, unknown>
+  data: Record<string, unknown>,
 ): Promise<Record<string, unknown>> {
   if (!INNGEST_EVENT_KEY) {
     throw new Error('INNGEST_EVENT_KEY is not configured');
@@ -235,7 +235,7 @@ serve(async (req: Request) => {
         idempotencyKey,
         eventName,
         data,
-        userId
+        userId,
       );
 
       if (isDuplicate && response) {
@@ -252,7 +252,7 @@ serve(async (req: Request) => {
           {
             status: 200,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
+          },
         );
       }
     }
@@ -287,7 +287,7 @@ serve(async (req: Request) => {
         {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
+        },
       );
     }
 
@@ -308,7 +308,7 @@ serve(async (req: Request) => {
       {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      },
     );
   } catch (error) {
     console.error('Error processing request:', error);
@@ -318,7 +318,7 @@ serve(async (req: Request) => {
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      },
     );
   }
 });

@@ -1,27 +1,27 @@
 /**
  * GitHub Webhook Edge Function
- * 
+ *
  * Main webhook handler that processes GitHub webhook events in real-time.
  * Routes events based on type and action, updates contributor metrics, and
  * manages privileged event detection for role assignment.
- * 
+ *
  * Supported webhook events:
  * - issue_comment: Processes comments for triager/responder metrics
  * - pull_request: Handles PR events and updates contributor roles
  * - Other events: Logged and queued for async processing
- * 
+ *
  * Security features:
  * - Webhook signature verification (x-hub-signature-256)
  * - Bot account detection and filtering
  * - Privileged event detection for role management
- * 
+ *
  * @example
  * POST /functions/v1/github-webhook
  * Headers:
  *   x-github-event: pull_request
  *   x-hub-signature-256: sha256=...
  * Body: { GitHub webhook payload }
- * 
+ *
  * @returns
  * {
  *   "success": true,
@@ -34,11 +34,11 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { crypto } from 'https://deno.land/std@0.168.0/crypto/mod.ts';
 import { createSupabaseClient, ensureContributor } from '../_shared/database.ts';
 import { corsHeaders } from '../_shared/cors.ts';
-import { corsPreflightResponse, successResponse, errorResponse } from '../_shared/responses.ts';
+import { corsPreflightResponse, errorResponse, successResponse } from '../_shared/responses.ts';
 import { detectPrivilegedEvent, GitHubEvent, isBotAccount } from '../_shared/event-detection.ts';
 import {
-  getContributorMetrics,
   calculateConfidenceScore,
+  getContributorMetrics,
   updateContributorRole,
 } from '../_shared/confidence-scoring.ts';
 
@@ -47,7 +47,7 @@ async function processIssueCommentEvent(
   supabase: any,
   event: GitHubEvent,
   owner: string,
-  name: string
+  name: string,
 ) {
   try {
     // Get repository and issue from database
@@ -72,7 +72,7 @@ async function processIssueCommentEvent(
 
     if (!issue) {
       console.log(
-        `Issue #${event.payload.issue.number} not found in database, skipping comment processing`
+        `Issue #${event.payload.issue.number} not found in database, skipping comment processing`,
       );
       return;
     }
@@ -109,7 +109,7 @@ async function processIssueCommentEvent(
       console.error('Error storing issue comment:', error);
     } else {
       console.log(
-        `Stored comment ${event.payload.comment.id} on issue #${event.payload.issue.number}`
+        `Stored comment ${event.payload.comment.id} on issue #${event.payload.issue.number}`,
       );
     }
   } catch (error) {
@@ -121,7 +121,7 @@ async function processIssueCommentEvent(
 async function verifyWebhookSignature(
   body: string,
   signature: string | null,
-  secret: string
+  secret: string,
 ): Promise<boolean> {
   if (!signature) return false;
 
@@ -131,7 +131,7 @@ async function verifyWebhookSignature(
     new TextEncoder().encode(secret),
     { name: 'HMAC', hash: 'SHA-256' },
     false,
-    ['sign']
+    ['sign'],
   );
 
   const signatureBuffer = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(body));
@@ -196,7 +196,7 @@ serve(async (req) => {
     // For tracked repositories, issue comments should be captured via progressive capture system
     // See: https://github.com/bdougie/contributor.info/issues/263
     /*
-    if (event.type === 'IssueCommentEvent' && 
+    if (event.type === 'IssueCommentEvent' &&
         event.payload.action === 'created' &&
         !event.payload.issue?.pull_request) { // Only for actual issues, not PRs
       await processIssueCommentEvent(supabase, event, owner, name)
@@ -224,7 +224,7 @@ serve(async (req) => {
       },
       {
         onConflict: 'repository_owner,repository_name',
-      }
+      },
     );
 
     return successResponse({
@@ -237,7 +237,7 @@ serve(async (req) => {
       'Webhook processing failed',
       500,
       error instanceof Error ? error.message : 'Unknown error',
-      'WEBHOOK_ERROR'
+      'WEBHOOK_ERROR',
     );
   }
 });
