@@ -310,9 +310,8 @@ function WorkspacePage() {
   // Development environment check - log helpful message about Netlify dev server
   useEffect(() => {
     if (import.meta.env.DEV) {
-      console.log(
-        '%c🚀 Workspace Page - Development Mode',
-        'background: #2563eb; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;',
+      logger.info(
+        '🚀 Workspace Page - Development Mode',
         '\n\n' +
           '📋 API endpoints require Netlify Dev server to be running.\n' +
           '   Run: npm start\n\n' +
@@ -353,7 +352,7 @@ function WorkspacePage() {
         .maybeSingle();
 
       if (wsError) {
-        console.error('Error fetching workspace:', wsError);
+        logger.error('Error fetching workspace:', wsError);
         setError(`Failed to load workspace: ${wsError.message}`);
         setLoading(false);
         return;
@@ -439,11 +438,11 @@ function WorkspacePage() {
         .eq('workspace_id', workspaceData.id);
 
       if (repoError) {
-        console.error('Error fetching repositories:', repoError);
+        logger.error('Error fetching repositories:', repoError);
       }
 
       // Transform repository data to match the Repository interface
-      console.log('Fetched workspace repositories:', repoData?.length, repoData);
+      logger.debug('Fetched workspace repositories:', repoData?.length, repoData);
       const transformedRepos: Repository[] = (repoData || [])
         .filter((r) => r.repositories)
         .map((r: WorkspaceRepository) => ({
@@ -467,7 +466,7 @@ function WorkspacePage() {
               : getFallbackAvatar()),
           html_url: `https://github.com/${r.repositories.full_name}`,
         }));
-      console.log('Transformed repositories:', transformedRepos.length, transformedRepos);
+      logger.debug('Transformed repositories:', transformedRepos.length, transformedRepos);
 
       // Fetch real data for metrics and trends
       let mergedPRs: MergedPR[] = [];
@@ -504,7 +503,7 @@ function WorkspacePage() {
           .order('created_at', { ascending: true });
 
         if (prError) {
-          console.error('Error fetching PR data:', prError);
+          logger.error('Error fetching PR data:', prError);
         }
 
         if (prData) {
@@ -587,7 +586,7 @@ function WorkspacePage() {
             .order('created_at', { ascending: true });
 
           if (issueError) {
-            console.error('Error fetching issue data:', issueError);
+            logger.error('Error fetching issue data:', issueError);
           }
 
           if (issueData) {
@@ -638,7 +637,7 @@ function WorkspacePage() {
             .order('submitted_at', { ascending: false });
 
           if (reviewError) {
-            console.error('Error fetching review data:', reviewError);
+            logger.error('Error fetching review data:', reviewError);
           }
 
           if (reviewData && Array.isArray(reviewData)) {
@@ -726,7 +725,7 @@ function WorkspacePage() {
             .order('created_at', { ascending: false });
 
           if (commentError) {
-            console.error('Error fetching comment data:', commentError);
+            logger.error('Error fetching comment data:', commentError);
           }
 
           if (commentData && Array.isArray(commentData)) {
@@ -928,7 +927,7 @@ function WorkspacePage() {
           .not('author_id', 'is', null);
 
         if (prContributorError) {
-          console.error('Error fetching PR contributors:', prContributorError);
+          logger.error('Error fetching PR contributors:', prContributorError);
         } else if (prContributorData && prContributorData.length > 0) {
           // Get unique contributor IDs
           const contributorIds = [...new Set(prContributorData.map((pr) => pr.author_id))];
@@ -1011,7 +1010,7 @@ function WorkspacePage() {
       setActivityData(activityDataPoints);
     } catch (err) {
       setError('Failed to load workspace');
-      console.error('Error:', err);
+      logger.error('Error:', err);
     } finally {
       setLoading(false);
     }
@@ -1093,7 +1092,7 @@ function WorkspacePage() {
 
       if (signInError) {
         toast.error('Failed to initiate sign in');
-        console.error('Auth error:', signInError);
+        logger.error('Auth error:', signInError);
       }
       return;
     }
@@ -1160,7 +1159,7 @@ function WorkspacePage() {
         setMetrics(newMetrics);
       }
     } catch (error) {
-      console.error('Error refreshing repositories:', error);
+      logger.error('Error refreshing repositories:', error);
       toast.error('Failed to refresh repositories');
     }
   };
@@ -1192,7 +1191,7 @@ function WorkspacePage() {
         toast.error(result.error || 'Failed to remove repository');
       }
     } catch (error) {
-      console.error('Error removing repository:', error);
+      logger.error('Error removing repository:', error);
       toast.error('Failed to remove repository from workspace');
     }
   };
@@ -1273,7 +1272,7 @@ function WorkspacePage() {
         setResponseMessage(searchResult.message);
       }
     } catch (error) {
-      console.error('Error finding similar items:', error);
+      logger.error('Error finding similar items:', error);
       setSimilarItems([]);
       setResponseMessage(
         'Similarity search is not available yet. Embeddings need to be generated for this workspace.'
@@ -1346,7 +1345,7 @@ function WorkspacePage() {
         setResponseMessage(searchResult.message);
       }
     } catch (error) {
-      console.error('Error finding similar items:', error);
+      logger.error('Error finding similar items:', error);
       setSimilarItems([]);
       setResponseMessage(
         'Similarity search is not available yet. Embeddings need to be generated for this workspace.'
@@ -1644,7 +1643,7 @@ function WorkspacePage() {
                       setResponseMessage(searchResult.message);
                     }
                   } catch (error) {
-                    console.error('Error finding similar items:', error);
+                    logger.error('Error finding similar items:', error);
                     setSimilarItems([]);
                     setResponseMessage(
                       'Similarity search is not available yet. Embeddings need to be generated for this workspace.'

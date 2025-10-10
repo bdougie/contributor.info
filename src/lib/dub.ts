@@ -6,7 +6,7 @@ const isDev = import.meta.env.DEV;
 const DOMAIN = isDev ? 'dub.sh' : 'oss.fyi';
 const DUB_API_KEY = import.meta.env.VITE_DUB_CO_KEY;
 
-logger.log('Environment:', isDev ? 'Development' : 'Production', '- Using Dub API directly');
+logger.debug('Environment:', isDev ? 'Development' : 'Production', '- Using Dub API directly');
 
 interface CreateShortUrlOptions {
   url: string;
@@ -53,7 +53,7 @@ export async function createShortUrl({
 }: CreateShortUrlOptions): Promise<ShortUrlResponse | null> {
   // In development, skip API call and return original URL for faster development
   if (isDev) {
-    console.warn('Development mode: Skipping URL shortening, returning original URL');
+    logger.warn('Development mode: Skipping URL shortening, returning original URL');
     return {
       id: 'dev-mock',
       domain: 'localhost',
@@ -71,7 +71,7 @@ export async function createShortUrl({
 
   // Check if API key is available
   if (!DUB_API_KEY) {
-    console.warn('DUB_API_KEY not configured, returning original URL');
+    logger.warn('DUB_API_KEY not configured, returning original URL');
     return {
       id: 'no-api-key',
       domain: 'original',
@@ -119,7 +119,7 @@ export async function createShortUrl({
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Dub API error:', {
+      logger.error('Dub API error:', {
         status: response.status,
         statusText: response.statusText,
         error: errorText,
@@ -155,7 +155,7 @@ export async function createShortUrl({
       image: data.image,
     };
   } catch (error) {
-    console.error('Failed to create short URL:', error);
+    logger.error('Failed to create short URL:', error);
     return null;
   }
 }
@@ -181,12 +181,12 @@ async function trackShortUrlCreation(dubData: ShortUrlResponse) {
     });
 
     if (error) {
-      console.error('Failed to track short URL creation:', error);
+      logger.error('Failed to track short URL creation:', error);
     } else {
       logger.log('Short URL tracked in Supabase analytics');
     }
   } catch (error) {
-    console.error('Error tracking short URL creation:', error);
+    logger.error('Error tracking short URL creation:', error);
   }
 }
 
@@ -195,7 +195,7 @@ async function trackShortUrlCreation(dubData: ShortUrlResponse) {
  */
 export async function getUrlAnalytics(linkId: string) {
   if (isDev) {
-    console.warn('Development mode: Skipping analytics request');
+    logger.warn('Development mode: Skipping analytics request');
     return null;
   }
 
@@ -208,13 +208,13 @@ export async function getUrlAnalytics(linkId: string) {
       .maybeSingle();
 
     if (error) {
-      console.error('Failed to get URL analytics:', error);
+      logger.error('Failed to get URL analytics:', error);
       return null;
     }
 
     return data;
   } catch (error) {
-    console.error('Failed to get URL analytics:', error);
+    logger.error('Failed to get URL analytics:', error);
     return null;
   }
 }
@@ -272,7 +272,7 @@ export async function createChartShareUrl(
 ): Promise<string> {
   // Validate URL for security
   if (!validateUrl(fullUrl)) {
-    console.warn('Invalid URL for shortening:', fullUrl);
+    logger.warn('Invalid URL for shortening:', fullUrl);
     return fullUrl;
   }
 

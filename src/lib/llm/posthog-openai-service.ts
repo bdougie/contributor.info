@@ -151,7 +151,7 @@ class PostHogOpenAIService {
       };
       logger.log('PostHog LLM analytics initialized');
     } catch (error) {
-      console.warn('PostHog not available - install posthog-node for LLM tracking:', error);
+      logger.warn('PostHog not available - install posthog-node for LLM tracking:', error);
       this.posthogConfig.enableTracking = false;
     }
   }
@@ -175,7 +175,7 @@ class PostHogOpenAIService {
         host: this.posthogConfig.host,
       });
     } catch (error) {
-      console.warn(
+      logger.warn(
         'Failed to initialize PostHog client:',
         error instanceof Error ? error.message : 'Unknown error'
       );
@@ -226,7 +226,7 @@ class PostHogOpenAIService {
         timestamp: new Date(),
       };
     } catch (error) {
-      console.error('Failed to generate health insight:', error);
+      logger.error('Failed to generate health insight:', error);
       return null;
     }
   }
@@ -260,7 +260,7 @@ class PostHogOpenAIService {
         timestamp: new Date(),
       };
     } catch (error) {
-      console.error('Failed to generate recommendations:', error);
+      logger.error('Failed to generate recommendations:', error);
       return null;
     }
   }
@@ -294,7 +294,7 @@ class PostHogOpenAIService {
         timestamp: new Date(),
       };
     } catch (error) {
-      console.error('Failed to analyze PR patterns:', error);
+      logger.error('Failed to analyze PR patterns:', error);
       return null;
     }
   }
@@ -471,7 +471,7 @@ class PostHogOpenAIService {
         cost: this.calculateCost(completion.usage, completion.model),
       };
     } catch (error) {
-      console.warn(
+      logger.warn(
         'PostHog OpenAI wrapper not available - install @posthog/ai for automatic tracking. Falling back to manual tracking:',
         error
       );
@@ -533,7 +533,7 @@ class PostHogOpenAIService {
         },
       });
     } catch (error) {
-      console.warn('Failed to track LLM call:', error);
+      logger.warn('Failed to track LLM call:', error);
     }
   }
 
@@ -564,7 +564,7 @@ class PostHogOpenAIService {
         },
       });
     } catch (trackError) {
-      console.warn('Failed to track LLM error:', trackError);
+      logger.warn('Failed to track LLM error:', trackError);
     }
   }
 

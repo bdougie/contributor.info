@@ -8,6 +8,7 @@ import { OfflineNotification } from '@/components/common/OfflineNotification';
 import { WorkspaceProvider } from '@/contexts/WorkspaceContext';
 import { FeatureFlagsProvider } from '@/lib/feature-flags';
 import { useSubscriptionSync } from '@/hooks/use-subscription-sync';
+import { logger } from '@/lib/logger';
 // Lazy load core components to reduce initial bundle
 const Layout = lazy(() =>
   import('@/components/common/layout').then((m) => ({ default: m.Layout }))
@@ -337,7 +338,7 @@ function App() {
           vitalsMonitor.onMetric((metric) => {
             // Additional logging or analytics can be added here
             if (metric.rating !== 'good') {
-              console.warn(`Performance issue detected: ${metric.name}`, metric);
+              logger.warn(`Performance issue detected: ${metric.name}`, metric);
             }
           });
         }
@@ -399,7 +400,7 @@ function App() {
     const citationTracker = initializeLLMCitationTracking();
 
     if (process.env.NODE_ENV === 'development') {
-      console.log('[LLM Citation Tracker] Initialized for tracking AI platform citations');
+      logger.debug('[LLM Citation Tracker] Initialized for tracking AI platform citations');
     }
 
     return () => {
@@ -412,7 +413,7 @@ function App() {
     import('./lib/error-tracker').then(({ setupGlobalErrorTracking }) => {
       setupGlobalErrorTracking();
       if (process.env.NODE_ENV === 'development') {
-        console.log('[Error Tracking] Global error handlers initialized with PostHog');
+        logger.debug('[Error Tracking] Global error handlers initialized with PostHog');
       }
     });
   }, []);
@@ -731,8 +732,8 @@ function App() {
               </Suspense>
               <Toaster />
               <PWAInstallPrompt
-                onInstall={() => console.log('PWA installed successfully!')}
-                onDismiss={() => console.log('PWA install prompt dismissed')}
+                onInstall={() => logger.debug('PWA installed successfully!')}
+                onDismiss={() => logger.debug('PWA install prompt dismissed')}
               />
             </WorkspaceProvider>
           </Router>

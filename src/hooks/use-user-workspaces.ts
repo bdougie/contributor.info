@@ -114,7 +114,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
             }
             user = session.user;
           } catch (sessionError) {
-            console.error('[Workspace] Failed to get session in auth fallback:', sessionError);
+            logger.error('[Workspace] Failed to get session in auth fallback:', sessionError);
             setWorkspaces([]);
             setLoading(false);
             setError(new Error('Unable to verify authentication'));
@@ -128,7 +128,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
         clearTimeout(authTimeoutId);
 
         if (signal.aborted) {
-          console.warn('[Workspace] Auth check aborted or timed out, using session fallback');
+          logger.warn('[Workspace] Auth check aborted or timed out, using session fallback');
         }
 
         // Try to get session directly as fallback
@@ -146,7 +146,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
             return;
           }
         } catch (sessionError) {
-          console.error('[Workspace] Failed to get session:', sessionError);
+          logger.error('[Workspace] Failed to get session:', sessionError);
           setWorkspaces([]);
           setLoading(false);
           setError(new Error('Unable to verify authentication'));
@@ -276,7 +276,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
         .returns<RepositoryWithWorkspace[]>();
 
       if (reposError) {
-        console.error('Failed to fetch workspace repositories:', reposError.message);
+        logger.error('Failed to fetch workspace repositories:', reposError.message);
         throw new Error(`Unable to load workspace repositories: ${reposError.message}`);
       }
 
@@ -360,7 +360,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
       hasInitialLoadRef.current = true;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch workspaces';
-      console.error('[Workspace] Error fetching workspaces:', errorMessage);
+      logger.error('[Workspace] Error fetching workspaces:', errorMessage);
       setError(new Error(errorMessage));
       setWorkspaces([]);
       hasInitialLoadRef.current = true;
@@ -395,7 +395,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
       // Reduced from 10s to 5s after Phase 1 optimization
       loadingTimeout = setTimeout(() => {
         if (loading && mounted && !hasInitialLoadRef.current) {
-          console.error('[Workspace] Loading timed out after 5 seconds');
+          logger.error('[Workspace] Loading timed out after 5 seconds');
           setLoading(false);
           setError(new Error('Workspace loading timed out. Please refresh the page.'));
           hasInitialLoadRef.current = true;

@@ -11,6 +11,7 @@ import {
   TTFBMetric,
 } from 'web-vitals';
 import { getWebVitalsAnalytics } from './web-vitals-analytics';
+import { logger } from './logger';
 
 // Core Web Vitals thresholds (in milliseconds)
 const THRESHOLDS = {
@@ -228,20 +229,10 @@ class WebVitalsMonitor {
         poor: '❌',
       };
 
-      const ratingColors: Record<string, string> = {
-        good: 'green',
-        'needs-improvement': 'orange',
-        poor: 'red',
-      };
-
       const emoji = ratingEmojis[rating] || '❌';
-      const color = ratingColors[rating] || 'red';
       const formattedValue = name === 'CLS' ? value.toFixed(3) : `${(value / 1000).toFixed(2)}s`;
 
-      console.log(
-        `%c[Web Vitals] ${emoji} ${name}: ${formattedValue} (${rating})`,
-        `color: ${color}`
-      );
+      logger.debug(`[Web Vitals] ${emoji} ${name}: ${formattedValue} (${rating})`);
     }
 
     // Batch metrics for reporting
@@ -286,7 +277,7 @@ class WebVitalsMonitor {
       });
     } catch (error) {
       if (this.debugMode) {
-        console.error('[Web Vitals] Failed to send metrics:', error);
+        logger.error('[Web Vitals] Failed to send metrics:', error);
       }
     }
   }
@@ -296,7 +287,7 @@ class WebVitalsMonitor {
       try {
         callback(metric);
       } catch (error) {
-        console.error('[Web Vitals] Callback error:', error);
+        logger.error('[Web Vitals] Callback error:', error);
       }
     });
   }

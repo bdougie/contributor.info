@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { logger } from './logger';
 
 export interface ReferralTrafficEvent {
   referrer_url?: string;
@@ -100,10 +101,10 @@ class LLMCitationTracker {
 
       // Log for development
       if (process.env.NODE_ENV === 'development') {
-        console.log('[LLM Citation Tracker] Page view tracked:', event);
+        logger.debug('[LLM Citation Tracker] Page view tracked:', event);
       }
     } catch (error) {
-      console.error('[LLM Citation Tracker] Failed to track page view:', error);
+      logger.error('[LLM Citation Tracker] Failed to track page view:', error);
     }
   }
 
@@ -283,10 +284,10 @@ class LLMCitationTracker {
       const { error } = await supabase.from('referral_traffic').insert([event]);
 
       if (error) {
-        console.error('[LLM Citation Tracker] Failed to send referral event:', error);
+        logger.error('[LLM Citation Tracker] Failed to send referral event:', error);
       }
     } catch (err) {
-      console.error('[LLM Citation Tracker] Error sending referral event:', err);
+      logger.error('[LLM Citation Tracker] Error sending referral event:', err);
     }
   }
 
@@ -298,10 +299,10 @@ class LLMCitationTracker {
       const { error } = await supabase.from('citation_alerts').insert([alert]);
 
       if (error) {
-        console.error('[LLM Citation Tracker] Failed to track citation alert:', error);
+        logger.error('[LLM Citation Tracker] Failed to track citation alert:', error);
       }
     } catch (err) {
-      console.error('[LLM Citation Tracker] Error tracking citation alert:', err);
+      logger.error('[LLM Citation Tracker] Error tracking citation alert:', err);
     }
   }
 
@@ -349,7 +350,7 @@ class LLMCitationTracker {
         if (error) throw error;
       }
     } catch (err) {
-      console.error('[LLM Citation Tracker] Error recording query pattern:', err);
+      logger.error('[LLM Citation Tracker] Error recording query pattern:', err);
     }
   }
 
@@ -374,7 +375,7 @@ class LLMCitationTracker {
       const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) {
-        console.error('[LLM Citation Tracker] Failed to get citation metrics:', error);
+        logger.error('[LLM Citation Tracker] Failed to get citation metrics:', error);
         return null;
       }
 
@@ -410,7 +411,7 @@ class LLMCitationTracker {
 
       return metrics;
     } catch (err) {
-      console.error('[LLM Citation Tracker] Error getting citation metrics:', err);
+      logger.error('[LLM Citation Tracker] Error getting citation metrics:', err);
       return null;
     }
   }
