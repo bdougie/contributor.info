@@ -78,8 +78,6 @@ import {
 import {
   useReactTable,
   getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   flexRender,
   type ColumnDef,
