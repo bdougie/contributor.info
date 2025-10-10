@@ -26,7 +26,7 @@ export class PerformanceMonitor {
 
   endTimer(operation: string, success = true) {
     const startTime = this.timers.get(operation);
-    if (!startTime) {
+    if (startTime === undefined) {
       console.warn(`No timer found for operation: ${operation}`);
       return;
     }
