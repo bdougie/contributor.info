@@ -631,11 +631,7 @@ export class WorkspaceService {
           },
         });
 
-        console.log(
-          'Upgraded repository priority to high: %s (workspace: %s)',
-          data.repository_id,
-          workspaceId
-        );
+        // Upgraded repository priority to high
       } catch (error) {
         // Log but don't fail the workspace operation
         console.error('Failed to update repository priority:', error);
@@ -661,11 +657,7 @@ export class WorkspaceService {
             },
           });
 
-          console.log(
-            'Triggered workspace metrics update: %s added to workspace %s',
-            repository.full_name,
-            workspaceId
-          );
+          // Triggered workspace metrics update
         }
       } catch (error) {
         // Log but don't fail the workspace operation
@@ -741,9 +733,9 @@ export class WorkspaceService {
         if (!stillInWorkspace) {
           await workspacePrioritySync.markAsTrackedOnly(repositoryId);
 
-          console.log('Downgraded repository priority to medium: %s (no workspaces)', repositoryId);
+          // Downgraded repository priority to medium
         } else {
-          console.log('Repository still in other workspaces: %s', repositoryId);
+          // Repository still in other workspaces
         }
       } catch (error) {
         console.error('Failed to downgrade repository priority:', error);
@@ -769,11 +761,7 @@ export class WorkspaceService {
             },
           });
 
-          console.log(
-            'Triggered workspace metrics update: %s removed from workspace %s',
-            repository.full_name,
-            workspaceId
-          );
+          // Triggered workspace metrics update
         }
       } catch (error) {
         // Log but don't fail the workspace operation
@@ -1195,7 +1183,7 @@ export class WorkspaceService {
           // Don't fail the invitation creation if email fails
           // The invitation is still valid and can be resent
         } else {
-          console.log('Invitation email sent successfully');
+          // Invitation email sent successfully
         }
       } catch (emailErr) {
         console.error('Error sending invitation email:', emailErr);
@@ -1473,7 +1461,7 @@ export class WorkspaceService {
       }
 
       // Delete member
-      console.log('Attempting to delete member:', { workspaceId, targetUserId });
+      // Attempting to delete member
       const { error: deleteError, count } = await supabase
         .from('workspace_members')
         .delete()
@@ -1481,7 +1469,7 @@ export class WorkspaceService {
         .eq('user_id', targetUserId)
         .select(); // Add select to get count of deleted rows
 
-      console.log('Delete result:', { deleteError, count });
+      // Delete result logged
 
       if (deleteError) {
         console.error('Remove member error:', deleteError);
