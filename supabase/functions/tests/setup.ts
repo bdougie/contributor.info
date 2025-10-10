@@ -104,16 +104,16 @@ export class MockGitHubClient {
   getUser(username: string) {
     const user = this.users.get(username);
     if (!user) {
-      throw new Error(`User not found: ${username}`);
+      throw new Error('User not found: ' + username);
     }
     return user;
   }
 
   getRepository(owner: string, repo: string) {
-    const key = `${owner}/${repo}`;
+    const key = owner + '/' + repo;
     const repository = this.repos.get(key);
     if (!repository) {
-      throw new Error(`Repository not found: ${key}`);
+      throw new Error('Repository not found: ' + key);
     }
     return repository;
   }
@@ -125,7 +125,7 @@ export class MockGitHubClient {
 
   // Helper to seed test repositories
   seedRepo(owner: string, repo: string, data: Record<string, unknown>) {
-    this.repos.set(`${owner}/${repo}`, data);
+    this.repos.set(owner + '/' + repo, data);
   }
 }
 

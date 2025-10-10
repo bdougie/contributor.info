@@ -269,7 +269,7 @@ export function handleError(
   const errorMessage = error instanceof Error ? error.message : 'Unknown error';
   const errorDetails = error instanceof Error ? error.stack : String(error);
 
-  console.error(`Error in ${context}:`, { error, errorMessage, errorDetails });
+  console.error('Error in %s:', context, { error, errorMessage, errorDetails });
 
   return errorResponse(
     `${context} failed`,
