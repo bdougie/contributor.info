@@ -303,10 +303,13 @@ npm run verify:csp       # Verify CSP hash after HTML changes
 - **Styling**: Tailwind CSS with shadcn/ui components
 - **Testing**: Vitest for unit tests, Testing Library for components
 - **Linting**: ESLint with React and TypeScript rules
+- **Logging**: Use `logger` utility instead of `console.log` (see [Logging Guide](./docs/development/logging.md))
 
 ### 5. Component Guidelines
 
 ```typescript
+import { logger } from '@/lib/logger';
+
 // Use proper TypeScript interfaces
 interface ContributorCardProps {
   contributor: ContributorStats;
@@ -315,14 +318,25 @@ interface ContributorCardProps {
 
 // Follow naming conventions
 export function ContributorCard({ contributor, onSelect }: ContributorCardProps) {
+  // Use logger instead of console.log (production-safe)
+  logger.log('Rendering contributor card for %s', contributor.login);
+  
   // Component logic
 }
 
 // Use custom hooks for data fetching
 export function useContributorData(repoUrl: string) {
+  logger.debug('Fetching contributor data for %s', repoUrl);
   // Hook implementation
 }
 ```
+
+**Logging Best Practices**:
+- ✅ Use `logger.log()` instead of `console.log()` (only logs in dev)
+- ✅ Use `logger.error()` for errors (always logs)
+- ✅ Use printf-style formatting: `logger.log('User %s', userId)` not `` logger.log(`User ${userId}`) ``
+- ❌ Don't use `console.log()` directly in production code
+- 📚 See [Logging Guide](./docs/development/logging.md) for details
 
 ## 🧪 Testing
 

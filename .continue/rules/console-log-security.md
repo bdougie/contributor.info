@@ -1,11 +1,43 @@
 ---
 globs: "**/*.{ts,tsx,js,jsx}"
-description: Prevent security vulnerabilities in console.log statements
+description: Use logger utility and prevent security vulnerabilities
 ---
 
-# Console.log Security
+# Production-Safe Logging
 
-Never use template literals with console.log as they can create security vulnerabilities through log injection attacks. Always use printf-style formatting with `%s` placeholders.
+## Use Logger Utility in Production Code
+
+Always use the `logger` utility instead of `console.log` in production code. Console logs create noise in production and make debugging harder.
+
+```typescript
+import { logger } from '@/lib/logger';
+
+// ✅ Good - Only logs in development
+logger.log('Processing data for %s', userId);
+
+// ✅ Good - Always logs (errors should be visible)
+logger.error('Failed to fetch data:', error);
+
+// ❌ Bad - Logs in production too
+console.log('Processing data for', userId);
+```
+
+**Logger API:**
+- `logger.log()` - Only logs in development
+- `logger.warn()` - Only logs in development
+- `logger.error()` - Always logs (even in production)
+- `logger.info()` - Only logs in development
+- `logger.debug()` - Only logs in development
+
+**When to use `console.log` directly:**
+- Test files (`.test.ts`, `.test.tsx`)
+- Story files (`.stories.tsx`)
+- Documentation examples
+- Scripts in `scripts/` directory
+
+## Security: Never Use Template Literals
+
+Never use template literals with logging as they can create security vulnerabilities through log injection attacks. Always use printf-style formatting with `%s` placeholders.
 
 ## Security Issue
 
@@ -15,14 +47,14 @@ Template literals in console.log can allow attackers to inject malicious content
 
 ❌ **VULNERABLE - Never do this:**
 ```javascript
-console.log(`User ${username} logged in`);
-console.log(`Processing request for ${owner}/${repo}`);
+logger.log(`User ${username} logged in`);
+logger.log(`Processing request for ${owner}/${repo}`);
 ```
 
 ✅ **SECURE - Always use this pattern:**
 ```javascript
-console.log('User %s logged in', username);
-console.log('Processing request for %s/%s', owner, repo);
+logger.log('User %s logged in', username);
+logger.log('Processing request for %s/%s', owner, repo);
 ```
 
 ## Why This Matters
