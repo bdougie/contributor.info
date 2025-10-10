@@ -135,14 +135,14 @@ Deno.test('PerformanceMonitor - measure async operation failure', async () => {
   try {
     const monitor = new PerformanceMonitor('test-function');
 
-    let thrownError;
+    let thrownError: Error | undefined;
     try {
       await monitor.measure('failing-op', async () => {
         await wait(5);
         throw new Error('Test error');
       });
     } catch (error) {
-      thrownError = error;
+      thrownError = error as Error;
     }
 
     assert(thrownError);
@@ -187,13 +187,13 @@ Deno.test('PerformanceMonitor - measureSync operation failure', () => {
   try {
     const monitor = new PerformanceMonitor('test-function');
 
-    let thrownError;
+    let thrownError: Error | undefined;
     try {
       monitor.measureSync('failing-sync-op', () => {
         throw new Error('Sync error');
       });
     } catch (error) {
-      thrownError = error;
+      thrownError = error as Error;
     }
 
     assert(thrownError);
