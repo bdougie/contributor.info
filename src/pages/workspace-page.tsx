@@ -565,6 +565,7 @@ function WorkspaceIssues({
   onGitHubAppModalOpen,
   currentUser,
   currentMember,
+  onIssueRespond,
 }: {
   repositories: Repository[];
   selectedRepositories: string[];
@@ -572,6 +573,7 @@ function WorkspaceIssues({
   onGitHubAppModalOpen: (repo: Repository) => void;
   currentUser: User | null;
   currentMember: WorkspaceMemberWithUser | null;
+  onIssueRespond?: (issue: Issue) => void;
 }) {
   const [issues, setIssues] = useState<Issue[]>([]);
   const [loading, setLoading] = useState(true);
@@ -747,9 +749,7 @@ function WorkspaceIssues({
   };
 
   const handleRespondClick = (issue: Issue) => {
-    // The respond logic is handled by the parent WorkspacePage component
-    // through the similarity search modal
-    console.log('Respond click for issue:', issue.number);
+    onIssueRespond?.(issue);
   };
 
   // Filter issues by selected assignee
@@ -3429,6 +3429,65 @@ function WorkspacePage() {
     navigate('/billing');
   };
 
+  const handleIssueRespond = async (issue: Issue) => {
+    setResponseModalOpen(true);
+    setLoadingSimilarItems(true);
+
+    try {
+      // Check cache first
+      const cacheKey = similarityCache.getCacheKey(workspace.id, issue.id.toString(), 'issue');
+      const cachedItems = similarityCache.get(workspace.id, issue.id.toString(), 'issue');
+
+      if (cachedItems) {
+        // Use cached results
+        setSimilarItems(cachedItems);
+        const { generateResponseMessage } = await import('@/services/similarity-search');
+        const message = generateResponseMessage(cachedItems);
+        setResponseMessage(message);
+        setLoadingSimilarItems(false);
+        return;
+      }
+
+      // Perform debounced search if not cached
+      const searchResult = await debouncedSearch(cacheKey, async () => {
+        // Dynamically import similarity search to avoid loading ML models on page init
+        const { findSimilarItems, generateResponseMessage } = await import(
+          '@/services/similarity-search'
+        );
+
+        // Find similar items in the workspace
+        const items = await findSimilarItems({
+          workspaceId: workspace.id,
+          queryItem: {
+            id: issue.id.toString(),
+            title: issue.title,
+            body: null, // Issue interface doesn't include body field
+            type: 'issue',
+          },
+          limit: 7,
+        });
+
+        // Cache the results
+        similarityCache.set(workspace.id, issue.id.toString(), 'issue', items);
+
+        return { items, message: generateResponseMessage(items) };
+      });
+
+      if (searchResult) {
+        setSimilarItems(searchResult.items);
+        setResponseMessage(searchResult.message);
+      }
+    } catch (error) {
+      console.error('Error finding similar items:', error);
+      setSimilarItems([]);
+      setResponseMessage(
+        'Similarity search is not available yet. Embeddings need to be generated for this workspace.'
+      );
+    } finally {
+      setLoadingSimilarItems(false);
+    }
+  };
+
   const handleWorkspaceUpdate = (updates: Partial<Workspace>) => {
     if (workspace) {
       setWorkspace((prev) => (prev ? { ...prev, ...updates } : prev));
@@ -3749,6 +3808,7 @@ function WorkspacePage() {
                 onGitHubAppModalOpen={handleGitHubAppModalOpen}
                 currentUser={currentUser}
                 currentMember={currentMember}
+                onIssueRespond={handleIssueRespond}
               />
             </div>
           </TabsContent>
