@@ -1,5 +1,5 @@
 {
-  "version": "5",
+  "version": "1",
   "remote": {
     "https://deno.land/std@0.177.0/fmt/colors.ts": "938c5d44d889fb82eff6c358bea8baa7e85950a16c9f6dae3ec3a7a729164471",
     "https://deno.land/std@0.177.0/testing/_diff.ts": "1a3c044aedf77647d6cac86b798c6417603361b66b54c53331b312caeb447aea",
