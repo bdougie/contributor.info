@@ -495,12 +495,32 @@ const capturePrComments = inngest.createFunction(
   },
   { event: 'capture/pr.comments' },
   async ({ event, step }) => {
-    const { owner, repo, pr_number, github_token } = event.data;
+    // Accept repositoryId and prNumber from client-side events
+    const { repositoryId, prNumber, prId } = event.data;
+
+    // Step 1: Get repository details from database
+    const repository = await step.run('get-repository', async () => {
+      const supabase = getSupabaseClient();
+      const { data, error } = await supabase
+        .from('repositories')
+        .select('owner, name')
+        .eq('id', repositoryId)
+        .maybeSingle();
+
+      if (error || !data) {
+        throw new NonRetriableError(`Repository not found: ${repositoryId}`);
+      }
+      return data;
+    });
+
+    const owner = repository.owner;
+    const repo = repository.name;
+    const pr_number = prNumber;
 
     const [reviewComments, issueComments] = await step.run('fetch-all-comments', async () => {
       const [revComments, issComments] = await Promise.all([
-        githubRequest(`/repos/${owner}/${repo}/pulls/${pr_number}/comments`, github_token),
-        githubRequest(`/repos/${owner}/${repo}/issues/${pr_number}/comments`, github_token),
+        githubRequest(`/repos/${owner}/${repo}/pulls/${pr_number}/comments`),
+        githubRequest(`/repos/${owner}/${repo}/issues/${pr_number}/comments`),
       ]);
       return [revComments, issComments];
     });
@@ -605,12 +625,31 @@ const captureRepositoryIssues = inngest.createFunction(
   },
   { event: 'capture/repository.issues' },
   async ({ event, step }) => {
-    const { owner, repo, github_token, state = 'all' } = event.data;
+    // Accept repositoryId and timeRange from client-side events
+    const { repositoryId, timeRange = 30 } = event.data;
+
+    // Step 1: Get repository details from database
+    const repository = await step.run('get-repository', async () => {
+      const supabase = getSupabaseClient();
+      const { data, error } = await supabase
+        .from('repositories')
+        .select('owner, name')
+        .eq('id', repositoryId)
+        .maybeSingle();
+
+      if (error || !data) {
+        throw new NonRetriableError(`Repository not found: ${repositoryId}`);
+      }
+      return data;
+    });
+
+    const owner = repository.owner;
+    const repo = repository.name;
+    const state = 'all';
 
     const issues = await step.run('fetch-issues', async () => {
       const data = await githubRequest(
-        `/repos/${owner}/${repo}/issues?state=${state}&per_page=100`,
-        github_token
+        `/repos/${owner}/${repo}/issues?state=${state}&per_page=100`
       );
       // Filter out pull requests (they also appear in issues API)
       return data.filter((issue: any) => !('pull_request' in issue));
