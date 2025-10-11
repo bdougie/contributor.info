@@ -174,6 +174,7 @@ The application uses an intelligent hybrid routing system to handle repository s
 
 **Development**
 - Vitest (testing) - [Testing Guide](./docs/testing/README.md)
+- Deno (edge functions runtime & testing)
 - ESLint (code quality)
 - GitHub Actions (CI/CD)
 

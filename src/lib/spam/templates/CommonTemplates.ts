@@ -1,4 +1,4 @@
-import { SpamTemplate } from '../types';
+import { SpamTemplate } from '../types.ts';
 
 // Common spam templates identified from PR data
 export const COMMON_SPAM_TEMPLATES: SpamTemplate[] = [

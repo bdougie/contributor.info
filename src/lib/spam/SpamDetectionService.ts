@@ -4,9 +4,9 @@ import {
   SpamFlags,
   DETECTION_WEIGHTS,
   SPAM_THRESHOLDS,
-} from './types';
-import { PRAnalysisService } from './PRAnalysisService';
-import { AccountAnalysisService } from './AccountAnalysisService';
+} from './types.ts';
+import { PRAnalysisService } from './PRAnalysisService.ts';
+import { AccountAnalysisService } from './AccountAnalysisService.ts';
 
 export class SpamDetectionService {
   private prAnalysisService = new PRAnalysisService();

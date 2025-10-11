@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { SpamDetectionService } from '../SpamDetectionService';
-import { SPAM_THRESHOLDS } from '../types';
+import { SpamDetectionService } from '../SpamDetectionService.ts';
+import { SPAM_THRESHOLDS } from '../types.ts';
 
 describe('SpamDetectionService', () => {
   let spamDetectionService: SpamDetectionService;

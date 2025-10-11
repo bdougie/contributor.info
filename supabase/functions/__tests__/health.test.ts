@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createClient } from '@supabase/supabase-js';
 
 // Mock Deno environment
-global.Deno = {
+globalThis.Deno = {
   env: {
     get: (key: string) => {
       const envMap: Record<string, string> = {
@@ -59,7 +59,7 @@ describe('Health Endpoint', () => {
 
     // Import the handler
     const healthModule = await import('../health/index.ts');
-    const serveCallback = (healthModule as any).default || (global as any).__healthHandler;
+    const serveCallback = (healthModule as any).default || (globalThis as any).__healthHandler;
 
     const request = new Request('https://example.com/health');
     const response = await serveCallback(request);

@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { env } from './env';
+import { env } from './env.ts';
 
 // Helper function to create the Supabase client
 // CACHE BUST: Fixed 406 errors by removing .single() calls - v2
