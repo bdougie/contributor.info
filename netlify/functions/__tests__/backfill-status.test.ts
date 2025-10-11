@@ -76,14 +76,14 @@ describe('backfill-status function', () => {
     process.env.GH_DATPIPE_KEY = 'test-key';
     process.env.GH_DATPIPE_API_URL = 'https://test.example.com';
 
-    const { handler } = await import('../backfill-status');
-
-    // Mock the server client to throw a not found error
+    // Mock the server client to throw a not found error BEFORE importing
     vi.doMock('../../src/lib/manual-backfill/server-client', () => ({
       manualBackfillServerClient: {
         getJobStatus: vi.fn().mockRejectedValue(new Error('Job not found')),
       },
     }));
+
+    const { handler } = await import('../backfill-status');
 
     const event = {
       httpMethod: 'GET',
