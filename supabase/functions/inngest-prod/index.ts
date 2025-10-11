@@ -399,9 +399,9 @@ const capturePrDetailsGraphQL = inngest.createFunction(
           );
 
           await supabase.from('pr_reviews').upsert({
-            review_id: review.id,
+            github_id: review.id,
             pr_number: prData.number,
-            repository_full_name: `${owner}/${repo}`,
+            repository_id: repositoryId,
             reviewer_id: reviewerId,
             state: review.state,
             body: review.body,
@@ -420,10 +420,10 @@ const capturePrDetailsGraphQL = inngest.createFunction(
           );
 
           await supabase.from('pr_comments').upsert({
-            comment_id: comment.id,
+            github_id: comment.id,
             pr_number: prData.number,
-            repository_full_name: `${owner}/${repo}`,
-            author_id: commenterId,
+            repository_id: repositoryId,
+            commenter_id: commenterId,
             body: comment.body,
             created_at: comment.createdAt,
           });
@@ -457,6 +457,17 @@ const capturePrReviews = inngest.createFunction(
     await step.run('store-reviews', async () => {
       const supabase = getSupabaseClient();
 
+      // Get repository ID
+      const { data: repoData } = await supabase
+        .from('repositories')
+        .select('id')
+        .eq('full_name', `${owner}/${repo}`)
+        .single();
+
+      if (!repoData) {
+        throw new NonRetriableError(`Repository not found: ${owner}/${repo}`);
+      }
+
       for (const review of reviews) {
         const reviewerId = await ensureContributor(
           supabase,
@@ -467,9 +478,9 @@ const capturePrReviews = inngest.createFunction(
         const { error } = await supabase
           .from('pr_reviews')
           .upsert({
-            review_id: review.id.toString(),
+            github_id: review.id,
             pr_number,
-            repository_full_name: `${owner}/${repo}`,
+            repository_id: repoData.id,
             reviewer_id: reviewerId,
             state: review.state,
             body: review.body,
@@ -541,10 +552,10 @@ const capturePrComments = inngest.createFunction(
         const { error } = await supabase
           .from('pr_comments')
           .upsert({
-            comment_id: comment.id.toString(),
+            github_id: comment.id,
             pr_number,
-            repository_full_name: `${owner}/${repo}`,
-            author_id: authorId,
+            repository_id: repositoryId,
+            commenter_id: authorId,
             body: comment.body,
             created_at: comment.created_at,
             updated_at: comment.updated_at,
@@ -585,6 +596,17 @@ const captureIssueComments = inngest.createFunction(
     await step.run('store-issue-comments', async () => {
       const supabase = getSupabaseClient();
 
+      // Get repository ID
+      const { data: repoData } = await supabase
+        .from('repositories')
+        .select('id')
+        .eq('full_name', `${owner}/${repo}`)
+        .single();
+
+      if (!repoData) {
+        throw new NonRetriableError(`Repository not found: ${owner}/${repo}`);
+      }
+
       for (const comment of comments) {
         const authorId = await ensureContributor(
           supabase,
@@ -597,9 +619,9 @@ const captureIssueComments = inngest.createFunction(
         const { error } = await supabase
           .from('issue_comments')
           .upsert({
-            comment_id: comment.id.toString(),
+            github_id: comment.id,
             issue_number,
-            repository_full_name: `${owner}/${repo}`,
+            repository_id: repoData.id,
             author_id: authorId,
             body: comment.body,
             created_at: comment.created_at,
@@ -837,12 +859,23 @@ const updatePrActivity = inngest.createFunction(
     const metrics = await step.run('calculate-activity-metrics', async () => {
       const supabase = getSupabaseClient();
 
+      // Get repository ID
+      const { data: repoData } = await supabase
+        .from('repositories')
+        .select('id')
+        .eq('full_name', `${owner}/${repo}`)
+        .single();
+
+      if (!repoData) {
+        throw new NonRetriableError(`Repository not found: ${owner}/${repo}`);
+      }
+
       // Get PR data
       const { data: pr } = await supabase
         .from('pull_requests')
         .select('*')
-        .eq('pr_number', pr_number)
-        .eq('repository_full_name', `${owner}/${repo}`)
+        .eq('number', pr_number)
+        .eq('repository_id', repoData.id)
         .single();
 
       if (!pr) {
@@ -855,12 +888,12 @@ const updatePrActivity = inngest.createFunction(
           .from('pr_reviews')
           .select('*', { count: 'exact', head: true })
           .eq('pr_number', pr_number)
-          .eq('repository_full_name', `${owner}/${repo}`),
+          .eq('repository_id', repoData.id),
         supabase
           .from('pr_comments')
           .select('*', { count: 'exact', head: true })
           .eq('pr_number', pr_number)
-          .eq('repository_full_name', `${owner}/${repo}`),
+          .eq('repository_id', repoData.id),
       ]);
 
       // Calculate activity score
@@ -875,8 +908,8 @@ const updatePrActivity = inngest.createFunction(
           activity_score: activityScore,
           last_activity_at: new Date().toISOString(),
         })
-        .eq('pr_number', pr_number)
-        .eq('repository_full_name', `${owner}/${repo}`);
+        .eq('number', pr_number)
+        .eq('repository_id', repoData.id);
 
       if (error) throw error;
 
