@@ -259,7 +259,7 @@
 # NOTE: Netlify redirects don't support environment variables.
 # To update the Supabase URL, replace "egcxzonpmmcirmgqdrla" with your project ID
 [[redirects]]
-  from = "/.netlify/functions/workspace-sync-simple"
+  from = "/api/workspace-sync"
   to = "https://egcxzonpmmcirmgqdrla.supabase.co/functions/v1/workspace-sync"
   status = 200
   force = true

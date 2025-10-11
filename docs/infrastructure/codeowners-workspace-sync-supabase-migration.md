@@ -27,7 +27,7 @@ Client → /.netlify/functions/workspace-sync-simple → Netlify Function → Da
 ### After
 ```
 Client → /api/repos/:owner/:repo/codeowners → Supabase Edge Function → GitHub API
-Client → /.netlify/functions/workspace-sync-simple → Supabase Edge Function → Database
+Client → /api/workspace-sync → Supabase Edge Function → Database
 ```
 
 ## Implementation Details
@@ -40,7 +40,7 @@ Client → /.netlify/functions/workspace-sync-simple → Supabase Edge Function 
 
 2. **Routing**: `/netlify.toml`
    - Redirects `/api/repos/*/*/codeowners` to Supabase
-   - Redirects `/.netlify/functions/workspace-sync-simple` to Supabase
+   - Redirects `/api/workspace-sync` to Supabase
    - Includes `X-Forwarded-Host` header for proper host detection
 
 3. **Archived**:
@@ -140,7 +140,7 @@ curl -I "https://egcxzonpmmcirmgqdrla.supabase.co/functions/v1/workspace-sync"
 **Workspace Sync API:**
 - Used in: `src/components/features/workspace/WorkspaceAutoSync.tsx:45`
 - Used in: `src/components/features/workspace/WorkspaceSyncButton.tsx:41`
-- Route: `/.netlify/functions/workspace-sync-simple`
+- Route: `/api/workspace-sync`
 - Method: POST
 - Body: `{ repositoryIds: string[], workspaceId?: string }`
 
@@ -157,7 +157,7 @@ If issues occur, rollback by:
      force = true
 
    [[redirects]]
-     from = "/.netlify/functions/workspace-sync-simple"
+     from = "/api/workspace-sync"
      to = "/.netlify/functions/workspace-sync-simple"
      status = 200
      force = true
