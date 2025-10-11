@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import { getFallbackAvatar } from '@/lib/utils/avatar';
+import { logger } from '@/lib/logger';
 import { useWorkspaceEvents } from '@/hooks/use-workspace-events';
 import { TIME_RANGE_DAYS, getStartDateForTimeRange } from '@/lib/utils/time-range';
 import {
