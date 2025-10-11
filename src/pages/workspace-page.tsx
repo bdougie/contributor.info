@@ -1579,6 +1579,8 @@ function WorkspacePage() {
                 repositories={repositories}
                 selectedRepositories={selectedRepositories}
                 timeRange={timeRange}
+                workspaceId={workspace.id}
+                workspace={workspace}
                 onGitHubAppModalOpen={handleGitHubAppModalOpen}
                 currentUser={currentUser}
                 currentMember={currentMember}
