@@ -1,9 +1,9 @@
 /**
  * GitHub API Utilities for Edge Functions
- * 
+ *
  * Shared utilities for interacting with the GitHub API, including common
  * operations, rate limit handling, and standardized request patterns.
- * 
+ *
  * @module github
  */
 
@@ -15,22 +15,22 @@ export const DEFAULT_USER_AGENT = 'Contributor-Info-Bot';
 
 /**
  * Creates standard GitHub API headers
- * 
+ *
  * @param {string} token - GitHub API token (optional, uses env var if not provided)
  * @param {string} userAgent - User agent string (optional)
  * @returns {HeadersInit} Headers object for fetch requests
  * @throws {Error} If no token is available
- * 
+ *
  * @example
  * const headers = getGitHubHeaders();
  * const response = await fetch(`${GITHUB_API_BASE}/repos/owner/name`, { headers });
  */
 export function getGitHubHeaders(
   token?: string,
-  userAgent: string = DEFAULT_USER_AGENT
+  userAgent: string = DEFAULT_USER_AGENT,
 ): HeadersInit {
   const githubToken = token || Deno.env.get('GITHUB_TOKEN');
-  
+
   if (!githubToken) {
     throw new Error('GitHub token not configured');
   }
@@ -54,10 +54,10 @@ export interface RateLimitInfo {
 
 /**
  * Extracts rate limit information from GitHub API response headers
- * 
+ *
  * @param {Response} response - Fetch response from GitHub API
  * @returns {RateLimitInfo | null} Rate limit information or null if headers not present
- * 
+ *
  * @example
  * const response = await fetch(url, { headers });
  * const rateLimit = getRateLimitInfo(response);
@@ -85,11 +85,11 @@ export function getRateLimitInfo(response: Response): RateLimitInfo | null {
 
 /**
  * Checks if rate limit is low and logs a warning
- * 
+ *
  * @param {Response} response - Fetch response from GitHub API
  * @param {number} threshold - Remaining requests threshold to warn at (default: 100)
  * @returns {boolean} True if rate limit is low
- * 
+ *
  * @example
  * const response = await fetch(url, { headers });
  * if (checkRateLimit(response, 50)) {
@@ -98,7 +98,7 @@ export function getRateLimitInfo(response: Response): RateLimitInfo | null {
  */
 export function checkRateLimit(response: Response, threshold: number = 100): boolean {
   const rateLimit = getRateLimitInfo(response);
-  
+
   if (!rateLimit) {
     return false;
   }
@@ -108,7 +108,7 @@ export function checkRateLimit(response: Response, threshold: number = 100): boo
     console.warn(
       'Low GitHub API rate limit: %s remaining (resets at %s)',
       rateLimit.remaining,
-      resetDate.toISOString()
+      resetDate.toISOString(),
     );
     return true;
   }
@@ -118,12 +118,12 @@ export function checkRateLimit(response: Response, threshold: number = 100): boo
 
 /**
  * Fetches data from GitHub API with error handling
- * 
+ *
  * @param {string} url - GitHub API URL
  * @param {string} token - GitHub API token (optional)
  * @returns {Promise<T>} Parsed JSON response
  * @throws {Error} If request fails
- * 
+ *
  * @example
  * const repo = await fetchGitHubAPI<Repository>(
  *   `${GITHUB_API_BASE}/repos/owner/name`
@@ -131,7 +131,7 @@ export function checkRateLimit(response: Response, threshold: number = 100): boo
  */
 export async function fetchGitHubAPI<T = unknown>(
   url: string,
-  token?: string
+  token?: string,
 ): Promise<T> {
   const headers = getGitHubHeaders(token);
   const response = await fetch(url, { headers });
@@ -139,7 +139,7 @@ export async function fetchGitHubAPI<T = unknown>(
   if (!response.ok) {
     const errorBody = await response.text();
     throw new Error(
-      `GitHub API error: ${response.status} ${response.statusText} - ${errorBody}`
+      `GitHub API error: ${response.status} ${response.statusText} - ${errorBody}`,
     );
   }
 
@@ -184,19 +184,19 @@ export interface GitHubRepository {
 
 /**
  * Fetches repository information from GitHub
- * 
+ *
  * @param {string} owner - Repository owner
  * @param {string} repo - Repository name
  * @param {string} token - GitHub API token (optional)
  * @returns {Promise<GitHubRepository>} Repository information
- * 
+ *
  * @example
  * const repo = await fetchRepository('facebook', 'react');
  */
 export async function fetchRepository(
   owner: string,
   repo: string,
-  token?: string
+  token?: string,
 ): Promise<GitHubRepository> {
   const url = `${GITHUB_API_BASE}/repos/${owner}/${repo}`;
   return await fetchGitHubAPI<GitHubRepository>(url, token);
@@ -227,17 +227,17 @@ export interface GitHubUserInfo {
 
 /**
  * Fetches user information from GitHub
- * 
+ *
  * @param {string} username - GitHub username
  * @param {string} token - GitHub API token (optional)
  * @returns {Promise<GitHubUserInfo>} User information
- * 
+ *
  * @example
  * const user = await fetchUser('octocat');
  */
 export async function fetchUser(
   username: string,
-  token?: string
+  token?: string,
 ): Promise<GitHubUserInfo> {
   const url = `${GITHUB_API_BASE}/users/${username}`;
   return await fetchGitHubAPI<GitHubUserInfo>(url, token);
@@ -255,13 +255,13 @@ export interface PaginatedFetchOptions {
 
 /**
  * Fetches paginated data from GitHub API
- * 
+ *
  * Automatically handles pagination and rate limiting
- * 
+ *
  * @param {string} baseUrl - Base GitHub API URL (without pagination params)
  * @param {PaginatedFetchOptions} options - Fetch options
  * @returns {Promise<T[]>} Array of all fetched items
- * 
+ *
  * @example
  * const events = await fetchPaginated<GitHubEvent>(
  *   `${GITHUB_API_BASE}/repos/owner/name/events`,
@@ -270,7 +270,7 @@ export interface PaginatedFetchOptions {
  */
 export async function fetchPaginated<T = unknown>(
   baseUrl: string,
-  options: PaginatedFetchOptions = {}
+  options: PaginatedFetchOptions = {},
 ): Promise<T[]> {
   const {
     token,
@@ -286,12 +286,12 @@ export async function fetchPaginated<T = unknown>(
   while (page <= maxPages) {
     const separator = baseUrl.includes('?') ? '&' : '?';
     let url = `${baseUrl}${separator}per_page=${perPage}&page=${page}`;
-    
+
     // Add since parameter if provided
     if (since) {
       url += `&since=${encodeURIComponent(since)}`;
     }
-    
+
     const response = await fetch(url, { headers });
 
     if (!response.ok) {
@@ -303,7 +303,7 @@ export async function fetchPaginated<T = unknown>(
     }
 
     const items = await response.json() as T[];
-    
+
     if (items.length === 0) {
       break;
     }
@@ -329,11 +329,11 @@ export async function fetchPaginated<T = unknown>(
 
 /**
  * Checks if a user is a bot account
- * 
+ *
  * @param {string} login - GitHub username
  * @param {string} type - GitHub account type
  * @returns {boolean} True if account is a bot
- * 
+ *
  * @example
  * if (isBotUser(user.login, user.type)) {
  *   console.log('Skipping bot account');

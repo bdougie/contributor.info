@@ -45,7 +45,7 @@ export async function processPRWithSpamDetection(
   supabase: any,
   pr: any,
   repositoryId: string,
-  spamService?: SpamDetectionService
+  spamService?: SpamDetectionService,
 ): Promise<{ success: boolean; spamResult?: SpamDetectionResult; error?: string }> {
   const startTime = Date.now();
   const author = pr.user;
@@ -69,7 +69,7 @@ export async function processPRWithSpamDetection(
         {
           onConflict: 'github_id',
           ignoreDuplicates: false,
-        }
+        },
       )
       .select()
       .maybeSingle();
@@ -77,7 +77,7 @@ export async function processPRWithSpamDetection(
     if (contributorError) {
       console.error(
         `[Spam Detection] Error upserting contributor ${author.login}:`,
-        contributorError
+        contributorError,
       );
       return { success: false, error: contributorError.message };
     }
@@ -127,7 +127,7 @@ export async function processPRWithSpamDetection(
       {
         onConflict: 'github_id',
         ignoreDuplicates: false,
-      }
+      },
     );
 
     if (prError) {
@@ -136,7 +136,7 @@ export async function processPRWithSpamDetection(
     }
 
     console.log(
-      `[Spam Detection] PR #${pr.number} processed - Spam Score: ${spamResult.spam_score}, Is Spam: ${spamResult.is_spam}`
+      `[Spam Detection] PR #${pr.number} processed - Spam Score: ${spamResult.spam_score}, Is Spam: ${spamResult.is_spam}`,
     );
 
     return { success: true, spamResult };
@@ -150,7 +150,7 @@ export async function processPRWithSpamDetection(
 export async function batchProcessPRsForSpam(
   supabase: any,
   repositoryId: string,
-  limit: number = 100
+  limit: number = 100,
 ): Promise<{ processed: number; errors: number }> {
   const spamService = getSpamService(); // Use singleton for performance
   let processed = 0;
@@ -186,7 +186,7 @@ export async function batchProcessPRsForSpam(
         repository:repositories(
           full_name
         )
-      `
+      `,
       )
       .eq('repository_id', repositoryId)
       .is('spam_score', null)
@@ -275,7 +275,7 @@ export async function batchProcessPRsForSpam(
 
       // Log progress
       console.log(
-        `[Spam Detection] Batch complete. Total processed: ${processed}, errors: ${errors}`
+        `[Spam Detection] Batch complete. Total processed: ${processed}, errors: ${errors}`,
       );
     }
 
@@ -283,7 +283,7 @@ export async function batchProcessPRsForSpam(
   }
 
   console.log(
-    `[Spam Detection] Batch processing complete. Processed: ${processed}, Errors: ${errors}`
+    `[Spam Detection] Batch processing complete. Processed: ${processed}, Errors: ${errors}`,
   );
 
   return { processed, errors };

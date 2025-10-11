@@ -55,6 +55,7 @@
     "lint:edge-functions": "cd supabase/functions && deno task lint",
     "format:edge-functions": "cd supabase/functions && deno task fmt",
     "format:edge-functions:check": "cd supabase/functions && deno task fmt:check",
+    "format:deno": "./scripts/utilities/format-deno.sh",
     "test:bulletproof": "vitest run --config vitest.config.simple.ts --bail 1",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",

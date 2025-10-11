@@ -1,6 +1,6 @@
 /**
  * Tests for database utilities
- * 
+ *
  * Run with: deno test supabase/functions/__tests__/database.test.ts
  */
 

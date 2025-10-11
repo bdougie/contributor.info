@@ -1,15 +1,15 @@
-import { assertEquals, assert } from 'https://deno.land/std@0.177.0/testing/asserts.ts';
+import { assert, assertEquals } from 'https://deno.land/std@0.177.0/testing/asserts.ts';
 import {
-  successResponse,
-  errorResponse,
-  validationError,
-  notFoundError,
-  unauthorizedError,
-  forbiddenError,
-  rateLimitError,
   corsPreflightResponse,
-  legacySuccessResponse,
+  errorResponse,
+  forbiddenError,
   handleError,
+  legacySuccessResponse,
+  notFoundError,
+  rateLimitError,
+  successResponse,
+  unauthorizedError,
+  validationError,
 } from './responses.ts';
 // Note: Test utilities available from '../tests/setup.ts' but not needed for these tests
 
@@ -29,7 +29,7 @@ Deno.test('successResponse - returns JSON response with success flag', async () 
 Deno.test('successResponse - accepts custom status code', async () => {
   const response = successResponse({ created: true }, 'Created', 201);
   assertEquals(response.status, 201);
-  
+
   const body = await response.json();
   assertEquals(body.message, 'Created');
 });
@@ -37,7 +37,7 @@ Deno.test('successResponse - accepts custom status code', async () => {
 Deno.test('successResponse - handles optional parameters', async () => {
   const response = successResponse();
   assertEquals(response.status, 200);
-  
+
   const body = await response.json();
   assertEquals(body.success, true);
   assertEquals(body.data, undefined);
@@ -46,7 +46,7 @@ Deno.test('successResponse - handles optional parameters', async () => {
 Deno.test('successResponse - includes meta data', async () => {
   const meta = { requestId: '123', timing: 500 };
   const response = successResponse({ test: true }, 'Success', 200, meta);
-  
+
   const body = await response.json();
   assertEquals(body.meta, meta);
 });
@@ -74,7 +74,7 @@ Deno.test('errorResponse - includes optional details and code', async () => {
 Deno.test('validationError - returns 400 with validation code', async () => {
   const response = validationError('Invalid input', 'Field is required');
   assertEquals(response.status, 400);
-  
+
   const body = await response.json();
   assertEquals(body.code, 'VALIDATION_ERROR');
   assertEquals(body.details, 'Field is required');
@@ -83,7 +83,7 @@ Deno.test('validationError - returns 400 with validation code', async () => {
 Deno.test('notFoundError - returns 404 with not found message', async () => {
   const response = notFoundError('User', 'User with ID 123 not found');
   assertEquals(response.status, 404);
-  
+
   const body = await response.json();
   assertEquals(body.error, 'User not found');
   assertEquals(body.code, 'NOT_FOUND');
@@ -92,7 +92,7 @@ Deno.test('notFoundError - returns 404 with not found message', async () => {
 Deno.test('unauthorizedError - returns 401 with unauthorized code', async () => {
   const response = unauthorizedError('Token expired');
   assertEquals(response.status, 401);
-  
+
   const body = await response.json();
   assertEquals(body.error, 'Token expired');
   assertEquals(body.code, 'UNAUTHORIZED');
@@ -101,7 +101,7 @@ Deno.test('unauthorizedError - returns 401 with unauthorized code', async () => 
 Deno.test('forbiddenError - returns 403 with forbidden code', async () => {
   const response = forbiddenError('Access denied');
   assertEquals(response.status, 403);
-  
+
   const body = await response.json();
   assertEquals(body.error, 'Access denied');
   assertEquals(body.code, 'FORBIDDEN');
@@ -111,7 +111,7 @@ Deno.test('rateLimitError - returns 429 with rate limit code', async () => {
   const response = rateLimitError(3600);
   assertEquals(response.status, 429);
   assertEquals(response.headers.get('Retry-After'), '3600');
-  
+
   const body = await response.json();
   assertEquals(body.code, 'RATE_LIMIT_EXCEEDED');
   assertEquals(body.meta?.retryAfter, 3600);
@@ -121,7 +121,7 @@ Deno.test('rateLimitError - works without retry after', async () => {
   const response = rateLimitError();
   assertEquals(response.status, 429);
   assertEquals(response.headers.get('Retry-After'), null);
-  
+
   const body = await response.json();
   assertEquals(body.code, 'RATE_LIMIT_EXCEEDED');
 });
@@ -135,7 +135,7 @@ Deno.test('corsPreflightResponse - returns OPTIONS response', () => {
 Deno.test('legacySuccessResponse - spreads payload at top level', async () => {
   const payload = { processed: 5, errors: 0 };
   const response = legacySuccessResponse(payload, 'Completed');
-  
+
   const body = await response.json();
   assertEquals(body.success, true);
   assertEquals(body.processed, 5);
@@ -146,7 +146,7 @@ Deno.test('legacySuccessResponse - spreads payload at top level', async () => {
 Deno.test('handleError - wraps Error objects', async () => {
   const error = new Error('Test error');
   const response = handleError(error, 'test operation', 400);
-  
+
   assertEquals(response.status, 400);
   const body = await response.json();
   assertEquals(body.error, 'test operation failed');

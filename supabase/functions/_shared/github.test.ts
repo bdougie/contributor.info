@@ -1,11 +1,11 @@
 import { assertEquals, assertThrows } from 'https://deno.land/std@0.177.0/testing/asserts.ts';
 import {
+  checkRateLimit,
+  DEFAULT_USER_AGENT,
   getGitHubHeaders,
   getRateLimitInfo,
-  checkRateLimit,
-  isBotUser,
   GITHUB_API_BASE,
-  DEFAULT_USER_AGENT,
+  isBotUser,
 } from './github.ts';
 // generateTestUser available from '../tests/setup.ts' but not used in these tests
 
@@ -34,9 +34,13 @@ Deno.test('getGitHubHeaders - throws error without token', () => {
   Deno.env.delete('GITHUB_TOKEN');
 
   try {
-    assertThrows(() => {
-      getGitHubHeaders();
-    }, Error, 'GitHub token not configured');
+    assertThrows(
+      () => {
+        getGitHubHeaders();
+      },
+      Error,
+      'GitHub token not configured',
+    );
   } finally {
     // Restore environment variable
     if (originalToken) {
@@ -48,7 +52,7 @@ Deno.test('getGitHubHeaders - throws error without token', () => {
 Deno.test('getGitHubHeaders - uses environment token when no token provided', () => {
   const envToken = 'env-token';
   const originalToken = Deno.env.get('GITHUB_TOKEN');
-  
+
   try {
     Deno.env.set('GITHUB_TOKEN', envToken);
     const headers = getGitHubHeaders();

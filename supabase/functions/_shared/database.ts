@@ -1,9 +1,9 @@
 /**
  * Database Utilities for Edge Functions
- * 
+ *
  * Shared utilities for database operations including Supabase client creation
  * and common data operations like contributor upserts.
- * 
+ *
  * @module database
  */
 
@@ -38,10 +38,10 @@ export interface GitHubUserExtended extends GitHubUser {
 
 /**
  * Creates a Supabase client with service role key
- * 
+ *
  * @returns {SupabaseClient} Configured Supabase client
  * @throws {Error} If required environment variables are missing
- * 
+ *
  * @example
  * const supabase = createSupabaseClient();
  * const { data, error } = await supabase.from('contributors').select('*');
@@ -59,15 +59,15 @@ export const createSupabaseClient = (): SupabaseClient => {
 
 /**
  * Ensures a contributor exists in the database, creating or updating as needed
- * 
+ *
  * This function handles the common pattern of upserting contributor records
  * when processing GitHub events or syncing repository data. It automatically
  * detects bot accounts and maintains contributor metadata.
- * 
+ *
  * @param {SupabaseClient} supabase - Supabase client instance
  * @param {GitHubUser | GitHubUserExtended} userData - GitHub user data to upsert
  * @returns {Promise<string | null>} The contributor's database ID, or null on error
- * 
+ *
  * @example
  * const contributorId = await ensureContributor(supabase, {
  *   id: 12345,
@@ -79,7 +79,7 @@ export const createSupabaseClient = (): SupabaseClient => {
  */
 export async function ensureContributor(
   supabase: SupabaseClient,
-  userData: GitHubUser | GitHubUserExtended
+  userData: GitHubUser | GitHubUserExtended,
 ): Promise<string | null> {
   if (!userData || !userData.id) {
     console.error('Invalid user data provided to ensureContributor');
@@ -133,7 +133,7 @@ export async function ensureContributor(
         {
           onConflict: 'github_id',
           ignoreDuplicates: false,
-        }
+        },
       )
       .select('id')
       .maybeSingle();
@@ -152,17 +152,17 @@ export async function ensureContributor(
 
 /**
  * Gets an existing contributor by GitHub ID
- * 
+ *
  * @param {SupabaseClient} supabase - Supabase client instance
  * @param {number} githubId - GitHub user ID
  * @returns {Promise<string | null>} The contributor's database ID, or null if not found
- * 
+ *
  * @example
  * const contributorId = await getContributorByGitHubId(supabase, 12345);
  */
 export async function getContributorByGitHubId(
   supabase: SupabaseClient,
-  githubId: number
+  githubId: number,
 ): Promise<string | null> {
   try {
     const { data, error } = await supabase
@@ -185,20 +185,20 @@ export async function getContributorByGitHubId(
 
 /**
  * Gets or creates a contributor (checks if exists first, then creates if needed)
- * 
+ *
  * This is a lighter alternative to ensureContributor when you want to avoid
  * unnecessary upserts for contributors that already exist.
- * 
+ *
  * @param {SupabaseClient} supabase - Supabase client instance
  * @param {GitHubUser} userData - GitHub user data
  * @returns {Promise<string | null>} The contributor's database ID, or null on error
- * 
+ *
  * @example
  * const contributorId = await getOrCreateContributor(supabase, githubUser);
  */
 export async function getOrCreateContributor(
   supabase: SupabaseClient,
-  userData: GitHubUser
+  userData: GitHubUser,
 ): Promise<string | null> {
   // First check if contributor exists
   const existingId = await getContributorByGitHubId(supabase, userData.id);

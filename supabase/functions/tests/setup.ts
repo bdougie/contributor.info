@@ -1,10 +1,14 @@
 /**
  * Test setup and utilities for edge functions
- * 
+ *
  * Provides mock clients, test data, and helper functions for testing.
  */
 
-import { assertEquals, assertExists, assert } from 'https://deno.land/std@0.177.0/testing/asserts.ts';
+import {
+  assert,
+  assertEquals,
+  assertExists,
+} from 'https://deno.land/std@0.177.0/testing/asserts.ts';
 
 // Mock Supabase client for testing
 export class MockSupabaseClient {
@@ -16,12 +20,12 @@ export class MockSupabaseClient {
         eq: (column: string, value: unknown) => ({
           single: () => {
             const records = this.data.get(table) || [];
-            const found = records.find(r => r[column] === value);
+            const found = records.find((r) => r[column] === value);
             return { data: found, error: found ? null : { message: 'Not found' } };
           },
           maybeSingle: () => {
             const records = this.data.get(table) || [];
-            const found = records.find(r => r[column] === value);
+            const found = records.find((r) => r[column] === value);
             return { data: found || null, error: null };
           },
         }),
@@ -35,10 +39,10 @@ export class MockSupabaseClient {
       },
       upsert: (record: Record<string, unknown>, options: { onConflict: string }) => {
         const records = this.data.get(table) || [];
-        const existingIndex = records.findIndex(r => 
+        const existingIndex = records.findIndex((r) =>
           r[options.onConflict] === record[options.onConflict]
         );
-        
+
         if (existingIndex >= 0) {
           records[existingIndex] = { ...records[existingIndex], ...record };
           this.data.set(table, records);
@@ -188,28 +192,28 @@ export const createTestRequest = (body: unknown, options: RequestInit = {}) => {
 export const assertSuccessResponse = async (response: Response) => {
   assertEquals(response.status, 200);
   assertEquals(response.headers.get('Content-Type'), 'application/json');
-  
+
   const data = await response.json();
   assertEquals(data.success, true);
   assertExists(data.data);
-  
+
   return data.data;
 };
 
 export const assertErrorResponse = async (
   response: Response,
   expectedStatus: number,
-  expectedMessage?: string
+  expectedMessage?: string,
 ) => {
   assertEquals(response.status, expectedStatus);
-  
+
   const data = await response.json();
   assertEquals(data.success, false);
   assertExists(data.error);
-  
+
   if (expectedMessage) {
     assert(data.error.includes(expectedMessage));
   }
-  
+
   return data.error;
 };

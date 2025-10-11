@@ -1,18 +1,18 @@
 /**
  * Health Check Edge Function
- * 
+ *
  * Provides comprehensive health status for the contributor.info application.
  * Checks database connectivity, system metrics, and response times to ensure
  * the service is functioning properly.
- * 
+ *
  * Health checks include:
  * - Database connectivity and latency (< 2s threshold)
  * - System statistics and database size
  * - Overall service health status
- * 
+ *
  * @example
  * GET /functions/v1/health
- * 
+ *
  * @returns
  * {
  *   "success": true,
@@ -37,13 +37,13 @@
  */
 
 import { createSupabaseClient } from '../_shared/database.ts';
-import { successResponse, errorResponse, corsPreflightResponse } from '../_shared/responses.ts';
+import { corsPreflightResponse, errorResponse, successResponse } from '../_shared/responses.ts';
 import { createLogger } from '../_shared/logger.ts';
 import { PerformanceMonitor } from '../_shared/metrics.ts';
 
 /**
  * Health Check Edge Function
- * 
+ *
  * Provides comprehensive health status for edge functions infrastructure.
  */
 Deno.serve(async (req) => {
@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
   const logger = createLogger('health');
   const monitor = new PerformanceMonitor('health');
 
-    try {
+  try {
     const checks = await monitor.measure('health_checks', async () => {
       return {
         database: await checkDatabase(),
@@ -63,16 +63,21 @@ Deno.serve(async (req) => {
       };
     });
 
-        const isHealthy = checks.database && checks.environment;
+    const isHealthy = checks.database && checks.environment;
 
     logger.info('Health check completed', { checks, isHealthy });
 
     if (isHealthy) {
       return successResponse({ status: 'healthy', checks }, 'Service is healthy');
     } else {
-      return errorResponse('Service unhealthy', 503, 'One or more health checks failed', 'UNHEALTHY');
+      return errorResponse(
+        'Service unhealthy',
+        503,
+        'One or more health checks failed',
+        'UNHEALTHY',
+      );
     }
-    } catch (error) {
+  } catch (error) {
     logger.error('Health check failed', error);
     return errorResponse('Health check failed', 503, error.message, 'HEALTH_CHECK_FAILED');
   }
@@ -90,5 +95,5 @@ async function checkDatabase(): Promise<boolean> {
 
 function checkEnvironment(): boolean {
   const requiredVars = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
-  return requiredVars.every(v => Deno.env.get(v));
+  return requiredVars.every((v) => Deno.env.get(v));
 }

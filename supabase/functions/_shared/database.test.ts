@@ -1,6 +1,6 @@
 import { assertEquals, assertExists } from 'https://deno.land/std@0.177.0/testing/asserts.ts';
 import { ensureContributor, getContributorByGitHubId, getOrCreateContributor } from './database.ts';
-import { MockSupabaseClient, generateTestUser } from '../tests/setup.ts';
+import { generateTestUser, MockSupabaseClient } from '../tests/setup.ts';
 
 Deno.test('ensureContributor - creates new contributor', async () => {
   const supabase = new MockSupabaseClient();
@@ -42,13 +42,13 @@ Deno.test('ensureContributor - handles missing required fields', async () => {
 
 Deno.test('ensureContributor - detects bot accounts', async () => {
   const supabase = new MockSupabaseClient();
-  const botUserData = generateTestUser({ 
+  const botUserData = generateTestUser({
     login: 'dependabot[bot]',
-    type: 'Bot'
+    type: 'Bot',
   });
 
   await ensureContributor(supabase as never, botUserData);
-  
+
   const contributors = supabase.getData('contributors');
   assertEquals(contributors[0].is_bot, true);
 });
@@ -63,11 +63,11 @@ Deno.test('ensureContributor - handles extended user data', async () => {
     followers: 100,
     following: 50,
     public_repos: 25,
-    github_created_at: '2020-01-01T00:00:00Z'
+    github_created_at: '2020-01-01T00:00:00Z',
   });
 
   await ensureContributor(supabase as never, userData);
-  
+
   const contributors = supabase.getData('contributors');
   assertEquals(contributors[0].bio, 'Test bio');
   assertEquals(contributors[0].company, 'Test Company');
@@ -80,12 +80,12 @@ Deno.test('ensureContributor - handles extended user data', async () => {
 Deno.test('getContributorByGitHubId - finds existing contributor', async () => {
   const supabase = new MockSupabaseClient();
   const userData = generateTestUser();
-  
+
   // Seed data
   supabase.seed('contributors', [{
     id: 'test-id',
     github_id: userData.id,
-    username: userData.login
+    username: userData.login,
   }]);
 
   const result = await getContributorByGitHubId(supabase as never, userData.id);
@@ -94,7 +94,7 @@ Deno.test('getContributorByGitHubId - finds existing contributor', async () => {
 
 Deno.test('getContributorByGitHubId - returns null for non-existent contributor', async () => {
   const supabase = new MockSupabaseClient();
-  
+
   const result = await getContributorByGitHubId(supabase as never, 99999);
   assertEquals(result, null);
 });
@@ -102,12 +102,12 @@ Deno.test('getContributorByGitHubId - returns null for non-existent contributor'
 Deno.test('getOrCreateContributor - returns existing contributor ID', async () => {
   const supabase = new MockSupabaseClient();
   const userData = generateTestUser();
-  
+
   // Seed data
   supabase.seed('contributors', [{
     id: 'existing-id',
     github_id: userData.id,
-    username: userData.login
+    username: userData.login,
   }]);
 
   const result = await getOrCreateContributor(supabase as never, userData);
@@ -119,7 +119,7 @@ Deno.test('getOrCreateContributor - creates new contributor if none exists', asy
   const userData = generateTestUser();
 
   const result = await getOrCreateContributor(supabase as never, userData);
-  
+
   assertExists(result);
   const contributors = supabase.getData('contributors');
   assertEquals(contributors.length, 1);

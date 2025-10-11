@@ -158,7 +158,7 @@ const KNOWN_SCHEMAS = {
  */
 function validateUpsertObject(
   tableName: keyof typeof KNOWN_SCHEMAS,
-  upsertObject: Record<string, unknown>
+  upsertObject: Record<string, unknown>,
 ): { valid: boolean; invalidColumns: string[] } {
   const schema = KNOWN_SCHEMAS[tableName];
   const objectKeys = Object.keys(upsertObject);

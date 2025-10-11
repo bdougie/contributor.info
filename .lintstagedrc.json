@@ -3,6 +3,9 @@
     "eslint --fix --cache --max-warnings=0 --no-warn-ignored",
     "prettier --write"
   ],
+  "supabase/functions/**/*.ts": [
+    "bash -c 'cd /Users/briandouglas/code/contributor.info && ./scripts/utilities/format-deno.sh'"
+  ],
   "*.{json,yml,yaml}": ["prettier --write"],
   "*.{css,scss}": ["prettier --write"],
   "index.html": ["npm run verify:csp"],

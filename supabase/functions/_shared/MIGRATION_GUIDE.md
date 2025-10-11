@@ -1,6 +1,7 @@
 # Migration Guide: Using Shared Utilities
 
-This guide shows how to migrate existing edge functions to use the new shared utilities (`database.ts`, `responses.ts`, `github.ts`).
+This guide shows how to migrate existing edge functions to use the new shared utilities
+(`database.ts`, `responses.ts`, `github.ts`).
 
 ## Benefits of Migration
 
@@ -15,6 +16,7 @@ This guide shows how to migrate existing edge functions to use the new shared ut
 ### Step 1: Replace CORS Headers
 
 **Before:**
+
 ```typescript
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -27,6 +29,7 @@ if (req.method === 'OPTIONS') {
 ```
 
 **After:**
+
 ```typescript
 import { corsPreflightResponse } from '../_shared/responses.ts';
 
@@ -38,6 +41,7 @@ if (req.method === 'OPTIONS') {
 ### Step 2: Replace Supabase Client Creation
 
 **Before:**
+
 ```typescript
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -45,6 +49,7 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 ```
 
 **After:**
+
 ```typescript
 import { createSupabaseClient } from '../_shared/database.ts';
 
@@ -54,6 +59,7 @@ const supabase = createSupabaseClient();
 ### Step 3: Replace Contributor Upsert Logic
 
 **Before:**
+
 ```typescript
 // 40-50 lines of duplicated code
 async function ensureContributor(supabase: any, githubUser: any): Promise<string | null> {
@@ -79,7 +85,7 @@ async function ensureContributor(supabase: any, githubUser: any): Promise<string
       {
         onConflict: 'github_id',
         ignoreDuplicates: false,
-      }
+      },
     )
     .select('id')
     .maybeSingle();
@@ -94,6 +100,7 @@ async function ensureContributor(supabase: any, githubUser: any): Promise<string
 ```
 
 **After:**
+
 ```typescript
 import { ensureContributor } from '../_shared/database.ts';
 
@@ -104,6 +111,7 @@ const contributorId = await ensureContributor(supabase, githubUser);
 ### Step 4: Replace Error Responses
 
 **Before:**
+
 ```typescript
 if (!owner || !name) {
   return new Response(
@@ -114,7 +122,7 @@ if (!owner || !name) {
     {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    }
+    },
   );
 }
 
@@ -126,7 +134,7 @@ return new Response(
   {
     status: 404,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  }
+  },
 );
 
 // Server error
@@ -138,13 +146,14 @@ return new Response(
   {
     status: 500,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  }
+  },
 );
 ```
 
 **After:**
+
 ```typescript
-import { validationError, notFoundError, handleError } from '../_shared/responses.ts';
+import { handleError, notFoundError, validationError } from '../_shared/responses.ts';
 
 if (!owner || !name) {
   return validationError('Missing required fields', 'Both owner and name are required');
@@ -164,6 +173,7 @@ try {
 ### Step 5: Replace Success Responses
 
 **Before:**
+
 ```typescript
 return new Response(
   JSON.stringify({
@@ -178,11 +188,12 @@ return new Response(
   {
     status: 200,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  }
+  },
 );
 ```
 
 **After:**
+
 ```typescript
 import { successResponse } from '../_shared/responses.ts';
 
@@ -192,13 +203,14 @@ return successResponse(
     errors,
     repository: { owner, name },
   },
-  'Sync completed successfully'
+  'Sync completed successfully',
 );
 ```
 
 ### Step 6: Replace GitHub API Calls
 
 **Before:**
+
 ```typescript
 const token = Deno.env.get('GITHUB_TOKEN');
 if (!token) {
@@ -231,8 +243,9 @@ if (remaining < 100) {
 ```
 
 **After:**
+
 ```typescript
-import { fetchGitHubAPI, getGitHubHeaders, checkRateLimit } from '../_shared/github.ts';
+import { checkRateLimit, fetchGitHubAPI, getGitHubHeaders } from '../_shared/github.ts';
 
 // Simple fetch
 const data = await fetchGitHubAPI(url);
@@ -247,11 +260,13 @@ checkRateLimit(response);
 ### Step 7: Replace Bot Detection
 
 **Before:**
+
 ```typescript
 const isBot = user.type === 'Bot' || user.login.includes('[bot]');
 ```
 
 **After:**
+
 ```typescript
 import { isBotUser } from '../_shared/github.ts';
 
@@ -286,7 +301,7 @@ Deno.serve(async (req) => {
         {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
+        },
       );
     }
 
@@ -317,7 +332,7 @@ Deno.serve(async (req) => {
           {
             status: 404,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
+          },
         );
       }
       throw new Error(`GitHub API error: ${response.status}`);
@@ -339,7 +354,7 @@ Deno.serve(async (req) => {
       {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      },
     );
   } catch (error) {
     console.error('Sync error:', error);
@@ -351,7 +366,7 @@ Deno.serve(async (req) => {
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      },
     );
   }
 });
@@ -368,10 +383,10 @@ async function ensureContributor(supabase: any, githubUser: any): Promise<string
 import { createSupabaseClient, ensureContributor } from '../_shared/database.ts';
 import {
   corsPreflightResponse,
-  validationError,
+  handleError,
   notFoundError,
   successResponse,
-  handleError,
+  validationError,
 } from '../_shared/responses.ts';
 import { fetchRepository, GITHUB_API_BASE } from '../_shared/github.ts';
 
@@ -459,7 +474,9 @@ Use this checklist when migrating a function:
 ## Common Issues
 
 ### Import errors
+
 Make sure to include `.ts` extension in imports:
+
 ```typescript
 // ✅ GOOD
 import { corsPreflightResponse } from '../_shared/responses.ts';
@@ -469,13 +486,17 @@ import { corsPreflightResponse } from '../_shared/responses';
 ```
 
 ### Type errors
+
 Import types correctly:
+
 ```typescript
 import type { GitHubUser } from '../_shared/database.ts';
 ```
 
 ### Missing CORS on errors
+
 Use response helpers which automatically include CORS:
+
 ```typescript
 // ✅ GOOD
 return validationError('Invalid input');
@@ -495,4 +516,5 @@ After migrating a function:
 
 ## Questions?
 
-See the main [Shared Utilities README](./README.md) for detailed documentation on each utility module.
+See the main [Shared Utilities README](./README.md) for detailed documentation on each utility
+module.

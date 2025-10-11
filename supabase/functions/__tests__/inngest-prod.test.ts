@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createClient } from '@supabase/supabase-js';
 
 // Mock Deno environment
@@ -203,7 +203,7 @@ describe('Inngest Production Edge Function', () => {
       vi.spyOn(client, 'getRecentPRs').mockRejectedValue(new Error('GraphQL rate limit exceeded'));
 
       await expect(client.getRecentPRs('owner', 'repo', '2024-01-01', 100)).rejects.toThrow(
-        'GraphQL rate limit exceeded'
+        'GraphQL rate limit exceeded',
       );
     });
   });
@@ -247,7 +247,7 @@ describe('Inngest Production Edge Function', () => {
           name: 'Sync Recent Repository PRs (GraphQL)',
         }),
         expect.any(Object),
-        expect.any(Function)
+        expect.any(Function),
       );
     });
 
@@ -268,7 +268,7 @@ describe('Inngest Production Edge Function', () => {
           name: 'Classify Single Repository',
         }),
         expect.any(Object),
-        expect.any(Function)
+        expect.any(Function),
       );
     });
   });
