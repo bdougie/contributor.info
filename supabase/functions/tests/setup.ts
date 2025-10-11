@@ -9,6 +9,7 @@ import {
   assertEquals,
   assertExists,
 } from 'https://deno.land/std@0.177.0/testing/asserts.ts';
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 // Mock Supabase client for testing
 export class MockSupabaseClient {
