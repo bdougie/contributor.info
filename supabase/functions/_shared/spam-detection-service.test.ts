@@ -51,9 +51,6 @@ function createSpamPR(overrides: Partial<PullRequestData> = {}): PullRequestData
       public_repos: 0,
       followers: 0,
       following: 0,
-      bio: undefined,
-      company: undefined,
-      location: undefined,
     },
     changed_files: 1,
     additions: 1,
@@ -153,9 +150,6 @@ Deno.test('SpamDetectionService - analyzeAccount detects incomplete profiles', (
       id: 12345,
       login: 'testuser',
       created_at: '2020-01-01T00:00:00Z',
-      bio: undefined,
-      company: undefined,
-      location: undefined,
     },
   });
 
