@@ -14,10 +14,11 @@ if ! command -v docker &> /dev/null; then
 fi
 
 # Run Deno fmt in Docker
+# Note: __tests__/ contains vitest tests (Node.js) and is excluded from Deno formatting
 docker run --rm \
     -v "$(pwd)/supabase/functions:/functions" \
     -w /functions \
     denoland/deno:latest \
-    fmt _shared/ tests/ __tests__/ spam-detection/ health/index.ts
+    fmt _shared/ tests/ spam-detection/ health/index.ts
 
 echo "✅ Deno formatting complete!"

@@ -24,12 +24,12 @@ jobs:
       - name: Run linter
         run: |
           cd supabase/functions
-          deno lint _shared/ tests/ __tests__/ spam-detection/ health/index.ts
+          deno lint _shared/ tests/ spam-detection/ health/index.ts
 
       - name: Check formatting
         run: |
           cd supabase/functions
-          deno fmt --check _shared/ tests/ __tests__/ spam-detection/ health/index.ts
+          deno fmt --check _shared/ tests/ spam-detection/ health/index.ts
 
   test:
     runs-on: ubuntu-latest
@@ -75,4 +75,4 @@ jobs:
       - name: Type check
         run: |
           cd supabase/functions
-          deno check _shared/*.ts tests/*.ts __tests__/*.ts spam-detection/*.ts health/index.ts
+          deno check _shared/*.ts tests/*.ts spam-detection/*.ts health/index.ts
