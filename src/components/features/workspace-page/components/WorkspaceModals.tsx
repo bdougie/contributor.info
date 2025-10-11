@@ -7,54 +7,49 @@ import { AIFeatureErrorBoundary } from '@/components/error-boundaries/ai-feature
 import { toast } from 'sonner';
 import type { Repository } from '@/components/features/workspace';
 
-interface WorkspaceModalsProps {
-  // Reviewer Modal
-  reviewerModalOpen: boolean;
-  onReviewerModalChange: (open: boolean) => void;
+interface ReviewerModalState {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   repositories: Repository[];
+}
 
-  // GitHub App Modal
-  githubAppModalOpen: boolean;
-  onGithubAppModalChange: (open: boolean) => void;
+interface GitHubAppModalState {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   selectedRepository: Repository | null;
-  isGithubAppInstalled: boolean;
+  isInstalled: boolean;
+}
 
-  // Response Modal
-  responseModalOpen: boolean;
-  onResponseModalChange: (open: boolean) => void;
-  loadingSimilarItems: boolean;
+interface ResponseModalState {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  loading: boolean;
   similarItems: SimilarItem[];
   responseMessage: string;
-  currentRespondItem: CurrentItem | null;
+  currentItem: CurrentItem | null;
   workspaceId: string;
   onItemMarkedAsResponded: () => void;
 }
 
+interface WorkspaceModalsProps {
+  reviewerModal: ReviewerModalState;
+  githubAppModal: GitHubAppModalState;
+  responseModal: ResponseModalState;
+}
+
 export function WorkspaceModals({
-  reviewerModalOpen,
-  onReviewerModalChange,
-  repositories,
-  githubAppModalOpen,
-  onGithubAppModalChange,
-  selectedRepository,
-  isGithubAppInstalled,
-  responseModalOpen,
-  onResponseModalChange,
-  loadingSimilarItems,
-  similarItems,
-  responseMessage,
-  currentRespondItem,
-  workspaceId,
-  onItemMarkedAsResponded,
+  reviewerModal,
+  githubAppModal,
+  responseModal,
 }: WorkspaceModalsProps) {
   return (
     <>
       {/* Reviewer Suggestions Modal */}
-      {repositories.length > 0 && (
+      {reviewerModal.repositories.length > 0 && (
         <ReviewerSuggestionsModal
-          open={reviewerModalOpen}
-          onOpenChange={onReviewerModalChange}
-          repositories={repositories.map((r) => ({
+          open={reviewerModal.open}
+          onOpenChange={reviewerModal.onOpenChange}
+          repositories={reviewerModal.repositories.map((r) => ({
             id: r.id,
             name: r.name,
             owner: r.owner,
@@ -64,17 +59,17 @@ export function WorkspaceModals({
       )}
 
       {/* GitHub App Install Modal */}
-      {selectedRepository && (
+      {githubAppModal.selectedRepository && (
         <GitHubAppInstallModal
-          open={githubAppModalOpen}
-          onOpenChange={onGithubAppModalChange}
+          open={githubAppModal.open}
+          onOpenChange={githubAppModal.onOpenChange}
           repository={{
-            id: selectedRepository.id,
-            full_name: selectedRepository.full_name,
-            owner: selectedRepository.owner,
-            name: selectedRepository.name,
+            id: githubAppModal.selectedRepository.id,
+            full_name: githubAppModal.selectedRepository.full_name,
+            owner: githubAppModal.selectedRepository.owner,
+            name: githubAppModal.selectedRepository.name,
           }}
-          isInstalled={isGithubAppInstalled}
+          isInstalled={githubAppModal.isInstalled}
         />
       )}
 
@@ -89,17 +84,17 @@ export function WorkspaceModals({
         }
       >
         <ResponsePreviewModal
-          open={responseModalOpen}
-          onOpenChange={onResponseModalChange}
-          loading={loadingSimilarItems}
-          similarItems={similarItems}
-          responseMessage={responseMessage}
-          currentItem={currentRespondItem || undefined}
-          workspaceId={workspaceId}
+          open={responseModal.open}
+          onOpenChange={responseModal.onOpenChange}
+          loading={responseModal.loading}
+          similarItems={responseModal.similarItems}
+          responseMessage={responseModal.responseMessage}
+          currentItem={responseModal.currentItem || undefined}
+          workspaceId={responseModal.workspaceId}
           onCopyToClipboard={() => {
             toast.success('Response copied to clipboard!');
           }}
-          onItemMarkedAsResponded={onItemMarkedAsResponded}
+          onItemMarkedAsResponded={responseModal.onItemMarkedAsResponded}
         />
       </AIFeatureErrorBoundary>
     </>

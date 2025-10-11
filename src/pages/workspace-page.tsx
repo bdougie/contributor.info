@@ -1441,28 +1441,32 @@ function WorkspacePage() {
 
           {/* Modals - Available on all tabs */}
           <WorkspaceModals
-            reviewerModalOpen={reviewerModalOpen}
-            onReviewerModalChange={setReviewerModalOpen}
-            repositories={repositories}
-            githubAppModalOpen={githubAppModalOpen}
-            onGithubAppModalChange={setGithubAppModalOpen}
-            selectedRepository={selectedRepoForModal}
-            isGithubAppInstalled={
-              selectedRepoForModal
+            reviewerModal={{
+              open: reviewerModalOpen,
+              onOpenChange: setReviewerModalOpen,
+              repositories,
+            }}
+            githubAppModal={{
+              open: githubAppModalOpen,
+              onOpenChange: setGithubAppModalOpen,
+              selectedRepository: selectedRepoForModal,
+              isInstalled: selectedRepoForModal
                 ? (appStatus.repoStatuses?.get(selectedRepoForModal.id)?.isInstalled ?? false)
-                : false
-            }
-            responseModalOpen={responseModalOpen}
-            onResponseModalChange={setResponseModalOpen}
-            loadingSimilarItems={loadingSimilarItems}
-            similarItems={similarItems}
-            responseMessage={responseMessage}
-            currentRespondItem={currentRespondItem}
-            workspaceId={workspace.id}
-            onItemMarkedAsResponded={() => {
-              // Clear the current item when modal closes
-              setCurrentRespondItem(null);
-              // The useMyWork hook will automatically refresh when this is called
+                : false,
+            }}
+            responseModal={{
+              open: responseModalOpen,
+              onOpenChange: setResponseModalOpen,
+              loading: loadingSimilarItems,
+              similarItems,
+              responseMessage,
+              currentItem: currentRespondItem,
+              workspaceId: workspace.id,
+              onItemMarkedAsResponded: () => {
+                // Clear the current item when modal closes
+                setCurrentRespondItem(null);
+                // The useMyWork hook will automatically refresh when this is called
+              },
             }}
           />
 
