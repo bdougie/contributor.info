@@ -1,4 +1,4 @@
-import { PullRequestData, SpamFlags, ACCOUNT_THRESHOLDS } from './types';
+import { PullRequestData, SpamFlags, ACCOUNT_THRESHOLDS } from './types.ts';
 
 export class AccountAnalysisService {
   /**

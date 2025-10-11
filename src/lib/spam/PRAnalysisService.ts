@@ -1,6 +1,6 @@
-import { PullRequestData, SpamFlags, CONTENT_THRESHOLDS } from './types';
-import { TemplateDetector, SPAM_PATTERNS } from './templates/CommonTemplates';
-import { PRTemplateService } from './PRTemplateService';
+import { PullRequestData, SpamFlags, CONTENT_THRESHOLDS } from './types.ts';
+import { TemplateDetector, SPAM_PATTERNS } from './templates/CommonTemplates.ts';
+import { PRTemplateService } from './PRTemplateService.ts';
 
 export class PRAnalysisService {
   private templateDetector = new TemplateDetector();
