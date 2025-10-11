@@ -1,23 +1,23 @@
 /**
  * Process Webhook Edge Function
- * 
+ *
  * Processes queued webhook events by retrieving job details from the database
  * and forwarding them to Inngest for asynchronous processing. This function
  * acts as a bridge between Supabase database and Inngest event system.
- * 
+ *
  * Workflow:
  * 1. Receives job ID from request
  * 2. Fetches job details from background_jobs table
  * 3. Validates job status and payload
  * 4. Sends event to Inngest for processing
  * 5. Updates job status in database
- * 
+ *
  * @example
  * POST /functions/v1/process-webhook
  * {
  *   "jobId": "uuid-of-background-job"
  * }
- * 
+ *
  * @returns
  * {
  *   "success": true,
@@ -27,7 +27,14 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createSupabaseClient } from '../_shared/database.ts';
-import { corsPreflightResponse, legacySuccessResponse, errorResponse, validationError, notFoundError, handleError } from '../_shared/responses.ts';
+import {
+  corsPreflightResponse,
+  errorResponse,
+  handleError,
+  legacySuccessResponse,
+  notFoundError,
+  validationError,
+} from '../_shared/responses.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 
 // Initialize Inngest client for sending events
@@ -63,7 +70,7 @@ serve(async (req: Request) => {
   try {
     const { jobId } = await req.json();
 
-        if (!jobId) {
+    if (!jobId) {
       return validationError('Missing job ID', 'Job ID is required for processing');
     }
 
@@ -74,7 +81,7 @@ serve(async (req: Request) => {
       .eq('id', jobId)
       .single();
 
-        if (jobError || !job) {
+    if (jobError || !job) {
       return notFoundError('Job', `Job with ID ${jobId} not found`);
     }
 
@@ -87,7 +94,7 @@ serve(async (req: Request) => {
       })
       .eq('id', jobId);
 
-        try {
+    try {
       const result = await processWebhookJob(job.payload, supabase);
 
       // Update job as completed
@@ -114,7 +121,7 @@ serve(async (req: Request) => {
         })
         .eq('id', jobId);
 
-            throw error;
+      throw error;
     }
   } catch (error: any) {
     return handleError(error, 'webhook processor');
@@ -130,7 +137,7 @@ async function processWebhookJob(payload: any, supabase: any): Promise<any> {
   console.log(`Processing webhook: ${githubEvent} (${action})`);
 
   switch (githubEvent) {
-        case 'pull_request':
+    case 'pull_request':
       return await processPullRequestEvent(data, action, supabase);
 
     case 'issues':

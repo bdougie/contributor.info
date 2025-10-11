@@ -12,9 +12,9 @@ const corsHeaders = {
 // Get environment configuration
 const INNGEST_APP_ID = Deno.env.get('INNGEST_APP_ID') || 'contributor-info';
 const INNGEST_EVENT_KEY = Deno.env.get('INNGEST_EVENT_KEY') ||
-                          Deno.env.get('INNGEST_PRODUCTION_EVENT_KEY') || 'test-key';
+  Deno.env.get('INNGEST_PRODUCTION_EVENT_KEY') || 'test-key';
 const INNGEST_SIGNING_KEY = Deno.env.get('INNGEST_SIGNING_KEY') ||
-                            Deno.env.get('INNGEST_PRODUCTION_SIGNING_KEY') || '';
+  Deno.env.get('INNGEST_PRODUCTION_SIGNING_KEY') || '';
 
 console.log('🚀 Inngest Edge Function Started');
 console.log('Configuration:', {
@@ -145,17 +145,20 @@ serve(async (req: Request) => {
     console.log('📝 Inngest registration/sync request received');
 
     // Return success for registration
-    return new Response(JSON.stringify({
-      success: true,
-      message: 'Functions registered successfully',
-      functions: functions.length
-    }), {
-      status: 200,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json',
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: 'Functions registered successfully',
+        functions: functions.length,
+      }),
+      {
+        status: 200,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+        },
       },
-    });
+    );
   }
 
   // Handle POST requests - Inngest webhooks/events
@@ -178,30 +181,36 @@ serve(async (req: Request) => {
 
       // For now, acknowledge all events
       // In production, this would trigger actual function execution
-      return new Response(JSON.stringify({
-        success: true,
-        message: 'Event received and queued for processing',
-        event: event.name || 'unknown',
-        functionId: functions.find(f => f.triggers.some(t => t.event === event.name))?.id,
-      }), {
-        status: 200,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: 'Event received and queued for processing',
+          event: event.name || 'unknown',
+          functionId: functions.find((f) => f.triggers.some((t) => t.event === event.name))?.id,
+        }),
+        {
+          status: 200,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+          },
         },
-      });
+      );
     } catch (error: any) {
       console.error('❌ Error processing webhook:', error);
-      return new Response(JSON.stringify({
-        error: 'Failed to process webhook',
-        message: error.message
-      }), {
-        status: 500,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
+      return new Response(
+        JSON.stringify({
+          error: 'Failed to process webhook',
+          message: error.message,
+        }),
+        {
+          status: 500,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+          },
         },
-      });
+      );
     }
   }
 

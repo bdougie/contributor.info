@@ -267,7 +267,9 @@ const getInvitationEmailHTML = (data: WorkspaceInvitationData) => `
             </div>
             
             <div class="content">
-                <p class="greeting">Hi ${data.recipientName || data.recipientEmail.split('@')[0]},</p>
+                <p class="greeting">Hi ${
+  data.recipientName || data.recipientEmail.split('@')[0]
+},</p>
                 
                 <p><strong>${data.inviterName}</strong> has invited you to join the <strong>${data.workspaceName}</strong> workspace on contributor.info.</p>
                 
@@ -292,39 +294,41 @@ const getInvitationEmailHTML = (data: WorkspaceInvitationData) => `
                 <p>As a <strong>${data.role}</strong>, you'll be able to:</p>
                 <ul style="margin: 16px 0; padding-left: 20px; color: var(--foreground);">
                     ${
-                      data.role === 'admin'
-                        ? `
+  data.role === 'admin'
+    ? `
                         <li>Manage workspace members and invitations</li>
                         <li>Add and remove repositories</li>
                         <li>Configure workspace settings</li>
                         <li>View all workspace analytics and insights</li>
                     `
-                        : data.role === 'editor'
-                          ? `
+    : data.role === 'editor'
+    ? `
                         <li>Add and remove repositories</li>
                         <li>Update workspace repositories</li>
                         <li>View all workspace analytics and insights</li>
                     `
-                          : `
+    : `
                         <li>View workspace repositories</li>
                         <li>Access analytics and insights</li>
                         <li>Monitor contributor activity</li>
                     `
-                    }
+}
                 </ul>
                 
                 <div class="expiry-notice">
-                    ⏰ This invitation expires on <strong>${new Date(data.expiresAt).toLocaleString(
-                      'en-US',
-                      {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        timeZoneName: 'short',
-                      }
-                    )}</strong>
+                    ⏰ This invitation expires on <strong>${
+  new Date(data.expiresAt).toLocaleString(
+    'en-US',
+    {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZoneName: 'short',
+    },
+  )
+}</strong>
                 </div>
                 
                                 <div class="cta-container">
@@ -380,26 +384,28 @@ ${
 • View all workspace analytics and insights
 `
     : data.role === 'editor'
-      ? `
+    ? `
 • Add and remove repositories
 • Update workspace repositories
 • View all workspace analytics and insights
 `
-      : `
+    : `
 • View workspace repositories
 • Access analytics and insights
 • Monitor contributor activity
 `
 }
 
-⏰ This invitation expires on ${new Date(data.expiresAt).toLocaleString('en-US', {
-  year: 'numeric',
-  month: 'long',
-  day: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit',
-  timeZoneName: 'short',
-})}
+⏰ This invitation expires on ${
+  new Date(data.expiresAt).toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZoneName: 'short',
+  })
+}
 
 View invitation:
 https://contributor.info/invitation/${data.invitationToken}
@@ -476,7 +482,7 @@ Deno.serve(async (req: Request) => {
           slug,
           owner_id
         )
-      `
+      `,
       )
       .eq('id', payload.invitationId)
       .eq('status', 'pending')
@@ -492,7 +498,7 @@ Deno.serve(async (req: Request) => {
 
     // Fetch inviter details using RPC function (can't query auth.users directly)
     const { data: inviterEmail, error: inviterError } = await supabase.rpc('get_user_email', {
-      user_id: invitation.invited_by
+      user_id: invitation.invited_by,
     });
 
     // Extract inviter name - use email or fallback
@@ -521,7 +527,8 @@ Deno.serve(async (req: Request) => {
       p_purpose: 'workspace_invitation_email',
       p_legal_basis: 'legitimate_interest',
       p_data_categories: ['email', 'name', 'workspace_membership'],
-      p_notes: `Sending workspace invitation email to ${invitation.email} for workspace ${invitation.workspace.name}`,
+      p_notes:
+        `Sending workspace invitation email to ${invitation.email} for workspace ${invitation.workspace.name}`,
     });
 
     if (gdprError) {
@@ -616,7 +623,8 @@ Deno.serve(async (req: Request) => {
           .from('gdpr_processing_log')
           .update({
             processing_completed_at: new Date().toISOString(),
-            notes: `Workspace invitation email sent successfully via Resend (ID: ${emailResult.id})`,
+            notes:
+              `Workspace invitation email sent successfully via Resend (ID: ${emailResult.id})`,
           })
           .eq('id', gdprLogId);
       }
@@ -633,7 +641,7 @@ Deno.serve(async (req: Request) => {
         message: 'Workspace invitation email sent successfully',
         email_id: emailResult.id,
       }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   } catch (error) {
     console.error('Error sending workspace invitation email:', error);
@@ -643,7 +651,7 @@ Deno.serve(async (req: Request) => {
         error: 'Failed to send workspace invitation email',
         details: error.message,
       }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   }
 });

@@ -175,7 +175,7 @@ serve(async (req) => {
         {
           status: dubResponse.status >= 500 ? 500 : 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
+        },
       );
     }
 
@@ -220,7 +220,7 @@ serve(async (req) => {
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      },
     );
   }
 });

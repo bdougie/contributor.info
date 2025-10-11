@@ -1,6 +1,8 @@
 # Supabase Edge Functions
 
-This directory contains serverless edge functions for the contributor.info project. Edge functions run close to users for low latency and handle various tasks like data synchronization, webhook processing, and background jobs.
+This directory contains serverless edge functions for the contributor.info project. Edge functions
+run close to users for low latency and handle various tasks like data synchronization, webhook
+processing, and background jobs.
 
 ## Quick Start
 
@@ -41,20 +43,26 @@ npx supabase secrets set GITHUB_TOKEN=your_token
 ## Function Categories
 
 ### 🔄 Data Synchronization
+
 Sync data from GitHub to Supabase database:
+
 - `repository-sync-graphql` - GraphQL-based sync (recommended)
 - `repository-sync` - REST API-based sync (legacy)
 - `github-sync` - General GitHub data sync
 - `workspace-issues-sync` - Workspace-specific sync
 
 ### 🪝 Webhook Processing
+
 Handle GitHub webhook events:
+
 - `github-webhook` - Main webhook handler
 - `process-webhook` - Webhook processor utility
 - `queue-event` - Event queue for async processing
 
 ### ⚙️ Background Jobs
+
 Process long-running tasks:
+
 - `github-backfill` - Historical data backfill
 - `manual-backfill` - Manual trigger backfill
 - `backfill-pr-stats` - PR statistics backfill
@@ -63,7 +71,9 @@ Process long-running tasks:
 - `cleanup-stuck-jobs` - Stuck job cleanup
 
 ### 🏥 Health Checks
+
 Monitor system health:
+
 - `health` - Main health endpoint
 - `health-database` - Database health
 - `health-github` - GitHub API health
@@ -71,28 +81,36 @@ Monitor system health:
 - `health-jobs` - Job queue health
 
 ### 📊 Data Processing
+
 Transform and analyze data:
+
 - `spam-detection` - Profile spam detection
 - `repository-summary` - Repository statistics
 - `calculate-monthly-rankings` - Monthly rankings
 - `insights` - Repository insights
 
 ### 🔌 Integrations
+
 External service integrations:
+
 - `inngest-prod` - Inngest event processing
 - `codeowners-llm` - LLM CODEOWNERS suggestions
 - `social-cards` - Social media cards
 - `url-shortener` - URL shortening
 
 ### 📧 Communications
+
 Email and notifications:
+
 - `welcome-email` - Welcome new users
 - `workspace-invitation-email` - Workspace invites
 - `workspace-invitation-accept` - Accept invites
 - `workspace-invitation-decline` - Decline invites
 
 ### 🛠️ Specialized
+
 Specific use cases:
+
 - `sync-pr-reviewers` - PR reviewer sync
 - `purge-old-file-data` - Old data cleanup
 
@@ -119,17 +137,19 @@ supabase/functions/
 Located in `_shared/`, these utilities are reusable across functions:
 
 ### cors.ts
+
 CORS headers configuration for cross-origin requests.
 
 ```typescript
 import { corsHeaders } from '../_shared/cors.ts';
 
 return new Response(data, {
-  headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+  headers: { ...corsHeaders, 'Content-Type': 'application/json' },
 });
 ```
 
 ### event-detection.ts
+
 GitHub event detection and routing logic.
 
 ```typescript
@@ -140,6 +160,7 @@ const event = detectPrivilegedEvent(webhookEvent);
 ```
 
 ### confidence-scoring.ts
+
 Contributor confidence score calculation.
 
 ```typescript
@@ -153,12 +174,14 @@ See [Shared Utilities Documentation](./_shared/README.md) for detailed usage.
 ## Environment Variables
 
 ### Required for All Functions
+
 ```bash
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ```
 
 ### Function-Specific Variables
+
 ```bash
 # GitHub Integration
 GITHUB_TOKEN=ghp_your_token
@@ -173,6 +196,7 @@ ENVIRONMENT=production
 ```
 
 Configure locally in `supabase/.env.local`:
+
 ```bash
 # Copy example file
 cp supabase/.env.example supabase/.env.local
@@ -205,9 +229,9 @@ npx supabase functions deploy new-function
 ```typescript
 /**
  * Function Name Edge Function
- * 
+ *
  * Brief description of what this function does.
- * 
+ *
  * @param {Request} request - HTTP request object
  * @returns {Promise<Response>} JSON response
  */
@@ -227,15 +251,15 @@ serve(async (req) => {
 
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    
+
     // Your logic here
-    
+
     return new Response(
       JSON.stringify({ success: true }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
-      }
+      },
     );
   } catch (error) {
     console.error('Error:', error);
@@ -244,7 +268,7 @@ serve(async (req) => {
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
-      }
+      },
     );
   }
 });
@@ -253,6 +277,7 @@ serve(async (req) => {
 ## Best Practices
 
 ### 1. Always Handle CORS
+
 ```typescript
 // Handle preflight
 if (req.method === 'OPTIONS') {
@@ -264,6 +289,7 @@ return new Response(data, { headers: corsHeaders });
 ```
 
 ### 2. Use Format Specifiers in Logs
+
 ```typescript
 // ✅ GOOD: Prevents security issues
 console.log('Processing: %s/%s', owner, name);
@@ -273,17 +299,19 @@ console.log(`Processing: ${owner}/${name}`);
 ```
 
 ### 3. Validate Inputs
+
 ```typescript
 const body = await req.json();
 if (!body.owner || !body.name) {
   return new Response(
     JSON.stringify({ error: 'Missing required fields' }),
-    { status: 400, headers: corsHeaders }
+    { status: 400, headers: corsHeaders },
   );
 }
 ```
 
 ### 4. Handle Errors Gracefully
+
 ```typescript
 try {
   // Main logic
@@ -291,12 +319,13 @@ try {
   console.error('Error:', error);
   return new Response(
     JSON.stringify({ error: error.message }),
-    { status: 500, headers: corsHeaders }
+    { status: 500, headers: corsHeaders },
   );
 }
 ```
 
 ### 5. Use Batch Operations
+
 ```typescript
 // ✅ GOOD: Single batch upsert
 await supabase.from('table').upsert(records);
@@ -307,100 +336,10 @@ for (const record of records) {
 }
 ```
 
-## Type Checking
-
-**Critical**: Type checking catches errors before they reach production. All edge functions must pass type checks.
-
-### Running Type Checks
-
-```bash
-# From project root
-npm run lint:edge-functions
-
-# Or from supabase/functions directory
-deno check _shared/*.ts tests/*.ts spam-detection/*.ts health/index.ts
-```
-
-### Pre-commit Hooks
-
-The project uses **Husky pre-commit hooks** to automatically validate code before commits:
-
-1. ✅ TypeScript type check (`tsc`) for main codebase
-2. ✅ Deno type check for edge functions (if Deno installed)
-3. ✅ Lint-staged for formatting
-
-**⚠️ Important**: If Deno is not installed locally, the pre-commit hook will skip Deno type checking with a warning, but **CI will still fail** if there are type errors.
-
-### Installing Deno
-
-To enable local type checking before commits:
-
-```bash
-# macOS/Linux
-curl -fsSL https://deno.land/install.sh | sh
-
-# Windows (PowerShell)
-irm https://deno.land/install.ps1 | iex
-
-# Or via package managers
-brew install deno  # macOS
-choco install deno # Windows
-```
-
-### Type Safety Rules
-
-Following project TypeScript guidelines:
-
-#### ❌ Never use `any`
-```typescript
-// Bad
-function process(data: any) { }
-
-// Good
-function process(data: Record<string, unknown>) { }
-```
-
-#### ❌ Never use `unknown` as a lazy fix
-```typescript
-// Bad - TypeScript error
-const message = consoleOutput[0].message;
-JSON.parse(message); // Type error: unknown is not assignable to string
-
-// Good - Proper type assertion
-assert(typeof consoleOutput[0].message === 'string');
-const message = consoleOutput[0].message;
-JSON.parse(message); // ✅ Type-safe
-```
-
-#### ✅ Prefer `undefined` over `null` for optional fields
-```typescript
-// Good: TypeScript-friendly
-interface User {
-  bio?: string;         // string | undefined
-  company?: string;     // string | undefined
-}
-
-// Only use null if the API explicitly returns null
-interface GitHubUser {
-  bio: string | null;   // GitHub API returns null
-}
-```
-
 ## Testing
 
-### Type Checking Tests
-```bash
-# Run all tests (includes type checking via deno task test)
-npm run test:edge-functions
-
-# Watch mode
-npm run test:edge-functions:watch
-
-# With coverage
-npm run test:edge-functions:coverage
-```
-
 ### Manual Testing
+
 ```bash
 # Test health endpoint
 curl http://localhost:54321/functions/v1/health
@@ -411,21 +350,17 @@ curl -X POST http://localhost:54321/functions/v1/repository-sync-graphql \
   -d '{"owner": "bdougie", "name": "contributor.info"}'
 ```
 
-### CI/CD Pipeline
+### Automated Tests
 
-The `.github/workflows/edge-functions-quality.yml` workflow runs on every PR:
-
-1. **Lint**: Code style and patterns
-2. **Format Check**: Consistent formatting
-3. **Type Check**: Validates all TypeScript types
-4. **Tests**: Full test suite
-5. **Coverage**: Uploads to Codecov
-
-**All checks must pass** before merging to main.
+```bash
+# Run function tests
+npm run test:functions
+```
 
 ## Monitoring
 
 ### View Logs
+
 ```bash
 # View logs in Supabase dashboard
 # Or use CLI
@@ -433,7 +368,9 @@ npx supabase functions logs function-name
 ```
 
 ### Health Checks
+
 All health check functions return:
+
 ```json
 {
   "success": true,
@@ -449,22 +386,26 @@ All health check functions return:
 ## Troubleshooting
 
 ### Function Not Responding
+
 1. Check Supabase dashboard for errors
 2. Verify environment variables are set
 3. Check function logs for error messages
 4. Test locally with `npx supabase functions serve`
 
 ### CORS Errors
+
 1. Ensure `corsHeaders` are imported
 2. Handle OPTIONS requests
 3. Include headers in all responses
 
 ### Database Errors
+
 1. Verify Supabase URL and key
 2. Check RLS policies
 3. Validate table permissions
 
 ### Timeout Issues
+
 1. Use pagination for large datasets
 2. Implement batch processing
 3. Consider async job queues
@@ -472,7 +413,8 @@ All health check functions return:
 
 ## Documentation
 
-- [Architecture Guide](../../docs/supabase/edge-functions-architecture.md) - Detailed patterns and conventions
+- [Architecture Guide](../../docs/supabase/edge-functions-architecture.md) - Detailed patterns and
+  conventions
 - [Shared Utilities](./_shared/README.md) - Utility documentation
 - Individual function READMEs - Complex function documentation
 
@@ -497,6 +439,7 @@ When adding or modifying functions:
 ## Support
 
 For questions or issues:
+
 - Check the [Architecture Guide](../../docs/supabase/edge-functions-architecture.md)
 - Review function-specific READMEs
 - Open an issue on GitHub

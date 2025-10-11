@@ -27,7 +27,7 @@ export class PerformanceMonitor {
   endTimer(operation: string, success = true) {
     const startTime = this.timers.get(operation);
     if (startTime === undefined) {
-      console.warn(`No timer found for operation: ${operation}`);
+      console.warn('No timer found for operation: %s', operation);
       return;
     }
 
@@ -47,7 +47,7 @@ export class PerformanceMonitor {
 
     // Warn on slow operations (> 1 second)
     if (duration > 1000) {
-      console.warn(`Slow operation detected: ${operation} took ${duration.toFixed(2)}ms`);
+      console.warn('Slow operation detected: %s took %sms', operation, duration.toFixed(2));
     }
 
     return metric;

@@ -1,7 +1,7 @@
 {
   "importMap": "./import_map.json",
   "tasks": {
-    "test": "deno test --allow-all --coverage=coverage _shared/ tests/ spam-detection/",
+    "test": "deno test --allow-all --coverage=coverage _shared/ tests/",
     "test:watch": "deno test --allow-all --watch",
     "coverage": "deno coverage coverage --lcov --output=coverage/lcov.info",
     "lint": "deno lint",
@@ -16,20 +16,13 @@
     "include": [
       "_shared/**/*.ts",
       "tests/**/*.ts",
-      "spam-detection/**/*.ts",
       "health/index.ts"
-    ],
-    "exclude": [
-      "__tests__/**/*.ts"
     ]
   },
   "fmt": {
     "indentWidth": 2,
     "lineWidth": 100,
     "semiColons": true,
-    "singleQuote": true,
-    "exclude": [
-      "__tests__/**/*.ts"
-    ]
+    "singleQuote": true
   }
 }

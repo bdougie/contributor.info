@@ -56,44 +56,110 @@ Deno.serve(async (req) => {
 
   try {
     const checks = await monitor.measure('health_checks', async () => {
+      const databaseCheck = await checkDatabase();
+      const environmentCheck = checkEnvironment();
+
       return {
-        database: await checkDatabase(),
-        environment: checkEnvironment(),
+        database: databaseCheck,
+        system: {
+          status: environmentCheck.status ? 'healthy' : 'unhealthy',
+          latency: environmentCheck.latency,
+        },
         timestamp: new Date().toISOString(),
       };
     });
 
-    const isHealthy = checks.database && checks.environment;
+    // Check if all subsystems are healthy AND latency is acceptable
+    const isHealthy = checks.database.status === 'healthy' &&
+      checks.system.status === 'healthy' &&
+      checks.database.latency < 2000 && // < 2s threshold
+      checks.system.latency < 1000; // < 1s threshold
 
     logger.info('Health check completed', { checks, isHealthy });
 
+    // Use direct response format to match documented contract
+    const healthResponse = {
+      success: true,
+      status: isHealthy ? 'healthy' : 'unhealthy',
+      timestamp: checks.timestamp,
+      checks,
+      metadata: {
+        service: 'contributor.info',
+        version: '1.0.0',
+        environment: Deno.env.get('ENVIRONMENT') || 'development',
+      },
+    };
+
     if (isHealthy) {
-      return successResponse({ status: 'healthy', checks }, 'Service is healthy');
+      return new Response(JSON.stringify(healthResponse), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': '*',
+          'Access-Control-Allow-Methods': '*',
+        },
+      });
     } else {
-      return errorResponse(
-        'Service unhealthy',
-        503,
-        'One or more health checks failed',
-        'UNHEALTHY',
-      );
+      // Include checks data in unhealthy response for visibility
+      const unhealthyResponse = {
+        success: false,
+        status: 'unhealthy',
+        timestamp: checks.timestamp,
+        checks, // Include checks payload so clients can see which subsystem failed
+        error: 'One or more health checks failed',
+        code: 'UNHEALTHY',
+        metadata: {
+          service: 'contributor.info',
+          version: '1.0.0',
+          environment: Deno.env.get('ENVIRONMENT') || 'development',
+        },
+      };
+
+      return new Response(JSON.stringify(unhealthyResponse), {
+        status: 503,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': '*',
+          'Access-Control-Allow-Methods': '*',
+        },
+      });
     }
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Health check failed', error);
     return errorResponse('Health check failed', 503, error.message, 'HEALTH_CHECK_FAILED');
   }
 });
 
-async function checkDatabase(): Promise<boolean> {
+async function checkDatabase(): Promise<{ status: string; latency: number }> {
+  const startTime = performance.now();
   try {
     const supabase = createSupabaseClient();
     const { error } = await supabase.from('contributors').select('count').limit(1);
-    return !error;
+    const latency = performance.now() - startTime;
+
+    return {
+      status: error ? 'unhealthy' : 'healthy',
+      latency: Math.round(latency),
+    };
   } catch {
-    return false;
+    const latency = performance.now() - startTime;
+    return {
+      status: 'unhealthy',
+      latency: Math.round(latency),
+    };
   }
 }
 
-function checkEnvironment(): boolean {
+function checkEnvironment(): { status: boolean; latency: number } {
+  const startTime = performance.now();
   const requiredVars = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
-  return requiredVars.every((v) => Deno.env.get(v));
+  const status = requiredVars.every((v) => Deno.env.get(v));
+  const latency = performance.now() - startTime;
+
+  return {
+    status,
+    latency: Math.round(latency),
+  };
 }

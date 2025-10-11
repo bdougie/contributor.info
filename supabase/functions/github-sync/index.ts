@@ -1,19 +1,22 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createSupabaseClient } from '../_shared/database.ts';
 import {
+  detectMaintainerPatterns,
   detectPrivilegedEvent,
   GitHubEvent,
-  detectMaintainerPatterns,
 } from '../_shared/event-detection.ts';
 import { batchUpdateConfidenceScores } from '../_shared/confidence-scoring.ts';
 import {
-  processPRWithSpamDetection,
   batchProcessPRsForSpam,
+  processPRWithSpamDetection,
 } from '../_shared/spam-detection-integration.ts';
-import { corsPreflightResponse, legacySuccessResponse, errorResponse, handleError } from '../_shared/responses.ts';
+import {
+  corsPreflightResponse,
+  errorResponse,
+  handleError,
+  legacySuccessResponse,
+} from '../_shared/responses.ts';
 import { corsHeaders } from '../_shared/cors.ts';
-
-
 
 interface Repository {
   owner: string;
@@ -26,7 +29,7 @@ async function fetchGitHubEvents(
   owner: string,
   repo: string,
   since?: string,
-  userToken?: string
+  userToken?: string,
 ): Promise<GitHubEvent[]> {
   console.log(`[GitHub Sync] Fetching events for ${owner}/${repo}`);
   console.log(`[GitHub Sync] User token provided: ${!!userToken}`);
@@ -36,10 +39,10 @@ async function fetchGitHubEvents(
   const token = userToken || Deno.env.get('GITHUB_TOKEN');
   if (!token) {
     console.error(
-      '[GitHub Sync] No GitHub token available - neither user token nor GITHUB_TOKEN env var'
+      '[GitHub Sync] No GitHub token available - neither user token nor GITHUB_TOKEN env var',
     );
     throw new Error(
-      'GitHub token not configured. Please log in with GitHub to analyze repositories.'
+      'GitHub token not configured. Please log in with GitHub to analyze repositories.',
     );
   }
 
@@ -57,7 +60,8 @@ async function fetchGitHubEvents(
 
   while (page <= 3) {
     // Limit to 3 pages (300 events) per sync
-    const url = `https://api.github.com/repos/${owner}/${repo}/events?per_page=${perPage}&page=${page}`;
+    const url =
+      `https://api.github.com/repos/${owner}/${repo}/events?per_page=${perPage}&page=${page}`;
 
     const response = await fetch(url, { headers });
 
@@ -101,7 +105,7 @@ async function fetchAndProcessPullRequests(
   supabase: any,
   owner: string,
   repo: string,
-  userToken?: string
+  userToken?: string,
 ) {
   const token = userToken || Deno.env.get('GITHUB_TOKEN');
   if (!token) {
@@ -135,7 +139,8 @@ async function fetchAndProcessPullRequests(
 
     while (hasMore && page <= 3) {
       // Limit to 3 pages
-      const url = `https://api.github.com/repos/${owner}/${repo}/pulls?state=all&sort=updated&direction=desc&per_page=100&page=${page}`;
+      const url =
+        `https://api.github.com/repos/${owner}/${repo}/pulls?state=all&sort=updated&direction=desc&per_page=100&page=${page}`;
 
       const response = await fetch(url, {
         headers: {
@@ -198,7 +203,7 @@ async function processPullRequestData(supabase: any, pr: any, repositoryId: stri
           Authorization: `token ${github_token}`,
           Accept: 'application/vnd.github.v3+json',
         },
-      }
+      },
     );
 
     if (detailedResponse.ok) {
@@ -210,11 +215,11 @@ async function processPullRequestData(supabase: any, pr: any, repositoryId: stri
       pr.commits = detailedPR.commits || 0;
 
       console.log(
-        `[GitHub Sync] Enhanced PR #${pr.number} with stats: +${pr.additions}/-${pr.deletions}, ${pr.changed_files} files`
+        `[GitHub Sync] Enhanced PR #${pr.number} with stats: +${pr.additions}/-${pr.deletions}, ${pr.changed_files} files`,
       );
     } else {
       console.warn(
-        `[GitHub Sync] Failed to fetch detailed PR data for #${pr.number}: ${detailedResponse.status}`
+        `[GitHub Sync] Failed to fetch detailed PR data for #${pr.number}: ${detailedResponse.status}`,
       );
       // Set defaults if we can't fetch detailed data
       pr.additions = 0;
@@ -245,7 +250,7 @@ async function processPullRequestEvent(
   event: GitHubEvent,
   repositoryId: string,
   owner: string,
-  repo: string
+  repo: string,
 ) {
   const pr = event.payload.pull_request;
 
@@ -261,7 +266,7 @@ async function processPullRequestEvent(
             Authorization: `token ${github_token}`,
             Accept: 'application/vnd.github.v3+json',
           },
-        }
+        },
       );
 
       if (detailedResponse.ok) {
@@ -273,11 +278,11 @@ async function processPullRequestEvent(
         pr.commits = detailedPR.commits || 0;
 
         console.log(
-          `[GitHub Sync] Enhanced PR event #${pr.number} with stats: +${pr.additions}/-${pr.deletions}, ${pr.changed_files} files`
+          `[GitHub Sync] Enhanced PR event #${pr.number} with stats: +${pr.additions}/-${pr.deletions}, ${pr.changed_files} files`,
         );
       } else {
         console.warn(
-          `[GitHub Sync] Failed to fetch detailed PR data for event #${pr.number}: ${detailedResponse.status}`
+          `[GitHub Sync] Failed to fetch detailed PR data for event #${pr.number}: ${detailedResponse.status}`,
         );
         // Set defaults if we can't fetch detailed data
         pr.additions = 0;
@@ -302,7 +307,7 @@ async function processPullRequestEvent(
     console.error(`[GitHub Sync] Error processing pull request event:`, result.error);
   } else {
     console.log(
-      `[GitHub Sync] Processed pull request #${pr.number} by ${pr.user.login} - Spam Score: ${result.spamResult?.spam_score}`
+      `[GitHub Sync] Processed pull request #${pr.number} by ${pr.user.login} - Spam Score: ${result.spamResult?.spam_score}`,
     );
   }
 }
@@ -404,7 +409,7 @@ serve(async (req) => {
   console.log('[GitHub Sync] Received sync request');
 
   try {
-        const supabase = createSupabaseClient();
+    const supabase = createSupabaseClient();
 
     // Parse request body
     const body = await req.json().catch(() => ({}));
@@ -445,7 +450,7 @@ serve(async (req) => {
                   Authorization: `Bearer ${token}`,
                   Accept: 'application/vnd.github.v3+json',
                 },
-              }
+              },
             );
 
             if (repoResponse.ok) {
@@ -481,7 +486,7 @@ serve(async (req) => {
                   {
                     onConflict: 'github_id',
                     ignoreDuplicates: false,
-                  }
+                  },
                 )
                 .select()
                 .maybeSingle();
@@ -493,7 +498,7 @@ serve(async (req) => {
               }
             } else {
               console.error(
-                `[GitHub Sync] Failed to fetch repository details: ${repoResponse.status}`
+                `[GitHub Sync] Failed to fetch repository details: ${repoResponse.status}`,
               );
             }
           } catch (error) {
@@ -520,7 +525,7 @@ serve(async (req) => {
           },
           {
             onConflict: 'repository_owner,repository_name',
-          }
+          },
         );
 
         // Fetch events
@@ -528,7 +533,7 @@ serve(async (req) => {
           repo.owner,
           repo.name,
           syncStatus?.last_event_at,
-          github_token
+          github_token,
         );
 
         // Process events
@@ -547,11 +552,11 @@ serve(async (req) => {
 
         if (repoData) {
           console.log(
-            `[GitHub Sync] Running batch spam detection for existing PRs in ${repo.owner}/${repo.name}`
+            `[GitHub Sync] Running batch spam detection for existing PRs in ${repo.owner}/${repo.name}`,
           );
           const { processed, errors } = await batchProcessPRsForSpam(supabase, repoData.id, 50); // Process 50 at a time
           console.log(
-            `[GitHub Sync] Spam detection complete: ${processed} processed, ${errors} errors`
+            `[GitHub Sync] Spam detection complete: ${processed} processed, ${errors} errors`,
           );
         }
 
@@ -575,7 +580,7 @@ serve(async (req) => {
           },
           {
             onConflict: 'repository_owner,repository_name',
-          }
+          },
         );
 
         results.push({
@@ -596,7 +601,7 @@ serve(async (req) => {
           },
           {
             onConflict: 'repository_owner,repository_name',
-          }
+          },
         );
 
         results.push({
@@ -607,14 +612,14 @@ serve(async (req) => {
       }
     }
 
-        return legacySuccessResponse(
+    return legacySuccessResponse(
       {
         repositories_synced: results.length,
         results,
       },
-      'GitHub sync completed successfully'
+      'GitHub sync completed successfully',
     );
-    } catch (error) {
+  } catch (error) {
     return handleError(error, 'GitHub sync');
   }
 });
@@ -631,7 +636,7 @@ async function invalidateRepositoryConfidenceCache(supabase: any, owner: string,
     if (error) {
       console.warn(
         `[GitHub Sync] Error invalidating confidence cache for ${owner}/${repo}:`,
-        error
+        error,
       );
     } else {
       console.log(`[GitHub Sync] Invalidated confidence cache for ${owner}/${repo}`);

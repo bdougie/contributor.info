@@ -15,7 +15,7 @@ serve(async (req) => {
     // Check environment variables
     const openaiKey = Deno.env.get('OPENAI_API_KEY');
     const viteOpenaiKey = Deno.env.get('VITE_OPENAI_API_KEY');
-    
+
     const result = {
       OPENAI_API_KEY: {
         exists: !!openaiKey,
@@ -29,7 +29,7 @@ serve(async (req) => {
         length: viteOpenaiKey?.length || 0,
         preview: viteOpenaiKey ? `${viteOpenaiKey.substring(0, 10)}...` : 'NOT_FOUND',
       },
-      availableEnvVars: Object.keys(Deno.env.toObject()).filter(k => 
+      availableEnvVars: Object.keys(Deno.env.toObject()).filter((k) =>
         k.includes('OPENAI') || k.includes('API_KEY')
       ),
     };
@@ -37,7 +37,7 @@ serve(async (req) => {
     // Test the API if key exists
     if (openaiKey || viteOpenaiKey) {
       const apiKey = openaiKey || viteOpenaiKey;
-      
+
       try {
         const response = await fetch('https://api.openai.com/v1/embeddings', {
           method: 'POST',
@@ -56,7 +56,7 @@ serve(async (req) => {
           success: response.ok,
           error: !response.ok ? await response.text() : null,
         };
-        
+
         if (response.ok) {
           const data = await response.json();
           result.apiTest.embeddingLength = data.data[0]?.embedding?.length;

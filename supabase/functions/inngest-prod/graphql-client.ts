@@ -313,7 +313,7 @@ export class GraphQLClient {
         totalPointsUsed: acc.totalPointsUsed + window.pointsUsed,
         fallbackCount: acc.fallbackCount + window.fallbacks,
       }),
-      { totalQueries: 0, totalPointsUsed: 0, fallbackCount: 0 }
+      { totalQueries: 0, totalPointsUsed: 0, fallbackCount: 0 },
     );
 
     return totals;
@@ -323,7 +323,7 @@ export class GraphQLClient {
     owner: string,
     repo: string,
     since: string,
-    limit: number = 100
+    limit: number = 100,
   ): Promise<any[]> {
     try {
       console.log(`Fetching recent PRs for ${owner}/${repo} since ${since}`);
@@ -401,10 +401,12 @@ export class GraphQLClient {
     const metrics = this.getAggregatedMetrics();
     return {
       ...metrics,
-      averagePointsPerQuery:
-        metrics.totalQueries > 0 ? metrics.totalPointsUsed / metrics.totalQueries : 0,
-      fallbackRate:
-        metrics.totalQueries > 0 ? (metrics.fallbackCount / metrics.totalQueries) * 100 : 0,
+      averagePointsPerQuery: metrics.totalQueries > 0
+        ? metrics.totalPointsUsed / metrics.totalQueries
+        : 0,
+      fallbackRate: metrics.totalQueries > 0
+        ? (metrics.fallbackCount / metrics.totalQueries) * 100
+        : 0,
       rateLimit: this.rateLimit,
       windowCount: this.metricsWindows.length,
       windowPeriod: '1 hour rolling window',

@@ -219,7 +219,7 @@ function recordCircuitBreakerSuccess(jobType: string) {
 async function processJobSync(
   jobId: string,
   type: string,
-  payload: JobPayload
+  payload: JobPayload,
 ): Promise<JobResult> {
   const startTime = Date.now();
 
@@ -389,7 +389,7 @@ async function processJobSync(
       // Schedule retry
       await supabase.rpc('retry_failed_job', { job_id: jobId });
       console.log(
-        `Job ${jobId} scheduled for retry (attempt ${job.retry_count + 1}/${job.max_retries})`
+        `Job ${jobId} scheduled for retry (attempt ${job.retry_count + 1}/${job.max_retries})`,
       );
     }
 
@@ -402,7 +402,7 @@ async function syncRepositoryWithGraphQL(
   repositoryId: string,
   owner: string,
   repo: string,
-  days: number
+  days: number,
 ): Promise<JobResult> {
   console.log(`Syncing repository ${owner}/${repo} for last ${days} days`);
 
@@ -474,7 +474,7 @@ async function syncRepositoryWithGraphQL(
 async function classifyRepositorySize(
   repositoryId: string,
   owner: string,
-  repo: string
+  repo: string,
 ): Promise<JobResult> {
   console.log(`Classifying repository size for ${owner}/${repo}`);
 
@@ -495,7 +495,7 @@ async function classifyRepositorySize(
 async function fetchPullRequestDetails(
   owner: string,
   repo: string,
-  prNumbers: number[]
+  prNumbers: number[],
 ): Promise<JobResult> {
   console.log(`Fetching details for ${prNumbers.length} PRs from ${owner}/${repo}`);
 
@@ -529,10 +529,10 @@ async function syncRepositoryBasic(
   owner: string,
   repo: string,
   fullSync: boolean,
-  daysLimit: number
+  daysLimit: number,
 ): Promise<JobResult> {
   console.log(
-    `Basic sync for ${owner}/${repo} (${fullSync ? 'full' : 'partial'}, ${daysLimit} days)`
+    `Basic sync for ${owner}/${repo} (${fullSync ? 'full' : 'partial'}, ${daysLimit} days)`,
   );
 
   if (!GITHUB_TOKEN) {

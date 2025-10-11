@@ -2,7 +2,12 @@
 // Supports up to 150 seconds execution time on paid plans (50s on free tier)
 
 import { createSupabaseClient, ensureContributor } from '../_shared/database.ts';
-import { corsPreflightResponse, legacySuccessResponse, errorResponse, handleError } from '../_shared/responses.ts';
+import {
+  corsPreflightResponse,
+  errorResponse,
+  handleError,
+  legacySuccessResponse,
+} from '../_shared/responses.ts';
 
 // Deno.serve is the new way to create edge functions
 Deno.serve(async (req) => {
@@ -56,10 +61,10 @@ const DEFAULT_DAYS_LIMIT = 30;
 const GITHUB_API_BASE = 'https://api.github.com';
 
 async function handleRequest(req: Request): Promise<Response> {
-      // Handle CORS preflight
-    if (req.method === 'OPTIONS') {
-      return corsPreflightResponse();
-    }
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    return corsPreflightResponse();
+  }
 
   const startTime = Date.now();
 
@@ -74,17 +79,17 @@ async function handleRequest(req: Request): Promise<Response> {
       resumeFrom,
     } = (await req.json()) as SyncRequest;
 
-        // Validate input parameters
+    // Validate input parameters
     if (!owner || !name) {
       return errorResponse(
         'Missing required fields',
         400,
         'Both owner and name are required',
-        'VALIDATION_ERROR'
+        'VALIDATION_ERROR',
       );
     }
 
-        // Initialize Supabase client
+    // Initialize Supabase client
     const supabase = createSupabaseClient();
 
     // Get GitHub token
@@ -101,21 +106,21 @@ async function handleRequest(req: Request): Promise<Response> {
       .eq('name', name)
       .single();
 
-        if (repoError || !repoData) {
+    if (repoError || !repoData) {
       return errorResponse(
         'Repository not found',
         404,
         `${owner}/${name} is not tracked`,
-        'REPO_NOT_FOUND'
+        'REPO_NOT_FOUND',
       );
     }
 
-        if (!repoData.is_tracked) {
+    if (!repoData.is_tracked) {
       return errorResponse(
         'Repository not tracked',
         400,
         'Please track the repository first',
-        'REPO_NOT_TRACKED'
+        'REPO_NOT_TRACKED',
       );
     }
 
@@ -149,17 +154,17 @@ async function handleRequest(req: Request): Promise<Response> {
             prs_processed: pullRequests.length,
             status: 'partial',
           },
-          { onConflict: 'repository_id' }
+          { onConflict: 'repository_id' },
         );
 
-                return legacySuccessResponse(
+        return legacySuccessResponse(
           {
             partial: true,
             processed: pullRequests.length,
             resumeFrom: cursor,
           },
           'Partial sync completed due to time limit. Call again with resumeFrom cursor to continue.',
-          200
+          200,
         );
       }
 
@@ -171,7 +176,7 @@ async function handleRequest(req: Request): Promise<Response> {
             Accept: 'application/vnd.github.v3+json',
             'User-Agent': 'contributor-info-sync',
           },
-        }
+        },
       );
 
       if (!response.ok) {
@@ -264,7 +269,7 @@ async function handleRequest(req: Request): Promise<Response> {
           {
             onConflict: 'github_id',
             ignoreDuplicates: false,
-          }
+          },
         );
 
         if (prError) {
@@ -292,7 +297,7 @@ async function handleRequest(req: Request): Promise<Response> {
     // Only clear if we processed everything and didn't hit the time limit
     await supabase.from('sync_progress').delete().eq('repository_id', repoData.id);
 
-        // Return success response
+    // Return success response
     return legacySuccessResponse(
       {
         repository: `${owner}/${name}`,
@@ -303,11 +308,9 @@ async function handleRequest(req: Request): Promise<Response> {
         syncType: fullSync ? 'full' : 'incremental',
         dateRange: fullSync ? 'all' : `last ${daysLimit} days`,
       },
-      'Repository sync completed successfully'
+      'Repository sync completed successfully',
     );
-    } catch (error) {
+  } catch (error) {
     return handleError(error, 'repository sync');
   }
 }
-
-

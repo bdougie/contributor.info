@@ -266,10 +266,10 @@ export function handleError(
   context: string,
   status: number = 500,
 ): Response {
-  const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+  const errorMessage = error instanceof Error ? error.message : String(error);
   const errorDetails = error instanceof Error ? error.stack : String(error);
 
-  console.error(`Error in ${context}:`, { error, errorMessage, errorDetails });
+  console.error('Error in %s:', context, { error, errorMessage, errorDetails });
 
   return errorResponse(
     `${context} failed`,

@@ -37,10 +37,9 @@ const corsHeaders = {
 // Get environment configuration
 const INNGEST_APP_ID = Deno.env.get('INNGEST_APP_ID') || 'contributor-info';
 const INNGEST_EVENT_KEY = Deno.env.get('INNGEST_EVENT_KEY') ||
-                          Deno.env.get('INNGEST_PRODUCTION_EVENT_KEY') || '';
+  Deno.env.get('INNGEST_PRODUCTION_EVENT_KEY') || '';
 const INNGEST_SIGNING_KEY = Deno.env.get('INNGEST_SIGNING_KEY') ||
-                            Deno.env.get('INNGEST_PRODUCTION_SIGNING_KEY') || '';
-
+  Deno.env.get('INNGEST_PRODUCTION_SIGNING_KEY') || '';
 
 // Validate required keys
 if (!INNGEST_EVENT_KEY) {
@@ -104,7 +103,11 @@ async function githubRequest(path: string, token?: string): Promise<any> {
 }
 
 // GraphQL helper
-async function githubGraphQL(query: string, variables: Record<string, any> = {}, token?: string): Promise<any> {
+async function githubGraphQL(
+  query: string,
+  variables: Record<string, any> = {},
+  token?: string,
+): Promise<any> {
   const githubToken = token || Deno.env.get('GITHUB_TOKEN') || Deno.env.get('VITE_GITHUB_TOKEN');
   if (!githubToken) {
     throw new NonRetriableError('GitHub token not configured');
@@ -132,7 +135,12 @@ async function githubGraphQL(query: string, variables: Record<string, any> = {},
 }
 
 // Helper to ensure contributor exists
-async function ensureContributor(supabase: any, username: string, avatarUrl?: string, githubId?: number): Promise<string | null> {
+async function ensureContributor(
+  supabase: any,
+  username: string,
+  avatarUrl?: string,
+  githubId?: number,
+): Promise<string | null> {
   // Skip users without numeric IDs (bots from GitHub API don't have numeric IDs)
   if (!githubId) {
     console.log(`Skipping user ${username} without github_id (likely a GitHub app/bot)`);
@@ -201,7 +209,7 @@ const capturePrDetails = inngest.createFunction(
   {
     id: 'capture-pr-details',
     name: 'Capture PR Details',
-    retries: 2
+    retries: 2,
   },
   { event: 'capture/pr.details' },
   async ({ event, step }) => {
@@ -210,7 +218,7 @@ const capturePrDetails = inngest.createFunction(
     const prData = await step.run('fetch-pr', async () => {
       const pr = await githubRequest(
         `/repos/${owner}/${repo}/pulls/${pr_number}`,
-        github_token
+        github_token,
       );
       return pr;
     });
@@ -219,7 +227,12 @@ const capturePrDetails = inngest.createFunction(
       const supabase = getSupabaseClient();
 
       // Ensure author exists
-      const authorId = await ensureContributor(supabase, prData.user.login, prData.user.avatar_url, prData.user.id);
+      const authorId = await ensureContributor(
+        supabase,
+        prData.user.login,
+        prData.user.avatar_url,
+        prData.user.id,
+      );
 
       // Get repository ID
       const { data: repoData } = await supabase
@@ -235,7 +248,7 @@ const capturePrDetails = inngest.createFunction(
           .insert({
             full_name: `${owner}/${repo}`,
             owner,
-            name: repo
+            name: repo,
           })
           .select('id')
           .single();
@@ -273,7 +286,7 @@ const capturePrDetails = inngest.createFunction(
     });
 
     return { pr_number: prData.number, status: 'captured' };
-  }
+  },
 );
 
 // 2. capture-pr-details-graphql - GraphQL version
@@ -281,7 +294,7 @@ const capturePrDetailsGraphQL = inngest.createFunction(
   {
     id: 'capture-pr-details-graphql',
     name: 'Capture PR Details (GraphQL)',
-    retries: 2
+    retries: 2,
   },
   { event: 'capture/pr.details.graphql' },
   async ({ event, step }) => {
@@ -348,7 +361,7 @@ const capturePrDetailsGraphQL = inngest.createFunction(
         supabase,
         prData.author.login,
         prData.author.avatarUrl,
-        prData.author.databaseId
+        prData.author.databaseId,
       );
 
       // Get or create repository
@@ -395,7 +408,7 @@ const capturePrDetailsGraphQL = inngest.createFunction(
           const reviewerId = await ensureContributor(
             supabase,
             review.author.login,
-            review.author.avatarUrl
+            review.author.avatarUrl,
           );
 
           await supabase.from('pr_reviews').upsert({
@@ -416,7 +429,7 @@ const capturePrDetailsGraphQL = inngest.createFunction(
           const commenterId = await ensureContributor(
             supabase,
             comment.author.login,
-            comment.author.avatarUrl
+            comment.author.avatarUrl,
           );
 
           await supabase.from('pr_comments').upsert({
@@ -432,7 +445,7 @@ const capturePrDetailsGraphQL = inngest.createFunction(
     });
 
     return { pr_number: prData.number, status: 'captured_with_reviews_and_comments' };
-  }
+  },
 );
 
 // 3. capture-pr-reviews
@@ -440,7 +453,7 @@ const capturePrReviews = inngest.createFunction(
   {
     id: 'capture-pr-reviews',
     name: 'Capture PR Reviews',
-    retries: 2
+    retries: 2,
   },
   { event: 'capture/pr.reviews' },
   async ({ event, step }) => {
@@ -449,7 +462,7 @@ const capturePrReviews = inngest.createFunction(
     const reviews = await step.run('fetch-reviews', async () => {
       const data = await githubRequest(
         `/repos/${owner}/${repo}/pulls/${pr_number}/reviews`,
-        github_token
+        github_token,
       );
       return data;
     });
@@ -472,7 +485,7 @@ const capturePrReviews = inngest.createFunction(
         const reviewerId = await ensureContributor(
           supabase,
           review.user.login,
-          review.user.avatar_url
+          review.user.avatar_url,
         );
 
         const { error } = await supabase
@@ -494,7 +507,7 @@ const capturePrReviews = inngest.createFunction(
     });
 
     return { pr_number, reviews_count: reviews.length };
-  }
+  },
 );
 
 // 4. capture-pr-comments
@@ -502,7 +515,7 @@ const capturePrComments = inngest.createFunction(
   {
     id: 'capture-pr-comments',
     name: 'Capture PR Comments',
-    retries: 2
+    retries: 2,
   },
   { event: 'capture/pr.comments' },
   async ({ event, step }) => {
@@ -545,7 +558,7 @@ const capturePrComments = inngest.createFunction(
           supabase,
           comment.user.login,
           comment.user.avatar_url,
-          comment.user.id
+          comment.user.id,
         );
         if (!authorId) continue; // Skip if no github_id (GitHub Apps/bots)
 
@@ -569,9 +582,9 @@ const capturePrComments = inngest.createFunction(
 
     return {
       pr_number,
-      comments_count: reviewComments.length + issueComments.length
+      comments_count: reviewComments.length + issueComments.length,
     };
-  }
+  },
 );
 
 // 5. capture-issue-comments
@@ -579,7 +592,7 @@ const captureIssueComments = inngest.createFunction(
   {
     id: 'capture-issue-comments',
     name: 'Capture Issue Comments',
-    retries: 2
+    retries: 2,
   },
   { event: 'capture/issue.comments' },
   async ({ event, step }) => {
@@ -588,7 +601,7 @@ const captureIssueComments = inngest.createFunction(
     const comments = await step.run('fetch-issue-comments', async () => {
       const data = await githubRequest(
         `/repos/${owner}/${repo}/issues/${issue_number}/comments`,
-        github_token
+        github_token,
       );
       return data;
     });
@@ -612,7 +625,7 @@ const captureIssueComments = inngest.createFunction(
           supabase,
           comment.user.login,
           comment.user.avatar_url,
-          comment.user.id
+          comment.user.id,
         );
         if (!authorId) continue; // Skip if no github_id (GitHub Apps/bots)
 
@@ -635,7 +648,7 @@ const captureIssueComments = inngest.createFunction(
     });
 
     return { issue_number, comments_count: comments.length };
-  }
+  },
 );
 
 // 6. capture-repository-issues
@@ -643,7 +656,7 @@ const captureRepositoryIssues = inngest.createFunction(
   {
     id: 'capture-repository-issues',
     name: 'Capture Repository Issues',
-    retries: 2
+    retries: 2,
   },
   { event: 'capture/repository.issues' },
   async ({ event, step }) => {
@@ -671,7 +684,8 @@ const captureRepositoryIssues = inngest.createFunction(
 
     const issues = await step.run('fetch-issues', async () => {
       const data = await githubRequest(
-        `/repos/${owner}/${repo}/issues?state=${state}&per_page=100`
+        `/repos/${owner}/${repo}/issues?state=${state}&per_page=100`,
+        github_token,
       );
       // Filter out pull requests (they also appear in issues API)
       const filteredIssues = data.filter((issue: any) => !('pull_request' in issue));
@@ -694,7 +708,7 @@ const captureRepositoryIssues = inngest.createFunction(
           supabase,
           issue.user.login,
           issue.user.avatar_url,
-          issue.user.id
+          issue.user.id,
         );
         if (!authorId) {
           console.log(`[capture-repository-issues] Skipped issue #${issue.number} - no author ID`);
@@ -733,7 +747,7 @@ const captureRepositoryIssues = inngest.createFunction(
     });
 
     return { repository: `${owner}/${repo}`, issues_count: issues.length };
-  }
+  },
 );
 
 // 7. capture-repository-sync - REST API repository sync
@@ -741,7 +755,7 @@ const captureRepositorySync = inngest.createFunction(
   {
     id: 'capture-repository-sync',
     name: 'Capture Repository Sync',
-    retries: 2
+    retries: 2,
   },
   { event: 'capture/repository.sync' },
   async ({ event, step }) => {
@@ -777,7 +791,7 @@ const captureRepositorySync = inngest.createFunction(
           default_branch: repoData.default_branch,
           topics: repoData.topics,
         }, {
-          onConflict: 'full_name'
+          onConflict: 'full_name',
         })
         .select('id')
         .single();
@@ -790,12 +804,14 @@ const captureRepositorySync = inngest.createFunction(
     await step.run('sync-recent-prs', async () => {
       const prs = await githubRequest(
         `/repos/${owner}/${repo}/pulls?state=all&per_page=30&sort=created&direction=desc`,
-        github_token
+        github_token,
       );
-      
+
       console.log(`Fetched ${prs.length} PRs from ${owner}/${repo}`);
       if (prs.length > 0) {
-        console.log(`First PR: #${prs[0].number} - ${prs[0].title} (created: ${prs[0].created_at})`);
+        console.log(
+          `First PR: #${prs[0].number} - ${prs[0].title} (created: ${prs[0].created_at})`,
+        );
       }
 
       const supabase = getSupabaseClient();
@@ -805,7 +821,7 @@ const captureRepositorySync = inngest.createFunction(
           supabase,
           pr.user.login,
           pr.user.avatar_url,
-          pr.user.id
+          pr.user.id,
         );
         if (!authorId) continue; // Skip if no github_id (GitHub Apps/bots)
 
@@ -832,7 +848,7 @@ const captureRepositorySync = inngest.createFunction(
         }, {
           onConflict: 'github_id',
         });
-        
+
         if (prError) {
           console.error(`Failed to upsert PR #${pr.number}:`, prError);
         } else {
@@ -842,7 +858,7 @@ const captureRepositorySync = inngest.createFunction(
     });
 
     return { repository: repoData.full_name, status: 'synced' };
-  }
+  },
 );
 
 // 8. update-pr-activity
@@ -850,7 +866,7 @@ const updatePrActivity = inngest.createFunction(
   {
     id: 'update-pr-activity',
     name: 'Update PR Activity',
-    retries: 2
+    retries: 2,
   },
   { event: 'capture/pr.activity.update' },
   async ({ event, step }) => {
@@ -897,7 +913,8 @@ const updatePrActivity = inngest.createFunction(
       ]);
 
       // Calculate activity score
-      const activityScore = (reviewCount || 0) * 3 + (commentCount || 0) * 2 + (pr.additions + pr.deletions) / 100;
+      const activityScore = (reviewCount || 0) * 3 + (commentCount || 0) * 2 +
+        (pr.additions + pr.deletions) / 100;
 
       // Update PR with activity metrics
       const { error } = await supabase
@@ -917,7 +934,7 @@ const updatePrActivity = inngest.createFunction(
     });
 
     return { pr_number, status: 'activity_updated', metrics };
-  }
+  },
 );
 
 // 9. discover-new-repository
@@ -925,7 +942,7 @@ const discoverNewRepository = inngest.createFunction(
   {
     id: 'discover-new-repository',
     name: 'Discover New Repository',
-    retries: 2
+    retries: 2,
   },
   { event: 'capture/repository.discover' },
   async ({ event, step }) => {
@@ -990,7 +1007,7 @@ const discoverNewRepository = inngest.createFunction(
     });
 
     return { repository: repoData.full_name, status: 'discovered_and_tracking' };
-  }
+  },
 );
 
 // 10. classify-repository-size
@@ -998,7 +1015,7 @@ const classifyRepositorySize = inngest.createFunction(
   {
     id: 'classify-repository-size',
     name: 'Classify Repository Size (Batch)',
-    retries: 2
+    retries: 2,
   },
   { event: 'capture/repository.classify.batch' },
   async ({ event, step }) => {
@@ -1026,12 +1043,16 @@ const classifyRepositorySize = inngest.createFunction(
           // Calculate activity level
           const lastPushDate = new Date(repoData.pushed_at);
           const daysSinceLastPush = Math.floor(
-            (Date.now() - lastPushDate.getTime()) / (1000 * 60 * 60 * 24)
+            (Date.now() - lastPushDate.getTime()) / (1000 * 60 * 60 * 24),
           );
 
-          const activity_level = daysSinceLastPush < 7 ? 'high' :
-                                daysSinceLastPush < 30 ? 'medium' :
-                                daysSinceLastPush < 90 ? 'low' : 'dormant';
+          const activity_level = daysSinceLastPush < 7
+            ? 'high'
+            : daysSinceLastPush < 30
+            ? 'medium'
+            : daysSinceLastPush < 90
+            ? 'low'
+            : 'dormant';
 
           // Update repository classification
           await supabase
@@ -1068,7 +1089,7 @@ const classifyRepositorySize = inngest.createFunction(
       classified_count: results.length,
       classifications: results,
     };
-  }
+  },
 );
 
 // 11. compute-embeddings - Runs every 15 minutes
@@ -1237,14 +1258,16 @@ const computeEmbeddings = inngest.createFunction(
               const data = encoder.encode(content);
               const hashBuffer = await crypto.subtle.digest('SHA-256', data);
               const hashArray = Array.from(new Uint8Array(hashBuffer));
-              const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+              const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
               item.content_hash = hashHex.substring(0, 16);
             }
           }
 
           const apiKey = Deno.env.get('OPENAI_API_KEY') || Deno.env.get('VITE_OPENAI_API_KEY');
           if (!apiKey) {
-            throw new NonRetriableError('OpenAI API key not configured - check OPENAI_API_KEY env var in Supabase secrets');
+            throw new NonRetriableError(
+              'OpenAI API key not configured - check OPENAI_API_KEY env var in Supabase secrets',
+            );
           }
           if (!apiKey.startsWith('sk-')) {
             throw new NonRetriableError('Invalid OpenAI API key format - must start with sk-');
@@ -1263,7 +1286,7 @@ const computeEmbeddings = inngest.createFunction(
             body: JSON.stringify({
               model: 'text-embedding-3-small',
               input: texts,
-              dimensions: 384,  // CRITICAL: Specify 384 dimensions to match database schema
+              dimensions: 384, // CRITICAL: Specify 384 dimensions to match database schema
             }),
           });
 
@@ -1317,7 +1340,7 @@ const computeEmbeddings = inngest.createFunction(
                   },
                   {
                     onConflict: 'repository_id,item_type,item_id',
-                  }
+                  },
                 );
 
               if (cacheError) {
@@ -1391,7 +1414,7 @@ const computeEmbeddings = inngest.createFunction(
     });
 
     return finalReturn;
-  }
+  },
 );
 
 // ============================================================================
@@ -1441,7 +1464,7 @@ const aggregateWorkspaceMetrics = inngest.createFunction(
       }
 
       // Extract repositories with proper typing
-      const repos = data?.map(wr => wr.repositories).filter(Boolean) || [];
+      const repos = data?.map((wr) => wr.repositories).filter(Boolean) || [];
       console.log('[workspace-metrics] Found %s repositories for workspace', repos.length);
 
       return repos;
@@ -1455,7 +1478,7 @@ const aggregateWorkspaceMetrics = inngest.createFunction(
     // Step 2: Aggregate PRs
     const prMetrics = await step.run('aggregate-pull-requests', async () => {
       const supabase = getSupabaseClient();
-      const repositoryIds = repositories.map(r => r.id);
+      const repositoryIds = repositories.map((r) => r.id);
 
       const { data, error } = await supabase
         .from('pull_requests')
@@ -1470,9 +1493,9 @@ const aggregateWorkspaceMetrics = inngest.createFunction(
       const now = new Date();
       const metrics = {
         total: data?.length || 0,
-        open: data?.filter(pr => pr.state === 'open').length || 0,
-        closed: data?.filter(pr => pr.state === 'closed' && !pr.merged_at).length || 0,
-        merged: data?.filter(pr => pr.merged_at).length || 0,
+        open: data?.filter((pr) => pr.state === 'open').length || 0,
+        closed: data?.filter((pr) => pr.state === 'closed' && !pr.merged_at).length || 0,
+        merged: data?.filter((pr) => pr.merged_at).length || 0,
       };
 
       console.log('[workspace-metrics] PR metrics: %s', JSON.stringify(metrics));
@@ -1482,7 +1505,7 @@ const aggregateWorkspaceMetrics = inngest.createFunction(
     // Step 3: Aggregate Issues
     const issueMetrics = await step.run('aggregate-issues', async () => {
       const supabase = getSupabaseClient();
-      const repositoryIds = repositories.map(r => r.id);
+      const repositoryIds = repositories.map((r) => r.id);
 
       const { data, error } = await supabase
         .from('issues')
@@ -1496,8 +1519,8 @@ const aggregateWorkspaceMetrics = inngest.createFunction(
 
       const metrics = {
         total: data?.length || 0,
-        open: data?.filter(issue => issue.state === 'open').length || 0,
-        closed: data?.filter(issue => issue.state === 'closed').length || 0,
+        open: data?.filter((issue) => issue.state === 'open').length || 0,
+        closed: data?.filter((issue) => issue.state === 'closed').length || 0,
       };
 
       console.log('[workspace-metrics] Issue metrics: %s', JSON.stringify(metrics));
@@ -1507,7 +1530,7 @@ const aggregateWorkspaceMetrics = inngest.createFunction(
     // Step 4: Aggregate Discussions
     const discussionMetrics = await step.run('aggregate-discussions', async () => {
       const supabase = getSupabaseClient();
-      const repositoryIds = repositories.map(r => r.id);
+      const repositoryIds = repositories.map((r) => r.id);
 
       const { data, error } = await supabase
         .from('discussions')
@@ -1521,7 +1544,7 @@ const aggregateWorkspaceMetrics = inngest.createFunction(
 
       const metrics = {
         total: data?.length || 0,
-        answered: data?.filter(d => d.answer_chosen_at).length || 0,
+        answered: data?.filter((d) => d.answer_chosen_at).length || 0,
       };
 
       console.log('[workspace-metrics] Discussion metrics: %s', JSON.stringify(metrics));
@@ -1552,7 +1575,10 @@ const aggregateWorkspaceMetrics = inngest.createFunction(
       if (error) {
         console.error('[workspace-metrics] Error caching metrics: %s', error.message);
       } else {
-        console.log('[workspace-metrics] Metrics cached successfully for workspace %s', workspaceId);
+        console.log(
+          '[workspace-metrics] Metrics cached successfully for workspace %s',
+          workspaceId,
+        );
       }
     });
 
@@ -1565,7 +1591,7 @@ const aggregateWorkspaceMetrics = inngest.createFunction(
         repository_count: repositories.length,
       },
     };
-  }
+  },
 );
 
 const scheduleWorkspaceAggregation = inngest.createFunction(
@@ -1630,14 +1656,26 @@ const scheduleWorkspaceAggregation = inngest.createFunction(
           if (response.ok) {
             successCount++;
           } else {
-            console.error('[workspace-schedule] Failed to trigger for workspace %s: %s', workspace.id, await response.text());
+            console.error(
+              '[workspace-schedule] Failed to trigger for workspace %s: %s',
+              workspace.id,
+              await response.text(),
+            );
           }
         } catch (error) {
-          console.error('[workspace-schedule] Error triggering workspace %s: %s', workspace.id, error);
+          console.error(
+            '[workspace-schedule] Error triggering workspace %s: %s',
+            workspace.id,
+            error,
+          );
         }
       }
 
-      console.log('[workspace-schedule] Triggered aggregation for %s/%s workspaces', successCount, workspaces.length);
+      console.log(
+        '[workspace-schedule] Triggered aggregation for %s/%s workspaces',
+        successCount,
+        workspaces.length,
+      );
       return successCount;
     });
 
@@ -1646,7 +1684,7 @@ const scheduleWorkspaceAggregation = inngest.createFunction(
       workspacesProcessed: triggered,
       totalWorkspaces: workspaces.length,
     };
-  }
+  },
 );
 
 // Define our functions registry
@@ -1721,7 +1759,7 @@ serve(async (req) => {
       JSON.stringify({
         status: 'healthy',
         message: 'Inngest Edge Function with FULL implementations',
-        functions: functions.map(f => f.id),
+        functions: functions.map((f) => f.id),
         timestamp: new Date().toISOString(),
       }),
       {
@@ -1730,7 +1768,7 @@ serve(async (req) => {
           ...corsHeaders,
           'Content-Type': 'application/json',
         },
-      }
+      },
     );
   }
 
@@ -1758,8 +1796,8 @@ serve(async (req) => {
 
     // Check for common authorization errors
     const isAuthError = error.message?.toLowerCase().includes('authorization') ||
-                       error.message?.toLowerCase().includes('signature') ||
-                       error.message?.toLowerCase().includes('signing key');
+      error.message?.toLowerCase().includes('signature') ||
+      error.message?.toLowerCase().includes('signing key');
 
     return new Response(
       JSON.stringify({
@@ -1777,7 +1815,7 @@ serve(async (req) => {
           ...corsHeaders,
           'Content-Type': 'application/json',
         },
-      }
+      },
     );
   }
 });

@@ -9,6 +9,7 @@ import {
   assertEquals,
   assertExists,
 } from 'https://deno.land/std@0.177.0/testing/asserts.ts';
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 // Mock Supabase client for testing
 export class MockSupabaseClient {
@@ -108,16 +109,16 @@ export class MockGitHubClient {
   getUser(username: string) {
     const user = this.users.get(username);
     if (!user) {
-      throw new Error(`User not found: ${username}`);
+      throw new Error('User not found: ' + username);
     }
     return user;
   }
 
   getRepository(owner: string, repo: string) {
-    const key = `${owner}/${repo}`;
+    const key = owner + '/' + repo;
     const repository = this.repos.get(key);
     if (!repository) {
-      throw new Error(`Repository not found: ${key}`);
+      throw new Error('Repository not found: ' + key);
     }
     return repository;
   }
@@ -129,7 +130,7 @@ export class MockGitHubClient {
 
   // Helper to seed test repositories
   seedRepo(owner: string, repo: string, data: Record<string, unknown>) {
-    this.repos.set(`${owner}/${repo}`, data);
+    this.repos.set(owner + '/' + repo, data);
   }
 }
 
@@ -156,14 +157,14 @@ export const generateTestUser = (overrides = {}) => ({
 export const generateSpamUser = (overrides = {}) => ({
   id: 99999,
   login: 'spamuser123456',
-  name: 'Spam User',
+  name: null,
   avatar_url: 'https://avatars.githubusercontent.com/u/99999',
   bio: 'Buy crypto! Airdrop giveaway!',
-  company: 'Spam Inc',
-  location: 'Spam City',
-  email: 'spam@example.com',
+  company: null,
+  location: null,
+  email: null,
   blog: 'https://spam.tk',
-  twitter_username: 'spammer',
+  twitter_username: null,
   public_repos: 100,
   followers: 5,
   following: 5000,
@@ -174,16 +175,13 @@ export const generateSpamUser = (overrides = {}) => ({
 
 // HTTP request helpers
 export const createTestRequest = (body: unknown, options: RequestInit = {}) => {
-  const method = options.method || 'POST';
-  const bodyForbidden = method === 'GET' || method === 'HEAD';
-
   return new Request('http://localhost/test', {
-    method,
+    method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       ...options.headers,
     },
-    ...(bodyForbidden ? {} : { body: JSON.stringify(body) }),
+    body: JSON.stringify(body),
     ...options,
   });
 };

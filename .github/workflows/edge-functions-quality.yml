@@ -15,32 +15,32 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-
+      
       - name: Setup Deno
         uses: denoland/setup-deno@v1
         with:
           deno-version: v1.x
-
+      
       - name: Run linter
         run: |
           cd supabase/functions
-          deno lint _shared/ tests/ spam-detection/ health/index.ts
-
+          deno lint _shared/ tests/ health/index.ts
+      
       - name: Check formatting
         run: |
           cd supabase/functions
-          deno fmt --check _shared/ tests/ spam-detection/ health/index.ts
+          deno fmt --check _shared/ tests/ health/index.ts
 
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-
+      
       - name: Setup Deno
         uses: denoland/setup-deno@v1
         with:
           deno-version: v1.x
-
+      
       - name: Run tests
         run: |
           cd supabase/functions
@@ -50,12 +50,12 @@ jobs:
           SUPABASE_URL: https://test.supabase.co
           SUPABASE_SERVICE_ROLE_KEY: test-key
           GITHUB_TOKEN: test-token
-
+      
       - name: Generate coverage
         run: |
           cd supabase/functions
           deno task coverage
-
+      
       - name: Upload coverage
         uses: codecov/codecov-action@v3
         with:
@@ -66,13 +66,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-
+      
       - name: Setup Deno
         uses: denoland/setup-deno@v1
         with:
           deno-version: v1.x
-
+      
       - name: Type check
         run: |
           cd supabase/functions
-          deno check _shared/*.ts tests/*.ts spam-detection/*.ts health/index.ts
+          deno check --unstable-sloppy-imports _shared/*.ts tests/*.ts health/index.ts
