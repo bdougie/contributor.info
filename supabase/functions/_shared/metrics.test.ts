@@ -64,6 +64,7 @@ Deno.test('PerformanceMonitor - handles missing timer gracefully', () => {
     // Should log warning about missing timer
     assertEquals(consoleOutput.length, 1);
     assertEquals(consoleOutput[0].level, 'warn');
+    assert(typeof consoleOutput[0].message[0] === 'string');
     assert(consoleOutput[0].message[0].includes('No timer found'));
   } finally {
     restoreConsole();
@@ -98,6 +99,7 @@ Deno.test('PerformanceMonitor - warns on slow operations', () => {
     assertEquals(consoleOutput.length, 2);
     assertEquals(consoleOutput[0].level, 'info'); // metric log
     assertEquals(consoleOutput[1].level, 'warn'); // slow operation warning
+    assert(typeof consoleOutput[1].message[0] === 'string');
     assert(consoleOutput[1].message[0].includes('Slow operation detected'));
   } finally {
     restoreConsole();
@@ -119,6 +121,7 @@ Deno.test('PerformanceMonitor - measure async operation success', async () => {
 
     // Should log metric
     assertEquals(consoleOutput.length, 1);
+    assert(typeof consoleOutput[0].message[1] === 'string');
     const metricLog = JSON.parse(consoleOutput[0].message[1]);
     assertEquals(metricLog.function_name, 'test-function');
     assertEquals(metricLog.operation, 'async-op');
@@ -146,10 +149,12 @@ Deno.test('PerformanceMonitor - measure async operation failure', async () => {
     }
 
     assert(thrownError);
+    assert(thrownError instanceof Error);
     assertEquals(thrownError.message, 'Test error');
 
     // Should log metric with success=false
     assertEquals(consoleOutput.length, 1);
+    assert(typeof consoleOutput[0].message[1] === 'string');
     const metricLog = JSON.parse(consoleOutput[0].message[1]);
     assertEquals(metricLog.operation, 'failing-op');
     assertEquals(metricLog.success, false);
@@ -172,6 +177,7 @@ Deno.test('PerformanceMonitor - measureSync operation success', () => {
 
     // Should log metric
     assertEquals(consoleOutput.length, 1);
+    assert(typeof consoleOutput[0].message[1] === 'string');
     const metricLog = JSON.parse(consoleOutput[0].message[1]);
     assertEquals(metricLog.function_name, 'test-function');
     assertEquals(metricLog.operation, 'sync-op');
@@ -197,10 +203,12 @@ Deno.test('PerformanceMonitor - measureSync operation failure', () => {
     }
 
     assert(thrownError);
+    assert(thrownError instanceof Error);
     assertEquals(thrownError.message, 'Sync error');
 
     // Should log metric with success=false
     assertEquals(consoleOutput.length, 1);
+    assert(typeof consoleOutput[0].message[1] === 'string');
     const metricLog = JSON.parse(consoleOutput[0].message[1]);
     assertEquals(metricLog.operation, 'failing-sync-op');
     assertEquals(metricLog.success, false);

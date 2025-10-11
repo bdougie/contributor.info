@@ -41,6 +41,13 @@ _If you would like to work an issue, please read the [TRIAGE.md](/TRIAGE.md)_
 
 - **Node.js** v20 or later (see `.nvmrc`)
 - **npm** v10 or later
+- **Deno** v1.x or later (for edge function development and type checking)
+  ```bash
+  # macOS/Linux
+  curl -fsSL https://deno.land/install.sh | sh
+  # Or via package managers
+  brew install deno  # macOS
+  ```
 - **Docker Desktop** (optional, for local Supabase development)
 - **GitHub account** with Personal Access Token (for GitHub API access)
 - **Git** configured with your GitHub credentials
@@ -255,6 +262,12 @@ npm run dev              # Start Vite dev server (port 5173)
 npm start                # Full stack: Vite + Netlify + Inngest
 npm run build            # Type-check + build + copy CSP headers
 npm run preview          # Preview production build
+
+# Edge Functions (Deno-based)
+npm run test:edge-functions           # Run edge function tests
+npm run lint:edge-functions           # Lint edge functions
+npm run format:edge-functions         # Format edge functions
+npm run format:edge-functions:check   # Check edge function formatting
 
 # Environment Management
 npm run env:local        # Switch to local Supabase
@@ -480,12 +493,15 @@ export const Clickable: Story = {
 
 3. **Test your changes**
    ```bash
-   npm run build            # Ensure it builds
-   npm test                 # Run unit tests
-   npm run test:e2e         # Run E2E tests (if UI changes)
-   npm run lint             # Check code style
-   npm run typecheck        # Check TypeScript
+   npm run build                  # Ensure it builds
+   npm test                       # Run unit tests
+   npm run test:edge-functions    # Run edge function tests (if modified)
+   npm run test:e2e              # Run E2E tests (if UI changes)
+   npm run lint                   # Check code style
+   npm run typecheck              # Check TypeScript
    ```
+
+   **Note**: If you modified edge functions in `supabase/functions/`, the pre-commit hook will automatically run Deno type checking. Ensure you have [Deno installed](#-prerequisites) to catch errors before CI.
 
 ### 3. Commit Guidelines
 
@@ -513,9 +529,10 @@ chore: update dependencies
    - Add test plan or testing notes
 
 3. **PR Checklist**
-   - [ ] All tests pass (`npm test` and `npm run test:e2e`)
+   - [ ] All tests pass (`npm test`, `npm run test:edge-functions`, and `npm run test:e2e`)
    - [ ] Code follows project style (`npm run lint` passes)
    - [ ] TypeScript has no errors (`npm run typecheck`)
+   - [ ] Edge functions pass Deno checks (automatic via pre-commit hook)
    - [ ] Build succeeds (`npm run build`)
    - [ ] Self-review completed
    - [ ] Documentation updated (if needed)

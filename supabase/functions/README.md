@@ -307,7 +307,98 @@ for (const record of records) {
 }
 ```
 
+## Type Checking
+
+**Critical**: Type checking catches errors before they reach production. All edge functions must pass type checks.
+
+### Running Type Checks
+
+```bash
+# From project root
+npm run lint:edge-functions
+
+# Or from supabase/functions directory
+deno check _shared/*.ts tests/*.ts spam-detection/*.ts health/index.ts
+```
+
+### Pre-commit Hooks
+
+The project uses **Husky pre-commit hooks** to automatically validate code before commits:
+
+1. ✅ TypeScript type check (`tsc`) for main codebase
+2. ✅ Deno type check for edge functions (if Deno installed)
+3. ✅ Lint-staged for formatting
+
+**⚠️ Important**: If Deno is not installed locally, the pre-commit hook will skip Deno type checking with a warning, but **CI will still fail** if there are type errors.
+
+### Installing Deno
+
+To enable local type checking before commits:
+
+```bash
+# macOS/Linux
+curl -fsSL https://deno.land/install.sh | sh
+
+# Windows (PowerShell)
+irm https://deno.land/install.ps1 | iex
+
+# Or via package managers
+brew install deno  # macOS
+choco install deno # Windows
+```
+
+### Type Safety Rules
+
+Following project TypeScript guidelines:
+
+#### ❌ Never use `any`
+```typescript
+// Bad
+function process(data: any) { }
+
+// Good
+function process(data: Record<string, unknown>) { }
+```
+
+#### ❌ Never use `unknown` as a lazy fix
+```typescript
+// Bad - TypeScript error
+const message = consoleOutput[0].message;
+JSON.parse(message); // Type error: unknown is not assignable to string
+
+// Good - Proper type assertion
+assert(typeof consoleOutput[0].message === 'string');
+const message = consoleOutput[0].message;
+JSON.parse(message); // ✅ Type-safe
+```
+
+#### ✅ Prefer `undefined` over `null` for optional fields
+```typescript
+// Good: TypeScript-friendly
+interface User {
+  bio?: string;         // string | undefined
+  company?: string;     // string | undefined
+}
+
+// Only use null if the API explicitly returns null
+interface GitHubUser {
+  bio: string | null;   // GitHub API returns null
+}
+```
+
 ## Testing
+
+### Type Checking Tests
+```bash
+# Run all tests (includes type checking via deno task test)
+npm run test:edge-functions
+
+# Watch mode
+npm run test:edge-functions:watch
+
+# With coverage
+npm run test:edge-functions:coverage
+```
 
 ### Manual Testing
 ```bash
@@ -320,11 +411,17 @@ curl -X POST http://localhost:54321/functions/v1/repository-sync-graphql \
   -d '{"owner": "bdougie", "name": "contributor.info"}'
 ```
 
-### Automated Tests
-```bash
-# Run function tests
-npm run test:functions
-```
+### CI/CD Pipeline
+
+The `.github/workflows/edge-functions-quality.yml` workflow runs on every PR:
+
+1. **Lint**: Code style and patterns
+2. **Format Check**: Consistent formatting
+3. **Type Check**: Validates all TypeScript types
+4. **Tests**: Full test suite
+5. **Coverage**: Uploads to Codecov
+
+**All checks must pass** before merging to main.
 
 ## Monitoring
 

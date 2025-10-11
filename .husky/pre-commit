@@ -17,5 +17,34 @@ if echo "$STAGED_FILES" | grep -qE '\.(ts|tsx)$'; then
   echo "✅ TypeScript check passed"
 fi
 
+# Check if any staged files are in supabase/functions
+if echo "$STAGED_FILES" | grep -qE '^supabase/functions/.*\.ts$'; then
+  echo "🔍 Running Deno type check on edge functions..."
+
+  # Check if deno is installed
+  if ! command -v deno &> /dev/null; then
+    echo "⚠️  Deno not found. Skipping edge function type check."
+    echo "   Install Deno to enable pre-commit checks: https://deno.land/manual/getting_started/installation"
+  else
+    # Get list of staged .ts files in supabase/functions
+    STAGED_EDGE_FUNCTIONS=$(echo "$STAGED_FILES" | grep -E '^supabase/functions/.*\.ts$' | tr '\n' ' ')
+
+    if [ -n "$STAGED_EDGE_FUNCTIONS" ]; then
+      # Run Deno type check only on staged files
+      cd supabase/functions
+      RELATIVE_FILES=$(echo "$STAGED_EDGE_FUNCTIONS" | sed 's|supabase/functions/||g')
+      deno check $RELATIVE_FILES 2>&1
+      RESULT=$?
+      cd ../..
+
+      if [ $RESULT -ne 0 ]; then
+        echo "❌ Deno type check failed. Please fix type errors in edge functions before committing."
+        exit 1
+      fi
+      echo "✅ Deno type check passed"
+    fi
+  fi
+fi
+
 # Run lint-staged for linting and formatting
 npx lint-staged
