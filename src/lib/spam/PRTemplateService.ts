@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { supabase } from '../supabase.ts';
 
 interface PRTemplate {
   content: string;
@@ -241,7 +241,7 @@ export class PRTemplateService {
     const patterns = [
       /\[(.*?)\]/g, // [placeholder text]
       /\{(.*?)\}/g, // {placeholder text}
-      /\<(.*?)\>/g, // <placeholder text>
+      /<(.*?)>/g, // <placeholder text>
       /\[(.*?)\]\(.*?\)/g, // [text](link) - markdown links as placeholders
     ];
 
