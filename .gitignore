@@ -82,6 +82,7 @@ supabase/.migrations-lock.json
 supabase/.seed-lock.json
 supabase/migrations.temp/
 supabase/seed.sql.temp
+supabase/functions/deno.lock
 
 # Debug and test files (contain hardcoded API keys)
 /debug-*.js
