@@ -1,7 +1,7 @@
 {
   "importMap": "./import_map.json",
   "tasks": {
-    "test": "deno test --allow-all --coverage=coverage _shared/ tests/",
+    "test": "deno test --allow-all --coverage=coverage _shared/ tests/ __tests__/ spam-detection/",
     "test:watch": "deno test --allow-all --watch",
     "coverage": "deno coverage coverage --lcov --output=coverage/lcov.info",
     "lint": "deno lint",
@@ -16,6 +16,8 @@
     "include": [
       "_shared/**/*.ts",
       "tests/**/*.ts",
+      "__tests__/**/*.ts",
+      "spam-detection/**/*.ts",
       "health/index.ts"
     ]
   },

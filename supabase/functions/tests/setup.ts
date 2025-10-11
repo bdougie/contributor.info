@@ -170,13 +170,16 @@ export const generateSpamUser = (overrides = {}) => ({
 
 // HTTP request helpers
 export const createTestRequest = (body: unknown, options: RequestInit = {}) => {
+  const method = options.method || 'POST';
+  const bodyForbidden = method === 'GET' || method === 'HEAD';
+
   return new Request('http://localhost/test', {
-    method: 'POST',
+    method,
     headers: {
       'Content-Type': 'application/json',
       ...options.headers,
     },
-    body: JSON.stringify(body),
+    ...(bodyForbidden ? {} : { body: JSON.stringify(body) }),
     ...options,
   });
 };

@@ -157,9 +157,9 @@ Deno.test('handleError - wraps Error objects', async () => {
 Deno.test('handleError - handles non-Error objects', async () => {
   const error = 'string error';
   const response = handleError(error, 'test operation');
-  
+
   assertEquals(response.status, 500);
   const body = await response.json();
   assertEquals(body.error, 'test operation failed');
-  assertEquals(body.details, 'string error');
+  assertEquals(body.details, 'Unknown error'); // Non-Error objects get 'Unknown error' message
 });

@@ -51,7 +51,7 @@
     "test:unit:watch": "vitest watch --config vitest.config.ts",
     "test:edge-functions": "cd supabase/functions && deno task test",
     "test:edge-functions:watch": "cd supabase/functions && deno task test:watch",
-    "test:edge-functions:coverage": "cd supabase/functions && deno task coverage",
+    "test:edge-functions:coverage": "cd supabase/functions && deno task test && deno task coverage",
     "lint:edge-functions": "cd supabase/functions && deno task lint",
     "format:edge-functions": "cd supabase/functions && deno task fmt",
     "format:edge-functions:check": "cd supabase/functions && deno task fmt:check",

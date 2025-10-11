@@ -1,6 +1,5 @@
 # Ignore problematic files during transition to strict typing
 social-cards/
-inngest-prod/
 __tests__/
 _templates/
 process-webhook/
