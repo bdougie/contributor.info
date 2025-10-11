@@ -658,19 +658,7 @@ const captureRepositoryIssues = inngest.createFunction(
     await step.run('store-issues', async () => {
       const supabase = getSupabaseClient();
 
-      // Get repository ID
-      const { data: repoData } = await supabase
-        .from('repositories')
-        .select('id')
-        .eq('full_name', `${owner}/${repo}`)
-        .single();
-
-      const repositoryId = repoData?.id || (await supabase
-        .from('repositories')
-        .insert({ full_name: `${owner}/${repo}`, owner, name: repo })
-        .select('id')
-        .single()).data.id;
-
+      // Use the repositoryId from event data (already validated in get-repository step)
       for (const issue of issues) {
         const authorId = await ensureContributor(
           supabase,
