@@ -42,7 +42,7 @@ export function WorkspaceAutoSync({
       setIsSyncing(true);
 
       // Call the server-side API endpoint to trigger sync
-      const response = await fetch('/.netlify/functions/workspace-sync-simple', {
+      const response = await fetch('/functions/v1/workspace-sync', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -56,7 +56,7 @@ export function WorkspaceAutoSync({
 
       const result = await response.json();
 
-      if (response.ok) {
+      if (response.ok && result.success) {
         const now = new Date();
         setLastSyncTime(now);
         localStorage.setItem(`workspace-sync-${workspaceId}`, now.toISOString());

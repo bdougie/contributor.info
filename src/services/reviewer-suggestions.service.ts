@@ -27,9 +27,12 @@ interface DetailedError extends Error {
 }
 
 export async function fetchCodeOwners(owner: string, repo: string, forceRefresh = false) {
-  const url = forceRefresh
-    ? `/api/repos/${owner}/${repo}/codeowners?refresh=true`
-    : `/api/repos/${owner}/${repo}/codeowners`;
+  const params = new URLSearchParams({
+    owner,
+    repo,
+    ...(forceRefresh && { refresh: 'true' }),
+  });
+  const url = `/functions/v1/codeowners?${params}`;
   const res = await fetch(url);
 
   // 404 means repository isn't tracked - return empty state gracefully
