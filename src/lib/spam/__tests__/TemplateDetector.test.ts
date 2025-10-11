@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { TemplateDetector, SPAM_PATTERNS } from '../templates/CommonTemplates';
+import { TemplateDetector, SPAM_PATTERNS } from '../templates/CommonTemplates.ts';
 
 describe('TemplateDetector', () => {
   let detector: TemplateDetector;
@@ -216,8 +216,8 @@ describe('TemplateDetector', () => {
     });
 
     it('should handle null and undefined gracefully', () => {
-      const result1 = detector.detectTemplateMatch(null as any);
-      const result2 = detector.detectTemplateMatch(undefined as any);
+      const result1 = detector.detectTemplateMatch(null as unknown as string);
+      const result2 = detector.detectTemplateMatch(undefined as unknown as string);
 
       expect(result1.is_match).toBe(true); // Empty content is spam
       expect(result2.is_match).toBe(true); // Empty content is spam
