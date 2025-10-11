@@ -26,6 +26,37 @@ interface EmbeddingItem {
   type: 'issue' | 'pull_request' | 'discussion';
 }
 
+// Type for repository from workspace query
+interface WorkspaceRepository {
+  id: string;
+  full_name: string;
+  owner: string;
+  name: string;
+  stargazers_count: number;
+  forks_count: number;
+  watchers_count: number;
+  language: string | null;
+}
+
+// Type for PR/Issue data
+interface PullRequestData {
+  state: string;
+  created_at: string;
+  closed_at: string | null;
+  merged_at: string | null;
+}
+
+interface IssueData {
+  state: string;
+  created_at: string;
+  closed_at: string | null;
+}
+
+interface DiscussionData {
+  created_at: string;
+  answer_chosen_at: string | null;
+}
+
 // CORS headers for Inngest
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -215,6 +246,14 @@ const capturePrDetails = inngest.createFunction(
   async ({ event, step }) => {
     const { owner, repo, pr_number, github_token } = event.data;
 
+    // Validate required parameters
+    if (!owner || !repo) {
+      throw new NonRetriableError(`Missing required parameters: owner=${owner}, repo=${repo}`);
+    }
+    if (!pr_number) {
+      throw new NonRetriableError('Missing required parameter: pr_number');
+    }
+
     const prData = await step.run('fetch-pr', async () => {
       const pr = await githubRequest(
         `/repos/${owner}/${repo}/pulls/${pr_number}`,
@@ -299,6 +338,14 @@ const capturePrDetailsGraphQL = inngest.createFunction(
   { event: 'capture/pr.details.graphql' },
   async ({ event, step }) => {
     const { owner, repo, pr_number, github_token } = event.data;
+
+    // Validate required parameters
+    if (!owner || !repo) {
+      throw new NonRetriableError(`Missing required parameters: owner=${owner}, repo=${repo}`);
+    }
+    if (!pr_number) {
+      throw new NonRetriableError('Missing required parameter: pr_number');
+    }
 
     const prData = await step.run('fetch-pr-graphql', async () => {
       const query = `
@@ -522,6 +569,14 @@ const capturePrComments = inngest.createFunction(
     // Accept repositoryId and prNumber from client-side events
     const { repositoryId, prNumber, prId } = event.data;
 
+    // Validate required parameters
+    if (!repositoryId) {
+      throw new NonRetriableError('Missing required parameter: repositoryId');
+    }
+    if (!prNumber) {
+      throw new NonRetriableError('Missing required parameter: prNumber');
+    }
+
     // Step 1: Get repository details from database
     const repository = await step.run('get-repository', async () => {
       const supabase = getSupabaseClient();
@@ -597,6 +652,14 @@ const captureIssueComments = inngest.createFunction(
   { event: 'capture/issue.comments' },
   async ({ event, step }) => {
     const { owner, repo, issue_number, github_token } = event.data;
+
+    // Validate required parameters
+    if (!owner || !repo) {
+      throw new NonRetriableError(`Missing required parameters: owner=${owner}, repo=${repo}`);
+    }
+    if (!issue_number) {
+      throw new NonRetriableError('Missing required parameter: issue_number');
+    }
 
     const comments = await step.run('fetch-issue-comments', async () => {
       const data = await githubRequest(
@@ -683,12 +746,26 @@ const captureRepositoryIssues = inngest.createFunction(
     const state = 'all';
 
     const issues = await step.run('fetch-issues', async () => {
+      // Note: githubRequest will use environment variable token if not provided
       const data = await githubRequest(
         `/repos/${owner}/${repo}/issues?state=${state}&per_page=100`,
-        github_token,
       );
       // Filter out pull requests (they also appear in issues API)
-      const filteredIssues = data.filter((issue: any) => !('pull_request' in issue));
+      interface GitHubIssue {
+        pull_request?: unknown;
+        id: number;
+        number: number;
+        title: string;
+        body: string | null;
+        state: string;
+        user: { login: string; avatar_url: string; id: number };
+        labels: Array<{ name: string }>;
+        created_at: string;
+        updated_at: string;
+        closed_at: string | null;
+        [key: string]: unknown;
+      }
+      const filteredIssues = (data as GitHubIssue[]).filter((issue) => !('pull_request' in issue));
       console.log(`[capture-repository-issues] Fetched ${filteredIssues.length} issues for ${owner}/${repo}`);
       return filteredIssues;
     });
@@ -1195,7 +1272,14 @@ const computeEmbeddings = inngest.createFunction(
             .limit(50);
 
           if (forceItems) {
-            const typedForceItems: EmbeddingItem[] = forceItems.map((item) => ({
+            const typedForceItems: EmbeddingItem[] = forceItems.map((item: {
+              id: string;
+              repository_id: string;
+              title: string;
+              body: string | null;
+              content_hash: string | null;
+              embedding_generated_at: string | null;
+            }) => ({
               id: item.id,
               repository_id: item.repository_id,
               title: item.title,
@@ -1352,10 +1436,10 @@ const computeEmbeddings = inngest.createFunction(
             }
           }
 
-          // Update job progress with the cumulative processed count
+          // Update job progress with the batch processed count
           const { error: progressError } = await supabase.rpc('update_embedding_job_progress', {
             job_id: jobId,
-            processed_count: processedCount,
+            processed_count: batchProcessedCount,
           });
 
           if (progressError) {
@@ -1464,7 +1548,7 @@ const aggregateWorkspaceMetrics = inngest.createFunction(
       }
 
       // Extract repositories with proper typing
-      const repos = data?.map((wr) => wr.repositories).filter(Boolean) || [];
+      const repos = data?.map((wr: { repositories: WorkspaceRepository }) => wr.repositories).filter(Boolean) || [];
       console.log('[workspace-metrics] Found %s repositories for workspace', repos.length);
 
       return repos;
@@ -1478,7 +1562,7 @@ const aggregateWorkspaceMetrics = inngest.createFunction(
     // Step 2: Aggregate PRs
     const prMetrics = await step.run('aggregate-pull-requests', async () => {
       const supabase = getSupabaseClient();
-      const repositoryIds = repositories.map((r) => r.id);
+      const repositoryIds = repositories.map((r: WorkspaceRepository) => r.id);
 
       const { data, error } = await supabase
         .from('pull_requests')
@@ -1493,9 +1577,9 @@ const aggregateWorkspaceMetrics = inngest.createFunction(
       const now = new Date();
       const metrics = {
         total: data?.length || 0,
-        open: data?.filter((pr) => pr.state === 'open').length || 0,
-        closed: data?.filter((pr) => pr.state === 'closed' && !pr.merged_at).length || 0,
-        merged: data?.filter((pr) => pr.merged_at).length || 0,
+        open: data?.filter((pr: PullRequestData) => pr.state === 'open').length || 0,
+        closed: data?.filter((pr: PullRequestData) => pr.state === 'closed' && !pr.merged_at).length || 0,
+        merged: data?.filter((pr: PullRequestData) => pr.merged_at).length || 0,
       };
 
       console.log('[workspace-metrics] PR metrics: %s', JSON.stringify(metrics));
@@ -1505,7 +1589,7 @@ const aggregateWorkspaceMetrics = inngest.createFunction(
     // Step 3: Aggregate Issues
     const issueMetrics = await step.run('aggregate-issues', async () => {
       const supabase = getSupabaseClient();
-      const repositoryIds = repositories.map((r) => r.id);
+      const repositoryIds = repositories.map((r: WorkspaceRepository) => r.id);
 
       const { data, error } = await supabase
         .from('issues')
@@ -1519,8 +1603,8 @@ const aggregateWorkspaceMetrics = inngest.createFunction(
 
       const metrics = {
         total: data?.length || 0,
-        open: data?.filter((issue) => issue.state === 'open').length || 0,
-        closed: data?.filter((issue) => issue.state === 'closed').length || 0,
+        open: data?.filter((issue: IssueData) => issue.state === 'open').length || 0,
+        closed: data?.filter((issue: IssueData) => issue.state === 'closed').length || 0,
       };
 
       console.log('[workspace-metrics] Issue metrics: %s', JSON.stringify(metrics));
@@ -1530,7 +1614,7 @@ const aggregateWorkspaceMetrics = inngest.createFunction(
     // Step 4: Aggregate Discussions
     const discussionMetrics = await step.run('aggregate-discussions', async () => {
       const supabase = getSupabaseClient();
-      const repositoryIds = repositories.map((r) => r.id);
+      const repositoryIds = repositories.map((r: WorkspaceRepository) => r.id);
 
       const { data, error } = await supabase
         .from('discussions')
@@ -1544,7 +1628,7 @@ const aggregateWorkspaceMetrics = inngest.createFunction(
 
       const metrics = {
         total: data?.length || 0,
-        answered: data?.filter((d) => d.answer_chosen_at).length || 0,
+        answered: data?.filter((d: DiscussionData) => d.answer_chosen_at).length || 0,
       };
 
       console.log('[workspace-metrics] Discussion metrics: %s', JSON.stringify(metrics));
@@ -1707,7 +1791,6 @@ const functions = [
 // Create Inngest handler
 const commHandler = new InngestCommHandler({
   frameworkName: 'deno-edge-supabase',
-  appName: INNGEST_APP_ID,
   signingKey: undefined, // Disable signature validation for debugging
   client: inngest,
   functions,
