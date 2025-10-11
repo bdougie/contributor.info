@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { WorkspacePreviewData } from '@/components/features/workspace/WorkspacePreviewCard';
 import { getRepoOwnerAvatarUrl } from '@/lib/utils/avatar';
+import { logger } from '@/lib/logger';
 
 // Types for Supabase query results
 type WorkspaceWithMember = {
@@ -85,7 +86,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
       }, 2000);
 
       try {
-        console.log('[Workspace] Checking auth status...');
+        logger.log('[Workspace] Checking auth status...');
 
         // Check if aborted
         if (signal.aborted) {
@@ -99,13 +100,13 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
 
         // If auth error, try to get session as fallback
         if (authError) {
-          console.log('[Workspace] Auth error, checking session:', authError.message);
+          logger.log('[Workspace] Auth error, checking session:', authError.message);
           try {
             const {
               data: { session },
             } = await supabase.auth.getSession();
             if (!session) {
-              console.log('[Workspace] No session found, user is not authenticated');
+          logger.log('[Workspace] No session found, user is not authenticated');
               setWorkspaces([]);
               setLoading(false);
               hasInitialLoadRef.current = true;
@@ -138,7 +139,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
           if (session?.user) {
             user = session.user;
           } else {
-            console.log('[Workspace] No session in fallback, setting empty workspaces');
+            logger.log('[Workspace] No session in fallback, setting empty workspaces');
             setWorkspaces([]);
             setLoading(false);
             hasInitialLoadRef.current = true;
@@ -155,14 +156,14 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
       }
 
       if (!user) {
-        console.log('[Workspace] No user found after auth check');
+        logger.log('[Workspace] No user found after auth check');
         setWorkspaces([]);
         setLoading(false);
         hasInitialLoadRef.current = true;
         return;
       }
 
-      console.log('[Workspace] User authenticated, fetching workspaces...');
+      logger.log('[Workspace] User authenticated, fetching workspaces...');
 
       // Fetch workspaces where user is owner or member
       // First try to get workspaces where user is the owner
@@ -192,14 +193,14 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
       }
 
       if (workspaceIds.size === 0) {
-        console.log('[Workspace] User has no workspaces');
+        logger.log('[Workspace] User has no workspaces');
         setWorkspaces([]);
         setLoading(false);
         hasInitialLoadRef.current = true;
         return;
       }
 
-      console.log('[Workspace] Found %d workspace(s) for user', workspaceIds.size);
+      logger.log('[Workspace] Found %d workspace(s) for user', workspaceIds.size);
 
       const workspaceIdsArray = Array.from(workspaceIds);
 
@@ -354,7 +355,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
         } as WorkspacePreviewData;
       });
 
-      console.log('[Workspace] Successfully loaded %d workspace(s)', enrichedWorkspaces.length);
+      logger.log('[Workspace] Successfully loaded %d workspace(s)', enrichedWorkspaces.length);
       setWorkspaces(enrichedWorkspaces);
       hasInitialLoadRef.current = true;
     } catch (err) {
@@ -429,7 +430,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
           clearTimeout(debouncedFetchRef.current);
         }
         debouncedFetchRef.current = setTimeout(() => {
-          console.log('[Workspace] User profile updated, refreshing workspace data...');
+          logger.log('[Workspace] User profile updated, refreshing workspace data...');
           fetchUserWorkspaces();
         }, 1000); // 1 second debounce for USER_UPDATED events
       } else {

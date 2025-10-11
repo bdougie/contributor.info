@@ -10,6 +10,7 @@ import { inngest } from './client';
 
 // Import env helper for consistent environment variable access
 import { env } from '../env';
+import { logger } from '../logger';
 
 // Get Supabase URL from environment
 const SUPABASE_URL = env.SUPABASE_URL;
@@ -175,12 +176,12 @@ export async function sendInngestEvent<T extends { name: string; data: Record<st
 
         // Check if this was a duplicate request
         if (result.duplicate) {
-          console.log(
+          logger.log(
             'Duplicate request detected via %s, returning cached response',
             endpoint.name
           );
         } else {
-          console.log('Event sent successfully via %s', endpoint.name);
+          logger.log('Event sent successfully via %s', endpoint.name);
         }
 
         // Record success for circuit breaker
