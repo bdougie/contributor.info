@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createClient } from '@supabase/supabase-js';
 
 // Mock Deno environment
@@ -110,9 +110,9 @@ describe('Health Endpoint', () => {
                 data: { count: 100 },
                 error: null,
               }),
-            2500
+            2500,
           )
-        )
+        ),
     );
 
     const request = new Request('https://example.com/health');

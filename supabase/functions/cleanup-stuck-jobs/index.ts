@@ -40,7 +40,7 @@ serve(async (req: Request) => {
         {
           status: 200,
           headers: { 'Content-Type': 'application/json' },
-        }
+        },
       );
     }
 
@@ -66,7 +66,8 @@ serve(async (req: Request) => {
       .update({
         status: 'failed',
         completed_at: new Date().toISOString(),
-        error: `Job stuck in processing for >${STUCK_THRESHOLD_MINUTES} minutes - likely webhook misconfiguration`,
+        error:
+          `Job stuck in processing for >${STUCK_THRESHOLD_MINUTES} minutes - likely webhook misconfiguration`,
       })
       .eq('status', 'processing')
       .lt('started_at', new Date(Date.now() - STUCK_THRESHOLD_MINUTES * 60 * 1000).toISOString());
@@ -96,7 +97,7 @@ serve(async (req: Request) => {
       {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
-      }
+      },
     );
   } catch (error) {
     console.error('Cleanup failed:', error);
@@ -108,7 +109,7 @@ serve(async (req: Request) => {
       {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
-      }
+      },
     );
   }
 });

@@ -238,7 +238,7 @@ export function detectPrivilegedEvent(event: GitHubEvent): PrivilegedEventDetect
 // Calculate combined confidence from multiple events
 export function calculateAggregateConfidence(
   events: PrivilegedEventDetection[],
-  timeSpanDays: number = 30
+  timeSpanDays: number = 30,
 ): number {
   if (events.length === 0) return 0;
 
@@ -288,7 +288,7 @@ export function detectMaintainerPatterns(events: GitHubEvent[]): MaintainerPatte
       acc[event.type] = (acc[event.type] || 0) + 1;
       return acc;
     },
-    {} as Record<string, number>
+    {} as Record<string, number>,
   );
 
   // Pattern 1: Regular merger

@@ -1,22 +1,22 @@
 /**
  * Repository Sync GraphQL Edge Function
- * 
+ *
  * Efficiently synchronizes GitHub repository data using GraphQL API.
  * This function is preferred over REST API for bulk operations due to reduced
  * network requests and improved performance.
- * 
+ *
  * Features:
  * - Fetches pull requests with all related data in single queries
  * - Supports pagination for large repositories
  * - Normalizes review states for database consistency
  * - Handles up to 150 seconds execution time on paid plans
  * - Batch upserts for optimal database performance
- * 
+ *
  * Performance benefits vs REST:
  * - Single GraphQL query vs multiple REST requests
  * - Reduced network latency and API rate limit usage
  * - Fetches nested data (reviews, comments) efficiently
- * 
+ *
  * @example
  * POST /functions/v1/repository-sync-graphql
  * {
@@ -26,7 +26,7 @@
  *   "daysLimit": 30,
  *   "cursor": "Y3Vyc29yOnYyOpHOABCD"
  * }
- * 
+ *
  * @returns
  * {
  *   "success": true,
@@ -45,7 +45,7 @@
 
 import { createSupabaseClient, ensureContributor } from '../_shared/database.ts';
 import { corsHeaders } from '../_shared/cors.ts';
-import { corsPreflightResponse, successResponse, errorResponse } from '../_shared/responses.ts';
+import { corsPreflightResponse, errorResponse, successResponse } from '../_shared/responses.ts';
 
 /**
  * Normalizes GitHub review state to database format
@@ -233,7 +233,7 @@ async function handleRequest(req: Request): Promise<Response> {
         'Missing required fields',
         400,
         'Both owner and name are required',
-        'VALIDATION_ERROR'
+        'VALIDATION_ERROR',
       );
     }
 
@@ -290,7 +290,7 @@ async function handleRequest(req: Request): Promise<Response> {
             prs_processed: totalProcessed,
             status: 'partial',
           },
-          { onConflict: 'repository_id' }
+          { onConflict: 'repository_id' },
         );
 
         return successResponse(
@@ -299,7 +299,7 @@ async function handleRequest(req: Request): Promise<Response> {
             processed: totalProcessed,
             resumeCursor: currentCursor,
           },
-          'Partial sync completed. Resume with cursor.'
+          'Partial sync completed. Resume with cursor.',
         );
       }
 
@@ -400,7 +400,7 @@ async function handleRequest(req: Request): Promise<Response> {
             {
               onConflict: 'github_id',
               ignoreDuplicates: false,
-            }
+            },
           );
 
           if (prError) {
@@ -436,7 +436,7 @@ async function handleRequest(req: Request): Promise<Response> {
                   {
                     onConflict: 'github_id',
                     ignoreDuplicates: false,
-                  }
+                  },
                 );
               }
             }
@@ -469,7 +469,7 @@ async function handleRequest(req: Request): Promise<Response> {
                   {
                     onConflict: 'github_id',
                     ignoreDuplicates: false,
-                  }
+                  },
                 );
               }
             }
@@ -509,7 +509,7 @@ async function handleRequest(req: Request): Promise<Response> {
         executionTime: `${((Date.now() - startTime) / 1000).toFixed(2)}s`,
         syncType: fullSync ? 'full' : 'incremental',
         method: 'graphql',
-      }
+      },
     );
   } catch (error) {
     console.error('GraphQL sync error:', error);
@@ -517,7 +517,7 @@ async function handleRequest(req: Request): Promise<Response> {
       'Sync failed',
       500,
       error instanceof Error ? error.message : 'Unknown error',
-      'SYNC_FAILED'
+      'SYNC_FAILED',
     );
   }
 }

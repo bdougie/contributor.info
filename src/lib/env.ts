@@ -11,6 +11,8 @@
  * service tokens, and other sensitive configuration.
  */
 
+import process from 'node:process';
+
 // Type for import.meta.env
 interface ImportMetaEnv {
   DEV?: boolean;

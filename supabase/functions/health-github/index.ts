@@ -133,8 +133,7 @@ serve(async (req) => {
 
     // Try to get GitHub token from environment or request headers
     const authHeader = req.headers.get('Authorization');
-    const githubToken =
-      Deno.env.get('GITHUB_TOKEN') ||
+    const githubToken = Deno.env.get('GITHUB_TOKEN') ||
       (authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null);
 
     let authTest = null;
@@ -168,17 +167,17 @@ serve(async (req) => {
         },
         authentication: authTest
           ? {
-              status: authTest.status,
-              latency: authTest.latency,
-              user: authTest.user || null,
-              error: authTest.error || null,
-              token_provided: !!githubToken,
-            }
+            status: authTest.status,
+            latency: authTest.latency,
+            user: authTest.user || null,
+            error: authTest.error || null,
+            token_provided: !!githubToken,
+          }
           : {
-              status: 'not_tested',
-              token_provided: false,
-              message: 'No GitHub token provided for authentication test',
-            },
+            status: 'not_tested',
+            token_provided: false,
+            message: 'No GitHub token provided for authentication test',
+          },
         rate_limits: {
           ...rateLimitHealth,
           data: basicTest.rateLimits || authTest?.rateLimits || null,
@@ -197,7 +196,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
           'Cache-Control': 'no-cache, no-store, must-revalidate',
         },
-      }
+      },
     );
   } catch (error) {
     console.error('GitHub health check error:', error);
@@ -222,7 +221,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
           'Cache-Control': 'no-cache, no-store, must-revalidate',
         },
-      }
+      },
     );
   }
 });
@@ -289,25 +288,27 @@ function generateRecommendations(basicTest: any, authTest: any, rateLimitHealth:
 
   if (authTest?.status === 'auth_failed') {
     recommendations.push(
-      'GitHub authentication failed - verify token is valid and has required permissions'
+      'GitHub authentication failed - verify token is valid and has required permissions',
     );
   }
 
   if (rateLimitHealth.critical_resources.length > 0) {
     recommendations.push(
-      `Critical rate limit usage detected for: ${rateLimitHealth.critical_resources.join(', ')} - consider implementing request throttling`
+      `Critical rate limit usage detected for: ${
+        rateLimitHealth.critical_resources.join(', ')
+      } - consider implementing request throttling`,
     );
   }
 
   if (rateLimitHealth.warnings.length > 0) {
     recommendations.push(
-      `High rate limit usage for: ${rateLimitHealth.warnings.join(', ')} - monitor usage closely`
+      `High rate limit usage for: ${rateLimitHealth.warnings.join(', ')} - monitor usage closely`,
     );
   }
 
   if (basicTest.latency > 2000) {
     recommendations.push(
-      'High API latency detected - consider implementing caching or retry mechanisms'
+      'High API latency detected - consider implementing caching or retry mechanisms',
     );
   }
 

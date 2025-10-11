@@ -11,10 +11,10 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 // Get Inngest configuration from environment
 const INNGEST_APP_ID = Deno.env.get('INNGEST_APP_ID') || 'contributor-info';
-const INNGEST_EVENT_KEY =
-  Deno.env.get('INNGEST_EVENT_KEY') || Deno.env.get('INNGEST_PRODUCTION_EVENT_KEY');
-const INNGEST_SIGNING_KEY =
-  Deno.env.get('INNGEST_SIGNING_KEY') || Deno.env.get('INNGEST_PRODUCTION_SIGNING_KEY');
+const INNGEST_EVENT_KEY = Deno.env.get('INNGEST_EVENT_KEY') ||
+  Deno.env.get('INNGEST_PRODUCTION_EVENT_KEY');
+const INNGEST_SIGNING_KEY = Deno.env.get('INNGEST_SIGNING_KEY') ||
+  Deno.env.get('INNGEST_PRODUCTION_SIGNING_KEY');
 
 // Ensure GitHub token is available
 const GITHUB_TOKEN = Deno.env.get('GITHUB_TOKEN') || Deno.env.get('VITE_GITHUB_TOKEN');
@@ -34,13 +34,13 @@ const inngest = new Inngest({
 // Import function creators
 import { createCaptureRepositorySyncGraphQL, createClassifySingleRepository } from './functions.ts';
 import {
-  capturePrDetails,
-  capturePrReviews,
-  capturePrComments,
   captureIssueComments,
+  capturePrComments,
+  capturePrDetails,
+  capturePrDetailsGraphQL,
+  capturePrReviews,
   captureRepositoryIssues,
   captureRepositorySync,
-  capturePrDetailsGraphQL,
   classifyRepositorySize,
   discoverNewRepository,
 } from './inngest-functions.ts';
@@ -69,7 +69,7 @@ const testFunction = inngest.createFunction(
       environment: 'supabase-edge-production',
       data: event.data,
     };
-  }
+  },
 );
 
 // Create production functions using our configured client
@@ -114,7 +114,9 @@ serve(async (req: Request) => {
       headers: {
         ...corsHeaders,
         // Add Inngest-specific headers
-        'Access-Control-Allow-Headers': `${corsHeaders['Access-Control-Allow-Headers']}, x-inngest-signature, X-Inngest-Signature, x-inngest-sdk, X-Inngest-SDK`,
+        'Access-Control-Allow-Headers': `${
+          corsHeaders['Access-Control-Allow-Headers']
+        }, x-inngest-signature, X-Inngest-Signature, x-inngest-sdk, X-Inngest-SDK`,
       },
     });
   }
@@ -174,7 +176,7 @@ serve(async (req: Request) => {
             },
           },
           null,
-          2
+          2,
         ),
         {
           status: 200,
@@ -183,7 +185,7 @@ serve(async (req: Request) => {
             'Content-Type': 'application/json',
             'Cache-Control': 'no-cache',
           },
-        }
+        },
       );
     }
 
@@ -215,7 +217,7 @@ serve(async (req: Request) => {
           ...corsHeaders,
           'Content-Type': 'application/json',
         },
-      }
+      },
     );
   }
 });

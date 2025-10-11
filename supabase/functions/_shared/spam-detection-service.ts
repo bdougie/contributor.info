@@ -1,9 +1,9 @@
 /**
  * Spam Detection Service
- * 
+ *
  * Provides spam analysis functionality for GitHub user profiles and pull requests.
  * Extracted from spam-detection edge function for reusability across multiple functions.
- * 
+ *
  * @module spam-detection-service
  */
 
@@ -69,12 +69,12 @@ export const SPAM_THRESHOLDS = {
 
 /**
  * Spam Detection Service
- * 
+ *
  * Analyzes GitHub pull requests for spam indicators using multiple detection methods:
  * - Content analysis (40%): Title/body patterns, links, formatting
  * - Account characteristics (40%): Age, activity, followers
  * - PR characteristics (20%): Size, files changed, patterns
- * 
+ *
  * @example
  * const service = new SpamDetectionService();
  * const result = await service.detectSpam(prData);
@@ -85,11 +85,11 @@ export const SPAM_THRESHOLDS = {
 export class SpamDetectionService {
   /**
    * Analyzes a pull request for spam indicators
-   * 
+   *
    * @param pr - Pull request data to analyze
    * @returns Spam detection results
    */
-  async detectSpam(pr: PullRequestData): Promise<SpamDetectionResult> {
+  detectSpam(pr: PullRequestData): SpamDetectionResult {
     try {
       if (!pr || !pr.author) {
         throw new Error('Invalid PR data: missing required fields');
@@ -103,7 +103,7 @@ export class SpamDetectionService {
       // Calculate composite score
       const spamScore = Math.min(
         Math.round(contentScore * 0.4 + accountScore * 0.4 + prScore * 0.2),
-        100
+        100,
       );
 
       const isSpam = spamScore >= SPAM_THRESHOLDS.LIKELY_SPAM;
@@ -133,7 +133,7 @@ export class SpamDetectionService {
 
   /**
    * Analyzes content quality and patterns
-   * 
+   *
    * @param pr - Pull request data
    * @returns Content spam score (0-100)
    */
@@ -157,7 +157,7 @@ export class SpamDetectionService {
     ];
 
     const text = `${title} ${description}`.toLowerCase();
-    const matchedPatterns = spamPatterns.filter(pattern => pattern.test(text));
+    const matchedPatterns = spamPatterns.filter((pattern) => pattern.test(text));
     score += matchedPatterns.length * 15;
 
     // Very generic titles
@@ -170,7 +170,7 @@ export class SpamDetectionService {
 
   /**
    * Analyzes account characteristics
-   * 
+   *
    * @param pr - Pull request data
    * @returns Account spam score (0-100)
    */
@@ -180,7 +180,8 @@ export class SpamDetectionService {
 
     // Account age analysis
     if (author.created_at) {
-      const accountAge = (new Date().getTime() - new Date(author.created_at).getTime()) / (1000 * 60 * 60 * 24);
+      const accountAge = (new Date().getTime() - new Date(author.created_at).getTime()) /
+        (1000 * 60 * 60 * 24);
       if (accountAge <= 7) score += 50;
       else if (accountAge <= 30) score += 30;
       else if (accountAge <= 90) score += 15;
@@ -199,7 +200,7 @@ export class SpamDetectionService {
 
   /**
    * Analyzes PR characteristics
-   * 
+   *
    * @param pr - Pull request data
    * @returns PR characteristics spam score (0-100)
    */
@@ -228,7 +229,7 @@ export class SpamDetectionService {
 
   /**
    * Calculates confidence level based on spam score
-   * 
+   *
    * @param spamScore - Calculated spam score
    * @returns Confidence level (0-1)
    */
@@ -240,7 +241,7 @@ export class SpamDetectionService {
 
   /**
    * Generates human-readable reasons for spam detection
-   * 
+   *
    * @param pr - Pull request data
    * @param spamScore - Calculated spam score
    * @returns Array of reason strings
@@ -259,7 +260,8 @@ export class SpamDetectionService {
     }
 
     if (pr.author.created_at) {
-      const accountAge = (new Date().getTime() - new Date(pr.author.created_at).getTime()) / (1000 * 60 * 60 * 24);
+      const accountAge = (new Date().getTime() - new Date(pr.author.created_at).getTime()) /
+        (1000 * 60 * 60 * 24);
       if (accountAge <= 7) {
         reasons.push(`Very new account (${Math.round(accountAge)} days old)`);
       } else if (accountAge <= 30) {

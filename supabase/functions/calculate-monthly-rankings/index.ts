@@ -40,7 +40,7 @@ serve(async (req) => {
     if (!owner || !repo) {
       return new Response(
         JSON.stringify({ error: 'Missing required parameters: owner and repo' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
@@ -63,7 +63,9 @@ serve(async (req) => {
 
       if (isWinnerPhase) {
         // Winner announcement phase (1st-7th): show previous month's data
-        const previousMonthDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
+        const previousMonthDate = new Date(
+          Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1),
+        );
         targetMonth = previousMonthDate.getUTCMonth() + 1;
         targetYear = previousMonthDate.getUTCFullYear();
       } else {
@@ -86,12 +88,12 @@ serve(async (req) => {
 
     const supabase = authHeader
       ? createClient(supabaseUrl, supabaseAnonKey, {
-          global: {
-            headers: {
-              Authorization: authHeader,
-            },
+        global: {
+          headers: {
+            Authorization: authHeader,
           },
-        })
+        },
+      })
       : createClient(supabaseUrl, supabaseAnonKey);
 
     // First, get the repository ID
@@ -125,7 +127,7 @@ serve(async (req) => {
           avatar_url,
           github_id
         )
-      `
+      `,
       )
       .eq('month', targetMonth)
       .eq('year', targetYear)
@@ -140,8 +142,7 @@ serve(async (req) => {
         contributor_id: item.contributors.id,
         username: item.contributors.username,
         display_name: item.contributors.display_name || item.contributors.username,
-        avatar_url:
-          item.contributors.avatar_url ||
+        avatar_url: item.contributors.avatar_url ||
           `https://avatars.githubusercontent.com/${item.contributors.username}`,
         github_id: item.contributors.github_id,
         pull_requests_count: item.pull_requests_count || 0,
@@ -159,7 +160,7 @@ serve(async (req) => {
           year: targetYear,
           calculated_at: cachedRankings[0].calculated_at,
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
@@ -181,7 +182,7 @@ serve(async (req) => {
           avatar_url,
           github_id
         )
-      `
+      `,
       )
       .eq('repository_id', repositoryId)
       .gte('created_at', startDate.toISOString())
@@ -201,7 +202,7 @@ serve(async (req) => {
         submitted_at,
         reviewer_id,
         pull_request_id
-      `
+      `,
       )
       .in('pull_request_id', pullRequests?.map((pr) => pr.id) || [])
       .gte('submitted_at', startDate.toISOString())
@@ -221,7 +222,7 @@ serve(async (req) => {
         created_at,
         commenter_id,
         pull_request_id
-      `
+      `,
       )
       .in('pull_request_id', pullRequests?.map((pr) => pr.id) || [])
       .gte('created_at', startDate.toISOString())
@@ -245,8 +246,7 @@ serve(async (req) => {
           contributor_id: contributor.id,
           username: contributor.username,
           display_name: contributor.display_name || contributor.username,
-          avatar_url:
-            contributor.avatar_url ||
+          avatar_url: contributor.avatar_url ||
             `https://avatars.githubusercontent.com/${contributor.username}`,
           github_id: contributor.github_id,
           pull_requests_count: 0,
@@ -263,11 +263,11 @@ serve(async (req) => {
     // Get contributor IDs for reviewers and commenters who aren't PR authors
     const reviewerIds = new Set(
       prReviews?.filter((r) => r.reviewer_id && !contributorMap.has(r.reviewer_id))
-        .map((r) => r.reviewer_id) || []
+        .map((r) => r.reviewer_id) || [],
     );
     const commenterIds = new Set(
       prComments?.filter((c) => c.commenter_id && !contributorMap.has(c.commenter_id))
-        .map((c) => c.commenter_id) || []
+        .map((c) => c.commenter_id) || [],
     );
 
     // Fetch contributor info for reviewers and commenters
@@ -285,8 +285,7 @@ serve(async (req) => {
             contributor_id: contributor.id,
             username: contributor.username,
             display_name: contributor.display_name || contributor.username,
-            avatar_url:
-              contributor.avatar_url ||
+            avatar_url: contributor.avatar_url ||
               `https://avatars.githubusercontent.com/${contributor.username}`,
             github_id: contributor.github_id,
             pull_requests_count: 0,
@@ -321,8 +320,8 @@ serve(async (req) => {
     // Calculate weighted scores
     const rankings: ContributorStats[] = Array.from(contributorMap.values()).map((stats) => ({
       ...stats,
-      weighted_score:
-        stats.pull_requests_count * 10 + stats.reviews_count * 3 + stats.comments_count * 1,
+      weighted_score: stats.pull_requests_count * 10 + stats.reviews_count * 3 +
+        stats.comments_count * 1,
     }));
 
     // Sort by weighted score and assign ranks
@@ -355,7 +354,7 @@ serve(async (req) => {
         },
         {
           onConflict: 'month,year,contributor_id,repository_id',
-        }
+        },
       );
 
       if (upsertError) {
@@ -372,15 +371,14 @@ serve(async (req) => {
         year: targetYear,
         calculated_at: now_timestamp,
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   } catch (error) {
     console.error('Error calculating rankings:', error);
     // Sanitize error message to prevent internal details from leaking
-    const sanitizedMessage =
-      error instanceof Error && error.message.includes('Authentication')
-        ? 'Authentication required'
-        : 'Failed to calculate rankings. Please try again later.';
+    const sanitizedMessage = error instanceof Error && error.message.includes('Authentication')
+      ? 'Authentication required'
+      : 'Failed to calculate rankings. Please try again later.';
 
     return new Response(JSON.stringify({ error: sanitizedMessage }), {
       status: error instanceof Error && error.message.includes('Authentication') ? 401 : 500,

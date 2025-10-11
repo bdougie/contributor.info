@@ -1,4 +1,4 @@
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 // Main function for declining workspace invitations
@@ -8,7 +8,7 @@ Deno.serve(async (req: Request) => {
     if (req.method !== 'POST') {
       return new Response(
         JSON.stringify({ error: 'Method not allowed' }),
-        { status: 405, headers: { 'Content-Type': 'application/json' } }
+        { status: 405, headers: { 'Content-Type': 'application/json' } },
       );
     }
 
@@ -18,12 +18,12 @@ Deno.serve(async (req: Request) => {
 
     // Parse the request payload
     const { token, reason } = await req.json();
-    
+
     if (!token) {
       console.error('Invalid payload: missing invitation token');
       return new Response(
         JSON.stringify({ error: 'Invitation token required' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
       );
     }
 
@@ -48,7 +48,7 @@ Deno.serve(async (req: Request) => {
       console.error('Failed to fetch invitation:', invitationError);
       return new Response(
         JSON.stringify({ error: 'Invalid or already processed invitation' }),
-        { status: 404, headers: { 'Content-Type': 'application/json' } }
+        { status: 404, headers: { 'Content-Type': 'application/json' } },
       );
     }
 
@@ -58,39 +58,39 @@ Deno.serve(async (req: Request) => {
       // Update invitation status to expired
       await supabase
         .from('workspace_invitations')
-        .update({ 
+        .update({
           status: 'expired',
           metadata: {
             ...(invitation.metadata ?? {}),
-            expired_at: new Date().toISOString()
-          }
+            expired_at: new Date().toISOString(),
+          },
         })
         .eq('id', invitation.id);
 
       console.error('Invitation has expired');
       return new Response(
         JSON.stringify({ error: 'This invitation has expired' }),
-        { status: 410, headers: { 'Content-Type': 'application/json' } }
+        { status: 410, headers: { 'Content-Type': 'application/json' } },
       );
     }
 
     console.log('Declining workspace invitation:', {
       invitationId: invitation.id,
       workspaceId: invitation.workspace_id,
-      email: invitation.email
+      email: invitation.email,
     });
 
     // Update invitation status to declined
     const { error: updateError } = await supabase
       .from('workspace_invitations')
-      .update({ 
+      .update({
         status: 'declined',
         rejected_at: new Date().toISOString(),
         metadata: {
           ...invitation.metadata,
           decline_reason: reason || 'User declined invitation',
-          declined_at: new Date().toISOString()
-        }
+          declined_at: new Date().toISOString(),
+        },
       })
       .eq('id', invitation.id);
 
@@ -99,9 +99,9 @@ Deno.serve(async (req: Request) => {
       return new Response(
         JSON.stringify({
           error: 'Failed to decline invitation',
-          details: updateError.message
+          details: updateError.message,
         }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
+        { status: 500, headers: { 'Content-Type': 'application/json' } },
       );
     }
 
@@ -118,37 +118,36 @@ Deno.serve(async (req: Request) => {
           invited_by: invitation.invited_by,
           role: invitation.role,
           declined_at: new Date().toISOString(),
-          reason: reason || 'User declined invitation'
-        }
+          reason: reason || 'User declined invitation',
+        },
       });
 
     // Optionally notify the inviter that the invitation was declined
     // This could be done through another email or in-app notification
     console.log('Workspace invitation declined successfully:', {
       invitationId: invitation.id,
-      workspaceId: invitation.workspace_id
+      workspaceId: invitation.workspace_id,
     });
 
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         success: true,
         message: 'Invitation declined successfully',
         workspace: {
-          name: invitation.workspace.name
-        }
+          name: invitation.workspace.name,
+        },
       }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
+      { status: 200, headers: { 'Content-Type': 'application/json' } },
     );
-
   } catch (error) {
     console.error('Error declining workspace invitation:', error);
-    
+
     return new Response(
       JSON.stringify({
         error: 'Failed to decline workspace invitation',
-        details: error.message
+        details: error.message,
       }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
+      { status: 500, headers: { 'Content-Type': 'application/json' } },
     );
   }
 });

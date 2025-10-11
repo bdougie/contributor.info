@@ -1,6 +1,7 @@
 # Shared Utilities Documentation
 
-This directory contains reusable utilities shared across edge functions. These utilities help maintain consistency and reduce code duplication.
+This directory contains reusable utilities shared across edge functions. These utilities help
+maintain consistency and reduce code duplication.
 
 ## Available Utilities
 
@@ -9,6 +10,7 @@ This directory contains reusable utilities shared across edge functions. These u
 Provides standardized CORS headers for cross-origin requests.
 
 #### Purpose
+
 - Enable cross-origin requests from web applications
 - Support preflight OPTIONS requests
 - Include necessary headers for authentication and custom headers
@@ -27,22 +29,25 @@ if (req.method === 'OPTIONS') {
 return new Response(
   JSON.stringify({ success: true }),
   {
-    headers: { 
-      ...corsHeaders, 
-      'Content-Type': 'application/json' 
-    }
-  }
+    headers: {
+      ...corsHeaders,
+      'Content-Type': 'application/json',
+    },
+  },
 );
 ```
 
 #### Configuration
 
 The `corsHeaders` object includes:
+
 - `Access-Control-Allow-Origin: *` - Allow all origins
 - `Access-Control-Allow-Headers` - Supported request headers
 - `Access-Control-Allow-Methods` - Supported HTTP methods
 
-**Note:** The header names include both cases (e.g., `x-inngest-signature` and `X-Inngest-Signature`) as a workaround for a Deno/Supabase case-sensitivity bug in CORS preflight. See [issue #732](https://github.com/bdougie/contributor.info/issues/732).
+**Note:** The header names include both cases (e.g., `x-inngest-signature` and
+`X-Inngest-Signature`) as a workaround for a Deno/Supabase case-sensitivity bug in CORS preflight.
+See [issue #732](https://github.com/bdougie/contributor.info/issues/732).
 
 #### Best Practices
 
@@ -57,11 +62,11 @@ The `corsHeaders` object includes:
    ```typescript
    // Success response
    return new Response(data, { headers: corsHeaders });
-   
+
    // Error response
-   return new Response(error, { 
-     headers: corsHeaders, 
-     status: 500 
+   return new Response(error, {
+     headers: corsHeaders,
+     status: 500,
    });
    ```
 
@@ -72,7 +77,7 @@ The `corsHeaders` object includes:
        ...corsHeaders,
        'Content-Type': 'application/json',
        'Cache-Control': 'no-cache',
-     }
+     },
    });
    ```
 
@@ -83,6 +88,7 @@ The `corsHeaders` object includes:
 Utilities for detecting and categorizing GitHub webhook events.
 
 #### Purpose
+
 - Identify privileged GitHub events (maintainer actions)
 - Detect bot accounts
 - Route events based on type and permissions
@@ -94,6 +100,7 @@ Utilities for detecting and categorizing GitHub webhook events.
 Determines if an event represents a privileged action (e.g., merge, review approval).
 
 **Usage:**
+
 ```typescript
 import { detectPrivilegedEvent, GitHubEvent } from '../_shared/event-detection.ts';
 
@@ -101,8 +108,8 @@ const event: GitHubEvent = {
   type: 'pull_request',
   payload: {
     action: 'closed',
-    pull_request: { merged: true }
-  }
+    pull_request: { merged: true },
+  },
 };
 
 const { isPrivileged, confidence, signals } = detectPrivilegedEvent(event);
@@ -113,6 +120,7 @@ if (isPrivileged) {
 ```
 
 **Privileged Events Include:**
+
 - Pull request merges
 - Review approvals
 - Issue assignments
@@ -124,6 +132,7 @@ if (isPrivileged) {
 Identifies bot accounts by username patterns.
 
 **Usage:**
+
 ```typescript
 import { isBotAccount } from '../_shared/event-detection.ts';
 
@@ -137,6 +146,7 @@ if (isBot) {
 ```
 
 **Bot Detection Patterns:**
+
 - Ends with `[bot]`
 - Ends with `-bot`
 - Common bot names (dependabot, renovate, etc.)
@@ -178,10 +188,10 @@ interface GitHubEvent {
    if (isPrivileged) {
      // Update contributor role with proper metrics
      const metrics = await getContributorMetrics(
-       supabase, 
-       userId, 
-       repositoryOwner, 
-       repositoryName
+       supabase,
+       userId,
+       repositoryOwner,
+       repositoryName,
      );
      const score = calculateConfidenceScore(metrics);
      await updateContributorRole(supabase, metrics, score);
@@ -190,10 +200,7 @@ interface GitHubEvent {
 
 3. **Log event types for debugging:**
    ```typescript
-   console.log('Processing event: %s, action: %s', 
-     event.type, 
-     event.payload.action
-   );
+   console.log('Processing event: %s, action: %s', event.type, event.payload.action);
    ```
 
 ---
@@ -203,6 +210,7 @@ interface GitHubEvent {
 Calculate and manage contributor confidence scores based on activity.
 
 #### Purpose
+
 - Assess contributor reliability and engagement
 - Categorize contributors by role (viewer, contributor, maintainer)
 - Track contributor metrics over time
@@ -214,15 +222,16 @@ Calculate and manage contributor confidence scores based on activity.
 Calculates a confidence score based on contributor activity metrics.
 
 **Usage:**
+
 ```typescript
 import { calculateConfidenceScore, getContributorMetrics } from '../_shared/confidence-scoring.ts';
 
 // First get metrics
 const metrics = await getContributorMetrics(
-  supabase, 
-  contributorId, 
-  repositoryOwner, 
-  repositoryName
+  supabase,
+  contributorId,
+  repositoryOwner,
+  repositoryName,
 );
 
 // Then calculate score
@@ -238,6 +247,7 @@ await supabase
 ```
 
 **Scoring Factors:**
+
 - Number of contributions
 - Pull request acceptance rate
 - Code review participation
@@ -249,14 +259,15 @@ await supabase
 Retrieves detailed contributor metrics for a specific repository.
 
 **Usage:**
+
 ```typescript
 import { getContributorMetrics } from '../_shared/confidence-scoring.ts';
 
 const metrics = await getContributorMetrics(
-  supabase, 
-  contributorId, 
-  repositoryOwner, 
-  repositoryName
+  supabase,
+  contributorId,
+  repositoryOwner,
+  repositoryName,
 );
 
 console.log('Contributor stats:', {
@@ -272,15 +283,20 @@ console.log('Contributor stats:', {
 Updates a contributor's role based on metrics and confidence score.
 
 **Usage:**
+
 ```typescript
-import { updateContributorRole, getContributorMetrics, calculateConfidenceScore } from '../_shared/confidence-scoring.ts';
+import {
+  calculateConfidenceScore,
+  getContributorMetrics,
+  updateContributorRole,
+} from '../_shared/confidence-scoring.ts';
 
 // Get metrics and calculate score
 const metrics = await getContributorMetrics(
-  supabase, 
-  contributorId, 
-  repositoryOwner, 
-  repositoryName
+  supabase,
+  contributorId,
+  repositoryOwner,
+  repositoryName,
 );
 const score = calculateConfidenceScore(metrics);
 
@@ -289,8 +305,8 @@ await updateContributorRole(supabase, metrics, score);
 ```
 
 // Valid roles: 'viewer', 'contributor', 'maintainer'
-```
 
+````
 #### Types
 
 ```typescript
@@ -305,7 +321,7 @@ interface ContributorMetrics {
 }
 
 type ContributorRole = 'viewer' | 'contributor' | 'maintainer';
-```
+````
 
 #### Best Practices
 
@@ -341,6 +357,7 @@ type ContributorRole = 'viewer' | 'contributor' | 'maintainer';
 Advanced bot detection beyond simple username patterns.
 
 #### Purpose
+
 - Identify automated accounts
 - Prevent bot contributions from skewing metrics
 - Distinguish between helpful bots and spam
@@ -352,6 +369,7 @@ Advanced bot detection beyond simple username patterns.
 Comprehensive bot detection using multiple signals.
 
 **Usage:**
+
 ```typescript
 import { detectBot } from '../_shared/bot-detection.ts';
 
@@ -372,6 +390,7 @@ if (result.isBot) {
 ```
 
 **Detection Signals:**
+
 - Username patterns (`[bot]`, `-bot`)
 - Account type (`Bot`)
 - Bio keywords (automated, bot, etc.)
@@ -411,10 +430,11 @@ interface BotDetectionResult {
 2. **Log bot detection for review:**
    ```typescript
    if (botResult.isBot) {
-     console.log('Bot detected - user: %s, confidence: %f, reasons: %s',
+     console.log(
+       'Bot detected - user: %s, confidence: %f, reasons: %s',
        profile.login,
        botResult.confidence,
-       botResult.reasons.join(', ')
+       botResult.reasons.join(', '),
      );
    }
    ```
@@ -434,6 +454,7 @@ interface BotDetectionResult {
 Integration utilities for spam detection across edge functions.
 
 #### Purpose
+
 - Detect spam profiles and contributions
 - Integrate spam detection into various workflows
 - Maintain spam detection consistency
@@ -445,23 +466,22 @@ Integration utilities for spam detection across edge functions.
 Checks if a profile shows spam indicators.
 
 **Usage:**
+
 ```typescript
 import { checkForSpam } from '../_shared/spam-detection-integration.ts';
 
 const result = await checkForSpam(profile);
 
 if (result.isSpam) {
-  console.log('Spam detected: %s (score: %d)',
-    result.reasons.join(', '),
-    result.spamScore
-  );
-  
+  console.log('Spam detected: %s (score: %d)', result.reasons.join(', '), result.spamScore);
+
   await flagProfile(profile.id);
   return;
 }
 ```
 
 **Spam Indicators:**
+
 - Suspicious username patterns
 - Profile spam keywords
 - Low-quality contributions
@@ -519,6 +539,7 @@ interface SpamResult {
 Shared database operations including Supabase client creation and contributor management.
 
 #### Purpose
+
 - Provide standardized Supabase client initialization
 - Eliminate duplicate contributor upsert logic
 - Ensure consistent database error handling
@@ -530,6 +551,7 @@ Shared database operations including Supabase client creation and contributor ma
 Creates a Supabase client with service role key.
 
 **Usage:**
+
 ```typescript
 import { createSupabaseClient } from '../_shared/database.ts';
 
@@ -538,6 +560,7 @@ const { data, error } = await supabase.from('contributors').select('*');
 ```
 
 **Benefits:**
+
 - Centralized client configuration
 - Automatic environment variable validation
 - Consistent error handling
@@ -547,6 +570,7 @@ const { data, error } = await supabase.from('contributors').select('*');
 Ensures a contributor exists in the database, creating or updating as needed.
 
 **Usage:**
+
 ```typescript
 import { createSupabaseClient, ensureContributor } from '../_shared/database.ts';
 
@@ -556,7 +580,7 @@ const contributorId = await ensureContributor(supabase, {
   login: 'octocat',
   name: 'The Octocat',
   avatar_url: 'https://github.com/images/error/octocat_happy.gif',
-  type: 'User'
+  type: 'User',
 });
 
 if (contributorId) {
@@ -565,6 +589,7 @@ if (contributorId) {
 ```
 
 **Features:**
+
 - Automatic bot detection
 - Upsert with conflict resolution
 - Returns database ID for further operations
@@ -575,6 +600,7 @@ if (contributorId) {
 Gets an existing contributor by GitHub ID.
 
 **Usage:**
+
 ```typescript
 import { getContributorByGitHubId } from '../_shared/database.ts';
 
@@ -589,6 +615,7 @@ if (contributorId) {
 Gets or creates a contributor (checks if exists first).
 
 **Usage:**
+
 ```typescript
 import { getOrCreateContributor } from '../_shared/database.ts';
 
@@ -641,6 +668,7 @@ interface GitHubUser {
 Standardized response formatting and error handling for consistent API responses.
 
 #### Purpose
+
 - Provide consistent response formats across all edge functions
 - Simplify error handling with pre-built response helpers
 - Automatic CORS header inclusion
@@ -653,6 +681,7 @@ Standardized response formatting and error handling for consistent API responses
 Creates a standardized success response.
 
 **Usage:**
+
 ```typescript
 import { successResponse } from '../_shared/responses.ts';
 
@@ -676,6 +705,7 @@ return successResponse(
 ```
 
 **Response Format:**
+
 ```json
 {
   "success": true,
@@ -690,6 +720,7 @@ return successResponse(
 Creates a standardized error response.
 
 **Usage:**
+
 ```typescript
 import { errorResponse } from '../_shared/responses.ts';
 
@@ -697,11 +728,12 @@ return errorResponse(
   'Repository not found',
   404,
   'The repository owner/name does not exist',
-  'REPO_NOT_FOUND'
+  'REPO_NOT_FOUND',
 );
 ```
 
 **Response Format:**
+
 ```json
 {
   "success": false,
@@ -715,31 +747,37 @@ return errorResponse(
 ##### Helper Functions
 
 **`validationError(message: string, details?: string): Response`**
+
 ```typescript
 return validationError('Missing required fields', 'Both owner and name are required');
 ```
 
 **`notFoundError(resource: string, details?: string): Response`**
+
 ```typescript
 return notFoundError('Repository', 'No repository found with owner/name');
 ```
 
 **`unauthorizedError(message?: string): Response`**
+
 ```typescript
 return unauthorizedError('GitHub token not configured');
 ```
 
 **`forbiddenError(message?: string): Response`**
+
 ```typescript
 return forbiddenError('Insufficient permissions');
 ```
 
 **`rateLimitError(retryAfter?: number): Response`**
+
 ```typescript
 return rateLimitError(3600); // Includes Retry-After header
 ```
 
 **`corsPreflightResponse(): Response`**
+
 ```typescript
 if (req.method === 'OPTIONS') {
   return corsPreflightResponse();
@@ -747,6 +785,7 @@ if (req.method === 'OPTIONS') {
 ```
 
 **`handleError(error: unknown, context: string, status?: number): Response`**
+
 ```typescript
 try {
   // ... operation
@@ -758,6 +797,7 @@ try {
 #### Migration Example
 
 **Before:**
+
 ```typescript
 // Old pattern with duplication
 const corsHeaders = {
@@ -772,20 +812,21 @@ if (req.method === 'OPTIONS') {
 if (!owner || !name) {
   return new Response(
     JSON.stringify({ error: 'Missing required fields' }),
-    { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
   );
 }
 
 return new Response(
   JSON.stringify({ success: true, data: result }),
-  { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
 );
 ```
 
 **After:**
+
 ```typescript
 // New pattern with response utilities
-import { corsPreflightResponse, validationError, successResponse } from '../_shared/responses.ts';
+import { corsPreflightResponse, successResponse, validationError } from '../_shared/responses.ts';
 
 if (req.method === 'OPTIONS') {
   return corsPreflightResponse();
@@ -804,7 +845,7 @@ return successResponse({ data: result });
    ```typescript
    // ✅ GOOD
    return successResponse(data);
-   
+
    // ❌ BAD
    return new Response(JSON.stringify({ success: true, data }), { headers: corsHeaders });
    ```
@@ -818,7 +859,7 @@ return successResponse({ data: result });
    ```typescript
    // ✅ GOOD
    return notFoundError('Repository');
-   
+
    // ❌ BAD
    return errorResponse('Not found', 404);
    ```
@@ -830,6 +871,7 @@ return successResponse({ data: result });
 Shared utilities for interacting with the GitHub API.
 
 #### Purpose
+
 - Standardize GitHub API requests
 - Handle rate limiting consistently
 - Provide common GitHub operations
@@ -842,6 +884,7 @@ Shared utilities for interacting with the GitHub API.
 Creates standard GitHub API headers.
 
 **Usage:**
+
 ```typescript
 import { getGitHubHeaders, GITHUB_API_BASE } from '../_shared/github.ts';
 
@@ -854,6 +897,7 @@ const response = await fetch(`${GITHUB_API_BASE}/repos/owner/name`, { headers })
 Extracts rate limit information from GitHub API response.
 
 **Usage:**
+
 ```typescript
 import { getRateLimitInfo } from '../_shared/github.ts';
 
@@ -861,10 +905,7 @@ const response = await fetch(url, { headers });
 const rateLimit = getRateLimitInfo(response);
 
 if (rateLimit) {
-  console.log('Rate limit: %s remaining of %s',
-    rateLimit.remaining,
-    rateLimit.limit
-  );
+  console.log('Rate limit: %s remaining of %s', rateLimit.remaining, rateLimit.limit);
 }
 ```
 
@@ -873,6 +914,7 @@ if (rateLimit) {
 Checks if rate limit is low and logs a warning.
 
 **Usage:**
+
 ```typescript
 import { checkRateLimit } from '../_shared/github.ts';
 
@@ -888,6 +930,7 @@ if (checkRateLimit(response, 50)) {
 Fetches data from GitHub API with error handling.
 
 **Usage:**
+
 ```typescript
 import { fetchGitHubAPI, GITHUB_API_BASE } from '../_shared/github.ts';
 
@@ -898,7 +941,7 @@ interface Repository {
 }
 
 const repo = await fetchGitHubAPI<Repository>(
-  `${GITHUB_API_BASE}/repos/owner/name`
+  `${GITHUB_API_BASE}/repos/owner/name`,
 );
 ```
 
@@ -907,6 +950,7 @@ const repo = await fetchGitHubAPI<Repository>(
 Fetches repository information from GitHub.
 
 **Usage:**
+
 ```typescript
 import { fetchRepository } from '../_shared/github.ts';
 
@@ -919,6 +963,7 @@ console.log('Repository: %s, Stars: %s', repo.full_name, repo.stargazers_count);
 Fetches user information from GitHub.
 
 **Usage:**
+
 ```typescript
 import { fetchUser } from '../_shared/github.ts';
 
@@ -931,6 +976,7 @@ console.log('User: %s, Followers: %s', user.login, user.followers);
 Fetches paginated data from GitHub API.
 
 **Usage:**
+
 ```typescript
 import { fetchPaginated, GITHUB_API_BASE } from '../_shared/github.ts';
 
@@ -938,8 +984,8 @@ const events = await fetchPaginated(
   `${GITHUB_API_BASE}/repos/owner/name/events`,
   {
     perPage: 100,
-    maxPages: 3
-  }
+    maxPages: 3,
+  },
 );
 
 console.log('Fetched %s events', events.length);
@@ -950,6 +996,7 @@ console.log('Fetched %s events', events.length);
 Checks if a user is a bot account.
 
 **Usage:**
+
 ```typescript
 import { isBotUser } from '../_shared/github.ts';
 
@@ -980,6 +1027,7 @@ interface PaginatedFetchOptions {
 #### Migration Example
 
 **Before:**
+
 ```typescript
 // Duplicated in multiple functions
 const token = Deno.env.get('GITHUB_TOKEN');
@@ -1005,8 +1053,9 @@ if (remaining < 100) {
 ```
 
 **After:**
+
 ```typescript
-import { getGitHubHeaders, checkRateLimit, fetchGitHubAPI } from '../_shared/github.ts';
+import { checkRateLimit, fetchGitHubAPI, getGitHubHeaders } from '../_shared/github.ts';
 
 // Simple approach
 const data = await fetchGitHubAPI(url);
@@ -1062,7 +1111,7 @@ When creating new shared utilities:
    export interface MyType {
      // Type definition
    }
-   
+
    export function myUtility(): MyType {
      // Implementation
    }
@@ -1072,7 +1121,7 @@ When creating new shared utilities:
    ```typescript
    /**
     * My utility function
-    * 
+    *
     * @param input - Description
     * @returns Description
     * @example
@@ -1089,7 +1138,7 @@ When creating new shared utilities:
    ```typescript
    // In __tests__/my-utility.test.ts
    import { myUtility } from '../_shared/my-utility.ts';
-   
+
    Deno.test('myUtility returns expected result', () => {
      // Test implementation
    });

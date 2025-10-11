@@ -78,7 +78,7 @@ export async function ensureContributorExists(githubUser: GitHubUser): Promise<s
       {
         onConflict: 'github_id',
         ignoreDuplicates: false,
-      }
+      },
     )
     .select('id')
     .single();
@@ -88,7 +88,7 @@ export async function ensureContributorExists(githubUser: GitHubUser): Promise<s
       'Error upserting contributor %s (ID: %s): %s',
       githubUser.login,
       githubUser.databaseId,
-      error.message
+      error.message,
     );
     throw new Error(`Failed to upsert contributor ${githubUser.login}: ${error.message}`);
   }
@@ -114,11 +114,11 @@ export function getPRState(pr: any): string {
 
 // Sync rate limiting constants (in hours)
 export const SYNC_RATE_LIMITS = {
-  DEFAULT: 12,        // Default for GraphQL sync
-  SCHEDULED: 2,       // Scheduled syncs
-  PR_ACTIVITY: 1,     // PR activity updates
-  MANUAL: 5 / 60,     // 5-minute cooldown for manual syncs (0.083 hours)
-  AUTO_FIX: 1,        // Hourly auto-fix syncs for corrupted data
+  DEFAULT: 12, // Default for GraphQL sync
+  SCHEDULED: 2, // Scheduled syncs
+  PR_ACTIVITY: 1, // PR activity updates
+  MANUAL: 5 / 60, // 5-minute cooldown for manual syncs (0.083 hours)
+  AUTO_FIX: 1, // Hourly auto-fix syncs for corrupted data
 } as const;
 
 // Queue configuration

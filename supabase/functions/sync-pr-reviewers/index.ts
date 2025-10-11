@@ -1,6 +1,12 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createSupabaseClient } from '../_shared/database.ts';
-import { corsPreflightResponse, legacySuccessResponse, errorResponse, validationError, unauthorizedError } from '../_shared/responses.ts';
+import {
+  corsPreflightResponse,
+  errorResponse,
+  legacySuccessResponse,
+  unauthorizedError,
+  validationError,
+} from '../_shared/responses.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 
 interface GitHubPR {
@@ -50,16 +56,16 @@ serve(async (req) => {
       update_database = true,
     } = await req.json();
 
-        if (!owner || !repo) {
+    if (!owner || !repo) {
       return validationError('Missing required fields', 'owner and repo parameters are required');
     }
 
-        // Initialize Supabase client
+    // Initialize Supabase client
     const supabase = createSupabaseClient();
 
     // Get GitHub token from environment or user's stored token
     const githubToken = Deno.env.get('GITHUB_TOKEN');
-        if (!githubToken) {
+    if (!githubToken) {
       return unauthorizedError('GitHub token not configured');
     }
 
@@ -74,7 +80,7 @@ serve(async (req) => {
           Authorization: `token ${githubToken}`,
           Accept: 'application/vnd.github.v3+json',
         },
-      }
+      },
     );
 
     if (!openResponse.ok) {
@@ -96,7 +102,7 @@ serve(async (req) => {
             Authorization: `token ${githubToken}`,
             Accept: 'application/vnd.github.v3+json',
           },
-        }
+        },
       );
 
       if (closedResponse.ok) {
@@ -123,7 +129,7 @@ serve(async (req) => {
                 Authorization: `token ${githubToken}`,
                 Accept: 'application/vnd.github.v3+json',
               },
-            }
+            },
           );
 
           let reviews = [];
@@ -174,7 +180,7 @@ serve(async (req) => {
           console.error(`Error processing PR #${pr.number}:`, error);
           return { success: false, pr: pr.number, error: error.message };
         }
-      })
+      }),
     );
 
     // Get successful results
@@ -246,24 +252,24 @@ serve(async (req) => {
         const upsertData = prsWithReviewers
           .filter((pr) => authorMap.has(pr.author.username))
           .map((pr) => ({
-          github_id: pr.github_id,
-          repository_id: repoData.id,
-          author_id: authorMap.get(pr.author.username)!,
-          number: pr.number,
-          title: pr.title,
-          state: pr.state,
-          draft: pr.draft,
-          created_at: pr.created_at,
-          updated_at: pr.updated_at,
-          closed_at: pr.closed_at,
-          merged_at: pr.merged_at,
-          // Store reviewer data as JSON
-          reviewer_data: {
-            requested_reviewers: pr.requested_reviewers,
-            reviewers: pr.reviewers,
-          },
-          last_synced_at: new Date().toISOString(),
-        }));
+            github_id: pr.github_id,
+            repository_id: repoData.id,
+            author_id: authorMap.get(pr.author.username)!,
+            number: pr.number,
+            title: pr.title,
+            state: pr.state,
+            draft: pr.draft,
+            created_at: pr.created_at,
+            updated_at: pr.updated_at,
+            closed_at: pr.closed_at,
+            merged_at: pr.merged_at,
+            // Store reviewer data as JSON
+            reviewer_data: {
+              requested_reviewers: pr.requested_reviewers,
+              reviewers: pr.reviewers,
+            },
+            last_synced_at: new Date().toISOString(),
+          }));
 
         // Perform single batch upsert instead of looping
         await supabase.from('pull_requests').upsert(upsertData, {
@@ -277,16 +283,16 @@ serve(async (req) => {
     const draftCount = prsWithReviewers.filter((pr) => pr.draft).length;
     const closedCount = prsWithReviewers.filter((pr) => pr.state === 'closed').length;
 
-        return legacySuccessResponse(
+    return legacySuccessResponse(
       {
         prs: prsWithReviewers,
         openCount,
         closedCount,
         errors: results.filter((r) => !r.success),
       },
-      `Synced ${prsWithReviewers.length} PRs (${openCount} open, ${closedCount} closed)`
+      `Synced ${prsWithReviewers.length} PRs (${openCount} open, ${closedCount} closed)`,
     );
-    } catch (error) {
+  } catch (error) {
     console.error('Error in sync-pr-reviewers function:', error);
     return errorResponse('Sync PR reviewers failed', 500, error.message, 'SYNC_FAILED');
   }

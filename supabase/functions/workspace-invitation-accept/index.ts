@@ -77,7 +77,7 @@ Deno.serve(async (req: Request) => {
           owner_id,
           member_count
         )
-      `
+      `,
       )
       .eq('invitation_token', token)
       .eq('status', 'pending')
@@ -133,7 +133,7 @@ Deno.serve(async (req: Request) => {
       });
       return new Response(
         JSON.stringify({ error: 'This invitation was sent to a different email address' }),
-        { status: 403, headers: { 'Content-Type': 'application/json' } }
+        { status: 403, headers: { 'Content-Type': 'application/json' } },
       );
     }
 
@@ -169,7 +169,7 @@ Deno.serve(async (req: Request) => {
             slug: invitation.workspace.slug,
           },
         }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } }
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
       );
     }
 
@@ -202,7 +202,7 @@ Deno.serve(async (req: Request) => {
           error: 'Failed to add you to the workspace',
           details: memberError.message,
         }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
+        { status: 500, headers: { 'Content-Type': 'application/json' } },
       );
     }
 
@@ -296,7 +296,7 @@ Deno.serve(async (req: Request) => {
           role: newMember.role,
         },
       }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
+      { status: 200, headers: { 'Content-Type': 'application/json' } },
     );
   } catch (error) {
     console.error('Error accepting workspace invitation:', error);
@@ -306,7 +306,7 @@ Deno.serve(async (req: Request) => {
         error: 'Failed to accept workspace invitation',
         details: error.message,
       }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
+      { status: 500, headers: { 'Content-Type': 'application/json' } },
     );
   }
 });

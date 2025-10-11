@@ -156,7 +156,7 @@ async function generateEmbedding(text: string): Promise<number[]> {
       body: JSON.stringify({
         model: 'text-embedding-3-small', // Cost-effective embedding model
         input: text,
-        dimensions: 384,  // CRITICAL: Specify 384 dimensions to match database schema
+        dimensions: 384, // CRITICAL: Specify 384 dimensions to match database schema
       }),
       signal: controller.signal,
     });
@@ -208,7 +208,7 @@ serve(async (req) => {
           cached: true,
           generated_at: repository.summary_generated_at,
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
@@ -276,7 +276,7 @@ serve(async (req) => {
         cached: false,
         generated_at: new Date().toISOString(),
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   } catch (error) {
     console.error('Repository summary error:', error);

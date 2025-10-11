@@ -12,9 +12,9 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           error: 'Inngest event key not configured',
-          note: 'Function will run automatically every 15 minutes via cron'
+          note: 'Function will run automatically every 15 minutes via cron',
         }),
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -43,20 +43,20 @@ serve(async (req) => {
         success: true,
         message: 'Embeddings computation triggered',
         inngest_response: result,
-        check_status: 'SELECT * FROM embedding_jobs ORDER BY created_at DESC LIMIT 1;'
+        check_status: 'SELECT * FROM embedding_jobs ORDER BY created_at DESC LIMIT 1;',
       }),
       {
         status: 200,
-        headers: { 'Content-Type': 'application/json' }
-      }
+        headers: { 'Content-Type': 'application/json' },
+      },
     );
   } catch (error) {
     return new Response(
       JSON.stringify({ error: error.message }),
       {
         status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      }
+        headers: { 'Content-Type': 'application/json' },
+      },
     );
   }
 });

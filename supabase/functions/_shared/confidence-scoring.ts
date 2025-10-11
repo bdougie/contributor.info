@@ -48,7 +48,7 @@ export async function getContributorMetrics(
   supabase: SupabaseClient,
   userId: string,
   repositoryOwner: string,
-  repositoryName: string
+  repositoryName: string,
 ): Promise<ContributorMetrics | null> {
   // Get all events for the contributor
   const { data: events, error } = await supabase
@@ -82,10 +82,10 @@ export async function getContributorMetrics(
 
   const now = new Date();
   const daysSinceFirstSeen = Math.floor(
-    (now.getTime() - firstSeenAt.getTime()) / (1000 * 60 * 60 * 24)
+    (now.getTime() - firstSeenAt.getTime()) / (1000 * 60 * 60 * 24),
   );
   const daysSinceLastSeen = Math.floor(
-    (now.getTime() - lastSeenAt.getTime()) / (1000 * 60 * 60 * 24)
+    (now.getTime() - lastSeenAt.getTime()) / (1000 * 60 * 60 * 24),
   );
 
   // Calculate activity spread (how many unique days they were active)
@@ -110,11 +110,12 @@ export async function getContributorMetrics(
 // Calculate confidence score based on metrics
 export function calculateConfidenceScore(
   metrics: ContributorMetrics,
-  weights: ConfidenceFactors = DEFAULT_WEIGHTS
+  weights: ConfidenceFactors = DEFAULT_WEIGHTS,
 ): ConfidenceScore {
   // 1. Privileged Events Component
-  const privilegedRatio =
-    metrics.totalEventCount > 0 ? metrics.privilegedEventCount / metrics.totalEventCount : 0;
+  const privilegedRatio = metrics.totalEventCount > 0
+    ? metrics.privilegedEventCount / metrics.totalEventCount
+    : 0;
 
   // Boost for absolute count of privileged events
   const privilegedBoost = Math.min(1, metrics.privilegedEventCount / 10);
@@ -135,14 +136,13 @@ export function calculateConfidenceScore(
 
   // 3. Temporal Consistency Component
   // Recency factor (recent activity is weighted higher)
-  const recencyScore =
-    metrics.daysSinceLastSeen <= 7
-      ? 1
-      : metrics.daysSinceLastSeen <= 30
-        ? 0.8
-        : metrics.daysSinceLastSeen <= 90
-          ? 0.6
-          : 0.4;
+  const recencyScore = metrics.daysSinceLastSeen <= 7
+    ? 1
+    : metrics.daysSinceLastSeen <= 30
+    ? 0.8
+    : metrics.daysSinceLastSeen <= 90
+    ? 0.6
+    : 0.4;
 
   // Consistency factor (regular activity over time)
   const expectedDays = Math.min(metrics.daysSinceFirstSeen, 90);
@@ -152,12 +152,11 @@ export function calculateConfidenceScore(
   // Longevity factor (how long they've been contributing)
   const longevityScore = Math.min(1, metrics.daysSinceFirstSeen / 180); // 6 months = full score
 
-  const temporalConsistencyScore =
-    recencyScore * 0.4 + consistencyScore * 0.4 + longevityScore * 0.2;
+  const temporalConsistencyScore = recencyScore * 0.4 + consistencyScore * 0.4 +
+    longevityScore * 0.2;
 
   // Calculate overall score
-  const overall =
-    privilegedEventsScore * weights.privilegedEventsWeight +
+  const overall = privilegedEventsScore * weights.privilegedEventsWeight +
     activityPatternsScore * weights.activityPatternsWeight +
     temporalConsistencyScore * weights.temporalConsistencyWeight;
 
@@ -179,7 +178,7 @@ export function calculateConfidenceScore(
 // Determine role based on confidence score and patterns
 export function determineRole(
   confidenceScore: number,
-  metrics: ContributorMetrics
+  metrics: ContributorMetrics,
 ): 'owner' | 'maintainer' | 'contributor' | 'bot' {
   // Bot accounts get dedicated bot role, regardless of confidence
   if (isBotAccount(metrics.userId)) {
@@ -204,7 +203,7 @@ export function determineRole(
 export async function updateContributorRole(
   supabase: SupabaseClient,
   metrics: ContributorMetrics,
-  confidenceScore: ConfidenceScore
+  confidenceScore: ConfidenceScore,
 ) {
   const role = determineRole(confidenceScore.overall, metrics);
 
@@ -248,8 +247,7 @@ export async function updateContributorRole(
   }
 
   // Log significant changes
-  const significantChange =
-    !currentRole ||
+  const significantChange = !currentRole ||
     currentRole.role !== role ||
     Math.abs(currentRole.confidence_score - confidenceScore.overall) > 0.1;
 
@@ -273,7 +271,7 @@ export async function updateContributorRole(
 export async function batchUpdateConfidenceScores(
   supabase: SupabaseClient,
   repositoryOwner: string,
-  repositoryName: string
+  repositoryName: string,
 ) {
   // Get all contributors with events
   const { data: contributors, error } = await supabase
@@ -294,14 +292,24 @@ export async function batchUpdateConfidenceScores(
   }
 
   const uniqueContributors = [...new Set(contributors.map((c) => c.actor_login))];
-  console.log('Updating confidence scores for %s contributors in %s/%s', uniqueContributors.length, repositoryOwner, repositoryName);
+  console.log(
+    'Updating confidence scores for %s contributors in %s/%s',
+    uniqueContributors.length,
+    repositoryOwner,
+    repositoryName,
+  );
 
   let successCount = 0;
   let errorCount = 0;
 
   for (const userId of uniqueContributors) {
     try {
-      const metrics = await getContributorMetrics(supabase, userId, repositoryOwner, repositoryName);
+      const metrics = await getContributorMetrics(
+        supabase,
+        userId,
+        repositoryOwner,
+        repositoryName,
+      );
 
       if (metrics) {
         const confidenceScore = calculateConfidenceScore(metrics);
@@ -309,7 +317,11 @@ export async function batchUpdateConfidenceScores(
         successCount++;
       }
     } catch (error: unknown) {
-      console.error('Failed to update contributor role for %s: %s', userId, error instanceof Error ? error.message : 'Unknown error');
+      console.error(
+        'Failed to update contributor role for %s: %s',
+        userId,
+        error instanceof Error ? error.message : 'Unknown error',
+      );
       errorCount++;
     }
   }

@@ -64,7 +64,7 @@ async function ensureContributorExists(githubUser: any): Promise<string | null> 
       {
         onConflict: 'github_id',
         ignoreDuplicates: false,
-      }
+      },
     )
     .select('id')
     .single();
@@ -93,7 +93,7 @@ export function createClassifySingleRepository(inngest: any) {
       if (!repositoryId || !owner || !repo) {
         console.error('Missing required fields in event data:', event.data);
         throw new Error(
-          `Missing required fields: repositoryId=${repositoryId}, owner=${owner}, repo=${repo}`
+          `Missing required fields: repositoryId=${repositoryId}, owner=${owner}, repo=${repo}`,
         );
       }
 
@@ -128,7 +128,7 @@ export function createClassifySingleRepository(inngest: any) {
         classification,
         timestamp: new Date().toISOString(),
       };
-    }
+    },
   );
 }
 
@@ -199,7 +199,9 @@ export function createCaptureRepositorySyncGraphQL(inngest: any) {
 
             throw new Error(
               `Repository ${data.owner}/${data.name} was synced ${timeDisplay} ago. ` +
-                `Skipping to prevent excessive API usage (minimum ${minHoursBetweenSyncs} hours between syncs for ${reason || 'default'} sync).`
+                `Skipping to prevent excessive API usage (minimum ${minHoursBetweenSyncs} hours between syncs for ${
+                  reason || 'default'
+                } sync).`,
             );
           }
         }
@@ -216,7 +218,7 @@ export function createCaptureRepositorySyncGraphQL(inngest: any) {
 
         if (prCount && prCount > LARGE_REPO_THRESHOLD) {
           console.warn(
-            `Large repository detected: ${repository.owner}/${repository.name} has ${prCount} PRs`
+            `Large repository detected: ${repository.owner}/${repository.name} has ${prCount} PRs`,
           );
         }
 
@@ -232,14 +234,14 @@ export function createCaptureRepositorySyncGraphQL(inngest: any) {
             repository.owner,
             repository.name,
             since,
-            MAX_PRS_PER_SYNC
+            MAX_PRS_PER_SYNC,
           );
 
           console.log(
             '✅ GraphQL recent PRs query successful for %s/%s (%d PRs found)',
             repository.owner,
             repository.name,
-            prs.length
+            prs.length,
           );
 
           // Log rate limit info
@@ -249,7 +251,7 @@ export function createCaptureRepositorySyncGraphQL(inngest: any) {
               '📊 GraphQL rate limit: %d/%d remaining (cost: %d points)',
               rateLimit.remaining,
               rateLimit.limit,
-              rateLimit.cost
+              rateLimit.cost,
             );
           }
 
@@ -260,12 +262,12 @@ export function createCaptureRepositorySyncGraphQL(inngest: any) {
           }
           if (error.message?.includes('rate limit')) {
             throw new Error(
-              `GraphQL rate limit hit for ${repository.owner}/${repository.name}. Please try again later.`
+              `GraphQL rate limit hit for ${repository.owner}/${repository.name}. Please try again later.`,
             );
           }
 
           console.warn(
-            `GraphQL failed for ${repository.owner}/${repository.name}, this will trigger fallback to REST`
+            `GraphQL failed for ${repository.owner}/${repository.name}, this will trigger fallback to REST`,
           );
           throw error;
         }
@@ -349,7 +351,7 @@ export function createCaptureRepositorySyncGraphQL(inngest: any) {
               'Reached GraphQL job queue limit (%d) for %s/%s',
               MAX_DETAIL_JOBS,
               repository.owner,
-              repository.name
+              repository.name,
             );
             break;
           }
@@ -403,12 +405,12 @@ export function createCaptureRepositorySyncGraphQL(inngest: any) {
         },
         rateLimit: rateLimit
           ? {
-              remaining: rateLimit.remaining,
-              limit: rateLimit.limit,
-              resetAt: rateLimit.resetAt,
-            }
+            remaining: rateLimit.remaining,
+            limit: rateLimit.limit,
+            resetAt: rateLimit.resetAt,
+          }
           : null,
       };
-    }
+    },
   );
 }

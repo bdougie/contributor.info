@@ -1,4 +1,10 @@
-import { describe, it, expect, beforeEach, afterEach } from 'https://deno.land/std@0.192.0/testing/bdd.ts';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+} from 'https://deno.land/std@0.192.0/testing/bdd.ts';
 import { assertEquals } from 'https://deno.land/std@0.192.0/testing/asserts.ts';
 
 /**
@@ -9,7 +15,7 @@ import { assertEquals } from 'https://deno.land/std@0.192.0/testing/asserts.ts';
 function calculateTargetMonth(
   month: number | undefined,
   year: number | undefined,
-  currentDate: Date
+  currentDate: Date,
 ): { targetMonth: number; targetYear: number } {
   let targetMonth: number;
   let targetYear: number;
@@ -26,7 +32,7 @@ function calculateTargetMonth(
     if (isWinnerPhase) {
       // Winner announcement phase (1st-7th): show previous month's data
       const previousMonthDate = new Date(
-        Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth() - 1, 1)
+        Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth() - 1, 1),
       );
       targetMonth = previousMonthDate.getUTCMonth() + 1;
       targetYear = previousMonthDate.getUTCFullYear();

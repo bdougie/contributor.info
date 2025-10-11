@@ -1,7 +1,7 @@
 // Backfill PR Statistics
 // This function fetches missing additions, deletions, and changed_files for existing PRs
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 // Declare Deno for TypeScript type-check in non-Deno build environments
 // (Supabase Edge Functions provide Deno at runtime)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -62,7 +62,7 @@ Deno.serve(async (req: Request) => {
           github_id,
           number,
           repositories!repository_id(owner, name)
-        `
+        `,
         )
         .eq('additions', 0)
         .eq('deletions', 0)
@@ -100,23 +100,23 @@ Deno.serve(async (req: Request) => {
                 Authorization: `token ${githubToken}`,
                 Accept: 'application/vnd.github.v3+json',
               },
-            }
+            },
           );
 
           if (!response.ok) {
             if (response.status === 404) {
               console.warn(
-                `[Backfill] PR ${repo.owner}/${repo.name}#${pr.number} not found (deleted?)`
+                `[Backfill] PR ${repo.owner}/${repo.name}#${pr.number} not found (deleted?)`,
               );
             } else if (response.status === 403) {
               console.warn(
-                `[Backfill] Rate limited or forbidden for ${repo.owner}/${repo.name}#${pr.number}`
+                `[Backfill] Rate limited or forbidden for ${repo.owner}/${repo.name}#${pr.number}`,
               );
               // Break out of batch to avoid hitting rate limits harder
               break;
             } else {
               console.error(
-                `[Backfill] Failed to fetch ${repo.owner}/${repo.name}#${pr.number}: ${response.status}`
+                `[Backfill] Failed to fetch ${repo.owner}/${repo.name}#${pr.number}: ${response.status}`,
               );
             }
             totalErrors++;
@@ -126,17 +126,17 @@ Deno.serve(async (req: Request) => {
           const detailedPR = await response.json();
 
           // Ensure contributor exists and capture UUID if possible
-          let contributorId: string | null = null
+          let contributorId: string | null = null;
           if (detailedPR.user?.id) {
             try {
               const { data: existingContributor } = await supabase
                 .from('contributors')
                 .select('id')
                 .eq('github_id', detailedPR.user.id)
-                .maybeSingle()
+                .maybeSingle();
 
               if (existingContributor?.id) {
-                contributorId = existingContributor.id
+                contributorId = existingContributor.id;
               } else {
                 const { data: newContributor, error: contributorError } = await supabase
                   .from('contributors')
@@ -149,18 +149,21 @@ Deno.serve(async (req: Request) => {
                     is_bot: detailedPR.user.type === 'Bot',
                     is_active: true,
                     first_seen_at: new Date().toISOString(),
-                    last_updated_at: new Date().toISOString()
+                    last_updated_at: new Date().toISOString(),
                   }, { onConflict: 'github_id' })
                   .select('id')
-                  .maybeSingle()
+                  .maybeSingle();
                 if (contributorError) {
-                  console.warn(`[Backfill] Failed to upsert contributor ${detailedPR.user.login}:`, contributorError.message)
+                  console.warn(
+                    `[Backfill] Failed to upsert contributor ${detailedPR.user.login}:`,
+                    contributorError.message,
+                  );
                 } else {
-                  contributorId = newContributor?.id || null
+                  contributorId = newContributor?.id || null;
                 }
               }
             } catch (cErr) {
-              console.warn('[Backfill] Error ensuring contributor:', cErr)
+              console.warn('[Backfill] Error ensuring contributor:', cErr);
             }
           }
 
@@ -169,22 +172,26 @@ Deno.serve(async (req: Request) => {
             additions: detailedPR.additions || 0,
             deletions: detailedPR.deletions || 0,
             changed_files: detailedPR.changed_files || 0,
-            commits: detailedPR.commits || 0
-          }
+            commits: detailedPR.commits || 0,
+          };
           if (contributorId) {
-            updateData.author_id = contributorId
+            updateData.author_id = contributorId;
           }
 
           const { error: updateError } = await supabase
             .from('pull_requests')
             .update(updateData)
-            .eq('id', pr.id)
+            .eq('id', pr.id);
 
           if (updateError) {
             console.error(`[Backfill] Error updating PR ${pr.number}:`, updateError);
             totalErrors++;
           } else {
-            console.log(`[Backfill] Updated PR ${repo.owner}/${repo.name}#${pr.number}: +${detailedPR.additions}/-${detailedPR.deletions}, ${detailedPR.changed_files} files${contributorId ? ' (author ensured)' : ''}`);
+            console.log(
+              `[Backfill] Updated PR ${repo.owner}/${repo.name}#${pr.number}: +${detailedPR.additions}/-${detailedPR.deletions}, ${detailedPR.changed_files} files${
+                contributorId ? ' (author ensured)' : ''
+              }`,
+            );
             totalProcessed++;
           }
 
@@ -208,7 +215,8 @@ Deno.serve(async (req: Request) => {
       batches_processed: batchCount,
       prs_updated: totalProcessed,
       errors: totalErrors,
-      message: `Successfully processed ${totalProcessed} PRs with ${totalErrors} errors across ${batchCount} batches`,
+      message:
+        `Successfully processed ${totalProcessed} PRs with ${totalErrors} errors across ${batchCount} batches`,
     };
 
     console.log('[Backfill] Final result:', result);
@@ -220,12 +228,12 @@ Deno.serve(async (req: Request) => {
       },
     });
   } catch (error: any) {
-    console.error('[Backfill] Unexpected error:', error)
+    console.error('[Backfill] Unexpected error:', error);
 
     return new Response(
       JSON.stringify({
         error: 'Internal server error',
-        details: (error && error.message) ? error.message : 'unknown'
+        details: (error && error.message) ? error.message : 'unknown',
       }),
       {
         status: 500,
@@ -233,7 +241,7 @@ Deno.serve(async (req: Request) => {
           ...corsHeaders,
           'Content-Type': 'application/json',
         },
-      }
+      },
     );
   }
 });
