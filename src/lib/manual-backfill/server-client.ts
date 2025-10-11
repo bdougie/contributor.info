@@ -7,25 +7,20 @@
 import type { BackfillRequest, BackfillResponse, JobStatus, JobListResponse } from './client';
 
 class ManualBackfillServerClient {
-  private apiUrl: string;
-  private apiKey: string;
+  private apiUrl: string | undefined;
+  private apiKey: string | undefined;
 
   constructor() {
-    // Require environment variables for API configuration (no hardcoded fallbacks for security)
-    const apiUrl = process.env.GH_DATPIPE_API_URL;
-    const apiKey = process.env.GH_DATPIPE_KEY;
-
-    if (!apiUrl || !apiKey) {
-      throw new Error(
-        '[ManualBackfillServerClient] GH_DATPIPE_API_URL and GH_DATPIPE_KEY must be configured'
-      );
-    }
-
-    this.apiUrl = apiUrl;
-    this.apiKey = apiKey;
+    // Lazy initialization: don't throw on construction, only when methods are called
+    // This allows the function handler to check environment variables and return proper error codes
+    this.apiUrl = process.env.GH_DATPIPE_API_URL;
+    this.apiKey = process.env.GH_DATPIPE_KEY;
   }
 
   private getHeaders(): HeadersInit {
+    if (!this.apiKey) {
+      throw new Error('GH_DATPIPE_KEY not configured');
+    }
     return {
       'Content-Type': 'application/json',
       'X-API-Key': this.apiKey,
