@@ -119,7 +119,7 @@ export class SpamDetectionService {
         reasons,
       };
     } catch (error) {
-      console.error('Error during spam detection:', error);
+      console.error('Error during spam detection: %s', error);
       return {
         spam_score: 0,
         is_spam: false,
