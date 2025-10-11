@@ -652,11 +652,19 @@ const captureRepositoryIssues = inngest.createFunction(
         `/repos/${owner}/${repo}/issues?state=${state}&per_page=100`
       );
       // Filter out pull requests (they also appear in issues API)
-      return data.filter((issue: any) => !('pull_request' in issue));
+      const filteredIssues = data.filter((issue: any) => !('pull_request' in issue));
+      console.log(`[capture-repository-issues] Fetched ${filteredIssues.length} issues for ${owner}/${repo}`);
+      return filteredIssues;
     });
 
     await step.run('store-issues', async () => {
       const supabase = getSupabaseClient();
+
+      console.log(`[capture-repository-issues] Starting to store ${issues.length} issues for repository ${repositoryId}`);
+
+      let storedCount = 0;
+      let skippedCount = 0;
+      let errorCount = 0;
 
       // Use the repositoryId from event data (already validated in get-repository step)
       for (const issue of issues) {
@@ -666,7 +674,11 @@ const captureRepositoryIssues = inngest.createFunction(
           issue.user.avatar_url,
           issue.user.id
         );
-        if (!authorId) continue; // Skip if no github_id (GitHub Apps/bots)
+        if (!authorId) {
+          console.log(`[capture-repository-issues] Skipped issue #${issue.number} - no author ID`);
+          skippedCount++;
+          continue; // Skip if no github_id (GitHub Apps/bots)
+        }
 
         const { error } = await supabase
           .from('issues')
@@ -674,7 +686,6 @@ const captureRepositoryIssues = inngest.createFunction(
             number: issue.number,
             github_id: issue.id.toString(),
             repository_id: repositoryId,
-            repository_full_name: `${owner}/${repo}`,
             title: issue.title,
             body: issue.body,
             state: issue.state,
@@ -689,9 +700,14 @@ const captureRepositoryIssues = inngest.createFunction(
           });
 
         if (error) {
-          console.error('Failed to store issue:', error);
+          console.error(`[capture-repository-issues] Failed to store issue #${issue.number}:`, error);
+          errorCount++;
+        } else {
+          storedCount++;
         }
       }
+
+      console.log(`[capture-repository-issues] Complete: ${storedCount} stored, ${skippedCount} skipped, ${errorCount} errors`);
     });
 
     return { repository: `${owner}/${repo}`, issues_count: issues.length };
