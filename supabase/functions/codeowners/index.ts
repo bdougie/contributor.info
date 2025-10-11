@@ -110,10 +110,7 @@ async function checkRateLimit(
 }
 
 function applyRateLimitHeaders(headers: Headers, rateLimitResult: RateLimitResult): void {
-  headers.set(
-    'X-RateLimit-Limit',
-    String(rateLimitResult.remaining + (rateLimitResult.allowed ? 1 : 0))
-  );
+  headers.set('X-RateLimit-Limit', String(RATE_LIMIT_MAX_REQUESTS));
   headers.set('X-RateLimit-Remaining', String(rateLimitResult.remaining));
   headers.set('X-RateLimit-Reset', String(Math.floor(rateLimitResult.resetTime / 1000)));
 
