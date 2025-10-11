@@ -45,8 +45,8 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
     // Listen for cache updates
     swClient.on('CACHE_UPDATED', (message) => {
       if (message.type === 'CACHE_UPDATED') {
-        logger.debug('Cache updated for:', message.url);
-        // Could trigger a subtle UI update here
+        // Cache updates happen silently in the background
+        // Could trigger a subtle UI update here if needed
       }
     });
 
