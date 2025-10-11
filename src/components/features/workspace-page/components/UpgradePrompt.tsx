@@ -1,8 +1,9 @@
 import { Button } from '@/components/ui/button';
 import { TrendingUp } from '@/components/ui/icon';
+import type { WorkspaceTier } from '@/types/workspace';
 
 interface UpgradePromptProps {
-  tier: string;
+  tier: WorkspaceTier;
   onUpgradeClick: () => void;
 }
 
