@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createClient } from '@supabase/supabase-js';
 
 // Mock Deno environment
-global.Deno = {
+globalThis.Deno = {
   env: {
     get: (key: string) => {
       const envMap: Record<string, string> = {
@@ -81,7 +81,7 @@ describe('Inngest Production Edge Function', () => {
 
       // Dynamic import to get fresh handler
       const module = await import('../inngest-prod/index.ts');
-      const serveCallback = (module as any).default || (global as any).__inngestHandler;
+      const serveCallback = (module as any).default || (globalThis as any).__inngestHandler;
 
       const response = await serveCallback(request);
 
@@ -99,7 +99,7 @@ describe('Inngest Production Edge Function', () => {
       });
 
       const module = await import('../inngest-prod/index.ts');
-      const serveCallback = (module as any).default || (global as any).__inngestHandler;
+      const serveCallback = (module as any).default || (globalThis as any).__inngestHandler;
 
       const response = await serveCallback(request);
 
@@ -115,7 +115,7 @@ describe('Inngest Production Edge Function', () => {
       });
 
       const module = await import('../inngest-prod/index.ts');
-      const serveCallback = (module as any).default || (global as any).__inngestHandler;
+      const serveCallback = (module as any).default || (globalThis as any).__inngestHandler;
 
       const response = await serveCallback(request);
       const data = await response.json();
@@ -173,7 +173,7 @@ describe('Inngest Production Edge Function', () => {
       const mockHandler = vi.fn().mockRejectedValue(new Error('Test error'));
 
       const module = await import('../inngest-prod/index.ts');
-      const serveCallback = (module as any).default || (global as any).__inngestHandler;
+      const serveCallback = (module as any).default || (globalThis as any).__inngestHandler;
 
       // Override the handler
       vi.spyOn(module, 'inngestHandler').mockImplementation(mockHandler);
@@ -301,7 +301,7 @@ describe('Inngest Production Edge Function', () => {
       );
 
       const module = await import('../inngest-prod/index.ts');
-      const serveCallback = (module as any).default || (global as any).__inngestHandler;
+      const serveCallback = (module as any).default || (globalThis as any).__inngestHandler;
 
       const response = Promise.race([serveCallback(request), timeout]);
 
@@ -350,7 +350,7 @@ describe('Inngest Production Edge Function', () => {
       });
 
       const module = await import('../inngest-prod/index.ts');
-      const serveCallback = (module as any).default || (global as any).__inngestHandler;
+      const serveCallback = (module as any).default || (globalThis as any).__inngestHandler;
 
       // First request would process normally
       // Second request should return cached response
