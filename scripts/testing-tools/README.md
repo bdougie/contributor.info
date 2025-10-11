@@ -34,6 +34,8 @@ Testing tools cover:
 |--------|---------|-------------|
 | `test-new-repo-tracking.mjs` | Test repository onboarding | New repo setup |
 | `test-review-sync.mjs` | Validate review syncing | Review data issues |
+| `test-repository-issues.mjs` | Test repository issue capture | After Inngest fixes |
+| `test-pr-comments.mjs` | Test PR comment capture | After Inngest fixes |
 | `test-sync-logger.js` | Test logging functionality | Debug logging |
 | `test-sync-logging.mjs` | Sync operation logging | Troubleshooting |
 | `test-update-activity.mjs` | PR activity updates | Activity tracking |
@@ -94,6 +96,12 @@ node scripts/testing-tools/test-inngest-direct.mjs --event "capture/repository.s
 # Test new repository tracking
 node scripts/testing-tools/test-new-repo-tracking.mjs --repo "facebook/react"
 
+# Test repository issue capture (requires repository UUID)
+node scripts/testing-tools/test-repository-issues.mjs "550e8400-e29b-41d4-a716-446655440000"
+
+# Test PR comment capture (requires repository UUID, PR number, and PR ID)
+node scripts/testing-tools/test-pr-comments.mjs "550e8400-e29b-41d4-a716-446655440000" "123" "PR_kwDOAbc123"
+
 # Test review sync
 node scripts/testing-tools/test-review-sync.mjs --pr 12345
 
@@ -136,6 +144,56 @@ node scripts/testing-tools/test-sanitize.js
 
 # Validate CI environment
 node scripts/testing-tools/test-ci-environment.js
+```
+
+## 🔍 Finding Test Data IDs
+
+### Repository UUID
+Query your Supabase database to find a repository's UUID:
+
+```sql
+-- Find by owner/name
+SELECT id, owner, name
+FROM repositories
+WHERE owner = 'facebook' AND name = 'react';
+
+-- Find by full name
+SELECT id, owner, name
+FROM repositories
+WHERE owner || '/' || name = 'facebook/react';
+
+-- List all repositories
+SELECT id, owner, name
+FROM repositories
+ORDER BY created_at DESC
+LIMIT 10;
+```
+
+### PR Number
+The PR number is the integer in the GitHub PR URL:
+- URL: `https://github.com/facebook/react/pull/12345`
+- PR Number: `12345`
+
+### PR ID (GraphQL Node ID)
+Query your database to find the PR's GraphQL node ID:
+
+```sql
+-- Find PR ID by repository and number
+SELECT id, number, title
+FROM pull_requests
+WHERE repository_id = '550e8400-e29b-41d4-a716-446655440000'
+  AND number = 12345;
+```
+
+Alternatively, use the GitHub GraphQL API:
+```graphql
+query {
+  repository(owner: "facebook", name: "react") {
+    pullRequest(number: 12345) {
+      id
+    }
+  }
+}
 ```
 
 ## 🎯 Test Scenarios

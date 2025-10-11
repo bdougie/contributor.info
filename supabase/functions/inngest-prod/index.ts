@@ -508,12 +508,32 @@ const capturePrComments = inngest.createFunction(
   },
   { event: 'capture/pr.comments' },
   async ({ event, step }) => {
-    const { owner, repo, pr_number, github_token } = event.data;
+    // Accept repositoryId and prNumber from client-side events
+    const { repositoryId, prNumber, prId } = event.data;
+
+    // Step 1: Get repository details from database
+    const repository = await step.run('get-repository', async () => {
+      const supabase = getSupabaseClient();
+      const { data, error } = await supabase
+        .from('repositories')
+        .select('owner, name')
+        .eq('id', repositoryId)
+        .maybeSingle();
+
+      if (error || !data) {
+        throw new NonRetriableError(`Repository not found: ${repositoryId}`);
+      }
+      return data;
+    });
+
+    const owner = repository.owner;
+    const repo = repository.name;
+    const pr_number = prNumber;
 
     const [reviewComments, issueComments] = await step.run('fetch-all-comments', async () => {
       const [revComments, issComments] = await Promise.all([
-        githubRequest(`/repos/${owner}/${repo}/pulls/${pr_number}/comments`, github_token),
-        githubRequest(`/repos/${owner}/${repo}/issues/${pr_number}/comments`, github_token),
+        githubRequest(`/repos/${owner}/${repo}/pulls/${pr_number}/comments`),
+        githubRequest(`/repos/${owner}/${repo}/issues/${pr_number}/comments`),
       ]);
       return [revComments, issComments];
     });
@@ -618,7 +638,27 @@ const captureRepositoryIssues = inngest.createFunction(
   },
   { event: 'capture/repository.issues' },
   async ({ event, step }) => {
-    const { owner, repo, github_token, state = 'all' } = event.data;
+    // Accept repositoryId and timeRange from client-side events
+    const { repositoryId, timeRange = 30 } = event.data;
+
+    // Step 1: Get repository details from database
+    const repository = await step.run('get-repository', async () => {
+      const supabase = getSupabaseClient();
+      const { data, error } = await supabase
+        .from('repositories')
+        .select('owner, name')
+        .eq('id', repositoryId)
+        .maybeSingle();
+
+      if (error || !data) {
+        throw new NonRetriableError(`Repository not found: ${repositoryId}`);
+      }
+      return data;
+    });
+
+    const owner = repository.owner;
+    const repo = repository.name;
+    const state = 'all';
 
     const issues = await step.run('fetch-issues', async () => {
       const data = await githubRequest(
@@ -626,25 +666,21 @@ const captureRepositoryIssues = inngest.createFunction(
         github_token,
       );
       // Filter out pull requests (they also appear in issues API)
-      return data.filter((issue: any) => !('pull_request' in issue));
+      const filteredIssues = data.filter((issue: any) => !('pull_request' in issue));
+      console.log(`[capture-repository-issues] Fetched ${filteredIssues.length} issues for ${owner}/${repo}`);
+      return filteredIssues;
     });
 
     await step.run('store-issues', async () => {
       const supabase = getSupabaseClient();
 
-      // Get repository ID
-      const { data: repoData } = await supabase
-        .from('repositories')
-        .select('id')
-        .eq('full_name', `${owner}/${repo}`)
-        .single();
+      console.log(`[capture-repository-issues] Starting to store ${issues.length} issues for repository ${repositoryId}`);
 
-      const repositoryId = repoData?.id || (await supabase
-        .from('repositories')
-        .insert({ full_name: `${owner}/${repo}`, owner, name: repo })
-        .select('id')
-        .single()).data.id;
+      let storedCount = 0;
+      let skippedCount = 0;
+      let errorCount = 0;
 
+      // Use the repositoryId from event data (already validated in get-repository step)
       for (const issue of issues) {
         const authorId = await ensureContributor(
           supabase,
@@ -652,7 +688,11 @@ const captureRepositoryIssues = inngest.createFunction(
           issue.user.avatar_url,
           issue.user.id,
         );
-        if (!authorId) continue; // Skip if no github_id (GitHub Apps/bots)
+        if (!authorId) {
+          console.log(`[capture-repository-issues] Skipped issue #${issue.number} - no author ID`);
+          skippedCount++;
+          continue; // Skip if no github_id (GitHub Apps/bots)
+        }
 
         const { error } = await supabase
           .from('issues')
@@ -660,7 +700,6 @@ const captureRepositoryIssues = inngest.createFunction(
             number: issue.number,
             github_id: issue.id.toString(),
             repository_id: repositoryId,
-            repository_full_name: `${owner}/${repo}`,
             title: issue.title,
             body: issue.body,
             state: issue.state,
@@ -675,9 +714,14 @@ const captureRepositoryIssues = inngest.createFunction(
           });
 
         if (error) {
-          console.error('Failed to store issue:', error);
+          console.error(`[capture-repository-issues] Failed to store issue #${issue.number}:`, error);
+          errorCount++;
+        } else {
+          storedCount++;
         }
       }
+
+      console.log(`[capture-repository-issues] Complete: ${storedCount} stored, ${skippedCount} skipped, ${errorCount} errors`);
     });
 
     return { repository: `${owner}/${repo}`, issues_count: issues.length };

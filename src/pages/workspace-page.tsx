@@ -12,15 +12,10 @@ import {
   type MergedPR,
 } from '@/services/workspace-metrics.service';
 import { WorkspaceContributorsTab } from '@/components/features/workspace/WorkspaceContributorsTab';
-import {
-  WorkspaceDashboard,
-  WorkspaceDashboardSkeleton,
-  ResponsePreviewModal,
-} from '@/components/features/workspace';
+import { WorkspaceDashboard, WorkspaceDashboardSkeleton } from '@/components/features/workspace';
 import type { CurrentItem } from '@/components/features/workspace/ResponsePreviewModal';
 import type { SimilarItem } from '@/services/similarity-search';
 import { WorkspaceErrorBoundary } from '@/components/error-boundaries/workspace-error-boundary';
-import { AIFeatureErrorBoundary } from '@/components/error-boundaries/ai-feature-error-boundary';
 import { parseWorkspaceIdentifier, getWorkspaceQueryField } from '@/types/workspace-identifier';
 import {
   useSimilaritySearchCache,
@@ -32,29 +27,12 @@ import {
   type Discussion,
 } from '@/components/features/workspace/WorkspaceDiscussionsTable';
 import { type Issue } from '@/components/features/workspace/WorkspaceIssuesTable';
-import { RepositoryFilter } from '@/components/features/workspace/RepositoryFilter';
 import { AddRepositoryModal } from '@/components/features/workspace/AddRepositoryModal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { ReviewerSuggestionsModal } from '@/components/features/workspace/reviewer-suggestions/ReviewerSuggestionsModal';
-import { GitHubAppInstallModal } from '@/components/features/github-app/github-app-install-modal';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { useWorkspaceGitHubAppStatus } from '@/hooks/use-workspace-github-app-status';
 import { toast } from 'sonner';
-import {
-  GitPullRequest,
-  AlertCircle,
-  Users,
-  Layout,
-  Settings,
-  TrendingUp,
-  Activity,
-  MessageSquare,
-} from '@/components/ui/icon';
-import {
-  TimeRangeSelector,
-  type TimeRange,
-} from '@/components/features/workspace/TimeRangeSelector';
+import { type TimeRange } from '@/components/features/workspace/TimeRangeSelector';
 import type {
   WorkspaceMetrics,
   WorkspaceTrendData,
@@ -83,6 +61,14 @@ import {
 //   RepositoryMetric,
 //   TrendDataset,
 // } from '@/components/features/workspace/AnalyticsDashboard';
+
+// Extracted workspace page components
+import {
+  WorkspaceHeader,
+  WorkspaceTabNavigation,
+  WorkspaceModals,
+  UpgradePrompt,
+} from '@/components/features/workspace-page/components';
 
 // ActivityItem type definition used in this page for hover cards and analytics
 interface ActivityItem {
@@ -1436,140 +1422,53 @@ function WorkspacePage() {
   return (
     <div className="min-h-screen">
       {/* Workspace Header */}
-      <div className="container max-w-7xl mx-auto p-6 pb-0">
-        <div className="space-y-4">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">{workspace.name}</h1>
-              {workspace.description && (
-                <p className="text-muted-foreground mt-1">{workspace.description}</p>
-              )}
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <TimeRangeSelector
-                value={timeRange}
-                onChange={setTimeRange}
-                tier={workspace.tier as 'free' | 'pro' | 'enterprise'}
-                onUpgradeClick={handleUpgradeClick}
-                variant="select"
-              />
-              <RepositoryFilter
-                repositories={repositories.map((repo) => ({
-                  id: repo.id,
-                  name: repo.name,
-                  owner: repo.owner,
-                  full_name: repo.full_name,
-                  avatar_url: repo.avatar_url,
-                  language: repo.language,
-                  last_activity: repo.last_activity,
-                }))}
-                selectedRepositories={selectedRepositories}
-                onSelectionChange={setSelectedRepositories}
-                className="w-[200px]"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
+      <WorkspaceHeader
+        workspaceName={workspace.name}
+        workspaceDescription={workspace.description}
+        workspaceTier={workspace.tier as 'free' | 'pro' | 'enterprise'}
+        timeRange={timeRange}
+        onTimeRangeChange={setTimeRange}
+        repositories={repositories}
+        selectedRepositories={selectedRepositories}
+        onRepositorySelectionChange={setSelectedRepositories}
+        onUpgradeClick={handleUpgradeClick}
+      />
 
       {/* Tab Navigation */}
       <div className="container max-w-7xl mx-auto px-6 mt-6">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 grid-rows-2 sm:flex sm:w-full sm:justify-between sm:grid-rows-1 mb-6 min-h-[88px] sm:min-h-[44px]">
-            <TabsTrigger value="overview" className="flex items-center gap-2 sm:pl-4">
-              <Layout className="h-4 w-4" />
-              <span className="hidden sm:inline">Overview</span>
-            </TabsTrigger>
-            <TabsTrigger value="prs" className="flex items-center gap-2">
-              <GitPullRequest className="h-4 w-4" />
-              <span className="hidden sm:inline">PRs</span>
-            </TabsTrigger>
-            <TabsTrigger value="issues" className="flex items-center gap-2">
-              <AlertCircle className="h-4 w-4" />
-              <span className="hidden sm:inline">Issues</span>
-            </TabsTrigger>
-            <TabsTrigger value="discussions" className="flex items-center gap-2">
-              <MessageSquare className="h-4 w-4" />
-              <span className="hidden sm:inline">Discussions</span>
-            </TabsTrigger>
-            <TabsTrigger value="contributors" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              <span className="hidden sm:inline">Contributors</span>
-            </TabsTrigger>
-            {/* Analytics tab disabled - will be implemented in issue #598
-              <TabsTrigger value="analytics" className="flex items-center gap-2">
-                <TrendingUp className="h-4 w-4" />
-                <span className="hidden sm:inline">Analytics</span>
-              </TabsTrigger> */}
-            <TabsTrigger value="activity" className="flex items-center gap-2">
-              <Activity className="h-4 w-4" />
-              <span className="hidden sm:inline">Activity</span>
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-2 sm:pr-4">
-              <Settings className="h-4 w-4" />
-              <span className="hidden sm:inline">Settings</span>
-            </TabsTrigger>
-          </TabsList>
+          <WorkspaceTabNavigation />
 
-          {/* Reviewer Suggestions Modal - Available on all tabs */}
-          {repositories.length > 0 && (
-            <ReviewerSuggestionsModal
-              open={reviewerModalOpen}
-              onOpenChange={setReviewerModalOpen}
-              repositories={repositories.map((r) => ({
-                id: r.id,
-                name: r.name,
-                owner: r.owner,
-                full_name: r.full_name,
-              }))}
-            />
-          )}
-
-          {/* GitHub App Install Modal - Available on all tabs */}
-          {selectedRepoForModal && (
-            <GitHubAppInstallModal
-              open={githubAppModalOpen}
-              onOpenChange={setGithubAppModalOpen}
-              repository={{
-                id: selectedRepoForModal.id,
-                full_name: selectedRepoForModal.full_name,
-                owner: selectedRepoForModal.owner,
-                name: selectedRepoForModal.name,
-              }}
-              isInstalled={
-                appStatus.repoStatuses?.get(selectedRepoForModal.id)?.isInstalled ?? false
-              }
-            />
-          )}
-
-          {/* Response Preview Modal - Available on all tabs - Wrapped in AI Error Boundary */}
-          <AIFeatureErrorBoundary
-            featureName="Response Suggestions"
-            fallback={
-              <div className="p-4 text-center text-muted-foreground">
-                <p>AI-powered response suggestions are temporarily unavailable.</p>
-                <p className="text-sm mt-2">You can still manually respond to items.</p>
-              </div>
-            }
-          >
-            <ResponsePreviewModal
-              open={responseModalOpen}
-              onOpenChange={setResponseModalOpen}
-              loading={loadingSimilarItems}
-              similarItems={similarItems}
-              responseMessage={responseMessage}
-              currentItem={currentRespondItem || undefined}
-              workspaceId={workspace.id}
-              onCopyToClipboard={() => {
-                toast.success('Response copied to clipboard!');
-              }}
-              onItemMarkedAsResponded={() => {
+          {/* Modals - Available on all tabs */}
+          <WorkspaceModals
+            reviewerModal={{
+              open: reviewerModalOpen,
+              onOpenChange: setReviewerModalOpen,
+              repositories,
+            }}
+            githubAppModal={{
+              open: githubAppModalOpen,
+              onOpenChange: setGithubAppModalOpen,
+              selectedRepository: selectedRepoForModal,
+              isInstalled: selectedRepoForModal
+                ? (appStatus.repoStatuses?.get(selectedRepoForModal.id)?.isInstalled ?? false)
+                : false,
+            }}
+            responseModal={{
+              open: responseModalOpen,
+              onOpenChange: setResponseModalOpen,
+              loading: loadingSimilarItems,
+              similarItems,
+              responseMessage,
+              currentItem: currentRespondItem,
+              workspaceId: workspace.id,
+              onItemMarkedAsResponded: () => {
                 // Clear the current item when modal closes
                 setCurrentRespondItem(null);
                 // The useMyWork hook will automatically refresh when this is called
-              }}
-            />
-          </AIFeatureErrorBoundary>
+              },
+            }}
+          />
 
           <TabsContent value="overview" className="mt-6 space-y-4">
             <div className="container max-w-7xl mx-auto">
@@ -1680,6 +1579,8 @@ function WorkspacePage() {
                 repositories={repositories}
                 selectedRepositories={selectedRepositories}
                 timeRange={timeRange}
+                workspaceId={workspace.id}
+                workspace={workspace}
                 onGitHubAppModalOpen={handleGitHubAppModalOpen}
                 currentUser={currentUser}
                 currentMember={currentMember}
@@ -1816,27 +1717,7 @@ function WorkspacePage() {
       </div>
 
       {/* Upgrade Prompt for Free Tier */}
-      {workspace.tier === 'free' && (
-        <div className="container max-w-7xl mx-auto px-6 pb-6 mt-6">
-          <div className="rounded-lg border bg-muted/50 p-4">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <h3 className="font-semibold">Unlock Advanced Analytics</h3>
-                <div className="rounded-full bg-primary/10 p-1">
-                  <TrendingUp className="h-3.5 w-3.5 text-primary" />
-                </div>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Upgrade to Pro to access historical data beyond 30 days, advanced metrics, and
-                priority support. Pro users can track up to 10 repositories per workspace.
-              </p>
-              <Button onClick={handleUpgradeClick} variant="default" size="sm" className="mt-3">
-                Upgrade to Pro
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <UpgradePrompt tier={workspace.tier} onUpgradeClick={handleUpgradeClick} />
 
       {/* Add Repository Modal */}
       {workspace && (
