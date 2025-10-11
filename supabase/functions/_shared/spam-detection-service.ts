@@ -89,7 +89,7 @@ export class SpamDetectionService {
    * @param pr - Pull request data to analyze
    * @returns Spam detection results
    */
-  async detectSpam(pr: PullRequestData): Promise<SpamDetectionResult> {
+  detectSpam(pr: PullRequestData): SpamDetectionResult {
     try {
       if (!pr || !pr.author) {
         throw new Error('Invalid PR data: missing required fields');
