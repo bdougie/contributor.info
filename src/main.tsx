@@ -6,6 +6,7 @@ import './index.css';
 import './styles/cls-fixes.css'; // Global CLS fixes
 import { MetaTagsProvider, SchemaMarkup } from './components/common/layout';
 import { ErrorBoundary } from '@/components/error-boundary';
+import { logger } from './lib/logger';
 
 // Create a client for React Query
 const queryClient = new QueryClient({
@@ -33,10 +34,10 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
     // Set up connection change handler for offline support
     swClient.onConnectionChange((online) => {
       if (online) {
-        console.log('Connection restored');
+        logger.info('Connection restored');
         // Could show a toast notification here
       } else {
-        console.log('Connection lost - offline mode active');
+        logger.info('Connection lost - offline mode active');
         // Could show offline indicator
       }
     });
@@ -44,7 +45,7 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
     // Listen for cache updates
     swClient.on('CACHE_UPDATED', (message) => {
       if (message.type === 'CACHE_UPDATED') {
-        console.log('Cache updated for:', message.url);
+        logger.debug('Cache updated for:', message.url);
         // Could trigger a subtle UI update here
       }
     });
@@ -52,7 +53,7 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
     // Listen for background sync
     swClient.on('BACKGROUND_SYNC', (message) => {
       if (message.type === 'BACKGROUND_SYNC') {
-        console.log('Background sync:', message.status);
+        logger.debug('Background sync:', message.status);
       }
     });
   });
@@ -63,7 +64,7 @@ if ('serviceWorker' in navigator && !import.meta.env.PROD) {
   navigator.serviceWorker.getRegistrations().then((registrations) => {
     registrations.forEach((registration) => {
       registration.unregister();
-      console.log('SW unregistered for development');
+      logger.debug('SW unregistered for development');
     });
   });
 }
