@@ -215,11 +215,15 @@
   status = 200
   force = true
 
+# CODEOWNERS API - migrated to Supabase Edge Function for better timeout handling
+# NOTE: Netlify redirects don't support environment variables.
+# To update the Supabase URL, replace "egcxzonpmmcirmgqdrla" with your project ID
 [[redirects]]
   from = "/api/repos/*/*/codeowners"
-  to = "/.netlify/functions/api-codeowners"
+  to = "https://egcxzonpmmcirmgqdrla.supabase.co/functions/v1/codeowners/repos/:splat/codeowners"
   status = 200
   force = true
+  headers = {X-Forwarded-Host = "contributor.info"}
 
 [[redirects]]
   from = "/api/repos/*/*/suggest-reviewers"
@@ -250,6 +254,16 @@
   to = "/.netlify/functions/trigger-inngest-sync"
   status = 200
   force = true
+
+# Workspace sync API - migrated to Supabase Edge Function for better timeout handling
+# NOTE: Netlify redirects don't support environment variables.
+# To update the Supabase URL, replace "egcxzonpmmcirmgqdrla" with your project ID
+[[redirects]]
+  from = "/.netlify/functions/workspace-sync-simple"
+  to = "https://egcxzonpmmcirmgqdrla.supabase.co/functions/v1/workspace-sync"
+  status = 200
+  force = true
+  headers = {X-Forwarded-Host = "contributor.info"}
 
 # Headers for proper MIME types and caching
 # Note: Some headers are also in public/_headers, but these are kept for compatibility
