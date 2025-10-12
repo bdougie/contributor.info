@@ -11,8 +11,6 @@
  * service tokens, and other sensitive configuration.
  */
 
-import process from 'node:process';
-
 // Type for import.meta.env
 interface ImportMetaEnv {
   DEV?: boolean;
@@ -25,10 +23,12 @@ interface ImportMeta {
   env?: ImportMetaEnv;
 }
 
-// Detect runtime environment
-const isServer = typeof window === 'undefined';
+// Detect runtime environment - check for window first to avoid Vite externalization issues
 const isBrowser = typeof window !== 'undefined';
-const hasProcess = typeof process !== 'undefined' && process.env;
+const isServer = !isBrowser;
+
+// Safe process access - only access in server context to avoid Vite externalization
+const hasProcess = isServer && typeof process !== 'undefined' && typeof process.env !== 'undefined';
 
 /**
  * Universal environment access that works in both client and server contexts
