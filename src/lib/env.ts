@@ -27,8 +27,9 @@ interface ImportMeta {
 const isBrowser = typeof window !== 'undefined';
 const isServer = !isBrowser;
 
-// Safe process access - only access in server context to avoid Vite externalization
-const hasProcess = isServer && typeof process !== 'undefined' && typeof process.env !== 'undefined';
+// Safe process access - check if process exists regardless of browser/server
+// In tests (Vitest with jsdom), both window and process exist
+const hasProcess = typeof process !== 'undefined' && typeof process.env !== 'undefined';
 
 /**
  * Universal environment access that works in both client and server contexts
