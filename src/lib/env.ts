@@ -11,8 +11,6 @@
  * service tokens, and other sensitive configuration.
  */
 
-import process from 'node:process';
-
 // Type for import.meta.env
 interface ImportMetaEnv {
   DEV?: boolean;
@@ -25,10 +23,13 @@ interface ImportMeta {
   env?: ImportMetaEnv;
 }
 
-// Detect runtime environment
-const isServer = typeof window === 'undefined';
+// Detect runtime environment - check for window first to avoid Vite externalization issues
 const isBrowser = typeof window !== 'undefined';
-const hasProcess = typeof process !== 'undefined' && process.env;
+const isServer = !isBrowser;
+
+// Safe process access - check if process exists regardless of browser/server
+// In tests (Vitest with jsdom), both window and process exist
+const hasProcess = typeof process !== 'undefined' && typeof process.env !== 'undefined';
 
 /**
  * Universal environment access that works in both client and server contexts
@@ -40,7 +41,9 @@ function getEnvVar(viteKey: string, serverKey?: string): string {
   if (!viteKey.startsWith('VITE_')) {
     console.error('🚨 SECURITY WARNING: Env key "%s" must start with VITE_ prefix', viteKey);
   }
-  // For tests, provide default local Supabase values
+
+  // CRITICAL: Check test environment FIRST, before isBrowser check
+  // In CI with jsdom, window exists but we need test defaults
   const isTest = hasProcess && (process.env.NODE_ENV === 'test' || process.env.VITEST === 'true');
 
   if (isTest && (viteKey === 'VITE_SUPABASE_URL' || serverKey === 'SUPABASE_URL')) {
@@ -319,13 +322,17 @@ export function validateEnvironment(context: 'client' | 'server') {
   return true;
 }
 
-// Auto-validate on import
-if (typeof window !== 'undefined') {
-  // Browser context
-  validateEnvironment('client');
-} else {
-  // Server context - only validate if we're actually in a server function
-  if (hasProcess && (process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME)) {
-    validateEnvironment('server');
+// Auto-validate on import (skip in test environments)
+const isTestEnv = hasProcess && (process.env.NODE_ENV === 'test' || process.env.VITEST === 'true');
+
+if (!isTestEnv) {
+  if (typeof window !== 'undefined') {
+    // Browser context
+    validateEnvironment('client');
+  } else {
+    // Server context - only validate if we're actually in a server function
+    if (hasProcess && (process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME)) {
+      validateEnvironment('server');
+    }
   }
 }
