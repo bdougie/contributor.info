@@ -41,7 +41,9 @@ function getEnvVar(viteKey: string, serverKey?: string): string {
   if (!viteKey.startsWith('VITE_')) {
     console.error('🚨 SECURITY WARNING: Env key "%s" must start with VITE_ prefix', viteKey);
   }
-  // For tests, provide default local Supabase values
+
+  // CRITICAL: Check test environment FIRST, before isBrowser check
+  // In CI with jsdom, window exists but we need test defaults
   const isTest = hasProcess && (process.env.NODE_ENV === 'test' || process.env.VITEST === 'true');
 
   if (isTest && (viteKey === 'VITE_SUPABASE_URL' || serverKey === 'SUPABASE_URL')) {
@@ -320,13 +322,17 @@ export function validateEnvironment(context: 'client' | 'server') {
   return true;
 }
 
-// Auto-validate on import
-if (typeof window !== 'undefined') {
-  // Browser context
-  validateEnvironment('client');
-} else {
-  // Server context - only validate if we're actually in a server function
-  if (hasProcess && (process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME)) {
-    validateEnvironment('server');
+// Auto-validate on import (skip in test environments)
+const isTestEnv = hasProcess && (process.env.NODE_ENV === 'test' || process.env.VITEST === 'true');
+
+if (!isTestEnv) {
+  if (typeof window !== 'undefined') {
+    // Browser context
+    validateEnvironment('client');
+  } else {
+    // Server context - only validate if we're actually in a server function
+    if (hasProcess && (process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME)) {
+      validateEnvironment('server');
+    }
   }
 }
