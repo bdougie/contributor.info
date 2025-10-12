@@ -193,7 +193,10 @@ async function getRepositoriesForBackfill(specificRepoId) {
 }
 
 async function findRepositoriesNeedingBackfill() {
-  // Find large repositories with incomplete data
+  console.log('🔍 Checking for repositories needing backfill...');
+
+  // Find repositories with incomplete data
+  // Lower threshold to catch smaller repos (>50 PRs instead of >100)
   const { data: candidates, error } = await supabase
     .from('repositories')
     .select(
@@ -202,29 +205,38 @@ async function findRepositoriesNeedingBackfill() {
       owner,
       name,
       pull_request_count,
-      created_at
+      created_at,
+      first_tracked_at
     `
     )
-    .gt('pull_request_count', 100) // Only backfill repos with >100 PRs
+    .gt('pull_request_count', 50) // Lowered from 100 to 50
     .order('pull_request_count', { ascending: false })
-    .limit(10);
+    .limit(20); // Increased from 10 to 20
 
   if (error || !candidates) {
+    console.log('   No candidate repositories found');
     return [];
   }
 
+  console.log(`   Found ${candidates.length} candidate repositories`);
+
   const newBackfills = [];
+  let skippedCount = 0;
 
   for (const repo of candidates) {
     // Check if this repo already has a backfill
     const { data: existingBackfill } = await supabase
       .from('progressive_backfill_state')
-      .select('id')
+      .select('id, status')
       .eq('repository_id', repo.id)
-      .single();
+      .maybeSingle();
 
     if (existingBackfill) {
-      continue; // Skip if already has backfill
+      console.log(
+        `   ⏭️  Skipping ${repo.owner}/${repo.name}: Already has ${existingBackfill.status} backfill`
+      );
+      skippedCount++;
+      continue;
     }
 
     // Check data completeness
@@ -234,11 +246,12 @@ async function findRepositoriesNeedingBackfill() {
       .eq('repository_id', repo.id);
 
     const completeness = (capturedPRs || 0) / (repo.pull_request_count || 1);
+    const completenessPercent = Math.round(completeness * 100);
 
-    // Start backfill if less than 80% complete
-    if (completeness < 0.8) {
+    // More lenient threshold: 95% instead of 80% to catch repos that need top-up
+    if (completeness < 0.95) {
       console.log(
-        `📝 Creating new backfill for ${repo.owner}/${repo.name} (${Math.round(completeness * 100)}% complete)`
+        `📝 Creating new backfill for ${repo.owner}/${repo.name} (${completenessPercent}% complete, ${capturedPRs}/${repo.pull_request_count} PRs)`
       );
 
       if (!options.dryRun) {
@@ -253,21 +266,40 @@ async function findRepositoriesNeedingBackfill() {
             metadata: {
               initial_completeness: completeness,
               initiated_by: 'progressive_backfill_workflow',
+              trigger_reason: 'incomplete_data',
             },
           })
-          .select()
+          .select(
+            `
+            *,
+            repositories!inner(
+              id,
+              owner,
+              name,
+              pull_request_count,
+              first_tracked_at
+            )
+          `
+          )
           .single();
 
-        if (!createError && newBackfill) {
-          newBackfills.push({
-            ...newBackfill,
-            repositories: repo,
-          });
+        if (createError) {
+          console.error(`   ❌ Failed to create backfill: ${createError.message}`);
+        } else if (newBackfill) {
+          newBackfills.push(newBackfill);
         }
+      } else {
+        console.log(`   [DRY RUN] Would create backfill`);
       }
+    } else {
+      console.log(
+        `   ✅ Skipping ${repo.owner}/${repo.name}: Already ${completenessPercent}% complete`
+      );
+      skippedCount++;
     }
   }
 
+  console.log(`   Result: ${newBackfills.length} new backfills created, ${skippedCount} skipped`);
   return newBackfills;
 }
 
