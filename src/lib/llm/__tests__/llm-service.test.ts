@@ -422,6 +422,7 @@ describe('LLM Service', () => {
       expect(mockPostHogOpenAIService.generateHealthInsight).toHaveBeenCalledTimes(1);
 
       llmService.clearCache();
+      localStorage.clear(); // Also clear localStorage to ensure persistent cache is cleared
 
       await llmService.generateHealthInsight(testData, sampleRepoInfo);
       expect(mockPostHogOpenAIService.generateHealthInsight).toHaveBeenCalledTimes(2);
