@@ -642,6 +642,115 @@ const capturePrComments = inngest.createFunction(
   },
 );
 
+// 4b. capture-repository-comments-all - Orchestrates PR comment discovery
+const captureRepositoryCommentsAll = inngest.createFunction(
+  {
+    id: 'capture-repository-comments-all',
+    name: 'Capture All PR Comments for Repository',
+    retries: 2,
+  },
+  { event: 'capture/repository.comments.all' },
+  async ({ event, step }) => {
+    const { repositoryId, repositoryName, days = 7, maxPRs = 50 } = event.data;
+
+    // Validate required parameters
+    if (!repositoryId) {
+      throw new NonRetriableError('Missing required parameter: repositoryId');
+    }
+    if (!repositoryName) {
+      throw new NonRetriableError('Missing required parameter: repositoryName');
+    }
+
+    // Step 1: Get repository details from database
+    const repository = await step.run('get-repository', async () => {
+      const supabase = getSupabaseClient();
+      const { data, error } = await supabase
+        .from('repositories')
+        .select('owner, name')
+        .eq('id', repositoryId)
+        .maybeSingle();
+
+      if (error || !data) {
+        throw new NonRetriableError(`Repository not found: ${repositoryId}`);
+      }
+      return data;
+    });
+
+    const owner = repository.owner;
+    const repo = repository.name;
+
+    // Step 2: Fetch list of PRs within time range
+    const prs = await step.run('fetch-prs', async () => {
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - days);
+
+      const data = await githubRequest(
+        `/repos/${owner}/${repo}/pulls?state=all&sort=updated&direction=desc&per_page=${maxPRs}`
+      );
+
+      // Filter to only PRs updated within the time range
+      const filteredPRs = data.filter((pr: { updated_at: string; number: number }) => {
+        const updatedAt = new Date(pr.updated_at);
+        return updatedAt >= cutoffDate;
+      });
+
+      console.log(`[capture-repository-comments-all] Found ${filteredPRs.length} PRs updated in last ${days} days for ${owner}/${repo}`);
+      return filteredPRs;
+    });
+
+    // Step 3: Queue individual PR comment capture jobs
+    const queuedJobs = await step.run('queue-pr-comment-jobs', async () => {
+      const inngestEventKey = Deno.env.get('INNGEST_EVENT_KEY');
+      if (!inngestEventKey) {
+        throw new NonRetriableError('INNGEST_EVENT_KEY not configured');
+      }
+
+      let successCount = 0;
+      for (const pr of prs) {
+        try {
+          const response = await fetch(`https://inn.gs/e/${inngestEventKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: 'capture/pr.comments',
+              data: {
+                repositoryId,
+                prNumber: pr.number,
+                priority: event.data.priority || 'medium',
+                jobId: event.data.jobId,
+                metadata: event.data.metadata,
+              },
+            }),
+          });
+
+          if (response.ok) {
+            successCount++;
+          } else {
+            console.error(
+              `[capture-repository-comments-all] Failed to queue PR #${pr.number}: ${await response.text()}`
+            );
+          }
+        } catch (error) {
+          console.error(
+            `[capture-repository-comments-all] Error queuing PR #${pr.number}: ${error}`
+          );
+        }
+      }
+
+      console.log(`[capture-repository-comments-all] Successfully queued ${successCount}/${prs.length} PR comment jobs`);
+      return successCount;
+    });
+
+    return {
+      repository_id: repositoryId,
+      repository_name: `${owner}/${repo}`,
+      total_prs_found: prs.length,
+      total_prs_queued: queuedJobs,
+      status: 'completed',
+    };
+  },
+);
+
 // 5. capture-issue-comments
 const captureIssueComments = inngest.createFunction(
   {
@@ -1777,6 +1886,7 @@ const functions = [
   capturePrDetailsGraphQL,
   capturePrReviews,
   capturePrComments,
+  captureRepositoryCommentsAll,
   captureIssueComments,
   captureRepositoryIssues,
   captureRepositorySync,
