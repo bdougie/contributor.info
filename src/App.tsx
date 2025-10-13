@@ -438,7 +438,13 @@ function App() {
       const loadProgressiveFeatures = () => {
         Promise.all([
           import('@/lib/progressive-capture/manual-trigger'),
-          import('@/lib/progressive-capture/smart-notifications'),
+          import('@/lib/progressive-capture/smart-notifications').then((module) => {
+            // Explicitly call setupSmartNotifications to ensure it runs
+            // The module auto-calls it, but we verify it here
+            if (module.setupSmartNotifications) {
+              module.setupSmartNotifications();
+            }
+          }),
           import('@/lib/progressive-capture/background-processor'),
         ]).catch(console.warn);
       };
