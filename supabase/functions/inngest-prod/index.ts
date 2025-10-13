@@ -573,8 +573,17 @@ const capturePrComments = inngest.createFunction(
     if (!repositoryId) {
       throw new NonRetriableError('Missing required parameter: repositoryId');
     }
+
+    // If no prNumber provided, this is a repository-wide comment discovery
+    // Skip this handler as repository-wide discovery should be handled by
+    // capture-repository-issues which includes issue comments
     if (!prNumber) {
-      throw new NonRetriableError('Missing required parameter: prNumber');
+      console.log(`[capture-pr-comments] No prNumber provided for repository ${repositoryId}, skipping PR-specific comment capture`);
+      return {
+        repository_id: repositoryId,
+        status: 'skipped',
+        reason: 'no_pr_number_provided'
+      };
     }
 
     // Step 1: Get repository details from database
