@@ -434,10 +434,10 @@ export class HybridQueueManager {
       throw new Error(`Event data missing repositoryId for job ${jobId}`);
     }
 
-    // Special handling for comments job - trigger both PR and issue comment capture
+    // Special handling for comments job - trigger both repository-wide comment discovery and issue comment capture
     if (jobType === 'comments') {
-      // Send PR comments event with existing data
-      await this.sendInngestEvent('capture/pr.comments', eventData, jobTracker);
+      // Send repository-wide PR comments discovery event
+      await this.sendInngestEvent('capture/repository.comments.all', eventData, jobTracker);
 
       // Send repository issues discovery event to capture all issue comments
       const issueEventData = {

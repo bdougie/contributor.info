@@ -89,6 +89,21 @@ export interface CommitCaptureEventData {
   };
 }
 
+export interface RepositoryCommentsEventData {
+  repositoryId: string;
+  repositoryName: string;
+  days: number;
+  priority: 'critical' | 'high' | 'medium' | 'low';
+  priorityScore?: number;
+  maxPRs?: number;
+  jobId?: string;
+  metadata?: {
+    isWorkspaceRepo?: boolean;
+    workspaceCount?: number;
+    originalPriority?: string;
+  };
+}
+
 /**
  * Helper function to validate repository sync event data
  */
@@ -136,7 +151,8 @@ export function mapQueueDataToEventData(
   | PRDetailsEventData
   | PRReviewsEventData
   | PRCommentsEventData
-  | CommitCaptureEventData {
+  | CommitCaptureEventData
+  | RepositoryCommentsEventData {
   // Extract priority information from metadata
   const priority =
     (queueData.metadata?.priority as 'critical' | 'high' | 'medium' | 'low') || 'medium';
@@ -195,14 +211,13 @@ export function mapQueueDataToEventData(
           prNumber: queueData.prNumber,
         } as PRCommentsEventData;
       }
-      // For general comment capture, convert to repository sync
-      return validateRepositorySyncEventData({
+      // For general comment capture, create repository-wide comments event
+      return {
         ...baseData,
         repositoryName: queueData.repositoryName,
         days: queueData.timeRange ?? 7,
-        reason: queueData.triggerSource ?? 'comment-discovery',
-        maxItems: queueData.maxItems,
-      });
+        maxPRs: queueData.maxItems,
+      } as RepositoryCommentsEventData;
 
     case 'commits':
     case 'commit-capture':
