@@ -1,5 +1,9 @@
 {
   "importMap": "./import_map.json",
+  "compilerOptions": {
+    "lib": ["deno.window", "deno.ns"],
+    "types": ["npm:@types/node"]
+  },
   "tasks": {
     "test": "deno test --allow-all --coverage=coverage _shared/ tests/",
     "test:watch": "deno test --allow-all --watch",
