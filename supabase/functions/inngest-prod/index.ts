@@ -1130,13 +1130,27 @@ const captureRepositorySyncGraphQL = inngest.createFunction(
 
       // No filtering - we want the 100 most recent PRs regardless of date
       // The CREATED_AT DESC ordering already gives us the newest PRs
-      console.log(`Fetched ${prs.length} newest PRs from ${repository.owner}/${repository.name}`);
+      console.log(`[DEBUG] Fetched ${prs.length} newest PRs from ${repository.owner}/${repository.name}`);
+
+      // Log first 3 PRs to verify we got the newest ones
+      if (prs.length > 0) {
+        console.log('[DEBUG] First 3 PRs (newest):', prs.slice(0, 3).map((pr: any) => ({
+          number: pr.number,
+          title: pr.title,
+          createdAt: pr.createdAt
+        })));
+      }
+
       return prs;
     });
 
     // Step 3: Store PRs in database
     await step.run('store-prs', async () => {
       const supabase = getSupabaseClient();
+      console.log(`[DEBUG] Starting to store ${prs.length} PRs for ${repository.owner}/${repository.name}`);
+
+      let successCount = 0;
+      let errorCount = 0;
 
       for (const pr of prs) {
         // Ensure author exists
@@ -1177,9 +1191,18 @@ const captureRepositorySyncGraphQL = inngest.createFunction(
         });
 
         if (error) {
-          console.error(`Failed to upsert PR #${pr.number}:`, error);
+          console.error(`[ERROR] Failed to upsert PR #${pr.number}:`, error);
+          errorCount++;
+        } else {
+          successCount++;
+          // Log first 3 successful PRs in detail
+          if (successCount <= 3) {
+            console.log(`[DEBUG] Successfully upserted PR #${pr.number}: ${pr.title} (created: ${pr.createdAt})`);
+          }
         }
       }
+
+      console.log(`[DEBUG] Finished storing PRs: ${successCount} successful, ${errorCount} errors`);
     });
 
     // Step 4: Update repository sync timestamp
@@ -2309,7 +2332,17 @@ const captureRepositorySyncEnhanced = inngest.createFunction(
 
       // No filtering - we want the 100 most recent PRs regardless of date
       // The CREATED_AT DESC ordering already gives us the newest PRs
-      console.log('Fetched %s newest PRs from %s/%s', prs.length, repository.owner, repository.name);
+      console.log('[DEBUG-ENHANCED] Fetched %s newest PRs from %s/%s', prs.length, repository.owner, repository.name);
+
+      // Log first 3 PRs to verify we got the newest ones
+      if (prs.length > 0) {
+        console.log('[DEBUG-ENHANCED] First 3 PRs (newest):', prs.slice(0, 3).map((pr: any) => ({
+          number: pr.number,
+          title: pr.title,
+          createdAt: pr.createdAt
+        })));
+      }
+
       return prs;
     });
 
