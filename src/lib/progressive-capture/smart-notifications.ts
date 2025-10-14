@@ -81,7 +81,7 @@ export class SmartDataNotifications {
 
       this.checkedRepositories.add(repoKey);
     } catch (error) {
-      console.error('[Smart Notifications] Error checking %s:', error, repoKey);
+      console.error('[Smart Notifications] Error checking %s:', repoKey, error);
     }
   }
 
@@ -289,7 +289,7 @@ export class SmartDataNotifications {
         console.log('✅ Auto-fix jobs queued for %s/%s:', owner, repo, results);
       }
     } catch (error) {
-      console.warn('Could not auto-fix data for %s/%s:', error, owner, repo);
+      console.warn('Could not auto-fix data for %s/%s:', owner, repo, error);
     }
   }
 
@@ -321,7 +321,7 @@ export class SmartDataNotifications {
         .eq('repository_id', repositoryId)
         .order('updated_at', { ascending: false })
         .limit(1)
-        .maybeSingle();
+        .maybeSingle<{ updated_at: string }>();
 
       const now = new Date();
       const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
@@ -408,9 +408,9 @@ export function setupSmartNotifications(): void {
       }
 
       // Check for workspace routes first
-      const workspaceMatch = path.match(/^\/i\/([^\/]+)/);
+      const workspaceMatch = path.match(/^\/(i|workspaces)\/([a-zA-Z0-9\-_.]+)(?:\/|$)/);
       if (workspaceMatch) {
-        const [, workspaceSlug] = workspaceMatch;
+        const [, , workspaceSlug] = workspaceMatch;
         if (import.meta.env?.DEV) {
           console.log('📁 Workspace detected: %s - skipping repository detection', workspaceSlug);
         }
@@ -419,7 +419,7 @@ export function setupSmartNotifications(): void {
       }
 
       // Match patterns like /kubernetes/kubernetes or /owner/repo/contributions
-      const match = path.match(/\/([^\/]+)\/([^\/]+)(?:\/|$)/);
+      const match = path.match(/\/([^/]+)\/([^/]+)(?:\/|$)/);
 
       // Exclude non-repository routes using Set for better performance
       const EXCLUDED_ROUTE_PREFIXES = new Set([
