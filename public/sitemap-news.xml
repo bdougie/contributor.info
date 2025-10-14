@@ -3,13 +3,24 @@
         xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">
   
   <url>
+    <loc>https://contributor.info/appwrite/appwrite</loc>
+    <news:news>
+      <news:publication>
+        <news:name>Contributor.info</news:name>
+        <news:language>en</news:language>
+      </news:publication>
+      <news:publication_date>2025-10-13T17:16:00.559Z</news:publication_date>
+      <news:title>appwrite/appwrite - Contributor Updates</news:title>
+    </news:news>
+  </url>
+  <url>
     <loc>https://contributor.info/continuedev/continue</loc>
     <news:news>
       <news:publication>
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-09T19:55:18.542Z</news:publication_date>
+      <news:publication_date>2025-10-13T22:48:37.868Z</news:publication_date>
       <news:title>continuedev/continue - Contributor Updates</news:title>
     </news:news>
   </url>
@@ -20,7 +31,7 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-09T19:01:23.784Z</news:publication_date>
+      <news:publication_date>2025-10-13T22:48:37.868Z</news:publication_date>
       <news:title>vercel/ai - Contributor Updates</news:title>
     </news:news>
   </url>
@@ -31,7 +42,7 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-09T19:01:23.820Z</news:publication_date>
+      <news:publication_date>2025-10-13T22:48:37.868Z</news:publication_date>
       <news:title>jargonsdev/jargons.dev - Contributor Updates</news:title>
     </news:news>
   </url>
@@ -42,8 +53,19 @@
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-10-09T19:01:22.054Z</news:publication_date>
+      <news:publication_date>2025-10-13T22:48:37.868Z</news:publication_date>
       <news:title>bdougie/contributor.info - Contributor Updates</news:title>
+    </news:news>
+  </url>
+  <url>
+    <loc>https://contributor.info/dachosen1/nearquake</loc>
+    <news:news>
+      <news:publication>
+        <news:name>Contributor.info</news:name>
+        <news:language>en</news:language>
+      </news:publication>
+      <news:publication_date>2025-10-13T04:29:14.796Z</news:publication_date>
+      <news:title>dachosen1/nearquake - Contributor Updates</news:title>
     </news:news>
   </url>
 </urlset>

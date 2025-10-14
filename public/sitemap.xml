@@ -224,6 +224,24 @@
     <lastmod>2025-10-08T06:34:54.901Z</lastmod>
   </url>
   <url>
+    <loc>https://contributor.info/appwrite/appwrite</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+    <lastmod>2025-10-13T17:16:00.559Z</lastmod>
+  </url>
+  <url>
+    <loc>https://contributor.info/appwrite/appwrite/health</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+    <lastmod>2025-10-13T17:16:00.559Z</lastmod>
+  </url>
+  <url>
+    <loc>https://contributor.info/appwrite/appwrite/distribution</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+    <lastmod>2025-10-13T17:16:00.559Z</lastmod>
+  </url>
+  <url>
     <loc>https://contributor.info/etcd-io/etcd</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
@@ -245,19 +263,19 @@
     <loc>https://contributor.info/continuedev/continue</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-10-09T19:55:18.542Z</lastmod>
+    <lastmod>2025-10-13T22:48:37.868Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/continuedev/continue/health</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-10-09T19:55:18.542Z</lastmod>
+    <lastmod>2025-10-13T22:48:37.868Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/continuedev/continue/distribution</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-10-09T19:55:18.542Z</lastmod>
+    <lastmod>2025-10-13T22:48:37.868Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/argoproj/argo-cd</loc>
@@ -281,19 +299,19 @@
     <loc>https://contributor.info/vercel/ai</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-10-09T19:01:23.784Z</lastmod>
+    <lastmod>2025-10-13T22:48:37.868Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/vercel/ai/health</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-10-09T19:01:23.784Z</lastmod>
+    <lastmod>2025-10-13T22:48:37.868Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/vercel/ai/distribution</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-10-09T19:01:23.784Z</lastmod>
+    <lastmod>2025-10-13T22:48:37.868Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/pgvector/pgvector</loc>
@@ -407,13 +425,19 @@
     <loc>https://contributor.info/jargonsdev/jargons.dev</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
-    <lastmod>2025-10-09T19:01:23.820Z</lastmod>
+    <lastmod>2025-10-13T22:48:37.868Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/bdougie/contributor.info</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
-    <lastmod>2025-10-09T19:01:22.054Z</lastmod>
+    <lastmod>2025-10-13T22:48:37.868Z</lastmod>
+  </url>
+  <url>
+    <loc>https://contributor.info/dachosen1/nearquake</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+    <lastmod>2025-10-13T04:29:14.796Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/moment/moment</loc>
