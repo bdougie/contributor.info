@@ -827,6 +827,9 @@ function SimilarDiscussionsList({
     }>
   >([]);
 
+  // Create a stable dependency key for repository IDs
+  const repositoryIdsKey = useMemo(() => repositoryIds.join(','), [repositoryIds]);
+
   useEffect(() => {
     const fetchSimilarDiscussions = async () => {
       setLoading(true);
@@ -904,7 +907,7 @@ function SimilarDiscussionsList({
     };
 
     fetchSimilarDiscussions();
-  }, [discussionId, repositoryIds]);
+  }, [discussionId, repositoryIdsKey, repositoryIds]);
 
   if (loading) {
     return (
