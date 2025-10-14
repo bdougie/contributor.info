@@ -1089,7 +1089,7 @@ const captureRepositorySyncGraphQL = inngest.createFunction(
           repository(owner: $owner, name: $name) {
             pullRequests(
               first: 100
-              orderBy: {field: UPDATED_AT, direction: DESC}
+              orderBy: {field: CREATED_AT, direction: DESC}
             ) {
               nodes {
                 number
@@ -1130,14 +1130,14 @@ const captureRepositorySyncGraphQL = inngest.createFunction(
 
       let prs = data.repository.pullRequests.nodes;
 
-      // Filter PRs by the since date (based on updatedAt)
+      // Filter PRs by the since date (based on createdAt)
       const sinceDate = new Date(since);
       prs = prs.filter((pr: any) => {
-        const updatedAt = new Date(pr.updatedAt);
-        return updatedAt >= sinceDate;
+        const createdAt = new Date(pr.createdAt);
+        return createdAt >= sinceDate;
       });
 
-      console.log(`Fetched ${prs.length} PRs from ${repository.owner}/${repository.name} updated since ${since}`);
+      console.log(`Fetched ${prs.length} newest PRs from ${repository.owner}/${repository.name} created since ${since}`);
       return prs;
     });
 
@@ -2272,7 +2272,7 @@ const captureRepositorySyncEnhanced = inngest.createFunction(
           repository(owner: $owner, name: $name) {
             pullRequests(
               first: 150
-              orderBy: {field: UPDATED_AT, direction: DESC}
+              orderBy: {field: CREATED_AT, direction: DESC}
             ) {
               nodes {
                 number
@@ -2316,14 +2316,14 @@ const captureRepositorySyncEnhanced = inngest.createFunction(
 
       let prs = data.repository.pullRequests.nodes;
 
-      // Filter PRs by the since date (based on updatedAt)
+      // Filter PRs by the since date (based on createdAt)
       const sinceDate = new Date(since);
       prs = prs.filter((pr: any) => {
-        const updatedAt = new Date(pr.updatedAt);
-        return updatedAt >= sinceDate;
+        const createdAt = new Date(pr.createdAt);
+        return createdAt >= sinceDate;
       });
 
-      console.log('Fetched %s PRs from %s/%s updated since %s', prs.length, repository.owner, repository.name, since);
+      console.log('Fetched %s newest PRs from %s/%s created since %s', prs.length, repository.owner, repository.name, since);
       return prs;
     });
 
