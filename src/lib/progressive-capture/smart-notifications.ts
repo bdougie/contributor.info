@@ -25,7 +25,43 @@ export class SmartDataNotifications {
   /**
    * Check workspace for missing data and queue capture jobs for all repositories
    */
-  static async checkWorkspaceAndNotify(workspaceId: string): Promise<void> {
+  static async checkWorkspaceAndNotify(workspaceSlugOrId: string): Promise<void> {
+    let workspaceId = workspaceSlugOrId;
+
+    // Check if this looks like a slug (not a UUID)
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      workspaceSlugOrId
+    );
+
+    if (!isUuid) {
+      // It's a slug, need to resolve to UUID
+      if (import.meta.env?.DEV) {
+        console.log('🔍 Resolving workspace slug to UUID: %s', workspaceSlugOrId);
+      }
+
+      const { data: workspace, error: workspaceError } = await supabase
+        .from('workspaces')
+        .select('id')
+        .eq('slug', workspaceSlugOrId)
+        .maybeSingle();
+
+      if (workspaceError || !workspace) {
+        if (import.meta.env?.DEV) {
+          console.log(
+            '❌ Workspace not found for slug %s:',
+            workspaceSlugOrId,
+            workspaceError?.message
+          );
+        }
+        return;
+      }
+
+      workspaceId = workspace.id;
+      if (import.meta.env?.DEV) {
+        console.log('✅ Resolved workspace slug %s to UUID: %s', workspaceSlugOrId, workspaceId);
+      }
+    }
+
     const workspaceKey = `workspace:${workspaceId}`;
 
     if (import.meta.env?.DEV) {
@@ -330,6 +366,26 @@ export class SmartDataNotifications {
       if (!stalePRError && stalePRs && stalePRs.length > 0) {
         missing.push('pr activity');
       }
+
+      // Check for missing discussions (if repository has discussions enabled)
+      const { data: repoInfo, error: repoInfoError } = await supabase
+        .from('repositories')
+        .select('has_discussions')
+        .eq('id', repositoryId)
+        .maybeSingle();
+
+      if (!repoInfoError && repoInfo?.has_discussions) {
+        // Check if we have any discussions captured
+        const { data: discussionsData, error: discussionsError } = await supabase
+          .from('discussions')
+          .select('id')
+          .eq('repository_id', repositoryId)
+          .limit(1);
+
+        if (!discussionsError && (!discussionsData || discussionsData.length === 0)) {
+          missing.push('discussions');
+        }
+      }
     } catch (error) {
       console.error('[Smart Notifications] Error analyzing missing data:', error);
     }
@@ -438,24 +494,45 @@ export class SmartDataNotifications {
         );
       }
 
-      // Queue issue comments separately
+      // Queue issue capture (discovers issues and their comments)
       if (missingData.includes('issue comments')) {
         if (import.meta.env?.DEV) {
           console.log(
-            '⏳ Queuing issue comments job for %s/%s with priority: %s',
+            '⏳ Queuing issue capture job for %s/%s with priority: %s',
             owner,
             repo,
             priority
           );
         }
         promises.push(
-          hybridQueueManager.queueJob('comments', {
+          hybridQueueManager.queueJob('repository-issues', {
             repositoryId,
             repositoryName: `${owner}/${repo}`,
-            timeRange: 30, // Get more comment history
+            timeRange: 30, // Last 30 days of issues
             triggerSource: 'auto-fix',
-            maxItems: 200,
-            metadata: { priority, captureIssueComments: true },
+            maxItems: 200, // Prevent rate limit issues
+            metadata: { priority },
+          })
+        );
+      }
+
+      // Queue discussion capture (discovers discussions with AI summaries)
+      if (missingData.includes('discussions')) {
+        if (import.meta.env?.DEV) {
+          console.log(
+            '⏳ Queuing discussion capture job for %s/%s with priority: %s',
+            owner,
+            repo,
+            priority
+          );
+        }
+        promises.push(
+          hybridQueueManager.queueJob('repository-discussions', {
+            repositoryId,
+            repositoryName: `${owner}/${repo}`,
+            triggerSource: 'auto-fix',
+            maxItems: 100, // Prevent rate limit issues
+            metadata: { priority },
           })
         );
       }
