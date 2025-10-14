@@ -1081,8 +1081,6 @@ const captureRepositorySyncGraphQL = inngest.createFunction(
 
     // Step 2: Fetch recent PRs using GraphQL
     const prs = await step.run('fetch-recent-prs-graphql', async () => {
-      const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
-
       // Build GraphQL query
       const query = `
         query($owner: String!, $name: String!) {
@@ -1128,16 +1126,11 @@ const captureRepositorySyncGraphQL = inngest.createFunction(
         name: repository.name,
       });
 
-      let prs = data.repository.pullRequests.nodes;
+      const prs = data.repository.pullRequests.nodes;
 
-      // Filter PRs by the since date (based on createdAt)
-      const sinceDate = new Date(since);
-      prs = prs.filter((pr: any) => {
-        const createdAt = new Date(pr.createdAt);
-        return createdAt >= sinceDate;
-      });
-
-      console.log(`Fetched ${prs.length} newest PRs from ${repository.owner}/${repository.name} created since ${since}`);
+      // No filtering - we want the 100 most recent PRs regardless of date
+      // The CREATED_AT DESC ordering already gives us the newest PRs
+      console.log(`Fetched ${prs.length} newest PRs from ${repository.owner}/${repository.name}`);
       return prs;
     });
 
@@ -2265,8 +2258,6 @@ const captureRepositorySyncEnhanced = inngest.createFunction(
 
     // Step 4: Fetch recent PRs via GraphQL
     const recentPRs = await step.run('fetch-recent-prs-graphql', async () => {
-      const since = new Date(Date.now() - effectiveDays * 24 * 60 * 60 * 1000).toISOString();
-
       const query = `
         query($owner: String!, $name: String!) {
           repository(owner: $owner, name: $name) {
@@ -2314,16 +2305,11 @@ const captureRepositorySyncEnhanced = inngest.createFunction(
         name: repository.name,
       });
 
-      let prs = data.repository.pullRequests.nodes;
+      const prs = data.repository.pullRequests.nodes;
 
-      // Filter PRs by the since date (based on createdAt)
-      const sinceDate = new Date(since);
-      prs = prs.filter((pr: any) => {
-        const createdAt = new Date(pr.createdAt);
-        return createdAt >= sinceDate;
-      });
-
-      console.log('Fetched %s newest PRs from %s/%s created since %s', prs.length, repository.owner, repository.name, since);
+      // No filtering - we want the 100 most recent PRs regardless of date
+      // The CREATED_AT DESC ordering already gives us the newest PRs
+      console.log('Fetched %s newest PRs from %s/%s', prs.length, repository.owner, repository.name);
       return prs;
     });
 
