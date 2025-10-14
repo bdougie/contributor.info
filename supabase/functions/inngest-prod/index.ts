@@ -1047,6 +1047,166 @@ const captureRepositorySync = inngest.createFunction(
   },
 );
 
+// 7b. capture-repository-sync-graphql - GraphQL version for improved efficiency
+const captureRepositorySyncGraphQL = inngest.createFunction(
+  {
+    id: 'capture-repository-sync-graphql',
+    name: 'Sync Recent Repository PRs (GraphQL)',
+    retries: 2,
+  },
+  { event: 'capture/repository.sync.graphql' },
+  async ({ event, step }) => {
+    const { repositoryId, days = 30 } = event.data;
+
+    // Validate required parameters
+    if (!repositoryId) {
+      throw new NonRetriableError('Missing required parameter: repositoryId');
+    }
+
+    // Step 1: Get repository details
+    const repository = await step.run('get-repository', async () => {
+      const supabase = getSupabaseClient();
+      const { data, error } = await supabase
+        .from('repositories')
+        .select('owner, name, last_updated_at')
+        .eq('id', repositoryId)
+        .maybeSingle();
+
+      if (error || !data) {
+        throw new NonRetriableError(`Repository not found: ${repositoryId}`);
+      }
+
+      return data;
+    });
+
+    // Step 2: Fetch recent PRs using GraphQL
+    const prs = await step.run('fetch-recent-prs-graphql', async () => {
+      const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+
+      // Build GraphQL query
+      const query = `
+        query($owner: String!, $name: String!, $since: DateTime!) {
+          repository(owner: $owner, name: $name) {
+            pullRequests(
+              first: 100
+              orderBy: {field: UPDATED_AT, direction: DESC}
+              filterBy: {since: $since}
+            ) {
+              nodes {
+                number
+                databaseId
+                title
+                body
+                state
+                isDraft
+                createdAt
+                updatedAt
+                closedAt
+                mergedAt
+                additions
+                deletions
+                changedFiles
+                baseRefName
+                headRefName
+                author {
+                  login
+                  avatarUrl
+                  ... on User {
+                    databaseId
+                  }
+                }
+                commits {
+                  totalCount
+                }
+              }
+            }
+          }
+        }
+      `;
+
+      const data = await githubGraphQL(query, {
+        owner: repository.owner,
+        name: repository.name,
+        since,
+      });
+
+      const prs = data.repository.pullRequests.nodes;
+      console.log(`Fetched ${prs.length} PRs from ${repository.owner}/${repository.name} via GraphQL`);
+      return prs;
+    });
+
+    // Step 3: Store PRs in database
+    await step.run('store-prs', async () => {
+      const supabase = getSupabaseClient();
+
+      for (const pr of prs) {
+        // Ensure author exists
+        let authorId = null;
+        if (pr.author && pr.author.databaseId) {
+          authorId = await ensureContributor(
+            supabase,
+            pr.author.login,
+            pr.author.avatarUrl,
+            pr.author.databaseId,
+          );
+        }
+
+        // Store PR
+        const { error } = await supabase.from('pull_requests').upsert({
+          number: pr.number,
+          github_id: pr.databaseId?.toString() || pr.number.toString(),
+          repository_id: repositoryId,
+          repository_full_name: `${repository.owner}/${repository.name}`,
+          title: pr.title,
+          body: pr.body,
+          state: pr.state.toLowerCase(),
+          author_id: authorId,
+          additions: pr.additions || 0,
+          deletions: pr.deletions || 0,
+          changed_files: pr.changedFiles || 0,
+          created_at: pr.createdAt,
+          updated_at: pr.updatedAt,
+          closed_at: pr.closedAt,
+          merged_at: pr.mergedAt,
+          is_draft: pr.isDraft || false,
+          base_branch: pr.baseRefName || 'main',
+          head_branch: pr.headRefName || 'unknown',
+          commits: pr.commits?.totalCount || 0,
+          last_synced_at: new Date().toISOString(),
+        }, {
+          onConflict: 'github_id',
+        });
+
+        if (error) {
+          console.error(`Failed to upsert PR #${pr.number}:`, error);
+        }
+      }
+    });
+
+    // Step 4: Update repository sync timestamp
+    await step.run('update-sync-timestamp', async () => {
+      const supabase = getSupabaseClient();
+      const { error } = await supabase
+        .from('repositories')
+        .update({
+          last_updated_at: new Date().toISOString(),
+        })
+        .eq('id', repositoryId);
+
+      if (error) {
+        console.warn('Failed to update repository sync timestamp:', error);
+      }
+    });
+
+    return {
+      repository: `${repository.owner}/${repository.name}`,
+      method: 'graphql',
+      prsFound: prs.length,
+      status: 'synced',
+    };
+  },
+);
+
 // 8. update-pr-activity
 const updatePrActivity = inngest.createFunction(
   {
@@ -1276,6 +1436,87 @@ const classifyRepositorySize = inngest.createFunction(
       classifications: results,
     };
   },
+);
+
+// 10b. classify-single-repository - Classify a single repository on demand
+const classifySingleRepository = inngest.createFunction(
+  {
+    id: 'classify-single-repository',
+    name: 'Classify Single Repository',
+    retries: 3,
+  },
+  { event: 'classify/repository.single' },
+  async ({ event, step }) => {
+    const { repositoryId, owner, repo } = event.data;
+
+    // Validate required fields
+    if (!repositoryId || !owner || !repo) {
+      console.error('Missing required fields in event data:', event.data);
+      throw new NonRetriableError(
+        `Missing required fields: repositoryId=${repositoryId}, owner=${owner}, repo=${repo}`
+      );
+    }
+
+    // Classify the repository
+    const size = await step.run('classify-repository', async () => {
+      const githubToken = Deno.env.get('GITHUB_TOKEN') || Deno.env.get('VITE_GITHUB_TOKEN');
+      if (!githubToken) {
+        throw new NonRetriableError('GitHub token not configured');
+      }
+
+      const supabase = getSupabaseClient();
+
+      // Fetch repository stats from GitHub
+      const repoData = await githubRequest(`/repos/${owner}/${repo}`, githubToken);
+
+      // Classify based on stars, forks, and activity
+      let size_class = 'small';
+      if (repoData.stargazers_count > 10000 || repoData.forks_count > 2000) {
+        size_class = 'large';
+      } else if (repoData.stargazers_count > 1000 || repoData.forks_count > 200) {
+        size_class = 'medium';
+      }
+
+      // Calculate activity level
+      const lastPushDate = new Date(repoData.pushed_at);
+      const daysSinceLastPush = Math.floor(
+        (Date.now() - lastPushDate.getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      const activity_level = daysSinceLastPush < 7
+        ? 'high'
+        : daysSinceLastPush < 30
+        ? 'medium'
+        : daysSinceLastPush < 90
+        ? 'low'
+        : 'dormant';
+
+      // Update repository classification
+      const { error } = await supabase
+        .from('repositories')
+        .update({
+          size_class,
+          activity_level,
+          stargazers_count: repoData.stargazers_count,
+          forks_count: repoData.forks_count,
+          open_issues_count: repoData.open_issues_count,
+          classified_at: new Date().toISOString(),
+        })
+        .eq('id', repositoryId);
+
+      if (error) {
+        throw error;
+      }
+
+      return { size_class, activity_level };
+    });
+
+    return {
+      repositoryId,
+      size,
+      timestamp: new Date().toISOString(),
+    };
+  }
 );
 
 // 11. compute-embeddings - Runs every 15 minutes
@@ -1880,6 +2121,702 @@ const scheduleWorkspaceAggregation = inngest.createFunction(
   },
 );
 
+// ============================================================================
+// ENHANCED REPOSITORY SYNC WITH BACKFILL SUPPORT
+// ============================================================================
+
+const captureRepositorySyncEnhanced = inngest.createFunction(
+  {
+    id: 'capture-repository-sync-enhanced',
+    name: 'Enhanced Repository Sync with Backfill Support',
+    concurrency: {
+      limit: 5,
+      key: 'event.data.repositoryId',
+    },
+    throttle: { limit: 75, period: '1m' },
+    retries: 2,
+  },
+  { event: 'capture/repository.sync.enhanced' },
+  async ({ event, step }) => {
+    const { repositoryId, days = 30, priority = 'medium', reason } = event.data;
+
+    // Step 1: Check if repository is being backfilled
+    const backfillState = await step.run('check-backfill-state', async () => {
+      const supabase = getSupabaseClient();
+      const { data } = await supabase
+        .from('progressive_backfill_state')
+        .select('*')
+        .eq('repository_id', repositoryId)
+        .eq('status', 'active')
+        .maybeSingle();
+
+      return data;
+    });
+
+    // If backfill is active, only sync very recent data (1 day)
+    const effectiveDays = backfillState?.status === 'active' ? 1 : Math.min(days, 30);
+    const shouldCheckSyncTime = !backfillState && reason !== 'manual';
+
+    // Step 2: Get repository details
+    const repository = await step.run('get-repository', async () => {
+      const supabase = getSupabaseClient();
+      const { data, error } = await supabase
+        .from('repositories')
+        .select('owner, name, last_updated_at, pull_request_count')
+        .eq('id', repositoryId)
+        .maybeSingle();
+
+      if (error || !data) {
+        throw new NonRetriableError(`Repository not found: ${repositoryId}`);
+      }
+
+      // Check if repository was synced recently (12 hour cooldown)
+      if (shouldCheckSyncTime && data.last_updated_at) {
+        const lastSyncTime = new Date(data.last_updated_at).getTime();
+        const hoursSinceSync = (Date.now() - lastSyncTime) / (1000 * 60 * 60);
+
+        if (hoursSinceSync < 12) {
+          const timeAgo =
+            hoursSinceSync < 1
+              ? `${Math.round(hoursSinceSync * 60)} minutes`
+              : `${Math.round(hoursSinceSync)} hours`;
+          throw new NonRetriableError(
+            `Repository ${data.owner}/${data.name} was synced ${timeAgo} ago. Skipping to prevent excessive API usage.`
+          );
+        }
+      }
+
+      return data;
+    });
+
+    // Step 3: Check if we should initiate backfill for large repos
+    const shouldInitiateBackfill = await step.run('check-initiate-backfill', async () => {
+      if (backfillState) {
+        console.log(
+          'Repository %s/%s is already being backfilled',
+          repository.owner,
+          repository.name
+        );
+        return false;
+      }
+
+      // Check repository size
+      if (!repository.pull_request_count || repository.pull_request_count < 100) {
+        return false; // Small repos don't need backfill
+      }
+
+      // Check data completeness
+      const supabase = getSupabaseClient();
+      const { count: capturedPRs } = await supabase
+        .from('pull_requests')
+        .select('*', { count: 'exact', head: true })
+        .eq('repository_id', repositoryId);
+
+      const completeness = (capturedPRs || 0) / repository.pull_request_count;
+
+      // Initiate backfill if less than 80% complete
+      if (completeness < 0.8) {
+        console.log(
+          'Repository %s/%s is only %s%% complete, initiating backfill',
+          repository.owner,
+          repository.name,
+          Math.round(completeness * 100)
+        );
+
+        // Create backfill state
+        const { error } = await supabase.from('progressive_backfill_state').insert({
+          repository_id: repositoryId,
+          total_prs: repository.pull_request_count,
+          processed_prs: capturedPRs || 0,
+          status: 'active',
+          chunk_size: 25,
+          metadata: {
+            initial_completeness: completeness,
+            initiated_by: 'sync_function',
+            reason: 'incomplete_data',
+          },
+        });
+
+        if (!error) {
+          await supabase.from('progressive_capture_jobs').insert({
+            job_type: 'progressive_backfill',
+            repository_id: repositoryId,
+            status: 'pending',
+            processor_type: 'github_actions',
+            metadata: {
+              reason: 'auto_initiated',
+              total_prs: repository.pull_request_count,
+              current_completeness: completeness,
+            },
+          });
+
+          return true;
+        }
+      }
+
+      return false;
+    });
+
+    // Step 4: Fetch recent PRs via GraphQL
+    const recentPRs = await step.run('fetch-recent-prs-graphql', async () => {
+      const since = new Date(Date.now() - effectiveDays * 24 * 60 * 60 * 1000).toISOString();
+
+      const query = `
+        query($owner: String!, $name: String!, $since: DateTime!) {
+          repository(owner: $owner, name: $name) {
+            pullRequests(
+              first: 150
+              orderBy: {field: UPDATED_AT, direction: DESC}
+              filterBy: {since: $since}
+            ) {
+              nodes {
+                number
+                databaseId
+                title
+                state
+                isDraft
+                createdAt
+                updatedAt
+                closedAt
+                mergedAt
+                merged
+                additions
+                deletions
+                changedFiles
+                baseRefName
+                headRefName
+                author {
+                  login
+                  avatarUrl
+                  ... on User {
+                    databaseId
+                  }
+                  ... on Bot {
+                    databaseId
+                  }
+                }
+                commits {
+                  totalCount
+                }
+              }
+            }
+          }
+        }
+      `;
+
+      const data = await githubGraphQL(query, {
+        owner: repository.owner,
+        name: repository.name,
+        since,
+      });
+
+      const prs = data.repository.pullRequests.nodes;
+      console.log('Fetched %s PRs from %s/%s via GraphQL', prs.length, repository.owner, repository.name);
+      return prs;
+    });
+
+    // Step 5: Store PRs in database
+    const storedPRs = await step.run('store-prs', async () => {
+      if (recentPRs.length === 0) {
+        return [];
+      }
+
+      const supabase = getSupabaseClient();
+
+      // Ensure all contributors exist and get their UUIDs
+      const contributorIds = await Promise.all(
+        recentPRs.map(async (pr: any) => {
+          if (!pr.author || !pr.author.databaseId) return null;
+
+          return await ensureContributor(
+            supabase,
+            pr.author.login,
+            pr.author.avatarUrl,
+            pr.author.databaseId
+          );
+        })
+      );
+
+      // Prepare PRs for storage
+      const prsToStore = recentPRs
+        .map((pr: any, index: number) => {
+          if (!contributorIds[index]) return null;
+
+          return {
+            github_id: pr.databaseId?.toString() || '0',
+            repository_id: repositoryId,
+            repository_full_name: `${repository.owner}/${repository.name}`,
+            number: pr.number,
+            title: pr.title,
+            body: null,
+            state: pr.state?.toLowerCase() || 'open',
+            author_id: contributorIds[index],
+            created_at: pr.createdAt,
+            updated_at: pr.updatedAt,
+            closed_at: pr.closedAt,
+            merged_at: pr.mergedAt,
+            is_draft: pr.isDraft || false,
+            additions: pr.additions || 0,
+            deletions: pr.deletions || 0,
+            changed_files: pr.changedFiles || 0,
+            commits: pr.commits?.totalCount || 0,
+            base_branch: pr.baseRefName || 'main',
+            head_branch: pr.headRefName || 'unknown',
+            last_synced_at: new Date().toISOString(),
+          };
+        })
+        .filter(Boolean);
+
+      const { data, error } = await supabase
+        .from('pull_requests')
+        .upsert(prsToStore, {
+          onConflict: 'github_id',
+        })
+        .select('id, number');
+
+      if (error) throw error;
+      return data || [];
+    });
+
+    // Step 6: Update repository sync timestamp
+    await step.run('update-sync-timestamp', async () => {
+      const supabase = getSupabaseClient();
+      const { error } = await supabase
+        .from('repositories')
+        .update({
+          last_updated_at: new Date().toISOString(),
+        })
+        .eq('id', repositoryId);
+
+      if (error) {
+        console.error('Failed to update repository sync timestamp: %s', error.message);
+      }
+    });
+
+    return {
+      repository: `${repository.owner}/${repository.name}`,
+      effectiveDays,
+      backfillActive: !!backfillState,
+      backfillInitiated: shouldInitiateBackfill,
+      prsFound: recentPRs.length,
+      prsStored: storedPRs.length,
+      timestamp: new Date().toISOString(),
+    };
+  }
+);
+
+// ============================================================================
+// DISCUSSIONS SYNC CRON
+// ============================================================================
+
+const syncDiscussionsCron = inngest.createFunction(
+  {
+    id: 'sync-discussions-cron',
+    name: 'Sync Discussions (Cron)',
+    retries: 1,
+  },
+  { cron: '0 2 * * *' }, // Run daily at 2 AM UTC
+  async ({ step }) => {
+    // Step 1: Find all repositories with discussions enabled
+    const repositories = await step.run('get-repositories-with-discussions', async () => {
+      const supabase = getSupabaseClient();
+      const { data, error } = await supabase
+        .from('repositories')
+        .select('id, owner, name')
+        .eq('has_discussions', true);
+
+      if (error) {
+        console.error('Error fetching repositories with discussions: %s', error.message);
+        throw error;
+      }
+
+      console.log('Found %s repositories with discussions enabled', data?.length || 0);
+      return data || [];
+    });
+
+    if (repositories.length === 0) {
+      console.log('No repositories with discussions to sync');
+      return {
+        success: true,
+        repositoriesSynced: 0,
+        message: 'No repositories with discussions enabled',
+      };
+    }
+
+    // Step 2: Trigger discussion sync for each repository
+    const eventsSent = await step.run('send-discussion-sync-events', async () => {
+      const inngestEventKey = Deno.env.get('INNGEST_EVENT_KEY');
+      if (!inngestEventKey) {
+        throw new NonRetriableError('INNGEST_EVENT_KEY not configured');
+      }
+
+      let successCount = 0;
+      for (const repo of repositories) {
+        try {
+          const response = await fetch(`https://inn.gs/e/${inngestEventKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: 'capture/repository.discussions',
+              data: {
+                repositoryId: repo.id,
+                maxItems: 100,
+                source: 'cron',
+              },
+            }),
+          });
+
+          if (response.ok) {
+            successCount++;
+          } else {
+            console.error(
+              'Failed to queue discussion sync for %s/%s: %s',
+              repo.owner,
+              repo.name,
+              await response.text()
+            );
+          }
+        } catch (error) {
+          console.error(
+            'Error queuing discussion sync for %s/%s: %s',
+            repo.owner,
+            repo.name,
+            error
+          );
+        }
+      }
+
+      return successCount;
+    });
+
+    console.log('Triggered discussion sync for %s repositories', eventsSent);
+
+    return {
+      success: true,
+      repositoriesSynced: eventsSent,
+      repositories: repositories.map((r: any) => `${r.owner}/${r.name}`),
+    };
+  }
+);
+
+// ============================================================================
+// HANDLE WORKSPACE REPOSITORY CHANGE
+// ============================================================================
+
+const handleWorkspaceRepositoryChange = inngest.createFunction(
+  {
+    id: 'handle-workspace-repository-change',
+    name: 'Handle Workspace Repository Change',
+    debounce: {
+      key: 'event.data.workspaceId',
+      period: '30s', // Debounce rapid changes
+    },
+  },
+  { event: 'workspace.repository.changed' },
+  async ({ event, step }) => {
+    const { workspaceId, action, repositoryId, repositoryName } = event.data;
+
+    // Step 1: Invalidate cache
+    await step.run('invalidate-cache', async () => {
+      const supabase = getSupabaseClient();
+
+      // Mark all time ranges as stale in database using RPC if available
+      try {
+        await supabase.rpc('mark_workspace_cache_stale', {
+          p_workspace_id: workspaceId,
+        });
+      } catch (error) {
+        // Fallback to manual update if RPC doesn't exist
+        console.warn('RPC function not found, using manual cache invalidation');
+        await supabase
+          .from('workspace_metrics_cache')
+          .update({ is_stale: true })
+          .eq('workspace_id', workspaceId);
+      }
+
+      return { invalidated: true };
+    });
+
+    // Step 2: Log the change
+    await step.run('log-change', async () => {
+      console.log(
+        'Workspace %s: Repository %s - %s (%s)',
+        workspaceId,
+        action,
+        repositoryName,
+        repositoryId
+      );
+
+      return { logged: true };
+    });
+
+    // Step 3: Trigger re-aggregation with high priority
+    await step.sendEvent('trigger-reaggregation', {
+      name: 'workspace.metrics.aggregate',
+      data: {
+        workspaceId,
+        timeRange: '30d',
+        priority: 1, // High priority for user-triggered changes
+        forceRefresh: true,
+        triggeredBy: 'webhook',
+        triggerMetadata: {
+          action,
+          repositoryId,
+          repositoryName,
+        },
+      },
+    });
+
+    return {
+      workspaceId,
+      action,
+      repositoryName,
+      cacheInvalidated: true,
+      aggregationTriggered: true,
+    };
+  }
+);
+
+// ============================================================================
+// CLEANUP WORKSPACE METRICS DATA
+// ============================================================================
+
+const cleanupWorkspaceMetricsData = inngest.createFunction(
+  {
+    id: 'cleanup-workspace-metrics-data',
+    name: 'Cleanup Workspace Metrics Data',
+  },
+  {
+    cron: '0 3 * * *', // Daily at 3 AM
+  },
+  async ({ step }) => {
+    // Step 1: Clean up expired cache entries
+    const cacheCleanup = await step.run('cleanup-cache', async () => {
+      const supabase = getSupabaseClient();
+
+      try {
+        const { data, error } = await supabase.rpc('cleanup_expired_workspace_cache');
+
+        if (error) {
+          console.error('Cache cleanup failed:', error);
+          return { deleted: 0 };
+        }
+
+        return { deleted: data || 0 };
+      } catch (error) {
+        // Fallback to manual deletion if RPC doesn't exist
+        console.warn('RPC function not found, using manual cache cleanup');
+        const { error: deleteError, count } = await supabase
+          .from('workspace_metrics_cache')
+          .delete()
+          .lt('expires_at', new Date().toISOString());
+
+        if (deleteError) {
+          console.error('Manual cache cleanup failed:', deleteError);
+          return { deleted: 0 };
+        }
+
+        return { deleted: count || 0 };
+      }
+    });
+
+    // Step 2: Clean up old queue entries
+    const queueCleanup = await step.run('cleanup-queue', async () => {
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - 7); // Keep 7 days of history
+
+      const supabase = getSupabaseClient();
+      const { error, count } = await supabase
+        .from('workspace_aggregation_queue')
+        .delete()
+        .in('status', ['completed', 'failed'])
+        .lt('created_at', cutoffDate.toISOString());
+
+      if (error) {
+        console.error('Queue cleanup failed:', error);
+        return { deleted: 0 };
+      }
+
+      return { deleted: count || 0 };
+    });
+
+    // Step 3: Clean up old metrics history (based on tier retention)
+    const historyCleanup = await step.run('cleanup-history', async () => {
+      const supabase = getSupabaseClient();
+      const { data: workspaces } = await supabase
+        .from('workspaces')
+        .select('id, data_retention_days');
+
+      if (!workspaces) return { deleted: 0 };
+
+      let totalDeleted = 0;
+
+      for (const workspace of workspaces) {
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - workspace.data_retention_days);
+
+        const { count } = await supabase
+          .from('workspace_metrics_history')
+          .delete()
+          .eq('workspace_id', workspace.id)
+          .lt('metric_date', cutoffDate.toISOString().split('T')[0]);
+
+        totalDeleted += count || 0;
+      }
+
+      return { deleted: totalDeleted };
+    });
+
+    return {
+      cacheEntriesDeleted: cacheCleanup.deleted,
+      queueEntriesDeleted: queueCleanup.deleted,
+      historyEntriesDeleted: historyCleanup.deleted,
+    };
+  }
+);
+
+// ============================================================================
+// SYNC WORKSPACE PRIORITIES
+// ============================================================================
+
+const syncWorkspacePriorities = inngest.createFunction(
+  {
+    id: 'sync-workspace-priorities',
+    name: 'Sync Workspace Repository Priorities',
+    concurrency: { limit: 1 }, // Prevent concurrent syncs
+    retries: 2,
+  },
+  [
+    { cron: '0 */6 * * *' }, // Every 6 hours
+    { event: 'workspace/priorities.sync' }, // Manual trigger
+  ],
+  async ({ step }) => {
+    // Step 1: Get all workspace repository IDs
+    const workspaceRepoIds = await step.run('get-workspace-repositories', async () => {
+      const supabase = getSupabaseClient();
+      const { data, error } = await supabase.from('workspace_repositories').select('repository_id');
+
+      if (error) {
+        console.error('Failed to get workspace repos: %s', error.message);
+        return [];
+      }
+
+      // Return unique repository IDs
+      const uniqueIds = [...new Set(data?.map((r: any) => r.repository_id) || [])];
+      console.log('Found %s workspace repositories', uniqueIds.length);
+      return uniqueIds;
+    });
+
+    // Step 2: Mark workspace repos as high priority
+    const priorityChanges = await step.run('update-priorities', async () => {
+      let changes = 0;
+      const errors: string[] = [];
+
+      if (workspaceRepoIds.length === 0) {
+        return { changes, errors };
+      }
+
+      const supabase = getSupabaseClient();
+
+      // Mark all workspace repos as high priority
+      const { data: updated, error: updateError } = await supabase
+        .from('tracked_repositories')
+        .update({
+          is_workspace_repo: true,
+          priority: 'high',
+        })
+        .in('repository_id', workspaceRepoIds)
+        .select('repository_id, priority');
+
+      if (updateError) {
+        errors.push(`Failed to update workspace repos: ${updateError.message}`);
+        console.error('Error updating workspace repos:', updateError);
+      } else {
+        changes += updated?.length || 0;
+      }
+
+      // Update workspace_count for all workspace repos
+      for (const repoId of workspaceRepoIds) {
+        const { count, error: countError } = await supabase
+          .from('workspace_repositories')
+          .select('*', { count: 'exact', head: true })
+          .eq('repository_id', repoId);
+
+        if (countError) {
+          errors.push(`Failed to count workspaces for ${repoId}: ${countError.message}`);
+          continue;
+        }
+
+        await supabase
+          .from('tracked_repositories')
+          .update({ workspace_count: count || 0 })
+          .eq('repository_id', repoId);
+      }
+
+      return { changes, errors };
+    });
+
+    // Step 3: Downgrade tracked-only repos to medium priority
+    const trackedOnlyUpdates = await step.run('downgrade-tracked-only', async () => {
+      const supabase = getSupabaseClient();
+
+      // Get repos NOT in any workspace
+      const queryFilter = workspaceRepoIds.length > 0
+        ? workspaceRepoIds.join(',')
+        : 'null';
+
+      const { data: trackedOnlyRepos, error: trackedError } = await supabase
+        .from('tracked_repositories')
+        .select('repository_id')
+        .not('repository_id', 'in', `(${queryFilter})`);
+
+      if (trackedError) {
+        console.error('Error getting tracked-only repos:', trackedError);
+        return { downgraded: 0 };
+      }
+
+      if (!trackedOnlyRepos || trackedOnlyRepos.length === 0) {
+        return { downgraded: 0 };
+      }
+
+      // Downgrade to medium priority
+      const { data: downgraded, error: downgradeError } = await supabase
+        .from('tracked_repositories')
+        .update({
+          is_workspace_repo: false,
+          priority: 'medium',
+          workspace_count: 0,
+        })
+        .in(
+          'repository_id',
+          trackedOnlyRepos.map((r: any) => r.repository_id)
+        )
+        .neq('priority', 'medium') // Only count actual changes
+        .select('repository_id');
+
+      if (downgradeError) {
+        console.error('Error downgrading repos:', downgradeError);
+        return { downgraded: 0 };
+      }
+
+      return { downgraded: downgraded?.length || 0 };
+    });
+
+    const result = {
+      success: priorityChanges.errors.length === 0,
+      workspaceRepos: workspaceRepoIds.length,
+      trackedOnlyRepos: trackedOnlyUpdates.downgraded,
+      priorityChanges: priorityChanges.changes + trackedOnlyUpdates.downgraded,
+      errorCount: priorityChanges.errors.length,
+      errors: priorityChanges.errors,
+    };
+
+    console.log('Workspace priority sync completed:', result);
+
+    return result;
+  }
+);
+
 // Define our functions registry
 const functions = [
   capturePrDetails,
@@ -1890,18 +2827,25 @@ const functions = [
   captureIssueComments,
   captureRepositoryIssues,
   captureRepositorySync,
+  captureRepositorySyncGraphQL, // GraphQL version for improved efficiency
+  captureRepositorySyncEnhanced, // Enhanced sync with backfill support
   updatePrActivity,
   discoverNewRepository,
   classifyRepositorySize,
+  classifySingleRepository, // Added: classify single repository on demand
   computeEmbeddings,
   aggregateWorkspaceMetrics,
   scheduleWorkspaceAggregation,
+  syncDiscussionsCron, // Discussion sync cron job
+  handleWorkspaceRepositoryChange, // Handle workspace repository changes
+  cleanupWorkspaceMetricsData, // Cleanup workspace metrics data
+  syncWorkspacePriorities, // Sync workspace priorities
 ];
 
 // Create Inngest handler
 const commHandler = new InngestCommHandler({
   frameworkName: 'deno-edge-supabase',
-  signingKey: undefined, // Disable signature validation for debugging
+  signingKey: undefined, // Disabled for debugging - events are being sent but not executing
   client: inngest,
   functions,
   serveHost: Deno.env.get('VITE_DEPLOY_URL') || 'https://egcxzonpmmcirmgqdrla.supabase.co',
