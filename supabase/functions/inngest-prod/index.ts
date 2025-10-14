@@ -1085,12 +1085,11 @@ const captureRepositorySyncGraphQL = inngest.createFunction(
 
       // Build GraphQL query
       const query = `
-        query($owner: String!, $name: String!, $since: DateTime!) {
+        query($owner: String!, $name: String!) {
           repository(owner: $owner, name: $name) {
             pullRequests(
               first: 100
               orderBy: {field: UPDATED_AT, direction: DESC}
-              filterBy: {since: $since}
             ) {
               nodes {
                 number
@@ -1127,11 +1126,18 @@ const captureRepositorySyncGraphQL = inngest.createFunction(
       const data = await githubGraphQL(query, {
         owner: repository.owner,
         name: repository.name,
-        since,
       });
 
-      const prs = data.repository.pullRequests.nodes;
-      console.log(`Fetched ${prs.length} PRs from ${repository.owner}/${repository.name} via GraphQL`);
+      let prs = data.repository.pullRequests.nodes;
+
+      // Filter PRs by the since date (based on updatedAt)
+      const sinceDate = new Date(since);
+      prs = prs.filter((pr: any) => {
+        const updatedAt = new Date(pr.updatedAt);
+        return updatedAt >= sinceDate;
+      });
+
+      console.log(`Fetched ${prs.length} PRs from ${repository.owner}/${repository.name} updated since ${since}`);
       return prs;
     });
 
@@ -2262,12 +2268,11 @@ const captureRepositorySyncEnhanced = inngest.createFunction(
       const since = new Date(Date.now() - effectiveDays * 24 * 60 * 60 * 1000).toISOString();
 
       const query = `
-        query($owner: String!, $name: String!, $since: DateTime!) {
+        query($owner: String!, $name: String!) {
           repository(owner: $owner, name: $name) {
             pullRequests(
               first: 150
               orderBy: {field: UPDATED_AT, direction: DESC}
-              filterBy: {since: $since}
             ) {
               nodes {
                 number
@@ -2307,11 +2312,18 @@ const captureRepositorySyncEnhanced = inngest.createFunction(
       const data = await githubGraphQL(query, {
         owner: repository.owner,
         name: repository.name,
-        since,
       });
 
-      const prs = data.repository.pullRequests.nodes;
-      console.log('Fetched %s PRs from %s/%s via GraphQL', prs.length, repository.owner, repository.name);
+      let prs = data.repository.pullRequests.nodes;
+
+      // Filter PRs by the since date (based on updatedAt)
+      const sinceDate = new Date(since);
+      prs = prs.filter((pr: any) => {
+        const updatedAt = new Date(pr.updatedAt);
+        return updatedAt >= sinceDate;
+      });
+
+      console.log('Fetched %s PRs from %s/%s updated since %s', prs.length, repository.owner, repository.name, since);
       return prs;
     });
 
