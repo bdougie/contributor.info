@@ -2,6 +2,16 @@ import { supabase } from '../supabase';
 import { ProgressiveCaptureNotifications } from './ui-notifications';
 import type { HybridJob } from './hybrid-queue-manager';
 
+interface WorkspaceRepository {
+  repository_id: string;
+  repositories: {
+    id: string;
+    owner: string;
+    name: string;
+    last_updated_at: string;
+  }[];
+}
+
 /**
  * Smart notification system that detects missing data and offers fixes
  */
@@ -11,6 +21,103 @@ export class SmartDataNotifications {
   private static queuedJobs = new Map<string, number>(); // Track when jobs were last queued
   private static readonly COOLDOWN_DURATION = 10 * 60 * 1000; // 10 minutes
   private static readonly QUEUE_COOLDOWN = 5 * 60 * 1000; // 5 minutes between queue jobs
+
+  /**
+   * Check workspace for missing data and queue capture jobs for all repositories
+   */
+  static async checkWorkspaceAndNotify(workspaceId: string): Promise<void> {
+    const workspaceKey = `workspace:${workspaceId}`;
+
+    if (import.meta.env?.DEV) {
+      console.log('🔍 Smart detection checking workspace: %s', workspaceId);
+    }
+
+    // Don't check the same workspace repeatedly
+    if (this.checkedRepositories.has(workspaceKey)) {
+      if (import.meta.env?.DEV) {
+        console.log('⏭️ Skipping %s - already checked', workspaceKey);
+      }
+      return;
+    }
+
+    // Check cooldown
+    const lastNotification = this.notificationCooldown.get(workspaceKey);
+    if (lastNotification && Date.now() - lastNotification < this.COOLDOWN_DURATION) {
+      if (import.meta.env?.DEV) {
+        console.log('⏭️ Skipping %s - in cooldown period', workspaceKey);
+      }
+      return;
+    }
+
+    try {
+      // Get workspace repositories
+      const { data: workspaceRepos, error: repoError } = await supabase
+        .from('workspace_repositories')
+        .select(
+          `
+          repository_id,
+          repositories!inner(
+            id,
+            owner,
+            name,
+            last_updated_at
+          )
+        `
+        )
+        .eq('workspace_id', workspaceId);
+
+      if (repoError || !workspaceRepos || workspaceRepos.length === 0) {
+        if (import.meta.env?.DEV) {
+          console.log(
+            '❌ No repositories found for workspace %s:',
+            workspaceId,
+            repoError?.message
+          );
+        }
+        return;
+      }
+
+      if (import.meta.env?.DEV) {
+        console.log(
+          '✅ Found %d repositories in workspace %s:',
+          workspaceRepos.length,
+          workspaceId
+        );
+      }
+
+      let hasAnyMissingData = false;
+
+      // Check each repository for missing data
+      for (const workspaceRepo of workspaceRepos as WorkspaceRepository[]) {
+        const repo = workspaceRepo.repositories[0];
+        if (!repo) continue;
+
+        const missingData = await this.analyzeMissingData(repo.id, repo.last_updated_at);
+
+        if (import.meta.env?.DEV) {
+          console.log('📊 Missing data analysis for %s/%s:', repo.owner, repo.name, missingData);
+        }
+
+        if (missingData.length > 0) {
+          hasAnyMissingData = true;
+          // Auto-fix missing data for each repository in the workspace
+          await this.autoFixMissingData(repo.owner, repo.name, repo.id, missingData);
+        }
+      }
+
+      if (hasAnyMissingData) {
+        this.notificationCooldown.set(workspaceKey, Date.now());
+      } else {
+        if (import.meta.env?.DEV) {
+          console.log('✅ No missing data detected for workspace %s', workspaceId);
+        }
+      }
+
+      this.checkedRepositories.add(workspaceKey);
+    } catch (error) {
+      console.error('[Smart Notifications] Error checking workspace %s:', workspaceId, error);
+    }
+  }
 
   /**
    * Check repository for missing data and show notifications if needed
@@ -81,7 +188,7 @@ export class SmartDataNotifications {
 
       this.checkedRepositories.add(repoKey);
     } catch (error) {
-      console.error('[Smart Notifications] Error checking %s:', error, repoKey);
+      console.error('[Smart Notifications] Error checking %s:', repoKey, error);
     }
   }
 
@@ -95,6 +202,7 @@ export class SmartDataNotifications {
     const missing: string[] = [];
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const lastUpdate = new Date(lastUpdatedAt);
 
     try {
@@ -168,6 +276,59 @@ export class SmartDataNotifications {
         if (prsWithoutComments.length > 0) {
           missing.push('comments');
         }
+      }
+
+      // Check for missing issue comments
+      const { data: issueData, error: issueError } = await supabase
+        .from('issues')
+        .select('id, comments_count')
+        .eq('repository_id', repositoryId)
+        .gt('comments_count', 0)
+        .limit(5);
+
+      if (!issueError && issueData && issueData.length > 0) {
+        // Check if we have issue comments captured
+        const { data: issueComments, error: issueCommentError } = await supabase
+          .from('issue_comments')
+          .select('id')
+          .eq('repository_id', repositoryId)
+          .limit(1);
+
+        if (!issueCommentError && (!issueComments || issueComments.length === 0)) {
+          missing.push('issue comments');
+        }
+      }
+
+      // Check repository classification staleness (>30 days)
+      const { data: repo, error: repoError } = await supabase
+        .from('repositories')
+        .select('size, classified_at')
+        .eq('id', repositoryId)
+        .maybeSingle();
+
+      if (!repoError && repo && repo.classified_at) {
+        const classificationAge = Date.now() - new Date(repo.classified_at).getTime();
+        if (classificationAge > 30 * 24 * 60 * 60 * 1000) {
+          // 30 days
+          missing.push('classification');
+        }
+      } else if (!repoError && repo && !repo.classified_at) {
+        missing.push('classification');
+      }
+
+      // Check for stale PR activity scores (PRs updated >7 days ago without recent activity updates)
+      const { data: stalePRs, error: stalePRError } = await supabase
+        .from('pull_requests')
+        .select('id, updated_at, activity_score_updated_at')
+        .eq('repository_id', repositoryId)
+        .lt('updated_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+        .or(
+          `activity_score_updated_at.is.null,activity_score_updated_at.lt.${thirtyDaysAgo.toISOString()}`
+        )
+        .limit(1);
+
+      if (!stalePRError && stalePRs && stalePRs.length > 0) {
+        missing.push('pr activity');
       }
     } catch (error) {
       console.error('[Smart Notifications] Error analyzing missing data:', error);
@@ -255,12 +416,78 @@ export class SmartDataNotifications {
         promises.push(hybridQueueManager.queueRecentDataCapture(repositoryId, `${owner}/${repo}`));
       }
 
-      if (
-        missingData.includes('file changes') ||
-        missingData.includes('reviews') ||
-        missingData.includes('comments') ||
-        missingData.includes('commit analysis')
-      ) {
+      // GraphQL-first strategy: prefer GraphQL PR details for reviews + comments
+      if (missingData.includes('reviews') || missingData.includes('comments')) {
+        if (import.meta.env?.DEV) {
+          console.log(
+            '⏳ Queuing GraphQL PR details job for %s/%s with priority: %s',
+            owner,
+            repo,
+            priority
+          );
+        }
+        promises.push(
+          hybridQueueManager.queueJob('pr-details', {
+            repositoryId,
+            repositoryName: `${owner}/${repo}`,
+            timeRange: 7, // Recent PRs for GraphQL efficiency
+            triggerSource: 'auto-fix',
+            maxItems: 100,
+            metadata: { priority, preferGraphQL: true },
+          })
+        );
+      }
+
+      // Queue issue comments separately
+      if (missingData.includes('issue comments')) {
+        if (import.meta.env?.DEV) {
+          console.log(
+            '⏳ Queuing issue comments job for %s/%s with priority: %s',
+            owner,
+            repo,
+            priority
+          );
+        }
+        promises.push(
+          hybridQueueManager.queueJob('comments', {
+            repositoryId,
+            repositoryName: `${owner}/${repo}`,
+            timeRange: 30, // Get more comment history
+            triggerSource: 'auto-fix',
+            maxItems: 200,
+            metadata: { priority, captureIssueComments: true },
+          })
+        );
+      }
+
+      // Queue repository classification and PR activity update via historical sync
+      if (missingData.includes('classification') || missingData.includes('pr activity')) {
+        if (import.meta.env?.DEV) {
+          console.log(
+            '⏳ Queuing repository sync for classification/activity for %s/%s with priority: %s',
+            owner,
+            repo,
+            priority
+          );
+        }
+        promises.push(
+          hybridQueueManager.queueJob('historical-pr-sync', {
+            repositoryId,
+            repositoryName: `${owner}/${repo}`,
+            timeRange: 7, // Recent data for classification and activity
+            triggerSource: 'auto-fix',
+            maxItems: 50,
+            metadata: {
+              priority,
+              includeClassification: missingData.includes('classification'),
+              includeActivityUpdate: missingData.includes('pr activity'),
+            },
+          })
+        );
+      }
+
+      // Queue historical data for file changes and commit analysis
+      if (missingData.includes('file changes') || missingData.includes('commit analysis')) {
         if (import.meta.env?.DEV) {
           console.log(
             '⏳ Queuing historical data job for %s/%s with priority: %s',
@@ -269,13 +496,12 @@ export class SmartDataNotifications {
             priority
           );
         }
-        // Use queueJob directly to pass auto-fix reason
         promises.push(
           hybridQueueManager.queueJob('historical-pr-sync', {
             repositoryId,
             repositoryName: `${owner}/${repo}`,
             timeRange: 30,
-            triggerSource: 'auto-fix', // Special reason for lenient throttling
+            triggerSource: 'auto-fix',
             maxItems: 1000,
             metadata: { priority },
           })
@@ -289,7 +515,7 @@ export class SmartDataNotifications {
         console.log('✅ Auto-fix jobs queued for %s/%s:', owner, repo, results);
       }
     } catch (error) {
-      console.warn('Could not auto-fix data for %s/%s:', error, owner, repo);
+      console.warn('Could not auto-fix data for %s/%s:', owner, repo, error);
     }
   }
 
@@ -321,7 +547,7 @@ export class SmartDataNotifications {
         .eq('repository_id', repositoryId)
         .order('updated_at', { ascending: false })
         .limit(1)
-        .maybeSingle();
+        .maybeSingle<{ updated_at: string }>();
 
       const now = new Date();
       const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
@@ -407,19 +633,26 @@ export function setupSmartNotifications(): void {
         console.log('🔍 Route detection checking path: %s', path);
       }
 
-      // Check for workspace routes first
-      const workspaceMatch = path.match(/^\/i\/([^\/]+)/);
+      // Check for workspace routes first (/i/:workspaceId or /workspaces/:workspaceId)
+      const workspaceMatch = path.match(/^\/(i|workspaces)\/([a-zA-Z0-9\-_.]+)(?:\/|$)/);
       if (workspaceMatch) {
-        const [, workspaceSlug] = workspaceMatch;
+        const [, , workspaceSlug] = workspaceMatch;
         if (import.meta.env?.DEV) {
-          console.log('📁 Workspace detected: %s - skipping repository detection', workspaceSlug);
+          console.log(
+            '📁 Workspace detected: %s - scheduling workspace data capture in 3 seconds',
+            workspaceSlug
+          );
         }
-        // Don't try to detect repositories for workspace routes
+
+        // Check workspace after a short delay to let the component load
+        setTimeout(() => {
+          SmartDataNotifications.checkWorkspaceAndNotify(workspaceSlug);
+        }, 3000);
         return;
       }
 
       // Match patterns like /kubernetes/kubernetes or /owner/repo/contributions
-      const match = path.match(/\/([^\/]+)\/([^\/]+)(?:\/|$)/);
+      const match = path.match(/\/([^/]+)\/([^/]+)(?:\/|$)/);
 
       // Exclude non-repository routes using Set for better performance
       const EXCLUDED_ROUTE_PREFIXES = new Set([
