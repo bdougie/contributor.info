@@ -296,7 +296,20 @@ export const handler: Handler = async (event) => {
           console.log(`[workspace-sync] Discussion sync event data:`, discussionEventData);
 
           await inngest.send(discussionEventData);
-          console.log(`[workspace-sync] Events sent successfully for ${repoId}`);
+
+          // Also trigger issue sync for this repository
+          const issueEventData = {
+            name: 'capture/repository.issues',
+            data: {
+              repositoryId: repoId,
+              timeRange: 30, // Last 30 days
+              source: `workspace-sync${workspaceId ? `:${workspaceId}` : ''}`,
+            },
+          };
+          console.log(`[workspace-sync] Issue sync event data:`, issueEventData);
+
+          await inngest.send(issueEventData);
+          console.log(`[workspace-sync] All events sent successfully for ${repoId}`);
 
           return { repositoryId: repoId, status: 'success' };
         } catch (error) {

@@ -399,6 +399,8 @@ export class HybridQueueManager {
       reviews: 'capture/pr.reviews',
       comments: 'capture/pr.comments',
       'recent-prs': 'capture/repository.sync.graphql',
+      'repository-issues': 'capture/repository.issues',
+      'repository-discussions': 'capture/repository.discussions',
     };
 
     const eventName = eventMapping[jobType];

@@ -7,6 +7,14 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LastUpdated } from '@/components/ui/last-updated';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { useDataTimestamp } from '@/hooks/use-data-timestamp';
 import { supabase } from '@/lib/supabase';
 import {
@@ -18,12 +26,15 @@ import {
   RefreshCw,
   ChevronLeft,
   ChevronRight,
+  Sparkles,
 } from '@/components/ui/icon';
 import { Reply } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { PermissionUpgradeCTA } from '@/components/ui/permission-upgrade-cta';
 import { UPGRADE_MESSAGES } from '@/lib/copy/upgrade-messages';
 import { convertGithubEmoji } from '@/lib/utils/github-emoji';
+import { ContributorHoverCard } from '@/components/features/contributor/contributor-hover-card';
+import type { ContributorStats } from '@/lib/types';
 
 export interface Discussion {
   id: string;
@@ -93,6 +104,11 @@ export function WorkspaceDiscussionsTable({
   const [filterBy, setFilterBy] = useState<FilterOption>('all');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedDiscussionForSimilar, setSelectedDiscussionForSimilar] =
+    useState<Discussion | null>(null);
+  const [similarDiscussionsMap, setSimilarDiscussionsMap] = useState<Map<string, Discussion[]>>(
+    new Map()
+  );
   const itemsPerPage = 10;
 
   // Track data timestamps
@@ -185,6 +201,51 @@ export function WorkspaceDiscussionsTable({
 
     fetchDiscussions();
   }, [repositories, selectedRepositories]);
+
+  // Check for similar discussions in the background (check if embeddings exist)
+  useEffect(() => {
+    const checkSimilarDiscussions = async () => {
+      if (discussions.length === 0) return;
+
+      // Batch query all discussion IDs at once to avoid N+1 query problem
+      const discussionIds = discussions.map((discussion) => discussion.id);
+      const similarMap = new Map<string, Discussion[]>();
+
+      try {
+        // Check which discussions have embeddings (needed for similarity search)
+        // Note: We check the discussions table directly since similarity_cache uses UUIDs
+        // but discussions use VARCHAR GitHub node IDs
+        const { data, error } = await supabase
+          .from('discussions')
+          .select('id')
+          .in('id', discussionIds)
+          .not('embedding', 'is', null);
+
+        if (error) {
+          console.error('Error checking discussion embeddings:', error);
+          return;
+        }
+
+        if (data && data.length > 0) {
+          // Create a Set for O(1) lookup performance
+          const discussionsWithEmbeddings = new Set(data.map((item) => item.id));
+
+          // Mark discussions that have embeddings (can search for similar)
+          for (const discussion of discussions) {
+            if (discussionsWithEmbeddings.has(discussion.id)) {
+              similarMap.set(discussion.id, []);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Failed to check discussion embeddings:', error);
+      }
+
+      setSimilarDiscussionsMap(similarMap);
+    };
+
+    checkSimilarDiscussions();
+  }, [discussions]);
 
   // Filter and sort discussions
   const filteredDiscussions = useMemo(
@@ -426,19 +487,59 @@ export function WorkspaceDiscussionsTable({
                   aria-labelledby={`discussion-title-${discussion.id}`}
                 >
                   <div className="flex gap-4">
-                    {/* Author Avatar */}
+                    {/* Author Avatar with Hover Card */}
                     <div className="flex-shrink-0">
-                      <Avatar className="h-10 w-10">
-                        {discussion.author_avatar_url && (
-                          <AvatarImage
-                            src={discussion.author_avatar_url}
-                            alt={discussion.author_login || 'User'}
-                          />
-                        )}
-                        <AvatarFallback>
-                          {discussion.author_login?.charAt(0).toUpperCase() || '?'}
-                        </AvatarFallback>
-                      </Avatar>
+                      {(() => {
+                        const authoredDiscussions = discussions.filter(
+                          (d) => d.author_login === discussion.author_login
+                        );
+
+                        const contributorStats: ContributorStats = {
+                          login: discussion.author_login || 'Unknown',
+                          avatar_url: discussion.author_avatar_url || '',
+                          pullRequests: authoredDiscussions.length,
+                          percentage: 0,
+                          recentIssues: authoredDiscussions.slice(0, 5).map((d) => ({
+                            id: d.id,
+                            number: d.number,
+                            title: d.title,
+                            state: (d.is_answered ? 'closed' : 'open') as 'open' | 'closed',
+                            created_at: d.created_at,
+                            updated_at: d.updated_at,
+                            repository_owner: d.repositories?.owner || '',
+                            repository_name: d.repositories?.name || '',
+                            comments_count: d.comment_count,
+                            url: d.url,
+                          })),
+                        };
+
+                        return (
+                          <ContributorHoverCard
+                            contributor={contributorStats}
+                            showReviews={false}
+                            showComments={true}
+                            commentsCount={authoredDiscussions.reduce(
+                              (sum, d) => sum + d.comment_count,
+                              0
+                            )}
+                            useIssueIcons={false}
+                            primaryLabel="discussions"
+                            secondaryLabel="comments"
+                          >
+                            <Avatar className="h-10 w-10 cursor-pointer hover:ring-2 hover:ring-primary transition-all">
+                              {discussion.author_avatar_url && (
+                                <AvatarImage
+                                  src={discussion.author_avatar_url}
+                                  alt={discussion.author_login || 'User'}
+                                />
+                              )}
+                              <AvatarFallback>
+                                {discussion.author_login?.charAt(0).toUpperCase() || '?'}
+                              </AvatarFallback>
+                            </Avatar>
+                          </ContributorHoverCard>
+                        );
+                      })()}
                     </div>
 
                     {/* Discussion Content */}
@@ -446,9 +547,29 @@ export function WorkspaceDiscussionsTable({
                       {/* Repository & Category Badges */}
                       <div className="flex flex-wrap gap-2 mb-2">
                         {discussion.repositories && (
-                          <Badge variant="outline" className="text-xs">
-                            {discussion.repositories.full_name}
-                          </Badge>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <a
+                                  href={`https://github.com/${discussion.repositories.owner}/${discussion.repositories.name}/discussions`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1.5 px-2 py-1 border rounded-md text-xs hover:bg-muted/50 transition-colors"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <img
+                                    src={`https://github.com/${discussion.repositories.owner}.png?size=20`}
+                                    alt={discussion.repositories.owner}
+                                    className="h-4 w-4 rounded"
+                                  />
+                                  <span>{discussion.repositories.name}</span>
+                                </a>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                View all discussions in {discussion.repositories.full_name}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         )}
                         {discussion.category_name && (
                           <Badge variant="secondary" className="text-xs">
@@ -521,6 +642,24 @@ export function WorkspaceDiscussionsTable({
                               <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
                               <span>Answered</span>
                             </div>
+                          )}
+                          {similarDiscussionsMap.has(discussion.id) && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setSelectedDiscussionForSimilar(discussion)}
+                                    className="h-7 px-2 text-amber-500 hover:text-amber-600"
+                                    aria-label="View similar discussions"
+                                  >
+                                    <Sparkles className="h-4 w-4" aria-hidden="true" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Similar discussions found</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                           )}
                           {hasWorkspaceAccess && (
                             <TooltipProvider>
@@ -627,6 +766,207 @@ export function WorkspaceDiscussionsTable({
           </div>
         </div>
       )}
+
+      {/* Similar Discussions Dialog */}
+      {selectedDiscussionForSimilar && (
+        <Dialog
+          open={!!selectedDiscussionForSimilar}
+          onOpenChange={() => setSelectedDiscussionForSimilar(null)}
+        >
+          <DialogContent className="sm:max-w-[725px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-amber-500" />
+                Similar Discussions
+              </DialogTitle>
+              <DialogDescription>
+                Discussions similar to: "{selectedDiscussionForSimilar.title.substring(0, 50)}
+                {selectedDiscussionForSimilar.title.length > 50 ? '...' : ''}"
+              </DialogDescription>
+            </DialogHeader>
+            <SimilarDiscussionsList
+              discussionId={selectedDiscussionForSimilar.id}
+              repositoryIds={repositories.map((r) => r.id)}
+              onDiscussionClick={(discussion) => {
+                // Open discussion in new tab
+                window.open(discussion.url, '_blank');
+                setSelectedDiscussionForSimilar(null);
+              }}
+            />
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setSelectedDiscussionForSimilar(null)}>
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </Card>
+  );
+}
+
+// Component to display similar discussions
+function SimilarDiscussionsList({
+  discussionId,
+  repositoryIds,
+  onDiscussionClick,
+}: {
+  discussionId: string;
+  repositoryIds: string[];
+  onDiscussionClick?: (discussion: Discussion) => void;
+}) {
+  const [loading, setLoading] = useState(true);
+  const [similarDiscussions, setSimilarDiscussions] = useState<
+    Array<{
+      discussion_id: string;
+      title: string;
+      number: number;
+      is_answered: boolean;
+      url: string;
+      similarity_score: number;
+    }>
+  >([]);
+
+  // Create a stable dependency key for repository IDs
+  const repositoryIdsKey = useMemo(() => repositoryIds.join(','), [repositoryIds]);
+
+  useEffect(() => {
+    const fetchSimilarDiscussions = async () => {
+      setLoading(true);
+      try {
+        // First get the embedding for the target discussion
+        const { data: discussionData, error: discussionError } = await supabase
+          .from('discussions')
+          .select('embedding')
+          .eq('id', discussionId)
+          .maybeSingle();
+
+        if (discussionError || !discussionData?.embedding) {
+          console.error('Failed to get discussion embedding:', discussionError);
+          // No embedding available yet, show fallback
+          const { data: fallbackData } = await supabase
+            .from('discussions')
+            .select('id, title, number, is_answered, url')
+            .in('repository_id', repositoryIds)
+            .neq('id', discussionId)
+            .limit(5);
+
+          if (fallbackData) {
+            setSimilarDiscussions(
+              fallbackData.map((d) => ({
+                discussion_id: d.id,
+                title: d.title,
+                number: d.number,
+                is_answered: d.is_answered,
+                url: d.url,
+                similarity_score: 0.5,
+              }))
+            );
+          }
+          return;
+        }
+
+        // Query for similar discussions using vector similarity
+        const { data, error } = await supabase.rpc('find_similar_discussions_in_workspace', {
+          query_embedding: discussionData.embedding,
+          repo_ids: repositoryIds,
+          match_count: 5,
+          exclude_discussion_id: discussionId,
+        });
+
+        if (error) {
+          console.error('Failed to fetch similar discussions:', error);
+          // Fallback: Try to get any discussions from the same repositories
+          const { data: fallbackData } = await supabase
+            .from('discussions')
+            .select('id, title, number, is_answered, url')
+            .in('repository_id', repositoryIds)
+            .neq('id', discussionId)
+            .limit(5);
+
+          if (fallbackData) {
+            setSimilarDiscussions(
+              fallbackData.map((d) => ({
+                discussion_id: d.id,
+                title: d.title,
+                number: d.number,
+                is_answered: d.is_answered,
+                url: d.url,
+                similarity_score: 0.5,
+              }))
+            );
+          }
+        } else if (data) {
+          setSimilarDiscussions(data);
+        }
+      } catch (err) {
+        console.error('Error fetching similar discussions:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSimilarDiscussions();
+  }, [discussionId, repositoryIdsKey, repositoryIds]);
+
+  if (loading) {
+    return (
+      <div className="py-4 space-y-3">
+        {[...Array(3)].map((_, i) => (
+          <Skeleton key={i} className="h-16 w-full" />
+        ))}
+      </div>
+    );
+  }
+
+  if (similarDiscussions.length === 0) {
+    return (
+      <div className="py-8 text-center text-muted-foreground">
+        <p>No similar discussions found yet.</p>
+        <p className="text-sm mt-2">Embeddings are being computed in the background.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="py-4 space-y-3 max-h-[400px] overflow-y-auto">
+      {similarDiscussions.map((item) => (
+        <div
+          key={item.discussion_id}
+          className="p-3 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
+          onClick={() => {
+            if (onDiscussionClick) {
+              onDiscussionClick({
+                id: item.discussion_id,
+                title: item.title,
+                number: item.number,
+                is_answered: item.is_answered,
+                url: item.url,
+              } as Discussion);
+            }
+          }}
+        >
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                {item.is_answered ? (
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                ) : (
+                  <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                )}
+                <span className="text-sm font-medium">#{item.number}</span>
+                {item.similarity_score > 0 && (
+                  <Badge variant="secondary" className="text-xs">
+                    {Math.round(item.similarity_score * 100)}% match
+                  </Badge>
+                )}
+              </div>
+              <p className="text-sm line-clamp-2">{item.title}</p>
+            </div>
+            <ExternalLink className="h-4 w-4 text-muted-foreground flex-shrink-0 ml-2" />
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }

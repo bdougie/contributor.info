@@ -104,6 +104,36 @@ export interface RepositoryCommentsEventData {
   };
 }
 
+export interface RepositoryIssuesEventData {
+  repositoryId: string;
+  repositoryName: string;
+  timeRange?: number;
+  priority: 'critical' | 'high' | 'medium' | 'low';
+  priorityScore?: number;
+  maxItems?: number;
+  jobId?: string;
+  metadata?: {
+    isWorkspaceRepo?: boolean;
+    workspaceCount?: number;
+    originalPriority?: string;
+  };
+}
+
+export interface RepositoryDiscussionsEventData {
+  repositoryId: string;
+  repositoryName: string;
+  timeRange?: number;
+  priority: 'critical' | 'high' | 'medium' | 'low';
+  priorityScore?: number;
+  maxItems?: number;
+  jobId?: string;
+  metadata?: {
+    isWorkspaceRepo?: boolean;
+    workspaceCount?: number;
+    originalPriority?: string;
+  };
+}
+
 /**
  * Helper function to validate repository sync event data
  */
@@ -152,7 +182,9 @@ export function mapQueueDataToEventData(
   | PRReviewsEventData
   | PRCommentsEventData
   | CommitCaptureEventData
-  | RepositoryCommentsEventData {
+  | RepositoryCommentsEventData
+  | RepositoryIssuesEventData
+  | RepositoryDiscussionsEventData {
   // Extract priority information from metadata
   const priority =
     (queueData.metadata?.priority as 'critical' | 'high' | 'medium' | 'low') || 'medium';
@@ -228,6 +260,22 @@ export function mapQueueDataToEventData(
         forceInitial: queueData.forceInitial,
         maxCommits: queueData.maxCommits,
       } as CommitCaptureEventData;
+
+    case 'repository-issues':
+      return {
+        ...baseData,
+        repositoryName: queueData.repositoryName,
+        timeRange: queueData.timeRange ?? 30,
+        maxItems: queueData.maxItems ?? 200,
+      } as RepositoryIssuesEventData;
+
+    case 'repository-discussions':
+      return {
+        ...baseData,
+        repositoryName: queueData.repositoryName,
+        timeRange: queueData.timeRange ?? 30,
+        maxItems: queueData.maxItems ?? 100,
+      } as RepositoryDiscussionsEventData;
 
     default:
       throw new Error(`Unknown job type: ${jobType}`);

@@ -37,12 +37,33 @@ export function WorkspaceSyncButton({
       setIsSyncing(true);
       setSyncProgress('Starting sync...');
 
-      // Call the server-side API endpoint to trigger sync
-      const response = await fetch('/api/workspace-sync', {
+      // Use environment variables for Supabase URL
+      // In development, call Supabase Edge Function directly
+      // In production, use the Netlify redirect
+      const isDev = import.meta.env.DEV;
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const syncUrl =
+        isDev && supabaseUrl ? `${supabaseUrl}/functions/v1/workspace-sync` : '/api/workspace-sync';
+
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+
+      // Add auth headers for Supabase in development
+      // Note: Using anon key here since this runs in the browser
+      // For RLS bypass, the edge function itself should use service role key
+      if (isDev) {
+        const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        if (anonKey) {
+          headers['apikey'] = anonKey;
+          headers['Authorization'] = `Bearer ${anonKey}`;
+        }
+      }
+
+      // Call the API endpoint to trigger sync
+      const response = await fetch(syncUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           workspaceId,
           repositoryIds,
