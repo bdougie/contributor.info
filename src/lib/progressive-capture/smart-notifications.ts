@@ -2,6 +2,16 @@ import { supabase } from '../supabase';
 import { ProgressiveCaptureNotifications } from './ui-notifications';
 import type { HybridJob } from './hybrid-queue-manager';
 
+interface WorkspaceRepository {
+  repository_id: string;
+  repositories: {
+    id: string;
+    owner: string;
+    name: string;
+    last_updated_at: string;
+  }[];
+}
+
 /**
  * Smart notification system that detects missing data and offers fixes
  */
@@ -43,7 +53,8 @@ export class SmartDataNotifications {
       // Get workspace repositories
       const { data: workspaceRepos, error: repoError } = await supabase
         .from('workspace_repositories')
-        .select(`
+        .select(
+          `
           repository_id,
           repositories!inner(
             id,
@@ -51,25 +62,34 @@ export class SmartDataNotifications {
             name,
             last_updated_at
           )
-        `)
+        `
+        )
         .eq('workspace_id', workspaceId);
 
       if (repoError || !workspaceRepos || workspaceRepos.length === 0) {
         if (import.meta.env?.DEV) {
-          console.log('❌ No repositories found for workspace %s:', workspaceId, repoError?.message);
+          console.log(
+            '❌ No repositories found for workspace %s:',
+            workspaceId,
+            repoError?.message
+          );
         }
         return;
       }
 
       if (import.meta.env?.DEV) {
-        console.log('✅ Found %d repositories in workspace %s:', workspaceRepos.length, workspaceId);
+        console.log(
+          '✅ Found %d repositories in workspace %s:',
+          workspaceRepos.length,
+          workspaceId
+        );
       }
 
       let hasAnyMissingData = false;
 
       // Check each repository for missing data
-      for (const workspaceRepo of workspaceRepos) {
-        const repo = (workspaceRepo as any).repositories;
+      for (const workspaceRepo of workspaceRepos as WorkspaceRepository[]) {
+        const repo = workspaceRepo.repositories[0];
         if (!repo) continue;
 
         const missingData = await this.analyzeMissingData(repo.id, repo.last_updated_at);
@@ -168,7 +188,7 @@ export class SmartDataNotifications {
 
       this.checkedRepositories.add(repoKey);
     } catch (error) {
-      console.error('[Smart Notifications] Error checking %s:', error, repoKey);
+      console.error('[Smart Notifications] Error checking %s:', repoKey, error);
     }
   }
 
@@ -288,7 +308,8 @@ export class SmartDataNotifications {
 
       if (!repoError && repo && repo.classified_at) {
         const classificationAge = Date.now() - new Date(repo.classified_at).getTime();
-        if (classificationAge > 30 * 24 * 60 * 60 * 1000) { // 30 days
+        if (classificationAge > 30 * 24 * 60 * 60 * 1000) {
+          // 30 days
           missing.push('classification');
         }
       } else if (!repoError && repo && !repo.classified_at) {
@@ -301,13 +322,14 @@ export class SmartDataNotifications {
         .select('id, updated_at, activity_score_updated_at')
         .eq('repository_id', repositoryId)
         .lt('updated_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
-        .or(`activity_score_updated_at.is.null,activity_score_updated_at.lt.${thirtyDaysAgo.toISOString()}`)
+        .or(
+          `activity_score_updated_at.is.null,activity_score_updated_at.lt.${thirtyDaysAgo.toISOString()}`
+        )
         .limit(1);
 
       if (!stalePRError && stalePRs && stalePRs.length > 0) {
         missing.push('pr activity');
       }
-
     } catch (error) {
       console.error('[Smart Notifications] Error analyzing missing data:', error);
     }
@@ -455,20 +477,17 @@ export class SmartDataNotifications {
             timeRange: 7, // Recent data for classification and activity
             triggerSource: 'auto-fix',
             maxItems: 50,
-            metadata: { 
+            metadata: {
               priority,
               includeClassification: missingData.includes('classification'),
-              includeActivityUpdate: missingData.includes('pr activity')
+              includeActivityUpdate: missingData.includes('pr activity'),
             },
           })
         );
       }
 
       // Queue historical data for file changes and commit analysis
-      if (
-        missingData.includes('file changes') ||
-        missingData.includes('commit analysis')
-      ) {
+      if (missingData.includes('file changes') || missingData.includes('commit analysis')) {
         if (import.meta.env?.DEV) {
           console.log(
             '⏳ Queuing historical data job for %s/%s with priority: %s',
@@ -496,7 +515,7 @@ export class SmartDataNotifications {
         console.log('✅ Auto-fix jobs queued for %s/%s:', owner, repo, results);
       }
     } catch (error) {
-      console.warn('Could not auto-fix data for %s/%s:', error, owner, repo);
+      console.warn('Could not auto-fix data for %s/%s:', owner, repo, error);
     }
   }
 
@@ -528,7 +547,7 @@ export class SmartDataNotifications {
         .eq('repository_id', repositoryId)
         .order('updated_at', { ascending: false })
         .limit(1)
-        .maybeSingle();
+        .maybeSingle<{ updated_at: string }>();
 
       const now = new Date();
       const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
@@ -615,13 +634,16 @@ export function setupSmartNotifications(): void {
       }
 
       // Check for workspace routes first (/i/:workspaceId or /workspaces/:workspaceId)
-      const workspaceMatch = path.match(/^\/(i|workspaces)\/([^\/]+)/);
+      const workspaceMatch = path.match(/^\/(i|workspaces)\/([a-zA-Z0-9\-_.]+)(?:\/|$)/);
       if (workspaceMatch) {
         const [, , workspaceSlug] = workspaceMatch;
         if (import.meta.env?.DEV) {
-          console.log('📁 Workspace detected: %s - scheduling workspace data capture in 3 seconds', workspaceSlug);
+          console.log(
+            '📁 Workspace detected: %s - scheduling workspace data capture in 3 seconds',
+            workspaceSlug
+          );
         }
-        
+
         // Check workspace after a short delay to let the component load
         setTimeout(() => {
           SmartDataNotifications.checkWorkspaceAndNotify(workspaceSlug);
@@ -630,7 +652,7 @@ export function setupSmartNotifications(): void {
       }
 
       // Match patterns like /kubernetes/kubernetes or /owner/repo/contributions
-      const match = path.match(/\/([^\/]+)\/([^\/]+)(?:\/|$)/);
+      const match = path.match(/\/([^/]+)\/([^/]+)(?:\/|$)/);
 
       // Exclude non-repository routes using Set for better performance
       const EXCLUDED_ROUTE_PREFIXES = new Set([
