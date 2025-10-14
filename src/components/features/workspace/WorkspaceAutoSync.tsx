@@ -43,12 +43,11 @@ export function WorkspaceAutoSync({
       setIsSyncing(true);
 
       // Use environment variables for Supabase URL
-      // In development, call Supabase Edge Function directly
-      // In production, use the Netlify redirect
-      const isDev = import.meta.env.DEV;
+      // Always call Supabase Edge Function directly to ensure auth headers work
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const syncUrl =
-        isDev && supabaseUrl ? `${supabaseUrl}/functions/v1/workspace-sync` : '/api/workspace-sync';
+      const syncUrl = supabaseUrl
+        ? `${supabaseUrl}/functions/v1/workspace-sync`
+        : '/api/workspace-sync'; // Fallback if env var not set
 
       const headers: HeadersInit = {
         'Content-Type': 'application/json',
