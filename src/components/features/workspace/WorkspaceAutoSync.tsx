@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { RefreshCw, Clock } from '@/components/ui/icon';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatDistanceToNow } from 'date-fns';
+import { env } from '@/lib/env';
 
 interface WorkspaceAutoSyncProps {
   workspaceId: string;
@@ -53,15 +54,13 @@ export function WorkspaceAutoSync({
         'Content-Type': 'application/json',
       };
 
-      // Add auth headers for Supabase in development
+      // Add auth headers for Supabase Edge Functions
       // Note: Using anon key here since this runs in the browser
       // For RLS bypass, the edge function itself should use service role key
-      if (isDev) {
-        const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-        if (anonKey) {
-          headers['apikey'] = anonKey;
-          headers['Authorization'] = `Bearer ${anonKey}`;
-        }
+      const anonKey = env.SUPABASE_ANON_KEY;
+      if (anonKey) {
+        headers['apikey'] = anonKey;
+        headers['Authorization'] = `Bearer ${anonKey}`;
       }
 
       // Call the API endpoint to trigger sync
