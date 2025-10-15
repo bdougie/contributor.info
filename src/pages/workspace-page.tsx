@@ -128,7 +128,7 @@ function WorkspacePage() {
 
   // Fetch live My Work data
   // Use workspace?.id (UUID) instead of workspaceId (which is a slug)
-  const { items: myWorkItems } = useMyWork(workspace?.id);
+  const { items: myWorkItems, refresh: refreshMyWork } = useMyWork(workspace?.id);
   // TODO: Add pagination state, totalCount, and loading to WorkspaceDashboard props
   const [fullPRData, setFullPRData] = useState<WorkspaceActivityProps['prData']>([]);
   const [fullIssueData, setFullIssueData] = useState<WorkspaceActivityProps['issueData']>([]);
@@ -1465,7 +1465,8 @@ function WorkspacePage() {
               onItemMarkedAsResponded: () => {
                 // Clear the current item when modal closes
                 setCurrentRespondItem(null);
-                // The useMyWork hook will automatically refresh when this is called
+                // Refresh My Work data to remove the responded item from the list
+                refreshMyWork();
               },
             }}
           />
