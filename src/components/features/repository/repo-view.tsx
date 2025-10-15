@@ -1,5 +1,5 @@
 import { useState, useEffect, Suspense } from 'react';
-import { Link } from '@/components/ui/icon';
+import { Share2 } from 'lucide-react';
 import { useParams, useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -345,7 +345,7 @@ export default function RepoView() {
                   title={isGeneratingUrl ? 'Generating short link...' : 'Copy repository link'}
                   aria-label={isGeneratingUrl ? 'Generating short link...' : 'Copy repository link'}
                 >
-                  <Link className={`h-4 w-4 ${isGeneratingUrl ? 'animate-pulse' : ''}`} />
+                  <Share2 className={`h-4 w-4 ${isGeneratingUrl ? 'animate-pulse' : ''}`} />
                 </Button>
               </div>
             </div>
