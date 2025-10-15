@@ -318,6 +318,11 @@ export function ResponsePreviewModal({
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Respond with Similar Items</DialogTitle>
+          {currentItem && (
+            <div className="text-sm font-medium text-foreground pt-2 pb-1">
+              {getItemTypeLabel(currentItem.type)} #{currentItem.number}: {currentItem.title}
+            </div>
+          )}
           <DialogDescription>
             Preview the generated response before copying to paste manually
           </DialogDescription>
