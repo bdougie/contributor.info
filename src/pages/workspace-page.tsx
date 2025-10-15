@@ -1493,6 +1493,23 @@ function WorkspacePage() {
                   window.open(item.url, '_blank', 'noopener,noreferrer');
                 }}
                 onMyWorkItemRespond={async (item) => {
+                  // Debug logging for button visibility
+                  console.log('onMyWorkItemRespond called with:', {
+                    itemId: item.id,
+                    itemType: item.type,
+                    workspaceId: workspace.id,
+                  });
+
+                  // Set current item BEFORE opening modal
+                  setCurrentRespondItem({
+                    id: item.id,
+                    type: item.type,
+                    url: item.url,
+                    number: item.number,
+                    title: item.title,
+                    repository: item.repository,
+                  });
+
                   setResponseModalOpen(true);
                   setLoadingSimilarItems(true);
 

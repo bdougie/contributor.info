@@ -52,6 +52,17 @@ export function ResponsePreviewModal({
   const [markingAsResponded, setMarkingAsResponded] = useState(false);
   const copyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Debug logging for button visibility
+  useEffect(() => {
+    if (open) {
+      console.log('ResponsePreviewModal opened:', {
+        currentItem: currentItem ? { id: currentItem.id, type: currentItem.type } : null,
+        workspaceId,
+        shouldShowButton: !!(currentItem && workspaceId),
+      });
+    }
+  }, [open, currentItem, workspaceId]);
+
   // Initialize all items as selected when modal opens
   useEffect(() => {
     if (open && similarItems.length > 0) {
