@@ -16,6 +16,10 @@
     "name": "claude-code"
   },
   {
+    "owner": "appwrite",
+    "name": "appwrite"
+  },
+  {
     "owner": "argoproj",
     "name": "argo-cd"
   },
@@ -40,12 +44,20 @@
     "name": "clickhouse"
   },
   {
+    "owner": "ClickHouse",
+    "name": "ClickHouse"
+  },
+  {
     "owner": "cline",
     "name": "cline"
   },
   {
     "owner": "continuedev",
     "name": "continue"
+  },
+  {
+    "owner": "dachosen1",
+    "name": "nearquake"
   },
   {
     "owner": "dlt-hub",
@@ -96,6 +108,18 @@
     "name": "transformers"
   },
   {
+    "owner": "husamql3",
+    "name": "pstrack"
+  },
+  {
+    "owner": "jargonsdev",
+    "name": "jargons.dev"
+  },
+  {
+    "owner": "Kilo-Org",
+    "name": "kilocode"
+  },
+  {
     "owner": "kubernetes",
     "name": "kubernetes"
   },
@@ -106,6 +130,10 @@
   {
     "owner": "lodash",
     "name": "lodash"
+  },
+  {
+    "owner": "microsoft",
+    "name": "TypeScript"
   },
   {
     "owner": "microsoft",
@@ -140,8 +168,16 @@
     "name": "prometheus"
   },
   {
+    "owner": "punkpeye",
+    "name": "awesome-mcp-servers"
+  },
+  {
     "owner": "pytorch",
     "name": "pytorch"
+  },
+  {
+    "owner": "rexdivakar",
+    "name": "Notifly"
   },
   {
     "owner": "rivet-gg",
@@ -176,6 +212,10 @@
     "name": "terraform-provider-aws"
   },
   {
+    "owner": "theopenlane",
+    "name": "core"
+  },
+  {
     "owner": "topoteretes",
     "name": "cognee"
   },
@@ -196,7 +236,15 @@
     "name": "vue"
   },
   {
+    "owner": "zml",
+    "name": "zml"
+  },
+  {
     "owner": "zulip",
     "name": "zulip"
+  },
+  {
+    "owner": "zuplo",
+    "name": "zudoku"
   }
 ]
