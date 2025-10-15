@@ -2437,6 +2437,374 @@ const captureRepositorySyncEnhanced = inngest.createFunction(
 );
 
 // ============================================================================
+// CAPTURE REPOSITORY DISCUSSIONS
+// ============================================================================
+
+// GitHub Discussion from GraphQL API
+interface GitHubDiscussion {
+  id: string;
+  number: number;
+  title: string;
+  body: string | null;
+  url: string;
+  createdAt: string;
+  updatedAt: string;
+  locked: boolean;
+  author: {
+    login: string;
+    databaseId?: number;
+  } | null;
+  category: {
+    id: string;
+    name: string;
+    description: string | null;
+    emoji: string | null;
+  } | null;
+  answer: {
+    id: string;
+    createdAt: string;
+    author: {
+      login: string;
+    } | null;
+  } | null;
+  upvoteCount: number;
+  comments: {
+    totalCount: number;
+  };
+}
+
+/**
+ * Generate AI summary for a discussion using OpenAI
+ */
+async function generateDiscussionSummary(discussion: GitHubDiscussion): Promise<string | null> {
+  const openaiApiKey = Deno.env.get('OPENAI_API_KEY') || Deno.env.get('VITE_OPENAI_API_KEY');
+
+  if (!openaiApiKey) {
+    return null;
+  }
+
+  try {
+    const bodyPreview = discussion.body?.substring(0, 500) || '';
+    const prompt = `Summarize this GitHub discussion in 1-2 concise sentences (max 150 chars). Focus on the MAIN QUESTION or TOPIC and KEY POINTS. Use plain text only.
+
+Title: ${discussion.title}
+Body: ${bodyPreview}
+
+Summary:`;
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${openaiApiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 50,
+        temperature: 0.3,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('OpenAI API error: %s', await response.text());
+      return null;
+    }
+
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content?.trim() || null;
+  } catch (error: any) {
+    console.error(
+      'Failed to generate summary for discussion %s: %s',
+      discussion.number,
+      error.message
+    );
+    return null;
+  }
+}
+
+const captureRepositoryDiscussions = inngest.createFunction(
+  {
+    id: 'capture-repository-discussions',
+    name: 'Capture Repository Discussions',
+    concurrency: {
+      limit: 2,
+      key: 'event.data.repositoryId',
+    },
+    retries: 2,
+    throttle: {
+      limit: 20,
+      period: '1m',
+    },
+  },
+  { event: 'capture/repository.discussions' },
+  async ({ event, step }) => {
+    const { repositoryId, maxItems = 100 } = event.data;
+    let apiCallsUsed = 0;
+
+    // Step 1: Get repository details
+    const repository = await step.run('get-repository', async () => {
+      const supabase = getSupabaseClient();
+      const { data, error } = await supabase
+        .from('repositories')
+        .select('owner, name, has_discussions')
+        .eq('id', repositoryId)
+        .maybeSingle();
+
+      if (error || !data) {
+        throw new NonRetriableError(`Repository not found: ${repositoryId}`);
+      }
+
+      // Skip if repository doesn't have discussions enabled
+      if (!data.has_discussions) {
+        throw new NonRetriableError(
+          `Repository ${data.owner}/${data.name} does not have discussions enabled`
+        );
+      }
+
+      return data;
+    });
+
+    // Step 2: Fetch discussions using GraphQL
+    const discussionsData = await step.run('fetch-discussions', async () => {
+      const githubToken = Deno.env.get('GITHUB_TOKEN') || Deno.env.get('VITE_GITHUB_TOKEN');
+
+      if (!githubToken) {
+        throw new NonRetriableError('GitHub token not configured');
+      }
+
+      const discussions: GitHubDiscussion[] = [];
+      let hasNextPage = true;
+      let cursor: string | null = null;
+
+      try {
+        console.log('Fetching discussions for %s/%s', repository.owner, repository.name);
+
+        while (hasNextPage && discussions.length < maxItems) {
+          apiCallsUsed++;
+
+          const query = `
+            query($owner: String!, $repo: String!, $cursor: String) {
+              repository(owner: $owner, name: $repo) {
+                discussions(first: 50, after: $cursor, orderBy: {field: CREATED_AT, direction: DESC}) {
+                  pageInfo {
+                    hasNextPage
+                    endCursor
+                  }
+                  nodes {
+                    id
+                    number
+                    title
+                    body
+                    url
+                    createdAt
+                    updatedAt
+                    locked
+                    author {
+                      login
+                      ... on User {
+                        databaseId
+                      }
+                    }
+                    category {
+                      id
+                      name
+                      description
+                      emoji
+                    }
+                    answer {
+                      id
+                      createdAt
+                      author {
+                        login
+                      }
+                    }
+                    upvoteCount
+                    comments {
+                      totalCount
+                    }
+                  }
+                }
+              }
+            }
+          `;
+
+          const response: Response = await fetch('https://api.github.com/graphql', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${githubToken}`,
+            },
+            body: JSON.stringify({
+              query,
+              variables: {
+                owner: repository.owner,
+                repo: repository.name,
+                cursor,
+              },
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error(`GitHub API error: ${await response.text()}`);
+          }
+
+          const result: {
+            data: {
+              repository: {
+                discussions: {
+                  nodes: GitHubDiscussion[];
+                  pageInfo: { hasNextPage: boolean; endCursor: string };
+                };
+              };
+            };
+            errors?: unknown[];
+          } = await response.json();
+
+          if (result.errors) {
+            console.error('GraphQL errors: %s', JSON.stringify(result.errors, null, 2));
+            throw new Error(`GraphQL errors: ${JSON.stringify(result.errors)}`);
+          }
+
+          const pageDiscussions: GitHubDiscussion[] = result.data.repository.discussions.nodes;
+          const pageInfo: { hasNextPage: boolean; endCursor: string } = result.data.repository.discussions.pageInfo;
+
+          discussions.push(...pageDiscussions);
+          hasNextPage = pageInfo.hasNextPage;
+          cursor = pageInfo.endCursor;
+
+          console.log(
+            'Fetched %d discussions (%d total so far)',
+            pageDiscussions.length,
+            discussions.length
+          );
+        }
+
+        return discussions;
+      } catch (error: any) {
+        console.error(
+          'Error fetching discussions for %s/%s: %s',
+          repository.owner,
+          repository.name,
+          error.message
+        );
+        throw error;
+      }
+    });
+
+    // Step 3: Upsert discussion authors as contributors
+    await step.run('upsert-discussion-authors', async () => {
+      if (discussionsData.length === 0) return;
+
+      const supabase = getSupabaseClient();
+
+      // Extract unique discussion authors
+      const authorsMap = new Map();
+      for (const discussion of discussionsData) {
+        if (discussion.author?.login && discussion.author?.databaseId) {
+          const key = discussion.author.login;
+          if (!authorsMap.has(key)) {
+            authorsMap.set(key, {
+              username: discussion.author.login,
+              github_id: discussion.author.databaseId,
+              avatar_url: `https://avatars.githubusercontent.com/u/${discussion.author.databaseId}`,
+              first_seen_at: discussion.createdAt,
+            });
+          }
+        }
+      }
+
+      if (authorsMap.size === 0) {
+        console.log('No discussion authors to upsert');
+        return;
+      }
+
+      console.log('Upserting %d discussion authors as contributors...', authorsMap.size);
+
+      const authorsArray = Array.from(authorsMap.values());
+      const { error } = await supabase.from('contributors').upsert(authorsArray, {
+        onConflict: 'username',
+        ignoreDuplicates: false,
+      });
+
+      if (error) {
+        console.error('Error upserting discussion authors: %s', error.message);
+        throw error;
+      }
+
+      console.log('Successfully upserted %d discussion authors', authorsArray.length);
+    });
+
+    // Step 4: Store discussions with AI summaries
+    const processedCount = await step.run('process-discussions', async () => {
+      if (discussionsData.length === 0) {
+        return 0;
+      }
+
+      const supabase = getSupabaseClient();
+      const discussionsToInsert = [];
+
+      for (const discussion of discussionsData) {
+        // Generate AI summary
+        const summary = await generateDiscussionSummary(discussion);
+
+        // Rate limit summary generation
+        if (summary !== null) {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+
+        discussionsToInsert.push({
+          id: discussion.id,
+          github_id: discussion.number,
+          repository_id: repositoryId,
+          number: discussion.number,
+          title: discussion.title,
+          body: discussion.body,
+          url: discussion.url,
+          created_at: discussion.createdAt,
+          updated_at: discussion.updatedAt,
+          locked: discussion.locked,
+          author_login: discussion.author?.login || null,
+          author_id: discussion.author?.databaseId || null,
+          category_id: discussion.category?.id || null,
+          category_name: discussion.category?.name || null,
+          category_description: discussion.category?.description || null,
+          category_emoji: discussion.category?.emoji || null,
+          is_answered: !!discussion.answer,
+          answer_id: discussion.answer?.id || null,
+          answer_chosen_at: discussion.answer?.createdAt || null,
+          answer_chosen_by: discussion.answer?.author?.login || null,
+          upvote_count: discussion.upvoteCount || 0,
+          comment_count: discussion.comments.totalCount || 0,
+          summary: summary || null,
+        });
+      }
+
+      const { error } = await supabase.from('discussions').upsert(discussionsToInsert, {
+        onConflict: 'id',
+        ignoreDuplicates: false,
+      });
+
+      if (error) {
+        console.error('Error inserting discussions: %s', error.message);
+        throw error;
+      }
+
+      console.log('Successfully inserted/updated %d discussions', discussionsToInsert.length);
+      return discussionsToInsert.length;
+    });
+
+    return {
+      success: true,
+      repositoryId,
+      discussionsProcessed: discussionsData.length,
+      discussionsStored: processedCount,
+      apiCallsUsed,
+    };
+  }
+);
+
+// ============================================================================
 // DISCUSSIONS SYNC CRON
 // ============================================================================
 
@@ -2867,6 +3235,7 @@ const functions = [
   computeEmbeddings,
   aggregateWorkspaceMetrics,
   scheduleWorkspaceAggregation,
+  captureRepositoryDiscussions, // Capture repository discussions
   syncDiscussionsCron, // Discussion sync cron job
   handleWorkspaceRepositoryChange, // Handle workspace repository changes
   cleanupWorkspaceMetricsData, // Cleanup workspace metrics data

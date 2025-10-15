@@ -26,8 +26,6 @@ serve(async (req: Request) => {
       return validationError('Missing required fields', 'owner and repo parameters are required');
     }
 
-    console.log('Syncing discussions for %s/%s (max: %d)', owner, repo, max_items);
-
     // Initialize Supabase client
     const supabase = createSupabaseClient();
 
@@ -71,8 +69,6 @@ serve(async (req: Request) => {
     }
 
     // Trigger Inngest function to process discussions in the background
-    console.log('Triggering Inngest function for repository %s', repository.id);
-
     const inngestResponse = await fetch(`https://inn.gs/e/${inngestEventKey}`, {
       method: 'POST',
       headers: {
@@ -102,7 +98,6 @@ serve(async (req: Request) => {
 
     const inngestData = await inngestResponse.json();
     const eventId = inngestData.ids?.[0] || inngestData.id || inngestData.eventId || 'unknown';
-    console.log('Inngest job triggered successfully. Event ID: %s', eventId);
 
     return legacySuccessResponse(
       {
