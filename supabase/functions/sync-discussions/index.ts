@@ -5,152 +5,7 @@ import {
   errorResponse,
   legacySuccessResponse,
   validationError,
-  unauthorizedError,
 } from '../_shared/responses.ts';
-
-// GraphQL query to fetch discussions
-const DISCUSSIONS_QUERY = `
-  query($owner: String!, $name: String!, $first: Int!) {
-    repository(owner: $owner, name: $name) {
-      id
-      discussions(first: $first, orderBy: {field: UPDATED_AT, direction: DESC}) {
-        nodes {
-          number
-          databaseId
-          title
-          body
-          url
-          createdAt
-          updatedAt
-          answerChosenAt
-          isAnswered
-          category {
-            name
-          }
-          comments {
-            totalCount
-          }
-          author {
-            login
-            avatarUrl
-            ... on User {
-              databaseId
-            }
-          }
-        }
-      }
-    }
-  }
-`;
-
-interface Discussion {
-  number: number;
-  databaseId: number;
-  title: string;
-  body: string;
-  url: string;
-  createdAt: string;
-  updatedAt: string;
-  answerChosenAt: string | null;
-  isAnswered: boolean;
-  category: {
-    name: string;
-  };
-  comments: {
-    totalCount: number;
-  };
-  author: {
-    login: string;
-    avatarUrl: string;
-    databaseId?: number;
-  };
-}
-
-interface GraphQLResponse {
-  data?: {
-    repository: {
-      id: string;
-      discussions: {
-        nodes: Discussion[];
-      };
-    };
-  };
-  errors?: Array<{ message: string }>;
-}
-
-async function fetchDiscussionsFromGitHub(
-  owner: string,
-  repo: string,
-  maxItems: number,
-  githubToken: string
-): Promise<Discussion[]> {
-  const response = await fetch('https://api.github.com/graphql', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${githubToken}`,
-    },
-    body: JSON.stringify({
-      query: DISCUSSIONS_QUERY,
-      variables: {
-        owner,
-        name: repo,
-        first: Math.min(maxItems, 100), // GitHub has max 100 per query
-      },
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`GitHub API error: ${response.statusText}`);
-  }
-
-  const result: GraphQLResponse = await response.json();
-
-  if (result.errors) {
-    throw new Error(`GraphQL errors: ${result.errors.map((e) => e.message).join(', ')}`);
-  }
-
-  return result.data?.repository.discussions.nodes || [];
-}
-
-interface ContributorRecord {
-  id: string;
-  username: string;
-}
-
-async function ensureContributor(
-  supabase: ReturnType<typeof createSupabaseClient>,
-  username: string,
-  avatarUrl: string,
-  githubId?: number
-): Promise<string | null> {
-  if (!githubId) {
-    console.log('Skipping contributor %s (no github_id)', username);
-    return null;
-  }
-
-  const { data, error } = await supabase
-    .from('contributors')
-    .upsert(
-      {
-        username,
-        avatar_url: avatarUrl,
-        github_id: githubId,
-      },
-      {
-        onConflict: 'github_id',
-      }
-    )
-    .select('id')
-    .maybeSingle<ContributorRecord>();
-
-  if (error) {
-    console.error('Failed to upsert contributor %s: %s', username, error.message);
-    return null;
-  }
-
-  return data?.id ?? null;
-}
 
 serve(async (req: Request) => {
   // Handle CORS preflight
@@ -176,16 +31,10 @@ serve(async (req: Request) => {
     // Initialize Supabase client
     const supabase = createSupabaseClient();
 
-    // Get GitHub token
-    const githubToken = Deno.env.get('GITHUB_TOKEN');
-    if (!githubToken) {
-      return unauthorizedError('GitHub token not configured');
-    }
-
     // Get repository ID
     const { data: repository, error: repoError } = await supabase
       .from('repositories')
-      .select('id')
+      .select('id, has_discussions')
       .eq('owner', owner)
       .eq('name', repo)
       .maybeSingle();
@@ -200,85 +49,71 @@ serve(async (req: Request) => {
       );
     }
 
-    // Fetch discussions from GitHub
-    const discussions = await fetchDiscussionsFromGitHub(owner, repo, max_items, githubToken);
-
-    console.log('Fetched %d discussions from GitHub', discussions.length);
-
-    // Process and store discussions
-    let successCount = 0;
-    let errorCount = 0;
-
-    for (const discussion of discussions) {
-      try {
-        // Ensure author exists in contributors table
-        const authorId = await ensureContributor(
-          supabase,
-          discussion.author.login,
-          discussion.author.avatarUrl,
-          discussion.author.databaseId
-        );
-
-        if (!authorId) {
-          console.log('Skipping discussion #%d (no author ID)', discussion.number);
-          errorCount++;
-          continue;
-        }
-
-        // Upsert discussion
-        const { error: discussionError } = await supabase.from('discussions').upsert(
-          {
-            github_id: discussion.databaseId.toString(),
-            repository_id: repository.id,
-            number: discussion.number,
-            title: discussion.title,
-            body: discussion.body,
-            author_login: discussion.author.login,
-            author_id: authorId,
-            category: discussion.category.name,
-            created_at: discussion.createdAt,
-            updated_at: discussion.updatedAt,
-            answer_chosen_at: discussion.answerChosenAt,
-            is_answered: discussion.isAnswered,
-            comments_count: discussion.comments.totalCount,
-            html_url: discussion.url,
-            synced_at: new Date().toISOString(),
-          },
-          {
-            onConflict: 'github_id',
-          }
-        );
-
-        if (discussionError) {
-          console.error('Failed to upsert discussion #%d: %s', discussion.number, discussionError.message);
-          errorCount++;
-        } else {
-          console.log('Successfully synced discussion #%d', discussion.number);
-          successCount++;
-        }
-      } catch (error) {
-        console.error('Error processing discussion #%d: %s', discussion.number, error);
-        errorCount++;
-      }
+    // Check if discussions are enabled
+    if (!repository.has_discussions) {
+      return errorResponse(
+        'Discussions not enabled',
+        400,
+        'Repository does not have discussions enabled',
+        'DISCUSSIONS_NOT_ENABLED'
+      );
     }
 
-    console.log(
-      'Sync complete: %d succeeded, %d failed out of %d total',
-      successCount,
-      errorCount,
-      discussions.length
-    );
+    // Get Inngest event key to trigger the background job
+    const inngestEventKey = Deno.env.get('INNGEST_EVENT_KEY');
+    if (!inngestEventKey) {
+      return errorResponse(
+        'Configuration error',
+        500,
+        'Inngest event key not configured',
+        'INNGEST_NOT_CONFIGURED'
+      );
+    }
+
+    // Trigger Inngest function to process discussions in the background
+    console.log('Triggering Inngest function for repository %s', repository.id);
+
+    const inngestResponse = await fetch(`https://inn.gs/e/${inngestEventKey}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name: 'capture/repository.discussions',
+        data: {
+          repositoryId: repository.id,
+          maxItems: max_items,
+          workspace_id,
+        },
+        ts: Date.now(),
+      }),
+    });
+
+    if (!inngestResponse.ok) {
+      const inngestError = await inngestResponse.text();
+      console.error('Failed to trigger Inngest: %s', inngestError);
+      return errorResponse(
+        'Background job failed to start',
+        inngestResponse.status,
+        `Failed to trigger background processing: ${inngestError}`,
+        'INNGEST_TRIGGER_FAILED'
+      );
+    }
+
+    const inngestData = await inngestResponse.json();
+    const eventId = inngestData.ids?.[0] || inngestData.id || inngestData.eventId || 'unknown';
+    console.log('Inngest job triggered successfully. Event ID: %s', eventId);
 
     return legacySuccessResponse(
       {
-        summary: {
-          total: discussions.length,
-          successful: successCount,
-          failed: errorCount,
-        },
+        jobId: eventId,
+        repositoryId: repository.id,
+        owner,
+        repo,
+        maxItems: max_items,
         workspace_id,
       },
-      `Synced ${successCount} discussions`
+      `Discussion sync job started for ${owner}/${repo}`
     );
   } catch (error) {
     console.error('Sync error:', error);

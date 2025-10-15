@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { syncDiscussions } from '@/lib/sync-discussions';
 import type { Discussion } from '@/components/features/workspace/WorkspaceDiscussionsTable';
@@ -45,6 +45,7 @@ export function useWorkspaceDiscussions({
   const [error, setError] = useState<string | null>(null);
   const [lastSynced, setLastSynced] = useState<Date | null>(null);
   const [isStale, setIsStale] = useState(false);
+  const hasInitializedRef = useRef(false);
 
   // Check if data needs refresh
   const checkStaleness = useCallback(
@@ -191,12 +192,19 @@ export function useWorkspaceDiscussions({
     ]
   );
 
-  // Initial fetch
+  // Initial fetch - only run once on mount or when key dependencies change
   useEffect(() => {
-    if (repositories.length > 0) {
+    if (repositories.length > 0 && !hasInitializedRef.current) {
+      hasInitializedRef.current = true;
       fetchDiscussions();
     }
-  }, [repositories.length, selectedRepositories.length, workspaceId, fetchDiscussions]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [repositories.length, selectedRepositories.length, workspaceId]);
+
+  // Reset initialization flag when workspace changes
+  useEffect(() => {
+    hasInitializedRef.current = false;
+  }, [workspaceId]);
 
   // Set up refresh interval
   useEffect(() => {

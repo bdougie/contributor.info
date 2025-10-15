@@ -26,12 +26,12 @@ export interface SyncOptions {
 }
 
 /**
- * Fetches the latest discussion data from GitHub via Edge Function
+ * Triggers background sync of discussion data from GitHub via Inngest
  * @param owner Repository owner
  * @param repo Repository name
  * @param workspaceId Optional workspace ID for tracking
  * @param options Sync options for controlling what data to fetch
- * @returns Summary of sync operation
+ * @returns Summary of sync operation (note: actual processing happens in background)
  */
 export async function syncDiscussions(
   owner: string,
@@ -42,12 +42,12 @@ export async function syncDiscussions(
   try {
     const { maxItems = 100, updateDatabase = true } = options;
 
-    console.log('Syncing discussions for %s/%s', owner, repo, {
+    console.log('Triggering discussion sync for %s/%s', owner, repo, {
       maxItems,
       updateDatabase,
     });
 
-    // Call edge function to sync discussions
+    // Call edge function to trigger Inngest job
     const { data, error } = await supabase.functions.invoke('sync-discussions', {
       body: {
         owner,
@@ -59,30 +59,30 @@ export async function syncDiscussions(
     });
 
     if (error) {
-      console.error('Error syncing discussions via edge function:', error);
-      throw new Error(`Failed to sync discussions: ${error.message}`);
+      console.error('Error triggering discussion sync:', error);
+      throw new Error(`Failed to trigger discussion sync: ${error.message}`);
     }
 
     if (!data.success) {
-      console.error('Sync failed:', data.error);
-      throw new Error(data.message || 'Failed to sync discussions');
+      console.error('Sync trigger failed:', data.error);
+      throw new Error(data.message || 'Failed to trigger discussion sync');
     }
 
     console.log(
-      'Successfully synced %d discussions (%d succeeded, %d failed)',
-      data.summary?.total || 0,
-      data.summary?.successful || 0,
-      data.summary?.failed || 0
+      'Discussion sync job triggered successfully. Job ID: %s',
+      data.data?.jobId || 'unknown'
     );
 
+    // Return success immediately - actual processing happens in background
+    // The UI will poll the database for updated data
     return {
       success: true,
-      total: data.summary?.total || 0,
-      successful: data.summary?.successful || 0,
-      failed: data.summary?.failed || 0,
+      total: 0, // Unknown until job completes
+      successful: 0, // Unknown until job completes
+      failed: 0, // Unknown until job completes
     };
   } catch (error) {
-    console.error('Failed to sync discussions:', error);
+    console.error('Failed to trigger discussion sync:', error);
     throw error;
   }
 }
