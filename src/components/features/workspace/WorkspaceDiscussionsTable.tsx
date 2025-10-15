@@ -100,7 +100,7 @@ export function WorkspaceDiscussionsTable({
   onRespondClick,
 }: WorkspaceDiscussionsTableProps) {
   // Use the new hook for automatic discussion syncing and caching
-  const { discussions, loading, error, lastSynced, isStale, refresh } = useWorkspaceDiscussions({
+  const { discussions, loading, error, refresh } = useWorkspaceDiscussions({
     repositories,
     selectedRepositories,
     workspaceId,
@@ -125,16 +125,6 @@ export function WorkspaceDiscussionsTable({
   const { lastUpdated } = useDataTimestamp([discussions], {
     autoUpdate: true,
   });
-
-  // Log sync status for debugging
-  useEffect(() => {
-    if (lastSynced) {
-      const minutesAgo = ((Date.now() - lastSynced.getTime()) / (1000 * 60)).toFixed(1);
-      console.log(
-        `Discussion data last synced ${minutesAgo} minutes ago${isStale ? ' (stale)' : ' (fresh)'}`
-      );
-    }
-  }, [lastSynced, isStale]);
 
   // Check for similar discussions in the background (check if embeddings exist)
   useEffect(() => {
@@ -257,8 +247,8 @@ export function WorkspaceDiscussionsTable({
             <Button
               variant="outline"
               size="icon"
-              onClick={() => {
-                refresh();
+              onClick={async () => {
+                await refresh();
                 onRefresh?.();
               }}
               disabled={loading}
