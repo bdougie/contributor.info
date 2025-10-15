@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
+import { syncDiscussions } from '@/lib/sync-discussions';
 import type { Discussion } from '@/components/features/workspace/WorkspaceDiscussionsTable';
 
 interface RepositoryRef {
@@ -120,42 +121,6 @@ export function useWorkspaceDiscussions({
     return (data || []) as Discussion[];
   }, []);
 
-  // Trigger workspace sync via Edge Function
-  const triggerWorkspaceSync = useCallback(async (repoIds: string[], wsId: string) => {
-    try {
-      // Call workspace-sync Edge Function to trigger discussion sync
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const syncUrl = supabaseUrl
-        ? `${supabaseUrl}/functions/v1/workspace-sync`
-        : '/api/workspace-sync';
-
-      const response = await fetch(syncUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY || '',
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY || ''}`,
-        },
-        body: JSON.stringify({
-          workspaceId: wsId,
-          repositoryIds: repoIds,
-        }),
-      });
-
-      if (!response.ok) {
-        const result = await response.json();
-        console.error('[Discussion Sync] Sync failed:', result);
-        return false;
-      }
-
-      console.log('[Discussion Sync] Workspace sync triggered successfully');
-      return true;
-    } catch (err) {
-      console.error('[Discussion Sync] Failed to trigger sync:', err);
-      return false;
-    }
-  }, []);
-
   // Main fetch function
   const fetchDiscussions = useCallback(
     async (forceRefresh = false, skipSync = false) => {
@@ -183,13 +148,26 @@ export function useWorkspaceDiscussions({
         const shouldSync = !skipSync && (forceRefresh || (needsSync && autoSyncOnMount));
 
         if (shouldSync) {
-          console.log('[Discussion Sync] Triggering workspace sync for discussions');
-          const syncSuccess = await triggerWorkspaceSync(repoIds, workspaceId);
+          console.log(
+            '[Discussion Sync] Syncing discussions for %d repositories',
+            filteredRepos.length
+          );
 
-          if (syncSuccess) {
-            setLastSynced(new Date());
-            setIsStale(false);
-          }
+          await Promise.all(
+            filteredRepos.map(async (repo) => {
+              try {
+                await syncDiscussions(repo.owner, repo.name, workspaceId, {
+                  maxItems: 100,
+                  updateDatabase: true,
+                });
+              } catch (err) {
+                console.error('Failed to sync discussions for %s/%s:', repo.owner, repo.name, err);
+              }
+            })
+          );
+
+          setLastSynced(new Date());
+          setIsStale(false);
         }
 
         // Fetch from database (now with updated data if synced)
@@ -209,7 +187,6 @@ export function useWorkspaceDiscussions({
       workspaceId,
       checkStaleness,
       fetchFromDatabase,
-      triggerWorkspaceSync,
       autoSyncOnMount,
     ]
   );
