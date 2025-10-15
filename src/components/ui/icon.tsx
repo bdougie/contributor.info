@@ -78,6 +78,7 @@ export const ArrowRight = (props: Omit<IconProps, 'name'>) => (
   <Icon name="arrow-right" {...props} />
 );
 export const Ban = (props: Omit<IconProps, 'name'>) => <Icon name="ban" {...props} />;
+export const Bell = (props: Omit<IconProps, 'name'>) => <Icon name="bell" {...props} />;
 export const BarChart3 = (props: Omit<IconProps, 'name'>) => <Icon name="bar-chart-3" {...props} />;
 export const Book = (props: Omit<IconProps, 'name'>) => <Icon name="book" {...props} />;
 export const Bot = (props: Omit<IconProps, 'name'>) => <Icon name="bot" {...props} />;
