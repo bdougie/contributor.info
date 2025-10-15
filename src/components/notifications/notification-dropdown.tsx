@@ -51,7 +51,7 @@ export function NotificationDropdown({ className }: NotificationDropdownProps) {
           title={isEmpty ? 'No notifications' : 'View notifications'}
           aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
         >
-          <Icon name="mail" size={18} className={cn(isEmpty && 'opacity-50')} />
+          <Icon name="bell" size={18} className={cn(isEmpty && 'opacity-50')} />
           {unreadCount > 0 && (
             <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-[10px] font-bold text-white">
               {unreadCount > 9 ? '9+' : unreadCount}

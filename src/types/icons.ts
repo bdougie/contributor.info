@@ -6,6 +6,7 @@ export type IconName =
   | 'arrow-left'
   | 'arrow-right'
   | 'ban'
+  | 'bell'
   | 'bar-chart-3'
   | 'book'
   | 'bot'
@@ -106,6 +107,7 @@ export const AVAILABLE_ICONS = [
   'arrow-left',
   'arrow-right',
   'ban',
+  'bell',
   'bar-chart-3',
   'book',
   'bot',
