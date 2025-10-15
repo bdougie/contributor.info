@@ -122,7 +122,7 @@ test.describe('My Work - Mark as Responded', () => {
     const firstItemTitle = await page
       .locator('[data-testid="my-work-item"]')
       .first()
-      .locator('text=')
+      .locator('h3, h4, [class*="title"]')
       .first()
       .textContent();
 
