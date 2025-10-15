@@ -235,6 +235,7 @@ export default function Layout() {
 
           {/* Workspace and Auth Buttons */}
           <div className="ml-auto flex items-center gap-2">
+            {isLoggedIn && <NotificationDropdown />}
             {isLoggedIn && (
               <>
                 {/* Prevent flickering by handling loading state */}
@@ -275,7 +276,6 @@ export default function Layout() {
                 )}
               </>
             )}
-            {isLoggedIn && <NotificationDropdown />}
             <AuthButton />
           </div>
         </div>
