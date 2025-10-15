@@ -1599,6 +1599,7 @@ function WorkspacePage() {
                   full_name: r.full_name,
                 }))}
                 selectedRepositories={selectedRepositories}
+                workspaceId={workspace.id}
                 timeRange={timeRange}
                 userRole={currentMember?.role}
                 isLoggedIn={!!currentUser}

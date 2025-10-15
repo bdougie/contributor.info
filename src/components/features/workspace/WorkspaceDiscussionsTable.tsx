@@ -82,6 +82,7 @@ interface WorkspaceDiscussionsTableProps {
     full_name: string;
   }>;
   selectedRepositories: string[];
+  workspaceId: string;
   timeRange?: string;
   onRefresh?: () => void;
   userRole?: string | null;
@@ -92,6 +93,7 @@ interface WorkspaceDiscussionsTableProps {
 export function WorkspaceDiscussionsTable({
   repositories,
   selectedRepositories,
+  workspaceId,
   onRefresh,
   userRole,
   isLoggedIn = false,
@@ -101,7 +103,7 @@ export function WorkspaceDiscussionsTable({
   const { discussions, loading, error, lastSynced, isStale, refresh } = useWorkspaceDiscussions({
     repositories,
     selectedRepositories,
-    workspaceId: repositories[0]?.id || '', // Use first repo as proxy for workspace context
+    workspaceId,
     refreshInterval: 60, // Hourly refresh interval
     maxStaleMinutes: 60, // Consider data stale after 60 minutes
     autoSyncOnMount: true, // Auto-sync enabled with hourly refresh
