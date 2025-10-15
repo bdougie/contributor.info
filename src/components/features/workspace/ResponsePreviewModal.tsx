@@ -318,6 +318,17 @@ export function ResponsePreviewModal({
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Respond with Similar Items</DialogTitle>
+          {currentItem && (
+            <a
+              href={currentItem.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-medium text-foreground hover:text-primary hover:underline pt-2 pb-1 inline-flex items-center gap-1"
+            >
+              {getItemTypeLabel(currentItem.type)} #{currentItem.number}: {currentItem.title}
+              <ExternalLink className="h-3 w-3" />
+            </a>
+          )}
           <DialogDescription>
             Preview the generated response before copying to paste manually
           </DialogDescription>
