@@ -13,6 +13,7 @@ import {
   classifyRepositorySize,
   classifySingleRepository,
   discoverNewRepository,
+  captureRepositoryDiscussions,
   syncDiscussionsCron,
 } from '../../src/lib/inngest/functions/index-without-embeddings';
 
@@ -53,7 +54,8 @@ const inngestHandler = serve({
     // Discovery function
     discoverNewRepository,
 
-    // Discussion sync cron
+    // Discussion sync
+    captureRepositoryDiscussions,
     syncDiscussionsCron,
 
     // Workspace metrics functions
@@ -88,6 +90,7 @@ export default async (req: Request, context: Context) => {
           'classify-repository-size',
           'classify-single-repository',
           'discover-new-repository',
+          'capture-repository-discussions',
           'sync-discussions-cron',
           'aggregate-workspace-metrics',
           'scheduled-workspace-aggregation',

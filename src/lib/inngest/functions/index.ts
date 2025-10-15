@@ -30,4 +30,5 @@ export {
 export { syncWorkspacePriorities } from './sync-workspace-priorities';
 
 // Discussion sync
+export { captureRepositoryDiscussions } from './capture-repository-discussions';
 export { syncDiscussionsCron } from './sync-discussions-cron';

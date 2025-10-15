@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import { useDataTimestamp } from '@/hooks/use-data-timestamp';
 import { supabase } from '@/lib/supabase';
+import { useWorkspaceDiscussions } from '@/hooks/useWorkspaceDiscussions';
 import {
   MessageSquare,
   CheckCircle2,
@@ -81,6 +82,7 @@ interface WorkspaceDiscussionsTableProps {
     full_name: string;
   }>;
   selectedRepositories: string[];
+  workspaceId: string;
   timeRange?: string;
   onRefresh?: () => void;
   userRole?: string | null;
@@ -91,14 +93,22 @@ interface WorkspaceDiscussionsTableProps {
 export function WorkspaceDiscussionsTable({
   repositories,
   selectedRepositories,
+  workspaceId,
   onRefresh,
   userRole,
   isLoggedIn = false,
   onRespondClick,
 }: WorkspaceDiscussionsTableProps) {
-  const [discussions, setDiscussions] = useState<Discussion[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Use the new hook for automatic discussion syncing and caching
+  const { discussions, loading, error, refresh } = useWorkspaceDiscussions({
+    repositories,
+    selectedRepositories,
+    workspaceId,
+    refreshInterval: 60, // Hourly refresh interval
+    maxStaleMinutes: 60, // Consider data stale after 60 minutes
+    autoSyncOnMount: true, // Auto-sync enabled with hourly refresh
+  });
+
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [filterBy, setFilterBy] = useState<FilterOption>('all');
@@ -115,92 +125,6 @@ export function WorkspaceDiscussionsTable({
   const { lastUpdated } = useDataTimestamp([discussions], {
     autoUpdate: true,
   });
-
-  // Fetch discussions for workspace repositories
-  useEffect(() => {
-    async function fetchDiscussions() {
-      if (!repositories || repositories.length === 0) {
-        setDiscussions([]);
-        setLoading(false);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        setError(null);
-
-        // Filter repositories based on selection
-        const repoIds =
-          selectedRepositories.length > 0
-            ? repositories.filter((r) => selectedRepositories.includes(r.id)).map((r) => r.id)
-            : repositories.map((r) => r.id);
-
-        if (repoIds.length === 0) {
-          setDiscussions([]);
-          setLoading(false);
-          return;
-        }
-
-        // Fetch discussions with repository data
-        const { data, error: discussionsError } = await supabase
-          .from('discussions')
-          .select(
-            `
-            *,
-            repositories (
-              name,
-              owner,
-              full_name
-            )
-          `
-          )
-          .in('repository_id', repoIds)
-          .order('updated_at', { ascending: false })
-          .limit(200);
-
-        if (discussionsError) {
-          console.error('Failed to fetch discussions:', discussionsError);
-          setError('Failed to load discussions');
-        } else {
-          // Fetch avatar URLs for all unique authors
-          const uniqueAuthors = [
-            ...new Set((data || []).map((d) => d.author_login).filter(Boolean)),
-          ];
-
-          if (uniqueAuthors.length > 0) {
-            const { data: contributorsData } = await supabase
-              .from('contributors')
-              .select('username, avatar_url')
-              .in('username', uniqueAuthors);
-
-            // Create a map of username -> avatar_url
-            const avatarMap = new Map(
-              (contributorsData || []).map((c) => [c.username, c.avatar_url])
-            );
-
-            // Enrich discussions with avatar URLs
-            const enrichedData = (data || []).map((discussion) => ({
-              ...discussion,
-              author_avatar_url: discussion.author_login
-                ? avatarMap.get(discussion.author_login)
-                : null,
-            }));
-
-            setDiscussions(enrichedData as Discussion[]);
-          } else {
-            setDiscussions((data || []) as Discussion[]);
-          }
-        }
-      } catch (err) {
-        console.error('Error fetching discussions:', err);
-        setError('An unexpected error occurred');
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchDiscussions();
-  }, [repositories, selectedRepositories]);
 
   // Check for similar discussions in the background (check if embeddings exist)
   useEffect(() => {
@@ -320,11 +244,17 @@ export function WorkspaceDiscussionsTable({
             {!loading && discussions.length > 0 && (
               <LastUpdated timestamp={lastUpdated} label="Updated" size="sm" />
             )}
-            {onRefresh && (
-              <Button variant="outline" size="icon" onClick={onRefresh} disabled={loading}>
-                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-              </Button>
-            )}
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={async () => {
+                await refresh();
+                onRefresh?.();
+              }}
+              disabled={loading}
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            </Button>
           </div>
         </div>
       </CardHeader>
@@ -454,6 +384,9 @@ export function WorkspaceDiscussionsTable({
           <div className="text-center p-8">
             <h2 className="text-lg font-semibold text-destructive mb-2">Error</h2>
             <p className="text-muted-foreground">{error}</p>
+            <Button variant="outline" size="sm" onClick={refresh} className="mt-4">
+              Retry
+            </Button>
           </div>
         )}
 
