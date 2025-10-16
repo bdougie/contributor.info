@@ -3,7 +3,7 @@
 
 import { NotificationItem } from './notification-item';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Loader2, Mail } from '@/components/ui/icon';
+import { Loader2, Bell } from '@/components/ui/icon';
 import type { Notification } from '@/lib/notifications';
 
 interface NotificationsListProps {
@@ -30,7 +30,7 @@ export function NotificationsList({
   if (notifications.length === 0) {
     return (
       <EmptyState
-        icon={<Mail size={32} />}
+        icon={<Bell size={32} />}
         title="No notifications"
         description="You're all caught up! Notifications will appear here when operations complete."
         className="m-4"
