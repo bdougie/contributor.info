@@ -235,17 +235,30 @@ Error Handling
 → Show error toast with retry button
 ```
 
-### 3. Rate Limit (429)
+### 3. Repository Not Found (404)
 
 ```
-→ Catch 429 status
-→ Read Retry-After header
-→ Schedule retry after wait
-→ Don't fail user operation
-→ Show info message
+→ Detect 404 status
+→ Log warning: "Repository not found on GitHub"
+→ Return empty issues array
+→ Skip database updates
+→ User sees no issues for this repo (acceptable)
 ```
 
-### 4. Database Error
+### 4. Rate Limit / Other HTTP Errors (403, 5xx, etc.)
+
+```
+→ Detect non-2xx response
+→ Throw error with statusText
+→ Caught by sync orchestrator
+→ Sync marked as failed
+→ Continue with cached data
+→ User sees stale data temporarily
+```
+
+**Future Enhancement**: Implement retry logic with exponential backoff for rate limits (429)
+
+### 5. Database Error
 
 ```
 → Catch upsert error
@@ -308,22 +321,44 @@ Improvement: 85% fewer API calls
 ### GitHub API Limits (OAuth)
 
 - **Rate**: 5,000 requests/hour per token
-- **Per Repo**: ~100 requests to fetch all issues (pagination)
-- **Allocation**: 50 repos × 2 syncs/hour = 100 requests/hour (2% of limit)
-- **Safety**: Well under limit, room for other API calls
+- **Per Repo**: ~3 requests for issue fetch (pagination, last 30 days only)
+- **Allocation**: 50 repos × 2 syncs/hour = 300 requests/hour (6% of limit)
+- **Safety**: Well under limit with room for other API calls
 
-### Implementation
+### Current Implementation
+
+The current implementation does **NOT** actively manage rate limits:
+
+- ❌ No retry logic for 429 responses
+- ❌ No rate limit header checking
+- ❌ No backoff strategy
+
+**Behavior on 429**:
+- Error is thrown and propagated
+- Caught by `syncWorkspaceIssuesForRepositories()`
+- Sync marked as failed
+- Next sync attempts after configured interval (default: 60 min)
+
+### Future Enhancement
+
+Implement proactive rate limit handling:
 
 ```typescript
-// Track rate limit headers
+// Track rate limit headers from response
 const remaining = response.headers['x-ratelimit-remaining'];
-const resetTime = response.headers['x-ratelimit-reset'];
+const resetTime = new Date(response.headers['x-ratelimit-reset'] * 1000);
 
-// Back off if approaching limit
+// Strategy 1: Back off if approaching limit
 if (remaining < 100) {
-  console.warn('Approaching rate limit');
-  // Increase sync interval or skip sync
+  console.warn('Approaching rate limit, backing off');
+  // Increase next sync interval by 50%
+  // Skip this sync cycle
 }
+
+// Strategy 2: Exponential backoff on 429
+const delay = calculateExponentialBackoff(attempt);
+await sleep(delay);
+retry(syncFunction);
 ```
 
 ## Scalability Considerations
