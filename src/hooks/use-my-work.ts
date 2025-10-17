@@ -236,10 +236,115 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
           console.error('Error fetching discussions:', discussionsError);
         }
 
+        // Query 4: Issues with follow-up activity (user has responded, now they've replied)
+        // Only show if updated_at is after responded_at
+        let followUpIssueQuery = supabase
+          .from('issues')
+          .select(
+            `
+            id,
+            number,
+            title,
+            state,
+            updated_at,
+            responded_at,
+            assignees,
+            repository_id,
+            author_id,
+            repositories!inner(full_name, owner, name)
+          `
+          )
+          .eq('responded_by', contributor.id) // Only items user has responded to
+          .order('updated_at', { ascending: false })
+          .limit(20);
+
+        if (workspaceRepoIds.length > 0) {
+          followUpIssueQuery = followUpIssueQuery.in('repository_id', workspaceRepoIds);
+        }
+
+        const { data: rawFollowUpIssues, error: followUpIssueError } = await followUpIssueQuery;
+
+        if (followUpIssueError) {
+          console.error('Error fetching follow-up issues:', followUpIssueError);
+        }
+
+        // Query 5: PRs with follow-up activity (user has responded, now they've updated)
+        let followUpPRQuery = supabase
+          .from('pull_requests')
+          .select(
+            `
+            id,
+            number,
+            title,
+            state,
+            merged,
+            updated_at,
+            responded_at,
+            repository_id,
+            reviewer_data,
+            author_login,
+            repositories!inner(full_name, owner, name)
+          `
+          )
+          .eq('responded_by', contributor.id) // Only items user has responded to
+          .order('updated_at', { ascending: false })
+          .limit(20);
+
+        if (workspaceRepoIds.length > 0) {
+          followUpPRQuery = followUpPRQuery.in('repository_id', workspaceRepoIds);
+        }
+
+        const { data: rawFollowUpPRs, error: followUpPRError } = await followUpPRQuery;
+
+        if (followUpPRError) {
+          console.error('Error fetching follow-up PRs:', followUpPRError);
+        }
+
+        // Query 6: Discussions with follow-up activity (user has responded, now they've replied)
+        let followUpDiscussionQuery = supabase
+          .from('discussions')
+          .select(
+            `
+            id,
+            number,
+            title,
+            updated_at,
+            responded_at,
+            is_answered,
+            repository_id,
+            author_login,
+            author_id,
+            repositories!inner(full_name, owner, name)
+          `
+          )
+          .eq('responded_by', contributor.id) // Only items user has responded to
+          .order('updated_at', { ascending: false })
+          .limit(20);
+
+        if (workspaceRepoIds.length > 0) {
+          followUpDiscussionQuery = followUpDiscussionQuery.in('repository_id', workspaceRepoIds);
+        }
+
+        const { data: rawFollowUpDiscussions, error: followUpDiscussionError } =
+          await followUpDiscussionQuery;
+
+        if (followUpDiscussionError) {
+          console.error('Error fetching follow-up discussions:', followUpDiscussionError);
+        }
+
         // Type assertions for Supabase join responses
         const reviewPrs = rawReviewPrs as unknown as PullRequestRow[] | null;
         const allIssues = rawIssues as unknown as IssueRow[] | null;
         const allDiscussions = rawDiscussions as unknown as DiscussionRow[] | null;
+        const followUpIssues = rawFollowUpIssues as unknown as
+          | (IssueRow & { responded_at: string })[]
+          | null;
+        const followUpPRs = rawFollowUpPRs as unknown as
+          | (PullRequestRow & { responded_at: string })[]
+          | null;
+        const followUpDiscussions = rawFollowUpDiscussions as unknown as
+          | (DiscussionRow & { responded_at: string })[]
+          | null;
 
         // Query results collected
 
@@ -333,10 +438,96 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             },
           })) || [];
 
+        // Filter follow-up issues where updated_at > responded_at (new activity after response)
+        const activeFollowUpIssues = followUpIssues?.filter((issue) => {
+          const updatedDate = new Date(issue.updated_at).getTime();
+          const respondedDate = new Date(issue.responded_at).getTime();
+          return updatedDate > respondedDate;
+        });
+
+        // Map follow-up issues to MyWorkItem
+        const followUpIssueItems: MyWorkItem[] =
+          activeFollowUpIssues?.map((issue) => ({
+            id: `follow-up-issue-${issue.id}`,
+            type: 'issue' as const,
+            itemType: 'follow_up' as const,
+            title: issue.title,
+            repository: issue.repositories.full_name,
+            status: (issue.state as 'open' | 'closed') || 'open',
+            url: `https://github.com/${issue.repositories.owner}/${issue.repositories.name}/issues/${issue.number}`,
+            updated_at: issue.updated_at,
+            responded_at: issue.responded_at,
+            needsAttention: true,
+            number: issue.number,
+            user: {
+              username: githubLogin,
+              avatar_url: avatarUrl,
+            },
+          })) || [];
+
+        // Filter follow-up PRs where updated_at > responded_at
+        const activeFollowUpPRs = followUpPRs?.filter((pr) => {
+          const updatedDate = new Date(pr.updated_at).getTime();
+          const respondedDate = new Date(pr.responded_at).getTime();
+          return updatedDate > respondedDate;
+        });
+
+        // Map follow-up PRs to MyWorkItem
+        const followUpPRItems: MyWorkItem[] =
+          activeFollowUpPRs?.map((pr) => ({
+            id: `follow-up-pr-${pr.id}`,
+            type: 'pr' as const,
+            itemType: 'follow_up' as const,
+            title: pr.title,
+            repository: pr.repositories.full_name,
+            status: (pr.state as 'open' | 'closed' | 'merged') || 'open',
+            url: `https://github.com/${pr.repositories.owner}/${pr.repositories.name}/pull/${pr.number}`,
+            updated_at: pr.updated_at,
+            responded_at: pr.responded_at,
+            needsAttention: true,
+            number: pr.number,
+            user: {
+              username: githubLogin,
+              avatar_url: avatarUrl,
+            },
+          })) || [];
+
+        // Filter follow-up discussions where updated_at > responded_at
+        const activeFollowUpDiscussions = followUpDiscussions?.filter((discussion) => {
+          const updatedDate = new Date(discussion.updated_at).getTime();
+          const respondedDate = new Date(discussion.responded_at).getTime();
+          return updatedDate > respondedDate;
+        });
+
+        // Map follow-up discussions to MyWorkItem
+        const followUpDiscussionItems: MyWorkItem[] =
+          activeFollowUpDiscussions?.map((discussion) => ({
+            id: `follow-up-discussion-${discussion.id}`,
+            type: 'discussion' as const,
+            itemType: 'follow_up' as const,
+            title: discussion.title,
+            repository: discussion.repositories.full_name,
+            status: 'open' as const,
+            url: `https://github.com/${discussion.repositories.owner}/${discussion.repositories.name}/discussions/${discussion.number}`,
+            updated_at: discussion.updated_at,
+            responded_at: discussion.responded_at,
+            needsAttention: true,
+            number: discussion.number,
+            user: {
+              username: discussion.author_login,
+              avatar_url: authorAvatars.get(discussion.author_login),
+            },
+          })) || [];
+
         // Combine and sort by updated_at
-        const allItems = [...reviewPrItems, ...issueItems, ...discussionItems].sort(
-          (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-        );
+        const allItems = [
+          ...reviewPrItems,
+          ...issueItems,
+          ...discussionItems,
+          ...followUpIssueItems,
+          ...followUpPRItems,
+          ...followUpDiscussionItems,
+        ].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
 
         // Processed items needing attention
 

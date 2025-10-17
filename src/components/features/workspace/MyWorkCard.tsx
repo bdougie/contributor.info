@@ -13,12 +13,19 @@ import { WorkspaceSubTabs } from '@/components/features/workspace/components/Wor
 export interface MyWorkItem {
   id: string;
   type: 'pr' | 'issue' | 'discussion';
-  itemType: 'authored' | 'assigned' | 'review_requested' | 'mentioned' | 'participant';
+  itemType:
+    | 'authored'
+    | 'assigned'
+    | 'review_requested'
+    | 'mentioned'
+    | 'participant'
+    | 'follow_up';
   title: string;
   repository: string;
   status: 'open' | 'merged' | 'closed' | 'answered';
   url: string;
   updated_at: string;
+  responded_at?: string;
   needsAttention?: boolean;
   number: number;
   user: {
@@ -144,6 +151,12 @@ const MyWorkItemComponent = memo(function MyWorkItemComponent({
       return 'participating in discussion';
     }
 
+    if (itemType === 'follow_up') {
+      if (type === 'pr') return 'PR with new activity';
+      if (type === 'issue') return 'issue with new activity';
+      return 'discussion with new replies';
+    }
+
     return 'updated';
   };
 
@@ -263,7 +276,7 @@ export function MyWorkCard({
     'issue',
     'discussion',
   ]);
-  const [issueTab, setIssueTab] = useState<'needs_response' | 'replied'>('needs_response');
+  const [issueTab, setIssueTab] = useState<'needs_response' | 'follow_ups'>('needs_response');
 
   const toggleType = (type: 'pr' | 'issue' | 'discussion') => {
     setSelectedTypes((prev) => {
@@ -290,11 +303,11 @@ export function MyWorkCard({
       if (item.type !== 'issue') return true;
 
       if (issueTab === 'needs_response') {
-        // Show issues that don't have a responded status
-        return item.status === 'open';
+        // Show issues needing response (not yet responded to)
+        return item.itemType !== 'follow_up';
       } else {
-        // Show issues with replied status (has follow-up activity)
-        return item.status === 'closed';
+        // Show issues with follow-up activity (you've responded, now they've replied)
+        return item.itemType === 'follow_up';
       }
     });
   }
@@ -458,7 +471,7 @@ export function MyWorkCard({
           </div>
         </div>
 
-        {/* Issue Tabs: "Needs Response" and "Replies" */}
+        {/* Issue Tabs: "Needs Response" and "Follow-ups" */}
         {selectedTypes.includes('issue') ? (
           <div className="mb-4">
             <WorkspaceSubTabs
@@ -466,18 +479,20 @@ export function MyWorkCard({
                 {
                   value: 'needs_response',
                   label: 'Needs Response',
-                  count: items.filter((item) => item.type === 'issue' && item.status === 'open')
-                    .length,
+                  count: items.filter(
+                    (item) => item.type === 'issue' && item.itemType !== 'follow_up'
+                  ).length,
                 },
                 {
-                  value: 'replied',
-                  label: 'Replies',
-                  count: items.filter((item) => item.type === 'issue' && item.status === 'closed')
-                    .length,
+                  value: 'follow_ups',
+                  label: 'Follow-ups',
+                  count: items.filter(
+                    (item) => item.type === 'issue' && item.itemType === 'follow_up'
+                  ).length,
                 },
               ]}
               activeTab={issueTab}
-              onTabChange={(value) => setIssueTab(value as 'needs_response' | 'replied')}
+              onTabChange={(value) => setIssueTab(value as 'needs_response' | 'follow_ups')}
             />
           </div>
         ) : null}

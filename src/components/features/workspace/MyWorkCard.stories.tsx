@@ -197,3 +197,46 @@ export const WithClickHandler: Story = {
     },
   },
 };
+
+export const WithFollowUps: Story = {
+  args: {
+    items: [
+      ...mockItems,
+      {
+        id: '7',
+        type: 'issue',
+        itemType: 'follow_up',
+        title: 'Bug fix: Performance issue on dashboard',
+        repository: 'acme/web-app',
+        status: 'open',
+        url: 'https://github.com/acme/web-app/issues/234',
+        updated_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(), // 30 min ago
+        responded_at: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(), // responded 3 hours ago
+        needsAttention: true,
+        number: 234,
+        user: {
+          username: 'letanloc1998',
+          avatar_url: 'https://avatars.githubusercontent.com/u/25937103?v=4',
+        },
+      },
+      {
+        id: '8',
+        type: 'pr',
+        itemType: 'follow_up',
+        title: 'Feature: Add user profile settings',
+        repository: 'acme/backend',
+        status: 'open',
+        url: 'https://github.com/acme/backend/pull/445',
+        updated_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(), // 1 hour ago
+        responded_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // responded 2 days ago
+        needsAttention: true,
+        number: 445,
+        user: {
+          username: 'letanloc1998',
+          avatar_url: 'https://avatars.githubusercontent.com/u/25937103?v=4',
+        },
+      },
+    ],
+    loading: false,
+  },
+};
