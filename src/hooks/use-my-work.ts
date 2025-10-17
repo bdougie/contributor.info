@@ -529,17 +529,6 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
           ...followUpDiscussionItems,
         ].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
 
-        // Debug logging for follow-ups feature
-        console.log('[My Work] Item breakdown:', {
-          reviewPrItems: reviewPrItems.length,
-          issueItems: issueItems.length,
-          discussionItems: discussionItems.length,
-          followUpIssueItems: followUpIssueItems.length,
-          followUpPRItems: followUpPRItems.length,
-          followUpDiscussionItems: followUpDiscussionItems.length,
-          total: allItems.length,
-        });
-
         // Processed items needing attention
 
         // Set total count
