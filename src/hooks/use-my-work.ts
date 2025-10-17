@@ -57,10 +57,7 @@ interface DiscussionRow {
   updated_at: string;
   is_answered: boolean;
   repository_id: string;
-  contributors: {
-    username: string;
-    avatar_url: string;
-  } | null;
+  author_login: string | null;
   repositories: RepositoryData;
 }
 
@@ -221,7 +218,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             updated_at,
             is_answered,
             repository_id,
-            contributors:author_id(username, avatar_url),
+            author_login,
             repositories!inner(full_name, owner, name)
           `
           )
@@ -316,7 +313,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             responded_at,
             is_answered,
             repository_id,
-            contributors:author_id(username, avatar_url),
+            author_login,
             repositories(full_name, owner, name)
           `
           )
@@ -421,8 +418,8 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             needsAttention: true,
             number: discussion.number,
             user: {
-              username: discussion.contributors?.username || 'Unknown',
-              avatar_url: discussion.contributors?.avatar_url,
+              username: discussion.author_login || 'Unknown',
+              avatar_url: undefined, // Avatar not available with direct author_login
             },
           })) || [];
 
@@ -503,8 +500,8 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             needsAttention: true,
             number: discussion.number,
             user: {
-              username: discussion.contributors?.username || 'Unknown',
-              avatar_url: discussion.contributors?.avatar_url,
+              username: discussion.author_login || 'Unknown',
+              avatar_url: undefined, // Avatar not available with direct author_login
             },
           })) || [];
 
