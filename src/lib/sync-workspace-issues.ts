@@ -55,17 +55,17 @@ async function fetchIssuesFromGitHub(
 
       if (!response.ok) {
         if (response.status === 404) {
-          console.warn(`Repository ${owner}/${repo} not found on GitHub`);
+          console.warn('Repository %s/%s not found on GitHub', owner, repo);
           return [];
         }
         if (response.status === 403) {
-          console.error(`GitHub API rate limit exceeded for ${owner}/${repo}`);
+          console.error('GitHub API rate limit exceeded for %s/%s', owner, repo);
           throw new Error('GitHub API rate limit exceeded');
         }
         throw new Error(`Failed to fetch issues: ${response.statusText}`);
       }
 
-      const data: GitHubIssue[] = await response.json();
+      const data: GitHubIssueResponse[] = await response.json();
 
       if (data.length === 0) {
         hasMore = false;
@@ -88,7 +88,7 @@ async function fetchIssuesFromGitHub(
 
     return issues;
   } catch (error) {
-    console.error(`Error fetching issues for ${owner}/${repo}:`, error);
+    console.error('Error fetching issues for %s/%s:', owner, repo, error);
     throw error;
   }
 }
@@ -104,18 +104,18 @@ export async function syncWorkspaceIssues(
   githubToken: string
 ): Promise<void> {
   if (!githubToken) {
-    console.warn(`No GitHub token available for syncing issues in ${owner}/${repo}`);
+    console.warn('No GitHub token available for syncing issues in %s/%s', owner, repo);
     return;
   }
 
   try {
-    console.log(`Syncing issues for ${owner}/${repo}`);
+    console.log('Syncing issues for %s/%s', owner, repo);
 
     // Fetch fresh issues from GitHub
     const githubIssues = await fetchIssuesFromGitHub(owner, repo, githubToken);
 
     if (githubIssues.length === 0) {
-      console.log(`No issues found for ${owner}/${repo}`);
+      console.log('No issues found for %s/%s', owner, repo);
       return;
     }
 
@@ -162,9 +162,9 @@ export async function syncWorkspaceIssues(
       throw new Error(`Failed to upsert issues: ${upsertError.message}`);
     }
 
-    console.log(`Successfully synced ${updates.length} issues for ${owner}/${repo}`);
+    console.log('Successfully synced %d issues for %s/%s', updates.length, owner, repo);
   } catch (error) {
-    console.error(`Error syncing issues for ${owner}/${repo}:`, error);
+    console.error('Error syncing issues for %s/%s:', owner, repo, error);
     throw error;
   }
 }
@@ -187,9 +187,9 @@ export async function syncWorkspaceIssuesForRepositories(
   const failures = results.filter((r) => r.status === 'rejected');
 
   if (failures.length > 0) {
-    console.error(`Failed to sync ${failures.length} repositories`);
+    console.error('Failed to sync %d repositories', failures.length);
   }
 
   const successes = results.filter((r) => r.status === 'fulfilled');
-  console.log(`Successfully synced ${successes.length}/${repositories.length} repositories`);
+  console.log('Successfully synced %d/%d repositories', successes.length, repositories.length);
 }

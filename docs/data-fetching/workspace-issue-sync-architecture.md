@@ -309,9 +309,10 @@ Improvement:       50% faster
 **Trade-off**: Misses issues older than 30 days (acceptable for workspace focus on current activity)
 
 **Typical Results**:
-- Repos with <3000 recent issues: ~1-3 API calls
-- Repos with 3000-5000 recent issues: ~3-5 API calls
-- Repos with 5000+ recent issues: May require 5+ calls (still well under rate limit)
+- Repos with <500 recent issues: ~1-5 API calls (first full sync)
+- Repos with 500-2000 recent issues: ~5-20 API calls (first full sync)
+- Repos with 2000+ recent issues: ~20+ API calls (first full sync)
+- **Subsequent syncs**: ~1-2 API calls (only fetches new issues)
 
 ```
 Example: Active repo with 2000 issues in last 30 days
