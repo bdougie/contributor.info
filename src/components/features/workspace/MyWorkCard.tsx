@@ -137,7 +137,7 @@ const MyWorkItemComponent = memo(function MyWorkItemComponent({
     }
 
     if (itemType === 'assigned') {
-      return 'assigned to issue';
+      return 'opened issue';
     }
 
     if (itemType === 'mentioned') {
