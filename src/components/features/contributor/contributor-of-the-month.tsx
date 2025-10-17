@@ -1,4 +1,4 @@
-import { Trophy, TrendingUp, Lock, Users } from '@/components/ui/icon';
+import { Trophy, TrendingUp, Lock, Users, ExternalLink, Plus } from '@/components/ui/icon';
 import { ContributorRanking } from '@/lib/types';
 import { ContributorCard } from './contributor-card';
 import { ContributorEmptyState, MinimalActivityDisplay } from './contributor-empty-state';
@@ -9,9 +9,12 @@ import { ContributorOfMonthSkeleton } from '@/components/skeletons';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect, useRef } from 'react';
 import { WorkspaceCreateModal } from '../workspace/WorkspaceCreateModal';
+import { AddToWorkspaceModal } from '../workspace/AddToWorkspaceModal';
 import { useHasPaidWorkspace } from '@/hooks/use-has-paid-workspace';
+import { useUserWorkspaces } from '@/hooks/use-user-workspaces';
 import { trackEvent } from '@/lib/posthog-lazy';
 import { useAuth } from '@/hooks/use-auth';
+import { useNavigate } from 'react-router-dom';
 
 interface ContributorOfTheMonthProps {
   ranking: ContributorRanking | null;
@@ -35,23 +38,29 @@ export function ContributorOfTheMonth({
   repositoryName,
 }: ContributorOfTheMonthProps) {
   const [showWorkspaceModal, setShowWorkspaceModal] = useState(false);
+  const [showAddToWorkspaceModal, setShowAddToWorkspaceModal] = useState(false);
   const [showAllContributors, setShowAllContributors] = useState(false);
   const { hasPaidWorkspace } = useHasPaidWorkspace();
   const { isLoggedIn } = useAuth();
+  const { workspaces } = useUserWorkspaces();
+  const navigate = useNavigate();
   const hasTrackedView = useRef(false);
 
   const isWinnerPhase = ranking?.phase === 'winner_announcement';
 
-  // Set runner-up visibility based on date whenever ranking changes
+  // Find workspace containing this repository
+  const workspaceWithRepo = workspaces.find((ws) =>
+    ws.repositories.some((repo) => repo.owner === repositoryOwner && repo.name === repositoryName)
+  );
+
+  // Set runner-up visibility based on phase
   useEffect(() => {
     if (isWinnerPhase) {
-      const today = new Date();
-      // After the first week of the month, show all contributors by default
-      // During the first week (days 1-7), collapse to show only 3 runners-up
-      setShowAllContributors(today.getDate() > 7);
-    } else {
-      // Reset to collapsed view when not in winner phase
+      // Winner phase: show only winner and top 3 runners-up by default
       setShowAllContributors(false);
+    } else {
+      // Monthly Leaderboard: always show all contributors (no toggle needed)
+      setShowAllContributors(true);
     }
   }, [isWinnerPhase, ranking]);
 
@@ -223,55 +232,39 @@ export function ContributorOfTheMonth({
                     {(totalContributors || ranking.contributors.length) !== 1 ? 's' : ''}
                   </span>
                 </div>
-                {topContributors.length > 1 && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowAllContributors((prev) => !prev)}
-                  >
-                    {showAllContributors ? 'Show winner only' : 'View all contributors'}
-                  </Button>
-                )}
               </div>
 
-              {/* Show only winner by default, or all contributors when toggled */}
-              <div
-                className={cn(
-                  'grid gap-4',
-                  showAllContributors ? 'grid-cols-1 sm:grid-cols-3' : 'max-w-sm mx-auto'
-                )}
-              >
-                {topContributors
-                  .slice(0, showAllContributors ? undefined : 1)
-                  .map((contributor, index) => {
-                    const isFirstPlace = index === 0 && showBlurredFirst && !hasPaidWorkspace;
+              {/* Show all contributors in monthly leaderboard */}
+              <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
+                {topContributors.map((contributor, index) => {
+                  const isFirstPlace = index === 0 && showBlurredFirst && !hasPaidWorkspace;
 
-                    return (
-                      <div key={contributor.login} className="relative">
-                        {isFirstPlace && (
-                          <div className="absolute inset-0 z-10 rounded-lg bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center gap-2">
-                            <Lock className="h-6 w-6 text-muted-foreground" />
-                            <Button
-                              size="sm"
-                              onClick={() => setShowWorkspaceModal(true)}
-                              className="text-xs bg-orange-500 hover:bg-orange-600 text-white"
-                            >
-                              {isLoggedIn ? 'Upgrade to view' : 'Login to view'}
-                            </Button>
-                          </div>
-                        )}
-                        <ContributorCard
-                          contributor={contributor}
-                          showRank={true}
-                          className={isFirstPlace ? 'blur-sm' : ''}
-                          repositoryOwner={repositoryOwner}
-                          repositoryName={repositoryName}
-                          month={ranking.month}
-                          year={ranking.year}
-                        />
-                      </div>
-                    );
-                  })}
+                  return (
+                    <div key={contributor.login} className="relative">
+                      {isFirstPlace && (
+                        <div className="absolute inset-0 z-10 rounded-lg bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center gap-2">
+                          <Lock className="h-6 w-6 text-muted-foreground" />
+                          <Button
+                            size="sm"
+                            onClick={() => setShowWorkspaceModal(true)}
+                            className="text-xs bg-orange-500 hover:bg-orange-600 text-white"
+                          >
+                            {isLoggedIn ? 'Upgrade to view' : 'Login to view'}
+                          </Button>
+                        </div>
+                      )}
+                      <ContributorCard
+                        contributor={contributor}
+                        showRank={true}
+                        className={isFirstPlace ? 'blur-sm' : ''}
+                        repositoryOwner={repositoryOwner}
+                        repositoryName={repositoryName}
+                        month={ranking.month}
+                        year={ranking.year}
+                      />
+                    </div>
+                  );
+                })}
               </div>
 
               {/* Workspace CTA */}
@@ -291,6 +284,33 @@ export function ContributorOfTheMonth({
               </div>
             </div>
           )}
+
+          {/* Workspace Action Button */}
+          {repositoryOwner && repositoryName && isLoggedIn && (
+            <div className="flex justify-end pt-4">
+              {workspaceWithRepo ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate(`/workspace/${workspaceWithRepo.slug}`)}
+                  className="gap-2"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  View Workspace
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowAddToWorkspaceModal(true)}
+                  className="gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add to Workspace
+                </Button>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -302,6 +322,15 @@ export function ContributorOfTheMonth({
           setShowWorkspaceModal(false);
         }}
       />
+
+      {repositoryOwner && repositoryName && (
+        <AddToWorkspaceModal
+          open={showAddToWorkspaceModal}
+          onOpenChange={setShowAddToWorkspaceModal}
+          owner={repositoryOwner}
+          repo={repositoryName}
+        />
+      )}
     </>
   );
 }
