@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { useState, memo } from 'react';
 import { sanitizeText, sanitizeURL } from '@/lib/sanitize';
+import { WorkspaceSubTabs } from '@/components/features/workspace/components/WorkspaceSubTabs';
 
 export interface MyWorkItem {
   id: string;
@@ -262,6 +263,7 @@ export function MyWorkCard({
     'issue',
     'discussion',
   ]);
+  const [issueTab, setIssueTab] = useState<'needs_response' | 'replied'>('needs_response');
 
   const toggleType = (type: 'pr' | 'issue' | 'discussion') => {
     setSelectedTypes((prev) => {
@@ -280,7 +282,22 @@ export function MyWorkCard({
   };
 
   // Filter items by selected types
-  const filteredItems = items.filter((item) => selectedTypes.includes(item.type));
+  let filteredItems = items.filter((item) => selectedTypes.includes(item.type));
+
+  // Apply issue tab filter if issues are selected
+  if (selectedTypes.includes('issue')) {
+    filteredItems = filteredItems.filter((item) => {
+      if (item.type !== 'issue') return true;
+
+      if (issueTab === 'needs_response') {
+        // Show issues that don't have a responded status
+        return item.status === 'open';
+      } else {
+        // Show issues with replied status (has follow-up activity)
+        return item.status === 'closed';
+      }
+    });
+  }
   const totalPages = Math.ceil(totalCount / itemsPerPage);
   if (loading) {
     return (
@@ -440,6 +457,30 @@ export function MyWorkCard({
             </Label>
           </div>
         </div>
+
+        {/* Issue Tabs: "Needs Response" and "Replies" */}
+        {selectedTypes.includes('issue') ? (
+          <div className="mb-4">
+            <WorkspaceSubTabs
+              tabs={[
+                {
+                  value: 'needs_response',
+                  label: 'Needs Response',
+                  count: items.filter((item) => item.type === 'issue' && item.status === 'open')
+                    .length,
+                },
+                {
+                  value: 'replied',
+                  label: 'Replies',
+                  count: items.filter((item) => item.type === 'issue' && item.status === 'closed')
+                    .length,
+                },
+              ]}
+              activeTab={issueTab}
+              onTabChange={(value) => setIssueTab(value as 'needs_response' | 'replied')}
+            />
+          </div>
+        ) : null}
 
         {/* Items count */}
         {itemCountSection}
