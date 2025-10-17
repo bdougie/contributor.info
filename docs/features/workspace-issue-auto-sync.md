@@ -150,9 +150,12 @@ For a 500-issue repo:
 ### Graceful Degradation
 
 - **No GitHub token**: Warns user, uses cached data
-- **API rate limit**: Waits for rate limit reset, retries
+- **Repository not found (404)**: Returns empty issues array, logs warning
+- **API errors (403, 5xx, etc.)**: Logs error, continues with cached data, sync marked as failed
 - **Network error**: Continues with cached data, logs error
 - **Database error**: Shows error toast, suggests retry
+
+**Note**: Rate limit errors (429) are currently treated as generic API errors without retry logic. Retry mechanism is a planned enhancement.
 
 ### Monitoring
 

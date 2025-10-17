@@ -298,16 +298,29 @@ Parallel (new):    Max(Repo A, Repo B) = 500ms
 Improvement:       50% faster
 ```
 
-### 3. Limited Pagination
+### 3. Time-Window Pagination
 
 **Benefit**: Reduces API calls for active repos
-**Implementation**: Only fetch last 30 days, stop at 3 pages
-**Trade-off**: Misses old closed issues (acceptable for workspace)
+**Implementation**:
+- Fetch issues in pages of 100
+- Continue pagination until issues older than 30 days are found
+- Stop fetching once oldest issue is >30 days old
+
+**Trade-off**: Misses issues older than 30 days (acceptable for workspace focus on current activity)
+
+**Typical Results**:
+- Repos with <3000 recent issues: ~1-3 API calls
+- Repos with 3000-5000 recent issues: ~3-5 API calls
+- Repos with 5000+ recent issues: May require 5+ calls (still well under rate limit)
 
 ```
-Before: 2000 issues × 100 per page = 20 API calls
-After:  ~300 issues × 100 per page = 3 API calls
-Improvement: 85% fewer API calls
+Example: Active repo with 2000 issues in last 30 days
+- Page 1: 100 issues (all within 30 days)
+- Page 2: 100 issues (all within 30 days)
+- ...continue until...
+- Page 20: 100 issues, oldest is from 31 days ago → STOP
+- Total: ~20 API calls for first full sync
+- Subsequent syncs only fetch new issues: ~1-2 API calls
 ```
 
 ### 4. Selective Syncing
