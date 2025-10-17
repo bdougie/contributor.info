@@ -102,7 +102,7 @@ contributor.info/
 │   ├── Supabase (PostgreSQL database)
 │   ├── Netlify (Static hosting & functions)
 │   └── Fly.io Services
-│       ├── GitHub Webhooks (fly-github-webhooks/)
+│       ├── GitHub Webhooks (webhooks-server/)
 │       └── Social Cards (fly-social-cards/)
 ├── Data Pipeline
 │   ├── GitHub API integration

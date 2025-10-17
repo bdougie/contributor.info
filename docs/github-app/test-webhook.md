@@ -78,7 +78,7 @@ For local webhook testing:
 
 1. Run the webhook service locally:
    ```bash
-   cd fly-github-webhooks
+   cd webhooks-server
    npm run dev
    ```
 

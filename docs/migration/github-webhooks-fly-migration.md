@@ -51,17 +51,18 @@ GitHub → Fly.io Service (persistent) → Supabase
 
 ### New Service Structure
 ```
-fly-github-webhooks/
+webhooks-server/
 ├── src/
-│   ├── server.js           # Express server
-│   └── handlers/           # Webhook event handlers
-│       ├── pull-request.js
-│       ├── issues.js
-│       ├── installation.js
+│   └── server.ts           # Express server
+├── app/                    # Shared webhook handlers
+│   └── webhooks/           # Webhook event handlers
+│       ├── pull-request.ts
+│       ├── issues.ts
+│       ├── installation.ts
 │       └── ...
 ├── Dockerfile              # Container configuration
 ├── fly.toml               # Fly.io configuration
-└── deploy.sh              # Deployment script
+└── package.json           # Dependencies and scripts
 ```
 
 ### Key Features
@@ -88,8 +89,8 @@ fly-github-webhooks/
 
 1. **Create Fly.io app**:
    ```bash
-   cd fly-github-webhooks
-   ./deploy.sh
+   cd webhooks-server
+   fly deploy -a contributor-info-webhooks
    ```
 
 2. **Configure GitHub App**:
@@ -109,7 +110,7 @@ fly-github-webhooks/
 
 GitHub Actions automatically deploys on push to main:
 - Workflow: `.github/workflows/deploy-github-webhooks.yml`
-- Triggers on changes to `fly-github-webhooks/` directory
+- Triggers on changes to `webhooks-server/` directory
 - Includes health checks and metrics reporting
 
 ## Performance Improvements
@@ -191,7 +192,7 @@ Keep them temporarily for reference during the transition period.
 
 ## Related Documentation
 
-- [Fly.io Webhook Service README](../../fly-github-webhooks/README.md)
+- [Fly.io Webhook Service README](../../webhooks-server/README.md)
 - [Original Issue #411](https://github.com/bdougie/contributor.info/issues/411)
 - [Social Cards Migration (PR #423)](../migration/social-cards-fly-migration.md)
 - [GitHub Apps Documentation](https://docs.github.com/en/developers/apps)

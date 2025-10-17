@@ -28,7 +28,7 @@ The implementation supports both naming conventions for GitHub App credentials:
 
 #### 2. Fly Webhook Service Integration
 
-Located in `fly-github-webhooks/src/handlers/pr-check-runs.js`, the handler:
+Located in `app/webhooks/pr-check-runs.ts`, the handler:
 
 - Processes PR events (opened, synchronize, ready_for_review)
 - Creates GitHub Check Runs via the Checks API
@@ -97,7 +97,7 @@ SUPABASE_ANON_KEY=your-anon-key
 1. Set up environment variables in `.env`
 2. Run the Fly webhook service locally:
    ```bash
-   cd fly-github-webhooks
+   cd webhooks-server
    npm install
    npm run dev
    ```
@@ -111,7 +111,7 @@ SUPABASE_ANON_KEY=your-anon-key
 
 1. Deploy to Fly.io:
    ```bash
-   cd fly-github-webhooks
+   cd webhooks-server
    fly deploy -a contributor-info-webhooks
    ```
 
@@ -202,7 +202,7 @@ The following issues appear to be related to this PR:
 
 ### Performance Check Too Strict
 
-Adjust thresholds in `pr-check-runs.js`:
+Adjust thresholds in `app/webhooks/pr-check-runs.ts`:
 - Line addition thresholds (currently 500/1000)
 - Pattern detection sensitivity
 
@@ -210,7 +210,7 @@ Adjust thresholds in `pr-check-runs.js`:
 
 - [GitHub Apps Documentation](https://docs.github.com/en/developers/apps)
 - [GitHub Checks API](https://docs.github.com/en/rest/checks)
-- [Fly Webhook Service README](../../fly-github-webhooks/README.md)
+- [Fly Webhook Service README](../../webhooks-server/README.md)
 - [Issue #585](https://github.com/bdougie/contributor.info/issues/585)
 
 ## Migration from GitHub Actions
