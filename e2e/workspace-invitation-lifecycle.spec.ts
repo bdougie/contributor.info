@@ -45,10 +45,22 @@ const INVITEE_USER: TestUser = {
  * Helper: Login a user
  */
 async function loginUser(page: Page, user: TestUser): Promise<void> {
-  await page.goto('/login');
-  await page.fill('input[type="email"]', user.email);
-  await page.fill('input[type="password"]', user.password);
-  await page.click('button[type="submit"]');
+  await page.goto('/login', { waitUntil: 'networkidle' });
+
+  // Wait for the email input to be visible and ready
+  const emailInput = page.locator('input[type="email"]');
+  await emailInput.waitFor({ state: 'visible', timeout: 10000 });
+  await emailInput.fill(user.email);
+
+  // Fill password
+  const passwordInput = page.locator('input[type="password"]');
+  await passwordInput.waitFor({ state: 'visible', timeout: 5000 });
+  await passwordInput.fill(user.password);
+
+  // Click submit button
+  const submitButton = page.locator('button[type="submit"]');
+  await submitButton.waitFor({ state: 'visible', timeout: 5000 });
+  await submitButton.click();
 
   // Wait for redirect to dashboard or home
   await page.waitForURL(/\/(dashboard|home|\?)/, { timeout: 10000 });
@@ -65,11 +77,7 @@ async function logoutUser(page: Page): Promise<void> {
 /**
  * Helper: Create a test workspace
  */
-async function createWorkspace(
-  page: Page,
-  name: string,
-  description: string
-): Promise<string> {
+async function createWorkspace(page: Page, name: string, description: string): Promise<string> {
   await page.goto('/workspaces/new');
 
   await page.fill('input[name="name"]', name);
@@ -153,9 +161,9 @@ test.describe('Workspace Invitation Lifecycle', () => {
       await page.click('button[type="submit"]', { timeout: 5000 });
 
       // Wait for success notification
-      await expect(
-        page.getByText(/invitation sent|invitation has been sent/i)
-      ).toBeVisible({ timeout: 10000 });
+      await expect(page.getByText(/invitation sent|invitation has been sent/i)).toBeVisible({
+        timeout: 10000,
+      });
 
       // Verify pending notification created for inviter (status: pending, invite_status: sent)
       await page.goto('/notifications');
@@ -194,9 +202,9 @@ test.describe('Workspace Invitation Lifecycle', () => {
       await page.click('button[data-testid="accept-invitation"]');
 
       // Wait for success message
-      await expect(
-        page.getByText(/successfully joined|accepted invitation/i)
-      ).toBeVisible({ timeout: 10000 });
+      await expect(page.getByText(/successfully joined|accepted invitation/i)).toBeVisible({
+        timeout: 10000,
+      });
 
       // Verify redirect to workspace page
       await page.waitForURL(new RegExp(`/workspaces/${workspaceSlug}`), { timeout: 10000 });
@@ -238,22 +246,25 @@ test.describe('Workspace Invitation Lifecycle', () => {
   });
 
   test.describe('Edge Cases', () => {
-    test('should handle expired invitation gracefully', async ({ page }) => {
-      // Create an expired invitation token (would need database setup)
-      const expiredToken = '00000000-0000-0000-0000-000000000000';
+    test('should handle non-existent invitation token', async ({ page }) => {
+      // Use a valid UUID that doesn't exist in database
+      const nonExistentToken = '00000000-0000-0000-0000-000000000000';
 
-      await page.goto(`/invitation/${expiredToken}`);
+      await page.goto(`/invitation/${nonExistentToken}`);
 
-      // Should show expired error
-      await expect(
-        page.getByText(/expired|no longer valid/i)
-      ).toBeVisible({ timeout: 10000 });
+      // Should show "not found" error (not expired, since it doesn't exist)
+      await expect(page.getByRole('heading', { name: /invitation not found/i })).toBeVisible({
+        timeout: 10000,
+      });
+
+      // Should show error message
+      await expect(page.getByText(/could not be found|may have been removed/i)).toBeVisible();
 
       // Should not show accept button
       await expect(page.locator('button[data-testid="accept-invitation"]')).not.toBeVisible();
     });
 
-    test('should prevent duplicate invitation acceptance', async ({ page, context }) => {
+    test('should prevent duplicate invitation acceptance', async ({ page }) => {
       // This test requires the invitation from the main flow
       if (!invitationToken) {
         test.skip();
@@ -267,9 +278,9 @@ test.describe('Workspace Invitation Lifecycle', () => {
       await page.goto(`/invitation/${invitationToken}`);
 
       // Should show already accepted message
-      await expect(
-        page.getByText(/already accepted|already a member/i)
-      ).toBeVisible({ timeout: 10000 });
+      await expect(page.getByRole('heading', { name: /already a member/i })).toBeVisible({
+        timeout: 10000,
+      });
 
       // Should not show accept button
       await expect(page.locator('button[data-testid="accept-invitation"]')).not.toBeVisible();
@@ -277,13 +288,18 @@ test.describe('Workspace Invitation Lifecycle', () => {
       await logoutUser(page);
     });
 
-    test('should handle invalid invitation tokens', async ({ page }) => {
+    test('should handle invalid invitation token format', async ({ page }) => {
       const invalidToken = 'not-a-valid-uuid';
 
       await page.goto(`/invitation/${invalidToken}`);
 
-      // Should show error state
-      await expect(page.getByText(/invalid|not found/i)).toBeVisible({ timeout: 10000 });
+      // Should show error state - use more specific selector to avoid strict mode violation
+      await expect(page.getByRole('heading', { name: /invalid invitation/i })).toBeVisible({
+        timeout: 10000,
+      });
+
+      // Should show error description
+      await expect(page.getByText(/this invitation link is invalid/i)).toBeVisible();
 
       // Page should still be accessible (not 404)
       await expect(page).toHaveURL(`/invitation/${invalidToken}`);
