@@ -297,19 +297,14 @@ export function MyWorkCard({
   // Filter items by selected types
   let filteredItems = items.filter((item) => selectedTypes.includes(item.type));
 
-  // Apply issue tab filter if issues are selected
-  if (selectedTypes.includes('issue')) {
-    filteredItems = filteredItems.filter((item) => {
-      if (item.type !== 'issue') return true;
-
-      if (issueTab === 'needs_response') {
-        // Show issues needing response (not yet responded to)
-        return item.itemType !== 'follow_up';
-      } else {
-        // Show issues with follow-up activity (you've responded, now they've replied)
-        return item.itemType === 'follow_up';
-      }
-    });
+  // Apply tab filter to ALL item types (not just issues)
+  // This ensures PRs, Issues, and Discussions are filtered consistently
+  if (issueTab === 'needs_response') {
+    // Show items needing response (not yet responded to)
+    filteredItems = filteredItems.filter((item) => item.itemType !== 'follow_up');
+  } else {
+    // Show items with follow-up activity (you've responded, now they've replied)
+    filteredItems = filteredItems.filter((item) => item.itemType === 'follow_up');
   }
   const totalPages = Math.ceil(totalCount / itemsPerPage);
   if (loading) {
@@ -471,31 +466,25 @@ export function MyWorkCard({
           </div>
         </div>
 
-        {/* Issue Tabs: "Needs Response" and "Follow-ups" */}
-        {selectedTypes.includes('issue') ? (
-          <div className="mb-4">
-            <WorkspaceSubTabs
-              tabs={[
-                {
-                  value: 'needs_response',
-                  label: 'Needs Response',
-                  count: items.filter(
-                    (item) => item.type === 'issue' && item.itemType !== 'follow_up'
-                  ).length,
-                },
-                {
-                  value: 'follow_ups',
-                  label: 'Follow-ups',
-                  count: items.filter(
-                    (item) => item.type === 'issue' && item.itemType === 'follow_up'
-                  ).length,
-                },
-              ]}
-              activeTab={issueTab}
-              onTabChange={(value) => setIssueTab(value as 'needs_response' | 'follow_ups')}
-            />
-          </div>
-        ) : null}
+        {/* Tabs: "Needs Response" and "Follow-ups" for all item types */}
+        <div className="mb-4">
+          <WorkspaceSubTabs
+            tabs={[
+              {
+                value: 'needs_response',
+                label: 'Needs Response',
+                count: items.filter((item) => item.itemType !== 'follow_up').length,
+              },
+              {
+                value: 'follow_ups',
+                label: 'Follow-ups',
+                count: items.filter((item) => item.itemType === 'follow_up').length,
+              },
+            ]}
+            activeTab={issueTab}
+            onTabChange={(value) => setIssueTab(value as 'needs_response' | 'follow_ups')}
+          />
+        </div>
 
         {/* Items count */}
         {itemCountSection}
