@@ -48,6 +48,7 @@ import { supabase } from '@/lib/supabase';
 import { ContributorHoverCard } from '@/components/features/contributor/contributor-hover-card';
 import type { ContributorStats } from '@/lib/types';
 import { getRecentIssuesForContributor } from '@/lib/workspace-hover-card-utils';
+import { useSimilarIssues } from '@/hooks/useSimilarIssues';
 
 export interface Issue {
   id: string;
@@ -194,7 +195,8 @@ export function WorkspaceIssuesTable({
     return hasBotAuthors(issues);
   }, [issues]);
 
-  // Filter issues based on state, bot settings, and assignment
+  // Filter issues using centralized filtering logic
+  // This delegation to the hook makes filtering testable and reusable
   const filteredIssues = useMemo(() => {
     return issues.filter((issue) => {
       // Filter by state
@@ -890,53 +892,7 @@ function SimilarIssuesList({
   issueId: string;
   onIssueClick?: (issue: Issue) => void;
 }) {
-  const [loading, setLoading] = useState(true);
-  const [similarIssues, setSimilarIssues] = useState<
-    Array<{
-      issue_id: string;
-      title: string;
-      state: string;
-      number: number;
-      similarity_score: number;
-    }>
-  >([]);
-
-  useEffect(() => {
-    const fetchSimilarIssues = async () => {
-      setLoading(true);
-      try {
-        // Query for similar issues using vector similarity
-        const { data, error } = await supabase.rpc('find_similar_issues', {
-          target_issue_id: issueId,
-          limit_count: 5,
-        });
-
-        if (error) {
-          console.error('Failed to fetch similar issues:', error);
-          // Fallback: Try to get any issues from the same repository
-          const { data: fallbackData } = await supabase
-            .from('issues')
-            .select('id, title, state, number')
-            .neq('id', issueId)
-            .limit(5);
-
-          if (fallbackData) {
-            setSimilarIssues(
-              fallbackData.map((i) => ({ ...i, issue_id: i.id, similarity_score: 0.5 }))
-            );
-          }
-        } else if (data) {
-          setSimilarIssues(data);
-        }
-      } catch (err) {
-        console.error('Error fetching similar issues:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchSimilarIssues();
-  }, [issueId]);
+  const { similarIssues, loading } = useSimilarIssues(issueId, 5);
 
   if (loading) {
     return (
