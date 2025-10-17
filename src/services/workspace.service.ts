@@ -1630,7 +1630,7 @@ export class WorkspaceService {
   }
 
   /**
-   * Accept an invitation
+   * Accept an invitation (uses atomic RPC function to prevent race conditions)
    */
   static async acceptInvitation(token: string, userId: string): Promise<ServiceResponse<void>> {
     try {
@@ -1643,97 +1643,44 @@ export class WorkspaceService {
         };
       }
 
-      // Start a transaction
-      const { data: invitation, error: invitationError } = await supabase
-        .from('workspace_invitations')
-        .select(
-          `
-          id,
-          workspace_id,
-          email,
-          role,
-          status,
-          expires_at
-        `
-        )
-        .eq('invitation_token', token)
-        .maybeSingle();
-
-      if (invitationError || !invitation) {
-        return {
-          success: false,
-          error: 'Invalid invitation',
-          statusCode: 404,
-        };
-      }
-
-      // Check expiration
-      if (new Date() > new Date(invitation.expires_at)) {
-        return {
-          success: false,
-          error: 'Invitation has expired',
-          statusCode: 410,
-        };
-      }
-
-      // Check status
-      if (invitation.status !== 'pending') {
-        return {
-          success: false,
-          error: `Invitation has already been ${invitation.status}`,
-          statusCode: 409,
-        };
-      }
-
-      // Check if user is already a member
-      const { data: existingMember } = await supabase
-        .from('workspace_members')
-        .select('id')
-        .eq('workspace_id', invitation.workspace_id)
-        .eq('user_id', userId)
-        .maybeSingle();
-
-      if (existingMember) {
-        return {
-          success: false,
-          error: 'You are already a member of this workspace',
-          statusCode: 409,
-        };
-      }
-
-      // Add user to workspace_members
-      const { error: memberError } = await supabase.from('workspace_members').insert({
-        workspace_id: invitation.workspace_id,
-        user_id: userId,
-        role: invitation.role,
-        joined_at: new Date().toISOString(),
-        accepted_at: new Date().toISOString(),
+      // Call the atomic RPC function that handles all validation and insertion
+      // in a single database transaction with proper row-level locking
+      const { data, error } = await supabase.rpc('accept_workspace_invitation', {
+        p_invitation_token: token,
+        p_user_id: userId,
       });
 
-      if (memberError) {
-        throw memberError;
+      if (error) {
+        console.error('Accept invitation RPC error:', error);
+        return {
+          success: false,
+          error: 'Failed to accept invitation',
+          statusCode: 500,
+        };
       }
 
-      // Update invitation status
-      const { error: updateError } = await supabase
-        .from('workspace_invitations')
-        .update({
-          status: 'accepted',
-          accepted_at: new Date().toISOString(),
-        })
-        .eq('id', invitation.id);
+      // The RPC returns a single row with success/error info
+      const result = data?.[0];
 
-      if (updateError) {
-        throw updateError;
+      if (!result || !result.success) {
+        // Map error codes to appropriate HTTP status codes
+        const errorCode = result?.error_code;
+        let statusCode = 500;
+
+        if (errorCode === 'NOT_FOUND') {
+          statusCode = 404;
+        } else if (errorCode === 'EXPIRED') {
+          statusCode = 410;
+        } else if (errorCode === 'ALREADY_PROCESSED' || errorCode === 'ALREADY_MEMBER') {
+          statusCode = 409;
+        }
+
+        return {
+          success: false,
+          error: result?.error_message || 'Failed to accept invitation',
+          statusCode,
+        };
       }
-
-      // Log activity
-      await supabase.from('workspace_activity_log').insert({
-        workspace_id: invitation.workspace_id,
-        user_id: userId,
-        action: 'invitation_accepted',
-        details: { invitation_id: invitation.id },
-      });
 
       return {
         success: true,
