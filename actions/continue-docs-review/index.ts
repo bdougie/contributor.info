@@ -1256,9 +1256,9 @@ async function postReviewComments(
 
     reviewBody += '\n### Details:\n\n';
 
-    // Add detailed issues
+    // Add detailed issues with copyable suggestions
     for (const [file, fileIssues] of issuesByFile) {
-      reviewBody += `**${file}:**\n`;
+      reviewBody += `#### ${file}\n\n`;
       for (const issue of fileIssues) {
         let icon = '🔵';
         if (issue.severity === 'error') {
@@ -1267,7 +1267,11 @@ async function postReviewComments(
           icon = '🟡';
         }
         const lineRef = issue.line ? `Line ${issue.line}: ` : '';
-        reviewBody += `- ${icon} ${lineRef}${issue.message}\n`;
+        reviewBody += `${icon} **${lineRef}${issue.message}**\n\n`;
+        
+        // Add copyable suggestion in collapsible block
+        reviewBody += generateSuggestion(issue);
+        reviewBody += '\n';
       }
       reviewBody += '\n';
     }
@@ -1353,6 +1357,176 @@ async function run(): Promise<void> {
   } catch (error) {
     core.setFailed(`Documentation review failed: ${error}`);
   }
+}
+
+function generateSuggestion(issue: DocumentationIssue): string {
+  let suggestion = '<details>\n<summary>💡 Suggested fix</summary>\n\n';
+  
+  // Generate specific suggestions based on the issue
+  if (issue.message.includes('passive voice')) {
+    suggestion += '```markdown\n';
+    suggestion += '# Use active voice:\n';
+    suggestion += '# ❌ Bad: "The feature is deployed by the system"\n';
+    suggestion += '# ✅ Good: "The system deploys the feature"\n';
+    suggestion += '\n';
+    suggestion += '# ❌ Bad: "Data is processed by the background job"\n';
+    suggestion += '# ✅ Good: "The background job processes data"\n';
+    suggestion += '```\n';
+  } else if (issue.message.includes('marketing speak') || issue.message.includes('buzzwords')) {
+    suggestion += '```markdown\n';
+    suggestion += '# Replace vague buzzwords with specific descriptions:\n';
+    suggestion += '# ❌ Bad: "Unlock powerful features"\n';
+    suggestion += '# ✅ Good: "Access GitHub integration and real-time sync"\n';
+    suggestion += '\n';
+    suggestion += '# ❌ Bad: "Seamless integration"\n';
+    suggestion += '# ✅ Good: "Connects via OAuth in under 30 seconds"\n';
+    suggestion += '```\n';
+  } else if (issue.message.includes('TODO') || issue.message.includes('FIXME')) {
+    suggestion += '```markdown\n';
+    suggestion += '# Complete the TODO or remove it:\n';
+    suggestion += '# Either add the missing content or delete the placeholder\n';
+    suggestion += '```\n';
+  } else if (issue.message.includes('consecutive paragraphs')) {
+    suggestion += '```markdown\n';
+    suggestion += '# Break up text with visual elements:\n';
+    suggestion += '\n';
+    suggestion += '## Option 1: Add code examples\n';
+    suggestion += '\\`\\`\\`bash\n';
+    suggestion += 'npm install package-name\n';
+    suggestion += '\\`\\`\\`\n';
+    suggestion += '\n';
+    suggestion += '## Option 2: Use bullet points\n';
+    suggestion += '- First key point\n';
+    suggestion += '- Second key point\n';
+    suggestion += '- Third key point\n';
+    suggestion += '\n';
+    suggestion += '## Option 3: Add a table\n';
+    suggestion += '| Feature | Description |\n';
+    suggestion += '|---------|-------------|\n';
+    suggestion += '| Item 1  | Details     |\n';
+    suggestion += '```\n';
+  } else if (issue.message.includes('long sentence') || issue.message.toLowerCase().includes('too long')) {
+    suggestion += '```markdown\n';
+    suggestion += '# Break into smaller sentences:\n';
+    suggestion += '# ❌ Bad: One very long sentence with multiple clauses...\n';
+    suggestion += '# ✅ Good: First point. Second point. Third point.\n';
+    suggestion += '```\n';
+  } else if (issue.message.includes('redundant phrase')) {
+    suggestion += '```markdown\n';
+    suggestion += '# Simplify redundant phrases:\n';
+    suggestion += '# "in order to" → "to"\n';
+    suggestion += '# "due to the fact that" → "because"\n';
+    suggestion += '# "at this point in time" → "now"\n';
+    suggestion += '# "for the purpose of" → "to"\n';
+    suggestion += '```\n';
+  } else if (issue.message.includes('step-by-step') || issue.message.includes('instructions')) {
+    suggestion += '```markdown\n';
+    suggestion += '# Add step-by-step instructions:\n';
+    suggestion += '\n';
+    suggestion += '## Getting Started\n';
+    suggestion += '\n';
+    suggestion += '1. Install dependencies:\n';
+    suggestion += '   \\`\\`\\`bash\n';
+    suggestion += '   npm install\n';
+    suggestion += '   \\`\\`\\`\n';
+    suggestion += '\n';
+    suggestion += '2. Configure environment:\n';
+    suggestion += '   \\`\\`\\`bash\n';
+    suggestion += '   cp .env.example .env\n';
+    suggestion += '   \\`\\`\\`\n';
+    suggestion += '\n';
+    suggestion += '3. Start the application:\n';
+    suggestion += '   \\`\\`\\`bash\n';
+    suggestion += '   npm run dev\n';
+    suggestion += '   \\`\\`\\`\n';
+    suggestion += '```\n';
+  } else if (issue.message.includes('prerequisites') || issue.message.includes('requirements')) {
+    suggestion += '```markdown\n';
+    suggestion += '# Add prerequisites section:\n';
+    suggestion += '\n';
+    suggestion += '## Prerequisites\n';
+    suggestion += '\n';
+    suggestion += 'Before you begin, ensure you have:\n';
+    suggestion += '- Node.js 20 or higher\n';
+    suggestion += '- npm or yarn installed\n';
+    suggestion += '- A GitHub account with appropriate permissions\n';
+    suggestion += '```\n';
+  } else if (issue.message.includes('expected result') || issue.message.includes('outcome')) {
+    suggestion += '```markdown\n';
+    suggestion += '# Show expected outcome:\n';
+    suggestion += '\n';
+    suggestion += 'You should see output similar to:\n';
+    suggestion += '\\`\\`\\`\n';
+    suggestion += 'Server running on http://localhost:3000\n';
+    suggestion += '✓ Database connected\n';
+    suggestion += '✓ Ready to accept requests\n';
+    suggestion += '\\`\\`\\`\n';
+    suggestion += '```\n';
+  } else if (issue.message.includes('architecture') || issue.message.includes('system design')) {
+    suggestion += '```markdown\n';
+    suggestion += '# Add architecture explanation:\n';
+    suggestion += '\n';
+    suggestion += '## Architecture\n';
+    suggestion += '\n';
+    suggestion += 'The system consists of:\n';
+    suggestion += '- **Frontend**: React + TypeScript\n';
+    suggestion += '- **Backend**: Node.js API\n';
+    suggestion += '- **Database**: PostgreSQL with Supabase\n';
+    suggestion += '\n';
+    suggestion += 'Data flow:\n';
+    suggestion += '1. User action triggers API request\n';
+    suggestion += '2. Backend validates and processes\n';
+    suggestion += '3. Database stores result\n';
+    suggestion += '4. Frontend updates UI\n';
+    suggestion += '```\n';
+  } else if (issue.message.includes('technical decisions') || issue.message.includes('rationale')) {
+    suggestion += '```markdown\n';
+    suggestion += '# Explain technical decisions:\n';
+    suggestion += '\n';
+    suggestion += '## Design Decision\n';
+    suggestion += '\n';
+    suggestion += 'We chose [technology/approach] because:\n';
+    suggestion += '- **Performance**: [specific benefit]\n';
+    suggestion += '- **Maintainability**: [specific benefit]\n';
+    suggestion += '- **Trade-offs**: [what we sacrificed and why it\'s acceptable]\n';
+    suggestion += '```\n';
+  } else if (issue.message.includes('file locations') || issue.message.includes('navigate')) {
+    suggestion += '```markdown\n';
+    suggestion += '# Reference file locations:\n';
+    suggestion += '\n';
+    suggestion += 'The main components are located in:\n';
+    suggestion += '- `src/components/Feature.tsx` - Main component\n';
+    suggestion += '- `src/hooks/useFeature.ts` - Custom hook\n';
+    suggestion += '- `src/lib/api.ts` - API integration\n';
+    suggestion += '```\n';
+  } else if (issue.message.includes('code examples')) {
+    suggestion += '```markdown\n';
+    suggestion += '# Add code example:\n';
+    suggestion += '\n';
+    suggestion += '\\`\\`\\`typescript\n';
+    suggestion += 'import { useFeature } from \'@/hooks/useFeature\';\n';
+    suggestion += '\n';
+    suggestion += 'export function Component() {\n';
+    suggestion += '  const { data, loading } = useFeature();\n';
+    suggestion += '  \n';
+    suggestion += '  if (loading) return <Loading />;\n';
+    suggestion += '  return <Display data={data} />;\n';
+    suggestion += '}\n';
+    suggestion += '\\`\\`\\`\n';
+    suggestion += '```\n';
+  } else {
+    // Generic suggestion
+    suggestion += '```markdown\n';
+    suggestion += '# Review the documentation and:\n';
+    suggestion += '- Ensure content is clear and concise\n';
+    suggestion += '- Add examples where helpful\n';
+    suggestion += '- Use active voice\n';
+    suggestion += '- Break up long paragraphs\n';
+    suggestion += '```\n';
+  }
+  
+  suggestion += '</details>\n';
+  return suggestion;
 }
 
 // Run the action
