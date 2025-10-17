@@ -75,6 +75,27 @@ export function WorkspaceIssuesTab({
     }
   }, [error, refresh]);
 
+  // Handle page visibility changes - auto-sync when returning to tab if data is stale
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && lastSynced) {
+        const timeSinceLastSync = (Date.now() - lastSynced.getTime()) / (1000 * 60); // minutes
+        // Refresh if more than 5 minutes have passed since last sync
+        if (timeSinceLastSync > 5) {
+          console.log(
+            `[WorkspaceIssuesTab] Refreshing stale issue data: ${timeSinceLastSync.toFixed(1)} minutes since last sync`
+          );
+          refresh();
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [lastSynced, refresh]);
+
   const [selectedAssignee, setSelectedAssignee] = useState<string | null>(null);
 
   const handleIssueClick = (issue: Issue) => {

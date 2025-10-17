@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { env } from '@/lib/env';
+import { syncWorkspaceIssuesForRepositories } from '@/lib/sync-workspace-issues';
 import type { Issue } from '@/components/features/workspace/WorkspaceIssuesTable';
 import type { Repository } from '@/components/features/workspace';
 
@@ -20,6 +21,50 @@ interface UseWorkspaceIssuesResult {
   lastSynced: Date | null;
   isStale: boolean;
   refresh: () => Promise<void>;
+}
+
+interface DBLabel {
+  name: string;
+  color: string;
+}
+
+interface DBAssignee {
+  login: string;
+  username?: string;
+  avatar_url: string;
+}
+
+interface DBRepository {
+  id: string;
+  name: string;
+  owner: string;
+  full_name: string;
+  avatar_url: string;
+}
+
+interface DBContributor {
+  username: string;
+  avatar_url: string;
+}
+
+interface DBIssue {
+  id: string;
+  number: number;
+  title: string;
+  body: string | null;
+  state: 'open' | 'closed';
+  created_at: string;
+  updated_at: string;
+  closed_at: string | null;
+  labels: DBLabel[];
+  assignees: DBAssignee[];
+  comments_count: number;
+  repository_id: string;
+  responded_by: string | null;
+  responded_at: string | null;
+  linked_prs: Issue['linked_pull_requests'];
+  repositories: DBRepository | DBRepository[];
+  contributors: DBContributor | DBContributor[];
 }
 
 // GraphQL query to fetch linked PRs for an issue using timeline events
@@ -90,9 +135,7 @@ async function fetchLinkedPRsForIssue(
     });
 
     if (!response.ok) {
-      console.error(
-        `Failed to fetch linked PRs for issue #${issueNumber}: ${response.statusText}`
-      );
+      console.error(`Failed to fetch linked PRs for issue #${issueNumber}: ${response.statusText}`);
       return undefined;
     }
 
@@ -310,7 +353,7 @@ export function useWorkspaceIssues({
   }, []);
 
   // Transform database issue to component format
-  const transformIssue = useCallback((dbIssue: any): Issue => {
+  const transformIssue = useCallback((dbIssue: DBIssue): Issue => {
     const repo = Array.isArray(dbIssue.repositories)
       ? dbIssue.repositories[0]
       : dbIssue.repositories;
@@ -322,7 +365,7 @@ export function useWorkspaceIssues({
       id: dbIssue.id,
       number: dbIssue.number,
       title: dbIssue.title,
-      state: dbIssue.state as 'open' | 'closed',
+      state: dbIssue.state,
       repository: {
         name: repo?.name || 'unknown',
         owner: repo?.owner || 'unknown',
@@ -339,14 +382,14 @@ export function useWorkspaceIssues({
       comments_count: dbIssue.comments_count || 0,
       labels: Array.isArray(dbIssue.labels)
         ? dbIssue.labels
-            .map((label: any) => ({
+            .map((label: DBLabel) => ({
               name: label.name,
               color: label.color || '000000',
             }))
-            .filter((l: any) => l.name)
+            .filter((l) => l.name)
         : [],
       assignees: Array.isArray(dbIssue.assignees)
-        ? dbIssue.assignees.map((assignee: any) => ({
+        ? dbIssue.assignees.map((assignee: DBAssignee) => ({
             login: assignee.login || assignee.username || 'unknown',
             avatar_url: assignee.avatar_url || '',
           }))
@@ -395,21 +438,36 @@ export function useWorkspaceIssues({
           const githubToken = session?.provider_token || env.GITHUB_TOKEN;
 
           if (!githubToken) {
-            console.warn('No GitHub token available for syncing linked PRs');
+            console.warn('No GitHub token available for syncing issues');
           } else {
-            // Sync each repository
-            await Promise.all(
-              filteredRepos.map(async (repo) => {
-                try {
-                  await syncLinkedPRsForRepository(repo.owner, repo.name, githubToken, repo.id);
-                } catch (err) {
-                  console.error(`Failed to sync ${repo.owner}/${repo.name}:`, err);
-                }
-              })
-            );
+            try {
+              // Sync issue data (assignees, labels, etc.) from GitHub
+              await syncWorkspaceIssuesForRepositories(
+                filteredRepos.map((repo) => ({
+                  id: repo.id,
+                  owner: repo.owner,
+                  name: repo.name,
+                })),
+                githubToken
+              );
 
-            setLastSynced(new Date());
-            setIsStale(false);
+              // Also sync linked PRs for each repository
+              await Promise.all(
+                filteredRepos.map(async (repo) => {
+                  try {
+                    await syncLinkedPRsForRepository(repo.owner, repo.name, githubToken, repo.id);
+                  } catch (err) {
+                    console.error(`Failed to sync linked PRs for ${repo.owner}/${repo.name}:`, err);
+                  }
+                })
+              );
+
+              setLastSynced(new Date());
+              setIsStale(false);
+            } catch (err) {
+              console.error('Error during sync:', err);
+              // Don't throw - let the hook continue with cached data
+            }
           }
         }
 
@@ -429,7 +487,6 @@ export function useWorkspaceIssues({
     [
       repositories,
       selectedRepositories,
-      workspaceId,
       checkStaleness,
       fetchFromDatabase,
       transformIssue,
