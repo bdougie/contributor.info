@@ -89,6 +89,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
       try {
         setLoading(true);
         const githubLogin = user.user_metadata.user_name;
+        const authUserId = user.id; // Get the auth.users.id for responded_by filtering
 
         // Starting fetch for workspace
 
@@ -254,7 +255,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             repositories!inner(full_name, owner, name)
           `
           )
-          .eq('responded_by', contributor.id) // Only items user has responded to
+          .eq('responded_by', authUserId) // Only items user has responded to
           .order('updated_at', { ascending: false })
           .limit(20);
 
@@ -286,7 +287,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             repositories!inner(full_name, owner, name)
           `
           )
-          .eq('responded_by', contributor.id) // Only items user has responded to
+          .eq('responded_by', authUserId) // Only items user has responded to
           .order('updated_at', { ascending: false })
           .limit(20);
 
@@ -317,7 +318,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             repositories!inner(full_name, owner, name)
           `
           )
-          .eq('responded_by', contributor.id) // Only items user has responded to
+          .eq('responded_by', authUserId) // Only items user has responded to
           .order('updated_at', { ascending: false })
           .limit(20);
 
