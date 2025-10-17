@@ -137,6 +137,7 @@ export async function syncWorkspaceIssues(
 
       return {
         id: dbId,
+        github_id: issue.id,
         number: issue.number,
         title: issue.title,
         body: issue.body,
