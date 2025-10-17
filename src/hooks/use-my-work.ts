@@ -362,8 +362,50 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
           return issue.assignees.some((assignee: GitHubAssignee) => assignee.login === githubLogin);
         });
 
-        // Avatars are now fetched directly from the contributors foreign key relationship
-        // No need for additional avatar fetching - data is already included in queries
+        // Fetch avatars for discussions and PRs (they use author_login directly, not foreign key)
+        // Collect unique author logins
+        const authorLogins = new Set<string>();
+
+        // Add authors from regular discussions
+        allDiscussions?.forEach((discussion) => {
+          if (discussion.author_login) {
+            authorLogins.add(discussion.author_login);
+          }
+        });
+
+        // Add authors from follow-up discussions
+        followUpDiscussions?.forEach((discussion) => {
+          if (discussion.author_login) {
+            authorLogins.add(discussion.author_login);
+          }
+        });
+
+        // Add authors from PRs
+        reviewPrs?.forEach((pr) => {
+          if (pr.author_login) {
+            authorLogins.add(pr.author_login);
+          }
+        });
+
+        // Add authors from follow-up PRs
+        followUpPRs?.forEach((pr) => {
+          if (pr.author_login) {
+            authorLogins.add(pr.author_login);
+          }
+        });
+
+        // Fetch avatar URLs for all authors
+        let authorAvatarMap = new Map<string, string>();
+        if (authorLogins.size > 0) {
+          const { data: avatarData } = await supabase
+            .from('contributors')
+            .select('username, avatar_url')
+            .in('username', Array.from(authorLogins));
+
+          if (avatarData) {
+            authorAvatarMap = new Map(avatarData.map((c) => [c.username, c.avatar_url]));
+          }
+        }
 
         // Map review requested PRs to MyWorkItem
         // Note: PR author_login comes directly from pull_requests table
@@ -381,7 +423,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             number: pr.number,
             user: {
               username: pr.author_login,
-              avatar_url: undefined, // PR author data not fetched in query
+              avatar_url: pr.author_login ? authorAvatarMap.get(pr.author_login) : undefined,
             },
           })) || [];
 
@@ -419,7 +461,9 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             number: discussion.number,
             user: {
               username: discussion.author_login || 'Unknown',
-              avatar_url: undefined, // Avatar not available with direct author_login
+              avatar_url: discussion.author_login
+                ? authorAvatarMap.get(discussion.author_login)
+                : undefined,
             },
           })) || [];
 
@@ -474,7 +518,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             number: pr.number,
             user: {
               username: pr.author_login,
-              avatar_url: undefined, // PR author data not fetched in query
+              avatar_url: pr.author_login ? authorAvatarMap.get(pr.author_login) : undefined,
             },
           })) || [];
 
@@ -501,7 +545,9 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             number: discussion.number,
             user: {
               username: discussion.author_login || 'Unknown',
-              avatar_url: undefined, // Avatar not available with direct author_login
+              avatar_url: discussion.author_login
+                ? authorAvatarMap.get(discussion.author_login)
+                : undefined,
             },
           })) || [];
 
