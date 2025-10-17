@@ -43,8 +43,10 @@ interface IssueRow {
   updated_at: string;
   assignees: GitHubAssignee[] | null;
   repository_id: string;
-  author_id: number;
-  author_login: string;
+  contributors: {
+    username: string;
+    avatar_url: string;
+  } | null;
   repositories: RepositoryData;
 }
 
@@ -55,8 +57,10 @@ interface DiscussionRow {
   updated_at: string;
   is_answered: boolean;
   repository_id: string;
-  author_login: string;
-  author_id: number;
+  contributors: {
+    username: string;
+    avatar_url: string;
+  } | null;
   repositories: RepositoryData;
 }
 
@@ -184,8 +188,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             updated_at,
             assignees,
             repository_id,
-            author_id,
-            author_login,
+            contributors:author_id(username, avatar_url),
             repositories!inner(full_name, owner, name)
           `
           )
@@ -218,8 +221,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             updated_at,
             is_answered,
             repository_id,
-            author_login,
-            author_id,
+            contributors:author_id(username, avatar_url),
             repositories!inner(full_name, owner, name)
           `
           )
@@ -252,8 +254,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             responded_at,
             assignees,
             repository_id,
-            author_id,
-            author_login,
+            contributors:author_id(username, avatar_url),
             repositories!inner(full_name, owner, name)
           `
           )
@@ -315,8 +316,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             responded_at,
             is_answered,
             repository_id,
-            author_login,
-            author_id,
+            contributors:author_id(username, avatar_url),
             repositories!inner(full_name, owner, name)
           `
           )
@@ -365,32 +365,11 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
           return issue.assignees.some((assignee: GitHubAssignee) => assignee.login === githubLogin);
         });
 
-        // Fetch avatars for all authors BEFORE mapping (discussions, issues, PRs)
-        const authorLogins = [
-          ...new Set([
-            ...(allDiscussions?.map((d) => d.author_login) || []),
-            ...(allIssues?.map((i) => i.author_login) || []),
-            ...(reviewPrs?.map((pr) => pr.author_login) || []),
-            ...(followUpIssues?.map((i) => i.author_login) || []),
-            ...(followUpPRs?.map((pr) => pr.author_login) || []),
-          ]),
-        ];
-        const authorAvatars = new Map<string, string>();
-
-        if (authorLogins.length > 0) {
-          const { data: authorData } = await supabase
-            .from('contributors')
-            .select('username, avatar_url')
-            .in('username', authorLogins);
-
-          authorData?.forEach((author) => {
-            if (author.avatar_url) {
-              authorAvatars.set(author.username, author.avatar_url);
-            }
-          });
-        }
+        // Avatars are now fetched directly from the contributors foreign key relationship
+        // No need for additional avatar fetching - data is already included in queries
 
         // Map review requested PRs to MyWorkItem
+        // Note: PR author_login comes directly from pull_requests table
         const reviewPrItems: MyWorkItem[] =
           reviewRequestedPrs?.map((pr) => ({
             id: `review-pr-${pr.id}`,
@@ -405,7 +384,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             number: pr.number,
             user: {
               username: pr.author_login,
-              avatar_url: authorAvatars.get(pr.author_login),
+              avatar_url: undefined, // PR author data not fetched in query
             },
           })) || [];
 
@@ -423,8 +402,8 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             needsAttention: true,
             number: issue.number,
             user: {
-              username: issue.author_login,
-              avatar_url: authorAvatars.get(issue.author_login),
+              username: issue.contributors?.username || 'Unknown',
+              avatar_url: issue.contributors?.avatar_url,
             },
           })) || [];
 
@@ -442,8 +421,8 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             needsAttention: true,
             number: discussion.number,
             user: {
-              username: discussion.author_login,
-              avatar_url: authorAvatars.get(discussion.author_login),
+              username: discussion.contributors?.username || 'Unknown',
+              avatar_url: discussion.contributors?.avatar_url,
             },
           })) || [];
 
@@ -469,8 +448,8 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             needsAttention: true,
             number: issue.number,
             user: {
-              username: issue.author_login,
-              avatar_url: authorAvatars.get(issue.author_login),
+              username: issue.contributors?.username || 'Unknown',
+              avatar_url: issue.contributors?.avatar_url,
             },
           })) || [];
 
@@ -482,6 +461,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
         });
 
         // Map follow-up PRs to MyWorkItem
+        // Note: PR author_login comes directly from pull_requests table
         const followUpPRItems: MyWorkItem[] =
           activeFollowUpPRs?.map((pr) => ({
             id: `follow-up-pr-${pr.id}`,
@@ -497,7 +477,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             number: pr.number,
             user: {
               username: pr.author_login,
-              avatar_url: authorAvatars.get(pr.author_login),
+              avatar_url: undefined, // PR author data not fetched in query
             },
           })) || [];
 
@@ -523,8 +503,8 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             needsAttention: true,
             number: discussion.number,
             user: {
-              username: discussion.author_login,
-              avatar_url: authorAvatars.get(discussion.author_login),
+              username: discussion.contributors?.username || 'Unknown',
+              avatar_url: discussion.contributors?.avatar_url,
             },
           })) || [];
 
