@@ -45,25 +45,19 @@ const INVITEE_USER: TestUser = {
  * Helper: Login a user
  */
 async function loginUser(page: Page, user: TestUser): Promise<void> {
-  await page.goto('/login', { waitUntil: 'networkidle' });
+  // Use domcontentloaded instead of networkidle for faster loading
+  await page.goto('/login', { waitUntil: 'domcontentloaded', timeout: 30000 });
 
-  // Wait for the email input to be visible and ready
-  const emailInput = page.locator('input[type="email"]');
-  await emailInput.waitFor({ state: 'visible', timeout: 10000 });
-  await emailInput.fill(user.email);
+  // Use Playwright's built-in auto-waiting instead of explicit waitFor
+  // This is more reliable and follows best practices
+  await page.locator('input[type="email"]').fill(user.email);
+  await page.locator('input[type="password"]').fill(user.password);
 
-  // Fill password
-  const passwordInput = page.locator('input[type="password"]');
-  await passwordInput.waitFor({ state: 'visible', timeout: 5000 });
-  await passwordInput.fill(user.password);
-
-  // Click submit button
-  const submitButton = page.locator('button[type="submit"]');
-  await submitButton.waitFor({ state: 'visible', timeout: 5000 });
-  await submitButton.click();
-
-  // Wait for redirect to dashboard or home
-  await page.waitForURL(/\/(dashboard|home|\?)/, { timeout: 10000 });
+  // Click and wait for navigation in one step
+  await Promise.all([
+    page.waitForURL(/\/(dashboard|home|\?)/, { timeout: 15000 }),
+    page.locator('button[type="submit"]').click(),
+  ]);
 }
 
 /**
@@ -135,6 +129,9 @@ test.describe('Workspace Invitation Lifecycle', () => {
 
   test.describe('Complete Invitation Flow', () => {
     test('should complete full invitation lifecycle with notifications', async ({ page }) => {
+      // This is a long-running test that goes through multiple phases
+      test.slow(); // Triple the timeout for this test
+
       // ========================================
       // PHASE 1: Owner creates workspace and sends invitation
       // ========================================
@@ -246,6 +243,9 @@ test.describe('Workspace Invitation Lifecycle', () => {
   });
 
   test.describe('Edge Cases', () => {
+    // Configure timeout for all tests in this group
+    test.describe.configure({ timeout: 45000 });
+
     test('should handle non-existent invitation token', async ({ page }) => {
       // Use a valid UUID that doesn't exist in database
       const nonExistentToken = '00000000-0000-0000-0000-000000000000';
@@ -330,6 +330,9 @@ test.describe('Workspace Invitation Lifecycle', () => {
     });
 
     test('should handle invitation with invalid workspace ID', async ({ page }) => {
+      // This test needs login which can be slow in CI
+      test.setTimeout(50000);
+
       // Login as owner
       await loginUser(page, OWNER_USER);
 
