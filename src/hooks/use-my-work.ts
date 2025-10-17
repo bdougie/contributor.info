@@ -255,7 +255,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             assignees,
             repository_id,
             contributors:author_id(username, avatar_url),
-            repositories!inner(full_name, owner, name)
+            repositories(full_name, owner, name)
           `
           )
           .eq('responded_by', authUserId) // Only items user has responded to
@@ -287,7 +287,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             repository_id,
             reviewer_data,
             author_login,
-            repositories!inner(full_name, owner, name)
+            repositories(full_name, owner, name)
           `
           )
           .eq('responded_by', authUserId) // Only items user has responded to
@@ -317,7 +317,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             is_answered,
             repository_id,
             contributors:author_id(username, avatar_url),
-            repositories!inner(full_name, owner, name)
+            repositories(full_name, owner, name)
           `
           )
           .eq('responded_by', authUserId) // Only items user has responded to
