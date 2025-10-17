@@ -44,6 +44,7 @@ interface IssueRow {
   assignees: GitHubAssignee[] | null;
   repository_id: string;
   author_id: number;
+  author_login: string;
   repositories: RepositoryData;
 }
 
@@ -114,7 +115,6 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
           return;
         }
 
-        const avatarUrl = contributor.avatar_url;
         // Found contributor
 
         // Get workspace repository IDs for filtering
@@ -185,6 +185,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             assignees,
             repository_id,
             author_id,
+            author_login,
             repositories!inner(full_name, owner, name)
           `
           )
@@ -252,6 +253,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             assignees,
             repository_id,
             author_id,
+            author_login,
             repositories!inner(full_name, owner, name)
           `
           )
@@ -363,6 +365,31 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
           return issue.assignees.some((assignee: GitHubAssignee) => assignee.login === githubLogin);
         });
 
+        // Fetch avatars for all authors BEFORE mapping (discussions, issues, PRs)
+        const authorLogins = [
+          ...new Set([
+            ...(allDiscussions?.map((d) => d.author_login) || []),
+            ...(allIssues?.map((i) => i.author_login) || []),
+            ...(reviewPrs?.map((pr) => pr.author_login) || []),
+            ...(followUpIssues?.map((i) => i.author_login) || []),
+            ...(followUpPRs?.map((pr) => pr.author_login) || []),
+          ]),
+        ];
+        const authorAvatars = new Map<string, string>();
+
+        if (authorLogins.length > 0) {
+          const { data: authorData } = await supabase
+            .from('contributors')
+            .select('username, avatar_url')
+            .in('username', authorLogins);
+
+          authorData?.forEach((author) => {
+            if (author.avatar_url) {
+              authorAvatars.set(author.username, author.avatar_url);
+            }
+          });
+        }
+
         // Map review requested PRs to MyWorkItem
         const reviewPrItems: MyWorkItem[] =
           reviewRequestedPrs?.map((pr) => ({
@@ -377,8 +404,8 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             needsAttention: true,
             number: pr.number,
             user: {
-              username: githubLogin,
-              avatar_url: avatarUrl,
+              username: pr.author_login,
+              avatar_url: authorAvatars.get(pr.author_login),
             },
           })) || [];
 
@@ -396,29 +423,10 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             needsAttention: true,
             number: issue.number,
             user: {
-              username: githubLogin,
-              avatar_url: avatarUrl,
+              username: issue.author_login,
+              avatar_url: authorAvatars.get(issue.author_login),
             },
           })) || [];
-
-        // Fetch avatars for discussion authors
-        const discussionAuthorLogins = [
-          ...new Set(allDiscussions?.map((d) => d.author_login) || []),
-        ];
-        const authorAvatars = new Map<string, string>();
-
-        if (discussionAuthorLogins.length > 0) {
-          const { data: authorData } = await supabase
-            .from('contributors')
-            .select('username, avatar_url')
-            .in('username', discussionAuthorLogins);
-
-          authorData?.forEach((author) => {
-            if (author.avatar_url) {
-              authorAvatars.set(author.username, author.avatar_url);
-            }
-          });
-        }
 
         // Map unanswered discussions to MyWorkItem
         const discussionItems: MyWorkItem[] =
@@ -461,8 +469,8 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             needsAttention: true,
             number: issue.number,
             user: {
-              username: githubLogin,
-              avatar_url: avatarUrl,
+              username: issue.author_login,
+              avatar_url: authorAvatars.get(issue.author_login),
             },
           })) || [];
 
@@ -488,8 +496,8 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             needsAttention: true,
             number: pr.number,
             user: {
-              username: githubLogin,
-              avatar_url: avatarUrl,
+              username: pr.author_login,
+              avatar_url: authorAvatars.get(pr.author_login),
             },
           })) || [];
 
