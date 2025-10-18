@@ -84,6 +84,10 @@ export async function findSimilarItems(options: SimilaritySearchOptions): Promis
     // Embedding is already in array format from database
     const embeddingArray = itemData.embedding;
 
+    // Map frontend type to database type
+    // Frontend uses 'pr' but database expects 'pull_request'
+    const dbItemType = queryItem.type === 'pr' ? 'pull_request' : queryItem.type;
+
     // Step 4: Use the new cross-entity similarity function
     // This function handles all entity types in a single call with consistent dimensions
     const { data: similarItems, error: similarityError } = await supabase.rpc(
@@ -92,7 +96,7 @@ export async function findSimilarItems(options: SimilaritySearchOptions): Promis
         query_embedding: embeddingArray,
         repo_ids: repoIds,
         match_count: Math.min(limit * 3, 100), // Cap at 100 to prevent excessive database load
-        exclude_item_type: queryItem.type,
+        exclude_item_type: dbItemType,
         exclude_item_id: rawId,
       }
     );

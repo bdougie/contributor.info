@@ -231,7 +231,7 @@ BEGIN
     JOIN repositories r ON i.repository_id = r.id
     WHERE i.repository_id = ANY(repo_ids)
     AND i.embedding IS NOT NULL
-    AND NOT (exclude_item_type = 'issue' AND exclude_item_id = i.id::TEXT)
+    AND NOT (exclude_item_type IS NOT DISTINCT FROM 'issue' AND exclude_item_id IS NOT DISTINCT FROM i.id::TEXT)
     
     UNION ALL
     
@@ -248,7 +248,7 @@ BEGIN
     JOIN repositories r ON pr.repository_id = r.id
     WHERE pr.repository_id = ANY(repo_ids)
     AND pr.embedding IS NOT NULL
-    AND NOT (exclude_item_type = 'pull_request' AND exclude_item_id = pr.id::TEXT)
+    AND NOT (exclude_item_type IS NOT DISTINCT FROM 'pull_request' AND exclude_item_id IS NOT DISTINCT FROM pr.id::TEXT)
     
     UNION ALL
     
@@ -265,7 +265,7 @@ BEGIN
     JOIN repositories r ON d.repository_id = r.id
     WHERE d.repository_id = ANY(repo_ids)
     AND d.embedding IS NOT NULL
-    AND NOT (exclude_item_type = 'discussion' AND exclude_item_id = d.id)
+    AND NOT (exclude_item_type IS NOT DISTINCT FROM 'discussion' AND exclude_item_id IS NOT DISTINCT FROM d.id)
     
     ORDER BY similarity DESC
     LIMIT match_count;
