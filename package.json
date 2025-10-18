@@ -174,7 +174,7 @@
     "minimatch": "^10.0.3",
     "next-themes": "^0.3.0",
     "openai": "^5.22.0",
-    "posthog-js": "^1.265.0",
+    "posthog-js": "^1.268.6",
     "react": "^18.3.1",
     "react-day-picker": "^9.6.7",
     "react-dom": "^18.3.1",
