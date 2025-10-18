@@ -28,6 +28,50 @@ export interface CommentSyncResult {
   jobsQueued: number;
 }
 
+interface RepositoryBasicInfo {
+  id: string;
+  owner: string;
+  name: string;
+  updated_at: string;
+}
+
+/**
+ * Helper: Get repository IDs for a workspace
+ */
+async function getWorkspaceRepositoryIds(workspaceId: string): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('workspace_repositories')
+    .select('repository_id')
+    .eq('workspace_id', workspaceId);
+
+  if (error || !data || data.length === 0) {
+    return [];
+  }
+
+  return data.map((wr) => wr.repository_id);
+}
+
+/**
+ * Helper: Queue a sync event for a repository
+ */
+async function queueSyncEvent(
+  eventName: string,
+  repository: RepositoryBasicInfo,
+  timeRange: number
+): Promise<void> {
+  await sendInngestEvent({
+    name: eventName,
+    data: {
+      repositoryId: repository.id,
+      timeRange,
+      priority: 'medium',
+      triggerSource: 'auto-sync',
+    },
+  });
+
+  logger.log('[CommentSync] Queued %s for %s/%s', eventName, repository.owner, repository.name);
+}
+
 /**
  * Check if comment data is stale for workspace repositories
  * Data is considered stale if not synced in the last hour
@@ -36,17 +80,11 @@ export async function checkCommentStaleness(
   workspaceId: string
 ): Promise<{ isStale: boolean; lastSyncedAt: Date | null }> {
   try {
-    // Get workspace repository IDs
-    const { data: workspaceRepos, error: repoError } = await supabase
-      .from('workspace_repositories')
-      .select('repository_id')
-      .eq('workspace_id', workspaceId);
+    const repositoryIds = await getWorkspaceRepositoryIds(workspaceId);
 
-    if (repoError || !workspaceRepos || workspaceRepos.length === 0) {
+    if (repositoryIds.length === 0) {
       return { isStale: false, lastSyncedAt: null };
     }
-
-    const repositoryIds = workspaceRepos.map((wr) => wr.repository_id);
 
     // Check sync_logs for most recent comment sync
     const { data: syncLogs, error: syncError } = await supabase
@@ -141,52 +179,28 @@ export async function syncWorkspaceComments(
     const syncPromises = [];
 
     for (const repo of workspaceRepos) {
-      const repository = repo.repositories as unknown as {
-        id: string;
-        owner: string;
-        name: string;
-        updated_at: string;
-      };
+      const repository = repo.repositories as unknown as RepositoryBasicInfo;
 
       if (!repository) continue;
 
       // Queue PR comment sync event
-      const prCommentPromise = sendInngestEvent({
-        name: 'capture/repository.comments.all',
-        data: {
-          repositoryId: repository.id,
-          timeRange: DEFAULT_SYNC_TIME_RANGE_DAYS,
-          priority: 'medium',
-          triggerSource: 'auto-sync',
-        },
-      }).then(() => {
+      const prCommentPromise = queueSyncEvent(
+        'capture/repository.comments.all',
+        repository,
+        DEFAULT_SYNC_TIME_RANGE_DAYS
+      ).then(() => {
         jobsQueued++;
-        logger.log(
-          '[CommentSync] Queued PR comment sync for %s/%s',
-          repository.owner,
-          repository.name
-        );
       });
 
       syncPromises.push(prCommentPromise);
 
-      // Queue issue comment sync event via repository issues sync
-      // This will discover all issues and their comments
-      const issueCommentPromise = sendInngestEvent({
-        name: 'capture/repository.issues',
-        data: {
-          repositoryId: repository.id,
-          timeRange: DEFAULT_SYNC_TIME_RANGE_DAYS,
-          priority: 'medium',
-          triggerSource: 'auto-sync',
-        },
-      }).then(() => {
+      // Queue issue comment sync event
+      const issueCommentPromise = queueSyncEvent(
+        'capture/repository.issues',
+        repository,
+        DEFAULT_SYNC_TIME_RANGE_DAYS
+      ).then(() => {
         jobsQueued++;
-        logger.log(
-          '[CommentSync] Queued issue comment sync for %s/%s',
-          repository.owner,
-          repository.name
-        );
       });
 
       syncPromises.push(issueCommentPromise);
@@ -227,24 +241,16 @@ export async function syncWorkspaceComments(
 export async function getCommentSyncStatus(workspaceId: string): Promise<CommentSyncStatus> {
   try {
     const stalenessResult = await checkCommentStaleness(workspaceId);
+    const repositoryIds = await getWorkspaceRepositoryIds(workspaceId);
 
-    // Check if there are any active sync jobs
-    const { data: workspaceRepos } = await supabase
-      .from('workspace_repositories')
-      .select('repository_id')
-      .eq('workspace_id', workspaceId);
-
-    if (!workspaceRepos || workspaceRepos.length === 0) {
-      const status: CommentSyncStatus = {
+    if (repositoryIds.length === 0) {
+      return {
         isSyncing: false,
         lastSyncedAt: stalenessResult.lastSyncedAt,
-        isStale: Boolean(stalenessResult.isStale),
+        isStale: stalenessResult.isStale,
         estimatedCompletionSeconds: 0,
       };
-      return status;
     }
-
-    const repositoryIds = workspaceRepos.map((wr) => wr.repository_id);
 
     // Check for active sync jobs
     const { data: activeSyncs } = await supabase
@@ -255,19 +261,17 @@ export async function getCommentSyncStatus(workspaceId: string): Promise<Comment
       .eq('status', 'running')
       .limit(1);
 
-    const isSyncing = Boolean(activeSyncs && activeSyncs.length > 0);
-
+    const isSyncing = (activeSyncs?.length ?? 0) > 0;
     const estimatedCompletionSeconds = isSyncing
-      ? workspaceRepos.length * ESTIMATED_SYNC_SECONDS_PER_REPO
+      ? repositoryIds.length * ESTIMATED_SYNC_SECONDS_PER_REPO
       : 0;
 
-    const status: CommentSyncStatus = {
+    return {
       isSyncing,
       lastSyncedAt: stalenessResult.lastSyncedAt,
-      isStale: Boolean(stalenessResult.isStale),
+      isStale: stalenessResult.isStale,
       estimatedCompletionSeconds,
     };
-    return status;
   } catch (error) {
     logger.log(
       '[CommentSync] Error getting sync status: %s',
