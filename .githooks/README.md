@@ -1,49 +1,124 @@
 # Git Hooks
 
-This directory contains Git hooks to ensure code quality before pushing to the repository.
+This directory contains custom git hooks for the project.
 
 ## Available Hooks
 
 ### pre-push
-Runs the build process before allowing a push to ensure:
-- TypeScript compilation succeeds
-- No type errors exist
-- Build process completes without errors
+Located in `.githooks/pre-push`
 
-## Installation
+**Purpose:** Runs checks before pushing to remote repository
 
-To use these hooks locally, run one of the following commands:
+**What it does:**
+- Ensures all commits pass basic checks
+- Runs tests (optional)
+- Validates branch naming conventions (if configured)
 
-### Option 1: Configure Git to use the hooks directory
+**Installation:**
 ```bash
-git config core.hooksPath .githooks
-```
-
-### Option 2: Copy hooks to your local .git/hooks directory
-```bash
+# Copy to .git/hooks/
 cp .githooks/pre-push .git/hooks/pre-push
 chmod +x .git/hooks/pre-push
 ```
 
-### Option 3: Create a symlink (recommended for updates)
+## Pre-Commit Hooks (Husky)
+
+The main pre-commit hooks are managed by Husky in the `.husky/` directory.
+
+See [Pre-Commit Hooks Guide](../docs/development/pre-commit-hooks.md) for details.
+
+## Policy on --no-verify
+
+⚠️ **NEVER use `git commit --no-verify` or `git push --no-verify`**
+
+These flags bypass important quality checks including:
+- TypeScript type checking
+- ESLint validation
+- Code formatting
+- Security checks
+
+Using `--no-verify` can lead to:
+- Broken builds
+- Type errors in production
+- Security vulnerabilities
+- Code style inconsistencies
+
+## What to do instead
+
+If pre-commit hooks fail:
+
+1. **Read the error message** - It tells you what's wrong
+2. **Fix the issue** - Run the failing command locally to see details
+3. **Commit again** - Once fixed, commit normally
+
 ```bash
-ln -sf ../../.githooks/pre-push .git/hooks/pre-push
+# ❌ Don't do this
+git commit --no-verify -m "quick fix"
+
+# ✅ Do this instead
+npm run lint:fix
+npx tsc -b --noEmit
+git commit -m "fix: resolve type errors"
 ```
 
-## Bypassing Hooks (Use with caution!)
+## Common Commands
 
-If you need to push without running the hooks (not recommended):
 ```bash
-git push --no-verify
+# Check TypeScript
+npx tsc -b --noEmit
+
+# Check and fix ESLint issues
+npm run lint:fix
+
+# Format code
+npm run format
+
+# Run all checks manually
+npm run lint && npx tsc -b --noEmit
 ```
-
-## Customization
-
-You can modify the hooks to also run tests by uncommenting the test section in the pre-push hook.
 
 ## Troubleshooting
 
-If the hook isn't executing:
-1. Check that the hook file is executable: `ls -la .git/hooks/pre-push`
-2. Ensure Node.js and npm are available in your PATH
-3. Run `chmod +x .git/hooks/pre-push` if needed
+### Hooks not running?
+
+```bash
+# Reinstall Husky hooks
+npm run hooks:install
+
+# Verify hooks path
+git config core.hooksPath
+# Should output: .husky
+```
+
+### Need to bypass hooks in emergency?
+
+Only in absolute emergencies (e.g., critical production hotfix):
+
+```bash
+# Emergency only - document why in commit message
+git commit --no-verify -m "emergency: critical security patch
+
+Bypassing hooks due to production outage. Will fix type errors in follow-up commit.
+Ticket: #1234"
+
+# Immediately create follow-up commit
+git commit -m "fix: address type errors from emergency commit"
+```
+
+## Installation
+
+Hooks are automatically installed when you run:
+
+```bash
+npm install
+```
+
+To manually install:
+
+```bash
+npm run hooks:install
+```
+
+## More Information
+
+See [Pre-Commit Hooks Guide](../docs/development/pre-commit-hooks.md) for comprehensive documentation.

@@ -505,7 +505,37 @@ export const Clickable: Story = {
 
 ### 3. Commit Guidelines
 
-Use conventional commits:
+⚠️ **IMPORTANT: Never use `--no-verify`**
+
+**DO NOT bypass pre-commit hooks:**
+```bash
+# ❌ NEVER do this
+git commit --no-verify -m "quick fix"
+git push --no-verify
+
+# ✅ Always commit normally
+git commit -m "fix: resolve type errors"
+```
+
+**Why pre-commit hooks matter:**
+- TypeScript type checking catches errors before CI
+- ESLint prevents code quality issues
+- Prettier ensures consistent formatting
+- CSP validation prevents security vulnerabilities
+
+**If hooks fail:**
+1. Read the error message - it tells you what's wrong
+2. Fix the issue locally:
+   ```bash
+   npm run lint:fix        # Fix ESLint issues
+   npx tsc -b --noEmit     # Check TypeScript
+   npm run format          # Format code
+   ```
+3. Commit again (hooks will pass)
+
+See [Pre-Commit Hooks Guide](./docs/development/pre-commit-hooks.md) for details.
+
+**Use conventional commits:**
 ```bash
 feat: add contributor search functionality
 fix: resolve avatar loading issue

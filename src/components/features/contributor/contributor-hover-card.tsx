@@ -68,6 +68,9 @@ export function ContributorHoverCard({
     return <>{children}</>;
   }
 
+  // Use contributor data from props (which may include cached profile data)
+  const displayOrganizations = contributor.organizations || [];
+
   return (
     <HoverCardPrimitive.Root openDelay={0} closeDelay={100}>
       <HoverCardPrimitive.Trigger asChild>
@@ -133,6 +136,9 @@ export function ContributorHoverCard({
               >
                 <h4 className="text-sm font-semibold">{contributor.login}</h4>
               </a>
+              {contributor.name && (
+                <p className="text-xs text-muted-foreground">{contributor.name}</p>
+              )}
               <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
                 {useIssueIcons ? (
                   <AlertCircle className="h-4 w-4" />
@@ -300,34 +306,46 @@ export function ContributorHoverCard({
             </>
           )}
 
-          {contributor.organizations && contributor.organizations.length > 0 && (
+          {displayOrganizations && displayOrganizations.length > 0 && (
             <>
               <Separator className="my-3" />
-              <div className="flex flex-wrap gap-2">
-                {contributor.organizations.slice(0, 4).map((org) => (
-                  <a
-                    key={org.login}
-                    href={`https://github.com/${org.login}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 px-2 py-1 rounded-md border bg-muted/30 hover:bg-muted/50 transition-colors"
-                  >
-                    <OptimizedAvatar
-                      src={org.avatar_url}
-                      alt={org.login}
-                      size={32}
-                      lazy={false}
-                      fallback={org.login[0].toUpperCase()}
-                      className="h-4 w-4"
-                    />
-                    <span className="text-xs">{org.login}</span>
-                  </a>
-                ))}
-                {contributor.organizations.length > 4 && (
-                  <span className="flex items-center px-2 py-1 text-xs text-muted-foreground">
-                    +{contributor.organizations.length - 4}
-                  </span>
-                )}
+              <div>
+                <div className="text-sm font-medium mb-2">Organizations</div>
+                <div className="flex flex-wrap gap-2">
+                  {displayOrganizations.slice(0, 4).map((org) => {
+                    // Handle both GraphQL (avatarUrl) and REST (avatar_url) formats
+                    const avatarUrl: string =
+                      'avatarUrl' in org ? (org.avatarUrl as string) : (org.avatar_url as string);
+                    const orgName: string | undefined =
+                      'name' in org ? (org.name as string | undefined) : undefined;
+
+                    return (
+                      <a
+                        key={org.login}
+                        href={`https://github.com/${org.login}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 px-2 py-1 rounded-md border bg-muted/30 hover:bg-muted/50 transition-colors"
+                        title={orgName || org.login}
+                      >
+                        <OptimizedAvatar
+                          src={avatarUrl}
+                          alt={org.login}
+                          size={32}
+                          lazy={false}
+                          fallback={org.login[0].toUpperCase()}
+                          className="h-4 w-4"
+                        />
+                        <span className="text-xs">{org.login}</span>
+                      </a>
+                    );
+                  })}
+                  {displayOrganizations.length > 4 && (
+                    <span className="flex items-center px-2 py-1 text-xs text-muted-foreground">
+                      +{displayOrganizations.length - 4}
+                    </span>
+                  )}
+                </div>
               </div>
             </>
           )}
