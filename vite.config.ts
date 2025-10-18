@@ -98,6 +98,7 @@ export default defineConfig(() => ({
       '@testing-library/jest-dom',
       '@xenova/transformers', // Exclude embeddings library
       'onnxruntime-web', // Exclude ONNX runtime
+      'inngest', // Exclude server-only Inngest SDK
     ],
     // Remove force: true to avoid aggressive re-optimization
   },
@@ -110,6 +111,8 @@ export default defineConfig(() => ({
       strictRequires: 'auto',
     },
     rollupOptions: {
+      // Exclude server-only packages from the browser bundle
+      external: ['inngest'],
       // Conservative tree shaking optimization for better bundle size
       treeshake: {
         moduleSideEffects: false, // Safe optimization for better bundle size
