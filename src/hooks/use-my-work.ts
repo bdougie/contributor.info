@@ -2,6 +2,11 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useCurrentUser } from './use-current-user';
 import type { MyWorkItem } from '@/components/features/workspace';
+import {
+  syncWorkspaceComments,
+  getCommentSyncStatus,
+  type CommentSyncStatus,
+} from '@/lib/workspace/comment-sync-service';
 
 interface RepositoryData {
   full_name: string;
@@ -101,6 +106,8 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [commentSyncStatus, setCommentSyncStatus] = useState<CommentSyncStatus | null>(null);
+  const [isSyncingComments, setIsSyncingComments] = useState(false);
 
   useEffect(() => {
     async function fetchMyWork() {
@@ -765,5 +772,64 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
 
   const refresh = () => setRefreshTrigger((prev) => prev + 1);
 
-  return { items, totalCount, loading, error, refresh };
+  /**
+   * Sync comments for the workspace
+   * Triggers background jobs to fetch latest comments from GitHub
+   */
+  const syncComments = async (forceSync = false) => {
+    if (!workspaceId) {
+      console.warn('[useMyWork] Cannot sync comments: no workspace ID provided');
+      return;
+    }
+
+    setIsSyncingComments(true);
+
+    try {
+      const result = await syncWorkspaceComments(workspaceId, forceSync);
+
+      if (result.success) {
+        console.log('[useMyWork] Comment sync triggered:', result.message);
+
+        // Refresh data after a short delay to allow sync to complete
+        setTimeout(() => {
+          refresh();
+        }, 3000);
+      } else {
+        console.error('[useMyWork] Comment sync failed:', result.message);
+      }
+    } catch (err) {
+      console.error('[useMyWork] Error syncing comments:', err);
+    } finally {
+      setIsSyncingComments(false);
+    }
+  };
+
+  /**
+   * Check comment sync status
+   * Useful for determining if data is stale
+   */
+  const checkCommentSyncStatus = async () => {
+    if (!workspaceId) return;
+
+    try {
+      const status = await getCommentSyncStatus(workspaceId);
+      setCommentSyncStatus(status);
+      return status;
+    } catch (err) {
+      console.error('[useMyWork] Error checking comment sync status:', err);
+      return null;
+    }
+  };
+
+  return {
+    items,
+    totalCount,
+    loading,
+    error,
+    refresh,
+    syncComments,
+    checkCommentSyncStatus,
+    isSyncingComments,
+    commentSyncStatus,
+  };
 }

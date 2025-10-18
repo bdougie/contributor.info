@@ -3,10 +3,10 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { ArrowRight, Activity } from '@/components/ui/icon';
+import { ArrowRight, Activity, RefreshCw } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
-import { useState, memo } from 'react';
+import { useState, memo, useEffect } from 'react';
 import { sanitizeText, sanitizeURL } from '@/lib/sanitize';
 import { WorkspaceSubTabs } from '@/components/features/workspace/components/WorkspaceSubTabs';
 
@@ -62,6 +62,12 @@ export interface MyWorkCardProps {
   onViewAll?: () => void;
   onPageChange?: (page: number) => void;
   onRespond?: (item: MyWorkItem) => void;
+  onSyncComments?: () => Promise<void>;
+  isSyncingComments?: boolean;
+  commentSyncStatus?: {
+    isStale: boolean;
+    lastSyncedAt: Date | null;
+  };
 }
 
 function MyWorkItemSkeleton() {
@@ -277,6 +283,9 @@ export function MyWorkCard({
   onViewAll,
   onPageChange,
   onRespond,
+  onSyncComments,
+  isSyncingComments = false,
+  commentSyncStatus,
 }: MyWorkCardProps) {
   const [selectedTypes, setSelectedTypes] = useState<Array<'pr' | 'issue' | 'discussion'>>([
     'pr',
@@ -286,6 +295,30 @@ export function MyWorkCard({
   const [issueTab, setIssueTab] = useState<'needs_response' | 'follow_ups' | 'replies'>(
     'needs_response'
   );
+  const [hasAutoSynced, setHasAutoSynced] = useState(false);
+
+  // Auto-sync comments when Replies tab is opened and data is stale
+  useEffect(() => {
+    const shouldAutoSync =
+      issueTab === 'replies' &&
+      !hasAutoSynced &&
+      onSyncComments &&
+      commentSyncStatus?.isStale &&
+      !isSyncingComments;
+
+    if (shouldAutoSync) {
+      console.log('[MyWorkCard] Auto-syncing comments - data is stale');
+      setHasAutoSynced(true);
+      onSyncComments();
+    }
+  }, [issueTab, hasAutoSynced, onSyncComments, commentSyncStatus, isSyncingComments]);
+
+  // Reset auto-sync flag when user navigates away from Replies tab
+  useEffect(() => {
+    if (issueTab !== 'replies') {
+      setHasAutoSynced(false);
+    }
+  }, [issueTab]);
 
   const toggleType = (type: 'pr' | 'issue' | 'discussion') => {
     setSelectedTypes((prev) => {
@@ -490,29 +523,61 @@ export function MyWorkCard({
 
         {/* Tabs: "Needs Response", "Follow-ups", and "Replies" for all item types */}
         <div className="mb-4">
-          <WorkspaceSubTabs
-            tabs={[
-              {
-                value: 'needs_response',
-                label: 'Needs Response',
-                count: needsResponseCount,
-              },
-              {
-                value: 'follow_ups',
-                label: 'Follow-ups',
-                count: followUpsCount,
-              },
-              {
-                value: 'replies',
-                label: 'Replies',
-                count: repliesCount,
-              },
-            ]}
-            activeTab={issueTab}
-            onTabChange={(value) =>
-              setIssueTab(value as 'needs_response' | 'follow_ups' | 'replies')
-            }
-          />
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex-1">
+              <WorkspaceSubTabs
+                tabs={[
+                  {
+                    value: 'needs_response',
+                    label: 'Needs Response',
+                    count: needsResponseCount,
+                  },
+                  {
+                    value: 'follow_ups',
+                    label: 'Follow-ups',
+                    count: followUpsCount,
+                  },
+                  {
+                    value: 'replies',
+                    label: 'Replies',
+                    count: repliesCount,
+                  },
+                ]}
+                activeTab={issueTab}
+                onTabChange={(value) =>
+                  setIssueTab(value as 'needs_response' | 'follow_ups' | 'replies')
+                }
+              />
+            </div>
+            {issueTab === 'replies' && onSyncComments && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2 text-xs gap-1"
+                onClick={() => onSyncComments()}
+                disabled={isSyncingComments}
+                title="Refresh comments from GitHub"
+              >
+                <RefreshCw className={cn('h-3 w-3', isSyncingComments && 'animate-spin')} />
+                {isSyncingComments ? 'Syncing...' : 'Refresh'}
+              </Button>
+            )}
+          </div>
+
+          {/* Sync status indicator */}
+          {issueTab === 'replies' && commentSyncStatus && (
+            <div className="mt-2 text-xs text-muted-foreground">
+              {commentSyncStatus.lastSyncedAt ? (
+                <span>
+                  Last updated{' '}
+                  {formatDistanceToNow(commentSyncStatus.lastSyncedAt, { addSuffix: true })}
+                  {commentSyncStatus.isStale && ' (stale)'}
+                </span>
+              ) : (
+                <span>No sync data available</span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Items count */}

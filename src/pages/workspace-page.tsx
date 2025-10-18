@@ -128,7 +128,13 @@ function WorkspacePage() {
 
   // Fetch live My Work data
   // Use workspace?.id (UUID) instead of workspaceId (which is a slug)
-  const { items: myWorkItems, refresh: refreshMyWork } = useMyWork(workspace?.id);
+  const {
+    items: myWorkItems,
+    refresh: refreshMyWork,
+    syncComments,
+    isSyncingComments,
+    commentSyncStatus,
+  } = useMyWork(workspace?.id);
   // TODO: Add pagination state, totalCount, and loading to WorkspaceDashboard props
   const [fullPRData, setFullPRData] = useState<WorkspaceActivityProps['prData']>([]);
   const [fullIssueData, setFullIssueData] = useState<WorkspaceActivityProps['issueData']>([]);
@@ -1570,6 +1576,9 @@ function WorkspacePage() {
                     setLoadingSimilarItems(false);
                   }
                 }}
+                onSyncComments={syncComments}
+                isSyncingComments={isSyncingComments}
+                commentSyncStatus={commentSyncStatus ?? undefined}
                 repoStatuses={appStatus.repoStatuses}
               />
             </div>
