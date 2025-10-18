@@ -19,7 +19,8 @@ export interface MyWorkItem {
     | 'review_requested'
     | 'mentioned'
     | 'participant'
-    | 'follow_up';
+    | 'follow_up'
+    | 'my_comment';
   title: string;
   repository: string;
   status: 'open' | 'merged' | 'closed' | 'answered';
@@ -157,6 +158,12 @@ const MyWorkItemComponent = memo(function MyWorkItemComponent({
       return 'discussion with new replies';
     }
 
+    if (itemType === 'my_comment') {
+      if (type === 'pr') return 'commented on PR';
+      if (type === 'issue') return 'commented on issue';
+      return 'commented on discussion';
+    }
+
     return 'updated';
   };
 
@@ -276,7 +283,9 @@ export function MyWorkCard({
     'issue',
     'discussion',
   ]);
-  const [issueTab, setIssueTab] = useState<'needs_response' | 'follow_ups'>('needs_response');
+  const [issueTab, setIssueTab] = useState<'needs_response' | 'follow_ups' | 'replies'>(
+    'needs_response'
+  );
 
   const toggleType = (type: 'pr' | 'issue' | 'discussion') => {
     setSelectedTypes((prev) => {
@@ -301,11 +310,24 @@ export function MyWorkCard({
   // This ensures PRs, Issues, and Discussions are filtered consistently
   if (issueTab === 'needs_response') {
     // Show items needing response (not yet responded to)
-    filteredItems = filteredItems.filter((item) => item.itemType !== 'follow_up');
-  } else {
+    filteredItems = filteredItems.filter(
+      (item) => item.itemType !== 'follow_up' && item.itemType !== 'my_comment'
+    );
+  } else if (issueTab === 'follow_ups') {
     // Show items with follow-up activity (you've responded, now they've replied)
     filteredItems = filteredItems.filter((item) => item.itemType === 'follow_up');
+  } else if (issueTab === 'replies') {
+    // Show user's own comments/replies
+    filteredItems = filteredItems.filter((item) => item.itemType === 'my_comment');
   }
+
+  // Calculate tab counts based on filtered types (not all items)
+  const typeFilteredItems = items.filter((item) => selectedTypes.includes(item.type));
+  const needsResponseCount = typeFilteredItems.filter(
+    (item) => item.itemType !== 'follow_up' && item.itemType !== 'my_comment'
+  ).length;
+  const followUpsCount = typeFilteredItems.filter((item) => item.itemType === 'follow_up').length;
+  const repliesCount = typeFilteredItems.filter((item) => item.itemType === 'my_comment').length;
   const totalPages = Math.ceil(totalCount / itemsPerPage);
   if (loading) {
     return (
@@ -466,23 +488,30 @@ export function MyWorkCard({
           </div>
         </div>
 
-        {/* Tabs: "Needs Response" and "Follow-ups" for all item types */}
+        {/* Tabs: "Needs Response", "Follow-ups", and "Replies" for all item types */}
         <div className="mb-4">
           <WorkspaceSubTabs
             tabs={[
               {
                 value: 'needs_response',
                 label: 'Needs Response',
-                count: items.filter((item) => item.itemType !== 'follow_up').length,
+                count: needsResponseCount,
               },
               {
                 value: 'follow_ups',
                 label: 'Follow-ups',
-                count: items.filter((item) => item.itemType === 'follow_up').length,
+                count: followUpsCount,
+              },
+              {
+                value: 'replies',
+                label: 'Replies',
+                count: repliesCount,
               },
             ]}
             activeTab={issueTab}
-            onTabChange={(value) => setIssueTab(value as 'needs_response' | 'follow_ups')}
+            onTabChange={(value) =>
+              setIssueTab(value as 'needs_response' | 'follow_ups' | 'replies')
+            }
           />
         </div>
 

@@ -61,6 +61,36 @@ interface DiscussionRow {
   repositories: RepositoryData;
 }
 
+interface CommentRow {
+  id: string;
+  created_at: string;
+  body: string;
+  comment_type: string;
+  pull_request_id: string;
+  pull_requests: {
+    number: number;
+    title: string;
+    state: string;
+    merged: boolean;
+    repository_id: string;
+    repositories: RepositoryData;
+  };
+}
+
+interface DiscussionCommentRow {
+  id: string;
+  created_at: string;
+  body: string;
+  discussion_id: string;
+  discussions: {
+    number: number;
+    title: string;
+    is_answered: boolean;
+    repository_id: string;
+    repositories: RepositoryData;
+  };
+}
+
 /**
  * Hook to fetch the current user's work items (PRs, issues, and discussions)
  */
@@ -332,6 +362,75 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
           console.error('Error fetching follow-up discussions:', followUpDiscussionError);
         }
 
+        // Query 7: User's recent PR/issue comments
+        // Fetch all user comments, then filter by workspace client-side
+        // (PostgREST doesn't support filtering on nested join columns)
+        const userCommentsQuery = supabase
+          .from('comments')
+          .select(
+            `
+            id,
+            created_at,
+            body,
+            comment_type,
+            pull_request_id,
+            pull_requests!inner(
+              number,
+              title,
+              state,
+              merged,
+              repository_id,
+              repositories(full_name, owner, name)
+            )
+          `
+          )
+          .eq('commenter_id', contributor.id)
+          .order('created_at', { ascending: false })
+          .limit(100);
+
+        const { data: rawUserComments, error: userCommentsError } = await userCommentsQuery;
+
+        if (userCommentsError) {
+          console.error('Error fetching user comments:', userCommentsError);
+        }
+
+        console.log(`Found ${rawUserComments?.length || 0} total user comments`);
+        console.log('Workspace repo IDs to filter:', workspaceRepoIds);
+
+        // Query 8: User's recent discussion comments
+        // Fetch all user comments, then filter by workspace client-side
+        const userDiscussionCommentsQuery = supabase
+          .from('discussion_comments')
+          .select(
+            `
+            id,
+            created_at,
+            body,
+            discussion_id,
+            discussions!inner(
+              number,
+              title,
+              is_answered,
+              repository_id,
+              repositories(full_name, owner, name)
+            )
+          `
+          )
+          .eq('author_login', githubLogin)
+          .order('created_at', { ascending: false })
+          .limit(100);
+
+        const { data: rawUserDiscussionComments, error: userDiscussionCommentsError } =
+          await userDiscussionCommentsQuery;
+
+        if (userDiscussionCommentsError) {
+          console.error('Error fetching user discussion comments:', userDiscussionCommentsError);
+        }
+
+        console.log(
+          `Found ${rawUserDiscussionComments?.length || 0} total user discussion comments`
+        );
+
         // Type assertions for Supabase join responses
         const reviewPrs = rawReviewPrs as unknown as PullRequestRow[] | null;
         const allIssues = rawIssues as unknown as IssueRow[] | null;
@@ -344,6 +443,10 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
           | null;
         const followUpDiscussions = rawFollowUpDiscussions as unknown as
           | (DiscussionRow & { responded_at: string })[]
+          | null;
+        const userComments = rawUserComments as unknown as CommentRow[] | null;
+        const userDiscussionComments = rawUserDiscussionComments as unknown as
+          | DiscussionCommentRow[]
           | null;
 
         // Query results collected
@@ -551,6 +654,78 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
             },
           })) || [];
 
+        // Filter and map user comments (PR/issue comments) to MyWorkItem
+        const filteredUserComments = userComments?.filter((comment) => {
+          if (!comment.pull_requests) return false;
+          if (workspaceRepoIds.length === 0) return true;
+          return workspaceRepoIds.includes(comment.pull_requests.repository_id);
+        });
+
+        console.log(`After workspace filter: ${filteredUserComments?.length || 0} user comments`);
+        if (filteredUserComments && filteredUserComments.length > 0) {
+          console.log('Sample filtered comment:', {
+            repo: filteredUserComments[0].pull_requests.repositories.full_name,
+            created: filteredUserComments[0].created_at,
+            pr: filteredUserComments[0].pull_requests.number,
+          });
+        }
+
+        const userCommentItems: MyWorkItem[] =
+          filteredUserComments?.map((comment) => {
+            const pr = comment.pull_requests;
+            const isPR = comment.comment_type === 'review_comment' || pr.state !== 'closed';
+            const status = pr.merged ? 'merged' : (pr.state as 'open' | 'closed');
+
+            return {
+              id: `my-comment-${comment.id}`,
+              type: isPR ? ('pr' as const) : ('issue' as const),
+              itemType: 'my_comment' as const,
+              title: pr.title,
+              repository: pr.repositories.full_name,
+              status,
+              url: `https://github.com/${pr.repositories.owner}/${pr.repositories.name}/${isPR ? 'pull' : 'issues'}/${pr.number}#issuecomment-${comment.id}`,
+              updated_at: comment.created_at,
+              needsAttention: false,
+              number: pr.number,
+              user: {
+                username: githubLogin,
+                avatar_url: contributor.avatar_url || undefined,
+              },
+            };
+          }) || [];
+
+        // Filter and map user discussion comments to MyWorkItem
+        const filteredDiscussionComments = userDiscussionComments?.filter((comment) => {
+          if (!comment.discussions) return false;
+          if (workspaceRepoIds.length === 0) return true;
+          return workspaceRepoIds.includes(comment.discussions.repository_id);
+        });
+
+        console.log(
+          `After workspace filter: ${filteredDiscussionComments?.length || 0} discussion comments`
+        );
+
+        const userDiscussionCommentItems: MyWorkItem[] =
+          filteredDiscussionComments?.map((comment) => {
+            const discussion = comment.discussions;
+            return {
+              id: `my-discussion-comment-${comment.id}`,
+              type: 'discussion' as const,
+              itemType: 'my_comment' as const,
+              title: discussion.title,
+              repository: discussion.repositories.full_name,
+              status: discussion.is_answered ? ('answered' as const) : ('open' as const),
+              url: `https://github.com/${discussion.repositories.owner}/${discussion.repositories.name}/discussions/${discussion.number}#discussioncomment-${comment.id}`,
+              updated_at: comment.created_at,
+              needsAttention: false,
+              number: discussion.number,
+              user: {
+                username: githubLogin,
+                avatar_url: contributor.avatar_url || undefined,
+              },
+            };
+          }) || [];
+
         // Combine and sort by updated_at
         const allItems = [
           ...reviewPrItems,
@@ -559,6 +734,8 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
           ...followUpIssueItems,
           ...followUpPRItems,
           ...followUpDiscussionItems,
+          ...userCommentItems,
+          ...userDiscussionCommentItems,
         ].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
 
         // Processed items needing attention
